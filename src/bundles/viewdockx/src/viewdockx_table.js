@@ -1,19 +1,90 @@
 // vim: set expandtab shiftwidth=4 softtabstop=4:
 
-var vdxtable = {
-    custom_scheme: "vdxtable",
-    update_display: function(new_display) {
+var vdxtable = function() {
+    var custom_scheme = "vdxtable";
+
+    function update_columns(columns) {
+        var numeric = columns["numeric"];
+        var text = columns["text"];
+        var names = text["name"];
+        // Create table headers
+        var thead = $("<thead/>");
+        var row = $("<tr/>");
+        // column 1 is the sort/show column for numeric data
+        row.append($("<th/>"));
+        // column 2 is for ids
+        row.append($("<th/>").text("ID"));
+        // column 3 is for names, if present
+        if (names != null)
+            row.append($("<th/>").text("NAME"));
+        var text_order = ["id", "name"];
+        $.each(text, function(key, v) {
+            if (key != "id" && key != "name") {
+                row.append($("<th/>").text(key.toUpperCase()));
+                text_order.push(key);
+            }
+        });
+        var numeric_order = [];
+        $.each(numeric, function(key, v) {
+            row.append($("<th/>").text(key.toUpperCase()));
+            numeric_order.push(key);
+        });
+        thead.append(row);
+        // Create table body
+        var tbody = $("<tbody/>");
+        $.each(text["id"], function(i, id) {
+            var row = $("<tr/>");
+            var query = "?id=" + id;
+            var checkbox_url = custom_scheme + ":checkbox" + query;
+            var link_url = custom_scheme + ":link" + query;
+            row.append($("<td/>").append($("<input/>", {
+                                            type: "checkbox",
+                                            class: "structure",
+                                            id: _checkbox_id(id),
+                                            href: checkbox_url })));
+            row.append($("<td/>").append($("<a/>", { href: link_url })
+                                            .text(id)));
+            if (names != null)
+                row.append($("<td/>").text(names[i]));
+            $.each(text_order, function(n, key) {
+                if (key != "id" && key != "name")
+                    row.append($("<td/>").text(text[key][i]));
+            });
+            $.each(numeric_order, function(n, key) {
+                row.append($("<td/>").text(numeric[key][i]));
+            });
+            tbody.append(row);
+        });
+        $("#viewdockx_table").empty().append(thead, tbody);
+
+        // Re-setup jQuery handlers
+        $("#viewdockx_table").tablesorter({
+            theme: 'blue',
+            headers: { 1: { sorter: 'id_col' } }
+        });
+        $(".structure").click(function() {
+            if ($(this).is(":checked")) {
+                window.location = $(this).attr('href') + "&display=1";
+            } else {
+                window.location = $(this).attr('href') + "&display=0";
+            }
+        });
+    }
+
+    function _checkbox_id(id) {
+        // jQuery does not like '.' in id names even though JS does not care
+        return "cb_" + id.replace('.', '_', 'g');
+    }
+
+    function update_display(new_display) {
         for (var i = 0; i < new_display.length; i++) {
             var id = new_display[i][0];
             var checked = new_display[i][1];
-            document.getElementById("cb_" + id).checked = checked;
+            $("#" + _checkbox_id(id)).prop("checked", checked);
         }
     }
-}
 
-function init() {
-
-    $(document).ready(function() {
+    function init() {
         $.tablesorter.addParser({
             id: 'id_col',
             is: function(s) {
@@ -35,57 +106,27 @@ function init() {
             // set type, either numeric or text
             type: 'text'
         });
-        $("#viewdockx_table").tablesorter({
-            theme: 'blue',
-            headers: {
-                1: { sorter: 'id_col' }
-            }
+
+        $("#show_all_btn").click(function() {
+            window.location = custom_scheme + ":check_all?show_all=true";
         });
-    });
-
-    $(".structure").click(function() {
-        if ($(this).is(":checked")) {
-            window.location = $(this).attr('href') + "&display=1";
-        } else {
-            window.location = $(this).attr('href') + "&display=0";
-        }
-    });
-
-    $("#show_all_btn").click(function() {
-        window.location = vdxtable.custom_scheme + ":check_all?show_all=true";
-    });
-
-    var data_array = [];
-    var label_array = [];
-    var property;
-
-    $('#viewdockx_table tr td').on('click', function() {
-        var $currentTable = $(this).closest('table');
-        var index = $(this).index();
-        $currentTable.find('td').removeClass('selected');
-        $currentTable.find('tr').each(function() {
-            $(this).find('td').eq(index).addClass('selected');
+        $('#chart_btn').on('click', function() {
+            window.location = custom_scheme + ":chart";
         });
-        data_array = $(`#viewdockx_table td:nth-child(${index + 1}`).map(function() {
-            return $(this).text();
-        }).get();
+        $('#plot_btn').on('click', function() {
+            window.location = custom_scheme + ":plot";
+        });
+        $('#histogram_btn').on('click', function() {
+            window.location = custom_scheme + ":histogram";
+        });
+    }
 
-        // ASSUMING NAME COLUMNS STAYS AS 2ND COLUMN. MAY NEED CHANGES LATER
-        label_array = $(`#viewdockx_table td:nth-child(${2}`).map(function() {
-            return $(this).text();
-        }).get();
+    return {
+        custom_scheme: custom_scheme,
+        update_columns: update_columns,
+        update_display: update_display,
+        init: init
+    }
+}();
 
-        property = $('#viewdockx_table th').eq($(this).index()).text();
-
-    });
-
-    $('#chart_btn').on('click', function() {
-        window.location = vdxtable.custom_scheme + ":chart";
-    });
-    $('#plot_btn').on('click', function() {
-        window.location = vdxtable.custom_scheme + ":plot";
-    });
-    $('#histogram_btn').on('click', function() {
-        window.location = vdxtable.custom_scheme + ":histogram";
-    });
-}
+$(document).ready(vdxtable.init);

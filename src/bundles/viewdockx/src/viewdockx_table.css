@@ -28,6 +28,9 @@ table, th, td {
   border: 1px solid grey;
   border-collapse: collapse;
 }
+table {
+  width:100%;
+}
 th {
   background-color: #BBB;
   text-align: center;

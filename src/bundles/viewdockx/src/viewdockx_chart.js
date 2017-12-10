@@ -1,16 +1,21 @@
 // vim: set expandtab shiftwidth=4 softtabstop=4:
 
 var vdxchart = function() {
-    var columns = [{}, {}];
+    var columns = { numeric: {}, text:{} };
+    var display = [];
+    var id2index = {};
     var tooltip_shown = false;
     var shift_down = false;
     var custom_scheme = "vdxchart";
+    var plot = null;
 
     function make_button(btype, name, value, text, checked) {
         return $("<label/>").text(text).append(
-                    $("<input/>", {"type":btype, "name":name,
-                                   "value":value, "class":name,
-                                   "checked":checked}).click(update_plot));
+                    $("<input/>", { type: btype,
+                                    name: name,
+                                    value: value,
+                                    class: name,
+                                    checked: checked }).click(update_plot));
     }
 
     function update_columns(new_columns) {
@@ -19,23 +24,23 @@ var vdxchart = function() {
         var sort_column = $(".sort:checked").attr("value");
         var show_columns = []
         $(".show:checked").map(function() {
-            if (this.value in columns[0])
+            if (this.value in columns["numeric"])
                 show_columns.push(this.value);
         });
         if (show_columns.length == 0)
-            show_columns.push(Object.keys(columns[0])[0])
+            show_columns.push(Object.keys(columns["numeric"])[0])
 
         // Clear out the table and fill in with text
         // then numeric column names
         $("#column_table").empty();
-        $.each(columns[1], function(r, v) {
+        $.each(columns["text"], function(r, v) {
             $("#column_table").append($("<tr/>").append(
                                         $("<td/>"),
                                         $("<td/>").text(r),
                                         $("<td/>").addClass("value")
                                                   .prop("title", r)))
             });
-        $.each(columns[0], function(r, v) {
+        $.each(columns["numeric"], function(r, v) {
             var sort_btn = make_button("radio", "sort", r, "sort",
                                        r == sort_column);
             var show_btn = make_button("checkbox", "show", r, "show",
@@ -58,6 +63,7 @@ var vdxchart = function() {
                 lines: { show: true }
             },
             grid: {
+                autoHighlight: false,
                 hoverable: true,
                 clickable: true
             },
@@ -68,9 +74,9 @@ var vdxchart = function() {
         }
 
         // Get order of compounds based on sort column
-        var text = columns[1];
-        var numeric = columns[0];
-        var ids = text["Id"]
+        var text = columns["text"];
+        var numeric = columns["numeric"];
+        var ids = text["id"];
         var order = ids.map(function(e, i) { return i; });
         var sort_column = $(".sort:checked").attr("value");
         if (sort_column != null) {
@@ -78,6 +84,11 @@ var vdxchart = function() {
             order.sort(function(a, b) { return data[a] < data[b] ? -1 :
                                                data[a] > data[b] ? 1 : 0 });
         }
+
+        // Create mapping from id->display
+        display = [];
+        id2index = {}
+        $.each(ids, function(i, e) { id2index[e] = i; display.push(false); });
 
         // Generate a series for each shown column
         $(".show:checked").each(function() {
@@ -91,13 +102,13 @@ var vdxchart = function() {
         });
 
         // Show the data
-        $.plot("#data", series, opts);
+        plot = $.plot("#data", series, opts);
     }
 
     function plot_click(event, pos, item) {
         if (item == null)
             return;
-        var id = columns[1]["Id"][item.dataIndex];
+        var id = columns["text"]["id"][item.dataIndex];
         var action = shift_down ? "show_toggle" : "show_only";
         window.location = custom_scheme + ":" + action + "?id=" + id;
     }
@@ -111,14 +122,17 @@ var vdxchart = function() {
                 // But leave table data alone
             }
         } else {
+            var numeric = columns["numeric"];
+            var text = columns["text"];
+
             // Show tooltip
             var label = item.series.label;
-            var id = columns[1]["Id"][item.dataIndex];
+            var id = text["id"][item.dataIndex];
             var name = "";
-            var names = columns[1]["Name"];
+            var names = text["name"];
             if (names != null)
                 name = " (" + names[item.dataIndex] + ")";
-            var value = columns[0][item.series.label][item.dataIndex];
+            var value = numeric[item.series.label][item.dataIndex];
             var where = { bottom: ($(window).height() - item.pageY) + 5 };
             if (item.pageX > ($(window).width() - item.pageX)) {
                 where.left = '';
@@ -131,8 +145,6 @@ var vdxchart = function() {
             tooltip_shown = true;
 
             // Show data values in control table
-            var numeric = columns[0];
-            var text = columns[1];
             $(".value").each(function() {
                 var column_name = this.title;
                 var value = "";
@@ -149,27 +161,41 @@ var vdxchart = function() {
         shift_down = e.shiftKey;
     }
 
-    return {
-        plot_click: plot_click,
-        plot_hover: plot_hover,
-        shift_event: shift_event,
-        update_columns: update_columns
+    function update_display(new_display) {
+        // Update internal display state
+        $.each(new_display, function () {
+            display[id2index[this[0]]] = this[1];
+        });
+        // Highlight displayed models
+        var num_series = plot.getData().length;
+        plot.unhighlight();
+        $.each(display, function(i, shown) {
+            if (shown) {
+                for (var n = 0; n < num_series; n++)
+                    plot.highlight(n, i);
+            }
+        });
     }
 
-}();
-
-function init() {
-    $(document).ready(function() {
+    function init() {
         $("<div id='tooltip'></div>").css({
 			position: "absolute",
 			display: "none",
 			border: "1px solid #fdd",
 			padding: "2px",
-			"background-color": "#fee",
+			backgroundColor: "#fee",
 			opacity: 0.80
 		}).appendTo("body");
-        $("#data").bind("plotclick", vdxchart.plot_click)
-                  .bind("plothover", vdxchart.plot_hover)
-                  .mousedown(vdxchart.shift_event);
-    });
-}
+        $("#data").bind("plotclick", plot_click)
+                  .bind("plothover", plot_hover)
+                  .mousedown(shift_event);
+    }
+
+    return {
+        update_columns: update_columns,
+        update_display: update_display,
+        init: init
+    }
+}();
+
+$(document).ready(vdxchart.init);
