@@ -638,7 +638,7 @@ class Pseudobond(State):
     as ribbons) and that therefore the pseudobonds should still display to "hidden" atoms.
     However, if 'shown_when_atoms_hidden' is False then the pseudobonds will never be displayed
     if either endpoint atom is hidden (regardless of the display attribute), but will honor
-    the 'display' attribute when the atoms aren't hidden.  Defaults to True."""
+    the 'display' attribute when the atoms aren't hidden.  Defaults to True.''')
 
     def delete(self):
         '''Delete this pseudobond from it's group'''
