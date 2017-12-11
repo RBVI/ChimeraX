@@ -332,6 +332,7 @@ class Volume(Model):
       s.vertex_colors = None
     self.solid_colors = [rgba]*len(self.solid_levels)
     self.update_display()
+    self.call_change_callbacks('colors changed')
 
   # ---------------------------------------------------------------------------
   #
