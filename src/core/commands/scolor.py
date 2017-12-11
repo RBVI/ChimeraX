@@ -591,12 +591,13 @@ class Volume_Color:
         
     # -------------------------------------------------------------------------
     #
-    def volume_values(self, surface_piece):
+    def volume_values(self, surface):
 
-        p = surface_piece
-        tf = p.position
-        v = p.vertices
-        n = p.normals
+        s = surface
+        # Transform from surface to volume coordinates
+        tf = self.volume.scene_position.inverse() * s.scene_position
+        v = s.vertices
+        n = s.normals
         return self.offset_values(v, n, tf)
 
     # -------------------------------------------------------------------------
