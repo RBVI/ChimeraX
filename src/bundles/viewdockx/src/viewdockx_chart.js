@@ -3,7 +3,8 @@
 var vdxchart = function() {
     var columns = { numeric: {}, text:{} };
     var display = [];
-    var id2index = {};
+    var id2index = {};              // structure id -> sorted data index
+    var index2index = {};           // sorted data index -> raw data index
     var tooltip_shown = false;
     var shift_down = false;
     var custom_scheme = "vdxchart";
@@ -23,7 +24,7 @@ var vdxchart = function() {
         // Save sort and shown columns
         var sort_column = $(".sort:checked").attr("value");
         var show_columns = []
-        $(".show:checked").map(function() {
+        $(".display:checked").map(function() {
             if (this.value in columns["numeric"])
                 show_columns.push(this.value);
         });
@@ -41,9 +42,9 @@ var vdxchart = function() {
                                                   .prop("title", r)))
             });
         $.each(columns["numeric"], function(r, v) {
-            var sort_btn = make_button("radio", "sort", r, "sort",
+            var sort_btn = make_button("radio", "sort", r, "S",
                                        r == sort_column);
-            var show_btn = make_button("checkbox", "show", r, "show",
+            var show_btn = make_button("checkbox", "display", r, "D",
                                        show_columns.includes(r));
             $("#column_table").append($("<tr/>").append(
                                         $("<td/>").append(sort_btn, show_btn),
@@ -81,9 +82,21 @@ var vdxchart = function() {
         var sort_column = $(".sort:checked").attr("value");
         if (sort_column != null) {
             var data = numeric[sort_column];
-            order.sort(function(a, b) { return data[a] < data[b] ? -1 :
-                                               data[a] > data[b] ? 1 : 0 });
+            order.sort(function(a, b) {
+                if (data[a] == null)
+                    return 1;
+                if (data[b] == null)
+                    return -1;
+                if (data[a] < data[b])
+                    return -1;
+                if (data[a] > data[b])
+                    return 1;
+                return 0;
+            });
         }
+        index2index = [];
+        for (var i = 0; i < order.length; i++)
+            index2index[i] = order[i];
 
         // Create mapping from id->display
         display = [];
@@ -91,7 +104,7 @@ var vdxchart = function() {
         $.each(ids, function(i, e) { id2index[e] = i; display.push(false); });
 
         // Generate a series for each shown column
-        $(".show:checked").each(function() {
+        $(".display:checked").each(function() {
             var label = this.value;
             var data = numeric[label];
             series.push({ label: label,
@@ -108,7 +121,8 @@ var vdxchart = function() {
     function plot_click(event, pos, item) {
         if (item == null)
             return;
-        var id = columns["text"]["id"][item.dataIndex];
+        var raw_index = index2index[item.dataIndex];
+        var id = columns["text"]["id"][raw_index];
         var action = shift_down ? "show_toggle" : "show_only";
         window.location = custom_scheme + ":" + action + "?id=" + id;
     }
@@ -126,13 +140,14 @@ var vdxchart = function() {
             var text = columns["text"];
 
             // Show tooltip
+            var raw_index = index2index[item.dataIndex];
             var label = item.series.label;
-            var id = text["id"][item.dataIndex];
+            var id = text["id"][raw_index];
             var name = "";
             var names = text["name"];
             if (names != null)
-                name = " (" + names[item.dataIndex] + ")";
-            var value = numeric[item.series.label][item.dataIndex];
+                name = " (" + names[raw_index] + ")";
+            var value = numeric[item.series.label][raw_index];
             var where = { bottom: ($(window).height() - item.pageY) + 5 };
             if (item.pageX > ($(window).width() - item.pageX)) {
                 where.left = '';
@@ -149,9 +164,9 @@ var vdxchart = function() {
                 var column_name = this.title;
                 var value = "";
                 if (column_name in numeric)
-                    value = numeric[column_name][item.dataIndex];
+                    value = numeric[column_name][raw_index];
                 else if (column_name in text)
-                    value = text[column_name][item.dataIndex];
+                    value = text[column_name][raw_index];
                 this.textContent = value;
             });
         }

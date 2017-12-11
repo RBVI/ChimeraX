@@ -22,10 +22,10 @@ class _BaseTool:
             # Include structures only if they have viewdock data
             from chimerax.core.atomic import AtomicStructure
             structures = [s for s in session.models.list(type=AtomicStructure)
-                          if hasattr(s, "viewdock_comment")]
+                          if hasattr(s, "viewdockx_data")]
         else:
             structures = [s for s in structures
-                          if hasattr(s, "viewdock_comment")]
+                          if hasattr(s, "viewdockx_data")]
 
         if not structures:
             raise ValueError("No suitable models found for ViewDockX")
@@ -37,12 +37,12 @@ class _BaseTool:
                                               self._update_display)
 
         #
-        # Get union of categories found in all viewdock_comment attributes
+        # Get union of categories found in all viewdockx_data attributes
         #
         category_set = set()
         for s in self.structures:
             try:
-                category_set.update([key for key in s.viewdock_comment])
+                category_set.update([key for key in s.viewdockx_data])
             except AttributeError:
                 pass
         # "name" category is a special case that we separate out
@@ -91,7 +91,7 @@ class _BaseTool:
         for s in self.structures:
             id_list.append(s.id_string())
             if name_attr:
-                name_list.append(s.viewdock_comment.get(name_attr, "unnamed"))
+                name_list.append(s.viewdockx_data.get(name_attr, "unnamed"))
         text_data["id"] = id_list
         if name_attr:
             text_data["name"] = name_list
@@ -103,7 +103,7 @@ class _BaseTool:
             num_numeric = 0
             num_text = 0
             for s in self.structures:
-                datum = s.viewdock_comment.get(category, None)
+                datum = s.viewdockx_data.get(category, None)
                 if not datum:
                     numeric_list.append(None)
                 else:

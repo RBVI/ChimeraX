@@ -25,7 +25,7 @@ def _read_block(session, stream, auto_style):
     # Third section: "@<TRIPOS>ATOM"
     # Fourth section: "@<TRIPOS>BOND"
     # Fifth section: "@<TRIPOS>SUBSTRUCTURE"
-    comment_dict, molecular_dict = read_com_and_mol(session, stream)
+    data_dict, molecular_dict = read_com_and_mol(session, stream)
     if not molecular_dict:
         return None
     atom_dict = read_atom(session, stream)
@@ -44,19 +44,19 @@ def _read_block(session, stream, auto_style):
     csd = build_residues(s, subst_dict)
     cad = build_atoms(s, csd, atom_dict)
     build_bonds(s, cad, bond_dict)
-    s.viewdock_comment = comment_dict
+    s.viewdockx_data = data_dict
     return s
 
 
 def read_com_and_mol(session, stream):
     """Parses commented section"""
     # Comments section
-    comment_dict = {}
+    data_dict = {}
     while True:
         comment = stream.readline()
         if not comment: 
             break
-        if not comment_dict and comment[0] == "\n": #before the comment section
+        if not data_dict and comment[0] == "\n": #before the comment section
             continue
         if comment[0] != "#":  #for the end of comment section
             break
@@ -66,10 +66,10 @@ def read_com_and_mol(session, stream):
         if ":" not in line:
             for i in range(len(line), 1, -1):
                 if line[i-1] == " ":
-                    comment_dict[line[:i].strip()] = line[i:].strip()
+                    data_dict[line[:i].strip()] = line[i:].strip()
                     break
         else:
-            comment_dict[(parts[0])] = parts[1]
+            data_dict[(parts[0])] = parts[1]
 
     # Molecule section
     if comment == "@<TRIPOS>MOLECULE":
@@ -112,7 +112,7 @@ def read_com_and_mol(session, stream):
             molecule_line = molecule_line.strip()
             molecular_dict[label] = molecule_line
 
-    return comment_dict, molecular_dict
+    return data_dict, molecular_dict
 
 
 def read_atom(session, stream):
