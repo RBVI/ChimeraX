@@ -697,7 +697,7 @@ def get_cylinder(radius, p0, p1, bottom=True, top=True):
     h = distance(p0, p1)
     # TODO: chose number of triangles
     # TODO: separate cap into bottom and top
-    vertices, normals, triangles = cylinder_geometry(radius, height=h, caps=bottom or top)
+    vertices, normals, triangles = cylinder_geometry(radius, height=h, caps=bottom or top, nc=30)
     # rotate so z-axis matches p0->p1
     xf = z_align(p0, p1)
     inverse = xf.inverse()
