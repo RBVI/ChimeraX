@@ -2,19 +2,45 @@
 
 var vdxtable = function() {
     var custom_scheme = "vdxtable";
+    var saved_ratings = null;
 
     function update_columns(columns) {
         var numeric = columns["numeric"];
         var text = columns["text"];
-        var names = text["name"];
+        var ids = text["id"];
         // Create table headers
         var thead = $("<thead/>");
         var row = $("<tr/>");
         // column 1 is the sort/show column for numeric data
         row.append($("<th/>"));
-        // column 2 is for ids
+        // column 2 is for ratings
+        row.append($("<th/>").text("RATING"));
+        var ratings = numeric["rating"];
+        if (ratings != null) {
+            // Prevent a true numeric column
+            delete numeric["rating"];
+            // Only copy if we didn't get it before
+            if (saved_ratings == null) {
+                saved_ratings = {};
+                $.each(ids, function() {
+                    var rating = ratings[this];
+                    if (rating == null)
+                        rating = 5;
+                    saved_ratings[this] = rating;
+                });
+            }
+        } else {
+            if (saved_ratings == null) {
+                saved_ratings = {};
+                $.each(ids, function() {
+                    saved_ratings[this] = 5;
+                });
+            }
+        }
+        // column 3 is for ids
         row.append($("<th/>").text("ID"));
-        // column 3 is for names, if present
+        // column 4 is for names, if present
+        var names = text["name"];
         if (names != null)
             row.append($("<th/>").text("NAME"));
         var text_order = ["id", "name"];
@@ -32,7 +58,7 @@ var vdxtable = function() {
         thead.append(row);
         // Create table body
         var tbody = $("<tbody/>");
-        $.each(text["id"], function(i, id) {
+        $.each(ids, function(i, id) {
             var row = $("<tr/>");
             var query = "?id=" + id;
             var checkbox_url = custom_scheme + ":checkbox" + query;
@@ -42,6 +68,9 @@ var vdxtable = function() {
                                             class: "structure",
                                             id: _checkbox_id(id),
                                             href: checkbox_url })));
+            row.append($("<td/>").append($("<div/>", {
+                                            title: id,
+                                            id: _rating_id(id) })));
             row.append($("<td/>").append($("<a/>", { href: link_url })
                                             .text(id)));
             if (names != null)
@@ -56,11 +85,20 @@ var vdxtable = function() {
             tbody.append(row);
         });
         $("#viewdockx_table").empty().append(thead, tbody);
+        $.each(ids, function(i, id) {
+            $("#" + _rating_id(id)).rateYo({ starWidth: "10px",
+                                             rating: saved_ratings[id],
+                                             fullStar: true,
+                                             onSet: function (r, inst) {
+                                                 saved_ratings[this.title] = r;
+                                             }
+                                           });
+        });
 
         // Re-setup jQuery handlers
         $("#viewdockx_table").tablesorter({
             theme: 'blue',
-            headers: { 1: { sorter: 'id_col' } }
+            headers: { 2: { sorter: 'id_col' } }
         });
         $(".structure").click(function() {
             if ($(this).is(":checked")) {
@@ -74,6 +112,11 @@ var vdxtable = function() {
     function _checkbox_id(id) {
         // jQuery does not like '.' in id names even though JS does not care
         return "cb_" + id.replace('.', '_', 'g');
+    }
+
+    function _rating_id(id) {
+        // jQuery does not like '.' in id names even though JS does not care
+        return "rt_" + id.replace('.', '_', 'g');
     }
 
     function update_display(new_display) {

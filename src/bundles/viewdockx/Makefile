@@ -22,11 +22,12 @@ endif
 RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
 SRCS = $(wildcard src/*.py)
+LIBS = src/lib/flot src/lib/rateyo
 
-wheel:	bundle_info.xml $(SRCS) src/lib/flot
+wheel:	bundle_info.xml $(SRCS) $(LIBS)
 	$(RUN) "devel build . exit true"
 
-install app-install:	bundle_info.xml $(SRCS) src/lib/flot
+install app-install:	bundle_info.xml $(SRCS) $(LIBS)
 	$(RUN) "devel install . user false exit true"
 
 test:
@@ -46,6 +47,8 @@ pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
 
 src/lib/flot:	flot-0.8.3.zip
-	unzip $? && mv flot src/lib
-	# unzip restores update time
-	touch src/lib/flot
+	# touch needed because unzip restores update time
+	rm -rf $@ && unzip $? && mv flot $@ && touch $@
+
+src/lib/rateyo:	rateyo-2.3.2.zip
+	rm -rf $@ && unzip $? && mv v2.3.2 $@ && rm -rf __MACOSX && touch $@
