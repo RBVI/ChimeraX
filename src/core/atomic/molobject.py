@@ -632,9 +632,13 @@ class Pseudobond(State):
     shown = c_property('pseudobond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown. Read only.'''
     shown_when_atoms_hidden = c_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
-    '''Controls whether the pseudobond is shown when the endpoint atoms are not
-    explictly displayed (atom.display == False) but are implicitly shown by a
-    ribbon or somesuch (atom.hide != 0).  Defaults to True.''')
+    '''Normally, whether a pseudbond is shown only depends on the endpoint atoms' 'display'
+    attribute and not on those atoms' 'hide' attribute, on the theory that the hide bits
+    are only set when the atoms are being depicted by some non-default representation (such
+    as ribbons) and that therefore the pseudobonds should still display to "hidden" atoms.
+    However, if 'shown_when_atoms_hidden' is False then the pseudobonds will never be displayed
+    if either endpoint atom is hidden (regardless of the display attribute), but will honor
+    the 'display' attribute when the atoms aren't hidden.  Defaults to True.''')
 
     def delete(self):
         '''Delete this pseudobond from it's group'''

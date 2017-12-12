@@ -26,7 +26,7 @@ SRCS = $(wildcard src/*.py)
 wheel:	bundle_info.xml $(SRCS) src/lib/flot
 	$(RUN) "devel build . exit true"
 
-install app-install:	bundle_info.xml $(SRCS)
+install app-install:	bundle_info.xml $(SRCS) src/lib/flot
 	$(RUN) "devel install . user false exit true"
 
 test:
@@ -47,3 +47,5 @@ pylint:
 
 src/lib/flot:	flot-0.8.3.zip
 	unzip $? && mv flot src/lib
+	# unzip restores update time
+	touch src/lib/flot
