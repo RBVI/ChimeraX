@@ -47,3 +47,5 @@ pylint:
 
 src/lib/flot:	flot-0.8.3.zip
 	unzip $? && mv flot src/lib
+	# unzip restores update time
+	touch src/lib/flot

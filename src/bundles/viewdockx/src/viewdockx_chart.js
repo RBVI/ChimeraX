@@ -3,10 +3,10 @@
 var vdxchart = function() {
     var columns = { numeric: {}, text:{} };
     var display = [];
-    var id2index = {};              // structure id -> sorted data index
-    var index2index = {};           // sorted data index -> raw data index
+    var id2index = {};              // structure id -> plot data index
+    var index2index = {};           // plot data index -> raw data index
     var tooltip_shown = false;
-    var shift_down = false;
+    var action = false;
     var custom_scheme = "vdxchart";
     var plot = null;
 
@@ -21,6 +21,7 @@ var vdxchart = function() {
 
     function update_columns(new_columns) {
         columns = new_columns;
+        display = Array(columns["text"]["id"].length).fill(false);
         // Save sort and shown columns
         var sort_column = $(".sort:checked").attr("value");
         var show_columns = []
@@ -52,37 +53,20 @@ var vdxchart = function() {
                                         $("<td/>").addClass("value")
                                                   .prop("title", r)))
             });
+
         update_plot();
     }
 
     function update_plot() {
-        // parameters for flot
-        var series = [];
-        var opts = {
-            series: {
-                points: { show: true },
-                lines: { show: true }
-            },
-            grid: {
-                autoHighlight: false,
-                hoverable: true,
-                clickable: true
-            },
-            xaxes: [
-                { },
-                { show: false }
-            ],
-        }
-
         // Get order of compounds based on sort column
         var text = columns["text"];
         var numeric = columns["numeric"];
         var ids = text["id"];
-        var order = ids.map(function(e, i) { return i; });
+        index2index = ids.map(function(e, i) { return i; });
         var sort_column = $(".sort:checked").attr("value");
         if (sort_column != null) {
             var data = numeric[sort_column];
-            order.sort(function(a, b) {
+            index2index.sort(function(a, b) {
                 if (data[a] == null)
                     return 1;
                 if (data[b] == null)
@@ -94,28 +78,35 @@ var vdxchart = function() {
                 return 0;
             });
         }
-        index2index = [];
-        for (var i = 0; i < order.length; i++)
-            index2index[i] = order[i];
 
         // Create mapping from id->display
-        display = [];
         id2index = {}
-        $.each(ids, function(i, e) { id2index[e] = i; display.push(false); });
+        $.each(index2index, function(i, e) {
+            // i = plot index
+            // e = raw index
+            id2index[ids[e]] = i;
+        });
 
         // Generate a series for each shown column
+        var series = [];
         $(".display:checked").each(function() {
             var label = this.value;
             var data = numeric[label];
             series.push({ label: label,
                           xaxis: 2,
-                          data: order.map(function(e, i) {
-                                            return [i, data[order[i]]]; })
+                          has_data: index2index.map(function(e, i) {
+                                        return data[index2index[i]] != null;
+                                    }),
+                          data: index2index.map(function(e, i) {
+                                    return [i, data[index2index[i]]];
+                                })
                         })
         });
 
         // Show the data
-        plot = $.plot("#data", series, opts);
+        plot.setData(series);
+        plot.setupGrid();
+        plot.draw();
     }
 
     function plot_click(event, pos, item) {
@@ -123,7 +114,6 @@ var vdxchart = function() {
             return;
         var raw_index = index2index[item.dataIndex];
         var id = columns["text"]["id"][raw_index];
-        var action = shift_down ? "show_toggle" : "show_only";
         window.location = custom_scheme + ":" + action + "?id=" + id;
     }
 
@@ -172,8 +162,9 @@ var vdxchart = function() {
         }
     }
 
-    function shift_event(e) {
-        shift_down = e.shiftKey;
+    function mousedown(e) {
+        action = (e.ctrlKey || e.shiftKey || e.altKey)
+                    ? "show_toggle" : "show_only";
     }
 
     function update_display(new_display) {
@@ -181,18 +172,44 @@ var vdxchart = function() {
         $.each(new_display, function () {
             display[id2index[this[0]]] = this[1];
         });
+        if (plot)
+            redraw_highlights(plot);
+    }
+
+    function redraw_highlights(plot) {
         // Highlight displayed models
-        var num_series = plot.getData().length;
+        var series = plot.getData();
+        var num_series = series.length;
         plot.unhighlight();
         $.each(display, function(i, shown) {
             if (shown) {
                 for (var n = 0; n < num_series; n++)
-                    plot.highlight(n, i);
+                    if (series[n].has_data[i])
+                        plot.highlight(n, i);
             }
         });
     }
 
     function init() {
+        var opts = {
+            series: {
+                points: { show: true },
+                lines: { show: true }
+            },
+            grid: {
+                autoHighlight: false,
+                hoverable: true,
+                clickable: true
+            },
+            xaxes: [
+                { },
+                { show: false }
+            ],
+            hooks: {
+                draw: [ redraw_highlights ]
+            }
+        }
+        plot = $.plot("#data", [], opts);
         $("<div id='tooltip'></div>").css({
 			position: "absolute",
 			display: "none",
@@ -203,7 +220,7 @@ var vdxchart = function() {
 		}).appendTo("body");
         $("#data").bind("plotclick", plot_click)
                   .bind("plothover", plot_hover)
-                  .mousedown(shift_event);
+                  .mousedown(mousedown);
     }
 
     return {
