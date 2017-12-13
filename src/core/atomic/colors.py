@@ -279,25 +279,22 @@ def nucleotide_colors(residues):
     nucleic3to1 = Sequence.nucleic3to1
     mask = residues.polymer_types == Residue.PT_NUCLEIC
     nucleotides = residues.filter(mask)
-    colors = empty([len(nucleotides), 4], dtype=uint8)
-    for i, name in enumerate(nucleotides.names):
-        if name in ('PSU', 'P'):
-            n = 'P'
-        elif name == 'I':
-            n = name
-        else:
+    colors = empty([len(residues), 4], dtype=uint8)
+    cache = _ndb_colors.copy()
+    cache['PSU'] = cache['P']
+    for ((i, name), is_nuc) in zip(enumerate(residues.names), mask):
+        if not is_nuc:
+            continue
+        color = cache.get(name, None)
+        if color is None:
             try:
                 n = nucleic3to1(name)
+                color = cache[n]
             except KeyError:
-                colors[i] = (128, 128, 128, 255)
-                continue
-        try:
-            colors[i] = _ndb_colors[n]
-        except KeyError:
-            colors[i] = (128, 128, 128, 255)
-    c = empty([len(residues), 4], dtype=uint8)
-    c[mask] = colors
-    return c, mask
+                color = (128, 128, 128, 255)
+            cache[name] = color
+        colors[i] = color
+    return colors, mask
 
 
 # -----------------------------------------------------------------------------
