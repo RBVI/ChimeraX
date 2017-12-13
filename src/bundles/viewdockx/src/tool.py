@@ -12,6 +12,7 @@ class _BaseTool:
         self._remove_handler = None
         self._display_handler = None
         self.category_name = None
+        self.category_rating = "viewdockx_rating"
         self.category_list = []
         self.structures = []
 
@@ -37,6 +38,13 @@ class _BaseTool:
                                               self._update_display)
 
         #
+        # Make sure every structure has a rating
+        #
+        for s in structures:
+            if self.category_rating not in s.viewdockx_data:
+                s.viewdockx_data[self.category_rating] = "5"
+
+        #
         # Get union of categories found in all viewdockx_data attributes
         #
         category_set = set()
@@ -45,14 +53,12 @@ class _BaseTool:
                 category_set.update([key for key in s.viewdockx_data])
             except AttributeError:
                 pass
-        # "name" category is a special case that we separate out
+        # "name" and "rating" categories are special cases that we separate out
         for category in category_set:
             if category.lower() == "name":
                 self.category_name = category
                 category_set.remove(category)
                 break
-        else:
-            self.category_name = None
         self.category_list = sorted(list(category_set), key=str.lower)
 
     def delete(self):
@@ -156,7 +162,7 @@ class _BaseTool:
             self._update_models()
             self.html_view.loadFinished.disconnect(self._load_finished)
 
-    def _get_structures(self, model_id):
+    def get_structures(self, model_id):
         if model_id:
             from chimerax.core.commands.cli import StructuresArg
             return StructuresArg.parse('#' + model_id, self.session)[0]
@@ -164,20 +170,20 @@ class _BaseTool:
             return self.structures
 
     def show_only(self, model_id):
-        structures = self._get_structures(model_id)
+        structures = self.get_structures(model_id)
         for s in self.structures:
             onoff = s in structures
             if s.display != onoff:
                 s.display = onoff
 
     def show_toggle(self, model_id):
-        structures = self._get_structures(model_id)
+        structures = self.get_structures(model_id)
         for s in structures:
             if s in self.structures:
                 s.display = not s.display
 
     def show_set(self, model_id, onoff):
-        structures = self._get_structures(model_id)
+        structures = self.get_structures(model_id)
         for s in structures:
             if s.display != onoff and s in self.structures:
                 s.display = onoff
@@ -219,6 +225,34 @@ class TableTool(HtmlToolInstance, _BaseTool):
     def _cb_link(self, query):
         """shows only selected structure"""
         self.show_only(query["id"][0])
+
+    def _cb_rating(self, query):
+        """update rating for structure"""
+        # May need to fire trigger for notification later
+        try:
+            model_id = query["id"][0]
+            rating = int(query["rating"][0])
+        except (KeyError, ValueError):
+            return
+        structures = self.get_structures(model_id)
+        any_change = False
+        for s in structures:
+            v = str(rating)
+            if s.viewdockx_data[self.category_rating] != v:
+                s.viewdockx_data[self.category_rating] = v
+                any_change = True
+        if any_change:
+            self._update_ratings(trigger_data=structures)
+
+    def _update_ratings(self, trigger=None, trigger_data=None):
+        if trigger_data is None:
+            trigger_data = self.structures
+        ratings = [(s.atomspec()[1:], s.viewdockx_data[self.category_rating])
+                   for s in trigger_data]
+        import json
+        js = "%s.update_ratings(%s);" % (self.CUSTOM_SCHEME,
+                                         json.dumps(ratings))
+        self.html_view.runJavaScript(js)
 
     def _cb_chart(self, query):
         ChartTool(self.session, "ViewDockX Chart", structures=self.structures)

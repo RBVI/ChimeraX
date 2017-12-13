@@ -2,7 +2,7 @@
 
 var vdxtable = function() {
     var custom_scheme = "vdxtable";
-    var saved_ratings = null;
+    var rating_column = "viewdockx_rating"
 
     function update_columns(columns) {
         var numeric = columns["numeric"];
@@ -15,28 +15,6 @@ var vdxtable = function() {
         row.append($("<th/>"));
         // column 2 is for ratings
         row.append($("<th/>").text("RATING"));
-        var ratings = numeric["rating"];
-        if (ratings != null) {
-            // Prevent a true numeric column
-            delete numeric["rating"];
-            // Only copy if we didn't get it before
-            if (saved_ratings == null) {
-                saved_ratings = {};
-                $.each(ids, function() {
-                    var rating = ratings[this];
-                    if (rating == null)
-                        rating = 5;
-                    saved_ratings[this] = rating;
-                });
-            }
-        } else {
-            if (saved_ratings == null) {
-                saved_ratings = {};
-                $.each(ids, function() {
-                    saved_ratings[this] = 5;
-                });
-            }
-        }
         // column 3 is for ids
         row.append($("<th/>").text("ID"));
         // column 4 is for names, if present
@@ -52,8 +30,10 @@ var vdxtable = function() {
         });
         var numeric_order = [];
         $.each(numeric, function(key, v) {
-            row.append($("<th/>").text(key.toUpperCase()));
-            numeric_order.push(key);
+            if (key != rating_column) {
+                row.append($("<th/>").text(key.toUpperCase()));
+                numeric_order.push(key);
+            }
         });
         thead.append(row);
         // Create table body
@@ -85,14 +65,18 @@ var vdxtable = function() {
             tbody.append(row);
         });
         $("#viewdockx_table").empty().append(thead, tbody);
+        var ratings = numeric[rating_column];
         $.each(ids, function(i, id) {
-            $("#" + _rating_id(id)).rateYo({ starWidth: "10px",
-                                             rating: saved_ratings[id],
-                                             fullStar: true,
-                                             onSet: function (r, inst) {
-                                                 saved_ratings[this.title] = r;
-                                             }
-                                           });
+            $("#" + _rating_id(id)).rateYo({
+                starWidth: "10px",
+                rating: ratings[i],
+                fullStar: true,
+                onSet: function (r, inst) {
+                    window.location = custom_scheme + ":rating" +
+                                      "?id=" + this.title +
+                                      "&rating=" + r;
+                }
+            });
         });
 
         // Re-setup jQuery handlers
@@ -124,6 +108,14 @@ var vdxtable = function() {
             var id = new_display[i][0];
             var checked = new_display[i][1];
             $("#" + _checkbox_id(id)).prop("checked", checked);
+        }
+    }
+
+    function update_ratings(new_ratings) {
+        for (var i = 0; i < new_ratings.length; i++) {
+            var id = new_ratings[i][0];
+            var rating = new_ratings[i][1];
+            $("#" + _rating_id(id)).rateYo("option", "rating", rating);
         }
     }
 
@@ -168,6 +160,7 @@ var vdxtable = function() {
         custom_scheme: custom_scheme,
         update_columns: update_columns,
         update_display: update_display,
+        update_ratings: update_ratings,
         init: init
     }
 }();
