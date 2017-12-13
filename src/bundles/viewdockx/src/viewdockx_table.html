@@ -5,8 +5,10 @@
    <base href="URLBASE" />
    <link rel="stylesheet" type="text/css" href="viewdockx_table.css">
    <link rel="stylesheet" type="text/css" href="lib/rateyo/jquery.rateyo.min.css">
+   <link rel="stylesheet" type="text/css" href="lib/jquery.multiselect.css">
    <script src="lib/jquery-3.2.1.min.js"></script>
    <script src="lib/jquery.tablesorter.combined.js"></script>
+   <script src="lib/jquery.multiselect.js"></script>
    <script src="lib/rateyo/jquery.rateyo.min.js"></script>
    <script src="viewdockx_table.js"></script>
 </head>
@@ -14,12 +16,26 @@
 <body>
   <div id="full">
     <div id="control">
-      <input type="button" id="show_all_btn" value="Show All Structures"/>
-      <input type="button" id="chart_btn" value="Chart"/>
-      <!-- Not implemented yet
-      <input type="button" id="plot_btn" value="Plot"/>
-      <input type="button" id="histogram_btn" value="Histogram"/>
-      -->
+      <div>
+	<span id="prune">
+	  <input type="button" id="prune_btn" value="Close"/>
+	  structures &le; <div id="prune_stars"></div>
+	</span>
+	<input type="button" id="show_all_btn" value="Show All Structures"/>
+	&nbsp;
+	<input type="button" id="chart_btn" value="Chart"/>
+	<!-- Not implemented yet
+	<input type="button" id="plot_btn" value="Plot"/>
+	<input type="button" id="histogram_btn" value="Histogram"/>
+	-->
+	&nbsp;
+	<input type="button" id="export_btn" value="Export..."/>
+      </div>
+      <div>
+	<select id="show_columns" multiple>
+	  <option value="">Columns...</option>
+	</select>
+      </div>
     </div>
     <div id="data">
       <table id="viewdockx_table" class="tablesorter"/>

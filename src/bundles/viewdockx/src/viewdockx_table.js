@@ -12,7 +12,7 @@ var vdxtable = function() {
         var thead = $("<thead/>");
         var row = $("<tr/>");
         // column 1 is the sort/show column for numeric data
-        row.append($("<th/>"));
+        row.append($("<th/>").text("S"));
         // column 2 is for ratings
         row.append($("<th/>").text("RATING"));
         // column 3 is for ids
@@ -71,6 +71,8 @@ var vdxtable = function() {
                 starWidth: "10px",
                 rating: ratings[i],
                 fullStar: true,
+                ratedFill: "#F36C12",
+                normalFill: "#DDDDDD",
                 onSet: function (r, inst) {
                     window.location = custom_scheme + ":rating" +
                                       "?id=" + this.title +
@@ -78,6 +80,16 @@ var vdxtable = function() {
                 }
             });
         });
+
+        // Rebuild column selector
+        var opts = []
+        $.each(text_order, function(n, key) {
+            opts.push({name: key, value: key, checked: true});
+        });
+        $.each(numeric_order, function(n, key) {
+            opts.push({name: key, value: key, checked: true});
+        });
+        $("#show_columns").multiselect("loadOptions", opts);
 
         // Re-setup jQuery handlers
         $("#viewdockx_table").tablesorter({
@@ -125,6 +137,18 @@ var vdxtable = function() {
         }
     }
 
+    function show_column(e, opt) {
+        var title = opt.value.toUpperCase();
+        var n = $("th").filter(function() {
+                    return $(this).text() == title;
+                }).index() + 1;     // nth-child is 1-based
+        var col = $("td:nth-child(" + n + "),th:nth-child(" + n + ")");
+        if (opt.checked)
+            col.show();
+        else
+            col.hide();
+    }
+
     function init() {
         $.tablesorter.addParser({
             id: 'id_col',
@@ -152,6 +176,17 @@ var vdxtable = function() {
         });
         $('#histogram_btn').on('click', function() {
             window.location = custom_scheme + ":histogram";
+        });
+        $("#show_columns").multiselect({
+            placeholder: "Columns...",
+            onOptionClick: show_column
+        });
+        $("#prune_stars").rateYo({
+            starWidth: "16px",
+            rating: 1,
+            ratedFill: "#F36C12",
+            normalFill: "#DDDDDD",
+            fullStar: true
         });
     }
 

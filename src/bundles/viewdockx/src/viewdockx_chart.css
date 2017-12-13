@@ -21,3 +21,9 @@ html, body, #full {
   flex: 1;
   overflow: auto;
 }
+col:nth-child(odd) {
+  background: #EEE;
+}
+col:nth-child(even) {
+  background: #DDD;
+}

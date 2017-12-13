@@ -42,7 +42,7 @@ class _BaseTool:
         #
         for s in structures:
             if self.category_rating not in s.viewdockx_data:
-                s.viewdockx_data[self.category_rating] = "5"
+                s.viewdockx_data[self.category_rating] = "3"
 
         #
         # Get union of categories found in all viewdockx_data attributes

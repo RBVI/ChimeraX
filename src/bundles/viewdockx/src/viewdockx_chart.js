@@ -10,8 +10,8 @@ var vdxchart = function() {
     var custom_scheme = "vdxchart";
     var plot = null;
 
-    function make_button(btype, name, value, text, checked) {
-        return $("<label/>").text(text).append(
+    function make_button(btype, name, value, checked) {
+        return $("<label/>").append(
                     $("<input/>", { type: btype,
                                     name: name,
                                     value: value,
@@ -34,21 +34,30 @@ var vdxchart = function() {
 
         // Clear out the table and fill in with text
         // then numeric column names
-        $("#column_table").empty();
-        $.each(columns["text"], function(r, v) {
+        $("#column_table").empty()
+            .append($("<col/>"), $("<col/>"), $("<col/>"), $("<col/>"))
+            .append($("<tr/>").append(
+                $("<th>/>").text("Sort").css("text-align", "center"),
+                $("<th>/>").text("Plot").css("text-align", "center"),
+                $("<th>/>").text("Column"),
+                $("<th>/>").text("Value")));
+            $.each(columns["text"], function(r, v) {
             $("#column_table").append($("<tr/>").append(
+                                        $("<td/>"),
                                         $("<td/>"),
                                         $("<td/>").text(r),
                                         $("<td/>").addClass("value")
                                                   .prop("title", r)))
             });
         $.each(columns["numeric"], function(r, v) {
-            var sort_btn = make_button("radio", "sort", r, "S",
-                                       r == sort_column);
-            var show_btn = make_button("checkbox", "display", r, "D",
+            var sort_btn = make_button("radio", "sort", r, r == sort_column);
+            var show_btn = make_button("checkbox", "display", r,
                                        show_columns.includes(r));
             $("#column_table").append($("<tr/>").append(
-                                        $("<td/>").append(sort_btn, show_btn),
+                                        $("<td/>").append(sort_btn)
+                                                .css("text-align", "center"),
+                                        $("<td/>").append(show_btn)
+                                                .css("text-align", "center"),
                                         $("<td/>").text(r),
                                         $("<td/>").addClass("value")
                                                   .prop("title", r)))
