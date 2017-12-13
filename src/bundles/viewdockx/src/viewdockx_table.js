@@ -82,7 +82,11 @@ var vdxtable = function() {
         // Re-setup jQuery handlers
         $("#viewdockx_table").tablesorter({
             theme: 'blue',
-            headers: { 2: { sorter: 'id_col' } }
+            headers: {
+                0: { sorter: false },
+                1: { sorter: false },
+                2: { sorter: 'id_col' }
+            }
         });
         $(".structure").click(function() {
             if ($(this).is(":checked")) {
@@ -115,7 +119,9 @@ var vdxtable = function() {
         for (var i = 0; i < new_ratings.length; i++) {
             var id = new_ratings[i][0];
             var rating = new_ratings[i][1];
-            $("#" + _rating_id(id)).rateYo("option", "rating", rating);
+            var r = $("#" + _rating_id(id));
+            if (r.rateYo("option", "rating") != rating)
+                r.rateYo("option", "rating", rating);
         }
     }
 
@@ -127,19 +133,12 @@ var vdxtable = function() {
                 return false;
             },
             format: function(s) {
-                // Assume less than 100,000 models or submodels
-                // and convert id to 10-character zero-padded string
-                // which sorts correctly as text
-                var pad = "00000";
-                var padlen = pad.length;
+                // Assume less than 100,000 submodels
                 var parts = s.split("\n")[0].trim().split(".");
-                var n = pad.substring(0, padlen - parts[0].length) + parts[0]
-                      + pad.substring(0, padlen - parts[1].length) + parts[1];
-                return n;
-
+                return parseInt(parts[0]) * 100000 + parseInt(parts[1]);
             },
             // set type, either numeric or text
-            type: 'text'
+            type: 'numeric'
         });
 
         $("#show_all_btn").click(function() {
