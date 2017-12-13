@@ -1881,7 +1881,7 @@ class Histogram_Pane:
       ro = v.rendering_options
       add = self.add_menu_entry
       add(menu, 'Show outline box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show one plane', self.show_plane_slider, checked = self._planes_slider_shown)
+      add(menu, 'Show full region', lambda checked, e=event, self=self: self.show_full_region())
       add(menu, 'New threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
@@ -1945,7 +1945,7 @@ class Histogram_Pane:
       if show:
           self.show_one_plane(v, show_volume)
       elif v.showing_one_plane:
-          self.show_full_region(v, show_volume)
+          self.show_full_region(show_volume = show_volume)
 
   # ---------------------------------------------------------------------------
   #
@@ -1962,13 +1962,18 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def show_full_region(self, v, show_volume = True):
+  def show_full_region(self, volume = None, show_volume = True):
 
       # Show all planes
-      from chimerax.core.map.volume import full_region
-      r = full_region(v.data.size)
-      v.new_region(*r, show = show_volume)
-          
+      v = self.volume if volume is None else volume
+      if v.is_full_region():
+          return
+      ijk_min, ijk_max, ijk_step = v.full_region()
+      v.new_region(ijk_min, ijk_max, show = v.shown())
+      if volume is None:
+          for vc in v.other_channels():
+              vc.new_region(ijk_min, ijk_max, show = vc.shown())
+
   # ---------------------------------------------------------------------------
   #
   def _create_planes_slider(self):
