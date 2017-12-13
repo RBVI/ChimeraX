@@ -11,5 +11,5 @@ GLYCOSIDIC = False      # show separate glycosidic bond in tube
 STYLE = 'long'          # slab style
 THICKNESS = 0.5         # slab thickness
 SHAPE = 'box'           # slab shape
-ORIENT = True           # show orientation
+ORIENT = False          # show orientation
 HIDE = True             # hide base atoms

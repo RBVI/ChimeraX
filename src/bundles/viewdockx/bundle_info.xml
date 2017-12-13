@@ -16,8 +16,9 @@ UCSF DOCK output in PDB and mol2 formats are supported.
 
     <DataFiles>
       <DataFile>lib/*</DataFile>
-      <DataFile>lib/d3/*</DataFile>
-      <DataFile>lib/flot/*min.js</DataFile>
+      <DataFile>lib/flot/jquery.flot*.min.*</DataFile>
+      <DataFile>lib/rateyo/jquery.rateyo*.min.css</DataFile>
+      <DataFile>lib/rateyo/jquery.rateyo*.min.js</DataFile>
       <DataFile>viewdockx_*.html</DataFile>
       <DataFile>viewdockx_*.js</DataFile>
       <DataFile>viewdockx_*.css</DataFile>

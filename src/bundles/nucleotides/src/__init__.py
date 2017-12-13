@@ -17,7 +17,8 @@ class _MyAPI(BundleAPI):
         from . import cmd
         from chimerax.core.commands import register
         base_cmd = "nucleotides"
-        for subcmd in ("", " style", " style list", " style delete", " ndbcolor"):
+        # for subcmd in ("", " style", " style list", " style delete"):
+        for subcmd in ("",):
             cmd_name = base_cmd + subcmd
             func_name = cmd_name.replace(' ', '_')
             func = getattr(cmd, func_name)
