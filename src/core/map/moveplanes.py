@@ -70,7 +70,7 @@ class PlanesMouseMode(MouseMode):
             self.frac_istep = istep - int(istep)
             move_plane(v, self.axis, self.side, int(istep))
             for m in self.matching_maps:
-                m.new_region(*tuple(v.region), adjust_step = False)
+                m.new_region(*tuple(v.region), adjust_step = False, show = m.shown())
                 if v.showing_orthoplanes() and m.showing_orthoplanes():
                     m.set_parameters(orthoplane_positions = v.rendering_options.orthoplane_positions)
                     m.show()
@@ -106,6 +106,9 @@ def matching_maps(v, maps):
             m.scene_position.same(vp) and
             same_orthoplanes(m, v)):
             mm.append(m)
+    for vc in v.other_channels():
+        if vc not in mm:
+            mm.append(vc)
     return mm
 
 def same_orthoplanes(v1, v2):
