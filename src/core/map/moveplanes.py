@@ -70,7 +70,7 @@ class PlanesMouseMode(MouseMode):
             self.frac_istep = istep - int(istep)
             move_plane(v, self.axis, self.side, int(istep))
             for m in self.matching_maps:
-                m.new_region(*tuple(v.region))
+                m.new_region(*tuple(v.region), adjust_step = False)
                 if v.showing_orthoplanes() and m.showing_orthoplanes():
                     m.set_parameters(orthoplane_positions = v.rendering_options.orthoplane_positions)
                     m.show()
