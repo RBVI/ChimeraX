@@ -1,39 +1,17 @@
-# vim: set expandtab sw=4:
-# chimera nucleotides commands
-#
-#       nucleotides ndbcolor [atom-spec]
-#       nucleotides [atom-spec] sidechain_type [keyword options]
-#               * show side chains -- ribose/bases
-#               * type is one of atoms, fill/fill, fill/slab, tube/slab, slab, ladder
-#               * fill/fill is same as:
-#                       nuc sidechain atoms atom-spec; fillring thick atom-spec
-#               * options vary with sidechain type
-#               * fill/fill, fill/slab, tube/slab:
-#                       * orient (true|false)
-#               * fill/slab, tube/slab:
-#                       * shape (box|muffler|discus)
-#                       * style slab-style
-#                       * thickness 0.5
-#                       * hide (true|false)
-#               * tube-slab:
-#                       * glycosidic (true|false)
-#                         (shows separate glycosidic bond)
-#               * ladder:
-#                       * radius 0.45
-#                         (radius of ladder rungs and only applies to base-base
-#                         H-bonds -- zero means use defaults)
-#                       * stubs (true|false)
-#                       * ignore (true|false)
-#                         (ignore non-base H-bonds)
-#       nucleotides add style-name options
-#               * create/modify slab style, all options are required
-#               * options are:
-#                       anchor (ribose|base)
-#                       (purine|pyrimidine) (lower-left|ll|upper-right|ur) x y
-#       nucleotides delete style-name
-#               * delete style
+# vim: set expandtab ts=4 sw=4:
 
-# look at movie, volume, hbond commands for ideas
+# === UCSF ChimeraX Copyright ===
+# Copyright 2017 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+# chimera nucleotides commands
 
 from . import _data as NA
 from . import default
@@ -46,51 +24,51 @@ from chimerax.core.commands import (
 
 AnchorArg = EnumOf(("base", "ribose"))
 Float4Arg = TupleOf(FloatArg, 4, name="lower left x, y, upper right x, y")
-nucleotides_style_desc = CmdDesc(
+nucleotides_dimensions_desc = CmdDesc(
     required=[("name", StringArg)],
     keyword=[
         ("anchor", AnchorArg),
         ("purine", Float4Arg),
         ("pyrimidine", Float4Arg),
     ],
-    synopsis="Create custom nucleotide style")
+    synopsis="Create custom nucleotide dimensions")
 
 
-def nucleotides_style(session, name, anchor=None, purine=None, pyrimidine=None):
+def nucleotides_dimensions(session, name, anchor=None, purine=None, pyrimidine=None):
     if anchor is None or purine is None or pyrimidine is None:
-        raise UserError("Incomplete style")
+        raise UserError("Incomplete dimensions")
     info = {
         NA.ANCHOR: anchor,
         NA.PURINE: (purine[0:2], purine[2:4]),
         NA.PYRIMIDINE: (pyrimidine[0:2], pyrimidine[2:4]),
         NA.PSEUDO_PYRIMIDINE: (pyrimidine[0:2], pyrimidine[2:4]),
     }
-    NA.add_style(name, info, session=session)
+    NA.add_dimensions(name, info, session=session)
 
 
-nucleotides_style_list_desc = CmdDesc(
-    synopsis="List custom nucleotide styles")
+nucleotides_dimensions_list_desc = CmdDesc(
+    synopsis="List custom nucleotide dimensions")
 
 
-def nucleotides_style_list(session):
-    styles = NA.list_styles()
+def nucleotides_dimensions_list(session):
+    dimensions = NA.list_dimensions()
     from chimerax.core.commands import commas
-    session.logger.info("Nucleotides styles: " + commas(styles, ' and'))
+    session.logger.info("Nucleotides dimensions: " + commas(dimensions, ' and'))
 
 
-nucleotides_style_delete_desc = CmdDesc(
+nucleotides_dimensions_delete_desc = CmdDesc(
     required=[('name', DynamicEnum(
-        lambda: NA.list_styles(custom_only=True),
-        name="Custom nucleotides style"))],
-    synopsis="Delete custom nucleotide style")
+        lambda: NA.list_dimensions(custom_only=True),
+        name="Custom nucleotides dimensions"))],
+    synopsis="Delete custom nucleotide dimensions")
 
 
-def nucleotides_style_delete(session, name):
-    NA.remove_style(name)
+def nucleotides_dimensions_delete(session, name):
+    NA.remove_dimensions(name)
 
 
 ShapeArg = EnumOf(('box', 'muffler', 'discus'))
-StyleArg = DynamicEnum(NA.list_styles, name='a nucleotide style')
+DimensionsArg = DynamicEnum(NA.list_dimensions)
 # ReprArg = EnumOf(('atoms', 'fill/fill', 'fill/slab', 'tube/slab', 'ladder'))
 ReprArg = EnumOf(('atoms', 'slab', 'tube/slab', 'ladder'))
 
@@ -101,24 +79,25 @@ nucleotides_desc = CmdDesc(
         ("representation", ReprArg)
     ],
     keyword=[
-        ("orient", BoolArg),
+        ("show_orientation", BoolArg),
         ("shape", ShapeArg),
-        ("style", StyleArg),
+        ("dimensions", DimensionsArg),
         ("thickness", FloatArg),
-        ("hide", BoolArg),
+        ("hide_atoms", BoolArg),
         ("glycosidic", BoolArg),
-        ("ignore", BoolArg),
+        ("base_only", BoolArg),
         ("stubs", BoolArg),
         ("radius", FloatArg),
     ],
     synopsis="Manipulate nucleotide representations")
 
 
-def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orient=default.ORIENT,
-                thickness=default.THICKNESS, hide=default.HIDE,
-                shape=default.SHAPE, style=default.STYLE, radius=default.RADIUS,
-                stubs=default.STUBS, ignore=default.IGNORE,
-                useexisting=default.USE_EXISTING, objects=None):
+def nucleotides(session, representation, *,
+                glycosidic=default.GLYCOSIDIC, show_orientation=default.ORIENT,
+                thickness=default.THICKNESS, hide_atoms=default.HIDE,
+                shape=default.SHAPE, dimensions=default.DIMENSIONS, radius=default.RADIUS,
+                stubs=default.STUBS, base_only=default.BASE_ONLY,
+                objects=None):
 
     if objects is None:
         objects = all_objects(session)
@@ -133,7 +112,7 @@ def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orien
     elif representation == 'fill/fill':
         # TODO
         # residues.fill_rings = True
-        if orient:
+        if show_orientation:
             NA.set_orient(residues)
         else:
             NA.set_normal(residues)
@@ -146,14 +125,14 @@ def nucleotides(session, representation, *, glycosidic=default.GLYCOSIDIC, orien
         else:
             show_gly = glycosidic
         if show_gly:
-            info = NA.find_style(style)
+            info = NA.find_dimensions(dimensions)
             show_gly = info[NA.ANCHOR] != NA.RIBOSE
-        NA.set_slab(representation, residues, style=style,
-                    thickness=thickness, orient=orient,
-                    shape=shape, show_gly=show_gly, hide=hide)
+        NA.set_slab(representation, residues, dimensions=dimensions,
+                    thickness=thickness, orient=show_orientation,
+                    shape=shape, show_gly=show_gly, hide=hide_atoms)
     elif representation == 'ladder':
         NA.set_ladder(residues, rung_radius=radius,
-                      show_stubs=stubs, skip_nonbase_Hbonds=ignore, hide=hide)
+                      show_stubs=stubs, skip_nonbase_Hbonds=base_only, hide=hide_atoms)
 
 
 nucleotides_ndbcolor_desc = CmdDesc(
