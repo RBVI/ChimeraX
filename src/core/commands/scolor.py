@@ -697,7 +697,7 @@ class Volume_Color:
             tfunc = map(lambda v,c: (v,1) + tuple(c),
                         cmap.data_values, cmap.colors)
             s.set_colormap(tfunc, 1, None, clamp = True)
-            s.update_model(open = False)
+            s.update_drawing(open = False)
             
     # -------------------------------------------------------------------------
     #

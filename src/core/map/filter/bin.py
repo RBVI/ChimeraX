@@ -18,11 +18,11 @@ def bin(v, bin_size = (2,2,2),
 
   bd = bin_grid(v, bin_size, step, subregion)
   from .. import volume_from_grid_data
-  bv = volume_from_grid_data(bd, session, model_id = model_id, show_data = False)
+  bv = volume_from_grid_data(bd, session, model_id = model_id)
 
   bv.copy_settings_from(v, copy_region = False)
-  bv.show()
-  v.unshow()          # Hide original map
+  bv.display = True
+  v.display = False          # Hide original map
 
   return bv
 

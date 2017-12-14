@@ -728,8 +728,8 @@ class Volume_Dialog:
   #
   def unshow_cb(self):
 
-    for r in self.selected_regions():
-      r.unshow()
+    for v in self.selected_regions():
+      v.display = False
 
   # ---------------------------------------------------------------------------
   #
@@ -1969,10 +1969,10 @@ class Histogram_Pane:
       if v.is_full_region():
           return
       ijk_min, ijk_max, ijk_step = v.full_region()
-      v.new_region(ijk_min, ijk_max, show = v.shown())
+      v.new_region(ijk_min, ijk_max)
       if volume is None:
           for vc in v.other_channels():
-              vc.new_region(ijk_min, ijk_max, show = vc.shown())
+              vc.new_region(ijk_min, ijk_max)
 
   # ---------------------------------------------------------------------------
   #
@@ -2042,9 +2042,9 @@ class Histogram_Pane:
       nijk_min[2] = k
       nijk_max = list(ijk_max)
       nijk_max[2] = k
-      v.new_region(nijk_min, nijk_max, ijk_step, show = v.shown())
+      v.new_region(nijk_min, nijk_max, ijk_step)
       for vc in v.other_channels():
-          vc.new_region(nijk_min, nijk_max, ijk_step, show = vc.shown())
+          vc.new_region(nijk_min, nijk_max, ijk_step)
       # Make sure this plane is shown before we show another plane.
       self.dialog.session.ui.update_graphics_now()
 
@@ -2238,9 +2238,9 @@ class Histogram_Pane:
     if tuple(ijk_step) == tuple(v.region[2]):
       return
 
-    v.new_region(ijk_step = ijk_step, adjust_step = False, show = True)
+    v.new_region(ijk_step = ijk_step, adjust_step = False)
     for vc in v.other_channels():
-        vc.new_region(ijk_step = ijk_step, adjust_step = False, show = vc.shown())
+        vc.new_region(ijk_step = ijk_step, adjust_step = False)
         
     d = self.dialog
     if v != d.active_volume:
@@ -3167,16 +3167,15 @@ class Plane_Panel(PopupPanel):
   
   # ---------------------------------------------------------------------------
   #
-  def change_plane_cb(self, event = None, extend_axes = [],
-                      save_in_region_queue = False):
+  def change_plane_cb(self, event = None, extend_axes = []):
 
     self.change_plane_in_progress = True
-    self.change_plane(extend_axes, save_in_region_queue)
+    self.change_plane(extend_axes)
     self.change_plane_in_progress = False
 
   # ---------------------------------------------------------------------------
   #
-  def change_plane(self, extend_axes = [], save_in_region_queue = False):
+  def change_plane(self, extend_axes = []):
 
     v = active_volume()
     if v is None:
@@ -3191,8 +3190,7 @@ class Plane_Panel(PopupPanel):
     a = self.axis_number()
     d = self.depth()
     from volume import show_planes
-    if not show_planes(v, a, p, d, extend_axes,
-                       save_in_region_queue = save_in_region_queue):
+    if not show_planes(v, a, p, d, extend_axes):
       return    # Plane already shown.
 
     max = v.data.size[a]
@@ -3322,7 +3320,7 @@ class Orthoplane_Panel(PopupPanel):
       volume.set_parameters(orthoplanes_shown = (False, False, False),
                             color_mode = 'auto8',
                             show_outline_box = True)
-      volume.new_region(ijk_min, ijk_max, show = False)
+      volume.new_region(ijk_min, ijk_max)
     else:               # 2 or 3 planes
       ro = volume.rendering_options
       if ro.any_orthoplanes_shown():
@@ -3402,7 +3400,7 @@ class Region_Size_Panel(PopupPanel):
       return
 
     ijk_min, ijk_max, ijk_step = region
-    data_region.new_region(ijk_min, ijk_max, ijk_step, show = False)
+    data_region.new_region(ijk_min, ijk_max, ijk_step)
 
   # ---------------------------------------------------------------------------
   #
@@ -3881,7 +3879,7 @@ class Subregion_Panel(PopupPanel):
       sv.show()
     else:
       from VolumeViewer import volume_from_grid_data
-      sv = volume_from_grid_data(g, show_data = False)
+      sv = volume_from_grid_data(g)
       sv.openState.xform = v.model_transform()
       if self.rotate_box.get():
         sv.openState.active = False
@@ -3893,7 +3891,7 @@ class Subregion_Panel(PopupPanel):
       self.last_subregion = (sv, v)
       sv.subregion_of_volume = v
       sv.show()
-      v.unshow()
+      v.display = False
     
 # -----------------------------------------------------------------------------
 # User interface for zones.
@@ -4056,7 +4054,7 @@ class Zone_Panel(PopupPanel):
     new_ijk_min, new_ijk_max = resize_region_for_zone(dr, points,
                                                       radius, initial_resize)
     if not new_ijk_min is None:
-      dr.new_region(new_ijk_min, new_ijk_max, save_in_region_queue = False)
+      dr.new_region(new_ijk_min, new_ijk_max)
 
   # ---------------------------------------------------------------------------
   # Use diagonal length of bounding box of full data set.
@@ -4799,8 +4797,7 @@ def show_volume_file_browser(dialog_title, volumes_cb = None,
 
   def grids_cb(grids):
     from volume import volume_from_grid_data
-    vlist = [volume_from_grid_data(g, show_data = show_data,
-                                   show_dialog = show_volume_dialog)
+    vlist = [volume_from_grid_data(g, show_dialog = show_volume_dialog)
              for g in grids]
     if volumes_cb:
       volumes_cb(vlist)

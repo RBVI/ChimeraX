@@ -195,7 +195,7 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
     grid = None
     if not on_grid is None:
         vtype = maps[0].data.value_type if value_type is None else value_type
-        grid = on_grid.writable_copy(value_type = vtype, show = False)
+        grid = on_grid.writable_copy(value_type = vtype)
 
     n = len(maps)
     for i,v in enumerate(maps):
@@ -281,7 +281,7 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         align(v, align_to)
 
     if not on_grid is None:
-        vc = v.writable_copy(value_type = m.dtype, show = False, unshow_original = False)
+        vc = v.writable_copy(value_type = m.dtype, unshow_original = False)
         vc.full_matrix()[:,:,:] = m
         m = on_grid.full_matrix()
         m[:,:,:] = 0

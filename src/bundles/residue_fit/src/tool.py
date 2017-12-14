@@ -43,7 +43,7 @@ class ResidueFit(Slider):
         self._model_close_handler = session.triggers.add_handler(REMOVE_MODELS, self.models_closed_cb)
 
         map.new_region(ijk_step = (1,1,1), adjust_step = False)
-        map.show(representation = 'mesh')
+        map.set_representation('mesh')
         s.atoms.displays = False
         s.residues.ribbon_displays = False
         self.update_value(rmin)

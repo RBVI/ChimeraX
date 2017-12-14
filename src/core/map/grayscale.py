@@ -171,6 +171,9 @@ class GrayScaleDrawing(Drawing):
         bi.set_grid_size(grid_size)
 
   def draw(self, renderer, place, draw_pass, selected_only = False):
+    if not self.display:
+      return
+    
     self.update_blend_groups()
     bi = self.blend_image
     if bi:

@@ -27,12 +27,10 @@ def scaled_volume(v, scale = 1, sd = None, rms = None, shift = 0, type = None,
     
   sg = scaled_grid(v, scale, shift, type, subregion, step)
   from .. import volume_from_grid_data
-  sv = volume_from_grid_data(sg, session, show_data = False, model_id = model_id)
+  sv = volume_from_grid_data(sg, session, model_id = model_id)
   sv.copy_settings_from(v, copy_thresholds = False)
-  sv.initialize_thresholds()
-  sv.show()
 
-  v.unshow()          # Hide original map
+  v.display = False          # Hide original map
 
   return sv
 
