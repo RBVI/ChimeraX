@@ -261,15 +261,14 @@ def polymer_colors(residues):
 # Default nucleotide colors used by the NDB from 3xdna
 
 
-# use non-saturated colors, so 90% of 255 (229)
 _ndb_colors = {
-    'A': (229, 0, 0, 255),      # red
-    'T': (0, 0, 229, 255),      # blue
-    'G': (0, 229, 0, 255),      # green
-    'C': (229, 229, 0, 255),    # yellow
+    'A': (255, 0, 0, 255),      # red
+    'T': (0, 0, 255, 255),      # blue
+    'G': (0, 255, 0, 255),      # green
+    'C': (255, 255, 0, 255),    # yellow
     'I': (0, 100, 0, 255),      # dark green
     'P': (211, 211, 211, 255),  # light gray
-    'U': (0, 229, 229, 255),    # cyan
+    'U': (0, 255, 255, 255),    # cyan
 }
 
 
