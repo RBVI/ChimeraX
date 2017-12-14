@@ -168,18 +168,11 @@ var vdxtable = function() {
         $("#show_all_btn").click(function() {
             window.location = custom_scheme + ":check_all?show_all=true";
         });
-        $('#chart_btn').on('click', function() {
+        $("#chart_btn").click(function() {
             window.location = custom_scheme + ":chart";
         });
-        $('#plot_btn').on('click', function() {
-            window.location = custom_scheme + ":plot";
-        });
-        $('#histogram_btn').on('click', function() {
-            window.location = custom_scheme + ":histogram";
-        });
-        $("#show_columns").multiselect({
-            placeholder: "Columns...",
-            onOptionClick: show_column
+        $("#export_btn").click(function() {
+            window.location = custom_scheme + ":export";
         });
         $("#prune_stars").rateYo({
             starWidth: "16px",
@@ -187,6 +180,14 @@ var vdxtable = function() {
             ratedFill: "#F36C12",
             normalFill: "#DDDDDD",
             fullStar: true
+        });
+        $("#prune_btn").click(function() {
+            window.location = custom_scheme + ":prune?stars=" +
+                              $("#prune_stars").rateYo("option", "rating");
+        });
+        $("#show_columns").multiselect({
+            placeholder: "Columns...",
+            onOptionClick: show_column
         });
     }
 

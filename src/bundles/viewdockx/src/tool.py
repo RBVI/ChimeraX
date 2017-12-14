@@ -43,6 +43,13 @@ class _BaseTool:
         for s in structures:
             if self.category_rating not in s.viewdockx_data:
                 s.viewdockx_data[self.category_rating] = "3"
+            else:
+                try:
+                    r = int(s.viewdockx_data[self.category_rating])
+                    if r < 0 or r > 5:
+                        raise ValueError("out of range")
+                except ValueError:
+                    s.viewdockx_data[self.category_rating] = "3"
 
         #
         # Get union of categories found in all viewdockx_data attributes
@@ -257,11 +264,17 @@ class TableTool(HtmlToolInstance, _BaseTool):
     def _cb_chart(self, query):
         ChartTool(self.session, "ViewDockX Chart", structures=self.structures)
 
-    def _cb_plot(self, query):
-        pass
+    def _cb_export(self, query):
+        print("Export not implemented yet")
 
-    def _cb_histogram(self, query):
-        pass
+    def _cb_prune(self, query):
+        stars = int(query["stars"][0])
+        structures = [s for s in self.structures
+                      if int(s.viewdockx_data[self.category_rating]) <= stars]
+        if not structures:
+            print("No structures closed")
+            return
+        self.session.models.close(structures)
 
 
 class ChartTool(HtmlToolInstance, _BaseTool):
