@@ -16,7 +16,7 @@
 #ifndef atomstruct_CoordSet
 #define atomstruct_CoordSet
 
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <string>
 #include <unordered_map>
 #include <vector>

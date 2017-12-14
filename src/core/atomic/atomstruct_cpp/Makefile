@@ -62,32 +62,42 @@ endif
 
 $(SUBDIR_INSTALL): imex.h
 
-Atom.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h \
-	Pseudobond.h Residue.h session.h Structure.h
+Atom.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h Pseudobond.h Residue.h \
+	session.h Structure.h ../element_cpp/Element.h ../pyinstance_cpp/PythonInstance.declare.h \
+	../pyinstance_cpp/PythonInstance.instantiate.h
 AtomicStructure.o: Atom.h AtomicStructure.h Bond.h CoordSet.h destruct.h Structure.h \
 	PBGroup.h Pseudobond.h Residue.h seq_assoc.h
 AtomTypes.o: AtomicStructure.h Bond.h Coord.h Residue.h tmpl/TAexcept.h
-Bond.o: Atom.h Bond.h Chain.h ChangeTracker.h Connection.h Structure.h \
-	Residue.h Sequence.h session.h
-Chain.o: Chain.h ChangeTracker.h StructureSeq.h
+Bond.o: Atom.h Bond.h Chain.h ChangeTracker.h Connection.h Structure.h Residue.h Sequence.h \
+	session.h ../pyinstance_cpp/PythonInstance.declare.h \
+	../pyinstance_cpp/PythonInstance.instantiate.h
+Chain.o: Chain.h ChangeTracker.h StructureSeq.h ../pyinstance_cpp/PythonInstance.declare.h \
+	../pyinstance_cpp/PythonInstance.instantiate.h
 ChangeTracker.o: ChangeTracker.h
 CompSS.o: Atom.h AtomicStructure.h Coord.h Residue.h Structure.h
 connect.o: Atom.h Bond.h connect.h Coord.h destruct.h Structure.h MolResId.h PBGroup.h \
 	Residue.h string_types.h tmpl/Residue.h tmpl/Atom.h tmpl/residues.h
-CoordSet.o: Atom.h ChangeTracker.h CoordSet.h destruct.h session.h Structure.h
+CoordSet.o: Atom.h ChangeTracker.h CoordSet.h destruct.h session.h Structure.h \
+	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
 destruct.o: destruct.h
-PBGroup.o: Atom.h ChangeTracker.h destruct.h PBGroup.h Pseudobond.h session.h Structure.h
-PBManager.o: ChangeTracker.h destruct.h Structure.h PBGroup.h PBManager.h 
+PBGroup.o: Atom.h ChangeTracker.h destruct.h PBGroup.h Pseudobond.h session.h Structure.h \
+	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
+PBManager.o: ChangeTracker.h destruct.h Structure.h PBGroup.h PBManager.h \
+	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
 Point.o: Point.h
-Pseudobond.o: Atom.h ChangeTracker.h Connection.h PBGroup.h PBManager.h Pseudobond.h \
-	session.h
-Residue.o: Atom.h Bond.h ChangeTracker.h destruct.h \
-	Residue.h session.h tmpl/TemplateCache.h
+Pseudobond.o: Atom.h ChangeTracker.h Connection.h PBGroup.h PBManager.h Pseudobond.h session.h \
+	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
+Residue.o: Atom.h Bond.h ChangeTracker.h destruct.h Residue.h session.h tmpl/TemplateCache.h \
+	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
 RibbonXSection.o: RibbonXSection.h
-Ring.o: Atom.h Bond.h Coord.h Real.h Ring.h
+Ring.o: Atom.h Bond.h Coord.h Real.h Ring.h ../pyinstance_cpp/PythonInstance.declare.h \
+	../pyinstance_cpp/PythonInstance.instantiate.h
 RingCalc.o: Bond.h Structure.h Residue.h
 seq_assoc.o: Chain.h Structure.h Residue.h seq_assoc.h
-Sequence.o: Sequence.h session.h
+Sequence.o: Sequence.h session.h ../pyinstance_cpp/PythonInstance.declare.h \
+	../pyinstance_cpp/PythonInstance.instantiate.h
 Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h PBManager.h \
-	Pseudobond.h Structure.h Residue.h
-StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h Structure.h Sequence.h Residue.h
+	Pseudobond.h Structure.h Residue.h ../element_cpp/Element.h \
+	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
+StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h Structure.h Sequence.h Residue.h \
+	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h

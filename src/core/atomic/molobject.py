@@ -238,7 +238,7 @@ class Atom(State):
                                    doc = "Whether any connected bond is selected.")
     serial_number = c_property('atom_serial_number', int32,
         doc="Atom serial number from input file.")
-    structure = c_property('atom_structure', cptr, astype=_atomic_structure, read_only=True,
+    structure = c_property('atom_structure', pyobject, read_only=True,
         doc=":class:`.AtomicStructure` the atom belongs to")
     structure_category = c_property('atom_structure_category', string, read_only=True,
         doc = "Whether atom is ligand, ion, etc.")
@@ -530,7 +530,7 @@ class Bond(State):
     '''Whether both bond end atoms are selected.'''
     shown = c_property('bond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown and at least one is not Sphere style. Read only.'''
-    structure = c_property('bond_structure', cptr, astype = _atomic_structure, read_only = True)
+    structure = c_property('bond_structure', pyobject, read_only = True)
     ''':class:`.AtomicStructure` the bond belongs to.'''
     visible = c_property('bond_visible', npy_bool, read_only = True)
     '''Whether bond is display and not hidden. Read only.'''
@@ -720,7 +720,7 @@ class PseudobondGroupData:
         doc = "Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
     radius = c_property('pseudobond_group_radius', float32,
         doc = "Sets the radius attribute of current pseudobonds and new pseudobonds")
-    structure = c_property('pseudobond_group_structure', cptr, astype = _atomic_structure,
+    structure = c_property('pseudobond_group_structure', pyobject,
         read_only = True, doc ="Structure that pseudobond group is owned by.  "
         "Returns None if called on a group managed by the global pseudobond manager")
 
@@ -770,14 +770,14 @@ class PseudobondGroupData:
         if cs_id is None:
             f = c_function('pseudobond_group_new_pseudobond',
                            args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
-                           ret = ctypes.c_void_p)
+                           ret = ctypes.py_object)
             pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
         else:
             f = c_function('pseudobond_group_new_pseudobond_csid',
                            args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int),
-                           ret = ctypes.c_void_p)
+                           ret = ctypes.py_object)
             pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer, cs_id)
-        return _pseudobond_ptr_to_inst(pb)
+        return pb
 
     # Graphics changed flags used by rendering code.  Private.
     _SHAPE_CHANGE = 0x1
@@ -1036,7 +1036,7 @@ class Residue(State):
     '''Secondary structure id number. Integer value.'''
     ss_type = c_property('residue_ss_type', int32, doc=
         "Secondary structure type of residue.  Integer value.  One of Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_SHEET (a.k.a. SS_STRAND)")
-    structure = c_property('residue_structure', cptr, astype = _atomic_structure, read_only = True)
+    structure = c_property('residue_structure', pyobject, read_only = True)
     ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
 
     def add_atom(self, atom):
@@ -1193,7 +1193,7 @@ class Sequence(State):
             args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
-        f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.pyobject))
+        f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
@@ -1381,7 +1381,7 @@ class StructureSeq(Sequence):
     residues = c_property('sseq_residues', cptr, 'num_residues', astype = _residues_or_nones,
         read_only = True, doc = "List containing the residues of this sequence in order. "
         "Residues with no structure will be None. Read only.")
-    structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
+    structure = c_property('sseq_structure', pyobject, read_only = True)
     ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
 
     # allow append/extend for now, since NeedlemanWunsch uses it
@@ -1825,17 +1825,15 @@ class StructureData:
             element = Element.get_element(element)
         f = c_function('structure_new_atom',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p),
-                       ret = ctypes.c_void_p)
-        ap = f(self._c_pointer, atom_name.encode('utf-8'), element._c_pointer)
-        return object_map(ap, Atom)
+                       ret = ctypes.py_object)
+        return f(self._c_pointer, atom_name.encode('utf-8'), element._c_pointer)
 
     def new_bond(self, atom1, atom2):
         '''Create a new :class:`.Bond` joining two :class:`Atom` objects.'''
         f = c_function('structure_new_bond',
                        args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
-                       ret = ctypes.c_void_p)
-        bp = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
-        return object_map(bp, Bond)
+                       ret = ctypes.py_object)
+        return f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
 
     def new_coordset(self, index=None, size=None):
         '''Create a new empty coordset.  In almost all circumstances one would use the
@@ -1863,9 +1861,8 @@ class StructureData:
         '''Create a new :class:`.Residue`.'''
         f = c_function('structure_new_residue',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
-                       ret = ctypes.c_void_p)
-        rp = f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
-        return object_map(rp, Residue)
+                       ret = ctypes.py_object)
+        return f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
 
     PMS_ALWAYS_CONNECTS, PMS_NEVER_CONNECTS, PMS_TRACE_CONNECTS = range(3)
     def polymers(self, missing_structure_treatment = PMS_ALWAYS_CONNECTS,
@@ -1893,12 +1890,8 @@ class StructureData:
             create_arg = 2
         f = c_function('structure_pseudobond_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
-                       ret = ctypes.c_void_p)
-        pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
-        if not pbg:
-            return None
-        from .pbgroup import PseudobondGroup
-        return object_map(pbg, PseudobondGroup)
+                       ret = ctypes.py_object)
+        return f(self._c_pointer, name.encode('utf-8'), create_arg)
 
     def _delete_pseudobond_group(self, pbg):
         f = c_function('structure_delete_pseudobond_group',
@@ -2062,7 +2055,7 @@ class CoordSet(State):
         return not hasattr(self, '_c_pointer')
 
     id = c_property('coordset_id', int32, read_only = True, doc="ID number of coordset")
-    structure = c_property('coordset_structure', cptr, astype=_atomic_structure, read_only=True,
+    structure = c_property('coordset_structure', pyobject, read_only=True,
         doc=":class:`.AtomicStructure` the coordset belongs to")
 
 # -----------------------------------------------------------------------------
@@ -2462,14 +2455,16 @@ class SeqMatchMap(State):
 # tell the C++ layer about class objects whose Python objects can be instantiated directly
 # from C++ with just a pointer, and put functions in those classes for getting the instance
 # from the pointer (needed by Collections)
-for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroupData, Pseudobond, Residue, Ring]:
+from .pbgroup import PseudobondGroup
+for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
     cname = class_obj.__name__.lower()
-    if cname.endswith("data"):
-        cname = cname[:-4]
     func_name = "set_" + cname + "_pyclass"
     f = c_function(func_name, args = (ctypes.py_object,))
     f(class_obj)
 
+    if class_obj == PseudobondGroup:
+        # put these funcs in PseudobondGroupData not PseudobondGroup
+        class_obj = PseudobondGroupData
     func_name = cname + "_py_inst"
     class_obj.c_ptr_to_py_inst = lambda ptr, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))

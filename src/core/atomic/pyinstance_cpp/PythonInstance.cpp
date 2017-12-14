@@ -13,7 +13,7 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#include "PythonInstance.h"
+#include "PythonInstance.declare.h"
 
 namespace pyinstance {
 
@@ -28,6 +28,6 @@ AcquireGIL::~AcquireGIL() {
     PyGILState_Release(gil_state);
 }
 
-std::map<const void*, PyObject*>  _pyinstance_object_map;
+PYINSTANCE_IMEX std::map<const void*, PyObject*>  _pyinstance_object_map;
 
 } //  namespace atomstruct

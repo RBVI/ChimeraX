@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <element/Element.h>
 #include <map>
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 #include <string>
 #include <unordered_map>

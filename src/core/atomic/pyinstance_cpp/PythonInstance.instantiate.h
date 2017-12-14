@@ -13,8 +13,8 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#ifndef pyinstance_python_instance
-#define pyinstance_python_instance
+#ifndef pyinstance_python_instance_instantiate
+#define pyinstance_python_instance_instantiate
 
 #include <map>
 #include <sstream>
@@ -26,84 +26,61 @@
 
 #include "imex.h"
 
+#include <iostream>
 namespace pyinstance {
-
-class PYINSTANCE_IMEX AcquireGIL {
-public:
-    AcquireGIL();
-    ~AcquireGIL();
-};
-
-class PyAttrError : public std::runtime_error {
-public:
-    PyAttrError(const std::string msg) : std::runtime_error(msg) {}
-};
-
-class NoPyInstanceError : public PyAttrError {
-public:
-    NoPyInstanceError() : PyAttrError(std::string("No Python instance")) {}
-    NoPyInstanceError(const std::string msg) : PyAttrError(msg) {}
-};
-
-class NoPyAttrError : public PyAttrError {
-public:
-    NoPyAttrError() : PyAttrError(std::string("Python instance has no such attr")) {}
-    NoPyAttrError(const std::string msg) : PyAttrError(msg) {}
-};
-
-class WrongPyAttrTypeError : public PyAttrError {
-public:
-    WrongPyAttrTypeError() : PyAttrError(std::string("Python attr is wrong type")) {}
-    WrongPyAttrTypeError(const std::string msg) : PyAttrError(msg) {}
-};
 
 PYINSTANCE_IMEX extern std::map<const void*, PyObject*>  _pyinstance_object_map;
 
-// this is a template class so that different derived classes have separate static variables
-template<class C>
-class PYINSTANCE_IMEX PythonInstance {
-private:
-    static std::string _buffer;  // so that the const char* from std::string will hang around
-    static PyObject*  _py_class;
-public:
-    virtual  ~PythonInstance();
-    PyObject*  get_py_attr(const char* attr_name, bool create=false) const;
-    double  get_py_float_attr(const char* attr_name, bool create=false) const;
-    long  get_py_float_attr(std::string& attr_name, bool create=false) const {
-        return get_py_float_attr(attr_name.c_str(), create);
-    }
-    long  get_py_int_attr(const char* attr_name, bool create=false) const;
-    long  get_py_int_attr(std::string& attr_name, bool create=false) const {
-        return get_py_int_attr(attr_name.c_str(), create);
-    }
-    const char*  get_py_string_attr(const char* attr_name, bool create=false) const;
-    const char*  get_py_string_attr(std::string& attr_name, bool create=false) const {
-        return get_py_string_attr(attr_name.c_str(), create);
-    }
+template <class C> PYINSTANCE_IMEX std::string PythonInstance<C>::_buffer;
+template <class C> PYINSTANCE_IMEX PyObject* PythonInstance<C>::_py_class = nullptr;
+
+template <class C>
+long PythonInstance<C>::get_py_float_attr(std::string& attr_name, bool create) const
+{
+    return get_py_float_attr(attr_name.c_str(), create);
+}
+
+template <class C>
+long PythonInstance<C>::get_py_int_attr(std::string& attr_name, bool create) const
+{
+    return get_py_int_attr(attr_name.c_str(), create);
+}
+
+template <class C>
+const char* PythonInstance<C>::get_py_string_attr(std::string& attr_name, bool create) const
+{
+    return get_py_string_attr(attr_name.c_str(), create);
+}
     
-    static PyObject*  py_class() { return _py_class; }
-    static void  set_py_class(PyObject* c_obj) { _py_class = c_obj; }
-
-    PyObject*  py_instance(bool create) const;
-    // some Python objects can't be created by C++ (need more args), so...
-    void  set_py_instance(PyObject* py_obj) {
-        _pyinstance_object_map[this] = py_obj;
-        Py_INCREF(py_obj);
-    }
-};
+template <class C>
+PyObject* PythonInstance<C>::py_class()
+{
+    return _py_class;
+}
 
 template <class C>
-PyObject*  PythonInstance<C>::_py_class = nullptr;
+void PythonInstance<C>::set_py_class(PyObject* c_obj)
+{
+    Py_INCREF(c_obj);
+    _py_class = c_obj;
+}
 
 template <class C>
-std::string  PythonInstance<C>::_buffer;
+void PythonInstance<C>::set_py_instance(PyObject* py_obj)
+{
+    auto derived = static_cast<const C*>(this);
+    _pyinstance_object_map[derived] = py_obj;
+    Py_INCREF(py_obj);
+}
 
 template <class C>
 PythonInstance<C>::~PythonInstance() {
-    auto i = _pyinstance_object_map.find(static_cast<const void*>(this));
-    if (i != _pyinstance_object_map.end())
+    auto derived = static_cast<const C*>(this);
+    auto i = _pyinstance_object_map.find(static_cast<const void*>(derived));
+    if (i == _pyinstance_object_map.end())
         return;
     PyObject* py_inst = (*i).second;
+    AcquireGIL gil; // Py_DECREF can cause code to run
     PyObject_DelAttrString(py_inst, "_c_pointer");
     PyObject_DelAttrString(py_inst, "_c_pointer_ref");
     Py_DECREF(py_inst);
@@ -115,8 +92,10 @@ PyObject*
 PythonInstance<C>::get_py_attr(const char* attr_name, bool create) const
 {
     auto py_obj = py_instance(create);
-    if (py_obj == nullptr)
+    if (py_obj == Py_None) {
+        Py_DECREF(py_obj);
         throw NoPyInstanceError();
+    }
 
     auto py_attr = PyObject_GetAttrString(py_obj, attr_name);
     Py_DECREF(py_obj);
@@ -185,9 +164,13 @@ template <class C>
 PyObject*
 PythonInstance<C>::py_instance(bool create) const
 {
-    auto i = _pyinstance_object_map.find(static_cast<const void*>(this));
-    if (i != _pyinstance_object_map.end())
-        return (*i).second;
+    // Returns a new reference
+    auto derived = static_cast<const C*>(this);
+    auto i = _pyinstance_object_map.find(static_cast<const void*>(derived));
+    if (i != _pyinstance_object_map.end()) {
+        Py_INCREF(i->second);
+        return i->second;
+    }
 
     if (!create) {
         Py_INCREF(Py_None);
@@ -198,12 +181,12 @@ PythonInstance<C>::py_instance(bool create) const
     if (class_inst == nullptr) {
         std::stringstream msg;
         msg << "Cannot instantiate Python class corresponding to C++ ";
-        msg << typeid(*this).name();
+        msg << typeid(*derived).name();
         throw std::invalid_argument(msg.str());
     }
     
     AcquireGIL gil;  // guarantee that we can call Python functions
-    PyObject* py_ptr = PyLong_FromVoidPtr(const_cast<void*>(static_cast<const void*>(this)));
+    PyObject* py_ptr = PyLong_FromVoidPtr(const_cast<void*>(static_cast<const void*>(derived)));
     PyObject* py_inst = PyObject_CallFunctionObjArgs(class_inst, py_ptr, nullptr);
     Py_DECREF(py_ptr);
     if (py_inst == nullptr) {
@@ -215,11 +198,11 @@ PythonInstance<C>::py_instance(bool create) const
         Py_DECREF(class_name);
         throw std::runtime_error(msg.str());
     }
-    _pyinstance_object_map[this] = py_inst;
+    _pyinstance_object_map[derived] = py_inst;
     Py_INCREF(py_inst);
     return py_inst;
 }
 
 }  // namespace pyinstance
 
-#endif  // pyinstance_python_instance
+#endif  // pyinstance_python_instance_instantiate

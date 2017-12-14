@@ -23,6 +23,9 @@
 #include "Real.h"
 #include "Ring.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Ring>;
+
 namespace atomstruct {
 
 bool

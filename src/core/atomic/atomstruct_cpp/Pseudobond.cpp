@@ -20,6 +20,9 @@
 #include "PBManager.h"
 #include "Pseudobond.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Pseudobond>;
+
 namespace atomstruct {
 
 Pseudobond::Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _group(grp),

@@ -16,11 +16,13 @@
 #include <cctype>
 #include <exception>
 #include <iostream>
-#include <pyinstance/PythonInstance.h>
 #include <Python.h>
 
 #define ATOMSTRUCT_EXPORT
 #include "Chain.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Sequence>;
 
 namespace atomstruct {
 
@@ -219,7 +221,7 @@ Sequence::set_name(std::string& name)
     auto old_name = _name;
     _name = name;
     auto inst = py_instance(false);
-    if (inst != nullptr) {
+    if (inst != Py_None) {
         auto gil = pyinstance::AcquireGIL();
         auto ret = PyObject_CallMethod(inst, "_cpp_rename", "s", old_name.c_str());
         if (ret == nullptr) {

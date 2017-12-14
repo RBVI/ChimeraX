@@ -875,7 +875,12 @@ extern "C" EXPORT void set_atom_serial_number(void *atoms, size_t n, int32_t *se
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_get(a, n, &Atom::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            molp[i] = a[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void atom_name(void *atoms, size_t n, pyobject_t *names)
@@ -1423,7 +1428,12 @@ extern "C" EXPORT void set_bond_radius(void *bonds, size_t n, float32_t *radii)
 extern "C" EXPORT void bond_structure(void *bonds, size_t n, pyobject_t *molp)
 {
     Bond **b = static_cast<Bond **>(bonds);
-    error_wrap_array_get(b, n, &Bond::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+          molp[i] = b[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
@@ -1831,26 +1841,26 @@ extern "C" EXPORT void pseudobond_group_clear(void *pbgroup)
     }
 }
 
-extern "C" EXPORT void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
+extern "C" EXPORT PyObject *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
 {
     Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
     try {
         Pseudobond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
-        return b;
+        return b->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
     }
 }
 
-extern "C" EXPORT void *pseudobond_group_new_pseudobond_csid(void *pbgroup,
+extern "C" EXPORT PyObject *pseudobond_group_new_pseudobond_csid(void *pbgroup,
     void *atom1, void *atom2, int cs_id)
 {
     Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
     try {
         Pseudobond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2),
             pbg->structure()->find_coord_set(cs_id));
-        return b;
+        return b->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -1871,8 +1881,14 @@ extern "C" EXPORT void pseudobond_group_structure(void *pbgroups, size_t n, pyob
 {
     Proxy_PBGroup **pbgs = static_cast<Proxy_PBGroup **>(pbgroups);
     try {
-        for (size_t i = 0; i < n; ++i)
-            resp[i] = pbgs[i]->structure();
+        for (size_t i = 0; i < n; ++i) {
+            auto sptr = pbgs[i]->structure();
+            if (sptr == nullptr) {
+                Py_INCREF(Py_None);
+                resp[i] = Py_None;
+            } else
+                resp[i] = sptr->py_instance(true);
+        }
     } catch (...) {
         molc_error();
     }
@@ -2404,7 +2420,12 @@ extern "C" EXPORT size_t residue_ribbon_num_selected(void *residues, size_t n)
 extern "C" EXPORT void residue_structure(void *residues, size_t n, pyobject_t *molp)
 {
     Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+          molp[i] = r[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void residue_name(void *residues, size_t n, pyobject_t *names)
@@ -3121,7 +3142,12 @@ extern "C" EXPORT void set_sseq_from_seqres(void *sseqs, size_t n, npy_bool *fro
 extern "C" EXPORT void sseq_structure(void *chains, size_t n, pyobject_t *molp)
 {
     StructureSeq **c = static_cast<StructureSeq **>(chains);
-    error_wrap_array_get(c, n, &StructureSeq::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+          molp[i] = c[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void *sseq_new(char *chain_id, void *struct_ptr)
@@ -3448,7 +3474,12 @@ extern "C" EXPORT void coordset_id(void *coordsets, size_t n, int32_t *index)
 extern "C" EXPORT void coordset_structure(void *coordsets, size_t n, pyobject_t *molp)
 {
     CoordSet **cs = static_cast<CoordSet **>(coordsets);
-    error_wrap_array_get(cs, n, &CoordSet::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+          molp[i] = cs[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 // -------------------------------------------------------------------------
@@ -4154,12 +4185,16 @@ extern "C" EXPORT const char *structure_PBG_HYDROGEN_BONDS()
     return Structure::PBG_HYDROGEN_BONDS;
 }
 
-extern "C" EXPORT Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name, int create_type)
+extern "C" EXPORT PyObject *structure_pseudobond_group(void *mol, const char *name, int create_type)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
         Proxy_PBGroup *pbg = m->pb_mgr().get_group(name, create_type);
-        return pbg;
+        if (pbg == nullptr) {
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
+        return pbg->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -4445,13 +4480,13 @@ extern "C" EXPORT void structure_delete(void *mol)
     }
 }
 
-extern "C" EXPORT void *structure_new_atom(void *mol, const char *atom_name, void *element)
+extern "C" EXPORT PyObject *structure_new_atom(void *mol, const char *atom_name, void *element)
 {
     Structure *m = static_cast<Structure *>(mol);
     Element *e = static_cast<Element *>(element);
     try {
         Atom *a = m->new_atom(atom_name, *e);
-        return a;
+        return a->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -4468,12 +4503,12 @@ extern "C" EXPORT void structure_delete_atom(void *mol, void *atom)
     }
 }
 
-extern "C" EXPORT void *structure_new_bond(void *mol, void *atom1, void *atom2)
+extern "C" EXPORT PyObject *structure_new_bond(void *mol, void *atom1, void *atom2)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
         Bond *b = m->new_bond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
-        return b;
+        return b->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -4510,12 +4545,12 @@ extern "C" EXPORT void structure_new_coordset_index_size(void *mol, int32_t inde
     }
 }
 
-extern "C" EXPORT void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert)
+extern "C" EXPORT PyObject *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
         Residue *r = m->new_residue(residue_name, chain_id, pos, insert);
-        return r;
+        return r->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -5324,7 +5359,6 @@ extern "C" EXPORT void set_coordset_pyclass(PyObject* py_class)
 
 extern "C" EXPORT void set_element_pyclass(PyObject* py_class)
 {
-std::cerr << "Setting Element py_class to " << (long)py_class << "\n";
     try {
         Element::set_py_class(py_class);
     } catch (...) {

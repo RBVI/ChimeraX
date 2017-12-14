@@ -22,6 +22,9 @@
 #include "destruct.h"
 #include "Structure.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::CoordSet>;
+
 namespace atomstruct {
 
 CoordSet::CoordSet(Structure* as, int cs_id):

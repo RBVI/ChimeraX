@@ -20,7 +20,7 @@
 
 #include <iostream>
 #include <map>
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 #include <string>
 
@@ -112,5 +112,7 @@ operator<<(std::ostream &os, const Element &a)
 }
 
 }  // namespace element
+
+extern template class pyinstance::PythonInstance<element::Element>;
 
 #endif  // element_Element

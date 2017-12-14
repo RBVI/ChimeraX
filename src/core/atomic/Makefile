@@ -66,7 +66,9 @@ molc.$(OBJ_EXT): $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/Atomic
 	$(includedir)/atomstruct/ChangeTracker.h $(includedir)/atomstruct/destruct.h \
 	$(includedir)/atomstruct/PBGroup.h $(includedir)/atomstruct/PBManager.h \
 	$(includedir)/atomstruct/Pseudobond.h $(includedir)/atomstruct/Residue.h \
-	$(includedir)/atomstruct/RibbonXSection.h $(includedir)/atomstruct/Sequence.h
+	$(includedir)/atomstruct/RibbonXSection.h $(includedir)/atomstruct/Sequence.h \
+	$(includedir)/element/Element.h $(includedir)/pyinstance/PythonInstance.declare.h \
+	$(includedir)/pyinstance/PythonInstance.instantiate.h
 
 $(includedir)/atomstruct/Atom.h: atomstruct_cpp.install
 $(includedir)/atomstruct/AtomicStructure.h: atomstruct_cpp.install
@@ -79,6 +81,9 @@ $(includedir)/atomstruct/Pseudobond.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Residue.h: atomstruct_cpp.install
 $(includedir)/atomstruct/RibbonXSection.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Sequence.h: atomstruct_cpp.install
+$(includedir)/element/Element.h: element_cpp.install
+$(includedir)/pyinstance/PythonInstance.declare.h: pyinstance_cpp.install
+$(includedir)/pyinstance/PythonInstance.instantiate.h: pyinstance_cpp.install
 
 atomstruct_cpp.install: element_cpp.install pyinstance_cpp.install
 dssp_cpp.install: atomstruct_cpp.install

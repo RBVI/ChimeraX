@@ -16,7 +16,7 @@
 #ifndef atomstruct_Bond
 #define atomstruct_Bond
 
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 #include <vector>
 

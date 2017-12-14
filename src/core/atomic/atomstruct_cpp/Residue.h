@@ -17,7 +17,7 @@
 #define atomstruct_Residue
 
 #include <map>
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 #include <string>
 #include <vector>

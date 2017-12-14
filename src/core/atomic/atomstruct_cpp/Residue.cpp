@@ -25,6 +25,9 @@
 #include "Residue.h"
 #include "tmpl/TemplateCache.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Residue>;
+
 namespace atomstruct {
 
 const std::set<AtomName> Residue::aa_min_backbone_names = {

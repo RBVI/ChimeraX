@@ -21,7 +21,11 @@
 #include "Residue.h"
 #include "Sequence.h"
 #include "Structure.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
 #include <stdexcept>
+
+template class pyinstance::PythonInstance<atomstruct::Bond>;
 
 namespace atomstruct {
 

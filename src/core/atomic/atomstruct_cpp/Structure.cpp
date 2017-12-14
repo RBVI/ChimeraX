@@ -32,6 +32,9 @@
 #include "Pseudobond.h"
 #include "Residue.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Structure>;
+
 namespace {
 
 class AcquireGIL {

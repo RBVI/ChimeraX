@@ -29,7 +29,10 @@
 #include "Pseudobond.h"
 #include "Residue.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
 #include <pysupport/convert.h>
+
+template class pyinstance::PythonInstance<atomstruct::Atom>;
 
 namespace atomstruct {
 

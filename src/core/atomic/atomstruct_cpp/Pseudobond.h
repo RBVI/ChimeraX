@@ -16,7 +16,7 @@
 #ifndef atomstruct_Pseudobond
 #define atomstruct_Pseudobond
 
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 
 #include "Connection.h"
 #include "imex.h"

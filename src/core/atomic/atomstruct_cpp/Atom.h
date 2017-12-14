@@ -21,7 +21,7 @@
 #include <element/Element.h>
 #include <map>
 #include <memory>
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 #include <string>
 #include <vector>

@@ -16,7 +16,7 @@
 #ifndef atomstruct_Ring
 #define atomstruct_Ring
 
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 
 namespace atomstruct {

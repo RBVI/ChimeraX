@@ -17,7 +17,7 @@
 #define atomstruct_PBManager
 
 #include <map>
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <string>
 #include <unordered_map>
 

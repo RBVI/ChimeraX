@@ -17,7 +17,7 @@
 #define atomstruct_Sequence
 
 #include <map>
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <stdexcept>
 #include <string>
 #include <vector>

@@ -20,6 +20,8 @@
 
 #define ELEMENT_EXPORT
 #include "Element.h"
+#include "pyinstance/PythonInstance.instantiate.h"
+template class pyinstance::PythonInstance<element::Element>;
 
 namespace element {
 

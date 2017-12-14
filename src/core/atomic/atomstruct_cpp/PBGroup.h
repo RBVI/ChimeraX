@@ -16,7 +16,7 @@
 #ifndef atomstruct_PBGroup
 #define atomstruct_PBGroup
 
-#include <pyinstance/PythonInstance.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -70,7 +70,6 @@ protected:
     PBGroup(const std::string& cat, BaseManager* manager):
         _category(cat), _destruction_relevant(true), _manager(manager), _proxy(nullptr) { }
     virtual  ~PBGroup() { }
-
     // can't call pure virtuals from base class destructors, so
     // make the code easily available to derived classes...
     void  dtor_code();
