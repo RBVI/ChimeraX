@@ -1,4 +1,5 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+from io import StringIO
 from chimerax.core.ui import HtmlToolInstance
 
 
@@ -265,7 +266,26 @@ class TableTool(HtmlToolInstance, _BaseTool):
         ChartTool(self.session, "ViewDockX Chart", structures=self.structures)
 
     def _cb_export(self, query):
-        print("Export not implemented yet")
+        from PyQt5.QtWidgets import QFileDialog
+        dlg = QFileDialog()
+        dlg.setAcceptMode(QFileDialog.AcceptSave)
+        dlg.setFileMode(QFileDialog.AnyFile)
+        if not dlg.exec():
+            return
+        paths = dlg.selectedFiles()
+        if not paths:
+            return
+        prefix = "##########"
+        from chimerax.mol2.io import write_mol2
+        with open(paths[0], "w") as outf:
+            for s in self.structures:
+                with OutputCache() as sf:
+                    write_mol2(self.session, sf, models=[s])
+                    for item in s.viewdockx_data.items():
+                        print(prefix, "%s: %s\n" % item, end='', file=outf)
+                    print("\n", end='', file=outf)
+                    print(sf.saved_output, end='', file=outf)
+                    print("\n\n", end='', file=outf)
 
     def _cb_prune(self, query):
         stars = int(query["stars"][0])
@@ -275,6 +295,14 @@ class TableTool(HtmlToolInstance, _BaseTool):
             print("No structures closed")
             return
         self.session.models.close(structures)
+
+
+class OutputCache(StringIO):
+
+    def close(self, *args, **kw):
+        if not self.closed:
+            self.saved_output = self.getvalue()
+        super().close(*args, **kw)
 
 
 class ChartTool(HtmlToolInstance, _BaseTool):
