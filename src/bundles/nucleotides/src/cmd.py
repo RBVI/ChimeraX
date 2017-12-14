@@ -11,7 +11,7 @@
 #               * fill/fill, fill/slab, tube/slab:
 #                       * orient (true|false)
 #               * fill/slab, tube/slab:
-#                       * shape (box|tube|ellipsoid)
+#                       * shape (box|muffler|discus)
 #                       * style slab-style
 #                       * thickness 0.5
 #                       * hide (true|false)
@@ -89,7 +89,7 @@ def nucleotides_style_delete(session, name):
     NA.remove_style(name)
 
 
-ShapeArg = EnumOf(('box', 'tube', 'ellipsoid'))
+ShapeArg = EnumOf(('box', 'muffler', 'discus'))
 StyleArg = DynamicEnum(NA.list_styles, name='a nucleotide style')
 # ReprArg = EnumOf(('atoms', 'fill/fill', 'fill/slab', 'tube/slab', 'ladder'))
 ReprArg = EnumOf(('atoms', 'slab', 'tube/slab', 'ladder'))

@@ -781,7 +781,7 @@ def draw_slab(nd, residue, name, *, style=default.STYLE,
         xf2 = xf
         va, na, ta = box_geometry(llb, urf)
         pure_rotation = True
-    elif shape == 'tube':
+    elif shape == 'muffler':
         radius = (urx - llx) / 2 * _SQRT2
         xf2 = xf * translation(center)
         xf2 = xf2 * scale((1, 1, half_thickness * _SQRT2 / radius))
@@ -789,7 +789,7 @@ def draw_slab(nd, residue, name, *, style=default.STYLE,
         va, na, ta = get_cylinder(radius, numpy.array((0, -height / 2, 0)),
                                   numpy.array((0, height / 2, 0)))
         pure_rotation = False
-    elif shape == 'ellipsoid':
+    elif shape == 'discus':
         # need to reach anchor atom
         xf2 = xf * translation(center)
         sr = (ury - lly) / 2 * _SQRT3
@@ -884,18 +884,26 @@ def draw_tube(nd, residue, name, *, anchor=RIBOSE, show_gly=False):
     if anchor == RIBOSE:
         show_gly = False
     if anchor == RIBOSE or show_gly:
-        aname = "C1'"
+        cname = aname = "C1'"
     else:
         tag = standard_bases[name]['tag']
         aname = _BaseAnchors[tag]
         if not aname:
             return False
+        cname = "C1'"
     a = residue.find_atom(aname)
     if not a or not a.display:
         return False
     ep0 = a.coord
     radius = a.structure.bond_radius
-    color = a.color
+
+    if cname is aname:
+        color = a.color
+    else:
+        c = residue.find_atom(cname)
+        if not c:
+            return False
+        color = c.color
 
     # calculate position between C3' and C4' on ribbon
     c3p = residue.find_atom("C3'")
@@ -910,6 +918,9 @@ def draw_tube(nd, residue, name, *, anchor=RIBOSE, show_gly=False):
         ep1 = (c3p_coord + c4p_coord) / 2
     except KeyError:
         ep1 = (c3p.coord + c4p.coord) / 2
+
+    c1p = residue.find_atom("C1'")
+    color = c1p.color
 
     description = '%s ribose' % residue.atomspec()
 
