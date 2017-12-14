@@ -67,7 +67,7 @@ def nucleotides_dimensions_delete(session, name):
     NA.remove_dimensions(name)
 
 
-ShapeArg = EnumOf(('box', 'muffler', 'discus'))
+ShapeArg = EnumOf(('box', 'muffler', 'ellipsoid'))
 DimensionsArg = DynamicEnum(NA.list_dimensions)
 # ReprArg = EnumOf(('atoms', 'fill/fill', 'fill/slab', 'tube/slab', 'ladder'))
 ReprArg = EnumOf(('atoms', 'slab', 'tube/slab', 'ladder'))

@@ -747,6 +747,11 @@ def get_ring(r, base_ring):
 def draw_slab(nd, residue, name, *, dimensions=default.DIMENSIONS,
               thickness=default.THICKNESS, hide=default.HIDE,
               orient=default.ORIENT, shape=default.SHAPE):
+    if dimensions is None:
+        if shape == 'ellipsoid':
+            dimensions = 'small'
+        else:
+            dimensions = 'long'
     standard = standard_bases[name]
     ring_atom_names = standard["ring atom names"]
     atoms = get_ring(residue, ring_atom_names)
@@ -792,7 +797,7 @@ def draw_slab(nd, residue, name, *, dimensions=default.DIMENSIONS,
         va, na, ta = get_cylinder(radius, numpy.array((0, -height / 2, 0)),
                                   numpy.array((0, height / 2, 0)))
         pure_rotation = False
-    elif shape == 'discus':
+    elif shape == 'ellipsoid':
         # need to reach anchor atom
         xf2 = xf * translation(center)
         sr = (ury - lly) / 2 * _SQRT3
@@ -988,6 +993,12 @@ def set_orient(residues):
 def set_slab(side, residues, dimensions=default.DIMENSIONS, **slab_params):
     molecules = residues.unique_structures
     _init_rebuild_handler(molecules[0].session)
+    if dimensions is None:
+        shape = slab_params.get('shape', default.SHAPE)
+        if shape == 'ellipsoid':
+            dimensions = 'small'
+        else:
+            dimensions = 'long'
     if not side.startswith('tube'):
         tube_params = None
     else:
