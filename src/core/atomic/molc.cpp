@@ -349,27 +349,38 @@ extern "C" EXPORT void set_atom_occupancy(void *atoms, size_t n, float32_t *occu
 }
 
 
-extern "C" EXPORT void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
+extern "C" EXPORT void atom_py_obj_bonds(void *atoms, size_t n, pyobject_t *bonds)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Atom::Bonds &b = a[i]->bonds();
-            for (size_t j = 0; j != b.size(); ++j)
-                *bonds++ = b[j];
+            PyObject* b_list = PyList_New(a[i]->bonds().size());
+            if (b_list == nullptr)
+                throw std::bad_alloc();
+            bonds[i] = b_list;
+            int b_i = 0;
+            for (auto b: a[i]->bonds()) {
+                PyList_SET_ITEM(b_list, b_i++, b->py_instance(true));
+            }
         }
     } catch (...) {
         molc_error();
     }
 }
 
-extern "C" EXPORT void atom_neighbors(void *atoms, size_t n, pyobject_t *batoms)
+extern "C" EXPORT void atom_py_obj_neighbors(void *atoms, size_t n, pyobject_t *neighbors)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i) {
-            for (auto nb: a[i]->neighbors())
-                *batoms++ = nb;
+            PyObject* nb_list = PyList_New(a[i]->neighbors().size());
+            if (nb_list == nullptr)
+                throw std::bad_alloc();
+            neighbors[i] = nb_list;
+            int nb_i = 0;
+            for (auto nb: a[i]->neighbors()) {
+                PyList_SET_ITEM(nb_list, nb_i++, nb->py_instance(true));
+            }
         }
     } catch (...) {
         molc_error();
