@@ -16,8 +16,9 @@ UCSF DOCK output in PDB and mol2 formats are supported.
 
     <DataFiles>
       <DataFile>lib/*</DataFile>
-      <DataFile>lib/d3/*</DataFile>
-      <DataFile>lib/flot/*min.js</DataFile>
+      <DataFile>lib/flot/jquery.flot*.min.*</DataFile>
+      <DataFile>lib/rateyo/jquery.rateyo*.min.css</DataFile>
+      <DataFile>lib/rateyo/jquery.rateyo*.min.js</DataFile>
       <DataFile>viewdockx_*.html</DataFile>
       <DataFile>viewdockx_*.js</DataFile>
       <DataFile>viewdockx_*.css</DataFile>
@@ -35,6 +36,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-Mol2" version=">=1.0"/>
   </Dependencies>
 
   <!-- Python and ChimeraX-specific classifiers

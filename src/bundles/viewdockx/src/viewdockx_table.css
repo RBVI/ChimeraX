@@ -28,6 +28,9 @@ table, th, td {
   border: 1px solid grey;
   border-collapse: collapse;
 }
+table {
+  width:100%;
+}
 th {
   background-color: #BBB;
   text-align: center;
@@ -54,4 +57,11 @@ table thead tr .tablesorter-headerAsc {
 table thead tr .tablesorter-headerDesc {
   background-image: url("lib/uparrow.png");
   padding-right: 16px;
+}
+
+#prune {
+  float: right;
+}
+#prune_stars {
+  display: inline-block;
 }

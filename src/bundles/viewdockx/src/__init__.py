@@ -10,8 +10,8 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def start_tool(session, bi, ti):
         if ti.name == "ViewDockX":
-            from .tool import ViewDockTool
-            return ViewDockTool(session, ti.name)
+            from .tool import TableTool
+            return TableTool(session, ti.name)
         else:
             raise ValueError("trying to start unknown tool: %s" % ti.name)
 

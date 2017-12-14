@@ -155,7 +155,6 @@ def make_molecule_map(atoms, resolution, step, pad, on_grid, cutoff_range,
     v.initialize_thresholds(mfrac = (display_threshold, 1), replace = True)
     tf = on_grid.position if on_grid else atoms[0].structure.position
     v.position = tf
-    v.show()
 
     v.molmap_atoms = atoms   # Remember atoms used to calculate volume
     v.molmap_parameters = (resolution, step, pad, cutoff_range, sigma_factor)

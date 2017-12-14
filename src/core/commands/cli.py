@@ -754,8 +754,8 @@ class DynamicEnum(Annotation):
     def name(self):
         if self.__name is not None:
             return self.__name
-        return 'one of ' + ', '.join("'%s'" % str(v)
-                                     for v in sorted(self.values_func()))
+        return 'one of ' + commas(["'%s'" % str(v)
+                                     for v in sorted(self.values_func())])
 
     @property
     def _html_name(self):
@@ -765,8 +765,8 @@ class DynamicEnum(Annotation):
         if self.__name is not None:
             name = self.__name
         else:
-            name = 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
-                                         for v in sorted(self.values_func()))
+            name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
+                                         for v in sorted(self.values_func())])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
@@ -2778,11 +2778,11 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
+        name = cmd.command_name
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 syntax += '\n\n' + usage('%s %s' % (name, w), show_subcommands=0)
         else:
-            name = cmd.command_name
             if syntax:
                 syntax += '\n'
             syntax += 'Subcommands are:\n' + '\n'.join(
@@ -2894,11 +2894,11 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
+        name = cmd.command_name
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 syntax += '<p>\n' + html_usage('%s %s' % (name, w), show_subcommands=0)
         else:
-            name = cmd.command_name
             if syntax:
                 syntax += '<br>\n'
             syntax += 'Subcommands are:\n<ul>'

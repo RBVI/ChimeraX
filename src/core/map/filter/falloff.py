@@ -23,16 +23,13 @@ def falloff(volume, iterations = 10, in_place = False,
                              % volume.name)
         falloff_matrix(volume.full_matrix(), iterations)
         volume.matrix_changed()
-        volume.show()
         fv = volume
     else:
         fg = falloff_grid(volume, iterations, step, subregion)
         from .. import volume_from_grid_data
-        fv = volume_from_grid_data(fg, show_data = False, model_id = modelId,
-                                   session = session)
+        fv = volume_from_grid_data(fg, model_id = modelId, session = session)
         fv.copy_settings_from(volume)
-        fv.show()
-        volume.unshow()          # Hide original map
+        volume.display = False          # Hide original map
   
     return fv
 

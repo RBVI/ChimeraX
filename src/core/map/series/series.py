@@ -43,7 +43,7 @@ class MapSeries(Model):
   def show_first_map_only(self, maps):
     v0 = maps[0]
     v0.initialize_thresholds()
-    v0.show()	# Show first map of series
+    v0.display = True	# Show first map of series
     for v in maps[1:]:
       v.display = False
 
@@ -95,7 +95,7 @@ class MapSeries(Model):
       return
 
     self.shown_times.add(time)
-    v.show()
+    v.display = True
 
     self.last_shown_time = time
 
@@ -111,7 +111,7 @@ class MapSeries(Model):
 
     self.shown_times.discard(time)
 
-    v.show(show = False)
+    v.display = False
 
     if not cache_rendering:
       v.remove_surfaces()
@@ -175,7 +175,7 @@ class MapSeries(Model):
       ijk_min, ijk_max, ijk_step = v2.full_region()
     else:
       ijk_min, ijk_max, ijk_step = v1.region
-    v2.new_region(ijk_min, ijk_max, ijk_step, show = False)
+    v2.new_region(ijk_min, ijk_max, ijk_step)
     
     if normalize_thresholds:
       self.copy_threshold_rank_levels(v1, v2)

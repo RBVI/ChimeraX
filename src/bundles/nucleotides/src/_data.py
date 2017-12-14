@@ -1,16 +1,19 @@
-# vim: set expandtab sw=4:
-# --- UCSF Chimera Copyright ---
-# Copyright (c) 2004 Regents of the University of California.
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2004-2017 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
-# duplication and use.  This notice must be embedded in or
-# attached to all copies, including partial copies, of the
-# software or any revisions or derivations thereof.
-# --- UCSF Chimera Copyright ---
-#
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # Base slabs -- approximate purine and pyrimidine bases
 #
-# Written by Greg Couch, UCSF Computer Graphics Lab, April 2004
+# Originally written by Greg Couch, UCSF Computer Graphics Lab, April 2004
 # with help from Nikolai Ulyanov.
 
 import math
@@ -315,10 +318,10 @@ for b in standard_bases.values():
     b["correction factor"] = xf.inverse()
 del b, pts, x_axis, y_axis, z_axis, xf
 
-system_styles = {
-    # predefined styles in local coordinate frame
+system_dimensions = {
+    # predefined dimensions in local coordinate frame
     # note: (0, 0) corresponds to position of C1'
-    'skinny': {
+    'small': {
         ANCHOR: BASE,
         PURINE: ((0.0, -4.0), (2.1, 0.0)),
         PYRIMIDINE: ((0.0, -2.1), (2.1, 0.0)),
@@ -330,13 +333,13 @@ system_styles = {
         PYRIMIDINE: ((0.0, -3.5), (2.1, 0.0)),
         PSEUDO_PYRIMIDINE: ((0.0, -3.5), (2.1, 0.0)),
     },
-    'fat': {
+    'big': {
         ANCHOR: RIBOSE,
         PURINE: ((0.0, -4.87), (3.3, 0.0)),
         PYRIMIDINE: ((0.0, -2.97), (3.3, 0.0)),
         PSEUDO_PYRIMIDINE: ((0.0, -2.97), (3.3, 0.0)),
     },
-    'big': {
+    'fat': {
         ANCHOR: RIBOSE,
         PURINE: ((0.0, -5.47), (4.4, 0.0)),
         PYRIMIDINE: ((0.0, -3.97), (4.4, 0.0)),
@@ -357,39 +360,39 @@ def anchor(ribose_or_base, tag):
     return _BaseAnchors[tag]
 
 
-user_styles = {}
-pref_styles = {}
+user_dimensions = {}
+pref_dimensions = {}
 
 pref = None
 PREF_CATEGORY = "Nucleotides"
-PREF_SLAB_STYLES = "slab styles"
-TRIGGER_SLAB_STYLES = "SlabStyleChanged"
+PREF_SLAB_DIMENSIONS = "slab dimensions"
+TRIGGER_SLAB_DIMENSIONS = "SlabDimensionsChanged"
 
 
-def find_style(name):
+def find_dimensions(name):
     try:
-        return user_styles[name]
+        return user_dimensions[name]
     except KeyError:
-        return system_styles.get(name, None)
+        return system_dimensions.get(name, None)
 
 
-def add_style(name, info, session=None):
+def add_dimensions(name, info, session=None):
     from chimerax.core.errors import LimitationError
-    raise LimitationError("Custom styles are not supported at this time")
+    raise LimitationError("Custom dimensions are not supported at this time")
     # TODO: rest of this
     """
-    exists = name in user_styles
-    if exists and user_styles[name] == info:
+    exists = name in user_dimensions
+    if exists and user_dimensions[name] == info:
         return
-    user_styles[name] = info
+    user_dimensions[name] = info
     if name:
-        pref_styles[name] = info
+        pref_dimensions[name] = info
         from chimera import preferences
         preferences.save()
-        chimera.triggers.activateTrigger(TRIGGER_SLAB_STYLES, name)
+        chimera.triggers.activateTrigger(TRIGGER_SLAB_DIMENSIONS, name)
     if session is None:
         return
-    # if anything is displayed in this style, rebuild it
+    # if anything is displayed in this dimensions, rebuild it
     for mol in session.models:
         nuc_info = getattr(mol, '_nucleotide_info', None)
         if nuc_info is None:
@@ -398,43 +401,43 @@ def add_style(name, info, session=None):
             continue
         for rd in nuc_info.values():
             slab_params = rd.get('slab params', None)
-            if slab_params and slab_params['style'] == name:
+            if slab_params and slab_params['dimensions'] == name:
                 _need_rebuild.add(mol)
                 break
     """
 
 
-def remove_style(name):
+def remove_dimensions(name):
     from chimerax.core.errors import LimitationError
-    raise LimitationError("Custom styles are not supported at this time")
+    raise LimitationError("Custom dimensions are not supported at this time")
     # TODO: rest of this
     """
-    del user_styles[name]
-    del pref_styles[name]
+    del user_dimensions[name]
+    del pref_dimensions[name]
     from chimera import preferences
     preferences.save()
-    chimera.triggers.activateTrigger(TRIGGER_SLAB_STYLES, name)
+    chimera.triggers.activateTrigger(TRIGGER_SLAB_DIMENSIONS, name)
     """
 
 
-def list_styles(custom_only=False):
+def list_dimensions(custom_only=False):
     if custom_only:
-        return list(user_styles.keys())
-    return list(user_styles.keys()) + list(system_styles.keys())
+        return list(user_dimensions.keys())
+    return list(user_dimensions.keys()) + list(system_dimensions.keys())
 
 
 def initialize():
     return
     # TODO: rest of this
     """
-    global pref, user_styles, pref_styles
+    global pref, user_dimensions, pref_dimensions
     from chimera import preferences
     pref = preferences.addCategory(PREF_CATEGORY,
                                    preferences.HiddenCategory)
-    pref_styles = pref.setdefault(PREF_SLAB_STYLES, {})
+    pref_dimensions = pref.setdefault(PREF_SLAB_DIMENSIONS, {})
     import copy
-    user_styles = copy.deepcopy(pref_styles)
-    chimera.triggers.addTrigger(TRIGGER_SLAB_STYLES)
+    user_dimensions = copy.deepcopy(pref_dimensions)
+    chimera.triggers.addTrigger(TRIGGER_SLAB_DIMENSIONS)
     """
 
 
@@ -697,7 +700,7 @@ def get_cylinder(radius, p0, p1, bottom=True, top=True):
     h = distance(p0, p1)
     # TODO: chose number of triangles
     # TODO: separate cap into bottom and top
-    vertices, normals, triangles = cylinder_geometry(radius, height=h, caps=bottom or top)
+    vertices, normals, triangles = cylinder_geometry(radius, height=h, caps=bottom or top, nc=30)
     # rotate so z-axis matches p0->p1
     xf = z_align(p0, p1)
     inverse = xf.inverse()
@@ -741,7 +744,7 @@ def get_ring(r, base_ring):
     return atoms
 
 
-def draw_slab(nd, residue, name, *, style=default.STYLE,
+def draw_slab(nd, residue, name, *, dimensions=default.DIMENSIONS,
               thickness=default.THICKNESS, hide=default.HIDE,
               orient=default.ORIENT, shape=default.SHAPE):
     standard = standard_bases[name]
@@ -750,7 +753,7 @@ def draw_slab(nd, residue, name, *, style=default.STYLE,
     if not atoms:
         return False
     plane = Plane([a.coord for a in atoms])
-    info = find_style(style)
+    info = find_dimensions(dimensions)
     tag = standard['tag']
     slab_corners = info[tag]
     origin = residue.find_atom(anchor(info[ANCHOR], tag)).coord
@@ -781,7 +784,7 @@ def draw_slab(nd, residue, name, *, style=default.STYLE,
         xf2 = xf
         va, na, ta = box_geometry(llb, urf)
         pure_rotation = True
-    elif shape == 'tube':
+    elif shape == 'muffler':
         radius = (urx - llx) / 2 * _SQRT2
         xf2 = xf * translation(center)
         xf2 = xf2 * scale((1, 1, half_thickness * _SQRT2 / radius))
@@ -789,7 +792,7 @@ def draw_slab(nd, residue, name, *, style=default.STYLE,
         va, na, ta = get_cylinder(radius, numpy.array((0, -height / 2, 0)),
                                   numpy.array((0, height / 2, 0)))
         pure_rotation = False
-    elif shape == 'ellipsoid':
+    elif shape == 'discus':
         # need to reach anchor atom
         xf2 = xf * translation(center)
         sr = (ury - lly) / 2 * _SQRT3
@@ -884,18 +887,26 @@ def draw_tube(nd, residue, name, *, anchor=RIBOSE, show_gly=False):
     if anchor == RIBOSE:
         show_gly = False
     if anchor == RIBOSE or show_gly:
-        aname = "C1'"
+        cname = aname = "C1'"
     else:
         tag = standard_bases[name]['tag']
         aname = _BaseAnchors[tag]
         if not aname:
             return False
+        cname = "C1'"
     a = residue.find_atom(aname)
     if not a or not a.display:
         return False
     ep0 = a.coord
     radius = a.structure.bond_radius
-    color = a.color
+
+    if cname is aname:
+        color = a.color
+    else:
+        c = residue.find_atom(cname)
+        if not c:
+            return False
+        color = c.color
 
     # calculate position between C3' and C4' on ribbon
     c3p = residue.find_atom("C3'")
@@ -910,6 +921,9 @@ def draw_tube(nd, residue, name, *, anchor=RIBOSE, show_gly=False):
         ep1 = (c3p_coord + c4p_coord) / 2
     except KeyError:
         ep1 = (c3p.coord + c4p.coord) / 2
+
+    c1p = residue.find_atom("C1'")
+    color = c1p.color
 
     description = '%s ribose' % residue.atomspec()
 
@@ -970,19 +984,19 @@ def set_orient(residues):
         rd['side'] = 'orient'
 
 
-def set_slab(side, residues, style=default.STYLE, **slab_params):
+def set_slab(side, residues, dimensions=default.DIMENSIONS, **slab_params):
     molecules = residues.unique_structures
     _init_rebuild_handler(molecules[0].session)
     if not side.startswith('tube'):
         tube_params = None
     else:
-        info = find_style(style)
+        info = find_dimensions(dimensions)
         tube_params = {
             'show_gly': slab_params.get('show_gly', default.GLYCOSIDIC),
             ANCHOR: info[ANCHOR],
         }
     slab_params.pop('show_gly', None)
-    slab_params['style'] = style
+    slab_params['dimensions'] = dimensions
     rds = {}
     for m in molecules:
         nuc_info, nd = _nuc_drawing(m)
@@ -1222,13 +1236,13 @@ def make_ladder(nd, residues, *, rung_radius=0, show_stubs=True, skip_nonbase_Hb
 # """)
 #     file.write(restoring_code % (
 #         SimpleSession.sesRepr(mdata),
-#         SimpleSession.sesRepr(user_styles)
+#         SimpleSession.sesRepr(user_dimensions)
 #     ))
 #
 #
 # def restoreState(mdata, sdata={}):
 #     for name, info in sdata.items():
-#         add_style(name, info, session=session)
+#         add_dimensions(name, info, session=session)
 #     for mid in mdata:
 #         m = SimpleSession.idLookup(mid)
 #         nd = _nuc_drawing(m)

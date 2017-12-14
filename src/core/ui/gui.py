@@ -413,6 +413,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         wh = cwh + delta_height
         self.resize(ww, wh)
 
+    def window_maximized(self):
+        from PyQt5.QtCore import Qt
+        return bool(self.windowState() & (Qt.WindowMaximized | Qt.WindowFullScreen))
+    
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
         event.accept()
