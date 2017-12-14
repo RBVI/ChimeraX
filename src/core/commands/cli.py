@@ -754,8 +754,8 @@ class DynamicEnum(Annotation):
     def name(self):
         if self.__name is not None:
             return self.__name
-        return 'one of ' + ', '.join("'%s'" % str(v)
-                                     for v in sorted(self.values_func()))
+        return 'one of ' + commas(["'%s'" % str(v)
+                                     for v in sorted(self.values_func())])
 
     @property
     def _html_name(self):
@@ -765,8 +765,8 @@ class DynamicEnum(Annotation):
         if self.__name is not None:
             name = self.__name
         else:
-            name = 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
-                                         for v in sorted(self.values_func()))
+            name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
+                                         for v in sorted(self.values_func())])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
