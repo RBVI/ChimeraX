@@ -82,9 +82,8 @@ class _BaseTool:
     def _update_models(self, trigger=None, trigger_data=None):
         """ Called to update page with current list of models"""
         if trigger_data is not None:
-            for s in self.structures:
-                if s in trigger_data:
-                    self.structures.remove(s)
+            self.structures = [s for s in self.structures
+                               if s not in trigger_data]
         if not self.structures:
             self.delete()
             return
@@ -118,7 +117,7 @@ class _BaseTool:
             num_text = 0
             for s in self.structures:
                 datum = s.viewdockx_data.get(category, None)
-                if not datum:
+                if datum is None:
                     numeric_list.append(None)
                 else:
                     try:
@@ -214,6 +213,16 @@ class TableTool(HtmlToolInstance, _BaseTool):
             return
         self.setup_page("viewdockx_table.html")
 
+    def _update_ratings(self, trigger=None, trigger_data=None):
+        if trigger_data is None:
+            trigger_data = self.structures
+        ratings = [(s.atomspec()[1:], s.viewdockx_data[self.category_rating])
+                   for s in trigger_data]
+        import json
+        js = "%s.update_ratings(%s);" % (self.CUSTOM_SCHEME,
+                                         json.dumps(ratings))
+        self.html_view.runJavaScript(js)
+
     def handle_scheme(self, url):
         # Called when custom link is clicked.
         # "info" is an instance of QWebEngineUrlRequestInfo
@@ -252,32 +261,48 @@ class TableTool(HtmlToolInstance, _BaseTool):
         if any_change:
             self._update_ratings(trigger_data=structures)
 
-    def _update_ratings(self, trigger=None, trigger_data=None):
-        if trigger_data is None:
-            trigger_data = self.structures
-        ratings = [(s.atomspec()[1:], s.viewdockx_data[self.category_rating])
-                   for s in trigger_data]
-        import json
-        js = "%s.update_ratings(%s);" % (self.CUSTOM_SCHEME,
-                                         json.dumps(ratings))
-        self.html_view.runJavaScript(js)
+    def _cb_plot(self, query):
+        ChartTool(self.session, "ViewDockX Plot", structures=self.structures)
 
-    def _cb_chart(self, query):
-        ChartTool(self.session, "ViewDockX Chart", structures=self.structures)
+    def _cb_hb(self, query):
+        # Create hydrogen bonds between receptor(s) and ligands
+        from chimerax.core.atomic import AtomicStructure
+        receptors = [s for s in self.session.models.list(type=AtomicStructure)
+                     if not hasattr(s, "viewdockx_data")]
+        if not receptors:
+            from chimerax.core.errors import UserError
+            raise UserError("No receptor structure found")
+        cmd = "hbond %s restrict %s" % (''.join([s.atomspec()
+                                                 for s in receptors]),
+                                        ''.join([s.atomspec()
+                                                 for s in self.structures]))
+        from chimerax.core.commands import run
+        run(self.session, cmd)
+        # Count up the hydrogen bonds for each structure
+        pbg = self.session.pb_manager.get_group("hydrogen bonds")
+        pa1, pa2 = pbg.pseudobonds.atoms
+        for s in self.structures:
+            atoms = s.atoms
+            ma1 = pa1.mask(atoms)
+            ma2 = pa2.mask(atoms)
+            s.viewdockx_data["HBonds"] = (ma1 ^ ma2).sum()
+        # Make sure HBonds is in our list of columns
+        if "HBonds" not in self.category_list:
+            self.category_list.append("HBonds")
+            self.category_list.sort(key=str.lower)
+        self._update_models()
 
     def _cb_export(self, query):
-        from PyQt5.QtWidgets import QFileDialog
-        dlg = QFileDialog()
-        dlg.setAcceptMode(QFileDialog.AcceptSave)
-        dlg.setFileMode(QFileDialog.AnyFile)
-        if not dlg.exec():
+        from chimerax.core.ui.open_save import SaveDialog
+        sd = SaveDialog(add_extension="mol2")
+        if not sd.exec():
             return
-        paths = dlg.selectedFiles()
-        if not paths:
+        path = sd.get_path()
+        if path is None:
             return
         prefix = "##########"
         from chimerax.mol2.io import write_mol2
-        with open(paths[0], "w") as outf:
+        with open(path, "w") as outf:
             for s in self.structures:
                 with OutputCache() as sf:
                     write_mol2(self.session, sf, models=[s])

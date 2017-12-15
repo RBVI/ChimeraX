@@ -5,6 +5,7 @@ var vdxtable = function() {
     var rating_column = "viewdockx_rating"
 
     function update_columns(columns) {
+        $("#viewdockx_table").trigger("destroy");
         var numeric = columns["numeric"];
         var text = columns["text"];
         var ids = text["id"];
@@ -168,8 +169,11 @@ var vdxtable = function() {
         $("#show_all_btn").click(function() {
             window.location = custom_scheme + ":check_all?show_all=true";
         });
-        $("#chart_btn").click(function() {
-            window.location = custom_scheme + ":chart";
+        $("#plot_btn").click(function() {
+            window.location = custom_scheme + ":plot";
+        });
+        $("#hb_btn").click(function() {
+            window.location = custom_scheme + ":hb";
         });
         $("#export_btn").click(function() {
             window.location = custom_scheme + ":export";
@@ -189,6 +193,7 @@ var vdxtable = function() {
             placeholder: "Columns...",
             onOptionClick: show_column
         });
+        $("#viewdockx_table").tablesorter();
     }
 
     return {
