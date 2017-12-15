@@ -79,17 +79,21 @@ class CategorizedOptionsPanel(QTabWidget):
             panel = self._category_to_panel[category]
         except KeyError:
             panel = OptionsPanel(sorting=self._option_sorting)
-            self._category_to_panel[category] = panel
-            if len(self._category_to_panel) == 1 or self._category_sorting == False:
-                self.addTab(panel, category)
-            else:
-                cats = list(self._category_to_panel.keys()) + [category]
-                if self._category_sorting is True:
-                    cats.sort()
-                else:
-                    cats.sort(key=lambda cat: self._category_sorting(cat))
-                self.insertTab(cats.index(category), panel, category)
+            self.add_tab(category, panel)
         panel.add_option(option)
+
+    def add_tab(self, category, panel):
+        """Only used if a tab needs to present a custom interface"""
+        self._category_to_panel[category] = panel
+        if len(self._category_to_panel) == 1 or self._category_sorting == False:
+            self.addTab(panel, category)
+        else:
+            cats = list(self._category_to_panel.keys()) + [category]
+            if self._category_sorting is True:
+                cats.sort()
+            else:
+                cats.sort(key=lambda cat: self._category_sorting(cat))
+            self.insertTab(cats.index(category), panel, category)
 
     def categories(self):
         return self._category_to_panel.keys()
