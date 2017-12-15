@@ -13,12 +13,15 @@
 
 SINGLE_PREFIX = "single_seq_"
 
-from chimerax.core.options import Option, BooleanOption, IntOption, OptionalRGBAOption
+#from chimerax.core.options import Option, BooleanOption, IntOption, OptionalRGBAOption
+from chimerax.core.options import Option, BooleanOption
 class OptionalRGBAPair(Option): pass # maybe make it a real option?
 
 defaults = {
     "block space": (BooleanOption, True),
     SINGLE_PREFIX + "block space": (BooleanOption, False),
+}
+"""TODO
 	"column_separation": (IntOption, 0),
     SINGLE_PREFIX + "column_separation": (IntOption, -2),
     "error_region_shown": (BooleanOption, True),
@@ -47,6 +50,7 @@ defaults = {
     SINGLE_PREFIX + "wrap_if": (BooleanOption, False),
     "wrap_threshold": (IntOption, 8),
 }
+"""
 
 from  chimerax.core.settings import Settings
 from copy import deepcopy
