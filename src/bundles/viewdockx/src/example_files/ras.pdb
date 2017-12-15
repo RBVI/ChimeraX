@@ -77,23 +77,23 @@ HET     MG    168       1     MAGNESIUM ++                              121P  76
 FORMUL   2  GTO    C11 H20 N5 O13 P3                                    121P  77
 FORMUL   3   MG    MG1                                                  121P  78
 FORMUL   4  HOH   *195(H2 O1)                                           121P  79
-HELIX    1 A1  LYS     16  GLN     25  1                                121P  80
-HELIX    2 A2  SER     65  THR     74  1                                121P  81
-HELIX    3 A3  THR     87  VAL    103  1                                121P  82
-HELIX    4 A4  SER    127  TYR    137  1                                121P  83
-HELIX    5 A5  VAL    152  ARG    164  1                                121P  84
-SHEET    1 S   6 GLU    37  ILE    46  0                                121P  85
-SHEET    2 S   6 GLU    49  THR    58 -1  O  LEU    53   N  LYS    42   121P  86
-SHEET    3 S   6 THR     2  VAL     9  1  N  LEU     6   O  ASP    54   121P  87
-SHEET    4 S   6 GLY    77  ALA    83  1  N  LEU    79   O  VAL     7   121P  88
-SHEET    5 S   6 MET   111  ASN   116  1  N  VAL   114   O  CYS    80   121P  89
-SHEET    6 S   6 TYR   141  GLU   143  1  N  ILE   142   O  LEU   113   121P  90
-TURN     1 T1  ALA    11  VAL    14                                     121P  91
-TURN     2 T2  ILE    46  GLU    49                                     121P  92
-TURN     3 T3  ALA    83  ASN    86                                     121P  93
-TURN     4 T4  LYS   117  LEU   120                                     121P  94
-TURN     5 T5  SER   145  ARG   149     I(RIGHT ARROW)I+4               121P  95
-TURN     6 T6  ARG   149  VAL   152                                     121P  96
+HELIX    1  A1 LYS A   16  GLN A   25  1                                  10
+HELIX    2  A2 SER A   65  THR A   74  1                                  10
+HELIX    3  A3 THR A   87  VAL A  103  1                                  17
+HELIX    4  A4 SER A  127  TYR A  137  1                                  11
+HELIX    5  A5 VAL A  152  ARG A  164  1                                  13
+SHEET    1   S 6 GLU A  37  ILE A  46  0
+SHEET    2   S 6 GLU A  49  THR A  58 -1  O  LEU A  53   N  LYS A  42
+SHEET    3   S 6 THR A   2  VAL A   9  1  N  LEU A   6   O  ASP A  54
+SHEET    4   S 6 GLY A  77  ALA A  83  1  N  LEU A  79   O  VAL A   7
+SHEET    5   S 6 MET A 111  ASN A 116  1  N  VAL A 114   O  CYS A  80
+SHEET    6   S 6 TYR A 141  GLU A 143  1  N  ILE A 142   O  LEU A 113
+LINK         OG  SER A  17                MG    MG A 168     1555   1555  2.28
+LINK         OG1 THR A  35                MG    MG A 168     1555   1555  2.26
+LINK        MG    MG A 168                 O2G GCP A 167     1555   1555  2.21
+LINK        MG    MG A 168                 O   HOH A 173     1555   1555  2.25
+LINK        MG    MG A 168                 O2B GCP A 167     1555   1555  2.29
+LINK        MG    MG A 168                 O   HOH A 172     1555   1555  2.26
 CRYST1   40.200   40.200  161.400  90.00  90.00 120.00 P 32 2 1      6  121P  97
 ORIGX1      1.000000  0.000000  0.000000        0.00000                 121P  98
 ORIGX2      0.000000  1.000000  0.000000        0.00000                 121P  99
