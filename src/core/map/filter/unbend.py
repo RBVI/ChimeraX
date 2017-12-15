@@ -18,7 +18,7 @@
 # xsize, ysze, grid_spacing are in physical units.
 #
 def unbend_volume(volume, path, yaxis, xsize, ysize, grid_spacing,
-                  subregion = 'all', step = 1, model_id = None, open = True):
+                  subregion = 'all', step = 1, model_id = None):
 
   # Compute correctly spaced cubic splined path points.
   points = spline_path(path, grid_spacing)
@@ -52,12 +52,9 @@ def unbend_volume(volume, path, yaxis, xsize, ysize, grid_spacing,
   origin = [0,0,0]
   g = Array_Grid_Data(m, origin, step, name = 'unbend')
   from .. import volume_from_grid_data
-  v = volume_from_grid_data(g, volume.session, show_data = False, model_id = model_id,
-                            open_model = open, show_dialog = open)
+  v = volume_from_grid_data(g, volume.session, model_id = model_id)
   v.copy_settings_from(volume, copy_region = False, copy_active = False,
                        copy_xform = open)
-  if open:
-    v.show()
 
   return v
 

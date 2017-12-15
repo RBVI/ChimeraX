@@ -369,7 +369,7 @@ def apply_volume_options(v, doptions, roptions, session):
         r = None
     if not r is None:
         ijk_min, ijk_max, ijk_step = r
-        v.new_region(ijk_min, ijk_max, ijk_step, show = False,
+        v.new_region(ijk_min, ijk_max, ijk_step,
                      adjust_step = not 'step' in doptions)
     if doptions.get('expand_single_plane', False):
         v.expand_single_plane()
@@ -419,20 +419,14 @@ def apply_volume_options(v, doptions, roptions, session):
         d.symmetries = ops.transform_coordinates(v.position)
 
     if 'show' in doptions:
-        v.initialize_thresholds()
-        v.show()
+        v.display = True
     elif 'hide' in doptions:
-        v.unshow()
+        v.display = False
     elif 'toggle' in doptions:
-        if v.shown():
-            v.unshow()
-        else:
-            v.show()
-    elif v.shown():
-        v.show()
-    else:
-        # Update the model even if it is hidden.
-        v.update_display()
+        v.display = not v.display
+
+    # TODO: Volume should note when it needs update
+    v._drawings_need_update()
 
     if 'dump_header' in doptions and doptions['dump_header']:
         show_file_header(v.data, session.logger)

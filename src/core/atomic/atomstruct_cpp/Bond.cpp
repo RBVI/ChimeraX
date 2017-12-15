@@ -60,6 +60,7 @@ Bond::Bond(Structure* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
         }
     }
     a1->structure()->_structure_cats_dirty = true;
+    change_tracker()->add_created(a1->structure(), this);
 }
 
 enum XResType { NonPolymer, Capping, Polymer };

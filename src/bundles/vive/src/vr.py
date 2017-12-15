@@ -162,9 +162,9 @@ class SteamVRCamera(Camera):
         # TODO: Scaling models to be huge causes clipping at far clip plane.
 
         # Left and right projections are different. OpenGL 4x4.
-        pl = vrs.getProjectionMatrix(openvr.Eye_Left, zNear, zFar, openvr.API_OpenGL)
+        pl = vrs.getProjectionMatrix(openvr.Eye_Left, zNear, zFar)
         self.projection_left = hmd44_to_opengl44(pl)
-        pr = vrs.getProjectionMatrix(openvr.Eye_Right, zNear, zFar, openvr.API_OpenGL)
+        pr = vrs.getProjectionMatrix(openvr.Eye_Right, zNear, zFar)
         self.projection_right = hmd44_to_opengl44(pr)
 
         # Eye shifts from hmd pose.
@@ -387,7 +387,7 @@ class SteamVRCamera(Camera):
             fb.openvr_texture = ovrt = openvr.Texture_t()
             from ctypes import c_void_p
             ovrt.handle = c_void_p(int(t.id))
-            ovrt.eType = openvr.API_OpenGL
+            ovrt.eType = openvr.TextureType_OpenGL
             ovrt.eColorSpace = openvr.ColorSpace_Gamma
         return fb
 

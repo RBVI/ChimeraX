@@ -31,6 +31,14 @@ class DistancesMonitor(State):
         if group.num_pseudobonds > 0:
             self._update_distances(group.pseudobonds)
 
+    @property
+    def distance_format(self):
+        from .settings import settings
+        fmt = "%%.%df" % settings.precision
+        if settings.show_units:
+            fmt += u'\u00C5'
+        return fmt
+
     def _get_distances_shown(self):
         return self._distances_shown
 
@@ -46,6 +54,25 @@ class DistancesMonitor(State):
         self.monitored_groups.discard(group)
         if group in self.update_callbacks:
             del self.update_callbacks[group]
+
+    def set_distance_format_params(self, *, decimal_places=None, show_units=None, save=False):
+        """Set the distance format parameters (and update all distances)
+        
+        'show_units' controls whether the angstrom symbol is displayed.  'save' indicates
+        whether the new settings should be saved as defaults.  Values of None for 'decimal_places'
+        and 'show_units' indicate that the current setting should not be changed.
+        """
+        from .settings import settings
+        save_attrs = []
+        if decimal_places is not None:
+            settings.precision = decimal_places
+            save_attrs.append('precision')
+        if show_units is not None:
+            settings.show_units = show_units
+            save_attrs.append('show_units')
+        if save:
+            settings.save(settings=save_attrs)
+        self._update_distances()
 
     def _changes_handler(self, _, changes):
         if changes.num_deleted_pseudobond_groups() > 0:
@@ -75,10 +102,7 @@ class DistancesMonitor(State):
             lm = labels_model(grp, create=True)
             label_settings = { 'color': grp.color } if set_color else {}
             if self.distances_shown:
-                from .settings import settings
-                fmt = "%%.%df" % settings.precision
-                if settings.show_units:
-                    fmt += u'\u00C5'
+                fmt = self.distance_format
                 for pb in pbs:
                     label_settings['text'] = fmt % pb.length
                     lm.add_labels([pb], PseudobondLabel, self.session.main_view,

@@ -62,7 +62,7 @@ class UHBD_Data:
     one = self.read_values(file, int32, 1)
     if one != 1 and one != 16777216:
       file.close()
-      raise SyntaxError, ('UHBD file does not contain integer value 1 at bytes 96-99\n using either little or big endian byte order. Found %d' % one)
+      raise SyntaxError('UHBD file does not contain integer value 1 at bytes 96-99\n using either little or big endian byte order. Found %d' % one)
     swap_bytes = not (one == 1)
     file.seek(0,0)
     return swap_bytes
@@ -98,18 +98,18 @@ class UHBD_Data:
   def check_header_values(self, v, file_size):
 
     if v['im'] <= 0 or v['jm'] <= 0 or v['km'] <= 0:
-      raise SyntaxError, ('Bad UHBD grid size (%d,%d,%d)'
-                          % (v['im'],v['jm'],v['km']))
+      raise SyntaxError('Bad UHBD grid size (%d,%d,%d)'
+                        % (v['im'],v['jm'],v['km']))
 
     if 4 * float(v['im']) * float(v['jm']) * float(v['km']) > file_size:
-      raise SyntaxError, ('File size %d too small for grid size (%d,%d,%d)'
-                          % (file_size, v['im'],v['jm'],v['km']))
+      raise SyntaxError('File size %d too small for grid size (%d,%d,%d)'
+                        % (file_size, v['im'],v['jm'],v['km']))
 
     if v['h'] <= 0:
-      raise SyntaxError, ('Bad UHBD voxel size %g <= 0' % v['h'])
+      raise SyntaxError('Bad UHBD voxel size %g <= 0' % v['h'])
 
     if v['scale'] <= 0:
-      raise SyntaxError, ('Bad UHBD data scale factor %g <= 0' % v['scale'])
+      raise SyntaxError('Bad UHBD data scale factor %g <= 0' % v['scale'])
 
 
   # ---------------------------------------------------------------------------

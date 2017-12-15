@@ -73,7 +73,7 @@ def read_line_values(line, types, descrip):
 
   try:
     fields = line.split()[:len(types)]
-    values = map(lambda t, f: t(f), types, fields)
+    values = [t(f) for t,f in zip(types, fields)]
   except:
-    raise SyntaxError, 'Error parsing %s on line:\n %s' % (descrip, line)
+    raise SyntaxError('Error parsing %s on line:\n %s' % (descrip, line))
   return values

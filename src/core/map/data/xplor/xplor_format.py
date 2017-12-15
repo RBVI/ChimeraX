@@ -36,8 +36,8 @@ class XPLOR_Density_Map:
     try:
       ntitle = int(ntitle_line.split()[0])
     except:
-      raise SyntaxError, ('Invalid XPLOR comment line count on line 2: %s'
-                          % ntitle_line[:80])
+      raise SyntaxError('Invalid XPLOR comment line count on line 2: %s'
+                        % ntitle_line[:80])
 
     comments = []
     for t in range(ntitle):
@@ -48,9 +48,9 @@ class XPLOR_Density_Map:
     from ..readarray import split_fields
     extent = split_fields(extent_line, 8, 9)
     try:
-      na, amin, amax, nb, bmin, bmax, nc, cmin, cmax = map(int, extent)
+      na, amin, amax, nb, bmin, bmax, nc, cmin, cmax = [int(e) for e in extent]
     except ValueError:
-      raise SyntaxError, 'Invalid XPLOR grid size line: %s' % extent_line[:80]
+      raise SyntaxError('Invalid XPLOR grid size line: %s' % extent_line[:80])
       
     self.na, self.amin, self.amax = na, amin, amax
     self.nb, self.bmin, self.bmax = nb, bmin, bmax
@@ -59,10 +59,10 @@ class XPLOR_Density_Map:
     cell_line = f.readline()
     cell = split_fields(cell_line, 12, 6)
     try:
-      cell_params = map(float, cell)
+      cell_params = [float(a) for a in cell]
     except ValueError:
-      raise SyntaxError, ('Invalid XPLOR cell parameters line: %s'
-                          % cell_line[:80])
+      raise SyntaxError('Invalid XPLOR cell parameters line: %s'
+                        % cell_line[:80])
     self.cell_size = cell_params[0:3]
     self.cell_angles = cell_params[3:6]
 
@@ -70,8 +70,8 @@ class XPLOR_Density_Map:
 
     asize, bsize, csize = (amax - amin + 1, bmax - bmin + 1, cmax - cmin + 1)
     if asize <= 0 or bsize <= 0 or csize <=0:
-      raise SyntaxError, ('Bad XPLOR grid size (%d,%d,%d)'
-                          % (asize, bsize, csize))
+      raise SyntaxError('Bad XPLOR grid size (%d,%d,%d)'
+                        % (asize, bsize, csize))
     self.grid_size = (asize, bsize, csize)
 
     self.data_offset = f.tell()

@@ -25,7 +25,6 @@ class ContourLevelMouseMode(MouseMode):
 
         for m in mouse_maps(self.session.models):
             adjust_threshold_level(m, f)
-            m.show()
 
         # Make sure new level is shown before another mouse event causes another level change.
         self.session.ui.update_graphics_now()
@@ -35,7 +34,6 @@ class ContourLevelMouseMode(MouseMode):
         f = d/30
         for m in mouse_maps(self.session.models):
             adjust_threshold_level(m, f)
-            m.show()
 
         # Make sure new level is shown before another mouse event causes another level change.
         self.session.ui.update_graphics_now()

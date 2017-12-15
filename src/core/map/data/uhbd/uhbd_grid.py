@@ -20,7 +20,7 @@ class UHBD_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import uhbd_format
+    from . import uhbd_format
     d = uhbd_format.UHBD_Data(path)
     self.uhbd_data = d
 

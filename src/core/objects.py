@@ -182,8 +182,8 @@ class Objects:
         return d
 
     def bounds(self):
-        from .atomic import Structure
-        bm = [m.bounds() for m in self.models if not isinstance(m, Structure)]
+        from .atomic import Structure, PseudobondGroup
+        bm = [m.bounds() for m in self.models if not isinstance(m, (Structure, PseudobondGroup))]
         from .geometry import union_bounds, copies_bounding_box
         for m, minst in self.model_instances.items():
             b = m.bounds(positions = False)

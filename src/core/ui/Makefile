@@ -35,7 +35,7 @@ dir:
 	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
 clean:
-	rm -rf __pycache__
+	rm -rf __pycache__ about.html
 
 pylint:
 	$(PYLINT) $(PYSRCS)

@@ -44,8 +44,8 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         make_pseudobonds=defaults["action_pseudobonds"],
         naming_style=None,
         other_atom_color=defaults["other_atom_color"],
-        pb_color=defaults["pb_color"],
-        pb_radius=defaults["pb_radius"],
+        color=defaults["pb_color"],
+        radius=defaults["pb_radius"],
         res_separation=None,
         reveal=False,
         save_file=None,
@@ -54,14 +54,16 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         show_dist=False,
         summary=True,
         test="others"):
+    from chimerax.core.errors import UserError
+    if not test_atoms:
+        raise UserError("No atoms in given atom specifier")
     from chimerax.core.colors import Color
     if atom_color is not None and not isinstance(atom_color, Color):
         atom_color = Color(rgba=atom_color)
     if other_atom_color is not None and not isinstance(other_atom_color, Color):
         other_atom_color = Color(rgba=other_atom_color)
-    if pb_color is not None and not isinstance(pb_color, Color):
-        pb_color = Color(rgba=pb_color)
-    from chimerax.core.errors import UserError
+    if color is not None and not isinstance(color, Color):
+        color = Color(rgba=color)
     from chimerax.core.atomic import get_triggers
     if continuous:
         if set_attrs or save_file != None or log:
@@ -167,9 +169,9 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         else:
             pbg = attr_atoms[0].structure.pseudobond_group(name)
         pbg.clear()
-        pbg.radius = pb_radius
-        if pb_color is not None:
-            pbg.color = pb_color.uint8x4()
+        pbg.radius = radius
+        if color is not None:
+            pbg.color = color.uint8x4()
         if dashes is not None:
             pbg.dashes = dashes
         seen = set()
@@ -261,8 +263,8 @@ def register_command(command_name, logger):
                 ('inter_model', BoolArg), ('inter_submodel', BoolArg), ('intra_mol', BoolArg),
                 ('intra_res', BoolArg), ('log', BoolArg), ('make_pseudobonds', BoolArg),
                 ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-                ('other_atom_color', Or(NoneArg,ColorArg)), ('pb_color', Or(NoneArg,ColorArg)),
-                ('pb_radius', FloatArg), ('res_separation', PositiveIntArg), ('reveal', BoolArg),
+                ('other_atom_color', Or(NoneArg,ColorArg)), ('color', Or(NoneArg,ColorArg)),
+                ('radius', FloatArg), ('res_separation', PositiveIntArg), ('reveal', BoolArg),
                 ('save_file', SaveFileNameArg), ('set_attrs', BoolArg), ('select', BoolArg),
                 ('show_dist', BoolArg), ('dashes', NonNegativeIntArg),
                 ('summary', BoolArg), ('test', Or(EnumOf(('others', 'self')), AtomsArg))], }

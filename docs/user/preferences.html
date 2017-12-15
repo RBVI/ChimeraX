@@ -1,0 +1,119 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<title>ChimeraX Preferences</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+</p>
+
+<h2>ChimeraX Preferences</h2>
+<p>
+A user's ChimeraX preferences are stored
+along with the <a href="tools/cli.html#history">command history</a>
+and <a href="tools/filehistory.html">file history</a>
+in a standard platform-dependent location (for example, 
+<span class="nowrap"><b>~/Library/Applications/ChimeraX</b></a>
+and subdirectories on a Mac;
+see <a href="https://pypi.python.org/pypi/appdirs/1.4.3"
+target="_blank">python appdirs</a>).
+</p><p>
+Choosing <b>UCSF ChimeraX... Preferences</b> from the menu shows the
+main <b>Preferences</b> dialog, with sections:
+</p>
+<blockquote><b>
+<a href="#background">Background</a>
+<br><a href="#labels">Labels</a>
+</b></blockquote>
+<p>
+<b>Save</b> saves the current settings, <b>Reset</b> replaces the 
+current settings with the initial (&ldquo;factory&rdquo;) defaults,
+and <b>Restore</b> replaces the current settings with those previously 
+saved; if the <b>Buttons affect all categories</b> option is checked, 
+these buttons apply to all sections of the <b>Preferences</b> dialog,
+not just the section currently shown.
+</p>
+
+<a name="background"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3>Background</h3>
+</p>
+<ul>
+<li><b>Background color</b> - a color well that can be clicked
+to choose the color interactively (initial default
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#000000" width="10px"></td>
+</tr></table>)
+</ul>
+<p>
+<a name="labels"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3>Labels</h3>
+<ul>
+<li><b>Atomspec display style</b>
+- format/type of identifying information shown by pausing the cursor over 
+an object in the <a href="window.html">main window</a> (see the 
+<a href="commands/mousemode.html#identify"><b>identify object</b></a> mouse mode)
+  <ul>
+  <li><b>simple</b> (initial default) - chain ID (preceded by slash),
+  residue name, residue number, atom name (for example, /B ASN 21 OD1)
+  <li><b>command line</b>
+  - <a href="commands/atomspec.html#hierarchy">command-line specifier</a>
+  (for example, /B:21@OD1)
+  <li><b>serial number</b> - atom serial number (for example, 126)
+</ul>
+<p>
+Model number will be included when multiple models are present.
+</p>
+</ul>
+
+<a name="other"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3>Other Preferences</h3>
+<p>
+Some preferences do not apear in the dialog, 
+but can be adjusted and saved by other means:
+</p>
+<ul>
+<li>Individual <a href="window.html#toolprefs">tool preferences</a>: 
+whether to autostart, whether windows are dockable
+<!-- (see also <b>ui</b>) -->
+<li>Distance-label formatting,
+see <a href="commands/distance.html#format"><b>distance format</b></a>
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+November 2017</address>
+</body></html> 

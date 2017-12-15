@@ -49,30 +49,25 @@ or <img class="iconbar" src="rapidon.png">
 See also:
 <a href="commands/windowsize.html"><b>windowsize</b></a>,
 <a href="commands/mousemode.html"><b>mousemode</b></a>
-</p><p>
-A panel may include clickable icons (as in the
-<a href="tools/graphics.html"><b>Graphics Toolbar</b></a>),
-interactive 2D representations such as histograms and network diagrams,
-or HTML with links and images, as in the 
-<a href="tools/log.html"><b>Log</b></a>
-and <a href="tools/browser.html"><b>Help Viewer</b></a>.
-</p><p>
-<a name="toolstart"></a>
-A panel may appear when a tool is started (for example, from the <b>Tools</b> menu),
+</p>
+
+<a name="panels"></a>
+<h3>ChimeraX Panels and Context Menus</h3>
+<p>
+A <b><i>panel</i></b> may appear within the <a href="#top">ChimeraX window</a>
+when a tool is started (for example, from the <b>Tools</b> menu),
 or as the result of a calculation
 (for example, the <a href="commands/interfaces.html"><b>interfaces</b></a> command
 shows a chain-chain network diagram) or <a href="commands/open.html">opening</a>
 a certain type of data (for example, opening a density map starts 
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>).
 <!-- start/show will be migrated to ui command instead of toolshed -->
-</p>
-
-<a name="panelcontrol"></a>
-<p class="nav">
-[<a href="#top">back to top: Help Viewer</a>]
-</p>
-<h3>Panel Management and Context Menus</h3>
-<p>
+Panels may include clickable icons, interactive 2D representations 
+like network diagrams, and (rendered) HTML with links and images, as in the 
+<a href="tools/browser.html"><b>Help Viewer</b></a>.
+</p><p>
+A <b><i>context menu</i></b> is raised by right-clicking* parts of the interface.
+</p><p>
 <a name="mac-context"></a>
 <font size="+2"><b>*</b></font>for Mac touchpad or single-button mouse,
 Ctrl-click replaces &ldquo;right-click&rdquo; for showing context menus
@@ -90,7 +85,8 @@ some panels remain active when dismissed, others do not
 <li>undocked from the main ChimeraX window
 by clicking the &ldquo;rectangles&rdquo; button <img src="undock.png">
 on its title bar or by dragging or double-clicking its title bar
-<li>redocked by dragging or double-clicking its title bar, with the
+<li>if <a href="#toolprefs">dockable</a>,
+redocked by dragging or double-clicking its title bar, with the
 dragged location controlling where and how the panel will be inserted
 <li>tabbed with other panels, with only one shown at a time.
 Tabs are shown at the bottom of the panel.
@@ -116,20 +112,23 @@ without losing the overall window configuration.
 Icon toolbars and the <a href="tools/cli.html"><b>Command Line</b></a>
 are excluded from this toggling.
 </p><p>
-Panels may have their own specific context menus (away from the title bar area),
-typically including:
+<a name="toolprefs"></a>
+Panels may have their own specific <a href="#panels">context menus</a>
+(away from the title-bar area), typically including:
 </p>
 <ul>
 <li><b>Hide tool</b>
 <li><b>Help</b>
 - show documentation in the <a href="tools/browser.html"><b>Help Viewer</b></a>
 <li>(if applicable) <b>Start at ChimeraX startup</b>
-- whether the ChimeraX window should include the tool upon subsequent startup
+- whether the tool should start automatically upon subsequent ChimeraX startup;
+saved in <a href="preferences.html#other">preferences</a>
 <li>(if applicable) <b>Dockable tool</b>
 - whether panels of the tool should be allowed to reinsert automatically
 when dragged over the main window, as opposed to remaining separate;
 initially true for all panels except the
-<a href="tools/browser.html"><b>Help Viewer</b></a>
+<a href="tools/browser.html"><b>Help Viewer</b></a>;
+saved in <a href="preferences.html#other">preferences</a>
 </ul>
 <p>
 The latter two settings can be also be adjusted with the <b>ui</b> command.

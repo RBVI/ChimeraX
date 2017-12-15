@@ -56,9 +56,10 @@ class SPIDER_Data:
     format = file.read(4)
     import struct
     volfmt = struct.pack('f', 3)
-    swapped_volfmt = volfmt[3] + volfmt[2] + volfmt[1] + volfmt[0]
+    swapped_volfmt = volfmt[::-1]
     if format != volfmt and format != swapped_volfmt:
-      raise SyntaxError, 'File is not SPIDER volume data.\nBytes 16-19 do not hold float 3 or byte swapped float 3.'
+      raise SyntaxError('File is not SPIDER volume data.\n'
+                        'Bytes 16-19 do not hold float 3 or byte swapped float 3.')
     swap_bytes = (format == swapped_volfmt)
     return swap_bytes
     
@@ -90,20 +91,19 @@ class SPIDER_Data:
   def check_header_values(self, v, file_size):
 
     if v['nslice'] <= 0 or v['nrow'] <= 0 or v['nsam'] <= 0:
-      raise SyntaxError, ('Bad SPIDER grid size (%.0f,%.0f,%.0f)'
-                          % (v['nslice'],v['nrow'],v['nsam']))
+      raise SyntaxError('Bad SPIDER grid size (%.0f,%.0f,%.0f)'
+                        % (v['nslice'],v['nrow'],v['nsam']))
 
     value_size = 4
     expected_size = v['labbyt'] + value_size*v['nslice']*v['nrow']*v['nsam'] 
     if expected_size > file_size:
-      raise SyntaxError, ('File size %d too small for grid size (%.0f,%.0f,%.0f) and data offset %.0f'
-                          % (file_size,
-                             v['nslice'],v['nrow'],v['nsam'],v['labbyt']))
+      raise SyntaxError('File size %d too small for grid size (%.0f,%.0f,%.0f) and data offset %.0f'
+                        % (file_size, v['nslice'],v['nrow'],v['nsam'],v['labbyt']))
     
     if v['iform'] != 3:
-      raise SyntaxError, ('SPIDER data format %f != 3 (volume data)' % v['iform'])
+      raise SyntaxError('SPIDER data format %f != 3 (volume data)' % v['iform'])
     if v['istack'] != 0:
-      raise SyntaxError, "SPIDER image stacks not supported."
+      raise SyntaxError("SPIDER image stacks not supported.")
 
   # ---------------------------------------------------------------------------
   # Reads a submatrix from a potentially very large file.

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "bymodel",
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel",
                   "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
@@ -29,7 +29,7 @@ def color(session, objects, color=None, what=None,
     objects : Objects
       Which objects to color.
     color : Color
-      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bymodel".
+      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
     target : string
@@ -208,6 +208,12 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
         sc,amask = polymer_colors(atoms.residues)
         c[amask,:] = sc[amask,:]
         c[amask, 3] = atoms.colors[amask, 3] if opacity is None else opacity
+    elif color == "bynucleotide":
+        from ..atomic.colors import nucleotide_colors
+        c = atoms.colors.copy()
+        sc, amask = nucleotide_colors(atoms.residues)
+        c[amask, :] = sc[amask, :]
+        c[amask, 3] = atoms.colors[amask, 3] if opacity is None else opacity
     elif color == "bymodel":
         c = atoms.colors.copy()
         for m, matoms in atoms.by_structure:
@@ -269,6 +275,13 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
         masked_residues = residues.filter(rmask)
         undo_state.add(masked_residues, "ribbon_colors", masked_residues.ribbon_colors, c[rmask,:])
         masked_residues.ribbon_colors = c[rmask,:]
+    elif color == "bynucleotide":
+        from ..atomic.colors import nucleotide_colors
+        c,rmask = nucleotide_colors(residues)
+        c[rmask, 3] = residues.ribbon_colors[rmask, 3] if opacity is None else opacity
+        masked_residues = residues.filter(rmask)
+        undo_state.add(masked_residues, "ribbon_colors", masked_residues.ribbon_colors, c[rmask, :])
+        masked_residues.ribbon_colors = c[rmask, :]
     elif color == 'bymodel':
         for m, res in residues.by_structure:
             c = res.ribbon_colors

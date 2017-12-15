@@ -34,9 +34,9 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>distanceOnly</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
 -->
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>pbColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
-[&nbsp;<b>pbRadius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>showDist</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
 </h3>
@@ -57,6 +57,7 @@ polar and nonpolar, favorable and unfavorable (including clashes)
 </ul>
 See also: 
 <a href="hbonds.html"><b>hbonds</b></a>,
+<a href="distance.html"><b>distance</b></a>,
 <a href="interfaces.html"><b>interfaces</b></a>,
 <a href="measure.html#buriedArea"><b>measure buriedArea</b></a>
 <p>
@@ -115,7 +116,7 @@ A pseudobond is only shown when both of its endpoint atoms are shown;
 <b>reveal true</b> can be used to display atoms as needed
 so that all of the interactions will be shown (<a href="#reveal">details...</a>).
 The pseudobonds can be <a href="#showDist">labeled by distance</a>,
-and their <a href="#pbColor">color</a>, <a href="#pbRadius">radius</a>,
+and their <a href="#color">color</a>, <a href="#radius">radius</a>,
 and <a href="#dashes">number of dashes</a> can be specified.
 The default <a href="#name">name</a> of the pseudobond model for creation
 (and for removal with <b>~clashes</b> or <b>~contacts</b>) 
@@ -242,8 +243,8 @@ The distances (pseudobond lengths) can also be plotted as a histogram with
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
 </blockquote>
 <blockquote>
-<a name="pbColor"></a>
-<b>pbColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<a name="color"></a>
+<b>color</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
 <br>
 Color to use for the
 <a href="../pseudobonds.html">pseudobonds</a>
@@ -252,8 +253,8 @@ when <a href="#makePseudobonds"><b>makePseudobonds</b></a> is <b>true</b>
 can be changed later with <a href="color.html"><b>color</b></a>.
 </blockquote>
 <blockquote>
-<a name="pbRadius"></a>
-<b>pbRadius</b> &nbsp;<i>r</i>
+<a name="radius"></a>
+<b>radius</b> &nbsp;<i>r</i>
 <br>
 Radius in &Aring; to use for the <a href="../pseudobonds.html">pseudobonds</a>
 (default <b>0.075</b>);

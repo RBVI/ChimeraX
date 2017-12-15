@@ -17,14 +17,15 @@ class _MyAPI(BundleAPI):
         from . import cmd
         from chimerax.core.commands import register
         base_cmd = "nucleotides"
-        for subcmd in ("", " style", " style list", " style delete", " ndbcolor"):
+        # for subcmd in ("", " style", " style list", " style delete"):
+        for subcmd in ("",):
             cmd_name = base_cmd + subcmd
             func_name = cmd_name.replace(' ', '_')
             func = getattr(cmd, func_name)
             desc = getattr(cmd, func_name + "_desc")
             register(cmd_name, desc, func)
         from chimerax.core.commands import create_alias
-        create_alias("~" + base_cmd, base_cmd + " atoms $*", logger=logger)
+        create_alias("~" + base_cmd, base_cmd + " $* atoms", logger=logger)
 
 
 bundle_api = _MyAPI()

@@ -50,13 +50,16 @@ class EMAN_HDF_Data:
 
         import os.path
         self.name = os.path.basename(path)
-    
-        import tables
-        f = tables.openFile(path)
+
+        # Suppress warnings about HDF5 data names that are not legal python attribute names.
+        import warnings, tables
+        warnings.simplefilter('ignore', category = tables.NaturalNameWarning)
+        
+        f = tables.open_file(path)
 
         arrays = self.find_arrays(f.root)
         if len(arrays) == 0:
-            raise ValueError, 'EMAN HDF5 file %s contains no arrays' % path
+            raise ValueError('EMAN HDF5 file %s contains no arrays' % path)
 
         self.images = [EMAN_HDF_Image(a) for a in arrays]
 
@@ -75,7 +78,7 @@ class EMAN_HDF_Data:
         arrays = []
         from tables.array import Array
         from tables.group import Group
-        for g in i._f_iterNodes():
+        for g in i._f_iter_nodes():
             if isinstance(g, Group) and 'image' in g:
                 a = g.image
                 if isinstance(a, Array) and len(a.shape) in (2,3):
@@ -95,18 +98,18 @@ class EMAN_HDF_Data:
         isz,jsz,ksz = ijk_size
         istep,jstep,kstep = ijk_step
         import tables
-        f = tables.openFile(self.path)
+        f = tables.open_file(self.path)
         if progress:
             progress.close_on_cancel(f)
-        a = f.getNode(array_path)
+        a = f.get_node(array_path)
         for k in range(k0,k0+ksz,kstep):
             if len(a.shape) == 3:
                 plane = a[k,j0:j0+jsz:jstep,i0:i0+isz:istep]
             else:
                 plane = a[j0:j0+jsz:jstep,i0:i0+isz:istep]  # 2d array
-            array[(k-k0)/kstep,:,:] = plane
+            array[(k-k0)//kstep,:,:] = plane
             if progress:
-                progress.plane((k-k0)/kstep)
+                progress.plane((k-k0)//kstep)
         f.close()
         return array
 

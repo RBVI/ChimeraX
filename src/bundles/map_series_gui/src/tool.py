@@ -16,7 +16,7 @@ from chimerax.core.tools import ToolInstance
 
 # ------------------------------------------------------------------------------
 #
-class MapSeries(ToolInstance):
+class MapSeriesSlider(ToolInstance):
 
     def __init__(self, session, tool_name, *, series=[]):
         ToolInstance.__init__(self, session, tool_name)
@@ -232,8 +232,8 @@ def remove_slider_on_open(session):
 
 def models_added_cb(models, session):
     # Show slider when a map series is opened.
-    from chimerax.core.map.series.series import Map_Series
-    ms = [m for m in models if isinstance(m, Map_Series)]
+    from chimerax.core.map import MapSeries
+    ms = [m for m in models if isinstance(m, MapSeries)]
     if ms:
         msstable = {mss.size():mss for mss in getattr(session, '_map_series_sliders', [])}
         for m in ms:
@@ -241,6 +241,6 @@ def models_added_cb(models, session):
             if mss:
                 mss.add_series(m)
             else:
-                mss = MapSeries(session, "Map Series", series = [m])
+                mss = MapSeriesSlider(session, "Map Series", series = [m])
                 mss.show()
                 msstable[mss.size()] = mss

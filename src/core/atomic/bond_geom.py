@@ -225,7 +225,7 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
 
         
 def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
-    if coplanar is not None:
+    if coplanar is not None and len(coplanar) > 0:
         # may have one or two coplanar positions specified,
         # if two, compute both resultant positions and average
         # (the up vector has to be negated for the second one)

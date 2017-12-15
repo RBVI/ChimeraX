@@ -34,7 +34,6 @@ class Interpolated_Map:
                            unshow_original = False,
                            subregion = subregion, step = step,
                            model_id = model_id, name = 'morph')
-      r.show()
     self.result = r
     self.subregion = subregion
     self.step = step
@@ -78,7 +77,6 @@ class Interpolated_Map:
     if self.interpolate_colors:
       interpolate_colors(f1, v1, f2, v2, v)
 
-    v.show()
     return True
 
   # ---------------------------------------------------------------------------
@@ -268,7 +266,7 @@ def morph_maps(volumes, play_steps, play_start, play_step, play_direction,
 
   if hide_maps:
     for v in volumes:
-      v.unshow()
+      v.display = False
 
   im = Interpolated_Map(volumes, scale_factors, adjust_thresholds, add_mode,
                         interpolate_colors, subregion, step, model_id)

@@ -17,11 +17,10 @@ def median_filter(volume, bin_size = 3, iterations = 1,
 
   mg = median_grid(volume, bin_size, iterations, step, subregion)
   from .. import volume_from_grid_data
-  mv = volume_from_grid_data(mg, volume.session, show_data = False, model_id = modelId)
+  mv = volume_from_grid_data(mg, volume.session, model_id = modelId)
   mv.copy_settings_from(volume, copy_region = False)
-  mv.show()
   
-  volume.unshow()          # Hide original map
+  volume.display = False          # Hide original map
   
   return mv
 

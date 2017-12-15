@@ -21,7 +21,7 @@ class SITUS_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import situs_format
+    from . import situs_format
     sm = situs_format.SITUS_Density_Map(path)
     self.density_map = sm
 

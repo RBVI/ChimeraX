@@ -13,9 +13,17 @@
 
 from ..state import State
 from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
-from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, c_array_function, ctype_type_to_numpy, pointer
+from .molc import CFunctions, string, cptr, pyobject, set_c_pointer, pointer, size_t
 import ctypes
-size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
+
+# -------------------------------------------------------------------------------
+# Access functions from libmolc C library.
+#
+_atomic_c_functions = CFunctions('libmolc')
+c_property = _atomic_c_functions.c_property
+cvec_property = _atomic_c_functions.cvec_property
+c_function = _atomic_c_functions.c_function
+c_array_function = _atomic_c_functions.c_array_function
 
 # -------------------------------------------------------------------------------
 # These routines convert C++ pointers to Python objects and are used for defining
@@ -80,9 +88,8 @@ class Atom(State):
 
     To create an Atom use the :class:`.AtomicStructure` new_atom() method.
     '''
-
+    # constants are replicated in Atoms class
     SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
-
     HIDE_RIBBON = 0x1
     '''Hide mask for backbone atoms in ribbon.'''
     HIDE_ISOLDE = 0x2
@@ -116,10 +123,23 @@ class Atom(State):
                 if self.name != other.name else self.serial_number < other.serial_number
         return self.residue < other.residue
 
-    def __str__(self, atom_only = False, style = None):
+    def __str__(self, atom_only = False, style = None, relative_to=None):
         if style == None:
             from ..core_settings import settings
             style = settings.atomspec_contents
+        if relative_to:
+            if self.residue == relative_to.residue:
+                return self.__str__(atom_only=True, style=style)
+            if self.structure == relative_to.structure:
+                # tautology for bonds, but this func is conscripted by pseudobonds, so test...
+                if style.startswith('serial'):
+                    return self.__str__(atom_only=True, style=style)
+                chain_str = "" if  self.residue.chain_id == relative_to.residue.chain_id \
+                    else '/' + self.residue.chain_id + (' ' if style.startswith("simple") else "")
+                res_str = self.residue.__str__(residue_only=True)
+                atom_str = self.__str__(atom_only=True, style=style)
+                joiner = "" if res_str.startswith(":") else " "
+                return chain_str + res_str + joiner + atom_str
         if style.startswith("simple"):
             atom_str = self.name
         elif style.startswith("command"):
@@ -172,6 +192,16 @@ class Atom(State):
         "    Hide mask for backbone atoms for ISOLDE.\n"
         "HIDE_NUCLEOTIDE\n"
         "    Hide mask for sidechain atoms in nucleotides.\n")
+    def set_hide_bits(self, bit_mask):
+        """Set Atom's hide bits in bit mask"""
+        f = c_array_function('set_atom_hide_bits', args=(uint32,), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, bit_mask)
+    def clear_hide_bits(self, bit_mask):
+        """Clear Atom's hide bits in bit mask"""
+        f = c_array_function('clear_atom_hide_bits', args=(uint32,), per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, bit_mask)
     _idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     def _get_idatm_type(self):
         return self._idatm_type
@@ -226,6 +256,10 @@ class Atom(State):
         elif dm == Atom.STICK_STYLE:
             r = self.maximum_bond_radius(self.structure.bond_radius)
         return r
+
+    @property
+    def ribbon_coord(self):
+        return self.structure.ribbon_coord(self)
 
     def maximum_bond_radius(self, default_radius = 0.2):
         "Return maximum bond radius.  Used for stick style atom display."
@@ -337,7 +371,7 @@ class Atom(State):
         vtype = ctypes.c_uint8
         v = vtype()
         v_ref = ctypes.byref(v)
-        f = c_array_function('atom_is_backbone', args=(ctype_type_to_numpy[ctypes.c_int],), per_object=False)
+        f = c_array_function('atom_is_backbone', args=(int32,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, bb_extent, v_ref)
         return bool(v.value)
@@ -458,17 +492,7 @@ class Bond(State):
     def __str__(self, style = None):
         a1, a2 = self.atoms
         bond_sep = " \N{Left Right Arrow} "
-        if a1.residue == a2.residue:
-            return a1.__str__(style=style) + bond_sep + a2.__str__(atom_only=True, style=style)
-        if a1.structure == a2.structure:
-            # tautology for bonds, but this func is conscripted by pseudobonds, so test...
-            chain_str = "" if  a1.residue.chain_id == a2.residue.chain_id \
-                else '/' + a2.residue.chain_id + ' '
-            res_str = a2.residue.__str__(residue_only=True)
-            atom_str = a2.__str__(atom_only=True, style=style)
-            joiner = "" if res_str.startswith(":") else " "
-            return a1.__str__(style=style) + bond_sep + chain_str + res_str + joiner + atom_str
-        return a1.__str__(style=style) + bond_sep + a2.__str__(style=style)
+        return a1.__str__(style=style) + bond_sep + a2.__str__(style=style, relative_to=a1)
 
     def atomspec(self):
         return a1.atomspec() + a2.atomspec()
@@ -491,6 +515,16 @@ class Bond(State):
     '''Displayed cylinder radius for the bond.'''
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.  Use Atom.HIDE_* constants for hide bits.'''
+    def set_hide_bits(self, bit_mask):
+        """Set Atom's hide bits in bit mask"""
+        f = c_array_function('set_bond_hide_bits', args=(uint32,), per_object=False)
+        b_ref = ctypes.byref(self._c_pointer)
+        f(b_ref, 1, bit_mask)
+    def clear_hide_bits(self, bit_mask):
+        """Clear Atom's hide bits in bit mask"""
+        f = c_array_function('clear_bond_hide_bits', args=(uint32,), per_object=False)
+        b_ref = ctypes.byref(self._c_pointer)
+        f(b_ref, 1, bit_mask)
     selected = c_property('bond_selected', npy_bool)
     '''Whether the bond is selected.'''
     ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True)
@@ -598,9 +632,13 @@ class Pseudobond(State):
     shown = c_property('pseudobond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown. Read only.'''
     shown_when_atoms_hidden = c_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
-    '''Controls whether the pseudobond is shown when the endpoint atoms are not
-    explictly displayed (atom.display == False) but are implicitly shown by a
-    ribbon or somesuch (atom.hide != 0).  Defaults to True.''')
+    '''Normally, whether a pseudbond is shown only depends on the endpoint atoms' 'display'
+    attribute and not on those atoms' 'hide' attribute, on the theory that the hide bits
+    are only set when the atoms are being depicted by some non-default representation (such
+    as ribbons) and that therefore the pseudobonds should still display to "hidden" atoms.
+    However, if 'shown_when_atoms_hidden' is False then the pseudobonds will never be displayed
+    if either endpoint atom is hidden (regardless of the display attribute), but will honor
+    the 'display' attribute when the atoms aren't hidden.  Defaults to True.''')
 
     def delete(self):
         '''Delete this pseudobond from it's group'''
@@ -704,6 +742,12 @@ class PseudobondGroupData:
         '''Delete all pseudobonds in group'''
         f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
+
+    def delete_pseudobond(self, pb):
+        '''Delete a specific pseudobond from a group'''
+        f = c_function('pseudobond_group_delete_pseudobond',
+            args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, pb._c_pointer)
 
     def get_num_pseudobonds(self, cs_id):
         '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'

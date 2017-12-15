@@ -47,7 +47,7 @@ class NetCDF_Grid(Grid_Data):
 #
 def read_netcdf(path):
 
-  from netcdf_format import NetCDF_Data
+  from .netcdf_format import NetCDF_Data
   d = NetCDF_Data(path)
 
   glist = []
@@ -56,10 +56,10 @@ def read_netcdf(path):
                     d.cell_angles, d.rotation, a)
     ssa = subsampled_arrays(a)
     if ssa:
-      from . import Subsampled_Grid
+      from .. import Subsampled_Grid
       g = Subsampled_Grid(g)
       for grid_size, cell_size, arrays in ssa:
-        step = map(lambda s,c: s*c, d.xyz_step, cell_size)
+        step = [s*c for s,c in zip(d.xyz_step, cell_size)]
         sg = NetCDF_Grid(d.path, grid_size, d.xyz_origin, step,
                          d.cell_angles, d.rotation, arrays)
         g.add_subsamples(sg, cell_size)

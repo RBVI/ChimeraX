@@ -156,7 +156,7 @@ def read_float_lines(f, array, line_format, progress = None):
         if c + len(fields) > count:
             fields = fields[:count-c]
         try:
-            values = map(float, fields)
+            values = [float(x) for x in fields]
         except:
             msg = 'Bad number format in %s, line\n%s' % (f.name, line)
             raise SyntaxError(msg)

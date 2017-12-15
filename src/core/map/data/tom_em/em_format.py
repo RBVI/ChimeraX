@@ -90,13 +90,12 @@ class EM_Data:
 
     mc = v['machine code']
     if mc < 0 or mc > 6:
-      raise SyntaxError, ('Bad EM machine code %d at byte 0, must be 0 - 6.'
-                          % mc)
+      raise SyntaxError('Bad EM machine code %d at byte 0, must be 0 - 6.' % mc)
 
     dc = v['data type code']
     if not dc in (1,2,4,5,8,9):
-      raise SyntaxError, ('Bad EM data type code %d' % dc +
-                          ', must be 1, 2, 4, 5, 8, or 9')
+      raise SyntaxError('Bad EM data type code %d' % dc +
+                        ', must be 1, 2, 4, 5, 8, or 9')
 
     from numpy import uint8, int16, int32, float32, float64
     types = { 1: uint8,
@@ -104,14 +103,14 @@ class EM_Data:
               4: int32,
               5: float32,
               9: float64 }
-    if types.has_key(dc):
+    if dc in types:
       self.element_type = types[dc]
     else:
-      raise SyntaxError, 'Complex EM data value type not supported'
+      raise SyntaxError('Complex EM data value type not supported')
 
     if float(v['xsize']) * float(v['ysize']) * float(v['zsize']) > file_size:
-      raise SyntaxError, ('File size %d too small for grid size (%d,%d,%d)'
-                          % (file_size, v['xsize'],v['ysize'],v['zsize']))
+      raise SyntaxError('File size %d too small for grid size (%d,%d,%d)'
+                        % (file_size, v['xsize'],v['ysize'],v['zsize']))
 
   # ---------------------------------------------------------------------------
   #
