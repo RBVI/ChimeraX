@@ -57,18 +57,19 @@ class PseudobondGroup(PseudobondGroupData, Model):
         # TODO: Only update on selection change if pseudobond atoms selection changed.
         from ..selection import SELECTION_CHANGED
         t = session.triggers
+        from . import get_triggers
+        ta = get_triggers(session)
         self._handlers = [
-            t.add_handler('graphics update',self._update_graphics_if_needed),
-            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics()),
-            t.add_handler(SELECTION_CHANGED, lambda *args, s=self: s._update_graphics())
+            (t, t.add_handler('graphics update',self._update_graphics_if_needed)),
+            (ta, ta.add_handler('changes', lambda *args, s=self: s._update_graphics())),
+            (t, t.add_handler(SELECTION_CHANGED, lambda *args, s=self: s._update_graphics()))
         ]
 
     def removed_from_session(self, session):
-        t = session.triggers
-        h = self._handlers
-        while h:
-            t.remove_handler(h.pop())
-        self._handlers = []
+        th = self._handlers
+        for t, h in th:
+            t.remove_handler(h)
+        th.clear()
 
     # Don't allow changing a pseudobond group position.
     # Pseudobonds are always drawn to their end-point atoms so the model position
