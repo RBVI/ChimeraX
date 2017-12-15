@@ -1,0 +1,117 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: ViewDockX</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: ViewDockX</h3>
+<p>
+<b>ViewDockX</b> is a tool for the interactive analysis of
+molecular docking results.
+Users can click through a list of docked compounds (or different
+poses of the same compound) to view them individually in the context
+of a binding site. Results can be sorted, rated, and saved,
+and scores or other numerical descriptors can be plotted.
+See also: 
+<a href="../commands/hbonds.html"><b>hbonds</b></a>,
+<a href="../commands/clashes.html"><b>clashes</b></a>,
+an <a href="../formats/dock4.mol2">example file</a> of compounds docked to 
+H-ras (the protein part of PDB entry
+<a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=121p"
+target="_blank">121p</a>)
+</p><p>
+After one or more files of
+<a href="../commands/open.html#docking">docking results</a> have been
+opened, choosing <b>ViewDockX</b> from the <b>Tools</b> menu shows a table 
+listing the different compounds or poses.
+The <a href="#table"><b>ViewDockX</b> table</a> and associated 
+<a href="#plots">plots</a> can be manipulated
+like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
+</p>
+
+<a name="table"></a>
+<p class="nav">
+[<a href="#top">back to top: ViewDockX</a>]
+</p>
+<h3>ViewDockX Table</h3>
+<p>
+In the table of docking results, the rows are different compounds or
+different positions of a compound, and the columns show additional data
+read from the input, typically including compound names
+and docking scores. The first three columns are generated automatically:
+<p>
+<ul>
+<li><b>S</b> - show/hide checkboxes
+<li><b>RATING</b> - star rating
+<li><b>ID</b> - model identification number, 
+which can be clicked to show the model and hide all others listed in the table
+</ul>
+<p>
+Any additional columns that appear when the tool is first started
+directly reflect information read from the input file(s).
+Available columns of information can be hidden from the table and reshown
+by clicking the arrowhead near the top right corner of the table
+and using the resulting checkbox menu. 
+Clicking the header of a column sorts by the values in that column.
+</p><p>
+Buttons above the table:
+</p>
+<ul>
+<li><b>Show All Structures</b> - show structures for all table rows
+<li><b>Plot</b> - <a href="#plots">plot</a>
+one or more numerical descriptors for all table rows
+<li><b>Save...</b> - for all table rows, save structures and descriptors 
+(including current star ratings) to a Mol2 file; the file can be
+reopened later for further analysis with <b>ViewDockX</b>
+<li><b>Close</b> - close any structures with star ratings no greater 
+than the specified number of stars, and remove their rows from the table
+</ul>
+<p>
+<b>H-BONDS</b> between a docked compound and a receptor structure can be
+calculated as described for the 
+<a href="../commands/hbonds.html"><b>hbonds</b></a> command
+and included as an additional column.
+</p>
+
+<a name="plots"></a>
+<p class="nav">
+[<a href="#top">back to top: ViewDockX</a>]
+</p>
+<h3>Plotting</h3>
+<p>
+Clicking the <b>Plot</b> button near the top left of the
+<a href="#table"><b>ViewDockX</b> table</a> opens another window for
+plotting the table entries by their numerical descriptors.
+In the plotting window, one of the numerical descriptors can be chosen 
+for the <b>Sort</b> order, and all or a subset of them as values to <b>Plot</b>.
+Multiple plotting windows can be shown for the same set of docking
+results.
+</p><p>
+Pausing the cursor over a plotted point shows the corresponding
+model number, name, and value. Clicking the point shows only that model
+(amongst the models in the set of docking results).
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2017</address>
+</body></html>
