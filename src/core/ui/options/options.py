@@ -150,6 +150,24 @@ def recurse_setattr(obj, attr_name, val):
         obj = getattr(obj, a)
     setattr(obj, attrs[-1], val)
 
+class BooleanOption(Option):
+    """Option for true/false values"""
+
+    def get(self):
+        return self.widget.isChecked()
+
+    def set(self, value):
+        self.widget.setChecked(value)
+
+    def set_multiple(self):
+        from PyQt5.QtCore import Qt
+        self.widget.setCheckState(Qt.PartiallyChecked)
+
+    def _make_widget(self, **kw):
+        from PyQt5.QtWidgets import QCheckButton
+        self.widget = QCheckButton(**kw)
+        self.widget.stateChanged.connect(lambda state, s=self: s.make_callback())
+
 class EnumOption(Option):
     """Option for enumerated values"""
     values = ()
