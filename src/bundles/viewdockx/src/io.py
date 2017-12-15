@@ -1,12 +1,14 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# Mol2 specification: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
 
-def open_mol2(session, stream, name, auto_style):
+
+def open_mol2(session, stream, name, auto_style, atomic):
     structures = []
     atoms = 0
     bonds = 0
     while True:
-        s = _read_block(session, stream, auto_style)
+        s = _read_block(session, stream, auto_style, atomic)
         if not s:
             break
         structures.append(s)
@@ -18,7 +20,7 @@ def open_mol2(session, stream, name, auto_style):
     return structures, status
 
 
-def _read_block(session, stream, auto_style):
+def _read_block(session, stream, auto_style, atomic):
     """Read all sections for a single entry and build Structure instance"""
     # First section should be comments
     # Second section: "@<TRIPOS>MOLECULE"
@@ -39,8 +41,15 @@ def _read_block(session, stream, auto_style):
         for i in subst_set:
             subst_dict[i[0]] = [i[1], None, None, None, None, '****']
 
-    from chimerax.core.atomic import AtomicStructure
-    s = AtomicStructure(session, auto_style=auto_style)
+    if atomic:
+        from chimerax.core.atomic import AtomicStructure as StructureClass
+    else:
+        from chimerax.core.atomic import Structure as StructureClass
+    s = StructureClass(session, auto_style=auto_style)
+    s.name = molecular_dict["name"]
+    _set_structure_attribute(s, molecular_dict, "charge_model")
+    _set_structure_attribute(s, molecular_dict, "mol2_type")
+    _set_structure_attribute(s, molecular_dict, "mol2_comment")
     csd = build_residues(s, subst_dict)
     cad = build_atoms(s, csd, atom_dict)
     build_bonds(s, cad, bond_dict)
@@ -82,9 +91,9 @@ def read_com_and_mol(session, stream):
             molecule_line = stream.readline()
 
     molecular_dict = {}
-    mol_labels = ["mol_name", ["num_atoms", "num_bonds", "num_subst",
-                               "num_feat", "num_sets"],
-                  "mol_type", "charge_type", "status_bits"]
+    mol_labels = ["name", ["num_atoms", "num_bonds", "num_subst",
+                           "num_feat", "num_sets"],
+                  "mol2_type", "charge_model", "status_bits", "mol2_comment"]
 
     line_num = 0
     for label in mol_labels:
@@ -184,43 +193,85 @@ def read_subst(session, stream):
     return subst_dict
 
 
+def _set_structure_attribute(s, mol_dict, attr):
+    v = mol_dict.get(attr, "").strip()
+    if v:
+        setattr(s, attr, v)
+
+
 def build_residues(s, subst_dict):
     """ create chimeraX substructure dictionary (csd) """
+    # subst_dict key is "subst_id"
+    # Indices in subst_dict lists are:
+    #   0: subst_name
+    #   1: root_atom (matches "atom_id")
+    #   2: subst_type [optional from here down]
+    #   3: dict_type
+    #   4: chain
+    #   5: inter_bonds
+    #   6: status
+    #   7: comment
     csd = {}
     # csd will be something like {"1": <residue>}
-    for s_index in subst_dict:
+    for subst_id, data_list in subst_dict.items():
+        name = data_list[0][:4]
+        try:
+            chain = data_list[4]
+            if chain == "****":
+                raise IndexError("no chain")
+        except IndexError:
+            chain = ''
         # new_residue(residue_name, chain_id, pos)
-        residue = s.new_residue(subst_dict[s_index][0][:4],
-                                str(subst_dict[s_index][5]),
-                                int(s_index))
-        csd[s_index] = residue
+        residue = s.new_residue(name, chain, int(subst_id))
+        csd[subst_id] = residue
     return csd
 
 
 def build_atoms(s, csd, atom_dict):
     """ Creates chimeraX atom dictionary (cad)"""
+    # atom_dict key is "atom_id"
+    # Indices in atom_dict lists are:
+    #   0: atom_name
+    #   1: x
+    #   2: y
+    #   3: z
+    #   4: atom_type (e.g., C.3)
+    #   5: subst_id [optional from here down]
+    #   6: subst_name
+    #   7: charge
+    #   8: status_bit
     from numpy import array, float64
     cad = {}
-    for key in atom_dict:
-        name = atom_dict[key][0]
-        element = atom_dict[key][4]
+    for atom_id, data_list in atom_dict.items():
+        name = data_list[0]
+        element = data_list[4]
         if "." in element:
             split_element = element.split(".")
             element = split_element[0]
-        xyz = [float(n) for n in atom_dict[key][1:4]]
+        xyz = [float(n) for n in data_list[1:4]]
         new_atom = s.new_atom(name, element)
         new_atom.coord = array(xyz, dtype=float64)
+        try:
+            new_atom.charge = float(data_list[7])
+        except (IndexError, ValueError):
+            pass
         # new_atom.serial_number = int(key)
         # adding new atom to subst_id 
-        csd[atom_dict[key][5]].add_atom(new_atom)
-        cad[key] = new_atom
+        csd[data_list[5]].add_atom(new_atom)
+        cad[atom_id] = new_atom
     return cad
 
 
 def build_bonds(s, cad, bond_dict):
-    for key in bond_dict:
-        atom1index = bond_dict[key][0]
-        atom2index = bond_dict[key][1]
+    # bond_dict key is "bond_id"
+    # Indices in bond_dict lists are:
+    #   0: origin_atom_id
+    #   1: target_atom_id
+    #   2: bond_type
+    #   3: status_bits [optional from here down]
+    for bond_id, data_list in bond_dict.items():
+        atom1index = data_list[0]
+        atom2index = data_list[1]
         try:
             a1 = cad[atom1index]
             a2 = cad[atom2index]

@@ -67,7 +67,7 @@ def nucleotides_dimensions_delete(session, name):
     NA.remove_dimensions(name)
 
 
-ShapeArg = EnumOf(('box', 'muffler', 'discus'))
+ShapeArg = EnumOf(('box', 'muffler', 'ellipsoid'))
 DimensionsArg = DynamicEnum(NA.list_dimensions)
 # ReprArg = EnumOf(('atoms', 'fill/fill', 'fill/slab', 'tube/slab', 'ladder'))
 ReprArg = EnumOf(('atoms', 'slab', 'tube/slab', 'ladder'))
@@ -95,7 +95,7 @@ nucleotides_desc = CmdDesc(
 def nucleotides(session, representation, *,
                 glycosidic=default.GLYCOSIDIC, show_orientation=default.ORIENT,
                 thickness=default.THICKNESS, hide_atoms=default.HIDE,
-                shape=default.SHAPE, dimensions=default.DIMENSIONS, radius=default.RADIUS,
+                shape=default.SHAPE, dimensions=default.DIMENSIONS, radius=None,
                 stubs=default.STUBS, base_only=default.BASE_ONLY,
                 objects=None):
 
@@ -117,6 +117,8 @@ def nucleotides(session, representation, *,
         else:
             NA.set_normal(residues)
     elif representation.endswith('slab'):
+        if radius is None:
+            radius = default.TUBE_RADIUS
         if representation.startswith('fill'):
             # TODO: residues.fill_rings = True
             show_gly = True
@@ -129,8 +131,11 @@ def nucleotides(session, representation, *,
             show_gly = info[NA.ANCHOR] != NA.RIBOSE
         NA.set_slab(representation, residues, dimensions=dimensions,
                     thickness=thickness, orient=show_orientation,
-                    shape=shape, show_gly=show_gly, hide=hide_atoms)
+                    shape=shape, show_gly=show_gly, hide=hide_atoms,
+                    tube_radius=radius)
     elif representation == 'ladder':
+        if radius is None:
+            radius = default.RUNG_RADIUS
         NA.set_ladder(residues, rung_radius=radius,
                       show_stubs=stubs, skip_nonbase_Hbonds=base_only, hide=hide_atoms)
 

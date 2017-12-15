@@ -227,7 +227,7 @@ class Interface(ModelessDialog):
                 self.showStubs = BooleanOption(
                     f, prow.next(), 'Show stubs', default.STUBS, None)
                 self.rungRadius = FloatOption(
-                    f, prow.next(), 'Rung radius', default.RADIUS, None)
+                    f, prow.next(), 'Rung radius', default.RUNG_RADIUS, None)
                 self.rungRadius.min = 0.0
                 self.useExisting = BooleanOption(
                     f, prow.next(),

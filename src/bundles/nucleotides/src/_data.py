@@ -747,6 +747,11 @@ def get_ring(r, base_ring):
 def draw_slab(nd, residue, name, *, dimensions=default.DIMENSIONS,
               thickness=default.THICKNESS, hide=default.HIDE,
               orient=default.ORIENT, shape=default.SHAPE):
+    if dimensions is None:
+        if shape == 'ellipsoid':
+            dimensions = 'small'
+        else:
+            dimensions = 'long'
     standard = standard_bases[name]
     ring_atom_names = standard["ring atom names"]
     atoms = get_ring(residue, ring_atom_names)
@@ -792,7 +797,7 @@ def draw_slab(nd, residue, name, *, dimensions=default.DIMENSIONS,
         va, na, ta = get_cylinder(radius, numpy.array((0, -height / 2, 0)),
                                   numpy.array((0, height / 2, 0)))
         pure_rotation = False
-    elif shape == 'discus':
+    elif shape == 'ellipsoid':
         # need to reach anchor atom
         xf2 = xf * translation(center)
         sr = (ury - lly) / 2 * _SQRT3
@@ -883,7 +888,7 @@ def draw_orientation(nd, residue):
         orient_planar_ring(nd, ring, indices)
 
 
-def draw_tube(nd, residue, name, *, anchor=RIBOSE, show_gly=False):
+def draw_tube(nd, residue, name, *, anchor=RIBOSE, show_gly=False, radius=None):
     if anchor == RIBOSE:
         show_gly = False
     if anchor == RIBOSE or show_gly:
@@ -898,7 +903,8 @@ def draw_tube(nd, residue, name, *, anchor=RIBOSE, show_gly=False):
     if not a or not a.display:
         return False
     ep0 = a.coord
-    radius = a.structure.bond_radius
+    if radius is None:
+        radius = a.structure.bond_radius
 
     if cname is aname:
         color = a.color
@@ -987,15 +993,23 @@ def set_orient(residues):
 def set_slab(side, residues, dimensions=default.DIMENSIONS, **slab_params):
     molecules = residues.unique_structures
     _init_rebuild_handler(molecules[0].session)
+    if dimensions is None:
+        shape = slab_params.get('shape', default.SHAPE)
+        if shape == 'ellipsoid':
+            dimensions = 'small'
+        else:
+            dimensions = 'long'
     if not side.startswith('tube'):
         tube_params = None
     else:
         info = find_dimensions(dimensions)
         tube_params = {
+            'radius': slab_params.get('tube_radius', default.TUBE_RADIUS),
             'show_gly': slab_params.get('show_gly', default.GLYCOSIDIC),
             ANCHOR: info[ANCHOR],
         }
     slab_params.pop('show_gly', None)
+    slab_params.pop('tube_radius', None)
     slab_params['dimensions'] = dimensions
     rds = {}
     for m in molecules:
@@ -1149,14 +1163,14 @@ def make_ladder(nd, residues, *, rung_radius=0, show_stubs=True, skip_nonbase_Hb
         r1color = r1.ribbon_color
         # choose mid-point to make purine larger
         try:
-            isPurine0 = standard_bases[nucleic3to1(r0.name)]['tag'] == PURINE
-            isPurine1 = standard_bases[nucleic3to1(r1.name)]['tag'] == PURINE
+            is_purine0 = standard_bases[nucleic3to1(r0.name)]['tag'] == PURINE
+            is_purine1 = standard_bases[nucleic3to1(r1.name)]['tag'] == PURINE
         except KeyError:
-            isPurine0 = False
-            isPurine1 = False
-        if any(non_base) or isPurine0 == isPurine1:
+            is_purine0 = False
+            is_purine1 = False
+        if any(non_base) or is_purine0 == is_purine1:
             mid = 0.5
-        elif isPurine0:
+        elif is_purine0:
             mid = purine_pyrimidine_ratio
         else:
             mid = 1.0 - purine_pyrimidine_ratio
@@ -1183,13 +1197,25 @@ def make_ladder(nd, residues, *, rung_radius=0, show_stubs=True, skip_nonbase_Hb
             continue
         ep0 = c3p[1]
         color = r.ribbon_color
-        # find farthest atom from C3'
-        dist_atom = (0, None)
-        for a in r.atoms:
-            dist = distance_squared(ep0, a.coord)
-            if dist > dist_atom[0]:
-                dist_atom = (dist, a)
-        ep1 = dist_atom[1].coord
+        ep1 = None
+        is_purine = standard_bases[nucleic3to1(r.name)]['tag'] == PURINE
+        if is_purine:
+            a = r.find_atom('N1')
+            if a:
+                ep1 = a.coord
+        else:
+            # pyrimidine
+            a = r.find_atom('N3')
+            if a:
+                ep1 = a.coord
+        if ep1 is None:
+            # find farthest atom from C3'
+            dist_atom = (0, None)
+            for a in r.atoms:
+                dist = distance_squared(ep0, a.coord)
+                if dist > dist_atom[0]:
+                    dist_atom = (dist, a)
+            ep1 = dist_atom[1].coord
         va, na, ta = get_cylinder(rung_radius, ep0, ep1)
         nd.add_shape(va, na, ta, color, r.atoms, r.atomspec())
         matched_residues.add(r)

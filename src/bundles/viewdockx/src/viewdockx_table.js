@@ -5,6 +5,7 @@ var vdxtable = function() {
     var rating_column = "viewdockx_rating"
 
     function update_columns(columns) {
+        $("#viewdockx_table").trigger("destroy");
         var numeric = columns["numeric"];
         var text = columns["text"];
         var ids = text["id"];
@@ -168,18 +169,14 @@ var vdxtable = function() {
         $("#show_all_btn").click(function() {
             window.location = custom_scheme + ":check_all?show_all=true";
         });
-        $('#chart_btn').on('click', function() {
-            window.location = custom_scheme + ":chart";
-        });
-        $('#plot_btn').on('click', function() {
+        $("#plot_btn").click(function() {
             window.location = custom_scheme + ":plot";
         });
-        $('#histogram_btn').on('click', function() {
-            window.location = custom_scheme + ":histogram";
+        $("#hb_btn").click(function() {
+            window.location = custom_scheme + ":hb";
         });
-        $("#show_columns").multiselect({
-            placeholder: "Columns...",
-            onOptionClick: show_column
+        $("#export_btn").click(function() {
+            window.location = custom_scheme + ":export";
         });
         $("#prune_stars").rateYo({
             starWidth: "16px",
@@ -188,6 +185,15 @@ var vdxtable = function() {
             normalFill: "#DDDDDD",
             fullStar: true
         });
+        $("#prune_btn").click(function() {
+            window.location = custom_scheme + ":prune?stars=" +
+                              $("#prune_stars").rateYo("option", "rating");
+        });
+        $("#show_columns").multiselect({
+            placeholder: "Columns...",
+            onOptionClick: show_column
+        });
+        $("#viewdockx_table").tablesorter();
     }
 
     return {
