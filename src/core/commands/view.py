@@ -124,6 +124,7 @@ def show_view(session, v2, frames=None):
     v = session.main_view
     models = session.models.list()
     v1 = NamedView(v, v.center_of_rotation, models)
+    v2.remove_deleted_models()
     _InterpolateViews(v1, v2, frames, session)
 
 
@@ -186,6 +187,12 @@ class NamedView(State):
                 if m.positions is not p:
                     m.positions = p
 
+    def remove_deleted_models(self):
+        pos = self.positions
+        for m in tuple(pos.keys()):
+            if m.deleted:
+                del pos[m]
+                
     # Session saving for a named view.
     version = 1
     save_attrs = [
@@ -195,6 +202,7 @@ class NamedView(State):
         'positions',
     ]
     def take_snapshot(self, session, flags):
+        self.remove_deleted_models()
         data = {'view attrs': {a:getattr(self,a) for a in self.save_attrs},
                 'version': self.version}
         return data
