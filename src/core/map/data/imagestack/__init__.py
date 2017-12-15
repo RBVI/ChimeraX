@@ -45,8 +45,9 @@ def open(paths):
     assign_series_and_channels(grids)
 
     # Assign default channel colors
-    for g in grids:
-      if g.rgba is None and g.channel is not None:
+    gc = [g for g in grids if g.rgba is None and g.channel is not None]
+    if len(set(g.channel for g in gc)) > 1:
+      for g in gc:
         g.rgba = default_channel_colors[g.channel % len(default_channel_colors)]
 
   return grids

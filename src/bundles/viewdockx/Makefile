@@ -22,11 +22,12 @@ endif
 RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
 SRCS = $(wildcard src/*.py)
+LIBS = src/lib/flot src/lib/rateyo src/lib/jquery.multiselect.js
 
-wheel:	bundle_info.xml $(SRCS)
+wheel:	bundle_info.xml $(SRCS) $(LIBS)
 	$(RUN) "devel build . exit true"
 
-install app-install:	bundle_info.xml $(SRCS)
+install app-install:	bundle_info.xml $(SRCS) $(LIBS)
 	$(RUN) "devel install . user false exit true"
 
 test:
@@ -44,3 +45,18 @@ clean:
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+
+# From http://www.flotcharts.org/
+src/lib/flot:	flot-0.8.3.zip
+	# touch needed because unzip restores update time
+	rm -rf $@ && unzip $? && mv flot $@ && touch $@
+
+# From http://rateyo.fundoocode.ninja/
+src/lib/rateyo:	rateyo-2.3.2.zip
+	rm -rf $@ && unzip $? && mv v2.3.2 $@ && rm -rf __MACOSX && touch $@
+
+# From https://www.jqueryscript.net/form/jQuery-Plugin-For-Multi-Select-List-with-Checkboxes-MultiSelect.html
+MS_DIR = jQuery-Plugin-For-Multi-Select-List-with-Checkboxes-MultiSelect
+src/lib/jquery.multiselect.js:	multiselect.zip
+	unzip $? && mv $(MS_DIR)/jquery.multiselect.* src/lib \
+		&& rm -rf $(MS_DIR) && touch $@

@@ -20,8 +20,7 @@ def ridges(volume, level = None, step = 1, subregion = None, modelId = None):
     from .. import volume_from_grid_data
     rv = volume_from_grid_data(rg, volume.session, model_id = modelId)
     rv.set_parameters(surface_levels = [0.5])
-    rv.show()
-    volume.unshow()          # Hide original map
+    volume.display = False          # Hide original map
   
     return rv
 

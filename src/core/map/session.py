@@ -33,8 +33,6 @@ def restore_maps(dms, session, file_paths = None, attributes_only = False):
 #
 def restore_map_attributes(dms, session):
   set_maps_attributes(dms, session)
-  for v in session.maps():
-    v.update_display()
 
 # ---------------------------------------------------------------------------
 #
@@ -472,8 +470,8 @@ def state_from_map(volume):
   s['session_volume_id'] = session_volume_id(v)
   s['version'] = 1
   if hasattr(v, 'parent'):
-    from .series import Map_Series
-    if isinstance(v.parent, Map_Series):
+    from .series import MapSeries
+    if isinstance(v.parent, MapSeries):
       s['in_map_series'] = True
   return s
 
@@ -513,7 +511,7 @@ def set_map_state(s, volume, notify = True):
   from ..geometry import Place
   v.position = Place(s['place'])
 
-  v.new_region(*s['region'], show = False, adjust_step = False)
+  v.new_region(*s['region'], adjust_step = False)
 
   if 'region_list' in s:
     region_list_from_state(s['region_list'], v.region_list)
@@ -529,15 +527,6 @@ def set_map_state(s, volume, notify = True):
                              'colors changed',
                              'rendering options changed',
                              'coordinates changed'))
-
-  d = v.display
-  if d:
-    v.show()
-  else:
-    if not s.get('in_map_series',False):
-      v.show()      # Compute surface even if not displayed so that turning on display
-                    # for example with model panel that only sets display to true shows surface.
-    v.display = False
 
 # -----------------------------------------------------------------------------
 #

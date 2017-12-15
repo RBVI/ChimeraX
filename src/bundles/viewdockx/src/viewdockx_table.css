@@ -28,28 +28,23 @@ table, th, td {
   border: 1px solid grey;
   border-collapse: collapse;
 }
+table {
+  width:100%;
+}
 th {
+  background-color: #BBB;
+  text-align: center;
   font-family:arial;
-  background-color: #00FFCC;
   background-position: right center;
   background-repeat: no-repeat;
   background-size: 16px;
 }
 td {
-  background-color: #CCFFF5;
   text-align: center;
   font-family:arial;
 }
-th.id {
-  background-color: #c266ff;
-  text-align: center;
-}
 td.id {
-  background-color: #ebccff;
   text-align: left;
-}
-.selected {
-  background-color: yellow;
 }
 
 /*
@@ -64,17 +59,9 @@ table thead tr .tablesorter-headerDesc {
   padding-right: 16px;
 }
 
-/*
- * Control elements
- */
-.checkbox {
-  display: none;
-  white-space: nowrap
+#prune {
+  float: right;
 }
-.bar rect {
-  fill: teal;
-}
-.bar text {
-  fill: #fff;
-  font: 10px sans-serif;
+#prune_stars {
+  display: inline-block;
 }

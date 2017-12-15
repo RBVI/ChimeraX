@@ -24,11 +24,9 @@ def flatten(volume, method = 'multiply linear',
   fg = flattened_grid(volume, method, step, subregion,
                       fitregion = fitregion, task = task)
   from .. import volume_from_grid_data
-  fv = volume_from_grid_data(fg, volume.session, show_data = False, model_id = modelId)
+  fv = volume_from_grid_data(fg, volume.session, model_id = modelId)
   fv.copy_settings_from(volume, copy_region = False)
-  fv.show()
-  
-  volume.unshow()          # Hide original map
+  volume.display = False          # Hide original map
   
   return fv
 

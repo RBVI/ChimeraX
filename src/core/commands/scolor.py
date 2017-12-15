@@ -591,12 +591,13 @@ class Volume_Color:
         
     # -------------------------------------------------------------------------
     #
-    def volume_values(self, surface_piece):
+    def volume_values(self, surface):
 
-        p = surface_piece
-        tf = p.position
-        v = p.vertices
-        n = p.normals
+        s = surface
+        # Transform from surface to volume coordinates
+        tf = self.volume.scene_position.inverse() * s.scene_position
+        v = s.vertices
+        n = s.normals
         return self.offset_values(v, n, tf)
 
     # -------------------------------------------------------------------------
@@ -696,7 +697,7 @@ class Volume_Color:
             tfunc = map(lambda v,c: (v,1) + tuple(c),
                         cmap.data_values, cmap.colors)
             s.set_colormap(tfunc, 1, None, clamp = True)
-            s.update_model(open = False)
+            s.update_drawing(open = False)
             
     # -------------------------------------------------------------------------
     #

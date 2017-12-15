@@ -464,12 +464,10 @@ def show_dots(session):
 
 def show_grayscale(m):
   m.set_representation('solid')
-  m.show()
 
 def toggle_outline_box(m):
-  ro = m.rendering_options
-  ro.show_outline_box = not ro.show_outline_box
-  m.show()
+    ro = m.rendering_options
+    m.set_parameters(show_outline_box = not ro.show_outline_box)
 
 def show_one_plane(m):
   ijk_step = (1,1,1)
@@ -478,7 +476,7 @@ def show_one_plane(m):
   m.set_parameters(orthoplanes_shown = (False, False, False),
                    box_faces = False)
   m.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
-  m.show('solid')
+  m.set_representation('solid')
         
 def show_all_planes(m):
   ijk_min = (0,0,0)
@@ -492,14 +490,14 @@ def toggle_orthoplanes(m):
                    orthoplane_positions = p,
                    color_mode = 'l8' if s else 'auto8',
                    box_faces = False)
-  m.show('solid')
+  m.set_representation('solid')
 
 def toggle_box_faces(m):
   s = not m.rendering_options.box_faces
   m.set_parameters(box_faces = s,
                    color_mode = 'l8' if s else 'auto8',
                    orthoplanes_shown = (False, False, False))
-  m.show('solid')
+  m.set_representation('solid')
 
 def mark_map_surface_center(m):
     from chimerax import markers
@@ -711,8 +709,7 @@ def toggle_surface_transparency(session):
     from chimerax.core.graphics import Drawing
     for m in shortcut_surfaces_and_maps(session):
         if isinstance(m, Volume):
-            m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
-            m.show()
+            m.set_parameters(surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors))
         else:
             for d in m.all_drawings():
                 c = d.colors
@@ -729,8 +726,7 @@ def show_surface_transparent(session, alpha = 0.5):
         if not m.display:
             continue
         if isinstance(m, Volume):
-            m.surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors)
-            m.show()
+            m.set_parameters(surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors))
         elif isinstance(m, Drawing):
             for d in m.all_drawings():
                 c = d.colors

@@ -19,11 +19,10 @@ def threshold(volume, minimum = None, set_minimum = None,
   tg = threshold_grid(volume, minimum, set_minimum, maximum, set_maximum,
                       step, subregion)
   from .. import volume_from_grid_data
-  tv = volume_from_grid_data(tg, show_data = False, model_id = modelId, session = session)
+  tv = volume_from_grid_data(tg, model_id = modelId, session = session)
   tv.copy_settings_from(volume)
-  tv.show()
   
-  volume.unshow()          # Hide original map
+  volume.display = False          # Hide original map
   
   return tv
 

@@ -19,9 +19,10 @@ from .. import Grid_Data
 #
 class Priism_Grid(Grid_Data):
 
-  def __init__(self, priism_data, wd):
+  def __init__(self, priism_data, wd, time):
 
     self.wavelength_data = wd
+    self._time = time
 
     from os.path import basename
     if wd.wavelength == 0:
@@ -56,10 +57,10 @@ class Priism_Grid(Grid_Data):
   
   # ---------------------------------------------------------------------------
   #
-  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress, time = 0):
+  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
     return self.wavelength_data.read_matrix(ijk_origin, ijk_size, ijk_step,
-                                            time, progress)
+                                            self._time, progress)
   
 # -----------------------------------------------------------------------------
 #
@@ -68,5 +69,16 @@ def read_priism_file(path):
   from . import priism_format
   priism_data = priism_format.Priism_Data(path)
 
-  grids = [Priism_Grid(priism_data, wd) for wd in priism_data.wavelength_data]
+  grids = []
+  nt = priism_data.num_times
+  for t in range(nt):
+    for c,wd in enumerate(priism_data.wavelength_data):
+      g = Priism_Grid(priism_data, wd, t)
+      if priism_data.num_waves > 1:
+        g.channel = c
+      if nt > 1:
+        g.time = t
+        g.series_index = t
+      grids.append(g)
+
   return grids

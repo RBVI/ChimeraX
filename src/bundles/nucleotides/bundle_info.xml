@@ -35,10 +35,12 @@
     -->
     <ChimeraXClassifier>ChimeraX :: Command :: nucleotides :: General :: Manipulate nucleotide representations</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: ~nucleotides :: General :: Undo nucleotide representations</ChimeraXClassifier>
+    <!--
     <ChimeraXClassifier>ChimeraX :: Command :: nucleotides style :: General :: Create custom nucleotide style</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: nucleotides style list :: General :: List custom nucleotide styles </ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: nucleotides style delete :: General :: Delete custom nucleotide style </ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: nucleotides ndbcolor :: General :: Color residues according to NDB conventions </ChimeraXClassifier>
+    -->
   </Classifiers>
 
 </BundleInfo>

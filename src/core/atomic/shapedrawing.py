@@ -93,7 +93,7 @@ class AtomicShapeDrawing(Drawing):
     def update_selection(self):
         # called by Structure._update_if_needed when atom selection has changed
         # in a child model/drawing
-        self._selected_shapes = set(s for s in self._shapes if s.atoms and any(s.atoms.selected))
+        self._selected_shapes = set(s for s in self._shapes if s.atoms and all(s.atoms.selected))
         tmask = self.selected_triangles_mask
         if tmask is None:
             tmask = numpy.zeros(len(self.triangles), bool)

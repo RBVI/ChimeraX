@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 # Create a partially transparent solid model from volume data and a color map.
 #
-# Call update_model() to display the model with current levels, colors,
+# Call update_drawing() to display the model with current levels, colors,
 # and rendering options.  Argument align can be a model to align with.
 #
 class Solid:
@@ -61,7 +61,7 @@ class Solid:
     self.orthoplanes_shown = (False, False, False)
     self.orthoplane_mijk = (0,0,0)
 
-    self.update_colors = False
+    self._update_colors = False
     
   # ---------------------------------------------------------------------------
   #
@@ -86,7 +86,7 @@ class Solid:
       self.matrix_id = matrix_id
       self.matrix_plane = matrix_plane    # Callback to get matrix values
       self.p_mode = self.auto_projection_mode()
-      self.update_colors = True
+      self._update_colors = True
 
   # ---------------------------------------------------------------------------
   #
@@ -102,18 +102,19 @@ class Solid:
       self.transparency_depth = transparency_depth
       self.clamp = clamp
       self.c_mode = self.auto_color_mode()              # update color mode
-      self.update_colors = True
+      self._update_colors = True
       
   # ---------------------------------------------------------------------------
-  # After setting options need to call update_model() update display.
+  # After setting options need to call update_drawing() update display.
   #
   def set_options(self, color_mode, projection_mode,
                   dim_transparent_voxels, bt_correction, minimal_texture_memory,
 		  maximum_intensity_projection, linear_interpolation,
                   show_outline_box, outline_box_rgb, outline_box_linewidth,
                   box_faces, orthoplanes_shown, orthoplane_mijk):
-    
-    self.update_colors = (color_mode != self.color_mode)
+
+    if color_mode != self.color_mode:
+      self._update_colors = True
     self.color_mode = color_mode
     self.c_mode = self.auto_color_mode()
     self.projection_mode = projection_mode
@@ -144,54 +145,46 @@ class Solid:
     if b:
       if self.c_mode != 'rgba8':
         self.color_mode = self.c_mode = 'rgba8'
-        self.update_colors = True
+        self._update_colors = True
     d = self.drawing
     if d:
       d.image_blend = b
 
   # ---------------------------------------------------------------------------
   #
-  def update_model(self, parent_drawing, blend_manager, open = True):
+  def update_drawing(self, parent_drawing, blend_manager):
 
-    create_drawing = self.drawing is None
-    if create_drawing:
-      self.drawing = self.make_drawing(parent_drawing, blend_manager)
+    d = self.drawing
+    if d is None:
+      self.drawing = d = self.make_drawing(parent_drawing, blend_manager)
 
-    v = self.drawing
-    v.display = True
-    v.set_array_coordinates(self.transform)
-    v.set_color_mode(self.c_mode)
-    v.set_modulation_rgba(self.luminance_color())
-    v.projection_mode = self.p_mode
+    d.display = True
+    d.set_array_coordinates(self.transform)
+    d.set_color_mode(self.c_mode)
+    d.set_modulation_rgba(self.luminance_color())
+    d.projection_mode = self.p_mode
     if self.dim_transparent_voxels:
-      bmode = v.SRC_ALPHA_DST_1_MINUS_ALPHA
+      bmode = d.SRC_ALPHA_DST_1_MINUS_ALPHA
     else:
-      bmode = v.SRC_1_DST_1_MINUS_ALPHA
-    v.transparency_blend_mode = bmode
-    v.brightness_and_transparency_correction = self.bt_correction
-    v.minimal_texture_memory = self.minimal_texture_memory
-    v.maximum_intensity_projection = self.maximum_intensity_projection
-    v.linear_interpolation = self.linear_interpolation
-    v.show_outline_box = self.show_outline_box
-    v.outline_box_rgb = self.outline_box_rgb
-    v.outline_box_linewidth = self.outline_box_linewidth
-    v.show_box_faces = self.box_faces
+      bmode = d.SRC_1_DST_1_MINUS_ALPHA
+    d.transparency_blend_mode = bmode
+    d.brightness_and_transparency_correction = self.bt_correction
+    d.minimal_texture_memory = self.minimal_texture_memory
+    d.maximum_intensity_projection = self.maximum_intensity_projection
+    d.linear_interpolation = self.linear_interpolation
+    d.show_outline_box = self.show_outline_box
+    d.outline_box_rgb = self.outline_box_rgb
+    d.outline_box_linewidth = self.outline_box_linewidth
+    d.show_box_faces = self.box_faces
     axis_bits = 0
     for a in (0,1,2):
       if self.orthoplanes_shown[a]:
         axis_bits |= (1 << a)
-    v.show_ortho_planes = axis_bits
-    v.ortho_planes_position = self.orthoplane_mijk
-#    v.image_blend = self.blend_volumes
+    d.show_ortho_planes = axis_bits
+    d.ortho_planes_position = self.orthoplane_mijk
+#    d.image_blend = self.blend_volumes
 
-    if create_drawing or self.update_colors:
-      self.update_colors = False
-      self.update_coloring()
-      # b = self.blend_volumes
-      # if b:
-      #   bm = b.master()
-      #   if bm is not self:
-      #     bm.update_colors = True	# Tell blend master colors have changed
+    self._update_coloring()
     
   # ---------------------------------------------------------------------------
   #
@@ -200,25 +193,17 @@ class Solid:
     from . import grayscale
     gsd = grayscale.GrayScaleDrawing(self.name, blend_manager)
     parent_drawing.add_drawing(gsd)
+    self._update_colors = True
 
     return gsd
-
-  # ---------------------------------------------------------------------------
-  #
-  def show(self):
-
-    self.drawing.display = True
-
-  # ---------------------------------------------------------------------------
-  #
-  def hide(self):
-
-    self.drawing.display = False
     
   # ---------------------------------------------------------------------------
   #
-  def update_coloring(self):
-
+  def _update_coloring(self):
+    if not self._update_colors:
+      return
+    self._update_colors = False
+    
     if self.use_plane_callback:
       cmap, cmap_range = self.colormap()
       def get_color_plane(axis, plane,

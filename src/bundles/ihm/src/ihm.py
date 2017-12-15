@@ -922,14 +922,12 @@ class IHMModel(Model):
                 g = probability_grid(asym_gaussians[asym_id])
                 g.name = '%s Gaussians' % asym_id
                 g.rgba = chain_rgba(asym_id)[:3] + (opacity,)
-                v = volume_from_grid_data(g, self.session, show_data = False,
-                                          open_model = False, show_dialog = False)
+                v = volume_from_grid_data(g, self.session, open_model = False, show_dialog = False)
                 v.initialize_thresholds()
                 ms = v.matrix_value_statistics()
                 vlev = ms.mass_rank_data_value(level)
                 v.set_parameters(surface_levels = [vlev])
                 v.show_in_volume_viewer = False
-                v.show()
                 m.add([v])
 
         return pmods
