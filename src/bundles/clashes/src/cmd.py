@@ -170,10 +170,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         reveal_atoms.displays = True
     if make_pseudobonds:
         if len(attr_atoms.unique_structures) > 1:
-            pbg = session.pb_manager.get_group(name, create=False)
-            if not pbg:
-                pbg = session.pb_manager.get_group(name, create=True)
-                session.models.add([pbg])
+            pbg = session.pb_manager.get_group(name)
         else:
             pbg = attr_atoms[0].structure.pseudobond_group(name)
         pbg.clear()
@@ -193,6 +190,8 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
             session.pb_dist_monitor.add_group(pbg)
         else:
             session.pb_dist_monitor.remove_group(pbg)
+        if pbg.id is None:
+            session.models.add([pbg])
     else:
         _xcmd(session, name)
     return clashes
