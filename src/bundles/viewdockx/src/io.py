@@ -1,281 +1,349 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-# Mol2 specification: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
-
-
 def open_mol2(session, stream, name, auto_style, atomic):
-    structures = []
-    atoms = 0
-    bonds = 0
-    while True:
-        s = _read_block(session, stream, auto_style, atomic)
-        if not s:
-            break
-        structures.append(s)
-        atoms += s.num_atoms
-        bonds += s.num_bonds
-    status = ("Opened mol2 file containing "
-              "{} structures {} atoms, {} bonds".format
-              (len(structures), atoms, bonds))
+    p = Mol2Parser(session, stream, name, auto_style, atomic)
+    structures = p.structures
+    status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (
+                    name, len(structures),
+                    sum([s.num_atoms for s in structures]),
+                    sum([s.num_bonds for s in structures]))
     return structures, status
 
 
-def _read_block(session, stream, auto_style, atomic):
-    """Read all sections for a single entry and build Structure instance"""
-    # First section should be comments
-    # Second section: "@<TRIPOS>MOLECULE"
-    # Third section: "@<TRIPOS>ATOM"
-    # Fourth section: "@<TRIPOS>BOND"
-    # Fifth section: "@<TRIPOS>SUBSTRUCTURE"
-    data_dict, molecular_dict = read_com_and_mol(session, stream)
-    if not molecular_dict:
-        return None
-    atom_dict = read_atom(session, stream)
-    bond_dict = read_bond(session, stream)
-    subst_dict = read_subst(session, stream) #pass in # of substructures
-    if not subst_dict:
-        subst_dict = {}
-        subst_set = set()
-        for i in atom_dict.values():
-            subst_set.update([(i[5], i[6])])
-        for i in subst_set:
-            subst_dict[i[0]] = [i[1], None, None, None, None, '****']
-
-    if atomic:
-        from chimerax.core.atomic import AtomicStructure as StructureClass
-    else:
-        from chimerax.core.atomic import Structure as StructureClass
-    s = StructureClass(session, auto_style=auto_style)
-    s.name = molecular_dict["name"]
-    _set_structure_attribute(s, molecular_dict, "charge_model")
-    _set_structure_attribute(s, molecular_dict, "mol2_type")
-    _set_structure_attribute(s, molecular_dict, "mol2_comment")
-    csd = build_residues(s, subst_dict)
-    cad = build_atoms(s, csd, atom_dict)
-    build_bonds(s, cad, bond_dict)
-    s.viewdockx_data = data_dict
-    return s
-
-
-def read_com_and_mol(session, stream):
-    """Parses commented section"""
-    # Comments section
-    data_dict = {}
-    while True:
-        comment = stream.readline()
-        if not comment: 
-            break
-        if not data_dict and comment[0] == "\n": #before the comment section
-            continue
-        if comment[0] != "#":  #for the end of comment section
-            break
-        line = comment.replace("#", "")
-        parts = line.split(":")
-        parts = [item.strip() for item in parts]
-        if ":" not in line:
-            for i in range(len(line), 1, -1):
-                if line[i-1] == " ":
-                    data_dict[line[:i].strip()] = line[i:].strip()
-                    break
-        else:
-            data_dict[(parts[0])] = parts[1]
-
-    # Molecule section
-    if comment == "@<TRIPOS>MOLECULE":
-        pass
-    else:
-        molecule_line = stream.readline()
-        while "@<TRIPOS>MOLECULE" not in molecule_line:
-            if not molecule_line: # Unexpected EOF
-                return None, None
-            molecule_line = stream.readline()
-
-    molecular_dict = {}
-    mol_labels = ["name", ["num_atoms", "num_bonds", "num_subst",
-                           "num_feat", "num_sets"],
-                  "mol2_type", "charge_model", "status_bits", "mol2_comment"]
-
-    line_num = 0
-    for label in mol_labels:
-        line_num += 1
-        last_pos = stream.tell()
-        molecule_line = stream.readline().strip()
-        if "@<TRIPOS>ATOM" in molecule_line:
-            stream.seek(last_pos)
-            break
-        if line_num == 1:
-            # Molecule name
-            while not molecule_line:
-                molecule_line = stream.readline().strip()
-            molecular_dict[label] = molecule_line
-            continue
-        if line_num == 2:
-            # Number of atoms, bonds, substructures, features and sets
-            molecule_line = molecule_line.split()
-            if all(isinstance(int(item), int) for item in molecule_line):
-                molecular_dict.update(dict(zip(label, molecule_line)))
-            else:
-                raise ValueError("Second line needs to be series of integers")
-            continue
-        else:
-            molecule_line = molecule_line.strip()
-            molecular_dict[label] = molecule_line
-
-    return data_dict, molecular_dict
+#
+# Data types for mol2 section contents
+# Tuple attribute names match those in mol2 spec (mol2.pdf)
+#
+from collections import namedtuple
+MoleculeData = namedtuple("MoleculeData",
+                            ["mol_name",      # string
+                             "num_atoms",     # integer
+                             "num_bonds",     # integer
+                             "num_subst",     # integer
+                             "num_feat",      # integer
+                             "num_sets",      # integer
+                             "mol_type",      # string
+                             "charge_type",   # string
+                             "status_bits",   # string
+                             "mol_comment"])  # string
+AtomData = namedtuple("AtomData",
+                            ["atom_id",       # integer
+                             "atom_name",     # string
+                             "x", "y", "z",   # real
+                             "atom_type",     # string
+                             "subst_id",      # integer
+                             "subst_name",    # string
+                             "charge",        # real
+                             "status_bit"])   # string
+BondData = namedtuple("BondData",
+                            ["bond_id",       # integer
+                             "origin_atom_id",# integer
+                             "target_atom_id",# integer
+                             "bond_type",     # string
+                             "status_bits"])  # string
+SubstData = namedtuple("SubstData",
+                            ["subst_id",      # integer
+                             "subst_name",    # string
+                             "root_atom",     # integer
+                             "subst_type",    # string
+                             "dict_type",     # integer
+                             "chain",         # string
+                             "sub_type",      # string
+                             "inter_bonds",   # integer
+                             "status",        # string
+                             "comment"])      # string
 
 
-def read_atom(session, stream):
-    """parses atom section"""
-    while "@<TRIPOS>ATOM" not in stream.readline():
-        pass
-    atom_dict = {}
-    while True:
-        last_pos = stream.tell()
-        atom_line = stream.readline().strip()
-        if not atom_line:
-            stream.seek(last_pos)
-            break
-        if "@" in atom_line:
-            stream.seek(last_pos)
-            break
-        if len(atom_line) == 0:
-            print("error: no line found")
-        parts = atom_line.split()
-        if len(parts) not in range(6, 11):
-            print("error: not enough or too many entries on a line")
-            return None
-        atom_dict[(parts[0])] = parts[1:]
-    return atom_dict
-
-def read_bond(session, stream):
-    """parses bond section"""
-    while "@<TRIPOS>BOND" not in stream.readline():
-        pass
-    bond_dict = {}
-    while True:
-        last_pos = stream.tell()
-        bond_line = stream.readline()
-        parts = bond_line.split()
-        if not bond_line or "@" in bond_line or bond_line[0] == "#" or parts == 0:
-            stream.seek(last_pos)
-            break
-        if len(parts) != 4:
-            print("error: not enough entries in under bond data")
-            raise ValueError
-        if not isinstance(int(parts[0]), int):
-            print("error: first value is needs to be an integer")
-            raise ValueError
-        bond_dict[parts[0]] = parts[1:3]
-    return bond_dict
-
-def read_subst(session, stream):
-    """parses substructure section"""
-    last_pos = stream.tell()
-    subst_line = stream.readline()
-    while "@<TRIPOS>SUBSTRUCTURE" not in subst_line:
-        if "#" in subst_line or not subst_line:
-            stream.seek(last_pos)
-            return None
-
-        subst_line = stream.readline()
-    subst_dict = {}
-    while True:
-        last_pos = stream.tell()
-        subst_line = stream.readline()
-        parts = subst_line.split()
-        if not subst_line or len(parts) == 0 or "#" in subst_line:
-            stream.seek(last_pos)
-            break
-        if "#" in subst_line:
-            stream.seek(last_pos)
-            break
-        subst_dict[parts[0]] = parts[1:]
-    return subst_dict
+# There is one MAJOR assumption in the parsing code:
+# Comments ONLY occur before @<tripos>molecule sections
+# and are associated with the following molecule.
 
 
-def _set_structure_attribute(s, mol_dict, attr):
-    v = mol_dict.get(attr, "").strip()
-    if v:
-        setattr(s, attr, v)
+class Mol2Parser:
 
+    TriposPrefix = "@<tripos>"
 
-def build_residues(s, subst_dict):
-    """ create chimeraX substructure dictionary (csd) """
-    # subst_dict key is "subst_id"
-    # Indices in subst_dict lists are:
-    #   0: subst_name
-    #   1: root_atom (matches "atom_id")
-    #   2: subst_type [optional from here down]
-    #   3: dict_type
-    #   4: chain
-    #   5: inter_bonds
-    #   6: status
-    #   7: comment
-    csd = {}
-    # csd will be something like {"1": <residue>}
-    for subst_id, data_list in subst_dict.items():
-        name = data_list[0][:4]
-        try:
-            chain = data_list[4]
-            if chain == "****":
-                raise IndexError("no chain")
-        except IndexError:
-            chain = ''
-        # new_residue(residue_name, chain_id, pos)
-        residue = s.new_residue(name, chain, int(subst_id))
-        csd[subst_id] = residue
-    return csd
+    def __init__(self, session, stream, name, auto_style, atomic):
+        self.session = session
+        self.stream = stream
+        self.name = name
+        self.auto_style = auto_style
+        self.atomic = atomic
 
-
-def build_atoms(s, csd, atom_dict):
-    """ Creates chimeraX atom dictionary (cad)"""
-    # atom_dict key is "atom_id"
-    # Indices in atom_dict lists are:
-    #   0: atom_name
-    #   1: x
-    #   2: y
-    #   3: z
-    #   4: atom_type (e.g., C.3)
-    #   5: subst_id [optional from here down]
-    #   6: subst_name
-    #   7: charge
-    #   8: status_bit
-    from numpy import array, float64
-    cad = {}
-    for atom_id, data_list in atom_dict.items():
-        name = data_list[0]
-        element = data_list[4]
-        if "." in element:
-            split_element = element.split(".")
-            element = split_element[0]
-        xyz = [float(n) for n in data_list[1:4]]
-        new_atom = s.new_atom(name, element)
-        new_atom.coord = array(xyz, dtype=float64)
-        try:
-            new_atom.charge = float(data_list[7])
-        except (IndexError, ValueError):
+        self.structures = []
+        self._lineno = 0
+        self._line = ""
+        self._reset_structure()
+        while self._read_section():
             pass
-        # new_atom.serial_number = int(key)
-        # adding new atom to subst_id 
-        csd[data_list[5]].add_atom(new_atom)
-        cad[atom_id] = new_atom
-    return cad
+        self._make_structure()
 
-
-def build_bonds(s, cad, bond_dict):
-    # bond_dict key is "bond_id"
-    # Indices in bond_dict lists are:
-    #   0: origin_atom_id
-    #   1: target_atom_id
-    #   2: bond_type
-    #   3: status_bits [optional from here down]
-    for bond_id, data_list in bond_dict.items():
-        atom1index = data_list[0]
-        atom2index = data_list[1]
-        try:
-            a1 = cad[atom1index]
-            a2 = cad[atom2index]
-        except KeyError:
-            print("Error : bad atom index in bond")
+    def _read_section(self):
+        """Read sections in mol2 file."""
+        self._get_first_line()
+        if self._line is None:
+            return False
+        import sys
+        if self._is_section_tag():
+            section_name = self._line[len(self.TriposPrefix):]
+            self._get_line()    # Consume section line
+            try:
+                method = getattr(self, "_section_%s" % section_name.lower())
+            except AttributeError:
+                self._eat_section()
+                self._warn("ignoring section '%s'" % section_name)
+            else:
+                method()
+        elif self._line[0] == '#':
+            self._section_prelude()
         else:
-            s.new_bond(a1, a2)
+            self._warn("ignore unexpected line '%s'" % self._line)
+            self._get_line()
+        return True
+
+    def _get_first_line(self):
+        """Get first line in section, skipping blank lines."""
+        if self._line is None:
+            return None
+        # Get first non-blank line
+        while self._line == "":
+            self._get_line()
+
+    def _get_line(self):
+        """Read the next line, stripping leading/trailing white space
+        
+        Current line is available in "_line" attribute."""
+        line = self.stream.readline()
+        if not line:
+            self._line = None
+        else:
+            self._line = line.strip()
+            self._lineno += 1
+
+    def _is_section_tag(self):
+        """Return if current line is a section tag"""
+        return self._line.lower().startswith(self.TriposPrefix)
+
+    def _warn(self, msg):
+        """Print warning with current line number"""
+        self.session.logger.warning("line %d: %s" % (self._lineno, msg))
+
+    def _reset_structure(self):
+        """Reset structure data cache"""
+        self._data = {}
+        self._molecule = None
+        self._atoms = []
+        self._bonds = []
+        self._substs = []
+
+    def _make_structure(self):
+        """Build ChimeraX structure and reset structure data cache"""
+        try:
+            if self._molecule is None:
+                return
+            if self.atomic:
+                from chimerax.core.atomic import AtomicStructure as SC
+            else:
+                from chimerax.core.atomic import Structure as SC
+            # Create structure
+            s = SC(self.session, auto_style=self.auto_style)
+            s.name = self._molecule.mol_name
+            s.viewdockx_data = self._data
+            if self._molecule.charge_type:
+                s.charge_model = self._molecule.charge_type
+            if self._molecule.mol_type:
+                s.mol2_type = self._molecule.mol_type
+            if self._molecule.mol_comment:
+                s.mol2_comment = self._molecule.mol_comment
+            # Create residues
+            substid2residue = {}
+            for subst_data in self._substs:
+                # ChimeraX limitation: 4-letter residue type
+                name = subst_data.subst_name[:4]
+                chain = subst_data.chain
+                if chain is None or chain == "****":
+                    chain = ''
+                residue = s.new_residue(name, chain, subst_data.subst_id)
+                substid2residue[subst_data.subst_id] = residue
+            # Create atoms
+            atomid2atom = {}
+            from numpy import array, float64
+            for atom_data in self._atoms:
+                name = atom_data.atom_name
+                element = atom_data.atom_type
+                if '.' in element:
+                    element = element.split('.')[0]
+                atom = s.new_atom(name, element)
+                atom.coord = array([atom_data.x, atom_data.y, atom_data.z],
+                                   dtype=float64)
+                if atom_data.charge is not None:
+                    atom.charge = atom_data.charge
+                substid2residue[atom_data.subst_id].add_atom(atom)
+                atomid2atom[atom_data.atom_id] = atom
+            # Create bonds
+            for bond_data in self._bonds:
+                try:
+                    origin = atomid2atom[bond_data.origin_atom_id]
+                    target = atomid2atom[bond_data.target_atom_id]
+                except KeyError:
+                    self.session.logger.warning("bad atom index in bond")
+                else:
+                    s.new_bond(origin, target)
+            self.structures.append(s)
+        finally:
+            self._reset_structure()
+
+    def _eat_section(self):
+        """Consume all lines for current section"""
+        # Stop on blank line/EOF, comment or @<tripos>
+        self._get_line()
+        while self._line:
+            if self._line[0] == '#' or self._is_section_tag():
+                break
+            self._get_line()
+
+    def _optional(self, parts, n, converter=None):
+        """Return value for n'th argument if it exists"""
+        try:
+            v = parts[n]
+        except IndexError:
+            return None
+        if converter:
+            return converter(v)
+        else:
+            return v
+
+    #
+    # Section parsers.  Format specification in mol2.pdf.
+    #
+    def _section_prelude(self):
+        # hash comment block before @<tripos>molecule
+        self._make_structure()
+        while self._line:
+            if self._line[0] != '#':
+                break
+            non_hash = 0
+            try:
+                while self._line[non_hash] == '#':
+                    non_hash += 1
+            except IndexError:
+                # line must be all #
+                self._get_line()
+                continue
+            parts = self._line[non_hash:].lstrip().split(':', 1)
+            if len(parts) != 2:
+                # Assume value is last field
+                parts = self._line[non_hash:].rsplit(None, 1)
+            try:
+                self._data[parts[0].strip()] = parts[1].strip()
+            except IndexError:
+                # Must be a single word on the line, just ignore
+                pass
+            self._get_line()
+
+    def _section_molecule(self):
+        try:
+            mol_name = self._line
+            self._get_line()
+            parts = self._line.split()
+            if len(parts) != 5:
+                raise ValueError("wrong number of fields in molecule data")
+            num_atoms = int(parts[0])
+            num_bonds = int(parts[1])
+            num_subst = int(parts[2])
+            num_feat = int(parts[3])
+            num_sets = int(parts[4])
+            self._get_line()
+            mol_type = self._line
+            self._get_line()
+            charge_type = self._line
+            self._get_line()
+            if not self._is_section_tag():
+                status_bits = self._line
+                self._get_line()
+            else:
+                status_bits = None
+            if not self._is_section_tag():
+                mol_comment = self._line
+                self._get_line()
+            else:
+                mol_comment = None
+            self._molecule = MoleculeData(mol_name, num_atoms, num_bonds,
+                                          num_subst, num_feat, num_sets,
+                                          mol_type, charge_type, status_bits,
+                                          mol_comment)
+        except ValueError:
+            # Must be integer conversion
+            self._warn("bad molecule data")
+
+    def _section_atom(self):
+        # @<tripos>atom
+        if self._molecule is None:
+            self._eat_section()
+            return
+        try:
+            for n in range(self._molecule.num_atoms):
+                parts = self._line.split()
+                atom_id = int(parts[0])
+                atom_name = parts[1]
+                x = float(parts[2])
+                y = float(parts[3])
+                z = float(parts[4])
+                atom_type = parts[5]
+                subst_id = self._optional(parts, 6, int)
+                subst_name = self._optional(parts, 7)
+                charge = self._optional(parts, 8, float)
+                status_bit = self._optional(parts, 9)
+                atom_data = AtomData(atom_id, atom_name, x, y, z, atom_type,
+                                     subst_id, subst_name, charge, status_bit)
+                self._atoms.append(atom_data)
+                self._get_line()
+        except ValueError:
+            # Must be numeric conversion
+            self._warn("bad atom data")
+
+    def _section_bond(self):
+        if self._molecule is None:
+            self._eat_section()
+            return
+        try:
+            for n in range(self._molecule.num_bonds):
+                parts = self._line.split()
+                bond_id = int(parts[0])
+                origin_atom_id = int(parts[1])
+                target_atom_id = int(parts[2])
+                bond_type = parts[3]
+                status_bits = self._optional(parts, 4)
+                bond_data = BondData(bond_id, origin_atom_id, target_atom_id,
+                                     bond_type, status_bits)
+                self._bonds.append(bond_data)
+                self._get_line()
+        except ValueError:
+            # Must be numeric conversion
+            self._warn("bad bond data")
+
+    def _section_substructure(self):
+        if self._molecule is None:
+            self._eat_section()
+            return
+        try:
+            for n in range(self._molecule.num_subst):
+                parts = self._line.split(None, 9)
+                subst_id = int(parts[0])
+                subst_name = parts[1]
+                root_atom = int(parts[2])
+                subst_type = self._optional(parts, 3)
+                dict_type = self._optional(parts, 4, int)
+                chain = self._optional(parts, 5)
+                sub_type = self._optional(parts, 6)
+                inter_bonds = self._optional(parts, 7, int)
+                status = self._optional(parts, 8)
+                comment = self._optional(parts, 9)
+                subst_data = SubstData(subst_id, subst_name, root_atom,
+                                       subst_type, dict_type, chain, sub_type,
+                                       inter_bonds, status, comment)
+                self._substs.append(subst_data)
+                self._get_line()
+        except ValueError:
+            # Must be numeric conversion
+            self._warn("bad substructure data")
