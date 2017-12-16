@@ -171,6 +171,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
     if make_pseudobonds:
         if len(attr_atoms.unique_structures) > 1:
             pbg = session.pb_manager.get_group(name)
+            session.models.add([pbg])
         else:
             pbg = attr_atoms[0].structure.pseudobond_group(name)
         pbg.clear()
