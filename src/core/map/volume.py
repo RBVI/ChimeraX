@@ -598,7 +598,7 @@ class Volume(Model):
     
     if not self.initialized_thresholds:
       self.initialize_thresholds()
-      self._update_drawings()
+      self.update_drawings()
       
     Model.draw(self, renderer, place, draw_pass, selected_only = selected_only)
 
@@ -637,7 +637,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _update_drawings(self):
+  def update_drawings(self):
 
     rep = self.representation
     if rep == 'surface' or rep == 'mesh':
@@ -3278,7 +3278,7 @@ class VolumeUpdateManager:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
         if v.display:
-          v._update_drawings()
+          v.update_drawings()
           vset.remove(v)
       vdisp.clear()
    
