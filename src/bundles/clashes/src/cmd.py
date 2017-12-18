@@ -126,10 +126,15 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
     from chimerax.core.atomic import all_atoms
     if test == "self":
         attr_atoms = test_atoms
-    elif test == "others" and inter_model:
-        attr_atoms = all_atoms(session)
+    elif test == "others":
+        if inter_model:
+            attr_atoms = all_atoms(session)
+        else:
+            attr_atoms = test_atoms.unique_structures.atoms
     else:
-        attr_atoms = test_atoms.unique_structures.atoms
+        
+        from chimerax.core.atomic import concatenate
+        attr_atoms = concatenate([test_atoms, test], remove_duplicates=True)
     from chimerax.core.atomic import Atoms
     clash_atoms = Atoms([a for a in attr_atoms if a in clashes])
     if set_attrs:
@@ -164,7 +169,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         # also reveal non-polymeric atoms
         reveal_atoms.displays = True
     if make_pseudobonds:
-        if len(clash_atoms.unique_structures) > 1:
+        if len(attr_atoms.unique_structures) > 1:
             pbg = session.pb_manager.get_group(name)
         else:
             pbg = attr_atoms[0].structure.pseudobond_group(name)
@@ -185,6 +190,8 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
             session.pb_dist_monitor.add_group(pbg)
         else:
             session.pb_dist_monitor.remove_group(pbg)
+        if pbg.id is None:
+            session.models.add([pbg])
     else:
         _xcmd(session, name)
     return clashes

@@ -175,6 +175,9 @@ var vdxtable = function() {
         $("#hb_btn").click(function() {
             window.location = custom_scheme + ":hb";
         });
+        $("#clash_btn").click(function() {
+            window.location = custom_scheme + ":clash";
+        });
         $("#export_btn").click(function() {
             window.location = custom_scheme + ":export";
         });
