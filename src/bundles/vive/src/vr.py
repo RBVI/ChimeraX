@@ -114,8 +114,8 @@ def start_vr(session, multishadow_allowed = False):
         raise UserError('Failed to import OpenVR module: %s' % str(e))
     
     v.camera = SteamVRCamera(session)
-    # Set redraw timer for 1 msec to minimize dropped frames.
-    session.ui.main_window.graphics_window.set_redraw_interval(1)
+    # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
+    session.ui.main_window.graphics_window.set_redraw_interval(0)
 
     msg = 'started SteamVR rendering'
     log = session.logger
