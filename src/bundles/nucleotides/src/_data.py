@@ -1143,9 +1143,9 @@ def make_ladder(nd, residues, *, rung_radius=0, show_stubs=True, skip_nonbase_Hb
             continue
         if rung_radius and not any(non_base):
             radius = rung_radius
-        elif r0.ribbon_display and r1.ribbon_display:
-            mgr = mol.ribbon_xs_mgr
-            radius = 2 * min(mgr.scale_nucleic)
+        # elif r0.ribbon_display and r1.ribbon_display:
+        #     mgr = mol.ribbon_xs_mgr
+        #     radius = min(mgr.scale_nucleic)
         else:
             # TODO: radius = a0.structure.stickScale \
             #     * chimera.Molecule.DefaultBondRadius
