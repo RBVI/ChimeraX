@@ -311,6 +311,7 @@ class SteamVRCamera(Camera):
 
     def process_controller_motion(self):
 
+        self.check_if_controller_models_closed()
         for hc in self.hand_controllers():
             hc.process_motion(self)
         
@@ -433,6 +434,12 @@ class SteamVRCamera(Camera):
             if hc != controller:
                 return hc
         return None
+
+    def check_if_controller_models_closed(self):
+        cm = self._controller_models
+        cma =[hc for hc in cm if not hc.deleted]
+        if len(cma) < len(cm):
+            self._controller_models = cma
     
 from chimerax.core.models import Model
 class HandControllerModel(Model):
