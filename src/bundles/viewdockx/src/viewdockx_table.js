@@ -5,7 +5,12 @@ var vdxtable = function() {
     var rating_column = "viewdockx_rating";
 
     function update_columns(columns) {
+        // Clean up previous incarnation and save some state
         $("#viewdockx_table").trigger("destroy");
+        var cols_hidden = $("#show_columns option:not(:selected)").map(
+                            function() { return this.value; }).get();
+
+        // Build column lists
         var numeric = columns["numeric"];
         var text = columns["text"];
         var ids = text["id"];
@@ -85,12 +90,27 @@ var vdxtable = function() {
         // Rebuild column selector
         var opts = []
         $.each(text_order, function(n, key) {
-            opts.push({name: key, value: key, checked: true});
+            opts.push({
+                name: key,
+                value: key,
+                checked: !cols_hidden.includes(key)
+            });
         });
         $.each(numeric_order, function(n, key) {
-            opts.push({name: key, value: key, checked: true});
+            opts.push({
+                name: key,
+                value: key,
+                checked: !cols_hidden.includes(key)
+            });
         });
         $("#show_columns").multiselect("loadOptions", opts);
+        $.each(cols_hidden, function(i, key) {
+            var title = key.toUpperCase();
+            var n = $("th").filter(function() {
+                        return $(this).text() == title;
+                    }).index() + 1;     // nth-child is 1-based
+            $("td:nth-child(" + n + "),th:nth-child(" + n + ")").hide();
+        })
 
         // Re-setup jQuery handlers
         $("#viewdockx_table").tablesorter({
