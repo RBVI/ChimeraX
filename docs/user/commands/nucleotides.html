@@ -87,13 +87,18 @@ otherwise omitted from the ladder representation.
 The rungs attach to cartoon at the C3' 
 <a href="cartoon.html#tether">tether</a> position,
 and stubs end at the nucleic acid base N1 (if purine) or N3 (if pyrimidine).  
-If <b>baseOnly</b> is <b>true</b> (default), 
+If <b>baseOnly</b> is <b>true</b> (default),
 connecting rungs will only be drawn for H-bonds between base atoms; 
 if <b>false</b>, thinner connecting rungs (radius <b>0.2</b> &Aring;)
 will also be drawn for H-bonds involving non-base atoms.
 The <b>hideAtoms</b> option indicates whether to hide atoms/bonds
 for nucleotides shown as rungs (default <b>true</b>).
+<p>
+Although the ladder represention can be limited to specified residues,
+the ladder settings are per-model (<i>e.g.</i>,
+different residues in the same model cannot have a different rung radius).
 See also: <a href="rungs.html"><b>rungs</b></a>
+</p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -138,6 +143,7 @@ base-pair geometry.</a>
 Olson WK, Bansal M, Burley SK, Dickerson RE, Gerstein M, Harvey SC, Heinemann U, Lu XJ, Neidle S, Shakked Z, Sklenar H, Suzuki M, Tung CS, Westhof E, Wolberger C, Berman HM.
 <i>J Mol Biol.</i> 2001 Oct 12;313(1):229-37.
 </blockquote>
+Different residues can have different slab parameters.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
