@@ -262,8 +262,8 @@ class TableTool(HtmlToolInstance, _BaseTool):
         if any_change:
             self._update_ratings(trigger_data=structures)
 
-    def _cb_plot(self, query):
-        ChartTool(self.session, "ViewDockX Plot", structures=self.structures)
+    def _cb_graph(self, query):
+        ChartTool(self.session, "ViewDockX Graph", structures=self.structures)
 
     def _cb_hb(self, query):
         # Create hydrogen bonds between receptor(s) and ligands

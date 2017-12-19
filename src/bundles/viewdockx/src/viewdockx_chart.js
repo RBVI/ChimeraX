@@ -46,7 +46,7 @@ var vdxchart = function() {
                     $("<col/>"), $("<col/>"))
             .append($("<tr/>").append(
                 $("<th>/>").text("Sort").css("text-align", "center"),
-                $("<th>/>").text("Plot").css("text-align", "center"),
+                $("<th>/>").text("Graph").css("text-align", "center"),
                 $("<th>/>").text("Hist").css("text-align", "center"),
                 $("<th>/>").text("Column"),
                 $("<th>/>").text("Value")));
@@ -61,7 +61,7 @@ var vdxchart = function() {
             });
         $.each(columns["numeric"], function(r, v) {
             var sort_btn = make_button("radio", "sort", r, r == sort_column);
-            var show_btn = make_button("checkbox", "display", r,
+            var show_btn = make_button("checkbox", "graph", r,
                                        show_columns.includes(r));
             var hist_btn = make_button("checkbox", "histogram", r,
                                        hist_columns.includes(r));
@@ -115,7 +115,7 @@ var vdxchart = function() {
         var colormap = {};
         var next_color = 0;
         var series = [];
-        $(".display:checked").each(function(i) {
+        $(".graph:checked").each(function(i) {
             var label = this.value;
             var data = numeric[label];
             colormap[label] = i;

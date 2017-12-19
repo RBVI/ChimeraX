@@ -169,8 +169,8 @@ var vdxtable = function() {
         $("#show_all_btn").click(function() {
             window.location = custom_scheme + ":check_all?show_all=true";
         });
-        $("#plot_btn").click(function() {
-            window.location = custom_scheme + ":plot";
+        $("#graph_btn").click(function() {
+            window.location = custom_scheme + ":graph";
         });
         $("#hb_btn").click(function() {
             window.location = custom_scheme + ":hb";
