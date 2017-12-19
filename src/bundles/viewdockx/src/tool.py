@@ -172,7 +172,8 @@ class _BaseTool:
     def get_structures(self, model_id):
         if model_id:
             from chimerax.core.commands.cli import StructuresArg
-            return StructuresArg.parse('#' + model_id, self.session)[0]
+            atomspec = ''.join(['#' + mid for mid in model_id.split(',')])
+            return StructuresArg.parse(atomspec, self.session)[0]
         else:
             return self.structures
 
@@ -261,16 +262,14 @@ class TableTool(HtmlToolInstance, _BaseTool):
         if any_change:
             self._update_ratings(trigger_data=structures)
 
-    def _cb_plot(self, query):
-        ChartTool(self.session, "ViewDockX Plot", structures=self.structures)
+    def _cb_graph(self, query):
+        ChartTool(self.session, "ViewDockX Graph", structures=self.structures)
 
     def _cb_hb(self, query):
         # Create hydrogen bonds between receptor(s) and ligands
         receptors = self._get_receptors()
-        cmd = "hbond %s restrict %s" % (''.join([s.atomspec()
-                                                 for s in receptors]),
-                                        ''.join([s.atomspec()
-                                                 for s in self.structures]))
+        cmd = "hbond %s restrict cross reveal true" % (''.join([s.atomspec()
+                                                       for s in receptors]))
         from chimerax.core.commands import run
         run(self.session, cmd)
         self._count_pb("hydrogen bonds", "HBonds")

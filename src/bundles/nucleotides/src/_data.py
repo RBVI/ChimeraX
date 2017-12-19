@@ -19,7 +19,6 @@
 import math
 import re
 import weakref
-from . import default
 import numpy
 from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.core.surface import box_geometry, sphere_geometry2, cylinder_geometry
@@ -30,6 +29,8 @@ _SQRT2 = math.sqrt(2)
 _SQRT3 = math.sqrt(3)
 
 HIDE_NUCLEOTIDE = Atoms.HIDE_NUCLEOTIDE
+
+FROM_CMD = 'default from command'
 
 _rebuild_handler = None
 _need_rebuild = weakref.WeakSet()
@@ -744,14 +745,9 @@ def get_ring(r, base_ring):
     return atoms
 
 
-def draw_slab(nd, residue, name, *, dimensions=default.DIMENSIONS,
-              thickness=default.THICKNESS, hide=default.HIDE,
-              orient=default.ORIENT, shape=default.SHAPE):
-    if dimensions is None:
-        if shape == 'ellipsoid':
-            dimensions = 'small'
-        else:
-            dimensions = 'long'
+def draw_slab(nd, residue, name, *, dimensions=FROM_CMD,
+              thickness=FROM_CMD, hide=FROM_CMD,
+              orient=FROM_CMD, shape=FROM_CMD):
     standard = standard_bases[name]
     ring_atom_names = standard["ring atom names"]
     atoms = get_ring(residue, ring_atom_names)
@@ -990,27 +986,21 @@ def set_orient(residues):
         rd['side'] = 'orient'
 
 
-def set_slab(side, residues, dimensions=default.DIMENSIONS, **slab_params):
+def set_slab(side, residues, **slab_params):
     molecules = residues.unique_structures
     _init_rebuild_handler(molecules[0].session)
-    if dimensions is None:
-        shape = slab_params.get('shape', default.SHAPE)
-        if shape == 'ellipsoid':
-            dimensions = 'small'
-        else:
-            dimensions = 'long'
     if not side.startswith('tube'):
         tube_params = None
     else:
-        info = find_dimensions(dimensions)
+        info = find_dimensions(slab_params['dimensions'])
         tube_params = {
-            'radius': slab_params.get('tube_radius', default.TUBE_RADIUS),
-            'show_gly': slab_params.get('show_gly', default.GLYCOSIDIC),
+            'radius': slab_params['tube_radius'],
+            'show_gly': slab_params['show_gly'],
             ANCHOR: info[ANCHOR],
         }
     slab_params.pop('show_gly', None)
     slab_params.pop('tube_radius', None)
-    slab_params['dimensions'] = dimensions
+    slab_params['dimensions'] = slab_params['dimensions']
     rds = {}
     for m in molecules:
         nuc_info, nd = _nuc_drawing(m)
@@ -1051,7 +1041,7 @@ def make_slab(nd, residues, rds):
     hidden = []
     for r in residues:
         params = rds[r]['slab params']
-        hide_base = params.get('hide', default.HIDE)
+        hide_base = params['hide']
         if not draw_slab(nd, r, rds[r]['name'], **params):
             hide_base = False
         if hide_base:
@@ -1067,7 +1057,7 @@ def make_tube(nd, residues, rds):
         hide_ribose = True
         rd = rds[r]
         params = rd['tube params']
-        show_gly = params.get('show_gly', default.GLYCOSIDIC)
+        show_gly = params['show_gly']
         if not draw_tube(nd, r, rd['name'], **params):
             hide_ribose = False
             show_gly = False
@@ -1100,7 +1090,7 @@ def set_ladder(residues, **ladder_params):
         rd['side'] = 'ladder'
 
 
-def make_ladder(nd, residues, *, rung_radius=0, show_stubs=True, skip_nonbase_Hbonds=False, hide=default.HIDE):
+def make_ladder(nd, residues, *, rung_radius=FROM_CMD, show_stubs=FROM_CMD, skip_nonbase_Hbonds=FROM_CMD, hide=FROM_CMD):
     """generate links between residues that are hydrogen bonded together"""
     # returns set of residues whose bases are drawn as rungs and
     # and have their atoms hidden
@@ -1143,9 +1133,9 @@ def make_ladder(nd, residues, *, rung_radius=0, show_stubs=True, skip_nonbase_Hb
             continue
         if rung_radius and not any(non_base):
             radius = rung_radius
-        elif r0.ribbon_display and r1.ribbon_display:
-            mgr = mol.ribbon_xs_mgr
-            radius = 2 * min(mgr.scale_nucleic)
+        # elif r0.ribbon_display and r1.ribbon_display:
+        #     mgr = mol.ribbon_xs_mgr
+        #     radius = min(mgr.scale_nucleic)
         else:
             # TODO: radius = a0.structure.stickScale \
             #     * chimera.Molecule.DefaultBondRadius
