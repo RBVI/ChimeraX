@@ -119,6 +119,11 @@ def nucleotides(session, representation, *,
     elif representation.endswith('slab'):
         if radius is None:
             radius = default.TUBE_RADIUS
+        if dimensions is None:
+            if shape == 'ellipsoid':
+                dimensions = 'small'
+            else:
+                dimensions = 'long'
         if representation.startswith('fill'):
             # TODO: residues.fill_rings = True
             show_gly = True

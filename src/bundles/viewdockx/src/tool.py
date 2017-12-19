@@ -268,10 +268,8 @@ class TableTool(HtmlToolInstance, _BaseTool):
     def _cb_hb(self, query):
         # Create hydrogen bonds between receptor(s) and ligands
         receptors = self._get_receptors()
-        cmd = "hbond %s restrict %s" % (''.join([s.atomspec()
-                                                 for s in receptors]),
-                                        ''.join([s.atomspec()
-                                                 for s in self.structures]))
+        cmd = "hbond %s restrict cross reveal true" % (''.join([s.atomspec()
+                                                       for s in receptors]))
         from chimerax.core.commands import run
         run(self.session, cmd)
         self._count_pb("hydrogen bonds", "HBonds")
