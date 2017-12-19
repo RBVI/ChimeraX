@@ -148,6 +148,9 @@ class MapSeries(Model):
   #
   def show_time_in_volume_dialog(self):
 
+    if self.deleted:
+      return
+    
     self._timer = None
 
     i = self.last_shown_time
