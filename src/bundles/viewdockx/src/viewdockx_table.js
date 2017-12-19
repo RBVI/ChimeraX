@@ -2,7 +2,7 @@
 
 var vdxtable = function() {
     var custom_scheme = "vdxtable";
-    var rating_column = "viewdockx_rating"
+    var rating_column = "viewdockx_rating";
 
     function update_columns(columns) {
         $("#viewdockx_table").trigger("destroy");
@@ -97,7 +97,7 @@ var vdxtable = function() {
             theme: 'blue',
             headers: {
                 0: { sorter: false },
-                1: { sorter: false },
+                1: { sorter: 'rating_col' },
                 2: { sorter: 'id_col' }
             }
         });
@@ -136,6 +136,7 @@ var vdxtable = function() {
             if (r.rateYo("option", "rating") != rating)
                 r.rateYo("option", "rating", rating);
         }
+        $("#viewdockx_table").trigger("update");
     }
 
     function show_column(e, opt) {
@@ -161,6 +162,19 @@ var vdxtable = function() {
                 // Assume less than 100,000 submodels
                 var parts = s.split("\n")[0].trim().split(".");
                 return parseInt(parts[0]) * 100000 + parseInt(parts[1]);
+            },
+            // set type, either numeric or text
+            type: 'numeric'
+        });
+        $.tablesorter.addParser({
+            id: 'rating_col',
+            is: function(s) {
+                // return false so this parser is not auto detected
+                return false;
+            },
+            format: function(s, table, cell, cellIndex) {
+                var rt = $(cell).children("div");
+                return rt.rateYo("option", "rating");
             },
             // set type, either numeric or text
             type: 'numeric'
