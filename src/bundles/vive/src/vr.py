@@ -13,7 +13,7 @@
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
 def vr(session, enable = None, room_position = None, mirror = False, icons = False,
-       show_controllers = True):
+       show_controllers = True, ambient_lighting_allowed = False):
     '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
     Parameters
@@ -42,6 +42,12 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
     show_controllers : bool
       Whether to show the hand controllers in the scene. Default true.  It can be useful
       not to show the controllers to avoid time consuming ambient shadow updating.
+    ambient_lighting_allowed : bool
+      If this option is false and ambient lighting is enabled (multiple shadows) when vr is
+      enabled, then lighting is switched to simple lighting.  If the option is true then no
+      changes to lighting mode are made.  Often rendering is not fast enough
+      to support ambient lighting so this option makes sure it is off so that stuttering
+      does not occur.  Default False.
     '''
     
     if enable is None and room_position is None:
@@ -49,7 +55,7 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
 
     if enable is not None:
         if enable:
-            start_vr(session)
+            start_vr(session, ambient_lighting_allowed)
         else:
             stop_vr(session)
 
@@ -92,9 +98,13 @@ def register_vr_command(logger):
 
 # -----------------------------------------------------------------------------
 #
-def start_vr(session):
+def start_vr(session, ambient_lighting_allowed = False):
 
     v = session.main_view
+    if not ambient_lighting_allowed and v.lighting.multishadow > 0:
+        from chimerax.core.commands import run
+        run(session, 'lighting simple')
+
     if isinstance(v.camera, SteamVRCamera):
         return
 
