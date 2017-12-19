@@ -172,7 +172,8 @@ class _BaseTool:
     def get_structures(self, model_id):
         if model_id:
             from chimerax.core.commands.cli import StructuresArg
-            return StructuresArg.parse('#' + model_id, self.session)[0]
+            atomspec = ''.join(['#' + mid for mid in model_id.split(',')])
+            return StructuresArg.parse(atomspec, self.session)[0]
         else:
             return self.structures
 

@@ -13,13 +13,29 @@
 <body>
   <div id="full">
     <div id="control">
+      <span id="histoptions">
+        <input id="histbins" type="number" value="5" min="2" max="10"/>
+	bins/histogram
+      </span>
       <table id="column_table">
-	<tr>
-	  <td><input type="radio" name="sort" value="0">sort</input>
-	    <input type="checkbox" name=show" value="0">show</input></td>
-	  <td>Input order</td>
-	  <td></td>
-	</tr>
+	<thead>
+	  <tr>
+	  <th>Sort</th>
+	  <th>Graph</th>
+	  <th>Hist</th>
+	  <th>Name</th>
+	  <th>Value</th>
+	  </tr>
+	</thead>
+	<tbody>
+	  <tr>
+	  <td>Sort</td>
+	  <td>Graph</td>
+	  <td>Hist</td>
+	  <td>Name</td>
+	  <td>Value</td>
+	  </tr>
+	</tbody>
       </table>
     </div>
     <div id="data">
