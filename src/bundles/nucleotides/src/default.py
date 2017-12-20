@@ -3,7 +3,7 @@
 # ladder defaults
 RUNG_RADIUS = 0.45      # rung radius
 STUBS = True            # show stub rungs
-BASE_ONLY = False       # ignore non-base-base H-bonds
+BASE_ONLY = True        # ignore non-base-base H-bonds
 GLYCOSIDIC = False      # show separate glycosidic bond in tube
 
 # slab defaults

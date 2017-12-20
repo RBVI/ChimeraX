@@ -69,7 +69,7 @@ class PlanesMouseMode(MouseMode):
             self.frac_istep = istep - int(istep)
             move_plane(v, self.axis, self.side, int(istep))
             for m in self.matching_maps:
-                m.new_region(*tuple(v.region), adjust_step = False)
+                m.new_region(*tuple(v.region), adjust_step = False, adjust_voxel_limit = False)
                 if v.showing_orthoplanes() and m.showing_orthoplanes():
                     m.set_parameters(orthoplane_positions = v.rendering_options.orthoplane_positions)
             # Make sure new plane is shown before another mouse event shows another plane.
@@ -150,7 +150,7 @@ def move_plane(v, axis, side, istep):
             else:
                 ijk_min[axis] = ijk_max[axis] - minsep
 
-    v.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
+    v.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False, adjust_voxel_limit = False)
 
 def move_orthoplane(v, axis, istep):
 

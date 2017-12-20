@@ -77,6 +77,7 @@ See also: <a href="mousemode.html"><b>mousemode</b></a>
 [&nbsp;<b>mirror</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>icons</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>showControllers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>multishadowAllowed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 <p>
 The <b>vr</b> command (same as <b>device vr</b>)
@@ -122,10 +123,20 @@ The <b>showControllers</b> option (default <b>true</b>)
 shows representations of the hand controllers in the scene.
 Not showing the representations may be useful to avoid time-consuming
 calculations of the shadows they cast. 
+</p><p>
+Ambient shadowing or &ldquo;ambient occlusion&rdquo;
+requires calculating shadows from multiple directions,
+which may make rendering too slow for VR and cause stuttering in the headset.
+By default (<b>multishadowAllowed</b> &nbsp;<b>false</b>),
+if the <a href="lighting.html#multiShadow"><b>multiShadow</b></a>
+lighting parameter is &gt; 0, enabling VR switches to the
+<a href="lighting.html#preset"><b>simple</b></a> lighting mode.
+With <b>multishadowAllowed</b> &nbsp;<b>true</b>, 
+the lighting mode is left unchanged.
 </p>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+December 2017</address>
 </body></html>

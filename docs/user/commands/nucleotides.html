@@ -36,16 +36,16 @@ class="clRight" title="User Guide Index"/></a>
 The <b>nucleotides</b> command generates special representations of
 nucleic acids, with choices for <i>mode</i>:
 <ul>
+<li><a href="#atoms"><b>atoms</b></a>
+- atomic representation, no special representations; undo the other modes
+(same as <b>~nucleotides</b>)
+<li><a href="#ladder"><b>ladder</b></a>
+- continuous or broken rungs depending on 
+<a href="hbonds.html#related">hydrogen bond pseudobonds</a>
 <li><a href="#slab"><b>slab</b></a> - atomic representation of ribose, 
 slab representation of bases (box, muffler, or ellipsoid shape)
 <li><a href="#tube"><b>tube/slab</b></a> - tube representation of ribose,
 slab representation of bases
-<li><a href="#ladder"><b>ladder</b></a>
-- continuous or broken rungs depending on 
-<a href="hbonds.html#related">hydrogen bond pseudobonds</a>
-<li><a href="#atoms"><b>atoms</b></a>
-- atomic representation, no special representations; undo the other modes
-(same as <b>~nucleotides</b>)
 </ul>
 <p>
 Each mode may have additional options, detailed below.
@@ -56,6 +56,50 @@ See also:
 <a href="rungs.html"><b>rungs</b></a>,
 <a href="struts.html"><b>struts</b></a>
 </p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="atoms"></a>
+<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; 
+<b>atoms</b>
+<br>&ndash; or &ndash;<br>
+<a href="#top" class="nounder">&bull;</a>
+<b>~nucleotides</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; 
+<blockquote>
+Remove special representations to reveal atoms and bonds.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="ladder"></a>
+<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>ladder</b>
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>stubs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>baseOnly</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Show nucleic-acid residue pairs connected by
+<a href="hbonds.html#related">hydrogen bond pseudobonds</a> as rods 
+or ladder rungs of the specified <b>radius</b> (default <b>0.45</b> &Aring;). 
+Nucleic acid residues without such connections will be shown as half-rungs if
+<b>stubs</b> is <b>true</b> (default),
+otherwise omitted from the ladder representation.
+The rungs attach to cartoon at the C3' 
+<a href="cartoon.html#tether">tether</a> position,
+and stubs end at the nucleic acid base N1 (if purine) or N3 (if pyrimidine).  
+If <b>baseOnly</b> is <b>true</b> (default),
+connecting rungs will only be drawn for H-bonds between base atoms; 
+if <b>false</b>, thinner connecting rungs (radius <b>0.2</b> &Aring;)
+will also be drawn for H-bonds involving non-base atoms.
+The <b>hideAtoms</b> option indicates whether to hide atoms/bonds
+for nucleotides shown as rungs (default <b>true</b>).
+<p>
+Although the ladder represention can be limited to specified residues,
+the ladder settings are per-model (<i>e.g.</i>,
+different residues in the same model cannot have a different rung radius).
+See also: <a href="rungs.html"><b>rungs</b></a>
+</p>
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="slab"></a>
@@ -99,7 +143,9 @@ base-pair geometry.</a>
 Olson WK, Bansal M, Burley SK, Dickerson RE, Gerstein M, Harvey SC, Heinemann U, Lu XJ, Neidle S, Shakked Z, Sklenar H, Suzuki M, Tung CS, Westhof E, Wolberger C, Berman HM.
 <i>J Mol Biol.</i> 2001 Oct 12;313(1):229-37.
 </blockquote>
+Different residues can have different slab parameters.
 </blockquote>
+
 <a href="#top" class="nounder">&bull;</a>
 <a name="tube"></a>
 <b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
@@ -130,46 +176,6 @@ that remains visible with <b>glycosidic true</b>;
 the stick radius of the bond can be changed separately with the
 <a href="size.html"><b>size</b></a> command.
 </blockquote>
-<a href="#top" class="nounder">&bull;</a>
-<a name="ladder"></a>
-<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-<b>ladder</b>
-[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>stubs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>baseOnly</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-<blockquote>
-Show nucleic-acid residue pairs connected by
-<a href="hbonds.html#related">hydrogen bond pseudobonds</a> as rods 
-or ladder rungs of the specified <b>radius</b> (default <b>0.45</b> &Aring;). 
-Nucleic acid residues without such connections will be shown as half-rungs if
-<b>stubs</b> is <b>true</b> (default),
-otherwise omitted from the ladder representation.
-The rungs attach to cartoon at the C3' 
-<a href="cartoon.html#tether">tether</a> position,
-and stubs end at the nucleic acid base N1 (if purine) or N3 (if pyrimidine).  
-If <b>baseOnly</b> is <b>true</b> (default), 
-connecting rungs will only be drawn for H-bonds between base atoms; 
-if <b>false</b>, thinner connecting rungs matching the
-<a href="cartoon.html#style">cartoon</a> thickness
-will also be drawn for H-bonds involving non-base atoms.
-The <b>hideAtoms</b> option indicates whether to hide nucleotide atoms/bonds
-(default <b>true</b>).
-for <a href="#slab"><b>nucleotides slab</b></a>.
-See also: <a href="rungs.html"><b>rungs</b></a>
-</blockquote>
-<a href="#top" class="nounder">&bull;</a>
-<a name="atoms"></a>
-<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; 
-<b>atoms</b>
-<br>&ndash; or &ndash;<br>
-<a href="#top" class="nounder">&bull;</a>
-<b>~nucleotides</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; 
-<blockquote>
-Remove special representations to reveal atoms and bonds.
-</blockquote>
-
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 December 2017</address>
