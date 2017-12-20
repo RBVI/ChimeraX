@@ -13,4 +13,5 @@
 
 from .containers import OptionsPanel, CategorizedOptionsPanel, \
     SettingsPanel, CategorizedSettingsPanel
-from .options import ColorOption, EnumOption, RGBAOption, SymbolicEnumOption
+from .options import Option, BooleanOption, ColorOption, EnumOption, IntOption, \
+    RGBAOption, SymbolicEnumOption

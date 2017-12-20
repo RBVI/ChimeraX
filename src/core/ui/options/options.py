@@ -164,8 +164,8 @@ class BooleanOption(Option):
         self.widget.setCheckState(Qt.PartiallyChecked)
 
     def _make_widget(self, **kw):
-        from PyQt5.QtWidgets import QCheckButton
-        self.widget = QCheckButton(**kw)
+        from PyQt5.QtWidgets import QCheckBox
+        self.widget = QCheckBox(**kw)
         self.widget.stateChanged.connect(lambda state, s=self: s.make_callback())
 
 class EnumOption(Option):
@@ -204,6 +204,31 @@ class EnumOption(Option):
     def _menu_cb(self, label):
         self.set(label)
         self.make_callback()
+
+class IntOption(Option):
+    """Option for integer values.
+       Constructor takes option min/max keywords to specify lower/upper bound values."""
+
+    default_minimum = -(2^31)
+    default_maximum = 2^31 - 1
+
+    def get(self):
+        return self.widget.value()
+
+    def set(self, value):
+        self.widget.setSpecialValueText("")
+        self.widget.setValue(value)
+
+    def set_multiple(self):
+        self.widget.setSpecialValueText(self.multiple_value)
+        self.widget.setValue(self.widget.minimum())
+
+    def _make_widget(self, min=None, max=None, **kw):
+        from PyQt5.QtWidgets import QSpinBox
+        self.widget = QSpinBox(**kw)
+        self.widget.setMinimum(self.default_minimum if min is None else min)
+        self.widget.setMaximum(self.default_maximum if max is None else max)
+        self.widget.valueChanged.connect(lambda val, s=self: s.make_callback())
 
 class RGBAOption(Option):
     """Option for rgba colors"""

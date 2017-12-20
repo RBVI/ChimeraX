@@ -460,7 +460,8 @@ class SequenceViewer(ToolInstance):
         self.region_browser.destroy()
         self.seq_canvas.destroy()
         for ct in self.child_tools:
-            ct.destroy()
+            if has_attr(ct, 'destroy'):
+                ct.destroy()
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
@@ -470,8 +471,10 @@ class SequenceViewer(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from PyQt5.QtWidgets import QAction
-        settings_action = QAction("Settings...")
-        settings_action.triggered.connect(lambda arg: self.show_settings)
+        # avoid having the action destroyed when this routine returns
+        # by stowing a reference in the menu itself
+        menu.kludge_ref = settings_action = QAction("Settings...")
+        settings_action.triggered.connect(lambda arg, s=self: s.show_settings())
         menu.addAction(settings_action)
 
     def new_region(self, **kw):
@@ -505,10 +508,10 @@ class SequenceViewer(ToolInstance):
         if not hasattr(self, "settings_tool"):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
-                self.tool_window.create_child_window("Settings"))
+                self.tool_window.create_child_window("Settings", close_destroys=False))
             self.child_tools.append(self.settings_tool)
-            self.settings_tool.manage(self.tool_window)
-        self.settings_tool.shown = True
+            self.settings_tool.tool_window.manage(self.tool_window)
+        self.settings_tool.tool_window.shown = True
 
     def show_ss(self, show=True):
         # show == None means don't change show states, but update regions

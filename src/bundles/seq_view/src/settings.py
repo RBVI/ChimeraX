@@ -13,22 +13,25 @@
 
 SINGLE_PREFIX = "single_seq_"
 
-#from chimerax.core.options import Option, BooleanOption, IntOption, OptionalRGBAOption
-from chimerax.core.options import Option, BooleanOption
+from chimerax.core.ui.options import Option, BooleanOption, IntOption
 class OptionalRGBAPair(Option): pass # maybe make it a real option?
+class OptionalRGBAOption(Option): pass # maybe make it a real option?
 
 APPEARANCE = "Appearance"
 REGIONS = "Regions"
 
-SETTINGS_CATEGORIES = [APPEARANCE, REGIONS]
-
 defaults = {
-    "block space": (APPEARANCE, BooleanOption, True),
-    SINGLE_PREFIX + "block space": (APPEARANCE, BooleanOption, False),
+    "block_space": (APPEARANCE,
+        "Put vertical space between wrapped lines of sequence", BooleanOption, {}, True),
+    SINGLE_PREFIX + "block_space": (APPEARANCE,
+        "Put vertical space between wrapped blocks of sequences", BooleanOption, {}, False),
+	"column_separation": (APPEARANCE,
+        "Separation between columns, in pixels", IntOption, {}, 0),
+    SINGLE_PREFIX + "column_separation": (APPEARANCE,
+        "Separation between columns, in pixels", IntOption, {}, -2),
+    "error_region_shown": (REGIONS,
+        "Show structure-association errors as region", BooleanOption, {}, True),
 #TODO
-	"column_separation": (IntOption, 0),
-    SINGLE_PREFIX + "column_separation": (IntOption, -2),
-    "error_region_shown": (BooleanOption, True),
     "error_region_borders": (OptionalRGBAPair, (None, None)),
     "error_region_interiors": (OptionalRGBAPair, ((1.0, 0.3, 0.3, 1.0), "pink")),
     "gap_region_shown": (BooleanOption, True),
