@@ -56,7 +56,7 @@ class FileHistory:
                 from urllib import parse
                 cmd = parse.quote(f.open_command())
                 i = self.default_image('JPEG') if f.image is None or hbytes > max_bytes else f.image
-                img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d title="%s">' % (i, w, h, descrip)
+                img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d title="%s" draggable="false">' % (i, w, h, descrip)
                 line = ('<table>'
                         '<tr><td><a href="cxcmd:%s">%s</a>'
                         '<tr><td align=center><a href="cxcmd:%s" title="%s">%s</a>'
