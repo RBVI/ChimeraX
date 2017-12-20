@@ -35,7 +35,7 @@ template <class C> std::string PythonInstance<C>::_buffer;
 template <class C> PyObject* PythonInstance<C>::_py_class = nullptr;
 
 template <class C>
-long PythonInstance<C>::get_py_float_attr(std::string& attr_name, bool create) const
+double PythonInstance<C>::get_py_float_attr(std::string& attr_name, bool create) const
 {
     return get_py_float_attr(attr_name.c_str(), create);
 }

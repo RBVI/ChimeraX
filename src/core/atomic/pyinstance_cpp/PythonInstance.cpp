@@ -13,6 +13,7 @@
  * === UCSF ChimeraX Copyright ===
  */
 
+#define PYINSTANCE_EXPORT
 #include "PythonInstance.declare.h"
 
 namespace pyinstance {

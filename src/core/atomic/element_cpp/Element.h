@@ -113,6 +113,4 @@ operator<<(std::ostream &os, const Element &a)
 
 }  // namespace element
 
-extern template class pyinstance::PythonInstance<element::Element>;
-
 #endif  // element_Element
