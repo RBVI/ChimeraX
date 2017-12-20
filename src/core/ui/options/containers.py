@@ -79,17 +79,23 @@ class CategorizedOptionsPanel(QTabWidget):
             panel = self._category_to_panel[category]
         except KeyError:
             panel = OptionsPanel(sorting=self._option_sorting)
-            self._category_to_panel[category] = panel
-            if len(self._category_to_panel) == 1 or self._category_sorting == False:
-                self.addTab(panel, category)
-            else:
-                cats = list(self._category_to_panel.keys()) + [category]
-                if self._category_sorting is True:
-                    cats.sort()
-                else:
-                    cats.sort(key=lambda cat: self._category_sorting(cat))
-                self.insertTab(cats.index(category), panel, category)
+            self.add_tab(category, panel)
         panel.add_option(option)
+
+    def add_tab(self, category, panel):
+        """Only used if a tab needs to present a custom interface.
+
+           The panel needs to offer a .options() method that returns its options."""
+        self._category_to_panel[category] = panel
+        if len(self._category_to_panel) == 1 or self._category_sorting == False:
+            self.addTab(panel, category)
+        else:
+            cats = list(self._category_to_panel.keys()) + [category]
+            if self._category_sorting is True:
+                cats.sort()
+            else:
+                cats.sort(key=lambda cat: self._category_sorting(cat))
+            self.insertTab(cats.index(category), panel, category)
 
     def categories(self):
         return self._category_to_panel.keys()
@@ -165,15 +171,17 @@ class SettingsPanelBase(QWidget):
             default_val = self.settings.PROPERTY_INFO[setting]
             if isinstance(default_val, Value):
                 default_val = default_val.default
-            opt.set(default_val)
-            opt.make_callback()
+            if opt.get() != default_val:
+                opt.set(default_val)
+                opt.make_callback()
 
     def _restore(self):
         for opt in self._get_actionable_options():
             setting = opt.attr_name
             restore_val = self.settings.saved_value(setting)
-            opt.set(restore_val)
-            opt.make_callback()
+            if opt.get() != restore_val:
+                opt.set(restore_val)
+                opt.make_callback()
 
     def _save(self):
         save_settings = []
@@ -189,6 +197,9 @@ class SettingsPanelBase(QWidget):
 class SettingsPanel(SettingsPanelBase):
     """SettingsPanel is a container for remember-able Options that work in conjunction with a
        Settings instance (found in chimerax.core.settings).
+
+       The callback function for each option will have to call option.set_attribute(settings)
+       in order to update the "current" value of the attribute in settings.
     """
 
     def __init__(self, settings, parent=None, *, sorting=True, **kw):
@@ -215,3 +226,7 @@ class CategorizedSettingsPanel(SettingsPanelBase):
 
     def add_option(self, category, option):
         self.options_panel.add_option(category, option)
+
+    def add_tab(self, category, panel):
+        """Same as CategorizedOptionsPanel.add_tab(...)"""
+        self.options_panel.add_tab(category, panel)

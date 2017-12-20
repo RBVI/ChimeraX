@@ -2,9 +2,15 @@
 
 var vdxtable = function() {
     var custom_scheme = "vdxtable";
-    var rating_column = "viewdockx_rating"
+    var rating_column = "viewdockx_rating";
 
     function update_columns(columns) {
+        // Clean up previous incarnation and save some state
+        $("#viewdockx_table").trigger("destroy");
+        var cols_hidden = $("#show_columns option:not(:selected)").map(
+                            function() { return this.value; }).get();
+
+        // Build column lists
         var numeric = columns["numeric"];
         var text = columns["text"];
         var ids = text["id"];
@@ -84,19 +90,34 @@ var vdxtable = function() {
         // Rebuild column selector
         var opts = []
         $.each(text_order, function(n, key) {
-            opts.push({name: key, value: key, checked: true});
+            opts.push({
+                name: key,
+                value: key,
+                checked: !cols_hidden.includes(key)
+            });
         });
         $.each(numeric_order, function(n, key) {
-            opts.push({name: key, value: key, checked: true});
+            opts.push({
+                name: key,
+                value: key,
+                checked: !cols_hidden.includes(key)
+            });
         });
         $("#show_columns").multiselect("loadOptions", opts);
+        $.each(cols_hidden, function(i, key) {
+            var title = key.toUpperCase();
+            var n = $("th").filter(function() {
+                        return $(this).text() == title;
+                    }).index() + 1;     // nth-child is 1-based
+            $("td:nth-child(" + n + "),th:nth-child(" + n + ")").hide();
+        })
 
         // Re-setup jQuery handlers
         $("#viewdockx_table").tablesorter({
             theme: 'blue',
             headers: {
                 0: { sorter: false },
-                1: { sorter: false },
+                1: { sorter: 'rating_col' },
                 2: { sorter: 'id_col' }
             }
         });
@@ -135,6 +156,7 @@ var vdxtable = function() {
             if (r.rateYo("option", "rating") != rating)
                 r.rateYo("option", "rating", rating);
         }
+        $("#viewdockx_table").trigger("update");
     }
 
     function show_column(e, opt) {
@@ -164,12 +186,31 @@ var vdxtable = function() {
             // set type, either numeric or text
             type: 'numeric'
         });
+        $.tablesorter.addParser({
+            id: 'rating_col',
+            is: function(s) {
+                // return false so this parser is not auto detected
+                return false;
+            },
+            format: function(s, table, cell, cellIndex) {
+                var rt = $(cell).children("div");
+                return rt.rateYo("option", "rating");
+            },
+            // set type, either numeric or text
+            type: 'numeric'
+        });
 
         $("#show_all_btn").click(function() {
             window.location = custom_scheme + ":check_all?show_all=true";
         });
-        $("#chart_btn").click(function() {
-            window.location = custom_scheme + ":chart";
+        $("#graph_btn").click(function() {
+            window.location = custom_scheme + ":graph";
+        });
+        $("#hb_btn").click(function() {
+            window.location = custom_scheme + ":hb";
+        });
+        $("#clash_btn").click(function() {
+            window.location = custom_scheme + ":clash";
         });
         $("#export_btn").click(function() {
             window.location = custom_scheme + ":export";
@@ -189,6 +230,7 @@ var vdxtable = function() {
             placeholder: "Columns...",
             onOptionClick: show_column
         });
+        $("#viewdockx_table").tablesorter();
     }
 
     return {

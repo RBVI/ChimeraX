@@ -369,7 +369,7 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def new_region(self, ijk_min = None, ijk_max = None, ijk_step = None,
-                adjust_step = True):
+                 adjust_step = True, adjust_voxel_limit = True):
     '''
     Set new display region and optionally shows it.
     '''
@@ -405,7 +405,7 @@ class Volume(Model):
                                                  ro.voxel_limit)
     if adjust_step:
       ijk_step = adjusted_ijk_step
-    elif tuple(ijk_step) != tuple(adjusted_ijk_step):
+    elif adjust_voxel_limit and tuple(ijk_step) != tuple(adjusted_ijk_step):
       # Change automatic step adjustment voxel limit.
       vc = subarray_size(ijk_min, ijk_max, ijk_step, fpa)
       ro.voxel_limit = (1.01*vc) / (2**20)  # Mvoxels rounded up for gui value
@@ -598,7 +598,7 @@ class Volume(Model):
     
     if not self.initialized_thresholds:
       self.initialize_thresholds()
-      self._update_drawings()
+      self.update_drawings()
       
     Model.draw(self, renderer, place, draw_pass, selected_only = selected_only)
 
@@ -637,7 +637,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _update_drawings(self):
+  def update_drawings(self):
 
     rep = self.representation
     if rep == 'surface' or rep == 'mesh':
@@ -3278,7 +3278,7 @@ class VolumeUpdateManager:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
         if v.display:
-          v._update_drawings()
+          v.update_drawings()
           vset.remove(v)
       vdisp.clear()
    

@@ -33,7 +33,7 @@ Pseudobond::Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _g
 }
 
 ChangeTracker*
-Pseudobond::change_tracker() const { return atoms()[0]->change_tracker(); }
+Pseudobond::change_tracker() const { return group()->manager()->change_tracker(); }
 
 GraphicsChanges*
 Pseudobond::graphics_changes() const { return static_cast<GraphicsChanges*>(group()); }

@@ -29,9 +29,9 @@ class _MyAPI(BundleAPI):
         register(ci.name, desc, func)
 
     @staticmethod
-    def open_file(session, stream, file_name, auto_style=True):
+    def open_file(session, stream, file_name, auto_style=True, atomic=True):
         from .io import open_mol2
-        return open_mol2(session, stream, file_name, auto_style)
+        return open_mol2(session, stream, file_name, auto_style, atomic)
 
 
 bundle_api = _MyAPI()

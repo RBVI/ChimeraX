@@ -922,7 +922,12 @@ class ToolWindow(StatusLogger):
         """Add items to this tool window's context menu,
            whose downclick occurred at position (x,y)
 
-        Override to add items to any context menu popped up over this window"""
+        Override to add items to any context menu popped up over this window.
+
+        Note that you have to keep references to the actions you add to the
+        menu to avoid having then automatically destroyed and removed from the
+        menu when this method returns.  You can use the menu itself to store 
+        the reference, e.g. menu._ref1 = QAction(...)"""
         pass
 
     @property
@@ -935,9 +940,12 @@ class ToolWindow(StatusLogger):
 
         Tool will be docked into main window on the side indicated by
         `placement` (which should be a value from :py:attr:`placements`
-        or None).  If `placement` is None, the tool will be detached
-        from the main window.  It will be allowed to dock in the allowed_areas,
-        the value of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
+        or None, or another tool window).  If `placement` is None, the tool will
+        be detached from the main window.  If `placement` is another tool window,
+        then those tools will be tabbed together.
+
+        The tool window will be allowed to dock in the allowed_areas, the value
+        of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
         """
         if self.tool_instance.tool_name in self.session.ui.settings.undockable:
             from PyQt5.QtCore import Qt
@@ -991,6 +999,10 @@ class ToolWindow(StatusLogger):
             self.clear()
         self.__toolkit.destroy()
         self.__toolkit = None
+
+    @property
+    def _dock_widget(self):
+        return self.__toolkit.dock_widget
 
     def _mw_set_dockable(self, dockable):
         self.__toolkit.dockable = dockable
@@ -1116,7 +1128,7 @@ class _Qt:
     def manage(self, placement, allowed_areas, fixed_size=False):
         from PyQt5.QtCore import Qt
         placements = self.tool_window.placements
-        if placement is None:
+        if placement is None or isinstance(placement, ToolWindow):
             side = Qt.RightDockWidgetArea
         else:
             if placement not in placements:
@@ -1131,9 +1143,12 @@ class _Qt:
         # (most noticeable for initially-undocked tools)
         self.ui_area.updateGeometry()
         mw = self.main_window
-        mw.addDockWidget(side, self.dock_widget)
-        if placement is None or allowed_areas == Qt.NoDockWidgetArea:
-            self.dock_widget.setFloating(True)
+        if isinstance(placement, ToolWindow):
+            mw.tabifyDockWidget(placement._dock_widget, self.dock_widget)
+        else:
+            mw.addDockWidget(side, self.dock_widget)
+            if placement is None or allowed_areas == Qt.NoDockWidgetArea:
+                self.dock_widget.setFloating(True)
         self.dock_widget.setAllowedAreas(allowed_areas)
 
         #QT disable: create a 'hide_title_bar' option

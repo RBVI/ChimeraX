@@ -150,6 +150,24 @@ def recurse_setattr(obj, attr_name, val):
         obj = getattr(obj, a)
     setattr(obj, attrs[-1], val)
 
+class BooleanOption(Option):
+    """Option for true/false values"""
+
+    def get(self):
+        return self.widget.isChecked()
+
+    def set(self, value):
+        self.widget.setChecked(value)
+
+    def set_multiple(self):
+        from PyQt5.QtCore import Qt
+        self.widget.setCheckState(Qt.PartiallyChecked)
+
+    def _make_widget(self, **kw):
+        from PyQt5.QtWidgets import QCheckBox
+        self.widget = QCheckBox(**kw)
+        self.widget.stateChanged.connect(lambda state, s=self: s.make_callback())
+
 class EnumOption(Option):
     """Option for enumerated values"""
     values = ()
@@ -187,7 +205,32 @@ class EnumOption(Option):
         self.set(label)
         self.make_callback()
 
-class RgbaOption(Option):
+class IntOption(Option):
+    """Option for integer values.
+       Constructor takes option min/max keywords to specify lower/upper bound values."""
+
+    default_minimum = -(2^31)
+    default_maximum = 2^31 - 1
+
+    def get(self):
+        return self.widget.value()
+
+    def set(self, value):
+        self.widget.setSpecialValueText("")
+        self.widget.setValue(value)
+
+    def set_multiple(self):
+        self.widget.setSpecialValueText(self.multiple_value)
+        self.widget.setValue(self.widget.minimum())
+
+    def _make_widget(self, min=None, max=None, **kw):
+        from PyQt5.QtWidgets import QSpinBox
+        self.widget = QSpinBox(**kw)
+        self.widget.setMinimum(self.default_minimum if min is None else min)
+        self.widget.setMaximum(self.default_maximum if max is None else max)
+        self.widget.valueChanged.connect(lambda val, s=self: s.make_callback())
+
+class RGBAOption(Option):
     """Option for rgba colors"""
 
     def get(self):
@@ -205,12 +248,12 @@ class RgbaOption(Option):
         self.widget = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
         self.widget.color_changed.connect(lambda c, s=self: s.make_callback())
 
-class ColorOption(RgbaOption):
+class ColorOption(RGBAOption):
     """Option for rgba colors"""
 
     def get(self):
         from ...colors import Color
-        return Color(rgba=RgbaOption.get(self))
+        return Color(rgba=RGBAOption.get(self))
 
 class SymbolicEnumOption(EnumOption):
     """Option for enumerated values with symbolic names"""

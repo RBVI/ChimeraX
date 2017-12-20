@@ -1882,7 +1882,9 @@ class StructureData:
 
     def pseudobond_group(self, name, *, create_type = "normal"):
         '''Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
-        if create_type is None:
+        if isinstance(create_type, int):
+            create_arg = create_type
+        elif create_type is None:
             create_arg = 0
         elif create_type == "normal":
             create_arg = 1
