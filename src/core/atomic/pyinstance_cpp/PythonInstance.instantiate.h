@@ -29,6 +29,8 @@
 #include <iostream>
 namespace pyinstance {
 
+// in anywhere but the pyinstance library itself, the map needs to be declared as "imported",
+// so do some fancy footwork to get that to happen
 #ifndef PYINSTANCE_EXPORT_MAP
 #define PYINSTANCE_ORIG_IMEX PYINSTANCE_IMEX
 #undef PYINSTANCE_EXPORT
