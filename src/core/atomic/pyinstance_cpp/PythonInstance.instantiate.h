@@ -29,7 +29,7 @@
 #include <iostream>
 namespace pyinstance {
 
-PYINSTANCE_IMEX extern std::map<const void*, PyObject*>  _pyinstance_object_map;
+extern std::map<const void*, PyObject*>  _pyinstance_object_map;
 
 template <class C> std::string PythonInstance<C>::_buffer;
 template <class C> PyObject* PythonInstance<C>::_py_class = nullptr;

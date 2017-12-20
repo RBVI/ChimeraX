@@ -23,6 +23,7 @@
 #include "Python.h"
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"

@@ -14,6 +14,7 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "destruct.h"
 #include "Structure.h"
 #include "PBGroup.h"

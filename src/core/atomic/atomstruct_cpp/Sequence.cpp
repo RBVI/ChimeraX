@@ -19,6 +19,7 @@
 #include <Python.h>
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Chain.h"
 
 #include <pyinstance/PythonInstance.instantiate.h>
