@@ -14,6 +14,7 @@
  */
 
 #define PYINSTANCE_EXPORT
+#define PYINSTANCE_EXPORT_MAP
 #include "PythonInstance.declare.h"
 
 namespace pyinstance {
