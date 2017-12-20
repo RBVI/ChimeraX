@@ -147,7 +147,7 @@ is_not_eol(char c)
 #ifndef CASE_INSENSITIVE
 #define ICASEEQN_P1(name, buf, len) STRNEQ_P1(name, buf, len)
 #else
-// icaseeqn: 
+// icaseeqn:
 //	compare name in a case independent way to buf
 bool
 icaseeqn(const char* name, const char* buf, size_t len)
@@ -235,7 +235,7 @@ CIFFile::CIFFile()
 }
 
 void
-CIFFile::register_category(const string& category, ParseCategory callback, 
+CIFFile::register_category(const string& category, ParseCategory callback,
 					const StringVector& dependencies)
 {
 #ifdef CASE_INSENSITIVE
@@ -255,8 +255,8 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 		if (categories.find(dep) != categories.end())
 			continue;
 		std::ostringstream err_msg;
-		err_msg << "Reference to unregistered dependency " << dep
-			<< " in category " << category;
+		err_msg << "Reference to unregistered dependency '" << dep
+			<< "' in category '" << category << "'";
 		throw std::logic_error(err_msg.str());
 	}
 	if (callback) {
@@ -266,7 +266,7 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 	} else {
 		// TODO: find category in categoryOrder
 		// make sure none of the later categories depend on it
-		throw std::runtime_error("not implemented");
+		throw std::runtime_error("missing callback");
 		categories.erase(category);
 	}
 }
@@ -830,10 +830,8 @@ again:
 			continue;
 		current_value_tmp = string(pos + 1, e - pos - 1);
 #ifdef CASE_INSENSITIVE
-		if (!stylized) {
-			for (auto& c: current_value_tmp)
-				c = tolower(c);
-		}
+		for (auto& c: current_value_tmp)
+			c = tolower(c);
 #endif
 		current_value_start = current_value_tmp.c_str();
 		current_value_end = current_value_start + current_value_tmp.size();
@@ -966,7 +964,8 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 					continue;
 				if (!*pos) {
 					current_token = T_EOI;
-					throw error("incomplete multiline data value"); }
+					throw error("incomplete multiline data value");
+				}
 				++pos;
 				++lineno;
 				if (*pos == ';' && is_eol(*(pos + 1))) {
@@ -983,6 +982,10 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 			for (e = pos + 1; is_not_whitespace(*e); ++e)
 				continue;
 			current_value_tmp = string(pos + 1, e - pos - 1);
+#ifdef CASE_INSENSITIVE
+			for (auto& c: current_value_tmp)
+				c = tolower(c);
+#endif
 			current_value_start = current_value_tmp.c_str();
 			current_value_end = current_value_start + current_value_tmp.size();
 			current_token = T_TAG;
@@ -1094,10 +1097,8 @@ CIFFile::get_column(const char* name, bool required)
 		throw std::runtime_error("must be parsing a table before getting a column position");
 	string colname(name);
 #ifdef CASE_INSENSITIVE
-	if (!stylized) {
-		for (auto& c: colname)
-			c = tolower(c);
-	}
+	for (auto& c: colname)
+		c = tolower(c);
 #endif
 	auto i = std::find(current_colnames.begin(), current_colnames.end(), colname);
 	if (i != current_colnames.end())
@@ -1105,7 +1106,7 @@ CIFFile::get_column(const char* name, bool required)
 	if (!required)
 		return -1;
 	std::ostringstream err_msg;
-	err_msg << "Missing column " << name /*<< " in category " << current_category*/;
+	err_msg << "Missing column '" << name << "'" /*<< " in category " << current_category*/;
 	throw error(err_msg.str());
 }
 
@@ -1120,7 +1121,7 @@ CIFFile::parse_row(ParseValues& pv)
 	if (first_row) {
 		first_row = false;
 		columns.clear();
-		std::sort(pv.begin(), pv.end(), 
+		std::sort(pv.begin(), pv.end(),
 			[](const ParseColumn& a, const ParseColumn& b) -> bool {
 				return a.column < b.column;
 			});
