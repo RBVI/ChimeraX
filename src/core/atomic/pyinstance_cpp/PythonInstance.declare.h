@@ -67,7 +67,7 @@ public:
     virtual  ~PythonInstance();
     PyObject*  get_py_attr(const char* attr_name, bool create=false) const;
     double  get_py_float_attr(const char* attr_name, bool create=false) const;
-    long  get_py_float_attr(std::string& attr_name, bool create=false) const;
+    double  get_py_float_attr(std::string& attr_name, bool create=false) const;
     long  get_py_int_attr(const char* attr_name, bool create=false) const;
     long  get_py_int_attr(std::string& attr_name, bool create=false) const;
     const char*  get_py_string_attr(const char* attr_name, bool create=false) const;
