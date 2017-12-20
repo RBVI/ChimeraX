@@ -460,7 +460,7 @@ class SequenceViewer(ToolInstance):
         self.region_browser.destroy()
         self.seq_canvas.destroy()
         for ct in self.child_tools:
-            if has_attr(ct, 'destroy'):
+            if hasattr(ct, 'destroy'):
                 ct.destroy()
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
