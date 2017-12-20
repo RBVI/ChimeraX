@@ -52,6 +52,7 @@ public:
     const CoordSets    &coord_sets() const { return _coord_sets; }
     CoordSet    *find_coord_set(int) const;
     Residue    *new_residue(const char *t);
+    void        delete_residue(Residue* r);
     Residue    *find_residue(const ResName&) const;
     void        set_active_coord_set(CoordSet *cs);
     CoordSet    *active_coord_set() const { return _active_cs; }

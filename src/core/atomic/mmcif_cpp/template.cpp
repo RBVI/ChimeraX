@@ -31,6 +31,7 @@
 #endif
 #include <sys/stat.h>
 #include <algorithm>
+#include <sstream>
 #include <WrapPy3.h>
 
 #undef LEAVING_ATOMS
@@ -85,6 +86,7 @@ struct ExtractTemplate: public readcif::CIFFile
     // The PDB's mmCIF files use the canonical name,
     // so don't support the alternate names for now.
     ExtractTemplate();
+    ~ExtractTemplate();
     virtual void data_block(const string& name);
     virtual void finished_parse();
     void parse_chem_comp();
@@ -117,6 +119,14 @@ ExtractTemplate::ExtractTemplate(): residue(nullptr)
         [this] () {
             parse_chem_comp_bond();
         }, { "chem_comp", "chem_comp_atom" });
+}
+
+ExtractTemplate::~ExtractTemplate()
+{
+    if (templates == nullptr || residue == nullptr)
+        return;
+    if (residue->atoms_map().size() == 0)
+        templates->delete_residue(residue);
 }
 
 void
@@ -186,30 +196,36 @@ ExtractTemplate::parse_chem_comp()
 
     CIFFile::ParseValues pv;
     pv.reserve(6);
-    pv.emplace_back(get_column("id", true),
-        [&] (const char* start, const char* end) {
-            name = ResName(start, end - start);
-        });
-    pv.emplace_back(get_column("type"),
-        [&] (const char* start, const char* end) {
-            type = string(start, end - start);
-        });
-    pv.emplace_back(get_column("three_letter_code", false),
-        [&] (const char* start, const char* end) {
-            modres = ResName(start, end - start);
-            if (modres == "?" || modres == ".")
-                modres = "";
-        });
-    pv.emplace_back(get_column("one_letter_code", false),
-        [&] (const char* start) {
-            code = *start;
-            if (code == '.' || code == '?')
-                code = '\0';
-        });
-    pv.emplace_back(get_column("pdbx_ambiguous_flag"),
-        [&] (const char* start) {
-            ambiguous = *start == 'Y' || *start == 'y';
-        });
+    try {
+        pv.emplace_back(get_column("id", true),
+            [&] (const char* start, const char* end) {
+                name = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column("type"),
+            [&] (const char* start, const char* end) {
+                type = string(start, end - start);
+            });
+        pv.emplace_back(get_column("three_letter_code", false),
+            [&] (const char* start, const char* end) {
+                modres = ResName(start, end - start);
+                if (modres == "?" || modres == ".")
+                    modres = "";
+            });
+        pv.emplace_back(get_column("one_letter_code", false),
+            [&] (const char* start) {
+                code = *start;
+                if (code == '.' || code == '?')
+                    code = '\0';
+            });
+        pv.emplace_back(get_column("pdbx_ambiguous_flag"),
+            [&] (const char* start) {
+                ambiguous = *start == 'Y' || *start == 'y';
+            });
+    } catch (std::runtime_error& e) {
+        std::ostringstream err_msg;
+        err_msg << "chem_comp: " << e.what();
+        throw std::runtime_error(err_msg.str());
+    }
     (void) parse_row(pv);
 
     // convert type to lowercase
@@ -253,44 +269,52 @@ ExtractTemplate::parse_chem_comp_atom()
 #ifdef LEAVING_ATOMS
     bool    leaving = false;
 #endif
+    if (residue == nullptr)
+        return;
 
     CIFFile::ParseValues pv;
     pv.reserve(8);
-    pv.emplace_back(get_column("atom_id", true),
-        [&] (const char* start, const char* end) {
-            name = AtomName(start, end - start);
-        });
-    //pv.emplace_back(get_column("alt_atom_id", true),
-    //    [&] (const char* start, const char* end) {
-    //        alt_name = string(start, end - start);
-    //    });
-    pv.emplace_back(get_column("type_symbol", true),
-        [&] (const char* start) {
-            symbol[0] = *start;
-            symbol[1] = *(start + 1);
-            if (readcif::is_whitespace(symbol[1]))
-                symbol[1] = '\0';
-            else
-                symbol[2] = '\0';
-        });
+    try {
+        pv.emplace_back(get_column("atom_id", true),
+            [&] (const char* start, const char* end) {
+                name = AtomName(start, end - start);
+            });
+        //pv.emplace_back(get_column("alt_atom_id", true),
+        //    [&] (const char* start, const char* end) {
+        //        alt_name = string(start, end - start);
+        //    });
+        pv.emplace_back(get_column("type_symbol", true),
+            [&] (const char* start) {
+                symbol[0] = *start;
+                symbol[1] = *(start + 1);
+                if (readcif::is_whitespace(symbol[1]))
+                    symbol[1] = '\0';
+                else
+                    symbol[2] = '\0';
+            });
 #ifdef LEAVING_ATOMS
-    pv.emplace_back(get_column("pdbx_leaving_atom_flag", false),
-        [&] (const char* start) {
-            leaving = *start == 'Y' || *start == 'y';
-        });
+        pv.emplace_back(get_column("pdbx_leaving_atom_flag", false),
+            [&] (const char* start) {
+                leaving = *start == 'Y' || *start == 'y';
+            });
 #endif
-    pv.emplace_back(get_column("model_Cartn_x", true),
-        [&] (const char* start) {
-            x = readcif::str_to_float(start);
-        });
-    pv.emplace_back(get_column("model_Cartn_y", true),
-        [&] (const char* start) {
-            y = readcif::str_to_float(start);
-        });
-    pv.emplace_back(get_column("model_Cartn_z", true),
-        [&] (const char* start) {
-            z = readcif::str_to_float(start);
-        });
+        pv.emplace_back(get_column("model_Cartn_x", true),
+            [&] (const char* start) {
+                x = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("model_Cartn_y", true),
+            [&] (const char* start) {
+                y = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("model_Cartn_z", true),
+            [&] (const char* start) {
+                z = readcif::str_to_float(start);
+            });
+    } catch (std::runtime_error& e) {
+        std::ostringstream err_msg;
+        err_msg << "chem_comp_atom: " << e.what();
+        throw std::runtime_error(err_msg.str());
+    }
     while (parse_row(pv)) {
         const Element& elem = Element::get_element(symbol);
         tmpl::Atom* a = templates->new_atom(name, elem);
@@ -308,17 +332,25 @@ void
 ExtractTemplate::parse_chem_comp_bond()
 {
     AtomName name1, name2;
+    if (residue == nullptr)
+        return;
 
     CIFFile::ParseValues pv;
     pv.reserve(2);
-    pv.emplace_back(get_column("atom_id_1", true),
-        [&] (const char* start, const char* end) {
-            name1 = AtomName(start, end - start);
-        });
-    pv.emplace_back(get_column("atom_id_2", true),
-        [&] (const char* start, const char* end) {
-            name2 = AtomName(start, end - start);
-        });
+    try {
+        pv.emplace_back(get_column("atom_id_1", true),
+            [&] (const char* start, const char* end) {
+                name1 = AtomName(start, end - start);
+            });
+        pv.emplace_back(get_column("atom_id_2", true),
+            [&] (const char* start, const char* end) {
+                name2 = AtomName(start, end - start);
+            });
+    } catch (std::runtime_error& e) {
+        std::ostringstream err_msg;
+        err_msg << "chem_comp_bond: " << e.what();
+        throw std::runtime_error(err_msg.str());
+    }
     while (parse_row(pv)) {
         tmpl::Atom* a1 = residue->find_atom(name1);
         tmpl::Atom* a2 = residue->find_atom(name2);
@@ -335,7 +367,11 @@ load_mmCIF_templates(const char* filename)
         templates = new tmpl::Molecule();
 
     ExtractTemplate extract;
-    extract.parse_file(filename);
+    try {
+        extract.parse_file(filename);
+    } catch (std::exception& e) {
+        std::cerr << "Loading template file failed: " << e.what() << '\n';
+    }
 #if 0
     // DEBUG
     // for each residue, print out the name, code, and bonds
