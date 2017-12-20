@@ -31,8 +31,8 @@ namespace pyinstance {
 
 PYINSTANCE_IMEX extern std::map<const void*, PyObject*>  _pyinstance_object_map;
 
-template <class C> PYINSTANCE_IMEX std::string PythonInstance<C>::_buffer;
-template <class C> PYINSTANCE_IMEX PyObject* PythonInstance<C>::_py_class = nullptr;
+template <class C> std::string PythonInstance<C>::_buffer;
+template <class C> PyObject* PythonInstance<C>::_py_class = nullptr;
 
 template <class C>
 long PythonInstance<C>::get_py_float_attr(std::string& attr_name, bool create) const
