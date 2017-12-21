@@ -18,6 +18,7 @@
 #include <cmath>  // std::abs
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "connect.h"
 #include "polymer.h"
 #include "Residue.h"
