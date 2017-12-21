@@ -14,6 +14,7 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "Chain.h"
@@ -21,7 +22,11 @@
 #include "Residue.h"
 #include "Sequence.h"
 #include "Structure.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
 #include <stdexcept>
+
+template class pyinstance::PythonInstance<atomstruct::Bond>;
 
 namespace atomstruct {
 

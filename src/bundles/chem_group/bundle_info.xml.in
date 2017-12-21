@@ -17,6 +17,7 @@
     <SourceFile>_cg/cg.cpp</SourceFile>
     <Library>atomstruct</Library>
     <Library>element</Library>
+    <Library>pyinstance</Library>
     <Library>arrays</Library>
   </CModule>
 

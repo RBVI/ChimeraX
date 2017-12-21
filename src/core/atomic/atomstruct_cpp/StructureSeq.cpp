@@ -88,9 +88,9 @@ StructureSeq::copy() const
 void
 StructureSeq::demote_to_sequence()
 {
-    auto inst = py_instance();
-    if (inst != nullptr) {
-        auto gil = AcquireGIL();
+    auto inst = py_instance(false);
+    if (inst != Py_None) {
+        auto gil = pyinstance::AcquireGIL();
         _structure = nullptr;
         auto ret = PyObject_CallMethod(inst, "_cpp_demotion", nullptr);
         if (ret == nullptr) {

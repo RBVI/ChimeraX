@@ -50,14 +50,13 @@ cannot be used as keys in dictionary or added to sets.
 from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
 from .molc import string, cptr, pyobject, set_cvec_pointer, pointer, size_t
 from . import molobject
-from .molobject import c_function, c_array_function, cvec_property
+from .molobject import c_function, c_array_function, cvec_property, Atom
 import ctypes
 
 def _atoms(p):
     return Atoms(p)
 def _atoms_or_nones(p):
-    from .molobject import object_map, Atom
-    return [object_map(ptr, Atom) if ptr else None for ptr in p]
+    return [Atom.c_ptr_to_py_inst(ptr) if ptr else None for ptr in p]
 def _non_null_atoms(p):
     return Atoms(p[p!=0])
 def _bonds(p):
@@ -99,7 +98,6 @@ class Collection(State):
     '''
     def __init__(self, items, object_class, objects_class):
         import numpy
-        from time import time
         if items is None:
             # Empty
             pointers = numpy.empty((0,), cptr)
@@ -145,16 +143,15 @@ class Collection(State):
     def __iter__(self):
         '''Iterator over collection objects.'''
         if not hasattr(self, '_object_list'):
-            from .molobject import object_map
             c = self._object_class
-            self._object_list = [object_map(p,c) for p in self._pointers]
+            self._object_list = [c.c_ptr_to_py_inst(p) for p in self._pointers]
+        #TODO: isn't caching here a bug?
         return iter(self._object_list)
     def __getitem__(self, i):
         '''Indexing of collection objects using square brackets, *e.g.* c[i].'''
         import numpy
         if isinstance(i,(int,integer)):
-            from .molobject import object_map
-            v = object_map(self._pointers[i], self._object_class)
+            v = self._object_class.c_ptr_to_py_inst(self._pointers[i])
         elif isinstance(i, (slice, numpy.ndarray)):
             v = self._objects_class(self._pointers[i])
         else:
@@ -259,10 +256,9 @@ class Collection(State):
     def instances(self, instantiate=True):
         '''Returns a list of the Python instances.  If 'instantiate' is False, then for
         those items that haven't yet been instantiated, None will be returned.'''
-        from .molobject import object_map
         if instantiate:
-            return [object_map(p, self._object_class) for p in self._pointers]
-        return [object_map(p, None) for p in self._pointers]
+            return [self._object_class.c_ptr_to_py_inst(p) for p in self._pointers]
+        return [self._object_class.c_ptr_to_existing_py_inst(p) for p in self._pointers]
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
         return {'version': self.STATE_VERSION,
@@ -319,6 +315,89 @@ def depluralize(word):
     if word.endswith('s'):
         return word[:-1]
     return word
+
+# -----------------------------------------------------------------------------
+#
+class StructureDatas(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Collection of C++ atomic structure objects.
+    '''
+    def __init__(self, mol_pointers):
+        Collection.__init__(self, mol_pointers, molobject.StructureData, StructureDatas)
+
+    alt_loc_change_notifies = cvec_property('structure_alt_loc_change_notify', npy_bool)
+    '''Whether notifications are issued when altlocs are changed.  Should only be
+    set to true when temporarily changing alt locs in a Python script. Numpy bool array.'''
+    atoms = cvec_property('structure_atoms', cptr, 'num_atoms', astype = _atoms,
+                          read_only = True, per_object = False)
+    '''A single :class:`.Atoms` containing atoms for all structures. Read only.'''
+    bonds = cvec_property('structure_bonds', cptr, 'num_bonds', astype = _bonds,
+                          read_only = True, per_object = False)
+    '''A single :class:`.Bonds` object containing bonds for all structures. Read only.'''
+    chains = cvec_property('structure_chains', cptr, 'num_chains', astype = _chains,
+                           read_only = True, per_object = False)
+    '''A single :class:`.Chains` object containing chains for all structures. Read only.'''
+    lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool)
+    '''A numpy bool array of lower_case_names of each structure.'''
+    num_atoms = cvec_property('structure_num_atoms', size_t, read_only = True)
+    '''Number of atoms in each structure. Read only.'''
+    num_bonds = cvec_property('structure_num_bonds', size_t, read_only = True)
+    '''Number of bonds in each structure. Read only.'''
+    num_chains = cvec_property('structure_num_chains', size_t, read_only = True)
+    '''Number of chains in each structure. Read only.'''
+    num_residues = cvec_property('structure_num_residues', size_t, read_only = True)
+    '''Number of residues in each structure. Read only.'''
+    residues = cvec_property('structure_residues', cptr, 'num_residues', astype = _residues,
+                             read_only = True, per_object = False)
+    '''A single :class:`Residues` object containing residues for all structures. Read only.'''
+    pbg_maps = cvec_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
+    '''
+    Returns a list of dictionaries whose keys are pseudobond
+    group categories (strings) and whose values are
+    :class:`.Pseudobonds`. Read only.
+    '''
+    ribbon_tether_scales = cvec_property('structure_ribbon_tether_scale', float32)
+    '''Returns an array of scale factors for ribbon tethers.'''
+    ribbon_tether_sides = cvec_property('structure_ribbon_tether_sides', int32)
+    '''Returns an array of numbers of sides for ribbon tethers.'''
+    ribbon_tether_shapes = cvec_property('structure_ribbon_tether_shape', int32)
+    '''Returns an array of shapes for ribbon tethers.'''
+    metadata = cvec_property('metadata', pyobject, read_only = True)
+    '''Return a list of dictionaries with metadata. Read only.'''
+    ribbon_tether_opacities = cvec_property('structure_ribbon_tether_opacity', float32)
+    '''Returns an array of opacity scale factor for ribbon tethers.'''
+    ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)
+    '''Returns an array of booleans of whether to show ribbon spines.'''
+    ribbon_orientations = cvec_property('structure_ribbon_orientation', int32)
+    '''Returns an array of ribbon orientations.'''
+    ss_assigneds = cvec_property('structure_ss_assigned', npy_bool, doc =
+    '''
+    Whether secondary structure has been assigned, either from data in the
+    original structure file, or from an algorithm (e.g. dssp command)
+    ''')
+
+    # Graphics changed flags used by rendering code.  Private.
+    _graphics_changeds = cvec_property('structure_graphics_change', int32)
+
+# -----------------------------------------------------------------------------
+#
+class AtomicStructures(StructureDatas):
+    '''
+    Bases: :class:`.StructureDatas`
+
+    Collection of Python atomic structure objects.
+    '''
+    def __init__(self, mol_pointers):
+        from .structure import AtomicStructure
+        Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
+
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        return array([s._c_pointer.value for s in data], dtype=cptr)
+    def session_save_pointers(self, session):
+        return [s for s in self]
 
 # -----------------------------------------------------------------------------
 #
@@ -537,7 +616,7 @@ class Atoms(Collection):
         return datoms
     structure_categories = cvec_property('atom_structure_category', string, read_only=True,
         doc="Numpy array of whether atom is ligand, ion, etc.")
-    structures = cvec_property('atom_structure', cptr, astype=_atomic_structures, read_only=True,
+    structures = cvec_property('atom_structure', pyobject, astype = AtomicStructures, read_only=True,
         doc="Returns an :class:`AtomicStructure` for each atom. Read only.")
     @property
     def unique_residues(self):
@@ -718,7 +797,7 @@ class Bonds(Collection):
     Whether each bond is displayed, visible and has both atoms shown,
     and at least one atom is not Sphere style.
     '''
-    structures = cvec_property('bond_structure', cptr, astype = _atomic_structures, read_only = True)
+    structures = cvec_property('bond_structure', pyobject, astype = AtomicStructures, read_only = True)
     '''Returns an :class:`.StructureDatas` with the structure for each bond. Read only.'''
 
     @property
@@ -1029,8 +1108,7 @@ class Residues(Collection):
     ''')
     ss_types = cvec_property('residue_ss_type', int32, doc =
     '''Returns a numpy integer array of secondary structure types (one of: Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_STRAND [or SS_SHEET])''')
-    structures = cvec_property('residue_structure', cptr, astype = _atomic_structures,
-        read_only = True, doc =
+    structures = cvec_property('residue_structure', pyobject, astype = AtomicStructures, read_only = True, doc =
     '''Returns :class:`.StructureDatas` collection containing structures for each residue.''')
 
     def delete(self):
@@ -1180,7 +1258,7 @@ class Chains(Collection):
 
     chain_ids = cvec_property('sseq_chain_id', string, read_only = True)
     '''A numpy array of string chain ids for each chain. Read only.'''
-    structures = cvec_property('sseq_structure', cptr, astype = _atomic_structures, read_only = True)
+    structures = cvec_property('sseq_structure', pyobject, astype = AtomicStructures, read_only = True)
     '''A :class:`.StructureDatas` collection containing structures for each chain.'''
     existing_residues = cvec_property('sseq_residues', cptr, 'num_residues',
         astype = _non_null_residues, read_only = True, per_object = False)
@@ -1200,89 +1278,6 @@ class Chains(Collection):
         structures = self.structures
         chain_ses_ids = [s.session_chain_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(chain_ses_ids)]
-
-# -----------------------------------------------------------------------------
-#
-class StructureDatas(Collection):
-    '''
-    Bases: :class:`.Collection`
-
-    Collection of C++ atomic structure objects.
-    '''
-    def __init__(self, mol_pointers):
-        Collection.__init__(self, mol_pointers, molobject.StructureData, StructureDatas)
-
-    alt_loc_change_notifies = cvec_property('structure_alt_loc_change_notify', npy_bool)
-    '''Whether notifications are issued when altlocs are changed.  Should only be
-    set to true when temporarily changing alt locs in a Python script. Numpy bool array.'''
-    atoms = cvec_property('structure_atoms', cptr, 'num_atoms', astype = _atoms,
-                          read_only = True, per_object = False)
-    '''A single :class:`.Atoms` containing atoms for all structures. Read only.'''
-    bonds = cvec_property('structure_bonds', cptr, 'num_bonds', astype = _bonds,
-                          read_only = True, per_object = False)
-    '''A single :class:`.Bonds` object containing bonds for all structures. Read only.'''
-    chains = cvec_property('structure_chains', cptr, 'num_chains', astype = _chains,
-                           read_only = True, per_object = False)
-    '''A single :class:`.Chains` object containing chains for all structures. Read only.'''
-    lower_case_chains = cvec_property('structure_lower_case_chains', npy_bool)
-    '''A numpy bool array of lower_case_names of each structure.'''
-    num_atoms = cvec_property('structure_num_atoms', size_t, read_only = True)
-    '''Number of atoms in each structure. Read only.'''
-    num_bonds = cvec_property('structure_num_bonds', size_t, read_only = True)
-    '''Number of bonds in each structure. Read only.'''
-    num_chains = cvec_property('structure_num_chains', size_t, read_only = True)
-    '''Number of chains in each structure. Read only.'''
-    num_residues = cvec_property('structure_num_residues', size_t, read_only = True)
-    '''Number of residues in each structure. Read only.'''
-    residues = cvec_property('structure_residues', cptr, 'num_residues', astype = _residues,
-                             read_only = True, per_object = False)
-    '''A single :class:`Residues` object containing residues for all structures. Read only.'''
-    pbg_maps = cvec_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
-    '''
-    Returns a list of dictionaries whose keys are pseudobond
-    group categories (strings) and whose values are
-    :class:`.Pseudobonds`. Read only.
-    '''
-    ribbon_tether_scales = cvec_property('structure_ribbon_tether_scale', float32)
-    '''Returns an array of scale factors for ribbon tethers.'''
-    ribbon_tether_sides = cvec_property('structure_ribbon_tether_sides', int32)
-    '''Returns an array of numbers of sides for ribbon tethers.'''
-    ribbon_tether_shapes = cvec_property('structure_ribbon_tether_shape', int32)
-    '''Returns an array of shapes for ribbon tethers.'''
-    metadata = cvec_property('metadata', pyobject, read_only = True)
-    '''Return a list of dictionaries with metadata. Read only.'''
-    ribbon_tether_opacities = cvec_property('structure_ribbon_tether_opacity', float32)
-    '''Returns an array of opacity scale factor for ribbon tethers.'''
-    ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)
-    '''Returns an array of booleans of whether to show ribbon spines.'''
-    ribbon_orientations = cvec_property('structure_ribbon_orientation', int32)
-    '''Returns an array of ribbon orientations.'''
-    ss_assigneds = cvec_property('structure_ss_assigned', npy_bool, doc =
-    '''
-    Whether secondary structure has been assigned, either from data in the
-    original structure file, or from an algorithm (e.g. dssp command)
-    ''')
-
-    # Graphics changed flags used by rendering code.  Private.
-    _graphics_changeds = cvec_property('structure_graphics_change', int32)
-
-# -----------------------------------------------------------------------------
-#
-class AtomicStructures(StructureDatas):
-    '''
-    Bases: :class:`.StructureDatas`
-
-    Collection of Python atomic structure objects.
-    '''
-    def __init__(self, mol_pointers):
-        from .structure import AtomicStructure
-        Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
-
-    @classmethod
-    def session_restore_pointers(cls, session, data):
-        return array([s._c_pointer.value for s in data], dtype=cptr)
-    def session_save_pointers(self, session):
-        return [s for s in self]
 
 # -----------------------------------------------------------------------------
 #
@@ -1335,8 +1330,8 @@ class CoordSets(Collection):
 
     ids = cvec_property('coordset_id', uint32, read_only = True,
         doc="ID numbers of coordsets")
-    structures = cvec_property('coordset_structure', cptr, astype=_atomic_structures,
-        read_only=True, doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
+    structures = cvec_property('coordset_structure', pyobject, astype = AtomicStructures, read_only=True,
+        doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
 
 # -----------------------------------------------------------------------------
 # For making collections from lists of objects.

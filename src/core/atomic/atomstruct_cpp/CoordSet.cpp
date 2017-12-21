@@ -16,11 +16,15 @@
 #include <utility>  // for pair
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "ChangeTracker.h"
 #include "CoordSet.h"
 #include "destruct.h"
 #include "Structure.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::CoordSet>;
 
 namespace atomstruct {
 

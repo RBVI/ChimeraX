@@ -19,6 +19,7 @@
 #include <utility>  // for std::pair
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "ChangeTracker.h"
@@ -29,7 +30,10 @@
 #include "Pseudobond.h"
 #include "Residue.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
 #include <pysupport/convert.h>
+
+template class pyinstance::PythonInstance<atomstruct::Atom>;
 
 namespace atomstruct {
 

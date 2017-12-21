@@ -922,7 +922,12 @@ class ToolWindow(StatusLogger):
         """Add items to this tool window's context menu,
            whose downclick occurred at position (x,y)
 
-        Override to add items to any context menu popped up over this window"""
+        Override to add items to any context menu popped up over this window.
+
+        Note that you have to keep references to the actions you add to the
+        menu to avoid having then automatically destroyed and removed from the
+        menu when this method returns.  You can use the menu itself to store 
+        the reference, e.g. menu._ref1 = QAction(...)"""
         pass
 
     @property

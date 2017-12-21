@@ -14,6 +14,7 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "destruct.h"
 #include "Structure.h"
 #include "PBGroup.h"
@@ -22,6 +23,9 @@
 
 #include <Python.h>
 #include <arrays/pythonarray.h>
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::BaseManager>;
 
 namespace atomstruct {
 

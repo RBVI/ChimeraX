@@ -16,12 +16,16 @@
 #include <math.h>
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "Coord.h"
 #include "destruct.h"
 #include "Real.h"
 #include "Ring.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Ring>;
 
 namespace atomstruct {
 

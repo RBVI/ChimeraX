@@ -23,6 +23,7 @@
 #include "Python.h"
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
@@ -31,6 +32,9 @@
 #include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Structure>;
 
 namespace {
 
