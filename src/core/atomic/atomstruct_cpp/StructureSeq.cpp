@@ -19,6 +19,7 @@
 #include <sstream>
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Chain.h"
 #include "ChangeTracker.h"
 #include "destruct.h"

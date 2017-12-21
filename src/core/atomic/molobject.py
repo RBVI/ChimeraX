@@ -826,11 +826,11 @@ class PseudobondManager(State):
         # C++ layer doesn't know how to create Python global pseudobond groups, because it can't
         # supply session arg, so see if the group already exists (and return that if so),
         # otherwise create the group and inform the C++ layer
-        inst = _pbgroup_ptr_to_existing_inst(pbg)
+        inst = PseudobondGroupData.c_ptr_to_existing_py_inst(pbg)
         if not inst:
             from .pbgroup import PseudobondGroup
             inst = PseudobondGroup(pbg, session=self.session)
-            f = c_function('set_pbgroup_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
+            f = c_function('set_pseudobondgroup_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
             f(pbg, inst)
         return inst
 
