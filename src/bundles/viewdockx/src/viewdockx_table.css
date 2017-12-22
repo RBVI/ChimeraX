@@ -48,7 +48,14 @@ td.id {
 }
 
 /*
- * Put indicators on sorted column
+ * Selected rows
+ */
+tr.selected {
+  background-color: #FF4;
+}
+
+/*
+ * Indicators on sorted column
  */
 table thead tr .tablesorter-headerAsc {
   background-image: url("lib/downarrow.png");
@@ -59,6 +66,9 @@ table thead tr .tablesorter-headerDesc {
   padding-right: 16px;
 }
 
+/*
+ * Pruning stars location
+ */
 #prune {
   float: right;
 }

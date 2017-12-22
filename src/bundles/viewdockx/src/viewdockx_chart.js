@@ -279,8 +279,7 @@ var vdxchart = function() {
     }
 
     function mousedown(e) {
-        action = (e.ctrlKey || e.shiftKey || e.altKey)
-                    ? "show_toggle" : "show_only";
+        action = e.ctrlKey ? "show_toggle" : "show_only";
     }
 
     function update_display(new_display) {
