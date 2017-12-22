@@ -41,20 +41,20 @@ setup(
         "PKG_NAME": pkg_dir,
     },
     install_requires=[
-        "beautifulsoup4 == 4.5.3",
-        "colorama == 0.3.7",
+        # "beautifulsoup4 == 4.5.3",	# in prereqs/pips
+        # "colorama == 0.3.7",		# in prereqs/pips
         # "filelock == 2",  # TODO: breaks on Windows
         "grako == 3.16.5",
         # "numpy == 1.11",  # TODO: breaks on Windows
-        "Pillow == 4.2.1",
+        # "Pillow == 4.2.1",		# in prereqs/pips
         # "pycollada == 0.4",  # TODO: pypi version doesn't work with Python 3
         # We use PyOpenGL 3.1.1 for Windows but 3.1.0 (our build) for
         # Linux and Mac.  Maybe we start using >=?
         # "PyOpenGL == 3.1.0",
         # "PyQt5_commercial == 5.7",  # TODO: how are we going to handle this?
         # "scipy == 0.18",  # TODO: breaks on Windows
-        "setuptools == 34.4.1",
-        "sortedcontainers == 1.5.7",
+        # "setuptools == 34.4.1",	# in prereqs/setuptools
+        # "sortedcontainers == 1.5.7",	# in prereqs/pips
         "suds_jurko == 0.6",
         "msgpack-python >= 0.5",
     ],
@@ -71,10 +71,26 @@ setup(
         "PKG_NAME.map.data.apbs",
         "PKG_NAME.map.data.ccp4",
         "PKG_NAME.map.data.cmap",
+        "PKG_NAME.map.data.delphi",
+        "PKG_NAME.map.data.deltavision",
+        "PKG_NAME.map.data.dock",
         "PKG_NAME.map.data.dsn6",
+        "PKG_NAME.map.data.emanhdf",
+        "PKG_NAME.map.data.gaussian",
+        "PKG_NAME.map.data.gopenmol",
         "PKG_NAME.map.data.imagestack",
+        "PKG_NAME.map.data.imod",
         "PKG_NAME.map.data.ims",
+        "PKG_NAME.map.data.macmolplt",
         "PKG_NAME.map.data.mrc",
+        "PKG_NAME.map.data.priism",
+        "PKG_NAME.map.data.profec",
+        "PKG_NAME.map.data.pif",
+        "PKG_NAME.map.data.situs",
+        "PKG_NAME.map.data.spider",
+        "PKG_NAME.map.data.tom_em",
+        "PKG_NAME.map.data.uhbd",
+        "PKG_NAME.map.data.xplor",
         "PKG_NAME.map.filter",
         "PKG_NAME.map.fit",
         "PKG_NAME.map.series",
@@ -82,6 +98,7 @@ setup(
         "PKG_NAME.toolshed",
         "PKG_NAME.ui",
         "PKG_NAME.ui.widgets",
+        "PKG_NAME.ui.options",
         "PKG_NAME.webservices",
     ],
     package_data={
@@ -101,11 +118,13 @@ setup(
             os.path.join(shlib_dir, "libarrays.SHLIB_EXT"),
             os.path.join(shlib_dir, "libatomstruct.SHLIB_EXT"),
             os.path.join(shlib_dir, "libelement.SHLIB_EXT"),
+            os.path.join(shlib_dir, "libpyinstance.SHLIB_EXT"),
             os.path.join(shlib_dir, "liblogger.SHLIB_EXT"),
             # WINDEBUG os.path.join(shlib_dir, "libappdirs.pdb"),
             # WINDEBUG os.path.join(shlib_dir, "libarrays.pdb"),
             # WINDEBUG os.path.join(shlib_dir, "libatomstruct.pdb"),
             # WINDEBUG os.path.join(shlib_dir, "libelement.pdb"),
+            # WINDEBUG os.path.join(shlib_dir, "libpyinstance.pdb"),
             # WINDEBUG os.path.join(shlib_dir, "liblogger.pdb"),
         ]),
         (os.path.join(os.path.basename(data_dir), "idatm", "templates"),

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "bymodel",
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel",
                   "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
@@ -29,7 +29,7 @@ def color(session, objects, color=None, what=None,
     objects : Objects
       Which objects to color.
     color : Color
-      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bymodel".
+      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
     target : string
@@ -75,7 +75,8 @@ def color(session, objects, color=None, what=None,
                        'surfaces':'s', 'bonds':'b', 'pseudobonds':'p'}
         if target is None:
             target = ''
-        target += what_target[what]
+        for w in what:
+            target += what_target[w]
 
     from ..undo import UndoState
     undo_state = UndoState(undo_name)
@@ -87,11 +88,16 @@ def color(session, objects, color=None, what=None,
     if getattr(color, 'explicit_transparency', False):
         opacity = color.uint8x4()[3]
 
-    if halfbond is not None and atoms is not None:
-        bonds = atoms.intra_bonds
+    if halfbond is not None:
+        bonds = objects.bonds
         if len(bonds) > 0:
             undo_state.add(bonds, "halfbonds", bonds.halfbonds, halfbond)
             bonds.halfbonds = halfbond
+        if 'p' in target:
+            pbonds = objects.pseudobonds
+            if len(pbonds) > 0:
+                undo_state.add(pbonds, "halfbonds", pbonds.halfbonds, halfbond)
+                pbonds.halfbonds = halfbond
 
     if sequential is not None:
         try:
@@ -158,9 +164,9 @@ def color(session, objects, color=None, what=None,
         _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state)
         what.append('%d residues' % len(residues))
 
-    if 'b' in target and color is not None:
-        if atoms is not None:
-            bonds = atoms.intra_bonds
+    if 'b' in target:
+        if color not in _SpecialColors and color is not None:
+            bonds = objects.bonds
             if len(bonds) > 0:
                 if color not in _SpecialColors:
                     color_array = color.uint8x4()
@@ -169,28 +175,13 @@ def color(session, objects, color=None, what=None,
                     what.append('%d bonds' % len(bonds))
 
     if 'p' in target:
-        bl = []
-        apbgs = set()
-        if atoms is not None:
-            from .. import atomic
-            bonds = atomic.interatom_pseudobonds(atoms)
-            if len(bonds) > 0:
-                if color not in _SpecialColors and color is not None:
-                    color_array = color.uint8x4()
-                    undo_state.add(bonds, "colors", bonds.colors, color_array)
-                    bonds.colors = color_array
-                    bl.append(bonds)
-                    apbgs.update(bonds.groups.unique())
-        from ..atomic import PseudobondGroup
-        for pbg in objects.models:
-            if isinstance(pbg, PseudobondGroup) and pbg not in apbgs:
-                if color not in _SpecialColors and color is not None:
-                    color_array = color.uint8x4()
-                    undo_state.add(pbg, "color", pbg.color, color_array)
-                    pbg.color = color_array
-                    bl.append(pbg.pseudobonds)
-        if bl:
-            what.append('%d pseudobonds' % len(atomic.concatenate(bl, remove_duplicates = True)))
+        if color not in _SpecialColors and color is not None:
+            pbonds = objects.pseudobonds
+            if len(pbonds) > 0:
+                color_array = color.uint8x4()
+                undo_state.add(pbonds, "colors", pbonds.colors, color_array)
+                pbonds.colors = color_array
+                what.append('%d pseudobonds' % len(pbonds))
 
     if 'd' in target:
         if not default_target:
@@ -216,6 +207,12 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
         c = atoms.colors.copy()
         sc,amask = polymer_colors(atoms.residues)
         c[amask,:] = sc[amask,:]
+        c[amask, 3] = atoms.colors[amask, 3] if opacity is None else opacity
+    elif color == "bynucleotide":
+        from ..atomic.colors import nucleotide_colors
+        c = atoms.colors.copy()
+        sc, amask = nucleotide_colors(atoms.residues)
+        c[amask, :] = sc[amask, :]
         c[amask, 3] = atoms.colors[amask, 3] if opacity is None else opacity
     elif color == "bymodel":
         c = atoms.colors.copy()
@@ -278,6 +275,13 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
         masked_residues = residues.filter(rmask)
         undo_state.add(masked_residues, "ribbon_colors", masked_residues.ribbon_colors, c[rmask,:])
         masked_residues.ribbon_colors = c[rmask,:]
+    elif color == "bynucleotide":
+        from ..atomic.colors import nucleotide_colors
+        c,rmask = nucleotide_colors(residues)
+        c[rmask, 3] = residues.ribbon_colors[rmask, 3] if opacity is None else opacity
+        masked_residues = residues.filter(rmask)
+        undo_state.add(masked_residues, "ribbon_colors", masked_residues.ribbon_colors, c[rmask, :])
+        masked_residues.ribbon_colors = c[rmask, :]
     elif color == 'bymodel':
         for m, res in residues.by_structure:
             c = res.ribbon_colors
@@ -297,18 +301,20 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
 def _set_surface_colors(session, atoms, color, opacity, bgcolor=None,
                         map=None, palette=None, range=None, offset=0, undo_state=None):
     # TODO: save undo data
-    from .scolor import scolor
+    from .scolor import color_surfaces_at_atoms, color_surfaces_by_map_value
     if color in _SpecialColors:
         if color == 'fromatoms':
-            ns = scolor(session, atoms, opacity=opacity, byatom=True)
+            ns = color_surfaces_at_atoms(atoms, opacity=opacity)
         else:
             # Surface colored different from atoms
             c = _computed_atom_colors(atoms, color, opacity, bgcolor)
-            ns = scolor(session, atoms, opacity=opacity, byatom=True, per_atom_colors=c)
+            ns = color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors=c)
             
+    elif map:
+        ns = color_surfaces_by_map_value(atoms, opacity=opacity, map=map, palette=palette,
+                                        range=range, offset=offset)
     else:
-        ns = scolor(session, atoms, color, opacity=opacity,
-                    map=map, palette=palette, range=range, offset=offset)
+        ns = color_surfaces_at_atoms(atoms, color, opacity=opacity)
     return ns
 
 def _set_model_colors(session, m, color, map, opacity, palette, range, offset):
@@ -326,15 +332,10 @@ def _set_model_colors(session, m, color, map, opacity, palette, range, offset):
             surfs = [m]
         else:
             surfs = []
+        from .scolor import color_surface_by_map_value
         for s in surfs:
-            from .scolor import volume_color_source
-            cs = volume_color_source(s, map, palette, range, offset=offset)
-            vcolors = cs.vertex_colors(s, session.logger.info)
-            if opacity is not None:
-                vcolors[:,3] = opacity
-            else:
-                vcolors[:,3] = s.color[3] if s.vertex_colors is None else s.vertex_colors[:,3]
-            s.vertex_colors = vcolors
+            color_surface_by_map_value(s, map, palette=palette, range=range,
+                                       offset=offset, opacity=opacity)
 
 # -----------------------------------------------------------------------------
 # Chain ids in each structure are colored from color map ordered alphabetically.
@@ -458,8 +459,8 @@ def _set_sequential_structures(session, selected, cmap, opacity, target, undo_st
             _set_ribbon_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
             # TODO: save surface undo data
-            from .scolor import scolor
-            ns = scolor(session, m.atoms, c)
+            from .scolor import color_surfaces_at_atoms
+            color_surfaces_at_atoms(m.atoms, c)
 
 # -----------------------------------------------------------------------------
 #
@@ -474,9 +475,9 @@ _SequentialColor = {
 #
 def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg, ObjectsArg, create_alias
-    from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg, BoolArg, AtomsArg
+    from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg
     from ..map import MapArg
-    what_arg = EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds'))
+    what_arg = ListOf(EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds')))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),
                              ('what', what_arg)],

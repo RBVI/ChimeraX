@@ -41,14 +41,27 @@ class CommandLine(ToolInstance):
                 from PyQt5.QtCore import Qt
                 # defer context menu to parent
                 self.setContextMenuPolicy(Qt.NoContextMenu)
+                self.setAcceptDrops(True)
+
+            def dragEnterEvent(self, event):
+                if event.mimeData().text():
+                    event.acceptProposedAction()
+
+            def dropEvent(self, event):
+                text = event.mimeData().text()
+                if text.startswith("file://"):
+                    text = text[7:]
+                self.lineEdit().insert(text)
+                event.acceptProposedAction()
 
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
-                if forwarded:
-                    # Give command line the focus, so that up/down arrow work as
-                    # exepcted rather than changing the selection level
-                    self.setFocus()
                 from PyQt5.QtCore import Qt
+                from PyQt5.QtGui import QKeySequence
+                want_focus = forwarded and event.key() not in [Qt.Key_Control,
+                                                               Qt.Key_Shift,
+                                                               Qt.Key_Meta,
+                                                               Qt.Key_Alt]
                 import sys
                 control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
                 shifted = event.modifiers() & Qt.ShiftModifier
@@ -56,6 +69,12 @@ class CommandLine(ToolInstance):
                     self.tool.history_dialog.up(shifted)
                 elif event.key() == Qt.Key_Down:  # down arrow
                     self.tool.history_dialog.down(shifted)
+                elif event.matches(QKeySequence.Undo):
+                    want_focus = False
+                    session.undo.undo()
+                elif event.matches(QKeySequence.Redo):
+                    want_focus = False
+                    session.undo.redo()
                 elif event.modifiers() & control_key:
                     if event.key() == Qt.Key_N:
                         self.tool.history_dialog.down(shifted)
@@ -65,30 +84,24 @@ class CommandLine(ToolInstance):
                         self.tool.cmd_clear()
                     elif event.key() == Qt.Key_K:
                         self.tool.cmd_clear_to_end_of_line()
-                    elif event.key() == Qt.Key_Z:
-                        try:
-                            session.undo.undo()
-                        except IndexError:
-                            # No undo action registered
-                            pass
-                    elif event.key() == Qt.Key_R:
-                        try:
-                            session.undo.redo()
-                        except IndexError:
-                            # No redo action registered
-                            pass
                     else:
                         QComboBox.keyPressEvent(self, event)
                 else:
                     QComboBox.keyPressEvent(self, event)
+                if want_focus:
+                    # Give command line the focus, so that up/down arrow work as
+                    # exepcted rather than changing the selection level
+                    self.setFocus()
                 self._processing_key = False
 
-            def retain_selection_on_focus_out(self):
-                # prevent de-selection of text when focus lost
+            def retain_sel_on_focus_out(self):
+                # if a full command has been selected, retain that selection on
+                # focus out so that it is easy to type a new command
                 if self._processing_key:
                     return
                 le = self.lineEdit()
-                if not le.hasFocus() and not le.selectedText() and le.text():
+                if not le.hasFocus() and not le.selectedText() \
+                        and self.count() > 0 and self.itemText(0) == self.currentText():
                     le.selectAll()
 
         self.text = CmdText(parent, self)
@@ -100,10 +113,9 @@ class CommandLine(ToolInstance):
         layout.addWidget(label)
         layout.addWidget(self.text, 1)
         parent.setLayout(layout)
-        self.text.lineEdit().returnPressed.connect(self.execute)
-        self.text.lineEdit().editingFinished.connect(self.text.lineEdit().selectAll)
         # lineEdit() seems to be None during entire CmdText constructor, so connect here...
-        self.text.lineEdit().selectionChanged.connect(self.text.retain_selection_on_focus_out)
+        self.text.lineEdit().selectionChanged.connect(self.text.retain_sel_on_focus_out)
+        self.text.lineEdit().returnPressed.connect(self.execute)
         self.text.currentTextChanged.connect(self.text_changed)
         self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e, forwarded=True)
         session.ui.register_for_keystrokes(self.text)

@@ -101,7 +101,22 @@ th.bundle {
     logger.info(info, is_html=use_html)
 
 
-def toolshed_list(session, bundle_type="installed", outdated=False):
+def _newest_by_name(bi_list):
+    from distlib.version import NormalizedVersion as Version
+    bundle_map = {}
+    for bi in bi_list:
+        try:
+            seen = bundle_map[bi.name]
+        except KeyError:
+            bundle_map[bi.name] = bi
+        else:
+            if Version(bi.version) > Version(seen.version):
+                bundle_map[bi.name] = bi
+    return bundle_map.values()
+
+
+def toolshed_list(session, bundle_type="installed",
+                  outdated=False, newest=True):
     '''List installed bundles in the log.
 
     Parameters
@@ -123,11 +138,14 @@ def toolshed_list(session, bundle_type="installed", outdated=False):
         bi_list = ts.bundle_info(logger, installed=False, available=True)
         if bi_list:
             logger.info("List of available bundles:")
+            if newest:
+                bi_list = _newest_by_name(bi_list)
             _display_bundles(bi_list, logger, use_html)
         else:
             logger.info("No available bundles found.")
 toolshed_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types),
-                                       ("outdated", BoolArg),],
+                                       ("outdated", BoolArg),
+                                       ("newest", BoolArg),],
                              non_keyword=['bundle_type'],
                              synopsis='List installed bundles')
 

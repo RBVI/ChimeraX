@@ -16,7 +16,7 @@ PKG_DIR = $(PYSITEDIR)/chimerax/core/surface
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/surface
 
 PYMOD_NAME = _surface
-SRCS	= border.cpp capper.cpp connected.cpp measure.cpp normals.cpp \
+SRCS	= border.cpp capper.cpp connected.cpp convexity.cpp measure.cpp normals.cpp \
 	  patches.cpp refinemesh.cpp sasa.cpp subdivide.cpp surface.cpp \
 	  triangulate.cpp tube.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))

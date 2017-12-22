@@ -325,7 +325,7 @@ class Logger(StatusLogger):
         self.logs.add(log)
         if self._early_collation == None:
             self._early_collation = False
-            early_collator.log_summary(self, "Startup Errors")
+            early_collator.log_summary(self)
 
     def clear(self):
         """clear all loggers"""
@@ -398,12 +398,20 @@ class Logger(StatusLogger):
         elif isinstance(exception_value, CancelOperation):
             pass  # Cancelled operations are not reported
         else:
+            from html import escape
             if error_description:
-                tb_msg = error_description
+                tb_msg = escape(error_description)
             else:
                 tb = format_exception(ei[0], ei[1], ei[2])
                 tb_msg = "".join(tb)
-            self.info(tb_msg)
+                # preserve exception traceback's indentation
+                tmp = []
+                for line in tb_msg.split('\n'):
+                    text = line.lstrip()
+                    num_spaces = len(line) - len(text)
+                    tmp.append('&nbsp;' * num_spaces + escape(text))
+                tb_msg = "<br>\n".join(tmp)
+            self.info(tb_msg, is_html=True)
 
             err = "".join(format_exception_only(ei[0], ei[1]))
             loc = "".join(format_tb(ei[2])[-1:])
@@ -632,6 +640,12 @@ class _EarlyCollator(CollatingLog):
     """Collate any errors that occur before any "real" log hits the log stack."""
     excludes_other_logs = False
 
+    def log_summary(self, logger):
+        if self.msgs[self.LEVEL_ERROR]:
+            title = "Startup Errors"
+        else:
+            title = "Startup Messages"
+        CollatingLog.log_summary(self, logger, title)
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""

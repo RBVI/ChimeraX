@@ -58,8 +58,8 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
             satoms = s.atoms
             name = 'mlp ' + s.name.split(maxsplit=1)[0]
             v = mlp_map(session, satoms, method, spacing, max_distance, nexp, name, open_map = map)
-            from chimerax.core.commands.scolor import scolor
-            scolor(session, satoms, map = v, palette = cmap, range = range)
+            from chimerax.core.commands.scolor import color_surfaces_by_map_value
+            color_surfaces_by_map_value(satoms, map = v, palette = cmap, range = range)
     else:
         name = 'mlp map'
         v = mlp_map(session, atoms, method, spacing, max_distance, nexp, name, open_map = map)
@@ -91,7 +91,7 @@ def mlp_map(session, atoms, method, spacing, max_dist, nexp, name, open_map):
     g = Array_Grid_Data(data, origin, step, name = name)
     g.polar_values = True
     from chimerax.core.map import volume_from_grid_data
-    v = volume_from_grid_data(g, session, open_model = open_map, show_data = open_map, show_dialog = open_map)
+    v = volume_from_grid_data(g, session, open_model = open_map, show_dialog = open_map)
     return v
 
 #

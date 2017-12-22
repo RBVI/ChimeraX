@@ -46,12 +46,10 @@ def laplacian(v, step = None, subregion = None, model_id = None):
                        name = v.name + ' Laplacian')
   ld.polar_values = True
   from .. import volume_from_grid_data
-  lv = volume_from_grid_data(ld, v.session, show_data = False, model_id = model_id)
+  lv = volume_from_grid_data(ld, v.session, model_id = model_id)
   lv.copy_settings_from(v, copy_thresholds = False, copy_colors = False)
   lv.set_parameters(cap_faces = False)
-  lv.initialize_thresholds()
-  lv.show()
   
-  v.unshow()          # Hide original map
+  v.display = False          # Hide original map
 
   return lv

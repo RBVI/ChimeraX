@@ -77,7 +77,7 @@ class Data_Cache:
     if not group in groups:
       return []
 
-    kd = map(lambda d: (d.key, d.value), groups[group])
+    kd = [(d.key, d.value) for d in groups[group]]
     return kd
 
   # ---------------------------------------------------------------------------

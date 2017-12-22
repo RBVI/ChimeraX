@@ -284,16 +284,20 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors, transparency)
     node_index = {d:di for di,d in enumerate(drawings)}
     shown_models = [m for m in models if m in node_index]
+    child_nodes = set(sum([n.get('children',[]) for n in nodes], []))
+    top_models = [m for m in shown_models if node_index[m] not in child_nodes]
+    top_nodes = [node_index[m] for m in top_models]
     
     if center is not None or size is not None:
         from chimerax.core.geometry import union_bounds
-        bounds = union_bounds(m.bounds() for m in shown_models)
-        mnodes = [nodes[node_index[m]] for m in shown_models]
-        center_and_size(mnodes, bounds, center, size)
+        bounds = union_bounds(m.bounds() for m in top_models)
+        tnodes = [nodes[ni] for ni in top_nodes]
+        # Apply matrix to only top-level nodes
+        center_and_size(tnodes, bounds, center, size)
         
     h = {
         'asset': {'version': '2.0', 'generator': app_ver},
-        'scenes': [{'nodes':[node_index[m] for m in shown_models]}],
+        'scenes': [{'nodes':top_nodes}],
         'nodes': nodes,
         'meshes': meshes,
         'accessors': b.accessors,
@@ -440,6 +444,7 @@ def limit_vertex_count(geom, vmax = 2**16):
                     svc = None if vc is None else vc[vi]
                     from numpy import array
                     sta = array([vmap[v] for tv in ta[ti0:ti+1] for v in tv])
+                    sta = sta.reshape((len(sta)//3,3))
                     lgeom.append((sva,sna,svc,sta))
                     vi = []
                     vmap = {}

@@ -144,7 +144,7 @@ def show_color(session, name):
 
 def delete_color(session, name):
     """Remove a custom color."""
-    if name == 'all':
+    if name == 'custom':
         color_names = session.user_colors.list()
         for name in color_names:
             session.user_colors.remove(name)
@@ -221,7 +221,7 @@ def register_command(session):
     )
     register(
         'color delete',
-        CmdDesc(required=[('name', Or(EnumOf(['all']), StringArg))],
+        CmdDesc(required=[('name', Or(EnumOf(['custom']), StringArg))],
                 synopsis="remove color definition"),
         delete_color, logger=session.logger
     )

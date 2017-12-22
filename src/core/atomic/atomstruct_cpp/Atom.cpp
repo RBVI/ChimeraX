@@ -19,6 +19,7 @@
 #include <utility>  // for std::pair
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "ChangeTracker.h"
@@ -29,7 +30,10 @@
 #include "Pseudobond.h"
 #include "Residue.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
 #include <pysupport/convert.h>
+
+template class pyinstance::PythonInstance<atomstruct::Atom>;
 
 namespace atomstruct {
 
@@ -39,7 +43,7 @@ Atom::Atom(Structure* as, const char* name, const Element& e):
     _residue(nullptr), _serial_number(-1), _structure(as),
     _structure_category(Atom::StructCat::Unassigned)
 {
-    structure()->change_tracker()->add_created(this);
+    change_tracker()->add_created(structure(), this);
     structure()->_structure_cats_dirty = true;
 }
 
@@ -51,7 +55,7 @@ Atom::~Atom()
         _aniso_u = nullptr;
     }
     DestructionUser(this);
-    structure()->change_tracker()->add_deleted(this);
+    change_tracker()->add_deleted(structure(), this);
     graphics_changes()->set_gc_adddel();
 }
 
@@ -133,7 +137,7 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
         cs->_coords[_coord_index] = coord;
         graphics_changes()->set_gc_shape();
         graphics_changes()->set_gc_ribbon();
-        structure()->change_tracker()->add_modified(cs, ChangeTracker::REASON_COORDSET);
+        change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
     }
 }
 
@@ -863,7 +867,8 @@ Atom::has_missing_structure_pseudobond() const
 }
 
 bool
-Atom::is_backbone(BackboneExtent bbe) const {
+Atom::is_backbone(BackboneExtent bbe) const
+{
     // hydrogens depend on the heavy atom they're attached to
     if (element().number() == 1) {
         if (bonds().size() == 1) {
@@ -897,19 +902,39 @@ Atom::is_ribose() const {
 }
 
 bool
-Atom::is_sidechain() const {
+Atom::is_side_connector() const
+{
     // hydrogens depend on the heavy atom they're attached to
     if (element().number() == 1) {
         if (bonds().size() == 1) {
             auto bonded = *neighbors().begin();
             // need to check neighbor element to prevent possible infinite loop for H2
-            return bonded->element().number() > 1 && bonded->is_sidechain();
+            return bonded->element().number() > 1 && bonded->is_side_connector();
+        }
+        return false;
+    }
+    const std::set<AtomName>* sc_names = residue()->side_connector_atom_names();
+    if (sc_names == nullptr)
+        return false;
+    return sc_names->find(name()) != sc_names->end();
+}
+
+bool
+Atom::is_side_chain(bool only) const {
+    // hydrogens depend on the heavy atom they're attached to
+    if (element().number() == 1) {
+        if (bonds().size() == 1) {
+            auto bonded = *neighbors().begin();
+            // need to check neighbor element to prevent possible infinite loop for H2
+            return bonded->element().number() > 1 && bonded->is_side_chain(only);
         }
         return false;
     }
     const std::set<AtomName>* bb_names = residue()->backbone_atom_names(BBE_MAX);
     if (bb_names == nullptr)
         return false;
+    if (!only && is_side_connector())
+        return true;
     return !is_backbone(BBE_MAX);
 }
 
@@ -1113,14 +1138,16 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
 {
     if (alt_loc == _alt_loc || alt_loc == ' ')
         return;
-    graphics_changes()->set_gc_shape();
-    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ALT_LOC);
+    if (structure()->alt_loc_change_notify()) {
+        graphics_changes()->set_gc_shape();
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ALT_LOC);
+    }
     if (create) {
         if (_alt_loc_map.find(alt_loc) != _alt_loc_map.end()) {
             set_alt_loc(alt_loc, create=false);
             return;
         }
-    _alt_loc_map[alt_loc];    // Create map entry.
+        _alt_loc_map[alt_loc];    // Create map entry.
         _alt_loc = alt_loc;
         return;
     }
@@ -1137,7 +1164,8 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
         _Alt_loc_info &info = (*i).second;
         _serial_number = info.serial_number;
         _alt_loc = alt_loc;
-        structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
+        if (structure()->alt_loc_change_notify())
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COORD);
     } else {
         residue()->set_alt_loc(alt_loc);
     }
@@ -1162,7 +1190,7 @@ Atom::set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u
     (*a)[3] = u22;
     (*a)[4] = u23;
     (*a)[5] = u33;
-    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ANISO_U);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ANISO_U);
 }
 
 void
@@ -1173,7 +1201,7 @@ Atom::set_bfactor(float bfactor)
         (*i).second.bfactor = bfactor;
     } else
         structure()->active_coord_set()->set_bfactor(this, bfactor);
-    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_BFACTOR);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_BFACTOR);
 }
 
 void
@@ -1182,14 +1210,14 @@ Atom::set_color(const Rgba& rgba)
     if (rgba == _rgba)
         return;
     graphics_changes()->set_gc_color();
-    change_tracker()->add_modified(this, ChangeTracker::REASON_COLOR);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COLOR);
     _rgba = rgba;
 }
 
 void
 Atom::set_coord(const Coord& coord, CoordSet* cs)
 {
-    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COORD);
     if (cs == nullptr) {
         cs = structure()->active_coord_set();
         if (cs == nullptr) {
@@ -1217,7 +1245,7 @@ Atom::set_display(bool d)
         return;
     graphics_changes()->set_gc_shape();
     graphics_changes()->set_gc_display();
-    change_tracker()->add_modified(this, ChangeTracker::REASON_DISPLAY);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_DISPLAY);
     _display = d;
 }
 
@@ -1228,7 +1256,7 @@ Atom::set_draw_mode(DrawMode dm)
         return;
     graphics_changes()->set_gc_shape();
     graphics_changes()->set_gc_display();	// Sphere style can effect if bonds are shown.
-    change_tracker()->add_modified(this, ChangeTracker::REASON_DRAW_MODE);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_DRAW_MODE);
     _draw_mode = dm;
 }
 
@@ -1239,14 +1267,14 @@ Atom::set_hide(int h)
         return;
     graphics_changes()->set_gc_shape();
     graphics_changes()->set_gc_display();
-    change_tracker()->add_modified(this, ChangeTracker::REASON_HIDE);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_HIDE);
     _hide = h;
 }
 
 void
 Atom::set_occupancy(float occupancy)
 {
-    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_OCCUPANCY);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_OCCUPANCY);
     if (_alt_loc != ' ') {
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         (*i).second.occupancy = occupancy;
@@ -1264,7 +1292,7 @@ Atom::set_radius(float r)
         return;
 
     graphics_changes()->set_gc_shape();
-    change_tracker()->add_modified(this, ChangeTracker::REASON_RADIUS);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RADIUS);
     _radius = r;
 }
 
@@ -1274,7 +1302,7 @@ Atom::set_selected(bool s)
     if (s == _selected)
         return;
     graphics_changes()->set_gc_select();
-    change_tracker()->add_modified(this, ChangeTracker::REASON_SELECTED);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SELECTED);
     _selected = s;
 }
 
@@ -1286,7 +1314,7 @@ Atom::set_serial_number(int sn)
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         (*i).second.serial_number = sn;
     }
-    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_SERIAL_NUMBER);
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SERIAL_NUMBER);
 }
 
 std::string

@@ -16,14 +16,14 @@
 #ifndef atomstruct_Sequence
 #define atomstruct_Sequence
 
-#include <vector>
 #include <map>
+#include <pyinstance/PythonInstance.declare.h>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "imex.h"
 #include "polymer.h"
-#include "PythonInstance.h"
 #include "session.h"
 #include "string_types.h"
 
@@ -42,7 +42,7 @@ public:
     SeqIndexError(const std::string& msg) : std::range_error(msg) {}
 };
 
-class ATOMSTRUCT_IMEX Sequence: public PythonInstance {
+class ATOMSTRUCT_IMEX Sequence: public pyinstance::PythonInstance<Sequence> {
 public:
     typedef std::vector<char>  Contents;
 protected:

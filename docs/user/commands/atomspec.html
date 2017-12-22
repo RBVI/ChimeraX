@@ -49,8 +49,8 @@ can be specified using:
     </ul>
   <li><a href="#builtin">built-in classifications</a>
   - <b>sel</b> (current <a href="../selection.html">selection</a>),
-  <b>protein</b>, <b>helix</b>, <b>strand</b>, 
-  <b>solvent</b>, element symbols, functional groups, <i>etc.</i>
+  <b>protein</b>, <b>helix</b>, <b>strand</b>, <b>ligand</b>, <b>hbonds</b>,
+  element symbols, functional groups, <i>etc.</i>
   <li><a href="#user">user-defined targets</a>
   <font color="brown">(not yet implemented)</font> 
   <li><a href="#attributes">attribute</a> names and values
@@ -127,13 +127,21 @@ but the hierarchy allows grouping.
 That is, submodels at any level can be specified individually 
 by their own numbers, or collectively by their parent model number.
 </p><p>
-A molecular model contains one or more <b><i>chains</i></b>, 
+An atomic model contains one or more <b><i>chains</i></b>, 
 each chain contains one or more <b><i>residues</i></b>, and each residue
 contains one or more <b><i>atoms</i></b>.
 Thus, an atom can be specified by model number, chain identifier (ID),
 residue number, and atom name. The lack of a specifier is interpreted 
 as all units at the associated level; for example, if no chain ID is given,
 the specification refers to all chains.
+Specifying a set of atoms always specifies any <b><i>bonds</i></b> and
+<a href="../pseudobonds.html"><b><i>pseudobonds</i></b></a>
+between pairs of atoms in the set.
+A <a href="../pseudobonds.html">pseudobond model</a>
+can also be specified directly by its own model number
+(not necessarily within the atomic-model hierarchy).
+<a href="../markers.html"><b><i>Markers</i></b> and <b><i>links</i></b></a>
+are basically the same as atoms and bonds and can be specified in the same ways.
 </p><p>
 Chain IDs, residue names and numbers,
 and atom names are read from the input file.
@@ -141,10 +149,6 @@ In <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbin
 standard nomenclature is used for standard amino acid and nucleic acid residues.
 Asterisks (<b>*</b>) in PDB input atom names will be translated 
 to prime symbols (<b>'</b>).
-</p><p>
-A <a href="../pseudobonds.html">pseudobond</a> 
-model can also be specified directly by its own model number
-(not necessarily within the atomic-model hierarchy).
 </p>
 
 <a name="capitalization"></a>
@@ -234,10 +238,10 @@ currently implemented)</font>
 <h4><a href="#hierarchy" class="nounder"><b>&larr;</b></a>
 Implicit Operations</h4>
 <p>
-In the examples above, the hierarchical symbols were used only in descending 
-order (<b># / : @</b>), with each successive level applying to the levels
-that came before it. However, the hierarchy can be &ldquo;reset&rdquo; 
-by repeating a level or returning to a higher level.
+When the hierarchical symbols are used in descending order (<b># / : @</b>),
+each successive level only specifies items within the broader specification
+that came before it. The hierarchy can be &ldquo;reset&rdquo; for lower
+levels, however, by repeating or returning to a higher level.
 Examples:
 <blockquote>
 <b>:12,14@CA</b>
@@ -256,17 +260,18 @@ Examples:
 - <i>all</i> atoms of chain A,
 CA atoms of residues 12-20 and N atom of residue 14 in chain B
 <blockquote>
-<b>/a:50-60,66/b:52-62,69@n,ca,c,o</b>
+<b>/a:10-20,26/b:12-22,29@n,ca,c,o</b>
 </blockquote>
-- <i>all</i> atoms of chain A residues 50-60 and 66, plus
-atoms named N, CA, C, O in chain B residues 52-62 and 69
+- <i>all</i> atoms of chain A residues 10-20 and 26, plus
+atoms named N, CA, C, O in chain B residues 12-22 and 29
 <blockquote>
-<b>/a:50-60,66/b:52-62,69 & @n,ca,c,o</b>
+<b>/a:10-20,26@n,ca,c,o/b:12-22,29@n,ca,c,o</b>
+<br>- or -<br>
+<b>/a:10-20,26/b:12-22,29 & @n,ca,c,o</b>
 </blockquote>
-- atoms named N, CA, C, O in chain A residues 50-60, 66
-and in chain B residues 52-62, 69; intersection <b>&amp;</b>
-(see <a href="#combinations">combinations</a>) is needed to specify
-only the named atoms in both chains
+- atoms named N, CA, C, O in chain A residues 10-20, 26
+and in chain B residues 12-22, 29 (<b>&amp;</b> means intersection,
+see <a href="#combinations">combinations</a>)
 <blockquote>
 <b>#1,2.1</b>
 </blockquote>
@@ -330,10 +335,15 @@ Built-in classifications include:
 <li>biopolymer types <b>protein</b>, <b>nucleic</b> or <b>nucleic-acid</b>,
 and their subparts:
   <ul>
-  <li><b>sidechain</b> - amino acid sidechain (not including CA), nucleic 
-  acid base (not including ribose C1'), and any directly attached hydrogens
+  <li><b>sidechain</b> - amino acid sidechain + CA (for connectivity
+  to <a href="cartoon.html">cartoon</a> representations), nucleic acid base
+  + <b>ribose</b> (see below), and any directly attached hydrogens
+  <li><b>sideonly</b> - amino acid sidechain,
+  nucleic acid base, and any directly attached hydrogens
   <li><b>mainchain</b> (or <b>backbone</b>) 
-  - the complement of <b>sidechain</b>
+  - the complement of <b>sideonly</b>, namely:
+  peptide N, CA, C, O, nucleic acid phosphoribosyl backbone,
+  and any directly attached hydrogens
   <li><b>ribose</b> - backbone ribose and deoxyribose moieties
   </ul>
 <li>protein/peptide secondary structure types:
@@ -353,10 +363,8 @@ or if nothing is selected, all atomic models
 <li><b>selMaps</b> - the currently <a href="../selection.html">selected</a>
 volume models, or if none are selected, all volume models
 <li><b>pbonds</b> - all <a href="../pseudobonds.html">pseudobonds</a>
-and their flanking atoms
 <li><b>hbonds</b> - H-bond <a href="../pseudobonds.html">pseudobonds</a>
 (those in a pseudobond model named <b>hydrogen bonds</b>)
-and their flanking atoms
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
@@ -832,6 +840,7 @@ A zone specification has the following parts:
   <ul>
   <li>a level symbol: <b>@</b> (atom-based cutoff), <b>:</b> (residue-based), 
   <b>/</b> (chain-based), or <b>#</b> (atomic-model-based)
+<!-- chain-based means promoted to all atoms with that chain ID -->
   <li>an inequality symbol: 
     <b>&lt;</b> (less than; for zones, also includes equal to)
     or <b>&gt;</b> (greater than)
@@ -925,12 +934,21 @@ formally positive nitrogens
 </blockquote>
 - cysteine sulfur atoms not participating in a disulfide bond
 <blockquote>
-<b>:phe,tyr &amp; (sidechain | @ca)</b>
+<b>:phe,tyr &amp; <a href="#builtin">sidechain</a></b>
 </blockquote>
-- sidechain and CA atoms of phenylalanine and tyrosine
+- phenylalanine and tyrosine sidechains (including CA)
+<blockquote>
+<b><a href="#builtin">sidechain</a> & ligand :<4</b>
+</blockquote>
+- sidechains (including peptide CA and nucleic acid ribose) 
+of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
+<blockquote>
+<b><a href="#builtin">sideonly</a> & ligand @<4</b>
+</blockquote>
+- sidechain atoms within 4 &Aring; of <a href="#surfcats">ligand</a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+November 2017</address>
 </body></html> 

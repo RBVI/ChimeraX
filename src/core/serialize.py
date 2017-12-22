@@ -54,7 +54,7 @@ from PIL import Image
 from .session import _UniqueName
 from .state import FinalizedState
 
-#from ._serial_ext import msgpack_serialize_stream, msgpack_deserialize_stream
+# from ._serial_python import msgpack_serialize_stream, msgpack_deserialize_stream
 from ._serialize import msgpack_serialize_stream, msgpack_deserialize_stream
 
 # TODO: remove pickle and msgpack v2 after corresponding sessions
@@ -119,38 +119,12 @@ def pickle_deserialize(stream):
     return unpickler.load()
 
 
-def _encode_image(img):
-    import io
-    stream = io.BytesIO()
-    img.save(stream, format='PNG')
-    data = stream.getvalue()
-    stream.close()
-    return data
-
-
 def _decode_image(data):
     import io
     stream = io.BytesIO(data)
     img = Image.open(stream)
     img.load()
     return img
-
-
-def _encode_ndarray_v2(o):
-    # inspired by msgpack-numpy package
-    if o.dtype.kind == 'V':
-        # structured array
-        kind = b'V'
-        dtype = o.dtype.descr
-    else:
-        kind = b''
-        dtype = o.dtype.str
-    if 'O' in dtype:
-        raise TypeError("Can not serialize numpy arrays of objects")
-    return (
-        (b'kind', kind), (b'dtype', dtype),
-        (b'shape', o.shape), (b'data', o.tobytes())
-    )
 
 
 def _decode_ndarray(data):
@@ -161,19 +135,6 @@ def _decode_ndarray(data):
     return numpy.fromstring(data[b'data'], numpy.dtype(dtype)).reshape(data[b'shape'])
 
 
-def _encode_numpy_number_v2(o):
-    return (
-        (b'dtype', o.dtype.str), (b'data', o.tobytes())
-    )
-
-
-def _encode_numpy_number(o):
-    return {
-        b'dtype': o.dtype.str,
-        b'data': o.tobytes()
-    }
-
-
 def _decode_numpy_number(data):
     return numpy.fromstring(data[b'data'], numpy.dtype(data[b'dtype']))[0]
 
@@ -181,62 +142,6 @@ def _decode_numpy_number(data):
 def _decode_datetime(data):
     from dateutil.parser import parse
     return parse(data)
-
-
-_encode_handlers_v2 = {
-    # type : lambda returning OrderedDict with unique __type__ first
-    # __type__ is index into decode array
-    _UniqueName: lambda o: OrderedDict(
-        (('__type__', 0), ('uid', o.uid))
-    ),
-    # __type__ == 1 is for numpy arrays
-    complex: lambda o: OrderedDict(
-        (('__type__', 2), ('args', (o.real, o.imag)))
-    ),
-    set: lambda o: OrderedDict(
-        (('__type__', 3), ('args', tuple(o)))
-    ),
-    frozenset: lambda o: OrderedDict(
-        (('__type__', 4), ('args', tuple(o)))
-    ),
-    OrderedDict: lambda o: OrderedDict(
-        (('__type__', 5),) + tuple(o.items())
-    ),
-    deque: lambda o: OrderedDict(
-        (('__type__', 6), ('args', tuple(o)))
-    ),
-    datetime: lambda o: OrderedDict(
-        (('__type__', 7), ('arg', o.isoformat()))
-    ),
-    timedelta: lambda o: OrderedDict(
-        (('__type__', 8), ('args', (o.days, o.seconds, o.microseconds)))
-    ),
-    Image.Image: lambda o: OrderedDict(
-        (('__type__', 9), ('arg', _encode_image(o)))
-    ),
-    # __type__ == 10 is for numpy scalars
-    FinalizedState: lambda o: OrderedDict(
-        (('__type__', 11), ('arg', o.data))
-    ),
-    timezone: lambda o: OrderedDict(
-        (('__type__', 12), ('arg', o.__getinitargs__()))
-    ),
-}
-
-
-def _encode_v2(obj):
-    cvt = _encode_handlers_v2.get(type(obj), None)
-    if cvt is not None:
-        return cvt(obj)
-    # handle numpy subclasses
-    if isinstance(obj, numpy.ndarray):
-        return OrderedDict((('__type__', 1),) + _encode_ndarray_v2(obj))
-    if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
-        return OrderedDict((('__type__', 10),) + _encode_numpy_number_v2(obj))
-
-    obj_cls = type(obj)
-    raise RuntimeError("Can't convert object of type: %s.%s" % (
-                       obj_cls.__module__, obj_cls.__name__))
 
 
 _decode_handlers_v2 = [
@@ -268,12 +173,6 @@ def _decode_pairs_v2(pairs):
         return OrderedDict(pairs)
     cvt = _decode_handlers_v2[pairs[0][1]]
     return cvt(pairs[1:])
-
-
-def msgpack_serialize_stream_v2(stream):
-    packer = msgpack.Packer(default=_encode_v2, use_bin_type=True,
-                            use_single_float=False)
-    return stream, packer
 
 
 def msgpack_deserialize_stream_v2(stream):

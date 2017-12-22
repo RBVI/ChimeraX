@@ -12,7 +12,7 @@
 #
 def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew',
           cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6,
-          hide_models = True, play = True, color_segments = False, color_core = None):
+          hide_models = True, play = True, slider = True, color_segments = False, color_core = None):
     '''
     Morph between atomic models using Yale Morph Server algorithm.
 
@@ -44,6 +44,8 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         Whether to hide the input models after morph model is created.  Default true.
     play : bool
         Whether to play the morph.  Default true.
+    slider : bool
+        Whether to show a slider to play through the morph.  Default true.
     color_segments : bool
         Whether to color the residues for each rigid segment with a unique color.
         This is to see how the morph algorithm divided the structure into segments.
@@ -73,6 +75,10 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     if hide_models:
         for m in structures:
             m.display = False
+
+    if slider and session.ui.is_gui:
+        from chimerax.core.commands.coordset import coordset_slider
+        coordset_slider(session, [traj])
 
     if play:
         csids = traj.coordset_ids
@@ -112,6 +118,7 @@ def register_morph_command(logger):
                    ('min_hinge_spacing', IntArg),
                    ('hide_models', BoolArg),
                    ('play', BoolArg),
+                   ('slider', BoolArg),
                    ('color_segments', BoolArg),
                    ('color_core', ColorArg)],
         synopsis = 'morph atomic structures'

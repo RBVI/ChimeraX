@@ -16,5 +16,5 @@
 #
 def open(path):
 
-  from pif_grid import PIF_Grid
+  from .pif_grid import PIF_Grid
   return [PIF_Grid(path)]

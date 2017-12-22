@@ -21,11 +21,11 @@ class SPIDER_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import spider_format
+    from . import spider_format
     d = spider_format.SPIDER_Data(path)
     self.spider_data = d
 
-    origin = map(lambda a, b: a * b, d.data_origin, d.data_step)
+    origin = tuple(a * b for a,b in zip(d.data_origin, d.data_step))
 
     Grid_Data.__init__(self, d.data_size, origin = origin, step = d.data_step,
                        path = path, file_type = 'spider')

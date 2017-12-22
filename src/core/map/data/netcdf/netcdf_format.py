@@ -72,8 +72,8 @@ class NetCDF_Data:
     angle = self.read_float(f, 'rotation_angle', None)
     if axis is None or angle is None:
       return ((1,0,0),(0,1,0),(0,0,1))
-    import Matrix
-    r = Matrix.rotation_from_axis_angle(axis, angle)
+    from chimerax.core.geometry import matrix
+    r = matrix.rotation_from_axis_angle(axis, angle)
     return r
 
   # ---------------------------------------------------------------------------
@@ -270,7 +270,7 @@ class NetCDF_Array:
       progress.close_on_cancel(f)
     v = f.variables[self.variable_name]
     i1, j1, k1 = ijk_origin
-    i2, j2, k2 = map(lambda i, s: i+s, ijk_origin, ijk_size)
+    i2, j2, k2 = [i+s for i,s in zip(ijk_origin, ijk_size)]
     istep, jstep, kstep = ijk_step
     from ..readarray import allocate_array
     m = allocate_array(ijk_size, self.dtype, ijk_step, progress)
@@ -294,7 +294,7 @@ def write_grid_as_netcdf(grid_data, outpath, options = {}, progress = None):
     progress.close_on_cancel(f)
 
   # createDimension() cannot handle long integer size values
-  xsize, ysize, zsize = map(int, grid_data.size)
+  xsize, ysize, zsize = [int(s) for s in grid_data.size]
   f.createDimension('x', xsize)
   f.createDimension('y', ysize)
   f.createDimension('z', zsize)
@@ -304,8 +304,8 @@ def write_grid_as_netcdf(grid_data, outpath, options = {}, progress = None):
   if grid_data.cell_angles != (90,90,90):
     f.cell_angles = grid_data.cell_angles
   if grid_data.rotation != ((1,0,0),(0,1,0),(0,0,1)):
-    import Matrix
-    axis, angle = Matrix.rotation_axis_angle(grid_data.rotation)
+    from chimerax.core.geometry import matrix
+    axis, angle = matrix.rotation_axis_angle(grid_data.rotation)
     f.rotation_axis = axis
     f.rotation_angle = angle
 
@@ -348,7 +348,7 @@ def subsample_arrays(grid_data, dname, f):
 
   sarrays = []
 
-  from . import Subsampled_Grid
+  from .. import Subsampled_Grid
   if not isinstance(grid_data, Subsampled_Grid):
     return sarrays
 
@@ -357,7 +357,7 @@ def subsample_arrays(grid_data, dname, f):
   cslist.sort()
   for cell_size in cslist:
     ss_grid_data = grid_data.available_subsamplings[cell_size]
-    xsize, ysize, zsize = map(int, ss_grid_data.size)
+    xsize, ysize, zsize = [int(s) for s in ss_grid_data.size]
     suffix = '_%d%d%d' % cell_size
     xname, yname, zname = 'x'+suffix, 'y'+suffix, 'z'+suffix
     f.createDimension(xname, xsize)

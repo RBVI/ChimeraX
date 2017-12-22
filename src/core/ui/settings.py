@@ -21,4 +21,7 @@ class UI_Settings(Settings):
             'Mouse Modes for Right Button', 'Graphics Toolbar',
             'Command Line Interface',
         ],
+        'undockable': [
+            'Help Viewer',
+        ],
     }

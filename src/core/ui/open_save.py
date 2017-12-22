@@ -21,7 +21,7 @@ TODO
 """Just use PyQt5.QtWidgets.QFileDialog for opening files"""
 from PyQt5.QtWidgets import QFileDialog
 class SaveDialog(QFileDialog):
-    def __init__(self, parent, *args, **kw):
+    def __init__(self, parent = None, *args, **kw):
         default_suffix = kw.pop('add_extension', None)
         name_filter = kw.pop('name_filter', None)
         super().__init__(parent, *args, **kw)
@@ -53,7 +53,7 @@ class SaveDialog(QFileDialog):
         return path
 
 class OpenDialogWithMessage(QFileDialog):
-    def __init__(self, parent, message = '', caption = 'Open File', starting_directory = None):
+    def __init__(self, parent = None, message = '', caption = 'Open File', starting_directory = None):
         if starting_directory is None:
             import os
             starting_directory = os.getcwd()

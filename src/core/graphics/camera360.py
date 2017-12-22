@@ -37,7 +37,7 @@ class Mono360Camera(Camera):
         '''Number of views rendered by camera mode.'''
         return 6
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         '''
         Return the shift that makes the camera completely show models
         having specified bounds.  The camera view direction is not changed.
@@ -116,7 +116,7 @@ class Stereo360Camera(Camera):
         '''Number of views rendered by camera mode.'''
         return 12
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         '''
         Return the shift that makes the camera completely show models
         having specified bounds.  The camera view direction is not changed.

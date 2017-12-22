@@ -21,14 +21,12 @@ class PROFEC_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import profec_format
+    from . import profec_format
     eg = profec_format.PROFEC_Potential(path)
     self.energy_grid = eg
-    import Matrix
-    r = Matrix.orthogonalize(eg.rotation)
     Grid_Data.__init__(self, eg.grid_size,
                        origin = eg.origin, step = eg.step,
-                       rotation = r,
+                       rotation = eg.rotation,
                        path = path, file_type = 'profec')
   
   # ---------------------------------------------------------------------------

@@ -14,6 +14,7 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "Chain.h"
@@ -21,7 +22,11 @@
 #include "Residue.h"
 #include "Sequence.h"
 #include "Structure.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
 #include <stdexcept>
+
+template class pyinstance::PythonInstance<atomstruct::Bond>;
 
 namespace atomstruct {
 
@@ -60,6 +65,7 @@ Bond::Bond(Structure* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
         }
     }
     a1->structure()->_structure_cats_dirty = true;
+    change_tracker()->add_created(a1->structure(), this);
 }
 
 enum XResType { NonPolymer, Capping, Polymer };

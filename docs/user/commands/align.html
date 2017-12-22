@@ -24,14 +24,14 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: align</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>align</b>
 &nbsp;<a href="atomspec.html"><i>matchatoms</i></a>&nbsp; <b>toAtoms</b> 
 &nbsp;<a href="atomspec.html"><i>refatoms</i></a>&nbsp;
 [&nbsp;<b>cutoffDistance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>move</b>&nbsp;&nbsp;<i>what</i>&nbsp;]
 [&nbsp;<b>each</b>&nbsp;&nbsp;<i>level</i>&nbsp;]
-[&nbsp;<b>reportMatrix</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>reportMatrix</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#pairing-options"><i>pairing-options</i></a></h3>
 <p>
 The <b>align</b> command performs least-squares fitting of 
@@ -88,7 +88,8 @@ rather than collectively, where the <i>level</i> can be:
 separately
 </ul>
 <p>
-The <b>reportMatrix</b> option indicates whether to show the transformation 
+The <b>reportMatrix</b> option (default <b>false</b>)
+indicates whether to show the transformation 
 matrix or matrices in the <a href="../tools/log.html"><b>Log</b></a>.
 </p>
 
@@ -118,5 +119,5 @@ Atoms are assumed to be in residue-number order.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+October 2017</address>
 </body></html>

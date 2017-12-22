@@ -14,10 +14,10 @@ TOP = ..
 include $(TOP)/mk/config.make
 
 ifdef WIN32
-RST2HTML = $(shell cygpath -m $(bindir)/Scripts/rst2html.py)
-HTML2TEXT = $(bindir)/Scripts/html2text.exe
+RST2HTML = $(shell cygpath -m $(app_bindir)/Scripts/rst2html.py)
+HTML2TEXT = $(app_bindir)/Scripts/html2text.exe
 else
-RST2HTML = $(bindir)/rst2html.py
+RST2HTML = $(app_bindir)/rst2html.py
 endif
 
 SUBDIRS = devel pdbimages quickstart user js
@@ -45,7 +45,7 @@ need_app:
 # rst2html converts quotes to Unicode.
 # We turn them back into HTML entities.
 license.html: license.rst need_app
-	$(PYTHON_EXE) $(RST2HTML) \
+	$(APP_PYTHON_EXE) $(RST2HTML) \
 			--no-xml-declaration \
 			--smart-quotes=alt \
 			--stylesheet-path=license.css \
@@ -55,7 +55,7 @@ license.html: license.rst need_app
 			-e "s/\o342\o200\o231/'/g" \
 		> license.html
 ifdef WIN32
-	$(PYTHON_EXE) -m pip install html2text
+	$(APP_PYTHON_EXE) -m pip install html2text
 	$(HTML2TEXT) --body-width=0 license.html > license.txt
 endif
 

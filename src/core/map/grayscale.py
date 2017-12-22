@@ -171,6 +171,9 @@ class GrayScaleDrawing(Drawing):
         bi.set_grid_size(grid_size)
 
   def draw(self, renderer, place, draw_pass, selected_only = False):
+    if not self.display:
+      return
+    
     self.update_blend_groups()
     bi = self.blend_image
     if bi:
@@ -340,9 +343,9 @@ class GrayScaleDrawing(Drawing):
     t = self.texture_planes.get((k,axis))
     if t is None:
       d = self.color_plane(k, axis)
+      dc = d.copy()	# Data array may be reused before texture is filled so copy it.
       from ..graphics import Texture
-      t = Texture(d)
-      t.fill_opengl_texture()	# Data array may be reused, so fill opengl texture now.
+      t = Texture(dc)
       self.texture_planes[(k,axis)] = t
     return t
 

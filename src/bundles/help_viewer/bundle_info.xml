@@ -10,7 +10,7 @@
   <Description>Support help command and GUI.</Description>
 
   <DataFiles>
-    <DataFile>*.png</DataFile>
+    <DataFile>*.svg</DataFile>
   </DataFiles>
 
   <Categories>

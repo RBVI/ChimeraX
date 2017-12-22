@@ -12,12 +12,14 @@
 def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
                   cartesian = False, match_same = False, core_fraction = 0.5, min_hinge_spacing = 6,
                   color_segments = False, color_core = None):
+        from time import time
+        t0 = time()
         motion = MolecularMotion(mols[0], method = method, rate = rate, frames = frames,
                                  match_same = match_same, core_fraction = core_fraction,
-                                 min_hinge_spacing = min_hinge_spacing)
+                                 min_hinge_spacing = min_hinge_spacing, log = log)
         traj = motion.trajectory()
         from .interpolate import ResidueInterpolator
-        res_interp = ResidueInterpolator(traj.residues, cartesian)
+        res_interp = ResidueInterpolator(traj.residues, cartesian, log)
         for i, mol in enumerate(mols[1:]):
                 log.status("Computing interpolation %d\n" % (i+1))
                 res_groups = motion.interpolate(mol, res_interp)
@@ -35,13 +37,15 @@ def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
                                         r.ribbon_color = rgba
                                         r.atoms.colors = rgba
         traj.active_coordset_id = 1	# Start at initial trajectory frame.
+        t1 = time()
+        log.status('Computed morph %d frames in %.3g seconds' % (traj.num_coordsets, t1-t0))
         return traj
 
 ht = it = 0
 class MolecularMotion:
 
         def __init__(self, m, method = "corkscrew", rate = "linear", frames = 20,
-                     match_same = False, core_fraction = 0.5, min_hinge_spacing = 6):
+                     match_same = False, core_fraction = 0.5, min_hinge_spacing = 6, log = None):
                 """
                 Compute a trajectory that starting from molecule m conformation.
                 Subsequent calls to interpolate must supply molecules
@@ -67,6 +71,7 @@ class MolecularMotion:
                                         to move rigidly.
                 	min_hinge_spacing  Minimum length of consecutive residue segment
                 			   to move rigidly.
+                        log             Logger for providing status messages
                 """
 
                 # Make a copy of the molecule to hold the computed trajectory
@@ -81,6 +86,7 @@ class MolecularMotion:
                 self.match_same = match_same
                 self.core_fraction = core_fraction
                 self.min_hinge_spacing = min_hinge_spacing
+                self.log = log
 
         def interpolate(self, m, res_interp, color_segments = False):
                 """Interpolate to new conformation 'm'."""
@@ -96,13 +102,14 @@ class MolecularMotion:
                 t0 = time()
                 cf = self.core_fraction
                 mhs = self.min_hinge_spacing
+                log = self.log
                 if self.match_same:
-                        results = segment.segmentHingeSame(sm, m, cf, mhs)
+                        results = segment.segmentHingeSame(sm, m, cf, mhs, log=log)
                 else:
                         try:
-                                results = segment.segmentHingeExact(sm, m, cf, mhs)
+                                results = segment.segmentHingeExact(sm, m, cf, mhs, log=log)
                         except ValueError:
-                                results = segment.segmentHingeApproximate(sm, m, cf, mhs)
+                                results = segment.segmentHingeApproximate(sm, m, cf, mhs, log=log)
                 t1 = time()
                 global ht
                 ht += t1-t0

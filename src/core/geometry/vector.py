@@ -47,10 +47,15 @@ from ._geometry import maximum_norm
 '''Inner product of two vectors accumulated as a 64-bit float result.'''
 from ._geometry import inner_product_64
 
+from math import sqrt, acos, degrees, radians, sin, cos
 
 def inner_product(u, v):
     '''Return the inner product of two vectors.'''
-    return (u * v).sum()
+    if len(u) == 3:
+        # the below is considerably faster than even the C++ implementation,
+        # as well as Python equivalents using zip() and sum()
+        return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]
+    return inner_product_64(u, v)
 
 def distance_squared(p, q):
     '''Return the distance squared between two points.'''
@@ -62,7 +67,6 @@ def distance_squared(p, q):
 
 def distance(p, q):
     '''Return the distance between two points.'''
-    from math import sqrt
     return sqrt(distance_squared(p, q))
 
 def interpolate_points(p1, p2, f):
@@ -112,7 +116,6 @@ def angle(p0, p1, p2 = None):
         acc = 1
     elif acc < -1:
         acc = -1
-    from math import acos, degrees
     return degrees(acos(acc))
 
 def dihedral(p0, p1, p2, p3):
@@ -138,7 +141,6 @@ def dihedral_point(n1, n2, n3, dist, angle, dihed):
     x = normalize_vector(cross_product(v13, v12))
     y = normalize_vector(cross_product(v12, x))
 
-    from math import radians, sin, cos
     radAngle = radians(angle)
     tmp = dist * sin(radAngle)
     radDihed = radians(dihed)

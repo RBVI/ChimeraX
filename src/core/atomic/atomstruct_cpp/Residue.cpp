@@ -19,11 +19,15 @@
 #include <utility>  // for pair
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "destruct.h"
 #include "Residue.h"
 #include "tmpl/TemplateCache.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Residue>;
 
 namespace atomstruct {
 
@@ -33,15 +37,18 @@ const std::set<AtomName> Residue::aa_max_backbone_names = {
     "C", "CA", "N", "O", "OXT", "OT1", "OT2"};
 const std::set<AtomName> Residue::aa_ribbon_backbone_names = {
     "C", "CA", "N", "O", "OXT", "OT1", "OT2"};
+const std::set<AtomName> Residue::aa_side_connector_names = {
+    "CA"};
 const std::set<AtomName> Residue::na_min_backbone_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "P"};
 const std::set<AtomName> Residue::na_max_backbone_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "O2'",
     "C2'", "O4'", "C1'", "OP3", "O3P"};
 const std::set<AtomName> Residue::na_ribbon_backbone_names = {
-    "O3'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"};
+    "O3'", "C3'", "C4'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"};
 const std::set<AtomName> Residue::ribose_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "O2'", "C2'", "O4'", "C1'"};
+const std::set<AtomName> Residue::na_side_connector_names = ribose_names;
 std::set<ResName> Residue::std_water_names = { "HOH", "WAT", "DOD", "H2O", "D2O", "TIP3" };
 std::set<ResName> Residue::std_solvent_names = std_water_names;
 
@@ -52,7 +59,7 @@ Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int n
     _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
     _ss_id(-1), _ss_type(SS_COIL), _structure(as)
 {
-    _structure->change_tracker()->add_created(this);
+    change_tracker()->add_created(_structure, this);
 }
 
 Residue::~Residue() {
@@ -60,13 +67,13 @@ Residue::~Residue() {
     if (_ribbon_display)
         _structure->_ribbon_display_count -= 1;
     _structure->set_gc_ribbon();
-    _structure->change_tracker()->add_deleted(this);
+    change_tracker()->add_deleted(_structure, this);
 }
 
 void
 Residue::add_atom(Atom* a)
 {
-    a->_residue = this;
+    a->_residue = this;1513350635
     _atoms.push_back(a);
 }
 
@@ -366,7 +373,7 @@ Residue::set_ribbon_selected(bool s)
     if (s == _ribbon_selected)
         return;
     _structure->set_gc_select();
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SELECTED);
+    change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_SELECTED);
     _ribbon_selected = s;
 }
 

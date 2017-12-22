@@ -21,6 +21,7 @@
 #include <logger/logger.h>
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "AtomicStructure.h"
 #include "Coord.h"

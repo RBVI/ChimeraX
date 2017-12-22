@@ -163,8 +163,8 @@ def show_slider_on_open(session):
 
 def models_added_cb(models, session):
     # Show slider when a map series is opened.
-    from .series import Map_Series
-    ms = [m for m in models if isinstance(m, Map_Series)]
+    from .series import MapSeries
+    ms = [m for m in models if isinstance(m, MapSeries)]
     if ms:
         Volume_Series_Slider(ms, session).show()
 

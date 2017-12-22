@@ -399,7 +399,7 @@ def combine_operation(volumes, operation, subregion, step,
             rg.name = 'volume sum'
         from .. import volume_from_grid_data
         rv = volume_from_grid_data(rg, session, model_id = model_id,
-                                   show_data = False, show_dialog = False)
+                                   show_dialog = False)
         rv.position = gv.position
         for i,v in enumerate(volumes):
             op = 'add' if i == 0 else operation
@@ -411,10 +411,9 @@ def combine_operation(volumes, operation, subregion, step,
         if rv.data.name.endswith('difference'):
             rv.set_parameters(cap_faces = False)
 
-    rv.show()
     for v in volumes:
         if not v is rv:
-            v.unshow()
+            v.display = False
 
 # -----------------------------------------------------------------------------
 #
@@ -490,7 +489,6 @@ def volume_cover(session, volumes, atom_box = None, pad = 5.0,
         cv = volume_from_grid_data(cg, session, model_id = model_id)
         cv.copy_settings_from(v, copy_region = False, copy_colors = False,
                               copy_zone = False)
-        cv.show()
 
 # -----------------------------------------------------------------------------
 #
@@ -644,7 +642,6 @@ def volume_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,
                            cell_angles = cell_angles, name = name)
     from .. import volume_from_grid_data
     v = volume_from_grid_data(grid, session, model_id = model_id)
-    v.show()
     return v
 
 # -----------------------------------------------------------------------------
@@ -689,12 +686,11 @@ def octant_operation(v, outside, center, i_center,
 
     vc = v.writable_copy(require_copy = not in_place,
                          subregion = subregion, step = step,
-                         model_id = model_id, show = False)
+                         model_id = model_id)
     ic = submatrix_center(v, center, i_center, subregion, step)
     ijk_max = [i-1 for i in vc.data.size]
     set_box_value(vc.data, fill_value, ic, ijk_max, outside)
     vc.data.values_changed()
-    vc.show()
 
 # -----------------------------------------------------------------------------
 #
@@ -920,14 +916,12 @@ def flip_operation(v, axes, subregion, step, in_place, model_id):
         m = g.full_matrix()
         flip.flip_in_place(m, axes)
         v.data.values_changed()
-        v.show()
     else:
         fg = flip.Flip_Grid(g, axes)
         from .. import volume_from_grid_data
         fv = volume_from_grid_data(fg, v.session, model_id = model_id)
         fv.copy_settings_from(v, copy_region = False)
-        fv.show()
-        v.unshow()
+        v.display = False
 
 # -----------------------------------------------------------------------------
 # Return center in submatrix index units.
@@ -997,9 +991,8 @@ def zone_volume(volume, points, radius,
     mg.name = volume.name + ' zone'
 
     from .. import volume_from_grid_data
-    vz = volume_from_grid_data(mg, volume.session, model_id = model_id, show_data = False)
+    vz = volume_from_grid_data(mg, volume.session, model_id = model_id)
     vz.copy_settings_from(volume, copy_colors = False, copy_zone = False)
-    vz.show()
-    volume.unshow()
+    volume.display = False
 
     return vz

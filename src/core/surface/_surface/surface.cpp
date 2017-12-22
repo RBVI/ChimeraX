@@ -18,6 +18,7 @@
 
 #include "capper.h"			// use compute_cap
 #include "connected.h"			// use connected_triangles, ...
+#include "convexity.h"			// use vertex_convexity
 #include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "normals.h"			// use calculate_vertex_normals, invert_vertex_normals
 #include "patches.h"			// use sharp_edge_patches
@@ -68,6 +69,21 @@ static struct PyMethodDef surface_cpp_methods[] =
    "and vertex array.  The return value is a tuple of pairs of vertex and\n"
    "triangle index arrays.  Vertices connected by any sequence of triangle\n"
    "edges are considered connected.\n"
+   "Implemented in C++.\n"
+  },
+
+  /* convexity.h */
+  {const_cast<char*>("vertex_convexity"), (PyCFunction)vertex_convexity,
+   METH_VARARGS|METH_KEYWORDS,
+   "vertex_convexity(vertices, triangles, smoothing_iterations, convexity)\n"
+   "\n"
+   "Compute convexity values for each vertex and save in the convexity array.\n"
+   "Convexity is defined as 2*pi - (vertex cone angle).\n"
+   "The surface should be closed so the triangles around each vertex define a cone.\n"
+   "Optional smoothing_iterations averages each vertex convexity value with neighbor\n"
+   "vertices connected by edges for the specified number of iterations.\n"
+   "The vertex array is triples of float values (n by 3, numpy float32).\n"
+   "The triangle array is triples of indices of vertices (m by 3, Numpy int32).\n"
    "Implemented in C++.\n"
   },
 

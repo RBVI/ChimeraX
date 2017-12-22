@@ -21,6 +21,7 @@
 #include <vector>
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "AtomicStructure.h"
 #include "Bond.h"
 #include "Coord.h"

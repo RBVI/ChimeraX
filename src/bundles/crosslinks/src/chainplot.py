@@ -13,7 +13,7 @@
 
 # ------------------------------------------------------------------------------
 #
-from chimerax.contacts.graph import Graph
+from chimerax.interfaces.graph import Graph
 class CrosslinksPlot(Graph):
 
     help = 'help:user/commands/crosslinks.html#network'
@@ -46,7 +46,7 @@ class CrosslinksPlot(Graph):
 
 # ------------------------------------------------------------------------------
 #
-from chimerax.contacts.graph import Node
+from chimerax.interfaces.graph import Node
 class ChainNode(Node):
     size = 400
     def __init__(self, structure, asym_id):
@@ -69,7 +69,7 @@ class ChainNode(Node):
 
 # ------------------------------------------------------------------------------
 #
-from chimerax.contacts.graph import Edge
+from chimerax.interfaces.graph import Edge
 class ChainCrosslinks(Edge):
     def __init__(self, pseudobonds, chains):
         self.pseudobonds = pseudobonds

@@ -60,6 +60,7 @@ class _StatusBarOpenGL:
         w,h = s.width(), s.height()
         r = self._renderer
         if r:
+            r.make_current()
             r.set_viewport(0,0,w,h)
             # Clear status line.
             self.status('', 'black', False)

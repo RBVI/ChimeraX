@@ -133,10 +133,18 @@ class Undo(State):
         """
         return self._name(self.redo_stack)
 
-    def undo(self):
-        """Execute top undo action.
+    def undo(self, silent=True):
+        """Execute top undo action.  Normally, if no undo action is
+        available, nothing happens.  If "silent" is True, an IndexError
+        is raised for accessing invalid stack location.
         """
-        inst = self._pop(self.undo_stack)
+        try:
+            inst = self._pop(self.undo_stack)
+        except IndexError:
+            if not silent:
+                raise
+            else:
+                return
         try:
             inst.undo()
         except Exception as e:
@@ -149,10 +157,18 @@ class Undo(State):
                 self.redo_stack.clear()
         self._update_ui()
 
-    def redo(self):
-        """Execute top redo item.
+    def redo(self, silent=True):
+        """Execute top redo action.  Normally, if no redo action is
+        available, nothing happens.  If "silent" is True, an IndexError
+        is raised for accessing invalid stack location.
         """
-        inst = self._pop(self.redo_stack)
+        try:
+            inst = self._pop(self.redo_stack)
+        except IndexError:
+            if not silent:
+                raise
+            else:
+                return
         try:
             inst.redo()
         except Exception as e:

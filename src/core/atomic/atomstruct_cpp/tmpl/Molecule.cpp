@@ -84,6 +84,18 @@ Molecule::new_residue(const char *t)
     return _inst_;
 }
 
+void
+Molecule::delete_residue(Residue* r)
+{
+    // potential memory leak: need to delete residue's atoms too,
+    // but this should only be called if the template was buggy,
+    // i.e., if there are no atoms
+    Residues::const_iterator i = _residues.find(r->name());
+    if (i == _residues.end())
+        return;
+    _residues.erase(i);
+}
+
 Residue *
 Molecule::find_residue(const ResName& index) const
 {

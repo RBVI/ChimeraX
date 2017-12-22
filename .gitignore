@@ -29,6 +29,7 @@ ChimeraX.app
 imex.h
 setup.py
 *.egg-info
+.eggs
 dist
 *~
 *.out
@@ -38,6 +39,7 @@ src/apps/ChimeraX/ChimeraX-tool.png
 src/apps/ChimeraX/ChimeraX.ico
 src/apps/ChimeraX/icon.rc
 src/core/buildinfo.py
+src/core/_serialize.cpp
 src/core/commands/_atomspec.py
 src/wheelhouse/Makefile.wheelhouse
 src/core/commands/_atomspec.py
@@ -52,6 +54,9 @@ src/bundles/mmtf/mmtf-cpp-master/
 src/bundles/mmtf/msgpack-c-master/
 src/bundles/rest_server/src/server.pem
 src/bundles/rest_server/server.key
+src/bundles/viewdockx/src/lib/flot
+src/bundles/viewdockx/src/lib/rateyo
+src/bundles/viewdockx/src/lib/jquery.multiselect.*
 src/examples/sample/license.txt
 prereqs/PyQt/*commercial*
 docs/license.html

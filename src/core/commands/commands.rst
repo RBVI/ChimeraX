@@ -20,6 +20,7 @@ and their code location is described with the function descriptions.
 | `2dlabels`_ * - Show text labels with graphics
 | `alias`_ - Define aliases for commands
 | `align`_ - Align one set of atoms to another
+| `bumps`_ * - Mark cell protrusions in 3D light microscopy
 | `cage`_ * - Place models on polygonal cages
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
@@ -69,6 +70,7 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
+| `size`_ - Change atom, bond, pseudobond sizes
 | `smoothlines`_ * - Smooth paths in line drawings
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
@@ -102,6 +104,10 @@ alias
 align
 =====
 .. autofunction:: chimerax.core.commands.align.align
+
+bumps
+=====
+.. autofunction:: chimerax.bumps.bumps.bumps
 
 cage
 ====
@@ -222,6 +228,8 @@ material
 measure
 =======
 .. autofunction:: chimerax.core.commands.measure_buriedarea.measure_buriedarea
+.. autofunction:: chimerax.core.commands.measure_sasa.measure_convexity		  
+.. autofunction:: chimerax.core.commands.measure_sasa.measure_length
 .. autofunction:: chimerax.core.commands.measure_sasa.measure_sasa
 
 mlp
@@ -323,6 +331,10 @@ show
 ====
 .. autofunction:: chimerax.core.commands.show.show
 
+style
+=====
+.. autofunction:: chimerax.core.commands.size.size
+
 smoothlines
 ===========
 .. autofunction:: chimerax.smooth_lines.smoothlines.smoothlines
@@ -338,6 +350,7 @@ stop
 struts
 ======
 .. autofunction:: chimerax.struts.struts.struts
+.. autofunction:: chimerax.struts.struts.struts_delete
 
 style
 =====

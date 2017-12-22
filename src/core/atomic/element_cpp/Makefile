@@ -23,6 +23,11 @@ ifneq ($(OS),Windows)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= $(PYTHON_LIB)
+ifeq ($(WIN32),msvc)
+LIBS += libpyinstance.lib $(PYTHON_LIB)
+else
+LIBS += -lpyinstance $(PYTHON_LIB)
+endif
 
 $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
@@ -52,3 +57,5 @@ ifdef WIN32
 	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
 endif
 
+Element.o: Element.h ../pyinstance_cpp/PythonInstance.declare.h \
+	../pyinstance_cpp/PythonInstance.instantiate.h

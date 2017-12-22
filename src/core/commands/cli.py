@@ -324,6 +324,12 @@ def _user_kw(kw_name):
     return words[0] + ''.join([x.capitalize() for x in words[1:]])
 
 
+def _user_kw_cnt(kw_name):
+    """Return user version of a keyword argument name and number of words."""
+    words = kw_name.split('_')
+    return words[0] + ''.join([x.capitalize() for x in words[1:]]), len(words)
+
+
 class AnnotationError(UserError, ValueError):
     """Error, with optional offset, in annotation"""
 
@@ -466,6 +472,7 @@ class Aggregate(Annotation):
         used = ''
         if self.prefix and text.startswith(self.prefix):
             text = text[len(self.prefix):]
+            used += self.prefix
         while 1:
             i = text.find(self.separator)
             if i == -1:
@@ -734,8 +741,10 @@ class EnumOf(Annotation):
 class DynamicEnum(Annotation):
     '''Enumerated type where enumeration values computed from a function.'''
 
-    def __init__(self, values_func):
-        Annotation.__init__(self)
+    def __init__(self, values_func, name=None, url=None, html_name=None):
+        Annotation.__init__(self, url=url)
+        self.__name = name
+        self.__html_name = html_name
         self.values_func = values_func
 
     def parse(self, text, session):
@@ -743,14 +752,24 @@ class DynamicEnum(Annotation):
 
     @property
     def name(self):
-        return 'one of ' + ', '.join("'%s'" % str(v)
-                                     for v in sorted(self.values_func()))
+        if self.__name is not None:
+            return self.__name
+        return 'one of ' + commas(["'%s'" % str(v)
+                                     for v in sorted(self.values_func())])
 
     @property
     def _html_name(self):
+        if self.__html_name is not None:
+            return self.__html_name
         from html import escape
-        return 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
-                                     for v in sorted(self.values_func()))
+        if self.__name is not None:
+            name = self.__name
+        else:
+            name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
+                                         for v in sorted(self.values_func())])
+        if self.url is None:
+            return name
+        return '<a href="%s">%s</a>' % (escape(self.url), name)
 
 
 class Or(Annotation):
@@ -889,6 +908,24 @@ class PasswordArg(StringArg):
         return token, "******", rest
 
 
+class AttrNameArg(StringArg):
+    """Annotation for a Python attribute name"""
+    name = "a Python attribute name"
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = StringArg.parse(text, session)
+        if not text:
+            raise AnnotationError("Attribute names can't be empty strings")
+        non_underscore = text.remove('_')
+        if not non_underscore.isalnum():
+            raise AnnotationError("Attribute names can consist only of alphanumeric"
+                                  " characters and underscores")
+        if text[0].isdigit():
+            raise AnnotationError("Attribute names cannot start with a digit")
+        return token, text, rest
+
+
 class FileNameArg(Annotation):
     """Base class for Open/SaveFileNameArg"""
     name = "a file name"
@@ -900,11 +937,88 @@ class FileNameArg(Annotation):
         return os.path.expanduser(token), text, rest
 
 
-# In the future when/if "browse" is supported as a file name,
-# Open/SaveFileNameArg may be different.  If/when that time
-# comes, the "name" class attr may also be made more specfic
-OpenFileNameArg = SaveFileNameArg = OpenFolderNameArg = SaveFolderNameArg = FileNameArg
+_browse_string = "browse"
 
+
+def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
+    path, text, rest = FileNameArg.parse(text, session)
+    if path == _browse_string:
+        if not session.ui.is_gui:
+            raise AnnotationError("Cannot browse for %s name in nogui mode" % item_kind)
+        from PyQt5.QtWidgets import QFileDialog
+        dlg = QFileDialog()
+        dlg.setAcceptMode(accept_mode)
+        if accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
+            from ..ui.open_save import open_file_filter
+            dlg.setNameFilter(open_file_filter(all=True))
+        dlg.setFileMode(dialog_mode)
+        if dlg.exec():
+            paths = dlg.selectedFiles()
+            if not paths:
+                raise AnnotationError("No %s selected by browsing" % item_kind)
+            path = paths[0]
+        else:
+            raise AnnotationError("%s browsing cancelled" % item_kind.capitalize())
+        text = path
+    return path, text, rest
+
+
+class OpenFileNameArg(FileNameArg):
+    """Annotation for a file to open"""
+    name = "name of a file to open/read"
+
+    @staticmethod
+    def parse(text, session):
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
+        else:
+            accept_mode = dialog_mode = None
+        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
+
+
+class SaveFileNameArg(FileNameArg):
+    """Annotation for a file to save"""
+    name = "name of a file to save/write"
+
+    @staticmethod
+    def parse(text, session):
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
+        else:
+            accept_mode = dialog_mode = None
+        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
+
+
+class OpenFolderNameArg(FileNameArg):
+    """Annotation for a folder to open from"""
+    name = "name of a folder to open/read"
+
+    @staticmethod
+    def parse(text, session):
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
+        else:
+            accept_mode = dialog_mode = None
+        return _browse_parse(
+            text, session, "folder", accept_mode, dialog_mode)
+
+
+class SaveFolderNameArg(FileNameArg):
+    """Annotation for a folder to save to"""
+    name = "name of a folder to save/write"
+
+    @staticmethod
+    def parse(text, session):
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
+        else:
+            accept_mode = dialog_mode = None
+        return _browse_parse(
+            text, session, "folder", accept_mode, dialog_mode)
 
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here
@@ -1016,16 +1130,22 @@ class PseudobondsArg(ObjectsArg):
     @classmethod
     def parse(cls, text, session):
         objects, used, rest = super().parse(text, session)
-        from ..atomic import PseudobondGroup, interatom_pseudobonds
-        pb = interatom_pseudobonds(objects.atoms)
-        pbgs = set(pb.groups.unique())
-        pblist = [m.pseudobonds for m in objects.models
-                  if isinstance(m, PseudobondGroup) and m not in pbgs]
-        if len(pb) > 0:
-            pblist.append(pb)
-        from ..atomic import Pseudobonds, concatenate
-        pbonds = concatenate(pblist, Pseudobonds)
+        from ..atomic import interatom_pseudobonds, Pseudobonds, concatenate
+        apb = interatom_pseudobonds(objects.atoms)
+        opb = objects.pseudobonds
+        pbonds = concatenate([apb, opb], Pseudobonds)
         return pbonds, used, rest
+
+
+class BondsArg(ObjectsArg):
+    """Parse command specifier for bonds"""
+    name = 'a bonds specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        objects, used, rest = super().parse(text, session)
+        bonds = objects.atoms.intra_bonds
+        return bonds, used, rest
 
 
 class SurfacesArg(AtomSpecArg):
@@ -1642,7 +1762,12 @@ class CmdDesc:
         self._keyword.update(optional_keywords)
         self._hidden = set(hidden)
         # keyword_map is what would user would type
-        self._keyword_map = {_user_kw(n): n for n in self._keyword}
+
+        def fill_keyword_map(n):
+            kw, cnt = _user_kw_cnt(n)
+            return kw, (n, cnt)
+        self._keyword_map = {}
+        self._keyword_map.update(fill_keyword_map(n) for n in self._keyword)
         self._postconditions = postconditions
         self._required_arguments = required_arguments
         self.url = url
@@ -1763,16 +1888,16 @@ class _WordInfo:
     def is_deferred(self):
         return isinstance(self.cmd_desc, _Defer)
 
-    def lazy_register(self):
+    def lazy_register(self, cmd_name):
         deferred = self.cmd_desc
         assert(isinstance(deferred, _Defer))
         self.cmd_desc = None  # prevent recursion
         try:
             deferred.call()
-        except:
-            raise RuntimeError("delayed registration failed")
+        except Exception as e:
+            raise RuntimeError("delayed command registration for %r failed (%s)" % (cmd_name, e))
         if self.cmd_desc is None and not self.has_subcommands():
-            raise RuntimeError("delayed registration didn't register the command")
+            raise RuntimeError("delayed command registration for %r didn't register the command" % cmd_name)
 
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
@@ -1824,7 +1949,7 @@ _aliased_commands = {}  # { name: _WordInfo instance }
 _available_commands = None
 
 
-def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None):
+def register(name, cmd_desc=(), function=None, *, logger=None, _parent_info=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -1860,17 +1985,15 @@ def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None)
         url = _get_help_url(words)
         if url is not None:
             cmd_desc.url = url
-    if parent_info is None:
-        parent_info = _commands
+    if _parent_info is None:
+        _parent_info = _commands
     for word in words[:-1]:
-        if not parent_info.has_subcommands():
-            word_info = parent_info.add_subcommand(word)
+        if not _parent_info.has_subcommands():
+            word_info = _parent_info.add_subcommand(word)
         else:
-            parent_info.add_subcommand(word, name)
-            word_info = parent_info.subcommands[word]
-            if word_info.is_deferred():
-                word_info.lazy_register()
-        parent_info = word_info
+            _parent_info.add_subcommand(word, name)
+            word_info = _parent_info.subcommands[word]
+        _parent_info = word_info
 
     if isinstance(function, _Defer):
         cmd_desc = function
@@ -1882,7 +2005,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, parent_info=None)
                 print(msg)
             else:
                 logger.warning(msg)
-    parent_info.add_subcommand(words[-1], name, cmd_desc)
+    _parent_info.add_subcommand(words[-1], name, cmd_desc)
     return function     # needed when used as a decorator
 
 
@@ -1904,7 +2027,7 @@ def _get_help_url(words):
     return None
 
 
-def deregister(name, *, is_user_alias=False, parent_info=None):
+def deregister(name, *, is_user_alias=False, _parent_info=None):
     """Remove existing command and subcommands
 
     :param name: the name of the command
@@ -1913,16 +2036,16 @@ def deregister(name, *, is_user_alias=False, parent_info=None):
     # none of the exceptions below should happen
     words = name.split()
     name = ' '.join(words)  # canonicalize
-    if parent_info is None:
-        parent_info = _commands
+    if _parent_info is None:
+        _parent_info = _commands
     for word in words:
-        word_info = parent_info.subcommands.get(word, None)
+        word_info = _parent_info.subcommands.get(word, None)
         if word_info is None:
             if is_user_alias:
                 raise UserError('No alias named %s exists' % dq_repr(name))
             raise RuntimeError('unregistering unknown command: "%s"' % name)
-        parent_info = word_info
-    if is_user_alias and not parent_info.is_user_alias():
+        _parent_info = word_info
+    if is_user_alias and not _parent_info.is_user_alias():
         raise UserError('%s is not a user alias' % dq_repr(name))
 
     if word_info.has_subcommands():
@@ -1931,8 +2054,8 @@ def deregister(name, *, is_user_alias=False, parent_info=None):
 
     hidden_word = _aliased_commands.get(name, None)
     if hidden_word:
-        parent_info = hidden_word.parent
-        parent_info.subcommands[word] = hidden_word
+        _parent_info = hidden_word.parent
+        _parent_info.subcommands[word] = hidden_word
         del _aliased_commands[name]
     else:
         # allow command to be reregistered with same cmd_desc
@@ -1940,13 +2063,13 @@ def deregister(name, *, is_user_alias=False, parent_info=None):
             word_info.cmd_desc.function = None
         # remove association between cmd_desc and word
         word_info.cmd_desc = None
-        parent_info = word_info.parent
+        _parent_info = word_info.parent
         assert(len(word_info.subcommands) == 0)
-        del parent_info.subcommands[word]
+        del _parent_info.subcommands[word]
 
 
 def register_available(*args, **kw):
-    return register(*args, parent_info=_available_commands, **kw)
+    return register(*args, _parent_info=_available_commands, **kw)
 
 
 def clear_available():
@@ -1975,7 +2098,11 @@ def add_keyword_arguments(name, kw_info):
                 " than previous registration (%s)" % (
                     name, kw, repr(arg_type), repr(cmd._ci._keyword[kw])))
     cmd._ci._keyword.update(kw_info)
-    cmd._ci._keyword_map.update((_user_kw(n), n) for n in kw_info)
+
+    def fill_keyword_map(n):
+        kw, cnt = _user_kw_cnt(n)
+        return kw, (n, cnt)
+    cmd._ci._keyword_map.update(fill_keyword_map(n) for n in kw_info)
 
 
 class _FakeSession:
@@ -2118,7 +2245,7 @@ class Command:
             cmd_name = self.current_text[self.start:self.amount_parsed]
             cmd_name = ' '.join(cmd_name.split())   # canonicalize
             if what.is_deferred():
-                what.lazy_register()
+                what.lazy_register(cmd_name)
             if what.cmd_desc is not None:
                 if no_aliases:
                     if what.is_alias():
@@ -2175,32 +2302,26 @@ class Command:
                 else:
                     required = 'required "%s"' % _user_kw(kw_name)
                 self._error = 'Missing %s positional argument' % required
-            m = _whitespace.match(text)
-            start = m.end()
-            if start:
-                self.amount_parsed += start
-                text = text[start:]
-            if text and text[0] == ';':
-                text = ''
-            if kw_name in self._ci._optional:
-                # check if next token matches a keyword and if so,
-                # terminate positional arguments
-                if not text:
-                    return last_anno, None
-                _, tmp, _ = next_token(text, no_raise=True)
-                if not tmp:
-                    return last_anno, None
-                if tmp[0].isalpha():
-                    tmp = _user_kw(tmp)
-                    if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
-                            any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
-                        return last_anno, None
+            text = self._skip_white_space(text)
+            if kw_name in self._ci._optional and self._start_of_keywords(text):
+                return last_anno, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 kwn = '%s_' % kw_name if is_python_keyword(kw_name) else kw_name
                 self._kw_args[kwn] = value
                 self._error = ""
                 last_anno = anno
+                if hasattr(anno, 'allow_repeat') and anno.allow_repeat:
+                    self._kw_args[kwn] = values = [value]
+                    while True:
+                        text = self._skip_white_space(text)
+                        if self._start_of_keywords(text):
+                            return last_anno, None
+                        try:
+                            value, text = self._parse_arg(anno, text, session, False)
+                        except:
+                            break
+                        values.append(value)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
@@ -2223,6 +2344,32 @@ class Command:
                 # optional and wrong type, try as keyword
                 return last_anno, anno
         return last_anno, None
+
+    def _skip_white_space(self, text):
+        m = _whitespace.match(text)
+        start = m.end()
+        if start:
+            self.amount_parsed += start
+            text = text[start:]
+        if text and text[0] == ';':
+            text = ''
+        return text
+
+    def _start_of_keywords(self, text):
+        # check if next token matches a keyword
+        if not text:
+            return True
+        _, tmp, _ = next_token(text, no_raise=True)
+        if not tmp:
+            return True
+        if tmp[0].isalpha():
+            # Don't change case of what user types.  Fixes "show O".
+            tmp = _user_kw(tmp)
+            if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
+                    any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
+                return True
+
+        return False
 
     def _process_keyword_arguments(self, final, prev_annos):
         # side effects:
@@ -2248,22 +2395,28 @@ class Command:
             arg_name = _user_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
-                folded_arg_name = arg_name.casefold()
-                self.completions = [x for x in self._ci._keyword_map
-                                    if x.startswith(arg_name) or
-                                    x.casefold().startswith(folded_arg_name)]
-                if (final or len(text) > len(chars)) and self.completions:
+                kw_map = self._ci._keyword_map
+                # Don't change case of what user types.
+                completions = [(kw_map[kw][1], kw) for kw in kw_map
+                               if kw.startswith(arg_name) or kw.casefold().startswith(arg_name)]
+                completions.sort()
+                if (final or len(text) > len(chars)) and completions:
                     # require shortened keywords to be unambiguous
-                    unambiguous = (
-                        len(self.completions) == 1 or len(self.completions[0]) == len(arg_name) or
-                        all(x.startswith(self.completions[0]) for x in self.completions)
-                    )
+                    if len(completions) == 1:
+                        unambiguous = True
+                    elif len(completions[0][1]) == len(arg_name):
+                        unambiguous = True
+                    elif 1 == len([cnt for cnt, kw in completions if cnt == completions[0][0]]):
+                        unambiguous = True
+                    else:
+                        unambiguous = False
                     if unambiguous:
-                        c = self.completions[0]
+                        c = completions[0][1]
                         self._replace(chars, c)
                         text = self.current_text[self.amount_parsed:]
                         self.completions = []
                         continue
+                    self.completions = list(c[1] for c in completions)
                     self._error = "Expected keyword " + commas('"%s"' % x for x in self.completions)
                     return
                 expected = []
@@ -2284,7 +2437,7 @@ class Command:
                 self.amount_parsed += start
                 text = text[start:]
 
-            kw_name = self._ci._keyword_map[arg_name]
+            kw_name = self._ci._keyword_map[arg_name][0]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
                 self._error = 'Missing "%s" keyword\'s argument' % _user_kw(kw_name)
@@ -2399,41 +2552,30 @@ class Command:
             kw_args = self._kw_args
             if log:
                 self.log()
-            try:
-                if not isinstance(ci.function, Alias):
-                    try:
-                        result = ci.function(session, **kw_args)
-                    except UserError as e:
-                        self.log_error(str(e))
-                        raise
-                    except:
-                        raise
-                    results.append(result)
-                else:
-                    arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
-                    arg_names.sort()
-                    args = [kw_args[k] for k in arg_names]
-                    if 'optional' in kw_args:
-                        optional = kw_args['optional']
-                    else:
-                        optional = ''
-                    if _used_aliases is None:
-                        used_aliases = {self.command_name}
-                    else:
-                        used_aliases = _used_aliases.copy()
-                        used_aliases.add(self.command_name)
-                    results.append(ci.function(session, *args, optional=optional,
-                                   _used_aliases=used_aliases, log=log))
-            except UserError as err:
-                raise
-            except ValueError as err:
-                # convert function's ValueErrors to UserErrors,
-                # but not those of functions it calls
-                import traceback
-                _, _, exc_traceback = sys.exc_info()
-                if len(traceback.extract_tb(exc_traceback)) > 2:
+            if not isinstance(ci.function, Alias):
+                try:
+                    result = ci.function(session, **kw_args)
+                except UserError as e:
+                    self.log_error(str(e))
                     raise
-                raise UserError(err)
+                except:
+                    raise
+                results.append(result)
+            else:
+                arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
+                arg_names.sort()
+                args = [kw_args[k] for k in arg_names]
+                if 'optional' in kw_args:
+                    optional = kw_args['optional']
+                else:
+                    optional = ''
+                if _used_aliases is None:
+                    used_aliases = {self.command_name}
+                else:
+                    used_aliases = _used_aliases.copy()
+                    used_aliases.add(self.command_name)
+                results.append(ci.function(session, *args, optional=optional,
+                               _used_aliases=used_aliases, log=log))
             if session is not None:
                 from .. import atomic
                 atomic.check_for_changes(session)
@@ -2636,11 +2778,11 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
+        name = cmd.command_name
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 syntax += '\n\n' + usage('%s %s' % (name, w), show_subcommands=0)
         else:
-            name = cmd.command_name
             if syntax:
                 syntax += '\n'
             syntax += 'Subcommands are:\n' + '\n'.join(
@@ -2752,11 +2894,11 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
+        name = cmd.command_name
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 syntax += '<p>\n' + html_usage('%s %s' % (name, w), show_subcommands=0)
         else:
-            name = cmd.command_name
             if syntax:
                 syntax += '<br>\n'
             syntax += 'Subcommands are:\n<ul>'
@@ -2794,10 +2936,13 @@ def registered_commands(multiword=False, _start=None):
         words.sort(key=lambda x: x[x[0] == '~':])
         return words
 
-    def cmds(parent_info):
-        for word_info in list(parent_info.subcommands.values()):
+    def cmds(parent_cmd, parent_info):
+        for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
-                word_info.lazy_register()
+                if parent_cmd:
+                    word_info.lazy_register('%s %s' % (parent_cmd, word))
+                else:
+                    word_info.lazy_register(word)
         words = list(parent_info.subcommands.keys())
         words.sort(key=lambda x: x[x[0] == '~':].lower())
         for word in words:
@@ -2805,11 +2950,16 @@ def registered_commands(multiword=False, _start=None):
             if word_info.is_deferred():
                 continue
             if word_info.cmd_desc:
-                yield word
+                if parent_cmd:
+                    yield '%s %s' % (parent_cmd, word)
+                else:
+                    yield word
             if word_info.has_subcommands():
-                for word2 in cmds(word_info):
-                    yield "%s %s" % (word, word2)
-    return list(cmds(parent_info))
+                if parent_cmd:
+                    yield from cmds('%s %s' % (parent_cmd, word), word_info)
+                else:
+                    yield from cmds(word, word_info)
+    return list(cmds('', parent_info))
 
 
 class Alias:
@@ -2922,7 +3072,10 @@ def list_aliases(all=False, logger=None):
         for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
                 try:
-                    word_info.lazy_register()
+                    if partial_name:
+                        word_info.lazy_register('%s %s' % (partial_name, word))
+                    else:
+                        word_info.lazy_register(word)
                 except RuntimeError as e:
                     if logger:
                         logger.warning(str(e))

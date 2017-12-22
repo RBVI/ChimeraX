@@ -209,9 +209,11 @@ class UI(QApplication):
         """
         from PyQt5.QtCore import Qt
         if event.key() == Qt.Key_Up:
-            self.session.selection.promote()
+            from ..commands import run
+            run(self.session, 'select up')
         elif event.key() == Qt.Key_Down:
-            self.session.selection.demote()
+            from ..commands import run
+            run(self.session, 'select down')
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
 
@@ -301,7 +303,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         dw = QDesktopWidget()
         main_screen = dw.availableGeometry(dw.primaryScreen())
         self.resize(main_screen.width()*.67, main_screen.height()*.67)
-        self.setDockOptions(self.dockOptions() | self.GroupedDragging)
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -412,6 +413,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         wh = cwh + delta_height
         self.resize(ww, wh)
 
+    def window_maximized(self):
+        from PyQt5.QtCore import Qt
+        return bool(self.windowState() & (Qt.WindowMaximized | Qt.WindowFullScreen))
+    
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
         event.accept()
@@ -477,16 +482,6 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def edit_redo_cb(self, session):
         session.undo.redo()
-
-    def edit_ccp_cb(self, session, key):
-        # Cut/Copy/Paste callback
-        from PyQt5.QtCore import QEvent, Qt
-        from PyQt5.QtGui import QKeyEvent
-        ui = session.ui
-        w = ui.focusWidget()
-        if w:
-            ui.postEvent(w, QKeyEvent(QEvent.KeyPress, key, Qt.ControlModifier))
-            ui.postEvent(w, QKeyEvent(QEvent.KeyRelease, key, Qt.ControlModifier))
 
     def update_undo(self, undo_manager):
         self._set_undo(self.undo_action, "Undo", undo_manager.top_undo_name())
@@ -643,6 +638,26 @@ class MainWindow(QMainWindow, PlainTextLog):
         sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
+    def _dockability_change(self, tool_name, dockable):
+        """Call back from 'ui dockable' command"""
+        for ti, tool_windows in self.tool_instance_to_windows.items():
+            if ti.tool_name == tool_name:
+                for win in tool_windows:
+                    win._mw_set_dockable(dockable)
+
+    def _make_settings_ui(self, session):
+        from .core_settings_ui import CoreSettingsPanel
+        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
+        self.settings_ui_widget = dw = QDockWidget("ChimeraX settings", self)
+        dw.closeEvent = lambda e, dw=dw: dw.hide()
+        container = QWidget()
+        CoreSettingsPanel(session, container)
+        dw.setWidget(container)
+        from PyQt5.QtCore import Qt
+        self.addDockWidget(Qt.RightDockWidgetArea, dw)
+        dw.setFloating(True)
+        dw.hide()
+
     def _new_tool_window(self, tw):
         if self.hide_tools:
             self._hide_tools_shown_states[tw] = True
@@ -653,6 +668,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _populate_menus(self, session):
         from PyQt5.QtWidgets import QAction
+        from PyQt5.QtGui import QKeySequence
         from PyQt5.QtCore import Qt
 
         mb = self.menuBar()
@@ -677,31 +693,23 @@ class MainWindow(QMainWindow, PlainTextLog):
         edit_menu = mb.addMenu("&Edit")
         self.undo_action = QAction("&Undo", self)
         self.undo_action.setEnabled(False)
-        self.undo_action.setShortcut("Ctrl+Z")
+        self.undo_action.setShortcut(QKeySequence.Undo)
         self.undo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_undo_cb(sess))
         edit_menu.addAction(self.undo_action)
         self.redo_action = QAction("&Redo", self)
         self.redo_action.setEnabled(False)
-        self.redo_action.setShortcut("Ctrl+R")
+        self.redo_action.setShortcut(QKeySequence.Redo)
         self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
         edit_menu.addAction(self.redo_action)
-        edit_menu.addSeparator()
-        cut_action = QAction("&Cut", self)
-        # cut_action.setShortcut("Ctrl+X")
-        cut_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_X))
-        edit_menu.addAction(cut_action)
-        copy_action = QAction("&Copy", self)
-        # copy_action.setShortcut("Ctrl+C")
-        copy_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_C))
-        edit_menu.addAction(copy_action)
-        paste_action = QAction("&Paste", self)
-        # paste_action.setShortcut("Ctrl+V")
-        paste_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_ccp_cb(sess, Qt.Key_V))
-        edit_menu.addAction(paste_action)
 
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
+
+        self.favorites_menu = mb.addMenu("Fa&vorites")
+        self.favorites_menu.setToolTipsVisible(True)
+        self._make_settings_ui(session)
+        self.update_favorites_menu(session)
 
         help_menu = mb.addMenu("&Help")
         help_menu.setToolTipsVisible(True)
@@ -722,6 +730,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
+
+    def update_favorites_menu(self, session):
+        from PyQt5.QtWidgets import QAction
+        self.favorites_menu.clear()
+        self.favorites_menu.addSeparator()
+        settings = QAction("Settings...", self)
+        settings.setToolTip("Show/set ChimeraX settings")
+        settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
+        self.favorites_menu.addAction(settings)
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}
@@ -905,7 +922,12 @@ class ToolWindow(StatusLogger):
         """Add items to this tool window's context menu,
            whose downclick occurred at position (x,y)
 
-        Override to add items to any context menu popped up over this window"""
+        Override to add items to any context menu popped up over this window.
+
+        Note that you have to keep references to the actions you add to the
+        menu to avoid having then automatically destroyed and removed from the
+        menu when this method returns.  You can use the menu itself to store 
+        the reference, e.g. menu._ref1 = QAction(...)"""
         pass
 
     @property
@@ -918,10 +940,16 @@ class ToolWindow(StatusLogger):
 
         Tool will be docked into main window on the side indicated by
         `placement` (which should be a value from :py:attr:`placements`
-        or None).  If `placement` is None, the tool will be detached
-        from the main window.  It will be allowed to dock in the allowed_areas,
-        the value of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
+        or None, or another tool window).  If `placement` is None, the tool will
+        be detached from the main window.  If `placement` is another tool window,
+        then those tools will be tabbed together.
+
+        The tool window will be allowed to dock in the allowed_areas, the value
+        of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
         """
+        if self.tool_instance.tool_name in self.session.ui.settings.undockable:
+            from PyQt5.QtCore import Qt
+            allowed_areas = Qt.NoDockWidgetArea
         self.__toolkit.manage(placement, allowed_areas, fixed_size)
 
     def _get_shown(self):
@@ -971,6 +999,13 @@ class ToolWindow(StatusLogger):
             self.clear()
         self.__toolkit.destroy()
         self.__toolkit = None
+
+    @property
+    def _dock_widget(self):
+        return self.__toolkit.dock_widget
+
+    def _mw_set_dockable(self, dockable):
+        self.__toolkit.dockable = dockable
 
     def _mw_set_shown(self, shown):
         self.__toolkit.shown = shown
@@ -1077,10 +1112,23 @@ class _Qt:
             self.status_bar = None
         self.dock_widget.destroy()
 
+    def _get_dockable(self):
+        from PyQt5.QtCore import Qt
+        return self.dock_widget.allowedAreas() != Qt.NoDockWidgetArea
+
+    def _set_dockable(self, dockable):
+        from PyQt5.QtCore import Qt
+        areas = Qt.AllDockWidgetAreas if dockable else Qt.NoDockWidgetArea
+        self.dock_widget.setAllowedAreas(areas)
+        if not dockable and not self.dock_widget.isFloating():
+            self.dock_widget.setFloating(True)
+
+    dockable = property(_get_dockable, _set_dockable)
+
     def manage(self, placement, allowed_areas, fixed_size=False):
         from PyQt5.QtCore import Qt
         placements = self.tool_window.placements
-        if placement is None:
+        if placement is None or isinstance(placement, ToolWindow):
             side = Qt.RightDockWidgetArea
         else:
             if placement not in placements:
@@ -1095,9 +1143,12 @@ class _Qt:
         # (most noticeable for initially-undocked tools)
         self.ui_area.updateGeometry()
         mw = self.main_window
-        mw.addDockWidget(side, self.dock_widget)
-        if placement is None:
-            self.dock_widget.setFloating(True)
+        if isinstance(placement, ToolWindow):
+            mw.tabifyDockWidget(placement._dock_widget, self.dock_widget)
+        else:
+            mw.addDockWidget(side, self.dock_widget)
+            if placement is None or allowed_areas == Qt.NoDockWidgetArea:
+                self.dock_widget.setFloating(True)
         self.dock_widget.setAllowedAreas(allowed_areas)
 
         #QT disable: create a 'hide_title_bar' option
@@ -1182,7 +1233,7 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
     if not menu.isEmpty():
         menu.addSeparator()
     ti = tool_instance
-    hide_tool_action = QAction("Hide this tool")
+    hide_tool_action = QAction("Hide tool")
     hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
     if ti.help is not None:
@@ -1194,10 +1245,10 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
         no_help_action = QAction("No help available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
+    session = ti.session
     if autostartable:
-        session = ti.session
         autostart = ti.tool_name in session.ui.settings.autostart
-        auto_action = QAction("Start this tool at ChimeraX startup")
+        auto_action = QAction("Start at ChimeraX startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
         from ..commands import run, quote_if_necessary
@@ -1206,4 +1257,14 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
             quote_if_necessary(ti.tool_name))))
         menu.addAction(auto_action)
+    undockable = ti.tool_name in session.ui.settings.undockable
+    dock_action = QAction("Dockable tool")
+    dock_action.setCheckable(True)
+    dock_action.setChecked(not undockable)
+    from ..commands import run, quote_if_necessary
+    dock_action.triggered.connect(
+        lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+        run(ses, "ui dockable %s %s" % (("true" if arg else "false"),
+        quote_if_necessary(ti.tool_name))))
+    menu.addAction(dock_action)
     menu.exec(event.globalPos())

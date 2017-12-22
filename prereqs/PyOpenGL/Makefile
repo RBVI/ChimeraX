@@ -31,13 +31,15 @@ endif
 
 PATCHES = $(wildcard PyOpenGL-$(VERSION)-*.patch) \
 	$(wildcard PyOpenGL-$(VERSION)_$(OS).patch) \
-	$(wildcard PyOpenGL-$(VERSION)_$(OS)_$(OPENGL_PLATFORM).patch)
+	$(wildcard PyOpenGL-$(VERSION)_$(OS)_$(OPENGL_PLATFORM).patch) \
+	PyOpenGL-wgl.patch
 
 all:
 
 install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 ifdef WIN32
 	$(PIP_INSTALL) $(WHEEL)
+	cd $(PYSITE_DIR) && patch -f -p0 < PyOpenGL-wgl.patch
 else
 	cd $(PYOPENGL_SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 	cd $(ACCELERATE_SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
@@ -46,6 +48,7 @@ endif
 app-install: install
 ifdef WIN32
 	$(APP_PIP_INSTALL) $(WHEEL)
+	cd $(APP_PYSITE_DIR) && patch -f -p0 < PyOpenGL-wgl.patch
 else
 	# TODO: figure out way to make below work, so we don't depend on SOURCE
 	#$(RSYNC) $(PYSITEDIR)/PyOpenGL-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)

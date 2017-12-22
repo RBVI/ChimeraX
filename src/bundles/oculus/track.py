@@ -242,9 +242,9 @@ class Oculus_Rift_Camera(Camera):
         sx,sy = self.oculus_centering_shift # For left eye
         return (s*sx, s*sy)
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         from chimerax.core.graphics import camera
-        self.position = camera.perspective_view_all(bounds, self.position, self.field_of_view, aspect, pad)
+        self.position = camera.perspective_view_all(bounds, self.position, self.field_of_view, window_size, pad)
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''

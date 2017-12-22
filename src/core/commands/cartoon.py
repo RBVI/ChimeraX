@@ -75,7 +75,7 @@ def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, sp
         if smooth is "default":
             # Convert to C++ default value
             smooth = -1.0
-        undo_state.add(residues, "ribbon_adjusts", residues.ribbon_adjust, smooth)
+        undo_state.add(residues, "ribbon_adjusts", residues.ribbon_adjusts, smooth)
         residues.ribbon_adjusts = smooth
     if suppress_backbone_display is not None:
         undo_state.add(residues, "ribbon_hide_backbones",
@@ -156,7 +156,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
                   mode_helix=None, mode_strand=None, radius=None,
-                  spline_normals=None):
+                  divisions=None, spline_normals=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -178,8 +178,10 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         Cross section type, one of "rectangle", "oval" or "barbell".
     sides : integer
         Number of sides for oval cross sections.
+    divisions : integer
+        Number of segments per residue
     bar_scale : floating point number
-        Scale factor of barbell connector to ends.
+        Ratio of barbell connector to ends.
     bar_sides : integer
         Number of sides for barbell cross sections.
     ss_ends : string
@@ -201,7 +203,8 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
     structures = results.atoms.unique_structures
     if (width is None and thickness is None and arrows is None and
         arrows_helix is None and arrow_scale is None and xsection is None and
-        sides is None and bar_scale is None and bar_sides is None and
+        sides is None and divisions is None and
+        bar_scale is None and bar_sides is None and
         ss_ends is None and mode_helix is None and mode_strand is None and
         radius is None and spline_normals is None):
         # No options, report current state and return
@@ -212,29 +215,35 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             print(indent, "helix",
                   "mode=%s" % _ModeHelixInverseMap[m.ribbon_mode_helix],
                   "xsection=%s" % _XSectionInverseMap[mgr.style_helix],
-                  "size=%.2g,%.2g" % mgr.scale_helix,
+                  "width=%.2g" % (mgr.scale_helix[0] * 2),
+                  "height=%.2g" % (mgr.scale_helix[1] * 2),
                   "arrow=%s" % mgr.arrow_helix,
-                  "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
-                                                       mgr.scale_helix_arrow[1]))
+                  "arrow scale=%.2g" % (mgr.scale_helix_arrow[0][0] / mgr.scale_helix[0]))
             print(indent, "strand",
                   "mode=%s" % _ModeStrandInverseMap[m.ribbon_mode_strand],
                   "xsection=%s" % _XSectionInverseMap[mgr.style_sheet],
-                  "size=%.2g,%.2g" % mgr.scale_sheet,
+                  "width=%.2g" % (mgr.scale_sheet[0] * 2),
+                  "height=%.2g" % (mgr.scale_sheet[1] * 2),
                   "arrow=%s" % mgr.arrow_sheet,
-                  "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
-                                                        mgr.scale_sheet_arrow[1]))
+                  "arrow scale=%.2g" % (mgr.scale_sheet_arrow[0][0] / mgr.scale_sheet[0]))
             print(indent, "coil",
                   "xsection=%s" % _XSectionInverseMap[mgr.style_coil],
-                  "size=%.2g,%.2g" % mgr.scale_coil)
+                  "width=%.2g" % (mgr.scale_coil[0] * 2),
+                  "height=%.2g" % (mgr.scale_coil[1] * 2))
             print(indent, "nucleic",
                   "xsection=%s" % _XSectionInverseMap[mgr.style_nucleic],
-                  "size=%.2g,%.2g" % mgr.scale_nucleic)
+                  "width=%.2g" % (mgr.scale_nucleic[0] * 2),
+                  "height=%.2g" % (mgr.scale_nucleic[1] * 2))
+            from ..atomic.structure import structure_graphics_updater
+            lod = structure_graphics_updater(session).level_of_detail
+            print(indent, "divisions=%d" % lod.ribbon_divisions)
             param = mgr.params[XSectionManager.STYLE_ROUND]
-            print(indent,
-                  "oval parameters:", " ".join("%s=%s" % item for item in param.items()))
+            print(indent, "oval parameters:",
+                  "sides=%d" % param["sides"])
             param = mgr.params[XSectionManager.STYLE_PIPING]
-            print(indent,
-                  "barbell parameters:", " ".join("%s=%s" % item for item in param.items()))
+            print(indent, "barbell parameters:",
+                  "sides=%d" % param["sides"],
+                  "scale=%.2g" % param["ratio"])
         return
     residues = results.atoms.residues
     is_helix = residues.is_helix
@@ -405,7 +414,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                 undo_state.add(mgr, "set_sheet_arrow_scale", old, (aw, ah, cw, ch), "MA")
                 mgr.set_sheet_arrow_scale(aw, ah, cw, ch)
             if arrows is not None:
-                undo_state.add(mgr, "set_sheet_end_arrow", mgr.arrow_sheet, arrows_sheet, "M")
+                undo_state.add(mgr, "set_sheet_end_arrow", mgr.arrow_sheet, arrows, "M")
                 mgr.set_sheet_end_arrow(arrows)
             if ss_ends is not None:
                 # TODO: save undo data
@@ -497,6 +506,15 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             new_param = mgr.params[XSectionManager.STYLE_PIPING].copy()
             new_param["style"] = XSectionManager.STYLE_PIPING
             undo_state.add(mgr, "set_params", old_param, new_param, "MK")
+    # process divisions which is actually handled by level of detail
+    if divisions is not None:
+        from ..atomic.structure import structure_graphics_updater
+        gu = structure_graphics_updater(session)
+        lod = gu.level_of_detail
+        undo_state.add(lod, "ribbon_divisions", lod.ribbon_divisions, divisions)
+        lod.ribbon_divisions = divisions
+        gu.update_level_of_detail()
+    # process modes
     if mode_helix is not None:
         mode = _ModeHelixMap.get(mode_helix, None)
         for m in structures:
@@ -513,7 +531,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             radius = None
         for m in structures:
             mgr = m.ribbon_xs_mgr
-            undo_state.add(mgr, "set_tube_radius", mgr.tube_radius, mode, "M")
+            undo_state.add(mgr, "set_tube_radius", mgr.tube_radius, radius, "M")
             mgr.set_tube_radius(radius)
     if spline_normals is not None:
         for m in structures:
@@ -591,6 +609,7 @@ def register_command(session):
                             ("arrow_scale", Bounded(FloatArg, 1.0, 3.0)),
                             ("xsection", EnumOf(_XSectionMap.keys())),
                             ("sides", Bounded(EvenIntArg, 3, 24)),
+                            ("divisions", Bounded(IntArg, 2, 40)),
                             ("bar_scale", FloatArg),
                             ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                             ("ss_ends", EnumOf(["default", "short", "long"])),

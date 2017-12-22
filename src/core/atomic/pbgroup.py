@@ -29,8 +29,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
             session = s.session
         Model.__init__(self, self.category, session)
         self._pbond_drawing = None
-        self._visible_pbonds = None		# Drawing only contains visible pseudobonds
-        self._visible_pbond_atoms = None
         self._dashes = 9
         self._global_group = (s is None)
         self._handlers = []
@@ -55,29 +53,76 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
         # For global pseudobond groups:
         # Detect when atoms moved so pseudobonds must be redrawn.
-        # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
-        # TODO: Only update on selection change if pseudobond atoms selection changed.
-        from ..selection import SELECTION_CHANGED
+        # TODO: Update only when atoms move or are shown hidden,
+        #       not when non-atomic models shown or hidden.
+        # TODO: Need to update if parent of structure moves.
         t = session.triggers
+        from . import get_triggers
+        ta = get_triggers(session)
+        def pbg_update(*args, self=self):
+            self._update_graphics()
+        from ..models import MODEL_DISPLAY_CHANGED
         self._handlers = [
-            t.add_handler('graphics update',self._update_graphics_if_needed),
-            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics()),
-            t.add_handler(SELECTION_CHANGED, lambda *args, s=self: s._update_graphics())
+            (t, t.add_handler('graphics update', self._update_graphics_if_needed)),
+            (ta, ta.add_handler('changes', pbg_update)),
+            (t, t.add_handler(MODEL_DISPLAY_CHANGED, pbg_update)),
         ]
 
     def removed_from_session(self, session):
-        t = session.triggers
-        h = self._handlers
-        while h:
-            t.remove_handler(h.pop())
-        self._handlers = []
+        th = self._handlers
+        for t, h in th:
+            t.remove_handler(h)
+        th.clear()
+
+    # Don't allow changing a pseudobond group position.
+    # Pseudobonds are always drawn to their end-point atoms so the model position
+    # should never be used.  But child models (e.g. labels) and things like picking
+    # may unintentially use it.  So prevent it from being changed.
+    def _dont_set_position(self, position):
+        pass
+    position = property(Model.position.fget, _dont_set_position)
+    def _dont_set_positions(self, positions):
+        pass
+    positions = property(Model.positions.fget, _dont_set_positions)
+
+    # Atom specifier API
+    def atomspec_has_pseudobonds(self):
+        return True
+
+    def atomspec_pseudobonds(self):
+        return self.pseudobonds
 
     def _set_selected(self, sel):
-        a1, a2 = self.pseudobonds.atoms
-        a1.selected = sel
-        a2.selected = sel
+        self.pseudobonds.selected = sel
         Model.set_selected(self, sel)
     selected = property(Model.get_selected, _set_selected)
+
+    def selected_items(self, itype):
+        if itype == 'pseudobonds':
+            pbonds = self.pseudobonds
+            if pbonds.num_selected > 0:
+                return [pbonds.filter(pbonds.selected)]
+        return []
+
+    def any_part_selected(self):
+        if self.pseudobonds.num_selected > 0:
+            return True
+        for c in self.child_models():
+            if c.any_part_selected():
+                return True
+        return False
+
+    def selection_promotion(self):
+        pbonds = self.pseudobonds
+        n = pbonds.num_selected
+        if n == 0 or n == len(pbonds):
+            return None
+        return PromotePseudobondSelection(self, pbonds.selected)
+
+    def clear_selection(self):
+        self.selected = False
+        self.pseudobonds.selected = False
+        super().clear_selection()
 
     def _get_dashes(self):
         return self._dashes
@@ -105,6 +150,17 @@ class PseudobondGroup(PseudobondGroupData, Model):
         Model.name.fset(self, name)
     name = property(_get_name, _set_name)
 
+    def _get_single_color(self):
+        pbonds = self.pseudobonds
+        from ..colors import most_common_color
+        shown = pbonds.filter(pbonds.displays)
+        if shown:
+            return most_common_color(shown.colors)
+        return self.color
+    def _set_single_color(self, color):
+        self.pseudobonds.colors = color
+    single_color = property(_get_single_color, _set_single_color)
+
     def _update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
         if gc:
@@ -117,8 +173,11 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
         d = self._pbond_drawing
         if d is None:
-            d = self.new_drawing('pbonds')
-            self._pbond_drawing = d
+            from .structure import BondsDrawing, PickedPseudobond, PickedPseudobonds
+            d = self._pbond_drawing = BondsDrawing(
+                'pbonds', PickedPseudobond, PickedPseudobonds)
+            self.add_drawing(d)
+            d._visible_atoms = None
             va, na, ta = _pseudobond_geometry(self._dashes//2)
             d.vertices = va
             d.normals = na
@@ -132,13 +191,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes = self._ALL_CHANGE
             
-        if changes & self._DISPLAY_CHANGE or self._visible_pbonds is None:
+        if changes & self._DISPLAY_CHANGE or d.visible_bonds is None:
             vpb = self._shown_pbonds(self.pseudobonds)
-            self._visible_pbonds = vpb
-            self._visible_pbond_atoms = vpb.atoms
+            d.visible_bonds = vpb
+            d._visible_atoms = vpb.atoms
         
-        pbonds = self._visible_pbonds
-        bond_atoms = self._visible_pbond_atoms
+        pbonds = d.visible_bonds
+        bond_atoms = d._visible_atoms
 
         if changes & self._SHAPE_CHANGE:
             d.positions = self._update_positions(pbonds, bond_atoms)
@@ -148,7 +207,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             
         if changes & self._SELECT_CHANGE:
             from . import structure as s
-            d.selected_positions = s._selected_bond_cylinders(bond_atoms)
+            d.selected_positions = s._selected_bond_cylinders(pbonds)
 
     def _update_positions(self, pbonds, bond_atoms):
         ba1, ba2 = bond_atoms
@@ -175,9 +234,41 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if not self.display or (exclude and exclude(self)):
             return None
         from . import structure
-        b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
+        if self._global_group:
+            # Use scene coordinates since atoms may belong to different models.
+            p = self.position
+            sxyz1, sxyz2 = p * mxyz1, p * mxyz2
+            b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2, scene_coordinates = True)
+        else:
+            b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
         p = structure.PickedPseudobond(b,f) if b else None
         return p
+
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and exclude(self):
+            return []
+
+        picks = []
+        from ..geometry import transform_planes
+        for p in self.positions:
+            pplanes = transform_planes(p, planes)
+            picks.extend(self._pseudobonds_planes_pick(pplanes))
+
+        return picks
+
+    def _pseudobonds_planes_pick(self, planes):
+        from .structure import _bonds_planes_pick, PickedPseudobonds
+        d = self._pbond_drawing
+        if d is None or not d.display or d.visible_bonds is None:
+            return []
+        pmask = _bonds_planes_pick(d, planes)
+        if pmask is None or pmask.sum() == 0:
+            return []
+        bonds = d.visible_bonds.filter(pmask)
+        p = PickedPseudobonds(bonds)
+        return [p]
 
     def take_snapshot(self, session, flags):
         data = {
@@ -207,9 +298,43 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def reset_state(self, session):
         pass
 
+# -----------------------------------------------------------------------------
+#
+def selected_pseudobonds(session):
+    '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
+    blist = []
+    for m in session.models.list(type = PseudobondGroup):
+        pbonds = m.pseudobonds
+        pbsel = pbonds.selected
+        if len(pbsel) > 0:
+            blist.append(pbonds[pbsel])
+    from .molarray import concatenate, Pseudobonds
+    pbonds = concatenate(blist, Pseudobonds)
+    return pbonds
+
+# -----------------------------------------------------------------------------
+#
+from ..selection import SelectionPromotion
+class PromotePseudobondSelection(SelectionPromotion):
+    def __init__(self, pbgroup, prev_pbond_sel_mask):
+        level = 1001
+        SelectionPromotion.__init__(self, level)
+        self._pbgroup = pbgroup
+        self._prev_pbond_sel_mask = prev_pbond_sel_mask
+    def promote(self):
+        pbonds = self._pbgroup.pseudobonds
+        pbonds.selected = True
+    def demote(self):
+        pbonds = self._pbgroup.pseudobonds
+        pbonds.selected = self._prev_pbond_sel_mask
+
+# -----------------------------------------------------------------------------
+#
 def all_pseudobond_groups(models):
     return [m for m in models.list() if isinstance(m, PseudobondGroup)]
 
+# -----------------------------------------------------------------------------
+#
 def interatom_pseudobonds(atoms, group_name = None):
     structures = atoms.unique_structures
     if len(structures) == 0:

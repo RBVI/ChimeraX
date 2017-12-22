@@ -55,14 +55,13 @@ def fourier_transform(v, step = None, subregion = None, model_id = None,
   ftd = Array_Grid_Data(ftm, origin, step)
   ftd.name = v.name + (' FT phase' if phase else ' FT')
   from .. import volume_from_grid_data
-  ftr = volume_from_grid_data(ftd, v.session, show_data = False, model_id = model_id)
+  ftr = volume_from_grid_data(ftd, v.session, model_id = model_id)
   ftr.copy_settings_from(v, copy_thresholds = False,  copy_colors = False,
                          copy_region = False)
   ftr.initialize_thresholds()
   ftr.set_parameters(show_outline_box = True)
-  ftr.show()
   
-  v.unshow()          # Hide original map
+  v.display = False          # Hide original map
 
   return ftr
 

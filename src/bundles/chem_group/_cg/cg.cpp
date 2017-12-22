@@ -1232,7 +1232,7 @@ make_group_list(std::vector<Group>& groups, bool return_collection)
 				throw pysupport::PySupportError("Cannot create overall group list");
 			std::memcpy(data_ptr, all_group_atoms.data(), sizeof(void*) * num_atoms);
 		} else {
-			// return a list of lists of individual Atom pointers
+			// return a list of lists of individual Python Atoms
 			auto num_groups = groups.size();
 			py_grp_list = PyList_New(num_groups);
 			if (py_grp_list == nullptr)
@@ -1243,13 +1243,8 @@ make_group_list(std::vector<Group>& groups, bool return_collection)
 				PyObject* py_grp = PyList_New(num_atoms);
 				if (py_grp == nullptr)
 					throw pysupport::PySupportError("Cannot create group atom list");
-				for (decltype(num_atoms) j = 0; j < num_atoms; ++j) {
-					PyObject* py_ptr =  PyLong_FromVoidPtr(
-						const_cast<void*>(static_cast<const void*>(grp[j])));
-					if (py_ptr == nullptr)
-						throw pysupport::PySupportError("Cannot create group atom ptr");
-					PyList_SET_ITEM(py_grp, j, py_ptr);
-				}
+				for (decltype(num_atoms) j = 0; j < num_atoms; ++j)
+					PyList_SET_ITEM(py_grp, j, grp[j]->py_instance(true));
 				PyList_SET_ITEM(py_grp_list, i, py_grp);
 			}
 		}

@@ -25,24 +25,34 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: open</h3>
 
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> (&nbsp;<i>filename</i>&nbsp;|&nbsp;<i>URL</i>&nbsp;|&nbsp;[&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;)
-[&nbsp;<a href="#coordsets">coordsets</a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<i>other-options</i>
 </h3>
-<h3><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
 </h3>
 <p>
 The command <b>open</b> reads data in several
-<a href="#formats">formats</a> from:
+<a href="#formats">input formats</a> from:
+<p>
 <ul>
 <li><a href="#local">local files</a>
 <li><a href="#url">URLs</a>
 <li><a href="#fetch">online databases</a>
 </ul>
+<p>
 Input files may contain data to be displayed or commands or code to be executed.
-Local files can also be browsed/opened with <b>File... Open</b> in the menu,
-in which case the proper filename <a href="#file-table">suffix</a> is required.
+Local files can browsed interactively by giving
+<a href="usageconventions.html#browse"><b>browse</b></a> as the filename 
+in the <b>open</b> command 
+(or by using <b>File... Open</b> in the menu instead of a command, 
+in which case the proper filename <a href="#file-table">suffix</a> is required).
+Another way to open local files is by drag-and-drop onto the ChimeraX icon
+or a running instance of ChimeraX.
+On a Mac, ChimeraX-associated file types can also be opened by 
+double-clicking them in a Finder window or using &ldquo;open&rdquo; 
+in a Terminal window.
 See also: 
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -83,6 +93,7 @@ File types can be categorized as:
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
 <li><a href="#trajectory">Trajectory Coordinates</a>
+<li><a href="#docking">Docking Results</a>
 <li><a href="#volume">Volume Data and Related</a>
 <li><a href="#object">Other 3D Objects</a>
 <li><a href="#sequence">Sequences</a>
@@ -101,12 +112,13 @@ File types can be categorized as:
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="atomic"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Atomic Structures and Related Data</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" 
-target="_blank">Protein Data Bank (PDB)</a></td>
+target="_blank">PDB (Protein Data Bank)</a></td>
 <td align="center"><b>pdb</b></td>
-<td align="center">.pdb<br>.pdb1<br>.ent<br>.pqr</td>
+<td align="center">.pdb, .pdb1<br>.ent, .pqr</td>
 <td align="center">atomic coordinates and associated annotations</td>
 </tr><tr>
 <td align="center"><a href="http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
@@ -129,6 +141,7 @@ to connect with <a href="../pseudobonds.html">pseudobonds</a></td>
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="trajectory"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Coordinates</b>
 <br>(requires an already-open structure for topology, see the
 <a href="#structureModel"><b>structureModel</b></a> option)</td>
@@ -149,9 +162,22 @@ target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center"><b>trr</b></td>
 <td align="center">.trr</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+</tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<a name="docking"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
+<b>Docking Results</b> (associated tool: 
+<a href="../tools/viewdockx.html"><b>ViewDockX</b></a>)</td>
+</tr><tr>
+<td align="center">Dock 4, 5 or 6 Mol2</td>
+<td align="center"><b>mol2</b></td>
+<td align="center">.mol2</td>
+<td align="center">Mol2 format from 
+<a href="http://dock.compbio.ucsf.edu/">UCSF DOCK</a> versions 4, 5, 6</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="volume"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Volume Data and Related</b> (associated tool: 
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)</td>
 </tr><tr>
@@ -163,34 +189,57 @@ target="_blank">Amira</a> mesh</td>
 </tr><tr>
 <td align="center">
 <a href="http://www.poissonboltzmann.org/docs/file-format-info/"
-target="_blank">Adaptive Poisson-Boltzmann Solver (APBS) potential</a>
-<br>(see the
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/ContributedSoftware/apbs/apbs.html"
-target="_blank"><b>APBS</b></a> interface in 
-<a href="http://www.rbvi.ucsf.edu/chimera/"
-target="_blank"><b>UCSF Chimera</b></a>)</td>
+target="_blank">APBS</a> potential
+</td>
 <td align="center"><b>apbs</b></td>
 <td align="center">.dx</td>
-<td align="center">electrostatic potential map</td>
+<td align="center">electrostatic potential map from 
+<a href="http://www.poissonboltzmann.org/docs/file-format-info/"
+target="_blank">Adaptive Poisson-Boltzmann Solver</a>
+<br>(see the
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/ContributedSoftware/apbs/apbs.html"
+target="_blank"><b>APBS</b></a> tool in 
+<a href="http://www.rbvi.ucsf.edu/chimera/"
+target="_blank"><b>UCSF Chimera</b></a>)</td>
 </tr><tr>
-<td align="center">BRIX density map</td>
+<td align="center">BRIX map</td>
 <td align="center"><b>dsn6</b></td>
 <td align="center">.brix</td>
-<td align="center">density map</td>
+<td align="center">electron density map</td>
 </tr><tr>
 <td align="center">
 <a href="http://www.ccp4.ac.uk/html/maplib.html" target="_blank">CCP4</a>
-density map</td>
+map</td>
 <td align="center"><b>ccp4</b></td>
 <td align="center">.ccp4<br>.map</td>
-<td align="center">density map</td>
+<td align="center">electron density map</td>
 </tr><tr>
-<td align="center">Chimera/ChimeraX map
-<br>(based on the hierarchical data format
-<a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
+<td align="center">Chimera/ChimeraX map</a>
 <td align="center"><b>cmap</b></td>
 <td align="center">.cmp<br>.cmap</td>
-<td align="center">density map</td>
+<td align="center">volume data
+<br>(based on the hierarchical data format
+<a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
+</tr><tr>
+<td align="center">CNS or XPLOR map</td>
+<td align="center"><b>xplor</b></td>
+<td align="center">.cns<br>.xplor</td>
+<td align="center">unformatted ASCII density map</td>
+</tr><tr>
+<td align="center">DelPhi or GRASP potential</td>
+<td align="center"><b>delphi</b></td>
+<td align="center">.phi</td>
+<td align="center">electrostatic potential map from
+<a href="http://compbio.clemson.edu/delphi" target="_blank">DelPhi</a>
+(the academic version) or 
+<a href="http://honig.c2b2.columbia.edu/grasp/" target="_blank">GRASP</a></td>
+</tr><tr>
+<td align="center">
+<a href="https://docs.openmicroscopy.org/bio-formats/5.7.1/formats/deltavision.html"
+target="_blank">DeltaVision</a> map</td>
+<td align="center"><b>dv</b></td>
+<td align="center">.dv</td>
+<td align="center">light microscopy data</td>
 </tr><tr>
 <td align="center">Directional FSC (Fourier shell correlation)</td>
 <td align="center"><b>dres</b></td>
@@ -200,42 +249,162 @@ density map</td>
 an XYZ vector and a resolution or other value
 to colormap onto the globe)</td>
 </tr><tr>
-<td align="center">DSN6 density map</td>
+<td align="center">DOCK scoring grids</td>
+<td align="center"><b>dock</b></td>
+<td align="center">.bmp<br>.cnt<br>.nrg</td>
+<td align="center">
+<a href="http://dock.compbio.ucsf.edu/index.html"
+target="_blank">UCSF DOCK</a> (versions 4, 5, 6)
+bump, contact, and energy scoring grids<br>
+(suffixes not interchangeable; <i>gridname</i>.bmp required for reading
+<i>gridname</i>.cnt and/or <i>gridname</i>.nrg)</td>
+</tr><tr>
+<td align="center">DSN6 map</td>
 <td align="center"><b>dsn6</b></td>
 <!-- dsn6 format name is shared, program figures out which variant -->
 <td align="center">.omap</td>
-<td align="center">density map</td>
+<td align="center">electron density map</td>
 </tr><tr>
-<td align="center">Image stack
+<td align="center">EMAN HDF map</a>
+<td align="center"><b>emanhdf</b></td>
+<td align="center">.hdf<br>.h5</td>
+<td align="center">electron density map
+<br>(based on the hierarchical data format
+<a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
+</tr><tr>
+<td align="center">Gaussian cube grid</td>
+<td align="center"><b>cube</b></td>
+<td align="center">.cube<br>.cub</td>
+<td align="center">orbitals, electron densities, other</td>
+</tr><tr>
+<td align="center"><a href="https://research.csc.fi/-/gopenmol_download"
+target="_blank">gOpenMol</a> grid</td>
+<td align="center"><b>gopenmol</b></td>
+<td align="center">.plt</td>
+<td align="center">orbitals, electron densities, other</td>
+</tr><tr>
+<td align="center">ImageJ or
+<a href="https://www-legacy.openmicroscopy.org/site/products/ome-tiff"
+target="_blank">OME</a> TIFF</a></td>
+<td align="center"><b></b></td>
+<td align="center">.tif<br>.tiff</td>
+<td align="center">microscopy data
+<br>(multiple channels and/or time points specified in file header)</td>
+</tr><tr>
+<td align="center">Image stack</td>
+<td align="center"><b>images</b></td>
+<td align="center">.tif, .tiff<br>.png<br>.pgm</td>
+<td align="center">image stack
 <br>(grayscale image series in multiple files or a single multipage file,
 in formats supported by
 <a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>)</td>
-<td align="center"><b>images</b></td>
-<td align="center">.tif, .tiff<br>.png<br>.pgm</td>
-<td align="center">density map</td>
 </tr><tr>
 <td align="center">
 <a href="http://www.bitplane.com/imaris" target="_blank">Imaris</a> map</td>
 <td align="center"><b>ims</b></td>
 <td align="center">.ims</td>
-<td align="center">3D-5D image<br>(could be time series and/or multichannel)</td>
+<td align="center">3D-5D image
+<br>(could be time series and/or multichannel)</td>
+</tr><tr>
+<td align="center">
+<a href="http://bio3d.colorado.edu/imod/doc/mrc_format.txt"
+target="_blank">IMOD</a> map</td>
+<td align="center"><b>imodmap</b></td>
+<td align="center">.rec</td>
+<td align="center">electron density map
+<br>(MRC map with signed 8-bit mode interpreted as unsigned)</td>
+</tr><tr>
+<td align="center">
+<a href="https://brettbode.github.io/wxmacmolplt/MacMolPlt_Manual.html"
+target="_blank">MacMolPlt</a> grid</a>
+<td align="center"><b>macmolplt</b></td>
+<td align="center">.mmp</td>
+<td align="center">
+<a href="https://brettbode.github.io/wxmacmolplt/Manual_pages/MacMolPlt_Files.html#SurfExport"
+target="_blank">3D surfaces</a></td>
 </tr><tr>
 <td align="center">
 <a href="http://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image"
-target="_blank">MRC</a> density map</td>
+target="_blank">MRC</a> map</td>
 <td align="center"><b>mrc</b></td>
 <td align="center">.mrc</td>
-<td align="center">density map</td>
+<td align="center">electron density map</td>
+</tr><tr>
+<td align="center">Priism data</td>
+<td align="center"><b>priism</b></td>
+<td align="center">.xyzw<br>.xyzt</td>
+<td align="center">3D light or EM data
+<br>(.xyzt is time series)</td>
+<!--
+</tr><tr>
+<td align="center">Priism time series</td>
+<td align="center"><b>priism_t</b></td>
+<td align="center">.xyzt</td>
+<td align="center">time series of 3D light or EM data</td>
+-->
+</tr><tr>
+<td align="center">PROFEC grid</td>
+<td align="center"><b>profec</b></td>
+<td align="center">.profec</td>
+<td align="center">interaction free energy grid from PROFEC
+(in <a href="http://ambermd.org/index.html" target="_blank"><b>Amber</b></a>
+versions 6 and 7)</td>
+</tr><tr>
+<td align="center">Purdue image format</td>
+<td align="center"><b>pif</b></td>
+<td align="center">.pif</td>
+<td align="center">electron density map</td>
+</tr><tr>
+<td align="center"><a href="http://situs.biomachina.org/index.html"
+target="_blank">Situs</a> map</td>
+<td align="center"><b>situs</b></td>
+<td align="center">.situs<br>.sit</td>
+<td align="center">electron density map</td>
+</tr><tr>
+<td align="center">SPIDER</td>
+<td align="center"><b>spider</b></td>
+<td align="center">.spi<br>.vol</td>
+<td align="center">electron density map</td>
 <tr><tr>
 <td align="center"><a href="http://huanglab.ucsf.edu/STORM.html"
-target="_blank">STochastic Optical Reconstruction Microscopy (STORM)</a></td>
+target="_blank">STORM</a></td>
 <td align="center"><b>storm</b></td>
 <td align="center">.storm</td>
-<td align="center">super-resolution optical microscopy data</td>
+<td align="center">super-resolution data from
+<a href="http://huanglab.ucsf.edu/STORM.html"
+target="_blank">STochastic Optical Reconstruction Microscopy</td>
+</tr><tr>
+<td align="center"><a href="https://www.biochem.mpg.de/tom"
+target="_blank">TOM toolbox</a> map</td>
+<td align="center"><b>tom_em</b></td>
+<td align="center">.em</td>
+<td align="center">electron density map</td>
+</tr><tr>
+<td align="center">UHBD potential (binary)</td>
+<td align="center"><b>uhbd</b></td>
+<td align="center">.grd</td>
+<td align="center">electrostatic potential map from
+University of Houston Brownian Dynamics</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="object"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Other 3D Objects</b></td>
+</tr><tr>
+<td align="center">
+<a href="../formats/bild.html">Chimera/ChimeraX BILD</a>
+</td>
+<td align="center"><b>bild</b></td>
+<td align="center">.bild<br>.bld</td>
+<td align="center">graphical objects</td>
+</tr><tr>
+<td align="center">
+<a href="../markers.html#markerfiles">Chimera/ChimeraX markers</a>
+</td>
+<td align="center"><b>markers</b></td>
+<td align="center">.cmm</td>
+<td align="center"><a href="../markers.html">markers and links</a>
+<br>(analogous to atoms and bonds)</td>
 </tr><tr>
 <td align="center"><a href="http://www.khronos.org/collada/"
 target="_blank">COLLADA</a></td>
@@ -249,30 +418,30 @@ target="_blank">GL Transmission Format</a></td>
 <td align="center">.glb</td>
 <td align="center">graphical objects</td>
 </tr><tr>
+<td align="center"><a href="http://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
+target="_blank">STereoLithography</a> (binary)</td>
+<td align="center"><b>stl</b></td>
+<td align="center">.stl</td>
+<td align="center">triangle-based format
+native to stereolithography CAD software</td>
+<tr><tr>
+<td align="center"><a href="http://vtk.org/" 
+target="_blank">VTK (Visualization Toolkit) PolyData</a></td>
+<td align="center"><b>vtk</b></td>
+<td align="center">.vtk</td>
+<td align="center">lines, polygons</td>
+</tr><tr>
 <td align="center">
 <a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
-target="_blank">Wavefront OBJ</a>
-</td>
+target="_blank">Wavefront OBJ</a></td>
 <td align="center"><b>obj</b></td>
 <td align="center">.obj</td>
 <td align="center">graphical objects
 <br>(geometric and texture vertices, vertex normals, faces; no colors)</td>
-</tr><tr>
-<td align="center"><a href="http://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
-target="_blank">STereoLithography (binary)</a></td>
-<td align="center"><b>stl</b></td>
-<td align="center">.stl</td>
-<td align="center">triangle-based format (binary)
-native to stereolithography CAD software</td>
-<tr><tr>
-<td align="center"><a href="http://vtk.org/" 
-target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
-<td align="center"><b>vtk</b></td>
-<td align="center">.vtk</td>
-<td align="center">lines, polygons</td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="sequence"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
 <tr><tr>
@@ -281,7 +450,7 @@ target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
 <td align="center">.fasta, .fa<br>.afasta, .afa</td>
 <td align="center">individual sequence(s) or sequence alignment</td>
 <tr><tr>
-<td align="center">Multiple Sequence Format (MSF)</a></td>
+<td align="center">MSF (Multiple Sequence Format)</a></td>
 <td align="center"><b>msf</b></td>
 <td align="center">.msf</td>
 <td align="center">sequence alignment</td>
@@ -293,6 +462,7 @@ target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="composite"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Composite</b></td>
 </tr><tr>
 <td align="center"><a href="save.html">ChimeraX session file</a></td>
@@ -301,7 +471,7 @@ target="_blank">Visualization Toolkit (VTK) PolyData</a></td>
 <td align="center">ChimeraX session</td>
 </tr><tr>
 <td align="center"><a href="https://pdb-dev.wwpdb.org/about/"
-target="_blank">Integrative Hybrid Model (IHM)</a>
+target="_blank">IHM (Integrative Hybrid Model)</a>
 </td>
 <td align="center"><b>ihm</b></td>
 <td align="center">.ihm</td>
@@ -312,6 +482,7 @@ atomic and coarse-grained representations, crosslinks, <i>etc.</i>
 <tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="miscellaneous"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Miscellaneous</b></td>
 </tr><tr>
 <td align="center"><a href="usageconventions.html#cxc-files">ChimeraX
@@ -323,7 +494,7 @@ command file</a></td>
 </tr><tr>
 <td align="center">Python</td>
 <td align="center"><b>py</b></td>
-<td align="center">.py<br>.pyc<br>.pyo</td>
+<td align="center">.py, .pyc, .pyo</td>
 <td align="center">Python code</td>
 </tr><tr>
 <td align="center">HTML, XHTML</td>
@@ -331,7 +502,7 @@ command file</a></td>
 <td align="center">.html, .htm<br>.xhtml,&nbsp;.xht,&nbsp;.xml</td>
 <td align="center">
 hypertext to render in the 
-<a href="../window.html#browser">ChimeraX browser</a>
+<a href="../tools/browser.html">ChimeraX browser</a>
 </tr></table>
 
 <a name="local"></a>
@@ -342,13 +513,16 @@ hypertext to render in the
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>filename</i>&nbsp;
+[&nbsp;<i>filename2</i>...&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -357,15 +531,24 @@ either absolute or relative to the current working directory as
 reported by <a href="pwd.html"><b>pwd</b></a>.
 The working directory can be changed with <a href="cd.html"><b>cd</b></a>.
 A pathname may start with &ldquo;<b>~</b>&rdquo; to indicate the user's 
-home directory. One or more files can be specified at a time by including 
-<b>*</b> (wild card), <b>?</b> (single-character wild card), 
-and/or square-bracketed character ranges in the <i>filename</i>
+home directory. 
+One or more files can be specified with a single filename
+by including <b>*</b> (wild card), <b>?</b> (single-character wild card), 
+and/or square-bracketed character ranges
 (Unix-style pathname expansion or <b><i>globbing</i></b>).
+Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
+for the filename brings up a file browser window for choosing the
+name and location interactively.
+Specifying multiple filenames is equivalent to using the <b>open</b> command 
+multiple times with the same options for each filename.
 </p><p>
 The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
+</p><p>
+Opening a Chimera session file automatically runs
+<a href="close.html"><b>close session</b></a> first.
 </p><p>
 Further command options:
 </p>
@@ -374,10 +557,12 @@ Further command options:
 <b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to open a multi-model file in mmCIF or PDB format as a
-<a href="../trajectories.html">trajectory</a>. Only one frame
-(coordinate set) of a trajectory can be viewed at a time, although different
-frames can be accessed or played back sequentially with the
-<a href="coordset.html"><b>coordset</b></a> command.
+<a href="../trajectories.html">trajectory</a> and show a
+<a href="coordset.html#slider">slider</a> graphical interface.
+Only one frame (coordinate set) of a trajectory can be viewed at a time;
+different frames can be accessed or played back sequentially with the
+<a href="coordset.html"><b>coordset</b></a> command or
+the <a href="coordset.html#slider">slider interface</a>.
 By default, the multiple models in the file will be opened not as a
 <a href="../trajectories.html">trajectory</a> but as
 separate submodels that can be shown/hidden/specified independently 
@@ -397,6 +582,39 @@ for playback with
 If the option is not used, 3D TIFF images and
 <a href="save.html#chimap">Chimera map</a> files containing five or more
 same-sized maps are automatically interpreted as series, if possible.
+When multiple maps are opened in a single command (multiple files specified with 
+wild cards or globbing), time ordering is automatically discerned from the
+filenames, if possible: for example, a file will be identified as time point 12 
+if its name contains either of the following:
+<ul class="none">
+<li>_stack0012_
+<li>_0012stack_
+</ul>
+(and 0012 could be any integer).
+</blockquote>
+<blockquote>
+<b>channel</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Assign channel number <i>N</i> to map; typically used for light microscopy data.
+When multiple maps are opened in a single command (multiple files specified with 
+wild cards or globbing), channel numbers are automatically discerned from the
+filenames, if possible: for example, a file will be identified as channel 0
+if its name contains either of the following:
+<ul class="none">
+<li>_ch0_
+<li>_0ch_
+</ul>
+(and 0 could be any whole number).
+<!-- OME TIFF header of one file can specify names of all files in the dataset, 
+which ChimeraX will open automatically; maybe rare, currently left undescribed. -->
+Multichannel data opened from a single file or from multiple files
+in a single command (as described above) are automatically grouped,
+in that changing the display style, step size, or plane for one channel 
+in <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>
+changes it for all of the channels in the group.
+The <b>channel</b> option allows manually assigning a channel to data
+so that it can be saved along with other datasets in a single (multichannel)
+<a href="save.html#chimap">Chimera map</a> file.
 </blockquote>
 <blockquote>
 <b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -439,14 +657,13 @@ bypassing chemical perception steps like identifying
 Whether to fetch ensembles associated with an IHM dataset 
 (default <b>false</b>, as these can be quite large).
 </blockquote>
-<p>
-<!-- ChimeraX builds after June 20 2017 as per ticket #320 -->
-Another way to open local files is by drag-and-drop onto the ChimeraX icon
-or a running instance of ChimeraX.
-On a Mac, ChimeraX-associated file types can also be opened by 
-double-clicking them in a Finder window or using &ldquo;open&rdquo; 
-in a Terminal window.
-</p>
+<blockquote>
+<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to open an HTML file in a new tab of the
+<a href="../tools/browser.html">ChimeraX browser</a>
+(default <b>false</b>, replace any current page).
+</blockquote>
 
 <a name="url"></a>
 <p class="nav">
@@ -460,10 +677,12 @@ in a Terminal window.
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -474,7 +693,7 @@ File types and command options are as described
 The file type can be indicated by suffix, MIME type, or the <b>format</b> option.
 </p><p>
 Web-fetched data other than those handled by the
-<a href="../window.html#browser">ChimeraX browser</a>
+<a href="../tools/browser.html">ChimeraX browser</a>
 are stored locally as described <a href="#ignoreCache">below</a>.
 </p>
 
@@ -487,6 +706,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>: <b>open</b> 
 [&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
+[[&nbsp;<a href="#fetch-table"><i>prefix2</i></a>:]<i>identifier2</i>...&nbsp;]
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -502,6 +722,8 @@ The default database for a 4-character identifier without prefix is the
 target="_blank">RCSB Protein Data Bank</a>; the default format
 for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
 can be specified with the <b>format</b> option.
+Specifying multiple identifiers is equivalent to using the <b>open</b> command
+multiple times with the same options for each identifier.
 </p><p>
 Opening a structure in mmCIF format automatically shows a clickable table of
 <a href="sym.html#assembly">assembly information</a>
@@ -520,13 +742,6 @@ For caching, no distinction is made among the different Protein Data Bank sites.
 If a data file specified for opening is not found in this local cache or 
 <b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
 </p>
-<!--
-ChimeraX preferences, command history, file history, and package installation 
-files are stored in a standard platform-dependent location
-(for example, <b>~/Library/Caches/ChimeraX</b> on a Mac;
-see <a href="http://pypi.python.org/pypi/appdirs" 
-target="_blank">python appdirs</a>). 
--->
 
 <center>
 <a name="fetch-table"><font size="+1"><b>Fetch Sources</b></font></a>
@@ -604,7 +819,7 @@ Chinese mirror site to .cn hosts, otherwise from ebi.ac.uk)&nbsp;
 </td>
 <td align="center"><b>emdb:</b></td>
 <td align="center"><b>emdb</b></td>
-<td align="center">density map</td>
+<td align="center">electron density map</td>
 <td align="center"><b>ccp4</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.cellpack.org"
@@ -642,7 +857,9 @@ automatically adjusting the appearance of a newly opened atomic model
 based on its contents.
 Bypassing this calculation shows all atoms as white spheres, and may be 
 useful in rare cases where generating the rule-based representation is slow
-(such as drawing cartoons for very large numbers of models).
+(such as drawing cartoons for very large numbers of models) or 
+when chemical perception is inappropriate (such as for a SAXS bead model). 
+See also: <a href="../markers.html">markers and links</a>
 </blockquote>
 <blockquote>
 <b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
@@ -659,7 +876,6 @@ can be opened in either order.
 Gaps in the structure sequence relative to the sequence in the alignment file 
 can only occur where residues are missing from the structure (for example, 
 a flexible loop with insufficient density to determine coordinates).
-<!-- check the following -->
 Associations are reported in the <a href="../window.html">status line</a>
 and the <a href="../tools/log.html"><b>Log</b></a>.
 A structure (even if it has multiple chains) cannot be associated with more
@@ -672,5 +888,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2017</address>
+December 2017</address>
 </body></html>

@@ -222,7 +222,7 @@ def avoid_collisions(session):
 
 # -----------------------------------------------------------------------------
 #
-def device_snav(session, enable = None, fly = None):
+def device_snav(session, enable = None, fly = None, speed = None):
     '''Enable or disable moving models with Space Navigator input device.
 
     Parameters
@@ -234,6 +234,9 @@ def device_snav(session, enable = None, fly = None):
       for example pushing forward flies the camera forward.  If fly is false,
       then the device controls the models, pushing forward would push the models
       away from the camera.  In both cases it is actually the camera that moves.
+    speed : float
+      Controls device sensitive, how fast the models move for a given device motion.
+      Default 1.0.
     '''
     sn = space_navigator(session)
     if not enable is None:
@@ -246,12 +249,16 @@ def device_snav(session, enable = None, fly = None):
     if not fly is None:
         sn.fly_mode = bool(fly)
 
+    if not speed is None:
+        sn.speed = speed
+
 # -----------------------------------------------------------------------------
 # Register the snav command for ChimeraX.
 #
 def register_snav_command(logger):
-    from chimerax.core.commands import CmdDesc, BoolArg, register
+    from chimerax.core.commands import CmdDesc, BoolArg, register, FloatArg
     desc = CmdDesc(optional = [('enable', BoolArg)],
-                   keyword = [('fly', BoolArg)],
+                   keyword = [('fly', BoolArg),
+                              ('speed', FloatArg)],
                    synopsis = 'Turn on Space Navigator input device')
     register('device snav', desc, device_snav, logger=logger)

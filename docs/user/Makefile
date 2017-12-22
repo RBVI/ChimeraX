@@ -18,7 +18,7 @@ SUBDIRS = tools
 
 DOCDIR = $(app_datadir)/docs/user
 
-SRCS = $(wildcard *.html) userdocs.css commands
+SRCS = $(wildcard *.html) userdocs.css commands formats
 IMAGES = $(wildcard *.png) $(wildcard *.svg) $(wildcard *.jpg)
 OTHER = $(wildcard *.cxc)
 

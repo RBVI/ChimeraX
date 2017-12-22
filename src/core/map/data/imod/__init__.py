@@ -15,5 +15,5 @@
 #
 def open(path):
 
-  from imod_grid import IMOD_Grid
+  from .imod_grid import IMOD_Grid
   return [IMOD_Grid(path)]

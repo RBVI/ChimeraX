@@ -14,23 +14,34 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "ChangeTracker.h"
 #include "PBGroup.h"
 #include "PBManager.h"
 #include "Pseudobond.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Pseudobond>;
+
 namespace atomstruct {
 
+Pseudobond::Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _group(grp),
+        _shown_when_atoms_hidden(true) {
+    _halfbond = false;
+    _radius = 0.05;
+    change_tracker()->add_created(grp->structure(), this);
+}
+
 ChangeTracker*
-Pseudobond::change_tracker() const { return atoms()[0]->change_tracker(); }
+Pseudobond::change_tracker() const { return group()->manager()->change_tracker(); }
 
 GraphicsChanges*
 Pseudobond::graphics_changes() const { return static_cast<GraphicsChanges*>(group()); }
 
 void
 Pseudobond::session_restore(int version, int** ints, float** floats) {
-    Connection::session_restore(session_base_version(version), ints, floats);
+    Connection::session_restore(version, ints, floats);
     auto& int_ptr = *ints;
     auto id = int_ptr[0];
     _shown_when_atoms_hidden = version < 9 ? true : int_ptr[1];
