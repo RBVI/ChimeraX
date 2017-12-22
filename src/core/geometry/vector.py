@@ -51,7 +51,11 @@ from math import sqrt, acos, degrees, radians, sin, cos
 
 def inner_product(u, v):
     '''Return the inner product of two vectors.'''
-    return (u * v).sum()
+    if len(u) == 3:
+        # the below is considerably faster than even the C++ implementation,
+        # as well as Python equivalents using zip() and sum()
+        return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]
+    return inner_product_64(u, v)
 
 def distance_squared(p, q):
     '''Return the distance squared between two points.'''
