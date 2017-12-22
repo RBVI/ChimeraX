@@ -45,13 +45,15 @@ var vdxtable = function() {
         // Create table body
         var tbody = $("<tbody/>");
         $.each(ids, function(i, id) {
-            var row = $("<tr/>");
+            var row = $("<tr/>", { class: "structure_row",
+                                   id: _row_id(id) });
             var query = "?id=" + id;
             var checkbox_url = custom_scheme + ":checkbox" + query;
             var link_url = custom_scheme + ":link" + query;
             row.append($("<td/>").append($("<input/>", {
                                             type: "checkbox",
                                             class: "structure",
+                                            title: id,
                                             id: _checkbox_id(id),
                                             href: checkbox_url })));
             row.append($("<td/>").append($("<div/>", {
@@ -80,9 +82,22 @@ var vdxtable = function() {
                 ratedFill: "#F36C12",
                 normalFill: "#DDDDDD",
                 onSet: function (r, inst) {
-                    window.location = custom_scheme + ":rating" +
-                                      "?id=" + this.title +
-                                      "&rating=" + r;
+                    var ids;
+                    if ($(this).parents(".selected").length > 0) {
+                        // Already selected
+                        ids = $("tr.selected .structure").map(
+                                function () {
+                                    return $(this).prop("title");
+                                }).get().join();
+                        if (event)
+                            event.stopPropagation();
+                    } else {
+                        // Not yet selected
+                        ids = $(this).prop("title");
+                    }
+                    var url = custom_scheme + ":rating?id=" + ids +
+                              "&rating=" + r;
+                    window.location = url;
                 }
             });
         });
@@ -121,22 +136,42 @@ var vdxtable = function() {
                 2: { sorter: 'id_col' }
             }
         });
-        $(".structure").click(function() {
-            if ($(this).is(":checked")) {
-                window.location = $(this).attr('href') + "&display=1";
+        $(".structure").click(function(event) {
+            var display = $(this).is(":checked") ? 1 : 0;
+            var ids;
+            if ($(this).parents(".selected").length > 0) {
+                // Already selected
+                ids = $("tr.selected .structure").map(
+                        function () {
+                            return $(this).prop("title");
+                        }).get().join();
+                event.stopPropagation();
             } else {
-                window.location = $(this).attr('href') + "&display=0";
+                // Not yet selected
+                ids = $(this).prop("title");
             }
+            var url = custom_scheme + ":checkbox?id=" + ids +
+                      "&display=" + display;
+            window.location = url;
         });
+        $(".structure_row").click(function(e) {
+            if (e.ctrlKey) {
+                $(this).toggleClass("selected");
+            } else {
+                $("tr.selected").removeClass("selected");
+                $(this).addClass("selected");
+            }
+        })
     }
 
+    // jQuery does not like '.' in id names even though JS does not care
+    function _row_id(id) {
+        return "row_" + id.replace('.', '_', 'g');
+    }
     function _checkbox_id(id) {
-        // jQuery does not like '.' in id names even though JS does not care
         return "cb_" + id.replace('.', '_', 'g');
     }
-
     function _rating_id(id) {
-        // jQuery does not like '.' in id names even though JS does not care
         return "rt_" + id.replace('.', '_', 'g');
     }
 
