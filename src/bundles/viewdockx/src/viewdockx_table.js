@@ -241,6 +241,9 @@ var vdxtable = function() {
         $("#graph_btn").click(function() {
             window.location = custom_scheme + ":graph";
         });
+        $("#plot_btn").click(function() {
+            window.location = custom_scheme + ":plot";
+        });
         $("#hb_btn").click(function() {
             window.location = custom_scheme + ":hb";
         });
