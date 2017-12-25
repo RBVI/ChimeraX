@@ -48,7 +48,6 @@ endif
 app-install: install
 ifdef WIN32
 	$(APP_PIP_INSTALL) $(WHEEL)
-	(cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch
 else
 	# TODO: figure out way to make below work, so we don't depend on SOURCE
 	#$(RSYNC) $(PYSITEDIR)/PyOpenGL-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
