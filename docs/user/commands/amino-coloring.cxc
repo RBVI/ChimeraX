@@ -1,0 +1,17 @@
+# protein "amino" color scheme as shown in http://jmol.sourceforge.net/jscolors/
+#  plus mse (same as met) - August 2017 
+color protein #bea06e
+color :ala #c8c8c8
+color :arg #145aff
+color :asn,gln #00dcdc
+color :asp,glu #e60a0a
+color :cys,met,mse #e6e600
+color :gly #ebebeb
+color :his #8282d2
+color :ile,leu,val #0f820f
+color :lys #145aff
+color :phe,tyr #3232aa
+color :pro #dc9682
+color :ser,thr #fa9600
+color :trp #b45ab4
+color :asx,glx #ff69b4

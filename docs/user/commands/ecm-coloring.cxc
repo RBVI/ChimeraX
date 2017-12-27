@@ -1,0 +1,20 @@
+# Elaine's AA residue color scheme used in Structure-Function Linkage Database;
+# includes some modified residues (e.g. BFD is modified ASP) - August 2017 
+#
+color :asp,phd,bfd orange red
+color :glu red
+color :asn hot pink
+color :gln deep pink
+color :lys,kcx,lcx dodger blue
+color :arg,rpi blue
+color :his deep sky blue
+color :gly,pro light green
+color :ser,sep pink
+color :thr,tpo plum
+color :cys gold
+color :met,mse goldenrod
+color :ala,val dark khaki
+color :ile,leu tan
+color :phe,trp sandy brown
+color :tyr,ptr rosy brown
+color byhet targ a
