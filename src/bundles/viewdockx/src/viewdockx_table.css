@@ -30,6 +30,7 @@ table, th, td {
 }
 table {
   width:100%;
+  user-select: none;
 }
 th {
   background-color: #BBB;

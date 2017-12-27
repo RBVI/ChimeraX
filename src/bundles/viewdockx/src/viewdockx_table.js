@@ -3,6 +3,11 @@
 var vdxtable = function() {
     var custom_scheme = "vdxtable";
     var rating_column = "viewdockx_rating";
+    var mouse_down_row = null;
+    var mouse_down_index = null;
+    var mouse_last_index = null;
+    var mouse_down_ctrl = null;
+    var mouse_down_selected = null;
 
     function update_columns(columns) {
         // Clean up previous incarnation and save some state
@@ -46,6 +51,7 @@ var vdxtable = function() {
         var tbody = $("<tbody/>");
         $.each(ids, function(i, id) {
             var row = $("<tr/>", { class: "structure_row",
+                                   title: id,
                                    id: _row_id(id) });
             var query = "?id=" + id;
             var checkbox_url = custom_scheme + ":checkbox" + query;
@@ -154,14 +160,53 @@ var vdxtable = function() {
                       "&display=" + display;
             window.location = url;
         });
-        $(".structure_row").click(function(e) {
-            if (e.ctrlKey) {
-                $(this).toggleClass("selected");
+        function mouse_update(e) {
+            var my_index = $(this).index();
+            if (my_index == mouse_last_index)
+                return;
+            var anchor_index = mouse_down_index;
+            var all;
+            if (my_index == anchor_index)
+                all = $(this);
+            else if (my_index < anchor_index)
+                all = $(this).nextUntil(mouse_down_row)
+                             .addBack().add(mouse_down_row);
+            else
+                all = $(this).prevUntil(mouse_down_row)
+                             .addBack().add(mouse_down_row);
+            $("tr.selected").removeClass("selected");
+            if (mouse_down_ctrl) {
+                mouse_down_selected.addClass("selected");
+                all.toggleClass("selected");
             } else {
-                $("tr.selected").removeClass("selected");
-                $(this).addClass("selected");
+                all.addClass("selected");
             }
-        })
+            mouse_last_index = my_index;
+        }
+        $(".structure_row").mousedown(function(e) {
+            mouse_down_row = $(this);
+            mouse_down_index = mouse_down_row.index();
+            mouse_last_index = null;
+            mouse_down_ctrl = e.ctrlKey;
+            if (mouse_down_ctrl)
+                mouse_down_selected = $("tr.selected");
+            else
+                mouse_down_selected = null;
+            // Do not actually change selection in case user
+            // clicks on link or checkbox that need to apply
+            // to all selected rows.  mouse_last_index is set
+            // to null, so any mouse movement will trigger
+            // selection update.
+            $(".structure_row").on("mousemove", mouse_update);
+        });
+        $(".structure_row").mouseup(function(e) {
+            mouse_down_row = null;
+            mouse_down_index = null;
+            mouse_last_index = null;
+            mouse_down_ctrl = null;
+            mouse_down_selected = null
+            $(".structure_row").off("mousemove");
+        });
     }
 
     // jQuery does not like '.' in id names even though JS does not care
