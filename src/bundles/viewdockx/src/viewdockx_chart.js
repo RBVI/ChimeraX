@@ -50,7 +50,7 @@ var vdxchart = function() {
                 $("<th>/>").text("Hist").css("text-align", "center"),
                 $("<th>/>").text("Column"),
                 $("<th>/>").text("Value")));
-            $.each(columns["text"], function(r, v) {
+        $.each(columns["text"], function(r, v) {
             $("#column_table").append($("<tr/>").append(
                                         $("<td/>"),
                                         $("<td/>"),
@@ -58,7 +58,7 @@ var vdxchart = function() {
                                         $("<td/>").text(r),
                                         $("<td/>").addClass("value")
                                                   .prop("title", r)))
-            });
+        });
         $.each(columns["numeric"], function(r, v) {
             var sort_btn = make_button("radio", "sort", r, r == sort_column);
             var show_btn = make_button("checkbox", "graph", r,
@@ -75,7 +75,7 @@ var vdxchart = function() {
                                         $("<td/>").text(r),
                                         $("<td/>").addClass("value")
                                                   .prop("title", r)))
-            });
+        });
 
         update_plot();
     }
@@ -279,8 +279,7 @@ var vdxchart = function() {
     }
 
     function mousedown(e) {
-        action = (e.ctrlKey || e.shiftKey || e.altKey)
-                    ? "show_toggle" : "show_only";
+        action = e.ctrlKey ? "show_toggle" : "show_only";
     }
 
     function update_display(new_display) {

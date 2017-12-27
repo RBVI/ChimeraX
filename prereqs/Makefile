@@ -114,7 +114,7 @@ endif
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= imex msgpack numexpr numpy openmm \
-	   pcre pdbfixer pips \
+	   pcre pips \
 	   PyOpenGL PyQt Python \
 	   scipy setuptools wrappy3
 
@@ -197,8 +197,6 @@ openmm.app-install: Python.app-install numpy.app-install pips.app-install
 openmm.install: Python.install numpy.install pips.install
 pcre.app-install: zlib.app-install
 pcre.install: zlib.install
-pdbfixer.app-install: Python.app-install openmm.app-install
-pdbfixer.install: Python.install openmm.install
 pillow.app-install: setuptools.app-install zlib.app-install
 pillow.install: setuptools.install zlib.install
 pips.app-install: setuptools.app-install

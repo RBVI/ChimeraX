@@ -81,7 +81,7 @@ class HtmlView(QWebEngineView):
                         p.installUrlSchemeHandler(scheme, self._scheme_handler)
             if download:
                 p.downloadRequested.connect(download)
-        page = QWebEnginePage(self._profile, self)
+        page = _LoggingPage(self._profile, self)
         self.setPage(page)
         s = page.settings()
         s.setAttribute(s.LocalStorageEnabled, True)
@@ -145,6 +145,21 @@ class HtmlView(QWebEngineView):
 
     def runJavaScript(self, js):    # noqa
         self.page().runJavaScript(js)
+
+
+class _LoggingPage(QWebEnginePage):
+
+    Levels = {
+        0: "info",
+        1: "warning", 
+        2: "error",
+    }
+
+    def javaScriptConsoleMessage(self, level, msg, lineNumber, sourceId):
+        import os.path
+        filename = os.path.basename(sourceId)
+        print("JS console(%s:%d:%s): %s" % (filename, lineNumber,
+                                            self.Levels[level], msg))
 
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):

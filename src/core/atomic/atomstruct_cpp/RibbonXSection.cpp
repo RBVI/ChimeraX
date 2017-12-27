@@ -17,6 +17,7 @@
 #include <algorithm>
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "RibbonXSection.h"
 
 namespace atomstruct {
