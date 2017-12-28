@@ -14,5 +14,5 @@
 #
 def open(path):
 
-  from em_grid import EM_Grid
+  from .em_grid import EM_Grid
   return [EM_Grid(path)]

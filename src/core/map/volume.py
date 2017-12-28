@@ -51,6 +51,8 @@ class Volume(Model):
       rendering_options = Rendering_Options()
     self.rendering_options = rendering_options
 
+    if message_cb is None:
+      message_cb = session.logger.status
     self.message_cb = message_cb
     
     self.matrix_stats = None
@@ -61,14 +63,12 @@ class Volume(Model):
     rlist.insert_region(ijk_min, ijk_max)
     self.region_list = rlist
 
-    self._channels = None	# Map_Channels model
+    self._channels = None	# MapChannels object
     
     self.representation = 'surface'
 
     self.solid = None
-    self.keep_displayed_data = None
-
-    self.display = False        # Display surface
+    self._keep_displayed_data = None
 
     self.initialized_thresholds = False
 
@@ -181,7 +181,7 @@ class Volume(Model):
     for p in changes.modified:
       if p in pindex:
         i = pindex[p]
-        vcolor = self.modulated_surface_color(self.surface_colors[i])
+        vcolor = self._modulated_surface_color(self.surface_colors[i])
         from numpy import array, single as floatc
         if (p.color != tuple(int(255*r) for r in vcolor)).any():
           self.surface_colors[i] = p.color / 255.0
@@ -238,9 +238,6 @@ class Volume(Model):
       solid_brightness_factor
   
       Any rendering option attribute names can also be used.
-  
-    The volume display is not automatically updated.  Use v.show() when
-    redisplay is desired.
     '''
 
     parameters = ('surface_levels',
@@ -308,8 +305,7 @@ class Volume(Model):
         option_changed = True
     if adjust_step:
       r = self.region
-      self.new_region(r[0], r[1], r[2], show = False, adjust_step = True,
-                      save_in_region_queue = False)
+      self.new_region(r[0], r[1], r[2], adjust_step = True)
 
     if 'surface_levels' in kw or 'solid_levels' in kw:
       self.call_change_callbacks('thresholds changed')
@@ -322,6 +318,9 @@ class Volume(Model):
     if option_changed:
       self.call_change_callbacks('rendering options changed')
 
+    if kw:
+      self._drawings_need_update()
+
   # ---------------------------------------------------------------------------
   #
   def set_color(self, rgba):
@@ -329,7 +328,8 @@ class Volume(Model):
     for s in self.surface_drawings:
       s.vertex_colors = None
     self.solid_colors = [rgba]*len(self.solid_levels)
-    self.update_display()
+    self._drawings_need_update()
+    self.call_change_callbacks('colors changed')
 
   # ---------------------------------------------------------------------------
   #
@@ -345,6 +345,9 @@ class Volume(Model):
       lev = self.solid_levels
       if lev:
         return rgba_to_rgba8(self.solid_colors[argmin(lev)])
+    drgba = self.data.rgba
+    if drgba:
+      return rgba_to_rgba8(drgba)
     return None
   def _set_single_color(self, color):
     from ..colors import rgba8_to_rgba
@@ -366,7 +369,7 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def new_region(self, ijk_min = None, ijk_max = None, ijk_step = None,
-                 show = True, adjust_step = True, save_in_region_queue = True):
+                 adjust_step = True, adjust_voxel_limit = True):
     '''
     Set new display region and optionally shows it.
     '''
@@ -402,14 +405,11 @@ class Volume(Model):
                                                  ro.voxel_limit)
     if adjust_step:
       ijk_step = adjusted_ijk_step
-    elif tuple(ijk_step) != tuple(adjusted_ijk_step):
+    elif adjust_voxel_limit and tuple(ijk_step) != tuple(adjusted_ijk_step):
       # Change automatic step adjustment voxel limit.
       vc = subarray_size(ijk_min, ijk_max, ijk_step, fpa)
       ro.voxel_limit = (1.01*vc) / (2**20)  # Mvoxels rounded up for gui value
       self.call_change_callbacks('voxel limit changed')
-
-    if save_in_region_queue:
-      self.region_list.insert_region(ijk_min, ijk_max)
 
     region = (ijk_min, ijk_max, ijk_step)
     if self.same_region(region, self.region):
@@ -418,12 +418,16 @@ class Volume(Model):
     self.region = region
     self.matrix_changed()
 
+    self._drawings_need_update()
+    
     self.call_change_callbacks('region changed')
 
-    if show:
-      self.show()
-
     return True
+
+  # ---------------------------------------------------------------------------
+  #
+  def full_region(self):
+    return full_region(self.data.size)
 
   # ---------------------------------------------------------------------------
   #
@@ -447,6 +451,7 @@ class Volume(Model):
 
     self.matrix_stats = None
     self.matrix_id += 1
+    self._drawings_need_update()
       
   # ---------------------------------------------------------------------------
   # Handle ijk_min, ijk_max, ijk_step as lists or tuples.
@@ -536,6 +541,7 @@ class Volume(Model):
         self.solid_colors = [rgba]*len(self.solid_levels)
 
     self.initialized_thresholds = True
+    self._drawings_need_update()
 
     self.call_change_callbacks('thresholds changed')
 
@@ -547,18 +553,31 @@ class Volume(Model):
     '''
     Set display style to "surface", "mesh", or "solid".
     '''
-    if rep != self.representation:
-      self.redraw_needed()  # Switch to solid does not change surface until draw
-      if rep == 'solid' or self.representation == 'solid':
-        ro = self.rendering_options
-        adjust_step = (ro.box_faces or ro.any_orthoplanes_shown())
-      else:
-        adjust_step = False
-      self.representation = rep
-      if adjust_step:
-        ijk_min, ijk_max = self.region[:2]
-        self.new_region(ijk_min, ijk_max, show = False)
-      self.call_change_callbacks('representation changed')
+    if rep == self.representation:
+      return
+    
+    self.redraw_needed()  # Switch to solid does not change surface until draw
+    if rep == 'solid' or self.representation == 'solid':
+      ro = self.rendering_options
+      adjust_step = (ro.box_faces or ro.any_orthoplanes_shown())
+    else:
+      adjust_step = False
+    self.representation = rep
+    if adjust_step:
+      ijk_min, ijk_max = self.region[:2]
+      self.new_region(ijk_min, ijk_max)
+
+    # Show or hide surfaces
+    surfshow = (rep == 'surface' or rep == 'mesh')
+    for s in self.surface_drawings:
+      s.display = surfshow
+
+    # Show or hide solid
+    so = self.solid
+    if so:
+      so.drawing.display = (rep == 'solid')
+
+    self.call_change_callbacks('representation changed')
 
   # ---------------------------------------------------------------------------
   #
@@ -567,78 +586,83 @@ class Volume(Model):
       return
     Model._set_display(self, display)
     self.call_change_callbacks('displayed')
+    if not display:
+      self._keep_displayed_data = None	# Allow data to be freed from cache.
   display = Model.display.setter(_set_display)
+
+  # ---------------------------------------------------------------------------
+  #
+  def draw(self, renderer, place, draw_pass, selected_only = False):
+    if not self.display:
+      return
+    
+    if not self.initialized_thresholds:
+      self.initialize_thresholds()
+      self.update_drawings()
+      
+    Model.draw(self, renderer, place, draw_pass, selected_only = selected_only)
 
   # ---------------------------------------------------------------------------
   #
   def show(self, representation = None, rendering_options = None, show = True):
     '''
+    Deprecated: Use v.display = True.
     Display the volume using the current parameters.
     '''
     if representation:
       self.set_representation(representation)
+    rep = self.representation
 
     if rendering_options:
       self.rendering_options = rendering_options
 
-    if show:
-      # Prevent cached matrix for displayed data from being freed.
-#       from chimera import CancelOperation
-      try:
-        self.keep_displayed_data = self.displayed_matrices()
-      except CancelOperation:
-        return
-    else:
-      self.keep_displayed_data = None   # Release data if not shown.
-      
-    if self.representation == 'surface' or self.representation == 'mesh':
-      self.hide_solid()
-      show_mesh = (self.representation == 'mesh')
-      self.show_surface(show, show_mesh, self.rendering_options)
-    elif self.representation == 'solid':
-      self.hide_surface()
-      self.show_solid(show, self.rendering_options)
+    # Prevent cached matrix for displayed data from being freed.
+    self._keep_displayed_data = self.displayed_matrices() if show else None
 
+    # Update surface or solid
+    if show:
+      self._drawings_need_update()
+
+    # Show or hide volume
     self.display = show
-      
-  # ---------------------------------------------------------------------------
-  #
-  def show_surface(self, show, show_mesh, rendering_options):
-
-    if show:
-      self.update_surface(show_mesh, rendering_options)
-      self.display = True
-      for p in self.surface_drawings:
-        p.display = True
-    else:
-      self.hide_surface()
 
   # ---------------------------------------------------------------------------
   #
-  def update_display(self):
-
-    if self.representation == 'solid':
-      self.update_solid()
-    else:
-      self.update_surface()
+  def _drawings_need_update(self):
+    s = self.session
+    vm = getattr(s, '_volume_update_manager', None)
+    if vm is None:
+      s._volume_update_manager = vm = VolumeUpdateManager(s)
+    vm.add(self)
 
   # ---------------------------------------------------------------------------
   #
-  def update_surface(self, show_mesh = None, rendering_options = None):
+  def update_drawings(self):
 
-    pieces = self.match_surface_pieces(self.surface_levels)
+    rep = self.representation
+    if rep == 'surface' or rep == 'mesh':
+      self._update_surfaces()
+    elif rep == 'solid':
+      self._update_solid()
+
+    # Prevent cached matrix for displayed data from being freed.
+    self._keep_displayed_data = self.displayed_matrices()
+
+  # ---------------------------------------------------------------------------
+  #
+  def _update_surfaces(self):
+
+    pieces = self._match_surfaces(self.surface_levels)
     self.surface_drawings = pieces
-    if show_mesh is None:
-      show_mesh = (self.representation == 'mesh')
-    ro = self.rendering_options if rendering_options is None else rendering_options
-#    from chimera import CancelOperation
+    show_mesh = (self.representation == 'mesh')
+    ro = self.rendering_options
     try:
       for k, level in enumerate(self.surface_levels):
         color = self.surface_colors[k]
-        rgba = self.modulated_surface_color(color)
+        rgba = self._modulated_surface_color(color)
         p = pieces[k]
         p.name = 'level %.4g' % level
-        self.update_surface_piece(level, rgba, show_mesh, ro, p)
+        self._update_surface(level, rgba, show_mesh, ro, p)
     except CancelOperation:
       pass
 
@@ -652,7 +676,7 @@ class Volume(Model):
   # has changed, 3) one level added or deleted, 4) multiple levels
   # added or deleted.  Level order is typically preserved.
   #
-  def match_surface_pieces(self, levels):
+  def _match_surfaces(self, levels):
 
     smodel = self
     plist = [p for p in self.surface_drawings if not p.was_deleted]
@@ -679,11 +703,10 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def update_surface_piece(self, level, rgba, show_mesh, rendering_options,
-                           piece):
+  def _update_surface(self, level, rgba, show_mesh, rendering_options, surface):
 
     ro = rendering_options
-    p = piece
+    s = surface
 
     contour_settings = {'level': level,
                         'matrix_id': self.matrix_id,
@@ -697,34 +720,34 @@ class Volume(Model):
                         'cap_faces': ro.cap_faces,
                         'flip_normals': ro.flip_normals,
                         }
-    if (not hasattr(p, 'contour_settings') or
-        p.contour_settings != contour_settings):
-      if self.calculate_contour_surface(level, rendering_options, p):
-        p.contour_settings = contour_settings
+    if (not hasattr(s, 'contour_settings') or
+        s.contour_settings != contour_settings):
+      if self.calculate_contour_surface(level, rendering_options, s):
+        s.contour_settings = contour_settings
 
-    p.color = tuple(int(255*r) for r in rgba)
+    s.color = tuple(int(255*r) for r in rgba)
 
     # OpenGL draws nothing for degenerate triangles where two vertices are
     # identical.  For 2d contours want to see these triangles so show as mesh.
     single_plane = self.single_plane()
     contour_2d = single_plane and not ro.cap_faces
 
-    style = p.Mesh if show_mesh or contour_2d else p.Solid
-    p.display_style = style
+    style = s.Mesh if show_mesh or contour_2d else s.Solid
+    s.display_style = style
     
     if contour_2d:  lit = False
     elif show_mesh: lit = ro.mesh_lighting
     else:           lit = True
-    p.use_lighting = lit
-    p.twoSidedLighting = ro.two_sided_lighting
-    p.lineThickness = ro.line_thickness
-    p.smoothLines = ro.smooth_lines
+    s.use_lighting = lit
+    s.twoSidedLighting = ro.two_sided_lighting
+    s.lineThickness = ro.line_thickness
+    s.smoothLines = ro.smooth_lines
 
 #     if ro.dim_transparency:
-#       bmode = p.SRC_ALPHA_DST_1_MINUS_ALPHA
+#       bmode = s.SRC_ALPHA_DST_1_MINUS_ALPHA
 #     else:
-#       bmode = p.SRC_1_DST_1_MINUS_ALPHA
-#     p.transparencyBlendMode = bmode
+#       bmode = s.SRC_1_DST_1_MINUS_ALPHA
+#     s.transparencyBlendMode = bmode
       
   # ---------------------------------------------------------------------------
   #
@@ -892,24 +915,14 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def show_solid(self, show, rendering_options):
-
-    if show:
-      self.update_solid(rendering_options)
-      self.display = True
-    else:
-      self.hide_solid()
-
-  # ---------------------------------------------------------------------------
-  #
-  def update_solid(self, rendering_options = None):
+  def _update_solid(self):
 
     s = self.solid
     if s is None:
-      s = self.make_solid()
+      s = self._make_solid()
       self.solid = s
 
-    ro = self.rendering_options if rendering_options is None else rendering_options
+    ro = self.rendering_options
     s.set_options(ro.color_mode, ro.projection_mode,
                   ro.dim_transparent_voxels,
                   ro.bt_correction, ro.minimal_texture_memory,
@@ -926,16 +939,17 @@ class Volume(Model):
     s.set_colormap(tf, self.solid_brightness_factor, self.transparency_depth)
     s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id, self.matrix_plane)
 
-    from .grayscale import blend_manager
-    s.update_model(self, blend_manager(self.session))
-    s.show()
+    from . import grayscale
+    bm = grayscale.blend_manager(self.session)
+    s.update_drawing(self, bm)
 
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
+    return s
 
   # ---------------------------------------------------------------------------
   #
-  def make_solid(self):
+  def _make_solid(self):
 
     from . import solid
     name = self.name + ' solid'
@@ -1005,7 +1019,7 @@ class Volume(Model):
   def copy(self):
 
     v = volume_from_grid_data(self.data, self.session, self.representation,
-                              show_data = False, show_dialog = False)
+                              show_dialog = False)
     v.copy_settings_from(self)
     return v
 
@@ -1050,7 +1064,7 @@ class Volume(Model):
     if copy_region:
       # Copy region bounds
       ijk_min, ijk_max, ijk_step = v.region
-      self.new_region(ijk_min, ijk_max, ijk_step, show = False)
+      self.new_region(ijk_min, ijk_max, ijk_step)
 
     if copy_xform:
       # Copy position and orientation
@@ -1075,7 +1089,7 @@ class Volume(Model):
   # If volume data is not writable then make a writable copy.
   #
   def writable_copy(self, require_copy = False,
-                    show = True, unshow_original = True, model_id = None,
+                    unshow_original = True, model_id = None,
                     subregion = None, step = (1,1,1), name = None,
                     copy_colors = True, value_type = None):
 
@@ -1094,14 +1108,11 @@ class Volume(Model):
       g.name = self.name + ' copy'
 
     v = volume_from_grid_data(g, self.session, self.representation, model_id = model_id,
-                              show_data = False, show_dialog = False)
+                              show_dialog = False)
     v.copy_settings_from(self, copy_region = False, copy_colors = copy_colors)
 
-    # Display copy and undisplay original
-    if show:
-      v.show()
     if unshow_original:
-      self.unshow()
+      self.display = False
 
     return v
 
@@ -1212,10 +1223,8 @@ class Volume(Model):
   #
   def ijk_bounds(self, step = None, subregion = None, integer = False):
 
-    ss_origin, ss_size, subsampling, ss_step = self.ijk_region(step, subregion)
-    ijk_origin = [a*b for a,b in zip(ss_origin, subsampling)]
-    ijk_step = [a*b for a,b in zip(subsampling, ss_step)]
-    mat_size = [(a+b-1)//b for a,b in zip(ss_size, ss_step)]
+    ijk_origin, ijk_size, ijk_step = self.ijk_aligned_region(step, subregion)
+    mat_size = [(a+b-1)//b for a,b in zip(ijk_size, ijk_step)]
     ijk_last = [a+b*(c-1) for a,b,c in zip(ijk_origin, ijk_step, mat_size)]
 
     ijk_min_edge = [a - .5*b for a,b in zip(ijk_origin, ijk_step)]
@@ -1306,17 +1315,14 @@ class Volume(Model):
 
     if region is None:
       region = self.region
-    origin, size, subsampling, step = self.subsample_region(region)
+    origin, size, step = self.step_aligned_region(region)
     d = self.data
     operation = 'reading %s' % d.name
     from .data import Progress_Reporter
     progress = Progress_Reporter(operation, size, d.value_type.itemsize,
                                  message = self.message_cb)
     from_cache_only = not read_matrix
-    if subsampling == (1,1,1):
-      m = d.matrix(origin, size, step, progress, from_cache_only)
-    else:
-      m = d.matrix(origin, size, step, progress, from_cache_only, subsampling)
+    m = d.matrix(origin, size, step, progress, from_cache_only)
     return m
 
   # ---------------------------------------------------------------------------
@@ -1327,9 +1333,8 @@ class Volume(Model):
 
     if region is None:
       region = self.subregion(step, subregion)
-    ss_origin, ss_size, subsampling, ss_step = self.subsample_region(region,
-                                                                     clamp)
-    mat_size = [(a+b-1)//b for a,b in zip(ss_size, ss_step)]
+    origin, size, step = self.step_aligned_region(region, clamp)
+    mat_size = [(a+b-1)//b for a,b in zip(size, step)]
     return mat_size
 
   # ---------------------------------------------------------------------------
@@ -1351,11 +1356,7 @@ class Volume(Model):
 
     if region is None:
       region = self.subregion(step, subregion)
-    ss_origin, ss_size, subsampling, ss_step = self.subsample_region(region,
-                                                                     clamp)
-    step = [sm*st for sm,st in zip(subsampling, ss_step)]
-    origin = [o*st for o,st in zip(ss_origin, subsampling)]
-    size = [(a+b-1)//b for a,b in zip(ss_size,ss_step)]
+    origin, size, step = self.step_aligned_region(region, clamp)
     slc = [slice(o,o+st*(sz-1)+1,st) for o,st,sz in zip(origin,step,size)]
     return slc
 
@@ -1397,7 +1398,7 @@ class Volume(Model):
             if msize[a] == 1:
                 ijk_min[a] = 0
                 ijk_max[a] = self.data.size[a]-1
-        self.new_region(ijk_min, ijk_max, show = False)
+        self.new_region(ijk_min, ijk_max)
 
   # ---------------------------------------------------------------------------
   # Transform mapping matrix indices to xyz.  The matrix indices are not the
@@ -1406,9 +1407,7 @@ class Volume(Model):
   #
   def matrix_indices_to_xyz_transform(self, step = None, subregion = None):
 
-    ss_origin, ss_size, subsampling, ss_step = self.ijk_region(step, subregion)
-    ijk_origin = [a*b for a,b in zip(ss_origin, subsampling)]
-    ijk_step = [a*b for a,b in zip(subsampling, ss_step)]
+    ijk_origin, ijk_size, ijk_step = self.ijk_aligned_region(step, subregion)
 
     data = self.data
     xo, yo, zo = data.ijk_to_xyz(ijk_origin)
@@ -1449,6 +1448,7 @@ class Volume(Model):
     if type == 'values changed':
       self.data.clear_cache()
       self.matrix_changed()
+      self._drawings_need_update()
       self.call_change_callbacks('data values changed')
       # TODO: should this automatically update the data display?
     elif type == 'coordinates changed':
@@ -1459,71 +1459,39 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   # Return the origin and size of the subsampled submatrix to be read.
   #
-  def ijk_region(self, step = None, subregion = None):
+  def ijk_aligned_region(self, step = None, subregion = None):
 
     r = self.subregion(step, subregion)
-    return self.subsample_region(r)
+    return self.step_aligned_region(r)
 
   # ---------------------------------------------------------------------------
-  # Return the origin and size of the subsampled submatrix to be read.
-  # Also return the subsampling factor and additional step (ie stride) that
-  # must be used to get the displayed data.
+  # Return the origin aligned to a multiple of step and size of the region and step.
   #
-  def subsample_region(self, region, clamp = True):
+  def step_aligned_region(self, region, clamp = True):
 
     ijk_min, ijk_max, ijk_step = region
     
     # Samples always have indices divisible by step, so increase ijk_min if
     # needed to make it a multiple of ijk_step.
-    m_ijk_min = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
+    origin = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
 
     # If region is non-empty but contains no step multiple decrease ijk_min.
     for a in range(3):
-      if m_ijk_min[a] > ijk_max[a] and ijk_min[a] <= ijk_max[a]:
-        m_ijk_min[a] -= ijk_step[a]
+      if origin[a] > ijk_max[a] and ijk_min[a] <= ijk_max[a]:
+        origin[a] -= ijk_step[a]
 
-    subsampling, ss_full_size = self.choose_subsampling(ijk_step)
-
-    ss_origin = [(i+s-1)//s for i,s in zip (m_ijk_min, subsampling)]
+    end = [s*(i+s)//s for i,s in zip(ijk_max, ijk_step)]
     if clamp:
-      ss_origin = [max(i,0) for i in ss_origin]
-    ss_end = [(i+s)//s for i,s in zip(ijk_max, subsampling)]
-    if clamp:
-      ss_end = [min(i,lim) for i,lim in zip(ss_end, ss_full_size)]
-    ss_size = [e-o for e,o in zip(ss_end, ss_origin)]
-    ss_step = [s//d for s,d in zip(ijk_step, subsampling)]
+      origin = [max(i,0) for i in origin]
+      end = [min(i,lim) for i,lim in zip(end, self.data.size)]
+    size = [e-o for e,o in zip(end, origin)]
 
-    return tuple(ss_origin), tuple(ss_size), tuple(subsampling), tuple(ss_step)
-
-  # ---------------------------------------------------------------------------
-  # Return the subsampling and size of subsampled matrix for the requested
-  # ijk_step.
-  #
-  def choose_subsampling(self, ijk_step):
-    
-    data = self.data
-    if not hasattr(data, 'available_subsamplings'):
-      return (1,1,1), data.size
-
-    compatible = []
-    for step, grid in data.available_subsamplings.items():
-      if (ijk_step[0] % step[0] == 0 and
-          ijk_step[1] % step[1] == 0 and
-          ijk_step[2] % step[2] == 0):
-        e = ((ijk_step[0] // step[0]) *
-             (ijk_step[1] // step[1]) *
-             (ijk_step[2] // step[2]))
-        compatible.append((e, step, grid.size))
-
-    if len(compatible) == 0:
-      return (1,1,1), data.size
-
-    subsampling, size = min(compatible)[1:]
-    return subsampling, size
+    return tuple(origin), tuple(size), tuple(ijk_step)
 
   # ---------------------------------------------------------------------------
   # Applying point_xform to points gives Chimera world coordinates.  If the
   # point_xform is None then the points are in local volume coordinates.
+  # The returned values are float32.
   #
   def interpolated_values(self, points, point_xform = None,
                           out_of_bounds_list = False, subregion = 'all',
@@ -1592,9 +1560,12 @@ class Volume(Model):
       log.info('Minimum RMS scale factor for "%s" above level %.5g is %.5g\n'
                % (v.name_with_id(), level, scale))
     if scale != 1:
-      # Copy array only if scaling.
       if const_values:
-        values = values.copy()
+        # Copy array only if scaling and the values come from another map
+        # without interpolation because the grids matched, and values should
+        # not be modified.
+        from numpy import float32
+        values = values.astype(float32)
       values *= scale
     if values.dtype != m.dtype:
       values = values.astype(m.dtype, copy=False)
@@ -1763,9 +1734,8 @@ class Volume(Model):
     if outside: name = 'outside zone'
     else: name = 'zone'
     masked_data.name = self.name + ' ' + name
-    mv = volume_from_grid_data(masked_data, self.session, show_data = False)
+    mv = volume_from_grid_data(masked_data, self.session)
     mv.copy_settings_from(self, copy_region = False, copy_zone = False)
-    mv.show()
     return mv
   
   # ---------------------------------------------------------------------------
@@ -1818,7 +1788,7 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   # Apply surface/mesh transparency factor.
   #
-  def modulated_surface_color(self, rgba):
+  def _modulated_surface_color(self, rgba):
 
     r,g,b,a = rgba
 
@@ -1906,27 +1876,6 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def unshow(self):
-
-    self.display = False
-  
-  # ---------------------------------------------------------------------------
-  #
-  def hide_surface(self):
-
-    for p in self.surface_drawings:
-      p.display = False
-  
-  # ---------------------------------------------------------------------------
-  #
-  def hide_solid(self):
-
-    s = self.solid
-    if s:
-      s.hide()
-    
-  # ---------------------------------------------------------------------------
-  #
   def close_models(self):
 
     self.close_solid()
@@ -1964,7 +1913,7 @@ class Volume(Model):
     if self.data:
       self.data.remove_change_callback(self.data_changed_cb)
       self.data = None
-      self.keep_displayed_data = None
+      self._keep_displayed_data = None
       self.outline_box = None   # Remove reference loops
       from chimera import triggers
       triggers.deleteHandler('SurfacePiece', self.surface_piece_change_handler)
@@ -2475,8 +2424,7 @@ def limit_voxels(voxel_count, ijk_step, limit_voxel_count, mvoxel_limit):
 
 # ---------------------------------------------------------------------------
 #
-def show_planes(v, axis, plane, depth = 1, extend_axes = [], show = True,
-                save_in_region_queue = True):
+def show_planes(v, axis, plane, depth = 1, extend_axes = []):
 
   p = int(plane)
   ro = v.rendering_options
@@ -2484,9 +2432,8 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = [], show = True,
   if orthoplanes:
     if depth == 1:
       ro.show_orthoplane(axis, p)
+      v._drawings_need_update()
       if not extend_axes:
-        if show:
-          v.show()
         return
     else:
       orthoplanes = False
@@ -2521,8 +2468,7 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = [], show = True,
                       ro.limit_voxel_count, ro.voxel_limit)
   set_plane_range(step)
 
-  changed = v.new_region(ijk_min, ijk_max, step, show = show,
-                         save_in_region_queue = save_in_region_queue)
+  changed = v.new_region(ijk_min, ijk_max, step)
   return changed
 
 # -----------------------------------------------------------------------------
@@ -2557,8 +2503,7 @@ class cycle_through_planes:
     p = self.plane
     if self.step * (self.plast - p) >= 0:
       self.plane += self.step
-      show_planes(self.volume, self.axis, p, self.depth,
-                  save_in_region_queue = False)
+      show_planes(self.volume, self.axis, p, self.depth)
     else:
       self.handler = None
       from ..triggerset import DEREGISTER
@@ -2587,9 +2532,9 @@ def full_region(size, ijk_step = [1,1,1]):
 
 # -----------------------------------------------------------------------------
 #
-def is_empty_region(ijk_region):
+def is_empty_region(region):
 
-  ijk_min, ijk_max, ijk_step = ijk_region
+  ijk_min, ijk_max, ijk_step = region
   for a,b in zip(ijk_max, ijk_min):
     if a - b + 1 <= 0:
       return True
@@ -2737,9 +2682,8 @@ def map_covering_atoms(atoms, pad, volume):
 
     ijk_min, ijk_max = atom_bounds(atoms, pad, volume)
     g = map_from_periodic_map(volume.data, ijk_min, ijk_max)
-    v = volume_from_grid_data(g, volume.session, show_data = False)
+    v = volume_from_grid_data(g, volume.session)
     v.copy_settings_from(volume, copy_region = False)
-
     return v
 
 # ----------------------------------------------------------------------------
@@ -2825,8 +2769,13 @@ def open_volume_file(path, session, format = None, name = None, representation =
       g.name = name
 
   vlist = [volume_from_grid_data(g, session, representation, open_models,
-                                 model_id, show_data, show_dialog)
+                                 model_id, show_dialog)
             for g in glist]
+
+  if not show_data:
+    for v in vlist:
+      v.display = False
+      
   return vlist
 
 # -----------------------------------------------------------------------------
@@ -2861,53 +2810,31 @@ def data_cache(session):
 # Open and display a map using Volume Viewer.
 #
 def volume_from_grid_data(grid_data, session, representation = None,
-                          open_model = True, model_id = None,
-                          show_data = True, show_dialog = True):
+                          open_model = True, model_id = None, show_dialog = True):
 
   set_data_cache(grid_data, session)
 
+  ds = default_settings(session)
+  ro = ds.rendering_option_defaults()
+  
+  # Create volume model
+  d = data_already_opened(grid_data.path, grid_data.grid_id, session)
+  if d:
+    grid_data = d
+    
+  v = Volume(grid_data, session, rendering_options = ro,
+             model_id = model_id, open_model = open_model,
+             message_cb = session.logger.status)
+  
   # Set display style
   if representation is None:
     # Show single plane data in solid style.
     single_plane = [s for s in grid_data.size if s == 1]
     representation = 'solid' if single_plane else 'surface'
-  ds = default_settings(session)
-  one_plane = show_one_plane(grid_data.size, ds['show_plane'],
-                             ds['voxel_limit_for_plane'])
-  if one_plane:
-    representation = 'solid'
-
-  # Determine initial region bounds and step.
-  region = full_region(grid_data.size)[:2]
-  if one_plane:
-    region[0][2] = region[1][2] = grid_data.size[2]//2
-  ro = ds.rendering_option_defaults()
-  if hasattr(grid_data, 'polar_values') and grid_data.polar_values:
-    ro.flip_normals = True
-    ro.cap_faces = False
-  fpa = faces_per_axis(representation, ro.box_faces,
-                       ro.any_orthoplanes_shown())
-  ijk_step = ijk_step_for_voxel_limit(region[0], region[1], (1,1,1), fpa,
-                                      ro.limit_voxel_count, ro.voxel_limit)
-  region = tuple(region) + (ijk_step,)
-
-  # Create volume model
-  d = data_already_opened(grid_data.path, grid_data.grid_id, session)
-  if d:
-    grid_data = d
-  v = Volume(grid_data, session, region, ro, model_id, open_model,
-             message_cb = session.logger.status)
   v.set_representation(representation)
+  
   if grid_data.rgba is None:
     set_initial_volume_color(v, session)
-
-  # Show data
-  if show_data:
-    if show_when_opened(v, ds['show_on_open'], ds['voxel_limit_for_open']):
-      v.initialize_thresholds()
-      v.show()
-    else:
-      v.message('%s not shown' % v.name)
 
   if open_model:
     session.models.add([v])
@@ -2917,6 +2844,8 @@ def volume_from_grid_data(grid_data, session, representation = None,
 
   return v
 
+# -----------------------------------------------------------------------------
+#
 def show_volume_dialog(session):
   from chimerax.volume_viewer.volumedialog import show_volume_dialog
   show_volume_dialog(session)
@@ -2929,7 +2858,7 @@ class CancelOperation(BaseException):
 # -----------------------------------------------------------------------------
 # Decide whether a data region is small enough to show when opened.
 #
-def show_when_opened(data_region, show_on_open, max_voxels):
+def show_when_opened(v, show_on_open, max_voxels):
 
   if not show_on_open:
     return False
@@ -2938,8 +2867,9 @@ def show_when_opened(data_region, show_on_open, max_voxels):
     return False
   
   voxel_limit = int(max_voxels * (2 ** 20))
-  ss_origin, ss_size, subsampling, ss_step = data_region.ijk_region()
-  voxels = float(ss_size[0]) * float(ss_size[1]) * float(ss_size[2])
+  ijk_origin, ijk_size, ijk_step = v.ijk_aligned_region()
+  sx,sy,sz = [s//st for s,st in zip(ijk_size, ijk_step)]
+  voxels = sx*sy*sz
 
   return (voxels <= voxel_limit)
 
@@ -3028,6 +2958,11 @@ def open_grids(session, grids, name, **kw):
         if g.rgba is None:
           g.rgba = (0,1,0,1) # Green
 
+    channel = kw.get('channel', None)
+    if channel is not None:
+      for g in grids:
+        g.channel = channel
+        
     series = kw.get('vseries', None)
     if series is not None:
       if series:
@@ -3043,23 +2978,48 @@ def open_grids(session, grids, name, **kw):
 
     maps = []
     show = kw.get('show', True)
-    show_dialog = kw.get('show_dialog', True)
-    for i,d in enumerate(grids):
-      show_data = show and (i == 0 or not hasattr(d, 'series_index'))
-      kw = {'show_data': show_data, 'show_dialog': show_dialog}
+    si = [d.series_index for d in grids if hasattr(d, 'series_index')]
+    is_series = (len(si) == len(grids) and len(set(si)) > 1)
+    cn = [d.channel for d in grids if d.channel is not None]
+    is_multichannel = (len(cn) == len(grids) and len(set(cn)) > 1)
+    for d in grids:
+      show_data = show
+      if is_series or is_multichannel:
+        show_data = False	# MapSeries or MapChannelsModel classes will decide which to show
+      vkw = {'show_dialog': False}
       if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'solid'):
-        kw['representation'] = d.initial_style
-      v = volume_from_grid_data(d, session, open_model = False, **kw)
-#      v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show_data)
+        vkw['representation'] = d.initial_style
+      v = volume_from_grid_data(d, session, open_model = False, **vkw)
       maps.append(v)
+      if not show_data:
+        v.display = False
+      set_initial_region_and_style(v)
 
-    if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
-      from .series import Map_Series
-      ms = Map_Series(name, maps, session)
+    show_dialog = kw.get('show_dialog', True)
+    if maps and show_dialog:
+      show_volume_dialog(session)
+
+    if is_series and is_multichannel:
+      cmaps = {}
+      for m in maps:
+        cmaps.setdefault(m.data.channel,[]).append(m)
+      if len(set(len(cm) for cm in cmaps.values())) > 1:
+        session.logger.warning('Map channels have differing numbers of series maps: %s'
+                               % ', '.join('%d (%d)' % (c,cm) for c, cm in cmaps.items()))
+      from .series import MapSeries
+      ms = [MapSeries('channel %d' % c, cm, session) for c, cm in cmaps.items()]
+      mc = MultiChannelSeries(name, ms, session)
+      msg = ('Opened multichannel map series %s, %d channels, %d images per channel'
+             % (name, len(ms), len(maps)//len(ms)))
+      models = [mc]
+    elif is_series:
+      from .series import MapSeries
+      ms = MapSeries(name, maps, session)
       msg = 'Opened map series %s, %d images' % (name, len(maps))
       models = [ms]
-    elif len(maps) > 1 and len([d for d in grids if hasattr(d, 'channel')]) == len(grids):
-      mc = Map_Channels(name, maps, session)
+    elif is_multichannel:
+      mc = MapChannelsModel(name, maps, session)
+      mc.show_n_channels(3)
       msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
       models = [mc]
     else:
@@ -3067,6 +3027,11 @@ def open_grids(session, grids, name, **kw):
       msg = 'Opened %s' % maps[0].name
       models = maps
 
+    # Initialize thresholds before adding to session so that initial view can use corrrect bounds.
+    for v in maps:
+      if v.display:
+        v.initialize_thresholds()
+        
     m0 = maps[0]
     px,py,pz = m0.data.step
     psize = '%.3g' % px if py == px and pz == px else '%.3g,%.3g,%.3g' % (px,py,pz)
@@ -3084,30 +3049,146 @@ def open_grids(session, grids, name, **kw):
 
 # -----------------------------------------------------------------------------
 #
-class Map_Channels(Model):
+def set_initial_region_and_style(v):
+  ds = default_settings(v.session)
+
+  if not show_when_opened(v, ds['show_on_open'], ds['voxel_limit_for_open']):
+    v.display = False
+ 
+  ro = v.rendering_options
+  if getattr(v.data, 'polar_values', False):
+    ro.flip_normals = True
+    ro.cap_faces = False
+
+  one_plane = show_one_plane(v.data.size, ds['show_plane'], ds['voxel_limit_for_plane'])
+  if one_plane:
+    v.set_representation('solid')
+    
+  # Determine initial region bounds and step.
+  region = v.full_region()[:2]
+  if one_plane:
+    region[0][2] = region[1][2] = v.data.size[2]//2
+    
+  fpa = faces_per_axis(v.representation, ro.box_faces, ro.any_orthoplanes_shown())
+  ijk_step = ijk_step_for_voxel_limit(region[0], region[1], (1,1,1), fpa,
+                                      ro.limit_voxel_count, ro.voxel_limit)
+  region = tuple(region) + (ijk_step,)
+  v.new_region(*region, adjust_step = False)
+
+# -----------------------------------------------------------------------------
+#
+class MapChannels:
   
-  def __init__(self, name, maps, session):
+  def __init__(self, maps):
+    self.set_maps(maps)
 
-    Model.__init__(self, name, session)
-
+  def set_maps(self, maps):
     for v in maps:
       v._channels = self
-      
     self.maps = maps
-    self.add(maps)
 
-    # Hide all but lowest 3 channels, but compute the graphics.
-    # Allen Institute data sometimes has 14 channels, mostly segmentations.
+  def show_n_channels(self, n):
+    # Hide all but lowest N channels.
+    # Allen Institute data sometimes has 8 channels, mostly segmentations.
+    maps = self.maps
+    if len(maps) == 0:
+      return
     channels = [v.data.channel for v in maps]
     channels.sort()
     channel_show_max = channels[min(2,len(channels)-1)]
     for v in maps:
-      if v.data.channel > channel_show_max:
-        v.display = False
-
+      v.display = (v.data.channel <= channel_show_max)
+    
   @property
   def first_channel(self):
     return self.maps[0]
+
+# -----------------------------------------------------------------------------
+#
+class MapChannelsModel(Model, MapChannels):
+  
+  def __init__(self, name, maps, session):
+    Model.__init__(self, name, session)
+    self.add(maps)
+    MapChannels.__init__(self, maps)
+
+  # State save/restore in ChimeraX
+  def take_snapshot(self, session, flags):
+    from ..state import CORE_STATE_VERSION
+    data = {'model state': Model.take_snapshot(self, session, flags),
+            # Can't reference maps directly because it creates cyclic dependency.
+            'map ids': [m.id for m in self.maps],
+            'version': CORE_STATE_VERSION}
+    return data
+
+  @staticmethod
+  def restore_snapshot(session, data):
+    maps = []
+    c = MapChannelsModel('channels', maps, session)
+    Model.set_state_from_snapshot(c, session, data['model state'])
+
+    # Parent models are always restored before child models.
+    # Restore child map list after child maps are restored.
+    def restore_maps(trigger_name, session, channels = c, map_ids = data['map ids']):
+      idm = {m.id : m for m in channels.child_models()}
+      maps = [idm[id] for id in map_ids if id in idm]
+      channels.set_maps(maps)
+      from ..triggerset import DEREGISTER
+      return DEREGISTER
+    session.triggers.add_handler('end restore session', restore_maps)
+    
+    return c
+
+  def reset_state(self):
+    pass
+
+# -----------------------------------------------------------------------------
+#
+class MultiChannelSeries(Model):
+  
+  def __init__(self, name, map_series, session):
+    Model.__init__(self, name, session)
+    self.add(map_series)
+    self.set_map_series(map_series)
+
+  def set_map_series(self, map_series):
+    self.map_series = map_series
+    if map_series:
+      # For each time, group the map channels
+      for maps in zip(*tuple(ms.maps for ms in map_series)):
+        mc = MapChannels(maps)
+        for m in maps:
+          m._channels = mc
+
+  # State save/restore in ChimeraX
+  def take_snapshot(self, session, flags):
+    from ..state import CORE_STATE_VERSION
+    data = {'model state': Model.take_snapshot(self, session, flags),
+            # Can't reference maps directly because it creates cyclic dependency.
+            'map series ids': [m.id for m in self.map_series],
+            'version': CORE_STATE_VERSION}
+    return data
+
+  @staticmethod
+  def restore_snapshot(session, data):
+    map_series = []
+    mcs = MultiChannelSeries('mcs', map_series, session)
+    Model.set_state_from_snapshot(mcs, session, data['model state'])
+
+    # Parent models are always restored before child models.
+    # Restore child map list after child maps are restored.
+    def restore_maps(trigger_name, session, mcs = mcs, map_ids = data['map ids']):
+      idm = {m.id : m for m in mcs.child_models()}
+      map_series = [idm[id] for id in map_ids if id in idm]
+      channels.set_map_series(map_series)
+      from ..triggerset import DEREGISTER
+      return DEREGISTER
+    session.triggers.add_handler('end restore session', restore_maps)
+    
+    return mcs
+
+  def reset_state(self):
+    pass
   
 # -----------------------------------------------------------------------------
 #
@@ -3158,7 +3239,9 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         grids = []
         for v in vlist:
           g = v.grid_data(region, step, mask_zone)
-          g.rgba = tuple(r/255 for r in v.single_color)	# Set default map color to current color
+          color = v.single_color
+          if color is not None:
+            g.rgba = tuple(r/255 for r in color)	# Set default map color to current color
           grids.append(g)
         from .data import save_grid_data
         if is_multifile_save(path):
@@ -3166,6 +3249,38 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
                 save_grid_data(g, path % (i + base_index), session, format_name, options)
         else:
             save_grid_data(grids, path, session, format_name, options)
+
+# -----------------------------------------------------------------------------
+# 
+class VolumeUpdateManager:
+  def __init__(self, session):
+    self._volumes_to_update = set()
+    # Only update displayed volumes.  Keep list or efficiency with time series.
+    self._displayed_volumes_to_update = set()
+    t = session.triggers
+    t.add_handler('graphics update', self._update_drawings)
+    t.add_handler('model display changed', self._display_change)
+    
+  def add(self, v):
+    self._volumes_to_update.add(v)
+    if v.display and v.parents_displayed:
+      self._displayed_volumes_to_update.add(v)
+
+  def _display_change(self, tname, m):
+    if m.display and m.parents_displayed:
+      vset = self._volumes_to_update
+      vlist = [v for v in m.all_models() if v in vset and v.display and v.parents_displayed]
+      self._displayed_volumes_to_update.update(vlist)
+
+  def _update_drawings(self, *_):
+    vdisp = self._displayed_volumes_to_update
+    if vdisp:
+      vset = self._volumes_to_update
+      for v in tuple(vdisp):
+        if v.display:
+          v.update_drawings()
+          vset.remove(v)
+      vdisp.clear()
    
 # -----------------------------------------------------------------------------
 # Check if file name contains %d type format specification.
@@ -3191,11 +3306,11 @@ def register_map_file_formats(session):
       io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
                          open_func=open_map_format, batch=True, export_func=save_func)
 
-    # Add map specific keywords to open command
-    from ..commands import add_keyword_arguments, BoolArg
-    add_keyword_arguments('open', {'vseries':BoolArg})
+    # Add keywords to open command for maps
+    from ..commands import add_keyword_arguments, BoolArg, IntArg
+    add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg})
 
-    # Add map specific keywords to save command
+    # Add keywords to save command for maps
     from ..commands import BoolArg, ListOf, EnumOf, IntArg
     from .mapargs import MapRegionArg, Int1or3Arg
     save_map_args = [

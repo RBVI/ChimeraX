@@ -25,14 +25,14 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: move</h3>
 
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>move</b> &nbsp;<i>axis</i> [&nbsp;<i>distance</i>&nbsp;[&nbsp;<i>frames</i>&nbsp;]]
 [&nbsp;<b>coordinateSystem</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;models&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;|&nbsp;atoms&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;|&nbsp;<b>atoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 </h3>
 <p>
-The <b>move</b> command translates the <a href="atomspec.html">specified</a> 
+The <b>move</b> command translates the specified 
 <b>models</b> or <b>atoms</b> by <i>distance</i> along <i>axis</i> 
 at each of a specified number of image update <i>frames</i>
 (default <b>1</b> frame). 
@@ -50,8 +50,7 @@ See also: <a href="roll.html"><b>roll</b></a>,
 <a href="mousemode.html"><b>mousemode</b></a>,
 <a href="../movies.html">making movies</a>
 </p><p>
-The <b>coordinateSystem</b> can be <a href="atomspec.html">specified</a>
-by reference model number N preceded by #.
+The <b>coordinateSystem</b> can be specified by reference model number.
 Otherwise, the <a href="view.html#screencoords">screen coordinate system</a>
 (X horizontal, Y vertical, Z in/out of screen) will be used to interpret
 the <i>axis</i>.

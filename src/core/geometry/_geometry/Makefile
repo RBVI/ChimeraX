@@ -17,7 +17,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/geometry
 
 PYMOD_NAME = _geometry
 SRCS	= bounds.cpp closepoints.cpp cylinderrot.cpp distances.cpp distancespy.cpp \
-	  geometry.cpp intercept.cpp spline.cpp transform.cpp vector_ops.cpp
+	  geometry.cpp intercept.cpp matrix.cpp spline.cpp transform.cpp vector_ops.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS	+= $(PYDEF)
 INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)

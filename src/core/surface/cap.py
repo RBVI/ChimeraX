@@ -164,6 +164,7 @@ def new_cap(drawing, cap_name):
     if isinstance(drawing, Model):
         # Make cap a model when capping a model so color can be set by command.
         c = Model(cap_name, drawing.session)
+        c.SESSION_SAVE = False
         drawing.add([c])
     else:
         c = drawing.new_drawing(cap_name)

@@ -17,11 +17,11 @@
 #define atomstruct_PBManager
 
 #include <map>
+#include <pyinstance/PythonInstance.declare.h>
 #include <string>
 #include <unordered_map>
 
 #include "imex.h"
-#include "PythonInstance.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -39,7 +39,7 @@ class Structure;
 class Proxy_PBGroup;
 class Pseudobond;
 
-class ATOMSTRUCT_IMEX BaseManager: public PythonInstance {
+class ATOMSTRUCT_IMEX BaseManager: public pyinstance::PythonInstance<BaseManager> {
 public:
     // so that subclasses can create multiple types of groups...
     static const int GRP_NONE = 0;
@@ -91,6 +91,7 @@ public:
         session_restore_pbs = nullptr;
         _ses_id_to_struct_map = nullptr;
     }
+    void  start_change_tracking(ChangeTracker* ct) { _change_tracker = ct; }
 };
 
 class ATOMSTRUCT_IMEX StructureManager: public BaseManager {
@@ -125,6 +126,7 @@ private:
     friend class CoordSet;
     AS_PBManager(Structure* as): StructureManager(as) {}
 
+    void  change_cs(const CoordSet* cs);
     void  remove_cs(const CoordSet* cs);
 public:
     ChangeTracker*  change_tracker() const;

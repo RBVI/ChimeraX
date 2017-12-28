@@ -72,7 +72,7 @@ endif
 
 $(SOURCE): $(DISTRIBUTION)
 	$(bindir)/7za x -o'$(tmpdir)' $(DISTRIBUTION)
-	(cd $(tmpdir); tar zxf $(SOURCE).tar)
+	(cd $(tmpdir); tar xf $(SOURCE).tar)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p1) < $$p ; \

@@ -15,6 +15,8 @@ from chimerax.core.tools import ToolInstance
 class SequenceViewer(ToolInstance):
     """ Viewer displays a multiple sequence alignment """
 
+    help = "help:user/tools/sequenceviewer.html"
+
     MATCHED_REGION_INFO = ("matched residues", (1, .88, .8), "orange red")
 
     """TODO
@@ -154,7 +156,8 @@ class SequenceViewer(ToolInstance):
         self.display_name = " ".join(capped_words) + " [ID: %s]" % self.alignment.ident
         from chimerax.core.ui.gui  import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
-        self.tool_window._ToolWindow__toolkit.dock_widget.setMouseTracking(True)
+        self.tool_window._dock_widget.setMouseTracking(True)
+        self.tool_window.fill_context_menu = self.fill_context_menu
         self.status = self.tool_window.status
         parent = self.tool_window.ui_area
         parent.setMouseTracking(True)
@@ -261,6 +264,9 @@ class SequenceViewer(ToolInstance):
                             menu=self.structureMenu)
         self.structureMenu.add_command(label="Load Structures",
                         command=self._loadStructures)
+        """
+        self.child_tools = []
+        """
         self.alignDialog = self.assessDialog = self.findDialog = None
         self.prositeDialog = self.regexDialog = None
         self.associationsDialog = self.findSeqNameDialog = None
@@ -453,12 +459,23 @@ class SequenceViewer(ToolInstance):
     def delete(self):
         self.region_browser.destroy()
         self.seq_canvas.destroy()
+        for ct in self.child_tools:
+            if hasattr(ct, 'destroy'):
+                ct.destroy()
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
         from chimerax.core.atomic import get_triggers
         get_triggers(self.session).remove_handler(self._atomic_changes_handler)
         ToolInstance.delete(self)
+
+    def fill_context_menu(self, menu, x, y):
+        from PyQt5.QtWidgets import QAction
+        # avoid having the action destroyed when this routine returns
+        # by stowing a reference in the menu itself
+        menu.kludge_ref = settings_action = QAction("Settings...")
+        settings_action.triggered.connect(lambda arg, s=self: s.show_settings())
+        menu.addAction(settings_action)
 
     def new_region(self, **kw):
         if 'blocks' in kw:
@@ -487,10 +504,26 @@ class SequenceViewer(ToolInstance):
             del kw['columns']
         return self.region_browser.new_region(**kw)
 
+    def show_settings(self):
+        if not hasattr(self, "settings_tool"):
+            from .settings_tool import SettingsTool
+            self.settings_tool = SettingsTool(self,
+                self.tool_window.create_child_window("Settings", close_destroys=False))
+            self.child_tools.append(self.settings_tool)
+            self.settings_tool.tool_window.manage(self.tool_window)
+        self.settings_tool.tool_window.shown = True
+
     def show_ss(self, show=True):
         # show == None means don't change show states, but update regions
-        # ... not yet implemented
-        self.region_browser.show_ss(show if show is not None else True)
+        # ... not yet implemented, so see if the regions exist and their
+        # display is True...
+        rb = self.region_browser
+        if show == None:
+            hreg = rb.get_region(rb.ACTUAL_HELICES_REG_NAME)
+            if not hreg:
+                return
+            show = hreg.shown
+        rb.show_ss(show)
 
     @classmethod
     def restore_snapshot(cls, session, data):

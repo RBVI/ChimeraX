@@ -111,7 +111,7 @@ def info_polymers(session, atoms=None):
     from chimerax.core.atomic import AtomicStructure
     for m in results.atoms.unique_structures:
         try:
-            for p in m.polymers(AtomicStructure.PMS_TRACE_CONNECTS, False):
+            for p, ptype in m.polymers(AtomicStructure.PMS_TRACE_CONNECTS, False):
                 if p.intersects(residues):
                     polymers.append(p)
         except AttributeError:

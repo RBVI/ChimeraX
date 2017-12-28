@@ -29,8 +29,7 @@ def call_c_plus_plus(cpp_func, structures, return_collection, *args):
             # accumulate the numpy arrays to later be concatenated and turned into a Collection
             groups.append(grps)
         else:
-            from chimerax.core.atomic.molobject import object_map
-            groups.extend([[object_map(ptr, Atom) for ptr in ptrs] for ptrs in grps])
+            groups.extend(grps)
     if return_collection:
         if groups:
             import numpy

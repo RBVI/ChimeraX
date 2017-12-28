@@ -1,0 +1,29 @@
+/*
+ * Content "full" is divided into "control" and "data"
+ * sections that fill 100% of the height.  "data" uses
+ * available space and is scrollable when needed.
+ */
+html, body, #full {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+#full {
+  display:flex;
+  flex-direction: column;
+}
+#control {
+  flex: none;
+  max-height: 40%;
+  overflow: auto;
+}
+#data {
+  flex: 1;
+  overflow: auto;
+}
+col:nth-child(odd) {
+  background: #EEE;
+}
+col:nth-child(even) {
+  background: #DDD;
+}

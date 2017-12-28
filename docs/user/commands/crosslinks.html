@@ -24,21 +24,22 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: crosslinks</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>crosslinks</b>
 &nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
-[&nbsp;radius&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;dashes&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;color&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;] 
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
 </h3>
 <p>
 The <b>crosslinks</b> command acts on
 <a href="../pseudobonds.html">pseudobonds</a>, such as crosslinks from
 <a href="open.html#composite">integrative hybrid modeling (IHM)</a>.
 See also: 
-<a href="color.html"><b>color</b></a>,
-<a href="style.html"><b>style</b></a>,
-<a href="hbonds.html"><b>hbonds</b></a>
+<a href="clashes.html"><b>clashes/contacts</b></a>,
+<a href="hbonds.html"><b>hbonds</b></a>,
+<a href="distance.html"><b>distance</b></a>,
+<a href="label.html"><b>label</b></a>
 </p><p>
 The top-level command sets pseudobond stick <b>radius</b>,
 number of <b>dashes</b> <i>N</i>,
@@ -71,7 +72,7 @@ crosslinks or other restraints.
 
 <a name="histogram"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: crosslinks</a>]
 </p>
 <h3>Histogram by Length</h3>
 <blockquote>
@@ -99,7 +100,7 @@ in which the pseudobond has the corresponding length.
 
 <a name="network"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: crosslinks</a>]
 </p>
 <h3>Chain-Chain Network Diagram</h3>
 <blockquote>
@@ -120,9 +121,9 @@ edges with the number of interchain pseudobonds.
 Node colors match the colors of the groups when the diagram is created.
 Clicking a node <a href="../selection.html">selects</a> the corresponding atoms.
 </p><p>
-Context menus are accessed by
-right-clicking<a href="../window.html#mac-context">*</a>
-various parts of the diagram. The <b>node</b> context menu includes:
+Various parts of the diagram have different 
+<a href="../window.html#panels">context menus</a>.
+The <b>node</b> context menu includes:
 </p>
 <ul>
 <li><b>Select [<i>chain</i>]</b>
@@ -131,21 +132,14 @@ various parts of the diagram. The <b>node</b> context menu includes:
 <li><b>Lay out to match structure</b>
 - redraw diagram with orientation similar to the current 3D structure
 (including repulsion to prevent node overlaps in the diagram)
-<li><b>Hide this tool</b>
-- hide the panel (can be <a href="../window.html#panelcontrol">reshown</a>)
-<li><b>Help</b>
-<!--
-- show help in the <a href="../window.html#browser">ChimeraX browser</a>
--->
 </ul>
 <p>
-The <b>background</b> context menu contains the same options, 
-except for selecting the specific chain.
+The <b>background</b> context menu contains the layout option.
 </p>
 
 <a name="minimize"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: crosslinks</a>]
 </p>
 <h3>Minimize Inter-Model Crosslinks</h3>
 <blockquote>
@@ -172,5 +166,5 @@ Intra-model crosslinks are not affected.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2017</address>
+November 2017</address>
 </body></html>

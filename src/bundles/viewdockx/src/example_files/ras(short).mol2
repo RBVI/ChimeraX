@@ -1,0 +1,186 @@
+##########          Number      : 1
+##########      Source num  : 22
+##########  Name        : test_22
+##########                  Description : ribose-monophosphate
+########## Reflect     : 0
+##########               Energy score                             :     -42.64
+##########   intermolecular van der Waals                 -21.10
+##########                  intermolecular electrostatic                 -21.54
+##########        RMSD from input orientation (A)          :      40.86
+##########			Modification time: Wed Dec 28 00:18:30 1988
+
+@<TRIPOS>MOLECULE
+test_22
+22    22    1     0     0    
+SMALL
+GASTEIGER
+****
+ribose-monophosphate
+@<TRIPOS>ATOM
+1     C1       9.4819   36.0139   21.8847 C.3     1 RIBOSE_MONOPHOSPHATE   0.0767
+2     C2       9.5290   35.9454   20.3435 C.3     1 RIBOSE_MONOPHOSPHATE   0.1068
+3     C3       8.0308   35.9499   19.9512 C.3     1 RIBOSE_MONOPHOSPHATE   0.1114
+4     C4       7.3171   35.5046   21.2597 C.3     1 RIBOSE_MONOPHOSPHATE   0.1106
+5     C5       6.3529   34.3130   21.0583 C.3     1 RIBOSE_MONOPHOSPHATE   0.0808
+6     O1       8.3826   35.1347   22.1488 O.3     1 RIBOSE_MONOPHOSPHATE  -0.3690
+7     O2      10.2856   37.0060   19.7388 O.3     1 RIBOSE_MONOPHOSPHATE  -0.3869
+8     O3       7.6440   37.2832   19.5752 O.3     1 RIBOSE_MONOPHOSPHATE  -0.3865
+9     O4       7.0938   33.1941   20.5563 O.3     1 RIBOSE_MONOPHOSPHATE  -0.3528
+10    P1       6.4305   31.7764   20.2206 P.3     1 RIBOSE_MONOPHOSPHATE   0.0428
+11    O5       5.3874   31.9566   19.1717 O.co2   1 RIBOSE_MONOPHOSPHATE  -0.5430
+12    O6       7.5661   30.7801   19.6910 O.3     1 RIBOSE_MONOPHOSPHATE  -0.7967
+13    O7       5.8050   31.2201   21.4533 O.co2   1 RIBOSE_MONOPHOSPHATE  -0.5430
+14    H1       9.2496   37.0325   22.2365 H       1 RIBOSE_MONOPHOSPHATE   0.0586
+15    H2      10.4103   35.6654   22.3630 H       1 RIBOSE_MONOPHOSPHATE   0.0586
+16    H3       9.9862   34.9824   20.0577 H       1 RIBOSE_MONOPHOSPHATE   0.0643
+17    H4       7.8573   35.2642   19.1030 H       1 RIBOSE_MONOPHOSPHATE   0.0647
+18    H5       6.7782   36.3565   21.7090 H       1 RIBOSE_MONOPHOSPHATE   0.0646
+19    H6       5.5599   34.5881   20.3449 H       1 RIBOSE_MONOPHOSPHATE   0.0590
+20    H7       5.8930   34.0403   22.0214 H       1 RIBOSE_MONOPHOSPHATE   0.0590
+21    H8       9.9227   37.8616   19.9411 H       1 RIBOSE_MONOPHOSPHATE   0.2100
+22    H9       6.7213   37.3406   19.3480 H       1 RIBOSE_MONOPHOSPHATE   0.2100
+
+@<TRIPOS>BOND
+1     1     2     1
+2     1     6     1
+3     2     3     1
+4     2     7     1
+5     3     4     1
+6     3     8     1
+7     4     5     1
+8     4     6     1
+9     5     9     1
+10    9     10    1
+11    10    11    ar
+12    10    12    1
+13    10    13    ar
+14    1     14    1
+15    1     15    1
+16    2     16    1
+17    3     17    1
+18    4     18    1
+19    5     19    1
+20    5     20    1
+21    7     21    1
+22    8     22    1
+@<TRIPOS>SUBSTRUCTURE
+1   RIBOSE_MONOPHOSPHATE 1     PERM       0   ****  **** 
+########## Number      : 2
+########## Source num  : 27
+########## Name        : test_27
+########## Description : vitamin B2
+########## Reflect     : 0
+########## Energy score                             :     -29.50
+##########   intermolecular van der Waals                 -28.72
+##########   intermolecular electrostatic                  -0.78
+########## RMSD from input orientation (A)          :      42.41
+
+@<TRIPOS>MOLECULE
+test_27
+47    49    1     0     0    
+SMALL
+GASTEIGER
+****
+vitamin B2
+@<TRIPOS>ATOM
+1     N1       9.6327   33.6941   20.5464 N.2     1 VITAMIN_B2  -0.1774
+2     C1       8.2107   33.5021   20.3706 C.2     1 VITAMIN_B2   0.3420
+3     N2       7.3140   33.9848   21.2568 N.am    1 VITAMIN_B2  -0.2311
+4     C2       7.7389   34.6678   22.3407 C.2     1 VITAMIN_B2   0.2734
+5     C3       9.1877   34.8640   22.5170 C.2     1 VITAMIN_B2   0.1667
+6     N3       9.6444   35.4976   23.5150 N.2     1 VITAMIN_B2  -0.2373
+7     C4      10.9607   35.7014   23.7050 C.ar    1 VITAMIN_B2   0.0864
+8     C5      11.3722   36.4132   24.8335 C.ar    1 VITAMIN_B2  -0.0313
+9     C6      12.7270   36.6693   25.0671 C.ar    1 VITAMIN_B2  -0.0454
+10    C7      13.6671   36.1888   24.1444 C.ar    1 VITAMIN_B2  -0.0457
+11    C8      13.2379   35.4753   23.0179 C.ar    1 VITAMIN_B2  -0.0351
+12    C9      11.8819   35.2037   22.7739 C.ar    1 VITAMIN_B2   0.0611
+13    N4      11.4302   34.4992   21.6908 N.pl3   1 VITAMIN_B2  -0.2789
+14    C10     10.1384   34.3222   21.5318 C.2     1 VITAMIN_B2   0.1617
+15    O1       7.8610   32.8811   19.3796 O.2     1 VITAMIN_B2  -0.2473
+16    O2       6.9734   35.1258   23.1742 O.2     1 VITAMIN_B2  -0.2679
+17    C11     13.1402   37.4642   26.3158 C.3     1 VITAMIN_B2  -0.0394
+18    C12     15.1821   36.4061   24.3001 C.3     1 VITAMIN_B2  -0.0394
+19    C13     12.3528   33.9137   20.7009 C.3     1 VITAMIN_B2   0.0473
+20    C14     12.8052   35.0042   19.6849 C.3     1 VITAMIN_B2   0.0995
+21    C15     13.9345   34.5562   18.7080 C.3     1 VITAMIN_B2   0.1104
+22    C16     15.2939   34.2433   19.4030 C.3     1 VITAMIN_B2   0.1065
+23    C17     16.4145   33.9660   18.3654 C.3     1 VITAMIN_B2   0.0726
+24    O3      11.6847   35.3972   18.8699 O.3     1 VITAMIN_B2  -0.3876
+25    O4      13.5118   33.4716   17.8647 O.3     1 VITAMIN_B2  -0.3865
+26    O5      15.6894   35.3104   20.2823 O.3     1 VITAMIN_B2  -0.3869
+27    O6      16.0756   32.8084   17.5825 O.3     1 VITAMIN_B2  -0.3924
+28    H1       6.3333   33.8368   21.1115 H       1 VITAMIN_B2   0.1597
+29    H2      10.6178   36.7669   25.5285 H       1 VITAMIN_B2   0.0642
+30    H3      14.0116   35.1461   22.3393 H       1 VITAMIN_B2   0.0639
+31    H4      12.2718   37.7732   26.9164 H       1 VITAMIN_B2   0.0278
+32    H5      13.6806   38.3736   26.0131 H       1 VITAMIN_B2   0.0278
+33    H6      13.7872   36.8426   26.9528 H       1 VITAMIN_B2   0.0278
+34    H7      15.4726   36.9505   25.2077 H       1 VITAMIN_B2   0.0278
+35    H8      15.5496   36.9722   23.4308 H       1 VITAMIN_B2   0.0278
+36    H9      15.6814   35.4256   24.3197 H       1 VITAMIN_B2   0.0278
+37    H10     11.8766   33.1061   20.1249 H       1 VITAMIN_B2   0.0494
+38    H11     13.1856   33.4193   21.2166 H       1 VITAMIN_B2   0.0494
+39    H12     13.1579   35.8979   20.2261 H       1 VITAMIN_B2   0.0636
+40    H13     14.1031   35.4035   18.0229 H       1 VITAMIN_B2   0.0646
+41    H14     15.1975   33.3391   20.0228 H       1 VITAMIN_B2   0.0643
+42    H15     17.3617   33.7869   18.9020 H       1 VITAMIN_B2   0.0584
+43    H16     16.5437   34.8440   17.7106 H       1 VITAMIN_B2   0.0584
+44    H17     10.9639   35.7660   19.3696 H       1 VITAMIN_B2   0.2100
+45    H18     13.3994   32.6549   18.3376 H       1 VITAMIN_B2   0.2100
+46    H19     15.8173   36.1340   19.8240 H       1 VITAMIN_B2   0.2100
+47    H20     16.7390   32.5965   16.9331 H       1 VITAMIN_B2   0.2095
+
+@<TRIPOS>BOND
+1     1     2     1
+2     1     14    2
+3     2     3     am
+4     2     15    2
+5     3     4     am
+6     4     5     1
+7     4     16    2
+8     5     6     2
+9     5     14    1
+10    6     7     1
+11    7     8     ar
+12    7     12    ar
+13    8     9     ar
+14    9     10    ar
+15    9     17    1
+16    10    11    ar
+17    10    18    1
+18    11    12    ar
+19    12    13    1
+20    13    14    1
+21    13    19    1
+22    19    20    1
+23    20    21    1
+24    20    24    1
+25    21    22    1
+26    21    25    1
+27    22    23    1
+28    22    26    1
+29    23    27    1
+30    3     28    1
+31    8     29    1
+32    11    30    1
+33    17    31    1
+34    17    32    1
+35    17    33    1
+36    18    34    1
+37    18    35    1
+38    18    36    1
+39    19    37    1
+40    19    38    1
+41    20    39    1
+42    21    40    1
+43    22    41    1
+44    23    42    1
+45    23    43    1
+46    24    44    1
+47    25    45    1
+48    26    46    1
+49    27    47    1
+@<TRIPOS>SUBSTRUCTURE
+1   VITAMIN_B2 1     PERM       0   ****  **** 
+

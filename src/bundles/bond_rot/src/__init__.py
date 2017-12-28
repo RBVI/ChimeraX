@@ -35,12 +35,10 @@ class _BondRotBundleAPI(BundleAPI):
         """De-install bond-rotation manager from existing session"""
         del session.bond_rotations
 
-    """
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
-        cmd.register_seqalign_command(logger)
-    """
+        cmd.register_command(command_name, logger)
 
 bundle_api = _BondRotBundleAPI()

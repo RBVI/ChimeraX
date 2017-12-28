@@ -113,9 +113,9 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= imex msgpack networkx numexpr numpy openmm \
-	   pcre pdbfixer pips pycollada \
-	   PyOpenGL PyQt pytables Python \
+SUBDIRS	+= imex msgpack numexpr numpy openmm \
+	   pcre pips \
+	   PyOpenGL PyQt Python \
 	   scipy setuptools wrappy3
 
 # All needed subdirectories must be set by now.
@@ -191,28 +191,20 @@ llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
 msgpack.app-install: setuptools.app-install
 msgpack.install: setuptools.install
-networkx.app-install: setuptools.app-install
-networkx.install: setuptools.install
 numexpr.app-install: setuptools.app-install numpy.app-install pips.app-install
 numexpr.install: setuptools.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
 openmm.install: Python.install numpy.install pips.install
 pcre.app-install: zlib.app-install
 pcre.install: zlib.install
-pdbfixer.app-install: Python.app-install openmm.app-install
-pdbfixer.install: Python.install openmm.install
 pillow.app-install: setuptools.app-install zlib.app-install
 pillow.install: setuptools.install zlib.install
 pips.app-install: setuptools.app-install
 pips.install: setuptools.install
-pycollada.app-install: setuptools.app-install pips.app-install
-pycollada.install: setuptools.install pips.install
 PyOpenGL.app-install: setuptools.app-install pips.app-install
 PyOpenGL.install: setuptools.install pips.install
 PyQt.app-install: setuptools.app-install openssl.app-install zlib.app-install
 PyQt.install: setuptools.install openssl.install zlib.install
-pytables.app-install: hdf5.app-install numexpr.app-install pips.app-install setuptools.app-install zlib.app-install
-pytables.install: hdf5.install numexpr.install pips.install setuptools.install zlib.install
 pythomnic3k.app-install: setuptools.app-install
 pythomnic3k.install: setuptools.install
 Python.app-install: zlib.app-install openssl.app-install expat.app-install

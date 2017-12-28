@@ -23,6 +23,7 @@
 #define SET set
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Bond.h"
 #include "Structure.h"
 #include "Residue.h"

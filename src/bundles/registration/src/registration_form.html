@@ -1,0 +1,75 @@
+<html>
+<head>
+<title>ChimeraX Registration</title>
+<style>
+table {
+  border: 0px;
+  width: 95%;
+}
+required::before {
+  content: "*";
+}
+.label {
+  vertical-align: text-top;
+  text-align: right;
+}
+.data {
+  text-align: left;
+  width: 75%;
+}
+.data input[type="text"] {
+  width: 100%;
+}
+.boolean {
+  text-align: left;
+}
+</style>
+</head>
+<body>
+<h2>ChimeraX Registration</h2>
+<p>
+Please take a few moments to provide some information about
+your use of ChimeraX.  We aggregate registration data to
+assist in securing continued funding for development and
+support of this software.
+</p>
+EXPIRATION_PLACEHOLDER
+<form action="cxreg:register">
+<table border="0">
+<tr>
+<th class="label"><required>Name:</required></th>
+<td class="data"><input type="text" name="name"/></td>
+</tr>
+<tr>
+<th class="label"><required>E-mail:</required></th>
+<td class="data"><input type="text" name="email"/></td>
+</tr>
+<tr>
+<th class="label">Organization:</th>
+<td class="data"><input type="text" name="org"/></td>
+</tr>
+<tr>
+<th class="label">Research Areas:</th>
+<td class="data">RESEARCH_PLACEHOLDER</td>
+</tr>
+<tr>
+<th class="label">Funding Sources:</th>
+<td class="data">FUNDING_PLACEHOLDER</td>
+</tr>
+</table>
+<p><required>required field</required></p>
+<span class="boolean"><input type="checkbox" name="join_discussion"/>
+Add me to the
+<a href="https://www.rbvi.ucsf.edu/mailman/listinfo/chimerax-users">
+ChimeraX users mailing list</a></span>
+<br/>
+<span class="boolean">
+<input type="checkbox" name="join_announcements" checked="1"/>
+Add me to the
+<a href="https://www.rbvi.ucsf.edu/mailman/listinfo/chimerax-announce">
+ChimeraX announcements mailing list</a> (~2-3 messages per year)</span>
+</p>
+<input type="submit" value="Register"/>
+</form>
+</body>
+</html>

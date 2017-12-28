@@ -116,6 +116,7 @@ class PivotIndicator(Drawing):
 
     def delete(self):
         self._session.triggers.remove_handler(self._update_handler)
+        super().delete()
 
     def _update_position(self, *_):
         v = self._session.main_view

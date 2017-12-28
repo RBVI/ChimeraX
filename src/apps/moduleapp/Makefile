@@ -49,7 +49,7 @@ install: all
 clean:
 	rm -f $(MOD_NAME).sh
 
-lint:
+pylint:
 	$(PYLINT) $(MOD_NAME).py
 
 $(MOD_NAME).sh: ../moduleapp/mod_app.sh.in

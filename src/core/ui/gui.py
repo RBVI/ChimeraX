@@ -209,9 +209,11 @@ class UI(QApplication):
         """
         from PyQt5.QtCore import Qt
         if event.key() == Qt.Key_Up:
-            self.session.selection.promote()
+            from ..commands import run
+            run(self.session, 'select up')
         elif event.key() == Qt.Key_Down:
-            self.session.selection.demote()
+            from ..commands import run
+            run(self.session, 'select down')
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
 
@@ -285,6 +287,9 @@ class UI(QApplication):
         surface level change.  After each mouse event this is called to force a redraw.
         '''
         self.main_window.graphics_window.update_graphics_now()
+
+    def update_undo(self, undo_manager):
+        self.main_window.update_undo(undo_manager)
         
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
     QToolButton, QWidget
@@ -298,7 +303,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         dw = QDesktopWidget()
         main_screen = dw.availableGeometry(dw.primaryScreen())
         self.resize(main_screen.width()*.67, main_screen.height()*.67)
-        self.setDockOptions(self.dockOptions() | self.GroupedDragging)
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -368,7 +372,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if os.path.exists(icon_path):
             from PyQt5.QtGui import QIcon
             self.setWindowIcon(QIcon(icon_path))
-        
+
         session.logger.add_log(self)
 
         # Allow drag and drop of files onto app window.
@@ -409,6 +413,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         wh = cwh + delta_height
         self.resize(ww, wh)
 
+    def window_maximized(self):
+        from PyQt5.QtCore import Qt
+        return bool(self.windowState() & (Qt.WindowMaximized | Qt.WindowFullScreen))
+    
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
         event.accept()
@@ -468,6 +476,24 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def file_quit_cb(self, session):
         session.ui.quit()
+
+    def edit_undo_cb(self, session):
+        session.undo.undo()
+
+    def edit_redo_cb(self, session):
+        session.undo.redo()
+
+    def update_undo(self, undo_manager):
+        self._set_undo(self.undo_action, "Undo", undo_manager.top_undo_name())
+        self._set_undo(self.redo_action, "Redo", undo_manager.top_redo_name())
+
+    def _set_undo(self, action, label, name):
+        if name is None:
+            action.setText(label)
+            action.setEnabled(False)
+        else:
+            action.setText("%s %s" % (label, name))
+            action.setEnabled(True)
 
     def _get_hide_tools(self):
         return self._hide_tools
@@ -552,73 +578,15 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     rapid_access_shown = property(_get_rapid_access_shown, _set_rapid_access_shown)
 
+    def _check_rapid_access(self, *args):
+        self.rapid_access_shown = len(self.session.models) == 0
+
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
         show_context_menu(event, tool, fill_cb, True)
 
     def status(self, msg, color, secondary):
-        sb = self.statusBar()
-        sb.clearMessage()
-        if secondary:
-            label = sb._secondary_status_label
-        else:
-            label = sb._primary_status_label
-        label.setText("<font color='" + color + "'>" + msg + "</font>")
-        label.show()
-
-        self._show_status_now()
-
-    def _check_rapid_access(self, *args):
-        self.rapid_access_shown = len(self.session.models) == 0
-
-    def _show_status_now(self):
-        # In Qt 5.7.1 there is no way to for the status line to redraw without running the event loop.
-        # But we don't want requesting a status message to have any side effects, such as dispatching
-        # mouse events.  This could cause havoc in the code writing the status message which does not
-        # expect any side effects.
-
-        # The only viable solution seems to be to process Qt events but exclude mouse and key events.
-        # The unprocessed mouse/key events are kept and supposed to be processed later but due to
-        # Qt bugs (57718 and 53126), those events don't get processed and mouse up events are lost
-        # during mouse drags, causing the mouse to still drag controls even after the button is released.
-        # This is seen in volume viewer when dragging the level bar on the histogram making the tool
-        # very annoying to use. Some work-around code suggested in Qt bug 57718 of calling processEvents()
-        # to send those deferred events is used below.
-
-        if getattr(self, '_processing_deferred_events', False):
-            return
-
-        s = self.session
-        ul = s.update_loop
-        ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
-        self._in_status_event_processing = True
-        from PyQt5.QtCore import QEventLoop
-        s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-        self._in_status_event_processing = False
-        ul.unblock_redraw()
-        self._process_deferred_events()
-
-    def _process_deferred_events(self):
-        # Handle bug where deferred mouse/key events are never processed on Mac Qt 5.7.1.
-        from sys import platform
-        if platform != 'darwin':
-            return
-        if getattr(self, '_flush_timer_queued', False):
-            return
-
-        def flush_pending_user_events(self=self):
-            self._flush_timer_queued = False
-            if getattr(self, '_in_status_event_processing', False):
-                # Avoid processing deferred events if timer goes off during status message.
-                self._process_deferred_events()
-            else:
-                self._processing_deferred_events = True
-                self.session.ui.processEvents()
-                self._processing_deferred_events = False
-
-        self._flush_timer_queued = True
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, flush_pending_user_events)
+        self._status_bar.status(msg, color, secondary)
 
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView
@@ -635,7 +603,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._about_dialog.show()
 
     def _build_status(self):
-        sb = build_statusbar()
+        from .statusbar import _StatusBar
+        self._status_bar = sbar = _StatusBar(self.session)
+        sbar.pad_vert = 0.2	# Make text in main status bar a little smaller to match command-line
+        sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
         self._rapid_access_button = rab = QToolButton(sb)
         from PyQt5.QtGui import QIcon
@@ -667,6 +638,26 @@ class MainWindow(QMainWindow, PlainTextLog):
         sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
+    def _dockability_change(self, tool_name, dockable):
+        """Call back from 'ui dockable' command"""
+        for ti, tool_windows in self.tool_instance_to_windows.items():
+            if ti.tool_name == tool_name:
+                for win in tool_windows:
+                    win._mw_set_dockable(dockable)
+
+    def _make_settings_ui(self, session):
+        from .core_settings_ui import CoreSettingsPanel
+        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
+        self.settings_ui_widget = dw = QDockWidget("ChimeraX settings", self)
+        dw.closeEvent = lambda e, dw=dw: dw.hide()
+        container = QWidget()
+        CoreSettingsPanel(session, container)
+        dw.setWidget(container)
+        from PyQt5.QtCore import Qt
+        self.addDockWidget(Qt.RightDockWidgetArea, dw)
+        dw.setFloating(True)
+        dw.hide()
+
     def _new_tool_window(self, tw):
         if self.hide_tools:
             self._hide_tools_shown_states[tw] = True
@@ -677,6 +668,8 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _populate_menus(self, session):
         from PyQt5.QtWidgets import QAction
+        from PyQt5.QtGui import QKeySequence
+        from PyQt5.QtCore import Qt
 
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
@@ -697,9 +690,26 @@ class MainWindow(QMainWindow, PlainTextLog):
         file_menu.addAction(quit_action)
         file_menu.setToolTipsVisible(True)
 
+        edit_menu = mb.addMenu("&Edit")
+        self.undo_action = QAction("&Undo", self)
+        self.undo_action.setEnabled(False)
+        self.undo_action.setShortcut(QKeySequence.Undo)
+        self.undo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_undo_cb(sess))
+        edit_menu.addAction(self.undo_action)
+        self.redo_action = QAction("&Redo", self)
+        self.redo_action.setEnabled(False)
+        self.redo_action.setShortcut(QKeySequence.Redo)
+        self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
+        edit_menu.addAction(self.redo_action)
+
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
+
+        self.favorites_menu = mb.addMenu("Fa&vorites")
+        self.favorites_menu.setToolTipsVisible(True)
+        self._make_settings_ui(session)
+        self.update_favorites_menu(session)
 
         help_menu = mb.addMenu("&Help")
         help_menu.setToolTipsVisible(True)
@@ -720,6 +730,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
+
+    def update_favorites_menu(self, session):
+        from PyQt5.QtWidgets import QAction
+        self.favorites_menu.clear()
+        self.favorites_menu.addSeparator()
+        settings = QAction("Settings...", self)
+        settings.setToolTip("Show/set ChimeraX settings")
+        settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
+        self.favorites_menu.addAction(settings)
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}
@@ -903,7 +922,12 @@ class ToolWindow(StatusLogger):
         """Add items to this tool window's context menu,
            whose downclick occurred at position (x,y)
 
-        Override to add items to any context menu popped up over this window"""
+        Override to add items to any context menu popped up over this window.
+
+        Note that you have to keep references to the actions you add to the
+        menu to avoid having then automatically destroyed and removed from the
+        menu when this method returns.  You can use the menu itself to store 
+        the reference, e.g. menu._ref1 = QAction(...)"""
         pass
 
     @property
@@ -916,10 +940,16 @@ class ToolWindow(StatusLogger):
 
         Tool will be docked into main window on the side indicated by
         `placement` (which should be a value from :py:attr:`placements`
-        or None).  If `placement` is None, the tool will be detached
-        from the main window.  It will be allowed to dock in the allowed_areas,
-        the value of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
+        or None, or another tool window).  If `placement` is None, the tool will
+        be detached from the main window.  If `placement` is another tool window,
+        then those tools will be tabbed together.
+
+        The tool window will be allowed to dock in the allowed_areas, the value
+        of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
         """
+        if self.tool_instance.tool_name in self.session.ui.settings.undockable:
+            from PyQt5.QtCore import Qt
+            allowed_areas = Qt.NoDockWidgetArea
         self.__toolkit.manage(placement, allowed_areas, fixed_size)
 
     def _get_shown(self):
@@ -939,15 +969,16 @@ class ToolWindow(StatusLogger):
         pass
 
     def status(self, *args, **kw):
-        if self.statusbar:
+        if self._have_statusbar:
             StatusLogger.status(self, *args, **kw)
         else:
             self.session.logger.status(*args, **kw)
 
     @property
-    def statusbar(self):
-        """This window's QStatusBar widget"""
-        return self.__toolkit.statusbar if self.__toolkit else None
+    def _have_statusbar(self):
+        """Does this window have a QStatusBar widget"""
+        tk = self.__toolkit
+        return tk is not None and tk.status_bar is not None
 
     def _get_title(self):
         if self.__toolkit is None:
@@ -964,17 +995,24 @@ class ToolWindow(StatusLogger):
 
     def _destroy(self):
         self.cleanup()
-        if self.statusbar:
+        if self._have_statusbar:
             self.clear()
         self.__toolkit.destroy()
         self.__toolkit = None
+
+    @property
+    def _dock_widget(self):
+        return self.__toolkit.dock_widget
+
+    def _mw_set_dockable(self, dockable):
+        self.__toolkit.dockable = dockable
 
     def _mw_set_shown(self, shown):
         self.__toolkit.shown = shown
         self.shown_changed(shown)
 
     def _prioritized_logs(self):
-        return [self.__toolkit.status_log]
+        return [self.__toolkit.status_bar]
 
     def _show_context_menu(self, event):
         # this routine needed as a kludge to allow QwebEngine to show
@@ -1052,23 +1090,12 @@ class _Qt:
         self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e)
         layout.addWidget(self.ui_area)
         if has_statusbar:
-            self.statusbar = build_statusbar()
-            layout.addWidget(self.statusbar)
-            class _StatusLog:
-                def __init__(s, statusbar):
-                    s.statusbar = statusbar
-                def status(s, msg, color, secondary):
-                    sb = s.statusbar
-                    sb.clearMessage()
-                    if secondary:
-                        label = sb._secondary_status_label
-                    else:
-                        label = sb._primary_status_label
-                    label.setText("<font color='" + color + "'>" + msg + "</font>")
-                    label.show()
-            self.status_log = _StatusLog(self.statusbar)
+            session = tool_window.tool_instance.session
+            from .statusbar import _StatusBar
+            self.status_bar = sbar = _StatusBar(session)
+            layout.addWidget(sbar.widget)
         else:
-            self.statusbar = None
+            self.status_bar = None
         container.setLayout(layout)
         self.dock_widget.setWidget(container)
 
@@ -1080,15 +1107,28 @@ class _Qt:
         self.tool_window = None
         self.main_window = None
         self.ui_area.destroy()
-        if self.statusbar:
-            self.statusbar.destroy()
-            self.statusbar = None
+        if self.status_bar:
+            self.status_bar.destroy()
+            self.status_bar = None
         self.dock_widget.destroy()
+
+    def _get_dockable(self):
+        from PyQt5.QtCore import Qt
+        return self.dock_widget.allowedAreas() != Qt.NoDockWidgetArea
+
+    def _set_dockable(self, dockable):
+        from PyQt5.QtCore import Qt
+        areas = Qt.AllDockWidgetAreas if dockable else Qt.NoDockWidgetArea
+        self.dock_widget.setAllowedAreas(areas)
+        if not dockable and not self.dock_widget.isFloating():
+            self.dock_widget.setFloating(True)
+
+    dockable = property(_get_dockable, _set_dockable)
 
     def manage(self, placement, allowed_areas, fixed_size=False):
         from PyQt5.QtCore import Qt
         placements = self.tool_window.placements
-        if placement is None:
+        if placement is None or isinstance(placement, ToolWindow):
             side = Qt.RightDockWidgetArea
         else:
             if placement not in placements:
@@ -1103,9 +1143,12 @@ class _Qt:
         # (most noticeable for initially-undocked tools)
         self.ui_area.updateGeometry()
         mw = self.main_window
-        mw.addDockWidget(side, self.dock_widget)
-        if placement is None:
-            self.dock_widget.setFloating(True)
+        if isinstance(placement, ToolWindow):
+            mw.tabifyDockWidget(placement._dock_widget, self.dock_widget)
+        else:
+            mw.addDockWidget(side, self.dock_widget)
+            if placement is None or allowed_areas == Qt.NoDockWidgetArea:
+                self.dock_widget.setFloating(True)
         self.dock_widget.setAllowedAreas(allowed_areas)
 
         #QT disable: create a 'hide_title_bar' option
@@ -1147,16 +1190,6 @@ class _Qt:
 
     def set_title(self, title):
         self.dock_widget.setWindowTitle(title)
-
-def build_statusbar():
-    from PyQt5.QtWidgets import QStatusBar, QSizePolicy
-    sb = QStatusBar()
-    sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-    sb._primary_status_label = QLabel()
-    sb._secondary_status_label = QLabel()
-    sb.addWidget(sb._primary_status_label)
-    sb.addPermanentWidget(sb._secondary_status_label)
-    return sb
 
 def redirect_stdio_to_logger(logger):
     # Redirect stderr to log
@@ -1200,7 +1233,7 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
     if not menu.isEmpty():
         menu.addSeparator()
     ti = tool_instance
-    hide_tool_action = QAction("Hide this tool")
+    hide_tool_action = QAction("Hide tool")
     hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
     if ti.help is not None:
@@ -1212,10 +1245,10 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
         no_help_action = QAction("No help available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
+    session = ti.session
     if autostartable:
-        session = ti.session
         autostart = ti.tool_name in session.ui.settings.autostart
-        auto_action = QAction("Start this tool at ChimeraX startup")
+        auto_action = QAction("Start at ChimeraX startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
         from ..commands import run, quote_if_necessary
@@ -1224,4 +1257,14 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
             quote_if_necessary(ti.tool_name))))
         menu.addAction(auto_action)
+    undockable = ti.tool_name in session.ui.settings.undockable
+    dock_action = QAction("Dockable tool")
+    dock_action.setCheckable(True)
+    dock_action.setChecked(not undockable)
+    from ..commands import run, quote_if_necessary
+    dock_action.triggered.connect(
+        lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+        run(ses, "ui dockable %s %s" % (("true" if arg else "false"),
+        quote_if_necessary(ti.tool_name))))
+    menu.addAction(dock_action)
     menu.exec(event.globalPos())

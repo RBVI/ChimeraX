@@ -28,28 +28,11 @@ class Image_Stack_Data:
         raise SyntaxError('No files found %s' % path)
     self.paths = tuple(paths)
 
-    from numpy import uint8, uint16, int16, int32, uint32, float32, little_endian
-    modes = {'L': uint8,
-             'P': uint8,
-             'I;16': uint16,
-             'I;16B': uint16,   # Big endian, converted to native by PIL
-             'I;16L': uint16,   # Little endian, converted to native by PIL
-             'I;16S': int16,    # Signed 16-bit
-             'F': float32,
-             'F;32BF': float32,	# Big endian, not sure if PIL converts this.
-             'I': int32,        # TODO: Don't have any test data for I.
-             'RGB': uint8,
-             }
-
     from PIL import Image
     i = Image.open(self.paths[0])
 
-    if i.mode in modes:
-      self.value_type = modes[i.mode]
-      self.mode = i.mode
-    else:
-      mnames = ', '.join(modes.keys())
-      raise SyntaxError('Image mode %s is not supported (%s)' % (i.mode, mnames))
+    self.value_type = pillow_numpy_value_type(i.mode)
+    self.mode = i.mode
     self.channel = 0
 
     xsize, ysize = i.size
@@ -143,3 +126,26 @@ def indexed_files(path):
     return paths
 
   return [path]
+
+# -----------------------------------------------------------------------------
+#
+def pillow_numpy_value_type(image_mode):
+
+    from numpy import uint8, uint16, int16, int32, uint32, float32, little_endian
+    modes = {'L': uint8,
+             'P': uint8,
+             'I;16': uint16,
+             'I;16B': uint16,   # Big endian, converted to native by PIL
+             'I;16L': uint16,   # Little endian, converted to native by PIL
+             'I;16S': int16,    # Signed 16-bit
+             'F': float32,
+             'F;32BF': float32,	# Big endian, not sure if PIL converts this.
+             'I': int32,        # TODO: Don't have any test data for I.
+             'RGB': uint8,
+             }
+    if image_mode not in modes:
+      mnames = ', '.join(modes.keys())
+      raise SyntaxError('Image mode %s is not supported (%s)' % (image_mode, mnames))
+
+    return modes[image_mode]
+    

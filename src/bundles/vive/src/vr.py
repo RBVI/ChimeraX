@@ -13,7 +13,7 @@
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
 def vr(session, enable = None, room_position = None, mirror = False, icons = False,
-       show_controllers = True):
+       show_controllers = True, multishadow_allowed = False):
     '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
     Parameters
@@ -40,8 +40,13 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
       For demonstrations the icons can be too complex and it is better not to have icons.
       Default false.
     show_controllers : bool
-      Whether to show the hand controllers in the scene. Default true.  It can be useful
-      not to show the controllers to avoid time consuming ambient shadow updating.
+      Whether to show the hand controllers in the scene. Default true.
+    multishadow_allowed : bool
+      If this option is false and multi-shadow lighting is enabled (ambient occlusion) when vr is
+      enabled, then lighting is switched to simple lighting.  If the option is true then no
+      changes to lighting mode are made.  Often rendering is not fast enough
+      to support multishadow lighting so this option makes sure it is off so that stuttering
+      does not occur.  Default False.
     '''
     
     if enable is None and room_position is None:
@@ -49,7 +54,7 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
 
     if enable is not None:
         if enable:
-            start_vr(session)
+            start_vr(session, multishadow_allowed)
         else:
             stop_vr(session)
 
@@ -92,9 +97,13 @@ def register_vr_command(logger):
 
 # -----------------------------------------------------------------------------
 #
-def start_vr(session):
+def start_vr(session, multishadow_allowed = False):
 
     v = session.main_view
+    if not multishadow_allowed and v.lighting.multishadow > 0:
+        from chimerax.core.commands import run
+        run(session, 'lighting simple')
+
     if isinstance(v.camera, SteamVRCamera):
         return
 
@@ -162,9 +171,9 @@ class SteamVRCamera(Camera):
         # TODO: Scaling models to be huge causes clipping at far clip plane.
 
         # Left and right projections are different. OpenGL 4x4.
-        pl = vrs.getProjectionMatrix(openvr.Eye_Left, zNear, zFar, openvr.API_OpenGL)
+        pl = vrs.getProjectionMatrix(openvr.Eye_Left, zNear, zFar)
         self.projection_left = hmd44_to_opengl44(pl)
-        pr = vrs.getProjectionMatrix(openvr.Eye_Right, zNear, zFar, openvr.API_OpenGL)
+        pr = vrs.getProjectionMatrix(openvr.Eye_Right, zNear, zFar)
         self.projection_right = hmd44_to_opengl44(pr)
 
         # Eye shifts from hmd pose.
@@ -328,10 +337,10 @@ class SteamVRCamera(Camera):
         from chimerax.core.graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), fov)
 
-    def view_all(self, bounds, aspect = None, pad = 0):
+    def view_all(self, bounds, window_size = None, pad = 0):
         fov = 100	# Effective field of view, degrees
         from chimerax.core.graphics.camera import perspective_view_all
-        self.position = perspective_view_all(bounds, self.position, fov, aspect, pad)
+        self.position = perspective_view_all(bounds, self.position, fov, window_size, pad)
         self._last_position = None
         self._last_h = None
         self.fit_scene_to_room(bounds)
@@ -387,7 +396,7 @@ class SteamVRCamera(Camera):
             fb.openvr_texture = ovrt = openvr.Texture_t()
             from ctypes import c_void_p
             ovrt.handle = c_void_p(int(t.id))
-            ovrt.eType = openvr.API_OpenGL
+            ovrt.eType = openvr.TextureType_OpenGL
             ovrt.eColorSpace = openvr.ColorSpace_Gamma
         return fb
 
@@ -427,6 +436,7 @@ class SteamVRCamera(Camera):
     
 from chimerax.core.models import Model
 class HandControllerModel(Model):
+    casts_shadows = False
     _controller_colors = ((200,200,0,255), (0,200,200,255))
 
     def __init__(self, device_index, session, vr_system, show = True, size = 0.20, aspect = 0.2):
@@ -715,6 +725,7 @@ class HandControllerModel(Model):
         from chimerax.core.graphics import Drawing
         from chimerax.core.graphics.drawing import rgba_drawing
         self._icon_drawing = d = Drawing('VR icons')
+        d.casts_shadows = False
         rgba = self.tiled_icons() # numpy uint8 (ny,nx,4) array
         s = self._cone_length
         h,w = rgba.shape[:2]
@@ -734,6 +745,7 @@ class HandControllerModel(Model):
         
         from chimerax.core.graphics import Drawing
         self._icon_highlight_drawing = d = Drawing('VR icon highlight')
+        d.casts_shadows = False
         s = self._cone_length
         from chimerax.core.surface import sphere_geometry
         va, na, ta = sphere_geometry(200)

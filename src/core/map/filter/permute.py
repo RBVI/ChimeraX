@@ -30,10 +30,11 @@ class Permuted_Grid(Grid_Data):
 
     self.grid_data = g = grid_data
     self.axis_order = ao = axis_order
-    Grid_Data.__init__(self, permute(g.size,ao), g.value_type,
-                       permute(g.origin,ao), permute(g.step,ao),
-                       g.cell_angles, g.rotation, g.symmetries,
-                       name = g.name + ' permuted', default_color = g.rgba)
+    settings = g.settings(size = permute(g.size,ao),
+                          origin = permute(g.origin,ao),
+                          step = permute(g.step,ao),
+                          name = g.name + ' permuted')
+    Grid_Data.__init__(self, **settings)
     
   # ---------------------------------------------------------------------------
   #

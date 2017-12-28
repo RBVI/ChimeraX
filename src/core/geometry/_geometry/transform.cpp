@@ -17,6 +17,7 @@
 // Transform points with shift, scale and linear operations.
 //
 #include <Python.h>			// use PyObject
+#include <math.h>			// use sqrtf()
 
 #include <arrays/pythonarray.h>		// use array_from_python()
 #include <arrays/rcarray.h>		// use call_template_function()
@@ -173,6 +174,119 @@ extern "C" PyObject *affine_transform_vertices(PyObject *, PyObject *args)
     {
       PyErr_Clear();
       affine_transform_vertices(v64array, tf64);
+    }
+  else
+    return NULL;
+
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+// ----------------------------------------------------------------------------
+//
+static void affine_transform_normals(FArray &vertex_positions, float tf[3][3])
+{
+  float *xyz = vertex_positions.values();
+  int n = vertex_positions.size(0);
+  int s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
+
+  float t00 = tf[0][0], t01 = tf[0][1], t02 = tf[0][2];
+  float t10 = tf[1][0], t11 = tf[1][1], t12 = tf[1][2];
+  float t20 = tf[2][0], t21 = tf[2][1], t22 = tf[2][2];
+
+  float r00 = t11 * t22 - t12 * t21;
+  float r10 = t21 * t02 - t22 * t01;
+  float r20 = t01 * t12 - t02 * t11;
+  float r01 = t12 * t20 - t10 * t22;
+  float r11 = t22 * t00 - t20 * t02;
+  float r21 = t02 * t10 - t00 * t12;
+  float r02 = t10 * t21 - t11 * t20;
+  float r12 = t20 * t01 - t21 * t00;
+  float r22 = t00 * t11 - t01 * t10;
+  float det = t00 * r00 + t01 * r01 + t02 * r02;
+  r00 /= det; r01 /= det; r02 /= det;
+  r10 /= det; r11 /= det; r12 /= det;
+  r20 /= det; r21 /= det; r22 /= det;
+
+  for (int k = 0 ; k < n ; ++k)
+    {
+      float *px = xyz + s0*k;
+      float *py = px + s1;
+      float *pz = py + s1;
+      float x = *px, y = *py, z = *pz;
+      *px = r00*x + r01*y + r02*z;
+      *py = r10*x + r11*y + r12*z;
+      *pz = r20*x + r21*y + r22*z;
+
+      float len = sqrtf(*px * *px + *py * *py + *pz * *pz);
+      *px /= len;
+      *py /= len;
+      *pz /= len;
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+static void affine_transform_normals(DArray &vertex_positions, double tf[3][3])
+{
+  double *xyz = vertex_positions.values();
+  int n = vertex_positions.size(0);
+  int s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
+
+  double t00 = tf[0][0], t01 = tf[0][1], t02 = tf[0][2];
+  double t10 = tf[1][0], t11 = tf[1][1], t12 = tf[1][2];
+  double t20 = tf[2][0], t21 = tf[2][1], t22 = tf[2][2];
+
+  double r00 = t11 * t22 - t12 * t21;
+  double r10 = t21 * t02 - t22 * t01;
+  double r20 = t01 * t12 - t02 * t11;
+  double r01 = t12 * t20 - t10 * t22;
+  double r11 = t22 * t00 - t20 * t02;
+  double r21 = t02 * t10 - t00 * t12;
+  double r02 = t10 * t21 - t11 * t20;
+  double r12 = t20 * t01 - t21 * t00;
+  double r22 = t00 * t11 - t01 * t10;
+  double det = t00 * r00 + t01 * r01 + t02 * r02;
+  r00 /= det; r01 /= det; r02 /= det;
+  r10 /= det; r11 /= det; r12 /= det;
+  r20 /= det; r21 /= det; r22 /= det;
+
+  for (int k = 0 ; k < n ; ++k)
+    {
+      double *px = xyz + s0*k;
+      double *py = px + s1;
+      double *pz = py + s1;
+      double x = *px, y = *py, z = *pz;
+      *px = r00*x + r01*y + r02*z;
+      *py = r10*x + r11*y + r12*z;
+      *pz = r20*x + r21*y + r22*z;
+
+      double len = sqrt(*px * *px + *py * *py + *pz * *pz);
+      *px /= len;
+      *py /= len;
+      *pz /= len;
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *affine_transform_normals(PyObject *, PyObject *args)
+{
+  FArray varray;
+  float tf[3][3];
+  DArray v64array;
+  double tf64[3][3];
+  if (PyArg_ParseTuple(args, const_cast<char *>("O&O&"),
+		       parse_writable_float_n3_array, &varray,
+		       parse_float_3x3_array, tf))
+    affine_transform_normals(varray, tf);
+  else if (PyArg_ParseTuple(args, const_cast<char *>("O&O&"),
+			    parse_writable_double_n3_array, &v64array,
+			    parse_double_3x3_array, tf64))
+    {
+      PyErr_Clear();
+      affine_transform_normals(v64array, tf64);
     }
   else
     return NULL;

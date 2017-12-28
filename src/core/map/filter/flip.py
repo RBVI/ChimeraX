@@ -25,12 +25,8 @@ class Flip_Grid(Grid_Data):
         self.data = d
         self.axes = axes
 
-        Grid_Data.__init__(self, d.size, d.value_type,
-                           d.origin, d.step, d.cell_angles,
-                           d.rotation, d.symmetries,
-                           name = '%s %s flip' % (d.name, axes),
-                           file_type = d.file_type,
-                           default_color = d.rgba)
+        settings = d.settings(name = '%s %s flip' % (d.name, axes))
+        Grid_Data.__init__(self, file_type = d.file_type, **settings)
         self.data_cache = None      # Caching done by underlying grid.
         
     # -------------------------------------------------------------------------

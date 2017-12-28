@@ -49,11 +49,49 @@ class Selection:
     def clear_promotion_history(self):
         self._promotion.clear_selection_promotion_history()
 
-    def promote(self):
+    def promote(self, session):
+        from .undo import UndoState
+        undo_state = UndoState("select up")
+        self.undo_add_selected(undo_state, False)
         self._promotion.promote_selection()
+        self.undo_add_selected(undo_state, True, old_state=False)
+        session.undo.register(undo_state)
 
-    def demote(self):
+    def demote(self, session):
+        from .undo import UndoState
+        undo_state = UndoState("select down")
+        self.undo_add_selected(undo_state, False)
         self._promotion.demote_selection()
+        self.undo_add_selected(undo_state, True, old_state=False)
+        session.undo.register(undo_state)
+
+    def undo_add_selected(self, undo_state, new_state, old_state=None):
+        from .atomic import Atoms, Bonds, Pseudobonds
+        for oname, otype in (('atoms', Atoms), ('bonds', Bonds), ('pseudobonds', Pseudobonds)):
+            items = self.items(oname)
+            if items:
+                if isinstance(items, otype):
+                    orig = self._orig_state(items, old_state)
+                    undo_state.add(items, "selected", orig, new_state)
+                else:
+                    for i in items:
+                        orig = self._orig_state(i, old_state)
+                        undo_state.add(i, "selected", orig, new_state)
+        models = [m for m in self.all_models() if m.selected]
+        if models:
+            for m in models:
+                orig = old_state if old_state is not None else m.selected
+                undo_state.add(m, "selected", orig, new_state)
+
+    def _orig_state(self, owner, old_state):
+        if old_state is None:
+            return owner.selected
+        else:
+            import numpy
+            if old_state:
+                return numpy.ones(len(owner), dtype=numpy.bool_)
+            else:
+                return numpy.zeros(len(owner), dtype=numpy.bool_)
 
 
 class SelectionPromoter:
@@ -114,16 +152,22 @@ class SelectionPromoter:
         if len(promotions) == 0 or promotions[0].level <= level:
             # Check if some but not all children are selected.
             nsel = [c for c in children if c not in sel]
-            if nsel and len(nsel) < len(children):
-                for c in nsel:
-                    self._add_promotion(ModelSelectionPromotion(c,level+0.5), promotions)
+            if nsel:
+                if len(nsel) < len(children):
+                    # Some children are selected so select all children
+                    for c in nsel:
+                        self._add_promotion(ModelSelectionPromotion(c,level+0.5), promotions)
+            elif children and not drawing.selected and drawing is not self._drawing:
+                # All children selected so select parent
+                self._add_promotion(ModelSelectionPromotion(drawing,level), promotions)
 
             # Check if some but not all instances are selected.
             sp = drawing.selected_positions
             if sp is not None:
                 ns = sp.sum()
                 if ns < len(sp) and ns > 0:
-                    self._add_promotion(ModelSelectionPromotion(drawing,level), promotions)
+                    # Some instances are selected so select all instances
+                    self._add_promotion(ModelSelectionPromotion(drawing,level + 0.3), promotions)
                     sel.add(drawing)
 
     def _add_promotion(self, p, promotions):

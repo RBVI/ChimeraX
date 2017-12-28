@@ -108,7 +108,6 @@ class X3DScene:
 
     def write_header(self, stream, indent, meta={}, *, namespaces={}, units={}, profile_name=None):
         # meta argument is good for author, etc.
-        import datetime
         from html import escape
         if indent == 0:
             # only emit xml tag and doctype if not nested
@@ -131,17 +130,16 @@ class X3DScene:
             print("\n%s xmlns:%s=\"%s\"" % (tab, escape(prefix), escape(uri)),
                   end='', file=stream)
         print('>', file=stream)
-        if 'created' not in meta:
-            # See ISO 8601 and/or <http://www.w3.org/TR/NOTE-datetime>.
-            iso_date = datetime.datetime.utcnow().isoformat() + 'Z'
-            meta['created'] = iso_date
         print("%s <head>" % tab, file=stream)
         # Augment profile with component level information.
         self.write_components(stream, indent + 2, profile=profile)
         for category, (name, cf) in units.items():
             print("%s  <unit category='%s' name='%s' conversionFactor='%g'/>" % (tab, escape(category), escape(name), cf), file=stream)
         for name, content in meta.items():
-            print("%s  <meta name=\"%s\" content=\"%s\"/>" % (tab, escape(name), escape(content)), file=stream)
+            if isinstance(content, str):
+                content = [content]
+            for c in content:
+                print("%s  <meta name=\"%s\" content=\"%s\"/>" % (tab, escape(name), escape(c)), file=stream)
         print("%s </head>" % tab, file=stream)
         print("%s <Scene>" % tab, file=stream)
 

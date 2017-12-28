@@ -18,11 +18,11 @@ def bin(v, bin_size = (2,2,2),
 
   bd = bin_grid(v, bin_size, step, subregion)
   from .. import volume_from_grid_data
-  bv = volume_from_grid_data(bd, session, model_id = model_id, show_data = False)
+  bv = volume_from_grid_data(bd, session, model_id = model_id)
 
   bv.copy_settings_from(v, copy_region = False)
-  bv.show()
-  v.unshow()          # Hide original map
+  bv.display = True
+  v.display = False          # Hide original map
 
   return bv
 
@@ -47,9 +47,8 @@ class Binned_Grid(Grid_Data):
     size = [s//b for s,b in zip(g.size, bin_size)]
     step = [s*b for s,b in zip(g.step, bin_size)]
     origin = [o+0.5*(s-gs) for o,s,gs in zip(g.origin, step, g.step)]
-    Grid_Data.__init__(self, size, g.value_type, origin, step,
-                       g.cell_angles, g.rotation, g.symmetries,
-                       name = g.name + ' binned', default_color = g.rgba)
+    settings = g.settings(size=size, origin=origin, step=step, name = g.name + ' binned')
+    Grid_Data.__init__(self, **settings)
     
   # ---------------------------------------------------------------------------
   #

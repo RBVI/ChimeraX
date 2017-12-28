@@ -1,0 +1,29 @@
+<BundleInfo name="ChimeraX-SignalViewer" version="1.0"
+	    package="chimerax.signal_viewer"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Display time varying signals at points in space</Synopsis>
+  <Description>Display time varying signals at points in space read from numpy NPZ files.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: Point signals :: signal :: Generic 3D objects :: .npz :: :: https://github.com/KhronosGroup/glTF :: :: :: Signal time series at 3D points (e.g. fluorescence in cells) </ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: Point signals :: signal ::</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: signal :: Higher-Order Structure :: show signals and points in space</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

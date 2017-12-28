@@ -25,6 +25,11 @@ from .volume import volume_from_grid_data
 from .volume import Volume
 
 # -----------------------------------------------------------------------------
+# Time series
+#
+from .series import MapSeries
+
+# -----------------------------------------------------------------------------
 # Map contouring and distance maps.
 #
 from ._map import contour_surface, sphere_surface_distance
@@ -49,7 +54,7 @@ from .volume import maps_pickable
 # -----------------------------------------------------------------------------
 # Routines to register map file formats, database fetch, and volume command.
 #
-from .volume import register_map_file_formats
+from .volume import register_map_file_formats, MapChannelsModel, MultiChannelSeries
 from .eds_fetch import register_eds_fetch
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command

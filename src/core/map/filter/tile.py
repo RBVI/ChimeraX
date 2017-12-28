@@ -18,8 +18,7 @@
 #
 def tile_planes(v, axis = 'z', pstep = 1, trim = 0,
                 rows = None, columns = None, fill_order = 'ulh',
-                step = None, subregion = None, model_id = None,
-                open = True):
+                step = None, subregion = None, model_id = None):
 
   vreg = v.subregion(step = step, subregion = subregion)
   reg = [list(ijk) for ijk in vreg]
@@ -67,13 +66,10 @@ def tile_planes(v, axis = 'z', pstep = 1, trim = 0,
   td = Array_Grid_Data(ta, dorigin, dstep)
   td.name = v.name + ' tiled %s' % axis
   from .. import volume_from_grid_data
-  tv = volume_from_grid_data(td, v.session, show_data = False, model_id = model_id,
-                             open_model = open, show_dialog = open)
+  tv = volume_from_grid_data(td, v.session, model_id = model_id)
   tv.copy_settings_from(v, copy_region = False, copy_active = False,
                         copy_xform = open)
-  if open:
-    tv.show()
-    v.unshow()          # Hide original map
+  v.display = False          # Hide original map
 
   return tv
 

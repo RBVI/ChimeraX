@@ -17,13 +17,14 @@
 #define atomstruct_chain
 
 #include "imex.h"
+#include "polymer.h"
 #include "StructureSeq.h"
 
 namespace atomstruct {
 
 class ATOMSTRUCT_IMEX Chain: public StructureSeq {
 public:
-    Chain(const ChainID& chain_id, Structure* as);
+    Chain(const ChainID& chain_id, Structure* as, PolymerType pt = PT_NONE);
     virtual ~Chain();
 
     bool  is_chain() const { return !is_sequence(); }

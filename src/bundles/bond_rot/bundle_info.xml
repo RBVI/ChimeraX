@@ -38,7 +38,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
 ]
-	<ChimeraXClassifier>ChimeraX :: Command :: torsion :: Rotate bonds :: adjust bond torsion angles</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: torsion create :: Activate bond for rotation :: activate bond for rotation</ChimeraXClassifier>
 ]
   </Classifiers>
 

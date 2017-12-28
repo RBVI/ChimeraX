@@ -41,7 +41,7 @@ class Dock_Data:
       cnames = ['vdw attract', 'vdw repel', 'electrostatic']
       expected_array_size = (file_size - 16) / 12
     else:
-      raise SyntaxError, 'DOCK file %s suffix must be .bmp or .cnt or .nrg' % self.name
+      raise SyntaxError('DOCK file %s suffix must be .bmp or .cnt or .nrg' % self.name)
     self.component_names = cnames
     self.bump_path = path[:path.rfind('.')] + '.bmp'
     
@@ -77,7 +77,7 @@ class Dock_Data:
       if swapped_size == expected_array_size:
         byte_swap = 1
       else:
-        raise SyntaxError, 'Expected array size based on DOCK file size is %d which does not agree with header array size %d or byte swapped header array size %d' % (expected_array_size, array_size, swapped_size)
+        raise SyntaxError('Expected array size based on DOCK file size is %d which does not agree with header array size %d or byte swapped header array size %d' % (expected_array_size, array_size, swapped_size))
 
     return byte_swap
     

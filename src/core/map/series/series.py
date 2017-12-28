@@ -14,13 +14,14 @@
 # -----------------------------------------------------------------------------
 #
 from ...models import Model
-class Map_Series(Model):
+class MapSeries(Model):
 
   def __init__(self, name, maps, session):
 
     Model.__init__(self, name, session)
-
+    
     self.add(maps)
+    self.show_first_map_only(maps)
     self.set_maps(maps)
     
     self.surface_level_ranks = []  # Cached for normalization calculation
@@ -36,6 +37,15 @@ class Map_Series(Model):
     self.last_shown_time = tuple(t)[0] if len(t) > 0 else 0
     for m in maps:
       m.series = self
+
+  # ---------------------------------------------------------------------------
+  #
+  def show_first_map_only(self, maps):
+    v0 = maps[0]
+    v0.initialize_thresholds()
+    v0.display = True	# Show first map of series
+    for v in maps[1:]:
+      v.display = False
 
   # ---------------------------------------------------------------------------
   #
@@ -85,7 +95,7 @@ class Map_Series(Model):
       return
 
     self.shown_times.add(time)
-    v.show()
+    v.display = True
 
     self.last_shown_time = time
 
@@ -101,7 +111,7 @@ class Map_Series(Model):
 
     self.shown_times.discard(time)
 
-    v.show(show = False)
+    v.display = False
 
     if not cache_rendering:
       v.remove_surfaces()
@@ -159,7 +169,14 @@ class Map_Series(Model):
 
     v2.data.set_step(v1.data.step)
     v2.data.set_origin(v1.data.origin)
-    v2.copy_settings_from(v1, copy_xform = False)
+    v2.copy_settings_from(v1, copy_xform = False, copy_region = False)
+    if v1.is_full_region():
+      # Handle case where some times have smaller map size than others.
+      ijk_min, ijk_max, ijk_step = v2.full_region()
+    else:
+      ijk_min, ijk_max, ijk_step = v1.region
+    v2.new_region(ijk_min, ijk_max, ijk_step)
+    
     if normalize_thresholds:
       self.copy_threshold_rank_levels(v1, v2)
 
@@ -192,7 +209,7 @@ class Map_Series(Model):
   @staticmethod
   def restore_snapshot(session, data):
     maps = []
-    s = Map_Series('series', maps, session)
+    s = MapSeries('series', maps, session)
     Model.set_state_from_snapshot(s, session, data['model state'])
 
     # Parent models are always restored before child models.

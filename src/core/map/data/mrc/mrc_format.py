@@ -319,7 +319,6 @@ class MRC_Data:
       usyms = [parse_symop(s[80*i:80*(i+1)].decode('utf-8').replace(' ', ''))
                for i in range(nsym)]
     except:
-      raise
       try:
         msg = 'Unable to parse symmetry operators of %s\n%s\n' % (self.name, s)
       except:

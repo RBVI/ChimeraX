@@ -35,10 +35,10 @@ class ATOMSTRUCT_IMEX RibbonXSection {
 private:
     void _generate_normals();
     PyObject* _extrude_smooth(const FArray& centers, const FArray& tangents,
-                              const FArray& normals, const FArray& color,
+                              const FArray& normals, const CArray& color,
                               bool cap_front, bool cap_back, int offset) const;
     PyObject* _extrude_faceted(const FArray& centers, const FArray& tangents,
-                               const FArray& normals, const FArray& color,
+                               const FArray& normals, const CArray& color,
                                bool cap_front, bool cap_back, int offset) const;
     PyObject* _blend_smooth(const IArray& back_band,
                             const IArray& front_band) const;
@@ -65,7 +65,7 @@ public:
     virtual ~RibbonXSection();
 
     PyObject* extrude(const FArray& centers, const FArray& tangents,
-                      const FArray& normals, const FArray& color,
+                      const FArray& normals, const CArray& color,
                       bool cap_front, bool cap_back, int offset) const;
     PyObject* blend(const IArray& back_band, const IArray& front_band) const;
     void* scale(float x_scale, float y_scale) const;

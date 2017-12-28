@@ -20,8 +20,6 @@ class BondRotationManager(State):
     CREATED, MODIFIED, REVERSED, DELETED = trigger_names = ("created", "modified",
         "reversed", "deleted")
 
-    #TODO: react to changes and fire triggers (if bondrot not oneshot); handle incoming
-    # trigger and loop through bond rotations and then fire our trigger (individually)
     def __init__(self, session, bundle_info):
         self.bond_rots = {}
         self.session = session
@@ -62,36 +60,35 @@ class BondRotationManager(State):
             while ident in self.bond_rots:
                 ident += 1
         elif ident in self.bond_rots:
-            raise BondRotaionError("Bond rotation identifier %s already in use" % ident)
+            raise BondRotationError("Bond rotation identifier %s already in use" % ident)
 
 
         try:
             moving_side = bond.smaller_side
-        raise ValueError:
+        except ValueError:
             raise BondRotationError("Bond %s is part of a ring/cycle and cannot be rotated" % bond)
         if not move_smaller_side:
             moving_side = bond.other_atom(moving_side)
 
-        #TODO
         from .bond_rot import BondRotation
-        try:
-            bond_rot = BondRotation(self.session, bond, ident, moving_side, one_shot)
-        except BondRotError as e:
-            raise UserError(str(e))
+        bond_rot = BondRotation(self.session, bond, ident, moving_side, one_shot)
+
         if not self.bond_rots:
             from chimera.core.atomic import get_triggers
             self._handler_ID = get_triggers(session).add_handler('changes', self._changes_cb)
         self.bond_rots[ident] = bond_rot
         if not one_shot:
             self.triggers.activate_trigger(self.CREATED, bond_rot)
-        self.session.logger.info("Bond rotation identifier is %s" % ident)
+            self.session.logger.status("Bond rotation identifier is %s" % ident, log=True)
         return bond_rot
 
-    def rotation_for_bond(self, bond):
+    def rotation_for_bond(self, bond, create=True, **kw):
         """Used if willing to re-use an existing rotation, e.g. adjusting phi/psi res attrs"""
         for br in self.bond_rots.values():
             if br.bond == bond:
                 return br
+        if create:
+            return self.new_bond_rot(bond, **kw)
         return None
 
     def _changes_cb(self, trig_name, changes):

@@ -22,7 +22,7 @@ class DelPhi_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import delphi_format
+    from . import delphi_format
     dd = delphi_format.DelPhi_Data(path)
     self.delphi_data = dd
 

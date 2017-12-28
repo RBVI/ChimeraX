@@ -55,7 +55,7 @@ class AdaptiveTree:
            decomposed, i.e. if the maximum variance of each attribute
            is less than sep_val, then a leaf node is created."""
 
-        if attribute_data:
+        if len(attribute_data) > 0: # because numpy, can't just "if attribute_data"; ugh
             attr_data = array(attribute_data)
             leaf_data = array(leaf_data, object_)
             self.root = Node(attr_data, leaf_data, sep_val)

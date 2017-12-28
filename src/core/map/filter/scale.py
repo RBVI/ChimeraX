@@ -27,12 +27,10 @@ def scaled_volume(v, scale = 1, sd = None, rms = None, shift = 0, type = None,
     
   sg = scaled_grid(v, scale, shift, type, subregion, step)
   from .. import volume_from_grid_data
-  sv = volume_from_grid_data(sg, session, show_data = False, model_id = model_id)
+  sv = volume_from_grid_data(sg, session, model_id = model_id)
   sv.copy_settings_from(v, copy_thresholds = False)
-  sv.initialize_thresholds()
-  sv.show()
 
-  v.unshow()          # Hide original map
+  v.display = False          # Hide original map
 
   return sv
 
@@ -59,15 +57,14 @@ class Scaled_Grid(Grid_Data):
     self.scale = scale
     self.shift = shift
     self.value_type = vt = (value_type or g.value_type)
-    Grid_Data.__init__(self, g.size, vt, g.origin, g.step,
-                       g.cell_angles, g.rotation, g.symmetries,
-                       name = g.name + ' scaled', default_color = g.rgba)
+    settings = g.settings(value_type=vt, name = g.name + ' scaled')
+    Grid_Data.__init__(self, **settings)
     
   # ---------------------------------------------------------------------------
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    data = self.grid_data.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+    data = self.grid_data.matrix(ijk_origin, ijk_size, ijk_step, progress)
     s = self.scale
     o = self.shift
     t = self.value_type

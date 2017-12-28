@@ -16,6 +16,6 @@
 #ifndef atomstruct_session
 #define atomstruct_session
 
-#define CURRENT_SESSION_VERSION 8
+#define CURRENT_SESSION_VERSION 11
 
 #endif  // atomstruct_session

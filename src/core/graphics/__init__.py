@@ -22,7 +22,7 @@ __all__ = [
     'View', 'OpenGLContext',
 ]
 
-from .drawing import Drawing, Pick, TrianglePick, TrianglesPick, qimage_to_numpy
+from .drawing import Drawing, Pick, PickedTriangle, PickedTriangles, qimage_to_numpy
 
 from .camera import Camera, MonoCamera, OrthographicCamera, StereoCamera, SplitStereoCamera
 from .camera360 import Mono360Camera, Stereo360Camera
@@ -31,6 +31,6 @@ from .crossfade import CrossFade, MotionBlur
 
 from .opengl import Texture, Lighting, Material
 from .opengl import OffScreenRenderingContext, OpenGLContext
-from .opengl import OpenGLError, OpenGLVersionError
+from .opengl import Render, OpenGLError, OpenGLVersionError
 
 from .view import View, ClipPlane

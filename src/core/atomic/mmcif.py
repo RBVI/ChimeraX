@@ -35,16 +35,23 @@ _additional_categories = (
 )
 
 
-def open_mmcif(session, path, file_name, auto_style=True, coordsets=False):
+def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True, extra_categories=()):
     # mmCIF parsing requires an uncompressed file
 
     from . import _mmcif
     _mmcif.set_Python_locate_function(
         lambda name, session=session: _get_template(session, name))
-    pointers = _mmcif.parse_mmCIF_file(path, _additional_categories, session.logger, coordsets)
+    categories = _additional_categories + tuple(extra_categories)
+    pointers = _mmcif.parse_mmCIF_file(path, categories, session.logger, coordsets, atomic)
 
-    from .structure import AtomicStructure
-    models = [AtomicStructure(session, name=file_name, c_pointer=p, auto_style=auto_style) for p in pointers]
+    if file_name is None:
+        from os.path import basename
+        file_name = basename(path)
+    if atomic:
+        from .structure import AtomicStructure as StructureClass
+    else:
+        from .structure import Structure as StructureClass
+    models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style) for p in pointers]
     for m in models:
         m.filename = path
 

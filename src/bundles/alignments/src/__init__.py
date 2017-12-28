@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .cmd import SeqArg
+
 from chimerax.core.toolshed import BundleAPI
 
 class _AlignmentsBundleAPI(BundleAPI):

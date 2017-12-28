@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def ome_image_grids(path):
+def ome_image_grids(path, found_paths = None):
 
     images = parse_ome_tiff_header(path)
     grids = []
@@ -17,33 +17,15 @@ def ome_image_grids(path):
     for i in images:
         print (i.description())
         for c in range(i.nchannels):
-            cgrid = []
             for t in range(i.ntimes):
                 g = OME_Image_Grid(i, c, t, gid)
                 if i.ntimes > 1:
                     g.series_index = t
-                cgrid.append(g)
+                grids.append(g)
                 gid += 1
-            grids.append(cgrid if len(cgrid) > 1 else cgrid[0])
+        if found_paths is not None:
+            found_paths.update(i.files())
     return grids
-
-default_channel_colors = [
-    (1,0,0,1),
-    (0,1,0,1),
-    (0,0,1,1),
-    (1,1,0,1),
-    (1,0,1,1),
-    (0,1,1,1),
-    (.5,0,0,1),
-    (0,.5,0,1),
-    (0,0,.5,1),
-    (.5,1,0,1),
-    (1,.5,0,1),
-    (.5,0,1,1),
-    (1,0,.5,1),
-    (0,.5,1,1),
-    (0,1,.5,1),
-]
 
 # -----------------------------------------------------------------------------
 #
@@ -53,8 +35,6 @@ class OME_Image_Grid(Grid_Data):
   def __init__(self, ome_pixels, channel, time, grid_id):
 
     self.ome_pixels = d = ome_pixels
-    self.channel = channel
-    self.time = time
     self.initial_style = 'solid'
 
     name = d.name
@@ -72,11 +52,13 @@ class OME_Image_Grid(Grid_Data):
     Grid_Data.__init__(self, d.grid_size, d.value_type,
                        origin, d.grid_spacing,
                        name = name, path = d.path,
-                       file_type = 'imagestack', grid_id = grid_id)
+                       file_type = 'imagestack', grid_id = grid_id,
+                       channel = channel, time = time)
 
     if channel in d.channel_colors:
         self.rgba = d.channel_colors[channel]
     else:
+        from . import default_channel_colors
         self.rgba = default_channel_colors[channel % len(default_channel_colors)]
         
   # ---------------------------------------------------------------------------
@@ -94,18 +76,18 @@ class OME_Image_Grid(Grid_Data):
     ia_1d = ia.ravel()
     c, t = self.channel, self.time
     op = self.ome_pixels
-    im = getattr(op, 'image', None)
-    if im and im.fp and im.fp.closed:
-        im = None
-    from os.path import dirname, join
-    dpath = dirname(op.path)
     for k in range(k0, k0+ksz, kstep):
       if progress:
         progress.plane((k-k0)//kstep)
       op.plane_data(c, t, k, ia_1d)
       array[(k-k0)//kstep,:,:] = ia[j0:j0+jsz:jstep,i0:i0+isz:istep]
     return array
-
+        
+  # ---------------------------------------------------------------------------
+  #
+  def files(self):
+      return self.ome_pixels.files()
+  
 def parse_ome_tiff_header(path):
 
     from PIL import Image
@@ -139,7 +121,8 @@ def parse_ome_tiff_header(path):
                 continue
             pa = p.attrib
             dorder = pa['DimensionOrder']
-            sx, sy, sz = [float(s) for s in (pa['PhysicalSizeX'], pa['PhysicalSizeY'], pa['PhysicalSizeZ'])]
+            sx, sy, sz = [(float(pa[sa]) if sa in pa else 1.0)
+                          for sa in ('PhysicalSizeX', 'PhysicalSizeY', 'PhysicalSizeZ')]
             nc, nt, nx, ny, nz = [int(i) for i in (pa['SizeC'], pa['SizeT'], pa['SizeX'], pa['SizeY'], pa['SizeZ'])]
             value_type = pa['Type']
             import numpy
@@ -200,16 +183,18 @@ class OME_Pixels:
         self.channel_names = channel_names
         self.channel_colors = channel_colors
         self.image = None
+        self._last_plane = 0
 
     def plane_data(self, channel, time, k, pixel_values):
         fname, plane = self.plane_table[(channel,time,k)]
         im = self.image_plane(fname, plane)
-        pixel_values[:] = im.getdata()
+        from numpy import array
+        pixel_values[:] = array(im).ravel()
 
     def image_plane(self, filename, plane):
         im = self.image
         opened = False
-        if im is None or filename != im.filename:
+        if im is None or filename != im.filename or plane < self._last_plane:
             # Switch image files for multi-file OME TIFF data.
             from os.path import dirname, join
             dpath = dirname(self.path)
@@ -217,6 +202,7 @@ class OME_Pixels:
             self.image = im = Image.open(join(dpath,filename))
             im.filename = filename
             opened = True
+        self._last_plane = plane
         try:
             im.seek(plane)
         except ValueError:
@@ -240,7 +226,14 @@ class OME_Pixels:
         # ia[:] = im.asarray(key = plane)
 
         return im
-    
+
+    def files(self):
+        fnames = set(fname for fname, plane in self.plane_table.values())
+        from os.path import dirname, join
+        dir = dirname(self.path)
+        paths = set(join(dir, fname) for fname in fnames)
+        return paths
+        
     def description(self):
         from numpy import dtype
         d = ', '.join(['image name %s' % self.name,

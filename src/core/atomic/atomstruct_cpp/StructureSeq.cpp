@@ -19,6 +19,7 @@
 #include <sstream>
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Chain.h"
 #include "ChangeTracker.h"
 #include "destruct.h"
@@ -28,9 +29,9 @@
 
 namespace atomstruct {
 
-StructureSeq::StructureSeq(const ChainID& chain_id, Structure* s):
+StructureSeq::StructureSeq(const ChainID& chain_id, Structure* s, PolymerType pt):
     Sequence(std::string("chain ") + (chain_id == " " ? "(blank)" : chain_id.c_str())),
-    _chain_id(chain_id), _from_seqres(false), _structure(s)
+    _chain_id(chain_id), _from_seqres(false), _polymer_type(pt), _structure(s)
 { }
 
 void
@@ -63,7 +64,7 @@ StructureSeq::bulk_set(const StructureSeq::Residues& residues,
     if (del_chars)
         delete chars;
     if (ischain)
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(structure(), dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
 }
 
@@ -72,7 +73,7 @@ StructureSeq::clear_residues() {
     // only called from ~AtomicStructure...
     _residues.clear();
     _res_map.clear();
-    _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+    _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
         ChangeTracker::REASON_RESIDUES);
     demote_to_sequence();
 }
@@ -88,9 +89,9 @@ StructureSeq::copy() const
 void
 StructureSeq::demote_to_sequence()
 {
-    auto inst = py_instance();
-    if (inst != nullptr) {
-        auto gil = AcquireGIL();
+    auto inst = py_instance(false);
+    if (inst != Py_None) {
+        auto gil = pyinstance::AcquireGIL();
         _structure = nullptr;
         auto ret = PyObject_CallMethod(inst, "_cpp_demotion", nullptr);
         if (ret == nullptr) {
@@ -119,7 +120,7 @@ StructureSeq::operator+=(StructureSeq& addition)
     if (ischain) {
         _structure->remove_chain(dynamic_cast<Chain*>(&addition));
         addition.demote_to_sequence();
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     }
     return *this;
@@ -143,7 +144,7 @@ StructureSeq::pop_back()
         }
         if (ischain) {
             back->set_chain(nullptr);
-            structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+            structure->change_tracker()->add_modified(structure, dynamic_cast<Chain*>(this),
                 ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
         }
     }
@@ -169,7 +170,7 @@ StructureSeq::pop_front()
         }
         if (ischain) {
             front->set_chain(nullptr);
-            structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+            structure->change_tracker()->add_modified(structure, dynamic_cast<Chain*>(this),
                 ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
         }
     }
@@ -185,7 +186,7 @@ StructureSeq::push_back(Residue* r)
     _residues.push_back(r);
     if (is_chain()) {
         r->set_chain(dynamic_cast<Chain*>(this));
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     }
 }
@@ -206,7 +207,7 @@ StructureSeq::push_front(Residue* r)
     _res_map[r] = 0;
     if (is_chain()) {
         r->set_chain(dynamic_cast<Chain*>(this));
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     }
 }
@@ -217,7 +218,7 @@ StructureSeq::remove_residue(Residue* r) {
     *ri = nullptr;
     bool ischain = is_chain();
     if (ischain)
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     if (no_structure_left()) {
         if (DestructionCoordinator::destruction_parent() != _structure && ischain)
@@ -245,6 +246,9 @@ StructureSeq::session_restore(int version, int** ints, float** floats)
     _from_seqres = int_ptr[0];
     auto res_map_size = int_ptr[1];
     auto residues_size = int_ptr[2];
+    if (version >= 10) {
+        _polymer_type = static_cast<PolymerType>(int_ptr[3]);
+    }
     int_ptr += SESSION_NUM_INTS(version);
 
     auto& residues = _structure->residues();
@@ -254,6 +258,10 @@ StructureSeq::session_restore(int version, int** ints, float** floats)
         auto res = residues[res_index];
         _res_map[res] = pos;
         res->set_chain(dynamic_cast<Chain*>(this));
+        if (i == 0 && version < 10) {
+            // polymer type stored in residues
+            _polymer_type = Sequence::rname_polymer_type(res->name());
+        }
     }
 
     _residues.reserve(residues_size);
@@ -275,6 +283,7 @@ StructureSeq::session_save(int** ints, float** floats) const
     int_ptr[0] = _from_seqres;
     int_ptr[1] = _res_map.size();
     int_ptr[2] = _residues.size();
+    int_ptr[3] = (int)_polymer_type;
     int_ptr += SESSION_NUM_INTS();
 
     auto& ses_res = *_structure->session_save_residues;
@@ -327,7 +336,7 @@ StructureSeq::set(unsigned i, Residue *r, char character)
         }
     }
     if (ischain)
-        structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        structure->change_tracker()->add_modified(structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
 }
 
@@ -360,7 +369,7 @@ StructureSeq::set_from_seqres(bool fs)
     }
     _from_seqres = fs;
     if (is_chain())
-        _structure->change_tracker()->add_modified(dynamic_cast<Chain*>(this),
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
 }
 

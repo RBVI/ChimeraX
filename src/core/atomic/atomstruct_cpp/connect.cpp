@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "connect.h"
@@ -378,10 +379,14 @@ metal_coordination_bonds(Structure* as)
             }
             bi = metal_bonds.begin();
             for (auto nb: metal->neighbors()) {
-                for (auto gnb: nb->neighbors()) {
-                    if (metals.find(gnb) == metals.end()
-                    && gnb->residue() == nb->residue())
-                        del_bonds.insert(*bi);
+                if (metals.find(nb) != metals.end()) {
+                    del_bonds.insert(*bi);
+                } else {
+                    for (auto gnb: nb->neighbors()) {
+                        if (metals.find(gnb) == metals.end()
+                        && gnb->residue() == nb->residue())
+                            del_bonds.insert(*bi);
+                    }
                 }
                 ++bi;
             }
@@ -494,18 +499,17 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
                     if (other->residue() != r) {
                         if (a->residue()->is_het() && !is_mod_res) {
                             // not coordination...
-                            if (!(other->element().is_metal()
-                            || a->element().is_metal())
+                            if (!(other->element().is_metal() || a->element().is_metal())
                             // and not disulphide...
-                            && !(other->element() == Element::S
-                            && a->element() == Element::S)
-                            ) {
+                            && !(other->element() == Element::S && a->element() == Element::S)) {
                                 prelinked = true;
                                 break;
                             }
                         } else {
                             // non-Het should always link to preceding...
-                            if (other->residue() == link_res) {
+                            // (ignore disulphide linkage)
+                            if (other->residue() == link_res
+                            && !(other->element() == Element::S && a->element() == Element::S)) {
                                 prelinked = true;
                                 break;
                             }
@@ -539,8 +543,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             } else {
                 bool made_connection = false;
                 // don't definitely connect a leading HET residue
-                bool definitely_connect = (link_res != first_res
-                    || link_atom_name != "");
+                bool definitely_connect = (link_res != first_res || !first_res->is_het());
                 Atom *chief = r->find_atom(tr->chief()->name());
                 if (chief != NULL) {
                     // 1vqn, chain 5, is a nucleic/amino acid

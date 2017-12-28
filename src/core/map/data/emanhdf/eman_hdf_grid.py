@@ -44,7 +44,7 @@ class EMAN_HDF_Grid(Grid_Data):
 #
 def read_eman_hdf5(path):
 
-  from eman_hdf_format import EMAN_HDF_Data
+  from .eman_hdf_format import EMAN_HDF_Data
   d = EMAN_HDF_Data(path)
 
   glist = []

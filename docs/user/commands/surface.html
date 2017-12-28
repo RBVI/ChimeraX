@@ -24,29 +24,26 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: surface</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
  <br><b>surface</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
-[&nbsp;enclose
+[&nbsp;<b>enclose</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
-[&nbsp;include
-&nbsp;<a href="atomspec.html"><i>atom-spec3</i></a>&nbsp;]
-[&nbsp;replace&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;probeRadius&nbsp;<i>rad</i>&nbsp;]
-[&nbsp;resolution&nbsp;<i>r</i>&nbsp; [&nbsp;level&nbsp;<i>l</i>&nbsp;]]
-[&nbsp;gridSpacing&nbsp;<i>s</i>&nbsp;]
-[&nbsp;sharpBoundaries&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;visiblePatches&nbsp;<i>N</i>&nbsp;] 
+[&nbsp;<b>probeRadius</b>&nbsp;<i>rad</i>&nbsp;]
+[&nbsp;<b>resolution</b>&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>visiblePatches</b>&nbsp;<i>N</i>&nbsp;] 
+&nbsp;<a href="#options"><i>other-options</i></a>
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>surface style</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 (&nbsp;<b>solid</b>&nbsp;|&nbsp;<b>mesh</b>&nbsp;|&nbsp;<b>dot</b>&nbsp;)
@@ -132,7 +129,7 @@ Surface display style (solid, mesh, or dot) can be adjusted with
 
 <a name="options"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: surface</a>]
 </p>
 <h3>Surface Creation Options</h3>
 
@@ -253,7 +250,7 @@ See also: <a href="#dust"><b>surface dust</b></a>
 
 <a name="examples"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: surface</a>]
 </p>
 <h3>Creation/Display Examples</h3>
 <blockquote>
@@ -285,11 +282,10 @@ See also: <a href="#dust"><b>surface dust</b></a>
 <br>
 - close (delete) the surface with model number 1.2
 <br><br>
-<!-- zones not yet implemented
-<b>surface ligand @<=5 visible 1</b>
+<b>surface ligand @<5 visible 1</b>
 - display the largest surface patch per biopolymer chain for
 atoms within 5&Aring; of <a href="atomspec.html#builtin"><b>ligand</b></a>
--->
+<br><br>
 <b>surface ligand</b>
 <br>
 - display surface(s) for <a href="atomspec.html#builtin"><b>ligand</b></a>
@@ -325,7 +321,7 @@ and HEM residues in model 1
 
 <a name="style"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: surface</a>]
 </p>
 <h3>Surface Style</h3>
 <blockquote><a href="usageconventions.html"><b>Usage</b></a>:
@@ -341,7 +337,7 @@ See also: <a href="transparency.html"><b>transparency</b></a>
 
 <a name="sop"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: surface</a>]
 </p>
 <h3>Surface Operations (Editing)</h3>
 <p>
@@ -357,7 +353,8 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 </ul>
 
 <a href="#sop" class="nounder">&bull;</a>
-  <a name="dust"><b>surface dust</b></a> &nbsp;<i>surf-model(s)</i>&nbsp;
+  <a name="dust"><b>surface dust</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
   <b>size</b>&nbsp;<i>s</i>&nbsp;
 [&nbsp;<b>metric</b>&nbsp;&nbsp;<b>size</b>&nbsp;|&nbsp;area&nbsp;|&nbsp;volume&nbsp;|&nbsp;&lsquo;size&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;area&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;volume&nbsp;rank&rsquo;&nbsp;]
 <blockquote>
@@ -382,7 +379,8 @@ and blobs at or above the cutoff size will be displayed completely
 </blockquote>
 
 <a href="#sop" class="nounder">&bull;</a>
-<a name="zone"><b>surface zone</b></a> &nbsp;<i>surf-model(s)</i>&nbsp;
+<a name="zone"><b>surface zone</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
   <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
   [&nbsp;<b>range</b>&nbsp;<i>radius</i>&nbsp;]
   [&nbsp;<b>maxComponents</b>&nbsp;<i>N</i>&nbsp;]
@@ -402,12 +400,13 @@ Ranking to determine the largest is based on maximum dimension
 (along X, Y, or Z for a given patch), <i>including</i> any portions
 within the zone that are hidden by <a href="clip.html">clipping</a>.
 If <b>maxComponents</b> is not supplied, all patches within the zone
-will be shown. See also: <a href="select.html"><b>select zone</b></a>
+will be shown. See also: <a href="select.html#zone"><b>select zone</b></a>,
+<a href="atomspec.html#zones">zone atom specification</a>
 </blockquote>
 
 <a name="notes"></a>
 <p class="nav">
-[<a href="#top">back to top</a>]
+[<a href="#top">back to top: surface</a>]
 </p>
 <h3>Technical Notes</h3>
 <p>
@@ -435,5 +434,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2017</address>
+August 2017</address>
 </body></html>

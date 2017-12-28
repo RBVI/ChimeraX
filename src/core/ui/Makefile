@@ -12,7 +12,7 @@
 TOP= ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= widgets
+SUBDIRS	+= options widgets
 
 include $(TOP)/mk/subdir.make
 
@@ -35,7 +35,7 @@ dir:
 	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
 clean:
-	rm -rf __pycache__
+	rm -rf __pycache__ about.html
 
 pylint:
 	$(PYLINT) $(PYSRCS)

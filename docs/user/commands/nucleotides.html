@@ -1,0 +1,199 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: nucleotides</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: nucleotides</h3>
+
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+&nbsp;<i>mode</i>&nbsp; &nbsp;<i>mode-options</i>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>~nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+</h3>
+<p>
+The <b>nucleotides</b> command generates special representations of
+nucleic acids, with choices for <i>mode</i>:
+<ul>
+<li><a href="#atoms"><b>atoms</b></a>
+- atomic representation, no special representations; undo the other modes
+(same as <b>~nucleotides</b>)
+<li><a href="#ladder"><b>ladder</b></a>
+- continuous or broken rungs depending on 
+<a href="hbonds.html#related">hydrogen bond pseudobonds</a>
+<li><a href="#tube"><b>tube/slab</b></a> - tube representation of ribose,
+slab representation of bases (box, muffler, or ellipsoid shape)
+<li><a href="#slab"><b>slab</b></a> - atomic representation of ribose, 
+slab representation of bases 
+</ul>
+<p>
+Each mode may have additional options, detailed below.
+See also:
+<a href="color.html#bynucleotide"><b>color bynucleotide</b></a>,
+<a href="cartoon.html"><b>cartoon</b></a>,
+<a href="hbonds.html"><b>hbonds</b></a>,
+<a href="rungs.html"><b>rungs</b></a>,
+<a href="struts.html"><b>struts</b></a>
+</p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="atoms"></a>
+<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; 
+<b>atoms</b>
+<br>&ndash; or &ndash;<br>
+<a href="#top" class="nounder">&bull;</a>
+<b>~nucleotides</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; 
+<blockquote>
+Remove special representations to reveal atoms and bonds.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="ladder"></a>
+<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>ladder</b>
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>stubs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>baseOnly</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Show nucleic-acid residue pairs connected by
+<a href="hbonds.html#related">hydrogen bond pseudobonds</a> as rods 
+or ladder rungs of the specified <b>radius</b> (default <b>0.45</b> &Aring;). 
+Nucleic acid residues without such connections will be shown as half-rungs if
+<b>stubs</b> is <b>true</b> (default),
+otherwise omitted from the ladder representation.
+The rungs attach to cartoon at the C3' 
+<a href="cartoon.html#tether">tether</a> position,
+and stubs end at the nucleic acid base N1 (if purine) or N3 (if pyrimidine).  
+If <b>baseOnly</b> is <b>true</b> (default),
+connecting rungs will only be drawn for H-bonds between base atoms; 
+if <b>false</b>, thinner connecting rungs (radius <b>0.2</b> &Aring;)
+will also be drawn for H-bonds involving non-base atoms.
+Each half-rung is colored to match the cartoon of the corresponding residue.
+The <b>hideAtoms</b> option indicates whether to hide atoms/bonds
+for nucleotides shown as rungs (default <b>true</b>).
+<p>
+Although the ladder represention can be limited to specified residues,
+the ladder settings are per-model (<i>e.g.</i>,
+different residues in the same model cannot have a different rung radius).
+See also: <a href="rungs.html"><b>rungs</b></a>
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="tube"></a>
+<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>tube/slab</b>
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>shape</b>&nbsp;&nbsp;<b>box</b>&nbsp;|&nbsp;muffler&nbsp;|&nbsp;ellipsoid&nbsp;]
+[&nbsp;<b>dimensions</b>&nbsp;&nbsp;small&nbsp;|&nbsp;long&nbsp;|&nbsp;big&nbsp;|&nbsp;fat&nbsp;]
+[&nbsp;<b>thickness</b>&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>showOrientation</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>glycosidic</b>&nbsp&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Represent ribose moieties as tubes of the specified <b>radius</b>
+(default <b>0.2</b> &Aring;) and 
+bases as slabs of the specified <b>shape</b>, <b>dimensions</b>, and 
+<b>thickness</b> (default <b>0.5</b> &Aring;). The <b>shape</b> can be:
+<ul>
+<li><b>box</b> (default) - rectangular box
+<table class="clRight" cellpadding="0px" cellspacing="0px">
+<tr><td><img class="outline" src="box.png" width="100px"
+alt="box" title="box"></td>
+<td><img class="outline" src="muffler.png" width="100px"
+alt="muffler" title="muffler"></td>
+<td><img class="outline" src="ellipsoid.png" width="100px"
+alt="ellipsoid" title="ellipsoid"></td></tr>
+</table>
+<li><b>muffler</b> - rectangular in the plane of the base, oval in cross-section
+(large enough to enclose the corresponding box)
+<li><b>ellipsoid</b> - oval in the plane of the base and oval in cross-section
+(large enough to enclose the corresponding box)
+</ul>
+<a name="dimensions"></a>
+The choices for <b>dimensions</b> also specify the location of the slab:
+<ul>
+<li><b>small</b> (default for <b>ellipsoid</b> shape)
+- anchored at the base end of the glycosidic bond
+<li><b>long</b> (default for <b>box</b> and <b>muffler</b> shapes)
+- anchored at the base end of the glycosidic bond
+<li><b>big</b>  - anchored at the ribose end of the glycosidic bond (C1')
+<li><b>fat</b> - anchored at the ribose end of the glycosidic bond
+</ul>
+Each slab is colored to match the nitrogen at one end of the glycosidic bond,
+and each tube to match the ribose carbon (C1') at the other end.
+The <b>hideAtoms</b> option indicates whether to hide nucleotide atoms/bonds
+(default <b>true</b>).
+The <b>glycosidic</b> option applies only to base-anchored slabs
+(<a href="#dimensions">dimensions</a>
+<b>small</b> or <b>long</b>) and controls whether the ribose tube should
+connect to the glycosidic bond (if <b>true</b>) or directly to the slab 
+(<b>false</b>, default).
+The other end of the tube is the average of the C3' and C4' atom positions.
+The <b>radius</b> setting applies only to the tube, not the glycosidic bond
+that remains visible with <b>glycosidic true</b>; 
+the stick radius of the bond can be changed separately with the
+<a href="size.html"><b>size</b></a> command.
+The <b>showOrientation</b> option (default <b>false</b>) indicates
+whether to show the positive faces of bases with bumps on the slabs. 
+These faces point towards the 3' end of a strand in right-handed A- and B-DNA,
+along the positive Z direction described in:
+<blockquote>
+<table class="clRight" cellpadding="0px" cellspacing="0px">
+<tr><td><img class="outline" src="bumps.png" width="140px"
+alt="showOrientation bumps" title="showOrientation bumps"></td></tr>
+</table>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/11601858" target="_blank">
+A standard reference frame for the description of nucleic acid
+base-pair geometry.</a>
+Olson WK, Bansal M, Burley SK, Dickerson RE, Gerstein M, Harvey SC, Heinemann U, Lu XJ, Neidle S, Shakked Z, Sklenar H, Suzuki M, Tung CS, Westhof E, Wolberger C, Berman HM.
+<i>J Mol Biol.</i> 2001 Oct 12;313(1):229-37.
+</blockquote>
+Different residues can have different slab parameters.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="slab"></a>
+<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>slab</b>
+[&nbsp;<b>shape</b>&nbsp;&nbsp;<b>box</b>&nbsp;|&nbsp;muffler&nbsp;|&nbsp;ellipsoid&nbsp;]
+[&nbsp;<b>dimensions</b>&nbsp;&nbsp;small&nbsp;|&nbsp;long&nbsp;|&nbsp;big&nbsp;|&nbsp;fat&nbsp;]
+[&nbsp;<b>thickness</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>showOrientation</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Represent bases as slabs of the specified <b>shape</b>,
+<b>dimensions</b>, and <b>thickness</b> (default <b>0.5</b> &Aring;),
+optionally with <b>showOrientation</b> bumps,
+as described above for <a href="#slab"><b>nucleotides slab</b></a>.
+Each slab is colored to match the base nitrogen involved in the glycosidic bond.
+The <b>hideAtoms</b> option indicates whether to hide base atoms/bonds
+(default <b>true</b>).
+</blockquote>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2017</address>
+</body></html>

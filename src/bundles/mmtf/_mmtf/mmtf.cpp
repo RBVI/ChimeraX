@@ -138,7 +138,7 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
     for (size_t model_index = 0; model_index < data.numModels; ++model_index) {
         auto m = new AtomicStructure(_logger);
         models.push_back(m);
-        int32_t model_chain_count = data.chainsPerModel[model_index];
+        size_t model_chain_count = data.chainsPerModel[model_index];
         // traverse chains
         for (size_t _model_chain = 0; _model_chain < model_chain_count; ++_model_chain) {
             chain_index += 1;
@@ -245,9 +245,9 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                     auto x_coord = data.xCoordList[atom_index];
                     auto y_coord = data.yCoordList[atom_index];
                     auto z_coord = data.zCoordList[atom_index];
-                    float b_factor;
-                    float occupancy;
-                    char alt_loc;
+                    float b_factor = 0;
+                    float occupancy = 0;
+                    char alt_loc = 0;
                     if (has_b_factor_list)
                         b_factor = data.bFactorList[atom_index];
                     if (has_occupancy_list)
@@ -263,7 +263,7 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                         a = group_alt_atoms[atom_name];
                         a->set_alt_loc(alt_loc, true);
                     } else {
-                        const Element& e =Element::get_element(atom_element.c_str());
+                        const Element& e = Element::get_element(atom_element.c_str());
                         atoms[atom_index] = a = m->new_atom(atom_name.c_str(), e);
                         r->add_atom(a);
                         if (has_alt_loc_list && alt_loc != '\x00') {

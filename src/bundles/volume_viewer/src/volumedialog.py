@@ -728,8 +728,8 @@ class Volume_Dialog:
   #
   def unshow_cb(self):
 
-    for r in self.selected_regions():
-      r.unshow()
+    for v in self.selected_regions():
+      v.display = False
 
   # ---------------------------------------------------------------------------
   #
@@ -1524,22 +1524,25 @@ class Thresholds_Panel(PopupPanel):
       hf.resize(w, hf.height())
       
   # ---------------------------------------------------------------------------
-  # Resize thresholds panel to fit up to 3 histograms before scrolling.
+  # Resize thresholds panel to fit more histograms up to 350 pixels total height.
   #
-  def resize_panel(self, nhist = 3):
+  def resize_panel(self, max_height = 350):
 
     hpanes = self.histogram_panes
     n = len(hpanes)
-    if n == 0 or n > nhist:
+    if n == 0:
         return
 
     hf = self.histograms_frame
     h = hf.height() + 2*hf.lineWidth()
     f = self.frame
-    if f.height() < h:
-        # This is the only way I could find to convince a QDockWidget to
-        # resize to a size I request.
-        f.setMinimumHeight(h)
+    h = min(h, max_height)
+    if h <= f.height():
+        return
+
+    # This is the only way I could find to convince a QDockWidget to
+    # resize to a size I request.
+    f.setMinimumHeight(h)
 
     # Allow resizing panel smaller with mouse
     from PyQt5.QtCore import QTimer
@@ -1878,7 +1881,7 @@ class Histogram_Pane:
       ro = v.rendering_options
       add = self.add_menu_entry
       add(menu, 'Show outline box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show one plane', self.show_plane_slider, checked = self._planes_slider_shown)
+      add(menu, 'Show full region', lambda checked, e=event, self=self: self.show_full_region())
       add(menu, 'New threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
@@ -1942,7 +1945,7 @@ class Histogram_Pane:
       if show:
           self.show_one_plane(v, show_volume)
       elif v.showing_one_plane:
-          self.show_full_region(v, show_volume)
+          self.show_full_region(show_volume = show_volume)
 
   # ---------------------------------------------------------------------------
   #
@@ -1959,13 +1962,18 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def show_full_region(self, v, show_volume = True):
+  def show_full_region(self, volume = None, show_volume = True):
 
       # Show all planes
-      from chimerax.core.map.volume import full_region
-      r = full_region(v.data.size)
-      v.new_region(*r, show = show_volume)
-          
+      v = self.volume if volume is None else volume
+      if v.is_full_region():
+          return
+      ijk_min, ijk_max, ijk_step = v.full_region()
+      v.new_region(ijk_min, ijk_max)
+      if volume is None:
+          for vc in v.other_channels():
+              vc.new_region(ijk_min, ijk_max)
+
   # ---------------------------------------------------------------------------
   #
   def _create_planes_slider(self):
@@ -2230,9 +2238,9 @@ class Histogram_Pane:
     if tuple(ijk_step) == tuple(v.region[2]):
       return
 
-    v.new_region(ijk_step = ijk_step, adjust_step = False, show = True)
+    v.new_region(ijk_step = ijk_step, adjust_step = False)
     for vc in v.other_channels():
-        vc.new_region(ijk_step = ijk_step, adjust_step = False, show = vc.shown())
+        vc.new_region(ijk_step = ijk_step, adjust_step = False)
         
     d = self.dialog
     if v != d.active_volume:
@@ -2262,12 +2270,11 @@ class Histogram_Pane:
     show = self.shown.isChecked()
     v.display = show
 
-    self.update_shown_icon()
-
     if show:
       self.select_data_cb()
 
   # ---------------------------------------------------------------------------
+  # Not used.
   #
   def check_shown_cb(self, trigger, x, changes):
 
@@ -2295,7 +2302,7 @@ class Histogram_Pane:
     if v is None:
       return
 
-    shown = v.shown()
+    shown = v.display
     fname = 'shown.png' if shown else 'hidden.png'
     s = self.shown
     if fname == getattr(s, 'file_name', None):
@@ -2477,12 +2484,19 @@ class Histogram_Pane:
   def set_threshold_and_color_widgets(self):
 
     markers, m = self.selected_histogram_marker()
+    rgba = None
     if m:
       threshold = m.xy[0]
       t_str = float_format(threshold, 3)
       self.threshold.setText(t_str)
-      from .histogram import hex_color_name
-      self.color.setStyleSheet('background-color: %s' % hex_color_name(m.rgba[:3]))
+      rgba = m.rgba
+    else:
+        v = self.volume
+        if v:
+            rgba = v.default_rgba
+    if rgba is not None:
+        from .histogram import hex_color_name
+        self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3]))
 
   # ---------------------------------------------------------------------------
   #
@@ -3153,16 +3167,15 @@ class Plane_Panel(PopupPanel):
   
   # ---------------------------------------------------------------------------
   #
-  def change_plane_cb(self, event = None, extend_axes = [],
-                      save_in_region_queue = False):
+  def change_plane_cb(self, event = None, extend_axes = []):
 
     self.change_plane_in_progress = True
-    self.change_plane(extend_axes, save_in_region_queue)
+    self.change_plane(extend_axes)
     self.change_plane_in_progress = False
 
   # ---------------------------------------------------------------------------
   #
-  def change_plane(self, extend_axes = [], save_in_region_queue = False):
+  def change_plane(self, extend_axes = []):
 
     v = active_volume()
     if v is None:
@@ -3177,8 +3190,7 @@ class Plane_Panel(PopupPanel):
     a = self.axis_number()
     d = self.depth()
     from volume import show_planes
-    if not show_planes(v, a, p, d, extend_axes,
-                       save_in_region_queue = save_in_region_queue):
+    if not show_planes(v, a, p, d, extend_axes):
       return    # Plane already shown.
 
     max = v.data.size[a]
@@ -3308,7 +3320,7 @@ class Orthoplane_Panel(PopupPanel):
       volume.set_parameters(orthoplanes_shown = (False, False, False),
                             color_mode = 'auto8',
                             show_outline_box = True)
-      volume.new_region(ijk_min, ijk_max, show = False)
+      volume.new_region(ijk_min, ijk_max)
     else:               # 2 or 3 planes
       ro = volume.rendering_options
       if ro.any_orthoplanes_shown():
@@ -3388,7 +3400,7 @@ class Region_Size_Panel(PopupPanel):
       return
 
     ijk_min, ijk_max, ijk_step = region
-    data_region.new_region(ijk_min, ijk_max, ijk_step, show = False)
+    data_region.new_region(ijk_min, ijk_max, ijk_step)
 
   # ---------------------------------------------------------------------------
   #
@@ -3867,7 +3879,7 @@ class Subregion_Panel(PopupPanel):
       sv.show()
     else:
       from VolumeViewer import volume_from_grid_data
-      sv = volume_from_grid_data(g, show_data = False)
+      sv = volume_from_grid_data(g)
       sv.openState.xform = v.model_transform()
       if self.rotate_box.get():
         sv.openState.active = False
@@ -3879,7 +3891,7 @@ class Subregion_Panel(PopupPanel):
       self.last_subregion = (sv, v)
       sv.subregion_of_volume = v
       sv.show()
-      v.unshow()
+      v.display = False
     
 # -----------------------------------------------------------------------------
 # User interface for zones.
@@ -4042,7 +4054,7 @@ class Zone_Panel(PopupPanel):
     new_ijk_min, new_ijk_max = resize_region_for_zone(dr, points,
                                                       radius, initial_resize)
     if not new_ijk_min is None:
-      dr.new_region(new_ijk_min, new_ijk_max, save_in_region_queue = False)
+      dr.new_region(new_ijk_min, new_ijk_max)
 
   # ---------------------------------------------------------------------------
   # Use diagonal length of bounding box of full data set.
@@ -4785,8 +4797,7 @@ def show_volume_file_browser(dialog_title, volumes_cb = None,
 
   def grids_cb(grids):
     from volume import volume_from_grid_data
-    vlist = [volume_from_grid_data(g, show_data = show_data,
-                                   show_dialog = show_volume_dialog)
+    vlist = [volume_from_grid_data(g, show_dialog = show_volume_dialog)
              for g in grids]
     if volumes_cb:
       volumes_cb(vlist)

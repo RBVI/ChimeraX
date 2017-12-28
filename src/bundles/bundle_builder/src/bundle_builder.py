@@ -33,7 +33,7 @@ class BundleBuilder:
         self._make_setup_arguments()
 
     @distlib_hack
-    def make_wheel(self, test=True):
+    def make_wheel(self, test=True, debug=False):
         # HACK: distutils uses a cache to track created directories
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
@@ -43,23 +43,26 @@ class BundleBuilder:
             distutils.dir_util._path_created.clear()
         except AttributeError:
             pass
-        import os.path, shutil
+        import os.path
         for lib in self.c_libraries:
-            lib.compile()
+            lib.compile(debug=debug)
+        setup_args = ["--no-user-cfg", "build"]
+        if debug:
+            setup_args.append("--debug")
         if test:
-            built = self._run_setup(["--no-user-cfg", "test", "bdist_wheel"])
-        else:
-            built = self._run_setup(["--no-user-cfg", "build", "bdist_wheel"])
+            setup_args.append("test")
+        setup_args.extend(["bdist_wheel"])
+        built = self._run_setup(setup_args)
         if not built or not os.path.exists(self.wheel_path):
             raise RuntimeError("Building wheel failed")
         else:
             print("Distribution is in %s" % self.wheel_path)
 
     @distlib_hack
-    def make_install(self, session, test=True, user=None):
-        self.make_wheel(test=test)
+    def make_install(self, session, test=True, debug=False, user=None):
+        self.make_wheel(test=test, debug=debug)
         from chimerax.core.commands import run
-        cmd = "toolshed install %s reinstall true" % self.wheel_path
+        cmd = "toolshed install %r reinstall true" % self.wheel_path
         if user is not None:
             if user:
                 cmd += " user true"
@@ -69,7 +72,7 @@ class BundleBuilder:
 
     @distlib_hack
     def make_clean(self):
-        import os.path, shutil
+        import os.path
         self._rmtree(os.path.join(self.path, "build"))
         self._rmtree(os.path.join(self.path, "dist"))
         self._rmtree(os.path.join(self.path, "src/__pycache__"))
@@ -148,7 +151,6 @@ class BundleBuilder:
             self.license = None
 
     def _get_datafiles(self, bi):
-        import pathlib, os.path
         self.datafiles = {}
         for dfs in self._get_elements(bi, "DataFiles"):
             pkg_name = dfs.getAttribute("package")
@@ -273,7 +275,7 @@ class BundleBuilder:
         # in the right directory, and that will not happen
         # until run_setup.  So we do the package stuff there.
         ext_mods = [em for em in [cm.ext_mod(self.package)
-				  for cm in self.c_modules]
+                                  for cm in self.c_modules]
                     if em is not None]
         if not self._is_pure_python():
             import sys
@@ -506,7 +508,7 @@ class _CLibrary(_CompiledCode):
         super().__init__(name, uses_numpy)
         self.static = static
 
-    def compile(self):
+    def compile(self, debug=False):
         import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
         try:
             (inc_dirs, lib_dirs, extra_link_args,
@@ -531,12 +533,13 @@ class _CLibrary(_CompiledCode):
             lib_name = self.name
         if not self.static:
             compiler.define_macro("DYNAMIC_LIBRARY", 1)
-        compiler.compile(self.source_files, extra_preargs=cpp_flags)
+        compiler.compile(self.source_files, extra_preargs=cpp_flags, debug=debug)
         objs = compiler.object_filenames(self.source_files)
         compiler.mkpath(output_dir)
         if self.static:
             lib = compiler.library_filename(lib_name, lib_type="static")
-            compiler.create_static_lib(objs, lib_name, output_dir=output_dir)
+            compiler.create_static_lib(objs, lib_name, output_dir=output_dir,
+                                       debug=debug)
         else:
             if sys.platform == "darwin":
                 # On Mac, we only need the .dylib and it MUST be compiled
@@ -550,19 +553,22 @@ class _CLibrary(_CompiledCode):
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
                 extra_link_args.append("-Wl,-install_name,@loader_path/%s" % lib)
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
-                                            extra_postargs=extra_link_args)
+                                            extra_postargs=extra_link_args,
+                                            debug=debug)
             elif sys.platform == "win32":
                 # On Windows, we need both .dll and .lib
                 link_lib = compiler.library_filename(lib_name, lib_type="static")
                 extra_link_args.append("/LIBPATH:%s" % link_lib)
                 lib = compiler.shared_object_filename(lib_name)
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
-                                            extra_postargs=extra_link_args)
+                                            extra_postargs=extra_link_args,
+                                            debug=debug)
             else:
                 # On Linux, we only need the .so
                 lib = compiler.library_filename(lib_name, lib_type="shared")
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
-                                            extra_postargs=extra_link_args)
+                                            extra_postargs=extra_link_args,
+                                            debug=debug)
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys

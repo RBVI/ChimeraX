@@ -31,7 +31,7 @@ class Plane:
     def __init__(self, origin_info, *, normal=None):
         origin_info = numpy.array(origin_info)
         dims = origin_info.shape
-        if dims == (1, 3):
+        if dims == (3,):
             if normal is None:
                 raise ValueError(self.usage_msg)
             self._origin = origin_info

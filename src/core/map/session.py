@@ -16,7 +16,7 @@ def map_states(session):
   d2v = {}
   for v in session.maps():
     d2v.setdefault(v.data,[]).append(v)
-  s = state_from_maps(d2v, session_dir = session.session_file_path)
+  s = state_from_maps(d2v, session_path = session.session_file_path)
   return s
 
 # -----------------------------------------------------------------------------
@@ -33,12 +33,10 @@ def restore_maps(dms, session, file_paths = None, attributes_only = False):
 #
 def restore_map_attributes(dms, session):
   set_maps_attributes(dms, session)
-  for v in session.maps():
-    v.update_display()
 
 # ---------------------------------------------------------------------------
 #
-def state_from_maps(data_maps, include_unsaved_volumes = False, session_dir = None):
+def state_from_maps(data_maps, include_unsaved_volumes = False, session_path = None):
 
   dvlist = []
   unsaved_data = []
@@ -46,7 +44,7 @@ def state_from_maps(data_maps, include_unsaved_volumes = False, session_dir = No
     if data.path == '' and not include_unsaved_volumes:
       unsaved_data.append(data)
       continue                # Do not save data sets with no path
-    dvlist.append((state_from_grid_data(data, session_dir),
+    dvlist.append((state_from_grid_data(data, session_path),
                    [state_from_map(v) for v in volumes]))
 
   if unsaved_data:
@@ -124,17 +122,17 @@ def find_volumes_by_session_id(ids, session):
 # -----------------------------------------------------------------------------
 # Path can be a tuple of paths.
 #
-def absolute_path(path, file_paths, ask = False, session_dir = None):
+def absolute_path(path, file_paths, ask = False, base_path = None):
 
   from os.path import abspath
   if isinstance(path, (tuple, list)):
-    fpath = [full_path(p, session_dir) for p in path]
+    fpath = [full_path(p, base_path) for p in path]
     apath = tuple(file_paths.find(p,ask) for p in fpath)
     apath = tuple(abspath(p) for p in apath if p)
   elif path == '':
     return path
   else:
-    fpath = full_path(path, session_dir)
+    fpath = full_path(path, base_path)
     apath = file_paths.find(fpath,ask)
     if not apath is None:
       apath = abspath(apath)
@@ -143,23 +141,26 @@ def absolute_path(path, file_paths, ask = False, session_dir = None):
 # -----------------------------------------------------------------------------
 # If path is relative use specified directory to produce absolute path.
 #
-def full_path(path, dir):
-  from os.path import isabs, join
-  if isabs(path) or dir is None:
+def full_path(path, base_path):
+  from os.path import isabs, join, dirname
+  if isabs(path) or base_path is None:
     return path
-  return join(dir, path)
+  return join(dirname(base_path), path)
 
 # -----------------------------------------------------------------------------
 # Path can be a tuple of paths.
 #
-def relative_path(path, dir):
+def relative_path(path, base_path):
 
+  if base_path is None:
+    return path
+  
   if isinstance(path, (tuple, list)):
-    return tuple([relative_path(p, dir) for p in path])
+    return tuple([relative_path(p, base_path) for p in path])
 
 
-  from os.path import join
-  d = join(dir, '')       # Make directory end with "/".
+  from os.path import dirname, join
+  d = join(dirname(base_path), '')       # Make directory end with "/".
   if not path.startswith(d):
     return path
 
@@ -194,7 +195,7 @@ class GridDataState(State):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    data = state_from_grid_data(self.grid_data, session_dir = session.session_file_path)
+    data = state_from_grid_data(self.grid_data, session_path = session.session_file_path)
     return data
 
   @staticmethod
@@ -259,10 +260,11 @@ def existing_directory(path):
 
 # ---------------------------------------------------------------------------
 #
-def state_from_grid_data(data, session_dir = None):
+def state_from_grid_data(data, session_path = None):
     
   dt = data
-  s = {'path': relative_path(dt.path, session_dir),
+  relpath = relative_path(dt.path, session_path)
+  s = {'path': relpath,
        'file_type': dt.file_type,
        'name': dt.name,
        'version': 1,
@@ -284,13 +286,17 @@ def state_from_grid_data(data, session_dir = None):
     s['symmetries'] = dt.symmetries
   if hasattr(dt, 'series_index'):
     s['series_index'] = dt.series_index
+  if hasattr(dt, 'channel') and dt.channel is not None:
+    s['channel_index'] = dt.channel
+  if hasattr(dt, 'time') and dt.time is not None:
+    s['time'] = dt.time
 
   from .data import Subsampled_Grid
   if isinstance(dt, Subsampled_Grid):
     s['available_subsamplings'] = ass = {}
     for csize, ssdata in dt.available_subsamplings.items():
       if ssdata.path != dt.path:
-        ass[csize] = state_from_grid_data(ssdata, session_dir)
+        ass[csize] = state_from_grid_data(ssdata, session_path)
 
   return s
 
@@ -300,7 +306,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
 
   dbfetch = s.get('database_fetch')
   path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
-                       session_dir = session.session_file_path)
+                       base_path = session.session_file_path)
   if (path is None or path == '') and dbfetch is None:
     return None
 
@@ -334,6 +340,14 @@ def grid_data_from_state(s, gdcache, session, file_paths):
   if 'series_index' in s:
     for data in dlist:
       data.series_index = s['series_index']
+
+  if 'channel' in s:
+    for data in dlist:
+      data.channel = s['channel']
+
+  if 'time' in s:
+    for data in dlist:
+      data.time = s['time']
       
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
@@ -345,7 +359,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
       dslist.append(data)
     dlist = dslist
     for cell_size, dstate in s['available_subsamplings'].items():
-      dpath = absolute_path(dstate.path, file_paths, session_dir = session.session_file_path)
+      dpath = absolute_path(dstate.path, file_paths, base_path = session.session_file_path)
       if dpath != path:
         ssdlist = dstate.create_object(gdcache)
         for i,ssdata in enumerate(ssdlist):
@@ -456,8 +470,8 @@ def state_from_map(volume):
   s['session_volume_id'] = session_volume_id(v)
   s['version'] = 1
   if hasattr(v, 'parent'):
-    from .series import Map_Series
-    if isinstance(v.parent, Map_Series):
+    from .series import MapSeries
+    if isinstance(v.parent, MapSeries):
       s['in_map_series'] = True
   return s
 
@@ -497,7 +511,7 @@ def set_map_state(s, volume, notify = True):
   from ..geometry import Place
   v.position = Place(s['place'])
 
-  v.new_region(*s['region'], show = False, adjust_step = False)
+  v.new_region(*s['region'], adjust_step = False)
 
   if 'region_list' in s:
     region_list_from_state(s['region_list'], v.region_list)
@@ -513,15 +527,6 @@ def set_map_state(s, volume, notify = True):
                              'colors changed',
                              'rendering options changed',
                              'coordinates changed'))
-
-  d = v.display
-  if d:
-    v.show()
-  else:
-    if not s.get('in_map_series',False):
-      v.show()      # Compute surface even if not displayed so that turning on display
-                    # for example with model panel that only sets display to true shows surface.
-    v.display = False
 
 # -----------------------------------------------------------------------------
 #

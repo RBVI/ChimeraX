@@ -16,13 +16,14 @@
 #ifndef atomstruct_Sequence
 #define atomstruct_Sequence
 
-#include <vector>
 #include <map>
+#include <pyinstance/PythonInstance.declare.h>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "imex.h"
-#include "PythonInstance.h"
+#include "polymer.h"
 #include "session.h"
 #include "string_types.h"
 
@@ -41,7 +42,7 @@ public:
     SeqIndexError(const std::string& msg) : std::range_error(msg) {}
 };
 
-class ATOMSTRUCT_IMEX Sequence: public PythonInstance {
+class ATOMSTRUCT_IMEX Sequence: public pyinstance::PythonInstance<Sequence> {
 public:
     typedef std::vector<char>  Contents;
 protected:
@@ -71,6 +72,9 @@ public:
     static void  assign_rname3to1(const ResName& rname, char let,
         bool protein);
     static char  nucleic3to1(const ResName& rn);
+    static PolymerType  rname_polymer_type(const ResName& rn) {
+        return protein3to1(rn) == 'X' ? (nucleic3to1(rn) == 'X' ? PT_NONE : PT_NUCLEIC) : PT_AMINO;
+    }
     static char  protein3to1(const ResName& rn);
     static char  rname3to1(const ResName& rn);
 

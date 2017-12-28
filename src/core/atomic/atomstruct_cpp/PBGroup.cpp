@@ -14,6 +14,7 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "destruct.h"
 #include "Structure.h"
@@ -22,6 +23,9 @@
 
 #include <Python.h>
 #include <arrays/pythonarray.h>
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::PBGroup>;
 
 namespace atomstruct {
 
@@ -87,6 +91,13 @@ StructurePBGroup::clear()
     for (auto pb : _pbonds)
         delete pb;
     _pbonds.clear();
+}
+
+void
+CS_PBGroup::change_cs(const CoordSet*)
+{
+    if (structure()->active_coord_set_change_notify())
+        set_gc_display();
 }
 
 CS_PBGroup::~CS_PBGroup()
@@ -274,7 +285,7 @@ StructurePBGroup::session_num_floats(int version) const {
 int
 CS_PBGroup::session_num_ints(int version) const {
     int num_ints = SESSION_NUM_INTS(version) + StructurePBGroupBase::session_num_ints(version)
-        + 2 * pseudobonds().size(); // that last is for references to coord sets and # pbonds
+        + 2 * _pbonds.size(); // that last is for references to coord sets and # pbonds
     for (auto crdset_pbs: _pbonds) {
         // the +2 in the next line is for the atom IDs
         num_ints += crdset_pbs.second.size() * (Pseudobond::session_num_ints(version) + 2);

@@ -24,8 +24,8 @@ class Gaussian_Grid(Grid_Data):
     self.gc = gc
     self.component_number = component_number
 
-    import Matrix as m
-    ca, rot = m.cell_angles_and_rotation(gc.grid_axes)
+    from chimerax.core.geometry import matrix
+    ca, rot = matrix.cell_angles_and_rotation(gc.grid_axes)
 
     Grid_Data.__init__(self, gc.grid_size,
                        origin = gc.origin, step = gc.step,
@@ -49,7 +49,7 @@ class Gaussian_Grid(Grid_Data):
 #
 def read_gaussian_file(path):
 
-    import gaussian_format
+    from . import gaussian_format
     gc = gaussian_format.Gaussian_Cube(path)
 
     grids = []

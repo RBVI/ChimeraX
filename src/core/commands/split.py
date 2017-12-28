@@ -233,7 +233,7 @@ def molecule_from_atoms(m, atoms, name = None):
                 continue
             cpbg = cpbgs.get(name)
             if cpbg is None:
-                cpbgs[name] = cpbg = cm.pseudobond_group(name)
+                cpbgs[name] = cpbg = cm.pseudobond_group(name, create_type = pbg.group_type)
             cpb = cpbg.new_pseudobond(amap[a1],amap[a2])
             cpb.display = pb.display
             cpb.color = pb.color

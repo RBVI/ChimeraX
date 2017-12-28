@@ -41,8 +41,10 @@ class UserColors(SortedDict, State):
         # only save differences from builtin colors
         cmap = {name: color for name, color in self.items()
                 if name not in BuiltinColors or color != BuiltinColors[name]}
-        data = {'colors':cmap,
-                'version': CORE_STATE_VERSION}
+        data = {
+            'colors': cmap,
+            'version': CORE_STATE_VERSION,
+        }
         return data
 
     @staticmethod
@@ -208,8 +210,10 @@ class UserColormaps(SortedDict, State):
     """
 
     def take_snapshot(self, session, flags):
-        data = {'colormaps': dict(self),
-                'version': CORE_STATE_VERSION,}
+        data = {
+            'colormaps': dict(self),
+            'version': CORE_STATE_VERSION,
+        }
         return data
 
     @staticmethod
@@ -253,7 +257,8 @@ class Colormap:
     def __init__(self, data_values, colors,
                  color_above_value_range=None,
                  color_below_value_range=None,
-                 color_no_value=None):
+                 color_no_value=None, name=None):
+        self.name = name
         self.values_specified = (data_values is not None)
         from numpy import array, float32, ndarray, argsort
         if data_values is None:
@@ -311,7 +316,7 @@ class Colormap:
     def value_range(self):
         v = self.data_values
         return (v[0], v[-1])
-    
+
     def linear_range(self, min_value, max_value):
         import numpy
         v = numpy.linspace(min_value, max_value, len(self.colors))
@@ -320,7 +325,7 @@ class Colormap:
                         self.color_below_value_range,
                         self.color_no_value)
         return cmap
-    
+
     def rescale_range(self, value0, value1):
         '''Return new colormap with [0,1] range becoming [value0,value1].'''
         v = self.data_values.copy()
@@ -339,17 +344,51 @@ class Colormap:
 BuiltinColormaps['rainbow'] = Colormap(None, ((0, 0, 1, 1), (0, 1, 1, 1), (0, 1, 0, 1), (1, 1, 0, 1), (1, 0, 0, 1)))
 BuiltinColormaps['grayscale'] = Colormap(None, ((0, 0, 0, 1), (1, 1, 1, 1)))
 BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (1, 1, 1, 1), (0, 0, 1, 1)))
-#BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))
+# BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))
 BuiltinColormaps['blue-white-red'] = Colormap(None, ((0, 0, 1, 1), (1, 1, 1, 1), (1, 0, 0, 1)))
 BuiltinColormaps['cyan-white-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (1, 1, 1, 1), (0.62, 0.125, 0.37, 1)))
-#BuiltinColormaps['lipophilicity'] = Colormap(None, ((.118,.565,1,1), (1,1,1,1), (1,.271,0,1)))	# dodger blue, white, orange red
-BuiltinColormaps['lipophilicity'] = Colormap(None, ((0,139/255,139/255,1), (1,1,1,1), (184/255,134/255,11/255,1)))	# dark cyan, white, dark goldenrod
+BuiltinColormaps['cyan-gray-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (.7, .7, .7, 1), (0.62, 0.125, 0.37, 1)))
+# BuiltinColormaps['lipophilicity'] = Colormap(None, ((.118, .565, 1, 1), (1, 1, 1, 1), (1, .271, 0, 1)))  # dodger blue, white, orange red
+BuiltinColormaps['lipophilicity'] = Colormap(None, ((0, 139 / 255, 139 / 255, 1), (1, 1, 1, 1), (184 / 255, 134 / 255, 11 / 255, 1)))  # dark cyan, white, dark goldenrod
 
 # Add some aliases
 BuiltinColormaps['redblue'] = BuiltinColormaps['red-white-blue']
 BuiltinColormaps['bluered'] = BuiltinColormaps['blue-white-red']
 BuiltinColormaps['gray'] = BuiltinColormaps['grayscale']
 BuiltinColormaps['cyanmaroon'] = BuiltinColormaps['cyan-white-maroon']
+
+
+# Add colorbrewer palettes
+def _read_colorbrewer():
+    import json
+    import os.path
+    my_dir = os.path.dirname(__file__)
+    # colorbrewer.json is downloaded from
+    # http://colorbrewer2.org/export/colorbrewer.json
+    brewer_filename = os.path.join(my_dir, "colorbrewer.json")
+    try:
+        with open(brewer_filename) as f:
+            brewer_maps = json.load(f)
+    except IOError as e:
+        print("%s: %s" % (brewer_filename, str(e)), flush=True)
+    else:
+        def rgb(r, g, b):
+            return (r / 255, g / 255, b / 255, 1)
+        gs = {'__builtins__': None, 'rgb': rgb}
+        ls = {}
+        for scheme, ramps in brewer_maps.items():
+            s_type = ramps.pop("type")
+            for count, rgbs in ramps.items():
+                name = "%s-%s" % (scheme, count)
+                colors = tuple([eval(e, gs, ls) for e in rgbs])
+                BuiltinColormaps[name.casefold()] = Colormap(None, colors, name=name)
+                if ((s_type == "div" and count == "5") or
+                        (s_type == "seq" and count == "5") or
+                        (s_type == "qual" and count == "6")):
+                    BuiltinColormaps[scheme.casefold()] = Colormap(None, colors, name=scheme)
+
+
+_read_colorbrewer()
 
 
 _df_state = {}
@@ -387,14 +426,13 @@ def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
         _df_state[seed] = random.getstate()
     return best_candidate
 
+
 def contrast_with(rgb):
     """Depending on which contrasts best with the given RGB(A), return white or black (RGB)"""
-    if rgb[0]*2 + rgb[1]*3 + rgb[2] < 0.417:
+    if rgb[0] * 2 + rgb[1] * 3 + rgb[2] < 0.417:
         return (1.0, 1.0, 1.0)
     return (0.0, 0.0, 0.0)
 
-# -----------------------------------------------------------------------------
-#
 
 # CSS4 colors + multiword color names
 BuiltinColors = SortedDict({
@@ -650,23 +688,30 @@ BuiltinColors['transparent'] = (0, 0, 0, 0)
 
 
 def most_common_color(colors):
-    import numpy
-    as32 = colors.view(numpy.int32).reshape((len(colors),))
-    unique, indices, counts = numpy.unique(as32, return_index=True, return_counts=True)
-    max_index = numpy.argmax(counts)
+    from numpy import ndarray, array, uint8, int32, argmax, unique
+    if not isinstance(colors, ndarray):
+        colors = array(colors, uint8)
+    as32 = colors.view(int32).reshape((len(colors),))
+    unique, indices, counts = unique(as32, return_index=True, return_counts=True)
+    max_index = argmax(counts)
     if counts[max_index] < len(colors) / 10:
         return None
     return colors[indices[max_index]]
 
+
 def rgba_to_rgba8(rgba):
-    return tuple(int(255*r) for r in rgba)
+    return tuple(int(255 * r) for r in rgba)
+
 
 def rgba8_to_rgba(rgba):
-    return tuple(r/255.0 for r in rgba)
+    return tuple(r / 255.0 for r in rgba)
+
 
 def _init():
     for name in BuiltinColors:
         rgb = BuiltinColors[name]
         color = Color([x / 255 for x in rgb], mutable=False)
         BuiltinColors[name] = color
+
+
 _init()

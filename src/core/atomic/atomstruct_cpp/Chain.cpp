@@ -14,6 +14,7 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Chain.h"
 #include "ChangeTracker.h"
 #include "destruct.h"
@@ -21,15 +22,15 @@
 
 namespace atomstruct {
 
-Chain::Chain(const ChainID& chain_id, Structure* s): StructureSeq(chain_id, s)
+Chain::Chain(const ChainID& chain_id, Structure* s, PolymerType pt): StructureSeq(chain_id, s, pt)
 {
     if (is_chain())
-        _structure->change_tracker()->add_created(this);
+        _structure->change_tracker()->add_created(_structure, this);
 }
 
 Chain::~Chain()
 {
     if (is_chain())
-        _structure->change_tracker()->add_deleted(this);
+        _structure->change_tracker()->add_deleted(_structure, this);
 }
 }  // namespace atomstruct

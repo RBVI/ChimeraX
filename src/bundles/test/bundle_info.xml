@@ -20,7 +20,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: debug test :: General :: simple regiession test</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: debug test :: General :: simple regression test</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

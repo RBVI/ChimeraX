@@ -46,8 +46,8 @@ def interpolate(coordset0, coordset1, segment_interpolator, residue_interpolator
                 segment_interpolator.interpolate(f, coordset)
 
                 coordsets.append(coordset)
-                if log and False:
-                        log.status("Trajectory frame %d generated" % i)
+                if log and (i+1)%100 == 0:
+                        log.status("Trajectory frame %d generated" % (i+1))
 
         # Add last frame with coordinates equal to final position.
         coordsets.append(coordset1.copy())
@@ -104,7 +104,7 @@ RateMap = {
 }
 
 class ResidueInterpolator:
-        def __init__(self, residues, cartesian):
+        def __init__(self, residues, cartesian, log = None):
                 # Create interpolation function for each residue.
                 from .interp_residue import internal_residue_interpolator, cartesian_residue_interpolator
                 residue_interpolator = cartesian_residue_interpolator if cartesian else internal_residue_interpolator
@@ -112,7 +112,10 @@ class ResidueInterpolator:
                 t0 = time()
                 cartesian_atoms = []
                 dihedral_atoms = []
-                for r in residues:
+                nr = len(residues)
+                for i,r in enumerate(residues):
+                        if log and i%100 == 0:
+                                log.status('Making interpolator for residue %d of %d' % (i, nr))
                         residue_interpolator(r, cartesian_atoms, dihedral_atoms)
                 t1 = time()
                 global rsit

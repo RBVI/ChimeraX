@@ -31,13 +31,12 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/PBGroup.h>
-#include <atomstruct/PythonInstance.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/Sequence.h>
 #include <atomstruct/destruct.h>
+#include <atomstruct/tmpl/residues.h>
 #include <logger/logger.h>
 #include <pdb/PDB.h>
-#include <atomstruct/tmpl/residues.h>
 
 namespace pdb {
 
@@ -116,19 +115,19 @@ static clock_t cum_preloop_t, cum_loop_preswitch_t, cum_loop_switch_t, cum_loop_
 // return PyNone otherwise (e.g. only blank lines, MASTER records, etc.)
 static void *
 read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
-    void *input, AtomicStructure *as,
+    void *input, Structure *as,
     int *line_num, std::unordered_map<int, Atom *> &asn,
     std::vector<Residue *> *start_residues,
     std::vector<Residue *> *end_residues,
     std::vector<PDB> *secondary_structure,
     std::vector<PDB::Conect_> *conect_records,
-    std::vector<PDB::Link_> *link_records,
+    std::vector<PDB> *link_ssbond_records,
     std::set<MolResId> *mod_res, bool *reached_end,
     PyObject *py_logger, bool explode, bool *eof)
 {
     bool        start_connect = true;
     int            in_model = 0;
-    AtomicStructure::Residues::size_type cur_res_index = 0;
+    Structure::Residues::size_type cur_res_index = 0;
     Residue        *cur_residue = nullptr;
     MolResId    cur_rid;
     PDB            record;
@@ -551,47 +550,12 @@ start_t = end_t;
             break;
 
         case PDB::LINK:
-            link_records->push_back(record.link);
+            link_ssbond_records->push_back(record);
             break;
 
         case PDB::SSBOND: {
-            // process SSBOND records as CONECT because midas
-            // used to use them that way
-            auto chain_id = ChainID({record.ssbond.res[0].chain_id});
-            Residue *ssres = as->find_residue(chain_id,
-                record.ssbond.res[0].seq_num, record.ssbond.res[0].i_code);
-            if (ssres == nullptr)
-                break;
-            if (ssres->name() != record.ssbond.res[0].name) {
-                logger::warning(py_logger, "First res name in SSBOND record (",
-                    record.ssbond.res[0].name, ") does not match actual"
-                    " residue (", ssres->name(), "); skipping.");
-                break;
-            }
-            Atom *ap0 = ssres->find_atom("SG");
-            if (ap0 == nullptr) {
-                logger::warning(py_logger, "Atom SG not found in ", ssres);
-                break;
-            }
-
-            chain_id = ChainID({record.ssbond.res[1].chain_id});
-            ssres = as->find_residue(chain_id,
-                record.ssbond.res[1].seq_num, record.ssbond.res[1].i_code);
-            if (ssres == nullptr)
-                break;
-            if (ssres->name() != record.ssbond.res[1].name) {
-                logger::warning(py_logger, "Second res name in SSBOND record (",
-                    record.ssbond.res[1].name, ") does not match actual"
-                    " residue (", ssres->name(), "); skipping.");
-                break;
-            }
-            Atom *ap1 = ssres->find_atom("SG");
-            if (ap1 == nullptr) {
-                logger::warning(py_logger, "Atom SG not found in ", ssres);
-                break;
-            }
-            if (!ap0->connects_to(ap1))
-                (void) ap0->structure()->new_bond(ap0, ap1);
+            // process SSBOND records as CONECT because Phenix uses them that way
+            link_ssbond_records->push_back(record);
             break;
         }
 
@@ -759,10 +723,10 @@ add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, Py
 //    Assign secondary structure state to residues using PDB
 //    HELIX and SHEET records
 static void
-assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyObject *py_logger)
+assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *py_logger)
 {
-    std::vector<std::pair<AtomicStructure::Residues::const_iterator,
-        AtomicStructure::Residues::const_iterator> > strand_ranges;
+    std::vector<std::pair<Structure::Residues::const_iterator,
+        Structure::Residues::const_iterator> > strand_ranges;
     int ss_id;
     for (std::vector<PDB>::const_iterator i = ss.begin(); i != ss.end(); ++i) {
         const PDB &r = *i;
@@ -799,9 +763,9 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
                 " not found: ", r.c_str());
             continue;
         }
-        AtomicStructure::Residues::const_iterator first = as->residues().end();
-        AtomicStructure::Residues::const_iterator last = as->residues().end();
-        for (AtomicStructure::Residues::const_iterator
+        Structure::Residues::const_iterator first = as->residues().end();
+        Structure::Residues::const_iterator last = as->residues().end();
+        for (Structure::Residues::const_iterator
         ri = as->residues().begin(); ri != as->residues().end(); ++ri) {
             Residue *r = *ri;
             if (r == init_res)
@@ -818,10 +782,10 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
             continue;
         }
         if (r.type() == PDB::SHEET)
-            strand_ranges.push_back(std::pair<AtomicStructure::Residues::const_iterator,
-                AtomicStructure::Residues::const_iterator>(first, last));
+            strand_ranges.push_back(std::pair<Structure::Residues::const_iterator,
+                Structure::Residues::const_iterator>(first, last));
         else  {
-            for (AtomicStructure::Residues::const_iterator ri = first;
+            for (Structure::Residues::const_iterator ri = first;
             ri != as->residues().end(); ++ri) {
                 (*ri)->set_is_helix(true);
                 (*ri)->set_ss_id(ss_id);
@@ -833,14 +797,14 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
     std::sort(strand_ranges.begin(), strand_ranges.end());
     int id = 0;
     char last_chain = '\0';
-    for (std::vector<std::pair<AtomicStructure::Residues::const_iterator, AtomicStructure::Residues::const_iterator> >::iterator sri = strand_ranges.begin(); sri != strand_ranges.end(); ++sri) {
+    for (std::vector<std::pair<Structure::Residues::const_iterator, Structure::Residues::const_iterator> >::iterator sri = strand_ranges.begin(); sri != strand_ranges.end(); ++sri) {
         char chain_id = (*sri->first)->chain_id()[0];
         if (chain_id != last_chain) {
             id = 0;
             last_chain = chain_id;
         }
         ++id;
-        for (AtomicStructure::Residues::const_iterator ri = sri->first;
+        for (Structure::Residues::const_iterator ri = sri->first;
         ri != as->residues().end(); ++ri) {
             Residue *r = *ri;
             r->set_ss_id(id);
@@ -852,12 +816,12 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
 }
 
 static void
-prune_short_bonds(AtomicStructure *as)
+prune_short_bonds(Structure *as)
 {
     std::vector<Bond *> short_bonds;
 
-    const AtomicStructure::Bonds &bonds = as->bonds();
-    for (AtomicStructure::Bonds::const_iterator bi = bonds.begin(); bi != bonds.end(); ++bi) {
+    const Structure::Bonds &bonds = as->bonds();
+    for (Structure::Bonds::const_iterator bi = bonds.begin(); bi != bonds.end(); ++bi) {
         Bond *b = *bi;
         Coord c1 = b->atoms()[0]->coord();
         Coord c2 = b->atoms()[1]->coord();
@@ -872,50 +836,83 @@ prune_short_bonds(AtomicStructure *as)
 }
 
 static void
-link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
-                        PyObject *py_logger)
+extract_linkup_record_info(PDB& link_ssbond, int* sym1, int* sym2,
+    PDB::Residue* pdb_res1, PDB::Residue* pdb_res2, PDB::Atom* pdb_atom1, PDB::Atom* pdb_atom2)
 {
-    if (link.sym[0] != link.sym[1]) {
-        // don't use LINKs to symmetry copies;
+    if (link_ssbond.type() == PDB::SSBOND) {
+        *sym1 = link_ssbond.ssbond.sym[0];
+        *sym2 = link_ssbond.ssbond.sym[1];
+        *pdb_res1 = link_ssbond.ssbond.res[0];
+        *pdb_res2 = link_ssbond.ssbond.res[1];
+        strcpy(*pdb_atom1, "SG");
+        strcpy(*pdb_atom2, "SG");
+    } else if (link_ssbond.type() == PDB::LINK) {
+        *sym1 = link_ssbond.link.sym[0];
+        *sym2 = link_ssbond.link.sym[1];
+        *pdb_res1 = link_ssbond.link.res[0];
+        *pdb_res2 = link_ssbond.link.res[1];
+        strcpy(*pdb_atom1, link_ssbond.link.name[0]);
+        strcpy(*pdb_atom2, link_ssbond.link.name[1]);
+    } else {
+        std::stringstream err_msg;
+        err_msg << "Trying to extact linkup info from non-LINK/SSBOND record (record is: '"
+            << link_ssbond.c_str() << "')";
+        throw std::logic_error(err_msg.str().c_str());
+    }
+}
+
+static Residue*
+pdb_res_to_chimera_res(Structure* as, PDB::Residue& pdb_res)
+{
+    ResName rname = pdb_res.name;
+    ChainID cid({pdb_res.chain_id});
+    canonicalize_res_name(rname);
+    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+}
+
+static Atom*
+pdb_atom_to_chimera_atom(Structure* as, Residue* res, PDB::Atom& pdb_aname)
+{
+    AtomName aname = pdb_aname;
+    canonicalize_atom_name(aname, &as->asterisks_translated);
+    return res->find_atom(aname);
+}
+
+static void
+link_up(PDB& link_ssbond, Structure *as, std::set<Atom *> *conect_atoms, PyObject *py_logger)
+{
+    int sym1, sym2;
+    PDB::Residue pdb_res1, pdb_res2;
+    PDB::Atom pdb_atom1, pdb_atom2;
+    extract_linkup_record_info(link_ssbond,
+        &sym1, &sym2, &pdb_res1, &pdb_res2, &pdb_atom1, &pdb_atom2);
+    if (sym1 != sym2) {
+        // don't use LINKs/SSBONDs to symmetry copies;
         // skip if symmetry operators differ (or blank vs. non-blank)
         // (FYI, 1555 is identity transform)
         return;
     }
-    AtomName aname;
-    ResName rname;
-    PDB::Residue res = link.res[0];
-    ChainID cid({res.chain_id});
-    rname = res.name;
-    canonicalize_res_name(rname);
-    Residue *res1 = as->find_residue(cid, res.seq_num, res.i_code, rname);
+    Residue *res1 = pdb_res_to_chimera_res(as, pdb_res1);
     if (!res1) {
-        logger::warning(py_logger, "Cannot find LINK residue ", res.name,
-            " (", res.seq_num, res.i_code, ")");
+        logger::warning(py_logger, "Cannot find LINK/SSBOND residue ", pdb_res1.name,
+            " (", pdb_res1.seq_num, pdb_res1.i_code, ")");
         return;
     }
-    res = link.res[1];
-    cid = ChainID({res.chain_id});
-    rname = res.name;
-    canonicalize_res_name(rname);
-    Residue *res2 = as->find_residue(cid, res.seq_num, res.i_code, rname);
+    Residue *res2 = pdb_res_to_chimera_res(as, pdb_res2);
     if (!res2) {
-        logger::warning(py_logger, "Cannot find LINK residue ", res.name,
-            " (", res.seq_num, res.i_code, ")");
+        logger::warning(py_logger, "Cannot find LINK/SSBOND residue ", pdb_res2.name,
+            " (", pdb_res2.seq_num, pdb_res2.i_code, ")");
         return;
     }
-    aname = link.name[0];
-    canonicalize_atom_name(aname, &as->asterisks_translated);
-    Atom *a1 = res1->find_atom(aname);
+    Atom* a1 = pdb_atom_to_chimera_atom(as, res1, pdb_atom1);
     if (a1 == nullptr) {
-        logger::warning(py_logger, "Cannot find LINK atom ", aname,
+        logger::warning(py_logger, "Cannot find LINK/SSBOND atom ", pdb_atom1,
             " in residue ", res1->str());
         return;
     }
-    aname = link.name[1];
-    canonicalize_atom_name(aname, &as->asterisks_translated);
-    Atom *a2 = res2->find_atom(aname);
+    Atom* a2 = pdb_atom_to_chimera_atom(as, res2, pdb_atom2);
     if (a2 == nullptr) {
-        logger::warning(py_logger, "Cannot find LINK atom ", aname,
+        logger::warning(py_logger, "Cannot find LINK/SSBOND atom ", pdb_atom2,
             " in residue ", res2->str());
         return;
     }
@@ -949,28 +946,28 @@ read_fileno(void *f)
 }
 
 static PyObject *
-read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode)
+read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic)
 {
-    std::vector<AtomicStructure *> file_structs;
+    std::vector<Structure *> file_structs;
     bool reached_end;
-    std::unordered_map<AtomicStructure *, std::vector<Residue *> > start_res_map, end_res_map;
-    std::unordered_map<AtomicStructure *, std::vector<PDB> > ss_map;
+    std::unordered_map<Structure *, std::vector<Residue *> > start_res_map, end_res_map;
+    std::unordered_map<Structure *, std::vector<PDB> > ss_map;
     typedef std::vector<PDB::Conect_> Conects;
-    typedef std::unordered_map<AtomicStructure *, Conects> ConectMap;
+    typedef std::unordered_map<Structure *, Conects> ConectMap;
     ConectMap conect_map;
-    typedef std::vector<PDB::Link_> Links;
-    typedef std::unordered_map<AtomicStructure *, Links> LinkMap;
+    typedef std::vector<PDB> Links;
+    typedef std::unordered_map<Structure *, Links> LinkMap;
     LinkMap link_map;
-    std::unordered_map<AtomicStructure *, std::set<MolResId> > mod_res_map;
+    std::unordered_map<Structure *, std::set<MolResId> > mod_res_map;
     // Atom Serial Numbers -> Atom*
     typedef std::unordered_map<int, Atom *> Asns;
-    std::unordered_map<AtomicStructure *, Asns > asn_map;
+    std::unordered_map<Structure *, Asns > asn_map;
     bool per_model_conects = false;
     int line_num = 0;
     bool eof;
     std::pair<char *, PyObject *> (*read_func)(void *);
     void *input;
-    std::vector<AtomicStructure *> *structs = new std::vector<AtomicStructure *>();
+    std::vector<Structure *> *structs = new std::vector<Structure *>();
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
@@ -1033,12 +1030,16 @@ clock_t start_t, end_t;
 #ifdef CLOCK_PROFILING
 start_t = clock();
 #endif
-        AtomicStructure *as = new AtomicStructure(py_logger);
+        Structure *as;
+        if (atomic)
+            as = new AtomicStructure(py_logger);
+        else
+            as = new Structure(py_logger);
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
           &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof);
         if (ret == nullptr) {
-            for (std::vector<AtomicStructure *>::iterator si = structs->begin();
+            for (std::vector<Structure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
                 delete *si;
             }
@@ -1066,7 +1067,7 @@ start_t = end_t;
                         bool matched = false;
                         for (ConectMap::iterator cmi = conect_map.begin();
                         cmi != conect_map.end(); ++cmi) {
-                            AtomicStructure *cm = (*cmi).first;
+                            Structure *cm = (*cmi).first;
                             Conects &cm_conects = (*cmi).second;
                             Asns &asns = asn_map[cm];
                             if (asns.find(serial) != asns.end()) {
@@ -1109,9 +1110,9 @@ start_t = end_t;
             continue;
 
         per_model_conects = false;
-        for (std::vector<AtomicStructure *>::iterator fsi = file_structs.begin();
+        for (std::vector<Structure *>::iterator fsi = file_structs.begin();
         fsi != file_structs.end(); ++fsi) {
-            AtomicStructure *fs = *fsi;
+            Structure *fs = *fsi;
             Conects &conects = conect_map[fs];
             Asns &asns = asn_map[fs];
             std::set<Atom *> conect_atoms;
@@ -1311,7 +1312,7 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             if (pqr) {
                 try {
                     p.atomqr.charge = a->get_py_float_attr(pqr_charge);
-                } catch (atomstruct::PyAttrError&) {
+                } catch (pyinstance::PyAttrError&) {
                     p.atomqr.charge = 0.0;
                 }
                 p.atomqr.radius = a->radius();
@@ -1326,14 +1327,14 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                         p.atom.charge[0] = ' ';
                     p.atom.charge[1] = '0' + std::abs(charge);
                     p.atom.charge[2] = '\0';
-                } catch (atomstruct::PyAttrError&) {
+                } catch (pyinstance::PyAttrError&) {
                     p.atom.charge[0] = ' ';
                     p.atom.charge[1] = ' ';
                     p.atom.charge[2] = '\0';
                 }
                 try {
                     strcpy(p.atom.seg_id, a->get_py_string_attr(pdb_segment));
-                } catch (atomstruct::PyAttrError&) { }
+                } catch (pyinstance::PyAttrError&) { }
                 const char* ename = a->element().name();
                 if (a->element().number() == 1) {
                     if (a->name().c_str()[0] == 'D')
@@ -1581,7 +1582,8 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
         std::map<const Atom*, int> rev_asn;
         std::map<const Residue*, int> polymer_map;
         int polymer_num = 1;
-        for (auto poly_residues: s->polymers()) {
+        for (auto polymers: s->polymers()) {
+            auto& poly_residues = polymers.first;
             for (auto r: poly_residues)
                 polymer_map[r] = polymer_num;
             polymer_num++;
@@ -1613,7 +1615,7 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
 
 static const char*
 docstr_read_pdb_file = 
-"read_pdb_file(f, log=None, explode=True)\n" \
+"read_pdb_file(f, log=None, explode=True, atomic=True)\n" \
 "\n" \
 "f\n" \
 "  A file-like object open for reading containing the PDB info\n" \
@@ -1624,19 +1626,20 @@ docstr_read_pdb_file =
 "  Controls whether NMR ensembles will be handled as separate models (True)\n" \
 "  or as one model with multiple coordinate sets (False)\n" \
 "\n" \
-"Returns a numpy array of C++ pointers to AtomicStructure objects.";
+"Returns a numpy array of C++ pointers to AtomicStructure objects (if 'atomic'\n." \
+"is True, otherwise Structure objects)";
 
 extern "C" PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 {
     PyObject *pdb_file;
     PyObject *py_logger = Py_None;
-    int explode = 1;
-    static const char *kw_list[] = {"file", "log", "explode", nullptr};
-    if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Op",
-            (char **) kw_list, &pdb_file, &py_logger, &explode))
+    int explode = 1, atomic = 1;
+    static const char *kw_list[] = {"file", "log", "explode", "atomic", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Opp",
+            (char **) kw_list, &pdb_file, &py_logger, &explode, &atomic))
         return nullptr;
-    return read_pdb(pdb_file, py_logger, explode);
+    return read_pdb(pdb_file, py_logger, explode, atomic);
 }
 
 static const char*
