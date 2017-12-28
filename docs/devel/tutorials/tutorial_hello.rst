@@ -72,7 +72,7 @@ The file contents are shown below.
 ``bundle_info.xml``
 -------------------
 
-``bundle_info.xml`` is an `_eXtensible Markup Language`_
+``bundle_info.xml`` is an `eXtensible Markup Language`_
 format file whose tags are listed in :doc:`bundle_info`.
 While there are many tags defined, only a few are needed
 for bundles written completely in Python.
