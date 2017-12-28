@@ -25,6 +25,17 @@ class SeqArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        align_seq, text, rest = AlignSeqPairArg.parse(text, session)
+        return align_seq[-1], text, rest
+
+class AlignSeqPairArg(Annotation):
+    '''Same as SeqArg, but the return value is (alignment, seq)'''
+
+    name = "[alignment-id]:sequence-name-or-number"
+    _html_name = "[<i>alignment-id</i>]:<i>sequence-name-or-number</i>"
+
+    @staticmethod
+    def parse(text, session):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
             raise AnnotationError("Expected %s" % SeqArg.name)
@@ -63,7 +74,7 @@ class SeqArg(Annotation):
                 seq = alignment.seqs[sn-1]
             else:
                 seq = alignment.seqs[sn]
-        return seq, text, rest
+        return (alignment, seq), text, rest
 
 def seqalign_chain(session, chains):
     '''

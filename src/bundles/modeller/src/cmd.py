@@ -16,57 +16,28 @@ def sequence_model(session, targets, combined_templates=False, custom_script=Non
     dist_restraints_path=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
     water_preserve=False):
-    #TODO
     '''
-    Show chain sequence(s)
-
-    Parameters
-    ----------
-    chains : list of Chain
-        Chains to show
+    Command to generate a comparitive model of one or more chains
     '''
+    from chimerax.core.errors import UserError
+    seen = set()
+    for alignment, seq in targets:
+        if alignment in seen:
+            raise UserError("Only one target sequence per alignent allowed;"
+                " multiple targets chosen in alignment %s" % alignment)
+    from . import comparitive
+    comparitive.model(session, targets, combined_templates=combined_templates,
+        custom_script=custom_script, dist_restraints_path=dist_restraints_path,
+        executable_location=executable_location, fast=fast, het_preserve=het_preserve,
+        hydrogens=hydrogens, license_key=license_key, num_models=num_models, temp_path=temp_path,
+        thorough_opt=thorough_opt, water_preserve=water_preserve)
 
-    if len(chains) == 1:
-        chain = chains[0]
-        ident = ".".join([str(part) for part in chain.structure.id]) + "." + chain.chain_id
-        alignment = session.alignments.new_alignment([chain], ident, seq_viewer="sv",
-            auto_associate=None, intrinsic=True)
-    else:
-        # all chains have to have the same sequence, and they will all be associated with
-        # that sequence
-        sequences = set([chain.characters for chain in chains])
-        if len(sequences) != 1:
-            from chimerax.core.errors import UserError
-            raise UserError("Chains must have same sequence")
-        chars = sequences.pop()
-        chain_ids = set([chain.chain_id for chain in chains])
-        if len(chain_ids) < len(chains) or len(chain_ids) > 10:
-            name = "%d chains" % len(chains)
-        else:
-            name = "chains %s" % ",".join(sorted(list(chain_ids)))
-        from chimerax.core.atomic import Sequence
-        seq = Sequence(name=name, characters=chars)
-        def get_numbering_start(chain):
-            for i, r in enumerate(chain.residues):
-                if r is None or r.deleted:
-                    continue
-                return r.number - i
-            return None
-        starts = set([get_numbering_start(chain) for chain in chains])
-        starts.discard(None)
-        if len(starts) == 1:
-            seq.numbering_start = starts.pop()
-        alignment = session.alignments.new_alignment([seq], None, seq_viewer="sv",
-            auto_associate=False, name=chains[0].description, intrinsic=True)
-        alignment.suspend_notify_viewers()
-        for chain in chains:
-            alignment.associate(chain, keep_intrinsic=True)
-        alignment.resume_notify_viewers()
-
-def register_sequence_model_command(logger):
-    from chimerax.core.commands import CmdDesc, register, UniqueChainsArg
+def register_command(logger):
+    from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg
+    from chimerax.seqalign import AlignSeqPairArg
     desc = CmdDesc(
-        required = [('chains', UniqueChainsArg)],
-        synopsis = 'show structure chain sequence'
+        required = [('targets', ListOf(AlignSeqPairArg))],
+        keyword = [('combined_templates', BoolArg)],
+        synopsis = 'Use Modeller to generate comparitive model'
     )
-    register('sequence model', desc, seqalign_chain, logger=logger)
+    register('modeller comparitive', desc, sequence_model, logger=logger)

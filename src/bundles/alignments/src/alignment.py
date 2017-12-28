@@ -462,6 +462,9 @@ class Alignment(State):
                     lambda _1, sseq, aln=aln: aln.disassociate(sseq))
         return aln
 
+    def __str__(self):
+        return self.ident
+
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .cmd import SeqArg
+from .cmd import SeqArg, AlignSeqPairArg
 
 from chimerax.core.toolshed import BundleAPI
 

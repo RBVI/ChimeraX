@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Modeller" version="1.0"
-	    package="chimerax.mav"
+	    package="chimerax.modeller"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -21,6 +21,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: modeller comparitive :: Sequence :: Generate comparitive model</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

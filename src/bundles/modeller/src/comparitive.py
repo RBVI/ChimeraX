@@ -65,7 +65,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
         if combined_templates:
             target_templates = []
             template_info.append((target, target_templates))
-        for aseq, chain in alignment.associations.items():
+        for chain, aseq in alignment.associations.items():
             if len(chain.chain_id) > 1:
                 raise LimitationError(
                     "Modeller cannot handle templates with multi-character chain IDs")
@@ -77,26 +77,20 @@ def model(session, targets, combined_templates=False, custom_script=None,
     # collate the template info in series of strings that can be joined with '/'
     target_strings = []
     templates_strings = []
-    starts = []
-    ends = []
     for target, templates_info in template_info:
         target_seq = target.characters
+        target_strings.append(target_seq)
         target_template_strings = []
         templates_strings.append(target_template_strings)
         accum_water_het = ""
         for template, chain, match_map in templates_info:
             # match_map has the chain-to-aseq original match map
             # missing positions have already been changed to '-' in template
-            gapped_pos = template.ungapped_to_gapped(0)
-            start = match_map[chain.gapped_to_ungapped(gapped_pos)]
-            gapped_pos = template.ungapped_to_gapped(len(template.ungapped())-1)
-            end = match_map[chain.gapped_to_ungapped(gapped_pos)]
+            end = chain.existing_residues[-1]
             template_string = template.characters + accum_water_het
-            starts.append(start)
             accum = ""
             if not het_preserve and not water_preserve:
                 target_template_strings.append(template_string)
-                ends.append(end)
                 continue
             # add het/water characters and get proper end residue
             before_end = True
@@ -119,31 +113,45 @@ def model(session, targets, combined_templates=False, custom_script=None,
             for i, tts in enumerate(target_template_strings):
                 target_template_strings[i] = tts + accum
             target_template_strings.append(template_string)
-            ends.append(end)
     # Insert/append all-'-' strings so that each template is in it's own line
-    for i, tts in enumerate(templates_strings):
-        num_lines_to_add = len(tts)
-        for template_lines in templates_strings[:i]:
-            line_to_add = '-' * len(template_lines[0])
-            for i in range(num_lines_to_add):
-                template_lines.append(line_to_add)
-        for template_lines in template_strings[i+i:]:
-            line_to_add = '-' * len(template_lines[0])
-            for i in range(num_lines_to_add):
-                template_lines.insert(0, line_to_add)
+    insertions = []
+    appendings = []
+    for i in range(len(templates_strings)):
+        insertions.append([])
+        appendings.append([])
+    for i, target_template_strings in enumerate(templates_strings):
+        line_to_add = '-' * len(target_template_strings[0])
+        for appending in appendings[:i]:
+            appending.append(line_to_add)
+        for insertion in insertions[i+1:]:
+            insertion.append(line_to_add)
+    # just checking things out...
+    for i, lines in enumerate(templates_strings):
+        for line in lines:
+            joined_line = line
+            insertion = '/'.join(insertions[i])
+            if insertion:
+                joined_line = insertion + '/' + joined_line
+            appending = '/'.join(appendings[i])
+            if appending:
+                joined_line = joined_line + '/' + appending
+            session.logger.info("<pre>" + joined_line + "</pre>", is_html=True) 
 
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]
     from .common import modeller_copy
     rseq = modeller_copy(aseq)
     rseq.descript = "structure:" + chain_save_name(chain)
+    seq_chars = list(rseq.characters)
     from chimerax.core.atomic import Sequence
     for ungapped in range(len(aseq.ungapped())):
         gapped = aseq.ungapped_to_gapped(ungapped)
-        if i not in mmap:
-            rseq.characters[gapped] = '-'
+        if ungapped not in mmap:
+            seq_chars[gapped] = '-'
         else:
-            rseq.characters[gapped] = Sequence.rname3to1(mmap[i].name)
+            seq_chars[gapped] = Sequence.rname3to1(mmap[ungapped].name)
+    rseq.characters = "".join(seq_chars)
+    return rseq
 
 def chain_save_name(chain):
     return chain.structure.name.replace(':', '_').replace(' ', '_') \

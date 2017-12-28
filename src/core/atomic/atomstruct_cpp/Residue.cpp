@@ -73,7 +73,7 @@ Residue::~Residue() {
 void
 Residue::add_atom(Atom* a)
 {
-    a->_residue = this;1513350635
+    a->_residue = this;
     _atoms.push_back(a);
 }
 

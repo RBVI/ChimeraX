@@ -11,3 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.toolshed import BundleAPI
+
+class ModellerAPI(BundleAPI):
+
+    @staticmethod
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_command(logger)
+
+bundle_api = ModellerAPI()

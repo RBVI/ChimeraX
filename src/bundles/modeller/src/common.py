@@ -15,5 +15,5 @@ def modeller_copy(seq):
 	from copy import copy
 	mseq = copy(seq)
 	mseq.name = mseq.name[:16].replace(' ', '_')
-	mseq.characters = "".join([c.upper() if c.isalpha() else '-' for c in mseq.characters]
+	mseq.characters = "".join([c.upper() if c.isalpha() else '-' for c in mseq.characters])
 	return mseq
