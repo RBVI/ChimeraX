@@ -42,7 +42,7 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_sel`_
+<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=tut_sel>`_
 containing a folder named `tut_sel`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.
@@ -82,11 +82,11 @@ see :doc:`tutorial_hello`, :doc:`tutorial_command` and
 .. literalinclude:: ../../../src/examples/tutorials/tut_sel/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,17-25,40-42
+    :emphasize-lines: 8-10,17-24,40-42
 
 The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
-(lines 8-10 and 17-25).
+(lines 8-10 and 17-24).
 
 The ``ChimeraXClassifier`` tag on line 42 informs ChimeraX that
 there is one chemical subgroup selector named ``endres`` in
