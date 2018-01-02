@@ -82,7 +82,7 @@ The file contents are shown below.
 ``bundle_info.xml``
 -------------------
 
-``bundle_info.xml`` is an `_eXtensible Markup Language`_
+``bundle_info.xml`` is an `eXtensible Markup Language`_
 format file whose tags are listed in :doc:`bundle_info`.
 While there are many tags defined, only a few are needed
 for bundles written completely in Python.  The
@@ -125,24 +125,11 @@ it will be created.
 ``src``
 -------
 
-``src`` is the folder containing the source code for the
-Python package that implements the bundle functionality.
-The ChimeraX ``devel`` command automatically includes all
-``.py`` files in ``src`` as part of the bundle.  Additional
-files, such as HTML source code, are included using the
-bundle information tag ``DataFiles`` as shown above.
-The only required file in ``src`` is ``__init__.py``.
-Other ``.py`` files are typically arranged to implement
-different types of functionality.  For example, ``cmd.py``
-is used for command-line commands; ``tool.py`` or ``gui.py``
-for graphical interfaces; ``io.py`` for reading and saving
-files, etc.
+.. include:: src.rst
 
 
 ``__init__.py``
 ---------------
-
-The tool registration code is 
 
 As described in :doc:`tutorial_hello`, ``__init__.py`` contains
 the initialization code that defines the ``bundle_api`` object
@@ -278,7 +265,8 @@ Note the conversion from Python string to JavaScript string is
 accomplished using ``json.dumps``, which properly handles special
 characters such as quotes.  The JavaScript template uses standard
 `JavaScript HTML DOM`_ functionality to manipulate the HTML page
-contents.
+contents.  If executing JavaScript results in errors, the messages
+should appear in the ChimeraX log.
 
 
 ``gui.html``
