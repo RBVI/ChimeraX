@@ -111,8 +111,14 @@ the format name:
 - the description for the format to show to users (**XYZ format**).
 - the encoding for the file contents (**utf-8**).
 
-The **Open** classifier states that the bundle supports opening **XYZ** files;
-the second **XYZ** field is a currently unused (but required) tag.
+The **Open** classifier fields are:
+
+- the name of the data format (in this example, **XYZ**),
+- a (currently unused) tag name (**XYZ**), and
+- a boolean value for whether this bundle should be the default handler
+  for the named data format (none, defaulting to **false**).  Bundles
+  that provide the canonical format reader for a format should set this
+  value to **true**.
 
 
 ``src``
