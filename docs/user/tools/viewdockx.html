@@ -77,12 +77,9 @@ Buttons above the table:
 </p>
 <ul>
 <li><b>Show All Structures</b> - show structures for all table rows
-<li><b>Graph</b> - open a separate window for <a href="#plots">plotting</a> 
-compounds (table rows) vs. one or more numerical descriptors (table columns)
-<!--
-<li><b>Plot</b> 
-- <a href="#plots">plot</a> one descriptor (table column) vs. another descriptor
--->
+<li><b>Graph</b> - <a href="#plots">plot</a> compounds (table rows) 
+vs. one or more numerical descriptors (table columns)
+<li><b>Plot</b> - <a href="#plots">plot</a> a numerical descriptor vs. another
 <li><b>Add Hbonds</b> 
 - calculate and show as a column 
 the number of H-bonds between each compound and all other atoms
@@ -104,20 +101,27 @@ than the specified number of stars, and remove their rows from the table
 <p class="nav">
 [<a href="#top">back to top: ViewDockX</a>]
 </p>
-<h3>Plotting</h3>
+<h3>Graphs and Plots</h3>
 <p>
-Multiple graphs/plots can be shown for the same set of docking results.
+Multiple graph/plot windows can be shown for the same set of docking results.
 </p><p>
 Clicking the <b>Graph</b> button near the top left of the
-<a href="#table"><b>ViewDockX</b> table</a> opens another window for
-graphing the compounds in the table versus numerical descriptors (columns).
+<a href="#table"><b>ViewDockX</b> table</a> allows plotting the compounds 
+in the table (rows) versus one or more numerical descriptors (columns).
 One of the numerical descriptors can be chosen 
 for the <b>Sort</b> order, and all or a subset of them as values to <b>Graph</b>.
 The data can also be shown as a histogram with specified number of bins.
 </p><p>
-Pausing the cursor over a point in the graph shows the corresponding compound's
-model number, name, and value. Clicking a data point or histogram bar shows
-the corresponding compound(s) and hides the others.
+Clicking the <b>Plot</b> button near the top left of the
+<a href="#table"><b>ViewDockX</b> table</a> opens another window for
+plotting numerical descriptors versus each other. Up to two plots can be shown in
+the same window, with numerical descriptors chosen for the X and Y axes of each.
+</p><p>
+Pausing the cursor over a plotted point shows the compound's descriptor values.
+Clicking a plotted point or histogram bar shows the corresponding compound(s)
+in the graphics window and hides the others. 
+A &ldquo;halo&rdquo; around a plotted point indicates 
+that the compound is currently shown.
 </p>
 
 <hr>

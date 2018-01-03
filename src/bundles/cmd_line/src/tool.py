@@ -104,6 +104,10 @@ class CommandLine(ToolInstance):
                         and self.count() > 0 and self.itemText(0) == self.currentText():
                     le.selectAll()
 
+            def sizeHint(self):
+                # prevent super-long commands from making the whole interface super wide
+                return self.minimumSizeHint()
+
         self.text = CmdText(parent, self)
         self.text.setEditable(True)
         self.text.setCompleter(None)

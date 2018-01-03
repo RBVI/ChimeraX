@@ -59,11 +59,11 @@ Sample Files
 
 The files in the ``tut_cmd`` folder are:
 
-``tut_cmd`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``cmd.py`` - source code to implement two ``tutorial`` commands
+- ``tut_cmd`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``cmd.py`` - source code to implement two ``tutorial`` commands
 
 The file contents are shown below.
 
@@ -71,7 +71,7 @@ The file contents are shown below.
 ``bundle_info.xml``
 -------------------
 
-``bundle_info.xml`` is an `_eXtensible Markup Language`_
+``bundle_info.xml`` is an `eXtensible Markup Language`_
 format file whose tags are listed in :doc:`bundle_info`.
 While there are many tags defined, only a few are needed
 for bundles written completely in Python.  The
@@ -181,7 +181,7 @@ description) must match the expected order for required arguments
     :language: python
     :linenos:
 
-For performance, ChimeraX makes use of `Numpy`_ arrays in many contexts.
+For performance, ChimeraX makes use of `NumPy`_ arrays in many contexts.
 The container for atoms is typically a ``chimerax.core.atomic.Collection``
 instance, as are those for bonds, residues, and atomic structures.
 Fetching the same attribute, e.g., coordinates, from a collection
