@@ -67,11 +67,11 @@ Sample Files
 
 The files in the ``tut_save`` folder are:
 
-``tut_save`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``io.py`` - source code to read and save XYZ format files
+- ``tut_save`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``io.py`` - source code to read and save XYZ format files
 
 The file contents are shown below.
 

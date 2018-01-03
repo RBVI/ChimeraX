@@ -59,11 +59,11 @@ Sample Files
 
 The files in the ``tut_cmd`` folder are:
 
-``tut_cmd`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``cmd.py`` - source code to implement two ``tutorial`` commands
+- ``tut_cmd`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``cmd.py`` - source code to implement two ``tutorial`` commands
 
 The file contents are shown below.
 

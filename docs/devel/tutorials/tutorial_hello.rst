@@ -60,11 +60,11 @@ Sample Files
 
 The files in the source code folder are:
 
-``hello_world`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``cmd.py`` - source code to implement ``hello`` command
+- ``hello_world`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``cmd.py`` - source code to implement ``hello`` command
 
 The file contents are shown below.
 
@@ -174,17 +174,24 @@ invoke bundle functionality.  ChimeraX expects ``bundle_api``
 class to be derived from :py:class:`chimerax.core.toolshed.BundleAPI`,
 which has one public attribute, ``api_version``, and these methods:
 
-- ``start_tool`` - invoked to display a graphical interface
-- ``register_command`` - invoked the first time a bundle command is used
-- ``register_selector`` - invoked the first time a bundle chemical subgroup
-  selector is used
-- ``open_file`` - invoked when a file of a bundle-supported format is opened
-- ``save_file`` - invoked when a file of a bundle-supported format is saved
-- ``initialize`` - invoked when ChimeraX starts up and the bundle needs
-  custom initialization
-- ``finish`` - invoked when ChimeraX exits and the bundle needs custom clean up
-- ``get_class`` - invoked when a session is saved and a bundle object needs
-  to be serialized
+- :py:class:`~chimerax.core.toolshed.BundleAPI.initialize` -
+  invoked when ChimeraX starts up and the bundle needs custom initialization
+- :py:class:`~chimerax.core.toolshed.BundleAPI.finish` -
+  invoked when ChimeraX exits and the bundle needs custom clean up
+- :py:class:`~chimerax.core.toolshed.BundleAPI.register_command` -
+  invoked the first time a bundle command is used
+- :py:class:`~chimerax.core.toolshed.BundleAPI.register_selector` -
+  invoked the first time a bundle chemical subgroup selector is used
+- :py:class:`~chimerax.core.toolshed.BundleAPI.start_tool` -
+  invoked to display a bundle graphical interface
+- :py:class:`~chimerax.core.toolshed.BundleAPI.open_file` -
+  invoked when a file of a bundle-supported format is opened
+- :py:class:`~chimerax.core.toolshed.BundleAPI.save_file` -
+  invoked when a file of a bundle-supported format is saved
+- :py:class:`~chimerax.core.toolshed.BundleAPI.fetch_from_database` -
+  invoked when an entry is fetched from a network database
+- :py:class:`~chimerax.core.toolshed.BundleAPI.get_class` -
+  invoked when a session is saved and a bundle object needs to be serialized
 
 The ``api_version`` attribute should be set to ``1``.  The default
 value for ``api_version`` is ``0`` and is supported for older bundles.
@@ -209,9 +216,9 @@ Once a command is registered, ChimeraX will not call
 In ``BundleAPI`` version 1, the ``register_command`` method is called
 with three arguments:
 
-- ``bi`` - instance of :py:class:`chimerax.core.toolshed.BundleInfo``
-- ``ci`` - instance of :py:class:`chimerax.core.toolshed.CommandInfo``
-- ``logger`` - instance of :py:class:`chimerax.core.logger.Logger``
+- ``bi`` - instance of :py:class:`chimerax.core.toolshed.BundleInfo`
+- ``ci`` - instance of :py:class:`chimerax.core.toolshed.CommandInfo`
+- ``logger`` - instance of :py:class:`chimerax.core.logger.Logger`
 
 ``bi`` provides access to bundle information such as its name, version,
 and description.  For this example, no bundle information is required
@@ -223,10 +230,10 @@ to notify users of warnings and errors; in this example, errors will
 be handled by the normal Python exception machinery.
 
 The most important line of code in ``register_command`` is the call
-to :py:func:`chimerax.core.commands.register`, whose arguments are:
+to :py:func:`chimerax.core.commands.cli.register`, whose arguments are:
 
 - ``name`` - a Python string for the command name,
-- ``cmd_desc`` - an instance of :py:class:`chimerax.core.commands.CmdDesc`
+- ``cmd_desc`` - an instance of :py:class:`chimerax.core.commands.cli.CmdDesc`
   which describes what command line arguments are expected, and
 - ``function`` - a Python function to process the command.
 
@@ -240,11 +247,11 @@ The arguments that ``cmd.hello_world`` will be called with are
 determined by the attributes of ``cmd.hello_world_desc`` and is
 described below.
 
-Note that ``register_command`` and other ``BundleAPI`` methods are static
-methods and are not associated with the ``bundle_api`` instance.
+Note that ``register_command`` and other ``BundleAPI`` methods are *static*
+methods and are not associated with the ``bundle_api`` *instance*.
 The intent is that these methods remain simple and should not need
-other data.  If necessary, the methods can, of course, refer to
-``bundle_api``.
+other data.  If necessary, data can be stored as attributes of ``bundle_api``
+and the static methods can refer to the instance explicitly.
 
 
 ``cmd.py``
@@ -265,7 +272,7 @@ and ``hello_world_desc`` is the description for the command.
 the command name.)
 
 ``hello_world_desc``, the command description, is an
-instance of `chimerax.core.commands.CmdDesc`.  No
+instance of :py:class:`chimerax.core.commands.cli.CmdDesc`.  No
 arguments are passed to the constructor, meaning the
 user should not type anything after the command name.
 If additional text is entered after the command, ChimeraX will flag
@@ -276,7 +283,7 @@ If the command is entered correctly, ChimeraX calls the
 ``hello_world`` function with a single argument, ``session``,
 which provides access to session data such as the open models
 and current selection.  For this example, ``hello_world`` uses
-the session logger, an instance of `chimerax.core.logger.Logger`,
+the session logger, an instance of :py:class:`chimerax.core.logger.Logger`,
 to display the informational message "Hello world!"  The message
 is displayed in the log window when the ChimeraX graphical
 interface is displayed; otherwise, it is printed to the console.

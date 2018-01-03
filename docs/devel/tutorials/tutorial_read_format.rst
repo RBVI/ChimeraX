@@ -59,11 +59,11 @@ Sample Files
 
 The files in the ``tut_read`` folder are:
 
-``tut_read`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``io.py`` - source code to read XYZ format files
+- ``tut_read`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``io.py`` - source code to read XYZ format files
 
 The file contents are shown below.
 

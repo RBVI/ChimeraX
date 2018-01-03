@@ -57,11 +57,11 @@ Sample Files
 
 The files in the ``tut_sel`` folder are:
 
-``tut_sel`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``selector.py`` - source code to define target selector
+- ``tut_sel`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``selector.py`` - source code to define target selector
 
 The file contents are shown below.
 

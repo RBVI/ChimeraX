@@ -19,3 +19,19 @@ toolshed: Manage installed and available tools
 .. automodule:: chimerax.core.toolshed
     :members:
     :show-inheritance:
+
+.. autoclass:: chimerax.core.toolshed.ToolInfo
+    :members:
+    :show-inheritance:
+
+.. autoclass:: chimerax.core.toolshed.BundleInfo
+    :members:
+    :show-inheritance:
+
+.. autoclass:: chimerax.core.toolshed.CommandInfo
+    :members:
+    :show-inheritance:
+
+.. autoclass:: chimerax.core.toolshed.SelectorInfo
+    :members:
+    :show-inheritance:

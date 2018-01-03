@@ -70,11 +70,11 @@ Sample Files
 
 The files in the ``tut_gui`` folder are:
 
-``tut_gui`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``gui.py`` - source code to implement ``Tutorial GUI`` tool
+- ``tut_gui`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``gui.py`` - source code to implement ``Tutorial GUI`` tool
 
 The file contents are shown below.
 
