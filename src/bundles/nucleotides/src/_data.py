@@ -1006,16 +1006,15 @@ def set_slab(side, residues, **slab_params):
         nuc_info, nd = _nuc_drawing(m)
         rds[m] = nuc_info
     for r in residues:
-        try:
-            t = r.name
-            if t in ('PSU', 'P'):
-                n = 'P'
-            elif t in ('NOS', 'I'):
-                n = 'I'
-            else:
-                n = nucleic3to1(t)
-        except KeyError:
-            continue
+        t = r.name
+        if t in ('PSU', 'P'):
+            n = 'P'
+        elif t in ('NOS', 'I'):
+            n = 'I'
+        else:
+            n = nucleic3to1(t)
+            if n not in standard_bases:
+                continue
 
         rd = rds[r.structure].setdefault(r, {})
         rd['name'] = n
