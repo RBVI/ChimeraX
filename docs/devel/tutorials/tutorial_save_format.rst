@@ -12,6 +12,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+.. include:: references.rst
+
 .. _Bundle Example\: Save a New File Format:
 
 
@@ -139,10 +141,10 @@ The **Save** classifier fields are:
 - descriptions for **save** command keywords accepted for this data format
   (**models:Models**).  The descriptions are a comma-separated list of
   colon-separated keyword-*datatype* pairs.  *datatype*
-  must match one of the type names from ``chimerax.core.commands``
+  must match one of the type names from :py:class:`chimerax.core.commands`
   less a **Arg** suffix.  In this example, the **save** command will
   accept a **models** keyword when an XYZ file is saved; the syntax
-  for the **models** argument matches ``chimerax.core.commands.ModelsArg``
+  for the **models** argument matches :py:class:`chimerax.core.commands.ModelsArg`
   (*i.e.*, **Models** + **Arg**).
 
 ``src``
@@ -199,7 +201,7 @@ detail in :doc:`tutorial_read_format`.
 The ``save_xyz`` function performs the following steps:
 
 - open the output file for writing using the ChimeraX function
-  ``chimerax.core.io.open_filename`` (lines 112-114),
+  :py:func:`chimerax.core.io.open_filename` (lines 112-114),
 - if the **models** keyword was not given, include all atomic structures
   for saving (lines 116-119),
 - initialize some statistics counters (lines 120-121),

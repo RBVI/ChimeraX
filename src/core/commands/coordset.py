@@ -22,9 +22,8 @@
 #
 def coordset(session, structures, index_range, hold_steady = None,
              pause_frames = 1, loop = 1, bounce = False, compute_ss = False):
-  '''
-  Change which coordinate set is shown for a structure.  Can play through
-  a range of coordinate sets.  
+  '''Change which coordinate set is shown for a structure.
+  Can play through a range of coordinate sets.
 
   Parameters
   ----------
@@ -37,13 +36,13 @@ def coordset(session, structures, index_range, hold_steady = None,
     coordinate set is changed from start to end incrementing by step with one step
     taken per graphics frame.  Negative start / end ids are relative to the (one past)
     the last coordinate set, so -1 refers to the last coordinate set.
-	If index_range is just None, then treated as 1,None,None.
+    If index_range is just None, then treated as 1,None,None.
   hold_steady : Atoms
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
   pause_frames : integer
-     Stay at each coordset for this number of graphics frames.  This is to slow
-     down playback.  Default 1.
+    Stay at each coordset for this number of graphics frames.  This is to slow
+    down playback.  Default 1.
   loop : integer
     How many times to repeat playing through the coordinates in the specified range.
   bounce : bool
@@ -57,7 +56,7 @@ def coordset(session, structures, index_range, hold_steady = None,
     raise UserError('No structures specified')
 
   if index_range is None:
-  	index_range = (1,None,None)
+    index_range = (1,None,None)
   for m in structures:
     s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
@@ -68,8 +67,7 @@ def coordset(session, structures, index_range, hold_steady = None,
 #
 def coordset_slider(session, structures, hold_steady = None,
                     pause_frames = 1, loop = 1, compute_ss = False):
-  '''
-  Show a slider that controls which coordinate set is shown.
+  '''Show a slider that controls which coordinate set is shown.
 
   Parameters
   ----------
@@ -79,8 +77,8 @@ def coordset_slider(session, structures, hold_steady = None,
     Collection of atoms to hold steady while changing coordinate set.
     The atomic structure is repositioned to minimize change in RMSD of these atoms.
   pause_frames : integer
-     Stay at each coordset for this number of graphics frames when Play button used.
-     This is to slow down playback.  Default 1.
+    Stay at each coordset for this number of graphics frames when Play button used.
+    This is to slow down playback.  Default 1.
   compute_ss : bool
     Whether to recompute secondary structure using dssp for every new frame.  Default false.
   '''
@@ -195,7 +193,7 @@ class CoordinateSetPlayer:
     self.pause_frames = pause_frames
     self.loop = loop
     self.bounce = bounce
-    self._reverse = False	# Whether playing in opposite direction after bounce
+    self._reverse = False   # Whether playing in opposite direction after bounce
     self.compute_ss = compute_ss
     self._pause_count = 0
     self._steady_coords = None
@@ -265,7 +263,7 @@ class CoordinateSetPlayer:
     m = self.structure
     tf = self.steady_transform(last_cs).inverse() * self.steady_transform(m.active_coordset_id)
     m.position = m.position * tf
-    
+
   def steady_transform(self, cset):
 
     tfc = self._steady_transforms
