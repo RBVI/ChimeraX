@@ -1434,11 +1434,11 @@ extern "C" EXPORT void* bond_side_atoms(void *bond, void *side_atom)
     }
 }
 
-extern "C" EXPORT void *bond_smaller_side(void *bond)
+extern "C" EXPORT PyObject *bond_smaller_side(void *bond)
 {
     Bond *b = static_cast<Bond *>(bond);
     try {
-        return b->smaller_side();
+        return b->smaller_side()->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;

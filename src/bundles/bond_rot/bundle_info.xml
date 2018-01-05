@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Alignments" version="1.0" package="chimerax.seqalign"
+<BundleInfo name="ChimeraX-BondRot" version="1.0" package="chimerax.bond_rot"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -39,6 +39,8 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
 ]
 	<ChimeraXClassifier>ChimeraX :: Command :: torsion create :: Activate bond for rotation :: activate bond for rotation</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: torsion delete :: Delete active torsion :: deactivate bond for rotation</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: torsion :: Adjust active torsion :: adjust bond rotation</ChimeraXClassifier>
 ]
   </Classifiers>
 

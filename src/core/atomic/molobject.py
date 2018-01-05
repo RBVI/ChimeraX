@@ -581,8 +581,7 @@ class Bond(State):
     def smaller_side(self):
         '''Returns the bond atom on the side of the bond with fewer total atoms attached'''
         f = c_function('bond_smaller_side', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
-        c = f(self._c_pointer)
-        return object_map(c, Atom)
+        return f(self._c_pointer)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,

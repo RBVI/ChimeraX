@@ -28,16 +28,30 @@ class BondRotationManager(State):
         for trig_name in self.trigger_names:
             self.triggers.add_trigger(trig_name)
 
-    def delete_bond_rot(self, bond_rot):
+    def delete_rotation(self, bond_rot):
         del self.bond_rots[bond_rot.ident]
         if not self.bond_rots:
             from chimera.core.atomic import get_triggers
-            get_triggers(session).remove_handler(self._handler_ID)
+            get_triggers(self.session).remove_handler(self._handler_ID)
         if not bond_rot.one_shot:
             self.triggers.activate_trigger(self.DELETED, bond_rot)
 
-    def new_bond_rot(self, bond, ident=None, move_smaller_side=TRUE, one_shot=True):
+    def delete_all_rotations(self):
+        for bond_rot in self.bond_rots.values():
+            self.triggers.activate_trigger(self.DELETED, bond_rot)
+        if self.bond_rots:
+            from chimera.core.atomic import get_triggers
+            get_triggers(self.session).remove_handler(self._handler_ID)
+            self.bond_rots.clear()
+
+    clear = delete_all_rotations
+
+    def new_rotation(self, bond, ident=None, move_smaller_side=True, one_shot=True):
         """Create bond rotation for 'bond'
+
+        Note that typically you would use the rotation_for_bond method rather than
+        calling this directly, so that funny things don't happen if the rotation is
+        already active.
 
         Parameters
         ----------
@@ -74,7 +88,7 @@ class BondRotationManager(State):
         bond_rot = BondRotation(self.session, bond, ident, moving_side, one_shot)
 
         if not self.bond_rots:
-            from chimera.core.atomic import get_triggers
+            from chimerax.core.atomic import get_triggers
             self._handler_ID = get_triggers(session).add_handler('changes', self._changes_cb)
         self.bond_rots[ident] = bond_rot
         if not one_shot:
@@ -88,14 +102,20 @@ class BondRotationManager(State):
             if br.bond == bond:
                 return br
         if create:
-            return self.new_bond_rot(bond, **kw)
+            return self.new_rotation(bond, **kw)
         return None
+
+    def rotation_for_ident(self, ident):
+        try:
+            return self.bond_rots[ident]
+        except KeyError:
+            raise BondRotationError("No such bond rotation ident: %s" % ident)
 
     def _changes_cb(self, trig_name, changes):
         if changes.num_deleted_bonds() > 0:
             for br in list(self.bond_rots.values()):
                 if br.bond == bond:
-                    self.delete_bond_rot(br)
+                    self.delete_rotation(br)
         new_bonds = changes.created_bonds(include_new_structures=False)
         if new_bonds:
             nb_structures = new_bonds.unique_structures
@@ -103,7 +123,7 @@ class BondRotationManager(State):
                 if br.structure in nb_structures:
                     if br.bond.rings(cross_residues=True):
                         # new bond closed a cycle involving bond-rotation bond
-                        self.delete_bond_rot(br)
+                        self.delete_rotation(br)
 
         changed_structures = set()
         if 'active_coordset changed' in changes.structure_reasons():
