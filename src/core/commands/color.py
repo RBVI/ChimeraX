@@ -17,6 +17,19 @@ _SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "by
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
 
+DEFAULT_TARGET = 'acslbpd'
+WHAT_TARGET = {
+    'atoms':'a',
+    'cartoons':'c', 'ribbons':'c',
+    'surfaces':'s',
+    'labels': 'l',
+    'bonds':'b',
+    'pseudobonds':'p',
+    # 'distances': 'd',  # TODO: conflicts with distance argument
+    'All': DEFAULT_TARGET
+}
+
+
 def color(session, objects, color=None, what=None,
           target=None, transparency=None,
           sequential=None, palette=None, halfbond=None,
@@ -64,19 +77,17 @@ def color(session, objects, color=None, what=None,
     if color == "byhetero":
         atoms = atoms.filter(atoms.element_numbers != 6)
 
-    default_target = (target is None and what is None)
+    default_target = (target is None and what is None) or (what is not None and 'All' in what)
     if default_target:
-        target = 'acslbpd'
+        target = DEFAULT_TARGET
     if target and 'r' in target:
         target += 'c'
 
     if what is not None:
-        what_target = {'atoms':'a', 'cartoons':'c', 'ribbons':'c',
-                       'surfaces':'s', 'bonds':'b', 'pseudobonds':'p'}
         if target is None:
             target = ''
         for w in what:
-            target += what_target[w]
+            target += WHAT_TARGET[w]
 
     from ..undo import UndoState
     undo_state = UndoState(undo_name)
@@ -477,7 +488,7 @@ def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg, ObjectsArg, create_alias
     from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg
     from ..map import MapArg
-    what_arg = ListOf(EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds')))
+    what_arg = ListOf(EnumOf((*WHAT_TARGET.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),
                              ('what', what_arg)],

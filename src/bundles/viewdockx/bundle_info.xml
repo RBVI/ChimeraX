@@ -57,7 +57,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
 ]
     <ChimeraXClassifier>ChimeraX :: Tool :: ViewDockX :: General :: display docking results</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: viewdockx :: General :: display docking results</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: viewdockx :: General :: Display docking results</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: DataFormat :: mol2 :: :: Molecule structure :: .mol2 :: :: :: :: :: mol2 format :: utf-8</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: mol2 :: mol2 ::</ChimeraXClassifier>
 ]

@@ -1144,7 +1144,7 @@ class BondsArg(ObjectsArg):
     @classmethod
     def parse(cls, text, session):
         objects, used, rest = super().parse(text, session)
-        bonds = objects.atoms.intra_bonds
+        bonds = objects.bonds
         return bonds, used, rest
 
 

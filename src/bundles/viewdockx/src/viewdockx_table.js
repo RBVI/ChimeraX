@@ -200,6 +200,12 @@ var vdxtable = function() {
             $(".structure_row").on("mousemove", mouse_update);
         });
         $(".structure_row").mouseup(function(e) {
+            if (mouse_last_index == null) {
+                // Just a simple click.  Update mouse if ctrl key
+                // was pressed or current row not already selected.
+                if (mouse_down_ctrl || !$(this).hasClass("selected"))
+                    mouse_update(e);
+            }
             mouse_down_row = null;
             mouse_down_index = null;
             mouse_last_index = null;

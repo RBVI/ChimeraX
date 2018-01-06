@@ -29,6 +29,7 @@ def register_core_selectors(session):
     reg("nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False), logger)
     reg("pbonds", _pbonds_selector, logger)
     reg("hbonds", _hbonds_selector, logger)
+    reg("hbondatoms", _hbondatoms_selector, logger)
     reg("backbone", _backbone_selector, logger)
     reg("mainchain", _backbone_selector, logger)
     reg("sidechain", _sidechain_selector, logger)
@@ -189,6 +190,18 @@ def _hbonds_selector(session, models, results):
     results.add_pseudobonds(pbonds)
     for m in pbonds.unique_groups:
         results.add_model(m)
+
+def _hbondatoms_selector(session, models, results):
+    from ..atomic import Pseudobonds, PseudobondGroup, concatenate
+    pbonds = concatenate([pbg.pseudobonds for pbg in models
+                          if isinstance(pbg, PseudobondGroup)
+                          and pbg.category == 'hydrogen bonds'],
+                         Pseudobonds)
+    if len(pbonds) > 0:
+        atoms = concatenate(pbonds.atoms)
+        results.add_atoms(atoms)
+        for m in atoms.unique_structures:
+            results.add_model(m)
 
 def _backbone_selector(session, models, results):
     from ..atomic import Structure, structure_atoms

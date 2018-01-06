@@ -59,11 +59,11 @@ Sample Files
 
 The files in the ``tut_read`` folder are:
 
-``tut_read`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``io.py`` - source code to read XYZ format files
+- ``tut_read`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``io.py`` - source code to read XYZ format files
 
 The file contents are shown below.
 
@@ -194,7 +194,7 @@ of a list of structures and a status message.  The ``open_xyz`` code
 simply initializes an empty list of structures (line 10) and repeatedly
 calls ``_read_block`` until the entire file is read (lines 14-20).
 When ``read_block`` successfully reads a block, it returns an instance
-of ``chimerax.core.atomic.AtomicStructure``, which is added to the
+of :py:class:`chimerax.core.atomic.AtomicStructure`, which is added to the
 structure list (line 18); otherwise, it returns **None** which
 terminates the block-reading loop (lines 16-17).
 A status message is constructed from the total number of structures,
@@ -206,15 +206,16 @@ ChimeraX for display (line 23).
 
 1. read the number of atoms in the block (lines 32-43).
 2. build an empy atomic structure to which atoms will be added
-   (lines 45-51).  The ``chimerax.core.atomic.AtomicStructure`` instance
-   is created on line 50, and a ``chimerax.core.atomic.Residue`` instance
+   (lines 45-51).  The :py:class:`chimerax.core.atomic.AtomicStructure`
+   instance is created on line 50, and a
+   :py:class:`chimerax.core.atomic.Residue` instance
    is created on line 51.  The latter is required because ChimeraX
    expects every atom in a structure to be part of exactly one residue
    in the same structure.  Even though XYZ format does not support the
    concept of residues, a *dummy* one is created anyway.
 3. skip the comment line (lines 61-63).
 4. loop over the expected number of atoms and add them to the structure
-   (lines 66-94).  The construction of a ``chimerax.core.atomic.Atom``
+   (lines 66-94).  The construction of a :py:class:`chimerax.core.atomic.Atom`
    instance is somewhat elaborate (lines 80-94).  First, the atom
    parameters are prepared: the atomic coordinates are extracted from
    the input (line 84), and the atom name is constructed from the

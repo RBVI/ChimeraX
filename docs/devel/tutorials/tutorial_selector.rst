@@ -57,11 +57,11 @@ Sample Files
 
 The files in the ``tut_sel`` folder are:
 
-``tut_sel`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``selector.py`` - source code to define target selector
+- ``tut_sel`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``selector.py`` - source code to define target selector
 
 The file contents are shown below.
 
@@ -123,11 +123,11 @@ In this example, the method is called a single time
 with selector name ``endres``.
 
 The arguments to ``register_selector``, in bundle API version 1,
-are ``bi``, a ``chimerax.core.toolshed.BundleInfo`` instance,
-``si``, a ``chimerax.core.toolshed.SelectorInfo`` instance, and
-``logger``, a ``chimerax.core.logger.Logger`` instance.
+are ``bi``, a :py:class:`chimerax.core.toolshed.BundleInfo` instance,
+``si``, a :py:class:`chimerax.core.toolshed.SelectorInfo` instance, and
+``logger``, a :py:class:`chimerax.core.logger.Logger` instance.
 The method is expected to call
-``chimerax.core.commands.register_selector`` to define
+:py:class:`chimerax.core.commands.register_selector` to define
 a selector whose name is given by ``si.name``.
 Note that there is no ``session`` argument because, like commands,
 selectors are session-independent; that is, once registered, a selector
@@ -135,7 +135,7 @@ may be used in any session.
 
 
 ``selector.py``
-----------
+---------------
 
 ``selector.py`` defines both the callback function, ``_select_endres``,
 that is invoked when ``endres`` is encountered in a target specification,
@@ -150,16 +150,16 @@ selector callback functions using the same registration function.
 When ``register`` is called from ``__init__.bundle_api.register_selector``,
 it looks up the callback function associated
 with the given selector name using the ``_selector_func`` dictionary,
-and registers it using ``chimerax.core.commands.register_selector``.
+and registers it using :py:class:`chimerax.core.commands.register_selector`.
 
 A selector callback function is invoked with three arguments:
-``session``, a ``chimerax.core.session.Session`` instance,
-``models``, a list of ``chimerax.core.models.Model`` instances, and
-``results``, a ``chimerax.core.objects.Objects`` instance.
+``session``, a :py:class:`chimerax.core.session.Session` instance,
+``models``, a list of :py:class:`chimerax.core.models.Model` instances, and
+``results``, a :py:class:`chimerax.core.objects.Objects` instance.
 The callback function is expected to process all the given ``models``
 and add items of interest to ``results``.  Currently, the only items
-that can be added are instances of ``chimerax.core.models.Model``,
-``chimerax.core.atomic.Atom`` and ``chimerax.core.atomic.Bond``.
+that can be added are instances of :py:class:`chimerax.core.models.Model`,
+:py:class:`chimerax.core.atomic.Atom` and :py:class:`chimerax.core.atomic.Bond`.
 Typically, ``Model`` instances are only added explicitly for
 non-atomic models.  More commonly, atoms (and bonds) are added
 using the ``results.add_atoms`` method.
