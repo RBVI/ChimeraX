@@ -12,11 +12,7 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-.. _ChimeraX Toolshed: https://cxtoolshed.rbvi.ucsf.edu/
-.. _Python wheel: https://wheel.readthedocs.org/
-.. _Python package: https://docs.python.org/3/tutorial/modules.html#packages
-.. _eXtensible Markup Language: https://en.wikipedia.org/wiki/XML
-.. _Python package setup scripts: https://docs.python.org/3/distutils/setupscript.html
+.. include:: references.rst
 
 .. _Bundle Example\: Hello World:
 

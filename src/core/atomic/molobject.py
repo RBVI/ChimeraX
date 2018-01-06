@@ -1842,7 +1842,7 @@ class StructureData:
 
            'index' defaults to one more than highest existing index (or 1 if none existing);
            'size' is for efficiency when creating the first coordinate set of a new Structure,
-               and is otherwise unnecessary to specify
+           and is otherwise unnecessary to specify
         '''
         if index is None:
             f = c_function('structure_new_coordset_default', args = (ctypes.c_void_p,))

@@ -118,7 +118,7 @@ Bundle Python Code
   files for additional information.
 
   - The ``bundle_api`` object must be an instance of a class
-    derived from ``chimerax.core.toolshed.BundleAPI``, which
+    derived from :py:class:`chimerax.core.toolshed.BundleAPI`, which
     defines methods ChimeraX uses to get bundles to:
    
       - start graphical interfaces (``start_tool``),

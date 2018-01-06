@@ -41,8 +41,19 @@ target="_blank">121p</a>)
 </p><p>
 After one or more files of
 <a href="../commands/open.html#docking">docking results</a> have been
-opened, choosing <b>ViewDockX</b> from the <b>Tools</b> menu shows a table 
-listing the different compounds or poses.
+opened, a table listing the different compounds or poses
+can be shown by choosing <b>ViewDockX</b> from the <b>Tools</b> menu
+or by using the command:
+</p>
+<blockquote>
+<b>viewdockx</b>
+<br>&ndash; or &ndash;<br>
+<b>viewdockx 
+&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>docked-compound-models</i></a></b>
+</blockquote>
+<p>
+...the latter to limit the table to only a subset of the docked compound
+models currently open.
 The <a href="#table"><b>ViewDockX</b> table</a> and associated 
 <a href="#plots">plots</a> can be manipulated
 like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
@@ -85,11 +96,13 @@ vs. one or more numerical descriptors (table columns)
 the number of H-bonds between each compound and all other atoms
 (excluding the other docked compounds), using the
 <a href="../commands/hbonds.html"><b>hbonds</b></a> command
+<!-- hbonds [dock-models] restrict cross reveal true -->
 <li><b>Add Clashes</b> 
 - calculate and show as a column 
 the number of clashes between each compound and all other atoms
 (excluding the other docked compounds), using the
 <a href="../commands/clashes.html"><b>clashes</b></a> command
+<!-- clashes [dock-models] test others reveal true -->
 <li><b>Save...</b> for all table rows, save structures and descriptors 
 (including current star ratings) to a Mol2 file; the file can be
 reopened later for further analysis with <b>ViewDockX</b>
@@ -126,5 +139,5 @@ that the compound is currently shown.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2017</address>
+January 2018</address>
 </body></html>

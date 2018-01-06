@@ -12,17 +12,7 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-.. _Cytoscape: http://www.cytoscape.org/
-.. _Mozilla Firefox: https://www.mozilla.org/firefox/
-.. _ChimeraX Toolshed: https://cxtoolshed.rbvi.ucsf.edu/
-.. _Cytoscape App Store: http://apps.cytoscape.org/
-.. _Python wheel: https://wheel.readthedocs.org/
-.. _Python package: https://docs.python.org/3/tutorial/modules.html#packages
-.. _eXtensible Markup Language: https://en.wikipedia.org/wiki/XML
-.. _PyQt: https://riverbankcomputing.com/software/pyqt/intro
-.. _C and C++ Extensions: https://docs.python.org/3/extending/building.html
-.. _CPython: https://en.wikipedia.org/wiki/CPython
-.. _semantic versioning: http://semver.org
+.. include:: references.rst
 
 
 ===========================
@@ -221,13 +211,34 @@ The easiest way to start developing ChimeraX
 bundles is to follow these tutorials
 for building example bundles:
 
-- :doc:`tutorial_hello`
-- :doc:`tutorial_command`
-- :doc:`tutorial_tool`
-- :doc:`tutorial_read_format`
-- :doc:`tutorial_save_format`
-- :doc:`tutorial_fetch`
-- :doc:`tutorial_selector`
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_hello
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_command
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_tool
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_read_format
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_save_format
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_fetch
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_selector
 
 Each tutorial builds on the previous but may also
 be used as reference for adding a specific type of

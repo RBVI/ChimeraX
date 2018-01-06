@@ -12,7 +12,7 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-.. include:: reference.rst
+.. include:: references.rst
 
 .. _Bundle Example\: Add a Tool:
 
@@ -150,9 +150,9 @@ submenu of the ``Tools`` menu.  (The ``Tutorial GUI`` and
 in ``bundle_info.xml`` as described above.)
 
 The arguments to ``start_tool``, in bundle API version 1,
-are ``session``, a ``chimerax.core.session.Session`` instance,
-``bi``, a ``chimerax.core.toolshed.BundleInfo`` instance, and
-``ti``, a ``chimerax.core.toolshed.ToolInfo`` instance.
+are ``session``, a :py:class:`chimerax.core.session.Session` instance,
+``bi``, a :py:class:`chimerax.core.toolshed.BundleInfo` instance, and
+``ti``, a :py:class:`chimerax.core.toolshed.ToolInfo` instance.
 ``session`` is used to access other available data such as
 open models, running tasks and the logger for displaying messages,
 warnings and errors.  ``bi`` contains the bundle information and
@@ -175,7 +175,7 @@ menu item from the ``Tools`` menu.
     :language: python
     :linenos:
 
-``chimerax.core.ui.HtmlToolInstance`` is the base class for
+:py:class:`chimerax.core.ui.HtmlToolInstance` is the base class for
 simplifying construction of tools with HTML-based graphical
 interface.  When an instance of a subclass of ``HtmlToolInstance``
 is created, its constructor must call the ``HtmlToolInstance``
@@ -187,7 +187,7 @@ it is only a hint and may not be honored.
 The superclass constructor creates a ChimeraX tool which contains
 a single widget for displaying an HTML page.  The widget is
 accessible using the ``html_view`` attribute, an instance of
-``chimerax.core.ui.widgets.HtmlView``.  In this example, the
+:py:class:`chimerax.core.ui.widgets.HtmlView`.  In this example, the
 ``TutorialGUI`` constructor calls its superclass constructor
 and then its own ``_build_ui`` method, which simply constructs
 the URL to a static HTML file in the bundle Python package and
@@ -226,7 +226,7 @@ For the other commands, known query fields are ``target``,
 ``model``, ``color``, ``count``, ``weighted`` and ``transformed``.
 The command names and query fields are combined to generate
 a ChimeraX command string, which is then executed using
-``chimerax.core.commands.run``.  The main benefit of executing
+:py:func:`chimerax.core.commands.run`.  The main benefit of executing
 a command string is automatic display of command and replies
 in the ChimeraX log.
 
@@ -270,7 +270,7 @@ should appear in the ChimeraX log.
 
 
 ``gui.html``
-----------
+------------
 
 ``gui.html`` is an `HTML 5`_ file containing the skeleton of
 the graphical user interface, consisting of a form with multiple
