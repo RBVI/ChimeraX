@@ -367,6 +367,13 @@ class Volume(Model):
       self.set_parameters(solid_colors = [(r,g,b,a1) for r,g,b,a in self.solid_colors])
     self._drawings_need_update()
     
+    # Update transparency on per-vertex coloring
+    for s in self.surface_drawings:
+      vc = s.vertex_colors
+      if vc is not None:
+        vc[:,3] = alpha
+        s.vertex_colors = vc
+
   # ---------------------------------------------------------------------------
   #
   def new_region(self, ijk_min = None, ijk_max = None, ijk_step = None,
