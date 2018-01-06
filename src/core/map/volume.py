@@ -1,3 +1,4 @@
+
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -364,7 +365,7 @@ class Volume(Model):
       self.set_parameters(surface_colors = [(r,g,b,a1) for r,g,b,a in self.surface_colors])
     else:
       self.set_parameters(solid_colors = [(r,g,b,a1) for r,g,b,a in self.solid_colors])
-    self.update_display()
+    self._drawings_need_update()
     
   # ---------------------------------------------------------------------------
   #
