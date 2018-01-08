@@ -1,5 +1,7 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
+:orphan:
+
 .. 
     === UCSF ChimeraX Copyright ===
     Copyright 2017 Regents of the University of California.
