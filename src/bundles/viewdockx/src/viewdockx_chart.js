@@ -115,55 +115,58 @@ var vdxchart = function() {
         var colormap = {};
         var next_color = 0;
         var series = [];
-        $(".graph:checked").each(function(i) {
-            var label = this.value;
-            var data = numeric[label];
-            colormap[label] = i;
-            next_color = i + 1;
-            series.push({
-                color: i,
-                points: { show: true },
-                lines: { show: true },
-                label: label,
-                xaxis: 2,
-                has_data:
-                    index2index.map(function(e, i) {
-                        return data[index2index[i]] != null;
-                    }),
-                data:
-                    index2index.map(function(e, i) {
-                        return [i, data[index2index[i]]];
-                    })
-            })
-        });
         var num_bins = parseInt($("#histbins").prop("value"));
-        $(".histogram:checked").each(function() {
+        $(".graph:checked, .histogram:checked").each(function(i) {
             var label = this.value;
             var data = numeric[label];
-            var color = colormap[label];
-            if (color == null) {
-                color = next_color;
-                next_color += 1;
+            var color = i;
+            if (colormap[label] != null) {
+                color = colormap[label];
+                legend = null;
+            } else {
+                colormap[label] = i;
+                next_color = i + 1;
+                legend = label;
             }
-            var hist = histograms[label];
-            if (!hist || hist.length != num_bins) {
-                hist = make_bins(data, num_bins);
-                histograms[label] = hist;
+            if ($(this).hasClass("graph")) {
+                series.push({
+                    color: color,
+                    points: { show: true },
+                    lines: { show: true },
+                    label: legend,
+                    xaxis: 2,
+                    has_data:
+                        index2index.map(function(e, i) {
+                            return data[index2index[i]] != null;
+                        }),
+                    data:
+                        index2index.map(function(e, i) {
+                            return [i, data[index2index[i]]];
+                        })
+                })
             }
-            series.push({
-                name: label,
-                color: color,
-                bars: {
-                    show: true,
-                    align: "center",
-                    barWidth: hist.width,
-                    lineWidth: 1,
-                    fill: 0.2,
-                    horizontal: true,
-                },
-                data: hist.data,
-                xaxis: 3
-            });
+            if ($(this).hasClass("histogram")) {
+                var hist = histograms[label];
+                if (!hist || hist.length != num_bins) {
+                    hist = make_bins(data, num_bins);
+                    histograms[label] = hist;
+                }
+                series.push({
+                    name: label,
+                    color: color,
+                    label: legend,
+                    bars: {
+                        show: true,
+                        align: "center",
+                        barWidth: hist.width,
+                        lineWidth: 1,
+                        fill: 0.2,
+                        horizontal: true,
+                    },
+                    data: hist.data,
+                    xaxis: 3
+                });
+            }
         });
 
         // Show the data
