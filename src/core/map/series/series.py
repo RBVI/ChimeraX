@@ -46,7 +46,12 @@ class MapSeries(Model):
     v0.display = True	# Show first map of series
     for v in maps[1:]:
       v.display = False
-
+  
+  # ---------------------------------------------------------------------------
+  #
+  def first_map(self):
+    return self.maps[0] if self.maps else None
+  
   # ---------------------------------------------------------------------------
   #
   def number_of_times(self):
