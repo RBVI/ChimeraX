@@ -3,6 +3,7 @@
 var vdxtable = function() {
     var custom_scheme = "vdxtable";
     var rating_column = "viewdockx_rating";
+    var rating_clicked = false;
     var mouse_down_row = null;
     var mouse_down_index = null;
     var mouse_last_index = null;
@@ -22,13 +23,11 @@ var vdxtable = function() {
         // Create table headers
         var thead = $("<thead/>");
         var row = $("<tr/>");
-        // column 1 is the sort/show column for numeric data
-        row.append($("<th/>").text("S"));
-        // column 2 is for ratings
+        // column 1 is for ratings
         row.append($("<th/>").text("RATING"));
-        // column 3 is for ids
+        // column 2 is for ids
         row.append($("<th/>").text("ID"));
-        // column 4 is for names, if present
+        // column 3 is for names, if present
         var names = text["name"];
         if (names != null)
             row.append($("<th/>").text("NAME"));
@@ -53,20 +52,11 @@ var vdxtable = function() {
             var row = $("<tr/>", { class: "structure_row",
                                    title: id,
                                    id: _row_id(id) });
-            var query = "?id=" + id;
-            var checkbox_url = custom_scheme + ":checkbox" + query;
-            var link_url = custom_scheme + ":link" + query;
-            row.append($("<td/>").append($("<input/>", {
-                                            type: "checkbox",
-                                            class: "structure",
-                                            title: id,
-                                            id: _checkbox_id(id),
-                                            href: checkbox_url })));
             row.append($("<td/>").append($("<div/>", {
+                                            class: "rating",
                                             title: id,
                                             id: _rating_id(id) })));
-            row.append($("<td/>").append($("<a/>", { href: link_url })
-                                            .text(id)));
+            row.append($("<td/>").text(id));
             if (names != null)
                 row.append($("<td/>").text(names[i]));
             $.each(text_order, function(n, key) {
@@ -91,7 +81,7 @@ var vdxtable = function() {
                     var ids;
                     if ($(this).parents(".selected").length > 0) {
                         // Already selected
-                        ids = $("tr.selected .structure").map(
+                        ids = $("tr.selected").map(
                                 function () {
                                     return $(this).prop("title");
                                 }).get().join();
@@ -137,28 +127,9 @@ var vdxtable = function() {
         $("#viewdockx_table").tablesorter({
             theme: 'blue',
             headers: {
-                0: { sorter: false },
-                1: { sorter: 'rating_col' },
-                2: { sorter: 'id_col' }
+                0: { sorter: 'rating_col' },
+                1: { sorter: 'id_col' }
             }
-        });
-        $(".structure").click(function(event) {
-            var display = $(this).is(":checked") ? 1 : 0;
-            var ids;
-            if ($(this).parents(".selected").length > 0) {
-                // Already selected
-                ids = $("tr.selected .structure").map(
-                        function () {
-                            return $(this).prop("title");
-                        }).get().join();
-                event.stopPropagation();
-            } else {
-                // Not yet selected
-                ids = $(this).prop("title");
-            }
-            var url = custom_scheme + ":checkbox?id=" + ids +
-                      "&display=" + display;
-            window.location = url;
         });
         function mouse_update(e) {
             var my_index = $(this).index();
@@ -183,7 +154,15 @@ var vdxtable = function() {
             }
             mouse_last_index = my_index;
         }
+        function update_shown() {
+            ids = $("tr.selected").map(function () {
+                            return $(this).prop("title");
+            }).get().join();
+            var url = custom_scheme + ":show_only?id=" + ids;
+            window.location = url;
+        }
         $(".structure_row").mousedown(function(e) {
+            rating_clicked = false;
             mouse_down_row = $(this);
             mouse_down_index = mouse_down_row.index();
             mouse_last_index = null;
@@ -199,28 +178,29 @@ var vdxtable = function() {
             // selection update.
             $(".structure_row").on("mousemove", mouse_update);
         });
+        $(".rating").mouseup(function(e) {
+            if ($(this).parent().parent().hasClass("selected"))
+                rating_clicked = true;
+        });
         $(".structure_row").mouseup(function(e) {
-            if (mouse_last_index == null) {
-                // Just a simple click.  Update mouse if ctrl key
-                // was pressed or current row not already selected.
-                if (mouse_down_ctrl || !$(this).hasClass("selected"))
+            $(".structure_row").off("mousemove");
+            if (!rating_clicked) {
+                if (mouse_last_index == null)
                     mouse_update(e);
+                update_shown();
             }
+            rating_clicked = false;
             mouse_down_row = null;
             mouse_down_index = null;
             mouse_last_index = null;
             mouse_down_ctrl = null;
             mouse_down_selected = null
-            $(".structure_row").off("mousemove");
         });
     }
 
     // jQuery does not like '.' in id names even though JS does not care
     function _row_id(id) {
         return "row_" + id.replace('.', '_', 'g');
-    }
-    function _checkbox_id(id) {
-        return "cb_" + id.replace('.', '_', 'g');
     }
     function _rating_id(id) {
         return "rt_" + id.replace('.', '_', 'g');
@@ -229,8 +209,10 @@ var vdxtable = function() {
     function update_display(new_display) {
         for (var i = 0; i < new_display.length; i++) {
             var id = new_display[i][0];
-            var checked = new_display[i][1];
-            $("#" + _checkbox_id(id)).prop("checked", checked);
+            if (new_display[i][1])
+                $("#" + _row_id(id)).addClass("selected");
+            else
+                $("#" + _row_id(id)).removeClass("selected");
         }
     }
 
@@ -287,7 +269,7 @@ var vdxtable = function() {
         });
 
         $("#show_all_btn").click(function() {
-            window.location = custom_scheme + ":check_all?show_all=true";
+            window.location = custom_scheme + ":show_all";
         });
         $("#graph_btn").click(function() {
             window.location = custom_scheme + ":graph";
