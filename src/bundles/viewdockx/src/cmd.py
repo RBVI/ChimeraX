@@ -8,5 +8,5 @@ def viewdock(session, structures=None):
     if structures is None:
         structures = session.models.list(type=AtomicStructure)
     from .tool import TableTool
-    return TableTool(session, "viewdock", structures=structures)
+    return TableTool(session, "ViewDockX", structures=structures)
 viewdock_desc = CmdDesc(optional=[("structures", AtomicStructuresArg)])
