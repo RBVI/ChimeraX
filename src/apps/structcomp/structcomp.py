@@ -270,7 +270,7 @@ def mmcif_id(mmcif_file):
 
 
 def compare_all(session):
-    from datetime import datetime, timedelta
+    from datetime import datetime
     start_time = datetime.now()
     pdb_files = file_gen(PDB_DIR)
     mmcif_files = file_gen(MMCIF_DIR)
@@ -306,17 +306,6 @@ def compare_all(session):
         pdb_info = next_info(pdb_files)
         mmcif_info = next_info(mmcif_files)
     end_time = datetime.now()
-    delta = end_time - start_time
-    days = delta // timedelta(days=1)
-    delta -= days * timedelta(days=1)
-    hours = delta // timedelta(hours=1)
-    delta -= hours * timedelta(hours=1)
-    minutes = delta // timedelta(minutes=1)
-    delta -= minutes * timedelta(minutes=1)
-    seconds = delta // timedelta(seconds=1)
-    delta -= seconds * timedelta(seconds=1)
-    microseconds = delta // timedelta(microseconds=1)
-    print('Total time: %d days, %d hours, %d minutes, %d seconds, %d microseconds' % (days, hours, minutes, seconds, microseconds))
     print('Total time: %s' % (end_time - start_time))
     raise SystemExit(os.EX_OK if all_same else os.EX_DATAERR)
 
@@ -340,7 +329,7 @@ def compare_id(session, pdb_id):
 def usage():
     import sys
     print(
-        'usage: %s: [-a] [-h] [--all] [--help] [pdb_id(s)]' % sys.argv[0])
+        'usage: %s: [-a|--all] [-h|--help] [pdb_id(s)]' % sys.argv[0])
     print(
         '''Compare the structures produced by the PDB and mmCIF readers.
         Give one or more pdb identifiers to compare just those structures.
@@ -353,9 +342,9 @@ def main():
     import sys
     try:
         opts, args = getopt.getopt(
-            sys.argv[1:], "ahi:", ["all", "help"])
+            sys.argv[1:], "ah", ["all", "help"])
     except getopt.GetoptError as err:
-        session.logger.error(err)
+        session.logger.error(str(err))
         usage()
         raise SystemExit(os.EX_USAGE)
     all = False

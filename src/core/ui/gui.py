@@ -461,7 +461,12 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         def _qt_safe(session=session, paths=paths):
             from ..commands import run, quote_if_necessary
-            run(session, "; ".join(["open " + quote_if_necessary(p) for p in paths]))
+            if len(paths) == 1:
+                run(session, "open " + quote_if_necessary(paths[0]))
+            else:
+                # Open multiple files as a single batch.
+                # TODO: Make open command handle this including saving in file history.
+                session.models.open(paths)
 
         # Opening the model directly adversely affects Qt interfaces that show
         # as a result.  In particular, Multalign Viewer no longer gets hover

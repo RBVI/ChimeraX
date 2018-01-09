@@ -39,12 +39,12 @@ all:
 ifdef WIN32
 
 install:
-	$(PIP_INSTALL) $(WHEEL)
-	(cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch
+	$(PIP_INSTALL) $(WHEEL) | grep "not upgraded" || \
+		(cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch
 
 app-install:
-	$(APP_PIP_INSTALL) $(WHEEL)
-	(cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch
+	$(APP_PIP_INSTALL) $(WHEEL) | grep "not upgraded" || \
+		(cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch
 
 else
 

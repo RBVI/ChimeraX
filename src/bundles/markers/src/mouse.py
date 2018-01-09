@@ -123,8 +123,9 @@ class MarkerMouseMode(MouseMode):
         if a1 is a2 or a1.connects_to(a2):
             return False
 
+        ms = _mouse_marker_settings(self.session)
         from .markers import create_link
-        b = create_link(a1, a2)
+        b = create_link(a1, a2, radius = ms['link radius'])
         s.logger.status('Made connection, distance %.3g' % b.length)
         return True
 
@@ -380,7 +381,7 @@ def _mouse_place_marker(session, center, link_to_selected = False, select = True
             al = atoms[0]
             if a.structure == al.structure and a is not al:
                 from .markers import create_link
-                create_link(al, a)
+                create_link(al, a, radius = ms['link radius'])
     if select:
         session.selection.clear()
         a.selected = True

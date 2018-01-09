@@ -158,16 +158,21 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
     if reveal:
         # display sidechain or backbone as appropriate for undisplayed atoms
         reveal_atoms = clash_atoms.filter(clash_atoms.displays == False)
+        reveal_residues = reveal_atoms.unique_residues
         sc_rv_atoms = reveal_atoms.filter(reveal_atoms.is_side_chains == True)
         if sc_rv_atoms:
-            sc_res_atoms = sc_rv_atoms.unique_residues.atoms
+            sc_residues = sc_rv_atoms.unique_residues
+            sc_res_atoms = sc_residues.atoms
             sc_res_atoms.filter(sc_res_atoms.is_side_chains == True).displays = True
-        bb_rv_atoms = reveal_atoms.filter(reveal_atoms.is_backbones == True)
+            reveal_residues = reveal_residues - sc_residues
+        bb_rv_atoms = reveal_atoms.filter(reveal_atoms.is_backbones() == True)
         if bb_rv_atoms:
-            bb_res_atoms = bb_rv_atoms.unique_residues.atoms
-            bb_res_atoms.filter(bb_res_atoms.is_backbones == True).displays = True
+            bb_residues = bb_rv_atoms.unique_residues
+            bb_res_atoms = bb_residues.atoms
+            bb_res_atoms.filter(bb_res_atoms.is_backbones() == True).displays = True
+            reveal_residues = reveal_residues - bb_residues
         # also reveal non-polymeric atoms
-        reveal_atoms.displays = True
+        reveal_residues.atoms.displays = True
     if make_pseudobonds:
         if len(attr_atoms.unique_structures) > 1:
             pbg = session.pb_manager.get_group(name)

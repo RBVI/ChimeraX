@@ -5,6 +5,19 @@ from chimerax.core.ui import HtmlToolInstance
 
 class _BaseTool:
 
+    # _BaseTool provides some shared code, including setup
+    # and manipulation of models.
+    #
+    # Note that _BaseTool is inherited first by TableTool,
+    # ChartTool and PlotTool because its "delete" method must
+    # override the one from HtmlToolInstance so that we can
+    # clean up when the window is closed.  However, this
+    # means that we have to either
+    # (a) call # HtmlToolInstance.__init__() explicitly
+    #     instead of using super(), or
+    # (b) not have an __init__ method in _BaseTool.
+    # We chose the latter for now.
+
     def setup(self, session, structures):
         #
         # Set attributes that may be examined during delete.
@@ -197,7 +210,7 @@ class _BaseTool:
                 s.display = onoff
 
 
-class TableTool(HtmlToolInstance, _BaseTool):
+class TableTool(_BaseTool, HtmlToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = False
@@ -232,15 +245,11 @@ class TableTool(HtmlToolInstance, _BaseTool):
         query = parse_qs(url.query())
         method(query)
 
-    def _cb_check_all(self, query):
+    def _cb_show_all(self, query):
         """shows or hides all structures"""
-        self.show_set(None, query["show_all"][0] == "true")
+        self.show_set(None, True)
 
-    def _cb_checkbox(self, query):
-        """shows or hides individual structure"""
-        self.show_set(query["id"][0], query["display"][0] != "0")
-
-    def _cb_link(self, query):
+    def _cb_show_only(self, query):
         """shows only selected structure"""
         self.show_only(query["id"][0])
 
@@ -339,7 +348,7 @@ class OutputCache(StringIO):
         super().close(*args, **kw)
 
 
-class ChartTool(HtmlToolInstance, _BaseTool):
+class ChartTool(_BaseTool, HtmlToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = False
@@ -373,7 +382,7 @@ class ChartTool(HtmlToolInstance, _BaseTool):
         self.show_toggle(query["id"][0])
 
 
-class PlotTool(HtmlToolInstance, _BaseTool):
+class PlotTool(_BaseTool, HtmlToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = False
