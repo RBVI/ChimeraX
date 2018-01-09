@@ -68,17 +68,27 @@ like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
 In the table of docking results, the rows are different compounds or
 different positions of a compound, and the columns show additional data
 read from the input, typically including compound names
-and docking scores. The first three columns are generated automatically:
+and docking scores. The first two columns are generated automatically:
 <p>
 <ul>
-<li><b>S</b> - show/hide checkboxes
 <li><b>RATING</b> - star rating
-<li><b>ID</b> - model identification number, 
-which can be clicked to show the model and hide all others listed in the table
+<li><b>ID</b> - model identification number
 </ul>
 <p>
 Any additional columns that appear when <b>ViewDockX</b> is first started
 reflect information read from the input file(s).
+</p><p>
+<a name="choosing"></a>
+One or more docked compounds can be shown (and the others hidden) by
+<b><i>choosing</i></b> their rows in the table with the mouse.
+Chosen rows are highlighted in yellow.
+<!--
+A contiguous block of rows can be chosen with click-drag, or by
+clicking on the first (or last) and then Shift-clicking
+on the last (or first) in the desired block.
+Ctrl-click toggles a row between chosen and not chosen.
+-->
+</p><p>
 Available columns of information can be hidden from the table and reshown
 by clicking the arrowhead near the top right corner of the table
 and using the resulting checkbox menu. 
@@ -87,7 +97,7 @@ Clicking the header of a column sorts by the values in that column.
 Buttons above the table:
 </p>
 <ul>
-<li><b>Show All Structures</b> - show structures for all table rows
+<li><b>Show All Structures</b> - show all compounds listed in the table
 <li><b>Graph</b> - <a href="#plots">plot</a> compounds (table rows) 
 vs. one or more numerical descriptors (table columns)
 <li><b>Plot</b> - <a href="#plots">plot</a> a numerical descriptor vs. another
