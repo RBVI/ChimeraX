@@ -245,15 +245,11 @@ class TableTool(_BaseTool, HtmlToolInstance):
         query = parse_qs(url.query())
         method(query)
 
-    def _cb_check_all(self, query):
+    def _cb_show_all(self, query):
         """shows or hides all structures"""
-        self.show_set(None, query["show_all"][0] == "true")
+        self.show_set(None, True)
 
-    def _cb_checkbox(self, query):
-        """shows or hides individual structure"""
-        self.show_set(query["id"][0], query["display"][0] != "0")
-
-    def _cb_link(self, query):
+    def _cb_show_only(self, query):
         """shows only selected structure"""
         self.show_only(query["id"][0])
 
