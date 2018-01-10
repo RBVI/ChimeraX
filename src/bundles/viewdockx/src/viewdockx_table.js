@@ -162,6 +162,8 @@ var vdxtable = function() {
             window.location = url;
         }
         $(".structure_row").mousedown(function(e) {
+            if (e.which != 1)   // Ignore if not left mouse
+                return;
             rating_clicked = false;
             mouse_down_row = $(this);
             mouse_down_index = mouse_down_row.index();
@@ -183,6 +185,8 @@ var vdxtable = function() {
                 rating_clicked = true;
         });
         $(".structure_row").mouseup(function(e) {
+            if (e.which != 1)   // Ignore if not left mouse
+                return;
             $(".structure_row").off("mousemove");
             if (!rating_clicked) {
                 if (mouse_last_index == null)
