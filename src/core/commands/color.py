@@ -606,6 +606,22 @@ def _set_surface_color_func(atoms, objects, session, func, undo_state=None):
 
 # -----------------------------------------------------------------------------
 #
+def _change_hue(colors, amount, tag):
+    from numpy import amin, amax, around, clip, remainder
+    from ..colors import rgb_to_hls, hls_to_rgb
+
+    min_rgb = amin(colors[:, 0:3], axis=1)
+    max_rgb = amax(colors[:, 0:3], axis=1)
+    chromatic_mask = min_rgb != max_rgb
+
+    hls = rgb_to_hls(colors[chromatic_mask, 0:3] / 255.0)
+    if tag == 'add':
+        hls[:, 0] = remainder(hls[:, 0] + amount, 1)
+    elif tag == 'set':
+        hls[:, 0] = clip(amount, 0, 1)
+    colors[chromatic_mask, 0:3] = clip(around(hls_to_rgb(hls) * 255.0), 0, 255)
+    return colors
+
 def _change_saturation(colors, amount, tag):
     from numpy import amin, amax, around, clip
     from ..colors import rgb_to_hls, hls_to_rgb
@@ -746,17 +762,35 @@ def _constrast(colors, amount):
     return colors
 
 
-ADJUST_TYPES = ('saturation', 'lightness', 'whiteness', 'blackness', 'tint', 'shade', 'contrast')
+# leave out 'tint' and 'shade' to avoid having to document them
+ADJUST_TYPES = ('hue', 'saturation', 'lightness', 'whiteness', 'blackness', 'contrast')
 OP_TYPES = ('+', '-', '*')
 
 
-def color_modify(session, objects, adjuster, op, percentage=None, what=None, target=None):
+def color_modify(session, objects, adjuster, op, number=None, what=None, target=None):
     from ..errors import UserError
-    if adjuster == 'contrast' and percentage is None:
+    if adjuster == 'hue':
+        amount = number / 360
+        if op == '+':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_hue(c, a, 'add'),
+                     "Changed hue of", "color hue")
+        elif op == '-':
+            color_func(session, objects, what, target,
+                     lambda c, a=-amount: _change_hue(c, a, 'add'),
+                     "Changed hue of", "color hue")
+        elif op == '*':
+            raise UserError("Unable to scale hue")
+        else:  # op == None
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_hue(c, a, 'set'),
+                     "Set hue of", "color hue")
+        return
+    if adjuster == 'contrast' and number is None:
         percentage = 100
-    elif percentage is None:
+    elif number is None:
         raise UserError('Missing percentage')
-    amount = percentage / 100
+    amount = number / 100
     if adjuster == 'saturation':
         if op == '+':
             color_func(session, objects, what, target,
@@ -885,7 +919,7 @@ def register_command(session):
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                              ('adjuster', adjust_arg),
                              ('op', Or(op_arg, EmptyArg)),
-                             ('percentage', Or(FloatArg, EmptyArg))],
+                             ('number', Or(FloatArg, EmptyArg))],
                    optional=[('what', what_arg)],
                    keyword=[('target', StringArg)],
                    synopsis="saturate color")
