@@ -7,7 +7,7 @@ var vdxtable = function() {
     var mouse_down_row = null;
     var mouse_down_index = null;
     var mouse_last_index = null;
-    var mouse_down_ctrl = null;
+    var mouse_down_toggle = null;
     var mouse_down_selected = null;
 
     function update_columns(columns) {
@@ -146,7 +146,7 @@ var vdxtable = function() {
                 all = $(this).prevUntil(mouse_down_row)
                              .addBack().add(mouse_down_row);
             $("tr.selected").removeClass("selected");
-            if (mouse_down_ctrl) {
+            if (mouse_down_toggle) {
                 mouse_down_selected.addClass("selected");
                 all.toggleClass("selected");
             } else {
@@ -168,7 +168,8 @@ var vdxtable = function() {
             mouse_down_row = $(this);
             mouse_down_index = mouse_down_row.index();
             mouse_last_index = null;
-            mouse_down_ctrl = e.ctrlKey;
+            // Windows/Linux want ctrl-key, Mac wants cmd-key
+            mouse_down_toggle = e.ctrlKey || e.metaKey;
             if (mouse_down_ctrl)
                 mouse_down_selected = $("tr.selected");
             else
