@@ -170,7 +170,7 @@ var vdxtable = function() {
             mouse_last_index = null;
             // Windows/Linux want ctrl-key, Mac wants cmd-key
             mouse_down_toggle = e.ctrlKey || e.metaKey;
-            if (mouse_down_ctrl)
+            if (mouse_down_toggle)
                 mouse_down_selected = $("tr.selected");
             else
                 mouse_down_selected = null;
@@ -198,7 +198,7 @@ var vdxtable = function() {
             mouse_down_row = null;
             mouse_down_index = null;
             mouse_last_index = null;
-            mouse_down_ctrl = null;
+            mouse_down_toggle = null;
             mouse_down_selected = null
         });
     }
