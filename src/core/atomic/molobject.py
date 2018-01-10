@@ -441,6 +441,12 @@ class Atom(State):
         '''
         return self.structure.scene_position * self.get_coord(crdset_or_altloc)
 
+    def use_default_radius(self):
+        '''If an atom's radius has previously been explicitly set, this call will
+        revert to using the default radius'''
+        f = c_function('atom_use_default_radius', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
+
     def reset_state(self, session):
         """For when the session is closed"""
         pass
@@ -2007,6 +2013,12 @@ class StructureData:
         f = c_function('set_structure_color',
                     args = (ctypes.c_void_p, ctypes.c_void_p))
         return f(self._c_pointer, pointer(rgba))
+
+    def use_default_atom_radii(self):
+        '''If some atoms' radii has previously been explicitly set, this call will
+        revert to using the default radii'''
+        f = c_function('structure_use_default_atom_radii', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def _ses_call(self, func_qual):
         f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))
