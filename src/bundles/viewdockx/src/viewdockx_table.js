@@ -7,7 +7,7 @@ var vdxtable = function() {
     var mouse_down_row = null;
     var mouse_down_index = null;
     var mouse_last_index = null;
-    var mouse_down_ctrl = null;
+    var mouse_down_toggle = null;
     var mouse_down_selected = null;
 
     function update_columns(columns) {
@@ -146,7 +146,7 @@ var vdxtable = function() {
                 all = $(this).prevUntil(mouse_down_row)
                              .addBack().add(mouse_down_row);
             $("tr.selected").removeClass("selected");
-            if (mouse_down_ctrl) {
+            if (mouse_down_toggle) {
                 mouse_down_selected.addClass("selected");
                 all.toggleClass("selected");
             } else {
@@ -162,12 +162,15 @@ var vdxtable = function() {
             window.location = url;
         }
         $(".structure_row").mousedown(function(e) {
+            if (e.which != 1)   // Ignore if not left mouse
+                return;
             rating_clicked = false;
             mouse_down_row = $(this);
             mouse_down_index = mouse_down_row.index();
             mouse_last_index = null;
-            mouse_down_ctrl = e.ctrlKey;
-            if (mouse_down_ctrl)
+            // Windows/Linux want ctrl-key, Mac wants cmd-key
+            mouse_down_toggle = e.ctrlKey || e.metaKey;
+            if (mouse_down_toggle)
                 mouse_down_selected = $("tr.selected");
             else
                 mouse_down_selected = null;
@@ -183,6 +186,8 @@ var vdxtable = function() {
                 rating_clicked = true;
         });
         $(".structure_row").mouseup(function(e) {
+            if (e.which != 1)   // Ignore if not left mouse
+                return;
             $(".structure_row").off("mousemove");
             if (!rating_clicked) {
                 if (mouse_last_index == null)
@@ -193,7 +198,7 @@ var vdxtable = function() {
             mouse_down_row = null;
             mouse_down_index = null;
             mouse_last_index = null;
-            mouse_down_ctrl = null;
+            mouse_down_toggle = null;
             mouse_down_selected = null
         });
     }

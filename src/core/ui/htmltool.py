@@ -18,7 +18,7 @@ class HtmlToolInstance(ToolInstance):
         parent = self.tool_window.ui_area
 
         # Check if class wants to handle custom scheme
-        kw = {}
+        kw = {"tool_window": self.tool_window}
         if size_hint is not None:
             kw["size_hint"] = size_hint
         try:
