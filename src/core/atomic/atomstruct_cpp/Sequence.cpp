@@ -230,6 +230,7 @@ Sequence::set_name(std::string& name)
         }
         Py_DECREF(ret);
     }
+    Py_DECREF(inst);
 }
 
 const Sequence::Contents&
