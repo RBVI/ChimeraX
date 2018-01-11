@@ -320,6 +320,7 @@ var vdxchart = function() {
                 { show: false },
                 { min: 0, max: 1 }
             ],
+            colors: colorbrewer.Set2[8],
             hooks: {
                 draw: [ redraw_highlights ]
             }
