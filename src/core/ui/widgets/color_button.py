@@ -113,8 +113,9 @@ class MultiColorButton(ColorButton):
                 test_icon = "multi%d.png" % max_size.width()
                 if os.path.exists(os.path.join(this_dir, "icons", test_icon)):
                     icon_file = test_icon
+            from urllib.request import pathname2url
             self.setStyleSheet("background-image: url(%s);"
-                % os.path.join(this_dir, "icons", icon_file))
+                % pathname2url(os.path.join(this_dir, "icons", icon_file)))
         else:
             ColorButton.set_color(self, color)
 

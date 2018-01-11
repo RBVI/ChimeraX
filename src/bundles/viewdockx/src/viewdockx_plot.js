@@ -37,11 +37,13 @@ var vdxplot = function() {
             $("#xaxis" + i).children().remove();
             $("#yaxis" + i).children().remove();
         }
+        var labels = [];
         $.each(numeric, function(r, v) {
             $("#column_table").append($("<tr/>").append(
                                         $("<td/>").text(r),
                                         $("<td/>").addClass("value")
-                                                  .prop("title", r)))
+                                                  .prop("title", r)));
+            labels.push(r);
             for (var i = 1; i < 3; i++) {
                 $("#xaxis" + i).append($("<option/>").prop("value", r)
                                                      .text(r));
@@ -49,6 +51,10 @@ var vdxplot = function() {
                                                      .text(r));
             }
         });
+        $("#xaxis1").val(labels[0]);
+        $("#yaxis1").val(labels[Math.min(1, labels.length - 1)]);
+        $("#xaxis2").val(labels[0]);
+        $("#yaxis2").val(labels[Math.min(2, labels.length - 1)]);
 
         update_plot();
     }
@@ -77,7 +83,7 @@ var vdxplot = function() {
         var ydata = numeric[yname];
         var label = xname + '-' + yname;
         series.push({
-            color: i,
+            color: i - 1,
             points: { show: true },
             label: label,
             xname: xname,
@@ -187,6 +193,7 @@ var vdxplot = function() {
                 { position: "left", autoscaleMargin: null },
                 { position: "right", autoscaleMargin: null },
             ],
+            colors: colorbrewer.Set2[3],
             hooks: {
                 draw: [ redraw_highlights ]
             }

@@ -99,6 +99,7 @@ StructureSeq::demote_to_sequence()
         }
         Py_DECREF(ret);
     }
+    Py_DECREF(inst);
     // let normal deletion processes clean up; don't explicitly delete here
 }
 

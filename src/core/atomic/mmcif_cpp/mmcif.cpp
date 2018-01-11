@@ -1755,7 +1755,7 @@ ExtractMolecule::parse_struct_conf()
 
         auto ari = all_residues.find(chain_id1);
         if (ari == all_residues.end()) {
-            logger::warning(_logger, "Invalid residue range for secondardy"
+            logger::warning(_logger, "Invalid residue range for secondary"
                             " structure \"", id, "\": invalid chain \"",
                             chain_id1, "\", near line ", line_number());
             continue;
