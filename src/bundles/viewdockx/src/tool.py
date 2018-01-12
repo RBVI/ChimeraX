@@ -5,6 +5,8 @@ from chimerax.core.ui import HtmlToolInstance
 
 class _BaseTool:
 
+    help = "help:user/tools/viewdockx.html"
+
     # _BaseTool provides some shared code, including setup
     # and manipulation of models.
     #
