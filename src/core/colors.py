@@ -19,7 +19,8 @@ A :py:class:`Color` class that hold a :py:class:`numpy.array` of
 four 32-bit floats.
 
 CSS3 colors are supported with the addition of the gray() specification
-from the CSS4 draft and the CSS4 color names.
+from the CSS4 color draft, https://www.w3.org/TR/css-color-4/, and CSS4
+color names.
 """
 from sortedcontainers import SortedDict
 from .state import State, CORE_STATE_VERSION
@@ -41,8 +42,10 @@ class UserColors(SortedDict, State):
         # only save differences from builtin colors
         cmap = {name: color for name, color in self.items()
                 if name not in BuiltinColors or color != BuiltinColors[name]}
-        data = {'colors':cmap,
-                'version': CORE_STATE_VERSION}
+        data = {
+            'colors': cmap,
+            'version': CORE_STATE_VERSION,
+        }
         return data
 
     @staticmethod
@@ -208,8 +211,10 @@ class UserColormaps(SortedDict, State):
     """
 
     def take_snapshot(self, session, flags):
-        data = {'colormaps': dict(self),
-                'version': CORE_STATE_VERSION,}
+        data = {
+            'colormaps': dict(self),
+            'version': CORE_STATE_VERSION,
+        }
         return data
 
     @staticmethod
@@ -312,7 +317,7 @@ class Colormap:
     def value_range(self):
         v = self.data_values
         return (v[0], v[-1])
-    
+
     def linear_range(self, min_value, max_value):
         import numpy
         v = numpy.linspace(min_value, max_value, len(self.colors))
@@ -321,7 +326,7 @@ class Colormap:
                         self.color_below_value_range,
                         self.color_no_value)
         return cmap
-    
+
     def rescale_range(self, value0, value1):
         '''Return new colormap with [0,1] range becoming [value0,value1].'''
         v = self.data_values.copy()
@@ -340,11 +345,12 @@ class Colormap:
 BuiltinColormaps['rainbow'] = Colormap(None, ((0, 0, 1, 1), (0, 1, 1, 1), (0, 1, 0, 1), (1, 1, 0, 1), (1, 0, 0, 1)))
 BuiltinColormaps['grayscale'] = Colormap(None, ((0, 0, 0, 1), (1, 1, 1, 1)))
 BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (1, 1, 1, 1), (0, 0, 1, 1)))
-#BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))
+# BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))
 BuiltinColormaps['blue-white-red'] = Colormap(None, ((0, 0, 1, 1), (1, 1, 1, 1), (1, 0, 0, 1)))
 BuiltinColormaps['cyan-white-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (1, 1, 1, 1), (0.62, 0.125, 0.37, 1)))
-#BuiltinColormaps['lipophilicity'] = Colormap(None, ((.118,.565,1,1), (1,1,1,1), (1,.271,0,1)))	# dodger blue, white, orange red
-BuiltinColormaps['lipophilicity'] = Colormap(None, ((0,139/255,139/255,1), (1,1,1,1), (184/255,134/255,11/255,1)))	# dark cyan, white, dark goldenrod
+BuiltinColormaps['cyan-gray-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (.7, .7, .7, 1), (0.62, 0.125, 0.37, 1)))
+# BuiltinColormaps['lipophilicity'] = Colormap(None, ((.118, .565, 1, 1), (1, 1, 1, 1), (1, .271, 0, 1)))  # dodger blue, white, orange red
+BuiltinColormaps['lipophilicity'] = Colormap(None, ((0, 139 / 255, 139 / 255, 1), (1, 1, 1, 1), (184 / 255, 134 / 255, 11 / 255, 1)))  # dark cyan, white, dark goldenrod
 
 # Add some aliases
 BuiltinColormaps['redblue'] = BuiltinColormaps['red-white-blue']
@@ -352,14 +358,15 @@ BuiltinColormaps['bluered'] = BuiltinColormaps['blue-white-red']
 BuiltinColormaps['gray'] = BuiltinColormaps['grayscale']
 BuiltinColormaps['cyanmaroon'] = BuiltinColormaps['cyan-white-maroon']
 
+
 # Add colorbrewer palettes
 def _read_colorbrewer():
-    import os.path, json
+    import json
+    import os.path
     my_dir = os.path.dirname(__file__)
     # colorbrewer.json is downloaded from
     # http://colorbrewer2.org/export/colorbrewer.json
     brewer_filename = os.path.join(my_dir, "colorbrewer.json")
-    import sys
     try:
         with open(brewer_filename) as f:
             brewer_maps = json.load(f)
@@ -367,8 +374,8 @@ def _read_colorbrewer():
         print("%s: %s" % (brewer_filename, str(e)), flush=True)
     else:
         def rgb(r, g, b):
-            return (r/255, g/255, b/255, 1)
-        gs = {'__builtins__':None, 'rgb':rgb}
+            return (r / 255, g / 255, b / 255, 1)
+        gs = {'__builtins__': None, 'rgb': rgb}
         ls = {}
         for scheme, ramps in brewer_maps.items():
             s_type = ramps.pop("type")
@@ -376,10 +383,12 @@ def _read_colorbrewer():
                 name = "%s-%s" % (scheme, count)
                 colors = tuple([eval(e, gs, ls) for e in rgbs])
                 BuiltinColormaps[name.casefold()] = Colormap(None, colors, name=name)
-                if ((s_type == "div" and count == "5")
-                        or (s_type == "seq" and count == "5")
-                        or (s_type == "qual" and count == "6")):
+                if ((s_type == "div" and count == "5") or
+                        (s_type == "seq" and count == "5") or
+                        (s_type == "qual" and count == "6")):
                     BuiltinColormaps[scheme.casefold()] = Colormap(None, colors, name=scheme)
+
+
 _read_colorbrewer()
 
 
@@ -418,14 +427,13 @@ def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
         _df_state[seed] = random.getstate()
     return best_candidate
 
+
 def contrast_with(rgb):
     """Depending on which contrasts best with the given RGB(A), return white or black (RGB)"""
-    if rgb[0]*2 + rgb[1]*3 + rgb[2] < 0.417:
+    if rgb[0] * 2 + rgb[1] * 3 + rgb[2] < 0.417:
         return (1.0, 1.0, 1.0)
     return (0.0, 0.0, 0.0)
 
-# -----------------------------------------------------------------------------
-#
 
 # CSS4 colors + multiword color names
 BuiltinColors = SortedDict({
@@ -691,15 +699,198 @@ def most_common_color(colors):
         return None
     return colors[indices[max_index]]
 
+
 def rgba_to_rgba8(rgba):
-    return tuple(int(255*r) for r in rgba)
+    return tuple(int(255 * r) for r in rgba)
+
 
 def rgba8_to_rgba(rgba):
-    return tuple(r/255.0 for r in rgba)
+    return tuple(r / 255.0 for r in rgba)
+
+
+def rgb_to_hls(rgba):
+    """Convert array of RGB(A) values to HLS
+
+    Alpha component is optional and ignored.
+    Uses same conventions as colorsys module,
+    i.e., all components are floating point (0-1)"""
+    from numpy import zeros, float32, amin, amax, remainder
+
+    min = amin(rgba[:, 0:3], axis=1)
+    max = amax(rgba[:, 0:3], axis=1)
+    delta = max - min
+
+    hls = zeros((len(rgba), 3), dtype=float32)
+
+    # lightness
+    hls[:, 1] = (min + max) / 2
+
+    # saturation
+    chromatic_mask = delta != 0
+    mask = chromatic_mask & (hls[:, 1] <= 0.5)
+    hls[mask, 2] = delta[mask] / hls[mask, 1] / 2
+    mask = chromatic_mask & (hls[:, 1] > 0.5)
+    hls[mask, 2] = delta[mask] / (2 - 2 * hls[mask, 1])
+
+    # hue
+    r, g, b = rgba[:, 0], rgba[:, 1], rgba[:, 2]
+    mask = chromatic_mask & (b == max)
+    hls[mask, 0] = 4 + (r[mask] - g[mask]) / delta[mask]
+    mask = chromatic_mask & (g == max)
+    hls[mask, 0] = 2 + (b[mask] - r[mask]) / delta[mask]
+    mask = chromatic_mask & (r == max)
+    hls[mask, 0] = (g[mask] - b[mask]) / delta[mask]
+
+    hls[chromatic_mask, 0] = remainder(hls[chromatic_mask, 0], 6) / 6
+    return hls
+
+
+def _values(m1, m2, hue):
+    from numpy import empty, remainder
+    hue = remainder(hue, 1)
+    values = empty(len(hue))
+
+    mask = hue < (1 / 6)
+    values[mask] = m1[mask] + (m2[mask] - m1[mask]) * hue[mask] * 6
+    mask = (hue >= (1 / 6)) & (hue < .5)
+    values[mask] = m2[mask]
+    mask = (hue >= .5) & (hue < (2 / 3))
+    values[mask] = m1[mask] + (m2[mask] - m1[mask]) * (2 / 3 - hue[mask]) * 6
+    mask = hue >= (2 / 3)
+    values[mask] = m1[mask]
+    return values
+
+
+def hls_to_rgb(hls):
+    """Convert array of HLS values to RGB
+
+    Uses same conventions as colorsys module,
+    i.e., all components are floating point (0-1)"""
+    from numpy import zeros, empty, newaxis
+
+    rgb = zeros((len(hls), 3))
+
+    # grays
+    mask = hls[:, 2] == 0
+    rgb[mask] = hls[mask, 1][:, newaxis]
+
+    cmask = hls[:, 2] != 0  # chromatic mask
+    m1 = empty(len(hls))
+    m2 = empty(len(hls))
+    mask = cmask & (hls[:, 1] <= 0.5)
+    m2[mask] = hls[mask, 1] * (1 + hls[mask, 2])
+    mask = cmask & (hls[:, 1] > 0.5)
+    m2[mask] = hls[mask, 1] + hls[mask, 2] - hls[mask, 1] * hls[mask, 2]
+    m1[cmask] = 2 * hls[cmask, 1] - m2[cmask]
+    rgb[cmask, 0] = _values(m1[cmask], m2[cmask], hls[cmask, 0] + 1 / 3)
+    rgb[cmask, 1] = _values(m1[cmask], m2[cmask], hls[cmask, 0])
+    rgb[cmask, 2] = _values(m1[cmask], m2[cmask], hls[cmask, 0] - 1 / 3)
+    return rgb
+
+
+def rgb_to_hwb(rgba):
+    """Convert array of RGB(A) values to HWB
+
+    Alpha component is optional and ignored.
+    Uses same conventions as colorsys module,
+    i.e., all components are floating point (0-1)"""
+    from numpy import amin, amax
+    hwb = rgb_to_hls(rgba)  # get hue from hls for now
+    min = amin(rgba[:, 0:3], axis=1)
+    max = amax(rgba[:, 0:3], axis=1)
+    hwb[:, 1] = min
+    hwb[:, 2] = 1 - max
+    return hwb
+
+
+def hwb_to_rgb2(hwb):
+    """Convert HWB values to RGB -- alternate (slower) version"""
+    from numpy import empty, newaxis
+    hls = empty((len(hwb), 3))
+    hls[:, 0] = hwb[:, 0]
+    hls[:, 1:3] = [.5, 1]
+    rgb = hls_to_rgb(hls)
+    rgb = rgb * (1 - hwb[:, 1] - hwb[:, 2])[:, newaxis] + hwb[:, 1][:, newaxis]
+    return rgb
+
+
+def hwb_to_rgb(hwb):
+    """Convert HWB values to RGB
+
+    Uses same conventions as colorsys module,
+    i.e., all components are floating point (0-1)"""
+    from numpy import empty, remainder, floor, newaxis, clip
+    rgb = empty((len(hwb), 3))
+
+    max = 1 - hwb[:, 2]
+    # normalize hwb as per https://www.w3.org/TR/css-color-4/#the-hwb-notation
+    ratio = hwb[:, 1] + hwb[:, 2]
+    mask = ratio > 1
+    hwb[mask, 1:3] /= ratio[mask, newaxis]
+
+    i = remainder(floor(hwb[:, 0] * 6), 6)
+    max = 1 - hwb[:, 2]
+    f = 6 * hwb[:, 0] - i
+    mask = (i % 2) != 0
+    f[mask] = 1 - f[mask]
+
+    n = hwb[:, 1] + f * (max - hwb[:, 1])
+
+    mask = i == 0
+    rgb[mask, 0] = max[mask]
+    rgb[mask, 1] = n[mask]
+    rgb[mask, 2] = hwb[mask, 1]
+    mask = i == 1
+    rgb[mask, 0] = n[mask]
+    rgb[mask, 1] = max[mask]
+    rgb[mask, 2] = hwb[mask, 1]
+    mask = i == 2
+    rgb[mask, 0] = hwb[mask, 1]
+    rgb[mask, 1] = max[mask]
+    rgb[mask, 2] = n[mask]
+    mask = i == 3
+    rgb[mask, 0] = hwb[mask, 1]
+    rgb[mask, 1] = n[mask]
+    rgb[mask, 2] = max[mask]
+    mask = i == 4
+    rgb[mask, 0] = n[mask]
+    rgb[mask, 1] = hwb[mask, 1]
+    rgb[mask, 2] = max[mask]
+    mask = i == 5
+    rgb[mask, 0] = max[mask]
+    rgb[mask, 1] = hwb[mask, 1]
+    rgb[mask, 2] = n[mask]
+
+    return rgb
+
+
+def luminance(rgba):
+    """Compute luminance assuming sRGB display
+
+    Alpha component is optional and ignored.
+    Uses same conventions as colorsys module,
+    i.e., all components are floating point (0-1)"""
+    # from https://www.w3.org/TR/css-color-4/#contrast-adjuster
+    if rgba.shape[1] == 4:
+        rgb = rgba[:, 0:3]
+    else:
+        rgb = rgba
+    # first convert to linear sRGB
+    mask = rgb < 0.04045
+    rgb[mask] = rgb[mask] / 12.92
+    rgb[~mask] = ((rgb[~mask] + 0.055) / 1.055) ** 2.4
+    # then compute luminance
+    r, g, b = rgb[:, 0], rgb[:, 1], rgb[:, 2]
+    luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    return luminance
+
+
 
 def _init():
     for name in BuiltinColors:
         rgb = BuiltinColors[name]
         color = Color([x / 255 for x in rgb], mutable=False)
         BuiltinColors[name] = color
+
+
 _init()

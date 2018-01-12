@@ -12,6 +12,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+.. _User's Manual: ../user/index.html
+
 ***************************
 ChimeraX Programming Manual
 ***************************
@@ -22,7 +24,7 @@ with routines that need to run fast implemented in C++.
 This code is free for non-commercial use, see the
 :doc:`license <license>` for details.
 
-User documentation for the ChimeraX application is in the :doc:`User's Manual <manual>`.
+User documentation for the ChimeraX application is in the `User's Manual`_.
 
 .. toctree::
    :maxdepth: 1

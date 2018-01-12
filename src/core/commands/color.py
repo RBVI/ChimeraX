@@ -11,11 +11,41 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "bymodel",
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel",
                   "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
+
+DEFAULT_TARGETS = 'acslbpd'
+ALL_TARGETS = 'acslbpd'
+WHAT_TARGETS = {
+    'atoms': 'a',
+    'cartoons': 'c', 'ribbons': 'c',
+    'surfaces': 's',
+    'labels': 'l',
+    'bonds': 'b',
+    'pseudobonds': 'p',
+    # 'distances': 'd',  # TODO: conflicts with distance argument
+    'All': ALL_TARGETS
+}
+
+
+def get_targets(targets, what, default_targets=DEFAULT_TARGETS):
+    if targets is None and what is None:
+        return default_targets, True
+    if ((targets is not None and 'A' in targets) or
+            (what is not None and 'All' in what)):
+        return ALL_TARGETS, True
+    if targets and 'r' in targets:
+        targets += 'c'
+    if what is not None:
+        if targets is None:
+            targets = ''
+        for w in what:
+            targets += WHAT_TARGETS[w]
+    return targets, False
+
 
 def color(session, objects, color=None, what=None,
           target=None, transparency=None,
@@ -29,7 +59,7 @@ def color(session, objects, color=None, what=None,
     objects : Objects
       Which objects to color.
     color : Color
-      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bymodel".
+      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
     target : string
@@ -64,19 +94,7 @@ def color(session, objects, color=None, what=None,
     if color == "byhetero":
         atoms = atoms.filter(atoms.element_numbers != 6)
 
-    default_target = (target is None and what is None)
-    if default_target:
-        target = 'acslbpd'
-    if target and 'r' in target:
-        target += 'c'
-
-    if what is not None:
-        what_target = {'atoms':'a', 'cartoons':'c', 'ribbons':'c',
-                       'surfaces':'s', 'bonds':'b', 'pseudobonds':'p'}
-        if target is None:
-            target = ''
-        for w in what:
-            target += what_target[w]
+    target, is_default_target = get_targets(target, what)
 
     from ..undo import UndoState
     undo_state = UndoState(undo_name)
@@ -138,7 +156,7 @@ def color(session, objects, color=None, what=None,
             what.append('%d atoms' % len(atoms))
 
     if 'l' in target:
-        if not default_target:
+        if not is_default_target:
             session.logger.warning('Label colors not supported yet')
 
     if 's' in target and (color is not None or map is not None):
@@ -184,7 +202,7 @@ def color(session, objects, color=None, what=None,
                 what.append('%d pseudobonds' % len(pbonds))
 
     if 'd' in target:
-        if not default_target:
+        if not is_default_target:
             session.logger.warning('Distances colors not supported yet')
 
     if not what:
@@ -207,6 +225,12 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
         c = atoms.colors.copy()
         sc,amask = polymer_colors(atoms.residues)
         c[amask,:] = sc[amask,:]
+        c[amask, 3] = atoms.colors[amask, 3] if opacity is None else opacity
+    elif color == "bynucleotide":
+        from ..atomic.colors import nucleotide_colors
+        c = atoms.colors.copy()
+        sc, amask = nucleotide_colors(atoms.residues)
+        c[amask, :] = sc[amask, :]
         c[amask, 3] = atoms.colors[amask, 3] if opacity is None else opacity
     elif color == "bymodel":
         c = atoms.colors.copy()
@@ -269,6 +293,13 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
         masked_residues = residues.filter(rmask)
         undo_state.add(masked_residues, "ribbon_colors", masked_residues.ribbon_colors, c[rmask,:])
         masked_residues.ribbon_colors = c[rmask,:]
+    elif color == "bynucleotide":
+        from ..atomic.colors import nucleotide_colors
+        c,rmask = nucleotide_colors(residues)
+        c[rmask, 3] = residues.ribbon_colors[rmask, 3] if opacity is None else opacity
+        masked_residues = residues.filter(rmask)
+        undo_state.add(masked_residues, "ribbon_colors", masked_residues.ribbon_colors, c[rmask, :])
+        masked_residues.ribbon_colors = c[rmask, :]
     elif color == 'bymodel':
         for m, res in residues.by_structure:
             c = res.ribbon_colors
@@ -460,11 +491,412 @@ _SequentialColor = {
 
 # -----------------------------------------------------------------------------
 #
+def color_func(session, objects, what=None, target=None, func=None, func_text='Changed ', undo_name='color modify'):
+    if objects is None:
+        from . import all_objects
+        objects = all_objects(session)
+    atoms = objects.atoms
+
+    from ..undo import UndoState
+    undo_state = UndoState(undo_name)
+
+    target, is_default_target = get_targets(target, what)
+
+    what = []
+
+    if 'a' in target:
+        # atoms/bonds
+        c = func(atoms.colors)
+        undo_state.add(atoms, "colors", atoms.colors, c)
+        atoms.colors = c
+        what.append('%d atoms' % len(atoms))
+
+    if 'l' in target:
+        if not is_default_target:
+            session.logger.warning('Label colors not supported yet')
+
+    if 's' in target:
+        surfs = _set_surface_color_func(atoms, objects, session, func, undo_state)
+        what.append('%d surfaces' % len(surfs))
+
+    if 'c' in target:
+        residues = atoms.unique_residues
+        c = func(residues.ribbon_colors)
+        undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, c)
+        residues.ribbon_colors = c
+        what.append('%d residues' % len(residues))
+
+    if 'b' in target:
+        bonds = objects.bonds
+        if len(bonds) > 0:
+            c = func(bonds.colors)
+            undo_state.add(bonds, "colors", bonds.colors, c)
+            bonds.colors = c
+            what.append('%d bonds' % len(bonds))
+
+
+    if 'p' in target:
+        pbonds = objects.pseudobonds
+        if len(pbonds) > 0:
+            c = func(pbonds.colors)
+            undo_state.add(pbonds, "colors", pbonds.colors, c)
+            pbonds.colors = c
+            what.append('%d pseudobonds' % len(bonds))
+
+    if 'd' in target:
+        if not is_default_target:
+            session.logger.warning('Distance colors not supported yet')
+
+    if not what:
+        what.append('nothing')
+
+    from . import cli
+    session.logger.status('%s %s' % (func_text, cli.commas(what, ' and')))
+    session.undo.register(undo_state)
+
+def _set_surface_color_func(atoms, objects, session, func, undo_state=None):
+    # TODO: save undo data
+
+    # Handle surfaces for specified atoms
+    from .. import atomic
+    surfs = atomic.surfaces_with_atoms(atoms)
+    for s in surfs:
+        vcolors = s.vertex_colors
+        amask = s.atoms.mask(atoms)
+        all_atoms = amask.all()
+        if all_atoms:
+            c = func(s.colors)
+            s.colors = c
+            if vcolors is None:
+                continue
+
+        if vcolors is None:
+            from numpy import empty, uint8
+            vcolors = empty((len(s.vertices), 4), uint8)
+            vcolors[:] = s.color
+        v2a = s.vertex_to_atom_map()
+        if v2a is None:
+            if amask.all():
+                v = slice(len(vcolors))
+            else:
+                session.logger.info('No atom associations for surface #%s'
+                                    % s.id_string())
+                continue
+        else:
+            v = amask[v2a]
+        vcolors[v] = func(vcolors[v])
+        s.vertex_colors = vcolors
+
+    # TODO:
+    # # Handle surface models specified without specifying atoms
+    # from ..atomic import MolecularSurface, Structure
+    # from ..map import Volume
+    # osurfs = []
+    # for s in objects.models:
+    #     if isinstance(s, MolecularSurface):
+    #         if not s in surfs:
+    #             osurfs.append(s)
+    #     elif isinstance(s, Volume) or (not isinstance(s, Structure) and not s.empty_drawing()):
+    #         osurfs.append(s)
+    # for s in osurfs:
+    #     s.set_transparency(alpha)
+    # surfs.extend(osurfs)
+
+    return surfs
+
+# -----------------------------------------------------------------------------
+#
+def _change_hue(colors, amount, tag):
+    from numpy import amin, amax, around, clip, remainder
+    from ..colors import rgb_to_hls, hls_to_rgb
+
+    min_rgb = amin(colors[:, 0:3], axis=1)
+    max_rgb = amax(colors[:, 0:3], axis=1)
+    chromatic_mask = min_rgb != max_rgb
+
+    hls = rgb_to_hls(colors[chromatic_mask, 0:3] / 255.0)
+    if tag == 'add':
+        hls[:, 0] = remainder(hls[:, 0] + amount, 1)
+    elif tag == 'set':
+        hls[:, 0] = clip(amount, 0, 1)
+    colors[chromatic_mask, 0:3] = clip(around(hls_to_rgb(hls) * 255.0), 0, 255)
+    return colors
+
+def _change_saturation(colors, amount, tag):
+    from numpy import amin, amax, around, clip
+    from ..colors import rgb_to_hls, hls_to_rgb
+
+    min_rgb = amin(colors[:, 0:3], axis=1)
+    max_rgb = amax(colors[:, 0:3], axis=1)
+    chromatic_mask = min_rgb != max_rgb
+
+    hls = rgb_to_hls(colors[chromatic_mask, 0:3] / 255.0)
+    if tag == 'add':
+        hls[:, 2] = clip(hls[:, 2] + amount, 0, 1)
+    elif tag == 'mul':
+        hls[:, 2] = clip(hls[:, 2] * amount, 0, 1)
+    elif tag == 'set':
+        hls[:, 2] = clip(amount, 0, 1)
+    colors[chromatic_mask, 0:3] = clip(around(hls_to_rgb(hls) * 255.0), 0, 255)
+    return colors
+
+
+def _change_lightness(colors, amount, tag):
+    from numpy import clip, around
+    from ..colors import rgb_to_hls, hls_to_rgb
+
+    hls = rgb_to_hls(colors[:, 0:3] / 255.0)
+    if tag == 'add':
+        hls[:, 1] = clip(hls[:, 1] + amount, 0, 1)
+    elif tag == 'mul':
+        hls[:, 1] = clip(hls[:, 1] * amount, 0, 1)
+    elif tag == 'set':
+        hls[:, 1] = clip(amount, 0, 1)
+    colors[:, 0:3] = clip(around(hls_to_rgb(hls) * 255.0), 0, 255)
+    return colors
+
+
+def _change_whiteness(colors, amount, tag):
+    from numpy import clip, around
+    from ..colors import rgb_to_hwb, hwb_to_rgb
+
+    hwb = rgb_to_hwb(colors[:, 0:3] / 255.0)
+    if tag == 'add':
+        hwb[:, 1] = clip(hwb[:, 1] + amount, 0, 1)
+    elif tag == 'mul':
+        hwb[:, 1] = clip(hwb[:, 1] * amount, 0, 1)
+    elif tag == 'set':
+        hwb[:, 1] = clip(amount, 0, 1)
+    colors[:, 0:3] = clip(around(hwb_to_rgb(hwb) * 255.0), 0, 255)
+    return colors
+
+
+def _change_blackness(colors, amount, tag):
+    from numpy import clip, around
+    from ..colors import rgb_to_hwb, hwb_to_rgb
+
+    hwb = rgb_to_hwb(colors[:, 0:3] / 255.0)
+    if tag == 'add':
+        hwb[:, 2] = clip(hwb[:, 2] + amount, 0, 1)
+    elif tag == 'mul':
+        hwb[:, 2] = clip(hwb[:, 2] * amount, 0, 1)
+    elif tag == 'set':
+        hwb[:, 2] = clip(amount, 0, 1)
+    colors[:, 0:3] = clip(around(hwb_to_rgb(hwb) * 255.0), 0, 255)
+    return colors
+
+
+def _rgb_interpolate(colors, amount, to):
+    colors[:, 0:3] = colors[:, 0:3] + amount * (to - colors[:, 0:3])
+    return colors
+
+def _hwb_contrast(orig_hwb, orig_luminance, wb, amount, _count=10):
+    from ..colors import rgb_to_hwb, hwb_to_rgb, luminance
+    w, b = wb
+    MIN_CONTRAST = 4.5
+    # iterate solution by computing luminance and contrast ratio
+    from numpy import empty, zeros, ones
+    hwb = empty(orig_hwb.shape)
+    left = zeros(len(orig_hwb))
+    right = ones(len(orig_hwb))
+    for _ in range(_count):
+        f = (left + right) / 2
+        hwb[:, 0] = orig_hwb[:, 0]
+        hwb[:, 1] = orig_hwb[:, 1] + f * (w - orig_hwb[:, 1])
+        hwb[:, 2] = orig_hwb[:, 2] + f * (b - orig_hwb[:, 2])
+        lumin = luminance(hwb_to_rgb(hwb))
+        if w:
+            # adding white, luminance should be larger
+            contrast_ratio = (lumin + 0.05) / (orig_luminance + 0.05)
+        else:
+            contrast_ratio = (orig_luminance + 0.05) / (lumin + 0.05)
+        smaller = contrast_ratio < MIN_CONTRAST
+        left[smaller] = f[smaller]
+        greater = contrast_ratio > MIN_CONTRAST
+        right[greater] = f[greater]
+    # blend by amount
+    hwb[:, 1] += amount * (w - hwb[:, 1])
+    hwb[:, 2] += amount * (b - hwb[:, 2])
+    return hwb
+
+
+def _constrast(colors, amount):
+    from ..colors import rgb_to_hwb, hwb_to_rgb, luminance
+    from numpy import empty, logical_and, zeros
+    from numpy import clip, around
+    rgb = colors[:, 0:3] / 255
+    lumin = luminance(rgb)
+    black_max = lumin >= .5
+    white_max = lumin < .5
+    if amount == 1:
+        colors[black_max, 0:3] = (0, 0, 0)
+        colors[white_max, 0:3] = (255, 255, 255)
+        return colors
+    # find minimum contrast color
+    # and linearly interplate between minimum and maximum constrast color
+    # minimum constrast color needs a binary search as per
+    # https://www.w3.org/TR/css-color-4/#contrast-adjuster
+    hwb_contrast_color = empty((len(colors), 3))
+    contrast_ratio = empty((len(colors),))
+    contrast_ratio[black_max] = (lumin[black_max] + 0.05) / 0.05
+    contrast_ratio[white_max] = 1.05 / (lumin[white_max] + 0.05)
+    
+    # if the contrast ratio is less than the minimum constrast,
+    # set the contrast color to the maximum contrast color
+    MIN_CONTRAST = 4.5
+    mask = zeros((len(colors),), dtype=bool)
+    mask[white_max] = logical_and(white_max[white_max], contrast_ratio[white_max] <= MIN_CONTRAST)
+    hwb_contrast_color[mask] = (0, 1, 0)
+    mask = zeros((len(colors),), dtype=bool)
+    mask[black_max] = logical_and(black_max[black_max], contrast_ratio[black_max] <= MIN_CONTRAST)
+    hwb_contrast_color[mask] = (0, 0, 1)
+    # limit white_max and black_max to ones where we need to compute
+    # the minimum contrast color
+    white_max[white_max] = logical_and(white_max[white_max], contrast_ratio[white_max] > MIN_CONTRAST)
+    black_max[black_max] = logical_and(black_max[black_max], contrast_ratio[black_max] > MIN_CONTRAST)
+    hwb = rgb_to_hwb(rgb[white_max])
+    hwb_contrast_color[white_max] = _hwb_contrast(hwb, lumin[white_max], (1, 0), amount)
+    hwb = rgb_to_hwb(rgb[black_max])
+    hwb_contrast_color[black_max] = _hwb_contrast(hwb, lumin[black_max], (0, 1), amount)
+    colors[:, 0:3] = clip(around(hwb_to_rgb(hwb_contrast_color) * 255.0), 0, 255)
+    return colors
+
+
+# leave out 'tint' and 'shade' to avoid having to document them
+ADJUST_TYPES = ('hue', 'saturation', 'lightness', 'whiteness', 'blackness', 'contrast')
+OP_TYPES = ('+', '-', '*')
+
+
+def color_modify(session, objects, adjuster, op, number=None, what=None, target=None):
+    from ..errors import UserError
+    if adjuster == 'hue':
+        amount = number / 360
+        if op == '+':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_hue(c, a, 'add'),
+                     "Changed hue of", "color hue")
+        elif op == '-':
+            color_func(session, objects, what, target,
+                     lambda c, a=-amount: _change_hue(c, a, 'add'),
+                     "Changed hue of", "color hue")
+        elif op == '*':
+            raise UserError("Unable to scale hue")
+        else:  # op == None
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_hue(c, a, 'set'),
+                     "Set hue of", "color hue")
+        return
+    if adjuster == 'contrast' and number is None:
+        percentage = 100
+    elif number is None:
+        raise UserError('Missing percentage')
+    amount = number / 100
+    if adjuster == 'saturation':
+        if op == '+':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_saturation(c, a, 'add'),
+                     "Saturated", "color saturation")
+        elif op == '-':
+            color_func(session, objects, what, target,
+                     lambda c, a=-amount: _change_saturation(c, a, 'add'),
+                     "Desaturated", "color saturation")
+        elif op == '*':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_saturation(c, a, 'mul'),
+                     "Changed saturation of", "color saturation")
+        else:  # op == None
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_saturation(c, a, 'set'),
+                     "Set saturation of", "color saturation")
+    elif adjuster == 'lightness':
+        if op == '+':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_lightness(c, a, 'add'),
+                     "Lightened", "color lightness")
+        elif op == '-':
+            color_func(session, objects, what, target,
+                     lambda c, a=-amount: _change_lightness(c, a, 'add'),
+                     "Darkened", "color lightness")
+        elif op == '*':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_lightness(c, a, 'mul'),
+                     "Changed lightness of", "color lightness")
+        else:  # op == None
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_lightness(c, a, 'set'),
+                     "Set lightness of", "color lightness")
+    elif adjuster == 'whiteness':
+        if op == '+':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_whiteness(c, a, 'add'),
+                     "Increased hue's whiteness of", "color whiteness")
+        elif op == '-':
+            color_func(session, objects, what, target,
+                     lambda c, a=-amount: _change_whiteness(c, a, 'add'),
+                     "Decreased hue's whiteness of", "color whiteness")
+        elif op == '*':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_whiteness(c, a, 'mul'),
+                     "Changed hue's whiteness of", "color whiteness")
+        else:  # op == None
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_whiteness(c, a, 'set'),
+                     "Set hue's whiteness of", "color whiteness")
+    elif adjuster == 'blackness':
+        if op == '+':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_blackness(c, a, 'add'),
+                     "Increased hue's blackness of", "color blackness")
+        elif op == '-':
+            color_func(session, objects, what, target,
+                     lambda c, a=-amount: _change_blackness(c, a, 'add'),
+                     "Decreased hue's blackness of", "color blackness")
+        elif op == '*':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_blackness(c, a, 'mul'),
+                     "Changed hue's blackness of", "color blackness")
+        else:  # op == None
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_blackness(c, a, 'set'),
+                     "Set hue's blackness of", "color blackness")
+    elif adjuster == 'tint':
+        if op is not None:
+            raise UserError("No op allowed")
+        if 0 <= amount <= 1:
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _rgb_interpolate(c, a, (255, 255, 255)),
+                     "Tinted", "color tint")
+        else:
+            raise UserError("percentage must be between 0 and 100 inclusive")
+    elif adjuster == 'shade':
+        if op is not None:
+            raise UserError("No op allowed")
+        if 0 <= amount <= 1:
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _rgb_interpolate(c, a, (0, 0, 0)),
+                     "Shaded", "color shade")
+        else:
+            raise UserError("percentage must be between 0 and 100 inclusive")
+    elif adjuster == 'contrast':
+        if op is not None:
+            raise UserError("No op allowed")
+        if 0 <= amount <= 1:
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _constrast(c, a),
+                     "Set contrasting color of ", "color contrast")
+        else:
+            raise UserError("percentage must be between 0 and 100 inclusive")
+    else:
+        raise UserError("Color \"%s\" not implemented yet" % adjuster)
+
+
+# -----------------------------------------------------------------------------
+#
 def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg, ObjectsArg, create_alias
     from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg
     from ..map import MapArg
-    what_arg = ListOf(EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds')))
+    what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),
                              ('what', what_arg)],
@@ -482,3 +914,13 @@ def register_command(session):
                    synopsis="color objects")
     register('color', desc, color, logger=session.logger)
     create_alias('colour', 'color $*', logger=session.logger)
+    adjust_arg = EnumOf(ADJUST_TYPES)
+    op_arg = EnumOf(OP_TYPES)
+    desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
+                             ('adjuster', adjust_arg),
+                             ('op', Or(op_arg, EmptyArg)),
+                             ('number', Or(FloatArg, EmptyArg))],
+                   optional=[('what', what_arg)],
+                   keyword=[('target', StringArg)],
+                   synopsis="saturate color")
+    register('color modify', desc, color_modify, logger=session.logger)

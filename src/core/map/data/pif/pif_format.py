@@ -68,8 +68,8 @@ class PIF_Data:
     elif mnum == PIF_MAGIC_NUMBER_BYTE_SWAPPED:
       swap = True
     else:
-      raise SyntaxError, ('First 4 bytes of PIF file %s must be %d, got %d'
-                          % (file.name, PIF_MAGIC_NUMBER, mnum))
+      raise SyntaxError('First 4 bytes of PIF file %s must be %d, got %d'
+                        % (file.name, PIF_MAGIC_NUMBER, mnum))
     return swap
     
   # ---------------------------------------------------------------------------
@@ -98,7 +98,7 @@ class PIF_Data:
     try:
       ff = float(v['realScaleFactor'])
     except:
-      raise SyntaxError, ('realScaleFactor header value of PIF file %s is not parsable as a float: "%s"' % (file.name, v['realScaleFactor']))
+      raise SyntaxError('realScaleFactor header value of PIF file %s is not parsable as a float: "%s"' % (file.name, v['realScaleFactor']))
     
     v['imageHeader'] = self.read_image_header(file, ff)
     
@@ -182,7 +182,7 @@ class PIF_Data:
       self.file_element_type = float32
       self.file_element_size = 4
     else:
-      raise SyntaxError, ('PIF data value type %d not supported ' % m)
+      raise SyntaxError('PIF data value type %d not supported ' % m)
 
     if self.float_scale != None:
       self.element_type = float32
@@ -190,14 +190,14 @@ class PIF_Data:
       self.element_type = self.file_element_type
 
     if vi['nx'] <= 0 or vi['ny'] <= 0 or vi['nz'] <= 0:
-      raise SyntaxError, ('Bad PIF grid size (%d,%d,%d)'
-                          % (vi['nx'],vi['ny'],vi['nz']))
+      raise SyntaxError('Bad PIF grid size (%d,%d,%d)'
+                        % (vi['nx'],vi['ny'],vi['nz']))
 
     data_size = int(vi['nx'])*int(vi['ny'])*int(vi['nz'])*self.file_element_size
     header_end = file.tell()
     if header_end + data_size > file_size:
-      raise SyntaxError, ('File size %d too small for grid size (%d,%d,%d)'
-                          % (file_size, vi['nx'],vi['ny'],vi['nz']))
+      raise SyntaxError('File size %d too small for grid size (%d,%d,%d)'
+                        % (file_size, vi['nx'],vi['ny'],vi['nz']))
 
   # ---------------------------------------------------------------------------
   #

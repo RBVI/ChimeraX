@@ -130,7 +130,7 @@ class Slider(ToolInstance):
                     self.session.main_view.redraw_needed = True
                 return
         v = self._last_shown_value
-        if v >= self.value_range[1]:
+        if v is None or v >= self.value_range[1]:
             if self._recording or not self.loop:
                 self.stop()
                 return

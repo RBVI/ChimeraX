@@ -486,16 +486,16 @@ ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bo
             if (a0 == nullptr) {
                 find_nearest_pair(r0, r1, &a0, &a1);
                 if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
-                    // suppress warning for CA traces
-                    if (!gap)
+                    // suppress warning for CA traces and when missing templates
+                    if (!gap && tr0 && tr1)
                         logger::warning(_logger, "Expected gap or ", conn_type,
                                         residue_str(r0, r1), " and ", residue_str(r1));
                 }
             } else if (a1 == nullptr) {
                 a1 = find_closest(a0, r1, nullptr, true);
                 if (a1 == nullptr || a1->element() != Element::C || a1->name() != "CA") {
-                    // suppress warning for CA traces
-                    if (!gap)
+                    // suppress warning for CA traces and when missing templates
+                    if (!gap && tr0 && tr1)
                         logger::warning(_logger,
                                         "Expected gap or linking atom in ",
                                         residue_str(r1, r0), " for ", residue_str(r0));
@@ -667,7 +667,7 @@ ExtractMolecule::finished_parse()
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
-            logger::warning(_logger, "Missing residue template for ", residue_str(r));
+            logger::warning(_logger, "Missing or invalid residue template for ", residue_str(r));
             has_ambiguous = true;   // safe to treat as ambiguous
             connect_residue_by_distance(r);
         } else {
@@ -1755,7 +1755,7 @@ ExtractMolecule::parse_struct_conf()
 
         auto ari = all_residues.find(chain_id1);
         if (ari == all_residues.end()) {
-            logger::warning(_logger, "Invalid residue range for secondardy"
+            logger::warning(_logger, "Invalid residue range for secondary"
                             " structure \"", id, "\": invalid chain \"",
                             chain_id1, "\", near line ", line_number());
             continue;

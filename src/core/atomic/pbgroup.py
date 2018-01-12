@@ -53,22 +53,37 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
         # For global pseudobond groups:
         # Detect when atoms moved so pseudobonds must be redrawn.
-        # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
-        # TODO: Only update on selection change if pseudobond atoms selection changed.
-        from ..selection import SELECTION_CHANGED
+        # TODO: Update only when atoms move or are shown hidden,
+        #       not when non-atomic models shown or hidden.
+        # TODO: Need to update if parent of structure moves.
         t = session.triggers
+        from . import get_triggers
+        ta = get_triggers(session)
+        def pbg_update(*args, self=self):
+            self._update_graphics()
+        from ..models import MODEL_DISPLAY_CHANGED
         self._handlers = [
-            t.add_handler('graphics update',self._update_graphics_if_needed),
-            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics()),
-            t.add_handler(SELECTION_CHANGED, lambda *args, s=self: s._update_graphics())
+            (t, t.add_handler('graphics update', self._update_graphics_if_needed)),
+            (ta, ta.add_handler('changes', pbg_update)),
+            (t, t.add_handler(MODEL_DISPLAY_CHANGED, pbg_update)),
         ]
 
     def removed_from_session(self, session):
-        t = session.triggers
-        h = self._handlers
-        while h:
-            t.remove_handler(h.pop())
-        self._handlers = []
+        th = self._handlers
+        for t, h in th:
+            t.remove_handler(h)
+        th.clear()
+
+    # Don't allow changing a pseudobond group position.
+    # Pseudobonds are always drawn to their end-point atoms so the model position
+    # should never be used.  But child models (e.g. labels) and things like picking
+    # may unintentially use it.  So prevent it from being changed.
+    def _dont_set_position(self, position):
+        pass
+    position = property(Model.position.fget, _dont_set_position)
+    def _dont_set_positions(self, positions):
+        pass
+    positions = property(Model.positions.fget, _dont_set_positions)
 
     # Atom specifier API
     def atomspec_has_pseudobonds(self):
@@ -219,7 +234,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if not self.display or (exclude and exclude(self)):
             return None
         from . import structure
-        b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
+        if self._global_group:
+            # Use scene coordinates since atoms may belong to different models.
+            p = self.position
+            sxyz1, sxyz2 = p * mxyz1, p * mxyz2
+            b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2, scene_coordinates = True)
+        else:
+            b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
         p = structure.PickedPseudobond(b,f) if b else None
         return p
 

@@ -19,6 +19,7 @@
 #include <utility>  // for std::pair
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "ChangeTracker.h"
@@ -29,13 +30,16 @@
 #include "Pseudobond.h"
 #include "Residue.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
 #include <pysupport/convert.h>
+
+template class pyinstance::PythonInstance<atomstruct::Atom>;
 
 namespace atomstruct {
 
 Atom::Atom(Structure* as, const char* name, const Element& e):
     _alt_loc(' '), _aniso_u(nullptr), _coord_index(COORD_UNASSIGNED), _element(&e), _name(name),
-    _radius(-1.0), // -1 indicates not explicitly set
+    _radius(0.0), // -1 indicates not explicitly set
     _residue(nullptr), _serial_number(-1), _structure(as),
     _structure_category(Atom::StructCat::Unassigned)
 {
@@ -61,6 +65,7 @@ Atom::add_bond(Bond *b)
     _bonds.push_back(b);
     _neighbors.push_back(b->other_atom(this));
     graphics_changes()->set_gc_shape();
+    _uncache_radius();
 }
 
 std::set<char>
@@ -981,6 +986,7 @@ Atom::remove_bond(Bond *b)
     _neighbors.erase(_neighbors.begin() + (bi - _bonds.begin()));
     _bonds.erase(bi);
     graphics_changes()->set_gc_shape();
+    _uncache_radius();
 }
 
 const Atom::Rings&

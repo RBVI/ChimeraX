@@ -243,7 +243,7 @@ class Drawing:
     def remove_drawing(self, d, delete=True):
         '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
-        delattr(d, 'parent')
+        del d.parent
         if delete:
             d.delete()
         self.redraw_needed(shape_changed=True, selection_changed=True)
@@ -253,6 +253,8 @@ class Drawing:
         dset = set(drawings)
         self._child_drawings = [d for d in self._child_drawings
                                 if d not in dset]
+        for d in drawings:
+            del d.parent
         if delete:
             for d in drawings:
                 d.delete()
@@ -789,34 +791,31 @@ class Drawing:
         The bounds of drawing and displayed children and displayed positions
         in the parent model coordinate system.
         '''
+        from ..geometry import bounds
         dbounds = [d.bounds() for d in self.child_drawings() if d.display and not hasattr(d, 'skip_bounds')]
-        if dbounds and positions:
-            from ..geometry import bounds
-            b = bounds.union_bounds(dbounds)
-            cb = bounds.copies_bounding_box(b, self.get_positions(displayed_only=True))
+        if dbounds:
+            cb = bounds.union_bounds(dbounds)
+            if positions:
+                cb = bounds.copies_bounding_box(cb, self.get_positions(displayed_only=True))
         else:
             cb = None
         if self.empty_drawing():
             return cb
         if not positions:
             b = self._geometry_bounds()
-            if dbounds:
-                dbounds.append(b)
-                from ..geometry import bounds
-                b = bounds.union_bounds(dbounds)
+            if cb:
+                b = bounds.union_bounds((b, cb))
             return b
         if self._cached_position_bounds is not None:
             pb = self._cached_position_bounds
         else:
             b = self._geometry_bounds()
-            from ..geometry import bounds
             pb = bounds.copies_bounding_box(
                     b, self.get_positions(displayed_only=True))
             self._cached_position_bounds = pb
         if cb is None:
             return pb
-        from ..geometry import bounds
-        b = bounds.union_bounds([pb, cb])
+        b = bounds.union_bounds((pb, cb))
         return b
 
     def _geometry_bounds(self):

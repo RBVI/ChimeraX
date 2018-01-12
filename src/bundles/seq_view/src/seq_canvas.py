@@ -219,7 +219,6 @@ class SeqCanvas:
 
     def _actually_resize(self):
         self._resize_timer.stop()
-        self.line_width = self.line_width_from_settings()
         self._reformat()
 
     """TODO
@@ -757,11 +756,18 @@ class SeqCanvas:
             None, self.font, self.emphasis_font, 0, [], self.alignment,
             self.line_width, {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
-            self.label_width, self.font_pixels, self.numbering_widths)
+            self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
+
+    def letter_gaps(self):
+        column_sep_attr_name = "column_separation"
+        if len(self.alignment.seqs) == 1:
+            column_sep_attr_name = SINGLE_PREFIX + column_sep_attr_name
+        return [getattr(self.sv.settings, column_sep_attr_name), 1]
 
     def _line_width_fits(self, pixels, num_characters):
         lnw, rnw = self.find_numbering_widths(num_characters)
-        return (self.label_width + lnw + num_characters * self.font_pixels[0] + rnw) < pixels
+        return (self.label_width + lnw
+            + num_characters * (self.font_pixels[0] + self.letter_gaps()[0]) + rnw) < pixels
 
     def line_width_from_settings(self):
         if self.wrap_okay():
@@ -976,6 +982,7 @@ class SeqCanvas:
             activeNode = self.activeNode()
         """
         self.lead_block.destroy()
+        self.line_width = self.line_width_from_settings()
         initial_headers = []
         """TODO
         initial_headers = [hd for hd in self.headers if self.display_header[hd]]
@@ -984,7 +991,7 @@ class SeqCanvas:
             None, self.font, self.emphasis_font, 0, [], self.alignment,
             self.line_width, {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
-            self.label_width, self.font_pixels, self.numbering_widths)
+            self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
         """TODO
         if self.tree:
             if self.treeShown:
@@ -1421,7 +1428,7 @@ class SeqBlock:
     def __init__(self, label_scene, main_scene, prev_block, font, emphasis_font,
             seq_offset, headers, alignment, line_width, label_bindings, status_func,
             show_ruler, tree_balloon, show_numberings, settings, label_width, font_pixels,
-            numbering_widths):
+            numbering_widths, letter_gaps):
         self.label_scene = label_scene
         self.main_scene = main_scene
         self.prev_block = prev_block
@@ -1437,7 +1444,7 @@ class SeqBlock:
         else:
             prefPrefix = ""
         """
-        self.letter_gaps = [0, 1]
+        self.settings = settings
         """TODO
         self.letter_gaps = [prefs[prefPrefix + COLUMN_SEP],
                         prefs[prefPrefix + LINE_SEP]]
@@ -1446,12 +1453,11 @@ class SeqBlock:
         else:
             self.chunk_gap = 0
         """
-        self.settings = settings
         self.chunk_gap = 0
-        block_space_attr_name = "block space"
+        block_space_attr_name = "block_space"
         if len(self.alignment.seqs) == 1:
             block_space_attr_name = SINGLE_PREFIX + block_space_attr_name
-        if getattr(self.settings, block_space_attr_name):
+        if getattr(settings, block_space_attr_name):
             self.block_gap = 15
         else:
             self.block_gap = 3
@@ -1463,6 +1469,7 @@ class SeqBlock:
         self.label_width = label_width
         self.font_pixels = font_pixels
         self.numbering_widths = numbering_widths
+        self.letter_gaps = letter_gaps
 
         if prev_block:
             self.top_y = prev_block.bottom_y + self.block_gap
@@ -1525,7 +1532,7 @@ class SeqBlock:
             self.next_block = SeqBlock(label_scene, main_scene, self, self.font,
                 self.emphasis_font, seq_offset + line_width, headers, alignment, line_width,
                 label_bindings, status_func, show_ruler, tree_balloon, show_numberings,
-                settings, label_width, font_pixels, numbering_widths)
+                settings, label_width, font_pixels, numbering_widths, letter_gaps)
 
     """TODO
     def activateNode(self, node, callback=None,
@@ -2513,7 +2520,7 @@ class SeqBlock:
                     self.lines[:0-len(self.alignment.seqs)], self.alignment.seqs, self.line_width,
                     self.label_bindings, self.status_func, self.show_ruler, self.tree_balloon,
                     self.show_numberings, self.settings, self.label_width, self.font_pixels,
-                    self.numbering_widths)
+                    self.numbering_widths, self.letter_gaps)
     """
 
     def row_index(self, y, bound=None):

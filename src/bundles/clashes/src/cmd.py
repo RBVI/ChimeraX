@@ -54,6 +54,9 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         show_dist=False,
         summary=True,
         test="others"):
+    from chimerax.core.errors import UserError
+    if not test_atoms:
+        raise UserError("No atoms in given atom specifier")
     from chimerax.core.colors import Color
     if atom_color is not None and not isinstance(atom_color, Color):
         atom_color = Color(rgba=atom_color)
@@ -61,7 +64,6 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         other_atom_color = Color(rgba=other_atom_color)
     if color is not None and not isinstance(color, Color):
         color = Color(rgba=color)
-    from chimerax.core.errors import UserError
     from chimerax.core.atomic import get_triggers
     if continuous:
         if set_attrs or save_file != None or log:
@@ -124,10 +126,15 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
     from chimerax.core.atomic import all_atoms
     if test == "self":
         attr_atoms = test_atoms
-    elif test == "others" and inter_model:
-        attr_atoms = all_atoms(session)
+    elif test == "others":
+        if inter_model:
+            attr_atoms = all_atoms(session)
+        else:
+            attr_atoms = test_atoms.unique_structures.atoms
     else:
-        attr_atoms = test_atoms.unique_structures.atoms
+        
+        from chimerax.core.atomic import concatenate
+        attr_atoms = concatenate([test_atoms, test], remove_duplicates=True)
     from chimerax.core.atomic import Atoms
     clash_atoms = Atoms([a for a in attr_atoms if a in clashes])
     if set_attrs:
@@ -151,18 +158,23 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
     if reveal:
         # display sidechain or backbone as appropriate for undisplayed atoms
         reveal_atoms = clash_atoms.filter(clash_atoms.displays == False)
+        reveal_residues = reveal_atoms.unique_residues
         sc_rv_atoms = reveal_atoms.filter(reveal_atoms.is_side_chains == True)
         if sc_rv_atoms:
-            sc_res_atoms = sc_rv_atoms.unique_residues.atoms
+            sc_residues = sc_rv_atoms.unique_residues
+            sc_res_atoms = sc_residues.atoms
             sc_res_atoms.filter(sc_res_atoms.is_side_chains == True).displays = True
-        bb_rv_atoms = reveal_atoms.filter(reveal_atoms.is_backbones == True)
+            reveal_residues = reveal_residues - sc_residues
+        bb_rv_atoms = reveal_atoms.filter(reveal_atoms.is_backbones() == True)
         if bb_rv_atoms:
-            bb_res_atoms = bb_rv_atoms.unique_residues.atoms
-            bb_res_atoms.filter(bb_res_atoms.is_backbones == True).displays = True
+            bb_residues = bb_rv_atoms.unique_residues
+            bb_res_atoms = bb_residues.atoms
+            bb_res_atoms.filter(bb_res_atoms.is_backbones() == True).displays = True
+            reveal_residues = reveal_residues - bb_residues
         # also reveal non-polymeric atoms
-        reveal_atoms.displays = True
+        reveal_residues.atoms.displays = True
     if make_pseudobonds:
-        if len(clash_atoms.unique_structures) > 1:
+        if len(attr_atoms.unique_structures) > 1:
             pbg = session.pb_manager.get_group(name)
         else:
             pbg = attr_atoms[0].structure.pseudobond_group(name)
@@ -183,6 +195,8 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
             session.pb_dist_monitor.add_group(pbg)
         else:
             session.pb_dist_monitor.remove_group(pbg)
+        if pbg.id is None:
+            session.models.add([pbg])
     else:
         _xcmd(session, name)
     return clashes

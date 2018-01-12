@@ -13,6 +13,8 @@
 
 # -----------------------------------------------------------------------------
 #
+from math import pi, sin, cos, sqrt, atan2, acos
+
 def apply_matrix(tf, points):
     from numpy import array, transpose, add
     from numpy import dot as matrix_multiply
@@ -262,7 +264,6 @@ def skew_axes(cell_angles):
         sg = c2 = 1
     else:
         # Convert to radians
-        from math import pi, sin, cos, sqrt
         alpha, beta, gamma = [a * pi / 180 for a in cell_angles]
         cg = cos(gamma)
         sg = sin(gamma)
@@ -314,7 +315,6 @@ def orthonormal_frame(zaxis, ydir=None, xdir=None):
 def vector_rotation_transform_old(u, v):
     cuv = cross_product(u, v)
     axis = normalize_vector(cuv)
-    from math import atan2, pi
     angle = atan2(norm(cuv), inner_product(u, v)) * 180 / pi
     r = rotation_transform(axis, angle, (0, 0, 0))
 
@@ -396,7 +396,6 @@ def cross_product_transform(u):
 # Angle between vectors u and v in degrees.
 #
 def vector_angle(u, v):
-    from math import pi
     a = vector_angle_radians(u, v) * 180.0 / pi
     return a
 
@@ -413,7 +412,6 @@ def vector_angle_radians(u, v):
         c = -1
     if c > 1:
         c = 1
-    from math import acos
     a = acos(c)
     return a
 
@@ -448,7 +446,6 @@ def normalize_vectors(v):
 # -----------------------------------------------------------------------------
 #
 def length(v):
-    from math import sqrt
     d = sqrt(sum([e * e for e in v]))
     return d
 
@@ -474,7 +471,6 @@ def sign(x):
 def rotation_transform(axis, angle, center=(0, 0, 0)):
     axis = normalize_vector(axis)
 
-    from math import pi, sin, cos
 
     arad = angle * pi / 180.0
     sa = sin(arad)
@@ -506,7 +502,6 @@ def axis_center_angle_shift(tf):
     t = [r[3] for r in tf]
     axt = cross_product(axis, t)
     axaxt = cross_product(axis, axt)
-    from math import pi, cos, sin
     a2 = 0.5 * angle * pi / 180         # Half angle in radians
     try:
         ct2 = cos(a2) / sin(a2)
@@ -577,7 +572,6 @@ def R_to_axis_angle(matrix):
     """
 
     from numpy import array, zeros, hypot, float64
-    from math import atan2, pi
     # Axes.
     axis = zeros(3, float64)
     matrix = array(matrix)
@@ -606,8 +600,7 @@ def maximum_norm(v):
     from numpy import maximum
     d2 = maximum.reduce(v[:, 0] * v[:, 0] + v[:, 1] * v[:, 1]
                         + v[:, 2] * v[:, 2])
-    import math
-    d = math.sqrt(d2)
+    d = sqrt(d2)
     return d
 
 
@@ -615,8 +608,7 @@ def maximum_norm(v):
 #
 def norm(u):
     '''Return the length of a vector.'''
-    import math
-    n = math.sqrt(sum(x * x for x in u))
+    n = sqrt(sum(x * x for x in u))
     return n
 
 
@@ -755,7 +747,6 @@ def euler_rotation(phi, theta, psi):
 #
 def euler_angles(tf):
     z1, z2, z3 = [tf[a][2] for a in (0, 1, 2)]
-    from math import atan2, sqrt, pi
     z12 = sqrt(z1 * z1 + z2 * z2)
     beta = atan2(z12, z3)
     if z12 < 1e-6:

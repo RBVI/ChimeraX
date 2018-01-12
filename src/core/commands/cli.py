@@ -754,8 +754,8 @@ class DynamicEnum(Annotation):
     def name(self):
         if self.__name is not None:
             return self.__name
-        return 'one of ' + ', '.join("'%s'" % str(v)
-                                     for v in sorted(self.values_func()))
+        return 'one of ' + commas(["'%s'" % str(v)
+                                     for v in sorted(self.values_func())])
 
     @property
     def _html_name(self):
@@ -765,8 +765,8 @@ class DynamicEnum(Annotation):
         if self.__name is not None:
             name = self.__name
         else:
-            name = 'one of ' + ', '.join("<b>%s</b>" % escape(str(v))
-                                         for v in sorted(self.values_func()))
+            name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
+                                         for v in sorted(self.values_func())])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
@@ -969,10 +969,12 @@ class OpenFileNameArg(FileNameArg):
 
     @staticmethod
     def parse(text, session):
-        from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(
-            text, session, "file", QFileDialog.AcceptOpen,
-            QFileDialog.ExistingFile)
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
+        else:
+            accept_mode = dialog_mode = None
+        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
 
 
 class SaveFileNameArg(FileNameArg):
@@ -981,9 +983,12 @@ class SaveFileNameArg(FileNameArg):
 
     @staticmethod
     def parse(text, session):
-        from PyQt5.QtWidgets import QFileDialog
-        return _browse_parse(
-            text, session, "file", QFileDialog.AcceptSave, QFileDialog.AnyFile)
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
+        else:
+            accept_mode = dialog_mode = None
+        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
 
 
 class OpenFolderNameArg(FileNameArg):
@@ -992,10 +997,13 @@ class OpenFolderNameArg(FileNameArg):
 
     @staticmethod
     def parse(text, session):
-        from PyQt5.QtWidgets import QFileDialog
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
+        else:
+            accept_mode = dialog_mode = None
         return _browse_parse(
-            text, session, "folder", QFileDialog.AcceptOpen,
-            QFileDialog.DirectoryOnly)
+            text, session, "folder", accept_mode, dialog_mode)
 
 
 class SaveFolderNameArg(FileNameArg):
@@ -1004,10 +1012,13 @@ class SaveFolderNameArg(FileNameArg):
 
     @staticmethod
     def parse(text, session):
-        from PyQt5.QtWidgets import QFileDialog
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
+        else:
+            accept_mode = dialog_mode = None
         return _browse_parse(
-            text, session, "folder", QFileDialog.AcceptSave,
-            QFileDialog.DirectoryOnly)
+            text, session, "folder", accept_mode, dialog_mode)
 
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here
@@ -1119,15 +1130,10 @@ class PseudobondsArg(ObjectsArg):
     @classmethod
     def parse(cls, text, session):
         objects, used, rest = super().parse(text, session)
-        from ..atomic import PseudobondGroup, interatom_pseudobonds
-        pb = interatom_pseudobonds(objects.atoms)
-        pbgs = set(pb.groups.unique())
-        pblist = [m.pseudobonds for m in objects.models
-                  if isinstance(m, PseudobondGroup) and m not in pbgs]
-        if len(pb) > 0:
-            pblist.append(pb)
-        from ..atomic import Pseudobonds, concatenate
-        pbonds = concatenate(pblist, Pseudobonds)
+        from ..atomic import interatom_pseudobonds, Pseudobonds, concatenate
+        apb = interatom_pseudobonds(objects.atoms)
+        opb = objects.pseudobonds
+        pbonds = concatenate([apb, opb], Pseudobonds)
         return pbonds, used, rest
 
 
@@ -1138,8 +1144,20 @@ class BondsArg(ObjectsArg):
     @classmethod
     def parse(cls, text, session):
         objects, used, rest = super().parse(text, session)
-        bonds = objects.atoms.intra_bonds
+        bonds = objects.bonds
         return bonds, used, rest
+
+
+class BondArg(BondsArg):
+    """Parse command specifier for a bond"""
+    name = 'a bond specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        bonds, used, rest = super().parse(text, session)
+        if len(bonds) != 1:
+            raise AnnotationError("Must specify exactly one bond (specified %d)" % len(bonds))
+        return bonds[0], used, rest
 
 
 class SurfacesArg(AtomSpecArg):
@@ -2391,25 +2409,26 @@ class Command:
                 self.completion_prefix = word
                 kw_map = self._ci._keyword_map
                 # Don't change case of what user types.
-                completions = [(kw, kw_map[kw][1]) for kw in kw_map
+                completions = [(kw_map[kw][1], kw) for kw in kw_map
                                if kw.startswith(arg_name) or kw.casefold().startswith(arg_name)]
+                completions.sort()
                 if (final or len(text) > len(chars)) and completions:
                     # require shortened keywords to be unambiguous
                     if len(completions) == 1:
                         unambiguous = True
-                    elif len(completions[0][0]) == len(arg_name):
+                    elif len(completions[0][1]) == len(arg_name):
                         unambiguous = True
-                    elif 1 == len([cnt for kw, cnt in completions if cnt == completions[0][1]]):
+                    elif 1 == len([cnt for cnt, kw in completions if cnt == completions[0][0]]):
                         unambiguous = True
                     else:
                         unambiguous = False
                     if unambiguous:
-                        c = completions[0][0]
+                        c = completions[0][1]
                         self._replace(chars, c)
                         text = self.current_text[self.amount_parsed:]
                         self.completions = []
                         continue
-                    self.completions = list(c[0] for c in completions)
+                    self.completions = list(c[1] for c in completions)
                     self._error = "Expected keyword " + commas('"%s"' % x for x in self.completions)
                     return
                 expected = []
@@ -2771,11 +2790,11 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
+        name = cmd.command_name
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 syntax += '\n\n' + usage('%s %s' % (name, w), show_subcommands=0)
         else:
-            name = cmd.command_name
             if syntax:
                 syntax += '\n'
             syntax += 'Subcommands are:\n' + '\n'.join(
@@ -2887,11 +2906,11 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
+        name = cmd.command_name
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 syntax += '<p>\n' + html_usage('%s %s' % (name, w), show_subcommands=0)
         else:
-            name = cmd.command_name
             if syntax:
                 syntax += '<br>\n'
             syntax += 'Subcommands are:\n<ul>'

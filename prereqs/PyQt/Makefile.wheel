@@ -10,8 +10,8 @@ REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
 VERSION = 5.9
-PYQT_MINOR_VERSION = 1
-QT_MINOR_VERSION = 2
+PYQT_MINOR_VERSION = 2
+QT_MINOR_VERSION = 3
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(VERSION)
 else
@@ -25,7 +25,7 @@ WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(WHEEL_PLATFORM).whl
 # Explicitly choose sip version that works -- depends how unlicensed wheel
 # from Riverbank Computing Limited was built and presumably matches the gpl
 # wheel in PyPI.
-SIP_VERSION = 4.19.5
+SIP_VERSION = 4.19.6
 
 ifeq ($(OS),Darwin)
 PLATFORM = osx

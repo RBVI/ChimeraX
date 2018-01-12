@@ -56,7 +56,9 @@ and/or <a href="#saveFile">saved</a> to a file.
 See also: <a href="addh.html"><b>addh</b></a>,
 <a href="clashes.html"><b>clashes</b>/<b>contacts</b></a>,
 <a href="distance.html"><b>distance</b></a>,
-<a href="interfaces.html"><b>interfaces</b></a>
+<a href="interfaces.html"><b>interfaces</b></a>,
+<a href="../tools/viewdockx.html"><b>ViewDockX</b></a>,
+<a href="#related">H-bond-related features</a>
 </p><p>
 By <a href="#makePseudobonds">default</a>, 
 the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>.
@@ -126,6 +128,12 @@ An interactive histogram of pseudobond lengths can be plotted with
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a 
 chain network diagram summarizing intra- and interchain pseudobonds can be
 shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
+Nucleic acid residues connected by 
+<b>hydrogen bonds</b> <a href="../pseudobonds.html">pseudobonds</a>
+can be shown as ladder rungs with
+<a href="nucleotides.html#ladder"><b>nucleotides ladder</b></a>.
+Receptor-ligand hydrogen bonds can be calculated for docking results with the
+<a href="../tools/viewdockx.html"><b>ViewDockX</b></a> tool.
 </p>
 
 <a name="options"></a>
@@ -367,11 +375,12 @@ Model number will be included when multiple models are present.
 </blockquote>
 <blockquote>
   <b>batch</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>Whether to suppress certain errors; useful for no-GUI
-batch processing.  Currently, the only error suppressed when
-<b>batch</b> is <b>true</b> is that which arises if no atoms are
-<a href="../selection.html">selected</a>
-when <a href="#selRestrict"><b>selRestrict</b></a> is specified.
+<br>
+Whether to suppress error messages that would otherwise appear when
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a> or
+&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
+(given with the <a href="#restrict"><b>restrict</b></a> option)
+does not specify any atoms; useful for no-GUI batch processing.
 </blockquote>
 
 <a name="criteria"></a>
@@ -428,5 +437,5 @@ all of its possible positions.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2017</address>
+January 2018</address>
 </body></html>

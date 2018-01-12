@@ -513,6 +513,15 @@ class Ribbon:
         #normals = curvature_to_normals(curvature, tangents, prev_normal)
         return coords, tangents, normals
 
+    def position(self, seg, t):
+        # Compute coordinates for segment seg with parameter t
+        from numpy import array, dot
+        coeffs = [self.coefficients[0][seg],
+                  self.coefficients[1][seg],
+                  self.coefficients[2][seg]]
+        st = array([1.0, t, t*t, t*t*t])
+        return array([dot(st, coeffs[0]), dot(st, coeffs[1]), dot(st, coeffs[2])])
+
 
 from ..state import State
 
@@ -1072,7 +1081,7 @@ def get_orthogonal_component(v, ref):
 
 
 def constrained_normals(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped, no_twist):
-    from .molc import c_function
+    from .molobject import c_function
     import ctypes
     f = c_function("constrained_normals",
                    args=(ctypes.py_object, ctypes.py_object, ctypes.py_object,

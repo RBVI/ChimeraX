@@ -1,3 +1,5 @@
+.. include:: references.rst
+
 Building and Testing Bundles
 ============================
 

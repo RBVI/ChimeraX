@@ -1,4 +1,6 @@
-..  vim: set expandtab shiftwidth=4 softtabstop=4:
+.. vim: set expandtab shiftwidth=4 softtabstop=4:
+
+:orphan:
 
 .. 
     === UCSF ChimeraX Copyright ===
@@ -411,7 +413,7 @@ data formats, and selectors.
     - *extra_keywords* is an optional comma-separated list of additional
       keyword arguments.  The keyword can be followed by a colon and a
       ChimeraX argument type without the Arg suffix.  If the argument type
-      isn't found in the ``chimerax.commands`` module, the bundle API class is
+      isn't found in the :py:class:`chimerax.core.commands` module, the bundle API class is
       searched for it.
     - *database_name* is a string with the name of the databasea to fetch
       the data from.

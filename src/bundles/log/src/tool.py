@@ -148,7 +148,7 @@ class Log(ToolInstance, HtmlLog):
         class HtmlWindow(ChimeraXHtmlView):
 
             def __init__(self, session, parent, log):
-                super().__init__(session, parent, size_hint=(575, 500))
+                super().__init__(session, parent, size_hint=(575, 500), tool_window=log.tool_window)
                 page = MyPage(self._profile, self)
                 self.setPage(page)
                 s = page.settings()
@@ -166,14 +166,15 @@ class Log(ToolInstance, HtmlLog):
                         lambda: self.page().triggerAction(self.page().Copy))
                 ## The below three lines shoule be sufficent to allow the ui_area
                 ## to Handle the context menu, but apparently not for QWebView widgets,
-                ## so we define conextMenuEvent as a workaround.
+                ## so we define contextMenuEvent as a workaround.
                 # defer context menu to parent
                 #from PyQt5.QtCore import Qt
                 #self.setContextMenuPolicy(Qt.NoContextMenu)
 
-            def contextMenuEvent(self, event):
-                # kludge to allow QWebView to show our context menu (see comment above)
-                self.log.tool_window._show_context_menu(event)
+            ## Moved into core/ui/widgets/htmlview.py
+            ## def contextMenuEvent(self, event):
+            ##     # kludge to allow QWebView to show our context menu (see comment above)
+            ##     self.log.tool_window._show_context_menu(event)
 
             def cm_save(self):
                 from chimerax.core.ui.open_save import export_file_filter, SaveDialog

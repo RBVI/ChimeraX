@@ -16,6 +16,7 @@
 #ifndef atomstruct_PBGroup
 #define atomstruct_PBGroup
 
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -26,7 +27,6 @@
 #include "destruct.h"
 #include "imex.h"
 #include "PBManager.h"
-#include "PythonInstance.h"
 #include "Rgba.h"
 #include "session.h"
 
@@ -47,7 +47,7 @@ class Proxy_PBGroup;
 class Structure;
 
 class ATOMSTRUCT_IMEX PBGroup: public DestructionObserver, public GraphicsChanges,
-        public PythonInstance {
+        public pyinstance::PythonInstance<PBGroup> {
 public:
     typedef std::set<Pseudobond*>  Pseudobonds;
 
@@ -69,8 +69,7 @@ protected:
     // the manager will need to be declared as a friend...
     PBGroup(const std::string& cat, BaseManager* manager):
         _category(cat), _destruction_relevant(true), _manager(manager), _proxy(nullptr) { }
-    virtual  ~PBGroup() {}
-
+    virtual  ~PBGroup() { }
     // can't call pure virtuals from base class destructors, so
     // make the code easily available to derived classes...
     void  dtor_code();

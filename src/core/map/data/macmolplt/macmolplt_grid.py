@@ -21,7 +21,7 @@ class MacMolPlt_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import macmolplt_format
+    from . import macmolplt_format
     md = macmolplt_format.MacMolPlt_Data(path)
     self.macmolplt_data = md
 

@@ -25,6 +25,11 @@ from .volume import volume_from_grid_data
 from .volume import Volume
 
 # -----------------------------------------------------------------------------
+# Time series
+#
+from .series import MapSeries
+
+# -----------------------------------------------------------------------------
 # Map contouring and distance maps.
 #
 from ._map import contour_surface, sphere_surface_distance

@@ -883,9 +883,19 @@ def common_startup(sess):
         sdump,
         logger=sess.logger
     )
+    register(
+        'debug exception',
+        CmdDesc(synopsis="generate exception to test exception handling"),
+        _gen_exception,
+        logger=sess.logger
+    )
 
     _register_core_file_formats(sess)
     _register_core_database_fetch()
+
+
+def _gen_exception(session):
+    raise RuntimeError("Generated exception for testing purposes")
 
 
 def _register_core_file_formats(session):

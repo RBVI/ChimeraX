@@ -317,7 +317,7 @@ class IMS_Image:
 
         va = group._v_attrs
         if 'step' in va:
-            step = tuple(map(float, va.step))
+            step = tuple(float(s) for s in va.step)
         else:
             step = (1.0, 1.0, 1.0)
         return step
@@ -328,7 +328,7 @@ class IMS_Image:
 
         va = group._v_attrs
         if 'origin' in va:
-            origin = tuple(map(float, va.origin))
+            origin = tuple(float(o) for o in va.origin)
         else:
             origin = (0.0, 0.0, 0.0)
         return origin
@@ -339,7 +339,7 @@ class IMS_Image:
 
         va = group._v_attrs
         if 'cell_angles' in va:
-            cell_angles = tuple(map(float, va.cell_angles))
+            cell_angles = tuple(float(a) for a in va.cell_angles)
         else:
             cell_angles = (90.0, 90.0, 90.0)
         return cell_angles

@@ -45,8 +45,9 @@ def open(paths):
     assign_series_and_channels(grids)
 
     # Assign default channel colors
-    for g in grids:
-      if g.rgba is None and g.channel is not None:
+    gc = [g for g in grids if g.rgba is None and g.channel is not None]
+    if len(set(g.channel for g in gc)) > 1:
+      for g in gc:
         g.rgba = default_channel_colors[g.channel % len(default_channel_colors)]
 
   return grids
@@ -80,14 +81,19 @@ def assign_series_and_channels(grids):
     if series_index is not None:
       g.series_index = series_index
 
-  # Mark volume series if all grids the same size
+  # Mark volume series if all grids the same size.
+  # If 4 or fewer grids with channel None then assign them as channels.
   if not assigned:
     channels = set(g.channel for g in grids)
     for c in channels:
-      gc = tuple(g for g in grids if g.channel == channel)
+      gc = tuple(g for g in grids if g.channel == c)
       if len(gc) > 1 and len(set(tuple(g.size) for g in gc)) == 1:
-        for i,g in enumerate(gc):
-          g.series_index = i
+        if c is None and len(gc) <= 4:
+          for i,g in enumerate(gc):
+            g.channel = i
+        else:
+          for i,g in enumerate(gc):
+            g.series_index = i
 
 # -----------------------------------------------------------------------------
 #

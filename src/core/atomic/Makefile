@@ -12,7 +12,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= atomstruct_cpp dssp_cpp element_cpp mmcif_cpp pdb_cpp pdbio readcif_cpp
+SUBDIRS	+= atomstruct_cpp dssp_cpp element_cpp mmcif_cpp pdb_cpp pdbio pyinstance_cpp readcif_cpp
 
 include $(TOP)/mk/subdir.make
 
@@ -30,9 +30,9 @@ OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 HDRS 	= 
 INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 ifeq ($(WIN32),msvc)
-LIBS	+= libatomstruct.lib libelement.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
+LIBS	+= libatomstruct.lib libelement.lib libpyinstance.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
 else
-LIBS	+= -latomstruct -lelement -larrays -llogger -lappdirs $(PYTHON_LIB)
+LIBS	+= -latomstruct -lelement -lpyinstance -larrays -llogger -lappdirs $(PYTHON_LIB)
 endif
 
 all: $(PYOBJS) $(SHLIB)
@@ -66,7 +66,9 @@ molc.$(OBJ_EXT): $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/Atomic
 	$(includedir)/atomstruct/ChangeTracker.h $(includedir)/atomstruct/destruct.h \
 	$(includedir)/atomstruct/PBGroup.h $(includedir)/atomstruct/PBManager.h \
 	$(includedir)/atomstruct/Pseudobond.h $(includedir)/atomstruct/Residue.h \
-	$(includedir)/atomstruct/RibbonXSection.h $(includedir)/atomstruct/Sequence.h
+	$(includedir)/atomstruct/RibbonXSection.h $(includedir)/atomstruct/Sequence.h \
+	$(includedir)/element/Element.h $(includedir)/pyinstance/PythonInstance.declare.h \
+	$(includedir)/pyinstance/PythonInstance.instantiate.h
 
 $(includedir)/atomstruct/Atom.h: atomstruct_cpp.install
 $(includedir)/atomstruct/AtomicStructure.h: atomstruct_cpp.install
@@ -79,8 +81,12 @@ $(includedir)/atomstruct/Pseudobond.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Residue.h: atomstruct_cpp.install
 $(includedir)/atomstruct/RibbonXSection.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Sequence.h: atomstruct_cpp.install
+$(includedir)/element/Element.h: element_cpp.install
+$(includedir)/pyinstance/PythonInstance.declare.h: pyinstance_cpp.install
+$(includedir)/pyinstance/PythonInstance.instantiate.h: pyinstance_cpp.install
 
-atomstruct_cpp.install: element_cpp.install
+atomstruct_cpp.install: element_cpp.install pyinstance_cpp.install
 dssp_cpp.install: atomstruct_cpp.install
+element_cpp.install: pyinstance_cpp.install
 mmcif_cpp.install: readcif_cpp.install atomstruct_cpp.install
 pdbio.install: atomstruct_cpp.install pdb_cpp.install

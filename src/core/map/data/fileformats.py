@@ -25,27 +25,27 @@ file_types = (
   ('BRIX density map', 'dsn6', ['dsn6'], ['brix'], False),
   ('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map'], False),
   ('Chimera map', 'cmap', ['cmap'], ['cmp','cmap'], False),
-#  ('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor'], False),
-#  ('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi'], False),
+  ('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor'], False),
+  ('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi'], False),
   ('DeltaVision map', 'deltavision', ['dv'], ['dv'], False),
   ('DSN6 density map', 'dsn6', ['dsn6'], ['omap'], False),
-#  ('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg'], False),
-#  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
-#  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
-#  ('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt'], False),
+  ('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg'], False),
+  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
+  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
+  ('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt'], False),
   ('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], True),
   ('Imaris map', 'ims', ['ims'], ['ims'], False),
-#  ('IMOD map', 'imod', ['imodmap'], ['rec'], False),
-#  ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
+  ('IMOD map', 'imod', ['imodmap'], ['rec'], False),
+  ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
   ('MRC density map', 'mrc', ['mrc'], ['mrc'], False),
-#  ('NetCDF generic array', 'netcdf', ['netcdf'], ['nc'], False),
-#  ('Priism microscope image', 'priism', ['priism'], ['xyzw'], False),
-#  ('PROFEC free energy grid', 'profec', ['profec'], ['profec'], False),
-#  ('Purdue image format', 'pif', ['pif'], ['pif'], False),
-#  ('SITUS map file', 'situs', ['situs'], ['sit','situs'], False),
-#  ('SPIDER volume data', 'spider', ['spider'], ['spi','vol'], False),
-#  ('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em'], False),
-#  ('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd'], False),
+  ('NetCDF generic array', 'netcdf', ['netcdf'], ['nc'], False),
+  ('Priism microscope image', 'priism', ['priism'], ['xyzw', 'xyzt'], False),
+  ('PROFEC free energy grid', 'profec', ['profec'], ['profec'], False),
+  ('Purdue image format', 'pif', ['pif'], ['pif'], False),
+  ('SITUS map file', 'situs', ['situs'], ['sit','situs'], False),
+  ('SPIDER volume data', 'spider', ['spider'], ['spi','vol'], False),
+  ('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em'], False),
+  ('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd'], False),
   )
 
 # -----------------------------------------------------------------------------
@@ -97,10 +97,10 @@ def suffix_warning(paths):
     pluralize = ''
     
   suffixes = reduce(lambda list, s: list + s[3], file_types, [])
-  suffix_string = ' '.join(map(lambda s: '.'+s, suffixes))
+  suffix_string = ' '.join(['.'+s for s in suffixes])
 
   prefixes = reduce(lambda list, s: list + s[2], file_types, [])
-  prefix_string = ' '.join(map(lambda s: s+':', prefixes))
+  prefix_string = ' '.join([s+':' for s in prefixes])
   
   msg = ('Warning: Unrecognized file suffix%s for %s.\n' %
          (pluralize, path_string) +
@@ -162,7 +162,7 @@ def file_type_from_colon_specifier(path):
   first_part = path[:colon_position]
   last_part = path[colon_position+1:]
 
-  module_names = map(lambda s: s[1], file_types)
+  module_names = [s[1] for s in file_types]
   if last_part in module_names:
     return last_part, first_part
 

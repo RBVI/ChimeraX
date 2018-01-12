@@ -14,11 +14,15 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "ChangeTracker.h"
 #include "PBGroup.h"
 #include "PBManager.h"
 #include "Pseudobond.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Pseudobond>;
 
 namespace atomstruct {
 
@@ -30,7 +34,7 @@ Pseudobond::Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _g
 }
 
 ChangeTracker*
-Pseudobond::change_tracker() const { return atoms()[0]->change_tracker(); }
+Pseudobond::change_tracker() const { return group()->manager()->change_tracker(); }
 
 GraphicsChanges*
 Pseudobond::graphics_changes() const { return static_cast<GraphicsChanges*>(group()); }

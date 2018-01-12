@@ -102,6 +102,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     else:
         from glob import glob
         paths = glob(filename)
+        paths.sort()	# python glob does not sort. Keep series in order.
         if len(paths) == 0:
             from ..errors import UserError
             raise UserError('File not found: %s' % filename)

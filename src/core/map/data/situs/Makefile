@@ -9,19 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Makefile for user guide
-#
-TOP	= ../../..
+TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-DOCDIR = $(app_datadir)/docs/user/formats
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/data/situs
 
-SRCS = $(wildcard *.html)
-IMAGES = $(wildcard *.png)
-BILD = $(wildcard *.bild)
+PYSRCS = __init__.py situs_format.py situs_grid.py
 
-install:
-	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
-	$(RSYNC) $(SRCS) $(IMAGES) $(BILD) $(DOCDIR)
+all: $(PYOBJS)
+
+install: all
+	-mkdir -p $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 clean:
+	rm -rf __pycache__

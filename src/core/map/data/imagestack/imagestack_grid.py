@@ -32,7 +32,7 @@ def image_stack_grids(paths):
 #
 class Image_Stack_Grid(Grid_Data):
 
-  def __init__(self, d, channel = 0):
+  def __init__(self, d, channel = None):
 
     self.image_stack = d
 

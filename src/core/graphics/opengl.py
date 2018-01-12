@@ -152,6 +152,19 @@ class Render:
     def swap_buffers(self):
         self._opengl_context.swap_buffers()
 
+    def wait_for_vsync(self, wait):
+        '''
+        Control whether OpenGL synchronizes to the display vertical refresh.
+        Currently this call is only supported on Windows. Returns true if
+        the setting can be changed, otherwise false.
+        '''
+        try:
+            from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
+            i = 1 if wait else 0
+            return True if wglSwapIntervalEXT(i) else False
+        except:
+            return False
+
     def use_shared_context(self, window, width, height):
         '''
         Switch opengl context to use the specified target window.

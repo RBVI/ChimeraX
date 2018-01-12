@@ -258,6 +258,45 @@ def polymer_colors(residues):
 
 
 # -----------------------------------------------------------------------------
+# Default nucleotide colors used by the NDB from 3xdna
+
+
+_ndb_colors = {
+    'A': (255, 0, 0, 255),      # red
+    'T': (0, 0, 255, 255),      # blue
+    'G': (0, 255, 0, 255),      # green
+    'C': (255, 255, 0, 255),    # yellow
+    'I': (0, 100, 0, 255),      # dark green
+    'P': (211, 211, 211, 255),  # light gray
+    'U': (0, 255, 255, 255),    # cyan
+}
+
+
+def nucleotide_colors(residues):
+    from numpy import empty, uint8
+    from . import Sequence, Residue
+    nucleic3to1 = Sequence.nucleic3to1
+    mask = residues.polymer_types == Residue.PT_NUCLEIC
+    nucleotides = residues.filter(mask)
+    colors = empty([len(residues), 4], dtype=uint8)
+    cache = _ndb_colors.copy()
+    cache['PSU'] = cache['P']
+    for ((i, name), is_nuc) in zip(enumerate(residues.names), mask):
+        if not is_nuc:
+            continue
+        color = cache.get(name, None)
+        if color is None:
+            try:
+                n = nucleic3to1(name)
+                color = cache[n]
+            except KeyError:
+                color = (128, 128, 128, 255)
+            cache[name] = color
+        colors[i] = color
+    return colors, mask
+
+
+# -----------------------------------------------------------------------------
 #
 atomic_color_names = ["tan", "sky blue", "plum", "light green",
                       "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]

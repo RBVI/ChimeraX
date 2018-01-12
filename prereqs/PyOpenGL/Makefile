@@ -31,44 +31,43 @@ endif
 
 PATCHES = $(wildcard PyOpenGL-$(VERSION)-*.patch) \
 	$(wildcard PyOpenGL-$(VERSION)_$(OS).patch) \
-	$(wildcard PyOpenGL-$(VERSION)_$(OS)_$(OPENGL_PLATFORM).patch)
+	$(wildcard PyOpenGL-$(VERSION)_$(OS)_$(OPENGL_PLATFORM).patch) \
+	PyOpenGL-wgl.patch
 
 all:
 
-install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 ifdef WIN32
-	$(PIP_INSTALL) $(WHEEL)
+
+install:
+	$(PIP_INSTALL) $(WHEEL) | grep "not upgraded" || \
+		(cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch
+
+app-install:
+	$(APP_PIP_INSTALL) $(WHEEL) | grep "not upgraded" || \
+		(cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch
+
 else
+
+install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 	cd $(PYOPENGL_SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 	cd $(ACCELERATE_SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
-endif
 
-app-install: install
-ifdef WIN32
-	$(APP_PIP_INSTALL) $(WHEEL)
-else
-	# TODO: figure out way to make below work, so we don't depend on SOURCE
-	#$(RSYNC) $(PYSITEDIR)/PyOpenGL-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
-	#$(RSYNC) $(PYSITEDIR)/PyOpenGL_accelerate-$(VERSION)-py$(PYTHON_VERSION)-*.egg $(APP_PYSITEDIR)
+app-install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 	cd $(PYOPENGL_SOURCE) && $(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 	cd $(ACCELERATE_SOURCE) && $(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install
+
 endif
 
 $(PYOPENGL_SOURCE):
-ifndef WIN32
 	tar zxf $(PYOPENGL_DISTRIBUTION) -C $(tmpdir)
-
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(PYOPENGL_SOURCE) && patch -f -p0) < $$p ; \
 	done
 endif
-endif
 
 $(ACCELERATE_SOURCE):
-ifndef WIN32
 	tar zxf $(ACCELERATE_DISTRIBUTION) -C $(tmpdir)
-endif
 
 clean:
 	rm -rf $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)

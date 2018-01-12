@@ -20,7 +20,7 @@ class PIF_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import pif_format
+    from . import pif_format
     d = pif_format.PIF_Data(path)
     self.pif_data = d
 

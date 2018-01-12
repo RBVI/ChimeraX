@@ -19,6 +19,7 @@
 #include <sstream>
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Chain.h"
 #include "ChangeTracker.h"
 #include "destruct.h"
@@ -88,9 +89,9 @@ StructureSeq::copy() const
 void
 StructureSeq::demote_to_sequence()
 {
-    auto inst = py_instance();
-    if (inst != nullptr) {
-        auto gil = AcquireGIL();
+    auto inst = py_instance(false);
+    if (inst != Py_None) {
+        auto gil = pyinstance::AcquireGIL();
         _structure = nullptr;
         auto ret = PyObject_CallMethod(inst, "_cpp_demotion", nullptr);
         if (ret == nullptr) {
@@ -98,6 +99,7 @@ StructureSeq::demote_to_sequence()
         }
         Py_DECREF(ret);
     }
+    Py_DECREF(inst);
     // let normal deletion processes clean up; don't explicitly delete here
 }
 

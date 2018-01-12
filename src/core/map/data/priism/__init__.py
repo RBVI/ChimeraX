@@ -15,5 +15,5 @@
 #
 def open(path):
 
-  from priism_grid import read_priism_file
+  from .priism_grid import read_priism_file
   return read_priism_file(path)

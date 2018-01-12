@@ -46,6 +46,7 @@ Protein secondary structure (helix and strand)
 assignments are read from the input structure file
 or calculated with <a href="dssp.html"><b>dssp</b></a>.
 See also:
+<a href="nucleotides.html"><b>nucleotides</b></a>,
 <a href="rungs.html"><b>rungs</b></a>,
 <a href="struts.html"><b>struts</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
@@ -78,8 +79,10 @@ to preclude showing <a href="#tether">tethers</a>.
 Whether showing cartoon for a residue suppresses the display of
 its backbone atoms (initial default <b>true</b>). 
 The backbone atoms suppressed  by cartoons are N, C, and O in amino acids
-and the phosphate moieties including  O5' in nucleic acids.
+and P, OP1, OP2, OP3, O5', C5', and O3' in nucleic acids.
 Simultaneous display can be enabled by setting this option to <b>false</b>.
+Connecting <a href="#tether">tethers</a> are drawn
+where displayed backbone atoms are offset from the cartoon.
 </blockquote>
 <p>
 The <a href="#subcommands">subcommands</a> of <b>cartoon</b>, however,
@@ -90,7 +93,7 @@ control per-model settings:
 - width, thickness, and shape; secondary structure representations like
 <a href="#hmode">helix tubes</a>
 <li><a href="#tether"><b>cartoon tether</b></a>
-- connectors between smoothed strands and offset &alpha;-carbons
+- appearance of connectors between cartoon and offset backbone atoms
 </ul>
 <p>
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
@@ -291,12 +294,17 @@ cartoon style #2 arrows f wid 1 thick 1 x round
 [&nbsp;<b>opacity</b>&nbsp;&nbsp<i>opacity</i>&nbsp;]
 <blockquote>
 <p>
-The command <b>cartoon tether</b> controls the appearance of the
-connectors between &alpha;-carbons and the cartoon where they are offset.
-Such offsets may be visible where sidechains are displayed on
-<a href="#top">smoothed strands</a> or <a href="#hmode">helix tubes</a>.
 A <b><i>tether</i></b> is drawn between a displayed &alpha;-carbon (CA atom)
-and the corresponding cartoon segment where they are offset.
+and the corresponding cartoon segment where they are offset, such as in
+<a href="#top">smoothed strands</a> or <a href="#hmode">helix tubes</a>.
+Tethers are also drawn for displayed proline N
+and nucleic acid C3' and C4' atoms,
+and when <a href="#suppress">backbone suppression</a> is turned off, 
+additional displayed backbone atoms.
+<!--
+amino acid N, C, and nucleotide P, O3', and O5'
+-->
+</p><p>
 Tether <b>shape</b> can be:
  <ul>
  <li><b>cone</b> (initial default) 
@@ -309,13 +317,16 @@ The <b>sides</b> option controls the number of planar facets used to draw
 a tether (range 3-10, initial default <b>4</b>).
 The <b>scale</b> option sets tether base radius relative to the display radius 
 of the corresponding &alpha;-carbon (range 0.0-1.0, initial default <b>1.0</b>).
-The tether <b>opacity</b> value (1 &ndash; transparency) can range from 0.0
-(completely transparent, allows hiding the tethers) to 1.0 (completely opaque),
-with initial default <b>0.5</b>.
 The tether color tracks the color of the corresponding &alpha;-carbon.
+The tether <b>opacity</b> value (1 &ndash; transparency) can range from 0.0
+(completely transparent) to 1.0 (completely opaque),
+with initial default <b>0.5</b>.
+</p><p>
+Tethers can be hidden using <b>opacity 0</b>.
+</p>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+December 2017</address>
 </body></html>
