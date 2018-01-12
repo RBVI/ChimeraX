@@ -129,7 +129,8 @@ var vdxtable = function() {
             headers: {
                 0: { sorter: 'rating_col' },
                 1: { sorter: 'id_col' }
-            }
+            },
+            widgets: [ "resizable" ],
         });
         function mouse_update(e) {
             var my_index = $(this).index();
@@ -303,7 +304,11 @@ var vdxtable = function() {
                               $("#prune_stars").rateYo("option", "rating");
         });
         $("#show_columns").multiselect({
-            placeholder: "Columns...",
+            texts: {
+                placeholder: "Display columns...",
+                selectedOptions: " columns displayed (click to update)",
+                noneSelected: "No columns displayed (click to update)",
+            },
             onOptionClick: show_column
         });
         $("#viewdockx_table").tablesorter();
