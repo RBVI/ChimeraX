@@ -251,7 +251,12 @@ class TableTool(_BaseTool, HtmlToolInstance):
 
     def _cb_show_only(self, query):
         """shows only selected structure"""
-        self.show_only(query["id"][0])
+        try:
+            models = query["id"][0]
+        except KeyError:
+            self.show_set(None, False)
+        else:
+            self.show_only(models)
 
     def _cb_rating(self, query):
         """update rating for structure"""

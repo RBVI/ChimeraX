@@ -129,7 +129,8 @@ var vdxtable = function() {
             headers: {
                 0: { sorter: 'rating_col' },
                 1: { sorter: 'id_col' }
-            }
+            },
+            widgets: [ "resizable" ],
         });
         function mouse_update(e) {
             var my_index = $(this).index();
