@@ -349,27 +349,38 @@ extern "C" EXPORT void set_atom_occupancy(void *atoms, size_t n, float32_t *occu
 }
 
 
-extern "C" EXPORT void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
+extern "C" EXPORT void atom_py_obj_bonds(void *atoms, size_t n, pyobject_t *bonds)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Atom::Bonds &b = a[i]->bonds();
-            for (size_t j = 0; j != b.size(); ++j)
-                *bonds++ = b[j];
+            PyObject* b_list = PyList_New(a[i]->bonds().size());
+            if (b_list == nullptr)
+                throw std::bad_alloc();
+            bonds[i] = b_list;
+            int b_i = 0;
+            for (auto b: a[i]->bonds()) {
+                PyList_SET_ITEM(b_list, b_i++, b->py_instance(true));
+            }
         }
     } catch (...) {
         molc_error();
     }
 }
 
-extern "C" EXPORT void atom_neighbors(void *atoms, size_t n, pyobject_t *batoms)
+extern "C" EXPORT void atom_py_obj_neighbors(void *atoms, size_t n, pyobject_t *neighbors)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i) {
-            for (auto nb: a[i]->neighbors())
-                *batoms++ = nb;
+            PyObject* nb_list = PyList_New(a[i]->neighbors().size());
+            if (nb_list == nullptr)
+                throw std::bad_alloc();
+            neighbors[i] = nb_list;
+            int nb_i = 0;
+            for (auto nb: a[i]->neighbors()) {
+                PyList_SET_ITEM(nb_list, nb_i++, nb->py_instance(true));
+            }
         }
     } catch (...) {
         molc_error();
@@ -875,7 +886,12 @@ extern "C" EXPORT void set_atom_serial_number(void *atoms, size_t n, int32_t *se
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_get(a, n, &Atom::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            molp[i] = a[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void atom_name(void *atoms, size_t n, pyobject_t *names)
@@ -1156,6 +1172,17 @@ extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
     }
 }
 
+extern "C" EXPORT void atom_use_default_radius(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            a[i]->use_default_radius();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *atom_intra_bonds(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -1423,7 +1450,12 @@ extern "C" EXPORT void set_bond_radius(void *bonds, size_t n, float32_t *radii)
 extern "C" EXPORT void bond_structure(void *bonds, size_t n, pyobject_t *molp)
 {
     Bond **b = static_cast<Bond **>(bonds);
-    error_wrap_array_get(b, n, &Bond::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+          molp[i] = b[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
@@ -1831,26 +1863,26 @@ extern "C" EXPORT void pseudobond_group_clear(void *pbgroup)
     }
 }
 
-extern "C" EXPORT void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
+extern "C" EXPORT PyObject *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
 {
     Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
     try {
         Pseudobond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
-        return b;
+        return b->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
     }
 }
 
-extern "C" EXPORT void *pseudobond_group_new_pseudobond_csid(void *pbgroup,
+extern "C" EXPORT PyObject *pseudobond_group_new_pseudobond_csid(void *pbgroup,
     void *atom1, void *atom2, int cs_id)
 {
     Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
     try {
         Pseudobond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2),
             pbg->structure()->find_coord_set(cs_id));
-        return b;
+        return b->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -1871,8 +1903,14 @@ extern "C" EXPORT void pseudobond_group_structure(void *pbgroups, size_t n, pyob
 {
     Proxy_PBGroup **pbgs = static_cast<Proxy_PBGroup **>(pbgroups);
     try {
-        for (size_t i = 0; i < n; ++i)
-            resp[i] = pbgs[i]->structure();
+        for (size_t i = 0; i < n; ++i) {
+            auto sptr = pbgs[i]->structure();
+            if (sptr == nullptr) {
+                Py_INCREF(Py_None);
+                resp[i] = Py_None;
+            } else
+                resp[i] = sptr->py_instance(true);
+        }
     } catch (...) {
         molc_error();
     }
@@ -2404,7 +2442,12 @@ extern "C" EXPORT size_t residue_ribbon_num_selected(void *residues, size_t n)
 extern "C" EXPORT void residue_structure(void *residues, size_t n, pyobject_t *molp)
 {
     Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+          molp[i] = r[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void residue_name(void *residues, size_t n, pyobject_t *names)
@@ -3121,7 +3164,12 @@ extern "C" EXPORT void set_sseq_from_seqres(void *sseqs, size_t n, npy_bool *fro
 extern "C" EXPORT void sseq_structure(void *chains, size_t n, pyobject_t *molp)
 {
     StructureSeq **c = static_cast<StructureSeq **>(chains);
-    error_wrap_array_get(c, n, &StructureSeq::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+          molp[i] = c[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void *sseq_new(char *chain_id, void *struct_ptr)
@@ -3448,7 +3496,12 @@ extern "C" EXPORT void coordset_id(void *coordsets, size_t n, int32_t *index)
 extern "C" EXPORT void coordset_structure(void *coordsets, size_t n, pyobject_t *molp)
 {
     CoordSet **cs = static_cast<CoordSet **>(coordsets);
-    error_wrap_array_get(cs, n, &CoordSet::structure, molp);
+    try {
+        for (size_t i = 0; i < n; ++i)
+          molp[i] = cs[i]->structure()->py_instance(true);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 // -------------------------------------------------------------------------
@@ -4154,12 +4207,16 @@ extern "C" EXPORT const char *structure_PBG_HYDROGEN_BONDS()
     return Structure::PBG_HYDROGEN_BONDS;
 }
 
-extern "C" EXPORT Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name, int create_type)
+extern "C" EXPORT PyObject *structure_pseudobond_group(void *mol, const char *name, int create_type)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
         Proxy_PBGroup *pbg = m->pb_mgr().get_group(name, create_type);
-        return pbg;
+        if (pbg == nullptr) {
+            Py_INCREF(Py_None);
+            return Py_None;
+        }
+        return pbg->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -4348,6 +4405,16 @@ extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
     }
 }
 
+extern "C" EXPORT void structure_use_default_atom_radii(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->use_default_atom_radii();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *structure_molecules(void *mol)
 {
     Structure *s = static_cast<Structure *>(mol);
@@ -4445,13 +4512,13 @@ extern "C" EXPORT void structure_delete(void *mol)
     }
 }
 
-extern "C" EXPORT void *structure_new_atom(void *mol, const char *atom_name, void *element)
+extern "C" EXPORT PyObject *structure_new_atom(void *mol, const char *atom_name, void *element)
 {
     Structure *m = static_cast<Structure *>(mol);
     Element *e = static_cast<Element *>(element);
     try {
         Atom *a = m->new_atom(atom_name, *e);
-        return a;
+        return a->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -4468,12 +4535,12 @@ extern "C" EXPORT void structure_delete_atom(void *mol, void *atom)
     }
 }
 
-extern "C" EXPORT void *structure_new_bond(void *mol, void *atom1, void *atom2)
+extern "C" EXPORT PyObject *structure_new_bond(void *mol, void *atom1, void *atom2)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
         Bond *b = m->new_bond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
-        return b;
+        return b->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -4510,12 +4577,12 @@ extern "C" EXPORT void structure_new_coordset_index_size(void *mol, int32_t inde
     }
 }
 
-extern "C" EXPORT void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert)
+extern "C" EXPORT PyObject *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
         Residue *r = m->new_residue(residue_name, chain_id, pos, insert);
-        return r;
+        return r->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -4842,80 +4909,6 @@ extern "C" EXPORT void pointer_array_freed(void *numpy_array)
     }
 }
 
-class Object_Map_Deletion_Handler : DestructionObserver
-{
-public:
-    Object_Map_Deletion_Handler(PyObject *object_map) : object_map(object_map) {}
-
-private:
-    PyObject *object_map;        // Dictionary from C++ pointer to Python wrapped object having a _c_pointer attribute.
-
-    virtual void  destructors_done(const std::set<void*>& destroyed)
-    {
-        remove_deleted_objects(destroyed);
-    }
-
-    void remove_deleted_objects(const std::set<void*>& destroyed)
-    {
-        auto map_size = PyDict_Size(object_map);
-        if (map_size == 0)
-            return;
-        if (destroyed.size() > (std::set<void*>::size_type)map_size) {
-            // object_map smaller than destroyed set, loop over object map
-            Py_ssize_t i = 0;
-            PyObject* key;
-            std::vector<PyObject*> removals;
-            while (PyDict_Next(object_map, &i, &key, nullptr)) {
-                auto key_as_long = PyNumber_Long(key);
-                if (key_as_long == nullptr) {
-                    std::stringstream buffer;
-                    buffer << "object map key is not a long, is " << Py_TYPE(key)->tp_name;
-                    throw std::invalid_argument(buffer.str());
-                }
-                auto ptr = PyLong_AsVoidPtr(key_as_long);
-                if (destroyed.find(ptr) != destroyed.end())
-                    removals.push_back(key);
-                Py_DECREF(key_as_long);
-            }
-            for (auto rm: removals)
-                remove_from_map(rm);
-        } else {
-            // object_map larger than destroyed set, loop over destroyed set
-            for (auto d: destroyed) {
-                auto dp = PyLong_FromVoidPtr(d);
-                if (PyDict_Contains(object_map, dp))
-                    remove_from_map(dp);
-                Py_DECREF(dp);
-            }
-        }
-    }
-
-    void remove_from_map(PyObject* obj) {
-        PyObject *po = PyDict_GetItem(object_map, obj);
-        PyObject_DelAttrString(po, "_c_pointer");
-        PyObject_DelAttrString(po, "_c_pointer_ref");
-        PyDict_DelItem(object_map, obj);
-    }
-};
-
-extern "C" EXPORT void *object_map_deletion_handler(void *object_map)
-{
-    try {
-        return new Object_Map_Deletion_Handler(static_cast<PyObject *>(object_map));
-    } catch (...) {
-        molc_error();
-        return nullptr;
-    }
-}
-
-extern "C" EXPORT void delete_object_map_deletion_handler(void *handler)
-{
-    try {
-        delete static_cast<Object_Map_Deletion_Handler *>(handler);
-    } catch (...) {
-        molc_error();
-    }
-}
 
 // -------------------------------------------------------------------------
 // ribbon xsection functions
@@ -5364,5 +5357,373 @@ extern "C" EXPORT void pointer_intersects_each(void *pointer_arrays, size_t na, 
         }
     } catch (...) {
         molc_error();
+    }
+}
+
+// inform C++ about relevant class objects
+//
+extern "C" EXPORT void set_atom_pyclass(PyObject* py_class)
+{
+    try {
+        Atom::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_bond_pyclass(PyObject* py_class)
+{
+    try {
+        Bond::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_coordset_pyclass(PyObject* py_class)
+{
+    try {
+        CoordSet::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_element_pyclass(PyObject* py_class)
+{
+    try {
+        Element::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_pseudobondgroup_pyclass(PyObject* py_class)
+{
+    try {
+        PBGroup::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_pseudobond_pyclass(PyObject* py_class)
+{
+    try {
+        Pseudobond::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_residue_pyclass(PyObject* py_class)
+{
+    try {
+        Residue::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_ring_pyclass(PyObject* py_class)
+{
+    try {
+        Ring::set_py_class(py_class);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_sequence_py_instance(void* sequence, PyObject* py_inst)
+{
+    Sequence *seq = static_cast<Sequence *>(sequence);
+    try {
+        seq->set_py_instance(py_inst);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_structure_py_instance(void* mol, PyObject* py_inst)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->set_py_instance(py_inst);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_pseudobondgroup_py_instance(void* pbgroup, PyObject* py_inst)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    try {
+        pbg->set_py_instance(py_inst);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT PyObject* atom_py_inst(void* ptr)
+{
+    Atom *a = static_cast<Atom*>(ptr);
+    try {
+        return a->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* atom_existing_py_inst(void* ptr)
+{
+    Atom *a = static_cast<Atom*>(ptr);
+    try {
+        return a->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* bond_py_inst(void* ptr)
+{
+    Bond *b = static_cast<Bond*>(ptr);
+    try {
+        return b->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* bond_existing_py_inst(void* ptr)
+{
+    Bond *b = static_cast<Bond*>(ptr);
+    try {
+        return b->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* coordset_py_inst(void* ptr)
+{
+    CoordSet *cs = static_cast<CoordSet*>(ptr);
+    try {
+        return cs->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* coordset_existing_py_inst(void* ptr)
+{
+    CoordSet *cs = static_cast<CoordSet*>(ptr);
+    try {
+        return cs->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* element_py_inst(void* ptr)
+{
+    Element *e = static_cast<Element*>(ptr);
+    try {
+        return e->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* element_existing_py_inst(void* ptr)
+{
+    Element *e = static_cast<Element*>(ptr);
+    try {
+        return e->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* pseudobondgroup_py_inst(void* ptr)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup*>(ptr);
+    try {
+        return pbg->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* pseudobondgroup_existing_py_inst(void* ptr)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup*>(ptr);
+    try {
+        return pbg->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* pseudobond_py_inst(void* ptr)
+{
+    Pseudobond *pb = static_cast<Pseudobond*>(ptr);
+    try {
+        return pb->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* pseudobond_existing_py_inst(void* ptr)
+{
+    Pseudobond *pb = static_cast<Pseudobond*>(ptr);
+    try {
+        return pb->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* residue_py_inst(void* ptr)
+{
+    Residue *r = static_cast<Residue*>(ptr);
+    try {
+        return r->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* residue_existing_py_inst(void* ptr)
+{
+    Residue *r = static_cast<Residue*>(ptr);
+    try {
+        return r->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* ring_py_inst(void* ptr)
+{
+    Ring *r = static_cast<Ring*>(ptr);
+    try {
+        return r->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* ring_existing_py_inst(void* ptr)
+{
+    Ring *r = static_cast<Ring*>(ptr);
+    try {
+        return r->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* sequence_py_inst(void* ptr)
+{
+    Sequence *s = static_cast<Sequence*>(ptr);
+    try {
+        return s->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* sequence_existing_py_inst(void* ptr)
+{
+    Sequence *s = static_cast<Sequence*>(ptr);
+    try {
+        return s->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* structureseq_py_inst(void* ptr)
+{
+    StructureSeq *ss = static_cast<StructureSeq*>(ptr);
+    try {
+        return ss->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* structureseq_existing_py_inst(void* ptr)
+{
+    StructureSeq *ss = static_cast<StructureSeq*>(ptr);
+    try {
+        return ss->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* chain_py_inst(void* ptr)
+{
+    Chain *c = static_cast<Chain*>(ptr);
+    try {
+        return c->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* chain_existing_py_inst(void* ptr)
+{
+    Chain *c = static_cast<Chain*>(ptr);
+    try {
+        return c->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* structure_py_inst(void* ptr)
+{
+    Structure *s = static_cast<Structure*>(ptr);
+    try {
+        return s->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject* structure_existing_py_inst(void* ptr)
+{
+    Structure *s = static_cast<Structure*>(ptr);
+    try {
+        return s->py_instance(false);
+    } catch (...) {
+        molc_error();
+        return nullptr;
     }
 }

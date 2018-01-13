@@ -70,7 +70,7 @@ class View:
         self.frame_number = 1
         self.redraw_needed = True
         self._time_graphics = False
-        self.update_lighting = False
+        self.update_lighting = True
 
         self._drawing_manager = dm = _RedrawNeeded()
         if trigger_set:

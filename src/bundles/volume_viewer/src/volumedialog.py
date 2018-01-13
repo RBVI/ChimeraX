@@ -181,7 +181,7 @@ class VolumeViewer(ToolInstance):
             v.add_volume_change_callback(self.data_region_changed)
             v._volume_viewer_tracking = True
             
-            if hasattr(v.data, 'series_index') and v.data.series_index > 0:
+            if hasattr(v, 'series') and v is not v.series.first_map():
                 continue
 
             # Show data parameters.

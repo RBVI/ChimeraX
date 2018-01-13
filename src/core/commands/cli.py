@@ -1144,8 +1144,20 @@ class BondsArg(ObjectsArg):
     @classmethod
     def parse(cls, text, session):
         objects, used, rest = super().parse(text, session)
-        bonds = objects.atoms.intra_bonds
+        bonds = objects.bonds
         return bonds, used, rest
+
+
+class BondArg(BondsArg):
+    """Parse command specifier for a bond"""
+    name = 'a bond specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        bonds, used, rest = super().parse(text, session)
+        if len(bonds) != 1:
+            raise AnnotationError("Must specify exactly one bond (specified %d)" % len(bonds))
+        return bonds[0], used, rest
 
 
 class SurfacesArg(AtomSpecArg):

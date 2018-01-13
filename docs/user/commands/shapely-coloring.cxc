@@ -1,0 +1,23 @@
+# protein "shapely" color scheme as shown in http://jmol.sourceforge.net/jscolors/
+#  plus mse (same as met) - August 2017 
+color protein #ff00ff
+color :ala #8cff8c
+color :arg #00007c
+color :asn #ff7c70
+color :asp #a00042
+color :cys #ffff70
+color :gln #ff4c4c
+color :glu #660000
+color :gly #ffffff
+color :his #7070ff
+color :ile #004c00
+color :leu #455e45
+color :lys #4747b8
+color :met,mse #b8a042
+color :phe #534c52
+color :pro #525252
+color :ser #ff7042
+color :thr #b84c00
+color :trp #4f4600
+color :tyr #8c704c
+color :val #ff8cff

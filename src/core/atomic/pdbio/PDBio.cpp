@@ -31,13 +31,12 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/PBGroup.h>
-#include <atomstruct/PythonInstance.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/Sequence.h>
 #include <atomstruct/destruct.h>
+#include <atomstruct/tmpl/residues.h>
 #include <logger/logger.h>
 #include <pdb/PDB.h>
-#include <atomstruct/tmpl/residues.h>
 
 namespace pdb {
 
@@ -1313,7 +1312,7 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             if (pqr) {
                 try {
                     p.atomqr.charge = a->get_py_float_attr(pqr_charge);
-                } catch (atomstruct::PyAttrError&) {
+                } catch (pyinstance::PyAttrError&) {
                     p.atomqr.charge = 0.0;
                 }
                 p.atomqr.radius = a->radius();
@@ -1328,14 +1327,14 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                         p.atom.charge[0] = ' ';
                     p.atom.charge[1] = '0' + std::abs(charge);
                     p.atom.charge[2] = '\0';
-                } catch (atomstruct::PyAttrError&) {
+                } catch (pyinstance::PyAttrError&) {
                     p.atom.charge[0] = ' ';
                     p.atom.charge[1] = ' ';
                     p.atom.charge[2] = '\0';
                 }
                 try {
                     strcpy(p.atom.seg_id, a->get_py_string_attr(pdb_segment));
-                } catch (atomstruct::PyAttrError&) { }
+                } catch (pyinstance::PyAttrError&) { }
                 const char* ename = a->element().name();
                 if (a->element().number() == 1) {
                     if (a->name().c_str()[0] == 'D')

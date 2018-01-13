@@ -29,7 +29,6 @@ and their code location is described with the function descriptions.
 | `close`_ - Close models
 | `cofr`_ - Set center of rotation method
 | `color`_ - Color atoms, ribbons and surfaces
-| `contacts`_ * - Make a buried area contact graph
 | `coordset`_ - Play through structure coordinate sets
 | `crossfade`_ - Fade between scenes for movie making
 | `crosslinks`_ * - Move atomic structures to minimize crosslinks
@@ -38,10 +37,10 @@ and their code location is described with the function descriptions.
 | `echo`_ - Write message to log
 | `exit`_ - Quit
 | `fitmap`_ - fit atomic structures in density maps
-| `graphics`_ - low level graphics control
 | `help`_ - Show documentation
 | `hide`_ - Hide atoms, ribbons, models
 | `info`_ * - Report model info
+| `interfaces`_ * - Make a buried area contact graph
 | `ks`_ * - Enable keyboard shortcuts
 | `label`_ * - Show text labels on atoms
 | `lighting`_ - Change lighting parameters
@@ -52,8 +51,8 @@ and their code location is described with the function descriptions.
 | `molmap`_ - Calculate a density map from atoms
 | `morph`_ * - Morph between atomic models
 | `mousemode`_ - Set mouse modes
-| `movie`_ * - Record videos
 | `move`_ - Move camera
+| `movie`_ * - Record videos
 | `mseries`_ * - Display a series of models
 | `open`_ - Open data files
 | `pdbimages`_ - Render PDB assembly images
@@ -70,6 +69,7 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
+| `style`_ - Set rendering style for atoms, ribbons, models
 | `size`_ - Change atom, bond, pseudobond sizes
 | `smoothlines`_ * - Smooth paths in line drawings
 | `split`_ - Split atomic structures into pieces
@@ -123,7 +123,7 @@ cartoon
 .. autofunction:: chimerax.core.commands.cartoon.uncartoon
 
 cd
-=====
+==
 .. autofunction:: chimerax.core.commands.cd.cd
 
 clip
@@ -142,12 +142,6 @@ color
 =====
 .. autofunction:: chimerax.core.commands.color.color
 
-contacts
-========
-Function found in *chimerax.contacts.cmd*
-
-.. autofunction:: chimerax.contacts.cmd.contacts
-
 coordset
 ========
 .. autofunction:: chimerax.core.commands.coordset.coordset
@@ -164,7 +158,7 @@ Function found in *chimerax.crosslinks.crosslinks*
 .. autofunction:: chimerax.crosslinks.crosslinks.crosslinks_histogram
 .. autofunction:: chimerax.crosslinks.crosslinks.crosslinks_minimize
 .. autofunction:: chimerax.crosslinks.crosslinks.crosslinks_network
-		  
+
 delete
 ======
 .. autofunction:: chimerax.core.commands.delete.delete
@@ -200,12 +194,18 @@ info
   :members:
   :member-order: bysource
 
+interfaces
+==========
+Function found in *chimerax.interfaces.cmd*
+
+.. autofunction:: chimerax.interfaces.cmd.contacts
+
 ks
 ==
 .. autofunction:: chimerax.shortcuts.shortcuts.ks
 
-labels
-======
+label
+=====
 Function found in *chimerax.label.label3d*
 
 .. autofunction:: chimerax.label.label3d.label
@@ -228,8 +228,8 @@ material
 measure
 =======
 .. autofunction:: chimerax.core.commands.measure_buriedarea.measure_buriedarea
-.. autofunction:: chimerax.core.commands.measure_sasa.measure_convexity		  
-.. autofunction:: chimerax.core.commands.measure_sasa.measure_length
+.. autofunction:: chimerax.core.commands.measure_convexity.measure_convexity
+.. autofunction:: chimerax.core.commands.measure_length.measure_length
 .. autofunction:: chimerax.core.commands.measure_sasa.measure_sasa
 
 mlp
@@ -247,7 +247,6 @@ morph
 Function defined in *chimerax.morph.morph*
 
 .. autofunction:: chimerax.morph.morph.morph
-
 
 mousemode
 =========
@@ -331,7 +330,7 @@ show
 ====
 .. autofunction:: chimerax.core.commands.show.show
 
-style
+size
 =====
 .. autofunction:: chimerax.core.commands.size.size
 

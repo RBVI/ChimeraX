@@ -13,7 +13,7 @@
 
 def graphics(session, atom_triangles = None, bond_triangles = None,
              ribbon_divisions = None, ribbon_sides = None, max_frame_rate = None,
-             frame_rate = None):
+             frame_rate = None, wait_for_vsync = None):
     '''
     Set graphics rendering parameters.
 
@@ -33,6 +33,10 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         Set maximum graphics frame rate (default 60).
     frame_rate : bool
         Whether to show status message with average frame rate each second.
+    wait_for_vsync : bool
+        Whether drawing is synchronized to the display vertical refresh rate,
+        typically 60 Hz.  Disabling wait allows frame rates faster than vsync
+        but can exhibit image tearing.  Currently only supported on Windows.
     '''
     from ..atomic.structure import structure_graphics_updater
     gu = structure_graphics_updater(session)
@@ -67,6 +71,12 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
     if frame_rate is not None:
         show_frame_rate(session, frame_rate)
         change = True
+    if wait_for_vsync is not None:
+        r = session.main_view.render
+        r.make_current()
+        if not r.wait_for_vsync(wait_for_vsync):
+            session.logger.warning('Changing wait for vsync is only supported on Windows by some drivers')
+        change = True
 
     if change:
         gu.update_level_of_detail()
@@ -97,7 +107,9 @@ def register_command(session):
                  ('ribbon_divisions', IntArg),
                  ('ribbon_sides', IntArg),
                  ('max_frame_rate', FloatArg),
-                 ('frame_rate', BoolArg)],
+                 ('frame_rate', BoolArg),
+                 ('wait_for_vsync', BoolArg),
+                 ],
         synopsis='Set graphics rendering parameters'
     )
     register('graphics', desc, graphics, logger=session.logger)

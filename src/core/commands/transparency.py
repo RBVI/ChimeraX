@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def transparency(session, objects, percent, target='s'):
+def transparency(session, objects, percent, what=None, target=None):
     """Set transparency of atoms, ribbons, surfaces, ....
 
     Parameters
@@ -29,8 +29,8 @@ def transparency(session, objects, percent, target='s'):
         objects = all_objects(session)
     atoms = objects.atoms
 
-    if 'A' in target:
-        target = 'abpcs'
+    from .color import get_targets
+    target, _ = get_targets(target, what, 's')
 
     alpha = int(2.56 * (100 - percent))
     alpha = min(255, max(0, alpha))    # 0-255 range
@@ -132,9 +132,12 @@ def _set_surface_transparency(atoms, objects, session, alpha):
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import register, CmdDesc, Or, ObjectsArg, EmptyArg, FloatArg, StringArg
+    from . import register, CmdDesc, Or, ObjectsArg, EmptyArg, FloatArg, StringArg, ListOf, EnumOf
+    from .color import WHAT_TARGETS
+    what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                              ('percent', FloatArg)],
+                   optional=[('what', what_arg)],
                    keyword=[('target', StringArg)],
                    synopsis="change object transparency")
     register('transparency', desc, transparency, logger=session.logger)

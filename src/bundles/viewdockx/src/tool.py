@@ -5,6 +5,21 @@ from chimerax.core.ui import HtmlToolInstance
 
 class _BaseTool:
 
+    help = "help:user/tools/viewdockx.html"
+
+    # _BaseTool provides some shared code, including setup
+    # and manipulation of models.
+    #
+    # Note that _BaseTool is inherited first by TableTool,
+    # ChartTool and PlotTool because its "delete" method must
+    # override the one from HtmlToolInstance so that we can
+    # clean up when the window is closed.  However, this
+    # means that we have to either
+    # (a) call # HtmlToolInstance.__init__() explicitly
+    #     instead of using super(), or
+    # (b) not have an __init__ method in _BaseTool.
+    # We chose the latter for now.
+
     def setup(self, session, structures):
         #
         # Set attributes that may be examined during delete.
@@ -197,7 +212,7 @@ class _BaseTool:
                 s.display = onoff
 
 
-class TableTool(HtmlToolInstance, _BaseTool):
+class TableTool(_BaseTool, HtmlToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = False
@@ -232,17 +247,18 @@ class TableTool(HtmlToolInstance, _BaseTool):
         query = parse_qs(url.query())
         method(query)
 
-    def _cb_check_all(self, query):
+    def _cb_show_all(self, query):
         """shows or hides all structures"""
-        self.show_set(None, query["show_all"][0] == "true")
+        self.show_set(None, True)
 
-    def _cb_checkbox(self, query):
-        """shows or hides individual structure"""
-        self.show_set(query["id"][0], query["display"][0] != "0")
-
-    def _cb_link(self, query):
+    def _cb_show_only(self, query):
         """shows only selected structure"""
-        self.show_only(query["id"][0])
+        try:
+            models = query["id"][0]
+        except KeyError:
+            self.show_set(None, False)
+        else:
+            self.show_only(models)
 
     def _cb_rating(self, query):
         """update rating for structure"""
@@ -265,23 +281,17 @@ class TableTool(HtmlToolInstance, _BaseTool):
     def _cb_graph(self, query):
         ChartTool(self.session, "ViewDockX Graph", structures=self.structures)
 
+    def _cb_plot(self, query):
+        PlotTool(self.session, "ViewDockX Plot", structures=self.structures)
+
     def _cb_hb(self, query):
         # Create hydrogen bonds between receptor(s) and ligands
-        receptors = self._get_receptors()
-        cmd = "hbond %s restrict cross reveal true" % (''.join([s.atomspec()
-                                                       for s in receptors]))
-        from chimerax.core.commands import run
+        from chimerax.core.commands import concise_model_spec, run
+        cmd = "hbonds %s restrict cross reveal true" % concise_model_spec(
+                                                            self.session,
+                                                            self.structures)
         run(self.session, cmd)
         self._count_pb("hydrogen bonds", "HBonds")
-
-    def _get_receptors(self):
-        from chimerax.core.atomic import AtomicStructure
-        receptors = [s for s in self.session.models.list(type=AtomicStructure)
-                     if not hasattr(s, "viewdockx_data")]
-        if not receptors:
-            from chimerax.core.errors import UserError
-            raise UserError("No receptor structure found")
-        return receptors
 
     def _count_pb(self, group_name, key):
         # Count up the hydrogen bonds for each structure
@@ -300,11 +310,10 @@ class TableTool(HtmlToolInstance, _BaseTool):
 
     def _cb_clash(self, query):
         # Compute clashes between receptor(s) and ligands
-        receptors = self._get_receptors()
-        cmd = "clash %s test %s reveal true" % (
-                            ''.join([s.atomspec() for s in receptors]),
-                            ''.join([s.atomspec() for s in self.structures]))
-        from chimerax.core.commands import run
+        from chimerax.core.commands import concise_model_spec, run
+        cmd = "clashes %s test others reveal true" % concise_model_spec(
+                                                            self.session,
+                                                            self.structures)
         run(self.session, cmd)
         self._count_pb("clashes", "Clashes")
 
@@ -346,7 +355,7 @@ class OutputCache(StringIO):
         super().close(*args, **kw)
 
 
-class ChartTool(HtmlToolInstance, _BaseTool):
+class ChartTool(_BaseTool, HtmlToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = False
@@ -362,6 +371,40 @@ class ChartTool(HtmlToolInstance, _BaseTool):
             self.delete()
             return
         self.setup_page("viewdockx_chart.html")
+
+    def handle_scheme(self, url):
+        # Called when custom link is clicked.
+        # "info" is an instance of QWebEngineUrlRequestInfo
+        from urllib.parse import parse_qs
+        method = getattr(self, "_cb_" + url.path())
+        query = parse_qs(url.query())
+        method(query)
+
+    def _cb_show_only(self, query):
+        """shows or hides all structures"""
+        self.show_only(query["id"][0])
+
+    def _cb_show_toggle(self, query):
+        """shows or hides all structures"""
+        self.show_toggle(query["id"][0])
+
+
+class PlotTool(_BaseTool, HtmlToolInstance):
+
+    SESSION_ENDURING = False
+    SESSION_SAVE = False
+    CUSTOM_SCHEME = "vdxplot"
+
+    def __init__(self, session, tool_name, structures=None):
+        self.display_name = "ViewDockX Plot"
+        super().__init__(session, tool_name, size_hint=(575,400))
+        try:
+            self.setup(session, structures)
+        except ValueError as e:
+            session.logger.error(str(e))
+            self.delete()
+            return
+        self.setup_page("viewdockx_plot.html")
 
     def handle_scheme(self, url):
         # Called when custom link is clicked.

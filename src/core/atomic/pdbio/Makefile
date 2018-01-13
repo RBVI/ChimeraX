@@ -21,9 +21,9 @@ PYMOD_NAME = pdbio
 DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS)
 ifdef WIN32
-LIBS += libatomstruct.lib libelement.lib liblogger.lib libpdb.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
+LIBS += libatomstruct.lib libelement.lib libpyinstance.lib liblogger.lib libpdb.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
 else
-LIBS += -latomstruct -lelement -llogger -lpdb -larrays -llogger -lappdirs $(PYTHON_LIB)
+LIBS += -latomstruct -lelement -lpyinstance -llogger -lpdb -larrays -llogger -lappdirs $(PYTHON_LIB)
 endif
 
 $(PYMOD): $(OBJS)
@@ -47,5 +47,6 @@ PDBio.o: $(includedir)/pdb/PDB.h $(includedir)/atomstruct/Atom.h \
 	$(includedir)/atomstruct/AtomicStructure.h $(includedir)/atomstruct/Bond.h \
 	$(includedir)/atomstruct/connect.h $(includedir)/atomstruct/CoordSet.h \
 	$(includedir)/atomstruct/destruct.h $(includedir)/atomstruct/Residue.h \
-	$(includedir)/atomstruct/PythonInstance.h $(includedir)/atomstruct/Sequence.h \
-	$(includedir)/atomstruct/Structure.h $(includedir)/logger/logger.h
+	$(includedir)/atomstruct/Sequence.h $(includedir)/atomstruct/Structure.h \
+	$(includedir)/logger/logger.h $(includedir)/pyinstance/PythonInstance.declare.h \
+	$(includedir)/pyinstance/PythonInstance.instantiate.h

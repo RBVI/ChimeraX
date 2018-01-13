@@ -21,7 +21,7 @@ DIRNAME := atomstruct/$(DIRNAME:_cpp=)
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
-INCS += -I$(includedir)
+INCS += $(PYTHON_INCLUDE_DIRS) -I$(includedir)
 #ifeq ($(WIN32),msvc)
 #LIBS += libelement.lib libioutil.lib libchutil.lib libappdirs.lib
 #else

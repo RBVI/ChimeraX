@@ -461,7 +461,12 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         def _qt_safe(session=session, paths=paths):
             from ..commands import run, quote_if_necessary
-            run(session, "; ".join(["open " + quote_if_necessary(p) for p in paths]))
+            if len(paths) == 1:
+                run(session, "open " + quote_if_necessary(paths[0]))
+            else:
+                # Open multiple files as a single batch.
+                # TODO: Make open command handle this including saving in file history.
+                session.models.open(paths)
 
         # Opening the model directly adversely affects Qt interfaces that show
         # as a result.  In particular, Multalign Viewer no longer gets hover
@@ -922,7 +927,12 @@ class ToolWindow(StatusLogger):
         """Add items to this tool window's context menu,
            whose downclick occurred at position (x,y)
 
-        Override to add items to any context menu popped up over this window"""
+        Override to add items to any context menu popped up over this window.
+
+        Note that you have to keep references to the actions you add to the
+        menu to avoid having then automatically destroyed and removed from the
+        menu when this method returns.  You can use the menu itself to store 
+        the reference, e.g. menu._ref1 = QAction(...)"""
         pass
 
     @property

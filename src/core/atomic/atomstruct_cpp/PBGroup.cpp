@@ -14,6 +14,7 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "destruct.h"
 #include "Structure.h"
@@ -22,6 +23,9 @@
 
 #include <Python.h>
 #include <arrays/pythonarray.h>
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::PBGroup>;
 
 namespace atomstruct {
 
@@ -123,6 +127,10 @@ CS_PBGroup::delete_pseudobond(Pseudobond* pb)
     auto db = DestructionBatcher(this);
     auto cs = static_cast<CS_Pseudobond*>(pb)->coord_set();
     _pbonds[cs].erase(pb);
+    if (category() == Structure::PBG_METAL_COORDINATION) {
+        for (auto a: pb->atoms())
+            a->_uncache_radius();
+    }
     delete pb;
     set_gc_shape();
 }
@@ -135,6 +143,10 @@ StructurePBGroup::delete_pseudobond(Pseudobond* pb)
 
     auto db = DestructionBatcher(this);
     _pbonds.erase(pb);
+    if (category() == Structure::PBG_METAL_COORDINATION) {
+        for (auto a: pb->atoms())
+            a->_uncache_radius();
+    }
     delete pb;
     set_gc_shape();
 }
@@ -192,6 +204,10 @@ CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs)
     } else {
         (*pbi).second.insert(pb);
     }
+    if (category() == Structure::PBG_METAL_COORDINATION) {
+        a1->_uncache_radius();
+        a2->_uncache_radius();
+    }
     return pb;
 }
 
@@ -205,6 +221,10 @@ StructurePBGroup::new_pseudobond(Atom* a1, Atom* a2)
     pb->set_halfbond(halfbond());
     pb->set_radius(radius());
     _pbonds.insert(pb); return pb;
+    if (category() == Structure::PBG_METAL_COORDINATION) {
+        a1->_uncache_radius();
+        a2->_uncache_radius();
+    }
 }
 
 const PBGroup::Pseudobonds&

@@ -16,9 +16,10 @@
 #ifndef atomstruct_Pseudobond
 #define atomstruct_Pseudobond
 
+#include <pyinstance/PythonInstance.declare.h>
+
 #include "Connection.h"
 #include "imex.h"
-#include "PythonInstance.h"
 #include "session.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
@@ -36,7 +37,7 @@ class ChangeTracker;
 class GraphicsChanges;
 class PBGroup;
 
-class ATOMSTRUCT_IMEX Pseudobond: public Connection, public PythonInstance
+class ATOMSTRUCT_IMEX Pseudobond: public Connection, public pyinstance::PythonInstance<Pseudobond>
 {
 public:
     friend class PBGroup;

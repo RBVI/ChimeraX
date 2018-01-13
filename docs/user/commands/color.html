@@ -27,7 +27,8 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>color</b> command colors atomic models, including
 atoms, bonds, <a href="../pseudobonds.html">pseudobonds</a>,
-<a href="cartoon.html">cartoons</a>, and <a href="surface.html">molecular surfaces</a>.
+<a href="cartoon.html">cartoons</a>, 
+and <a href="surface.html">molecular surfaces</a>.
 It can also apply to nonmolecular surfaces, depending on the type of coloring:
 </p>
 <ul>
@@ -35,6 +36,9 @@ It can also apply to nonmolecular surfaces, depending on the type of coloring:
 - atomic models and
 <a href="../tools/volumeviewer.html">volume data</a> (map) displays
 <li><a href="#sequential">sequential (rainbow) coloring</a> 
+- atomic models
+<li><a href="#modify">color modification</a> 
+(lightening, darkening, <i>etc.</i>)
 - atomic models
 <li><a href="#map">coloring by map value</a>
 - molecular and nonmolecular surfaces
@@ -96,9 +100,13 @@ only applies to atomic representations and per-atom patches of molecular surface
 <li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
 - same as <b>byelement</b>, except leaving carbon atoms unchanged
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
+<img class="icon3" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
+<li><b>fromatoms</b>
+- color other <a href="#target">targets</a> in atomic models
+(molecular surface patches, <i>etc.</i>) to match the corresponding atoms
 <li><a name="bynucleotide"><b>bynucleotide</b></a>
-- <a href="colortables.html#residue">coloring by base type</a> as in the 
+- a built-in scheme <a href="colortables.html#residue">by nucleotide base type</a>
+as in the 
 <a href="http://ndbserver.rutgers.edu/" target="_blank">Nucleic Acid Database</a>:
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr style="line-height:10px">
@@ -108,15 +116,12 @@ style="display:inline-block; vertical-align:middle"><tr style="line-height:10px"
 <td bgcolor="lime">G</td>
 <td bgcolor="cyan">U</td>
 </tr></table>
-<li><b>fromatoms</b>
-- color other <a href="#target">targets</a> in atomic models
-(molecular surface patches, <i>etc.</i>) to match the corresponding atoms
 <li><a name="bychain"><b>bychain</b></a>
-- a stereotyped scheme for coloring by chain ID, also used for the
-<a href="colortables.html#autocolors">initial colors</a> of per-chain
+- a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
+also used for the initial colors of per-chain
 <a href="surface.html">molecular surfaces</a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
+<img class="icon3" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
 <li><a name="bymodel"><b>bymodel</b></a>
 - the <a href="colortables.html#autocolors">initial colors</a> of atomic models
 <li><a name="bypolymer"><b>bypolymer</b></a>
@@ -130,9 +135,10 @@ using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 <li><a name="random"><b>random</b></a>
 - random color per atom and residue
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorrandom.png"></a>
+<img class="icon3" border=1 src="../tools/shortcut-icons/colorrandom.png"></a>
 </ul>
 
+<p>
 <a name="sequential"></a>
 <a name="rainbow"></a>
 <p class="nav">
@@ -174,6 +180,61 @@ the <i>level</i> can be omitted and defaults to <b>residues</b>.
 Sequential coloring applies to all atoms within the affected residues,
 chains, or models even if fewer atoms are specified, but can be restricted 
 to certain representations with the <a href="#target"><b>target</b></a> option.
+</p>
+
+<a name="modify"></a>
+<p class="nav">
+[<a href="#top">back to top: color</a>]
+</p>
+<h3>Color Modification</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>color modify</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+&nbsp;<b>hue</b>&nbsp; [&nbsp;&plus;&nbsp;|&nbsp;&minus;&nbsp;]
+&nbsp;<i>angle</i>&nbsp;
+[&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>color modify</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+(&nbsp;<b>saturation</b>&nbsp;|&nbsp;<b>lightness</b>&nbsp;|&nbsp;<b>whiteness</b>&nbsp;|&nbsp;<b>blackness</b>&nbsp;)
+[&nbsp;&plus;&nbsp;|&nbsp;&minus;&nbsp;|&nbsp;*&nbsp;]
+&nbsp;<i>percent</i>&nbsp;
+[&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>color modify</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+<b>contrast</b> [&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+</blockquote>
+<p>
+Color modification adjusts existing colors.
+It applies to atomic models, including <a href="cartoon.html">cartoon</a> and 
+<a href="surface.html">molecular surface</a> representations.
+The color component to modify must be specified, with choices:
+</p>
+<ul>
+<li><b>hue</b> - hue <i>angle</i> (0-360&deg;) in the 
+<a href="https://en.wikipedia.org/wiki/HSL_and_HSV" 
+target="_blank">hue-saturation-lightness</a> (HSL; see
+<a href="https://www.w3schools.com/colors/colors_hsl.asp"
+target="_blank">interactive calculator</a>) and
+<a href="https://en.wikipedia.org/wiki/HWB_color_model"
+target="_blank">hue-whiteness-blackness</a> (HWB) color spaces
+<li><b>saturation</b> - saturation <i>percent</i> in the HSL color space
+<li><b>lightness</b> - lightness <i>percent</i> in the HSL color space
+<li><b>whiteness</b> - whiteness <i>percent</i> in the HWB color space
+<li><b>blackness</b> - blackness <i>percent</i> in the HWB color space
+<li><b>contrast</b> - contrast <i>percent</i> from a reference color 
+related to the current color (0) to a maximally contrasting color (100).
+The default is <b>100</b>, either white or black depending on the current color.
+</ul>
+<p>
+For <b>saturation</b>, <b>lightness</b>, <b>whiteness</b>,
+or <b>blackness</b>, the <i>percent</i> can be added to (&plus;), 
+subtracted from (&minus;), or multiplied by (*) the current value,
+or simply set as the current value if no operator symbol is given. 
+For <b>hue</b>, the <i>angle</i> can be added to or subtracted from
+the current value, or simply set as the current value.
 </p>
 
 <a name="map"></a>
@@ -255,29 +316,34 @@ without commas or spaces:
  <li><b>s</b> - surfaces
  (molecular surfaces divisible to per-atom patches, other surface models such
  as volume isosurfaces, and for <a href="#simple">simple coloring</a> only, 
- solid volume displays)
+ solid volume displays).
+<font color="brown">Surface coloring is
+not yet implemented for <a href="#sequential">sequential coloring</a></font>;
+however, if atoms have been colored sequentially, their
+molecular surfaces can be colored to match them with the command: 
+<b>color fromatoms target s</b>
  <li><b>p</b> - pseudobonds-only
  (coloring shown for <a href="../pseudobonds.html">pseudobonds</a>
  not in <a href="#halfbond">halfbond mode</a>)
+<li><b>A</b> - all of the above (default, equivalent to <b>abcsp</b>)
 <!--
  <li><b>n</b> - nonmolecular models (model-level color)
  <li><b>m</b> - molecular models (model-level color)
  <li><b>d</b> - distances and other pseudobond labels
 -->
  </ul>
-The default is all of the above (<b>target abcsp</b>), 
-<font color="brown">
-except that surface coloring is
-not yet implemented for <a href="#sequential">sequential coloring</a>
-</font>
-(if atoms have been colored sequentially, however,
-the surface can be colored to match the atoms with the command: 
-<b>color fromatoms target s</b>).
+The default is all of the above, plus  
+<a href="label.html">3D labels</a>
+in the case of <a href="#simple">simple coloring</a>.
+3D labels can be colored independently
+with the <a href="label.html"><b>label</b></a> command.
 <p>
-Alternatively, for <a href="#simple">simple coloring</a> only,
-a single target can be specified with a keyword immediately following the 
-<a href="#colorname"><i>colorname</i></a>:
-</p>
+Alternatively, for <a href="#simple">simple coloring</a>, 
+targets can be specified with one or more of the following keywords
+as a comma-separated list immediately after the 
+<a href="#colorname"><i>colorname</i></a> 
+(or for <a href="#modify">color modification</a>, at the end of the command):
+<n/p>
 <ul>
 <li><b>atoms</b> - equivalent to <b>target a</b>
 <li><b>bonds</b> - equivalent to <b>target b</b>
@@ -285,6 +351,7 @@ a single target can be specified with a keyword immediately following the
 or <b>target r</b>
 <li><b>surfaces</b> - equivalent to <b>target s</b>
 <li><b>pseudobonds</b> - equivalent to <b>target p</b>
+<li><b>All</b> - equivalent to <b>target A</b> or <b>target abcsp</b>
 </ul>
 </blockquote>
 <blockquote>
@@ -637,5 +704,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2017</address>
+January 2018</address>
 </body></html>

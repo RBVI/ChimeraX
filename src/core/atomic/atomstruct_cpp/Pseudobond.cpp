@@ -14,11 +14,15 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "ChangeTracker.h"
 #include "PBGroup.h"
 #include "PBManager.h"
 #include "Pseudobond.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Pseudobond>;
 
 namespace atomstruct {
 

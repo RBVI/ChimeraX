@@ -23,6 +23,7 @@
 #include "Python.h"
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
@@ -31,6 +32,9 @@
 #include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Structure>;
 
 namespace {
 
@@ -413,6 +417,7 @@ Structure::_delete_atom(Atom* a)
     _atoms.erase(i);
     set_gc_shape();
     set_gc_adddel();
+    _idatm_valid = false;
     delete a;
 }
 
@@ -518,6 +523,7 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
     _bonds.erase(new_b_end, _bonds.end());
     set_gc_shape();
     set_gc_adddel();
+    _idatm_valid = false;
 }
 
 void
@@ -543,6 +549,7 @@ Structure::delete_bond(Bond *b)
     set_gc_shape();
     set_gc_adddel();
     _structure_cats_dirty = true;
+    _idatm_valid = false;
     delete b;
 }
 
@@ -634,6 +641,7 @@ Structure::new_bond(Atom *a1, Atom *a2)
     Bond *b = new Bond(this, a1, a2);
     b->finish_construction(); // virtual calls work now
     add_bond(b);
+    _idatm_valid = false;
     return b;
 }
 
@@ -1415,6 +1423,12 @@ Structure::use_best_alt_locs()
     for (auto almi = alt_loc_map.begin(); almi != alt_loc_map.end(); ++almi) {
         (*almi).first->set_alt_loc((*almi).second);
     }
+}
+
+void
+Structure::use_default_atom_radii()
+{
+    for (auto a: atoms()) a->use_default_radius();
 }
 
 int

@@ -293,7 +293,7 @@ class Models(State):
     def empty(self):
         return len(self._models) == 0
 
-    def add(self, models, parent=None, _notify=True, _from_session=False):
+    def add(self, models, parent=None, _notify=True, _need_fire_id_trigger=[], _from_session=False):
         start_count = len(self._models)
 
         d = self.drawing if parent is None else parent
@@ -302,11 +302,12 @@ class Models(State):
                 d.add_drawing(m)
 
         # Clear model ids if they are not subids of parent id.
-        need_fire_id_trigger = []
+        #~ if _notify:
+            #~ need_fire_id_trigger = []
         for model in models:
             if model.id and model.id[:-1] != d.id:
                 # Model has id that is not a subid of parent, so assign new id.
-                need_fire_id_trigger.append(model)
+                _need_fire_id_trigger.append(model)
                 del self._models[model.id]
                 model.id = None
                 if hasattr(model, 'parent'):
@@ -319,13 +320,7 @@ class Models(State):
             self._models[model.id] = model
             children = model.child_models()
             if children:
-                self.add(children, model, _notify=False)
-
-        # IDs that change from None to non-None don't fire the MODEL_ID_CHANGED
-        # trigger, so do it by hand
-        for id_changed_model in need_fire_id_trigger:
-            session = self._session()
-            session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
+                self.add(children, model, _notify=False, _need_fire_id_trigger=_need_fire_id_trigger)
 
         # Notify that models were added
         if _notify:
@@ -335,6 +330,12 @@ class Models(State):
                 m._added_to_session = True
                 m.added_to_session(session)
             session.triggers.activate_trigger(ADD_MODELS, m_add)
+
+            # IDs that change from None to non-None don't fire the MODEL_ID_CHANGED
+            # trigger, so do it by hand
+            for id_changed_model in _need_fire_id_trigger:
+                session = self._session()
+                session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
 
         # Initialize view if first model added
         if _notify and not _from_session and start_count == 0 and len(self._models) > 0:

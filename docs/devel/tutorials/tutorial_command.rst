@@ -59,11 +59,11 @@ Sample Files
 
 The files in the ``tut_cmd`` folder are:
 
-``tut_cmd`` - bundle folder
-    ``bundle_info.xml`` - bundle information read by ChimeraX
-    ``src`` - source code to Python package for bundle
-        ``__init__.py`` - package initializer and interface to ChimeraX
-        ``cmd.py`` - source code to implement two ``tutorial`` commands
+- ``tut_cmd`` - bundle folder
+    - ``bundle_info.xml`` - bundle information read by ChimeraX
+    - ``src`` - source code to Python package for bundle
+        - ``__init__.py`` - package initializer and interface to ChimeraX
+        - ``cmd.py`` - source code to implement two ``tutorial`` commands
 
 The file contents are shown below.
 
@@ -71,7 +71,7 @@ The file contents are shown below.
 ``bundle_info.xml``
 -------------------
 
-``bundle_info.xml`` is an `_eXtensible Markup Language`_
+``bundle_info.xml`` is an `eXtensible Markup Language`_
 format file whose tags are listed in :doc:`bundle_info`.
 While there are many tags defined, only a few are needed
 for bundles written completely in Python.  The
@@ -142,7 +142,7 @@ atoms, ``cofm`` requires several parameters supplied by the user:
 It then takes the parameters, computes the center of mass, and
 reports the result to the ChimeraX log.  The missing link is
 how the user-typed command gets translated into a call to ``cofm``.
-This is the purpose of the call to ``chimerax.core.commands.register``
+This is the purpose of the call to :py:class:`chimerax.core.commands.register`
 in the ``register_command`` method in ``__init__.py``.
 The ``register`` call tells ChimeraX to associate a function and
 description with a command name.  In this case, ``cofm`` and
@@ -172,7 +172,7 @@ is a string that matches one of the command function parameter names.
 The second element is a "type class".  ChimeraX provides a variety
 of built-in type classes such as ``BoolArg`` (Boolean), ``IntArg``
 (integer), ``AtomsArg`` (container of atoms), and ``AtomspecArg``
-(atom specifier).  See ``chimerax.core.commands`` for the full
+(atom specifier).  See :py:class:`chimerax.core.commands` for the full
 list.  The order of the required parameters list (in the command
 description) must match the expected order for required arguments
 (in the input text).
@@ -181,8 +181,9 @@ description) must match the expected order for required arguments
     :language: python
     :linenos:
 
-For performance, ChimeraX makes use of `Numpy`_ arrays in many contexts.
-The container for atoms is typically a ``chimerax.core.atomic.Collection``
+For performance, ChimeraX makes use of `NumPy`_ arrays in many contexts.
+The container for atoms is typically a
+:py:class:`chimerax.core.atomic.Collection`
 instance, as are those for bonds, residues, and atomic structures.
 Fetching the same attribute, e.g., coordinates, from a collection
 of molecular data, e.g., atoms, usually results in a NumPy array.

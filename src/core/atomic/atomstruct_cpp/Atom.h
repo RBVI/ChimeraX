@@ -20,7 +20,9 @@
 #include <cstring>
 #include <element/Element.h>
 #include <map>
+#include <math.h> // isnan
 #include <memory>
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 #include <string>
 #include <vector>
@@ -30,7 +32,6 @@
 #include "Coord.h"
 #include "imex.h"
 #include "Point.h"
-#include "PythonInstance.h"
 #include "Rgba.h"
 #include "session.h"
 #include "string_types.h"
@@ -53,11 +54,13 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom: public PythonInstance  {
+class ATOMSTRUCT_IMEX Atom: public pyinstance::PythonInstance<Atom>  {
     friend class AtomicStructure;
     friend class UniqueConnection;
     friend class Structure;
     friend class Residue;
+    friend class StructurePBGroup;
+    friend class CS_PBGroup;
 public:
     // HIDE_ constants are masks for hide bits
     static const unsigned int  HIDE_RIBBON = 0x1;
@@ -122,7 +125,7 @@ private:
     AtomName  _name;
     Neighbors  _neighbors; // _bonds/_neighbors in same order
     unsigned int  _new_coord(const Point &);
-    float  _radius;
+    mutable float  _radius;
     Residue *  _residue;
     Rgba  _rgba;
     mutable Rings  _rings;
@@ -131,6 +134,7 @@ private:
     void  _set_structure_category(Atom::StructCat sc) const;
     Structure*  _structure;
     mutable StructCat  _structure_category;
+    void  _uncache_radius() const { if (_radius < 0.0) _radius = 0.0; }
 public:
     // so that I/O routines can cheaply "change their minds" about element
     // types during early structure creation
@@ -171,9 +175,15 @@ public:
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
     float radius() const {
-        if (_radius >= 0.0) // has been explicitly set
-            return _radius;
-        return default_radius();
+        if (_radius == 0.0) {
+            auto r = default_radius();
+            _radius = 0.0 - r;
+            return r;
+        }
+        if (_radius < 0.0) // cached from default computation
+            return 0.0 - _radius;
+        // explicitly set
+        return _radius;
     }
     float maximum_bond_radius(float default_radius) const;
     void  register_field(std::string /*name*/, int /*value*/) {}
@@ -198,6 +208,9 @@ public:
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
     void  set_idatm_type(const char* it);
+    void  set_element(const Element& e) {
+        _element = &e; _uncache_radius(); _structure->_idatm_valid = false;
+    }
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
     void  set_name(const AtomName& name);
     void  set_occupancy(float);
@@ -206,6 +219,7 @@ public:
     std::string  str() const;
     Structure*  structure() const { return _structure; }
     StructCat  structure_category() const;
+    void  use_default_radius() { _radius = 0.0; }
 
     // change tracking
     ChangeTracker*  change_tracker() const;

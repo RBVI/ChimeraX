@@ -19,11 +19,15 @@
 #include <utility>  // for pair
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "destruct.h"
 #include "Residue.h"
 #include "tmpl/TemplateCache.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<atomstruct::Residue>;
 
 namespace atomstruct {
 
