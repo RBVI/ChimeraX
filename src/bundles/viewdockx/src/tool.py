@@ -421,6 +421,8 @@ class ChartTool(_BaseTool):
 
     CUSTOM_SCHEME = "vdxchart"
 
+    help = "help:user/tools/viewdockx.html#plots"
+
     def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Chart"
         super().__init__(session, tool_name, structures, html_state)
@@ -446,6 +448,8 @@ class ChartTool(_BaseTool):
 class PlotTool(_BaseTool):
 
     CUSTOM_SCHEME = "vdxplot"
+
+    help = "help:user/tools/viewdockx.html#plots"
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Plot"
