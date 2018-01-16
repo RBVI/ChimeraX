@@ -361,9 +361,19 @@ var vdxchart = function() {
         $("#histbins").click(update_plot);
     }
 
+    function get_state() {
+        return {name:"vdxchart", selected:[1, 2, 3]};
+    }
+
+    function set_state(state) {
+        console.log("vdxchart.set_state: " + state);
+    }
+
     return {
         update_columns: update_columns,
         update_display: update_display,
+        get_state: get_state,
+        set_state: set_state,
         init: init
     }
 }();

@@ -3,22 +3,22 @@ from io import StringIO
 from chimerax.core.ui import HtmlToolInstance
 
 
-class _BaseTool:
+class _BaseTool(HtmlToolInstance):
+
+    SESSION_ENDURING = False
+    SESSION_SAVE = True
 
     help = "help:user/tools/viewdockx.html"
 
-    # _BaseTool provides some shared code, including setup
-    # and manipulation of models.
-    #
-    # Note that _BaseTool is inherited first by TableTool,
-    # ChartTool and PlotTool because its "delete" method must
-    # override the one from HtmlToolInstance so that we can
-    # clean up when the window is closed.  However, this
-    # means that we have to either
-    # (a) call # HtmlToolInstance.__init__() explicitly
-    #     instead of using super(), or
-    # (b) not have an __init__ method in _BaseTool.
-    # We chose the latter for now.
+    def __init__(self, session, tool_name, structures, html_state):
+        super().__init__(session, tool_name, size_hint=(575,400))
+        self._loaded_page = False
+        self._html_state = html_state
+        try:
+            self.setup(session, structures)
+        except ValueError as e:
+            self.delete()
+            raise
 
     def setup(self, session, structures):
         #
@@ -39,10 +39,10 @@ class _BaseTool:
             # Include structures only if they have viewdock data
             from chimerax.core.atomic import AtomicStructure
             structures = [s for s in session.models.list(type=AtomicStructure)
-                          if hasattr(s, "viewdockx_data")]
+                          if hasattr(s, "viewdockx_data") and s.viewdockx_data]
         else:
             structures = [s for s in structures
-                          if hasattr(s, "viewdockx_data")]
+                          if hasattr(s, "viewdockx_data") and s.viewdockx_data]
 
         if not structures:
             raise ValueError("No suitable models found for ViewDockX")
@@ -163,7 +163,8 @@ class _BaseTool:
             structures = [s]
         else:
             structures = self.structures
-        return [(s.atomspec()[1:], s.display) for s in structures]
+        return [(s.atomspec()[1:], True if s.display else False)
+                for s in structures]
 
     def setup_page(self, html_file):
         import os.path
@@ -181,7 +182,9 @@ class _BaseTool:
         # First time through, we need to wait for the page to load
         # before trying to update data.  Afterwards, we don't care.
         if success:
+            self._loaded_page = True
             self._update_models()
+            self._set_html_state()
             self.html_view.loadFinished.disconnect(self._load_finished)
 
     def get_structures(self, model_id):
@@ -211,22 +214,81 @@ class _BaseTool:
             if s.display != onoff and s in self.structures:
                 s.display = onoff
 
+    # Session stuff
 
-class TableTool(_BaseTool, HtmlToolInstance):
+    html_state = "_html_state"
 
-    SESSION_ENDURING = False
-    SESSION_SAVE = False
+    def take_snapshot(self, session, flags):
+        data = {
+            "_super": super().take_snapshot(session, flags),
+            # XXX: When we have attribute registration, io.py should
+            # register "viewdockx_data" and then we would only need
+            # to save the list of structures here
+            "structures": [(s, s.viewdockx_data) for s in self.structures],
+            # XXX: end hack, next line is "correct" code
+            # "structures": self.structures,
+        }
+        self.add_webview_state(data)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        bundle_info = session.toolshed.find_bundle_for_class(cls)
+        structures = data.get("structures", None)
+        # XXX: When we have attribute registration, "viewdockx_data"
+        # should be handled by the atomic session code and we would
+        # not need to set the attribute here
+        for s, vdx_data in structures:
+            s.viewdockx_data = vdx_data
+        structures = list([sd[0] for sd in structures])
+        # XXX: end hack
+        super_data = data["_super"]
+        inst = cls(session, bundle_info.tools[0].name, structures=structures,
+                   html_state=data.get(cls.html_state, None))
+        super(_BaseTool, inst).set_state_from_snapshot(session, super_data)
+        return inst
+
+    def add_webview_state(self, data):
+        # Add webview state to data dictionary, synchronously.
+        #
+        # You have got to be kidding me - Johnny Mac
+        # JavaScript callbacks are executed asynchronously,
+        # and it looks like (in Qt 5.9) it is handled as
+        # part of event processing.  So we cannot simply
+        # use a semaphore and wait for the callback to
+        # happen, since it will never happen because we
+        # are not processing events.  So we use a busy
+        # wait until the data we expect to get shows up.
+        # Using a semaphore is overkill, since we can just
+        # check for the presence of the key to be added,
+        # but it does generalize if we want to call other
+        # JS functions and get the value back synchronously.
+        from PyQt5.QtCore import QEventLoop
+        from threading import Semaphore
+        js = "%s.get_state();" % self.CUSTOM_SCHEME
+        def add(state):
+            data[self.html_state] = state
+        self.html_view.runJavaScript(js, add)
+        event_loop = QEventLoop()
+        while self.html_state not in data:
+            event_loop.exec_()
+
+    def _set_html_state(self):
+        if self._html_state:
+            import json
+            js = "%s.set_state(%s);" % (self.CUSTOM_SCHEME,
+                                        json.dumps(self._html_state))
+            self.html_view.runJavaScript(js)
+            self._html_state = None
+
+
+class TableTool(_BaseTool):
+
     CUSTOM_SCHEME = "vdxtable"
 
-    def __init__(self, session, tool_name, structures=None):
+    def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Table"
-        super().__init__(session, tool_name, size_hint=(575,200))
-        try:
-            self.setup(session, structures)
-        except ValueError as e:
-            session.logger.error(str(e))
-            self.delete()
-            return
+        super().__init__(session, tool_name, structures, html_state)
         self.setup_page("viewdockx_table.html")
 
     def _update_ratings(self, trigger=None, trigger_data=None):
@@ -355,21 +417,13 @@ class OutputCache(StringIO):
         super().close(*args, **kw)
 
 
-class ChartTool(_BaseTool, HtmlToolInstance):
+class ChartTool(_BaseTool):
 
-    SESSION_ENDURING = False
-    SESSION_SAVE = False
     CUSTOM_SCHEME = "vdxchart"
 
-    def __init__(self, session, tool_name, structures=None):
+    def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Chart"
-        super().__init__(session, tool_name, size_hint=(575,400))
-        try:
-            self.setup(session, structures)
-        except ValueError as e:
-            session.logger.error(str(e))
-            self.delete()
-            return
+        super().__init__(session, tool_name, structures, html_state)
         self.setup_page("viewdockx_chart.html")
 
     def handle_scheme(self, url):
@@ -389,21 +443,13 @@ class ChartTool(_BaseTool, HtmlToolInstance):
         self.show_toggle(query["id"][0])
 
 
-class PlotTool(_BaseTool, HtmlToolInstance):
+class PlotTool(_BaseTool):
 
-    SESSION_ENDURING = False
-    SESSION_SAVE = False
     CUSTOM_SCHEME = "vdxplot"
 
-    def __init__(self, session, tool_name, structures=None):
+    def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Plot"
-        super().__init__(session, tool_name, size_hint=(575,400))
-        try:
-            self.setup(session, structures)
-        except ValueError as e:
-            session.logger.error(str(e))
-            self.delete()
-            return
+        super().__init__(session, tool_name, structures, html_state)
         self.setup_page("viewdockx_plot.html")
 
     def handle_scheme(self, url):

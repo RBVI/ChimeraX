@@ -153,8 +153,8 @@ class HtmlView(QWebEngineView):
             url = QUrl(url)
         super().setUrl(url)
 
-    def runJavaScript(self, js):    # noqa
-        self.page().runJavaScript(js)
+    def runJavaScript(self, *args):    # noqa
+        self.page().runJavaScript(*args)
 
 
 class _LoggingPage(QWebEnginePage):

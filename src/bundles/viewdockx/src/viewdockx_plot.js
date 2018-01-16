@@ -254,9 +254,19 @@ var vdxplot = function() {
         $(".yaxis").click(update_plot);
     }
 
+    function get_state() {
+        return {name:"vdxplot", selected:[1, 2, 3]};
+    }
+
+    function set_state(state) {
+        console.log("vdxplot.set_state: " + state);
+    }
+
     return {
         update_columns: update_columns,
         update_display: update_display,
+        get_state: get_state,
+        set_state: set_state,
         init: init
     }
 }();
