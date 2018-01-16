@@ -9,7 +9,7 @@ html, body, #full {
   height: 100%;
 }
 #full {
-  display:flex;
+  display: flex;
   flex-direction: column;
 }
 #control {

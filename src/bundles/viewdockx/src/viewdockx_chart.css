@@ -18,7 +18,8 @@ html, body, #full {
   overflow: auto;
 }
 #data {
-  flex: 1;
+  flex: auto;
+  min-height: 10px;
   overflow: auto;
 }
 col:nth-child(odd) {

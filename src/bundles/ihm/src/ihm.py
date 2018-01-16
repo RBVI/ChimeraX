@@ -1065,8 +1065,12 @@ class FileDataSet(DataSet):
         open_model = atomic_model_reader(finfo.file_path)
         if open_model:
             fs = finfo.stream(session)
-            models, msg = open_model(session, fs, finfo.file_name, auto_style = False)
-            fs.close()
+            if fs:
+                models, msg = open_model(session, fs, finfo.file_name, auto_style = False)
+                fs.close()
+            else:
+                models = []
+                session.logger.warning('Could not open file "%s"' % finfo.file_path)
         else:
             models = []	# Don't know how to read atomic model file
         return models
