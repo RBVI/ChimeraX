@@ -85,19 +85,34 @@ class AttrRegistration:
 
     def take_snapshot(self, session, flags):
         ses_reg_attr_info = {}
-        for attr_name in self._session_attrs.get(session, []):
+        attr_names = self._session_attrs.get(session, [])
+        for attr_name in attr_names:
             ses_reg_attr_info[attr_name] = self.reg_attr_info[attr_name]
-        data = {'reg_attr_info': ses_reg_attr_info}
+        instance_data = {}
+        if attr_names:
+            # if no registered attrs; don't need to look at instances
+            instance_data[attr_name] = per_instance_info = []
+            for instance in self._class.get_existing_instances(session):
+                try:
+                    attr_val = getattr(instance, attr_name)
+                except AttributeError:
+                    continue
+                per_instance_info.append((instance, attr_val))
+        data = {'reg_attr_info': ses_reg_attr_info, 'instance_data': instance_data}
         return data
 
     def restore_session_data(self, session, data):
         for attr_name, reg_info in data['reg_attr_info'].items():
             self.register(session, attr_name, *reg_info)
+        for attr_name, per_instance_data in data['instance_data'].items():
+            for instance, attr_val in per_instance_data:
+                setattr(instance, attr_name, attr_val)
 
 # used in session so that registered attributes get saved/restored
 from . import Atom, AtomicStructure, Bond, Chain, CoordSet, Pseudobond, \
     PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq
 
+# the classes need to have a get_existing_instances static method...
 registerable_classes = [ Atom, AtomicStructure, Bond, Chain, CoordSet, Pseudobond,
     PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq ]
 

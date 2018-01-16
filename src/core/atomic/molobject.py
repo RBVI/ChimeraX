@@ -460,6 +460,20 @@ class Atom(State):
     def restore_snapshot(session, data):
         return _atom_ptr_to_inst(data['structure'].session_id_to_atom(data['ses_id']))
 
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        for m in session.models:
+            if not isinstance(m, StructureData):
+                continue
+            collection = m.atoms
+            collections.append(collection.filter(collection != None))
+        from .molarray import concatenate, Atoms
+        if collections:
+            return concatenate(collections)
+        return Atoms()
+
 # -----------------------------------------------------------------------------
 #
 class Bond(State):
