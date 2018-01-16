@@ -423,7 +423,7 @@ class ChartTool(_BaseTool):
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Chart"
-        super().__init__(session, tool_name, structures)
+        super().__init__(session, tool_name, structures, html_state)
         self.setup_page("viewdockx_chart.html")
 
     def handle_scheme(self, url):
