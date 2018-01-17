@@ -64,7 +64,6 @@ def open_python_script(session, stream, file_name, argv=None):
             '%s_sandbox_%d' % (app_dirs.appname, _sandbox_count),
             '%s script sandbox' % app_dirs.appname)
         if argv is not None:
-            argv = kw["argv"]
             restore_argv = True
             orig_argv = sys.argv
             sys.argv = argv
