@@ -1192,14 +1192,15 @@ class Sequence(State):
         from ..triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
+        f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         if seq_pointer:
             set_c_pointer(self, seq_pointer)
+            f(self._c_pointer, self)
             return # name/characters already exists; don't set
         seq_pointer = c_function('sequence_new',
             args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
-        f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
