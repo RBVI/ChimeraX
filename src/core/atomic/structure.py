@@ -1266,7 +1266,8 @@ class Structure(Model, StructureData):
         # Fourth, create graphics object of vertices, normals,
         # colors and triangles
         name = "helix-%d" % ssids[start]
-        ssp = p.new_drawing(name)
+        ssp = RibbonDrawing(name)
+        p.add_drawing(ssp)
         ssp.geometry = va, ta
         ssp.normals = na
         ssp.vertex_colors = ca
