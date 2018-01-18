@@ -153,7 +153,9 @@ class Collection(State):
         if isinstance(i,(int,integer)):
             v = self._object_class.c_ptr_to_py_inst(self._pointers[i])
         elif isinstance(i, (slice, numpy.ndarray)):
-            v = self._objects_class(self._pointers[i])
+            # Copy pointers array slice since C++ code assumes array is contiguous.
+            ptrs = self._pointers[i].copy()
+            v = self._objects_class(ptrs)
         else:
             raise IndexError('Only integer indices allowed for %s, got %s'
                 % (self.__class__.__name__, str(type(i))))
