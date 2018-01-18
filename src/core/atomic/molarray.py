@@ -103,7 +103,7 @@ class Collection(State):
             pointers = numpy.empty((0,), cptr)
         elif isinstance(items, numpy.ndarray) and items.dtype == numpy.uintp:
             # C++ pointers array
-            pointers = items
+            pointers = numpy.ascontiguousarray(items)
         else:
             # presume iterable of objects of the object_class
             try:
