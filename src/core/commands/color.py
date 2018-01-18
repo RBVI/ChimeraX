@@ -541,7 +541,7 @@ def color_func(session, objects, what=None, target=None, func=None, func_text='C
             c = func(pbonds.colors)
             undo_state.add(pbonds, "colors", pbonds.colors, c)
             pbonds.colors = c
-            what.append('%d pseudobonds' % len(bonds))
+            what.append('%d pseudobonds' % len(pbonds))
 
     if 'd' in target:
         if not is_default_target:

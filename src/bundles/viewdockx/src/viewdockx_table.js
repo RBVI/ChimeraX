@@ -129,7 +129,8 @@ var vdxtable = function() {
             headers: {
                 0: { sorter: 'rating_col' },
                 1: { sorter: 'id_col' }
-            }
+            },
+            widgets: [ "resizable" ],
         });
         function mouse_update(e) {
             var my_index = $(this).index();
@@ -303,10 +304,39 @@ var vdxtable = function() {
                               $("#prune_stars").rateYo("option", "rating");
         });
         $("#show_columns").multiselect({
-            placeholder: "Columns...",
+            texts: {
+                placeholder: "Display columns...",
+                selectedOptions: " columns displayed (click to change)",
+                noneSelected: "No columns displayed (click to change)",
+            },
+            minHeight: 10,
             onOptionClick: show_column
         });
         $("#viewdockx_table").tablesorter();
+    }
+
+    function get_state() {
+        var cols_hidden = $("#show_columns option:not(:selected)").map(
+                            function() { return this.value; }).get();
+        var cols_shown = $("#show_columns option:selected").map(
+                            function() { return this.value; }).get();
+        return {
+            name:"vdxtable",
+            cols_hidden:cols_hidden,
+            cols_shown:cols_shown
+        };
+    }
+
+    function set_state(state) {
+        $("#show_columns+div :checkbox").each(function(n, opt) {
+            if (opt.checked) {
+                if ($.inArray(opt.value, state.cols_hidden) !== -1)
+                    $(opt).trigger("click");
+            } else {
+                if ($.inArray(opt.value, state.cols_show) !== -1)
+                    $(opt).trigger("click");
+            }
+        });
     }
 
     return {
@@ -314,6 +344,8 @@ var vdxtable = function() {
         update_columns: update_columns,
         update_display: update_display,
         update_ratings: update_ratings,
+        get_state: get_state,
+        set_state: set_state,
         init: init
     }
 }();
