@@ -51,15 +51,31 @@ class Play_Series:
     self.rendered_times = []       # For limiting cached renderings
     self.rendered_times_table = {}
 
+    self._model_close_handler = session.triggers.add_handler('remove models', self._models_closed)
+
+  # ---------------------------------------------------------------------------
+  #
+  def __del__(self):
+    h = self._model_close_handler
+    if h:
+      self.session.triggers.remove_handler(h)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _models_closed(self, tname, models):
+    mset = set(models)
+    ser = self.series
+    sopen = [s for s in ser if s not in mset]
+    if len(sopen) < len(ser):
+      self.series = sopen
+      if len(sopen) == 0:
+        self.stop()
+
   # ---------------------------------------------------------------------------
   #
   def view(self):
-    s = self.session
-    if hasattr(s, 'main_view'):
-      v = s.main_view        # ChimeraX
-    else:
-      v = s.view	     # Hydra
-    return v
+
+    return self.session.main_view
 
   # ---------------------------------------------------------------------------
   #

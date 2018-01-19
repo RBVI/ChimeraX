@@ -26,6 +26,7 @@ MODEL_DISPLAY_CHANGED = 'model display changed'
 MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
 MODEL_POSITION_CHANGED = 'model position changed'
+RESTORED_MODELS = 'restored models'
 # TODO: register Model as data event type
 
 
@@ -129,11 +130,13 @@ class Model(State, Drawing):
     '''
 
     def add(self, models):
-        if self.id is None:
+        om = self.session.models
+        if om.have_id(self.id):
+            # Parent already open.
+            om.add(models, parent = self)
+        else:
             for m in models:
                 self.add_drawing(m)
-        else:
-            self.session.models.add(models, parent = self)
 
     def child_models(self):
         '''Return child models.'''
@@ -254,6 +257,7 @@ class Models(State):
         t.add_trigger(MODEL_ID_CHANGED)
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
+        t.add_trigger(RESTORED_MODELS)
         self._models = {}
         self.drawing = r = Model("root", session)
         r.id = ()
@@ -271,8 +275,10 @@ class Models(State):
 
     @staticmethod
     def restore_snapshot(session, data):
+        mdict = data['models']
+        session.triggers.activate_trigger(RESTORED_MODELS, tuple(mdict.values()))
         m = session.models
-        for id, model in data['models'].items():
+        for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
                 if not hasattr(model, 'parent'):
                     m.add([model], _from_session=True)
@@ -352,7 +358,10 @@ class Models(State):
         p = mt[id[:-1]] if len(id) > 1 else self.drawing
         p._next_unused_id = None
         self.add([model], parent = p)
-        
+
+    def have_id(self, id):
+        return id in self._models
+    
     def __getitem__(self, i):
         '''index into models using square brackets (e.g. session.models[i])'''
         return list(self._models.values())[i]

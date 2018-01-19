@@ -42,7 +42,7 @@ _class_class_init = {
     'LevelOfDetail': '.atomic.structure',
     'Lighting': '.graphics',
     'MapChannelsModel': '.map',
-    'Map_Series': '.map.series',
+    'MapSeries': '.map.series',
     'Material': '.graphics',
     'Model': '.models',
     'Models': '.models',

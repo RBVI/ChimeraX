@@ -38,6 +38,9 @@ _builtin_open = open
 #: session file suffix
 SESSION_SUFFIX = ".cxs"
 
+# List of type objects that are in bundle "builtins"
+BUILTIN_TYPES = frozenset((bool, bytearray, bytes, complex, dict, frozenset, int, float, list, range, set, slice, str, tuple))
+
 
 class _UniqueName:
     # uids are (class_name, ordinal)
@@ -56,6 +59,8 @@ class _UniqueName:
         cls._cls_info.clear()
         cls._uid_to_obj.clear()
         cls._obj_to_uid.clear()
+        for b in BUILTIN_TYPES:
+            cls._uid_to_obj[('%s type' % b.__name__, 1)] = b
 
     @classmethod
     def lookup(cls, unique_name):
@@ -93,8 +98,13 @@ class _UniqueName:
         if not known_class:
             bundle_info = session.toolshed.find_bundle_for_class(obj_cls)
             if bundle_info is None:
-                raise RuntimeError('No bundle information for %s.%s' % (
-                    obj_cls.__module__, obj_cls.__name__))
+                if obj_cls == type and obj.__module__ == 'builtins' and obj in BUILTIN_TYPES:
+                    bundle_info = 'builtin'
+                    class_name = '%s type' % obj.__name__
+                    ordinal = 0
+                else:
+                    raise RuntimeError('No bundle information for %s.%s' % (
+                        obj_cls.__module__, obj_cls.__name__))
 
         if class_name is None:
             from . import BUNDLE_NAME
@@ -105,10 +115,10 @@ class _UniqueName:
             # double check that class will be able to be restored
             if obj_cls != bundle_info.get_class(obj_cls.__name__, session.logger):
                 raise RuntimeError(
-                    'unable to restore objects of %s class in %s bundle' %
+                    'Unable to restore objects of %s class in %s bundle' %
                     (obj_cls.__name__, bundle_info.name))
 
-        if not known_class:
+        if not known_class and bundle_info != 'builtin':
             cls._bundle_infos.add(bundle_info)
         ordinal += 1
         uid = (class_name, ordinal)
