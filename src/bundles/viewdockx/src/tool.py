@@ -265,11 +265,12 @@ class _BaseTool(HtmlToolInstance):
         # JS functions and get the value back synchronously.
         from PyQt5.QtCore import QEventLoop
         from threading import Semaphore
+        event_loop = QEventLoop()
         js = "%s.get_state();" % self.CUSTOM_SCHEME
         def add(state):
             data[self.html_state] = state
+            event_loop.quit()
         self.html_view.runJavaScript(js, add)
-        event_loop = QEventLoop()
         while self.html_state not in data:
             event_loop.exec_()
 
@@ -421,6 +422,8 @@ class ChartTool(_BaseTool):
 
     CUSTOM_SCHEME = "vdxchart"
 
+    help = "help:user/tools/viewdockx.html#plots"
+
     def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Chart"
         super().__init__(session, tool_name, structures, html_state)
@@ -446,6 +449,8 @@ class ChartTool(_BaseTool):
 class PlotTool(_BaseTool):
 
     CUSTOM_SCHEME = "vdxplot"
+
+    help = "help:user/tools/viewdockx.html#plots"
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Plot"

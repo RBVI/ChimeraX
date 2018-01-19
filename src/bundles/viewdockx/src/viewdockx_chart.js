@@ -28,7 +28,7 @@ var vdxchart = function() {
         // Save sort and shown columns
         var sort_column = $(".sort:checked").attr("value");
         var show_columns = []
-        $(".display:checked").map(function() {
+        $(".graph:checked").map(function() {
             if (this.value in columns["numeric"])
                 show_columns.push(this.value);
         });
@@ -362,11 +362,40 @@ var vdxchart = function() {
     }
 
     function get_state() {
-        return {name:"vdxchart", selected:[1, 2, 3]};
+        var sort_column = $(".sort:checked").attr("value");
+        var show_columns = []
+        $(".graph:checked").map(function() {
+            show_columns.push(this.value);
+        });
+        var hist_columns = [];
+        $(".histogram:checked").map(function() {
+            hist_columns.push(this.value);
+        });
+        return {
+            name: "vdxchart",
+            sort_column: sort_column,
+            show_columns: show_columns,
+            hist_columns: hist_columns
+        };
     }
 
     function set_state(state) {
-        console.log("vdxchart.set_state: " + state);
+        var show_columns = state.show_columns;
+        $(".graph:checkbox").each(function(r, v) {
+            var should_be_checked = $.inArray(v.value, show_columns) != -1;
+            var is_checked = $(v).prop("checked");
+            if (is_checked != should_be_checked)
+                $(v).trigger("click");
+        });
+        var hist_columns = state.hist_columns;
+        $(".histogram:checkbox").each(function(r, v) {
+            var should_be_checked = $.inArray(v.value, hist_columns) != -1;
+            var is_checked = $(v).prop("checked");
+            if (is_checked != should_be_checked)
+                $(v).trigger("click");
+        });
+        var c = $(".sort:checked[value='" + state.sort_column + "']");
+        c.trigger("click");
     }
 
     return {

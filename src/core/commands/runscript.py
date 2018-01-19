@@ -28,7 +28,7 @@ def runscript(session, text, *, log=True, downgrade_errors=False):
     from ..scripting import open_python_script
     from ..errors import UserError
     argv = shlex.split(text)
-    open_python_script(session, argv[0], argv[0], argv=argv)
+    open_python_script(session, open(argv[0], 'rb'), argv[0], argv=argv)
     return []
 
 def register_command(session):
