@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, StructuresArg, ModelsArg
+from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, StructuresArg, ModelsArg, ListOf
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_resattr, report_distmat
 
@@ -257,3 +257,36 @@ def info_notify_resume(session, what, client_id):
 info_notify_resume_desc = CmdDesc(required=[("what", _WhatArg),
                                             ("client_id", StringArg),],
                                   synopsis="Resume notifications")
+
+
+def info_path(session, which="all", what=None):
+    logger = session.logger
+    if what is None:
+        names = path_names.values
+    else:
+        names = what
+    if which == "all" or which == "system":
+        _info_path_show(logger, "system", "site_", what, names)
+    if which == "all" or which == "user":
+        _info_path_show(logger, "user", "user_", what, names)
+path_names = EnumOf(["config", "data", "log", "state", "cache"])
+info_path_desc = CmdDesc(optional=[("which", EnumOf(["all",
+                                                       "system",
+                                                       "user"])),
+                                     ("what", ListOf(path_names)),
+                                    ],
+                           synopsis="Report directory paths")
+
+
+def _info_path_show(logger, which, which_prefix, what, names):
+    from chimerax import app_dirs
+    for n in names:
+        attr_name = which_prefix + n + "_dir"
+        try:
+            attr_value = getattr(app_dirs, attr_name)
+        except AttributeError:
+            if what is not None:
+                # User actually typed this
+                logger.info("There is no %s %s directory" % (which, n))
+        else:
+            logger.info("%s %s directory: %s" % (which, n, attr_value))
