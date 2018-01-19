@@ -19,9 +19,10 @@ class MapSeries(Model):
   def __init__(self, name, maps, session):
 
     Model.__init__(self, name, session)
-    
+
     self.add(maps)
-    self.show_first_map_only(maps)
+    if maps:
+      self.show_first_map_only(maps)
     self.set_maps(maps)
     
     self.surface_level_ranks = []  # Cached for normalization calculation
@@ -228,7 +229,8 @@ class MapSeries(Model):
       series.set_maps(maps)
       from ...triggerset import DEREGISTER
       return DEREGISTER
-    session.triggers.add_handler('end restore session', restore_maps)
+    from chimerax.core.models import RESTORED_MODELS
+    session.triggers.add_handler(RESTORED_MODELS, restore_maps)
     
     return s
 
