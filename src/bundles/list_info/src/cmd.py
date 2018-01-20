@@ -259,27 +259,43 @@ info_notify_resume_desc = CmdDesc(required=[("what", _WhatArg),
                                   synopsis="Resume notifications")
 
 
-def info_path(session, which="all", what=None):
+def info_path(session, which="all", version="all", what=None):
     logger = session.logger
-    if what is None:
-        names = path_names.values
-    else:
-        names = what
-    if which == "all" or which == "system":
-        _info_path_show(logger, "system", "site_", what, names)
+    if which in ["all", "system"]:
+        if version in ["all", "versioned"]:
+            _info_path_show(logger, "system", "versioned", what)
+        if version in ["all", "unversioned"]:
+            _info_path_show(logger, "system", "unversioned", what)
     if which == "all" or which == "user":
-        _info_path_show(logger, "user", "user_", what, names)
+        if version in ["all", "versioned"]:
+            _info_path_show(logger, "user", "versioned", what)
+        if version in ["all", "unversioned"]:
+            _info_path_show(logger, "user", "unversioned", what)
 path_names = EnumOf(["config", "data", "log", "state", "cache"])
 info_path_desc = CmdDesc(optional=[("which", EnumOf(["all",
                                                        "system",
                                                        "user"])),
+                                     ("version", EnumOf(["all",
+                                                         "versioned",
+                                                         "unversioned"])),
                                      ("what", ListOf(path_names)),
                                     ],
                            synopsis="Report directory paths")
 
 
-def _info_path_show(logger, which, which_prefix, what, names):
-    from chimerax import app_dirs
+def _info_path_show(logger, which, version, what):
+    if what is None:
+        names = path_names.values
+    else:
+        names = what
+    if which == "system":
+        which_prefix = "site_"
+    else:
+        which_prefix = "user_"
+    if version == "versioned":
+        from chimerax import app_dirs
+    else:
+        from chimerax import app_dirs_unversioned as app_dirs
     for n in names:
         attr_name = which_prefix + n + "_dir"
         try:
@@ -287,6 +303,8 @@ def _info_path_show(logger, which, which_prefix, what, names):
         except AttributeError:
             if what is not None:
                 # User actually typed this
-                logger.info("There is no %s %s directory" % (which, n))
+                logger.info("There is no %s %s %s directory" %
+                            (which, version, n))
         else:
-            logger.info("%s %s directory: %s" % (which, n, attr_value))
+            logger.info("%s %s %s directory: %s" %
+                        (which, version, n, attr_value))

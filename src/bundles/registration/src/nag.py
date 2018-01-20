@@ -55,7 +55,7 @@ def check_registration(logger=None):
                 param[key] = value
     except IOError:
         return None
-    if "User" not in param or "Email" not in param:
+    if "Name" not in param or "Email" not in param:
         if logger:
             logger.error("Registration file %r is invalid." % reg_file)
         return None
@@ -72,14 +72,14 @@ def check_registration(logger=None):
 
 
 def _registration_file():
-    from chimerax import app_dirs
+    from chimerax import app_dirs_unversioned
     import os.path
-    return os.path.join(app_dirs.user_data_dir, RegistrationFile)
+    return os.path.join(app_dirs_unversioned.user_data_dir, RegistrationFile)
 
 def _usage_file():
-    from chimerax import app_dirs
+    from chimerax import app_dirs_unversioned
     import os.path
-    return os.path.join(app_dirs.user_data_dir, UsageFile)
+    return os.path.join(app_dirs_unversioned.user_data_dir, UsageFile)
 
 def _check_usage(logger):
     from datetime import datetime, date
