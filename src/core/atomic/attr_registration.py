@@ -20,8 +20,19 @@ TODO
 
 from ..state import State
 
-class _NoDefault:
-    pass
+# something that can't be a default value, yet can be saved in sessions...
+class _NoDefault(State):
+
+    def take_snapshot(self, session, flags):
+        return {'version':1}
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return _no_default
+
+    def reset_state(self, session):
+        pass
+_no_default = _NoDefault()
 
 # methods that the manager will insert into the managed classes (inheritance won't work)
 def __getattr__(self, attr_name, look_in_class=None):
@@ -37,7 +48,7 @@ def __getattr__(self, attr_name, look_in_class=None):
             raise
 
 @classmethod
-def register_attr(cls, session, attr_name, registerer, default_value=_NoDefault, attr_type=None):
+def register_attr(cls, session, attr_name, registerer, default_value=_no_default, attr_type=None):
     cls._attr_registration.register(session, attr_name, registerer, default_value, attr_type)
 
 # used within the class to hold the registration info
@@ -53,7 +64,7 @@ class AttrRegistration:
             registrant, default_value, attr_type = self.reg_attr_info[attr_name]
         except KeyError:
             raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
-        if default_value == _NoDefault:
+        if default_value == _no_default:
             raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
         return default_value
 
@@ -92,7 +103,7 @@ class AttrRegistration:
         if attr_names:
             # if no registered attrs; don't need to look at instances
             instance_data[attr_name] = per_instance_info = []
-            for instance in self._class.get_existing_instances(session):
+            for instance in self.class_.get_existing_instances(session):
                 try:
                     attr_val = getattr(instance, attr_name)
                 except AttributeError:
@@ -113,8 +124,13 @@ from . import Atom, AtomicStructure, Bond, Chain, CoordSet, Pseudobond, \
     PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq
 
 # the classes need to have a get_existing_instances static method...
-registerable_classes = [ Atom, AtomicStructure, Bond, Chain, CoordSet, Pseudobond,
-    PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq ]
+registerable_classes = [ Atom, AtomicStructure, Bond,
+    #Chain, CoordSet, Pseudobond,
+    PseudobondGroup, PseudobondManager, Residue,
+    #Sequence,
+    Structure,
+    #StructureSeq
+    ]
 
 class RegAttrManager(State):
 

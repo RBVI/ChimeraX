@@ -51,6 +51,7 @@ _class_class_init = {
     'MultiChannelSeries': '.map',
     'NamedView': '.commands.view',
     'NamedViews': '.commands.view',
+    '_NoDefault': '.atomic.attr_registration',
     'OrthographicCamera': '.graphics',
     'Place': '.geometry',
     'Places': '.geometry',
