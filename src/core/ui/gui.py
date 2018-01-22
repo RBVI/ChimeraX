@@ -479,6 +479,10 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_save_cb(self, session):
         self.save_dialog.display(self, session)
 
+    def file_close_cb(self, session):
+        from chimerax.core.commands import run
+        run(session, 'close session')
+
     def file_quit_cb(self, session):
         session.ui.quit()
 
@@ -687,6 +691,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         save_action.setShortcut("Ctrl+S")
         save_action.setToolTip("Save output file")
         save_action.triggered.connect(lambda arg, s=self, sess=session: s.file_save_cb(sess))
+        file_menu.addAction(save_action)
+        save_action = QAction("&Close Session", self)
+        save_action.setToolTip("Close session")
+        save_action.triggered.connect(lambda arg, s=self, sess=session: s.file_close_cb(sess))
         file_menu.addAction(save_action)
         quit_action = QAction("&Quit", self)
         quit_action.setShortcut("Ctrl+Q")
