@@ -145,12 +145,64 @@ class IHMModel(Model):
                        'ihm_2dem_class_average_fitting', # 2D EM orientation relative to model
                        'ihm_3dem_restraint',		# 3d electron microscopy
                        ]
-        from os.path import basename
         from chimerax.core.atomic import mmcif
         table_list = mmcif.get_mmcif_tables(filename, table_names)
         tables = dict(zip(table_names, table_list))
         return tables
 
+    # -----------------------------------------------------------------------------
+    #
+    def added_to_session(self, session):
+        super().added_to_session(session)
+
+        # Write into log table of entities and chains in result model
+        self.log_entity_table()
+        
+    # -----------------------------------------------------------------------------
+    #
+    def log_entity_table(self):
+        if not hasattr(self, 'results_model'):
+            return
+
+        # Group chains by entity name.
+        anames = self.asym_entity_names()
+        ea = {}
+        for asym_id, edesc in anames.items():
+            ea.setdefault(edesc,[]).append(asym_id)
+
+        # Create html table of entities with chains for each entity.
+        rid = self.results_model.id_string()
+        from chimerax.core.logger import html_table_params
+        summary = '\n<table %s>\n' % html_table_params
+        summary += '  <thead>\n'
+        summary += '    <tr>\n'
+        summary += '      <th colspan="2">Entities and chains for %s</th>\n' % self.name
+        summary += '    </tr>\n'
+        summary += '    <tr>\n'
+        summary += '      <th>Entity</th>\n'
+        summary += '      <th>Chains</th>\n'
+        summary += '    </tr>\n'
+        summary += '  </thead>\n'
+        summary += '  <tbody>\n'
+        edescs = sorted(ea.keys())
+        for edesc in edescs:
+            asym_ids = ea[edesc]
+            summary += '    <tr>\n'
+            summary += '      <td>'
+            elink = '<a title="Select entity" href="cxcmd:select #%s/%s">%s</a>' % (
+                rid, ','.join(asym_ids), edesc)
+            summary += elink
+            summary += '      </td>'
+            summary += '      <td style="text-align:center">'
+            asym_id_links = ['<a title="Select chain" href="cxcmd:select #%s/%s">%s</a>'
+                             % (rid, asym_id, asym_id) for asym_id in asym_ids]
+            summary += ', '.join(asym_id_links)
+            summary += '      </td>'
+            summary += '    </tr>\n'
+        summary += '  </tbody>\n'
+        summary += '</table>'
+        self.session.logger.info(summary, is_html=True)
+        
     # -----------------------------------------------------------------------------
     #
     def asym_entity_names(self):
@@ -578,11 +630,13 @@ class IHMModel(Model):
         # Create results model group
         if group_models:
             if len(group_models) == 1:
-                group_models[0].name = 'Result models'
+                self.results_model = gm0 = group_models[0]
+                gm0.name = 'Result models'
                 self.add(group_models)
             else:
                 rs_group = Model('Result models', self.session)
                 rs_group.add(group_models)
+                self.results_model = rs_group
                 self.add([rs_group])
 
         return group_models
