@@ -558,7 +558,7 @@ class Bond(State):
         the specified atom.'''
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
         o = f(self._c_pointer, atom._c_pointer)
-        return self.c_ptr_to_py_inst(o)
+        return Atom.c_ptr_to_py_inst(o)
 
     def delete(self):
         '''Delete this Bond from it's Structure'''
@@ -600,7 +600,7 @@ class Bond(State):
     @property
     def smaller_side(self):
         '''Returns the bond atom on the side of the bond with fewer total atoms attached'''
-        f = c_function('bond_smaller_side', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
+        f = c_function('bond_smaller_side', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
     def take_snapshot(self, session, flags):
@@ -2638,10 +2638,10 @@ for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Re
         # put these funcs in PseudobondGroupData not PseudobondGroup
         class_obj = PseudobondGroupData
     func_name = cname + "_py_inst"
-    class_obj.c_ptr_to_py_inst = lambda ptr, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
     func_name = cname + "_existing_py_inst"
-    class_obj.c_ptr_to_existing_py_inst = lambda ptr, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_existing_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 
 # Chain/StructureSeq/Sequence classes could theoretically be handled the same as the
@@ -2651,9 +2651,9 @@ for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Re
 for class_obj in [Sequence, StructureSeq, Chain]:
     cname = class_obj.__name__.lower()
     func_name = cname + "_existing_py_inst"
-    class_obj.c_ptr_to_py_inst = lambda ptr, klass=class_obj, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_py_inst = lambda ptr, *, klass=class_obj, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr))) or klass(ptr)
-    class_obj.c_ptr_to_existing_py_inst = lambda ptr, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_existing_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 
 # Structure/AtomicStructure cannot be instantiated with just a pointer, and therefore

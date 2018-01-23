@@ -89,7 +89,7 @@ class BondRotationManager(State):
 
         if not self.bond_rots:
             from chimerax.core.atomic import get_triggers
-            self._handler_ID = get_triggers(session).add_handler('changes', self._changes_cb)
+            self._handler_ID = get_triggers(self.session).add_handler('changes', self._changes_cb)
         self.bond_rots[ident] = bond_rot
         if not one_shot:
             self.triggers.activate_trigger(self.CREATED, bond_rot)
