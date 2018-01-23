@@ -31,7 +31,7 @@ class BondRotationManager(State):
     def delete_rotation(self, bond_rot):
         del self.bond_rots[bond_rot.ident]
         if not self.bond_rots:
-            from chimera.core.atomic import get_triggers
+            from chimerax.core.atomic import get_triggers
             get_triggers(self.session).remove_handler(self._handler_ID)
         if not bond_rot.one_shot:
             self.triggers.activate_trigger(self.DELETED, bond_rot)
@@ -40,7 +40,7 @@ class BondRotationManager(State):
         for bond_rot in self.bond_rots.values():
             self.triggers.activate_trigger(self.DELETED, bond_rot)
         if self.bond_rots:
-            from chimera.core.atomic import get_triggers
+            from chimerax.core.atomic import get_triggers
             get_triggers(self.session).remove_handler(self._handler_ID)
             self.bond_rots.clear()
 
@@ -129,9 +129,9 @@ class BondRotationManager(State):
         if 'active_coordset changed' in changes.structure_reasons():
             changed_structures.update(changes.modified_structures())
         if 'coordset changed' in changes.coordset_reasons():
-            changed_structures.update(changed_coordsets().unique_structures)
+            changed_structures.update(changes.modified_coordsets().unique_structures)
         if 'coord changed' in changes.atom_reasons():
-            change_structures.update(changed_atoms().unique_structures)
+            changed_structures.update(changes.modified_atoms().unique_structures)
         if changed_structures:
             for br in self.bond_rots.values():
                 if not br.one_shot and br.bond.structure in changed_structures:

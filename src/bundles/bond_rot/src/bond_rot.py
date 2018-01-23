@@ -33,7 +33,7 @@ class BondRotation:
     def set_angle(self, angle):
         if angle == self._angle:
             return
-        delta = angle - self._angle
+        delta = self._angle - angle
         self._angle = angle
         moving, fixed = self.moving_side.coord, self.bond.other_atom(self.moving_side).coord
         from chimerax.core.geometry import z_align, rotation
@@ -45,6 +45,6 @@ class BondRotation:
         update.move(coords)
         side_atoms.coords = coords
         mgr = self.session.bond_rotations
-        mgr.triggers.activate_trigger(mgr.MODIFIED, self)
+        # manager listening on changes will fire 'modified' trigger...
 
     angle = property(get_angle, set_angle)
