@@ -585,6 +585,24 @@ class Bond(State):
                 ret = ctypes.py_object)
         return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
 
+    def side_atoms(self, side_atom):
+        '''All the atoms on the same side of the bond as side_atom.
+
+           'side_atom' has to be one of the two bond atoms, and the returned atoms will include
+           'side_atom'.  Missing-structure pseudobonds are treated as connecting their atoms for
+           the purpose of computing the side atoms.  If bond is part of a ring or cycle then
+           ValueError will be thrown.
+        '''
+        f = c_function('bond_side_atoms', args = (ctypes.c_void_p, ctypes.c_void_p),
+            ret = ctypes.py_object)
+        return _atoms(f(self._c_pointer, side_atom._c_pointer))
+
+    @property
+    def smaller_side(self):
+        '''Returns the bond atom on the side of the bond with fewer total atoms attached'''
+        f = c_function('bond_smaller_side', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
@@ -2620,10 +2638,10 @@ for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Re
         # put these funcs in PseudobondGroupData not PseudobondGroup
         class_obj = PseudobondGroupData
     func_name = cname + "_py_inst"
-    class_obj.c_ptr_to_py_inst = lambda ptr, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
     func_name = cname + "_existing_py_inst"
-    class_obj.c_ptr_to_existing_py_inst = lambda ptr, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_existing_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 
 # Chain/StructureSeq/Sequence classes could theoretically be handled the same as the
@@ -2633,9 +2651,9 @@ for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Re
 for class_obj in [Sequence, StructureSeq, Chain]:
     cname = class_obj.__name__.lower()
     func_name = cname + "_existing_py_inst"
-    class_obj.c_ptr_to_py_inst = lambda ptr, klass=class_obj, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_py_inst = lambda ptr, *, klass=class_obj, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr))) or klass(ptr)
-    class_obj.c_ptr_to_existing_py_inst = lambda ptr, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_existing_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 
 # Structure/AtomicStructure cannot be instantiated with just a pointer, and therefore
