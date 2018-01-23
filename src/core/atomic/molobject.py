@@ -558,7 +558,7 @@ class Bond(State):
         the specified atom.'''
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
         o = f(self._c_pointer, atom._c_pointer)
-        return self.c_ptr_to_py_inst(o)
+        return Atom.c_ptr_to_py_inst(o)
 
     def delete(self):
         '''Delete this Bond from it's Structure'''
