@@ -1684,7 +1684,7 @@ class SphereModel(Structure):
                 a.radius = r
                 a.draw_mode = a.SPHERE_STYLE
                 a.color = chain_rgba8(asym_id)
-                rname = '%d' % (se-sb+1)
+                rname = ''
                 # Convention on ensemble PDB files is beads get middle residue number of range
                 rnum = sb + (sb-se+1)//2
                 r = self.new_residue(rname, asym_id, rnum)
