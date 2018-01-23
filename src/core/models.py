@@ -26,6 +26,7 @@ MODEL_DISPLAY_CHANGED = 'model display changed'
 MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
 MODEL_POSITION_CHANGED = 'model position changed'
+RESTORED_MODELS = 'restored models'
 # TODO: register Model as data event type
 
 
@@ -129,11 +130,13 @@ class Model(State, Drawing):
     '''
 
     def add(self, models):
-        if self.id is None:
+        om = self.session.models
+        if om.have_id(self.id):
+            # Parent already open.
+            om.add(models, parent = self)
+        else:
             for m in models:
                 self.add_drawing(m)
-        else:
-            self.session.models.add(models, parent = self)
 
     def child_models(self):
         '''Return child models.'''
@@ -254,6 +257,7 @@ class Models(State):
         t.add_trigger(MODEL_ID_CHANGED)
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
+        t.add_trigger(RESTORED_MODELS)
         self._models = {}
         self.drawing = r = Model("root", session)
         r.id = ()
@@ -271,8 +275,10 @@ class Models(State):
 
     @staticmethod
     def restore_snapshot(session, data):
+        mdict = data['models']
+        session.triggers.activate_trigger(RESTORED_MODELS, tuple(mdict.values()))
         m = session.models
-        for id, model in data['models'].items():
+        for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
                 if not hasattr(model, 'parent'):
                     m.add([model], _from_session=True)
@@ -293,7 +299,7 @@ class Models(State):
     def empty(self):
         return len(self._models) == 0
 
-    def add(self, models, parent=None, _notify=True, _from_session=False):
+    def add(self, models, parent=None, _notify=True, _need_fire_id_trigger=[], _from_session=False):
         start_count = len(self._models)
 
         d = self.drawing if parent is None else parent
@@ -302,11 +308,12 @@ class Models(State):
                 d.add_drawing(m)
 
         # Clear model ids if they are not subids of parent id.
-        need_fire_id_trigger = []
+        #~ if _notify:
+            #~ need_fire_id_trigger = []
         for model in models:
             if model.id and model.id[:-1] != d.id:
                 # Model has id that is not a subid of parent, so assign new id.
-                need_fire_id_trigger.append(model)
+                _need_fire_id_trigger.append(model)
                 del self._models[model.id]
                 model.id = None
                 if hasattr(model, 'parent'):
@@ -319,13 +326,7 @@ class Models(State):
             self._models[model.id] = model
             children = model.child_models()
             if children:
-                self.add(children, model, _notify=False)
-
-        # IDs that change from None to non-None don't fire the MODEL_ID_CHANGED
-        # trigger, so do it by hand
-        for id_changed_model in need_fire_id_trigger:
-            session = self._session()
-            session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
+                self.add(children, model, _notify=False, _need_fire_id_trigger=_need_fire_id_trigger)
 
         # Notify that models were added
         if _notify:
@@ -335,6 +336,12 @@ class Models(State):
                 m._added_to_session = True
                 m.added_to_session(session)
             session.triggers.activate_trigger(ADD_MODELS, m_add)
+
+            # IDs that change from None to non-None don't fire the MODEL_ID_CHANGED
+            # trigger, so do it by hand
+            for id_changed_model in _need_fire_id_trigger:
+                session = self._session()
+                session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
 
         # Initialize view if first model added
         if _notify and not _from_session and start_count == 0 and len(self._models) > 0:
@@ -351,7 +358,10 @@ class Models(State):
         p = mt[id[:-1]] if len(id) > 1 else self.drawing
         p._next_unused_id = None
         self.add([model], parent = p)
-        
+
+    def have_id(self, id):
+        return id in self._models
+    
     def __getitem__(self, i):
         '''index into models using square brackets (e.g. session.models[i])'''
         return list(self._models.values())[i]

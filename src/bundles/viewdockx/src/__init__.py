@@ -34,4 +34,13 @@ class _MyAPI(BundleAPI):
         return open_mol2(session, stream, file_name, auto_style, atomic)
 
 
+    @staticmethod
+    def get_class(class_name):
+        if class_name in ["TableTool", "ChartTool", "PlotTool"]:
+            from . import tool
+            return getattr(tool, class_name, None)
+        else:
+            return None
+
+
 bundle_api = _MyAPI()

@@ -83,6 +83,7 @@ class Structure(Model, StructureData):
         t = self.session.triggers
         for handler in self._ses_handlers:
             t.remove_handler(handler)
+        self._ses_handlers.clear()
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
         if not self.deleted:
             StructureData.delete(self)
@@ -1266,7 +1267,8 @@ class Structure(Model, StructureData):
         # Fourth, create graphics object of vertices, normals,
         # colors and triangles
         name = "helix-%d" % ssids[start]
-        ssp = p.new_drawing(name)
+        ssp = RibbonDrawing(name)
+        p.add_drawing(ssp)
         ssp.geometry = va, ta
         ssp.normals = na
         ssp.vertex_colors = ca

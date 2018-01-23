@@ -41,8 +41,19 @@ target="_blank">121p</a>)
 </p><p>
 After one or more files of
 <a href="../commands/open.html#docking">docking results</a> have been
-opened, choosing <b>ViewDockX</b> from the <b>Tools</b> menu shows a table 
-listing the different compounds or poses.
+opened, a table listing the different compounds or poses
+can be shown by choosing <b>ViewDockX</b> from the <b>Tools</b> menu
+or by using the command:
+</p>
+<blockquote>
+<b>viewdockx</b>
+<br>&ndash; or &ndash;<br>
+<b>viewdockx 
+&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>docked-compound-models</i></a></b>
+</blockquote>
+<p>
+...the latter to limit the table to only a subset of the docked compound
+models currently open.
 The <a href="#table"><b>ViewDockX</b> table</a> and associated 
 <a href="#plots">plots</a> can be manipulated
 like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
@@ -57,45 +68,72 @@ like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
 In the table of docking results, the rows are different compounds or
 different positions of a compound, and the columns show additional data
 read from the input, typically including compound names
-and docking scores. The first three columns are generated automatically:
+and docking scores. The first two columns are generated automatically:
 <p>
 <ul>
-<li><b>S</b> - show/hide checkboxes
-<li><b>RATING</b> - star rating
-<li><b>ID</b> - model identification number, 
-which can be clicked to show the model and hide all others listed in the table
+<li><b>RATING</b> - star rating (click to change)
+<li><b>ID</b> - model identification number
 </ul>
 <p>
 Any additional columns that appear when <b>ViewDockX</b> is first started
 reflect information read from the input file(s).
-Available columns of information can be hidden from the table and reshown
-by clicking the arrowhead near the top right corner of the table
-and using the resulting checkbox menu. 
-Clicking the header of a column sorts by the values in that column.
+</p><p>
+<a name="choosing"></a>
+One or more docked compounds can be shown in the graphics window
+(and the rest in the table hidden) by
+<b><i>choosing</i></b> their rows in the table with the mouse.
+Chosen rows are highlighted in yellow.
+A contiguous block of rows can be chosen with click-drag, and
+<!--
+or by clicking on the first (or last) and then Shift-clicking
+on the last (or first) in the desired block.
+-->
+Ctrl-click (Cmd-click on Mac) toggles a row between chosen and not chosen.
+When multiple compounds are chosen, changing the star rating of one
+also changes it for the others, in parallel.
+</p><p>
+Specific columns can be hidden/shown by clicking the bar across the top 
+of the table (&ldquo;N columns displayed...&rdquo;)
+and using the resulting checkbox menu.
+Clicking the header of a column sorts by the values in that column,
+and a multi-column sort can be performed by clicking one header
+and Shift-clicking one or more additional headers.
+Column widths can be adjusted by dragging the vertical dividing lines.
 </p><p>
 Buttons above the table:
 </p>
 <ul>
-<li><b>Show All Structures</b> - show structures for all table rows
-<li><b>Graph</b> - <a href="#plots">plot</a> compounds (table rows) 
-vs. one or more numerical descriptors (table columns)
-<li><b>Plot</b> - <a href="#plots">plot</a> a numerical descriptor vs. another
+<li><b>Show All Structures</b>
+- <a href="#choosing">choose</a>/show all compounds in the table
+<li><b>Graph</b>
+- <a href="#plots">plot</a> all compounds along the X-axis
+vs. one or more numerical descriptors (table columns) on the Y-axis
+<li><b>Plot</b>
+- <a href="#plots">plot</a> different numerical descriptors vs. each other
+for all compounds
 <li><b>Add Hbonds</b> 
-- calculate and show as a column 
+- calculate and add a column for
 the number of H-bonds between each compound and all other atoms
 (excluding the other docked compounds), using the
 <a href="../commands/hbonds.html"><b>hbonds</b></a> command
+<!-- hbonds [dock-models] restrict cross reveal true -->
 <li><b>Add Clashes</b> 
-- calculate and show as a column 
+- calculate and add a column for
 the number of clashes between each compound and all other atoms
 (excluding the other docked compounds), using the
 <a href="../commands/clashes.html"><b>clashes</b></a> command
-<li><b>Save...</b> for all table rows, save structures and descriptors 
+<!-- clashes [dock-models] test others reveal true -->
+<li><b>Save...</b> save all compound structures and descriptors 
 (including current star ratings) to a Mol2 file; the file can be
 reopened later for further analysis with <b>ViewDockX</b>
 <li><b>Close</b> - close any structures with star ratings no greater 
 than the specified number of stars, and remove their rows from the table
 </ul>
+<p>
+<b>ViewDockX</b> table status is saved in sessions, including
+which columns are shown and which rows are <a href="#choosing">chosen</a>,
+but not window size or location.
+</p>
 
 <a name="plots"></a>
 <p class="nav">
@@ -106,25 +144,26 @@ than the specified number of stars, and remove their rows from the table
 Multiple graph/plot windows can be shown for the same set of docking results.
 </p><p>
 Clicking the <b>Graph</b> button near the top left of the
-<a href="#table"><b>ViewDockX</b> table</a> allows plotting the compounds 
-in the table (rows) versus one or more numerical descriptors (columns).
-One of the numerical descriptors can be chosen 
-for the <b>Sort</b> order, and all or a subset of them as values to <b>Graph</b>.
+<a href="#table"><b>ViewDockX</b> table</a> allows plotting all compounds 
+along the X-axis versus one or more numerical descriptors on the Y-axis.
+One of the numerical descriptors can be chosen for the <b>Sort</b> order,
+and all or a subset of them as values to <b>Graph</b>.
 The data can also be shown as a histogram with specified number of bins.
 </p><p>
 Clicking the <b>Plot</b> button near the top left of the
 <a href="#table"><b>ViewDockX</b> table</a> opens another window for
-plotting numerical descriptors versus each other. Up to two plots can be shown in
-the same window, with numerical descriptors chosen for the X and Y axes of each.
+plotting numerical descriptors versus each other. 
+Up to two plots can be shown in the same window, 
+with numerical descriptors chosen for the X and Y axes of each.
 </p><p>
+A &ldquo;halo&rdquo; around a plotted point indicates 
+that the compound is currently shown in the graphics window.
 Pausing the cursor over a plotted point shows the compound's descriptor values.
 Clicking a plotted point or histogram bar shows the corresponding compound(s)
 in the graphics window and hides the others. 
-A &ldquo;halo&rdquo; around a plotted point indicates 
-that the compound is currently shown.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2017</address>
+January 2018</address>
 </body></html>

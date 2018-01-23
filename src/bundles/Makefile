@@ -19,7 +19,7 @@ SUBDIRS = addh align_algs alignments bild blastprotein bond_rot bumps \
 	  log map_series_gui markers match_maker md_crds mlp model_series \
 	  mmtf model_panel mol2 morph mouse_modes movie \
 	  nucleotides \
-	  remote_control rest_server \
+	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
 	  smooth_lines spacenavigator stl storm struts \
 	  test texture tug viewdockx vive volume_viewer vtk wavefront_obj

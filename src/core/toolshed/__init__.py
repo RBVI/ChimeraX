@@ -117,7 +117,7 @@ Bundles that provide data formats need:
 6. ``mime_types`` : str
     An optinal comma-separated list of strings, e.g., 'chemical/x-pdb'.
 7. ``url`` : str
-    A string that has a URL that points to the data format's docmentation.
+    A string that has a URL that points to the data format's documentation.
 8. ``dangerous`` : str
     An optional boolean and should be 'true' if the data
     format is insecure -- defaults to true if a script.

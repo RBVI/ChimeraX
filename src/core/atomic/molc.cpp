@@ -1172,6 +1172,17 @@ extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
     }
 }
 
+extern "C" EXPORT void atom_use_default_radius(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            a[i]->use_default_radius();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *atom_intra_bonds(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -4418,6 +4429,16 @@ extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
             m->start_change_tracking(ct);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_use_default_atom_radii(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->use_default_atom_radii();
     } catch (...) {
         molc_error();
     }

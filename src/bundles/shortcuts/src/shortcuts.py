@@ -258,11 +258,12 @@ class Shortcut:
         self.mouse_modes_arg = mouse_modes_arg
         self.session_arg = session_arg
         
-    def run(self, session):
+    def run(self, session, status = True):
         f = self.func
         s = session
 
-        self.log(s.logger)
+        if status:
+            self.log(s.logger)
 
         # User command string
         if isinstance(f, str):
@@ -370,7 +371,7 @@ class Keyboard_Shortcuts:
     def run_shortcut(self, keys):
         sc = self.shortcuts.get(keys)
         if sc is not None:
-            sc.run(self.session)
+            sc.run(self.session, status = self._enabled)
 
 def register_selectors(logger):
     from chimerax.core.commands import register_selector

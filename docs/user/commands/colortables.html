@@ -23,15 +23,23 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3>Coloring by Model, Chain, Element (Initial Colors)</h3>
+<h3>Coloring by Model, Chain, Residue, Element</h3>
 <p>
 Built-in coloring schemes are shown below. See also: 
 <a href="color.html"><b>color</b></a>,
-<a href="palettes.html">palettes</a>
+<a href="color.html#rainbow"><b>rainbow</b></a>,
+<a href="palettes.html">palettes</a>,
+<a href="../autostyle.html">automatic styling</a>
 </p>
+<ul class="none">
+<li><a href="#autocolors"><b>Coloring by Model or Chain (Initial Colors)</b></a>
+<li><a href="#residue"><b>Coloring by Residue Type</b></a>
+<li><a href="#element"><b>Element Colors</b></a>
+</ul>
 
 <a name="autocolors"></a>
-<h3>Coloring by Model or Chain</h3>
+<h3><a href="#top" class="nounder">&larr;</a>
+Coloring by Model or Chain (Initial Colors)</h3>
 <p>
 Default initial colors for atomic models are
 <b>tan</b>, <b>sky blue</b>, <b>plum</b>, <b>light green</b>, 
@@ -56,12 +64,12 @@ style="margin:5px 15px 5px 15px">
 </tr>
 </table>
 <p>
-If any of the above would exactly match the background, 
+This is also the <a href="color.html#simple"><b>color</b></a> command
+<b>bymodel</b> scheme.
+If any of the colors would exactly match the background, 
 a different model color is used instead. 
 For higher model numbers, an algorithm is used to produce colors
 distinguishable from the background and from other models.
-These colors are also used for 
-<a href="color.html#bymodel">coloring by model</a>.
 </p><p>
 Per-chain <a href="surface.html">molecular surface</a> models are
 initially colored by chain ID, for example:
@@ -146,10 +154,10 @@ align="center">&nbsp;0&nbsp;</td>
 </tr>
 </table>
 <p>
+This is also the <a href="color.html#simple"><b>color</b></a> command
+<b>bychain</b> scheme.
 Unique colors are generated automatically for other chain IDs
 (for example, those with two characters). 
-These colors are also used for 
-<a href="color.html#bychain">coloring by chain</a>.
 </p><p>
 Similarly, there are default initial colors for
 <a href="../tools/volumeviewer.html">volume data</a> sets:
@@ -157,11 +165,11 @@ Similarly, there are default initial colors for
 </p>
 
 <a name="residue"></a>
-<h3>Coloring by Residue Type</h3>
+<h3><a href="#top" class="nounder">&larr;</a>
+Coloring by Residue Type</h3>
 <p>
-Nucleotide residues can be
-<a href="color.html#simple">colored by base type</a>
-using the same scheme as the
+The <a href="color.html#simple"><b>color</b></a> command
+<b>bynucleotide</b> scheme colors residues by base type as in the
 <a href="http://ndbserver.rutgers.edu/"
 target="_blank">Nucleic Acid Database</a>:
 <table border cellpadding="4" cellspacing="0"
@@ -173,27 +181,99 @@ style="display:inline-block; vertical-align:middle"><tr style="line-height:10px"
 <td bgcolor="cyan">U</td>
 </tr></table>
 </p><p>
-A few schemes for coloring by amino acid type are available as
+A few schemes for coloring proteins by amino acid type are available as
 <a href="usageconventions.html#cxc-files">ChimeraX command scripts</a>
 (see comments in the files for details):
 </p>
 <ul>
 <li><a href="amino-coloring.cxc">amino-coloring.cxc</a>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr style="line-height:10px">
+<td style="background:#c8c8c8;color:black">Ala</td>
+<td style="background:#145aff;color:white">Arg</td>
+<td style="background:#00dcdc;color:black">Asn</td>
+<td style="background:#e60a0a;color:white">Asp</td>
+<td style="background:#e6e600;color:black">Cys</td>
+<td style="background:#00dcdc;color:black">Gln</td>
+<td style="background:#e60a0a;color:white">Glu</td>
+<td style="background:#ebebeb;color:black">Gly</td>
+<td style="background:#8282d2;color:white">His</td>
+<td style="background:#0f820f;color:white">Ile</td>
+<td style="background:#0f820f;color:white">Leu</td>
+<td style="background:#145aff;color:white">Lys</td>
+<td style="background:#e6e600;color:black">Met</td>
+<td style="background:#3232aa;color:white">Phe</td>
+<td style="background:#dc9682;color:black">Pro</td>
+<td style="background:#fa9600;color:black">Ser</td>
+<td style="background:#fa9600;color:black">Thr</td>
+<td style="background:#b45ab4;color:white">Trp</td>
+<td style="background:#3232aa;color:white">Tyr</td>
+<td style="background:#0f820f;color:white">Val</td>
+<td style="background:#ff69b4;color:black">Asx</td>
+<td style="background:#ff69b4;color:black">Glx</td>
+<td style="background:#bea06e;color:black">other</td>
+</tr></table>
 <li><a href="shapely-coloring.cxc">shapely-coloring.cxc</a>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr style="line-height:10px">
+<td style="background:#8cff8c;color:black">Ala</td>
+<td style="background:#00007c;color:white">Arg</td>
+<td style="background:#ff7c70;color:white">Asn</td>
+<td style="background:#a00042;color:white">Asp</td>
+<td style="background:#ffff70;color:black">Cys</td>
+<td style="background:#ff4c4c;color:white">Gln</td>
+<td style="background:#660000;color:white">Glu</td>
+<td style="background:#ffffff;color:black">Gly</td>
+<td style="background:#7070ff;color:white">His</td>
+<td style="background:#004c00;color:white">Ile</td>
+<td style="background:#455e45;color:white">Leu</td>
+<td style="background:#4747b8;color:white">Lys</td>
+<td style="background:#b8a042;color:black">Met</td>
+<td style="background:#534c52;color:white">Phe</td>
+<td style="background:#525252;color:white">Pro</td>
+<td style="background:#ff7042;color:black">Ser</td>
+<td style="background:#b84c00;color:white">Thr</td>
+<td style="background:#4f4600;color:white">Trp</td>
+<td style="background:#8c704c;color:white">Tyr</td>
+<td style="background:#ff8cff;color:black">Val</td>
+<td style="background:#ff00ff;color:white">other</td>
+</tr></table>
 <li><a href="ecm-coloring.cxc">ecm-coloring.cxc</a>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr style="line-height:10px">
+<td style="background:darkkhaki;color:black">Ala</td>
+<td style="background:blue;color:white">Arg</td>
+<td style="background:hotpink;color:white">Asn</td>
+<td style="background:orangered;color:white">Asp</td>
+<td style="background:gold;color:black">Cys</td>
+<td style="background:deeppink;color:white">Gln</td>
+<td style="background:red;color:white">Glu</td>
+<td style="background:lightgreen;color:black">Gly</td>
+<td style="background:deepskyblue;color:black">His</td>
+<td style="background:tan;color:black">Ile</td>
+<td style="background:tan;color:black">Leu</td>
+<td style="background:dodgerblue;color:white">Lys</td>
+<td style="background:goldenrod;color:black">Met</td>
+<td style="background:sandybrown;color:black">Phe</td>
+<td style="background:lightgreen;color:black">Pro</td>
+<td style="background:pink;color:black">Ser</td>
+<td style="background:plum;color:black">Thr</td>
+<td style="background:sandybrown;color:black">Trp</td>
+<td style="background:rosybrown;color:black">Tyr</td>
+<td style="background:darkkhaki;color:black">Val</td>
+</tr></table>
 </ul>
 
 <a name="element"></a>
-<h3>Element Colors</h3>
+<h3><a href="#top" class="nounder">&larr;</a>
+Element Colors</h3>
 <p>
-The default element colors are the same as the
+The <a href="color.html#simple"><b>color</b></a> command
+<b>byelement</b> and <b>byhet</b> schemes use the
 <a href="http://jmol.sourceforge.net/jscolors/#Atoms%20('CPK'%20colors,%20default%20element%20colors)" 
-target="_blank">Jmol element colors</a>. 
+target="_blank">Jmol default element colors</a>.
 Pausing the cursor over a cell in the table below shows the corresponding 
 hexadecimal <a href="colornames.html">color code</a>.
-Element colors are used in 
-<a href="color.html#byelement">coloring by element</a> or 
-<a href="color.html#byhet">by heteroatom</a>.
 </p>
 
 <table align="center" cellspacing="1" cellpadding="4">
@@ -341,5 +421,5 @@ Element colors are used in
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2017</address>
+January 2018</address>
 </body></html>

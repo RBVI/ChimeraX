@@ -54,7 +54,7 @@ can be specified using:
   <li><a href="#user">user-defined targets</a>
   <font color="brown">(not yet implemented)</font> 
   <li><a href="#attributes">attribute</a> names and values
-  <font color="brown">(not yet implemented)</font>
+  <font color="brown">(partially implemented)</font>
   <li><a href="#zones">zones</a> - by distance from other items
   <li><a href="#combinations">combinations</a> of the above
   </ul>
@@ -134,6 +134,7 @@ Thus, an atom can be specified by model number, chain identifier (ID),
 residue number, and atom name. The lack of a specifier is interpreted 
 as all units at the associated level; for example, if no chain ID is given,
 the specification refers to all chains.
+</p><p>
 Specifying a set of atoms always specifies any <b><i>bonds</i></b> and
 <a href="../pseudobonds.html"><b><i>pseudobonds</i></b></a>
 between pairs of atoms in the set.
@@ -365,6 +366,8 @@ volume models, or if none are selected, all volume models
 <li><b>pbonds</b> - all <a href="../pseudobonds.html">pseudobonds</a>
 <li><b>hbonds</b> - H-bond <a href="../pseudobonds.html">pseudobonds</a>
 (those in a pseudobond model named <b>hydrogen bonds</b>)
+<li><b>hbondatoms</b> - H-bond <a href="../pseudobonds.html">pseudobonds</a>
+and their endpoint atoms
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
@@ -478,7 +481,7 @@ User-defined targets include:
 <p class="nav">
 [<a href="#top">back to top: Target Specification</a>]
 </p>
-<h3>Attributes <font color="brown">(not yet implemented)</font></h3>
+<h3>Attributes <font color="brown">(partially implemented)</font></h3>
 <p>
 Attributes are properties of atoms, residues and models,
 specified by <a href="#attrnames">attribute name</a> and value
@@ -486,9 +489,9 @@ and indicated with symbols:
 <b>@@</b> for <a href="#atprops">atom attributes</a>,
 <b>::</b> for <a href="#resprops">residue attributes</a>, and
 <b>##</b> for <a href="#modprops">atomic-model attributes</a>.
+<!--
 Attribute <i>names</i> are case-sensitive, attribute <i>values</i> are not.
 Attribute values containing spaces must be enclosed in double quotation marks.
-<!--
 Color values can be specified by <a href="colornames.html">color name</a>
 or as a comma-separated list of component values
 <i>red,green,blue,alpha</i> where
@@ -505,9 +508,11 @@ with <b>&gt;</b> (greater than), <b>&lt;</b> (less than), <b>&gt;=</b>
 For negation, <b>~</b> can be used outside of the attribute specification
 (see <a href="#combinations">combinations</a> and
 <a href="#attr-examples">examples</a>).
+<!-- not implemented, tested Jan 18 on custom attr created with setattr
 When placed before an attribute name,
 the <b>caret ^</b> indicates that the atoms, residues, or models have
 not been assigned any value for the attribute.
+-->
 <!--
 For example, <b>::^kdHydrophobicity</b> designates residues 
 (such as water or nucleic acids) that lack a 
@@ -544,16 +549,14 @@ of the atom in &Aring;</td>
 <td>whether display is enabled at the atom level
 (see <a href="../hierarchy.html">display hierarchy</a>)</td>
 </tr> <tr>
-<td align=center><b>drawMode=</b><i>mode</i></td>
-<td><i>mode</i> can be 0 (synonyms: dot, wire, wireframe), 1 (sphere, cpk,
-space-filling), 2 (endcap, stick), or 3 (ball, ball and stick, ball-and-stick,
-ball+stick, bs, b+s)
+<td align=center><b>draw_mode=</b><i>mode</i></td>
+<td><i>mode</i> can be 0 (style sphere), 1 (style ball), or 2 (style stick)
 </td>
 </tr> <tr>
 <td align=center><b>element=</b><i>atno</i></td>
 <td><i>atno</i> is the atomic number or the element symbol</td>
 </tr> <tr>
-<td align=center><b>idatmType=</b><i>type</i></td>
+<td align=center><b>idatm_type=</b><i>type</i></td>
 <td><i>type</i> is the <a href="../atomtypes.html">atom type</a></td>
 </tr> <tr>
 <td align=center><b>label</b></td>
@@ -592,12 +595,14 @@ molecular surface)</td>
 
 <a name="attr-examples"></a>
 <p>
+<!--
 <font color="brown">
 **&nbsp;The examples in this section don't work &ndash; attribute 
 specifications are not yet implemented, and the attribute names
 are taken from Chimera and may not exist in ChimeraX.&nbsp;**
 </font>
 </p><p>
+-->
 Examples include <b>&amp;</b> for intersection and <b>~</b> for negation, 
 see <a href="#combinations">combinations</a>:
 </p>
@@ -614,16 +619,17 @@ see <a href="#combinations">combinations</a>:
 </blockquote>
 - atoms with B-factor values ranging from 20 to 40
 <blockquote>
-<b>C & ~ @@idatmType=Car</b>
+<b>C & ~ @@idatm_type=Car</b>
 </blockquote>
 - non-aromatic carbon atoms
 (see <a href="../atomtypes.html">atom types</a>)
+<!-- label not ChimeraX attr, color doesn't work
 <blockquote>
-<b>N & @@drawMode=1 & @@label</b>
+<b>N & @@draw_mode=1 & @@label</b>
 </blockquote>
 - nitrogen atoms that are drawn as spheres and labeled
 <blockquote>
-<b>N & (@@drawMode=1 | @@label)</b>
+<b>N & (@@draw_mode=1 | @@label)</b>
 </blockquote>
 - nitrogen atoms that are drawn as spheres and/or labeled
 <blockquote>
@@ -635,7 +641,7 @@ see <a href="#combinations">combinations</a>:
 </blockquote>
 - all atoms, because if an atom is yellow it fulfills the criterion of not
 being blue, and <i>vice versa</i>
-</p>
+-->
 
 <!--
 <table border width="95%" cellpadding="4" cellspacing="0">
@@ -667,7 +673,7 @@ amino acids)
 <td><i>value</i> is the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/hydrophob.html">Kyte-Doolittle 
 hydrophobicity</a> of the amino acid residue</td>
 </tr> <tr>
-<td align=center><b>numAtoms=</b><i>N</i></td>
+<td align=center><b>num_atoms=</b><i>N</i></td>
 <td><i>N</i> is the total number of atoms in the residue</td>
 </tr> <tr>
 <td align=center><b>phi=</b><i>angle</i></td>
@@ -715,7 +721,7 @@ Examples:
 </p>
 -->
 <blockquote>
-<b>::numAtoms>=10</b>
+<b>::num_atoms>=10</b>
 </blockquote>
 - residues with 10 or more atoms
 <!--
@@ -781,7 +787,7 @@ target="_top"><b>Multalign Viewer</b></a>
 
 <a name="attrnames"></a>
 <h4><a href="#attributes" class="nounder"><b>&larr;</b></a>
-Attribute Names</h4>
+Attribute Names and Values</h4>
 <p>
 <!--
 The preceding lists of attributes are not exhaustive.
@@ -790,8 +796,13 @@ and yet others may be generated only when a particular tool is used,
 or created arbitrarily by the user.
 </p><p>
 -->
-Attribute name lookup:
-<font color="brown">TBD</font>
+Attribute name lookup: 
+for residues, command <a href="info.html#resattr"><b>info resattr</b></a>;
+otherwise, <font color="brown">TBD</font>.
+</p><p>
+New attributes can be created (and the values of existing attributes changed)
+with the command <a href="setattr.html"><b>setattr</b></a>.
+Attribute values can be reported with <a href="info.html"><b>info</b></a>.
 <!--
 <ul>
 <li>attribute names are shown in the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/help.html#balloon">balloon 
@@ -950,5 +961,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2017</address>
+January 2018</address>
 </body></html> 

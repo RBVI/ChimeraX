@@ -13,18 +13,57 @@
 
 import os
 import sys
+import datetime
 from chimerax.core import logger
+
+MMCIF_DIR = '/databases/mol/mmCIF'
 
 session = session  # noqa
 session.silent = False
 
-MMCIF_DIR = '/databases/mol/mmCIF'
+show_resources = False
+previous_maxrss = None
+start_time = None
 
 # always line-buffer stdout, even if output is to a file
 if not sys.stdout.line_buffering:
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.detach(), sys.stdout.encoding,
                                   sys.stdout.errors, line_buffering=True)
+
+
+def report_resource_use():
+    global previous_maxrss, start_time
+    end_time = datetime.datetime.now()
+    import resource
+    rusage = resource.getrusage(resource.RUSAGE_SELF)
+    total = rusage.ru_maxrss  # in kilobytes
+    if previous_maxrss is None:
+        previous_maxrss = total
+        start_time = datetime.datetime.now()
+        return
+    delta = total - previous_maxrss
+    if delta < 1024:
+        delta_suffix = 'K'
+    else:
+        delta /= 1024
+        if delta < 1024:
+            delta_suffix = 'M'
+        else:
+            delta /= 1024
+            delta_suffix = 'G'
+    previous_maxrss = total
+    if total < 1024:
+        total_suffix = 'K'
+    else:
+        total /= 1024
+        if total < 1024:
+            total_suffix = 'M'
+        else:
+            total /= 1024
+            total_suffix = 'G'
+    print('  ', end_time - start_time, 'used %.3g%s, max %.3g%s' % (delta, delta_suffix, total, total_suffix))
+    start_time = datetime.datetime.now()
 
 
 class MyLog(logger.PlainTextLog):
@@ -45,6 +84,7 @@ class MyLog(logger.PlainTextLog):
     def status(self, msg, color, secondary):
         return True
 
+
 class MyCollator(logger.CollatingLog):
 
     def log(self, level, msg):
@@ -57,10 +97,14 @@ class MyCollator(logger.CollatingLog):
         my_log.ignore_info = False
         super().log_summary(logger, summary_title, collapse_similar)
         my_log.ignore_info = True
+
+
 logger.CollatingLog = MyCollator
+
 
 def check(session, pdb_id, mmcif_path):
     from chimerax.core.commands.open import open
+    print('checking: %s' % pdb_id)
     try:
         mmcif_models = open(session, pdb_id, format='mmcif')
     except Exception as e:
@@ -68,6 +112,8 @@ def check(session, pdb_id, mmcif_path):
         return
     from chimerax.core.commands.close import close
     close(session, mmcif_models)
+    if show_resources:
+        report_resource_use()
 
 
 def file_gen(dir):
@@ -103,7 +149,7 @@ def mmcif_id(mmcif_file):
     return n
 
 
-def check_all(session):
+def check_all(session, start_pdb_id):
     from datetime import datetime, timedelta
     start_time = datetime.now()
     mmcif_files = file_gen(MMCIF_DIR)
@@ -113,8 +159,11 @@ def check_all(session):
     while mmcif_info:
         mmcif_dir, mmcif_file = mmcif_info
         pid = mmcif_id(mmcif_file)
-        print('trying: %s' % pid)
-        check(session, pid, os.path.join(MMCIF_DIR, mmcif_dir, mmcif_file))
+        if start_pdb_id:
+            if pid == start_pdb_id:
+                start_pdb_id = None
+        else:
+            check(session, pid, os.path.join(MMCIF_DIR, mmcif_dir, mmcif_file))
         mmcif_info = next_info(mmcif_files)
     end_time = datetime.now()
     delta = end_time - start_time
@@ -146,47 +195,55 @@ def check_id(session, pdb_id):
 def usage():
     import sys
     print(
-        'usage: %s: [-a] [-h] [--all] [--help] [pdb_id(s)]' % sys.argv[0])
+        'usage: %s: [-a|--all] [-h|--help] [-r|--resources] [pdb_id(s)]' % sys.argv[0])
     print(
         '''Check structures produced by the mmCIF reader.
         Give one or more pdb identifiers to check just those structures.
-        Or give --all (-a) option to check all of the strctures in
-        /databases/mol/mmCIF/.''')
+        Or give --all (-a) option to check all of the structures in
+        /databases/mol/mmCIF/.
+
+        If --all and a pdb_id are given, then start at the PDB id after it.''')
 
 
 def main():
+    global show_resources
     import getopt
     import sys
     try:
         opts, args = getopt.getopt(
-            sys.argv[1:], "ahi:", ["all", "help"])
+            sys.argv[1:], "ahr", ["all", "help", "resources"])
     except getopt.GetoptError as err:
-        session.logger.error(err)
+        session.logger.error(str(err))
         usage()
         raise SystemExit(os.EX_USAGE)
     all = False
     for opt, arg in opts:
         if opt in ('-a', '--all'):
             all = True
+        elif opt in ('-r', '--resources'):
+            show_resources = True
         elif opt in ('-h', '--help'):
             usage()
             raise SystemExit(os.EX_OK)
-    if not all and not args:
+    if (not all and not args) or (all and len(args) > 1):
         usage()
         raise SystemExit(os.EX_USAGE)
 
     session.logger.add_log(MyLog())
+    if show_resources:
+        report_resource_use()
     if all:
         if not os.path.exists(MMCIF_DIR):
             session.logger.error("mmCIF database is missing")
             raise SystemExit(os.EX_DATAERR)
-        check_all(session)
-    same = True
-    for pdb_id in args:
-        is_same = check_id(session, pdb_id)
-        if not is_same:
-            same = False
-    raise SystemExit(os.EX_OK if same else os.EX_DATAERR)
+        okay = check_all(session, args[0] if args else None)
+    else:
+        okay = True
+        for pdb_id in args:
+            is_okay = check_id(session, pdb_id)
+            if not is_okay:
+                okay = False
+    raise SystemExit(os.EX_OK if okay else os.EX_DATAERR)
 
 
 if __name__ == '__main__':
