@@ -106,8 +106,11 @@ class IHMModel(Model):
         if show_atom_crosslinks:
             self.create_starting_model_crosslinks(xlinks, stmodels, xlmodels)
 
-        # Show spheres and atoms that have crosslink restraints
-        self.set_initial_atom_display(smodels, amodels)
+        # Show only spheres and atoms that have crosslink restraints
+        from chimerax.core.atomic import AtomicStructure
+        hidden_asyms = set(m.asym_id for m in stmodels
+                           if isinstance(m, AtomicStructure) and hasattr(m, 'asym_id'))
+        self.set_initial_atom_display(smodels, amodels, hidden_asyms)
     
         # Align starting models to first sphere model
         if smodels:
@@ -424,14 +427,18 @@ class IHMModel(Model):
         # Sort groups by id
         gs = list(msg.keys())
         gs.sort()
-        
+
+        # Associate entity names with asym ids.
+        anames = self.asym_id_names()
+
         smodels = []
         for g in gs:
             ms = msg[g]
             if group_coordsets and self.same_sphere_atoms(ms):
                 # For groups with matching residue / atom names use coordinate set.
                 mid, slist = ms[0]
-                sm = SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
+                mname = mnames.get(mid, 'sphere model')
+                sm = SphereModel(self.session, mname, mid, anames, slist)
                 sm.ihm_group_id = g
                 for mid, slist in ms[1:]:
                     sm.add_coordinates(mid, slist)
@@ -441,7 +448,8 @@ class IHMModel(Model):
             else:
                 # Make separate sphere models, do not use coordinate sets.
                 for i, (mid, slist) in enumerate(ms):
-                    sm = SphereModel(self.session, mnames.get(mid, 'sphere model'), mid, slist)
+                    mname = mnames.get(mid, 'sphere model')
+                    sm = SphereModel(self.session, mname, mid, anames, slist)
                     sm.ihm_group_id = g
                     sm.display = (i == 0)            # Undisplay all but first sphere model in each group
                     smodels.append(sm)
@@ -675,21 +683,22 @@ class IHMModel(Model):
     
     # -----------------------------------------------------------------------------
     #
-    def set_initial_atom_display(self, smodels, amodels):
+    def set_initial_atom_display(self, smodels, amodels, hidden_asym_ids):
         if smodels:
             # Hide spheres of first model except multi-residue beads and pseudobond endpoints
-            # Other parts of structure are depicted using starting models.
-            # TODO: Don't hide spheres if there are no starting models.
+            # Other parts of structure are depicted using starting models (in hidden_asym_ids).
             smodel = smodels[0]
 
-            # Show only multi-residue spheres and crosslink end-point spheres
-            satoms = smodel.atoms
-            satoms.displays = False
-            satoms.filter(satoms.residues.names != '1').displays = True
+            # Show only multi-residue spheres
+            for m, cid, satoms in smodel.atoms.by_chain:
+                if cid in hidden_asym_ids:
+                    satoms.displays = False
+                    satoms.filter(satoms.residues.names != '1').displays = True
 
-        # Show pseudobond endpoints
+        # Show crosslink end-point atoms and spheres
         from chimerax.core.atomic import PseudobondGroup
-        pbgs = sum([[pbg for pbg in m.child_models() if isinstance(pbg, PseudobondGroup)]
+        pbgs = sum([[pbg for pbg in m.child_models()
+                     if isinstance(pbg, PseudobondGroup) and pbg.category != 'missing structure']
                     for m in smodels[:1] + amodels], [])
         print ('Showing endpoints for pbgroups', [pbg.name for pbg in pbgs])
         for pbg in pbgs:
@@ -1580,29 +1589,45 @@ def ensemble_sphere_lookup(emodel, smodel):
 #
 from chimerax.core.atomic import Structure
 class SphereModel(Structure):
-    def __init__(self, session, name, ihm_model_id, sphere_list):
+    def __init__(self, session, name, ihm_model_id, entity_names, sphere_list):
         Structure.__init__(self, session, name = name, auto_style = False)
         self.ihm_model_ids = [ihm_model_id]
         self.ihm_group_id = None
         
         self._asym_models = {}
         self._sphere_atom = sa = {}	# (asym_id, res_num) -> sphere atom
-        
-        from chimerax.core.atomic.colors import chain_rgba8
+
+        pbg = self.pseudobond_group('missing structure')
+
+        # Find spheres for each asym_id in residue number order.
+        asym_spheres = {}
         for (asym_id, sb,se,xyz,r) in sphere_list:
-            aname = 'CA'
-            a = self.new_atom(aname, 'C')
-            a.coord = xyz
-            a.radius = r
-            a.draw_mode = a.SPHERE_STYLE
-            a.color = chain_rgba8(asym_id)
-            rname = '%d' % (se-sb+1)
-            # Convention on ensemble PDB files is beads get middle residue number of range
-            rnum = sb + (sb-se+1)//2
-            r = self.new_residue(rname, asym_id, rnum)
-            r.add_atom(a)
-            for s in range(sb, se+1):
-                sa[(asym_id,s)] = a
+            asym_spheres.setdefault(asym_id, []).append((sb,se,xyz,r))
+        for spheres in asym_spheres.values():
+            spheres.sort(key = lambda bexr: bexr[0])
+
+        # Create sphere atoms, residues and connecting pseudobonds
+        from chimerax.core.atomic.colors import chain_rgba8
+        for asym_id, aspheres in asym_spheres.items():
+            last_atom = None
+            for (sb,se,xyz,r) in aspheres:
+                aname = 'CA'
+                a = self.new_atom(aname, 'C')
+                a.coord = xyz
+                a.radius = r
+                a.draw_mode = a.SPHERE_STYLE
+                a.color = chain_rgba8(asym_id)
+                rname = '%d' % (se-sb+1)
+                # Convention on ensemble PDB files is beads get middle residue number of range
+                rnum = sb + (sb-se+1)//2
+                r = self.new_residue(rname, asym_id, rnum)
+                r.entity_name = entity_names.get(asym_id, '?')
+                r.add_atom(a)
+                for s in range(sb, se+1):
+                    sa[(asym_id,s)] = a
+                if last_atom:
+                    pbg.new_pseudobond(a, last_atom)
+                last_atom = a
         self.new_atoms()
 
     def copy(self, name = None):
