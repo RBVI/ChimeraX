@@ -97,7 +97,9 @@ attr_operator    = '>='
                  | '<>'
                  ;
 
-attr_value       = ?/[^,#/:@ \t]+/?
+attr_value       = '"' ?/[^"]+/? '"'
+		 | "'" ?/[^']+/? "'"
+                 | ?/[^,#/:@ \t]+/?
                  ;
 
 zone_selector    = zone_operator real_number

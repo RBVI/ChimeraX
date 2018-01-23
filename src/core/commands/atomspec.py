@@ -341,13 +341,17 @@ class _AtomSpecSemantics:
                 op = operator.lt
             # Convert string to value for comparison
             # TODO: if ast.name ends with color, convert to 3-float-tuple
-            try:
-                v = int(ast.value)
-            except ValueError:
+            av = ast.value
+            if isinstance(av, list) and len(av) == 3 and av[0] in ('"', "'") and av[2] in ('"', "'"):
+                v = av[1]	# Quoted string value.
+            else:
                 try:
-                    v = float(ast.value)
+                    v = int(av)
                 except ValueError:
-                    v = ast.value
+                    try:
+                        v = float(av)
+                    except ValueError:
+                        v = av
         return _AttrTest(ast.no, ast.name, op, v)
 
     def zone_selector(self, ast):

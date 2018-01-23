@@ -804,6 +804,10 @@ class Bonds(Collection):
     '''
     structures = cvec_property('bond_structure', pyobject, astype = AtomicStructures, read_only = True)
     '''Returns an :class:`.StructureDatas` with the structure for each bond. Read only.'''
+    @property
+    def unique_structures(self):
+        "The unique structures as an :class:`.AtomicStructures` collection"
+        return self.structures.unique()
 
     @property
     def unique_structures(self):
@@ -1337,6 +1341,11 @@ class CoordSets(Collection):
         doc="ID numbers of coordsets")
     structures = cvec_property('coordset_structure', pyobject, astype = AtomicStructures, read_only=True,
         doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
+
+    @property
+    def unique_structures(self):
+        '''The unique structures as a :class:`.AtomicStructures` collection'''
+        return self.structures.unique()
 
 # -----------------------------------------------------------------------------
 # For making collections from lists of objects.
