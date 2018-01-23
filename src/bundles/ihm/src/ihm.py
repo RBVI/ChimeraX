@@ -700,7 +700,6 @@ class IHMModel(Model):
         pbgs = sum([[pbg for pbg in m.child_models()
                      if isinstance(pbg, PseudobondGroup) and pbg.category != 'missing structure']
                     for m in smodels[:1] + amodels], [])
-        print ('Showing endpoints for pbgroups', [pbg.name for pbg in pbgs])
         for pbg in pbgs:
             a1,a2 = pbg.pseudobonds.atoms
             a1.displays = True
