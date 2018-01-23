@@ -1789,13 +1789,16 @@ class Structure(Model, StructureData):
                         break
                 else:
                     av = attr.value
+                    import operator
                     if av is None:
                         tv = attr.op(v)
-                    elif isinstance(av, str) and '*' in av:
+                    elif isinstance(av, str) and '*' in av and attr.op in (operator.eq, operator.ne):
                         # Wildcard match
                         import re
                         avre = av.replace('*', '.*')
                         tv = re.fullmatch(avre, v) is not None
+                        if attr.op == operator.ne:
+                            tv = not tv
                     else:
                         tv = attr.op(v, av)
                     if not tv:
