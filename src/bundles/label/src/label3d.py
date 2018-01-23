@@ -224,6 +224,7 @@ class ObjectLabels(Model):
         Model.__init__(self, 'labels', session)
 
         self.on_top = True		# Should labels always appear above other graphics
+        self._window_size = session.main_view.window_size
         
         self._label_drawings = {}	# Map object (Atom, Residue, Pseudobond, Bond) to ObjectLabel
 
@@ -327,7 +328,13 @@ class ObjectLabels(Model):
         if not self.visible:
             return
 
-        camera_move = self.session.main_view.camera.redraw_needed
+        v = self.session.main_view
+        resize = (v.window_size != self._window_size)
+        if resize:
+            self._window_size = v.window_size
+            self._update_label_graphics = True
+            
+        camera_move = v.camera.redraw_needed
         if not self._update_label_graphics:
             if not camera_move:
                 return
@@ -347,7 +354,7 @@ class ObjectLabels(Model):
         self._update_label_graphics = False
         delo = []
         for o,ld in self._label_drawings.items():
-            ld._update_graphics(camera_move)
+            ld._update_graphics(camera_move or resize)
             if ld.object_deleted:
                 delo.append(o)
         if delo:

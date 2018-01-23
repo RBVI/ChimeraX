@@ -237,6 +237,8 @@ class View:
         if dm.shape_changed or cp.changed:
             if self.center_of_rotation_method == 'front center':
                 self._update_center_of_rotation = True
+
+        if dm.shape_changed or cp.changed or dm.transparency_changed:
             # TODO: If model transparency effects multishadows, will need to detect those changes.
             if dm.shadows_changed():
                 self._multishadow_update_needed = True
@@ -1039,19 +1041,24 @@ class _RedrawNeeded:
         self.redraw_needed = False
         self.shape_changed = True
         self.shape_changed_drawings = set()
+        self.transparency_changed = False
         self.cached_drawing_bounds = None
         self.cached_any_part_selected = None
 
-    def __call__(self, drawing, shape_changed=False, selection_changed=False):
+    def __call__(self, drawing, shape_changed=False, selection_changed=False, transparency_changed=False):
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
             self.shape_changed_drawings.add(drawing)
             self.cached_drawing_bounds = None
+        if transparency_changed:
+            self.transparency_changed = True
         if selection_changed:
             self.cached_any_part_selected = None
 
     def shadows_changed(self):
+        if self.transparency_changed:
+            return True
         for d in self.shape_changed_drawings:
             if getattr(d, 'casts_shadows', True):
                 return True
@@ -1061,6 +1068,7 @@ class _RedrawNeeded:
         self.redraw_needed = False
         self.shape_changed = False
         self.shape_changed_drawings.clear()
+        self.transparency_changed = False
         
 
 def _drawing_bounds(drawings, view):

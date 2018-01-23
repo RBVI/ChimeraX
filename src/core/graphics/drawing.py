@@ -480,8 +480,10 @@ class Drawing:
         from numpy import ndarray, array, uint8
         c = rgba if isinstance(rgba, ndarray) else array(rgba, uint8)
         self._colors = c
-        self._opaque_color_count = opaque_count(c)
-        self.redraw_needed()
+        opc = opaque_count(c)
+        tchange = (opc != self._opaque_color_count)
+        self._opaque_color_count = opc
+        self.redraw_needed(transparency_changed = tchange)
 
     colors = property(get_colors, set_colors)
     '''Color for each position used when per-vertex coloring is not
@@ -500,7 +502,10 @@ class Drawing:
         return vc
     def set_vertex_colors(self, vcolors):
         self._vertex_colors = vcolors
-        self._opaque_vertex_color_count = opaque_count(vcolors)
+        opvc = opaque_count(vcolors)
+        tchange = (opvc != self._opaque_vertex_color_count)
+        self._opaque_vertex_color_count = opvc
+        self.redraw_needed(transparency_changed = tchange)
     vertex_colors = property(get_vertex_colors, set_vertex_colors)
     '''
     R, G, B, A color and transparency for each vertex, a numpy N by
@@ -522,6 +527,7 @@ class Drawing:
         else:
             vcolors[:, 3] = alpha
             self.vertex_colors = vcolors
+        self.redraw_needed(transparency_changed = True)
 
     def _transparency(self):
         if self.texture is not None or self.multitexture:
