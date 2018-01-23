@@ -16,7 +16,7 @@ markupsafe==1.0
 mccabe==0.6.1
 pep8==1.7.0
 pep8-naming==0.4.1
-Pillow==4.3.0
+Pillow==5.0.0
 pyflakes==1.6.0
 python-dateutil==2.6.1
 six==1.11.0
