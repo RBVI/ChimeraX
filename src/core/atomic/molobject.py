@@ -458,7 +458,21 @@ class Atom(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return _atom_ptr_to_inst(data['structure'].session_id_to_atom(data['ses_id']))
+        return Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
+
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        for m in session.models:
+            if not isinstance(m, StructureData):
+                continue
+            collections.append(m.atoms)
+        from .molarray import concatenate
+        if collections:
+            return [i for i in concatenate(collections).instances(instantiate=False)
+                if i is not None]
+        return []
 
 # -----------------------------------------------------------------------------
 #
@@ -544,7 +558,7 @@ class Bond(State):
         the specified atom.'''
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
         o = f(self._c_pointer, atom._c_pointer)
-        return _atom_ptr_to_inst(o)
+        return self.c_ptr_to_py_inst(o)
 
     def delete(self):
         '''Delete this Bond from it's Structure'''
@@ -579,6 +593,20 @@ class Bond(State):
     @staticmethod
     def restore_snapshot(session, data):
         return _bond_ptr_to_inst(data['structure'].session_id_to_bond(data['ses_id']))
+
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        for m in session.models:
+            if not isinstance(m, StructureData):
+                continue
+            collections.append(m.bonds)
+        from .molarray import concatenate
+        if collections:
+            return [i for i in concatenate(collections).instances(instantiate=False)
+                if i is not None]
+        return []
 
 # -----------------------------------------------------------------------------
 #
@@ -677,6 +705,23 @@ class Pseudobond(State):
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
         return _pseudobond_ptr_to_inst(f(group._c_pointer, id))
 
+    """Need additional support to get per-coord-set pseudobonds
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        from . import PseudobondGroup
+        for m in session.models:
+            if not isinstance(m, PseudobondGroup):
+                continue
+            collections.append(m.pseudobonds)
+        from .molarray import concatenate
+        if collections:
+            return [i for i in concatenate(collections).instances(instantiate=False)
+                if i is not None]
+        return []
+    """
+
 # -----------------------------------------------------------------------------
 #
 class PseudobondGroupData:
@@ -749,6 +794,17 @@ class PseudobondGroupData:
         f = c_function('pseudobond_group_delete_pseudobond',
             args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, pb._c_pointer)
+
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        groups = []
+        from . import PseudobondGroup
+        for m in session.models:
+            if not isinstance(m, PseudobondGroup):
+                continue
+            groups.append(m)
+        return groups
 
     def get_num_pseudobonds(self, cs_id):
         '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'
@@ -904,6 +960,11 @@ class PseudobondManager(State):
         # away, which causes delete() to get called
         for pbg in list(self.group_map.values()):
             pbg.delete()
+
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        return [session.pb_manager]
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -1092,6 +1153,20 @@ class Residue(State):
     def restore_snapshot(session, data):
         return _residue_ptr_to_inst(data['structure'].session_id_to_residue(data['ses_id']))
 
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        for m in session.models:
+            if not isinstance(m, StructureData):
+                continue
+            collections.append(m.residues)
+        from .molarray import concatenate
+        if collections:
+            return [i for i in concatenate(collections).instances(instantiate=False)
+                if i is not None]
+        return []
+
 
 # -----------------------------------------------------------------------------
 #
@@ -1260,6 +1335,41 @@ class Sequence(State):
         if g2u < 0:
             return None
         return g2u
+
+    """Need a way to discover all Sequences
+    # used by attribute registration to gather attributes for session saving...
+    @classmethod
+    def get_existing_instances(cls, session):
+        # find what type of sequence class this is (or inherits from)
+        sequence = structure_seq = chain = False
+        check_list = [cls]
+        while check_list:
+            check_cls = check_list.pop()
+            if check_cls is Chain:
+                chain = True
+                break
+            elif check_cls is StructureSeq:
+                structure_seq = True
+                break
+            elif check_cls is Sequence:
+                sequence = True
+                break
+            check_list.extend(check_cls.__bases__)
+        if chain:
+            check_cls = Chain
+        elif structure_seq:
+            check_cls = StructureSeq
+        elif sequence:
+            check_cls = Sequence
+        else:
+            raise ValueError("%s is not a Sequence/StructureSeq/Chain" % cls.__name__)
+        sequences = []
+        for m in session.models:
+            if not isinstance(m, check_cls):
+                continue
+            sequences.append(m)
+        return structures
+    """
 
     def __getitem__(self, key):
         return self.characters[key]
@@ -1813,6 +1923,35 @@ class StructureData:
         '''Delete the specified Atom.'''
         f = c_function('structure_delete_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
+
+    # used by attribute registration to gather attributes for session saving...
+    @classmethod
+    def get_existing_instances(cls, session):
+        # find what type of structure class this is (or inherits from)
+        from . import AtomicStructure, Structure
+        atomic = structure = False
+        check_list = [cls]
+        while check_list:
+            check_cls = check_list.pop()
+            if check_cls is AtomicStructure:
+                atomic = True
+                break
+            elif check_cls is Structure:
+                structure = True
+                break
+            check_list.extend(check_cls.__bases__)
+        if atomic:
+            check_cls = AtomicStructure
+        elif structure:
+            check_cls = Structure
+        else:
+            raise ValueError("%s is neither a Structure nor AtomicStructure" % cls.__name__)
+        structures = []
+        for m in session.models:
+            if not isinstance(m, check_cls):
+                continue
+            structures.append(m)
+        return structures
 
     @property
     def molecules(self):
