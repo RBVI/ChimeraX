@@ -29,12 +29,20 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 A user's ChimeraX preferences are stored
 along with the <a href="tools/cli.html#history">command history</a>
-and <a href="tools/filehistory.html">file history</a>
-in a standard platform-dependent location (for example, 
-<span class="nowrap"><b>~/Library/Applications/ChimeraX</b></a>
-and subdirectories on a Mac;
+and <a href="tools/filehistory.html">file history</a> as multiple files
+in a standard platform-dependent location (for example, under
+<span class="nowrap"><b>~/Library/Application Support/ChimeraX/</b></span>
+on a Mac).
+<!--
 see <a href="https://pypi.python.org/pypi/appdirs/1.4.3"
-target="_blank">python appdirs</a>).
+target="_blank">python appdirs</a>
+-->
+The location can be reported with command: 
+<blockquote>
+<b><a href="commands/info.html#path">info path</a> user all config</b>
+</blockquote>
+Preferences files are named according to the modules to which they apply,
+and are not created until nondefault settings are saved.
 </p><p>
 The main <b>Preferences</b> dialog is listed in a 
 standard platform-dependent location in the menu 
@@ -117,5 +125,5 @@ see <a href="commands/distance.html#format"><b>distance format</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2017</address>
+January 2018</address>
 </body></html> 

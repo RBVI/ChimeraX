@@ -38,7 +38,8 @@ and the value range and current contour level(s) of a
 <a href="../tools/volumeviewer.html">volume</a> model.
 See also: 
 <a href="open.html"><b>open</b></a>,
-<a href="sym.html"><b>sym</b></a>
+<a href="sym.html"><b>sym</b></a>,
+<a href="setattr.html"><b>setattr</b></a>
 </p><p>
 Various subcommands of <b>info</b> report other data or attributes to the
 <a href="../tools/log.html"><b>Log</b></a> or to &ldquo;client&rdquo; programs:
@@ -48,6 +49,7 @@ Various subcommands of <b>info</b> report other data or attributes to the
 <li><a href="#residues"><b>info residues</b></a>
 <li><a href="#resattr"><b>info resattr</b></a>
 <li><a href="#chains"><b>info chains</b></a>
+<li><a href="#path"><b>info path</b></a>
 <li><a href="#polymers"><b>info polymers</b></a>
 <li><a href="#models"><b>info models</b></a>
 <li><a href="#selection"><b>info selection</b></a>
@@ -103,6 +105,19 @@ Report values of an attribute of chains.
 By default, the <b>chain_id</b> attribute is reported 
 for the chains containing the specified atoms.
 If <b>attribute</b> is given, values of <i>attribute-name</i> are reported instead.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="path"><b>info path</b></a>
+[&nbsp;<b>all</b>&nbsp;|&nbsp;system&nbsp;|&nbsp;user
+[&nbsp;<b>all</b>&nbsp;|&nbsp;versioned&nbsp;|&nbsp;unversioned
+[&nbsp;cache&nbsp;|&nbsp;config&nbsp;|&nbsp;data&nbsp;|&nbsp;log&nbsp;|&nbsp;state&nbsp;]]]
+<blockquote>
+Report local paths for ChimeraX-related files; default is <b>all</b> files,
+but reporting can be limited to those which are <b>system</b> or
+<b>user</b>-specific, <b>versioned</b> or <b>unversioned</b>, 
+and/or of a specific type:
+<b>cache</b>, <b>config</b>, <b>data</b>, <b>log</b>, or <b>state</b>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -212,5 +227,5 @@ the given URL with the message encoded as parameter
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2017</address>
+January 2018</address>
 </body></html>
