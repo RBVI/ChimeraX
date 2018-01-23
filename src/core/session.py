@@ -43,9 +43,11 @@ BUILTIN_TYPES = frozenset((bool, bytearray, bytes, complex, dict, frozenset, int
 
 
 class _UniqueName:
-    # uids are (class_name, ordinal)
-    # The class_name is either the name of a core class
-    # or a tuple (bundle name, class name)
+    # uids are (class_name, ordinal).
+    # The class_name is either the name of a core class, the word builtin
+    # following by a supported builtin type's name,
+    # or a tuple (bundle name, class name).
+    # If the ordinal is zero, then the uid refers to class object.
 
     _cls_info = {}  # {class: [bundle_info, class_name, ordinal]}
     _uid_to_obj = {}    # {uid: obj}
@@ -60,11 +62,12 @@ class _UniqueName:
         cls._uid_to_obj.clear()
         cls._obj_to_uid.clear()
         for b in BUILTIN_TYPES:
-            cls._uid_to_obj[('%s type' % b.__name__, 1)] = b
+            cls._uid_to_obj[('builtin %s' % b.__name__, 0)] = b
 
     @classmethod
     def lookup(cls, unique_name):
-        return cls._uid_to_obj.get(unique_name.uid, None)
+        uid = unique_name.uid
+        return cls._uid_to_obj.get(uid, None)
 
     @classmethod
     def add(cls, uid, obj):
@@ -92,19 +95,36 @@ class _UniqueName:
         uid = cls._obj_to_uid.get(id(obj), None)
         if uid is not None:
             return cls(uid)
+        if isinstance(obj, type):
+            bundle_info = session.toolshed.find_bundle_for_class(obj)
+            if bundle_info is not None:
+                # double check that class will be able to be restored
+                if obj != bundle_info.get_class(obj.__name__, session.logger):
+                    raise RuntimeError(
+                        'Unable to restore %s class object from %s bundle' %
+                        (obj.__name__, bundle_info.name))
+                class_name = (bundle_info.name, obj.__name__)
+                if obj not in cls._cls_info:
+                    cls._cls_info[obj] = bundle_info, class_name, 0
+            elif obj.__module__ == 'builtins' and obj in BUILTIN_TYPES:
+                class_name = 'builtin %s' % obj.__name__
+            else:
+                raise RuntimeError(
+                    'Unable to restore %s.%s type instance' %
+                    (obj.__module__, obj.__name__))
+            uid = (class_name, 0)
+            cls._uid_to_obj[uid] = obj
+            cls._obj_to_uid[id(obj)] = uid
+            return cls(uid)
+
         obj_cls = obj.__class__
         bundle_info, class_name, ordinal = cls._cls_info.get(obj_cls, (None, None, 0))
         known_class = bundle_info is not None
         if not known_class:
             bundle_info = session.toolshed.find_bundle_for_class(obj_cls)
             if bundle_info is None:
-                if obj_cls == type and obj.__module__ == 'builtins' and obj in BUILTIN_TYPES:
-                    bundle_info = 'builtin'
-                    class_name = '%s type' % obj.__name__
-                    ordinal = 0
-                else:
-                    raise RuntimeError('No bundle information for %s.%s' % (
-                        obj_cls.__module__, obj_cls.__name__))
+                raise RuntimeError('No bundle information for %s.%s' % (
+                    obj_cls.__module__, obj_cls.__name__))
 
         if class_name is None:
             from . import BUNDLE_NAME
@@ -142,6 +162,8 @@ class _UniqueName:
         """Extract class name associated with unique id for messages"""
         class_name = self.uid[0]
         if isinstance(class_name, str):
+            if ' ' in class_name:
+                return class_name  # 'builtin int', etc.
             return "Core's %s" % class_name
         return "Bundle %s's %s" % class_name
 
@@ -220,6 +242,8 @@ class _SaveManager:
 
     def process(self, obj):
         self._found_objs = []
+        if isinstance(obj, type):
+            return None
         data = None
         session = self.session
         sm = session.snapshot_methods(obj)
@@ -230,6 +254,8 @@ class _SaveManager:
                 import traceback
                 session.logger.warning('Error in saving session for "%s":\n%s'
                                        % (obj.__class__.__name__, traceback.format_exc()))
+        elif isinstance(obj, type):
+            return None
         if data is None:
             session.logger.warning('Unable to save "%s".  Session might not restore properly.'
                                    % obj.__class__.__name__)
@@ -528,12 +554,15 @@ class Session:
                     cls = name.class_of(self)
                     if cls is None:
                         continue
-                    sm = self.snapshot_methods(cls, instance=False)
-                    if sm is None:
-                        obj = None
-                        self.logger.warning('Unable to restore "%s" object' % cls.__name__)
+                    if name.uid[1] == 0:
+                        obj = cls
                     else:
-                        obj = sm.restore_snapshot(self, data)
+                        sm = self.snapshot_methods(cls, instance=False)
+                        if sm is None:
+                            obj = None
+                            self.logger.warning('Unable to restore "%s" object' % cls.__name__)
+                        else:
+                            obj = sm.restore_snapshot(self, data)
                     mgr.add_reference(name, obj)
         except:
             import traceback
