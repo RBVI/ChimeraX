@@ -1788,10 +1788,16 @@ class Structure(Model, StructureData):
                         selected[i] = False
                         break
                 else:
-                    if attr.value is None:
+                    av = attr.value
+                    if av is None:
                         tv = attr.op(v)
+                    elif isinstance(av, str) and '*' in av:
+                        # Wildcard match
+                        import re
+                        avre = av.replace('*', '.*')
+                        tv = re.fullmatch(avre, v) is not None
                     else:
-                        tv = attr.op(v, attr.value)
+                        tv = attr.op(v, av)
                     if not tv:
                         selected[i] = False
                         break
