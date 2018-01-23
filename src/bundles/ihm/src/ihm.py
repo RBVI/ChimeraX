@@ -126,6 +126,7 @@ class IHMModel(Model):
     def read_tables(self, filename):
         # Read ihm tables
         table_names = ['ihm_struct_assembly',  		# Asym ids, entity ids, and entity names
+                       'struct_asym',			# Asym unit descriptive text
                        'ihm_model_list',		# Model groups
                        'ihm_sphere_obj_site',		# Bead model for each cluster
                        'ihm_cross_link_list',		# Crosslinks
@@ -152,7 +153,7 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
-    def asym_id_names(self):
+    def asym_entity_names(self):
         sat = self.tables['ihm_struct_assembly']
         sa_fields = [
             'entity_description',
@@ -161,6 +162,18 @@ class IHMModel(Model):
         sa = sat.fields(sa_fields)
         anames = {asym_id : edesc for edesc, asym_id in sa}
         return anames
+
+    # -----------------------------------------------------------------------------
+    #
+    def asym_detail_text(self):
+        sat = self.tables['struct_asym']
+        sa_fields = [
+            'id',
+            'details',
+            ]
+        sa = sat.fields(sa_fields)
+        adetail = {asym_id : detail for asym_id, detail in sa}
+        return adetail
 
     # -----------------------------------------------------------------------------
     #
@@ -187,7 +200,7 @@ class IHMModel(Model):
             for m in models:
                 sma.setdefault(m.asym_id, []).append(m)
             smg = []
-            anames = self.asym_id_names()
+            anames = self.asym_entity_names()
             for asym_id in sorted(sma.keys()):
                 am = sma[asym_id]
                 name = '%s %s' % (anames[asym_id], asym_id)
@@ -429,7 +442,8 @@ class IHMModel(Model):
         gs.sort()
 
         # Associate entity names with asym ids.
-        anames = self.asym_id_names()
+        anames = self.asym_entity_names()
+        adetail = self.asym_detail_text()
 
         smodels = []
         for g in gs:
@@ -438,7 +452,7 @@ class IHMModel(Model):
                 # For groups with matching residue / atom names use coordinate set.
                 mid, slist = ms[0]
                 mname = mnames.get(mid, 'sphere model')
-                sm = SphereModel(self.session, mname, mid, anames, slist)
+                sm = SphereModel(self.session, mname, mid, anames, adetail, slist)
                 sm.ihm_group_id = g
                 for mid, slist in ms[1:]:
                     sm.add_coordinates(mid, slist)
@@ -449,7 +463,7 @@ class IHMModel(Model):
                 # Make separate sphere models, do not use coordinate sets.
                 for i, (mid, slist) in enumerate(ms):
                     mname = mnames.get(mid, 'sphere model')
-                    sm = SphereModel(self.session, mname, mid, anames, slist)
+                    sm = SphereModel(self.session, mname, mid, anames, adetail, slist)
                     sm.ihm_group_id = g
                     sm.display = (i == 0)            # Undisplay all but first sphere model in each group
                     smodels.append(sm)
@@ -1588,7 +1602,7 @@ def ensemble_sphere_lookup(emodel, smodel):
 #
 from chimerax.core.atomic import Structure
 class SphereModel(Structure):
-    def __init__(self, session, name, ihm_model_id, entity_names, sphere_list):
+    def __init__(self, session, name, ihm_model_id, entity_names, asym_detail_text, sphere_list):
         Structure.__init__(self, session, name = name, auto_style = False)
         self.ihm_model_ids = [ihm_model_id]
         self.ihm_group_id = None
@@ -1621,6 +1635,7 @@ class SphereModel(Structure):
                 rnum = sb + (sb-se+1)//2
                 r = self.new_residue(rname, asym_id, rnum)
                 r.entity_name = entity_names.get(asym_id, '?')
+                r.asym_detail = asym_detail_text.get(asym_id, '')
                 r.add_atom(a)
                 for s in range(sb, se+1):
                     sa[(asym_id,s)] = a
