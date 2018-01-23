@@ -63,5 +63,8 @@ class _InfoAPI(BundleAPI):
         register("info notify resume",
                  cmd.info_notify_resume_desc,
                  cmd.info_notify_resume, logger=logger)
+        register("info path",
+                 cmd.info_path_desc,
+                 cmd.info_path, logger=logger)
 
 bundle_api = _InfoAPI()

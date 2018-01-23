@@ -255,11 +255,26 @@ var vdxplot = function() {
     }
 
     function get_state() {
-        return {name:"vdxplot", selected:[1, 2, 3]};
+        return {
+            name:"vdxplot",
+            series1_checkbox: $("#series1").prop("checked"),
+            series1_xaxis: $("#xaxis1").val(),
+            series1_yaxis: $("#yaxis1").val(),
+            series2_checkbox: $("#series1").prop("checked"),
+            series2_xaxis: $("#xaxis2").val(),
+            series2_yaxis: $("#yaxis2").val()
+        };
     }
 
     function set_state(state) {
-        console.log("vdxplot.set_state: " + state);
+        $("#xaxis1").val(state.series1_xaxis);
+        $("#yaxis1").val(state.series1_yaxis);
+        if ($("#series1").prop("checked") != state.series1_checkbox)
+            $("#series1").trigger("click");
+        $("#xaxis2").val(state.series2_xaxis);
+        $("#yaxis2").val(state.series2_yaxis);
+        if ($("#series2").prop("checked") != state.series2_checkbox)
+            $("#series2").trigger("click");
     }
 
     return {

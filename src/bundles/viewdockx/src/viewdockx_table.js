@@ -306,8 +306,8 @@ var vdxtable = function() {
         $("#show_columns").multiselect({
             texts: {
                 placeholder: "Display columns...",
-                selectedOptions: " columns displayed (click to update)",
-                noneSelected: "No columns displayed (click to update)",
+                selectedOptions: " columns displayed (click to change)",
+                noneSelected: "No columns displayed (click to change)",
             },
             minHeight: 10,
             onOptionClick: show_column

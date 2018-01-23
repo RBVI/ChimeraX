@@ -178,6 +178,8 @@ class OpenGLContext(QOpenGLContext):
         if self.required_opengl_core_profile:
             fmt.setProfile(QSurfaceFormat.CoreProfile)
         fmt.setRenderableType(QSurfaceFormat.OpenGL)
+#        fmt.setSwapInterval(0)	# Don't wait for vsync, tested on Mac OS 10.13 Nvidia graphics working.
+#                               # Has no effect on Windows 10, Nvidia GTX 1080.
         if self._use_stereo:
             fmt.setStereo(True)
         self.setFormat(fmt)
