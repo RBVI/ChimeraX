@@ -94,7 +94,7 @@ class Option(metaclass=ABCMeta):
 
     @abstractmethod
     def set(self, value):
-        # set the option's value
+        # set the option's value; should NOT invoke the callback
         pass
 
     def get_attribute(self, obj):
@@ -168,7 +168,7 @@ class BooleanOption(Option):
     def _make_widget(self, **kw):
         from PyQt5.QtWidgets import QCheckBox
         self.widget = QCheckBox(**kw)
-        self.widget.stateChanged.connect(lambda state, s=self: s.make_callback())
+        self.widget.clicked.connect(lambda state, s=self: s.make_callback())
 
 class EnumOption(Option):
     """Option for enumerated values"""
