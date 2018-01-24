@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None):
+def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None,
+                 set_attribute = True):
     '''
     Compute solvent accessible surface area.
 
@@ -23,6 +24,8 @@ def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None):
       Radius of the probe sphere.
     sum : Atoms
       Sum the accessible areas per atom only over these atoms.
+    set_attribute : bool
+      Whether to set atom.area and residue.area values.
     '''
     from .surface import check_atoms
     atoms = check_atoms(atoms, session)
@@ -31,6 +34,10 @@ def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None):
     from ..surface import spheres_surface_area
     areas = spheres_surface_area(atoms.scene_coords, r)
 
+    # Set area atom and residue attributes
+    if set_attribute:
+        set_area_attributes(atoms, areas)
+            
     # Report results
     area = areas.sum()
     msg = 'Solvent accessible area for %s = %.5g' % (atoms.spec, area)
@@ -44,11 +51,21 @@ def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None):
         log.info(msg)
     log.status(msg)
 
+def set_area_attributes(atoms, areas):
+    for a, area in zip(atoms, areas):
+        a.area = area
+    res = atoms.unique_residues
+    for r in res:
+        r.area = 0
+    for a, area in zip(atoms, areas):
+        a.residue.area += area
+
 def register_command(session):
-    from . import CmdDesc, register, AtomsArg, FloatArg
+    from . import CmdDesc, register, AtomsArg, FloatArg, BoolArg
     _sasa_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('probe_radius', FloatArg),
-                   ('sum', AtomsArg)],
+                   ('sum', AtomsArg),
+                   ('set_attribute', BoolArg)],
         synopsis = 'compute solvent accessible surface area')
     register('measure sasa', _sasa_desc, measure_sasa, logger=session.logger)
