@@ -34,7 +34,6 @@ class Option(metaclass=ABCMeta):
             else:
                 self.attr_name = None
 
-        self._callback = callback
         if default != None or not hasattr(self, 'default'):
             self.default = default
 
@@ -78,8 +77,11 @@ class Option(metaclass=ABCMeta):
                 balloon += attr_balloon
                 self.balloon = balloon
 
+        # prevent showing the default from making a callback...
+        self._callback = None
         if self.default is not None:
             self.value = self.default
+        self._callback = callback
 
         self._enabled = True
         if self.read_only:
