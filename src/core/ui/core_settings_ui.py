@@ -48,6 +48,9 @@ class CoreSettingsPanel:
     #     The session is provided as an argument to the function.  Should be None if and only
     #     if #6 is None.
     # 8) Balloon help for option.  Can be None.
+    # 9) Whether to automatically set the core setting.  If True, the setting will be changed
+    #     before any updater is called.  Otherwise, the updater is in charge of setting the
+    #     setting.  Usually only set to False if the updater needs to examine the old value.
     settings_info = {
         'atomspec_contents': (
             "Atomspec display style",
@@ -62,7 +65,8 @@ class CoreSettingsPanel:
             <tr><td>simple</td><td>&nbsp;</td><td>Simple readable form</td></tr>
             <tr><td>command line</td><td>&nbsp;</td><td>Form used in commands</td></tr>
             <tr><td>serial number</td><td>&nbsp;</td><td>Atom serial number</td></tr>
-            </table>"""),
+            </table>""",
+            True),
         'bg_color': (
             "Background color",
             "Background",
@@ -71,7 +75,8 @@ class CoreSettingsPanel:
             hex_color_name,
             lambda ses, cb: ses.triggers.add_handler("background color changed", cb),
             lambda ses: ses.main_view.background_color,
-            "Background color of main graphics window"),
+            "Background color of main graphics window",
+            True),
     }
 
     def __init__(self, session, ui_area):
@@ -81,8 +86,8 @@ class CoreSettingsPanel:
         self.options_widget = CategorizedSettingsPanel(core_settings)
 
         for setting, setting_info in self.settings_info.items():
-            opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon \
-                = setting_info
+            opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon, \
+                set_setting = setting_info
             opt = opt_class(opt_name, getattr(core_settings, setting), self._opt_cb,
                 attr_name=setting, balloon=balloon)
             self.options_widget.add_option(category, opt)
@@ -101,11 +106,12 @@ class CoreSettingsPanel:
         ui_area.setLayout(layout)
 
     def _opt_cb(self, opt):
-        opt.set_attribute(core_settings)
 
         setting = opt.attr_name
-        opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon \
+        opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon, set_setting \
             = self.settings_info[setting]
+        if set_setting:
+            opt.set_attribute(core_settings)
         if updater is None:
             return
 
