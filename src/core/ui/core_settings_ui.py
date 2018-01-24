@@ -19,7 +19,7 @@ TODO
 """
 
 from ..core_settings import settings as core_settings
-from .options import SymbolicEnumOption, ColorOption
+from .options import SymbolicEnumOption, ColorOption, BooleanOption
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
@@ -77,6 +77,16 @@ class CoreSettingsPanel:
             lambda ses: ses.main_view.background_color,
             "Background color of main graphics window",
             True),
+        'clipping_surface_caps': (
+            'Surface caps',
+            'Clipping',
+            BooleanOption,
+            'surface cap %s',
+            None,
+            lambda ses, cb: ses.triggers.add_handler("clipping caps changed", cb),
+            lambda ses: core_settings.clipping_surface_caps,
+            'Whether to cap surface holes created by clipping',
+            False),
     }
 
     def __init__(self, session, ui_area):

@@ -273,10 +273,7 @@ def surface_cap(session, enable = None, offset = None):
       the clip plane hides the cap.  Default 0.01.
     '''
     from chimerax.core.core_settings import settings
-    if enable == settings.clipping_surface_caps:
-        return
-
-    if enable is not None:
+    if enable is not None and enable != settings.clipping_surface_caps:
         settings.clipping_surface_caps = enable
         if enable:
             clip_planes = session.main_view.clip_planes
@@ -285,6 +282,7 @@ def surface_cap(session, enable = None, offset = None):
             from chimerax.core.surface import remove_clip_caps
             drawings = session.main_view.drawing.all_drawings()
             remove_clip_caps(drawings)
+        session.triggers.activate_trigger('clipping caps changed', enable)
 
     if offset is not None:
         settings.clipping_cap_offset = offset
@@ -346,6 +344,8 @@ def register_command(session):
         keyword = [('offset', FloatArg),],
         synopsis = 'Enable or disable clipping surface caps')
     register('surface cap', cap_desc, surface_cap, logger=session.logger)
+    session.triggers.add_trigger('clipping caps changed')
+
 
     # Register surface operation subcommands.
     from . import sop
