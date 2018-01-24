@@ -1674,16 +1674,18 @@ class SphereModel(Structure):
             spheres.sort(key = lambda bexr: bexr[0])
 
         # Create sphere atoms, residues and connecting pseudobonds
-        from chimerax.core.atomic.colors import chain_rgba8
+        from chimerax.core.atomic import colors, Residues
+        polymers = []
         for asym_id, aspheres in asym_spheres.items():
             last_atom = None
+            polymer = []
             for (sb,se,xyz,r) in aspheres:
                 aname = 'CA'
                 a = self.new_atom(aname, 'C')
                 a.coord = xyz
                 a.radius = r
                 a.draw_mode = a.SPHERE_STYLE
-                a.color = chain_rgba8(asym_id)
+                a.color = colors.chain_rgba8(asym_id)
                 rname = ''
                 # Convention on ensemble PDB files is beads get middle residue number of range
                 rnum = sb
@@ -1691,12 +1693,16 @@ class SphereModel(Structure):
                 r.entity_name = entity_names.get(asym_id, '?')
                 r.asym_detail = asym_detail_text.get(asym_id, '')
                 r.add_atom(a)
+                polymer.append(r)
                 for s in range(sb, se+1):
                     sa[(asym_id,s)] = a
                 if last_atom:
                     pbg.new_pseudobond(a, last_atom)
                 last_atom = a
+            polymers.append(Residues(polymer))
+
         self.new_atoms()
+        self._polymers = polymers	# Needed for ribbon rendering
 
     def copy(self, name = None):
         # Copy only the Structure, not the SphereModel
@@ -1718,3 +1724,11 @@ class SphereModel(Structure):
         id = len(self.ihm_model_ids)
         self.add_coordset(id, cxyz)
         # TODO: What if sphere radius values differ from one coordinate set to another?
+
+    def polymers(self, missing_structure_treatment = Structure.PMS_ALWAYS_CONNECTS,
+                 consider_chains_ids = True):
+        # This allows ribbons rendering for a Structure.
+        # Usually only AtomicStructure supports ribbon rendering.
+        from chimerax.core.atomic import Residue
+        polymer_type = Residue.PT_NONE
+        return [(res, polymer_type) for res in self._polymers]
