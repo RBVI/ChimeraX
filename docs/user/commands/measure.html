@@ -149,6 +149,7 @@ primarily used to measure the length of traced paths of markers.
 <a name="sasa"><b>measure sasa</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
 [&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
+[&nbsp;<b>setAttribute</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>sum</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
 </h3>
 <blockquote>
@@ -156,10 +157,13 @@ Calculate a <a href="surface.html#surfdefs">solvent-accessible surface</a>
 (SAS) enclosing the atoms in &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
 and report the total surface area
 in the <a href="../tools/log.html"><b>Log</b></a>.
-In addition, the area contribution from some subset of the atoms
-(given as &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>)
-can be obtained with the <b>sum</b> option.
-The surface is not displayed. The atoms should be specified with care;
+The <b>setAttribute</b> option specifies whether to assign the values
+per atom and residue as an <a href="../attributes.html">attribute</a>
+named <b>area</b> (default <b>true</b>).
+The <b>sum</b> option can be used to report the
+area contribution from some subset of the atoms
+(given as &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>).
+The calculated SAS is not displayed. The atoms should be specified with care;
 solvent, ions, and ligand residues are not excluded automatically.
 Unspecified atoms are ignored, as are atoms in 
 &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a> 
@@ -173,7 +177,7 @@ Example:
 <br>
 &ndash; calculate the SAS of the
 <a href="atomspec.html#builtin"><b>protein</b></a> in model #1 chain A
-and report both the total area and the contribution from
+and report both the total area and the collective contribution from
 phenylalanine, tyrosine, and tryptophan residues
 </blockquote>
 </blockquote>
