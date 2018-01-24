@@ -260,6 +260,44 @@ def surface_style(session, surfaces, style):
 
 # -------------------------------------------------------------------------------------
 #
+def surface_cap(session, enable = None, offset = None):
+    '''
+    Control whether clipping shows surface caps covering the hole produced by the clip plane.
+
+    Parameters
+    ----------
+    enable : bool
+      Caps are current enabled or disabled for all models, not on a per-model basis.
+    offset : float
+      Offset of clipping cap from plane in physical units.  Some positive offset is needed or
+      the clip plane hides the cap.  Default 0.01.
+    '''
+    from chimerax.core.core_settings import settings
+    if enable == settings.clipping_surface_caps:
+        return
+
+    if enable is not None:
+        settings.clipping_surface_caps = enable
+        if enable:
+            clip_planes = session.main_view.clip_planes
+            clip_planes.changed = True
+        else:
+            from chimerax.core.surface import remove_clip_caps
+            drawings = session.main_view.drawing.all_drawings()
+            remove_clip_caps(drawings)
+
+    if offset is not None:
+        settings.clipping_cap_offset = offset
+        clip_planes = session.main_view.clip_planes
+        clip_planes.changed = True
+
+    if enable is None and offset is None:
+        onoff = 'on' if settings.clipping_surface_caps else 'off'
+        msg = 'Clip caps %s, offset %.3g' % (onoff, settings.clipping_cap_offset)
+        session.logger.status(msg, log = True)
+        
+# -------------------------------------------------------------------------------------
+#
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, AtomsArg
     from . import FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
@@ -302,6 +340,12 @@ def register_command(session):
                     ('style', EnumOf(('mesh', 'dot', 'solid')))],
         synopsis = 'Change surface style to mesh, dot or solid')
     register('surface style', style_desc, surface_style, logger=session.logger)
+
+    cap_desc = CmdDesc(
+        optional = [('enable', BoolArg),],
+        keyword = [('offset', FloatArg),],
+        synopsis = 'Enable or disable clipping surface caps')
+    register('surface cap', cap_desc, surface_cap, logger=session.logger)
 
     # Register surface operation subcommands.
     from . import sop
