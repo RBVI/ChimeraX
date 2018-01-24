@@ -295,6 +295,7 @@ public:
         pb_mgr().start_change_tracking(ct);
     }
     void  use_best_alt_locs();
+    void  use_default_atom_radii();
 
     // ribbon stuff
     float  ribbon_tether_scale() const { return _ribbon_tether_scale; }

@@ -79,7 +79,13 @@ release = "CHX_FULL_VERSION"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', 'apps/hydra', 'webapp*', 'tutorials/outline.rst']
+exclude_patterns = ['_build',
+		    'apps/hydra',
+		    'webapp*',
+		    'tutorials/build_test_distribute.rst',
+		    'tutorials/outline.rst',
+		    'tutorials/references.rst',
+		    'tutorials/src.rst']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
@@ -278,10 +284,10 @@ todo_include_todos = True
 
 # intersphinx configuration:
 intersphinx_mapping = {
-    'matplotlib': ('http://matplotlib.sourceforge.net', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy', None),
-    'python': ('http://docs.python.org/PYTHON_VERSION', None),
-    'sphinx': ('http://sphinx.pocoo.org', None),
+    'matplotlib': ('https://matplotlib.org', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'python': ('https://docs.python.org/PYTHON_VERSION', None),
+    'sphinx': ('http://www.sphinx-doc.org/en/stable', None),
 }
 
 # -- Options for extlinks --------------------------------------------

@@ -1172,6 +1172,17 @@ extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
     }
 }
 
+extern "C" EXPORT void atom_use_default_radius(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            a[i]->use_default_radius();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *atom_intra_bonds(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -1414,6 +1425,35 @@ extern "C" EXPORT int bonds_num_shown(void *bonds, size_t n)
         molc_error();
     }
     return count;
+}
+
+extern "C" EXPORT void* bond_side_atoms(void *bond, void *side_atom)
+{
+    Bond *b = static_cast<Bond*>(bond);
+    Atom *sa = static_cast<Atom*>(side_atom);
+    try {
+        auto side_atoms = b->side_atoms(sa);
+        const Atom **sas;
+        PyObject *sa_array = python_voidp_array(side_atoms.size(), (void***)&sas);
+        size_t i = 0;
+        for (auto s: side_atoms)
+            sas[i++] = s;
+        return sa_array;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject *bond_smaller_side(void *bond)
+{
+    Bond *b = static_cast<Bond *>(bond);
+    try {
+        return b->smaller_side()->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
 }
 
 extern "C" EXPORT int bonds_num_selected(void *bonds, size_t n)
@@ -4429,6 +4469,16 @@ extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
             m->start_change_tracking(ct);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_use_default_atom_radii(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->use_default_atom_radii();
     } catch (...) {
         molc_error();
     }

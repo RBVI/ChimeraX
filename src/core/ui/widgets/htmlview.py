@@ -54,6 +54,8 @@ class HtmlView(QWebEngineView):
                   'interceptor', 'schemes', and 'download' parameters are
                   ignored because they are assumed to be already set in
                   the profile.
+    tool_window : if specified, ChimeraX context menu is displayed instead
+                  of default context menu
 
     Attributes
     ----------
@@ -61,9 +63,11 @@ class HtmlView(QWebEngineView):
     """
 
     def __init__(self, *args, size_hint=None, schemes=None,
-                 interceptor=None, download=None, profile=None, **kw):
+                 interceptor=None, download=None, profile=None,
+                 tool_window=None, **kw):
         super().__init__(*args, **kw)
         self._size_hint = size_hint
+        self._tool_window = tool_window
         if profile is not None:
             self._profile = profile
             self._private_profile = False
@@ -81,7 +85,7 @@ class HtmlView(QWebEngineView):
                         p.installUrlSchemeHandler(scheme, self._scheme_handler)
             if download:
                 p.downloadRequested.connect(download)
-        page = QWebEnginePage(self._profile, self)
+        page = _LoggingPage(self._profile, self)
         self.setPage(page)
         s = page.settings()
         s.setAttribute(s.LocalStorageEnabled, True)
@@ -105,6 +109,12 @@ class HtmlView(QWebEngineView):
             return QSize(*self._size_hint)
         else:
             return super().sizeHint()
+
+    def contextMenuEvent(self, event):
+        if self._tool_window:
+            self._tool_window._show_context_menu(event)
+        else:
+            super().contextMenuEvent(event)
 
     def setHtml(self, html, url=None):  # noqa
         from PyQt5.QtCore import QUrl
@@ -143,8 +153,23 @@ class HtmlView(QWebEngineView):
             url = QUrl(url)
         super().setUrl(url)
 
-    def runJavaScript(self, js):    # noqa
-        self.page().runJavaScript(js)
+    def runJavaScript(self, *args):    # noqa
+        self.page().runJavaScript(*args)
+
+
+class _LoggingPage(QWebEnginePage):
+
+    Levels = {
+        0: "info",
+        1: "warning", 
+        2: "error",
+    }
+
+    def javaScriptConsoleMessage(self, level, msg, lineNumber, sourceId):
+        import os.path
+        filename = os.path.basename(sourceId)
+        print("JS console(%s:%d:%s): %s" % (filename, lineNumber,
+                                            self.Levels[level], msg))
 
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):
@@ -179,7 +204,7 @@ class ChimeraXHtmlView(HtmlView):
         self.session = session
         for k in ('schemes', 'interceptor', 'download', 'profile'):
             if k in kw:
-                raise ValueError("Can not override HtmlView's %s" % k)
+                raise ValueError("Cannot override HtmlView's %s" % k)
         # don't share profiles, so interceptor is bound to this instance
         super().__init__(*args, schemes=('cxcmd', 'help'),
                          interceptor=self.link_clicked,

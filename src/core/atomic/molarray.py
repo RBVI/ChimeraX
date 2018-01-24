@@ -103,7 +103,7 @@ class Collection(State):
             pointers = numpy.empty((0,), cptr)
         elif isinstance(items, numpy.ndarray) and items.dtype == numpy.uintp:
             # C++ pointers array
-            pointers = items
+            pointers = numpy.ascontiguousarray(items)
         else:
             # presume iterable of objects of the object_class
             try:
@@ -153,7 +153,9 @@ class Collection(State):
         if isinstance(i,(int,integer)):
             v = self._object_class.c_ptr_to_py_inst(self._pointers[i])
         elif isinstance(i, (slice, numpy.ndarray)):
-            v = self._objects_class(self._pointers[i])
+            # Copy pointers array slice since C++ code assumes array is contiguous.
+            ptrs = self._pointers[i].copy()
+            v = self._objects_class(ptrs)
         else:
             raise IndexError('Only integer indices allowed for %s, got %s'
                 % (self.__class__.__name__, str(type(i))))
@@ -530,6 +532,9 @@ class Atoms(Collection):
         "sequence), or with a single floating-point number.")
     default_radii = cvec_property('atom_default_radius', float32, read_only = True,
         doc="Returns a :mod:`numpy` array of default radii.")
+    def use_default_radii(self):
+        f = c_function('atom_use_default_radius', args = [ctypes.c_void_p, ctypes.c_size_t])
+        f(self._c_pointers, len(self))
     def display_radii(self, ball_scale, bond_radius):
         r = self.radii.copy()
         dm = self.draw_modes
@@ -799,6 +804,10 @@ class Bonds(Collection):
     '''
     structures = cvec_property('bond_structure', pyobject, astype = AtomicStructures, read_only = True)
     '''Returns an :class:`.StructureDatas` with the structure for each bond. Read only.'''
+    @property
+    def unique_structures(self):
+        "The unique structures as an :class:`.AtomicStructures` collection"
+        return self.structures.unique()
 
     @property
     def unique_structures(self):
@@ -1332,6 +1341,11 @@ class CoordSets(Collection):
         doc="ID numbers of coordsets")
     structures = cvec_property('coordset_structure', pyobject, astype = AtomicStructures, read_only=True,
         doc="Returns an :class:`AtomicStructure` for each coordset. Read only.")
+
+    @property
+    def unique_structures(self):
+        '''The unique structures as a :class:`.AtomicStructures` collection'''
+        return self.structures.unique()
 
 # -----------------------------------------------------------------------------
 # For making collections from lists of objects.

@@ -466,6 +466,8 @@ def init(argv, event_loop=True):
         sess.tools = tools.Tools(sess, first=True)
         from chimerax.core import tasks
         sess.tasks = tasks.Tasks(sess, first=True)
+        from chimerax.core.atomic import attr_registration
+        sess.attr_registration = attr_registration.RegAttrManager()
         from chimerax.core import undo
         sess.undo = undo.Undo(sess, first=True)
 
@@ -562,6 +564,8 @@ def init(argv, event_loop=True):
             info('OpenGL renderer: ' + r.opengl_renderer())
             info('OpenGL vendor: ' + r.opengl_vendor())
             sess.ui.main_window.graphics_window.start_redraw_timer()
+            info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
+                is_html=True)
 
     if opts.module:
         import runpy

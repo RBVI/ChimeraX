@@ -178,7 +178,13 @@ class Mol2Parser:
                                    dtype=float64)
                 if atom_data.charge is not None:
                     atom.charge = atom_data.charge
-                substid2residue[atom_data.subst_id].add_atom(atom)
+                try:
+                    residue = substid2residue[atom_data.subst_id]
+                except KeyError:
+                    # Must not have been a substructure section
+                    residue = s.new_residue("UNK", '', atom_data.subst_id)
+                    substid2residue[atom_data.subst_id] = residue
+                residue.add_atom(atom)
                 atomid2atom[atom_data.atom_id] = atom
             # Create bonds
             for bond_data in self._bonds:

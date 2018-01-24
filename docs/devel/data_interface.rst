@@ -19,10 +19,8 @@ Architecture
 ------------
 
 There are modules with the core data structures for each
-native data type: :doc:`molecular data <molecule>`,
-:doc:`sequence data <sequence>`,
-and
-:doc:`volume data <volume>`.
+native data type: :doc:`molecular data <core/atomic/atomic>`,
+sequence data, and volume data.
 
 I/O is managed by the :py:mod:`chimerax.core.io` module.
 Data formats are registered with the io module with information about how

@@ -39,7 +39,7 @@ ChimeraX atomic structures.
     <PythonClassifier>License :: Freeware</PythonClassifier>
     <!-- ChimeraX classifiers describe supplied functionality -->
     <!-- Register XYZ format as one of the supported input file formats -->
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: XYZ :: :: Molecule structure :: .xyz :: :: :: :: :: XYZ format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: XYZ :: :: Molecule structure :: .xyz :: :: https://en.wikipedia.org/wiki/XYZ_file_format :: :: :: XYZ format :: utf-8</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: XYZ :: XYZ ::</ChimeraXClassifier>
   </Classifiers>
 

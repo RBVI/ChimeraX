@@ -441,6 +441,12 @@ class Atom(State):
         '''
         return self.structure.scene_position * self.get_coord(crdset_or_altloc)
 
+    def use_default_radius(self):
+        '''If an atom's radius has previously been explicitly set, this call will
+        revert to using the default radius'''
+        f = c_function('atom_use_default_radius', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
+
     def reset_state(self, session):
         """For when the session is closed"""
         pass
@@ -452,7 +458,21 @@ class Atom(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return _atom_ptr_to_inst(data['structure'].session_id_to_atom(data['ses_id']))
+        return Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
+
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        for m in session.models:
+            if not isinstance(m, StructureData):
+                continue
+            collections.append(m.atoms)
+        from .molarray import concatenate
+        if collections:
+            return [i for i in concatenate(collections).instances(instantiate=False)
+                if i is not None]
+        return []
 
 # -----------------------------------------------------------------------------
 #
@@ -538,7 +558,7 @@ class Bond(State):
         the specified atom.'''
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
         o = f(self._c_pointer, atom._c_pointer)
-        return _atom_ptr_to_inst(o)
+        return Atom.c_ptr_to_py_inst(o)
 
     def delete(self):
         '''Delete this Bond from it's Structure'''
@@ -565,6 +585,24 @@ class Bond(State):
                 ret = ctypes.py_object)
         return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
 
+    def side_atoms(self, side_atom):
+        '''All the atoms on the same side of the bond as side_atom.
+
+           'side_atom' has to be one of the two bond atoms, and the returned atoms will include
+           'side_atom'.  Missing-structure pseudobonds are treated as connecting their atoms for
+           the purpose of computing the side atoms.  If bond is part of a ring or cycle then
+           ValueError will be thrown.
+        '''
+        f = c_function('bond_side_atoms', args = (ctypes.c_void_p, ctypes.c_void_p),
+            ret = ctypes.py_object)
+        return _atoms(f(self._c_pointer, side_atom._c_pointer))
+
+    @property
+    def smaller_side(self):
+        '''Returns the bond atom on the side of the bond with fewer total atoms attached'''
+        f = c_function('bond_smaller_side', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
@@ -573,6 +611,20 @@ class Bond(State):
     @staticmethod
     def restore_snapshot(session, data):
         return _bond_ptr_to_inst(data['structure'].session_id_to_bond(data['ses_id']))
+
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        for m in session.models:
+            if not isinstance(m, StructureData):
+                continue
+            collections.append(m.bonds)
+        from .molarray import concatenate
+        if collections:
+            return [i for i in concatenate(collections).instances(instantiate=False)
+                if i is not None]
+        return []
 
 # -----------------------------------------------------------------------------
 #
@@ -671,6 +723,23 @@ class Pseudobond(State):
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
         return _pseudobond_ptr_to_inst(f(group._c_pointer, id))
 
+    """Need additional support to get per-coord-set pseudobonds
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        from . import PseudobondGroup
+        for m in session.models:
+            if not isinstance(m, PseudobondGroup):
+                continue
+            collections.append(m.pseudobonds)
+        from .molarray import concatenate
+        if collections:
+            return [i for i in concatenate(collections).instances(instantiate=False)
+                if i is not None]
+        return []
+    """
+
 # -----------------------------------------------------------------------------
 #
 class PseudobondGroupData:
@@ -743,6 +812,17 @@ class PseudobondGroupData:
         f = c_function('pseudobond_group_delete_pseudobond',
             args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, pb._c_pointer)
+
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        groups = []
+        from . import PseudobondGroup
+        for m in session.models:
+            if not isinstance(m, PseudobondGroup):
+                continue
+            groups.append(m)
+        return groups
 
     def get_num_pseudobonds(self, cs_id):
         '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'
@@ -898,6 +978,11 @@ class PseudobondManager(State):
         # away, which causes delete() to get called
         for pbg in list(self.group_map.values()):
             pbg.delete()
+
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        return [session.pb_manager]
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -1092,6 +1177,20 @@ class Residue(State):
     def restore_snapshot(session, data):
         return _residue_ptr_to_inst(data['structure'].session_id_to_residue(data['ses_id']))
 
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        for m in session.models:
+            if not isinstance(m, StructureData):
+                continue
+            collections.append(m.residues)
+        from .molarray import concatenate
+        if collections:
+            return [i for i in concatenate(collections).instances(instantiate=False)
+                if i is not None]
+        return []
+
 
 # -----------------------------------------------------------------------------
 #
@@ -1192,14 +1291,15 @@ class Sequence(State):
         from ..triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
+        f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         if seq_pointer:
             set_c_pointer(self, seq_pointer)
+            f(self._c_pointer, self)
             return # name/characters already exists; don't set
         seq_pointer = c_function('sequence_new',
             args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
-        f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
@@ -1259,6 +1359,41 @@ class Sequence(State):
         if g2u < 0:
             return None
         return g2u
+
+    """Need a way to discover all Sequences
+    # used by attribute registration to gather attributes for session saving...
+    @classmethod
+    def get_existing_instances(cls, session):
+        # find what type of sequence class this is (or inherits from)
+        sequence = structure_seq = chain = False
+        check_list = [cls]
+        while check_list:
+            check_cls = check_list.pop()
+            if check_cls is Chain:
+                chain = True
+                break
+            elif check_cls is StructureSeq:
+                structure_seq = True
+                break
+            elif check_cls is Sequence:
+                sequence = True
+                break
+            check_list.extend(check_cls.__bases__)
+        if chain:
+            check_cls = Chain
+        elif structure_seq:
+            check_cls = StructureSeq
+        elif sequence:
+            check_cls = Sequence
+        else:
+            raise ValueError("%s is not a Sequence/StructureSeq/Chain" % cls.__name__)
+        sequences = []
+        for m in session.models:
+            if not isinstance(m, check_cls):
+                continue
+            sequences.append(m)
+        return structures
+    """
 
     def __getitem__(self, key):
         return self.characters[key]
@@ -1813,6 +1948,35 @@ class StructureData:
         f = c_function('structure_delete_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
 
+    # used by attribute registration to gather attributes for session saving...
+    @classmethod
+    def get_existing_instances(cls, session):
+        # find what type of structure class this is (or inherits from)
+        from . import AtomicStructure, Structure
+        atomic = structure = False
+        check_list = [cls]
+        while check_list:
+            check_cls = check_list.pop()
+            if check_cls is AtomicStructure:
+                atomic = True
+                break
+            elif check_cls is Structure:
+                structure = True
+                break
+            check_list.extend(check_cls.__bases__)
+        if atomic:
+            check_cls = AtomicStructure
+        elif structure:
+            check_cls = Structure
+        else:
+            raise ValueError("%s is neither a Structure nor AtomicStructure" % cls.__name__)
+        structures = []
+        for m in session.models:
+            if not isinstance(m, check_cls):
+                continue
+            structures.append(m)
+        return structures
+
     @property
     def molecules(self):
         '''Return a tuple of :class:`.Atoms` objects each containing atoms for one molecule.
@@ -1848,7 +2012,7 @@ class StructureData:
 
            'index' defaults to one more than highest existing index (or 1 if none existing);
            'size' is for efficiency when creating the first coordinate set of a new Structure,
-               and is otherwise unnecessary to specify
+           and is otherwise unnecessary to specify
         '''
         if index is None:
             f = c_function('structure_new_coordset_default', args = (ctypes.c_void_p,))
@@ -2013,6 +2177,12 @@ class StructureData:
         f = c_function('set_structure_color',
                     args = (ctypes.c_void_p, ctypes.c_void_p))
         return f(self._c_pointer, pointer(rgba))
+
+    def use_default_atom_radii(self):
+        '''If some atoms' radii has previously been explicitly set, this call will
+        revert to using the default radii'''
+        f = c_function('structure_use_default_atom_radii', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def _ses_call(self, func_qual):
         f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -2474,10 +2644,10 @@ for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Re
         # put these funcs in PseudobondGroupData not PseudobondGroup
         class_obj = PseudobondGroupData
     func_name = cname + "_py_inst"
-    class_obj.c_ptr_to_py_inst = lambda ptr, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
     func_name = cname + "_existing_py_inst"
-    class_obj.c_ptr_to_existing_py_inst = lambda ptr, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_existing_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 
 # Chain/StructureSeq/Sequence classes could theoretically be handled the same as the
@@ -2487,9 +2657,9 @@ for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Re
 for class_obj in [Sequence, StructureSeq, Chain]:
     cname = class_obj.__name__.lower()
     func_name = cname + "_existing_py_inst"
-    class_obj.c_ptr_to_py_inst = lambda ptr, klass=class_obj, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_py_inst = lambda ptr, *, klass=class_obj, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr))) or klass(ptr)
-    class_obj.c_ptr_to_existing_py_inst = lambda ptr, fname=func_name: c_function(fname,
+    class_obj.c_ptr_to_existing_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
         args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 
 # Structure/AtomicStructure cannot be instantiated with just a pointer, and therefore

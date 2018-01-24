@@ -9,6 +9,7 @@ var vdxchart = function() {
     var tooltip_shown = false;
     var action = false;
     var custom_scheme = "vdxchart";
+    var sweep_selected = false;
     var plot = null;
 
     function make_button(btype, name, value, checked) {
@@ -27,7 +28,7 @@ var vdxchart = function() {
         // Save sort and shown columns
         var sort_column = $(".sort:checked").attr("value");
         var show_columns = []
-        $(".display:checked").map(function() {
+        $(".graph:checked").map(function() {
             if (this.value in columns["numeric"])
                 show_columns.push(this.value);
         });
@@ -50,7 +51,7 @@ var vdxchart = function() {
                 $("<th>/>").text("Hist").css("text-align", "center"),
                 $("<th>/>").text("Column"),
                 $("<th>/>").text("Value")));
-            $.each(columns["text"], function(r, v) {
+        $.each(columns["text"], function(r, v) {
             $("#column_table").append($("<tr/>").append(
                                         $("<td/>"),
                                         $("<td/>"),
@@ -58,7 +59,7 @@ var vdxchart = function() {
                                         $("<td/>").text(r),
                                         $("<td/>").addClass("value")
                                                   .prop("title", r)))
-            });
+        });
         $.each(columns["numeric"], function(r, v) {
             var sort_btn = make_button("radio", "sort", r, r == sort_column);
             var show_btn = make_button("checkbox", "graph", r,
@@ -75,7 +76,7 @@ var vdxchart = function() {
                                         $("<td/>").text(r),
                                         $("<td/>").addClass("value")
                                                   .prop("title", r)))
-            });
+        });
 
         update_plot();
     }
@@ -115,55 +116,58 @@ var vdxchart = function() {
         var colormap = {};
         var next_color = 0;
         var series = [];
-        $(".graph:checked").each(function(i) {
-            var label = this.value;
-            var data = numeric[label];
-            colormap[label] = i;
-            next_color = i + 1;
-            series.push({
-                color: i,
-                points: { show: true },
-                lines: { show: true },
-                label: label,
-                xaxis: 2,
-                has_data:
-                    index2index.map(function(e, i) {
-                        return data[index2index[i]] != null;
-                    }),
-                data:
-                    index2index.map(function(e, i) {
-                        return [i, data[index2index[i]]];
-                    })
-            })
-        });
         var num_bins = parseInt($("#histbins").prop("value"));
-        $(".histogram:checked").each(function() {
+        $(".graph:checked, .histogram:checked").each(function(i) {
             var label = this.value;
             var data = numeric[label];
-            var color = colormap[label];
-            if (color == null) {
-                color = next_color;
-                next_color += 1;
+            var color = i;
+            if (colormap[label] != null) {
+                color = colormap[label];
+                legend = null;
+            } else {
+                colormap[label] = i;
+                next_color = i + 1;
+                legend = label;
             }
-            var hist = histograms[label];
-            if (!hist || hist.length != num_bins) {
-                hist = make_bins(data, num_bins);
-                histograms[label] = hist;
+            if ($(this).hasClass("graph")) {
+                series.push({
+                    color: color,
+                    points: { show: true },
+                    lines: { show: true },
+                    label: legend,
+                    xaxis: 2,
+                    has_data:
+                        index2index.map(function(e, i) {
+                            return data[index2index[i]] != null;
+                        }),
+                    data:
+                        index2index.map(function(e, i) {
+                            return [i, data[index2index[i]]];
+                        })
+                })
             }
-            series.push({
-                name: label,
-                color: color,
-                bars: {
-                    show: true,
-                    align: "center",
-                    barWidth: hist.width,
-                    lineWidth: 1,
-                    fill: 0.2,
-                    horizontal: true,
-                },
-                data: hist.data,
-                xaxis: 3
-            });
+            if ($(this).hasClass("histogram")) {
+                var hist = histograms[label];
+                if (!hist || hist.length != num_bins) {
+                    hist = make_bins(data, num_bins);
+                    histograms[label] = hist;
+                }
+                series.push({
+                    name: label,
+                    color: color,
+                    label: legend,
+                    bars: {
+                        show: true,
+                        align: "center",
+                        barWidth: hist.width,
+                        lineWidth: 1,
+                        fill: 0.2,
+                        horizontal: true,
+                    },
+                    data: hist.data,
+                    xaxis: 3
+                });
+            }
         });
 
         // Show the data
@@ -197,7 +201,7 @@ var vdxchart = function() {
     }
 
     function plot_click(event, pos, item) {
-        if (item == null)
+        if (sweep_selected || item == null)
             return;
         else if (item.series.bars.show) {
             var label = item.series.name;
@@ -278,8 +282,24 @@ var vdxchart = function() {
         }
     }
 
+    function plot_selected(event, ranges) {
+        sweep_selected = true;
+        var start = Math.ceil(ranges.x2axis.from - 0.2);
+        var end = Math.trunc(ranges.x2axis.to + 0.2);
+        var ids = [];
+        for (var i = start; i <= end; i++) {
+            var raw_index = index2index[i];
+            var id = columns["text"]["id"][raw_index];
+            ids.push(id);
+        }
+        if (ids.length > 0)
+            window.location = custom_scheme + ":" + action + "?id=" +
+                              ids.join(",");
+    }
+
     function mousedown(e) {
         action = e.ctrlKey ? "show_toggle" : "show_only";
+        sweep_selected = false;
     }
 
     function update_display(new_display) {
@@ -317,6 +337,10 @@ var vdxchart = function() {
                 { show: false },
                 { min: 0, max: 1 }
             ],
+            selection: {
+                mode: "x"
+            },
+            colors: colorbrewer.Set2[8],
             hooks: {
                 draw: [ redraw_highlights ]
             }
@@ -332,13 +356,53 @@ var vdxchart = function() {
 		}).appendTo("body");
         $("#data").bind("plotclick", plot_click)
                   .bind("plothover", plot_hover)
+                  .bind("plotselected", plot_selected)
                   .mousedown(mousedown);
         $("#histbins").click(update_plot);
+    }
+
+    function get_state() {
+        var sort_column = $(".sort:checked").attr("value");
+        var show_columns = []
+        $(".graph:checked").map(function() {
+            show_columns.push(this.value);
+        });
+        var hist_columns = [];
+        $(".histogram:checked").map(function() {
+            hist_columns.push(this.value);
+        });
+        return {
+            name: "vdxchart",
+            sort_column: sort_column,
+            show_columns: show_columns,
+            hist_columns: hist_columns
+        };
+    }
+
+    function set_state(state) {
+        var show_columns = state.show_columns;
+        $(".graph:checkbox").each(function(r, v) {
+            var should_be_checked = $.inArray(v.value, show_columns) != -1;
+            var is_checked = $(v).prop("checked");
+            if (is_checked != should_be_checked)
+                $(v).trigger("click");
+        });
+        var hist_columns = state.hist_columns;
+        $(".histogram:checkbox").each(function(r, v) {
+            var should_be_checked = $.inArray(v.value, hist_columns) != -1;
+            var is_checked = $(v).prop("checked");
+            if (is_checked != should_be_checked)
+                $(v).trigger("click");
+        });
+        var c = $(".sort:checked[value='" + state.sort_column + "']");
+        c.trigger("click");
     }
 
     return {
         update_columns: update_columns,
         update_display: update_display,
+        get_state: get_state,
+        set_state: set_state,
         init: init
     }
 }();
