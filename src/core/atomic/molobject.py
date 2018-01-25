@@ -161,9 +161,9 @@ class Atom(State):
     color = c_property('atom_color', uint8, 4, doc="Supported API."
         " Color RGBA length 4 numpy uint8 array.")
     coord = c_property('atom_coord', float64, 3, doc="Supported API."
-        " Coordinates from the current coordinate set (or alt loc) as a numpy length 3 array,"
-        " 64-bit float values.  See get_coord method for other coordsets / alt locs.
-        ' See scene_coord for coordinates after rotations and translations.")
+        ''' Coordinates from the current coordinate set (or alt loc) as a numpy length 3 array,
+         64-bit float values.  See get_coord method for other coordsets / alt locs.
+         See scene_coord for coordinates after rotations and translations.''')
     coord_index = c_property('atom_coord_index', uint32, read_only = True,
         doc="Supported API. Coordinate index of atom in coordinate set.")
     display = c_property('atom_display', npy_bool,
