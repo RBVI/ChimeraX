@@ -10,6 +10,9 @@
 # === UCSF ChimeraX Copyright ===
 
 def update_clip_caps(view):
+    from ..core_settings import settings
+    if not settings.clipping_surface_caps:
+        return
     cp = view.clip_planes
     planes = cp.planes()
     cpos = view.camera.position
@@ -19,7 +22,7 @@ def update_clip_caps(view):
     # TODO: Update caps only on specific drawings whose shape changed.
     if update:
         drawings = view.drawing.all_drawings()
-        show_surface_clip_caps(planes, drawings)
+        show_surface_clip_caps(planes, drawings, offset = settings.clipping_cap_offset)
         cp.changed = False
         view.redraw_needed = True
 
@@ -36,6 +39,17 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
     plane_names = set(p.name for p in planes)
     for cap in drawings:
         if hasattr(cap, 'clip_cap_owner') and cap.clip_plane_name not in plane_names:
+            d = cap.clip_cap_owner
+            del d._clip_cap_drawings[cap.clip_plane_name]
+            from ..models import Model
+            if isinstance(cap, Model):
+                cap.session.models.remove([cap])
+            else:
+                cap.parent.remove_drawing(cap)
+
+def remove_clip_caps(drawings):
+    for cap in drawings:
+        if hasattr(cap, 'clip_cap_owner'):
             d = cap.clip_cap_owner
             del d._clip_cap_drawings[cap.clip_plane_name]
             from ..models import Model

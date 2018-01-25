@@ -34,7 +34,6 @@ class Option(metaclass=ABCMeta):
             else:
                 self.attr_name = None
 
-        self._callback = callback
         if default != None or not hasattr(self, 'default'):
             self.default = default
 
@@ -78,8 +77,11 @@ class Option(metaclass=ABCMeta):
                 balloon += attr_balloon
                 self.balloon = balloon
 
+        # prevent showing the default from making a callback...
+        self._callback = None
         if self.default is not None:
             self.value = self.default
+        self._callback = callback
 
         self._enabled = True
         if self.read_only:
@@ -92,7 +94,7 @@ class Option(metaclass=ABCMeta):
 
     @abstractmethod
     def set(self, value):
-        # set the option's value
+        # set the option's value; should NOT invoke the callback
         pass
 
     def get_attribute(self, obj):
@@ -166,7 +168,7 @@ class BooleanOption(Option):
     def _make_widget(self, **kw):
         from PyQt5.QtWidgets import QCheckBox
         self.widget = QCheckBox(**kw)
-        self.widget.stateChanged.connect(lambda state, s=self: s.make_callback())
+        self.widget.clicked.connect(lambda state, s=self: s.make_callback())
 
 class EnumOption(Option):
     """Option for enumerated values"""
