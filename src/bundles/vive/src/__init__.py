@@ -20,5 +20,7 @@ class _VRAPI(BundleAPI):
         # 'register_command' is lazily called when the command is referenced
         from . import vr
         vr.register_vr_command(logger)
+        from . import sync
+        sync.register_vr_sync_command(logger)
 
 bundle_api = _VRAPI()
