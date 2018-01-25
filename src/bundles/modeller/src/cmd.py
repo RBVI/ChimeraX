@@ -26,11 +26,14 @@ def sequence_model(session, targets, combined_templates=False, custom_script=Non
             raise UserError("Only one target sequence per alignent allowed;"
                 " multiple targets chosen in alignment %s" % alignment)
     from . import comparitive
-    comparitive.model(session, targets, combined_templates=combined_templates,
-        custom_script=custom_script, dist_restraints_path=dist_restraints_path,
-        executable_location=executable_location, fast=fast, het_preserve=het_preserve,
-        hydrogens=hydrogens, license_key=license_key, num_models=num_models, temp_path=temp_path,
-        thorough_opt=thorough_opt, water_preserve=water_preserve)
+    try:
+        comparitive.model(session, targets, combined_templates=combined_templates,
+            custom_script=custom_script, dist_restraints_path=dist_restraints_path,
+            executable_location=executable_location, fast=fast, het_preserve=het_preserve,
+            hydrogens=hydrogens, license_key=license_key, num_models=num_models,
+            temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
+    except comparitive.ModelingError as e:
+        raise UserError(e)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg

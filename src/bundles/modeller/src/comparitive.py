@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class ModelingError(ValueError):
+    pass
+
 def model(session, targets, combined_templates=False, custom_script=None,
     dist_restraints_path=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
@@ -57,7 +60,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
     template_info = []
     for alignment, orig_target in targets:
         if not alignment.associations:
-            raise ValueError("Alignment %s has no associated chains to use as templates."
+            raise ModelingError("Alignment %s has no associated chains to use as templates."
                 % alignment.ident)
         # Copy the target sequence, changing name to conform to Modeller limitations
         from .common import modeller_copy
@@ -125,7 +128,9 @@ def model(session, targets, combined_templates=False, custom_script=None,
             appending.append(line_to_add)
         for insertion in insertions[i+1:]:
             insertion.append(line_to_add)
+    """
     # just checking things out...
+    session.logger.info("<pre> targ " + '/'.join(target_strings) + "</pre>", is_html=True) 
     for i, lines in enumerate(templates_strings):
         for line in lines:
             joined_line = line
@@ -135,7 +140,35 @@ def model(session, targets, combined_templates=False, custom_script=None,
             appending = '/'.join(appendings[i])
             if appending:
                 joined_line = joined_line + '/' + appending
-            session.logger.info("<pre>" + joined_line + "</pre>", is_html=True) 
+            session.logger.info("<pre> tmpl " + joined_line + "</pre>", is_html=True) 
+    """
+    # form the sequences to be written out as a PIR
+    pir_seqs = []
+    from chimerax.core.atomic import Sequence
+    structures_to_save = set()
+    for i, tmpl_strs in enumerate(templates_strings):
+        for tmpl_str in tmpl_strs:
+            chain = template_info[i][1][1]
+            pir_template = Sequence(chain_save_name(chain))
+            pir_seqs.append(pir_template)
+            pir_template.description = "structure:%s:FIRST:%s:+%d:%s::::" % (
+                structure_save_name(chain.structure),
+                chain.chain_id, len(tmpl_str) - tmpl_str.count('-'), chain.chain_id)
+            structures_to_save.add(chain.structure)
+            full_line = tmpl_str
+            prefix = '/'.join(insertions[i])
+            if prefix:
+                full_line = prefix + '/' + full_line
+            suffix = '/'.join(appendings[i])
+            if suffix:
+                full_line = full_line + '/' + suffix
+            pir_template.characters = full_line
+    pir_target = Sequence(template_info[0][0].name)
+    pir_seqs.append(pir_target)
+    pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
+    pir_target.characters = '/'.join(target_strings)
+    #TODO: save PIR
+    #TODO: save structure files
 
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]
@@ -153,6 +186,8 @@ def regularized_seq(aseq, chain):
     rseq.characters = "".join(seq_chars)
     return rseq
 
+def structure_save_name(s):
+    return s.name.replace(':', '_').replace(' ', '_') + "_" + s.id_string()
+
 def chain_save_name(chain):
-    return chain.structure.name.replace(':', '_').replace(' ', '_') \
-        + "_" + chain.structure.id_string() + '/' + chain.chain_id.replace(' ', '_')
+    return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')
