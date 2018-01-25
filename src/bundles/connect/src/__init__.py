@@ -13,12 +13,12 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _VRAPI(BundleAPI):
+class _ConnectAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import vr
-        vr.register_vr_command(logger)
+        from . import connect
+        connect.register_connect_command(logger)
 
-bundle_api = _VRAPI()
+bundle_api = _ConnectAPI()
