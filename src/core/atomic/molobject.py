@@ -108,7 +108,7 @@ class Atom(State):
 
     @property
     def deleted(self):
-        '''Has the C++ side been deleted?'''
+        '''Supported API. Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
     def __lt__(self, other):
@@ -119,6 +119,7 @@ class Atom(State):
         return self.residue < other.residue
 
     def __str__(self, atom_only = False, style = None, relative_to=None):
+        '''Supported API.  Allow Atoms to be used directly in print() statements'''
         if style == None:
             from ..core_settings import settings
             style = settings.atomspec_contents
@@ -150,22 +151,25 @@ class Atom(State):
     def atomspec(self):
         return self.residue.atomspec() + '@' + self.name
 
-    alt_loc = c_property('atom_alt_loc', string, doc='Alternate location indicator')
-    bfactor = c_property('atom_bfactor', float32, doc = "B-factor, floating point value.")
-    bonds = c_property('atom_py_obj_bonds', pyobject, read_only=True,
-        doc="Bonds connected to this atom as a list of :py:class:`Bond` objects. Read only.")
-    chain_id = c_property('atom_chain_id', string, read_only = True,
-        doc = "Protein Data Bank chain identifier. Limited to 4 characters. Read only string.")
-    color = c_property('atom_color', uint8, 4, doc="Color RGBA length 4 numpy uint8 array.")
-    coord = c_property('atom_coord', float64, 3,
-        doc="Coordinates from the current coordinate set (or alt loc) as a numpy length 3 array,"
-            " 64-bit float values.  See get_coord method for other coordsets / alt locs.")
+    alt_loc = c_property('atom_alt_loc', string, doc='Supported API. Alternate location indicator')
+    bfactor = c_property('atom_bfactor', float32, doc="Supported API."
+        " B-factor, floating point value.")
+    bonds = c_property('atom_py_obj_bonds', pyobject, read_only=True, doc="Supported API."
+        " Bonds connected to this atom as a list of :py:class:`Bond` objects. Read only.")
+    chain_id = c_property('atom_chain_id', string, read_only = True, doc = "Supported API."
+        " Protein Data Bank chain identifier. Limited to 4 characters. Read only string.")
+    color = c_property('atom_color', uint8, 4, doc="Supported API."
+        " Color RGBA length 4 numpy uint8 array.")
+    coord = c_property('atom_coord', float64, 3, doc="Supported API."
+        " Coordinates from the current coordinate set (or alt loc) as a numpy length 3 array,"
+        " 64-bit float values.  See get_coord method for other coordsets / alt locs.
+        ' See scene_coord for coordinates after rotations and translations.")
     coord_index = c_property('atom_coord_index', uint32, read_only = True,
-        doc="Coordinate index of atom in coordinate set.")
+        doc="Supported API. Coordinate index of atom in coordinate set.")
     display = c_property('atom_display', npy_bool,
-        doc="Whether to display the atom. Boolean value.")
+        doc="Supported API. Whether to display the atom. Boolean value.")
     draw_mode = c_property('atom_draw_mode', uint8,
-        doc="Controls how the atom is depicted.\n\nPossible values:\n\n"
+        doc="Supported API. Controls how the atom is depicted.\n\nPossible values:\n\n"
         "SPHERE_STYLE\n"
         "    Use full atom radius\n\n"
         "BALL_STYLE\n"
@@ -173,13 +177,13 @@ class Atom(State):
         "STICK_STYLE\n"
         "    Match bond radius")
     element = c_property('atom_element', cptr, astype = _element, read_only = True,
-        doc =  ":class:`Element` corresponding to the chemical element for the atom.")
+        doc="Supported API. :class:`Element` corresponding to the chemical element for the atom.")
     element_name = c_property('atom_element_name', string, read_only = True,
-        doc = "Chemical element name. Read only.")
+        doc="Supported API. Chemical element name. Read only.")
     element_number = c_property('atom_element_number', uint8, read_only = True,
-        doc = "Chemical element number. Read only.")
+        doc="Supported API. Chemical element number. Read only.")
     hide = c_property('atom_hide', int32,
-        doc="Whether atom is hidden (overrides display).  Integer bitmask."
+        doc="Supported API. Whether atom is hidden (overrides display).  Integer bitmask."
         "\n\nPossible values:\n\n"
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.\n"
@@ -202,7 +206,8 @@ class Atom(State):
         return self._idatm_type
     def _set_idatm_type(self, iat):
         self._idatm_type = "" if iat is None else iat
-    idatm_type = property(_get_idatm_type, _set_idatm_type)
+    idatm_type = property(_get_idatm_type, _set_idatm_type, doc="Supported API."
+        ''' Atom's <a href="help:user/atomtypes.html">IDATM type</a>''')
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
     is_ribose = c_property('atom_is_ribose', npy_bool, read_only = True,
@@ -216,30 +221,34 @@ class Atom(State):
     is_side_only = c_property('atom_is_side_only', npy_bool, read_only = True,
         doc = "Whether this atom is part of an amino/nucleic acid sidechain."
         "  Does not include atoms needed to connect to backbone (CA/ribose). Read only.")
-    name = c_property('atom_name', string, doc = "Atom name. Maximum length 4 characters.")
-    neighbors = c_property('atom_py_obj_neighbors', pyobject, read_only=True,
-        doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
+    name = c_property('atom_name', string, doc="Supported API."
+        " Atom name. Maximum length 4 characters.")
+    neighbors = c_property('atom_py_obj_neighbors', pyobject, read_only=True, doc="Supported API."
+        " :class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
     num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
-        doc="Number of bonds connected to this atom. Read only.")
+        doc="Supported API. Number of bonds connected to this atom. Read only.")
     num_explicit_bonds = c_property("atom_num_explicit_bonds", size_t, read_only=True,
-        doc="Number of bonds and missing-structure pseudobonds connected to this atom. Read only.")
-    occupancy = c_property('atom_occupancy', float32, doc = "Occupancy, floating point value.")
-    radius = c_property('atom_radius', float32, doc="Radius of atom.")
-    default_radii = c_property('atom_default_radius', float32, read_only = True,
-                               doc="Default atom radius.")
+        doc="Supported API."
+        " Number of bonds and missing-structure pseudobonds connected to this atom. Read only.")
+    occupancy = c_property('atom_occupancy', float32, doc="Supported API."
+        " Occupancy, floating point value.")
+    radius = c_property('atom_radius', float32, doc="Supported API. Radius of atom.")
+    default_radius = c_property('atom_default_radius', float32, read_only = True,
+                               doc="Supported API. Default atom radius.")
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
-        doc = ":class:`Residue` the atom belongs to.")
-    selected = c_property('atom_selected', npy_bool, doc="Whether the atom is selected.")
+        doc = "Supported API. :class:`Residue` the atom belongs to.")
+    selected = c_property('atom_selected', npy_bool, doc="Supported API."
+        " Whether the atom is selected.")
     has_selected_bond = c_property('atom_has_selected_bond', npy_bool, read_only = True,
                                    doc = "Whether any connected bond is selected.")
     serial_number = c_property('atom_serial_number', int32,
-        doc="Atom serial number from input file.")
+        doc="Supported API. Atom serial number from input file.")
     structure = c_property('atom_structure', pyobject, read_only=True,
-        doc=":class:`.AtomicStructure` the atom belongs to")
+        doc="Supported API. :class:`.AtomicStructure` the atom belongs to")
     structure_category = c_property('atom_structure_category', string, read_only=True,
-        doc = "Whether atom is ligand, ion, etc.")
+        doc = "Supported API. Whether atom is ligand, ion, etc.")
     visible = c_property('atom_visible', npy_bool, read_only=True,
-        doc="Whether atom is displayed and not hidden.")
+        doc="Supported API. Whether atom is displayed and not hidden.")
 
     @property
     def display_radius(self):
@@ -271,6 +280,7 @@ class Atom(State):
         f(self._c_pointer, loc, create, False)
 
     def has_alt_loc(self, loc):
+        '''Supported API. Does this Atom have an alt loc with the given letter?'''
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
         #value_type = npy_bool
@@ -285,7 +295,7 @@ class Atom(State):
 
     @property
     def alt_locs(self):
-        '''Returns a list of the valid alt-loc characters for this Atom (which will
+        '''Supported API. Returns a list of the valid alt-loc characters for this Atom (which will
            be [' '] for a "non-alt-loc" atom).
         '''
         f = c_function('atom_alt_locs',
@@ -294,7 +304,8 @@ class Atom(State):
 
     @property
     def aniso_u(self):
-        '''Anisotropic temperature factors, returns 3x3 array of numpy float32 or None.  Read only.'''
+        '''Supported API. Anisotropic temperature factors, returns 3x3 array of numpy float32
+           or None.  Read only.'''
         f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         from numpy import empty, float32
         ai = empty((3,3), float32)
@@ -327,30 +338,19 @@ class Atom(State):
     aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
 
     def connects_to(self, atom):
-        '''Whether this atom is directly bonded to a specified atom.'''
+        '''Supported API. Whether this atom is directly bonded to a specified atom.'''
         f = c_function('atom_connects_to', args = (ctypes.c_void_p, ctypes.c_void_p),
                ret = ctypes.c_bool)
         c = f(self._c_pointer, atom._c_pointer)
         return c
 
     def delete(self):
-        '''Delete this Atom from it's Structure'''
+        '''Supported API. Delete this Atom from it's Structure'''
         f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
 
-    @property
-    def display_radius(self):
-        dm = self.draw_mode
-        if dm == Atom.SPHERE_STYLE:
-            r = self.radius
-        elif dm == Atom.BALL_STYLE:
-            r = self.radius * self.structure.ball_scale
-        elif dm == Atom.STICK_STYLE:
-            r = self.maximum_bond_radius(self.structure.bond_radius)
-        return r
-
     def is_backbone(self, bb_extent=BBE_MAX):
-        '''Whether this Atom is considered backbone, given the 'extent' criteria.
+        '''Supported API. Whether this Atom is considered backbone, given the 'extent' criteria.
 
         Possible 'extent' values are:
 
@@ -372,8 +372,8 @@ class Atom(State):
         return bool(v.value)
 
     def set_coord(self, xyz, cs_id):
-        '''Used to set the atom's xyz for a particular coordset.  Just use the 'coord' attr
-           for changing the current coordinate set.'''
+        '''Supported API. Used to set the atom's xyz for a particular coordset.
+           Just use the 'coord' attr for changing the current coordinate set.'''
         if xyz.dtype != float64:
             raise ValueError('set_coord(): array must be float64, got %s' % xyz.dtype.name)
         if len(xyz.shape) != 1 or len(xyz) != 3:
@@ -402,15 +402,13 @@ class Atom(State):
         return self.structure.scene_position * self.coord
     def _set_scene_coord(self, xyz):
         self.coord = self.structure.scene_position.inverse() * xyz
-    scene_coord = property(_get_scene_coord, _set_scene_coord)
-    '''
-    Atom center coordinates in the global scene coordinate system.
-    This accounts for the :class:`Drawing` positions for the hierarchy
-    of models this atom belongs to.
-    '''
+    scene_coord = property(_get_scene_coord, _set_scene_coord, doc="Supported API."
+        '''Atom center coordinates in the global scene coordinate system.
+        This accounts for the :class:`Drawing` positions for the hierarchy
+        of models this atom belongs to.''')
 
     def get_altloc_coord(self, altloc):
-        '''
+        '''Supported API.
         Like the 'coord' property, but uses the given altloc (character)
         rather than the current altloc.
         '''
@@ -423,7 +421,7 @@ class Atom(State):
         return ai
 
     def get_coordset_coord(self, crdset):
-        '''
+        '''Supported API.
         Like the 'coord' property, but uses the given coordset ID (integer)
         rather than the current coordset.
         '''
@@ -435,14 +433,14 @@ class Atom(State):
         return ai
 
     def get_scene_coord(self, crdset_or_altloc):
-        '''
+        '''Supported API.
         Like the 'scene_coord' property, but uses the given coordset ID (integer) / altloc
         (character) rather than the current coordset / altloc.
         '''
         return self.structure.scene_position * self.get_coord(crdset_or_altloc)
 
     def use_default_radius(self):
-        '''If an atom's radius has previously been explicitly set, this call will
+        '''Supported API.  If an atom's radius has previously been explicitly set, this call will
         revert to using the default radius'''
         f = c_function('atom_use_default_radius', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
