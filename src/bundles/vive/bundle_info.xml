@@ -22,6 +22,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: device vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: vr_sync :: General :: Synchronize VR pointers</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

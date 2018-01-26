@@ -157,7 +157,7 @@ def dashed_cylinder_geometry(segments = 5, radius = 1, height = 1, nz = 2, nc = 
 def cone_geometry(radius = 1, height = 1, nc = 20, caps = True, points_up = True):
     '''
     Return vertex, normal vector and triangle arrays for cone geometry
-    with specified radius and height with point of cone at origin
+    with specified radius and height with middle of cone at origin
     '''
     from numpy import ones, empty, float32, arange, cos, sin, int32, pi
     vc = nc * 2

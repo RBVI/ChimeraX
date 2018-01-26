@@ -55,8 +55,8 @@ def vr_sync(session, ip_address = None, port = 52194):
 # -----------------------------------------------------------------------------
 # Register the vr sync command for ChimeraX.
 #
-def register_vr_command(logger):
-    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf, NoArg
+def register_vr_sync_command(logger):
+    from chimerax.core.commands import CmdDesc, StringArg, IntArg
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('ip_address', StringArg)],
                    keyword = [('port', IntArg)],
@@ -81,6 +81,7 @@ class VRSyncServer:
         self._session = session
         self._server = None
         self._connections = []		# List of QTcpSocket
+        self._mouse_pointer_model = None
 
     @property
     def connected(self):
@@ -122,23 +123,33 @@ class VRSyncServer:
         return None
 
     def listen(self, port):
+        from PyQt5.QtNetwork import QTcpServer, QHostAddress
         self._server = s = QTcpServer()
-        if not s.listen(QHostAddress.Any, port):
+        aa = self._available_server_ipv4_addresses()
+        a = aa[0] if aa else QHostAddress.Any
+        if not s.listen(a, port):
             self._session.logger.warning('QTcpServer.listen() failed: %s' % s.errorString())
         else:
             s.newConnection.connect(self._new_connection)
-            self.ip_address = s.serverAddress().toString()
-            self.port = s.serverPort()
+        
 
+    def _available_server_ipv4_addresses(self):
+        from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
+        a = [ha for ha in QNetworkInterface.allAddresses()
+             if not ha.isLoopback() and not ha.isNull() and
+             ha.protocol() == QAbstractSocket.IPv4Protocol]
+        return a
+            
     def connect(self, ip_address, port = port):
         if self._server:
             raise RuntimeError('VRSyncServer: Must call either listen, or connect, not both')
+        from PyQt5.QtNetwork import QTcpSocket
         socket = QTcpSocket()
-        socket.error.connect(lambda self=self, socket=socket: self._socket_error(socket))
+        socket.error.connect(lambda error_type, self=self, socket=socket: self._socket_error(error_type, socket))
         socket.connectToHost(ip_address, port)
         self._add_connection(socket)
 
-    def _socket_error(self, socket):
+    def _socket_error(self, error_type, socket):
         self._session.logger.info('Socket error %s' % socket.errorString())
         
     def _new_connection(self):
@@ -148,14 +159,18 @@ class VRSyncServer:
             self._add_connection(socket)
 
     def _add_connection(self, socket):
-        socket.disconnected.connected(self._disconnected)
+        socket.disconnected.connect(self._disconnected)
         self._connections.append(socket)
         socket.readyRead.connect(lambda self=self, socket=socket: self._message_received(socket))
+        self._session.triggers.add_handler('mouse hover', self._mouse_hover_cb)
         if self._server is None:
-            #TODO: Set new frame trigger and send position updates.
             pass
+            # TODO: Set new frame trigger and send pointer position updates.
+            # TODO: For non-vr send pointer position for mouse hover.
+
     def _disconnected(self):
         con = []
+        from PyQt5.QtNetwork import QAbstractSocket
         for c in self._connections:
             if c.state() == QAbstractSocket.ConnectedState:
                 con.append(c)
@@ -165,7 +180,40 @@ class VRSyncServer:
         self._connections = con
 
     def _message_received(self, socket):
-        bytes = socket.readAll()
-        self._session.logger.info('Received %d bytes from %s:%d'
-                                  % (len(bytes), socket.peerAddress().toString(), socket.peerPort()))
+        bmsg = socket.readAll()
+        msg = bytes(bmsg).decode('utf-8')
+        lmsg = ('Received %d bytes from %s:%d, xyz = %s'
+                % (len(bmsg), socket.peerAddress().toString(), socket.peerPort(), msg))
+#        self._session.logger.info(lmsg)
+        m = self._mouse_pointer_model
+        if m is None:
+            from chimerax.core.models import Model
+            self._mouse_pointer_model = m = Model('mouse pointer', self._session)
+            from chimerax.core.surface import cone_geometry
+            h = 3
+            va, na, ta = cone_geometry(radius = 1, height = h)
+            va[:,2] -= 0.5*h	# Place tip of cone at origin
+            m.vertices = va
+            m.normals = na
+            m.triangles = ta
+            m.color = (0,255,0,255)
+            self._session.models.add([m])
+        values = [float(x) for x in msg.split(',')]
+        xyz = values[:3]
+        axis = values[3:]
+        from chimerax.core.geometry import vector_rotation, translation
+        p = translation(xyz) * vector_rotation((0,0,1), axis)
+        m.position = p
+        
+        # TODO: Draw pointers at positions in message.
         # TODO: if we are server, reply with our position info.
+
+    def _mouse_hover_cb(self, trigger_name, xyz):
+        msg = '%.6g,%.6g,%.6g' % tuple(xyz)
+        d = self._session.main_view.camera.view_direction()
+        msg += ',%.6g,%.6g,%.6g' % tuple(d)
+        from PyQt5.QtCore import QByteArray
+        ba = QByteArray(msg.encode('utf-8'))
+        for socket in self._connections:
+            socket.write(ba)
+        

@@ -535,7 +535,6 @@ def _nuc_drawing(mol, create=True, recreate=False):
         if handler is None:
             handler = mol.triggers.add_handler('changes', _rebuild_molecule)
             mol._nucleotide_changes = handler
-            mol.ribbon_want_backbone = True
         return mol._nucleotide_info, nd
 
 
@@ -544,7 +543,6 @@ def _remove_nuc_drawing(mol, nd):
     del mol._nucleotide_info
     h = mol._nucleotide_changes
     mol._nucleotide_changes = None
-    mol.ribbon_want_backbone = False
     mol.triggers.remove_handler(h)
     _need_rebuild.discard(mol)
 
