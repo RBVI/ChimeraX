@@ -610,7 +610,7 @@ class Bond(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return _bond_ptr_to_inst(data['structure'].session_id_to_bond(data['ses_id']))
+        return Bond.c_ptr_to_py_inst(data['structure'].session_id_to_bond(data['ses_id']))
 
     # used by attribute registration to gather attributes for session saving...
     @staticmethod
@@ -721,7 +721,7 @@ class Pseudobond(State):
         group, id = data
         f = c_function('pseudobond_group_resolve_session_id',
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
-        return _pseudobond_ptr_to_inst(f(group._c_pointer, id))
+        return Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, id))
 
     """Need additional support to get per-coord-set pseudobonds
     # used by attribute registration to gather attributes for session saving...
@@ -1169,7 +1169,7 @@ class Residue(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return _residue_ptr_to_inst(data['structure'].session_id_to_residue(data['ses_id']))
+        return Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
 
     # used by attribute registration to gather attributes for session saving...
     @staticmethod
