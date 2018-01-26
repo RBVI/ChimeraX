@@ -11,7 +11,7 @@
 
 # -----------------------------------------------------------------------------
 #
-def connect(session, ip_address = None, port = 52194):
+def connect(session, ip_address = None, port = 52194, name = None, color = None):
     '''Allow two ChimeraX instances to show each others' mouse positions or
     VR handcontroller and headset positions.
 
@@ -26,13 +26,17 @@ def connect(session, ip_address = None, port = 52194):
       the server is closed.
     port : int
       Port number to connect to.  Can be omitted in which case default 52194 is used.
+    name : string
+      Name to identify this ChimeraX on remote machines.
+    color : Color
+      Color for my mouse pointer shown on other machines
     '''
 
     if ip_address is None:
         s = connection_server(session)
         if s is None:
             msg = "No current ChimeraX connections"
-        elif not s.connected():
+        elif not s.connected:
             msg = "Listening for ChimeraX connections at %s:%d" % (s.ip_address, s.port)
         else:
             msg = "Connected to %s:%d" % (s.connected_ip_address, s.connected_port)
@@ -51,17 +55,40 @@ def connect(session, ip_address = None, port = 52194):
         s.connect(ip_address, port = port)
         msg = "Connected to %s:%d" % (s.connected_ip_address, s.connected_port)
         session.logger.status(msg, log = True)
+
+    if name is not None:
+        s = connection_server(session)
+        if s:
+            s._name = name
+
+    if color is not None:
+        s = connection_server(session)
+        if s:
+            s._color = color.uint8x4()
+
+# -----------------------------------------------------------------------------
+#
+def connect_close(session):
+    '''Close all connection shared pointers.'''
+    s = connection_server(session)
+    if s:
+        s.close_all_connections()
+
         
 # -----------------------------------------------------------------------------
 # Register the connect command for ChimeraX.
 #
 def register_connect_command(logger):
-    from chimerax.core.commands import CmdDesc, StringArg, IntArg
+    from chimerax.core.commands import CmdDesc, StringArg, IntArg, ColorArg
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('ip_address', StringArg)],
-                   keyword = [('port', IntArg)],
+                   keyword = [('port', IntArg),
+                              ('name', StringArg),
+                              ('color', ColorArg),],
                    synopsis = 'Show synchronized mouse or VR hand controllers between two ChimeraX instances')
     register('connect', desc, connect, logger=logger)
+    desc = CmdDesc(synopsis = 'Close synchronized pointer connection')
+    register('connect close', desc, connect_close, logger=logger)
 
 # -----------------------------------------------------------------------------
 #
@@ -79,10 +106,15 @@ def connection_server(session, create = False):
 class ConnectServer:
     def __init__(self, session):
         self._session = session
+        self._name = 'remote'
+        self._color = (0,255,0,255)	# Mouse pointer color
         self._server = None
         self._connections = []		# List of QTcpSocket
-        self._mouse_pointer_model = None
-
+        self._mouse_pointer_models = {}	# Map peer id to pointer model
+        self._peer_ids = {}		# Number associated with each ChimeraX instance passed in messages from server.
+        self._next_peer_id = 1
+        self._mouse_hover_handler = None
+        
     @property
     def connected(self):
         c = self._connections
@@ -149,8 +181,29 @@ class ConnectServer:
         socket.connectToHost(ip_address, port)
         self._add_connection(socket)
 
+    def close_all_connections(self):
+        self._session.triggers.remove_handler(self._mouse_hover_handler)
+        self._mouse_hover_handler = None
+
+        con = tuple(self._connections)
+        for socket in con:
+            socket.close()
+        self._connections = []
+        self._peer_ids = {}
+        
+        if self._server:
+            self._server.close()
+            self._server = None
+            
+        for peer_id in tuple(self._mouse_pointer_models.keys()):
+            self._remove_pointer_model(peer_id)
+            
     def _socket_error(self, error_type, socket):
         self._session.logger.info('Socket error %s' % socket.errorString())
+        if self._server is None:
+            self.close_all_connections()
+        else:
+            self._socket_closed(socket)
         
     def _new_connection(self):
         s = self._server
@@ -162,7 +215,9 @@ class ConnectServer:
         socket.disconnected.connect(self._disconnected)
         self._connections.append(socket)
         socket.readyRead.connect(lambda self=self, socket=socket: self._message_received(socket))
-        self._session.triggers.add_handler('mouse hover', self._mouse_hover_cb)
+        t = self._session.triggers
+        if self._mouse_hover_handler is None:
+            self._mouse_hover_handler = t.add_handler('mouse hover', self._mouse_hover_cb)
         if self._server is None:
             pass
             # TODO: Set new frame trigger and send pointer position updates.
@@ -175,8 +230,7 @@ class ConnectServer:
             if c.state() == QAbstractSocket.ConnectedState:
                 con.append(c)
             else:
-                self._session.logger.status('Disconnected connection from %s:%d'
-                                            % (c.peerAddress().toString(), c.peerPort()))
+                self._socket_closed(c)
         self._connections = con
 
     def _message_received(self, socket):
@@ -185,35 +239,94 @@ class ConnectServer:
         lmsg = ('Received %d bytes from %s:%d, xyz = %s'
                 % (len(bmsg), socket.peerAddress().toString(), socket.peerPort(), msg))
 #        self._session.logger.info(lmsg)
-        m = self._mouse_pointer_model
-        if m is None:
-            from chimerax.core.models import Model
-            self._mouse_pointer_model = m = Model('mouse pointer', self._session)
-            from chimerax.core.surface import cone_geometry
-            h = 3
-            va, na, ta = cone_geometry(radius = 1, height = h)
-            va[:,2] -= 0.5*h	# Place tip of cone at origin
-            m.vertices = va
-            m.normals = na
-            m.triangles = ta
-            m.color = (0,255,0,255)
-            self._session.models.add([m])
-        values = [float(x) for x in msg.split(',')]
-        xyz = values[:3]
-        axis = values[3:]
-        from chimerax.core.geometry import vector_rotation, translation
-        p = translation(xyz) * vector_rotation((0,0,1), axis)
-        m.position = p
-        
-        # TODO: Draw pointers at positions in message.
-        # TODO: if we are server, reply with our position info.
+
+        import ast
+        msg_data = ast.literal_eval(msg)
+        peer_id = msg_data['id'] if 'id' in msg_data else self._peer_id(socket)
+        self._update_mouse_pointer_model(peer_id, msg_data)
+
+        self._relay_message(peer_id, msg_data)
+
+    def _update_mouse_pointer_model(self, peer_id, msg_data):
+        m = self._mouse_pointer_model(peer_id)
+        if 'name' in msg_data:
+            m.name = '%s pointer' % msg_data['name']
+        if 'color' in msg_data:
+            m.color = msg_data['color']
+        if 'mouse' in msg_data:
+            xyz, axis = msg_data['mouse']
+            from chimerax.core.geometry import vector_rotation, translation
+            p = translation(xyz) * vector_rotation((0,0,1), axis)
+            m.position = p
 
     def _mouse_hover_cb(self, trigger_name, xyz):
-        msg = '%.6g,%.6g,%.6g' % tuple(xyz)
-        d = self._session.main_view.camera.view_direction()
-        msg += ',%.6g,%.6g,%.6g' % tuple(d)
-        from PyQt5.QtCore import QByteArray
-        ba = QByteArray(msg.encode('utf-8'))
+        axis = self._session.main_view.camera.view_direction()
+        msg = {'mouse': (tuple(xyz), tuple(axis)),
+               'color': tuple(self._color),
+               'name': self._name,
+               }
+        # Update my own mouse pointer
+        my_id = 0 if self._server else -1
+        self._update_mouse_pointer_model(my_id, msg)
+        if self._server:
+            msg['id'] = 0
+        # Tell connected peers my new mouse pointer position.
+        ba = self._encode_message_data(msg)
         for socket in self._connections:
             socket.write(ba)
-        
+
+    def _encode_message_data(self, msg_data):
+        from PyQt5.QtCore import QByteArray
+        ba = QByteArray(repr(msg_data).encode('utf-8'))
+        return ba
+
+    def _relay_message(self, peer_id, msg_data):
+        if len(self._connections) <= 1 or self._server is None:
+            return
+        msg_data['id'] = peer_id
+        msg = self._encode_message_data(msg_data)
+        for socket, pid in self._peer_ids.items():
+            if pid != peer_id:
+                socket.write(msg)
+            
+    def _mouse_pointer_model(self, peer_id):
+        mpm = self._mouse_pointer_models
+        if peer_id in mpm:
+            return mpm[peer_id]
+
+        from chimerax.core.models import Model
+        mpm[peer_id] = m = Model('mouse pointer', self._session)
+        from chimerax.core.surface import cone_geometry
+        h = 3
+        va, na, ta = cone_geometry(radius = 1, height = h)
+        va[:,2] -= 0.5*h	# Place tip of cone at origin
+        m.vertices = va
+        m.normals = na
+        m.triangles = ta
+        m.color = (0,255,0,255)
+        self._session.models.add([m])
+
+        return m
+
+    def _peer_id(self, socket):
+        pids = self._peer_ids
+        if socket in pids:
+            pid = pids[socket]
+        else:
+            pids[socket] = pid = self._next_peer_id
+            self._next_peer_id += 1
+        return pid
+
+    def _socket_closed(self, socket):
+        peer_id = self._peer_id(socket)
+        del self._peer_ids[socket]
+        self._remove_pointer_model(peer_id)
+        self._session.logger.status('Disconnected connection from %s:%d'
+                                    % (socket.peerAddress().toString(), socket.peerPort()))
+
+    def _remove_pointer_model(self, peer_id):
+        mpm = self._mouse_pointer_models
+        if peer_id in mpm:
+            m = mpm[peer_id]
+            del mpm[peer_id]
+            self._session.models.close([m])
