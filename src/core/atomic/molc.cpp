@@ -3930,6 +3930,17 @@ extern "C" EXPORT PyObject *structure_rings(void *mol, bool cross_residue, int a
     }
 }
 
+extern "C" EXPORT void structure_active_coordset(void *mols, size_t n, pyobject_t *resp)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            resp[i] = (pyobject_t*)(m[i]->active_coord_set());
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_active_coordset_id(void *mols, size_t n, int32_t *coordset_ids)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -4260,6 +4271,20 @@ extern "C" EXPORT void structure_delete_pseudobond_group(void *mol, void *pbgrou
         m->pb_mgr().delete_group(pbg);
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT PyObject* structure_py_obj_coordset(void* ptr, int csid)
+{
+    Structure *s = static_cast<Structure*>(ptr);
+    try {
+        CoordSet* cs = s->find_coord_set(csid);
+        if (cs == nullptr) // raise IndexError
+            throw std::out_of_range("No such coordset");
+        return cs->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
     }
 }
 

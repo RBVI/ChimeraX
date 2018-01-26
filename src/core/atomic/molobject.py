@@ -43,6 +43,8 @@ def _chain(p):
     if not p:
         return None
     return Chain.c_ptr_to_py_inst(p)
+def _coordset(p):
+    return CoordSet.c_ptr_to_py_inst(p)
 def _element(p):
     return Element.c_ptr_to_py_inst(p)
 def _pseudobonds(p):
@@ -1795,6 +1797,8 @@ class StructureData:
     active_coordset_change_notify = c_property('structure_active_coordset_change_notify', npy_bool,
     doc='''Whether notifications are issued when the active coordset is changed.  Should only be
     set to true when temporarily changing the active coordset in a Python script. Boolean''')
+    active_coordset = c_property('structure_active_coordset', cptr, astype = _coordset,
+        read_only = True, doc="Supported API. Currently active :class:`CoordSet`.")
     active_coordset_id = c_property('structure_active_coordset_id', int32)
     '''Index of the active coordinate set.'''
     alt_loc_change_notify = c_property('structure_alt_loc_change_notify', npy_bool, doc=
@@ -1915,6 +1919,12 @@ class StructureData:
         f = c_function('structure_add_coordsets',
                        args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t))
         f(self._c_pointer, replace, pointer(xyzs), *xyzs.shape[:2])
+
+    def coordset(self, cs_id):
+        '''Return the CoordSet for the given coordset ID'''
+        f = c_function('structure_py_obj_coordset', args = (ctypes.c_void_p, ctypes.c_int),
+            ret = ctypes.py_object)
+        return f(self._c_pointer, cs_id)
 
     def connect_structure(self, chain_starters, chain_enders, conect_atoms, mod_res):
         '''Generate connectivity.  See connect_structure in connectivity.rst for more details.
@@ -2227,6 +2237,32 @@ class CoordSet(State):
     id = c_property('coordset_id', int32, read_only = True, doc="ID number of coordset")
     structure = c_property('coordset_structure', pyobject, read_only=True,
         doc=":class:`.AtomicStructure` the coordset belongs to")
+
+    def reset_state(self, session):
+        """For when the session is closed"""
+        pass
+
+    def take_snapshot(self, session, flags):
+        data = {'structure': self.structure, 'cs_id': self.id}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return data['structure'].coordset(data['cs_id'])
+
+    # used by attribute registration to gather attributes for session saving...
+    @staticmethod
+    def get_existing_instances(session):
+        collections = []
+        for m in session.models:
+            if not isinstance(m, StructureData):
+                continue
+            collections.append(m.coordsets)
+        from .molarray import concatenate
+        if collections:
+            return [i for i in concatenate(collections).instances(instantiate=False)
+                if i is not None]
+        return []
 
 # -----------------------------------------------------------------------------
 #
