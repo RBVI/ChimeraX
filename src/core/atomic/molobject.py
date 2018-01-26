@@ -733,6 +733,7 @@ class Pseudobond(State):
             if not isinstance(m, PseudobondGroup):
                 continue
             collections.append(m.pseudobonds)
+        #TODO: global pseudobonds
         from .molarray import concatenate
         if collections:
             return [i for i in concatenate(collections).instances(instantiate=False)
