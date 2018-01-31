@@ -76,6 +76,12 @@ class View:
         if trigger_set:
             self.drawing.set_redraw_callback(dm)
 
+    def delete(self):
+        r = self._render
+        if r:
+            r.delete()
+            self._render = None
+
     @property
     def render(self):
         return self._render
