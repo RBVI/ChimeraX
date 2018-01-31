@@ -30,11 +30,14 @@ def read_ihm(session, filename, name, *args, load_ensembles = False, load_linked
         filename = stream.name
         stream.close()
 
-    m = IHMModel(session, filename,
+    try:
+        m = IHMModel(session, filename,
                  load_ensembles = load_ensembles,
                  load_linked_files = load_linked_files,
                  show_sphere_crosslinks = show_sphere_crosslinks,
                  show_atom_crosslinks = show_atom_crosslinks)
+    except IOError as e:
+        raise RuntimeError('IHM error') from e
 
     return [m], m.description
 
@@ -576,10 +579,12 @@ class IHMModel(Model):
             emodels.append(sm)
 
         # Copy bead radii from best score model to ensemble models
-        if smodels and emodels:
-            r = smodels[0].atoms.radii
-            for em in emodels:
-                em.atoms.radii = r
+        for em in emodels:
+            esm = [sm for sm in smodels if sm.ihm_group_id == em.ihm_group_id]
+            if len(esm) == 1:
+                sm = esm[0]
+                if sm.num_atoms == em.num_atoms:
+                    em.atoms.radii = sm.atoms.radii
 
         return emodels
 
@@ -784,10 +789,11 @@ class IHMModel(Model):
                                               parent = smodel)
             xpbgs.extend(pbgs)
 
-        if emodels and smodels:
-            for emodel in emodels:
+        for emodel in emodels:
+            esm = [sm for sm in smodels if sm.ihm_group_id == emodel.ihm_group_id]
+            if len(esm) == 1:
                 pbgs = make_crosslink_pseudobonds(self.session, xlinks,
-                                                  ensemble_sphere_lookup(emodel, smodels[0]),
+                                                  ensemble_sphere_lookup(emodel, esm[0]),
                                                   parent = emodel)
                 xpbgs.extend(pbgs)
 
@@ -929,7 +935,8 @@ class IHMModel(Model):
                     continue
                 map_path = finfo.path(self.session)
                 if map_path is None:
-                    # TODO: Warn map file not found.
+                    self.session.logger.warning('Could not find localization map "%s"'
+                                                % finfo.file_path)
                     continue
                 maps,msg = open_map(self.session, map_path, show = False, show_dialog=False)
                 color = chain_rgba(asym_id)[:3] + (opacity,)
@@ -1044,8 +1051,9 @@ class FileInfo:
 
     def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
-        if r is None:
+        if r is None or r.ref == '.':
             # Local file
+            from os.path import join
             path = join(self.ihm_dir, self.file_path)
             if uncompress and path.endswith('.gz'):
                 import gzip
@@ -1091,6 +1099,7 @@ class FileInfo:
             path = join(self.ihm_dir, self.file_path)
             if isfile(path):
                 return path
+            return None
             
         r = self.ref
         if r and r.ref_type == 'DOI':
@@ -1106,6 +1115,8 @@ class FileInfo:
                 path = fetch_doi(session, r.ref, r.url)
             else:
                 path = None
+        else:
+            path = None
 
         return path
 
@@ -1146,7 +1157,8 @@ class FileDataSet(DataSet):
                 fs.close()
             else:
                 models = []
-                session.logger.warning('Could not open file "%s"' % finfo.file_path)
+                session.logger.warning('Could not open file "%s"' % finfo.file_path +
+                                       ' ref ' + str(finfo.ref) )
         else:
             models = []	# Don't know how to read atomic model file
         return models

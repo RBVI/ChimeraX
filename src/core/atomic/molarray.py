@@ -61,6 +61,8 @@ def _non_null_atoms(p):
     return Atoms(p[p!=0])
 def _bonds(p):
     return Bonds(p)
+def _coordsets(p):
+    return CoordSets(p)
 def _pseudobond_groups(p):
     return PseudobondGroups(p)
 def _pseudobonds(p):
@@ -332,6 +334,9 @@ class StructureDatas(Collection):
     alt_loc_change_notifies = cvec_property('structure_alt_loc_change_notify', npy_bool)
     '''Whether notifications are issued when altlocs are changed.  Should only be
     set to true when temporarily changing alt locs in a Python script. Numpy bool array.'''
+    active_coordsets = cvec_property('structure_active_coordset', cptr, astype = _coordsets,
+        read_only = True,
+        doc="Returns a :class:`CoordSets` of the active coordset of each structure. Read only.")
     atoms = cvec_property('structure_atoms', cptr, 'num_atoms', astype = _atoms,
                           read_only = True, per_object = False)
     '''A single :class:`.Atoms` containing atoms for all structures. Read only.'''
