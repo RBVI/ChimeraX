@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .settings import SINGLE_PREFIX
+from .settings import SINGLE_PREFIX, ALIGNMENT_PREFIX
 
 """TODO
 from Consensus import Consensus
@@ -737,7 +737,7 @@ class SeqCanvas:
                     % (prefResColor, exc_info()[1]))
         """
 
-        self.show_ruler = self.sv.settings.show_ruler_at_startup and not single_sequence
+        self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and not single_sequence
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
         """TODO
@@ -2742,7 +2742,7 @@ def _wrap_okay(num_seqs, settings):
     else:
         prefix = ""
     if getattr(settings, prefix + 'wrap_if'):
-        if num_seqs <= getattr(settings, prefix + 'wrap_threshold'):
+        if num_seqs <= getattr(settings, ALIGNMENT_PREFIX + 'wrap_threshold'):
             return True
         else:
             return False
