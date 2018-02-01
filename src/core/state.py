@@ -48,10 +48,7 @@ class State(metaclass=abc.ABCMeta):
         lists/dicts/etc., but shallow copy of named objects).
         Named objects are later converted to unique names.
         """
-        data = self.vars().copy()
-        data['bundle name'] = self.bundle_info.name
-        data['version'] = self.bundle_info.state_version
-        return data
+        return vars(self).copy()
 
     @classmethod
     def restore_snapshot(cls, session, data):
@@ -60,9 +57,10 @@ class State(metaclass=abc.ABCMeta):
         obj.__dict__ = data
         return obj
 
-    @abc.abstractmethod
     def reset_state(self, session):
-        """Reset state to data-less state"""
+        """Reset state to data-less state
+
+        Should be overriden by state managers."""
         pass
 
     # possible animation API
