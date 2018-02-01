@@ -110,6 +110,7 @@ class ConnectServer:
         self._color = (0,255,0,255)	# Mouse pointer color
         self._server = None
         self._connections = []		# List of QTcpSocket
+        self._message_buffer = {}	# Map of socket to bytearray of buffered data
         self._mouse_pointer_models = {}	# Map peer id to pointer model
         self._peer_ids = {}		# Number associated with each ChimeraX instance passed in messages from server.
         self._next_peer_id = 1
@@ -234,14 +235,9 @@ class ConnectServer:
         self._connections = con
 
     def _message_received(self, socket):
-        bmsg = socket.readAll()
-        msg = bytes(bmsg).decode('utf-8')
-        lmsg = ('Received %d bytes from %s:%d, xyz = %s'
-                % (len(bmsg), socket.peerAddress().toString(), socket.peerPort(), msg))
-#        self._session.logger.info(lmsg)
-
-        import ast
-        msg_data = ast.literal_eval(msg)
+        msg_data = self._decode_socket_message(socket)
+        if msg_data is None:
+            return  # Did not get full message yet.
         peer_id = msg_data['id'] if 'id' in msg_data else self._peer_id(socket)
         self._update_mouse_pointer_model(peer_id, msg_data)
 
@@ -276,9 +272,49 @@ class ConnectServer:
             socket.write(ba)
 
     def _encode_message_data(self, msg_data):
+        '''
+        msg_data is a dictionary which is sent as a string
+        prepended by 4 bytes giving the length of the dictionary string.
+        We include the length in order to know where a dictionary ends
+        when transmitted over a socket.
+        '''
+        msg = repr(msg_data).encode('utf-8')
+        from numpy import array, uint32
+        msg_len = array([len(msg)], uint32).tobytes()
         from PyQt5.QtCore import QByteArray
-        ba = QByteArray(repr(msg_data).encode('utf-8'))
+        ba = QByteArray(msg_len + msg)
         return ba
+
+    def _decode_socket_message(self, socket):
+        '''
+        Return dictionary decoded from socket stream.
+        If message is incomplete buffer bytes and return None.
+        '''
+        rbytes = socket.readAll()
+
+#        lmsg = ('Received %d bytes from %s:%d, xyz = %s'
+#                % (len(bytes), socket.peerAddress().toString(), socket.peerPort(), bytes))
+#        self._session.logger.info(lmsg)
+
+        mbuf = self._message_buffer
+        if socket not in mbuf:
+            mbuf[socket] = bytearray()
+        msg_bytes = mbuf[socket]
+        msg_bytes.extend(rbytes)
+
+        if len(msg_bytes) < 4:
+            return None
+
+        from numpy import frombuffer, uint32
+        msg_len = frombuffer(msg_bytes[:4], uint32)[0]
+        if len(msg_bytes) < msg_len + 4:
+            return None
+
+        msg = msg_bytes[4:4+msg_len].decode('utf-8')
+        mbuf[socket] = msg_bytes[4+msg_len:]
+        import ast
+        msg_data = ast.literal_eval(msg)
+        return msg_data
 
     def _relay_message(self, peer_id, msg_data):
         if len(self._connections) <= 1 or self._server is None:
@@ -318,9 +354,12 @@ class ConnectServer:
         return pid
 
     def _socket_closed(self, socket):
-        peer_id = self._peer_id(socket)
-        del self._peer_ids[socket]
-        self._remove_pointer_model(peer_id)
+        if socket in self._peer_ids:
+            peer_id = self._peer_id(socket)
+            del self._peer_ids[socket]
+            self._remove_pointer_model(peer_id)
+        if socket in self._message_buffer:
+            del self._message_buffer[socket]
         self._session.logger.status('Disconnected connection from %s:%d'
                                     % (socket.peerAddress().toString(), socket.peerPort()))
 
