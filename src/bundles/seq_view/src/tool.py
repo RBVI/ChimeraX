@@ -19,6 +19,9 @@ class SequenceViewer(ToolInstance):
 
     MATCHED_REGION_INFO = ("matched residues", (1, .88, .8), "orange red")
 
+    ERROR_REGION_STRING = "mismatches"
+    GAP_REGION_STRING = "missing structure"
+
     """TODO
     buttons = ('Quit', 'Hide')
     help = "ContributedSoftware/multalignviewer/framemav.html"
@@ -594,10 +597,10 @@ class SequenceViewer(ToolInstance):
                             cur_partial_block = None
 
         for shown, region_name_part, partial_blocks, full_blocks, fills, outlines in [
-                (self.settings.error_region_shown, "mismatches", partial_error_blocks,
+                (self.settings.error_region_shown, self.ERROR_REGION_STRING, partial_error_blocks,
                     full_error_blocks, self.settings.error_region_interiors,
                     self.settings.error_region_borders),
-                (self.settings.gap_region_shown, "missing structure", partial_gap_blocks,
+                (self.settings.gap_region_shown, self.GAP_REGION_STRING, partial_gap_blocks,
                     full_gap_blocks, self.settings.gap_region_interiors,
                     self.settings.gap_region_borders)]:
             if not shown:

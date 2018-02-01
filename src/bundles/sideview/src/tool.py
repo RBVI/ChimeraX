@@ -427,6 +427,8 @@ class SideViewUI(ToolInstance):
         self.tool_window.manage(placement="side")
 
     def delete(self):
+        self.view.delete()
+        self.view = None
         self.opengl_canvas.close()
         ToolInstance.delete(self)
 

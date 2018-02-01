@@ -110,9 +110,9 @@ def _strands_selector(session, models, results):
                 results.add_atoms(strands.atoms, bonds=True)
 
 def _structure_category_selector(cat, models, results):
-    from ..atomic import Structure
+    from ..atomic import AtomicStructure
     for m in models:
-        if isinstance(m, Structure):
+        if isinstance(m, AtomicStructure):
             atoms = m.atoms.filter(m.atoms.structure_categories == cat)
             if len(atoms) > 0:
                 results.add_model(m)

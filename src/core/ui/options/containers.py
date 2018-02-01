@@ -35,7 +35,10 @@ class OptionsPanel(QWidget):
         QWidget.__init__(self, parent, **kw)
         self._sorting = sorting
         self._options = []
-        self.setLayout(QFormLayout())
+        form = QFormLayout()
+        from PyQt5.QtCore import Qt
+        form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.setLayout(form)
 
     def add_option(self, option):
         if self._sorting is None:
@@ -51,7 +54,7 @@ class OptionsPanel(QWidget):
             else:
                 insert_row = len(self._options)
         self.layout().insertRow(insert_row, option.name, option.widget)
-        self._options.append(option)
+        self._options.insert(insert_row, option)
         if option.balloon:
             self.layout().itemAt(insert_row,
                 QFormLayout.LabelRole).widget().setToolTip(option.balloon)
@@ -171,7 +174,9 @@ class SettingsPanelBase(QWidget):
             default_val = self.settings.PROPERTY_INFO[setting]
             if isinstance(default_val, Value):
                 default_val = default_val.default
-            if opt.get() != default_val:
+            # '==' on numpy objects doesn't return a boolean
+            import numpy
+            if not numpy.array_equal(opt.get(), default_val):
                 opt.set(default_val)
                 opt.make_callback()
 
@@ -179,7 +184,9 @@ class SettingsPanelBase(QWidget):
         for opt in self._get_actionable_options():
             setting = opt.attr_name
             restore_val = self.settings.saved_value(setting)
-            if opt.get() != restore_val:
+            # '==' on numpy objects doesn't return a boolean
+            import numpy
+            if not numpy.array_equal(opt.get(), default_val):
                 opt.set(restore_val)
                 opt.make_callback()
 

@@ -507,7 +507,7 @@ class IHMModel(Model):
                 # For groups with matching residue / atom names use coordinate set.
                 mid, slist = ms[0]
                 mname = mnames.get(mid, 'sphere model')
-                sm = SphereModel(self.session, mname, mid, anames, adetail, slist)
+                sm = SphereModel(self.session, mname, mid, slist, anames, adetail)
                 sm.ihm_group_id = g
                 for mid, slist in ms[1:]:
                     sm.add_coordinates(mid, slist)
@@ -518,7 +518,7 @@ class IHMModel(Model):
                 # Make separate sphere models, do not use coordinate sets.
                 for i, (mid, slist) in enumerate(ms):
                     mname = mnames.get(mid, 'sphere model')
-                    sm = SphereModel(self.session, mname, mid, anames, adetail, slist)
+                    sm = SphereModel(self.session, mname, mid, slist, anames, adetail)
                     sm.ihm_group_id = g
                     sm.display = (i == 0)            # Undisplay all but first sphere model in each group
                     smodels.append(sm)
@@ -1668,15 +1668,24 @@ def ensemble_sphere_lookup(emodel, smodel):
 #
 from chimerax.core.atomic import Structure
 class SphereModel(Structure):
-    def __init__(self, session, name, ihm_model_id, entity_names, asym_detail_text, sphere_list):
-        Structure.__init__(self, session, name = name, auto_style = False)
+    def __init__(self, session, name, ihm_model_id,
+                 sphere_list = None, entity_names = {}, asym_detail_text = {},
+                 c_pointer = None, auto_style = False, log_info = False):
+        Structure.__init__(self, session, name = name,
+                           auto_style = auto_style, log_info = log_info,
+                           c_pointer = c_pointer)
         self.ihm_model_ids = [ihm_model_id]
         self.ihm_group_id = None
         
         self._asym_models = {}
-        self._sphere_atom = sa = {}	# (asym_id, res_num) -> sphere atom
+        self._sphere_atom = {}	# (asym_id, res_num) -> sphere atom
 
-        pbg = self.pseudobond_group('missing structure')
+        self._polymers = []	# List of Residues objects for making ribbons
+
+        if sphere_list is not None:
+            self._add_spheres(sphere_list, entity_names, asym_detail_text)
+
+    def _add_spheres(self, sphere_list, entity_names, asym_detail_text):
 
         # Find spheres for each asym_id in residue number order.
         asym_spheres = {}
@@ -1688,6 +1697,8 @@ class SphereModel(Structure):
         # Create sphere atoms, residues and connecting pseudobonds
         from chimerax.core.atomic import colors, Residues
         polymers = []
+        pbg = self.pseudobond_group('missing structure')
+        sa = self._sphere_atom
         for asym_id, aspheres in asym_spheres.items():
             last_atom = None
             polymer = []
@@ -1714,16 +1725,19 @@ class SphereModel(Structure):
             polymers.append(Residues(polymer))
 
         self.new_atoms()
-        self._polymers = polymers	# Needed for ribbon rendering
+        self._polymers.extend(polymers)	# Needed for ribbon rendering
 
     def copy(self, name = None):
-        # Copy only the Structure, not the SphereModel
         if name is None:
             name = self.name
         from chimerax.core.atomic.molobject import StructureData
-        m = Structure(self.session, name = name, c_pointer = StructureData._copy(self),
-                           auto_style = False, log_info = False)
+        m = SphereModel(self.session, name, self.ihm_model_ids[0],
+                        c_pointer = StructureData._copy(self))
         m.positions = self.positions
+        if self._polymers:
+            rmap = dict(zip(self.residues, m.residues))
+            from chimerax.core.atomic import Residues
+            m._polymers = [Residues([rmap[r] for r in p]) for p in self._polymers]
         return m
     
     def residue_sphere(self, asym_id, res_num, atom_name=None):

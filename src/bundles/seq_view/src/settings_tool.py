@@ -17,7 +17,7 @@ class SettingsTool:
         self.sv = sv
         self.tool_window = tool_window
 
-        from .settings import defaults, APPEARANCE, SINGLE_PREFIX
+        from .settings import defaults, APPEARANCE, SINGLE_PREFIX, ALIGNMENT_PREFIX
         from chimerax.core.ui.options import CategorizedSettingsPanel, CategorizedOptionsPanel
         class AppearanceOptionsPanel(CategorizedOptionsPanel):
             def options(self, category=None):
@@ -44,7 +44,8 @@ class SettingsTool:
             if category == APPEARANCE:
                 if attr_name.startswith(SINGLE_PREFIX):
                     app_cat = "Single Sequence"
-                elif (SINGLE_PREFIX + attr_name) in defaults:
+                elif attr_name.startswith(ALIGNMENT_PREFIX) or \
+                (SINGLE_PREFIX + attr_name) in defaults:
                     app_cat = "Alignment"
                 else:
                     app_cat = "All"
@@ -61,3 +62,38 @@ class SettingsTool:
         from .settings import APPEARANCE, REGIONS
         if category == APPEARANCE:
             self.sv.seq_canvas._reformat()
+        elif category == REGIONS:
+            if opt.attr_name == "show_sel":
+                self.sv.region_browser._show_sel_cb()
+                return
+            if opt.attr_name.startswith('new_region'):
+                return
+            if opt.attr_name.startswith('sel'):
+                regions = [self.sv.region_browser.get_region("ChimeraX selection")]
+            else:
+                name_part = self.sv.ERROR_REGION_STRING \
+                    if opt.attr_name.startswith("error_region") else self.sv.GAP_REGION_STRING
+                regions = []
+                for region in self.sv.region_browser.regions:
+                    if region.name.startswith(name_part) \
+                    or region.name.startswith("partial " + name_part):
+                        regions.append(region)
+            if opt.attr_name.endswith("shown"):
+                shown = opt.get()
+                for region in regions:
+                    region.shown = shown
+            else:
+                if opt.attr_name.startswith('sel'):
+                    colors = [opt.get(), None]
+                else:
+                    colors = opt.get()
+                for i, color in enumerate(colors):
+                    for region in regions:
+                        if i == 0 and region.name.startswith("partial"):
+                            continue
+                        if i == 1 and not region.name.startswith("partial"):
+                            continue
+                        if 'border' in opt.attr_name:
+                            region.border_rgba = color
+                        else:
+                            region.interior_rgba = color
