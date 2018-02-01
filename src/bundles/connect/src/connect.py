@@ -164,7 +164,7 @@ class ConnectServer:
             self._session.logger.warning('QTcpServer.listen() failed: %s' % s.errorString())
         else:
             s.newConnection.connect(self._new_connection)
-        
+        self._color = (255,255,0,255)	# Mouse pointer color
 
     def _available_server_ipv4_addresses(self):
         from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
@@ -259,11 +259,11 @@ class ConnectServer:
         axis = self._session.main_view.camera.view_direction()
         msg = {'mouse': (tuple(xyz), tuple(axis)),
                'color': tuple(self._color),
-               'name': self._name,
                }
         # Update my own mouse pointer
         my_id = 0 if self._server else -1
         self._update_mouse_pointer_model(my_id, msg)
+        msg['name'] = self._name
         if self._server:
             msg['id'] = 0
         # Tell connected peers my new mouse pointer position.
@@ -331,7 +331,7 @@ class ConnectServer:
             return mpm[peer_id]
 
         from chimerax.core.models import Model
-        mpm[peer_id] = m = Model('mouse pointer', self._session)
+        mpm[peer_id] = m = Model('my pointer', self._session)
         from chimerax.core.surface import cone_geometry
         h = 3
         va, na, ta = cone_geometry(radius = 1, height = h)
