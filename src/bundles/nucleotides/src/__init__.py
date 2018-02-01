@@ -5,13 +5,20 @@ from chimerax.core.toolshed import BundleAPI
 
 class _MyAPI(BundleAPI):
 
-    # Override method for starting tool
+    @staticmethod
+    def get_class(class_name):
+        from . import _data
+        if class_name == 'NucleotideState':
+            return _data.NucleotideState
+        if class_name == 'Params':
+            return _data.Params
+        return None
+
     @staticmethod
     def start_tool(session, tool_name, **kw):
         from .tool import NucleotidesTool
         return NucleotidesTool(session, tool_name, **kw)
 
-    # Override method for registering commands
     @staticmethod
     def register_command(command_name, logger):
         from . import cmd
