@@ -64,7 +64,7 @@ def connect(session, ip_address = None, port = 52194, name = None, color = None)
     if color is not None:
         s = connection_server(session)
         if s:
-            s._color = color.uint8x4()
+            s.set_color(color.uint8x4())
 
 # -----------------------------------------------------------------------------
 #
@@ -107,14 +107,16 @@ class ConnectServer:
     def __init__(self, session):
         self._session = session
         self._name = 'remote'
-        self._color = (0,255,0,255)	# Mouse pointer color
+        self._color = (0,255,0,255)	# Tracking model color
         self._server = None
         self._connections = []		# List of QTcpSocket
         self._message_buffer = {}	# Map of socket to bytearray of buffered data
-        self._mouse_pointer_models = {}	# Map peer id to pointer model
         self._peer_ids = {}		# Number associated with each ChimeraX instance passed in messages from server.
         self._next_peer_id = 1
-        self._mouse_hover_handler = None
+        self._trackers = []
+
+    def set_color(self, color):
+        self._color = color
         
     @property
     def connected(self):
@@ -164,7 +166,7 @@ class ConnectServer:
             self._session.logger.warning('QTcpServer.listen() failed: %s' % s.errorString())
         else:
             s.newConnection.connect(self._new_connection)
-        self._color = (255,255,0,255)	# Mouse pointer color
+        self._color = (255,255,0,255)
 
     def _available_server_ipv4_addresses(self):
         from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
@@ -178,13 +180,17 @@ class ConnectServer:
             raise RuntimeError('ConnectServer: Must call either listen, or connect, not both')
         from PyQt5.QtNetwork import QTcpSocket
         socket = QTcpSocket()
-        socket.error.connect(lambda error_type, self=self, socket=socket: self._socket_error(error_type, socket))
+        def socket_error(error_type, self=self, socket=socket):
+            self._socket_error(error_type, socket)
+        socket.error.connect(socket_error)
         socket.connectToHost(ip_address, port)
         self._add_connection(socket)
 
     def close_all_connections(self):
-        self._session.triggers.remove_handler(self._mouse_hover_handler)
-        self._mouse_hover_handler = None
+        if self._trackers:
+            for t in self._trackers:
+                t.delete()
+            self._trackers = []
 
         con = tuple(self._connections)
         for socket in con:
@@ -195,16 +201,6 @@ class ConnectServer:
         if self._server:
             self._server.close()
             self._server = None
-            
-        for peer_id in tuple(self._mouse_pointer_models.keys()):
-            self._remove_pointer_model(peer_id)
-            
-    def _socket_error(self, error_type, socket):
-        self._session.logger.info('Socket error %s' % socket.errorString())
-        if self._server is None:
-            self.close_all_connections()
-        else:
-            self._socket_closed(socket)
         
     def _new_connection(self):
         s = self._server
@@ -215,58 +211,33 @@ class ConnectServer:
     def _add_connection(self, socket):
         socket.disconnected.connect(self._disconnected)
         self._connections.append(socket)
-        socket.readyRead.connect(lambda self=self, socket=socket: self._message_received(socket))
-        t = self._session.triggers
-        if self._mouse_hover_handler is None:
-            self._mouse_hover_handler = t.add_handler('mouse hover', self._mouse_hover_cb)
-        if self._server is None:
-            pass
-            # TODO: Set new frame trigger and send pointer position updates.
-            # TODO: For non-vr send pointer position for mouse hover.
 
-    def _disconnected(self):
-        con = []
-        from PyQt5.QtNetwork import QAbstractSocket
-        for c in self._connections:
-            if c.state() == QAbstractSocket.ConnectedState:
-                con.append(c)
-            else:
-                self._socket_closed(c)
-        self._connections = con
+        # Register callback called when data available to read on socket.
+        def read_socket(self=self, socket=socket):
+            self._message_received(socket)
+        socket.readyRead.connect(read_socket)
+
+        self._initiate_tracking()
+
+    def _initiate_tracking(self):
+        if not self._trackers:
+            s = self._session
+            self._trackers = [MouseTracking(s, self)]
+#                              VRTracking(s, self)
 
     def _message_received(self, socket):
-        msg_data = self._decode_socket_message(socket)
-        if msg_data is None:
+        msg = self._decode_socket_message(socket)
+        if msg is None:
             return  # Did not get full message yet.
-        peer_id = msg_data['id'] if 'id' in msg_data else self._peer_id(socket)
-        self._update_mouse_pointer_model(peer_id, msg_data)
+        if 'id' not in msg:
+            msg['id'] = self._peer_id(socket)
+        for t in self._trackers:
+            t.update_model(msg)
+        self._relay_message(msg)
 
-        self._relay_message(peer_id, msg_data)
-
-    def _update_mouse_pointer_model(self, peer_id, msg_data):
-        m = self._mouse_pointer_model(peer_id)
-        if 'name' in msg_data:
-            m.name = '%s pointer' % msg_data['name']
-        if 'color' in msg_data:
-            m.color = msg_data['color']
-        if 'mouse' in msg_data:
-            xyz, axis = msg_data['mouse']
-            from chimerax.core.geometry import vector_rotation, translation
-            p = translation(xyz) * vector_rotation((0,0,1), axis)
-            m.position = p
-
-    def _mouse_hover_cb(self, trigger_name, xyz):
-        axis = self._session.main_view.camera.view_direction()
-        msg = {'mouse': (tuple(xyz), tuple(axis)),
-               'color': tuple(self._color),
-               }
-        # Update my own mouse pointer
-        my_id = 0 if self._server else -1
-        self._update_mouse_pointer_model(my_id, msg)
-        msg['name'] = self._name
-        if self._server:
+    def _send_message(self, msg):
+        if 'id' not in msg and self._server:
             msg['id'] = 0
-        # Tell connected peers my new mouse pointer position.
         ba = self._encode_message_data(msg)
         for socket in self._connections:
             socket.write(ba)
@@ -316,16 +287,105 @@ class ConnectServer:
         msg_data = ast.literal_eval(msg)
         return msg_data
 
-    def _relay_message(self, peer_id, msg_data):
+    def _relay_message(self, msg):
         if len(self._connections) <= 1 or self._server is None:
             return
-        msg_data['id'] = peer_id
-        msg = self._encode_message_data(msg_data)
+        emsg = self._encode_message_data(msg)
         for socket, pid in self._peer_ids.items():
-            if pid != peer_id:
-                socket.write(msg)
+            if pid != msg['id']:
+                socket.write(emsg)
+
+    def _peer_id(self, socket):
+        pids = self._peer_ids
+        if socket in pids:
+            pid = pids[socket]
+        else:
+            pids[socket] = pid = self._next_peer_id
+            self._next_peer_id += 1
+        return pid
             
-    def _mouse_pointer_model(self, peer_id):
+    def _socket_error(self, error_type, socket):
+        self._session.logger.info('Socket error %s' % socket.errorString())
+        if self._server is None:
+            self.close_all_connections()
+        else:
+            self._socket_closed(socket)
+
+    def _disconnected(self):
+        con = []
+        from PyQt5.QtNetwork import QAbstractSocket
+        for c in self._connections:
+            if c.state() == QAbstractSocket.ConnectedState:
+                con.append(c)
+            else:
+                self._socket_closed(c)
+        self._connections = con
+
+    def _socket_closed(self, socket):
+        if socket in self._peer_ids:
+            peer_id = self._peer_id(socket)
+            del self._peer_ids[socket]
+            for t in self._trackers:
+                t.remove_model(peer_id)
+        if socket in self._message_buffer:
+            del self._message_buffer[socket]
+        self._session.logger.status('Disconnected connection from %s:%d'
+                                    % (socket.peerAddress().toString(), socket.peerPort()))
+
+class MouseTracking:
+    def __init__(self, session, connect):
+        self._session = session
+        self._connect = connect		# ConnectServer instance
+        t = session.triggers
+        self._mouse_hover_handler = t.add_handler('mouse hover', self._mouse_hover_cb)
+        self._mouse_pointer_models = {}	# Map peer id to pointer model
+
+    def delete(self):
+        t = self._session.triggers
+        t.remove_handler(self._mouse_hover_handler)
+        self._mouse_hover_handler = None
+
+        for peer_id in tuple(self._mouse_pointer_models.keys()):
+            self._remove_pointer_model(peer_id)
+
+    def update_model(self, msg):
+        self._update_mouse_pointer_model(msg)
+
+    def remove_model(self, peer_id):
+        self._remove_pointer_model(peer_id)
+
+    def _mouse_hover_cb(self, trigger_name, xyz):
+        c = self._session.main_view.camera
+        from chimerax.vive.vr import SteamVRCamera
+        if isinstance(c, SteamVRCamera):
+            return
+
+        axis = c.view_direction()
+        msg = {'name': self._connect._name,
+               'color': tuple(self._connect._color),
+               'mouse': (tuple(xyz), tuple(axis)),
+               }
+
+        # Update my own mouse pointer position
+        self._update_mouse_pointer_model(msg)
+
+        # Tell connected peers my new mouse pointer position.
+        self._connect._send_message(msg)
+
+    def _update_mouse_pointer_model(self, msg):
+        m = self._mouse_pointer_model(msg.get('id'))
+        if 'name' in msg:
+            if 'id' in msg:  # If id not in msg leave name as "my pointer".
+                m.name = '%s pointer' % msg['name']
+        if 'color' in msg:
+            m.color = msg['color']
+        if 'mouse' in msg:
+            xyz, axis = msg['mouse']
+            from chimerax.core.geometry import vector_rotation, translation
+            p = translation(xyz) * vector_rotation((0,0,1), axis)
+            m.position = p
+            
+    def _mouse_pointer_model(self, peer_id = None):
         mpm = self._mouse_pointer_models
         if peer_id in mpm:
             return mpm[peer_id]
@@ -344,28 +404,54 @@ class ConnectServer:
 
         return m
 
-    def _peer_id(self, socket):
-        pids = self._peer_ids
-        if socket in pids:
-            pid = pids[socket]
-        else:
-            pids[socket] = pid = self._next_peer_id
-            self._next_peer_id += 1
-        return pid
-
-    def _socket_closed(self, socket):
-        if socket in self._peer_ids:
-            peer_id = self._peer_id(socket)
-            del self._peer_ids[socket]
-            self._remove_pointer_model(peer_id)
-        if socket in self._message_buffer:
-            del self._message_buffer[socket]
-        self._session.logger.status('Disconnected connection from %s:%d'
-                                    % (socket.peerAddress().toString(), socket.peerPort()))
-
     def _remove_pointer_model(self, peer_id):
         mpm = self._mouse_pointer_models
         if peer_id in mpm:
             m = mpm[peer_id]
             del mpm[peer_id]
             self._session.models.close([m])
+
+class VRTracking:
+    def __init__(self, session, connect):
+        self._session = session
+        self._connect = connect		# ConnectServer instance
+        t = session.triggers
+        self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
+        self._vr_update_interval = 9	# Send vr position every N frames.
+
+    def delete(self):
+        t = self._session.triggers
+        t.remove_handler(self._vr_tracking_handler)
+        self._vr_tracking_handler = None
+
+        for peer_id in tuple(self._vr_pointer_models.keys()):
+            self._remove_pointer_model(peer_id)
+
+    def update_model(self, msg):
+        pass
+
+    def remove_model(self, peer_id):
+        pass
+
+    def _vr_tracking_cb(self, trigger_name, frame):
+        c = self._session.main_view.camera
+        from chimerax.vive.vr import SteamVRCamera
+        if not isinstance(c, SteamVRCamera):
+            return
+        if frame % self._vr_update_interval != 0:
+            return
+
+        msg = {'name': self._name,
+               'color': tuple(self._color),
+               'vr head': _place_matrix(c.position),
+               'vr coords': _place_matrix(c.scene_to_room),
+               }
+        for i,h in enumerate(c._controller_models):
+            msg['vr hand %d' % (i+1)] = _place_matrix(h.position)
+
+        # Tell connected peers my new vr state
+        self._send_message(msg)
+
+def _place_matrix(p):
+    '''Encode Place as tuple for sending over socket.'''
+    return tuple(tuple(row) for row in p.matrix)
