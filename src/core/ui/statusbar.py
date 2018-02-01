@@ -40,7 +40,12 @@ class _StatusBarOpenGL:
     def destroy(self):
         self.widget.destroy()
         self.widget = None
-        self._opengl_context = None
+
+        for attr in ('_drawing', '_drawing2', '_opengl_context', '_renderer'):
+            v = getattr(self, attr)
+            if v is not None:
+                v.delete()
+                setattr(self, attr, None)
         
     def _make_widget(self):
         from PyQt5.QtWidgets import QStatusBar, QSizePolicy, QWidget

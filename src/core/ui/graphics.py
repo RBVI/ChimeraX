@@ -151,8 +151,14 @@ class OpenGLContext(QOpenGLContext):
         QOpenGLContext.__init__(self, graphics_window)
         self._context_initialized = False
         self._initialize_failed = False
+        self._deleted = False
 
     def __del__(self):
+        if not self._deleted:
+            self.delete()
+
+    def delete(self):
+        self._deleted = True
         self.deleteLater()
 
     def make_current(self, window = None):
