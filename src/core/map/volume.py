@@ -1953,10 +1953,7 @@ class Volume(Model):
     set_map_state(data['volume state'], v)
     show_volume_dialog(session)
     return v
-
-  def reset_state(self, session):
-    pass
-    
+ 
 # -----------------------------------------------------------------------------
 #
 def maps_pickable(session, pickable):
@@ -3147,9 +3144,6 @@ class MapChannelsModel(Model, MapChannels):
     
     return c
 
-  def reset_state(self):
-    pass
-
 # -----------------------------------------------------------------------------
 #
 class MultiChannelSeries(Model):
@@ -3194,9 +3188,6 @@ class MultiChannelSeries(Model):
     session.triggers.add_handler('end restore session', restore_maps)
     
     return mcs
-
-  def reset_state(self):
-    pass
   
 # -----------------------------------------------------------------------------
 #
