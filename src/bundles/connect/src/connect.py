@@ -171,8 +171,10 @@ class ConnectServer:
     def _available_server_ipv4_addresses(self):
         from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
         a = [ha for ha in QNetworkInterface.allAddresses()
-             if not ha.isLoopback() and not ha.isNull() and
-             ha.protocol() == QAbstractSocket.IPv4Protocol]
+             if not ha.isLoopback()
+             and not ha.isNull()
+             and ha.protocol() == QAbstractSocket.IPv4Protocol
+             and not ha.toString().startswith('169.254')] # Exclude link-local addresses
         return a
             
     def connect(self, ip_address, port = port):
