@@ -482,15 +482,18 @@ from chimerax.core.models import Model
 class VRPointerModel(Model):
     def __init__(self, session, name, color = (0,255,0,255), sync_coords = True):
         Model.__init__(self, name, session)
-        self._head = VRHeadModel(session)
+        self._head = h = VRHeadModel(session)
+        self.add([h])
         self._hands = []
         self._color = color
         self._sync_coords = sync_coords
 
     def _hand_models(self, nhands):
-        while len(self._hands) < nhands:
-            name = 'hand %d' % (len(self._hands)+1)
-            self._hands.append(VRHandModel(session, name, color=self._color))
+        new_hands = [VRHandModel(self.session, 'hand %d' % (i+1), color=self._color)
+                     for i in range(len(self._hands), nhands)]
+        if new_hands:
+            self.add(new_hands)
+            self._hands.extend(new_hands)
         return self._hands[:nhands]
 
     def update_pointer(self, msg):
@@ -509,7 +512,7 @@ class VRPointerModel(Model):
             for h,hm in zip(self._hand_models(len(hpos)), hpos):
                 h.position = Place(matrix = hm)
         if 'vr coord' in msg and self._sync_coords:
-            c = self._session.main_view.camera
+            c = self.session.main_view.camera
             from chimerax.vive.vr import SteamVRCamera
             if isinstance(c, SteamVRCamera):
                 from chimerax.core.geometry import Place
@@ -534,7 +537,6 @@ class VRHeadModel(Model):
         r = size / 2
         from chimerax.core.surface import box_geometry
         va, na, ta = box_geometry((-r,-r,-r), (r,r,r))
-        va[:,2] -= 0.5*height	# Place tip of cone at origin
         self.vertices = va
         self.normals = na
         self.triangles = ta
