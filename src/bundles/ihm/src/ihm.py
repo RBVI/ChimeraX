@@ -1159,7 +1159,7 @@ class FileDataSet(DataSet):
         if open_model:
             fs = finfo.stream(session)
             if fs:
-                models, msg = open_model(session, fs, finfo.file_name, auto_style = False)
+                models, msg = open_model(session, fs, finfo.file_name, auto_style = False, log_info = False)
                 fs.close()
             else:
                 models = []
@@ -1193,7 +1193,7 @@ class DatabaseDataSet(DataSet):
     def models(self, session):
         if self.db_name == 'PDB' and self.db_code != '?':
             from chimerax.core.atomic.mmcif import fetch_mmcif
-            models, msg = fetch_mmcif(session, self.db_code, auto_style = False)
+            models, msg = fetch_mmcif(session, self.db_code, auto_style = False, log_info = False)
         else:
             models = []
         return models
