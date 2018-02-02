@@ -949,7 +949,7 @@ class PseudobondManager(State):
         obj_map = {}
         for ptr, ses_id in ptr_map.items():
             # shouldn't be _creating_ any objects, so pass None as the type
-            obj_map[ses_id] = _pbgroup_ptr_to_existing_inst(ptr)
+            obj_map[ses_id] = PseudobondGroup.c_ptr_to_py_inst(ptr)
         data = {'version': version,
                 'mgr data':retvals,
                 'structure mapping': obj_map}
