@@ -57,6 +57,7 @@ class IHMModel(Model):
         name = splitext(basename(filename))[0]
         self._file_info = None
         self._data_sets = None	# Map dataset_list_id to DataSet
+        self._asym_colors = self._asym_colors8 = None
 
         Model.__init__(self, name, session)
 
@@ -220,6 +221,39 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
+    def asym_colors(self):
+        '''
+        Use the standard ChimeraX chain color based on chain id, but color chains
+        with the same entity using the same color as the first chain id for that entity.
+        '''
+        if self._asym_colors is not None:
+            return self._asym_colors
+        
+        easyms = {}
+        for asym_id, ename in self.asym_entity_names().items():
+            easyms.setdefault(ename,[]).append(asym_id)
+
+        self._asym_colors = asym_colors = {}
+        from chimerax.core.atomic.colors import chain_rgba
+        for asym_ids in easyms.values():
+            color = chain_rgba(asym_ids[0])
+            for asym_id in asym_ids:
+                asym_colors[asym_id] = color
+
+        return asym_colors
+
+    # -----------------------------------------------------------------------------
+    #
+    def asym_colors8(self):
+        if self._asym_colors8 is not None:
+            return self._asym_colors8
+        from chimerax.core.colors import rgba_to_rgba8
+        self._asym_colors8 = {asym_id:rgba_to_rgba8(color)
+                              for asym_id, color in self.asym_colors().items()}
+        return self._asym_colors8
+
+    # -----------------------------------------------------------------------------
+    #
     def asym_detail_text(self):
         sat = self.tables['struct_asym']
         sa_fields = [
@@ -282,6 +316,7 @@ class IHMModel(Model):
                   'starting_model_auth_asym_id', 'dataset_list_id']
         rows = starting_models.fields(fields, allow_missing_fields = True)
 
+        asym_colors = self.asym_colors8()
         for asym_id, seq_beg, seq_end, source, auth_asym_id, did in rows:
             if source != 'experimental model':
                 continue
@@ -292,7 +327,7 @@ class IHMModel(Model):
             for m in models:
                 keep_one_chain(m, auth_asym_id)
                 m.name += ' ' + auth_asym_id
-                show_colored_ribbon(m, asym_id)
+                show_colored_ribbon(m, asym_colors.get(asym_id))
             xmodels.extend(models)
             for m in models:
                 m.asym_id = asym_id
@@ -340,6 +375,7 @@ class IHMModel(Model):
         rows = sm_table.fields(fields, allow_missing_fields = True)
         # TODO: Starting model can appear multiple times in table, with different sequence ranges.  Seems wrong.
         smfound = set()
+        asym_colors = self.asym_colors8()
         for smid, asym_id, data_type, auth_asym_id, did in rows:
             if data_type != 'comparative model':
                 continue
@@ -356,7 +392,7 @@ class IHMModel(Model):
                 m.dataset_id = did
                 m.asym_id = asym_id
                 m.comparative_model = True
-                show_colored_ribbon(m, asym_id)
+                show_colored_ribbon(m, asym_colors.get(asym_id))
             lmodels.extend(models)
       
         return lmodels
@@ -390,6 +426,7 @@ class IHMModel(Model):
 
         from collections import OrderedDict
         alignments = OrderedDict()  # Sequence alignments for comparative models
+        asym_colors = self.asym_colors8()
         for sm_id, auth_asym_id, tseq_beg, tseq_end, tdid, alignment_file_id in rows:
             d = self.data_set(tdid, 'ihm_starting_comparative_models')
             if d is None:
@@ -400,6 +437,7 @@ class IHMModel(Model):
             asym_id, seq_beg, seq_end, cdid = smdetails[sm_id]
             tm = TemplateModel(self.session, asym_id, int(seq_beg), int(seq_end),
                                auth_asym_id, int(tseq_beg), int(tseq_end), d)
+            tm.base_color = asym_colors[asym_id]
             tmodels.append(tm)
             if alignment_file_id != '.':
                 sfinfo = self.file_info(alignment_file_id)
@@ -499,6 +537,7 @@ class IHMModel(Model):
         # Associate entity names with asym ids.
         anames = self.asym_entity_names()
         adetail = self.asym_detail_text()
+        asym_colors = self.asym_colors8()
 
         smodels = []
         for g in gs:
@@ -507,7 +546,7 @@ class IHMModel(Model):
                 # For groups with matching residue / atom names use coordinate set.
                 mid, slist = ms[0]
                 mname = mnames.get(mid, 'sphere model')
-                sm = SphereModel(self.session, mname, mid, slist, anames, adetail)
+                sm = SphereModel(self.session, mname, mid, slist, anames, adetail, asym_colors)
                 sm.ihm_group_id = g
                 for mid, slist in ms[1:]:
                     sm.add_coordinates(mid, slist)
@@ -518,7 +557,7 @@ class IHMModel(Model):
                 # Make separate sphere models, do not use coordinate sets.
                 for i, (mid, slist) in enumerate(ms):
                     mname = mnames.get(mid, 'sphere model')
-                    sm = SphereModel(self.session, mname, mid, slist, anames, adetail)
+                    sm = SphereModel(self.session, mname, mid, slist, anames, adetail, asym_colors)
                     sm.ihm_group_id = g
                     sm.display = (i == 0)            # Undisplay all but first sphere model in each group
                     smodels.append(sm)
@@ -919,8 +958,8 @@ class IHMModel(Model):
             ens.setdefault(ensemble_id, []).append((asym_id, file_id))
 
         pmods = []
+        asym_colors = self.asym_colors()
         from chimerax.core.map.volume import open_map
-        from chimerax.core.atomic.colors import chain_rgba
         from os.path import join
         for ensemble_id in sorted(ens.keys()):
             asym_loc = ens[ensemble_id]
@@ -945,7 +984,7 @@ class IHMModel(Model):
                     continue
                 maps,msg = open_map(self.session, map_path, show = False, show_dialog=False)
                 asym_id = fasyms[file_id][0]
-                color = chain_rgba(asym_id)[:3] + (opacity,)
+                color = asym_colors[asym_id][:3] + (opacity,)
                 v = maps[0]
                 ms = v.matrix_value_statistics()
                 vlev = ms.mass_rank_data_value(level)
@@ -998,8 +1037,8 @@ class IHMModel(Model):
 
         # Compute probability volume models
         pmods = []
+        asym_colors = self.asym_colors()
         from chimerax.core.map import volume_from_grid_data
-        from chimerax.core.atomic.colors import chain_rgba
 
         for ensemble_id in sorted(cov.keys()):
             asym_gaussians = cov[ensemble_id]
@@ -1010,7 +1049,7 @@ class IHMModel(Model):
             for asym_id in sorted(asym_gaussians.keys()):
                 g = probability_grid(asym_gaussians[asym_id])
                 g.name = '%s Gaussians' % asym_id
-                g.rgba = chain_rgba(asym_id)[:3] + (opacity,)
+                g.rgba = asym_colors[asym_id][:3] + (opacity,)
                 v = volume_from_grid_data(g, self.session, open_model = False, show_dialog = False)
                 v.initialize_thresholds()
                 ms = v.matrix_value_statistics()
@@ -1402,6 +1441,7 @@ class TemplateModel(Model):
         self.template_seq_begin, self.template_seq_end = template_seq_begin, template_seq_end
         self.data_set = data_set    		# Template model database reference or file
         self.sequence_alignment_model = None
+        self.base_color = (200,200,200,255)
         
     def _get_display(self):
         return False
@@ -1423,7 +1463,7 @@ class TemplateModel(Model):
             m.sequence_alignment_name = sa_name
             m.asym_id = self.asym_id
             keep_one_chain(m, self.template_asym_id)
-            show_colored_ribbon(m, self.asym_id, color_offset = 80)
+            show_colored_ribbon(m, self.base_color, color_offset = 80)
             if i == 0:
                 m.id = self.id
 
@@ -1601,14 +1641,13 @@ def align_template_models(session, comparative_models):
 
 # -----------------------------------------------------------------------------
 #
-def show_colored_ribbon(m, asym_id, color_offset = None):
-    if asym_id is None:
+def show_colored_ribbon(m, color = None, color_offset = None):
+    if color is None:
         from numpy import random, uint8
         color = random.randint(128,255,(4,),uint8)
         color[3] = 255
     else:
-        from chimerax.core.atomic.colors import chain_rgba8
-        color = chain_rgba8(asym_id)
+        color = list(color)
         if color_offset:
             from numpy.random import randint
             offset = randint(-color_offset,color_offset,(3,))
@@ -1675,13 +1714,14 @@ def ensemble_sphere_lookup(emodel, smodel):
 from chimerax.core.atomic import Structure
 class SphereModel(Structure):
     def __init__(self, session, name, ihm_model_id,
-                 sphere_list = None, entity_names = {}, asym_detail_text = {},
+                 sphere_list = None, entity_names = {}, asym_detail_text = {}, asym_colors = {},
                  c_pointer = None, auto_style = False, log_info = False):
         Structure.__init__(self, session, name = name,
                            auto_style = auto_style, log_info = log_info,
                            c_pointer = c_pointer)
         self.ihm_model_ids = [ihm_model_id]
         self.ihm_group_id = None
+        self._asym_colors = asym_colors
         
         self._asym_models = {}
         self._sphere_atom = {}	# (asym_id, res_num) -> sphere atom
@@ -1705,7 +1745,9 @@ class SphereModel(Structure):
         polymers = []
         pbg = self.pseudobond_group('missing structure')
         sa = self._sphere_atom
+        asym_colors = self._asym_colors
         for asym_id, aspheres in asym_spheres.items():
+            color = asym_colors.get(asym_id, (200,200,200,255))
             last_atom = None
             polymer = []
             for (sb,se,xyz,r) in aspheres:
@@ -1714,7 +1756,7 @@ class SphereModel(Structure):
                 a.coord = xyz
                 a.radius = r
                 a.draw_mode = a.SPHERE_STYLE
-                a.color = colors.chain_rgba8(asym_id)
+                a.color = color
                 rname = ''
                 # Convention on ensemble PDB files is beads get middle residue number of range
                 rnum = sb
