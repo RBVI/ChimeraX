@@ -22,7 +22,7 @@ import weakref
 import numpy
 from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.core.surface import box_geometry, sphere_geometry2, cylinder_geometry
-from chimerax.core.state import State, RestoreError
+from chimerax.core.state import State, StateManager, RestoreError
 from chimerax.core.atomic import Residues, Atoms, Sequence, Pseudobonds
 nucleic3to1 = Sequence.nucleic3to1
 
@@ -439,7 +439,7 @@ class Params(State):
             setattr(self, k, v)
 
 
-class NucleotideState(State):
+class NucleotideState(StateManager):
 
     def __init__(self, session):
         self.structures = weakref.WeakSet()

@@ -275,8 +275,6 @@ class Collection(State):
                              " update your ChimeraX".format(data['version'], self.STATE_VERSION))
         c_pointers = cls.session_restore_pointers(session, data['pointers'])
         return cls(c_pointers)
-    def reset_state(self, session):
-        self._pointers = numpy.empty((0,), cptr)
     @classmethod
     def session_restore_pointers(cls, session, data):
         raise NotImplementedError(

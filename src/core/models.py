@@ -19,7 +19,7 @@ models: Displayed data
 
 import weakref
 from .graphics.drawing import Drawing
-from .state import State, CORE_STATE_VERSION
+from .state import State, StateManager, CORE_STATE_VERSION
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 MODEL_DISPLAY_CHANGED = 'model display changed'
@@ -203,9 +203,6 @@ class Model(State, Drawing):
         if 'display_positions' in data:
             self.display_positions = data['display_positions']
 
-    def reset_state(self, session):
-        pass
-
     def selected_items(self, itype):
         return []
 
@@ -246,7 +243,7 @@ class Model(State, Drawing):
         return True
 
 
-class Models(State):
+class Models(StateManager):
 
     def __init__(self, session):
         self._session = weakref.ref(session)

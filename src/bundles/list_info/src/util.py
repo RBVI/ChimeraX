@@ -202,9 +202,6 @@ def closing(thing):
 
 class RESTTransaction(Task):
 
-    def reset_state(self, session):
-        pass
-
     def run(self, url, msg):
         from urllib.parse import urlencode
         from urllib.request import urlopen, URLError

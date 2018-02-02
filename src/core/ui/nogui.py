@@ -219,9 +219,6 @@ class _Input(Task):
     #
     # Required State methods, do nothing
     #
-    def reset_state(self, session):
-        pass
-
     def take_snapshot(self, session, flags):
         return
 
