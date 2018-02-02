@@ -1051,7 +1051,7 @@ class FileInfo:
 
     def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
-        if r is None or r.ref == '.':
+        if r is None or r.ref_type == 'Supplementary Files':
             # Local file
             from os.path import join
             path = join(self.ihm_dir, self.file_path)
