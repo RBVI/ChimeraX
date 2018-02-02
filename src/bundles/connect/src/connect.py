@@ -441,7 +441,7 @@ class VRTracking(PointerModels):
         t = session.triggers
         self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
         self._vr_update_interval = 9	# Send vr position every N frames.
-        self._last_scene_to_room = None
+        self._last_room_to_scene = None
 
     def delete(self):
         t = self._session.triggers
@@ -457,12 +457,13 @@ class VRTracking(PointerModels):
     def make_pointer_model(self, session):
         return VRPointerModel(self._session, 'vr head and hands')
 
-    def _vr_tracking_cb(self, trigger_name, frame):
-        c = self._session.main_view.camera
+    def _vr_tracking_cb(self, trigger_name, *unused):
+        v = self._session.main_view
+        c = v.camera
         from chimerax.vive.vr import SteamVRCamera
         if not isinstance(c, SteamVRCamera):
             return
-        if frame % self._vr_update_interval != 0:
+        if v.frame_number % self._vr_update_interval != 0:
             return
 
         msg = {'name': self._connect._name,
@@ -470,12 +471,12 @@ class VRTracking(PointerModels):
                'vr head': _place_matrix(c.position),
                'vr hands': [_place_matrix(h.position) for h in c._controller_models],
                }
-        if c.scene_to_room is not self._last_scene_to_room:
-            msg['vr coords'] = _place_matrix(c.scene_to_room)
-            self._last_scene_to_room = c.scene_to_room
+        if c.room_to_scene is not self._last_room_to_scene:
+            msg['vr coords'] = _place_matrix(c.room_to_scene)
+            self._last_room_to_scene = c.room_to_scene
 
         # Tell connected peers my new vr state
-        self._send_message(msg)
+        self._connect._send_message(msg)
 
 from chimerax.core.models import Model
 class VRPointerModel(Model):
@@ -512,8 +513,8 @@ class VRPointerModel(Model):
             from chimerax.vive.vr import SteamVRCamera
             if isinstance(c, SteamVRCamera):
                 from chimerax.core.geometry import Place
-                c.scene_to_room = Place(matrix = msg['vr coord'])
-                self._last_scene_to_room = c.scene_to_room
+                c.room_to_scene = Place(matrix = msg['vr coord'])
+                self._last_room_to_scene = c.room_to_scene
 
 class VRHandModel(Model):
     def __init__(self, session, name, radius = 1, height = 3, color = (0,255,0,255)):
