@@ -390,9 +390,6 @@ class ObjectLabels(Model):
             ld[o] = ol = cls(o, v, **kw)
             self.add_drawing(ol)
 
-    def reset_state(self, session):
-        pass
-
 # -----------------------------------------------------------------------------
 #
 def label_class(object):

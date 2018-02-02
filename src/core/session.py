@@ -27,10 +27,11 @@ Possible uses of multiple sessions include:
 one session per tabbed graphics window,
 or for comparing two sessions.
 
-Session data, ie., data that is archived, uses the :py:class:`State` API.
+Session data, ie., data that is archived, uses the :py:class:`State` and
+:py:class:`StateManager` API.
 """
 
-from .state import RestoreError, State, copy_state, dereference_state
+from .state import RestoreError, State, StateManager, copy_state, dereference_state
 from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, commas, plural_form
 from .errors import UserError
 
@@ -330,7 +331,7 @@ class Session:
     the session, e.g., a thumbnail, a description, the author, etc.
     See :py:func:`standard_metadata`.
 
-    Attributes that support the :py:class:`State` API are automatically added as state managers
+    Attributes that support the :py:class:`StateManager` API are automatically added as state managers
     (e.g. the session's add_state_manager method is called with the 'tag' argument
     the same as the attribute name).
     Conversely, deleting the attribute will call remove_state_manager.
@@ -395,7 +396,7 @@ class Session:
         self.session_file_path = None
         for tag in self._state_containers:
             container = self._state_containers[tag]
-            sm = self.snapshot_methods(container)
+            sm = self.snapshot_methods(container, type=StateManager)
             if sm:
                 sm.reset_state(container, self)
             else:
@@ -425,12 +426,14 @@ class Session:
     def remove_state_manager(self, tag):
         del self._state_containers[tag]
 
-    def snapshot_methods(self, object, instance=True):
-        """Return an object having take_snapshot() and restore_snapshot() methods for the given object.
-        Can return if no save/restore methods are available, for instance for primitive types.
+    def snapshot_methods(self, object, instance=True, type=State):
+        """Return an object having take_snapshot(), restore_snapshot(),
+        and reset_state() methods for the given object.
+        Can return None if no save/restore methods are available,
+        for instance for primitive types.
         """
         cls = object.__class__ if instance else object
-        if issubclass(cls, State):
+        if issubclass(cls, type):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
             from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material, ClipPlane, Drawing

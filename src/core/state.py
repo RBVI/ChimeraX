@@ -21,7 +21,7 @@ class RestoreError(RuntimeError):
     pass
 
 
-class State(metaclass=abc.ABCMeta):
+class State:
     """Session state API for classes that support saving session state
 
     Session state consists only of "simple" types, i.e.,
@@ -57,12 +57,6 @@ class State(metaclass=abc.ABCMeta):
         obj.__dict__ = data
         return obj
 
-    def reset_state(self, session):
-        """Reset state to data-less state
-
-        Should be overriden by state managers."""
-        pass
-
     # possible animation API
     # include here to emphasize that state aware code
     # needs to support animation
@@ -72,6 +66,14 @@ class State(metaclass=abc.ABCMeta):
     #    # transition would be method to get to given frame that might need
     #    #   look at several scenes
     #    pass
+
+
+class StateManager(State, metaclass=abc.ABCMeta):
+
+    @abc.abstractmethod
+    def reset_state(self, session):
+        """Reset state to data-less state"""
+        pass
 
 
 class FinalizedState:

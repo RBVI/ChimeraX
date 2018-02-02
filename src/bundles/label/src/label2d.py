@@ -123,10 +123,10 @@ def register_label_command(logger):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.state import State
-class Labels(State):
+from chimerax.core.state import StateManager
+class Labels(StateManager):
     def __init__(self):
-        State.__init__(self)
+        StateManager.__init__(self)
         self.labels = {}	# Map label name to Label object
 
     def add(self, label):

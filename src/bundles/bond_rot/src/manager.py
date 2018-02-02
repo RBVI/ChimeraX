@@ -14,8 +14,8 @@
 class BondRotationError(Exception):
     pass
 
-from chimerax.core.state import State
-class BondRotationManager(State):
+from chimerax.core.state import StateManager
+class BondRotationManager(StateManager):
     """Manager for bond rotations"""
     CREATED, MODIFIED, REVERSED, DELETED = trigger_names = ("created", "modified",
         "reversed", "deleted")

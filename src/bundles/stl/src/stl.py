@@ -66,9 +66,6 @@ class TriangleInfo(State):
     def restore_snapshot(session, data):
         return TriangleInfo(data['stl model'], data['triangle index'])
 
-    def reset_state(self, session):
-        pass
-
 
 def read_stl(session, filename, name):
     """Populate the scene with the geometry from a STL file
