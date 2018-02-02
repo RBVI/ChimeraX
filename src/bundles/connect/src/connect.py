@@ -222,8 +222,8 @@ class ConnectServer:
     def _initiate_tracking(self):
         if not self._trackers:
             s = self._session
-            self._trackers = [MouseTracking(s, self)]
-#                              VRTracking(s, self)
+            self._trackers = [MouseTracking(s, self),
+                              VRTracking(s, self)]
 
     def _message_received(self, socket):
         msg = self._decode_socket_message(socket)
@@ -332,27 +332,62 @@ class ConnectServer:
         self._session.logger.status('Disconnected connection from %s:%d'
                                     % (socket.peerAddress().toString(), socket.peerPort()))
 
-class MouseTracking:
-    def __init__(self, session, connect):
+class PointerModels:
+    '''Manage mouse or VR pointer models for all connected hosts.'''
+    def __init__(self, session):
         self._session = session
+        self._pointer_models = {}	# Map peer id to MousePointerModel
+
+    def delete(self):
+        for peer_id in tuple(self._pointer_models.keys()):
+            self.remove_model(peer_id)
+
+    def pointer_model(self, peer_id = None):
+        pm = self._pointer_models
+        if peer_id in pm:
+            m = pm[peer_id]
+        else:
+            m = self.make_pointer_model(self._session)
+            self._session.models.add([m])
+            pm[peer_id] = m
+        return m
+
+    def make_pointer_model(self, session):
+        # Must be defined by subclass.
+        pass
+
+    def update_model(self, msg):
+        m = self.pointer_model(msg.get('id'))
+        m.update_pointer(msg)
+
+    def remove_model(self, peer_id):
+        pm = self._pointer_models
+        if peer_id in pm:
+            m = pm[peer_id]
+            del pm[peer_id]
+            self._session.models.close([m])
+
+class MouseTracking(PointerModels):
+    def __init__(self, session, connect):
+        PointerModels.__init__(self, session)
         self._connect = connect		# ConnectServer instance
+
         t = session.triggers
         self._mouse_hover_handler = t.add_handler('mouse hover', self._mouse_hover_cb)
-        self._mouse_pointer_models = {}	# Map peer id to pointer model
 
     def delete(self):
         t = self._session.triggers
         t.remove_handler(self._mouse_hover_handler)
         self._mouse_hover_handler = None
 
-        for peer_id in tuple(self._mouse_pointer_models.keys()):
-            self._remove_pointer_model(peer_id)
+        PointerModels.delete(self)
 
     def update_model(self, msg):
-        self._update_mouse_pointer_model(msg)
+        if 'mouse' in msg:
+            PointerModels.update_model(self, msg)
 
-    def remove_model(self, peer_id):
-        self._remove_pointer_model(peer_id)
+    def make_pointer_model(self, session):
+        return MousePointerModel(self._session, 'my pointer')
 
     def _mouse_hover_cb(self, trigger_name, xyz):
         c = self._session.main_view.camera
@@ -367,71 +402,58 @@ class MouseTracking:
                }
 
         # Update my own mouse pointer position
-        self._update_mouse_pointer_model(msg)
+        self.update_model(msg)
 
         # Tell connected peers my new mouse pointer position.
         self._connect._send_message(msg)
 
-    def _update_mouse_pointer_model(self, msg):
-        m = self._mouse_pointer_model(msg.get('id'))
+from chimerax.core.models import Model
+class MousePointerModel(Model):
+    def __init__(self, session, name, radius = 1, height = 3, color = (0,255,0,255)):
+        Model.__init__(self, name, session)
+        from chimerax.core.surface import cone_geometry
+        va, na, ta = cone_geometry(radius = radius, height = height)
+        va[:,2] -= 0.5*height	# Place tip of cone at origin
+        self.vertices = va
+        self.normals = na
+        self.triangles = ta
+        self.color = color
+
+    def update_pointer(self, msg):
         if 'name' in msg:
             if 'id' in msg:  # If id not in msg leave name as "my pointer".
-                m.name = '%s pointer' % msg['name']
+                self.name = '%s pointer' % msg['name']
         if 'color' in msg:
-            m.color = msg['color']
+            self.color = msg['color']
         if 'mouse' in msg:
             xyz, axis = msg['mouse']
             from chimerax.core.geometry import vector_rotation, translation
             p = translation(xyz) * vector_rotation((0,0,1), axis)
-            m.position = p
-            
-    def _mouse_pointer_model(self, peer_id = None):
-        mpm = self._mouse_pointer_models
-        if peer_id in mpm:
-            return mpm[peer_id]
+            self.position = p
 
-        from chimerax.core.models import Model
-        mpm[peer_id] = m = Model('my pointer', self._session)
-        from chimerax.core.surface import cone_geometry
-        h = 3
-        va, na, ta = cone_geometry(radius = 1, height = h)
-        va[:,2] -= 0.5*h	# Place tip of cone at origin
-        m.vertices = va
-        m.normals = na
-        m.triangles = ta
-        m.color = (0,255,0,255)
-        self._session.models.add([m])
-
-        return m
-
-    def _remove_pointer_model(self, peer_id):
-        mpm = self._mouse_pointer_models
-        if peer_id in mpm:
-            m = mpm[peer_id]
-            del mpm[peer_id]
-            self._session.models.close([m])
-
-class VRTracking:
+class VRTracking(PointerModels):
     def __init__(self, session, connect):
-        self._session = session
+        PointerModels.__init__(self, session)
         self._connect = connect		# ConnectServer instance
+
         t = session.triggers
         self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
         self._vr_update_interval = 9	# Send vr position every N frames.
+        self._last_scene_to_room = None
 
     def delete(self):
         t = self._session.triggers
         t.remove_handler(self._vr_tracking_handler)
         self._vr_tracking_handler = None
 
-        for peer_id in tuple(self._vr_pointer_models.keys()):
-            self._remove_pointer_model(peer_id)
+        PointerModels.delete(self)
 
     def update_model(self, msg):
-        pass
+        if 'vr head' in msg:
+            PointerModels.update_model(self, msg)
 
-    def remove_model(self, peer_id):
-        pass
+    def make_pointer_model(self, session):
+        return VRPointerModel(self._session, 'vr head and hands')
 
     def _vr_tracking_cb(self, trigger_name, frame):
         c = self._session.main_view.camera
@@ -441,16 +463,79 @@ class VRTracking:
         if frame % self._vr_update_interval != 0:
             return
 
-        msg = {'name': self._name,
-               'color': tuple(self._color),
+        msg = {'name': self._connect._name,
+               'color': tuple(self._connect._color),
                'vr head': _place_matrix(c.position),
-               'vr coords': _place_matrix(c.scene_to_room),
+               'vr hands': [_place_matrix(h.position) for h in c._controller_models],
                }
-        for i,h in enumerate(c._controller_models):
-            msg['vr hand %d' % (i+1)] = _place_matrix(h.position)
+        if c.scene_to_room is not self._last_scene_to_room:
+            msg['vr coords'] = _place_matrix(c.scene_to_room)
+            self._last_scene_to_room = c.scene_to_room
 
         # Tell connected peers my new vr state
         self._send_message(msg)
+
+from chimerax.core.models import Model
+class VRPointerModel(Model):
+    def __init__(self, session, name, color = (0,255,0,255), sync_coords = True):
+        Model.__init__(self, name, session)
+        self._head = VRHeadModel(session)
+        self._hands = []
+        self._color = color
+        self._sync_coords = sync_coords
+
+    def _hand_models(self, nhands):
+        while len(self._hands) < nhands:
+            name = 'hand %d' % (len(self._hands)+1)
+            self._hands.append(VRHandModel(session, name, color=self._color))
+        return self._hands[:nhands]
+
+    def update_pointer(self, msg):
+        if 'name' in msg:
+            if 'id' in msg:  # If id not in msg leave name as "my pointer".
+                self.name = '%s vr head and hands' % msg['name']
+        if 'color' in msg:
+            for h in self._hands:
+                h.color = msg['color']
+        if 'vr head' in msg:
+            from chimerax.core.geometry import Place
+            self._head.position = Place(matrix = msg['vr head'])
+        if 'vr hands' in msg:
+            hpos = msg['vr hands']
+            from chimerax.core.geometry import Place
+            for h,hm in zip(self._hand_models(len(hpos)), hpos):
+                h.position = Place(matrix = hm)
+        if 'vr coord' in msg and self._sync_coords:
+            c = self._session.main_view.camera
+            from chimerax.vive.vr import SteamVRCamera
+            if isinstance(c, SteamVRCamera):
+                from chimerax.core.geometry import Place
+                c.scene_to_room = Place(matrix = msg['vr coord'])
+                self._last_scene_to_room = c.scene_to_room
+
+class VRHandModel(Model):
+    def __init__(self, session, name, radius = 1, height = 3, color = (0,255,0,255)):
+        Model.__init__(self, name, session)
+        from chimerax.core.surface import cone_geometry
+        va, na, ta = cone_geometry(radius = radius, height = height)
+        va[:,2] -= 0.5*height	# Place tip of cone at origin
+        self.vertices = va
+        self.normals = na
+        self.triangles = ta
+        self.color = color
+
+class VRHeadModel(Model):
+    def __init__(self, session, name = 'head', size = 10, color = (100,100,255,255)):
+        Model.__init__(self, name, session)
+        
+        r = size / 2
+        from chimerax.core.surface import box_geometry
+        va, na, ta = box_geometry((-r,-r,-r), (r,r,r))
+        va[:,2] -= 0.5*height	# Place tip of cone at origin
+        self.vertices = va
+        self.normals = na
+        self.triangles = ta
+        self.color = color
 
 def _place_matrix(p):
     '''Encode Place as tuple for sending over socket.'''
