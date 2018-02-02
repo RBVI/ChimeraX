@@ -469,7 +469,7 @@ class VRTracking(PointerModels):
         msg = {'name': self._connect._name,
                'color': tuple(self._connect._color),
                'vr head': _place_matrix(c.position),
-               'vr hands': [_place_matrix(h.position) for h in c._controller_models],
+               'vr hands': self._hand_positions(c),
                }
         if c.room_to_scene is not self._last_room_to_scene:
             msg['vr coords'] = _place_matrix(c.room_to_scene)
@@ -477,6 +477,16 @@ class VRTracking(PointerModels):
 
         # Tell connected peers my new vr state
         self._connect._send_message(msg)
+
+    def _hand_positions(self, vr_camera):
+        # Remove scaling of hand controller models, just want origin and orientation
+        pos = []
+        from chimerax.core.geometry import norm, scale
+        for h in vr_camera._controller_models:
+            p = h.position
+            s = norm(p.z_axis())
+            pos.append(p * scale(1/s))
+        return pos
 
 from chimerax.core.models import Model
 class VRPointerModel(Model):
