@@ -929,7 +929,12 @@ class IHMModel(Model):
             m = Model(name, self.session)
             m.ihm_group_id = gid
             pmods.append(m)
+            fasyms = {}
             for asym_id, file_id in sorted(asym_loc):
+                fasyms.setdefault(file_id, []).append(asym_id)
+            fids = list(fasyms.keys())
+            fids.sort(key = lambda fid: fasyms[fid][0])
+            for file_id in fids:
                 finfo = self.file_info(file_id)
                 if finfo is None:
                     continue
@@ -939,6 +944,7 @@ class IHMModel(Model):
                                                 % finfo.file_path)
                     continue
                 maps,msg = open_map(self.session, map_path, show = False, show_dialog=False)
+                asym_id = fasyms[file_id][0]
                 color = chain_rgba(asym_id)[:3] + (opacity,)
                 v = maps[0]
                 ms = v.matrix_value_statistics()
