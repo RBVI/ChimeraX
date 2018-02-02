@@ -485,7 +485,7 @@ class VRTracking(PointerModels):
         for h in vr_camera._controller_models:
             p = h.position
             s = norm(p.z_axis())
-            pos.append(p * scale(1/s))
+            pos.append(_place_matrix(p * scale(1/s)))
         return pos
 
 from chimerax.core.models import Model
