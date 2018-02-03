@@ -480,7 +480,7 @@ class VRTracking(PointerModels):
 
     def _head_position(self, vr_camera):
         from chimerax.core.geometry import scale
-        return _place_matrix(vr_camera.position * scale(vr_camera.scene_scale))
+        return _place_matrix(vr_camera.position * scale(1/vr_camera.scene_scale))
 
     def _hand_positions(self, vr_camera):
         return [_place_matrix(h.position) for h in vr_camera._controller_models]
@@ -531,8 +531,8 @@ class VRHandModel(Model):
     def __init__(self, session, name, radius = 0.04, height = 0.2, color = (0,255,0,255)):
         Model.__init__(self, name, session)
         from chimerax.core.surface import cone_geometry
-        va, na, ta = cone_geometry(radius = radius, height = height)
-        va[:,2] -= 0.5*height	# Place tip of cone at origin
+        va, na, ta = cone_geometry(radius = radius, height = height, points_up = False)
+        va[:,2] += 0.5*height	# Place tip of cone at origin
         self.vertices = va
         self.normals = na
         self.triangles = ta
@@ -540,6 +540,7 @@ class VRHandModel(Model):
 
 class VRHeadModel(Model):
     '''Size in meters.'''
+    default_face_file = 'face.png'
     def __init__(self, session, name = 'head', size = 0.3, image_file = None):
         Model.__init__(self, name, session)
         
@@ -553,14 +554,14 @@ class VRHeadModel(Model):
 
         if image_file is None:
             from os.path import join, dirname
-            image_file = join(dirname(__file__, default_face_file))
+            image_file = join(dirname(__file__), self.default_face_file)
         from PyQt5.QtGui import QImage
         qi = QImage(image_file)
         from chimerax.core.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         from numpy import zeros, float32
         tc = zeros((24,2), float32)
-        tc[20:24,:] = ((0,0), (1,0), (0,1), (1,1))
+        tc[8:12,:] = ((0,0), (1,0), (0,1), (1,1))
 
         self.texture = Texture(rgba)
         self.texture_coordinates = tc

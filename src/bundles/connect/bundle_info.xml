@@ -9,6 +9,10 @@
   <Synopsis>Show synchronized pointers across ChimeraX on multiple machines.</Synopsis>
   <Description>Show mouse hover or virtual reality hand controllers from ChimeraX running on a remote machine.</Description>
 
+  <DataFiles>
+    <DataFile>face.png</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="General"/>
   </Categories>
