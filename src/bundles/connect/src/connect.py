@@ -468,7 +468,7 @@ class VRTracking(PointerModels):
 
         msg = {'name': self._connect._name,
                'color': tuple(self._connect._color),
-               'vr head': _place_matrix(c.position),
+               'vr head': self._head_position(c),
                'vr hands': self._hand_positions(c),
                }
         if c.room_to_scene is not self._last_room_to_scene:
@@ -478,15 +478,12 @@ class VRTracking(PointerModels):
         # Tell connected peers my new vr state
         self._connect._send_message(msg)
 
+    def _head_position(self, vr_camera):
+        from chimerax.core.geometry import scale
+        return _place_matrix(vr_camera.position * scale(vr_camera.scene_scale))
+
     def _hand_positions(self, vr_camera):
-        # Remove scaling of hand controller models, just want origin and orientation
-        pos = []
-        from chimerax.core.geometry import norm, scale
-        for h in vr_camera._controller_models:
-            p = h.position
-            s = norm(p.z_axis())
-            pos.append(_place_matrix(p * scale(1/s)))
-        return pos
+        return [_place_matrix(h.position) for h in vr_camera._controller_models]
 
 from chimerax.core.models import Model
 class VRPointerModel(Model):
@@ -530,7 +527,8 @@ class VRPointerModel(Model):
                 self._last_room_to_scene = c.room_to_scene
 
 class VRHandModel(Model):
-    def __init__(self, session, name, radius = 1, height = 3, color = (0,255,0,255)):
+    '''Radius and height in meters.'''
+    def __init__(self, session, name, radius = 0.04, height = 0.2, color = (0,255,0,255)):
         Model.__init__(self, name, session)
         from chimerax.core.surface import cone_geometry
         va, na, ta = cone_geometry(radius = radius, height = height)
@@ -541,16 +539,31 @@ class VRHandModel(Model):
         self.color = color
 
 class VRHeadModel(Model):
-    def __init__(self, session, name = 'head', size = 10, color = (100,100,255,255)):
+    '''Size in meters.'''
+    def __init__(self, session, name = 'head', size = 0.3, image_file = None):
         Model.__init__(self, name, session)
         
         r = size / 2
         from chimerax.core.surface import box_geometry
-        va, na, ta = box_geometry((-r,-r,-r), (r,r,r))
+        va, na, ta = box_geometry((-r,-r,-0.1*r), (r,r,0.1*r))
         self.vertices = va
         self.normals = na
         self.triangles = ta
-        self.color = color
+        self.color = (255,255,255,255)
+
+        if image_file is None:
+            from os.path import join, dirname
+            image_file = join(dirname(__file__, default_face_file))
+        from PyQt5.QtGui import QImage
+        qi = QImage(image_file)
+        from chimerax.core.graphics import qimage_to_numpy, Texture
+        rgba = qimage_to_numpy(qi)
+        from numpy import zeros, float32
+        tc = zeros((24,2), float32)
+        tc[20:24,:] = ((0,0), (1,0), (0,1), (1,1))
+
+        self.texture = Texture(rgba)
+        self.texture_coordinates = tc
 
 def _place_matrix(p):
     '''Encode Place as tuple for sending over socket.'''
