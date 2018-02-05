@@ -616,6 +616,8 @@ class IHMModel(Model):
             from chimerax.core.atomic.colors import chain_colors
             atoms.colors = chain_colors(atoms.residues.chain_ids)
             emodels.append(sm)
+            
+        self.add_entity_names(emodels)
 
         # Copy bead radii from best score model to ensemble models
         for em in emodels:
@@ -626,6 +628,21 @@ class IHMModel(Model):
                     em.atoms.radii = sm.atoms.radii
 
         return emodels
+
+    # -----------------------------------------------------------------------------
+    #
+    def add_entity_names(self, models):
+        if len(models) == 0:
+            return
+        
+        entity_names = self.asym_entity_names()
+        asym_details = self.asym_detail_text()
+        for m in models:
+            for r in m.residues:
+                asym_id = r.chain_id
+                r.entity_name = entity_names.get(asym_id, '?')
+                r.asym_detail = asym_details.get(asym_id, '')
+
 
     # -----------------------------------------------------------------------------
     #
@@ -1748,6 +1765,8 @@ class SphereModel(Structure):
         asym_colors = self._asym_colors
         for asym_id, aspheres in asym_spheres.items():
             color = asym_colors.get(asym_id, (200,200,200,255))
+            ename = entity_names.get(asym_id, '?')
+            adetail = asym_detail_text.get(asym_id, '')
             last_atom = None
             polymer = []
             for (sb,se,xyz,r) in aspheres:
@@ -1761,8 +1780,8 @@ class SphereModel(Structure):
                 # Convention on ensemble PDB files is beads get middle residue number of range
                 rnum = sb
                 r = self.new_residue(rname, asym_id, rnum)
-                r.entity_name = entity_names.get(asym_id, '?')
-                r.asym_detail = asym_detail_text.get(asym_id, '')
+                r.entity_name = ename
+                r.asym_detail = adetail
                 r.add_atom(a)
                 polymer.append(r)
                 for s in range(sb, se+1):
