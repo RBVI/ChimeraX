@@ -618,14 +618,8 @@ class IHMModel(Model):
             emodels.append(sm)
             
         self.add_entity_names(emodels)
-
-        # Copy bead radii from best score model to ensemble models
-        for em in emodels:
-            esm = [sm for sm in smodels if sm.ihm_group_id == em.ihm_group_id]
-            if len(esm) == 1:
-                sm = esm[0]
-                if sm.num_atoms == em.num_atoms:
-                    em.atoms.radii = sm.atoms.radii
+        self.set_asym_colors(emodels)
+        self.copy_sphere_radii(emodels, smodels)
 
         return emodels
 
@@ -643,6 +637,28 @@ class IHMModel(Model):
                 r.entity_name = entity_names.get(asym_id, '?')
                 r.asym_detail = asym_details.get(asym_id, '')
 
+
+    # -----------------------------------------------------------------------------
+    #
+    def set_asym_colors(self, models):
+        if len(models) == 0:
+            return
+        
+        asym_colors = self.asym_colors8()
+        for m in models:
+            for s, asym_id, atoms in m.atoms.by_chain:
+                atoms.colors = asym_colors.get(asym_id, (200,200,200,255))
+
+    # -----------------------------------------------------------------------------
+    #
+    def copy_sphere_radii(self, emodels, smodels):
+        # Copy bead radii from best score model to ensemble models
+        for em in emodels:
+            esm = [sm for sm in smodels if sm.ihm_group_id == em.ihm_group_id]
+            if len(esm) == 1:
+                sm = esm[0]
+                if sm.num_atoms == em.num_atoms:
+                    em.atoms.radii = sm.atoms.radii
 
     # -----------------------------------------------------------------------------
     #
