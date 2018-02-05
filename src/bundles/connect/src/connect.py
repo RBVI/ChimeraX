@@ -11,7 +11,8 @@
 
 # -----------------------------------------------------------------------------
 #
-def connect(session, ip_address = None, port = 52194, name = None, color = None):
+def connect(session, ip_address = None, port = 52194, name = None, color = None,
+            head_image = None):
     '''Allow two ChimeraX instances to show each others' mouse positions or
     VR handcontroller and headset positions.
 
@@ -30,6 +31,8 @@ def connect(session, ip_address = None, port = 52194, name = None, color = None)
       Name to identify this ChimeraX on remote machines.
     color : Color
       Color for my mouse pointer shown on other machines
+    head_image : string
+      Path to PNG or JPG image file for image to use for VR head depiction.
     '''
 
     if ip_address is None:
@@ -65,6 +68,11 @@ def connect(session, ip_address = None, port = 52194, name = None, color = None)
         if s:
             s.set_color(color.uint8x4())
 
+    if head_image is not None:
+        s = connection_server(session)
+        if s:
+            s.vr_tracker.new_head_image(head_image)
+
 # -----------------------------------------------------------------------------
 #
 def connect_close(session):
@@ -78,12 +86,13 @@ def connect_close(session):
 # Register the connect command for ChimeraX.
 #
 def register_connect_command(logger):
-    from chimerax.core.commands import CmdDesc, StringArg, IntArg, ColorArg
+    from chimerax.core.commands import CmdDesc, StringArg, IntArg, ColorArg, OpenFileNameArg
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('ip_address', StringArg)],
                    keyword = [('port', IntArg),
                               ('name', StringArg),
-                              ('color', ColorArg),],
+                              ('color', ColorArg),
+                              ('head_image', OpenFileNameArg)],
                    synopsis = 'Show synchronized mouse or VR hand controllers between two ChimeraX instances')
     register('connect', desc, connect, logger=logger)
     desc = CmdDesc(synopsis = 'Close synchronized pointer connection')
@@ -113,6 +122,8 @@ class ConnectServer:
         self._peer_ids = {}		# Number associated with each ChimeraX instance passed in messages from server.
         self._next_peer_id = 1
         self._trackers = []
+        self._mouse_tracker = None
+        self._vr_tracker = None
 
     def set_color(self, color):
         self._color = color
@@ -201,11 +212,17 @@ class ConnectServer:
 
         self._initiate_tracking()
 
+    @property
+    def vr_tracker(self):
+        self._initiate_tracking()
+        return self._vr_tracker
+    
     def _initiate_tracking(self):
         if not self._trackers:
             s = self._session
-            self._trackers = [MouseTracking(s, self),
-                              VRTracking(s, self)]
+            self._mouse_tracker = mt = MouseTracking(s, self)
+            self._vr_tracker = vrt = VRTracking(s, self)
+            self._trackers = [mt, vrt]
 
     def _message_received(self, socket):
         msg = self._decode_socket_message(socket)
@@ -422,6 +439,7 @@ class VRTracking(PointerModels):
         self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
         self._vr_update_interval = 9	# Send vr position every N frames.
         self._last_room_to_scene = None
+        self._new_head_image = None
 
     def delete(self):
         t = self._session.triggers
@@ -437,6 +455,11 @@ class VRTracking(PointerModels):
     def make_pointer_model(self, session):
         return VRPointerModel(self._session, 'vr head and hands')
 
+    def new_head_image(self, path):
+        f = open(path, 'rb')
+        self._new_head_image = f.read()
+        f.close()
+        
     def _vr_tracking_cb(self, trigger_name, *unused):
         v = self._session.main_view
         c = v.camera
@@ -454,7 +477,11 @@ class VRTracking(PointerModels):
         if c.room_to_scene is not self._last_room_to_scene:
             msg['vr coords'] = _place_matrix(c.room_to_scene)
             self._last_room_to_scene = c.room_to_scene
-
+        if self._new_head_image:
+            from base64 import b64encode
+            msg['vr head image'] = b64encode(self._new_head_image)
+            self._new_head_image = None
+            
         # Tell connected peers my new vr state
         self._connect._send_message(msg)
 
@@ -493,6 +520,8 @@ class VRPointerModel(Model):
         if 'vr head' in msg:
             from chimerax.core.geometry import Place
             self._head.position = Place(matrix = msg['vr head'])
+        if 'vr head image' in msg:
+            self._head.update_image(msg['vr head image'])
         if 'vr hands' in msg:
             hpos = msg['vr hands']
             from chimerax.core.geometry import Place
@@ -545,6 +574,22 @@ class VRHeadModel(Model):
 
         self.texture = Texture(rgba)
         self.texture_coordinates = tc
+
+    def update_image(self, image):
+        from base64 import b64decode
+        ba = b64decode(image)
+        from PyQt5.QtGui import QImage
+        qi = QImage(ba)
+        from chimerax.core.graphics import qimage_to_numpy, Texture
+        self._rgba = qimage_to_numpy(qi)
+        # Defer replacing the texture until the OpenGL context is current,
+        # because a texture can only be deleted then.
+        def _replace_texture(self):
+            self.texture.delete()
+            self.texture = Texture(self._rgba)
+            from chimerax.core import triggers
+            return triggers.DEREGISTER
+        self.session.triggers.add_handler('update graphics', self._replace_texture)
 
 def _place_matrix(p):
     '''Encode Place as tuple for sending over socket.'''
