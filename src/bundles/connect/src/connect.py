@@ -35,26 +35,25 @@ def connect(session, ip_address = None, port = 52194, name = None, color = None)
     if ip_address is None:
         s = connection_server(session)
         if s is None:
-            msg = "No current ChimeraX connections"
-        elif not s.connected:
-            msg = "Listening for ChimeraX connections at %s:%d" % (s.ip_address, s.port)
+            msg = "No ChimeraX connections"
         else:
-            msg = "Connected to %s:%d" % (s.connected_ip_address, s.connected_port)
+            lines = []
+            lip = s.listen_ip_port()
+            if lip:
+                lines.append("Listening for ChimeraX connections at %s port %d" % lip)
+            clist = s.connected_ip_port_list()
+            if clist:
+                lines.extend(["Connected to %s port %d" % (ip,port) for (ip,port) in clist])
+            msg = '\n'.join(lines) if lines else "No ChimeraX connections"
         session.logger.status(msg, log = True)
-    elif ip_address == 'quit':
-        s = connection_server(session)
-        if s:
-            s.quit()
     elif ip_address == 'accept':
         s = connection_server(session, create = True)
-        s.listen(port = port)
-        msg = "Started listening for ChimeraX connections at %s:%d" % (s.ip_address, s.port)
+        s.listen(port)
+        msg = "Listening for ChimeraX connections at %s port %d" % s.listen_ip_port()
         session.logger.status(msg, log = True)
     else:
         s = connection_server(session, create = True)
-        s.connect(ip_address, port = port)
-        msg = "Connected to %s:%d" % (s.connected_ip_address, s.connected_port)
-        session.logger.status(msg, log = True)
+        s.connect(ip_address, port)
 
     if name is not None:
         s = connection_server(session)
@@ -123,39 +122,14 @@ class ConnectServer:
         c = self._connections
         return len(c) > 0
     
-    @property
-    def ip_address(self):
+    def listen_ip_port(self):
         s = self._server
         if s and s.isListening():
-            return s.serverAddress().toString()
-        c = self._connections
-        if c:
-            return c[0].localAddress().toString()
-        return None
-
-    @property
-    def port(self):
-        s = self._server
-        if s and s.isListening():
-            return s.serverPort()
-        c = self._connections
-        if c:
-            return c[0].localPort()
+            return (s.serverAddress().toString(), s.serverPort())
         return None
     
-    @property
-    def connected_ip_address(self):
-        c = self._connections
-        if c:
-            return c[0].peerAddress().toString()
-        return None
-
-    @property
-    def connected_port(self):
-        c = self._connections
-        if c:
-            return c[0].peerPort()
-        return None
+    def connected_ip_port_list(self):
+        return [(c.peerAddress().toString(), c.peerPort()) for c in self._connections]
 
     def listen(self, port):
         from PyQt5.QtNetwork import QTcpServer, QHostAddress
@@ -168,6 +142,10 @@ class ConnectServer:
             s.newConnection.connect(self._new_connection)
         self._color = (255,255,0,255)
 
+    @property
+    def listening(self):
+        return self._server is not None
+
     def _available_server_ipv4_addresses(self):
         from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
         a = [ha for ha in QNetworkInterface.allAddresses()
@@ -177,7 +155,7 @@ class ConnectServer:
              and not ha.toString().startswith('169.254')] # Exclude link-local addresses
         return a
             
-    def connect(self, ip_address, port = port):
+    def connect(self, ip_address, port):
         if self._server:
             raise RuntimeError('ConnectServer: Must call either listen, or connect, not both')
         from PyQt5.QtNetwork import QTcpSocket
@@ -209,6 +187,8 @@ class ConnectServer:
         while s.hasPendingConnections():
             socket = s.nextPendingConnection()
             self._add_connection(socket)
+            self._session.logger.info('Connection accepted from %s port %d'
+                                      % (socket.peerAddress().toString(), socket.peerPort()))
 
     def _add_connection(self, socket):
         socket.disconnected.connect(self._disconnected)
@@ -468,8 +448,8 @@ class VRTracking(PointerModels):
 
         msg = {'name': self._connect._name,
                'color': tuple(self._connect._color),
-               'vr head': _place_matrix(c.position),
-               'vr hands': [_place_matrix(h.position) for h in c._controller_models],
+               'vr head': self._head_position(c),
+               'vr hands': self._hand_positions(c),
                }
         if c.room_to_scene is not self._last_room_to_scene:
             msg['vr coords'] = _place_matrix(c.room_to_scene)
@@ -477,6 +457,13 @@ class VRTracking(PointerModels):
 
         # Tell connected peers my new vr state
         self._connect._send_message(msg)
+
+    def _head_position(self, vr_camera):
+        from chimerax.core.geometry import scale
+        return _place_matrix(vr_camera.position * scale(1/vr_camera.scene_scale))
+
+    def _hand_positions(self, vr_camera):
+        return [_place_matrix(h.position) for h in vr_camera._controller_models]
 
 from chimerax.core.models import Model
 class VRPointerModel(Model):
@@ -520,27 +507,44 @@ class VRPointerModel(Model):
                 self._last_room_to_scene = c.room_to_scene
 
 class VRHandModel(Model):
-    def __init__(self, session, name, radius = 1, height = 3, color = (0,255,0,255)):
+    '''Radius and height in meters.'''
+    def __init__(self, session, name, radius = 0.04, height = 0.2, color = (0,255,0,255)):
         Model.__init__(self, name, session)
         from chimerax.core.surface import cone_geometry
-        va, na, ta = cone_geometry(radius = radius, height = height)
-        va[:,2] -= 0.5*height	# Place tip of cone at origin
+        va, na, ta = cone_geometry(radius = radius, height = height, points_up = False)
+        va[:,2] += 0.5*height	# Place tip of cone at origin
         self.vertices = va
         self.normals = na
         self.triangles = ta
         self.color = color
 
 class VRHeadModel(Model):
-    def __init__(self, session, name = 'head', size = 10, color = (100,100,255,255)):
+    '''Size in meters.'''
+    default_face_file = 'face.png'
+    def __init__(self, session, name = 'head', size = 0.3, image_file = None):
         Model.__init__(self, name, session)
         
         r = size / 2
         from chimerax.core.surface import box_geometry
-        va, na, ta = box_geometry((-r,-r,-r), (r,r,r))
+        va, na, ta = box_geometry((-r,-r,-0.1*r), (r,r,0.1*r))
         self.vertices = va
         self.normals = na
         self.triangles = ta
-        self.color = color
+        self.color = (255,255,255,255)
+
+        if image_file is None:
+            from os.path import join, dirname
+            image_file = join(dirname(__file__), self.default_face_file)
+        from PyQt5.QtGui import QImage
+        qi = QImage(image_file)
+        from chimerax.core.graphics import qimage_to_numpy, Texture
+        rgba = qimage_to_numpy(qi)
+        from numpy import zeros, float32
+        tc = zeros((24,2), float32)
+        tc[8:12,:] = ((0,0), (1,0), (0,1), (1,1))
+
+        self.texture = Texture(rgba)
+        self.texture_coordinates = tc
 
 def _place_matrix(p):
     '''Encode Place as tuple for sending over socket.'''

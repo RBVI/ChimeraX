@@ -322,5 +322,5 @@ def box_geometry(llb, urf):
         [12, 13, 14], [14, 13, 15],     # x
         [16, 17, 18], [18, 17, 19],     # y
         [20, 21, 22], [22, 21, 23],     # z
-    ], dtype=uint32)
+    ], dtype=int32)
     return vertices, normals, triangles
