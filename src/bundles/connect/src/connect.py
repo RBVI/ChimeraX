@@ -143,6 +143,8 @@ class ConnectServer:
         return [(c.peerAddress().toString(), c.peerPort()) for c in self._connections]
 
     def listen(self, port):
+        if self._server:
+            return
         from PyQt5.QtNetwork import QTcpServer, QHostAddress
         self._server = s = QTcpServer()
         aa = self._available_server_ipv4_addresses()
@@ -439,7 +441,7 @@ class VRTracking(PointerModels):
         self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
         self._vr_update_interval = 9	# Send vr position every N frames.
         self._last_room_to_scene = None
-        self._new_head_image = None
+        self._new_head_image = None	# Path to image file
 
     def delete(self):
         t = self._session.triggers
@@ -456,9 +458,7 @@ class VRTracking(PointerModels):
         return VRPointerModel(self._session, 'vr head and hands')
 
     def new_head_image(self, path):
-        f = open(path, 'rb')
-        self._new_head_image = f.read()
-        f.close()
+        self._new_head_image = path
         
     def _vr_tracking_cb(self, trigger_name, *unused):
         v = self._session.main_view
@@ -479,7 +479,9 @@ class VRTracking(PointerModels):
             self._last_room_to_scene = c.room_to_scene
         if self._new_head_image:
             from base64 import b64encode
-            msg['vr head image'] = b64encode(self._new_head_image)
+            hf = open(self._new_head_image, 'rb')
+            msg['vr head image'] = b64encode(hf.read())
+            hf.close()
             self._new_head_image = None
             
         # Tell connected peers my new vr state
@@ -570,26 +572,24 @@ class VRHeadModel(Model):
         rgba = qimage_to_numpy(qi)
         from numpy import zeros, float32
         tc = zeros((24,2), float32)
+        tc[:] = 0.5
         tc[8:12,:] = ((0,0), (1,0), (0,1), (1,1))
 
         self.texture = Texture(rgba)
         self.texture_coordinates = tc
 
-    def update_image(self, image):
+    def update_image(self, base64_image_bytes):
         from base64 import b64decode
-        ba = b64decode(image)
+        image_bytes = b64decode(base64_image_bytes)
         from PyQt5.QtGui import QImage
-        qi = QImage(ba)
+        qi = QImage()
+        qi.loadFromData(image_bytes)
         from chimerax.core.graphics import qimage_to_numpy, Texture
-        self._rgba = qimage_to_numpy(qi)
-        # Defer replacing the texture until the OpenGL context is current,
-        # because a texture can only be deleted then.
-        def _replace_texture(self):
-            self.texture.delete()
-            self.texture = Texture(self._rgba)
-            from chimerax.core import triggers
-            return triggers.DEREGISTER
-        self.session.triggers.add_handler('update graphics', self._replace_texture)
+        rgba = qimage_to_numpy(qi)
+        r = self.session.main_view.render
+        r.make_current()
+        self.texture.delete_texture()
+        self.texture = Texture(rgba)
 
 def _place_matrix(p):
     '''Encode Place as tuple for sending over socket.'''
