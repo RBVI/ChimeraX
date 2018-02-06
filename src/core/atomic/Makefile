@@ -37,6 +37,11 @@ endif
 
 all: $(PYOBJS) $(SHLIB)
 
+cython:
+	LDFLAGS="-L." /Users/chimera/Applications/ChimeraX_Daily.app/Contents/MacOS/ChimeraX --nogui --exit --script "setup.py build_ext -i"
+	mv cymol.cpython-36m-darwin.so cymol.so
+	$(RSYNC) cymol.so $(PKG_DIR)
+
 install: all dir
 	$(RSYNC) $(PYSRCS) $(SHLIB) $(PKG_DIR)
 ifdef WIN32

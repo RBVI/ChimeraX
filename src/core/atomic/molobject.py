@@ -76,6 +76,11 @@ def _pseudobond_group_map(pbgc_map):
     pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
 
+from .cymol import CyAtom
+class Atom(CyAtom):
+    pass
+Atom.set_py_class(Atom)
+"""
 # -----------------------------------------------------------------------------
 #
 class Atom(State):
@@ -194,12 +199,12 @@ class Atom(State):
         "HIDE_NUCLEOTIDE\n"
         "    Hide mask for sidechain atoms in nucleotides.\n")
     def set_hide_bits(self, bit_mask):
-        """Set Atom's hide bits in bit mask"""
+        '''Set Atom's hide bits in bit mask'''
         f = c_array_function('set_atom_hide_bits', args=(uint32,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, bit_mask)
     def clear_hide_bits(self, bit_mask):
-        """Clear Atom's hide bits in bit mask"""
+        '''Clear Atom's hide bits in bit mask'''
         f = c_array_function('clear_atom_hide_bits', args=(uint32,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, bit_mask)
@@ -448,7 +453,7 @@ class Atom(State):
         c = f(self._c_pointer_ref, 1)
 
     def reset_state(self, session):
-        """For when the session is closed"""
+        '''For when the session is closed'''
         pass
 
     def take_snapshot(self, session, flags):
@@ -473,6 +478,7 @@ class Atom(State):
             return [i for i in concatenate(collections).instances(instantiate=False)
                 if i is not None]
         return []
+"""
 
 # -----------------------------------------------------------------------------
 #
@@ -531,12 +537,12 @@ class Bond(State):
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.  Use Atom.HIDE_* constants for hide bits.'''
     def set_hide_bits(self, bit_mask):
-        """Set Atom's hide bits in bit mask"""
+        '''Set Atom's hide bits in bit mask'''
         f = c_array_function('set_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
     def clear_hide_bits(self, bit_mask):
-        """Clear Atom's hide bits in bit mask"""
+        '''Clear Atom's hide bits in bit mask'''
         f = c_array_function('clear_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
@@ -2436,9 +2442,9 @@ class Element:
 
     @staticmethod
     def bond_length(e1, e2):
-        """Standard single-bond length between two elements
+        '''Standard single-bond length between two elements
 
-        Arguments can be element instances, atomic numbers, or element names"""
+        Arguments can be element instances, atomic numbers, or element names'''
         if not isinstance(e1, Element):
             e1 = Element.get_element(e1)
         if not isinstance(e2, Element):
@@ -2449,10 +2455,10 @@ class Element:
 
     @staticmethod
     def bond_radius(e):
-        """Standard single-bond 'radius'
+        '''Standard single-bond 'radius'
         (the amount this element would contribute to bond length)
 
-        Argument can be an element instance, atomic number, or element name"""
+        Argument can be an element instance, atomic number, or element name'''
         if not isinstance(e, Element):
             e = Element.get_element(e)
         f = c_function('element_bond_radius', args = (ctypes.c_void_p,), ret = ctypes.c_float)
@@ -2662,7 +2668,8 @@ class SeqMatchMap(State):
 # from C++ with just a pointer, and put functions in those classes for getting the instance
 # from the pointer (needed by Collections)
 from .pbgroup import PseudobondGroup
-for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
+#for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
+for class_obj in [Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
     cname = class_obj.__name__.lower()
     func_name = "set_" + cname + "_pyclass"
     f = c_function(func_name, args = (ctypes.py_object,))
