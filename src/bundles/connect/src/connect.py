@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 #
 def connect(session, ip_address = None, port = 52194, name = None, color = None,
-            head_image = None):
+            head_image = None, copy_scene = True):
     '''Allow two ChimeraX instances to show each others' mouse positions or
     VR handcontroller and headset positions.
 
@@ -33,6 +33,8 @@ def connect(session, ip_address = None, port = 52194, name = None, color = None,
       Color for my mouse pointer shown on other machines
     head_image : string
       Path to PNG or JPG image file for image to use for VR head depiction.
+    copy_scene : bool
+      Whether to copy the open models to the peer machines.
     '''
 
     if ip_address is None:
@@ -73,6 +75,11 @@ def connect(session, ip_address = None, port = 52194, name = None, color = None,
         if s:
             s.vr_tracker.new_head_image(head_image)
 
+    if copy_scene:
+        s = connection_server(session)
+        if s:
+            s.copy_scene(copy_scene)
+
 # -----------------------------------------------------------------------------
 #
 def connect_close(session):
@@ -86,13 +93,14 @@ def connect_close(session):
 # Register the connect command for ChimeraX.
 #
 def register_connect_command(logger):
-    from chimerax.core.commands import CmdDesc, StringArg, IntArg, ColorArg, OpenFileNameArg
-    from chimerax.core.commands import register, create_alias
+    from chimerax.core.commands import CmdDesc, register, create_alias
+    from chimerax.core.commands import StringArg, IntArg, ColorArg, OpenFileNameArg, BoolArg
     desc = CmdDesc(optional = [('ip_address', StringArg)],
                    keyword = [('port', IntArg),
                               ('name', StringArg),
                               ('color', ColorArg),
-                              ('head_image', OpenFileNameArg)],
+                              ('head_image', OpenFileNameArg),
+                              ('copy_scene', BoolArg)],
                    synopsis = 'Show synchronized mouse or VR hand controllers between two ChimeraX instances')
     register('connect', desc, connect, logger=logger)
     desc = CmdDesc(synopsis = 'Close synchronized pointer connection')
@@ -124,6 +132,7 @@ class ConnectServer:
         self._trackers = []
         self._mouse_tracker = None
         self._vr_tracker = None
+        self._copy_scene = True
 
     def set_color(self, color):
         self._color = color
@@ -167,7 +176,12 @@ class ConnectServer:
              and ha.protocol() == QAbstractSocket.IPv4Protocol
              and not ha.toString().startswith('169.254')] # Exclude link-local addresses
         return a
-            
+
+    def copy_scene(self, copy):
+        self._copy_scene = copy
+        if copy:
+            self._copy_scene_to_peers(self._connections)
+        
     def connect(self, ip_address, port):
         if self._server:
             raise RuntimeError('ConnectServer: Must call either listen, or connect, not both')
@@ -213,7 +227,30 @@ class ConnectServer:
         socket.readyRead.connect(read_socket)
 
         self._initiate_tracking()
+        if self._copy_scene:
+            self._copy_scene_to_peers([socket])
 
+    def _copy_scene_to_peers(self, sockets):
+        if self._session.models.empty():
+            return
+        msg = {'scene': self._encode_session()}
+        self._send_message(msg, sockets=sockets)
+
+    def _encode_session(self):
+        from io import BytesIO
+        stream = BytesIO()
+        self._session.save(stream, version=3)
+        from base64 import b64encode
+        sbytes = b64encode(stream.getbuffer())
+        return sbytes
+
+    def _restore_session(self, base64_sbytes):
+        from base64 import b64decode
+        sbytes = b64decode(base64_sbytes)
+        from io import BytesIO
+        stream = BytesIO(sbytes)
+        self._session.restore(stream)
+            
     @property
     def vr_tracker(self):
         self._initiate_tracking()
@@ -232,15 +269,19 @@ class ConnectServer:
             return  # Did not get full message yet.
         if 'id' not in msg:
             msg['id'] = self._peer_id(socket)
+        if 'scene' in msg:
+            self._restore_session(msg['scene'])
         for t in self._trackers:
             t.update_model(msg)
         self._relay_message(msg)
 
-    def _send_message(self, msg):
+    def _send_message(self, msg, sockets = None):
         if 'id' not in msg and self._server:
             msg['id'] = 0
         ba = self._encode_message_data(msg)
-        for socket in self._connections:
+        if sockets is None:
+            sockets = self._connections
+        for socket in sockets:
             socket.write(ba)
 
     def _encode_message_data(self, msg_data):
