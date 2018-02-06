@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
-def vr(session, enable = None, room_position = None, mirror = False, icons = False,
+def vr(session, enable = None, room_position = None, mirror = True, icons = False,
        show_controllers = True, multishadow_allowed = False):
     '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
@@ -30,11 +30,9 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
       Maps physical room coordinates to molecular scene coordinates.
       Room coordinates have origin at center of room and units are meters.
     mirror : bool
-      Whether to update the ChimeraX graphics window.  This will usually cause judder
-      in the vr headset because the computer display is running at a refresh rate of 60
-      frames per second and will slow the rendering to the headset.  (May be able to turn off
-      syncing to vertical refresh to avoid this.)  It is better to use the SteamVR display
-      mirror window.
+      Whether to update the ChimeraX graphics window.  This also turns off waiting
+      for display vertical sync on the computer monitor so that the 60 Hz refresh rate
+      does not slow down the 90 Hz rendering to the VR headset.
     icons : bool
       Whether to show a panel of icons when controller trackpad is touched.
       For demonstrations the icons can be too complex and it is better not to have icons.
@@ -58,7 +56,8 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
         else:
             stop_vr(session)
 
-    c = session.main_view.camera
+    v = session.main_view
+    c = v.camera
     if room_position is not None:
         if not isinstance(c, SteamVRCamera):
             from chimerax.core.errors import UserError
@@ -73,6 +72,7 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
     if isinstance(c, SteamVRCamera):
         if mirror is not None:
             c.mirror_display = mirror
+            wait_for_vsync(session, mirror)
         if show_controllers is not None:
             for hc in c.hand_controllers(show_controllers):
                 hc.show_in_scene(show_controllers)
@@ -126,17 +126,27 @@ def start_vr(session, multishadow_allowed = False):
 #
 def stop_vr(session):
 
-    v = session.main_view
-    c = v.camera
+    c = session.main_view.camera
     if isinstance(c, SteamVRCamera):
         # Have to delay shutdown of SteamVR connection until draw callback
         # otherwise it clobbers the Qt OpenGL context making entire gui black.
         def replace_camera(s = session):
             from chimerax.core.graphics import MonoCamera
-            s.main_view.camera = MonoCamera()
+            v = s.main_view
+            v.camera = MonoCamera()
             s.ui.main_window.graphics_window.set_redraw_interval(10)
+            v.view_all()
         c.close(replace_camera)
-    
+        wait_for_vsync(session, True)
+
+# -----------------------------------------------------------------------------
+#
+def wait_for_vsync(session, mirror):
+    r = session.main_view.render
+    if not r.wait_for_vsync(not mirror):
+        if mirror:
+            session.log.warning('Mirror may cause VR stutter.'
+                                '  Could not turn off wating for vsync on main display.')
 
 # -----------------------------------------------------------------------------
 #
@@ -445,6 +455,7 @@ from chimerax.core.models import Model
 class HandControllerModel(Model):
     casts_shadows = False
     _controller_colors = ((200,200,0,255), (0,200,200,255))
+    SESSION_SAVE = False
 
     def __init__(self, device_index, session, vr_system, show = True, size = 0.20, aspect = 0.2):
         name = 'Hand %s' % device_index

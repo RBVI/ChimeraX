@@ -223,9 +223,6 @@ class Structure(Model, StructureData):
         # TODO: Also marker atoms do not draw without this.
         self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
 
-    def reset_state(self, session):
-        pass
-
     def _get_bond_radius(self):
         return self._bond_radius
     def _set_bond_radius(self, radius):
@@ -2512,9 +2509,6 @@ class LevelOfDetail(State):
         lod = LevelOfDetail()
         lod.quality = data['quality']
         return lod
-
-    def reset_state(self):
-        self.quality = 1
 
     def set_atom_sphere_geometry(self, drawing, natoms = None):
         if natoms == 0:

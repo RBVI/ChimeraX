@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.state import State
-class AlignmentsManager(State):
+from chimerax.core.state import StateManager
+class AlignmentsManager(StateManager):
     """Manager for sequence alignments"""
     def __init__(self, session, bundle_info):
         self.alignments = {}

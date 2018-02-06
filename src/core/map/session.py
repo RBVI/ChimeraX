@@ -217,9 +217,6 @@ class GridDataState(State):
 
     return GridDataState(grids[0] if grids else None)
 
-  def reset_state(self, session):
-    pass
-
 # ---------------------------------------------------------------------------
 #
 class ReplacementFilePaths:

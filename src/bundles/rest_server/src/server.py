@@ -34,9 +34,6 @@ class RESTServer(Task):
         # For now do nothing.  Should restart on port (in data)
         pass
 
-    def reset_state(self, session):
-        pass
-
     @property
     def server_address(self):
         return self.httpd.server_address

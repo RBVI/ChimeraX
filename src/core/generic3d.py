@@ -37,6 +37,3 @@ class Generic3DModel(Model):
         from .graphics.gsession import DrawingState
         DrawingState().set_state_from_snapshot(m, session, data['drawing state'])
         return m
-
-    def reset_state(self, session):
-        pass

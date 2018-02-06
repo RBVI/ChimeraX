@@ -530,9 +530,7 @@ class SequenceViewer(ToolInstance):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        bundle_info = session.toolshed.find_bundle_for_class(cls)
-        inst = cls(session, bundle_info.tools[0].name)
-        ToolInstance.set_state_from_snapshot(inst, session, data['ToolInstance'])
+        inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(session, data['alignment'])
         inst.region_browser.restore_state(data['region browser'])
         return inst

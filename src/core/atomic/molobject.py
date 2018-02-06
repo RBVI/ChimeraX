@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from ..state import State
+from ..state import State, StateManager
 from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
 from .molc import CFunctions, string, cptr, pyobject, set_c_pointer, pointer, size_t
 import ctypes
@@ -452,10 +452,6 @@ class Atom(State):
         f = c_function('atom_use_default_radius', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
 
-    def reset_state(self, session):
-        '''For when the session is closed'''
-        pass
-
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
@@ -570,10 +566,6 @@ class Bond(State):
         '''Delete this Bond from it's Structure'''
         f = c_function('bond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
-
-    def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Bond is involved in.
@@ -714,10 +706,6 @@ class Pseudobond(State):
 
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
-
-    def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
 
     def take_snapshot(self, session, flags):
         return [self.group, self._ses_id]
@@ -878,7 +866,7 @@ class PseudobondGroupData:
 
 # -----------------------------------------------------------------------------
 #
-class PseudobondManager(State):
+class PseudobondManager(StateManager):
     '''Per-session singleton pseudobond manager keeps track of all
     :class:`.PseudobondGroupData` objects.'''
 
@@ -955,7 +943,7 @@ class PseudobondManager(State):
         obj_map = {}
         for ptr, ses_id in ptr_map.items():
             # shouldn't be _creating_ any objects, so pass None as the type
-            obj_map[ses_id] = _pbgroup_ptr_to_existing_inst(ptr)
+            obj_map[ses_id] = PseudobondGroup.c_ptr_to_py_inst(ptr)
         data = {'version': version,
                 'mgr data':retvals,
                 'structure mapping': obj_map}
@@ -1163,10 +1151,6 @@ class Residue(State):
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         r_ref = ctypes.byref(self._c_pointer)
         f(r_ref, 1, loc)
-
-    def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
@@ -1405,10 +1389,6 @@ class Sequence(State):
         """Sequence length"""
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
         return f(self._c_pointer)
-
-    def reset_state(self, session):
-        """For when the session is closed"""
-        pass
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -2244,10 +2224,6 @@ class CoordSet(State):
     structure = c_property('coordset_structure', pyobject, read_only=True,
         doc=":class:`.AtomicStructure` the coordset belongs to")
 
-    def reset_state(self, session):
-        """For when the session is closed"""
-        pass
-
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure, 'cs_id': self.id}
         return data
@@ -2619,10 +2595,6 @@ class SeqMatchMap(State):
     @property
     def res_to_pos(self):
         return self._res_to_pos
-
-    def reset_state(self, session):
-        """For when the session is closed"""
-        pass
 
     @staticmethod
     def restore_snapshot(session, data):

@@ -35,7 +35,8 @@ _additional_categories = (
 )
 
 
-def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True, extra_categories=()):
+def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
+               log_info=True, extra_categories=()):
     # mmCIF parsing requires an uncompressed file
 
     from . import _mmcif
@@ -51,7 +52,8 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         from .structure import AtomicStructure as StructureClass
     else:
         from .structure import Structure as StructureClass
-    models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style) for p in pointers]
+    models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
+              for p in pointers]
     for m in models:
         m.filename = path
 

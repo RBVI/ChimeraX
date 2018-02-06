@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.state import State
-class DistancesMonitor(State):
+from chimerax.core.state import StateManager
+class DistancesMonitor(StateManager):
     """Keep distances pseudobonds up to date"""
 
     def __init__(self, session, bundle_info):

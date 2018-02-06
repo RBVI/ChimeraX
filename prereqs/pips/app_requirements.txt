@@ -11,7 +11,7 @@ filelock==3.0.0
 line_profiler==2.1.2
 matplotlib==2.1.1
 networkx==2.0
-openvr==1.0.1001
+openvr==1.0.1201
 Pillow==5.0.0
 psutil==5.4.3
 pycollada==0.6

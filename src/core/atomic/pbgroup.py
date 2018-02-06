@@ -295,9 +295,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
         grp._dashes = data['dashes']
         return grp
 
-    def reset_state(self, session):
-        pass
-
 # -----------------------------------------------------------------------------
 #
 def selected_pseudobonds(session):
