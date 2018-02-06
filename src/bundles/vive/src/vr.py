@@ -455,6 +455,7 @@ from chimerax.core.models import Model
 class HandControllerModel(Model):
     casts_shadows = False
     _controller_colors = ((200,200,0,255), (0,200,200,255))
+    SESSION_SAVE = False
 
     def __init__(self, device_index, session, vr_system, show = True, size = 0.20, aspect = 0.2):
         name = 'Hand %s' % device_index
