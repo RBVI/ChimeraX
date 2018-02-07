@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 #
 def meeting(session, host = None, port = 52194, name = None, color = None,
-            head_image = None, copy_scene = True):
+            head_image = None, copy_scene = None, update_interval = None):
     '''Allow two or more ChimeraX instances to show each others' VR hand-controller
     and headset positions or mouse positions.
 
@@ -36,6 +36,9 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
+    update_interval : int
+      How often VR hand and head model positions are sent for this ChimeraX instance in frames.
+      Value of 1 updates every frame.  Default 9.
     '''
 
     if host is None:
@@ -80,6 +83,11 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
         if s:
             s.copy_scene(copy_scene)
 
+    if update_interval is not None:
+        s = meeting_server(session)
+        if s:
+            s.vr_tracker.update_interval = update_interval
+
 # -----------------------------------------------------------------------------
 #
 def meeting_close(session):
@@ -107,7 +115,8 @@ def register_meeting_command(logger):
                               ('name', StringArg),
                               ('color', ColorArg),
                               ('head_image', OpenFileNameArg),
-                              ('copy_scene', BoolArg)],
+                              ('copy_scene', BoolArg),
+                              ('update_interval', IntArg)],
                    synopsis = 'Show synchronized mouse or VR hand controllers between two ChimeraX instances')
     register('meeting', desc, meeting, logger=logger)
     desc = CmdDesc(synopsis = 'Close meeting')
@@ -498,14 +507,14 @@ class MousePointerModel(Model):
             self.position = p
 
 class VRTracking(PointerModels):
-    def __init__(self, session, meeting, sync_coords = True):
+    def __init__(self, session, meeting, sync_coords = True, update_interval = 9):
         PointerModels.__init__(self, session)
         self._meeting = meeting		# MeetingServer instance
         self._sync_coords = sync_coords
 
         t = session.triggers
         self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
-        self._vr_update_interval = 9	# Send vr position every N frames.
+        self._update_interval = update_interval	# Send vr position every N frames.
         self._last_room_to_scene = None
         self._new_head_image = None	# Path to image file
 
@@ -516,6 +525,12 @@ class VRTracking(PointerModels):
 
         PointerModels.delete(self)
 
+    def _get_update_interval(self):
+        return self._update_interval
+    def _set_update_interval(self, update_interval):
+        self._update_interval = update_interval
+    update_interval = property(_get_update_interval, _set_update_interval)
+    
     def update_model(self, msg):
         if 'vr coords' in msg and self._sync_coords:
             c = self._session.main_view.camera
@@ -539,7 +554,7 @@ class VRTracking(PointerModels):
         from chimerax.vive.vr import SteamVRCamera
         if not isinstance(c, SteamVRCamera):
             return
-        if v.frame_number % self._vr_update_interval != 0:
+        if v.frame_number % self.update_interval != 0:
             return
 
         msg = {'name': self._meeting._name,
