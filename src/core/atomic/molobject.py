@@ -2365,6 +2365,8 @@ class ChangeTracker:
             return 7
         raise AssertionError("Unknown class for change tracking: %s" % inst.__class__.__name__)
 
+from .cymol import Element
+"""
 # -----------------------------------------------------------------------------
 #
 class Element:
@@ -2452,6 +2454,7 @@ class Element:
         else:
             raise ValueError("'get_element' arg must be string or int")
         return _element(f(f_arg))
+"""
 
 # -----------------------------------------------------------------------------
 #
@@ -2641,7 +2644,7 @@ class SeqMatchMap(State):
 # from the pointer (needed by Collections)
 from .pbgroup import PseudobondGroup
 #for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
-for class_obj in [Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
+for class_obj in [Bond, CoordSet, PseudobondGroup, Pseudobond, Residue, Ring]:
     cname = class_obj.__name__.lower()
     func_name = "set_" + cname + "_pyclass"
     f = c_function(func_name, args = (ctypes.py_object,))

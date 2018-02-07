@@ -34,6 +34,9 @@ cdef extern from "<element/Element.h>" namespace "element":
         float bond_length(Element&, Element&)
 
         @staticmethod
+        float bond_radius(Element&)
+
+        @staticmethod
         const Element& get_element(int)
 
         @staticmethod
@@ -42,11 +45,20 @@ cdef extern from "<element/Element.h>" namespace "element":
         @staticmethod
         void set_py_class(object)
 
+cdef extern from "<atomstruct/Structure.h>" namespace "atomstruct":
+    cdef cppclass CoordSet
+
+    cdef cppclass Structure:
+        CoordSet* find_coord_set(int)
+        object py_instance(bool)
+
+cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
+    cdef cppclass Residue:
+        object py_instance(bool)
+
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     ctypedef string AtomType
     cdef cppclass Bond
-    cdef cppclass CoordSet
-    cdef cppclass Residue
 
     cdef cppclass Coord:
         double operator[](int)
@@ -57,9 +69,6 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     cdef cppclass Rgba:
         ctypedef unsigned char Channel
         Channel r, g, b, a
-
-    cdef cppclass Structure:
-        CoordSet* find_coord_set(int)
 
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct::Atom":
     ctypedef enum IdatmGeometry:

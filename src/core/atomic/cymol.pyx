@@ -51,13 +51,13 @@ cdef class CyAtom:
     def __init__(self, ptr_val):
         self._coord = None
 
+
+    # possibly long-term hack for interoperation with ctypes
     def __delattr__(self, name):
         if name == "_c_pointer" or name == "_c_pointer_ref":
             self._deleted = True
         else:
             super().__delattr__(name)
-
-    # possibly long-term hack so that Residue.add_atom can work, as well as creating Collections
     @property
     def cpp_pointer(self):
         return int(<long>self.cpp_atom)
@@ -172,8 +172,7 @@ cdef class CyAtom:
 
     @property
     def residue(self):
-        from . import Residue
-        return Residue.c_ptr_to_py_inst(<long>self.cpp_atom.residue())
+        return self.cpp_atom.residue().py_instance(True)
 
     @property
     def scene_coord(self):
@@ -196,8 +195,7 @@ cdef class CyAtom:
 
     @property
     def structure(self):
-        from . import Structure
-        return Structure.c_ptr_to_py_inst(<long>self.cpp_atom.structure())
+        return self.cpp_atom.structure().py_instance(True)
 
 
     @staticmethod
@@ -212,7 +210,6 @@ cdef class CyAtom:
     def set_py_class(klass):
         cydecl.Atom.set_py_class(klass)
 
-'''
 cdef class Element:
     cdef cydecl.Element *cpp_element
 
@@ -220,6 +217,22 @@ cdef class Element:
 
     def __cinit__(self, long ptr_val):
         self.cpp_element = <cydecl.Element *>ptr_val
+
+    # possibly long-term hack for interoperation with ctypes
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
+    @property
+    def cpp_pointer(self):
+        return int(<long>self.cpp_element)
+    @property
+    def _c_pointer(self):
+        return c_void_p(self.cpp_pointer)
+    @property
+    def _c_pointer_ref(self):
+        return byref(self._c_pointer)
 
     @property
     def is_halogen(self):
@@ -248,7 +261,17 @@ cdef class Element:
             e1 = Element.get_element(e1)
         if not isinstance(e2, Element):
             e2 = Element.get_element(e2)
-        return Element._bond_length(e1.cpp_element, e2.cpp_element)
+        return Element._bond_length(e1.cpp_pointer, e2.cpp_pointer)
+
+    @staticmethod
+    cdef float _bond_radius(long e):
+        return cydecl.Element.bond_radius(dereference(<cydecl.Element*>e))
+
+    @staticmethod
+    def bond_radius(e):
+        if not isinstance(e, Element):
+            e = Element.get_element(e)
+        return Element._bond_radius(e.cpp_pointer)
 
     @staticmethod
     def c_ptr_to_existing_py_inst(long ptr_val):
@@ -259,23 +282,23 @@ cdef class Element:
         return (<cydecl.Element *>ptr_val).py_instance(True)
 
     @staticmethod
-    cdef const cydecl.Element* _ident_to_cpp_element(int ident):
+    cdef const cydecl.Element* _string_to_cpp_element(const char* ident):
+        return &cydecl.Element.get_named_element(ident)
+
+    @staticmethod
+    cdef const cydecl.Element* _int_to_cpp_element(int ident):
         return &cydecl.Element.get_element(ident)
-        """
-        if isinstance(ident, int):
-            return &cydecl.Element.get_element(ident)
-        return &cydecl.Element.get_named_element(ident.encode())
-        """
 
     @staticmethod
     def get_element(ident):
-        """
+        cdef const cydecl.Element* ele_ptr
         if isinstance(ident, int):
-            return Element._get_numeric_element(ident)
-        return Element._get_string_element(ident)
-        """
-        return Element.c_ptr_to_py_inst(<long>Element._ident_to_cpp_element(ident))
+            ele_ptr = Element._int_to_cpp_element(ident)
+        else:
+            ele_ptr = Element._string_to_cpp_element(ident.encode())
+        return ele_ptr.py_instance(True)
 
+    '''
     @staticmethod
     cdef _get_numeric_element(int e_num):
         return Element.c_ptr_to_py_inst(<long>&cydecl.Element.get_element(e_num))
@@ -283,6 +306,6 @@ cdef class Element:
     @staticmethod
     cdef _get_string_element(const char* e_name):
         return Element.c_ptr_to_py_inst(<long>&cydecl.Element.get_element(e_name))
+    '''
 
 cydecl.Element.set_py_class(Element)
-'''
