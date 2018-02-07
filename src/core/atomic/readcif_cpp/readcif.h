@@ -271,7 +271,7 @@ public:
     int get_column(const char* name, bool required=false);
 
     // return text + " on line #"
-    std::runtime_error error(const std::string& text);
+    std::runtime_error error(const std::string& text, size_t lineno=0);
 protected:
     // data_block is called whenever a new data block is found.
     // Defaults to being ignored.
