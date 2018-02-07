@@ -44,9 +44,8 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
             msg = "No ChimeraX meeting started"
         else:
             lines = []
-            lip = s.listen_ip_port()
-            if lip:
-                lines.append("Listening for ChimeraX connections at %s port %d" % lip)
+            if s.listening:
+                lines.append("Meeting at %s" % s.listen_host_info())
             clist = s.connected_ip_port_list()
             if clist:
                 lines.extend(["Connected to %s port %d" % (ip,port) for (ip,port) in clist])
@@ -55,7 +54,7 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
     elif host == 'start':
         s = meeting_server(session, create = True)
         s.listen(port)
-        msg = "Listening for ChimeraX connections at %s port %d" % s.listen_ip_port()
+        msg = "Meeting at %s" % s.listen_host_info()
         session.logger.status(msg, log = True)
     else:
         s = meeting_server(session, create = True)
@@ -152,11 +151,17 @@ class MeetingServer:
         c = self._connections
         return len(c) > 0
     
-    def listen_ip_port(self):
+    def listen_host_info(self):
+        if not self.listening:
+            return None
+        
         s = self._server
-        if s and s.isListening():
-            return (s.serverAddress().toString(), s.serverPort())
-        return None
+        hi = '%s port %d' % (s.serverAddress().toString(), s.serverPort())
+        from PyQt5.QtNetwork import QHostInfo
+        host = QHostInfo.localHostName()
+        if host:
+            hi = '%s or %s' % (host, hi)
+        return hi
     
     def connected_ip_port_list(self):
         return [(c.peerAddress().toString(), c.peerPort()) for c in self._connections]
@@ -176,7 +181,8 @@ class MeetingServer:
 
     @property
     def listening(self):
-        return self._server is not None
+        s = self._server
+        return s is not None and s.isListening()
 
     def _available_server_ipv4_addresses(self):
         from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
