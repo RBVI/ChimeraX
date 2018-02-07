@@ -36,7 +36,7 @@ def restore_map_attributes(dms, session):
 
 # ---------------------------------------------------------------------------
 #
-def state_from_maps(data_maps, include_unsaved_volumes = False, session_path = None):
+def state_from_maps(data_maps, include_unsaved_volumes = True, session_path = None):
 
   dvlist = []
   unsaved_data = []
@@ -267,17 +267,27 @@ def state_from_grid_data(data, session_path = None):
        'version': 1,
      }
 
+  if not dt.path:
+    s['size'] = dt.size
+    s['value_type'] = str(dt.value_type)
+    from gzip import compress
+    from base64 import b64encode
+    s['array'] = b64encode(compress(dt.matrix().tobytes()))
+    save_position = True
+  else:
+    save_position = False
+
   if hasattr(dt, 'database_fetch'):
     s['database_fetch'] = dt.database_fetch
   if dt.grid_id != '':
     s['grid_id'] = dt.grid_id
-  if dt.step != dt.original_step:
+  if dt.step != dt.original_step or save_position:
     s['xyz_step'] = dt.step   # Use step values from data file
-  if dt.origin != dt.original_origin:
+  if dt.origin != dt.original_origin or save_position:
     s['xyz_origin'] = dt.origin
-  if dt.cell_angles != (90,90,90):
+  if dt.cell_angles != (90,90,90) or save_position:
     s['cell_angles'] = dt.cell_angles
-  if dt.rotation != ((1,0,0),(0,1,0),(0,0,1)):
+  if dt.rotation != ((1,0,0),(0,1,0),(0,0,1)) or save_position:
     s['rotation'] = dt.rotation
   if dt.symmetries is not None and len(dt.symmetries) > 0:
     s['symmetries'] = dt.symmetries
@@ -305,11 +315,19 @@ def grid_data_from_state(s, gdcache, session, file_paths):
   path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
                        base_path = session.session_file_path)
   if (path is None or path == '') and dbfetch is None:
-    return None
-
-  gid = s.get('grid_id','')
-  file_type = s['file_type']
-  dlist = open_data(path, gid, file_type, dbfetch, gdcache, session)
+    if 'array' not in s:
+      return None
+    from numpy import frombuffer, dtype
+    from gzip import decompress
+    from base64 import b64decode
+    a = frombuffer(decompress(b64decode(s['array'])), dtype = dtype(s['value_type']))
+    array = a.reshape(s['size'][::-1])
+    from .data import Array_Grid_Data
+    dlist = [Array_Grid_Data(array)]
+  else:
+    gid = s.get('grid_id','')
+    file_type = s['file_type']
+    dlist = open_data(path, gid, file_type, dbfetch, gdcache, session)
 
   for data in dlist:
     data.name = s['name']
