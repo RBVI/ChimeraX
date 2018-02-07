@@ -643,16 +643,14 @@ class VRHeadModel(Model):
         r = size / 2
         from chimerax.core.surface import box_geometry
         va, na, ta = box_geometry((-r,-r,-0.1*r), (r,r,0.1*r))
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
-        self.color = (255,255,255,255)
 
         if image_file is None:
             from os.path import join, dirname
             image_file = join(dirname(__file__), self.default_face_file)
         from PyQt5.QtGui import QImage
         qi = QImage(image_file)
+        aspect = qi.width() / qi.height()
+        va[:,0] *= aspect
         from chimerax.core.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         from numpy import zeros, float32
@@ -660,6 +658,10 @@ class VRHeadModel(Model):
         tc[:] = 0.5
         tc[8:12,:] = ((0,0), (1,0), (0,1), (1,1))
 
+        self.vertices = va
+        self.normals = na
+        self.triangles = ta
+        self.color = (255,255,255,255)
         self.texture = Texture(rgba)
         self.texture_coordinates = tc
 
@@ -669,6 +671,11 @@ class VRHeadModel(Model):
         from PyQt5.QtGui import QImage
         qi = QImage()
         qi.loadFromData(image_bytes)
+        aspect = qi.width() / qi.height()
+        va = self.vertices
+        caspect = va[:,0].max() / va[:,1].max()
+        va[:,0] *= aspect / caspect
+        self.vertices = va
         from chimerax.core.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         r = self.session.main_view.render
