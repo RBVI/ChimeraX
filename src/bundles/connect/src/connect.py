@@ -451,6 +451,8 @@ class MouseTracking(PointerModels):
 
 from chimerax.core.models import Model
 class MousePointerModel(Model):
+    SESSION_SAVE = False
+    
     def __init__(self, session, name, radius = 1, height = 3, color = (0,255,0,255)):
         Model.__init__(self, name, session)
         from chimerax.core.surface import cone_geometry
@@ -537,6 +539,8 @@ class VRTracking(PointerModels):
 
 from chimerax.core.models import Model
 class VRPointerModel(Model):
+    SESSION_SAVE = False
+    
     def __init__(self, session, name, color = (0,255,0,255), sync_coords = True):
         Model.__init__(self, name, session)
         self._head = h = VRHeadModel(session)
@@ -580,6 +584,8 @@ class VRPointerModel(Model):
 
 class VRHandModel(Model):
     '''Radius and height in meters.'''
+    SESSION_SAVE = False
+    
     def __init__(self, session, name, radius = 0.04, height = 0.2, color = (0,255,0,255)):
         Model.__init__(self, name, session)
         from chimerax.core.surface import cone_geometry
@@ -592,6 +598,7 @@ class VRHandModel(Model):
 
 class VRHeadModel(Model):
     '''Size in meters.'''
+    SESSION_SAVE = False
     default_face_file = 'face.png'
     def __init__(self, session, name = 'head', size = 0.3, image_file = None):
         Model.__init__(self, name, session)
