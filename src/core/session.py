@@ -498,8 +498,13 @@ class Session:
         from . import serialize
         if hasattr(stream, 'peek'):
             use_pickle = stream.peek(1)[0] != ord(b'#')
-        else:
+        elif hasattr(stream, 'buffer'):
             use_pickle = stream.buffer.peek(1)[0] != ord(b'#')
+        elif stream.seekable():
+            use_pickle = stream.read(1)[0] != ord(b'#')
+            stream.seek(0)
+        else:
+            raise RuntimeError('Could not peek at first byte of session file.')
         if use_pickle:
             version = serialize.pickle_deserialize(stream)
             if version != 1:
