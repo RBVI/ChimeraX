@@ -1796,6 +1796,7 @@ class SphereModel(Structure):
                 # Convention on ensemble PDB files is beads get middle residue number of range
                 rnum = sb
                 r = self.new_residue(rname, asym_id, rnum)
+                r.ribbon_color = color
                 r.entity_name = ename
                 r.asym_detail = adetail
                 r.add_atom(a)
