@@ -1097,24 +1097,41 @@ class IHMModel(Model):
     #
     @property
     def description(self):
+        lines = ['Opened IHM file %s' % self.filename]
         # Report what was read in
-        nc = len([m for m in self.starting_models if m.comparative_model])
         nx = len([m for m in self.starting_models if not m.comparative_model])
+        if nx:
+            lines.append('%d xray and nmr models' % nx)
+        nc = len([m for m in self.starting_models if m.comparative_model])
+        if nc:
+            lines.append('%d comparative models' % nc)
         nsa = len(self.sequence_alignment_models)
+        if nsa:
+            lines.append('%d sequence alignments' % nsa)
         nt = sum([len(sqm.template_models) for sqm in self.sequence_alignment_models], 0)
-        nem = len(self.electron_microscopy_models)
-        ns = len(self.sphere_models)
-        na = len(self.atomic_models)
-        nse = len(self.ensemble_sphere_models)
-        nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
+        if nt:
+            lines.append('%d templates' % nt)
         xldesc = ', '.join('%d %s crosslinks' % (len(xls),type)
                            for type,xls in self.crosslink_models.items())
-        esizes = ' and '.join('%d'%em.num_coordsets for em in self.ensemble_sphere_models)
-        msg = ('Opened IHM file %s\n'
-               ' %d xray/nmr models, %d comparative models, %d sequence alignments, %d templates\n'
-               ' %s, %d electron microscopy images\n'
-               ' %d atomic models, %d sphere models, %d ensembles with %s models, %d localization maps' %
-               (self.filename, nx, nc, nsa, nt, xldesc, nem, na, ns, nse, esizes, nl))
+        if xldesc:
+            lines.append(xldesc)
+        nem = len(self.electron_microscopy_models)
+        if nem:
+            lines.append('%d electron microscopy images' % nem)
+        na = len(self.atomic_models)
+        if na:
+            lines.append('%d atomic models' % na)
+        ns = len(self.sphere_models)
+        if ns:
+            lines.append('%d sphere models' % ns)
+        nse = len(self.ensemble_sphere_models)
+        if nse:
+            esizes = ' and '.join('%d'%em.num_coordsets for em in self.ensemble_sphere_models)
+            lines.append('%d ensembles with %s models' % (nse, esizes))
+        nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
+        if nl:
+            lines.append('%d localization maps' % nl)
+        msg = '\n'.join(lines)
         return msg
 
 
