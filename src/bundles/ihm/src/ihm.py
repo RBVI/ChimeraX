@@ -1270,9 +1270,11 @@ class DatabaseDataSet(DataSet):
             models = []
         return models
     def volume_model(self, session):
-        if self.db_name == 'EMDB' and self.db_code != '?':
+        dbc = self.db_code
+        if self.db_name == 'EMDB' and dbc != '?':
+            dbc = dbc[4:] if dbc.startswith('EMD-') else dbc
             from chimerax.core.map.emdb_fetch import fetch_emdb
-            models, status = fetch_emdb(session, self.db_code)
+            models, status = fetch_emdb(session, dbc)
             return models[0]
         return None
 
