@@ -21,9 +21,9 @@ switch between.
 """
 
 from PyQt5.QtWidgets import QWidget, QFormLayout, QTabWidget, QBoxLayout, QGridLayout, \
-    QPushButton, QCheckBox
+    QPushButton, QCheckBox, QScrollArea
 
-class OptionsPanel(QWidget):
+class OptionsPanel(QScrollArea):
     """OptionsPanel is a container for single-use (not savable) Options"""
 
     def __init__(self, parent=None, *, sorting=True, **kw):
@@ -32,13 +32,17 @@ class OptionsPanel(QWidget):
             True: options sorted alphabetically by name
             func: options sorted based on the provided key function
         """
-        QWidget.__init__(self, parent, **kw)
+        QScrollArea.__init__(self, parent, **kw)
+        self._scrolled = QWidget()
+        self.setWidget(self._scrolled)
         self._sorting = sorting
         self._options = []
-        form = QFormLayout()
+        self._form = QFormLayout()
+        self._form.setSizeConstraint(self._form.SetMinAndMaxSize)
+        self._form.setVerticalSpacing(0)
         from PyQt5.QtCore import Qt
-        form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.setLayout(form)
+        self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._scrolled.setLayout(self._form)
 
     def add_option(self, option):
         if self._sorting is None:
@@ -53,14 +57,19 @@ class OptionsPanel(QWidget):
                     break
             else:
                 insert_row = len(self._options)
-        self.layout().insertRow(insert_row, option.name, option.widget)
+        self._form.insertRow(insert_row, option.name, option.widget)
         self._options.insert(insert_row, option)
         if option.balloon:
-            self.layout().itemAt(insert_row,
+            self._form.itemAt(insert_row,
                 QFormLayout.LabelRole).widget().setToolTip(option.balloon)
 
     def options(self):
         return self._options
+
+    def sizeHint(self):
+        from PyQt5.QtCore import QSize
+        form_size = self._form.minimumSize()
+        return QSize(min(form_size.width(), 800), min(form_size.height(), 800))
 
 class CategorizedOptionsPanel(QTabWidget):
     """CategorizedOptionsPanel is a container for single-use (not savable) Options sorted by category"""
