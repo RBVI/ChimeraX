@@ -223,7 +223,8 @@ class ConnectServer:
 
         # Register callback called when data available to read on socket.
         def read_socket(self=self, socket=socket):
-            self._message_received(socket)
+            while self._message_received(socket):
+                pass
         socket.readyRead.connect(read_socket)
 
         self._initiate_tracking()
@@ -266,7 +267,7 @@ class ConnectServer:
     def _message_received(self, socket):
         msg = self._decode_socket_message(socket)
         if msg is None:
-            return  # Did not get full message yet.
+            return  False # Did not get full message yet.
         if 'id' not in msg:
             msg['id'] = self._peer_id(socket)
         if 'scene' in msg:
@@ -274,6 +275,7 @@ class ConnectServer:
         for t in self._trackers:
             t.update_model(msg)
         self._relay_message(msg)
+        return True
 
     def _send_message(self, msg, sockets = None):
         if 'id' not in msg and self._server:
@@ -476,9 +478,10 @@ class MousePointerModel(Model):
             self.position = p
 
 class VRTracking(PointerModels):
-    def __init__(self, session, connect):
+    def __init__(self, session, connect, sync_coords = True):
         PointerModels.__init__(self, session)
         self._connect = connect		# ConnectServer instance
+        self._sync_coords = sync_coords
 
         t = session.triggers
         self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
@@ -494,6 +497,13 @@ class VRTracking(PointerModels):
         PointerModels.delete(self)
 
     def update_model(self, msg):
+        if 'vr coords' in msg and self._sync_coords:
+            c = self._session.main_view.camera
+            from chimerax.vive.vr import SteamVRCamera
+            if isinstance(c, SteamVRCamera):
+                from chimerax.core.geometry import Place
+                c.room_to_scene = Place(matrix = msg['vr coords'])
+                self._last_room_to_scene = c.room_to_scene
         if 'vr head' in msg:
             PointerModels.update_model(self, msg)
 
@@ -541,13 +551,12 @@ from chimerax.core.models import Model
 class VRPointerModel(Model):
     SESSION_SAVE = False
     
-    def __init__(self, session, name, color = (0,255,0,255), sync_coords = True):
+    def __init__(self, session, name, color = (0,255,0,255)):
         Model.__init__(self, name, session)
         self._head = h = VRHeadModel(session)
         self.add([h])
         self._hands = []
         self._color = color
-        self._sync_coords = sync_coords
 
     def _hand_models(self, nhands):
         new_hands = [VRHandModel(self.session, 'hand %d' % (i+1), color=self._color)
@@ -574,13 +583,6 @@ class VRPointerModel(Model):
             from chimerax.core.geometry import Place
             for h,hm in zip(self._hand_models(len(hpos)), hpos):
                 h.position = Place(matrix = hm)
-        if 'vr coord' in msg and self._sync_coords:
-            c = self.session.main_view.camera
-            from chimerax.vive.vr import SteamVRCamera
-            if isinstance(c, SteamVRCamera):
-                from chimerax.core.geometry import Place
-                c.room_to_scene = Place(matrix = msg['vr coord'])
-                self._last_room_to_scene = c.room_to_scene
 
 class VRHandModel(Model):
     '''Radius and height in meters.'''
