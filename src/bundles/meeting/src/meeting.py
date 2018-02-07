@@ -11,22 +11,22 @@
 
 # -----------------------------------------------------------------------------
 #
-def connect(session, ip_address = None, port = 52194, name = None, color = None,
+def meeting(session, host = None, port = 52194, name = None, color = None,
             head_image = None, copy_scene = True):
-    '''Allow two ChimeraX instances to show each others' mouse positions or
-    VR handcontroller and headset positions.
+    '''Allow two or more ChimeraX instances to show each others' VR hand-controller
+    and headset positions or mouse positions.
 
     Parameters
     ----------
-    ip_address : string
-      IP address of the other ChimeraX to sync with, for example, "169.230.21.39".
-      One ChimeraX specifies this as "accept" which starts listening for connections
-      on the host machines IP address which is reported to the log.  Then the other ChimeraX
-      specifies that server IP address.  If no address is specified, the current connections
-      are reported to the log.  If "quit" is specified then connections are dropped and
-      the server is closed.
+    host : string
+      If the value is "start" then a shared session is started that other ChimeraX instances can join.
+      The log will output the host name or IP address that other ChimeraX users should connect to.
+      To connect to a meeting started by another ChimeraX the host value should be the host name or
+      IP address of the ChimeraX that started the meeting, for example, "descartes.cgl.ucsf.edu" or "169.230.21.39".
+      One ChimeraX specifies this as "start" which starts listening for connections
+      If no address is specified, the current meeting connections are reported to the log.
     port : int
-      Port number to connect to.  Can be omitted in which case default 52194 is used.
+      Optional port number.  Can be omitted in which case default port 52194 is used.
     name : string
       Name to identify this ChimeraX on remote machines.
     color : Color
@@ -34,13 +34,14 @@ def connect(session, ip_address = None, port = 52194, name = None, color = None,
     head_image : string
       Path to PNG or JPG image file for image to use for VR head depiction.
     copy_scene : bool
-      Whether to copy the open models to the peer machines.
+      Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
+      when they join the meeting.
     '''
 
-    if ip_address is None:
-        s = connection_server(session)
+    if host is None:
+        s = meeting_server(session)
         if s is None:
-            msg = "No ChimeraX connections"
+            msg = "No ChimeraX meeting started"
         else:
             lines = []
             lip = s.listen_ip_port()
@@ -49,77 +50,86 @@ def connect(session, ip_address = None, port = 52194, name = None, color = None,
             clist = s.connected_ip_port_list()
             if clist:
                 lines.extend(["Connected to %s port %d" % (ip,port) for (ip,port) in clist])
-            msg = '\n'.join(lines) if lines else "No ChimeraX connections"
+            msg = '\n'.join(lines) if lines else "No ChimeraX meeting started"
         session.logger.status(msg, log = True)
-    elif ip_address == 'accept':
-        s = connection_server(session, create = True)
+    elif host == 'start':
+        s = meeting_server(session, create = True)
         s.listen(port)
         msg = "Listening for ChimeraX connections at %s port %d" % s.listen_ip_port()
         session.logger.status(msg, log = True)
     else:
-        s = connection_server(session, create = True)
-        s.connect(ip_address, port)
+        s = meeting_server(session, create = True)
+        s.connect(host, port)
 
     if name is not None:
-        s = connection_server(session)
+        s = meeting_server(session)
         if s:
             s._name = name
 
     if color is not None:
-        s = connection_server(session)
+        s = meeting_server(session)
         if s:
             s.set_color(color.uint8x4())
 
     if head_image is not None:
-        s = connection_server(session)
+        s = meeting_server(session)
         if s:
             s.vr_tracker.new_head_image(head_image)
 
     if copy_scene:
-        s = connection_server(session)
+        s = meeting_server(session)
         if s:
             s.copy_scene(copy_scene)
 
 # -----------------------------------------------------------------------------
 #
-def connect_close(session):
+def meeting_close(session):
     '''Close all connection shared pointers.'''
-    s = connection_server(session)
+    s = meeting_server(session)
     if s:
         s.close_all_connections()
 
+# -----------------------------------------------------------------------------
+#
+def meeting_send(session):
+    '''Send my scene to all participants in the meeting.'''
+    s = meeting_server(session)
+    if s:
+        s.copy_scene_to_peers()
         
 # -----------------------------------------------------------------------------
 # Register the connect command for ChimeraX.
 #
-def register_connect_command(logger):
+def register_meeting_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias
     from chimerax.core.commands import StringArg, IntArg, ColorArg, OpenFileNameArg, BoolArg
-    desc = CmdDesc(optional = [('ip_address', StringArg)],
+    desc = CmdDesc(optional = [('host', StringArg)],
                    keyword = [('port', IntArg),
                               ('name', StringArg),
                               ('color', ColorArg),
                               ('head_image', OpenFileNameArg),
                               ('copy_scene', BoolArg)],
                    synopsis = 'Show synchronized mouse or VR hand controllers between two ChimeraX instances')
-    register('connect', desc, connect, logger=logger)
-    desc = CmdDesc(synopsis = 'Close synchronized pointer connection')
-    register('connect close', desc, connect_close, logger=logger)
+    register('meeting', desc, meeting, logger=logger)
+    desc = CmdDesc(synopsis = 'Close meeting')
+    register('meeting close', desc, meeting_close, logger=logger)
+    desc = CmdDesc(synopsis = 'Copy my scene to all other meeting participants')
+    register('meeting send', desc, meeting_send, logger=logger)
 
 # -----------------------------------------------------------------------------
 #
-def connection_server(session, create = False):
-    if hasattr(session, '_connect_server'):
-        s =session._connect_server
+def meeting_server(session, create = False):
+    if hasattr(session, '_meeting_server'):
+        s =session._meeting_server
     elif create:
-        session._connect_server = s = ConnectServer(session)
+        session._meeting_server = s = MeetingServer(session)
     else:
         s = None
     return s
 
 # -----------------------------------------------------------------------------
 #
-class ConnectServer:
+class MeetingServer:
     def __init__(self, session):
         self._session = session
         self._name = 'remote'
@@ -179,18 +189,16 @@ class ConnectServer:
 
     def copy_scene(self, copy):
         self._copy_scene = copy
-        if copy:
-            self._copy_scene_to_peers(self._connections)
         
-    def connect(self, ip_address, port):
+    def connect(self, host, port):
         if self._server:
-            raise RuntimeError('ConnectServer: Must call either listen, or connect, not both')
+            raise RuntimeError('MeetingServer: Must call either listen, or connect, not both')
         from PyQt5.QtNetwork import QTcpSocket
         socket = QTcpSocket()
         def socket_error(error_type, self=self, socket=socket):
             self._socket_error(error_type, socket)
         socket.error.connect(socket_error)
-        socket.connectToHost(ip_address, port)
+        socket.connectToHost(host, port)
         self._add_connection(socket)
 
     def close_all_connections(self):
@@ -229,10 +237,12 @@ class ConnectServer:
 
         self._initiate_tracking()
         if self._copy_scene:
-            self._copy_scene_to_peers([socket])
+            self.copy_scene_to_peers([socket])
 
-    def _copy_scene_to_peers(self, sockets):
-        if self._session.models.empty():
+    def copy_scene_to_peers(self, sockets = None):
+        if sockets is None:
+            sockets = self._connections
+        if self._session.models.empty() or len(sockets) == 0:
             return
         msg = {'scene': self._encode_session()}
         self._send_message(msg, sockets=sockets)
@@ -373,7 +383,7 @@ class ConnectServer:
                 t.remove_model(peer_id)
         if socket in self._message_buffer:
             del self._message_buffer[socket]
-        self._session.logger.status('Disconnected connection from %s:%d'
+        self._session.logger.status('Disconnected from %s:%d'
                                     % (socket.peerAddress().toString(), socket.peerPort()))
 
 class PointerModels:
@@ -390,10 +400,12 @@ class PointerModels:
         pm = self._pointer_models
         if peer_id in pm:
             m = pm[peer_id]
-        else:
-            m = self.make_pointer_model(self._session)
-            self._session.models.add([m])
-            pm[peer_id] = m
+            if not m.deleted:
+                return m
+
+        m = self.make_pointer_model(self._session)
+        self._session.models.add([m])
+        pm[peer_id] = m
         return m
 
     def make_pointer_model(self, session):
@@ -402,19 +414,21 @@ class PointerModels:
 
     def update_model(self, msg):
         m = self.pointer_model(msg.get('id'))
-        m.update_pointer(msg)
+        if not m.deleted:
+            m.update_pointer(msg)
 
     def remove_model(self, peer_id):
         pm = self._pointer_models
         if peer_id in pm:
             m = pm[peer_id]
             del pm[peer_id]
-            self._session.models.close([m])
+            if not m.deleted:
+                self._session.models.close([m])
 
 class MouseTracking(PointerModels):
-    def __init__(self, session, connect):
+    def __init__(self, session, meeting):
         PointerModels.__init__(self, session)
-        self._connect = connect		# ConnectServer instance
+        self._meeting = meeting		# MeetingServer instance
 
         t = session.triggers
         self._mouse_hover_handler = t.add_handler('mouse hover', self._mouse_hover_cb)
@@ -440,8 +454,8 @@ class MouseTracking(PointerModels):
             return
 
         axis = c.view_direction()
-        msg = {'name': self._connect._name,
-               'color': tuple(self._connect._color),
+        msg = {'name': self._meeting._name,
+               'color': tuple(self._meeting._color),
                'mouse': (tuple(xyz), tuple(axis)),
                }
 
@@ -449,7 +463,7 @@ class MouseTracking(PointerModels):
         self.update_model(msg)
 
         # Tell connected peers my new mouse pointer position.
-        self._connect._send_message(msg)
+        self._meeting._send_message(msg)
 
 from chimerax.core.models import Model
 class MousePointerModel(Model):
@@ -478,9 +492,9 @@ class MousePointerModel(Model):
             self.position = p
 
 class VRTracking(PointerModels):
-    def __init__(self, session, connect, sync_coords = True):
+    def __init__(self, session, meeting, sync_coords = True):
         PointerModels.__init__(self, session)
-        self._connect = connect		# ConnectServer instance
+        self._meeting = meeting		# MeetingServer instance
         self._sync_coords = sync_coords
 
         t = session.triggers
@@ -522,8 +536,8 @@ class VRTracking(PointerModels):
         if v.frame_number % self._vr_update_interval != 0:
             return
 
-        msg = {'name': self._connect._name,
-               'color': tuple(self._connect._color),
+        msg = {'name': self._meeting._name,
+               'color': tuple(self._meeting._color),
                'vr head': self._head_position(c),
                'vr hands': self._hand_positions(c),
                }
@@ -538,7 +552,7 @@ class VRTracking(PointerModels):
             self._new_head_image = None
             
         # Tell connected peers my new vr state
-        self._connect._send_message(msg)
+        self._meeting._send_message(msg)
 
     def _head_position(self, vr_camera):
         from chimerax.core.geometry import scale

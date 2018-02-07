@@ -1,13 +1,13 @@
-<BundleInfo name="ChimeraX-Connect" version="1.0"
-	    package="chimerax.connect"
+<BundleInfo name="ChimeraX-Meeting" version="1.0"
+	    package="chimerax.meeting"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Show synchronized pointers across ChimeraX on multiple machines.</Synopsis>
-  <Description>Show mouse hover or virtual reality hand controllers from ChimeraX running on a remote machine.</Description>
+  <Synopsis>Shared interactive VR sessions.</Synopsis>
+  <Description>Show virtual reality hand controllers or mouse from ChimeraX running on a remote machine.</Description>
 
   <DataFiles>
     <DataFile>face.png</DataFile>
@@ -24,7 +24,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: connect :: General :: Synchronize pointers</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: meeting :: General :: Shared interactive sessions</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
