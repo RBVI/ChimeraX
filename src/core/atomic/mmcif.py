@@ -256,8 +256,8 @@ def citations(model, only=None):
     return citations
 
 
-def merge_metadata(model, table_name, tags, data):
-    """Extend metadata
+def extend_metadata(model, table_name, tags, data):
+    """Extend existing mmCIF metadata table
 
     Parameters
     ----------
