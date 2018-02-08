@@ -405,7 +405,7 @@ class PointerModels:
     '''Manage mouse or VR pointer models for all connected hosts.'''
     def __init__(self, session):
         self._session = session
-        self._pointer_models = {}	# Map peer id to MousePointerModel
+        self._pointer_models = {}	# Map peer id to MousePointerModel or VRPointerModel
 
     def delete(self):
         for peer_id in tuple(self._pointer_models.keys()):
@@ -423,6 +423,10 @@ class PointerModels:
         pm[peer_id] = m
         return m
 
+    @property
+    def pointer_models(self):
+        return tuple(self._pointer_models.items())
+    
     def make_pointer_model(self, session):
         # Must be defined by subclass.
         pass
@@ -516,6 +520,7 @@ class VRTracking(PointerModels):
         self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
         self._update_interval = update_interval	# Send vr position every N frames.
         self._last_room_to_scene = None
+        self._last_steady_room_to_scene = None
         self._new_head_image = None	# Path to image file
 
     def delete(self):
@@ -539,6 +544,7 @@ class VRTracking(PointerModels):
                 from chimerax.core.geometry import Place
                 c.room_to_scene = Place(matrix = msg['vr coords'])
                 self._last_room_to_scene = c.room_to_scene
+                self._steady_vr_head_and_hands(c, exclude_peer = msg['id'])
         if 'vr head' in msg:
             PointerModels.update_model(self, msg)
 
@@ -554,6 +560,7 @@ class VRTracking(PointerModels):
         from chimerax.vive.vr import SteamVRCamera
         if not isinstance(c, SteamVRCamera):
             return
+        self._steady_vr_head_and_hands(c)
         if v.frame_number % self.update_interval != 0:
             return
 
@@ -582,6 +589,18 @@ class VRTracking(PointerModels):
     def _hand_positions(self, vr_camera):
         return [_place_matrix(h.position) for h in vr_camera._controller_models]
 
+    def _steady_vr_head_and_hands(self, c, exclude_peer = None):
+        '''Avoid moving VR head and hands of other participants when scene position in room changes.'''
+        lrs = self._last_steady_room_to_scene
+        if c.room_to_scene is lrs:
+            return
+        st = c.room_to_scene * lrs.inverse()
+        for peer_id, vrm in self.pointer_models:
+            if isinstance(vrm, VRPointerModel) and peer_id != exclude_peer:
+                for c in vrm.child_models():
+                    c.position = st*c.position
+        self._last_steady_room_to_scene = c.room_to_scene
+        
 from chimerax.core.models import Model
 class VRPointerModel(Model):
     SESSION_SAVE = False
