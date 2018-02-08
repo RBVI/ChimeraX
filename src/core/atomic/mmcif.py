@@ -196,6 +196,9 @@ def citations(model, only=None):
     """
     if only is not None:
         only = only.casefold()
+    from .structure import Structure
+    if not isinstance(model, Structure):
+        return ""
     citation, citation_author = get_mmcif_tables_from_metadata(model, [
         "citation", "citation_author"])
     if not citation:
@@ -271,7 +274,10 @@ def extend_metadata(model, table_name, tags, data):
     Otherwise, a new column is added to the table.
     """
     # TODO: deal with case insensitivity of tags
-    metadata = model.metadata
+    try:
+        metadata = model.metadata
+    except AttributeError:
+        raise ValueError("Expected a structure")
     data_name = '%s data'
     if table_name not in metadata or data_name not in metadata:
         metadata[table_name] = tags
@@ -345,7 +351,10 @@ def get_mmcif_tables_from_metadata(model, table_names):
     table_names : list of str
         A list of mmCIF category names.
     """
-    raw_tables = model.metadata
+    try:
+        raw_tables = model.metadata
+    except AttributeError:
+        raise ValueError("Expected a structure")
     tlist = []
     for n in table_names:
         if n not in raw_tables or (n + ' data') not in raw_tables:
