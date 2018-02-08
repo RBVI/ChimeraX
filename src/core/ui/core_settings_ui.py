@@ -87,6 +87,16 @@ class CoreSettingsPanel:
             lambda ses: core_settings.clipping_surface_caps,
             'Whether to cap surface holes created by clipping',
             False),
+        'resize_window_on_session_restore': (
+            'Resize window on session restore',
+            'Sessions',
+            BooleanOption,
+            None,
+            None,
+            None,
+            None,
+            'Whether to resize main window when restoring a session to the size it had when the session was saved.',
+            True),
     }
 
     def __init__(self, session, ui_area):
