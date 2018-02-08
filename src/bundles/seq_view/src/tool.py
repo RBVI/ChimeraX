@@ -511,9 +511,10 @@ class SequenceViewer(ToolInstance):
         if not hasattr(self, "settings_tool"):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
-                self.tool_window.create_child_window("Settings", close_destroys=False))
+                self.tool_window.create_child_window("Sequence Viewer Settings",
+                    close_destroys=False))
             self.child_tools.append(self.settings_tool)
-            self.settings_tool.tool_window.manage(self.tool_window)
+            self.settings_tool.tool_window.manage(None)
         self.settings_tool.tool_window.shown = True
 
     def show_ss(self, show=True):
