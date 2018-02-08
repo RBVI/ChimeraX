@@ -119,7 +119,7 @@ class CategorizedOptionsPanel(QTabWidget):
         return self._category_to_panel[category].options()
 
 class SettingsPanelBase(QWidget):
-    def __init__(self, settings, parent, option_sorting, multicategory,
+    def __init__(self, settings, owner_description, parent, option_sorting, multicategory,
             category_sorting=None, **kw):
         QWidget.__init__(self, parent, **kw)
         self.settings = settings
@@ -140,7 +140,7 @@ class SettingsPanelBase(QWidget):
         bc_layout.setContentsMargins(0, 0, 0, 0)
         bc_layout.setVerticalSpacing(5)
         if multicategory:
-            self.all_check = QCheckBox("Buttons affect all categories")
+            self.all_check = QCheckBox("Buttons affect all %s categories" % owner_description)
             self.all_check.setToolTip("If not checked, buttons only affect current category")
             from .. import shrink_font
             shrink_font(self.all_check)
@@ -218,11 +218,11 @@ class SettingsPanel(SettingsPanelBase):
        in order to update the "current" value of the attribute in settings.
     """
 
-    def __init__(self, settings, parent=None, *, sorting=True, **kw):
+    def __init__(self, settings, owner_description, parent=None, *, sorting=True, **kw):
         """'settings' is a Settings instance.  The remaining arguments are the same as
             for OptionsPanel
         """
-        SettingsPanelBase.__init__(self, settings, parent, sorting, multicategory=False, **kw)
+        SettingsPanelBase.__init__(self, settings, owner_description, parent, sorting, multicategory=False, **kw)
 
     def add_option(self, option):
         self.options_panel.add_option(option)
@@ -233,11 +233,11 @@ class CategorizedSettingsPanel(SettingsPanelBase):
        categories.
     """
 
-    def __init__(self, settings, parent=None, *, category_sorting=True, option_sorting=True, **kw):
+    def __init__(self, settings, owner_description, parent=None, *, category_sorting=True, option_sorting=True, **kw):
         """'settings' is a Settings instance.  The remaining arguments are the same as
             for CategorizedOptionsPanel
         """
-        SettingsPanelBase.__init__(self, settings, parent, option_sorting, multicategory=True,
+        SettingsPanelBase.__init__(self, settings, owner_description, parent, option_sorting, multicategory=True,
             category_sorting=category_sorting, **kw)
 
     def add_option(self, category, option):

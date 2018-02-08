@@ -93,7 +93,7 @@ class CoreSettingsPanel:
         from PyQt5.QtWidgets import QBoxLayout
         self.session = session
         from .options import CategorizedSettingsPanel
-        self.options_widget = CategorizedSettingsPanel(core_settings)
+        self.options_widget = CategorizedSettingsPanel(core_settings, "ChimeraX core")
 
         for setting, setting_info in self.settings_info.items():
             opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon, \

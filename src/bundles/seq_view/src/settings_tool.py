@@ -28,7 +28,7 @@ class SettingsTool:
                         options.extend(self.options(category))
                     return options
                 return super().options(category)
-        settings_panel = CategorizedSettingsPanel(sv.settings)
+        settings_panel = CategorizedSettingsPanel(sv.settings, "Sequence Viewer")
         appearance_panel = AppearanceOptionsPanel()
         settings_panel.add_tab(APPEARANCE, appearance_panel)
 
