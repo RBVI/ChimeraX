@@ -140,12 +140,13 @@ class SettingsPanelBase(QWidget):
         bc_layout.setContentsMargins(0, 0, 0, 0)
         bc_layout.setVerticalSpacing(5)
         if multicategory:
-            self.all_check = QCheckBox("Buttons below apply to all %s settings" % owner_description)
-            self.all_check.setToolTip("If not checked, buttons only affect current category")
+            self.current_check = QCheckBox("Buttons below apply to current section only")
+            self.current_check.setToolTip("If checked, buttons only affect current section")
+            self.current_check.setChecked(True)
             from .. import shrink_font
-            shrink_font(self.all_check)
+            shrink_font(self.current_check)
             from PyQt5.QtCore import Qt
-            bc_layout.addWidget(self.all_check, 0, 0, 1, 3, Qt.AlignRight)
+            bc_layout.addWidget(self.current_check, 0, 0, 1, 3, Qt.AlignRight)
         save_button = QPushButton("Save")
         save_button.clicked.connect(self._save)
         save_button.setToolTip("Save as startup defaults")
@@ -166,12 +167,12 @@ class SettingsPanelBase(QWidget):
 
     def _get_actionable_options(self):
         if self.multicategory:
-            if self.all_check.isChecked():
+            if self.current_check.isChecked():
+                options = self.options_panel.options(self.options_panel.current_category())
+            else:
                 options = []
                 for cat in self.options_panel.categories():
                     options.extend(self.options_panel.options(cat))
-            else:
-                options = self.options_panel.options(self.options_panel.current_category())
         else:
             options = self.options_panel.options()
         return options
