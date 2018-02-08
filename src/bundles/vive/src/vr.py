@@ -143,6 +143,7 @@ def stop_vr(session):
 #
 def wait_for_vsync(session, mirror):
     r = session.main_view.render
+    r.make_current()
     if not r.wait_for_vsync(not mirror):
         if mirror:
             session.log.warning('Mirror may cause VR stutter.'

@@ -594,11 +594,12 @@ class VRTracking(PointerModels):
         lrs = self._last_steady_room_to_scene
         if c.room_to_scene is lrs:
             return
-        st = c.room_to_scene * lrs.inverse()
-        for peer_id, vrm in self.pointer_models:
-            if isinstance(vrm, VRPointerModel) and peer_id != exclude_peer:
-                for c in vrm.child_models():
-                    c.position = st*c.position
+        if lrs is not None:
+            st = c.room_to_scene * lrs.inverse()
+            for peer_id, vrm in self.pointer_models:
+                if isinstance(vrm, VRPointerModel) and peer_id != exclude_peer:
+                    for m in vrm.child_models():
+                        m.scene_position = st*m.scene_position
         self._last_steady_room_to_scene = c.room_to_scene
         
 from chimerax.core.models import Model
