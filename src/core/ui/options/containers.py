@@ -140,7 +140,7 @@ class SettingsPanelBase(QWidget):
         bc_layout.setContentsMargins(0, 0, 0, 0)
         bc_layout.setVerticalSpacing(5)
         if multicategory:
-            self.all_check = QCheckBox("Buttons affect all %s categories" % owner_description)
+            self.all_check = QCheckBox("Buttons below apply to all %s settings" % owner_description)
             self.all_check.setToolTip("If not checked, buttons only affect current category")
             from .. import shrink_font
             shrink_font(self.all_check)
