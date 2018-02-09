@@ -39,7 +39,7 @@ class OptionsPanel(QScrollArea):
         self._options = []
         self._form = QFormLayout()
         self._form.setSizeConstraint(self._form.SetMinAndMaxSize)
-        self._form.setVerticalSpacing(0)
+        self._form.setVerticalSpacing(1)
         from PyQt5.QtCore import Qt
         self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self._scrolled.setLayout(self._form)
