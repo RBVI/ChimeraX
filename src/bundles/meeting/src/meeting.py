@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 #
 def meeting(session, host = None, port = 52194, name = None, color = None,
-            head_image = None, copy_scene = True):
+            head_image = None, copy_scene = None, update_interval = None):
     '''Allow two or more ChimeraX instances to show each others' VR hand-controller
     and headset positions or mouse positions.
 
@@ -36,6 +36,9 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
+    update_interval : int
+      How often VR hand and head model positions are sent for this ChimeraX instance in frames.
+      Value of 1 updates every frame.  Default 9.
     '''
 
     if host is None:
@@ -80,6 +83,11 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
         if s:
             s.copy_scene(copy_scene)
 
+    if update_interval is not None:
+        s = meeting_server(session)
+        if s:
+            s.vr_tracker.update_interval = update_interval
+
 # -----------------------------------------------------------------------------
 #
 def meeting_close(session):
@@ -107,7 +115,8 @@ def register_meeting_command(logger):
                               ('name', StringArg),
                               ('color', ColorArg),
                               ('head_image', OpenFileNameArg),
-                              ('copy_scene', BoolArg)],
+                              ('copy_scene', BoolArg),
+                              ('update_interval', IntArg)],
                    synopsis = 'Show synchronized mouse or VR hand controllers between two ChimeraX instances')
     register('meeting', desc, meeting, logger=logger)
     desc = CmdDesc(synopsis = 'Close meeting')
@@ -396,7 +405,7 @@ class PointerModels:
     '''Manage mouse or VR pointer models for all connected hosts.'''
     def __init__(self, session):
         self._session = session
-        self._pointer_models = {}	# Map peer id to MousePointerModel
+        self._pointer_models = {}	# Map peer id to MousePointerModel or VRPointerModel
 
     def delete(self):
         for peer_id in tuple(self._pointer_models.keys()):
@@ -414,6 +423,10 @@ class PointerModels:
         pm[peer_id] = m
         return m
 
+    @property
+    def pointer_models(self):
+        return tuple(self._pointer_models.items())
+    
     def make_pointer_model(self, session):
         # Must be defined by subclass.
         pass
@@ -498,15 +511,16 @@ class MousePointerModel(Model):
             self.position = p
 
 class VRTracking(PointerModels):
-    def __init__(self, session, meeting, sync_coords = True):
+    def __init__(self, session, meeting, sync_coords = True, update_interval = 9):
         PointerModels.__init__(self, session)
         self._meeting = meeting		# MeetingServer instance
         self._sync_coords = sync_coords
 
         t = session.triggers
         self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
-        self._vr_update_interval = 9	# Send vr position every N frames.
+        self._update_interval = update_interval	# Send vr position every N frames.
         self._last_room_to_scene = None
+        self._last_steady_room_to_scene = None
         self._new_head_image = None	# Path to image file
 
     def delete(self):
@@ -516,6 +530,12 @@ class VRTracking(PointerModels):
 
         PointerModels.delete(self)
 
+    def _get_update_interval(self):
+        return self._update_interval
+    def _set_update_interval(self, update_interval):
+        self._update_interval = update_interval
+    update_interval = property(_get_update_interval, _set_update_interval)
+    
     def update_model(self, msg):
         if 'vr coords' in msg and self._sync_coords:
             c = self._session.main_view.camera
@@ -524,6 +544,7 @@ class VRTracking(PointerModels):
                 from chimerax.core.geometry import Place
                 c.room_to_scene = Place(matrix = msg['vr coords'])
                 self._last_room_to_scene = c.room_to_scene
+                self._steady_vr_head_and_hands(c, exclude_peer = msg['id'])
         if 'vr head' in msg:
             PointerModels.update_model(self, msg)
 
@@ -539,7 +560,8 @@ class VRTracking(PointerModels):
         from chimerax.vive.vr import SteamVRCamera
         if not isinstance(c, SteamVRCamera):
             return
-        if v.frame_number % self._vr_update_interval != 0:
+        self._steady_vr_head_and_hands(c)
+        if v.frame_number % self.update_interval != 0:
             return
 
         msg = {'name': self._meeting._name,
@@ -567,6 +589,19 @@ class VRTracking(PointerModels):
     def _hand_positions(self, vr_camera):
         return [_place_matrix(h.position) for h in vr_camera._controller_models]
 
+    def _steady_vr_head_and_hands(self, c, exclude_peer = None):
+        '''Avoid moving VR head and hands of other participants when scene position in room changes.'''
+        lrs = self._last_steady_room_to_scene
+        if c.room_to_scene is lrs:
+            return
+        if lrs is not None:
+            st = c.room_to_scene * lrs.inverse()
+            for peer_id, vrm in self.pointer_models:
+                if isinstance(vrm, VRPointerModel) and peer_id != exclude_peer:
+                    for m in vrm.child_models():
+                        m.scene_position = st*m.scene_position
+        self._last_steady_room_to_scene = c.room_to_scene
+        
 from chimerax.core.models import Model
 class VRPointerModel(Model):
     SESSION_SAVE = False
@@ -628,16 +663,14 @@ class VRHeadModel(Model):
         r = size / 2
         from chimerax.core.surface import box_geometry
         va, na, ta = box_geometry((-r,-r,-0.1*r), (r,r,0.1*r))
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
-        self.color = (255,255,255,255)
 
         if image_file is None:
             from os.path import join, dirname
             image_file = join(dirname(__file__), self.default_face_file)
         from PyQt5.QtGui import QImage
         qi = QImage(image_file)
+        aspect = qi.width() / qi.height()
+        va[:,0] *= aspect
         from chimerax.core.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         from numpy import zeros, float32
@@ -645,6 +678,10 @@ class VRHeadModel(Model):
         tc[:] = 0.5
         tc[8:12,:] = ((0,0), (1,0), (0,1), (1,1))
 
+        self.vertices = va
+        self.normals = na
+        self.triangles = ta
+        self.color = (255,255,255,255)
         self.texture = Texture(rgba)
         self.texture_coordinates = tc
 
@@ -654,6 +691,11 @@ class VRHeadModel(Model):
         from PyQt5.QtGui import QImage
         qi = QImage()
         qi.loadFromData(image_bytes)
+        aspect = qi.width() / qi.height()
+        va = self.vertices
+        caspect = va[:,0].max() / va[:,1].max()
+        va[:,0] *= aspect / caspect
+        self.vertices = va
         from chimerax.core.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         r = self.session.main_view.render

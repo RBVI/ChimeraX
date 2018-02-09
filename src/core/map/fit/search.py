@@ -394,7 +394,7 @@ def any_close_tf(tf, tflist, angle_tolerance, shift_tolerance, shift_point):
 #
 def unique_symmetry_position(tf, center, ref_point, sym_list):
 
-    if len(sym_list) == 0:
+    if sym_list is None or len(sym_list) == 0:
         return tf
 
     from ...geometry import distance
