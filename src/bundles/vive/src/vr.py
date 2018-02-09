@@ -167,7 +167,9 @@ class SteamVRCamera(Camera):
         self._controller_models = []	# List of HandControllerModel
         self.mirror_display = False	# Mirror right eye in ChimeraX window
         				# This causes stuttering in the Vive.
-        
+
+        self.room_position = None	# Camera position in room coordinates
+
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
 
@@ -293,7 +295,8 @@ class SteamVRCamera(Camera):
             # Camera moved by mouse or command.
             hs = self._last_h * S
             self.room_to_scene = C * hs.inverse()
-        Cnew = self.room_to_scene * H * S
+        self.room_position = rp = H * S
+        Cnew = self.room_to_scene * rp
         self.position = self._last_position = Cnew
         self._last_h = H
 
@@ -476,7 +479,9 @@ class HandControllerModel(Model):
         self._icon_rows = 0
         self._icon_shortcuts = []
         self._icons_shown = False
-        
+
+        self.room_position = None	# Hand controller position in room coordinates.
+
         from chimerax.core.surface.shapes import cone_geometry
         va, na, ta = cone_geometry(nc = 50, points_up = False)
         va[:,:2] *= aspect
@@ -512,9 +517,9 @@ class HandControllerModel(Model):
         '''Move hand controller model to new position.
         Keep size constant in physical room units.'''
         dp = camera._poses[self.device_index].mDeviceToAbsoluteTracking
-        self._pose = hmd34_to_position(dp)
+        self.room_position = self._pose = rp = hmd34_to_position(dp)
         if self._shown_in_scene:
-            self.position = camera.room_to_scene * self._pose
+            self.position = camera.room_to_scene * rp
 
     def tip_position(self):
         return self.scene_position.origin()
@@ -589,6 +594,7 @@ class HandControllerModel(Model):
             else:
                 move = previous_pose * pose.inverse()
                 camera.room_to_scene = camera.room_to_scene * move
+                self._update_position(camera)
         elif m == 'zoom' and self._zoom_center is not None:
             center = self._zoom_center
             move = previous_pose * pose.inverse()
@@ -599,6 +605,7 @@ class HandControllerModel(Model):
             from chimerax.core.geometry import distance, translation, scale
             scale = translation(center) * scale(s) * translation(-center)
             camera.room_to_scene = camera.room_to_scene * scale
+            self._update_position(camera)
         elif m == 'move atoms':
             move = pose * previous_pose.inverse()  # Room to room coords
             rts = camera.room_to_scene
@@ -617,6 +624,7 @@ class HandControllerModel(Model):
             s = max(min(s, 10.0), 0.1)	# Limit scaling
             scale = translation(center) * scale(s) * translation(-center)
             camera.room_to_scene = camera.room_to_scene * scale
+            self._update_position(camera)
 
     def icon_clicked(self):
         xy = self.touchpad_position()
