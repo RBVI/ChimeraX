@@ -300,6 +300,8 @@ class SteamVRCamera(Camera):
         self.position = self._last_position = Cnew
         self._last_h = H
 
+        self._session.triggers.activate_trigger('vr update', self)
+
     @property
     def scene_scale(self):
         '''Scale factor from scene to room coordinates.'''
