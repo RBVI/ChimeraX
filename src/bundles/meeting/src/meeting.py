@@ -520,7 +520,7 @@ class VRTracking(PointerModels):
         self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
         self._update_interval = update_interval	# Send vr position every N frames.
         self._time_hash = th = random_string(8)	# To break ties when users change state at same time.
-        self._room_to_scene_time = [0, th]	# For keeping shared state up to date
+        self._room_to_scene_time = (0, th)	# For keeping shared state up to date
         self._last_room_to_scene = None
         self._new_head_image = None	# Path to image file
 
@@ -545,7 +545,8 @@ class VRTracking(PointerModels):
                 from chimerax.vive.vr import SteamVRCamera
                 if isinstance(c, SteamVRCamera):
                     from chimerax.core.geometry import Place
-                    c.room_to_scene = Place(matrix = matrix)
+                    p = Place(matrix = matrix)
+                    c.room_to_scene = self._last_room_to_scene = p
                     self._room_to_scene_time = time
         if 'vr head' in msg:
             PointerModels.update_model(self, msg)
@@ -565,9 +566,10 @@ class VRTracking(PointerModels):
         from chimerax.vive.vr import SteamVRCamera
         if not isinstance(c, SteamVRCamera):
             return
-        self._steady_vr_head_and_hands()
+
         if v.frame_number % self.update_interval != 0:
-            return
+            if c.room_to_scene is self._last_room_to_scene:
+                return
 
         msg = {'name': self._meeting._name,
                'color': tuple(self._meeting._color),
@@ -575,11 +577,12 @@ class VRTracking(PointerModels):
                'vr hands': self._hand_positions(c),
                }
 
+        time = self._room_to_scene_time
         if c.room_to_scene is not self._last_room_to_scene:
-            self._room_to_scene_time = time = (self._room_to_scene_time[0]+1, self._time_hash)
-            msg['vr coords'] = (time, _place_matrix(c.room_to_scene))
+            self._room_to_scene_time = (time[0]+1, self._time_hash)
             self._last_room_to_scene = c.room_to_scene
             self._steady_vr_head_and_hands()
+        msg['vr coords'] = (time, _place_matrix(c.room_to_scene))
 
         if self._new_head_image:
             from base64 import b64encode
