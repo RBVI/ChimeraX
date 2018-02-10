@@ -467,11 +467,10 @@ class MouseTracking(PointerModels):
         return MousePointerModel(self._session, 'my pointer')
 
     def _mouse_hover_cb(self, trigger_name, xyz):
-        c = self._session.main_view.camera
-        from chimerax.vive.vr import SteamVRCamera
-        if isinstance(c, SteamVRCamera):
+        if _vr_camera(self._session):
             return
 
+        c = self._session.main_view.camera
         axis = c.view_direction()
         msg = {'name': self._meeting._name,
                'color': tuple(self._meeting._color),
@@ -517,10 +516,8 @@ class VRTracking(PointerModels):
         self._sync_coords = sync_coords
 
         t = session.triggers
-        self._vr_tracking_handler = t.add_handler('new frame', self._vr_tracking_cb)
+        self._vr_tracking_handler = t.add_handler('vr update', self._vr_tracking_cb)
         self._update_interval = update_interval	# Send vr position every N frames.
-        self._time_hash = th = random_string(8)	# To break ties when users change state at same time.
-        self._room_to_scene_time = (0, th)	# For keeping shared state up to date
         self._last_room_to_scene = None
         self._new_head_image = None	# Path to image file
 
@@ -539,20 +536,13 @@ class VRTracking(PointerModels):
     
     def update_model(self, msg):
         if 'vr coords' in msg and self._sync_coords:
-            time, matrix = msg['vr coords']
-            if time > self._room_to_scene_time:
-                c = self._session.main_view.camera
-                from chimerax.vive.vr import SteamVRCamera
-                if isinstance(c, SteamVRCamera):
-                    from chimerax.core.geometry import Place
-                    p = Place(matrix = matrix)
-                    c.room_to_scene = self._last_room_to_scene = p
-                    self._room_to_scene_time = time
+            matrix = msg['vr coords']
+            c = _vr_camera(self._session)
+            if c:
+                c.room_to_scene = self._last_room_to_scene = _matrix_place(matrix)
+
         if 'vr head' in msg:
             PointerModels.update_model(self, msg)
-
-        # Update head / hands when peers have not settled on same room coordinates.
-        self._steady_vr_head_and_hands()
 
     def make_pointer_model(self, session):
         return VRPointerModel(self._session, 'vr head and hands')
@@ -560,35 +550,28 @@ class VRTracking(PointerModels):
     def new_head_image(self, path):
         self._new_head_image = path
         
-    def _vr_tracking_cb(self, trigger_name, *unused):
-        v = self._session.main_view
-        c = v.camera
-        from chimerax.vive.vr import SteamVRCamera
-        if not isinstance(c, SteamVRCamera):
-            return
+    def _vr_tracking_cb(self, trigger_name, camera):
+        c = camera
+        scene_moved = (c.room_to_scene is not self._last_room_to_scene)
+        if scene_moved:
+            self._reposition_vr_head_and_hands(c)
 
+        v = self._session.main_view
         if v.frame_number % self.update_interval != 0:
-            if c.room_to_scene is self._last_room_to_scene:
-                return
+            return
 
         msg = {'name': self._meeting._name,
                'color': tuple(self._meeting._color),
-               'vr head': self._head_position(c),
-               'vr hands': self._hand_positions(c),
+               'vr head': self._head_position(c),	# In room coordinates
+               'vr hands': self._hand_positions(c),	# In room coordinates
                }
 
-        time = self._room_to_scene_time
-        if c.room_to_scene is not self._last_room_to_scene:
-            self._room_to_scene_time = (time[0]+1, self._time_hash)
+        if scene_moved:
+            msg['vr coords'] = _place_matrix(c.room_to_scene)
             self._last_room_to_scene = c.room_to_scene
-            self._steady_vr_head_and_hands()
-        msg['vr coords'] = (time, _place_matrix(c.room_to_scene))
 
         if self._new_head_image:
-            from base64 import b64encode
-            hf = open(self._new_head_image, 'rb')
-            msg['vr head image'] = b64encode(hf.read())
-            hf.close()
+            msg['vr head image'] = _encode_head_image(self._new_head_image)
             self._new_head_image = None
             
         # Tell connected peers my new vr state
@@ -596,30 +579,23 @@ class VRTracking(PointerModels):
 
     def _head_position(self, vr_camera):
         from chimerax.core.geometry import scale
-        return _place_matrix(vr_camera.position * scale(1/vr_camera.scene_scale))
+        return _place_matrix(vr_camera.room_position)
 
     def _hand_positions(self, vr_camera):
-        return [_place_matrix(h.position) for h in vr_camera._controller_models]
+        return [_place_matrix(h.room_position) for h in vr_camera._controller_models]
 
-    def _steady_vr_head_and_hands(self):
+    def _reposition_vr_head_and_hands(self, camera):
         '''
-        If participants are changing room to scene coordinates and all participants
-        have not settled on common coordinates yet, adjust VR head and hands of other
-        participants to match their reported room position.  This avoids jittering head
-        and hands when the scene is moved.
+        If my room to scene coordinates change correct the VR head and hand model
+        scene positions so they maintain the same apparent position in the room.
         '''
-        c = self._session.main_view.camera
-        from chimerax.vive.vr import SteamVRCamera
-        if not isinstance(c, SteamVRCamera):
-            return
-        time = self._room_to_scene_time
+        c = camera
+        rts = c.room_to_scene
         for peer_id, vrm in self.pointer_models:
             if isinstance(vrm, VRPointerModel):
-                if vrm.room_to_scene_time != time and vrm.room_to_scene is not None:
-                    st = c.room_to_scene * vrm.room_to_scene.inverse()
-                    for m in vrm.child_models():
-                        if m.last_scene_position is not None:
-                            m.scene_position = st*m.last_scene_position
+                for m in vrm.child_models():
+                    if m.room_position is not None:
+                        m.scene_position = rts*m.room_position
 
             
 from chimerax.core.models import Model
@@ -632,8 +608,10 @@ class VRPointerModel(Model):
         self.add([h])
         self._hands = []
         self._color = color
-        self.room_to_scene_time = None	# Last reported room to scene time.
-        self.room_to_scene = None	# Last room to scene transformation for this peer.
+
+	# Last room to scene transformation for this peer.
+        # Used if we are not using VR camera so have no room coordinates.
+        self._room_to_scene = None
 
     def _hand_models(self, nhands):
         new_hands = [VRHandModel(self.session, 'hand %d' % (i+1), color=self._color)
@@ -643,6 +621,13 @@ class VRPointerModel(Model):
             self._hands.extend(new_hands)
         return self._hands[:nhands]
 
+    def _get_room_to_scene(self):
+        c = _vr_camera(self.session)
+        return c.room_to_scene if c else self._room_to_scene
+    def _set_room_to_scene(self, rts):
+        self._room_to_scene = rts
+    room_to_scene = property(_get_room_to_scene, _set_room_to_scene)
+
     def update_pointer(self, msg):
         if 'name' in msg:
             if 'id' in msg:  # If id not in msg leave name as "my pointer".
@@ -651,21 +636,17 @@ class VRPointerModel(Model):
             for h in self._hands:
                 h.color = msg['color']
         if 'vr coords' in msg:
-            time, matrix = msg['vr coords']
-            ctime = self.room_to_scene_time
-            if ctime is None or time > ctime:
-                self.room_to_scene_time = time
-                from chimerax.core.geometry import Place
-                self.room_to_scene = Place(matrix = matrix)
+            self.room_to_scene = _matrix_place(msg['vr coords'])
         if 'vr head' in msg:
-            from chimerax.core.geometry import Place
             h = self._head
-            h.position = h.last_scene_position = Place(matrix = msg['vr head'])
+            h.room_position = rp = _matrix_place(msg['vr head'])
+            h.position = self.room_to_scene * rp
         if 'vr hands' in msg:
             hpos = msg['vr hands']
-            from chimerax.core.geometry import Place
+            rts = self.room_to_scene
             for h,hm in zip(self._hand_models(len(hpos)), hpos):
-                h.position = h.last_scene_position = Place(matrix = hm)
+                h.room_position = rp = _matrix_place(hm)
+                h.position = rts * rp
         if 'vr head image' in msg:
             self._head.update_image(msg['vr head image'])
 
@@ -675,7 +656,7 @@ class VRHandModel(Model):
     
     def __init__(self, session, name, radius = 0.04, height = 0.2, color = (0,255,0,255)):
         Model.__init__(self, name, session)
-        self.last_scene_position = None
+        self.room_position = None
         
         from chimerax.core.surface import cone_geometry
         va, na, ta = cone_geometry(radius = radius, height = height, points_up = False)
@@ -691,7 +672,7 @@ class VRHeadModel(Model):
     default_face_file = 'face.png'
     def __init__(self, session, name = 'head', size = 0.3, image_file = None):
         Model.__init__(self, name, session)
-        self.last_scene_position = None
+        self.room_position = None
         
         r = size / 2
         from chimerax.core.surface import box_geometry
@@ -719,8 +700,7 @@ class VRHeadModel(Model):
         self.texture_coordinates = tc
 
     def update_image(self, base64_image_bytes):
-        from base64 import b64decode
-        image_bytes = b64decode(base64_image_bytes)
+        image_bytes = _decode_head_image(base64_image_bytes)
         from PyQt5.QtGui import QImage
         qi = QImage()
         qi.loadFromData(image_bytes)
@@ -736,10 +716,27 @@ class VRHeadModel(Model):
         self.texture.delete_texture()
         self.texture = Texture(rgba)
 
+def _vr_camera(session):
+    c = session.main_view.camera
+    from chimerax.vive.vr import SteamVRCamera
+    return c if isinstance(c, SteamVRCamera) else None
+
 def _place_matrix(p):
     '''Encode Place as tuple for sending over socket.'''
     return tuple(tuple(row) for row in p.matrix)
 
-def random_string(length):
-    import string, random
-    return ''.join([random.choice(string.ascii_letters) for n in range(length)])
+def _matrix_place(m):
+    from chimerax.core.geometry import Place
+    return Place(matrix = m)
+
+def _encode_head_image(path):
+    from base64 import b64encode
+    hf = open(path, 'rb')
+    he = b64encode(hf.read())
+    hf.close()
+    return he
+
+def _decode_head_image(bytes):
+    from base64 import b64decode
+    image_bytes = b64decode(bytes)
+    return image_bytes
