@@ -378,9 +378,21 @@ class SteamVRCamera(Camera):
         if view_num == 0:
             render.push_framebuffer(fb)
         elif view_num == 1:
-            # Submit left eye texture (view 0) before rendering right eye (view 1)
-            import openvr
-            self.compositor.submit(openvr.Eye_Left, fb.openvr_texture)
+            if not self._close:
+                # Submit left eye texture (view 0) before rendering right eye (view 1)
+                import openvr
+                result = self.compositor.submit(openvr.Eye_Left, fb.openvr_texture)
+                self._check_for_compositor_error('left', result, render)
+
+    def _check_for_compositor_error(self, eye, result, render):
+        import openvr
+        if result != openvr.VRCompositorError_None:
+            self._session.logger.info('SteamVR compositor submit for %s eye returned error %d'
+                                      % (eye, result))
+        err_msg = render.check_for_opengl_errors()
+        if err_msg:
+            self._session.logger.info('SteamVR compositor submit for %s eye produced an OpenGL error "%s"'
+                                      % (eye, err_msg))
 
     def combine_rendered_camera_views(self, render):
         '''
@@ -388,8 +400,11 @@ class SteamVRCamera(Camera):
         by set_render_target() when render target switched to right eye.
         '''
         fb = render.pop_framebuffer()
-        import openvr
-        self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
+
+        if not self._close:
+            import openvr
+            result = self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
+            self._check_for_compositor_error('right', result, render)
 
         if self.mirror_display:
             # Render right eye to ChimeraX window.
