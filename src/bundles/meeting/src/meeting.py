@@ -579,9 +579,10 @@ class VRTracking(PointerModels):
 
     def _head_position(self, vr_camera):
         from chimerax.core.geometry import scale
-        return _place_matrix(vr_camera.room_position)
+        return _place_matrix(vr_camera.room_position * scale(1/vr_camera.scene_scale))
 
     def _hand_positions(self, vr_camera):
+        # Hand controller room position includes scaling from room to scene coordinates
         return [_place_matrix(h.room_position) for h in vr_camera._controller_models]
 
     def _reposition_vr_head_and_hands(self, camera):
