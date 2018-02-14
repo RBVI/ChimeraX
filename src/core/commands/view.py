@@ -150,7 +150,7 @@ def _named_views(session):
     return session._named_views
 
 
-from ..state import State
+from ..state import State, StateManager
 class NamedView(State):
     camera_attributes = ('position', 'field_of_view', 'field_width',
                          'eye_separation_scene', 'eye_separation_pixels')
@@ -214,10 +214,7 @@ class NamedView(State):
             setattr(nv, k, v)
         return nv
 
-    def reset_state(self, session):
-        pass
-
-class NamedViews(State):
+class NamedViews(StateManager):
     def __init__(self):
         self._views = {}	# Maps name to NamedView
 

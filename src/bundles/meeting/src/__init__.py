@@ -13,12 +13,12 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _ConnectAPI(BundleAPI):
+class _MeetingAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import connect
-        connect.register_connect_command(logger)
+        from . import meeting
+        meeting.register_meeting_command(logger)
 
-bundle_api = _ConnectAPI()
+bundle_api = _MeetingAPI()

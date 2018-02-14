@@ -11,7 +11,9 @@ class _MyAPI(BundleAPI):
     def start_tool(session, bi, ti):
         if ti.name == "ViewDockX":
             from .tool import TableTool
-            return TableTool(session, ti.name)
+            tool = TableTool(session, ti.name)
+            tool.setup()
+            return tool
         else:
             raise ValueError("trying to start unknown tool: %s" % ti.name)
 

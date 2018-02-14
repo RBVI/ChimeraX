@@ -511,9 +511,10 @@ class SequenceViewer(ToolInstance):
         if not hasattr(self, "settings_tool"):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
-                self.tool_window.create_child_window("Settings", close_destroys=False))
+                self.tool_window.create_child_window("Sequence Viewer Settings",
+                    close_destroys=False))
             self.child_tools.append(self.settings_tool)
-            self.settings_tool.tool_window.manage(self.tool_window)
+            self.settings_tool.tool_window.manage(None)
         self.settings_tool.tool_window.shown = True
 
     def show_ss(self, show=True):
@@ -530,9 +531,7 @@ class SequenceViewer(ToolInstance):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        bundle_info = session.toolshed.find_bundle_for_class(cls)
-        inst = cls(session, bundle_info.tools[0].name)
-        ToolInstance.set_state_from_snapshot(inst, session, data['ToolInstance'])
+        inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(session, data['alignment'])
         inst.region_browser.restore_state(data['region browser'])
         return inst

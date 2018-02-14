@@ -211,28 +211,48 @@ class EnumOption(Option):
 
 class IntOption(Option):
     """Option for integer values.
-       Constructor takes option min/max keywords to specify lower/upper bound values."""
+       Constructor takes option min/max keywords to specify lower/upper bound values.
+       
+       Supports 'preceding_text' and 'trailing_text' keywords for putting text before
+       and after the entry widget on the right side of the form"""
 
     default_minimum = -(2^31)
     default_maximum = 2^31 - 1
 
     def get(self):
-        return self.widget.value()
+        return self.spinbox.value()
 
     def set(self, value):
-        self.widget.setSpecialValueText("")
-        self.widget.setValue(value)
+        self.spinbox.setSpecialValueText("")
+        self.spinbox.setValue(value)
 
     def set_multiple(self):
-        self.widget.setSpecialValueText(self.multiple_value)
-        self.widget.setValue(self.widget.minimum())
+        self.spinbox.setSpecialValueText(self.multiple_value)
+        self.spinbox.setValue(self.spinbox.minimum())
 
     def _make_widget(self, min=None, max=None, **kw):
-        from PyQt5.QtWidgets import QSpinBox
-        self.widget = QSpinBox(**kw)
-        self.widget.setMinimum(self.default_minimum if min is None else min)
-        self.widget.setMaximum(self.default_maximum if max is None else max)
-        self.widget.valueChanged.connect(lambda val, s=self: s.make_callback())
+        from PyQt5.QtWidgets import QSpinBox, QWidget, QHBoxLayout, QLabel
+        preceding_text = kw.pop('preceding_text', None)
+        trailing_text = kw.pop('trailing_text', None)
+        self.spinbox = QSpinBox(**kw)
+        self.spinbox.setMinimum(self.default_minimum if min is None else min)
+        self.spinbox.setMaximum(self.default_maximum if max is None else max)
+        self.spinbox.valueChanged.connect(lambda val, s=self: s.make_callback())
+        if not preceding_text and not trailing_text:
+            self.widget = self.spinbox
+            return
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
+        if preceding_text:
+            layout.addWidget(QLabel(preceding_text))
+            l = 0
+        layout.addWidget(self.spinbox)
+        if trailing_text:
+            layout.addWidget(QLabel(trailing_text))
+            r = 0
+        self.widget.setLayout(layout)
 
 class RGBA8Option(Option):
     """Option for rgba colors, returns 8-bit (0-255) rgba values"""
@@ -348,12 +368,16 @@ class OptionalRGBA8PairOption(Option):
     def _make_widget(self, **kw):
         from ..widgets import MultiColorButton
         from PyQt5.QtWidgets import QWidget, QCheckBox, QHBoxLayout, QLabel
+        labels = kw.pop('labels', (None, "  "))
         self.widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         self._check_box = []
         self._color_button = []
         for i in range(2):
+            label = labels[i]
+            if label:
+                layout.addWidget(QLabel(label))
             cb = QCheckBox()
             self._check_box.append(cb)
             cb.clicked.connect(lambda state, s=self: s.make_callback())
@@ -364,9 +388,6 @@ class OptionalRGBA8PairOption(Option):
             mcb.color = kw.get('initial_colors', (default_color, default_color))[i]
             mcb.color_changed.connect(lambda c, s=self: s.make_callback())
             layout.addWidget(mcb)
-            if i == 0:
-                # insert a label to add some space between the groupings
-                layout.addWidget(QLabel("  "))
         self.widget.setLayout(layout)
 
 class OptionalRGBAPairOption(OptionalRGBA8PairOption):

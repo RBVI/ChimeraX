@@ -239,7 +239,7 @@ def box_geometry(llb, urf):
     # llb = v0 -|---v1 |
     #         \ |     \|
     #          v4 ---- v5
-    from numpy import array, float32, uint32
+    from numpy import array, float32, int32
     vertices = array([
         # -x, v0-v4-v2-v6
         [llb[0], llb[1], llb[2]],
@@ -322,5 +322,5 @@ def box_geometry(llb, urf):
         [12, 13, 14], [14, 13, 15],     # x
         [16, 17, 18], [18, 17, 19],     # y
         [20, 21, 22], [22, 21, 23],     # z
-    ], dtype=uint32)
+    ], dtype=int32)
     return vertices, normals, triangles

@@ -32,6 +32,7 @@ class _CoreSettings(Settings):
         'bg_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
         'clipping_surface_caps': True,
         'clipping_cap_offset': 0.01,
+        'resize_window_on_session_restore': False,
     }
 
 def init(session):

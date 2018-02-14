@@ -87,13 +87,23 @@ class CoreSettingsPanel:
             lambda ses: core_settings.clipping_surface_caps,
             'Whether to cap surface holes created by clipping',
             False),
+        'resize_window_on_session_restore': (
+            'Resize window on session restore',
+            'Sessions',
+            BooleanOption,
+            None,
+            None,
+            None,
+            None,
+            'Whether to resize main window when restoring a session to the size it had when the session was saved.',
+            True),
     }
 
     def __init__(self, session, ui_area):
         from PyQt5.QtWidgets import QBoxLayout
         self.session = session
         from .options import CategorizedSettingsPanel
-        self.options_widget = CategorizedSettingsPanel(core_settings)
+        self.options_widget = CategorizedSettingsPanel(core_settings, "ChimeraX core")
 
         for setting, setting_info in self.settings_info.items():
             opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon, \

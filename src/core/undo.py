@@ -16,10 +16,10 @@ and "redo" callbacks.  Actions can register "undo" and "redo"
 functions which may be invoked via GUI, command or programmatically.
 """
 
-from .state import State, CORE_STATE_VERSION
+from .state import StateManager, CORE_STATE_VERSION
 
 
-class Undo(State):
+class Undo(StateManager):
     """A per-session undo manager for tracking undo/redo callbacks.
 
     'Undo' managers are per-session singletons that track
