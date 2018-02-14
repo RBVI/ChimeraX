@@ -251,8 +251,11 @@ class MeetingServer:
         socket.readyRead.connect(read_socket)
 
         self._initiate_tracking()
+
         if self._copy_scene:
             self.copy_scene_to_peers([socket])
+
+        self._send_room_coords([socket])
 
     def copy_scene_to_peers(self, sockets = None):
         if sockets is None:
@@ -260,11 +263,14 @@ class MeetingServer:
         if self._session.models.empty() or len(sockets) == 0:
             return
         msg = {'scene': self._encode_session()}
-        rts = self.vr_tracker.last_room_to_scene
-        if rts is not None:
-            msg['vr coords'] = _place_matrix(rts)  # Tell peer the current vr room coordinates.
         self._send_message(msg, sockets=sockets)
 
+    def _send_room_coords(self, sockets = None):
+        rts = self.vr_tracker.last_room_to_scene
+        if rts is not None:
+            msg = {'vr coords': _place_matrix(rts)}  # Tell peer the current vr room coordinates.
+            self._send_message(msg, sockets=sockets)
+            
     def _encode_session(self):
         from io import BytesIO
         stream = BytesIO()
