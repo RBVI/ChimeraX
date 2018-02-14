@@ -78,7 +78,7 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
         if s:
             s.vr_tracker.new_head_image(head_image)
 
-    if copy_scene:
+    if copy_scene is not None:
         s = meeting_server(session)
         if s:
             s.copy_scene(copy_scene)
@@ -260,6 +260,9 @@ class MeetingServer:
         if self._session.models.empty() or len(sockets) == 0:
             return
         msg = {'scene': self._encode_session()}
+        rts = self.vr_tracker.last_room_to_scene
+        if rts is not None:
+            msg['vr coords'] = _place_matrix(rts)  # Tell peer the current vr room coordinates.
         self._send_message(msg, sockets=sockets)
 
     def _encode_session(self):
@@ -518,7 +521,8 @@ class VRTracking(PointerModels):
         t = session.triggers
         self._vr_tracking_handler = t.add_handler('vr update', self._vr_tracking_cb)
         self._update_interval = update_interval	# Send vr position every N frames.
-        self._last_room_to_scene = None
+        self._last_vr_camera = c = _vr_camera(self._session)
+        self._last_room_to_scene = c.room_to_scene if c else None
         self._new_head_image = None	# Path to image file
 
     def delete(self):
@@ -528,6 +532,10 @@ class VRTracking(PointerModels):
 
         PointerModels.delete(self)
 
+    @property
+    def last_room_to_scene(self):
+        return self._last_room_to_scene
+    
     def _get_update_interval(self):
         return self._update_interval
     def _set_update_interval(self, update_interval):
@@ -537,21 +545,30 @@ class VRTracking(PointerModels):
     def update_model(self, msg):
         if 'vr coords' in msg and self._sync_coords:
             matrix = msg['vr coords']
+            rts = self._last_room_to_scene = _matrix_place(matrix)
             c = _vr_camera(self._session)
             if c:
-                c.room_to_scene = self._last_room_to_scene = _matrix_place(matrix)
+                c.room_to_scene = rts
 
         if 'vr head' in msg:
             PointerModels.update_model(self, msg)
 
     def make_pointer_model(self, session):
-        return VRPointerModel(self._session, 'vr head and hands')
+        return VRPointerModel(self._session, 'vr head and hands', self._last_room_to_scene)
 
     def new_head_image(self, path):
         self._new_head_image = path
         
     def _vr_tracking_cb(self, trigger_name, camera):
         c = camera
+        
+        if c is not self._last_vr_camera:
+            # VR just turned on so use current meeting room coordinates
+            self._last_vr_camera = c
+            rts = self._last_room_to_scene
+            if rts is not None:
+                c.room_to_scene = rts
+                
         scene_moved = (c.room_to_scene is not self._last_room_to_scene)
         if scene_moved:
             self._reposition_vr_head_and_hands(c)
@@ -603,7 +620,7 @@ from chimerax.core.models import Model
 class VRPointerModel(Model):
     SESSION_SAVE = False
     
-    def __init__(self, session, name, color = (0,255,0,255)):
+    def __init__(self, session, name, room_to_scene, color = (0,255,0,255)):
         Model.__init__(self, name, session)
         self._head = h = VRHeadModel(session)
         self.add([h])
@@ -612,7 +629,7 @@ class VRPointerModel(Model):
 
 	# Last room to scene transformation for this peer.
         # Used if we are not using VR camera so have no room coordinates.
-        self._room_to_scene = None
+        self._room_to_scene = room_to_scene
 
     def _hand_models(self, nhands):
         new_hands = [VRHandModel(self.session, 'hand %d' % (i+1), color=self._color)
