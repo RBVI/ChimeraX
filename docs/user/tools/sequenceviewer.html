@@ -57,7 +57,9 @@ or by using the command:
 <p>
 Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
-(<a href="../window.html#panels">more...</a>).
+(<a href="../window.html#panels">more...</a>). Wrapping and other
+behaviors can be controlled in the <a href="#settings"><b>Sequence
+Viewer</b> settings</a>.
 See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
 <p>
 
@@ -77,7 +79,8 @@ Some regions are created automatically, such as by
 <a href="#association">association</a> with a structure.
 Regions can also be created manually by dragging within the sequence window.
 Manually created regions are shown in
-<font style="background:rgb(233,218,198);padding:1px 3px">this&nbsp;color</font>.
+<font style="background:rgb(233,218,198);padding:1px 3px">this&nbsp;color</font>
+(default, see <a href="#settings-regions"><b>Regions</b> settings</a>).
 </p><p>
 <a name="active"></a>
 The <b><i>active region</i></b> is the region most recently clicked or created
@@ -147,7 +150,8 @@ associated structures, a
 <font style="background:pink;padding:1px 3px">
 pink box</font> or 
 <font style="border:solid rgb(190,190,190) 1px;padding:1px 3px">
-gray outline</font> is shown instead.
+gray outline</font> is shown instead
+(default, see <a href="#settings-regions"><b>Regions</b> settings</a>).
 </p><p>
 Further effects of association:
 </p>
@@ -164,9 +168,156 @@ over residues in the sequence window reports the corresponding structure residue
 are shown as the <a href="#regions">region</a> named
 <font style="background:lightgreen;padding:1px 3px">
 <b>ChimeraX&nbsp;selection</b></font>
+(default, see <a href="#settings-regions"><b>Regions</b> settings</a>)
+</ul>
+
+<a name="settings"></a>
+<p class="nav">
+[<a href="#top">back to top: Sequence Viewer</a>]
+</p>
+<h3>Sequence Viewer Settings (Preferences)</h3>
+<p>
+Choosing <b>Settings...</b> from the <b>Sequence Viewer</b>
+<a href="../window.html#panels">context menu</a>
+shows its settings in a separate window, with sections:
+</p>
+<ul>
+<li><a href="#settings-appearance"><b>Appearance</b></a>
+- sequence display parameters
+<li><a href="#settings-regions"><b>Regions</b></a>
+- creation and display of <a href="#regions">regions</a> (colored boxes)
+</ul>
+<p>
+The settings window can be manipulated like other panels in the
+ChimeraX interface (<a href="../window.html#panels">more...</a>).
+</p><p>
+<b>Save</b> saves the current settings as
+<a href="../preferences.html">preferences</a>,
+<b>Reset</b> resets them to &ldquo;factory defaults&rdquo;
+(values shown in <b>bold</b> below),
+and <b>Restore</b> restores values that were saved previously.
+There is a checkbox to indicate whether these buttons should apply only
+to the currently shown section (<b>Appearance</b> or <b>Regions</b>)
+or to all of the <b>Sequence Viewer</b> preferences.
+Although there can be multiple settings windows with different
+values for multiple <b>Sequence Viewer</b> windows,
+there can be only one set of saved preference values.
+</p>
+<a name="settings-appearance"></a>
+<h4><a href="#settings" class="nounder"><b>&larr;</b></a>
+Appearance</h4>
+<ul>
+<li><b>Single Sequence</b>
+  <ul class="none">
+  <li><b>Horizontal spacing (pixels)</b> [<i>S</i>]
+  - space between characters within a row (factory default <b>&minus;2</b>)
+  <li><b>Wrap</b> - whether to wrap lines within the window (<b>on</b>)
+  <li><b>Wrap line at multiple of</b> [<i>N</i>]
+  - when wrapping, allow breaks at multiples of <i>N</i> residues (<b>5</b>)
+  <li><b>Vertically separate wrapped lines</b> (<b>off</b>)
+  </ul>
+<li><b>Alignment</b>
+  <ul class="none">
+  <li><b>Horizontal spacing (pixels)</b> [<i>S</i>]
+  - space between characters within a row (<b>0</b>)
+  <li><b>Wrap if</b> [<i>M</i>] <b>sequences or fewer</b>
+  - do not wrap if the alignment contains &gt;<i>M</i> sequences (<b>8</b>);
+  set to &le;1 for no wrapping
+  <li><b>Wrap lines at multiple of</b> [<i>N</i>]
+  - when wrapping, allow breaks at multiples of <i>N</i> alignment positions
+  (<b>5</b>)
+  <li><b>Vertically separate wrapped blocks</b> (<b>on</b>)
+  <li><b>Show numbering at startup</b> 
+  - whether to show alignment numbering (1, 11, <i>etc.</i>)
+  for subsequently opened alignments (<b>on</b>)
+  </ul>
+</ul>
+
+<a name="settings-regions"></a>
+<h4><a href="#settings" class="nounder"><b>&larr;</b></a>
+Regions</h4>
+<p>
+The <b>Regions</b> section of <a href="#settings">settings</a> controls
+whether different types of <a href="#regions">regions</a> should be shown,
+and if so, their initial colors.
+Each color well can be clicked to choose a color interactively.
+On/off checkboxes indicate whether to color the region border (box outline)
+and/or interior, and
+&ldquo;full&rdquo; and &ldquo;partial&rdquo; refer to whether the
+region applies to all structures <a href="#association">associated</a>
+with a position or to only some fraction of those structures.
+</p>
+<ul>
+<li><b>Missing-structure border full</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="black" width="10px"></td>
+</tr></table>
+<b>partial</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+<li><b>Missing-structure interior full</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+<b>partial</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+(both <b>off</b>)
+<li><b>Structure-mismatch border full</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+<b>partial</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+(both <b>off</b>)
+<li><b>Structure-mismatch interior full</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#FF4C4C" width="10px"></td>
+</tr></table>
+<b>partial</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="pink" width="10px"></td>
+</tr></table>
+<li><b>New-region border</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+(<b>off</b>, no outline)
+<li><b>New-region interior</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#E9DAC6" width="10px"></td>
+</tr></table>
+<li><b>Selected-structure border</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+(<b>off</b>, no outline)
+<li><b>Selected-structure interior</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#90EE90" width="10px"></td>
+</tr></table>
+<li><b>Show missing-structure regions</b> (<b>on</b>)
+<li><b>Show selection region</b> (<b>on</b>)
+<li><b>Show structure-mismatch regions</b> (<b>on</b>)
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+February 2018</address>
 </body></html>
