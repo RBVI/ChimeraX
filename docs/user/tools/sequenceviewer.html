@@ -193,11 +193,12 @@ ChimeraX interface (<a href="../window.html#panels">more...</a>).
 </p><p>
 <b>Save</b> saves the current settings as
 <a href="../preferences.html">preferences</a>,
-<b>Reset</b> resets them to &ldquo;factory defaults&rdquo;
-(values shown in <b>bold</b> below),
+<b>Reset</b> replaces the current settings with 
+the initial &ldquo;factory&rdquo; defaults (values shown in <b>bold</b> below),
 and <b>Restore</b> restores values that were saved previously.
-There is a checkbox to indicate whether these buttons should apply only
-to the currently shown section (<b>Appearance</b> or <b>Regions</b>)
+The <b>Buttons below...</b> option indicates
+whether these buttons should apply only
+to the currently shown section (<i>e.g.</i>, <b>Appearance</b>)
 or to all of the <b>Sequence Viewer</b> preferences.
 Although there can be multiple settings windows with different
 values for multiple <b>Sequence Viewer</b> windows,
@@ -210,16 +211,16 @@ Appearance</h4>
 <li><b>Single Sequence</b>
   <ul class="none">
   <li><b>Horizontal spacing (pixels)</b> [<i>S</i>]
-  - space between characters within a row (factory default <b>&minus;2</b>)
+  - space between characters within a row (initial default <b>&minus;2</b>)
   <li><b>Wrap</b> - whether to wrap lines within the window (<b>on</b>)
-  <li><b>Wrap line at multiple of</b> [<i>N</i>]
+  <li><b>Wrap lines at multiple of</b> [<i>N</i>]
   - when wrapping, allow breaks at multiples of <i>N</i> residues (<b>5</b>)
   <li><b>Vertically separate wrapped lines</b> (<b>off</b>)
   </ul>
 <li><b>Alignment</b>
   <ul class="none">
   <li><b>Horizontal spacing (pixels)</b> [<i>S</i>]
-  - space between characters within a row (<b>0</b>)
+  - space between characters within a row (initial default <b>0</b>)
   <li><b>Wrap if</b> [<i>M</i>] <b>sequences or fewer</b>
   - do not wrap if the alignment contains &gt;<i>M</i> sequences (<b>8</b>);
   set to &le;1 for no wrapping
@@ -241,66 +242,26 @@ The <b>Regions</b> section of <a href="#settings">settings</a> controls
 whether different types of <a href="#regions">regions</a> should be shown,
 and if so, their initial colors.
 Each color well can be clicked to choose a color interactively.
-On/off checkboxes indicate whether to color the region border (box outline)
-and/or interior, and
-&ldquo;full&rdquo; and &ldquo;partial&rdquo; refer to whether the
+On/off checkboxes indicate whether to color the region 
+<b>border</b> (box outline) and/or <b>interior</b> (box fill),
+whereas <b>full</b> and <b>partial</b> refer to whether the
 region applies to all structures <a href="#association">associated</a>
 with a position or to only some fraction of those structures.
 </p>
 <ul>
-<li><b>Missing-structure border full</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="black" width="10px"></td>
-</tr></table>
-<b>partial</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#BEBEBE" width="10px"></td>
-</tr></table>
-<li><b>Missing-structure interior full</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#BEBEBE" width="10px"></td>
-</tr></table>
-<b>partial</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#BEBEBE" width="10px"></td>
-</tr></table>
-(both <b>off</b>)
-<li><b>Structure-mismatch border full</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#BEBEBE" width="10px"></td>
-</tr></table>
-<b>partial</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#BEBEBE" width="10px"></td>
-</tr></table>
-(both <b>off</b>)
-<li><b>Structure-mismatch interior full</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#FF4C4C" width="10px"></td>
-</tr></table>
-<b>partial</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="pink" width="10px"></td>
-</tr></table>
 <li><b>New-region border</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#BEBEBE" width="10px"></td>
 </tr></table>
-(<b>off</b>, no outline)
+(initial default <b>off</b>, no outline)
 <li><b>New-region interior</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#E9DAC6" width="10px"></td>
 </tr></table>
+(<b>on</b>)
+<li><b>Show selection region</b> (<b>on</b>)
 <li><b>Selected-structure border</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -312,9 +273,53 @@ style="display:inline-block; vertical-align:middle"><tr>
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#90EE90" width="10px"></td>
 </tr></table>
+(<b>on</b>)
 <li><b>Show missing-structure regions</b> (<b>on</b>)
-<li><b>Show selection region</b> (<b>on</b>)
+<li><b>Missing-structure border &nbsp;full</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="black" width="10px"></td>
+</tr></table>
+&nbsp;<b>partial</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+(both <b>on</b>)
+<li><b>Missing-structure interior &nbsp;full</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+&nbsp;<b>partial</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+(both <b>off</b>)
 <li><b>Show structure-mismatch regions</b> (<b>on</b>)
+<li><b>Structure-mismatch border &nbsp;full</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+&nbsp;<b>partial</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#BEBEBE" width="10px"></td>
+</tr></table>
+(both <b>off</b>)
+<li><b>Structure-mismatch interior &nbsp;full</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#FF4C4C" width="10px"></td>
+</tr></table>
+&nbsp;<b>partial</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="pink" width="10px"></td>
+</tr></table>
+(both <b>on</b>)
 </ul>
 
 <hr>
