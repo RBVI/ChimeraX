@@ -35,11 +35,19 @@ SUBDIRS += oculus
 endif
 
 ifeq ($(OS),Linux)
+NEED_CHRPATH=1
 NEED_EXPAT=1
 NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
+endif
+
+ifdef NEED_CHRPATH
+SUBDIRS += chrpath
+else
+chrpath.install:
+chrpath.app-install:
 endif
 
 ifdef NEED_FFMPEG
@@ -183,8 +191,8 @@ endif
 # target of the other packages.
 
 ffmpeg.install: p7zip.install pkgconfig.install libtool.install
-hdf5.app-install: zlib.app-install
-hdf5.install: zlib.install
+hdf5.app-install: zlib.app-install chrpath.app-install
+hdf5.install: zlib.install chrpath.install
 leapmotion.app-install: setuptools.app-install
 leapmotion.install: setuptools.install
 llvm.install: py7zip.install
@@ -195,8 +203,10 @@ numexpr.app-install: setuptools.app-install numpy.app-install pips.app-install
 numexpr.install: setuptools.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
 openmm.install: Python.install numpy.install pips.install
-pcre.app-install: zlib.app-install
-pcre.install: zlib.install
+openssl.app-install: chrpath.app-install
+openssl.install: chrpath.install
+pcre.app-install: zlib.app-install chrpath.app-install
+pcre.install: zlib.install chrpath.install
 pillow.app-install: setuptools.app-install zlib.app-install
 pillow.install: setuptools.install zlib.install
 pips.app-install: setuptools.app-install
@@ -207,8 +217,8 @@ PyQt.app-install: setuptools.app-install openssl.app-install zlib.app-install
 PyQt.install: setuptools.install openssl.install zlib.install
 pythomnic3k.app-install: setuptools.app-install
 pythomnic3k.install: setuptools.install
-Python.app-install: zlib.app-install openssl.app-install expat.app-install
-Python.install: p7zip.install zlib.install openssl.install expat.install
+Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
+Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
 scipy.app-install: setuptools.app-install numpy.app-install
 scipy.install: setuptools.install numpy.install
 setuptools.app-install: Python.app-install

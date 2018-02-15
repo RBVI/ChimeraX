@@ -84,7 +84,7 @@ $(PROG): $(OBJS)
 ifeq ($(OS),Linux)
 	# convert to RPATH
 	if objdump -p $(PROG) | grep RUNPATH > /dev/null; then \
-		chrpath -C $(PROG); \
+		$(bindir)/chrpath -C $(PROG); \
 	fi
 endif
 
