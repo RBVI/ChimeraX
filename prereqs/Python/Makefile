@@ -196,7 +196,7 @@ ifeq ($(OS),Linux)
 	chmod 755  $(libdir)/libpython*.so; chrpath -d $(libdir)/libpython*.so
 	# convert to RPATH
 	if objdump -p $(PYTHON_EXE) | grep RUNPATH > /dev/null; then \
-	       chrpath -C $(PYTHON_EXE); \
+	       $(bindir)/chrpath -C $(PYTHON_EXE); \
 	fi
 endif
 ifeq ($(OS),Darwin)
