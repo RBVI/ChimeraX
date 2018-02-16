@@ -63,6 +63,7 @@ embedded.html licenses: embedded.html.in make_embedded.py need_app
 	if [ -d "$(app_prefix)" ]; then \
 		$(APP_PYTHON_EXE) make_embedded.py; \
 	fi
+	cp -p basictypes-license.txt licenses
 
 
 clean:
