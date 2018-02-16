@@ -186,6 +186,35 @@ def register_mmcif_fetch():
                          prefixes=['pdbj'], is_default_format=True)
 
 
+def quote(s):
+    """Return CIF quoted value"""
+    s = str(s)
+    examine = s[0:1]
+    sing_quote = examine == "'"
+    dbl_quote = examine == '"'
+    line_break = examine == '\n'
+    special = examine in ' [;'
+    for i in range(1, len(s)):
+        examine = s[i:i + 1]
+        if examine == '" ':
+            dbl_quote = True
+        elif examine == "' ":
+            sing_quote = True
+        elif examine[0] == '\n':
+            line_break = True
+        elif examine[0] == ' ':
+            special = True
+    if line_break or (sing_quote and dbl_quote):
+        return ';' + s + '\n;\n'
+    if sing_quote:
+        return '"%s"' % s
+    if dbl_quote:
+        return "'%s'" % s
+    if special:
+        return "'%s'" % s
+    return s
+
+
 def citations(model, only=None):
     """Return APA-style HTML citations for model
 
@@ -259,59 +288,6 @@ def citations(model, only=None):
     return citations
 
 
-def extend_metadata(model, table_name, tags, data):
-    """Extend existing mmCIF metadata table
-
-    Parameters
-    ----------
-    model : instance of a :py:class:`~chimerax.core.atomic.AtomicStructure`
-        The model.
-    table_name : the mmCIF table name
-    tags : a list of the column names
-    data : a flattened list of the data values
-
-    If a column with a given tag exists, then that column is extended.
-    Otherwise, a new column is added to the table.
-    """
-    # TODO: deal with case insensitivity of tags
-    try:
-        metadata = model.metadata
-    except AttributeError:
-        raise ValueError("Expected a structure")
-    data_name = '%s data'
-    if table_name not in metadata or data_name not in metadata:
-        metadata[table_name] = tags
-        metadata[data_name] = data
-        return
-    old_tags = metadata[table_name]
-    old_data = metadata[data_name]
-    num_old_columns = len(old_tags)
-    old_columns = [old_data[i::num_old_columns] for i in range(num_old_columns)]
-    num_old_rows = len(old_columns[0])
-    num_new_columns = len(tags)
-    new_columns = [data[i::num_new_columns] for i in range(num_new_columns)]
-    num_new_rows = len(new_columns[0])
-    # extend existing columns
-    new_unknown = ['?'] * num_new_rows
-    new_data = dict(zip(tags, new_columns))
-    for t, c in zip(old_tags, old_columns):
-        d = new_data.pop(t, None)
-        if d is None:
-            c.extend(new_unknown)
-        else:
-            c.extend(d)
-    # add additional columns if needed
-    if new_data:
-        old_unknown = ['?'] * num_old_rows
-        for t, c in new_data.items():
-            old_tags.append(t)
-            old_columns.append(old_unknown + c)
-    # update metadata with new tags and data
-    from ..utils import flattened
-    metadata[table_name] = old_tags
-    metadata[data_name] = flattened(zip(*old_columns))
-
-
 def get_mmcif_tables(filename, table_names):
     """Extract mmCIF tables from a file
 
@@ -331,13 +307,10 @@ def get_mmcif_tables(filename, table_names):
     tlist = []
     for name in table_names:
         if name not in data:
-            tlist.append(None)
+            tlist.append(MMCIFTable(name))
         else:
-            tags, values_1d = data[name]
-            num_columns = len(tags)
-            slices = [values_1d[i::num_columns] for i in range(num_columns)]
-            values_2d = list(zip(*slices))
-            tlist.append(MMCIFTable(name, tags, values_2d))
+            tags, values = data[name]
+            tlist.append(MMCIFTable(name, tags, values))
     return tlist
 
 
@@ -361,55 +334,63 @@ def get_mmcif_tables_from_metadata(model, table_names):
             tlist.append(None)
         else:
             tags = raw_tables[n]
-            values_1d = raw_tables[n + ' data']
-            num_columns = len(tags)
-            slices = [values_1d[i::num_columns] for i in range(num_columns)]
-            values_2d = list(zip(*slices))
-            tlist.append(MMCIFTable(n, tags, values_2d))
+            values = raw_tables[n + ' data']
+            tlist.append(MMCIFTable(n, tags, values))
     return tlist
 
 
 class MMCIFTable:
+    # TODO: deal with case insensitivity of tags
 
-    def __init__(self, table_name, tags, values):
+    def __init__(self, table_name, tags=None, values=None):
         self.table_name = table_name
-        self.tags = tags
-        self.values = values
+        self._tags = [] if tags is None else tags
+        self._values = [] if values is None else values
+        n = len(tags)
+        if n == 0:
+            assert len(values) == 0
+        else:
+            assert len(values) % n == 0
+
+    def __bool__(self):
+        return len(self._tags) != 0 and len(self._values) != 0
 
     def __eq__(self, other):
         # for debugging
-        if self.tags != other.tags or len(self.values) != len(other.values):
-            return False
-        return all(tuple(self.values[i]) == tuple(other.values[i])
-                   for i in range(len(self.values)))
+        return self._tags == other._tags and self._values == other._values
 
     def __repr__(self):
-        return "MMCIFTable(%s, %s, ...[%d])" % (self.table_name, self.tags, len(self.values))
+        num_columns = len(self._tags)
+        num_rows = len(self._values) / num_columns
+        return "MMCIFTable(%s, %s, ...[%dx%d])" % (self.table_name, self._tags, num_rows, num_columns)
 
     def mapping(self, key_name, value_name, foreach=None):
-        # TODO: deal with case insensitivity of tags
-        t = self.tags
-        for n in (key_name, value_name, foreach):
-            if n and n not in t:
+        t = self._tags
+        n = len(t)
+        for name in (key_name, value_name, foreach):
+            if name and name not in t:
                 raise ValueError(
                     'Field "%s" not in table "%s", have fields %s'
-                    % (n, self.table_name, ', '.join(t)))
+                    % (name, self.table_name, ', '.join(t)))
         ki, vi = t.index(key_name), t.index(value_name)
         if foreach:
             fi = t.index(foreach)
             m = {}
-            for f in set(v[fi] for v in self.values):
-                m[f] = dict((v[ki], v[vi]) for v in self.values if v[fi] == f)
+            for k, v, f in zip(self._values[ki::n], self._values[vi::n], self._values[fi::n]):
+                m.set_default(f, {})[k] = v
         else:
-            m = dict((v[ki], v[vi]) for v in self.values)
+            m = dict(zip(self._values[ki::n], self._values[vi::n]))
         return m
 
     def fields(self, field_names, allow_missing_fields=False):
-        # TODO: deal with case insensitivity of tags
-        t = self.tags
+        t = self._tags
+        n = len(self._tags)
         if allow_missing_fields:
-            fi = tuple((t.index(f) if f in t else -1) for f in field_names)
-            ftable = tuple(tuple((v[i] if i >= 0 else '') for i in fi) for v in self.values)
+            from itertools import zip_longest
+            fi = [(t.index(f) if f in t else -1) for f in field_names]
+            ftable = list(zip_longest(
+                *(self._values[i::n] if i >= 0 else [] for i in fi),
+                fillvalue=''))
         else:
             missing = [n for n in field_names if n not in t]
             if missing:
@@ -423,5 +404,75 @@ class MMCIFTable:
                     missed_noun, missed, missed_verb, self.table_name, have_noun,
                     have))
             fi = tuple(t.index(f) for f in field_names)
-            ftable = tuple(tuple(v[i] for i in fi) for v in self.values)
+            ftable = list(zip(*(self._values[i::n] for i in fi)))
         return ftable
+
+    def extend(self, table):
+        """Extend mmCIF table
+
+        Parameters
+        ----------
+        table : MMCIFTable to add on to current table
+
+        If a column with a given tag exists, then that column is extended.
+        Otherwise, a new column is added to the table.
+        """
+        if self.table_name != table.table_name:
+            raise ValueError("incompatible tables")
+        num_old_columns = len(self._tags)
+        old_columns = [self._values[i::num_old_columns] for i in range(num_old_columns)]
+        num_old_rows = len(old_columns[0])
+        num_new_columns = len(table._tags)
+        new_columns = [table._values[i::num_new_columns] for i in range(num_new_columns)]
+        num_new_rows = len(new_columns[0])
+        # extend existing columns
+        new_unknown = ['?'] * num_new_rows
+        new_values = dict(zip(table._tags, new_columns))
+        for t, c in zip(self._tags, old_columns):
+            d = new_values.pop(t, None)
+            if d is None:
+                c.extend(new_unknown)
+            else:
+                c.extend(d)
+        # add additional columns if needed
+        if new_values:
+            old_tags = self._tags[:]
+            old_unknown = ['?'] * num_old_rows
+            for t, c in new_values.items():
+                old_tags.append(t)
+                old_columns.append(old_unknown + c)
+            self._tags = old_tags
+        from chimerax.core.utils import flattened
+        self._values = flattened(zip(*old_columns), return_type=list)
+
+    def has_field(self, field_name):
+        return field_name in self._tags
+
+    def field_has(self, field_name, value):
+        try:
+            i = self._tags.index(field_name)
+        except ValueError:
+            return False
+        n = len(self._tags)
+        return value in self._values[i::n]
+
+    def num_rows(self):
+        if len(self._tags) == 0:
+            return 0
+        return len(self._values) // len(self._tags)
+
+    def print(self, file=None):
+        if file is None:
+            import sys
+            file = sys.stdout
+        if len(self._tags) == len(self._values):
+            for t, v in zip(self._tags, self._values):
+                print('_%s.%s %s' % (self.table_name, t, quote(v)), file=file)
+        else:
+            print('loop_', file=file)
+            for t in self._tags:
+                print('_%s.%s' % (self.table_name, t))
+            n = len(self._tags)
+            for i in range(0, len(self._values), n):
+                print(' '.join(quote(x) for x in self._values[i:i + n]), file=file)
+        print('#', file=file)
