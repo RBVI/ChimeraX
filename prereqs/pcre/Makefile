@@ -70,6 +70,7 @@ ifeq ($(OS),Windows)
 else
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) && $(MAKE) $(MAKE_ARGS) install
 ifeq ($(OS),Linux)
+	cd $(libdir); chrpath -d libpcrecpp.so libpcreposix.so
 	cd $(bindir); chrpath -r '$$ORIGIN/../lib' pcregrep pcretest
 endif
 ifeq ($(OS),Darwin)
