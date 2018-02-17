@@ -340,57 +340,113 @@ def get_mmcif_tables_from_metadata(model, table_names):
 
 
 class MMCIFTable:
+    """
+    Present a table interface for a mmCIF category
+    """
     # TODO: deal with case insensitivity of tags
 
-    def __init__(self, table_name, tags=None, values=None):
+    def __init__(self, table_name, tags=None, data=None):
         self.table_name = table_name
         self._tags = [] if tags is None else tags
-        self._values = [] if values is None else values
+        self._data = [] if data is None else data
         n = len(tags)
         if n == 0:
-            assert len(values) == 0
+            assert len(data) == 0
         else:
-            assert len(values) % n == 0
+            assert len(data) % n == 0
 
     def __bool__(self):
-        return len(self._tags) != 0 and len(self._values) != 0
+        return len(self._tags) != 0 and len(self._data) != 0
 
     def __eq__(self, other):
         # for debugging
-        return self._tags == other._tags and self._values == other._values
+        return self._tags == other._tags and self._data == other._data
 
     def __repr__(self):
         num_columns = len(self._tags)
-        num_rows = len(self._values) / num_columns
-        return "MMCIFTable(%s, %s, ...[%dx%d])" % (self.table_name, self._tags, num_rows, num_columns)
+        num_rows = len(self._data) / num_columns
+        return "MMCIFTable(%s, %s, ...[%dx%d])" % (
+            self.table_name, self._tags, num_rows, num_columns)
 
-    def mapping(self, key_name, value_name, foreach=None):
+    def mapping(self, key_names, value_names, foreach_names=None):
+        """Return a dictionary for subset of the table
+
+        Parameters
+        ----------
+        key_names : a field name or list of field names
+        value_names : a field name or list of field names
+        foreach_names : optional field name or list of field names
+
+        If foreach_names is not given, then the resulting dictionary is whose
+        keys are the values of the key field(s) and the values are the values
+        of the value field(s).  If foreach_names is given, then the result is
+        a dicttionary of dictionaries, with the nested dictionaries as above,
+        and the outer dictionary's keys are the values of the foreach fields.
+        """
+        from itertools import chain
+        single_key = isinstance(key_names, str)
+        if single_key:
+            key_names = [key_names]
+        single_value = isinstance(value_names, str)
+        if single_value:
+            value_names = [value_names]
+        single_foreach = isinstance(foreach_names, str)
+        if single_foreach:
+            foreach_names = [foreach_names]
+        elif foreach_names is None:
+            foreach_names = []
         t = self._tags
         n = len(t)
-        for name in (key_name, value_name, foreach):
-            if name and name not in t:
+        for name in chain(key_names, value_names, foreach_names):
+            if name not in t:
                 raise ValueError(
                     'Field "%s" not in table "%s", have fields %s'
                     % (name, self.table_name, ', '.join(t)))
-        ki, vi = t.index(key_name), t.index(value_name)
-        if foreach:
-            fi = t.index(foreach)
-            m = {}
-            for k, v, f in zip(self._values[ki::n], self._values[vi::n], self._values[fi::n]):
-                m.set_default(f, {})[k] = v
+        key_columns = [self._data[t.index(k)::n] for k in key_names]
+        value_columns = [self._data[t.index(v)::n] for v in value_names]
+        if single_key:
+            keys = key_columns[0]
         else:
-            m = dict(zip(self._values[ki::n], self._values[vi::n]))
+            keys = zip(*key_columns)
+        if single_value:
+            values = value_columns[0]
+        else:
+            values = zip(*value_columns)
+        if not foreach_names:
+            return dict(zip(keys, values))
+
+        foreach_columns = [self._data[t.index(f)::n] for f in foreach_names]
+        if single_foreach:
+            foreachs = foreach_columns[0]
+        else:
+            foreachs = zip(*foreach_columns)
+        m = {}
+        for f, k, v in zip(foreachs, keys, values):
+            m.set_default(f, {})[k] = v
         return m
 
-    def fields(self, field_names, allow_missing_fields=False):
+    def fields(self, field_names, *, allow_missing_fields=False, missing_value=''):
+        """Return subset of rows of the table for the given fields
+
+        Parameters
+        ----------
+        field_names : a sequence of the field names
+        allow_missing_fields : optional boolean (default False)
+        missing_value : optional missing_value object (default '')
+
+        A list of tuples is return where each tuple's items are the values
+        corresponding to the given field names in the given order.  If
+        missing fields are allowed, then the corresponding items are the
+        missing_value object.
+        """
         t = self._tags
         n = len(self._tags)
         if allow_missing_fields:
             from itertools import zip_longest
             fi = [(t.index(f) if f in t else -1) for f in field_names]
             ftable = list(zip_longest(
-                *(self._values[i::n] if i >= 0 else [] for i in fi),
-                fillvalue=''))
+                *(self._data[i::n] if i >= 0 else [] for i in fi),
+                fillvalue=missing_value))
         else:
             missing = [n for n in field_names if n not in t]
             if missing:
@@ -404,7 +460,7 @@ class MMCIFTable:
                     missed_noun, missed, missed_verb, self.table_name, have_noun,
                     have))
             fi = tuple(t.index(f) for f in field_names)
-            ftable = list(zip(*(self._values[i::n] for i in fi)))
+            ftable = list(zip(*(self._data[i::n] for i in fi)))
         return ftable
 
     def extend(self, table):
@@ -420,59 +476,63 @@ class MMCIFTable:
         if self.table_name != table.table_name:
             raise ValueError("incompatible tables")
         num_old_columns = len(self._tags)
-        old_columns = [self._values[i::num_old_columns] for i in range(num_old_columns)]
+        old_columns = [self._data[i::num_old_columns] for i in range(num_old_columns)]
         num_old_rows = len(old_columns[0])
         num_new_columns = len(table._tags)
-        new_columns = [table._values[i::num_new_columns] for i in range(num_new_columns)]
+        new_columns = [table._data[i::num_new_columns] for i in range(num_new_columns)]
         num_new_rows = len(new_columns[0])
         # extend existing columns
         new_unknown = ['?'] * num_new_rows
-        new_values = dict(zip(table._tags, new_columns))
+        new_data = dict(zip(table._tags, new_columns))
         for t, c in zip(self._tags, old_columns):
-            d = new_values.pop(t, None)
+            d = new_data.pop(t, None)
             if d is None:
                 c.extend(new_unknown)
             else:
                 c.extend(d)
         # add additional columns if needed
-        if new_values:
+        if new_data:
             old_tags = self._tags[:]
             old_unknown = ['?'] * num_old_rows
-            for t, c in new_values.items():
+            for t, c in new_data.items():
                 old_tags.append(t)
                 old_columns.append(old_unknown + c)
             self._tags = old_tags
         from chimerax.core.utils import flattened
-        self._values = flattened(zip(*old_columns), return_type=list)
+        self._data = flattened(zip(*old_columns), return_type=list)
 
     def has_field(self, field_name):
+        """Return if given field name is in the table"""
         return field_name in self._tags
 
     def field_has(self, field_name, value):
+        """Return if given field has the given value"""
         try:
             i = self._tags.index(field_name)
         except ValueError:
             return False
         n = len(self._tags)
-        return value in self._values[i::n]
+        return value in self._data[i::n]
 
     def num_rows(self):
+        """Return number of rows in table"""
         if len(self._tags) == 0:
             return 0
-        return len(self._values) // len(self._tags)
+        return len(self._data) // len(self._tags)
 
     def print(self, file=None):
+        """Print contents of table to given file"""
         if file is None:
             import sys
             file = sys.stdout
-        if len(self._tags) == len(self._values):
-            for t, v in zip(self._tags, self._values):
+        if len(self._tags) == len(self._data):
+            for t, v in zip(self._tags, self._data):
                 print('_%s.%s %s' % (self.table_name, t, quote(v)), file=file)
         else:
             print('loop_', file=file)
             for t in self._tags:
                 print('_%s.%s' % (self.table_name, t))
             n = len(self._tags)
-            for i in range(0, len(self._values), n):
-                print(' '.join(quote(x) for x in self._values[i:i + n]), file=file)
-        print('#', file=file)
+            for i in range(0, len(self._data), n):
+                print(' '.join(quote(x) for x in self._data[i:i + n]), file=file)
+        print('#', file=file)  # PDBx/mmCIF style
