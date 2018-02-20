@@ -492,7 +492,7 @@ class IHMModel(Model):
         mnames = self.model_names()
 
         sost = self.tables['ihm_sphere_obj_site']
-        if sost is None:
+        if not sost:
             smodels = []
         else:
             sos_fields = [
@@ -803,7 +803,7 @@ class IHMModel(Model):
     #
     def read_predicted_contacts(self):
         pcrt = self.tables['ihm_predicted_contact_restraint']
-        if pcrt is None:
+        if not pcrt:
             return []
         pcrt_fields = [
             'asym_id_1',
@@ -896,7 +896,7 @@ class IHMModel(Model):
     def read_2d_electron_microscopy_maps(self):
         emmodels = []
         dot = self.tables['ihm_2dem_class_average_restraint']
-        if dot is None:
+        if not dot:
             return emmodels
 
         rt = {}	# Orientations of 2D EM for best projection
@@ -937,7 +937,7 @@ class IHMModel(Model):
     def read_3d_electron_microscopy_maps(self):
         emmodels = []
         dot = self.tables['ihm_3dem_restraint']
-        if dot is None:
+        if not dot:
             return emmodels
         fields = ['dataset_list_id']
         rows = dot.fields(fields, allow_missing_fields = True)
@@ -973,7 +973,7 @@ class IHMModel(Model):
 
         eit = self.tables['ihm_ensemble_info']
         elt = self.tables['ihm_localization_density_files']
-        if eit is None or elt is None:
+        if not eit or not elt:
             return []
 
         ensemble_fields = ['ensemble_id', 'model_group_id', 'num_ensemble_models']
@@ -1035,7 +1035,7 @@ class IHMModel(Model):
 
         eit = self.tables['ihm_ensemble_info']
         goet = self.tables['ihm_gaussian_obj_ensemble']
-        if eit is None or goet is None:
+        if not eit or not goet:
             return []
 
         ensemble_fields = ['ensemble_id', 'model_group_id', 'num_ensemble_models']
