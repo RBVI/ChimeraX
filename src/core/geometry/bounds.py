@@ -128,7 +128,7 @@ def copies_bounding_box(bounds, positions):
                    (xyz + outer(s, bounds.xyz_max)).max(axis=0))
     else:
         # TODO: Optimize instance matrix copies such as bond cylinders using C++.
-        b = union_bounds(point_bounds(p * bounds.box_corners()) for p in positions)
+        b = point_bounds(positions * bounds.box_corners())
     return b
 
 def copy_tree_bounds(bounds, positions_list):
