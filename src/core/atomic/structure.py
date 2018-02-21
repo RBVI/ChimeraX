@@ -2227,24 +2227,20 @@ class AtomicStructure(Structure):
             hnd[k] = process_chem_name(v)
 
     def _set_chain_descriptions(self, session):
+        from . import mmcif
         chain_to_desc = {}
-        if 'chain_entity_map' in self.metadata:
-            cem = self.metadata['chain_entity_map']
-            mmcif_chain_to_entity = { cem[i]: cem[i+1] for i in range(0, len(cem), 2) }
-            if 'entity' not in self.metadata:
+        struct_asym, entity = mmcif.get_mmcif_tables_from_metadata(self, ['struct_asym', 'entity'])
+        if struct_asym:
+            entity, = mmcif.get_mmcif_tables_from_metadata(self, ['entity'])
+            if not entity:
                 # bad mmCIF file
                 return
-            entity_fields = self.metadata['entity']
-            id_index = entity_fields.index('id')
             try:
-                # pdbx_description is only in files from wwpdb
-                desc_index = entity_fields.index('pdbx_description')
+                mmcif_chain_to_entity = struct_asym.mapping('id', 'entity_id')
+                entity_to_description = entity.mapping('id', 'pdbx_description')
             except ValueError:
                 pass
             else:
-                data = self.metadata['entity data']
-                entity_to_description = { data[i+id_index]: data[i+desc_index]
-                    for i in range(0, len(data), len(entity_fields)) }
                 for ch in self.chains:
                     mmcif_cid = ch.existing_residues.mmcif_chain_ids[0]
                     chain_to_desc[ch.chain_id] = (
