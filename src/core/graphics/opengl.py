@@ -54,7 +54,10 @@ if log_opengl_calls:
     logging.info('started logging')
     import OpenGL
     OpenGL.FULL_LOGGING = True
-    
+
+#import OpenGL
+#OpenGL.ERROR_CHECKING = False
+
 from OpenGL import GL
 
 # OpenGL workarounds:
