@@ -1511,7 +1511,7 @@ class Structure(Model, StructureData):
             last = (r == residues[-1])
             for atom_name, position in self._RibbonPositions.items():
                 a = r.find_atom(atom_name)
-                if a is None:
+                if a is None or not a.is_backbone():
                     continue
                 if last:
                     p = ribbon.position(n - 1, 1 + position)
