@@ -105,7 +105,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
                     break
                 end = r
                 if water_preserve and r.name in r.standard_water_names \
-                or het_reserve and r.is_het:
+                or het_preserve and r.is_het:
                     char = '.'
                 else:
                     char = '-'
