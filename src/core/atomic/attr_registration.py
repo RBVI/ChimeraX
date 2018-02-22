@@ -18,7 +18,7 @@ register_attr: infrastructure for molecular classes to register custom attribute
 TODO
 """
 
-from ..state import State
+from ..state import State, StateManager
 
 # something that can't be a default value, yet can be saved in sessions...
 class _NoDefault(State):
@@ -29,9 +29,6 @@ class _NoDefault(State):
     @staticmethod
     def restore_snapshot(session, data):
         return _no_default
-
-    def reset_state(self, session):
-        pass
 _no_default = _NoDefault()
 
 # methods that the manager will insert into the managed classes (inheritance won't work)
@@ -120,19 +117,16 @@ class AttrRegistration:
                 setattr(instance, attr_name, attr_val)
 
 # used in session so that registered attributes get saved/restored
-from . import Atom, AtomicStructure, Bond, Chain, CoordSet, Pseudobond, \
-    PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq
+from . import Atom, AtomicStructure, Bond, CoordSet, Pseudobond, \
+    PseudobondGroup, PseudobondManager, Residue, Structure
 
 # the classes need to have a get_existing_instances static method...
-registerable_classes = [ Atom, AtomicStructure, Bond,
-    #Chain, CoordSet, Pseudobond,
-    PseudobondGroup, PseudobondManager, Residue,
-    #Sequence,
-    Structure,
-    #StructureSeq
+registerable_classes = [ Atom, AtomicStructure, Bond, CoordSet,
+    #Pseudobond,
+    PseudobondGroup, PseudobondManager, Residue, Structure,
     ]
 
-class RegAttrManager(State):
+class RegAttrManager(StateManager):
 
     def __init__(self):
         for reg_class in registerable_classes:
@@ -140,6 +134,9 @@ class RegAttrManager(State):
                 reg_class._attr_registration = AttrRegistration(reg_class)
                 reg_class.__getattr__ = __getattr__
                 reg_class.register_attr = register_attr
+        # for now, this is how we track all Sequence, etc. instances
+        from weakref import WeakSet
+        self._seq_instances = WeakSet()
 
     # session functions; there is one manager per session, and is only in charge of
     # remembering registrations from its session (actual dirty work delegated to

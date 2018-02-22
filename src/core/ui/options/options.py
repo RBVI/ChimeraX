@@ -123,11 +123,13 @@ class Option(metaclass=ABCMeta):
     value = property(_get_value, _set_value)
 
     def enable(self):
-        # put widget in 'enabled' (active) state
+        # usually no need to override, since enabling/disabling
+        # a Qt widget implicitly does the same for its children
         self.widget.setDisabled(False)
 
     def disable(self):
-        # put widget in 'disabled' (inactive) state
+        # usually no need to override, since enabling/disabling
+        # a Qt widget implicitly does the same for its children
         self.widget.setDisabled(True)
 
     def make_callback(self):
@@ -209,31 +211,51 @@ class EnumOption(Option):
 
 class IntOption(Option):
     """Option for integer values.
-       Constructor takes option min/max keywords to specify lower/upper bound values."""
+       Constructor takes option min/max keywords to specify lower/upper bound values.
+       
+       Supports 'preceding_text' and 'trailing_text' keywords for putting text before
+       and after the entry widget on the right side of the form"""
 
     default_minimum = -(2^31)
     default_maximum = 2^31 - 1
 
     def get(self):
-        return self.widget.value()
+        return self.spinbox.value()
 
     def set(self, value):
-        self.widget.setSpecialValueText("")
-        self.widget.setValue(value)
+        self.spinbox.setSpecialValueText("")
+        self.spinbox.setValue(value)
 
     def set_multiple(self):
-        self.widget.setSpecialValueText(self.multiple_value)
-        self.widget.setValue(self.widget.minimum())
+        self.spinbox.setSpecialValueText(self.multiple_value)
+        self.spinbox.setValue(self.spinbox.minimum())
 
     def _make_widget(self, min=None, max=None, **kw):
-        from PyQt5.QtWidgets import QSpinBox
-        self.widget = QSpinBox(**kw)
-        self.widget.setMinimum(self.default_minimum if min is None else min)
-        self.widget.setMaximum(self.default_maximum if max is None else max)
-        self.widget.valueChanged.connect(lambda val, s=self: s.make_callback())
+        from PyQt5.QtWidgets import QSpinBox, QWidget, QHBoxLayout, QLabel
+        preceding_text = kw.pop('preceding_text', None)
+        trailing_text = kw.pop('trailing_text', None)
+        self.spinbox = QSpinBox(**kw)
+        self.spinbox.setMinimum(self.default_minimum if min is None else min)
+        self.spinbox.setMaximum(self.default_maximum if max is None else max)
+        self.spinbox.valueChanged.connect(lambda val, s=self: s.make_callback())
+        if not preceding_text and not trailing_text:
+            self.widget = self.spinbox
+            return
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
+        if preceding_text:
+            layout.addWidget(QLabel(preceding_text))
+            l = 0
+        layout.addWidget(self.spinbox)
+        if trailing_text:
+            layout.addWidget(QLabel(trailing_text))
+            r = 0
+        self.widget.setLayout(layout)
 
-class RGBAOption(Option):
-    """Option for rgba colors"""
+class RGBA8Option(Option):
+    """Option for rgba colors, returns 8-bit (0-255) rgba values"""
 
     def get(self):
         return self.widget.color
@@ -250,12 +272,134 @@ class RGBAOption(Option):
         self.widget = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
         self.widget.color_changed.connect(lambda c, s=self: s.make_callback())
 
-class ColorOption(RGBAOption):
+class RGBAOption(RGBA8Option):
+    """Option for rgba colors, returns floating-point (0-1) rgba values"""
+
+    def get(self):
+        return [x/255.0 for x in super().get()]
+
+class ColorOption(RGBA8Option):
     """Option for rgba colors"""
 
     def get(self):
         from ...colors import Color
-        return Color(rgba=RGBAOption.get(self))
+        return Color(rgba=RGBA8Option.get(self))
+
+class OptionalRGBA8Option(Option):
+    """Option for 8-bit (0-255) rgba colors, with possibility of None.
+
+    Supports 'initial_color' constructor arg for initializing the color button even when
+    the starting value of the option is None (checkbox will be unchecked)
+    """
+
+    # default for class
+    default_initial_color = [0.75, 0.75, 0.75, 1.0]
+
+    def get(self):
+        if self._check_box.isChecked():
+            return self._color_button.color
+        return None
+
+    def set(self, value):
+        """Accepts a wide variety of values, not just rgba"""
+        if value is None:
+            self._check_box.setChecked(False)
+        else:
+            self._check_box.setChecked(True)
+            self._color_button.color = value
+
+    def set_multiple(self):
+        self._check_box.setChecked(True)
+        self._color_button.color = None
+
+    def _make_widget(self, **kw):
+        from ..widgets import MultiColorButton
+        from PyQt5.QtWidgets import QWidget, QCheckBox, QHBoxLayout
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        self._check_box = cb = QCheckBox()
+        cb.clicked.connect(lambda state, s=self: s.make_callback())
+        layout.addWidget(cb)
+        self._color_button = mcb = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
+        mcb.color = kw.get('initial_color', self.default_initial_color)
+        mcb.color_changed.connect(lambda c, s=self: s.make_callback())
+        layout.addWidget(mcb)
+        self.widget.setLayout(layout)
+
+class OptionalRGBAOption(OptionalRGBA8Option):
+    """Option for floating-point (0-1) rgba colors, with possibility of None.
+
+    Supports 'initial_color' constructor arg for initializing the color button even when
+    the starting value of the option is None (checkbox will be unchecked)
+    """
+
+    def get(self):
+        rgba8 = super().get()
+        if rgba8 is None:
+            return None
+        return [x/255.0 for x in rgba8]
+
+class OptionalRGBA8PairOption(Option):
+    """Like OptionalRGBA8Option, but two checkboxes/colors
+
+    Supports 'initial_colors' constructor arg (2-tuple of colors) for initializing the color buttons
+    even when the starting value of the option is (None, None) (checkboxes will be unchecked)
+    """
+
+    def get(self):
+        return (self._color_button[i].color if self._check_box[i].isChecked() else None
+            for i in range(2) )
+
+    def set(self, value):
+        """2-tuple.  Accepts a wide variety of values, not just rgba"""
+        for i, val in enumerate(value):
+            if val is None:
+                self._check_box[i].setChecked(False)
+            else:
+                self._check_box[i].setChecked(True)
+                self._color_button[i].color = val
+
+    def set_multiple(self):
+        for i in range(2):
+            self._check_box[i].setChecked(True)
+            self._color_button[i].color = None
+
+    def _make_widget(self, **kw):
+        from ..widgets import MultiColorButton
+        from PyQt5.QtWidgets import QWidget, QCheckBox, QHBoxLayout, QLabel
+        labels = kw.pop('labels', (None, "  "))
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        self._check_box = []
+        self._color_button = []
+        for i in range(2):
+            label = labels[i]
+            if label:
+                layout.addWidget(QLabel(label))
+            cb = QCheckBox()
+            self._check_box.append(cb)
+            cb.clicked.connect(lambda state, s=self: s.make_callback())
+            layout.addWidget(cb)
+            mcb = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
+            self._color_button.append(mcb)
+            default_color = OptionalRGBA8Option.default_initial_color
+            mcb.color = kw.get('initial_colors', (default_color, default_color))[i]
+            mcb.color_changed.connect(lambda c, s=self: s.make_callback())
+            layout.addWidget(mcb)
+        self.widget.setLayout(layout)
+
+class OptionalRGBAPairOption(OptionalRGBA8PairOption):
+    """Like OptionalRGBAOption, but two checkboxes/colors
+
+    Supports 'initial_colors' constructor arg (2-tuple of colors) for initializing the color buttons
+    even when the starting value of the option is (None, None) (checkboxes will be unchecked)
+    """
+
+    def get(self):
+        rgba8s = super().get()
+        return tuple(None if i is None else [c/255.0 for c in i] for i in rgba8s)
 
 class SymbolicEnumOption(EnumOption):
     """Option for enumerated values with symbolic names"""

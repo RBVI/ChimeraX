@@ -121,6 +121,7 @@ Surface display style (solid, mesh, or dot) can be adjusted with
 <li><a href="#style"><b>Surface Style</b></a>
 <li><a href="#sop"><b>Surface Operations (Editing)</b></a> 
   <ul>
+  <li><a href="#cap"><b>surface cap</b></a>
   <li><a href="#dust"><b>surface dust</b></a>
   <li><a href="#zone"><b>surface zone</b></a>
   </ul>
@@ -244,7 +245,7 @@ The <b>visiblePatches</b> option indicates hiding all but the
 the specified atoms; by removing the visual clutter of small patches,
 this can significantly enhance viewing of pocket surfaces.
 Ranking to determine the largest is based on surface area, <i>including</i>
-any portions hidden by clipping.
+any portions hidden by <a href="clip.html">clipping</a>.
 See also: <a href="#dust"><b>surface dust</b></a>
 </p>
 
@@ -346,11 +347,29 @@ Surface operations apply to surface models in general, including
 See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 </p>
 <ul>
+<li><a href="#cap"><b>surface cap</b></a>
+- adjust capping of <a href="clip.html">clipped</a> surfaces
 <li><a href="#dust"><b>surface dust</b></a>
 - hide small blobs (disconnected parts)
 <li><a href="#zone"><b>surface zone</b></a>
 - show only surface parts within a cutoff distance of specified atoms
 </ul>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="cap"><b>surface cap</b></a> &nbsp;true&nbsp;|&nbsp;false&nbsp;
+  [&nbsp;<b>offset</b>&nbsp;<i>d</i>&nbsp;]
+<blockquote>
+Adjust capping, in which planar caps are drawn to hide the interior of a
+surface sliced by a <a href="clip.html">clipping plane</a>.
+Capping can be toggled on or off, and the initial default can be set in the
+<a href="../preferences.html">preferences</a>.
+The <b>offset</b> distance <i>d</i> is how far to displace caps from
+the clipping plane (default <b>0.01</b> &Aring;). Some displacement is needed,
+or the cap itself can be clipped (invisible) depending on floating-point
+rounding errors and the specific graphics hardware being used.
+If <b><i>d</i></b> is large, however, the mismatch between the cap and the
+cut edge of the surface will be evident.
+</blockquote>
 
 <a href="#sop" class="nounder">&bull;</a>
   <a name="dust"><b>surface dust</b></a>
@@ -434,5 +453,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2017</address>
+January 2018</address>
 </body></html>

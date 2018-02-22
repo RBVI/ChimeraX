@@ -14,7 +14,7 @@ or derivations thereof.
 -->
 
 <head>
-<title>ChimeraX Preferences</title>
+<title>ChimeraX Preferences (Settings)</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
 </head><body>
@@ -25,11 +25,31 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 </p>
 
-<h2>ChimeraX Preferences</h2>
+<h2>ChimeraX Preferences (Settings)</h2>
 <p>
-A user's ChimeraX preferences are stored
-along with the <a href="tools/cli.html#history">command history</a>
-and <a href="tools/filehistory.html">file history</a> as multiple files
+The <b>ChimeraX Settings</b> dialog is listed in a 
+standard platform-dependent location in the menu 
+(for example, <b>UCSF ChimeraX... Preferences</b> on a Mac),
+and contains sections:
+</p>
+<blockquote><b>
+<a href="#background">Background</a>
+<br><a href="#clipping">Clipping</a>
+<br><a href="#labels">Labels</a>
+<br><a href="#sessions">Sessions</a>
+</b></blockquote>
+<p>
+<b>Save</b> saves the current settings, <b>Reset</b> replaces the 
+current settings with the initial (&ldquo;factory&rdquo;) defaults,
+and <b>Restore</b> restores values that were saved previously.
+The <b>Buttons below...</b> option indicates 
+whether these buttons should apply only to the currently shown section
+or to all sections of the <b>Preferences</b> dialog.
+</p><p>
+Several <a href="#other">other preferences</a> do not appear in this 
+dialog, but in separate, tool-specific interfaces.
+</p><p>
+ChimeraX preferences are stored as multiple files
 in a standard platform-dependent location (for example, under
 <span class="nowrap"><b>~/Library/Application Support/ChimeraX/</b></span>
 on a Mac).
@@ -39,27 +59,10 @@ target="_blank">python appdirs</a>
 -->
 The location can be reported with command: 
 <blockquote>
-<b><a href="commands/info.html#path">info path</a> user all config</b>
+<b><a href="commands/info.html#path">info path</a> user unversioned config</b>
 </blockquote>
 Preferences files are named according to the modules to which they apply,
 and are not created until nondefault settings are saved.
-</p><p>
-The main <b>Preferences</b> dialog is listed in a 
-standard platform-dependent location in the menu 
-(for example, <b>UCSF ChimeraX... Preferences</b> on a Mac),
-and contains sections:
-</p>
-<blockquote><b>
-<a href="#background">Background</a>
-<br><a href="#labels">Labels</a>
-</b></blockquote>
-<p>
-<b>Save</b> saves the current settings, <b>Reset</b> replaces the 
-current settings with the initial (&ldquo;factory&rdquo;) defaults,
-and <b>Restore</b> replaces the current settings with those previously 
-saved; if the <b>Buttons affect all categories</b> option is checked, 
-these buttons apply to all sections of the <b>Preferences</b> dialog,
-not just the section currently shown.
 </p>
 
 <a name="background"></a>
@@ -68,40 +71,72 @@ not just the section currently shown.
 [<a href="#top">back to top: ChimeraX Preferences</a>]
 </p>
 -->
-<h3>Background</h3>
-</p>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Background</h3>
 <ul>
 <li><b>Background color</b> - a color well that can be clicked
 to choose the color interactively (initial default
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#000000" width="10px"></td>
-</tr></table>)
+</tr></table>).
+See also: <a href="commands/set.html#bgColor"><b>set bgColor</b></a>
 </ul>
-<p>
+<a name="clipping"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Clipping</h3>
+<ul>
+<li><b>Surface caps</b>
+- whether to cap surfaces initially when they are sliced by
+<a href="commands/clip.html">clipping</a>.
+See also: <a href="commands/surface.html#cap"><b>surface cap</b></a>
+</ul>
+
 <a name="labels"></a>
 <!--
 <p class="nav">
 [<a href="#top">back to top: ChimeraX Preferences</a>]
 </p>
 -->
-<h3>Labels</h3>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Labels</h3>
 <ul>
 <li><b>Atomspec display style</b>
 - format/type of identifying information shown by pausing the cursor over 
 an object in the <a href="window.html">main window</a> (see the 
 <a href="commands/mousemode.html#identify"><b>identify object</b></a> mouse mode)
   <ul>
-  <li><b>simple</b> (initial default) - chain ID (preceded by slash),
-  residue name, residue number, atom name (for example, /B ASN 21 OD1)
   <li><b>command line</b>
   - <a href="commands/atomspec.html#hierarchy">command-line specifier</a>
   (for example, /B:21@OD1)
   <li><b>serial number</b> - atom serial number (for example, 126)
+  <li><b>simple</b> (initial default) - chain ID (preceded by slash),
+  residue name, residue number, atom name (for example, /B ASN 21 OD1)
 </ul>
 <p>
 Model number will be included when multiple models are present.
 </p>
+</ul>
+
+<a name="sessions"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Sessions</h3>
+<ul>
+<li><b>Resize window on session restore</b>
+- whether to restore the window size of a session along with its contents;
+if this option is off (initial default), the graphics window will not resize
+when a session is restored. 
+See also: <a href="commands/windowsize.html"><b>windowsize</b></a>
 </ul>
 
 <a name="other"></a>
@@ -112,12 +147,13 @@ Model number will be included when multiple models are present.
 -->
 <h3>Other Preferences</h3>
 <p>
-Some preferences do not apear in the dialog, 
+Some preferences do not apear in the main <b>ChimeraX Settings</b> dialog, 
 but can be adjusted and saved by other means:
 </p>
 <ul>
 <li>Individual <a href="window.html#toolprefs">tool preferences</a>: 
-whether to autostart, whether windows are dockable
+whether to autostart, whether windows are dockable, and other
+settings accessible through <a href="window.html#panels">context menus</a>
 <!-- (see also <b>ui</b>) -->
 <li>Distance-label formatting,
 see <a href="commands/distance.html#format"><b>distance format</b></a>
@@ -125,5 +161,5 @@ see <a href="commands/distance.html#format"><b>distance format</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2018</address>
+February 2018</address>
 </body></html> 

@@ -68,7 +68,7 @@ public:
     static const unsigned int  HIDE_NUCLEOTIDE = 0x4;
 
     typedef std::vector<Bond*> Bonds;
-    enum class DrawMode: unsigned char { Sphere, EndCap, Ball };
+    enum class DrawMode: unsigned char { Sphere, Ball, EndCap };
     enum IdatmGeometry { Ion=0, Single=1, Linear=2, Planar=3, Tetrahedral=4 };
     struct IdatmInfo {
         IdatmGeometry  geometry;

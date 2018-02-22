@@ -40,8 +40,8 @@ class ColorButton(QPushButton):
 
     color_changed = pyqtSignal(ndarray)
 
-    def __init__(self, parent=None, *, max_size=None, has_alpha_channel=False, **kw):
-        super().__init__(parent)
+    def __init__(self, *args, max_size=None, has_alpha_channel=False, **kw):
+        super().__init__(*args)
         if max_size is not None:
             self.setMaximumSize(*max_size)
         from PyQt5.QtCore import Qt
@@ -79,7 +79,12 @@ class ColorButton(QPushButton):
 def color_to_numpy_rgba8(color):
     if isinstance(color, QColor):
         return array([color.red(), color.green(), color.blue(), color.alpha()], dtype=uint8)
-    from ...colors import Color
+    from ...colors import Color, BuiltinColors
+    if isinstance(color, str):
+        try:
+            color = BuiltinColors[color]
+        except KeyError:
+            raise ValueError("'%s' is not a built-in color name" % color)
     if isinstance(color, Color):
         return color.uint8x4()
     import numbers

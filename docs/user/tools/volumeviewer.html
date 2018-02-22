@@ -183,7 +183,31 @@ See also the <b>contour level</b> and <b>move planes</b>
 adjusting the display by dragging within the graphics window.
 </p>
 
+<a name="multichannel"></a>
+<p class="nav">
+[<a href="#top">back to top: Volume Viewer</a>]
+</p>
+<h3>Multichannel Data</h3>
+<p>
+When multiple maps are specified in a single 
+<a href="../commands/open.html"><b>open</b></a> command 
+(multiple files specified with wild cards or globbing), 
+channel numbers are <a href="../commands/open.html#channel">discerned</a>
+from the filenames, if possible.
+Multiple channels can also be read from a single file (OME TIFF and 
+certain other <a href="../commands/open.html#volume">volume formats</a>).
+Either way, the channels are automatically grouped,
+in that changing the display style, step size, or plane for one channel
+in <b>Volume Viewer</b> changes it for all of the channels in the group.
+The <a href="../commands/volume.html"><b>volume</b></a> command
+allows changing settings for individual channels.
+</p><p>
+See also:
+the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#multichannel"
+target="_blank">ChimeraX light microscopy highlight</a>
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2017</address>
+February 2018</address>
 </body></html>

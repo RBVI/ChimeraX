@@ -61,6 +61,8 @@ def _non_null_atoms(p):
     return Atoms(p[p!=0])
 def _bonds(p):
     return Bonds(p)
+def _coordsets(p):
+    return CoordSets(p)
 def _pseudobond_groups(p):
     return PseudobondGroups(p)
 def _pseudobonds(p):
@@ -273,8 +275,6 @@ class Collection(State):
                              " update your ChimeraX".format(data['version'], self.STATE_VERSION))
         c_pointers = cls.session_restore_pointers(session, data['pointers'])
         return cls(c_pointers)
-    def reset_state(self, session):
-        self._pointers = numpy.empty((0,), cptr)
     @classmethod
     def session_restore_pointers(cls, session, data):
         raise NotImplementedError(
@@ -332,6 +332,9 @@ class StructureDatas(Collection):
     alt_loc_change_notifies = cvec_property('structure_alt_loc_change_notify', npy_bool)
     '''Whether notifications are issued when altlocs are changed.  Should only be
     set to true when temporarily changing alt locs in a Python script. Numpy bool array.'''
+    active_coordsets = cvec_property('structure_active_coordset', cptr, astype = _coordsets,
+        read_only = True,
+        doc="Returns a :class:`CoordSets` of the active coordset of each structure. Read only.")
     atoms = cvec_property('structure_atoms', cptr, 'num_atoms', astype = _atoms,
                           read_only = True, per_object = False)
     '''A single :class:`.Atoms` containing atoms for all structures. Read only.'''
@@ -630,7 +633,6 @@ class Atoms(Collection):
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
-        from numpy import unique
         return unique_ordered(self.chain_ids)
     @property
     def unique_structures(self):
@@ -1131,9 +1133,13 @@ class Residues(Collection):
         return self.structures.unique()
 
     @property
+    def unique_names(self):
+        '''The unique names as a numpy array of strings.'''
+        return unique_ordered(self.names)
+
+    @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
-        from numpy import unique
         return unique_ordered(self.chain_ids)
 
     @property

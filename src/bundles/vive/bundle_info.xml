@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Vive" version="1.0"
-	    package="chimerax.vive"
+	    package="chimerax.vive" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

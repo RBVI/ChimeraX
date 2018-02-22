@@ -698,6 +698,10 @@ class ObjectIdMouseMode(MouseMode):
     when the mouse is hovered over the object for 0.5 seconds.
     '''
     name = 'identify object'
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+        session.triggers.add_trigger('mouse hover')
+        
     def pause(self, position):
         ui = self.session.ui
         if ui.activeWindow() is None:
@@ -722,6 +726,11 @@ class ObjectIdMouseMode(MouseMode):
                     self.session.logger.status("chain %s: %s" % (chain.chain_id, chain.description))
                 elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
                     self.session.logger.status(res.structure._hetnam_descriptions[res.name])
+            if p.distance is not None:
+                f = p.distance
+                xyz1, xyz2 = self.view.clip_plane_points(x, y)
+                xyz = (1-f)*xyz1 + f*xyz2
+                self.session.triggers.activate_trigger('mouse hover', xyz)
         else:
             pu.hide()
 

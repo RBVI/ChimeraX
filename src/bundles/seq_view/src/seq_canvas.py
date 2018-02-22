@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .settings import SINGLE_PREFIX
+from .settings import SINGLE_PREFIX, ALIGNMENT_PREFIX
 
 """TODO
 from Consensus import Consensus
@@ -737,7 +737,7 @@ class SeqCanvas:
                     % (prefResColor, exc_info()[1]))
         """
 
-        self.show_ruler = self.sv.settings.show_ruler_at_startup and not single_sequence
+        self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and not single_sequence
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
         """TODO
@@ -775,17 +775,15 @@ class SeqCanvas:
                 prefix = SINGLE_PREFIX
             else:
                 prefix = ""
-            lw = getattr(self.sv.settings, prefix + "line_width")
-            if lw < 0: # wrap to window size, at multiple of abs(lw) characters
-                increment = abs(lw)
-                lw = increment
-                try_lw = lw + increment
-                win_width = self.sv.tool_window.ui_area.size().width()
-                aln_len = len(self.alignment.seqs[0])
-                while try_lw - increment < aln_len \
-                and self._line_width_fits(win_width, min(aln_len, try_lw)):
-                    lw = try_lw
-                    try_lw += increment
+            lwm = getattr(self.sv.settings, prefix + "line_width_multiple")
+            lw = lwm
+            try_lw = lw + lwm
+            win_width = self.sv.tool_window.ui_area.size().width()
+            aln_len = len(self.alignment.seqs[0])
+            while try_lw - lwm < aln_len \
+            and self._line_width_fits(win_width, min(aln_len, try_lw)):
+                lw = try_lw
+                try_lw += lwm
             return lw
         # lay out entire sequence horizontally
         return 2 * len(self.alignment.seqs[0])
@@ -2738,14 +2736,5 @@ def _seq_name(seq, settings):
 
 def _wrap_okay(num_seqs, settings):
     if num_seqs == 1:
-        prefix = SINGLE_PREFIX
-    else:
-        prefix = ""
-    if getattr(settings, prefix + 'wrap_if'):
-        if num_seqs <= getattr(settings, prefix + 'wrap_threshold'):
-            return True
-        else:
-            return False
-    elif getattr(settings, prefix + 'wrap'):
-        return True
-    return False
+        return getattr(settings, SINGLE_PREFIX + 'wrap')
+    return num_seqs <= getattr(settings, ALIGNMENT_PREFIX + 'wrap_threshold')

@@ -442,10 +442,6 @@ class Alignment(State):
             if note_name in ["add association", "remove association"]:
                 viewer.alignment_notification("modify association", (note_name, note_data))
 
-    def reset_state(self, session):
-        """For when the session is closed"""
-        pass
-
     @staticmethod
     def restore_snapshot(session, data):
         """For restoring scenes/sessions"""

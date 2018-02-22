@@ -27,10 +27,11 @@ Possible uses of multiple sessions include:
 one session per tabbed graphics window,
 or for comparing two sessions.
 
-Session data, ie., data that is archived, uses the :py:class:`State` API.
+Session data, ie., data that is archived, uses the :py:class:`State` and
+:py:class:`StateManager` API.
 """
 
-from .state import RestoreError, State, copy_state, dereference_state
+from .state import RestoreError, State, StateManager, copy_state, dereference_state
 from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, commas, plural_form
 from .errors import UserError
 
@@ -330,7 +331,7 @@ class Session:
     the session, e.g., a thumbnail, a description, the author, etc.
     See :py:func:`standard_metadata`.
 
-    Attributes that support the :py:class:`State` API are automatically added as state managers
+    Attributes that support the :py:class:`StateManager` API are automatically added as state managers
     (e.g. the session's add_state_manager method is called with the 'tag' argument
     the same as the attribute name).
     Conversely, deleting the attribute will call remove_state_manager.
@@ -378,6 +379,9 @@ class Session:
         # from .scenes import Scenes
         # sess.add_state_manager('scenes', Scenes(sess))
 
+        self.save_options = {}		# Options used when saving session files.
+        self.restore_options = {}	# Options used when restoring session files.
+        
     def _get_view(self):
         return self._state_containers['main_view']
 
@@ -395,7 +399,7 @@ class Session:
         self.session_file_path = None
         for tag in self._state_containers:
             container = self._state_containers[tag]
-            sm = self.snapshot_methods(container)
+            sm = self.snapshot_methods(container, type=StateManager)
             if sm:
                 sm.reset_state(container, self)
             else:
@@ -425,12 +429,14 @@ class Session:
     def remove_state_manager(self, tag):
         del self._state_containers[tag]
 
-    def snapshot_methods(self, object, instance=True):
-        """Return an object having take_snapshot() and restore_snapshot() methods for the given object.
-        Can return if no save/restore methods are available, for instance for primitive types.
+    def snapshot_methods(self, object, instance=True, type=State):
+        """Return an object having take_snapshot(), restore_snapshot(),
+        and reset_state() methods for the given object.
+        Can return None if no save/restore methods are available,
+        for instance for primitive types.
         """
         cls = object.__class__ if instance else object
-        if issubclass(cls, State):
+        if issubclass(cls, type):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
             from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material, ClipPlane, Drawing
@@ -490,13 +496,18 @@ class Session:
             mgr.cleanup()
             self.triggers.activate_trigger("end save session", self)
 
-    def restore(self, stream, path=None, metadata_only=False):
+    def restore(self, stream, path=None, resize_window=None, metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
             use_pickle = stream.peek(1)[0] != ord(b'#')
-        else:
+        elif hasattr(stream, 'buffer'):
             use_pickle = stream.buffer.peek(1)[0] != ord(b'#')
+        elif stream.seekable():
+            use_pickle = stream.read(1)[0] != ord(b'#')
+            stream.seek(0)
+        else:
+            raise RuntimeError('Could not peek at first byte of session file.')
         if use_pickle:
             version = serialize.pickle_deserialize(stream)
             if version != 1:
@@ -532,6 +543,9 @@ class Session:
         except RestoreError as e:
             self.logger.warning(str(e))
 
+        if resize_window is not None:
+            self.restore_options['resize window'] = resize_window
+        
         self.triggers.activate_trigger("begin restore session", self)
         try:
             self.reset()
@@ -571,6 +585,7 @@ class Session:
             self.reset()
         finally:
             self.triggers.activate_trigger("end restore session", self)
+            self.restore_options.clear()
             mgr.cleanup()
 
 
@@ -767,7 +782,7 @@ def sdump(session, session_file, output=None):
             pprint(data, stream=output)
 
 
-def open(session, path):
+def open(session, path, resize_window=None):
     if hasattr(path, 'read'):
         # Given a stream instead of a file name.
         fname = path.name
@@ -783,7 +798,7 @@ def open(session, path):
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.session_file_path = path
-    session.restore(stream, path=path)
+    session.restore(stream, path=path, resize_window=resize_window)
     return [], "opened ChimeraX session"
 
 
@@ -860,6 +875,9 @@ def register_session_format(session):
         mime="application/x-chimerax-session",
         reference="help:user/commands/save.html",
         open_func=open, export_func=save)
+    from .commands import add_keyword_arguments, BoolArg
+    add_keyword_arguments('open', {'resize_window': BoolArg})
+
 
     from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
     desc = CmdDesc(

@@ -18,7 +18,7 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomic=True):
+def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomic=True, log_info=True):
 
     path = stream.name if hasattr(stream, 'name') else None
 
@@ -30,7 +30,7 @@ def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomi
         from .structure import AtomicStructure as StructureClass
     else:
         from .structure import Structure as StructureClass
-    models = [StructureClass(session, name = file_name, c_pointer = p, auto_style = auto_style)
+    models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
         for p in pointers]
 
     if path:

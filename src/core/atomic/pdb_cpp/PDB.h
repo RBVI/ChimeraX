@@ -17,6 +17,7 @@
 #define pdb_PDB
 
 #include <iostream>
+#include "locale.h"
 
 namespace pdb {
 
@@ -392,6 +393,7 @@ public:
 
 private:
     RecordType  r_type;
+    const char* orig_locale;
 public:
     union {
         Unknown_    unknown;
@@ -457,9 +459,10 @@ private:
     static int  byte_cmp(const PDB &l, const PDB &r);
 public:
 
-            PDB() { set_type(UNKNOWN); }
-            PDB(RecordType t) { set_type(t); }
+            PDB() { set_standard_locale(); set_type(UNKNOWN); }
+            PDB(RecordType t) { set_standard_locale(); set_type(t); }
             PDB(const char *buf);
+            ~PDB() { setlocale(LC_ALL, orig_locale); }
     RecordType  type() const { return r_type; }
     void        set_type(RecordType t);
     void        parse_line(const char *buf);
@@ -467,6 +470,10 @@ public:
     static int  pdb_input_version() { return input_version; }
     static RecordType get_type(const char *buf);
     static int  sscanf(const char *, const char *, ...);
+    void        set_standard_locale() {
+        orig_locale = setlocale(LC_ALL, nullptr);
+        setlocale(LC_ALL, "C");
+    }
     static int  sprintf(char *, const char *, ...);
     static void reset_state();
 

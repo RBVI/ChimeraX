@@ -275,8 +275,10 @@ class ConfigFile:
                 self.PROPERTY_INFO[name] = Value(value)
         if only_use_defaults:
             return
-        from chimerax import app_dirs
-        self._filename = os.path.join(app_dirs.user_config_dir,
+        # don't want all tools forgetting their settings when core version number changes,
+        # so use unversioned appdirs
+        from chimerax import app_dirs_unversioned
+        self._filename = os.path.join(app_dirs_unversioned.user_config_dir,
             '%s-%s' % (tool_name, major_version) if version else tool_name)
         self._config = configparser.ConfigParser(
             comment_prefixes=(),

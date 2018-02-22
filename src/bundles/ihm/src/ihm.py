@@ -30,11 +30,14 @@ def read_ihm(session, filename, name, *args, load_ensembles = False, load_linked
         filename = stream.name
         stream.close()
 
-    m = IHMModel(session, filename,
+    try:
+        m = IHMModel(session, filename,
                  load_ensembles = load_ensembles,
                  load_linked_files = load_linked_files,
                  show_sphere_crosslinks = show_sphere_crosslinks,
                  show_atom_crosslinks = show_atom_crosslinks)
+    except IOError as e:
+        raise RuntimeError('IHM error') from e
 
     return [m], m.description
 
@@ -54,6 +57,7 @@ class IHMModel(Model):
         name = splitext(basename(filename))[0]
         self._file_info = None
         self._data_sets = None	# Map dataset_list_id to DataSet
+        self._asym_colors = self._asym_colors8 = None
 
         Model.__init__(self, name, session)
 
@@ -217,6 +221,39 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
+    def asym_colors(self):
+        '''
+        Use the standard ChimeraX chain color based on chain id, but color chains
+        with the same entity using the same color as the first chain id for that entity.
+        '''
+        if self._asym_colors is not None:
+            return self._asym_colors
+        
+        easyms = {}
+        for asym_id, ename in self.asym_entity_names().items():
+            easyms.setdefault(ename,[]).append(asym_id)
+
+        self._asym_colors = asym_colors = {}
+        from chimerax.core.atomic.colors import chain_rgba
+        for asym_ids in easyms.values():
+            color = chain_rgba(asym_ids[0])
+            for asym_id in asym_ids:
+                asym_colors[asym_id] = color
+
+        return asym_colors
+
+    # -----------------------------------------------------------------------------
+    #
+    def asym_colors8(self):
+        if self._asym_colors8 is not None:
+            return self._asym_colors8
+        from chimerax.core.colors import rgba_to_rgba8
+        self._asym_colors8 = {asym_id:rgba_to_rgba8(color)
+                              for asym_id, color in self.asym_colors().items()}
+        return self._asym_colors8
+
+    # -----------------------------------------------------------------------------
+    #
     def asym_detail_text(self):
         sat = self.tables['struct_asym']
         sa_fields = [
@@ -279,6 +316,7 @@ class IHMModel(Model):
                   'starting_model_auth_asym_id', 'dataset_list_id']
         rows = starting_models.fields(fields, allow_missing_fields = True)
 
+        asym_colors = self.asym_colors8()
         for asym_id, seq_beg, seq_end, source, auth_asym_id, did in rows:
             if source != 'experimental model':
                 continue
@@ -289,7 +327,7 @@ class IHMModel(Model):
             for m in models:
                 keep_one_chain(m, auth_asym_id)
                 m.name += ' ' + auth_asym_id
-                show_colored_ribbon(m, asym_id)
+                show_colored_ribbon(m, asym_colors.get(asym_id))
             xmodels.extend(models)
             for m in models:
                 m.asym_id = asym_id
@@ -337,6 +375,7 @@ class IHMModel(Model):
         rows = sm_table.fields(fields, allow_missing_fields = True)
         # TODO: Starting model can appear multiple times in table, with different sequence ranges.  Seems wrong.
         smfound = set()
+        asym_colors = self.asym_colors8()
         for smid, asym_id, data_type, auth_asym_id, did in rows:
             if data_type != 'comparative model':
                 continue
@@ -353,7 +392,7 @@ class IHMModel(Model):
                 m.dataset_id = did
                 m.asym_id = asym_id
                 m.comparative_model = True
-                show_colored_ribbon(m, asym_id)
+                show_colored_ribbon(m, asym_colors.get(asym_id))
             lmodels.extend(models)
       
         return lmodels
@@ -387,6 +426,7 @@ class IHMModel(Model):
 
         from collections import OrderedDict
         alignments = OrderedDict()  # Sequence alignments for comparative models
+        asym_colors = self.asym_colors8()
         for sm_id, auth_asym_id, tseq_beg, tseq_end, tdid, alignment_file_id in rows:
             d = self.data_set(tdid, 'ihm_starting_comparative_models')
             if d is None:
@@ -397,6 +437,7 @@ class IHMModel(Model):
             asym_id, seq_beg, seq_end, cdid = smdetails[sm_id]
             tm = TemplateModel(self.session, asym_id, int(seq_beg), int(seq_end),
                                auth_asym_id, int(tseq_beg), int(tseq_end), d)
+            tm.base_color = asym_colors[asym_id]
             tmodels.append(tm)
             if alignment_file_id != '.':
                 sfinfo = self.file_info(alignment_file_id)
@@ -451,7 +492,7 @@ class IHMModel(Model):
         mnames = self.model_names()
 
         sost = self.tables['ihm_sphere_obj_site']
-        if sost is None:
+        if not sost:
             smodels = []
         else:
             sos_fields = [
@@ -496,6 +537,7 @@ class IHMModel(Model):
         # Associate entity names with asym ids.
         anames = self.asym_entity_names()
         adetail = self.asym_detail_text()
+        asym_colors = self.asym_colors8()
 
         smodels = []
         for g in gs:
@@ -504,7 +546,7 @@ class IHMModel(Model):
                 # For groups with matching residue / atom names use coordinate set.
                 mid, slist = ms[0]
                 mname = mnames.get(mid, 'sphere model')
-                sm = SphereModel(self.session, mname, mid, anames, adetail, slist)
+                sm = SphereModel(self.session, mname, mid, slist, anames, adetail, asym_colors)
                 sm.ihm_group_id = g
                 for mid, slist in ms[1:]:
                     sm.add_coordinates(mid, slist)
@@ -515,7 +557,7 @@ class IHMModel(Model):
                 # Make separate sphere models, do not use coordinate sets.
                 for i, (mid, slist) in enumerate(ms):
                     mname = mnames.get(mid, 'sphere model')
-                    sm = SphereModel(self.session, mname, mid, anames, adetail, slist)
+                    sm = SphereModel(self.session, mname, mid, slist, anames, adetail, asym_colors)
                     sm.ihm_group_id = g
                     sm.display = (i == 0)            # Undisplay all but first sphere model in each group
                     smodels.append(sm)
@@ -574,14 +616,49 @@ class IHMModel(Model):
             from chimerax.core.atomic.colors import chain_colors
             atoms.colors = chain_colors(atoms.residues.chain_ids)
             emodels.append(sm)
-
-        # Copy bead radii from best score model to ensemble models
-        if smodels and emodels:
-            r = smodels[0].atoms.radii
-            for em in emodels:
-                em.atoms.radii = r
+            
+        self.add_entity_names(emodels)
+        self.set_asym_colors(emodels)
+        self.copy_sphere_radii(emodels, smodels)
 
         return emodels
+
+    # -----------------------------------------------------------------------------
+    #
+    def add_entity_names(self, models):
+        if len(models) == 0:
+            return
+        
+        entity_names = self.asym_entity_names()
+        asym_details = self.asym_detail_text()
+        for m in models:
+            for r in m.residues:
+                asym_id = r.chain_id
+                r.entity_name = entity_names.get(asym_id, '?')
+                r.asym_detail = asym_details.get(asym_id, '')
+
+
+    # -----------------------------------------------------------------------------
+    #
+    def set_asym_colors(self, models):
+        if len(models) == 0:
+            return
+        
+        asym_colors = self.asym_colors8()
+        for m in models:
+            for s, asym_id, atoms in m.atoms.by_chain:
+                atoms.colors = asym_colors.get(asym_id, (200,200,200,255))
+
+    # -----------------------------------------------------------------------------
+    #
+    def copy_sphere_radii(self, emodels, smodels):
+        # Copy bead radii from best score model to ensemble models
+        for em in emodels:
+            esm = [sm for sm in smodels if sm.ihm_group_id == em.ihm_group_id]
+            if len(esm) == 1:
+                sm = esm[0]
+                if sm.num_atoms == em.num_atoms:
+                    em.atoms.radii = sm.atoms.radii
 
     # -----------------------------------------------------------------------------
     #
@@ -726,7 +803,7 @@ class IHMModel(Model):
     #
     def read_predicted_contacts(self):
         pcrt = self.tables['ihm_predicted_contact_restraint']
-        if pcrt is None:
+        if not pcrt:
             return []
         pcrt_fields = [
             'asym_id_1',
@@ -784,10 +861,11 @@ class IHMModel(Model):
                                               parent = smodel)
             xpbgs.extend(pbgs)
 
-        if emodels and smodels:
-            for emodel in emodels:
+        for emodel in emodels:
+            esm = [sm for sm in smodels if sm.ihm_group_id == emodel.ihm_group_id]
+            if len(esm) == 1:
                 pbgs = make_crosslink_pseudobonds(self.session, xlinks,
-                                                  ensemble_sphere_lookup(emodel, smodels[0]),
+                                                  ensemble_sphere_lookup(emodel, esm[0]),
                                                   parent = emodel)
                 xpbgs.extend(pbgs)
 
@@ -818,7 +896,7 @@ class IHMModel(Model):
     def read_2d_electron_microscopy_maps(self):
         emmodels = []
         dot = self.tables['ihm_2dem_class_average_restraint']
-        if dot is None:
+        if not dot:
             return emmodels
 
         rt = {}	# Orientations of 2D EM for best projection
@@ -859,7 +937,7 @@ class IHMModel(Model):
     def read_3d_electron_microscopy_maps(self):
         emmodels = []
         dot = self.tables['ihm_3dem_restraint']
-        if dot is None:
+        if not dot:
             return emmodels
         fields = ['dataset_list_id']
         rows = dot.fields(fields, allow_missing_fields = True)
@@ -895,7 +973,7 @@ class IHMModel(Model):
 
         eit = self.tables['ihm_ensemble_info']
         elt = self.tables['ihm_localization_density_files']
-        if eit is None or elt is None:
+        if not eit or not elt:
             return []
 
         ensemble_fields = ['ensemble_id', 'model_group_id', 'num_ensemble_models']
@@ -913,8 +991,8 @@ class IHMModel(Model):
             ens.setdefault(ensemble_id, []).append((asym_id, file_id))
 
         pmods = []
+        asym_colors = self.asym_colors()
         from chimerax.core.map.volume import open_map
-        from chimerax.core.atomic.colors import chain_rgba
         from os.path import join
         for ensemble_id in sorted(ens.keys()):
             asym_loc = ens[ensemble_id]
@@ -923,16 +1001,23 @@ class IHMModel(Model):
             m = Model(name, self.session)
             m.ihm_group_id = gid
             pmods.append(m)
+            fasyms = {}
             for asym_id, file_id in sorted(asym_loc):
+                fasyms.setdefault(file_id, []).append(asym_id)
+            fids = list(fasyms.keys())
+            fids.sort(key = lambda fid: fasyms[fid][0])
+            for file_id in fids:
                 finfo = self.file_info(file_id)
                 if finfo is None:
                     continue
                 map_path = finfo.path(self.session)
                 if map_path is None:
-                    # TODO: Warn map file not found.
+                    self.session.logger.warning('Could not find localization map "%s"'
+                                                % finfo.file_path)
                     continue
                 maps,msg = open_map(self.session, map_path, show = False, show_dialog=False)
-                color = chain_rgba(asym_id)[:3] + (opacity,)
+                asym_id = fasyms[file_id][0]
+                color = asym_colors[asym_id][:3] + (opacity,)
                 v = maps[0]
                 ms = v.matrix_value_statistics()
                 vlev = ms.mass_rank_data_value(level)
@@ -950,7 +1035,7 @@ class IHMModel(Model):
 
         eit = self.tables['ihm_ensemble_info']
         goet = self.tables['ihm_gaussian_obj_ensemble']
-        if eit is None or goet is None:
+        if not eit or not goet:
             return []
 
         ensemble_fields = ['ensemble_id', 'model_group_id', 'num_ensemble_models']
@@ -985,8 +1070,8 @@ class IHMModel(Model):
 
         # Compute probability volume models
         pmods = []
+        asym_colors = self.asym_colors()
         from chimerax.core.map import volume_from_grid_data
-        from chimerax.core.atomic.colors import chain_rgba
 
         for ensemble_id in sorted(cov.keys()):
             asym_gaussians = cov[ensemble_id]
@@ -997,7 +1082,7 @@ class IHMModel(Model):
             for asym_id in sorted(asym_gaussians.keys()):
                 g = probability_grid(asym_gaussians[asym_id])
                 g.name = '%s Gaussians' % asym_id
-                g.rgba = chain_rgba(asym_id)[:3] + (opacity,)
+                g.rgba = asym_colors[asym_id][:3] + (opacity,)
                 v = volume_from_grid_data(g, self.session, open_model = False, show_dialog = False)
                 v.initialize_thresholds()
                 ms = v.matrix_value_statistics()
@@ -1012,24 +1097,41 @@ class IHMModel(Model):
     #
     @property
     def description(self):
+        lines = ['Opened IHM file %s' % self.filename]
         # Report what was read in
-        nc = len([m for m in self.starting_models if m.comparative_model])
         nx = len([m for m in self.starting_models if not m.comparative_model])
+        if nx:
+            lines.append('%d xray and nmr models' % nx)
+        nc = len([m for m in self.starting_models if m.comparative_model])
+        if nc:
+            lines.append('%d comparative models' % nc)
         nsa = len(self.sequence_alignment_models)
+        if nsa:
+            lines.append('%d sequence alignments' % nsa)
         nt = sum([len(sqm.template_models) for sqm in self.sequence_alignment_models], 0)
-        nem = len(self.electron_microscopy_models)
-        ns = len(self.sphere_models)
-        na = len(self.atomic_models)
-        nse = len(self.ensemble_sphere_models)
-        nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
+        if nt:
+            lines.append('%d templates' % nt)
         xldesc = ', '.join('%d %s crosslinks' % (len(xls),type)
                            for type,xls in self.crosslink_models.items())
-        esizes = ' and '.join('%d'%em.num_coordsets for em in self.ensemble_sphere_models)
-        msg = ('Opened IHM file %s\n'
-               ' %d xray/nmr models, %d comparative models, %d sequence alignments, %d templates\n'
-               ' %s, %d electron microscopy images\n'
-               ' %d atomic models, %d sphere models, %d ensembles with %s models, %d localization maps' %
-               (self.filename, nx, nc, nsa, nt, xldesc, nem, na, ns, nse, esizes, nl))
+        if xldesc:
+            lines.append(xldesc)
+        nem = len(self.electron_microscopy_models)
+        if nem:
+            lines.append('%d electron microscopy images' % nem)
+        na = len(self.atomic_models)
+        if na:
+            lines.append('%d atomic models' % na)
+        ns = len(self.sphere_models)
+        if ns:
+            lines.append('%d sphere models' % ns)
+        nse = len(self.ensemble_sphere_models)
+        if nse:
+            esizes = ' and '.join('%d'%em.num_coordsets for em in self.ensemble_sphere_models)
+            lines.append('%d ensembles with %s models' % (nse, esizes))
+        nl = sum([len(lm.child_models()) for lm in self.localization_models], 0)
+        if nl:
+            lines.append('%d localization maps' % nl)
+        msg = '\n'.join(lines)
         return msg
 
 
@@ -1044,8 +1146,9 @@ class FileInfo:
 
     def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
-        if r is None:
+        if r is None or r.ref_type == 'Supplementary Files':
             # Local file
+            from os.path import join
             path = join(self.ihm_dir, self.file_path)
             if uncompress and path.endswith('.gz'):
                 import gzip
@@ -1091,6 +1194,7 @@ class FileInfo:
             path = join(self.ihm_dir, self.file_path)
             if isfile(path):
                 return path
+            return None
             
         r = self.ref
         if r and r.ref_type == 'DOI':
@@ -1106,6 +1210,8 @@ class FileInfo:
                 path = fetch_doi(session, r.ref, r.url)
             else:
                 path = None
+        else:
+            path = None
 
         return path
 
@@ -1142,11 +1248,12 @@ class FileDataSet(DataSet):
         if open_model:
             fs = finfo.stream(session)
             if fs:
-                models, msg = open_model(session, fs, finfo.file_name, auto_style = False)
+                models, msg = open_model(session, fs, finfo.file_name, auto_style = False, log_info = False)
                 fs.close()
             else:
                 models = []
-                session.logger.warning('Could not open file "%s"' % finfo.file_path)
+                session.logger.warning('Could not open file "%s"' % finfo.file_path +
+                                       ' ref ' + str(finfo.ref) )
         else:
             models = []	# Don't know how to read atomic model file
         return models
@@ -1175,14 +1282,16 @@ class DatabaseDataSet(DataSet):
     def models(self, session):
         if self.db_name == 'PDB' and self.db_code != '?':
             from chimerax.core.atomic.mmcif import fetch_mmcif
-            models, msg = fetch_mmcif(session, self.db_code, auto_style = False)
+            models, msg = fetch_mmcif(session, self.db_code, auto_style = False, log_info = False)
         else:
             models = []
         return models
     def volume_model(self, session):
-        if self.db_name == 'EMDB' and self.db_code != '?':
+        dbc = self.db_code
+        if self.db_name == 'EMDB' and dbc != '?':
+            dbc = dbc[4:] if dbc.startswith('EMD-') else dbc
             from chimerax.core.map.emdb_fetch import fetch_emdb
-            models, status = fetch_emdb(session, self.db_code)
+            models, status = fetch_emdb(session, dbc)
             return models[0]
         return None
 
@@ -1384,6 +1493,7 @@ class TemplateModel(Model):
         self.template_seq_begin, self.template_seq_end = template_seq_begin, template_seq_end
         self.data_set = data_set    		# Template model database reference or file
         self.sequence_alignment_model = None
+        self.base_color = (200,200,200,255)
         
     def _get_display(self):
         return False
@@ -1405,7 +1515,7 @@ class TemplateModel(Model):
             m.sequence_alignment_name = sa_name
             m.asym_id = self.asym_id
             keep_one_chain(m, self.template_asym_id)
-            show_colored_ribbon(m, self.asym_id, color_offset = 80)
+            show_colored_ribbon(m, self.base_color, color_offset = 80)
             if i == 0:
                 m.id = self.id
 
@@ -1583,14 +1693,13 @@ def align_template_models(session, comparative_models):
 
 # -----------------------------------------------------------------------------
 #
-def show_colored_ribbon(m, asym_id, color_offset = None):
-    if asym_id is None:
+def show_colored_ribbon(m, color = None, color_offset = None):
+    if color is None:
         from numpy import random, uint8
         color = random.randint(128,255,(4,),uint8)
         color[3] = 255
     else:
-        from chimerax.core.atomic.colors import chain_rgba8
-        color = chain_rgba8(asym_id)
+        color = list(color)
         if color_offset:
             from numpy.random import randint
             offset = randint(-color_offset,color_offset,(3,))
@@ -1656,15 +1765,25 @@ def ensemble_sphere_lookup(emodel, smodel):
 #
 from chimerax.core.atomic import Structure
 class SphereModel(Structure):
-    def __init__(self, session, name, ihm_model_id, entity_names, asym_detail_text, sphere_list):
-        Structure.__init__(self, session, name = name, auto_style = False)
+    def __init__(self, session, name, ihm_model_id,
+                 sphere_list = None, entity_names = {}, asym_detail_text = {}, asym_colors = {},
+                 c_pointer = None, auto_style = False, log_info = False):
+        Structure.__init__(self, session, name = name,
+                           auto_style = auto_style, log_info = log_info,
+                           c_pointer = c_pointer)
         self.ihm_model_ids = [ihm_model_id]
         self.ihm_group_id = None
+        self._asym_colors = asym_colors
         
         self._asym_models = {}
-        self._sphere_atom = sa = {}	# (asym_id, res_num) -> sphere atom
+        self._sphere_atom = {}	# (asym_id, res_num) -> sphere atom
 
-        pbg = self.pseudobond_group('missing structure')
+        self._polymers = []	# List of Residues objects for making ribbons
+
+        if sphere_list is not None:
+            self._add_spheres(sphere_list, entity_names, asym_detail_text)
+
+    def _add_spheres(self, sphere_list, entity_names, asym_detail_text):
 
         # Find spheres for each asym_id in residue number order.
         asym_spheres = {}
@@ -1676,7 +1795,13 @@ class SphereModel(Structure):
         # Create sphere atoms, residues and connecting pseudobonds
         from chimerax.core.atomic import colors, Residues
         polymers = []
+        pbg = self.pseudobond_group('missing structure')
+        sa = self._sphere_atom
+        asym_colors = self._asym_colors
         for asym_id, aspheres in asym_spheres.items():
+            color = asym_colors.get(asym_id, (200,200,200,255))
+            ename = entity_names.get(asym_id, '?')
+            adetail = asym_detail_text.get(asym_id, '')
             last_atom = None
             polymer = []
             for (sb,se,xyz,r) in aspheres:
@@ -1685,13 +1810,14 @@ class SphereModel(Structure):
                 a.coord = xyz
                 a.radius = r
                 a.draw_mode = a.SPHERE_STYLE
-                a.color = colors.chain_rgba8(asym_id)
+                a.color = color
                 rname = ''
                 # Convention on ensemble PDB files is beads get middle residue number of range
                 rnum = sb
                 r = self.new_residue(rname, asym_id, rnum)
-                r.entity_name = entity_names.get(asym_id, '?')
-                r.asym_detail = asym_detail_text.get(asym_id, '')
+                r.ribbon_color = color
+                r.entity_name = ename
+                r.asym_detail = adetail
                 r.add_atom(a)
                 polymer.append(r)
                 for s in range(sb, se+1):
@@ -1702,16 +1828,19 @@ class SphereModel(Structure):
             polymers.append(Residues(polymer))
 
         self.new_atoms()
-        self._polymers = polymers	# Needed for ribbon rendering
+        self._polymers.extend(polymers)	# Needed for ribbon rendering
 
     def copy(self, name = None):
-        # Copy only the Structure, not the SphereModel
         if name is None:
             name = self.name
         from chimerax.core.atomic.molobject import StructureData
-        m = Structure(self.session, name = name, c_pointer = StructureData._copy(self),
-                           auto_style = False, log_info = False)
+        m = SphereModel(self.session, name, self.ihm_model_ids[0],
+                        c_pointer = StructureData._copy(self))
         m.positions = self.positions
+        if self._polymers:
+            rmap = dict(zip(self.residues, m.residues))
+            from chimerax.core.atomic import Residues
+            m._polymers = [Residues([rmap[r] for r in p]) for p in self._polymers]
         return m
     
     def residue_sphere(self, asym_id, res_num, atom_name=None):

@@ -50,7 +50,7 @@ and ``session.trigger.remove_handler``.
 """
 
 import abc
-from .state import State, CORE_STATE_VERSION
+from .state import State, StateManager, CORE_STATE_VERSION
 
 ADD_TASK = 'add task'
 REMOVE_TASK = 'remove task'
@@ -329,7 +329,7 @@ class JobMonitorError(JobError):
     pass
 
 
-class Tasks(State):
+class Tasks(StateManager):
     """A per-session state manager for tasks.
 
     :py:class:`Tasks` instances are per-session singletons that track

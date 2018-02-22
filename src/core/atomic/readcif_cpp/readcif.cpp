@@ -30,7 +30,7 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#undef CR_IS_EOL	/* undef for ~2% speedup */
+#define CR_IS_EOL	/* undef for ~2% speedup */
 #define CASE_INSENSITIVE	/* undef for ~6% speedup */
 // variations on stylized parsing
 #define FIXED_LENGTH_ROWS
@@ -74,70 +74,21 @@ using readcif::StringVector;
 
 namespace {
 
-#ifdef CR_IS_EOL
-const int EndOfLine[UCHAR_MAX + 1] = {
-	// ASCII LF (10) and CR (13)
-	// are the end-of-line characters recognized in CIF files
-	// Also treat ASCII NUL (0) as an end of line terminator
-	true, false, false, false, false, false, false, false,	// 0-7
-	false, false, true, false, false, true, false, false,	// 8-15
-	// the rest defaults to false
-};
-#endif
-
 inline int
 is_eol(char c)
 {
 #ifdef CR_IS_EOL
-	return EndOfLine[(unsigned char) c];
+	return c == 0 || c == '\n' || c == '\r';
 #else
 	return c == 0 || c == '\n';
 #endif
 }
 
-#ifdef CR_IS_EOL
-const int NotEndOfLine[UCHAR_MAX + 1] = {
-	// treat ASCII NUL (0) as an end of line terminator
-	false, true, true, true, true, true, true, true,	// 0-7
-	true, true, false, true, true, false, true, true,	// 8-15
-	true, true, true, true, true, true, true, true,		// 16-23
-	true, true, true, true, true, true, true, true,		// 24-31
-	true, true, true, true, true, true, true, true,		// 32-39
-	true, true, true, true, true, true, true, true,		// 40
-	true, true, true, true, true, true, true, true,		// 48
-	true, true, true, true, true, true, true, true,		// 56
-	true, true, true, true, true, true, true, true,		// 64
-	true, true, true, true, true, true, true, true,		// 72
-	true, true, true, true, true, true, true, true,		// 80
-	true, true, true, true, true, true, true, true,		// 88
-	true, true, true, true, true, true, true, true,		// 96
-	true, true, true, true, true, true, true, true,		// 104
-	true, true, true, true, true, true, true, true,		// 112
-	true, true, true, true, true, true, true, true,		// 120
-	true, true, true, true, true, true, true, true,		// 128
-	true, true, true, true, true, true, true, true,		// 136
-	true, true, true, true, true, true, true, true,		// 144
-	true, true, true, true, true, true, true, true,		// 152
-	true, true, true, true, true, true, true, true,		// 160
-	true, true, true, true, true, true, true, true,		// 168
-	true, true, true, true, true, true, true, true,		// 176
-	true, true, true, true, true, true, true, true,		// 184
-	true, true, true, true, true, true, true, true,		// 192
-	true, true, true, true, true, true, true, true,		// 200
-	true, true, true, true, true, true, true, true,		// 208
-	true, true, true, true, true, true, true, true,		// 216
-	true, true, true, true, true, true, true, true,		// 224
-	true, true, true, true, true, true, true, true,		// 232
-	true, true, true, true, true, true, true, true,		// 240
-	true, true, true, true, true, true, true, true,		// 248-255
-};
-#endif
-
 inline int
 is_not_eol(char c)
 {
 #ifdef CR_IS_EOL
-	return NotEndOfLine[(unsigned char) c];
+	return c && c != '\n' && c != '\r';
 #else
 	return c && c != '\n';
 #endif
@@ -432,6 +383,10 @@ CIFFile::parse(const char* buffer)
 			pos = e;
 			for (; is_not_eol(*pos); ++pos)
 				continue;
+#ifdef CR_IS_EOL
+			if (*pos == '\r')
+				++pos;
+#endif
 		}
 		internal_parse();
 		parsing = false;
@@ -443,8 +398,10 @@ CIFFile::parse(const char* buffer)
 }
 
 std::runtime_error
-CIFFile::error(const string& text)
+CIFFile::error(const string& text, size_t lineno)
 {
+	if (lineno == 0)
+		lineno = this->lineno;
 	std::ostringstream err_msg;
 	err_msg << text << " near line " << lineno;
 	return std::move(std::runtime_error(err_msg.str()));
@@ -781,13 +738,14 @@ again:
 	case '\0':
 		current_token = T_EOI;
 		return;
-	case ';':
+	case ';': {
+		size_t start_lineno = lineno;
 		// if (! (pos == line || (whole_file && is_eol(*(pos - 1)))) )
 		if (pos != line && (!whole_file || is_not_eol(*(pos - 1))))
 			goto data_value;
 		// TODO: if ";\" then fold long lines
 		if (current_data_block.empty())
-			throw error("string outside of data block");
+			throw error("string outside of data block", start_lineno);
 		++pos;
 		if (save_values)
 			current_value_tmp.clear();
@@ -803,12 +761,19 @@ again:
 #endif
 			if (!*pos) {
 				current_token = T_EOI;
-				throw error("incomplete multiline data value");
+				throw error("incomplete multiline data value", start_lineno);
 			}
 			++pos;
 			++lineno;
-			if (*pos == ';' && is_eol(*(pos + 1))) {
-				if (*(pos + 1))
+			char c = *(pos + 1);
+			if (*pos == ';' && is_eol(c)) {
+#ifdef CR_IS_EOL
+				if (c == '\r') {
+					++pos;
+					c = *(pos + 1);
+				}
+#endif
+				if (c)
 					++pos;
 				break;
 			}
@@ -821,9 +786,14 @@ again:
 			current_value_end = current_value_start + current_value_tmp.size();
 		}
 		return;
+	}
 	case '#':
 		for (++pos; is_not_eol(*pos); ++pos)
 			continue;
+#ifdef CR_IS_EOL
+		if (*pos == '\r')
+			++pos;
+#endif
 		goto again;
 	case '_': {
 		for (e = pos + 1; is_not_whitespace(*e); ++e)
@@ -955,26 +925,39 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 		case '\0':
 			current_token = T_EOI;
 			return;
-		case ';':
+		case ';': {
+			size_t start_lineno = lineno;
 			if (pos != line && (!whole_file || is_not_eol(*(pos - 1))))
 				continue;
 			++pos;
 			for (;;) {
 				for (; is_not_eol(*pos); ++pos)
 					continue;
+#ifdef CR_IS_EOL
+				if (*pos == '\r' && *(pos + 1) == '\n')
+					++pos;
+#endif
 				if (!*pos) {
 					current_token = T_EOI;
-					throw error("incomplete multiline data value");
+					throw error("incomplete multiline data value", start_lineno);
 				}
 				++pos;
 				++lineno;
-				if (*pos == ';' && is_eol(*(pos + 1))) {
-					if (*(pos + 1))
+				char c = *(pos + 1);
+				if (*pos == ';' && is_eol(c)) {
+#ifdef CR_IS_EOL
+					if (c == '\r') {
+						++pos;
+						c = *(pos + 1);
+					}
+#endif
+					if (c)
 						++pos;
 					break;
 				}
 			}
 			continue;
+		}
 		case '_': {
 			if (!tag_okay)
 				continue;

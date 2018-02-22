@@ -21,7 +21,7 @@ class RestoreError(RuntimeError):
     pass
 
 
-class State(metaclass=abc.ABCMeta):
+class State:
     """Session state API for classes that support saving session state
 
     Session state consists only of "simple" types, i.e.,
@@ -48,10 +48,7 @@ class State(metaclass=abc.ABCMeta):
         lists/dicts/etc., but shallow copy of named objects).
         Named objects are later converted to unique names.
         """
-        data = self.vars().copy()
-        data['bundle name'] = self.bundle_info.name
-        data['version'] = self.bundle_info.state_version
-        return data
+        return vars(self).copy()
 
     @classmethod
     def restore_snapshot(cls, session, data):
@@ -59,11 +56,6 @@ class State(metaclass=abc.ABCMeta):
         obj = cls()
         obj.__dict__ = data
         return obj
-
-    @abc.abstractmethod
-    def reset_state(self, session):
-        """Reset state to data-less state"""
-        pass
 
     # possible animation API
     # include here to emphasize that state aware code
@@ -74,6 +66,14 @@ class State(metaclass=abc.ABCMeta):
     #    # transition would be method to get to given frame that might need
     #    #   look at several scenes
     #    pass
+
+
+class StateManager(State, metaclass=abc.ABCMeta):
+
+    @abc.abstractmethod
+    def reset_state(self, session):
+        """Reset state to data-less state"""
+        pass
 
 
 class FinalizedState:

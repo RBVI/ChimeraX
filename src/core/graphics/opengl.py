@@ -139,6 +139,24 @@ class Render:
 	# Camera origin, y, and xshift for SHADER_STEREO_360 mode
         self._stereo_360_params = ((0,0,0),(0,1,0),0)
 
+    def delete(self):
+        self.make_current()
+        for fbattr in ('_default_framebuffer',
+                       'mask_framebuffer',
+                       'outline_framebuffer',
+                       '_silhouette_framebuffer',
+                       'shadow_map_framebuffer',
+                       'multishadow_map_framebuffer'):
+            fb = getattr(self, fbattr)
+            if fb:
+                fb.delete()
+            setattr(self, fbattr, None)
+
+        mmb = self._multishadow_matrix_buffer
+        if mmb is not None:
+            GL.glDeleteBuffers(1, [mmb])
+            self._multishadow_matrix_buffer = None
+
     @property
     def opengl_context(self):
         return self._opengl_context
@@ -1664,10 +1682,7 @@ class Buffer:
             if replace_buffer:
                 GL.glBufferData(btype, size, d, GL.GL_STATIC_DRAW)
             else:
-                # TODO: PyOpenGL-20130502 has glBufferSubData() has python 3
-                #       bug, long undefined.
-                #   So use size None so size is computed from array.
-                GL.glBufferSubData(btype, 0, None, d)
+                GL.glBufferSubData(btype, 0, size, d)
             GL.glBindBuffer(btype, 0)
             self.opengl_buffer = b
             self.buffered_array = d

@@ -40,7 +40,12 @@ class _StatusBarOpenGL:
     def destroy(self):
         self.widget.destroy()
         self.widget = None
-        self._opengl_context = None
+
+        for attr in ('_drawing', '_drawing2', '_opengl_context', '_renderer'):
+            v = getattr(self, attr)
+            if v is not None:
+                v.delete()
+                setattr(self, attr, None)
         
     def _make_widget(self):
         from PyQt5.QtWidgets import QStatusBar, QSizePolicy, QWidget
@@ -93,9 +98,6 @@ class _StatusBarOpenGL:
     def status(self, msg, color = 'black', secondary = False):
         if not self._window.isExposed():
             return # TODO: Need to show the status message when window is mapped.
-        
-        if self._opengl_context is None:
-            self._create_opengl_context()
 
         # Need to preserve OpenGL context across processing events, otherwise
         # a status message during the graphics draw, causes an OpenGL error because
@@ -105,9 +107,13 @@ class _StatusBarOpenGL:
         if opengl_context:
             opengl_surface = opengl_context.surface()
 
+        if self._opengl_context is None:
+            self._create_opengl_context()
+
         r = self._renderer
         if not r.make_current():
             raise RuntimeError('Failed to make status line opengl context current')
+
         r.draw_background()
         self._draw_text(msg, color, secondary)
         r.swap_buffers()

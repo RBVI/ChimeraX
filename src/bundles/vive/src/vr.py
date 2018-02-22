@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
-def vr(session, enable = None, room_position = None, mirror = False, icons = False,
+def vr(session, enable = None, room_position = None, mirror = True, icons = False,
        show_controllers = True, multishadow_allowed = False):
     '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
@@ -30,11 +30,9 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
       Maps physical room coordinates to molecular scene coordinates.
       Room coordinates have origin at center of room and units are meters.
     mirror : bool
-      Whether to update the ChimeraX graphics window.  This will usually cause judder
-      in the vr headset because the computer display is running at a refresh rate of 60
-      frames per second and will slow the rendering to the headset.  (May be able to turn off
-      syncing to vertical refresh to avoid this.)  It is better to use the SteamVR display
-      mirror window.
+      Whether to update the ChimeraX graphics window.  This also turns off waiting
+      for display vertical sync on the computer monitor so that the 60 Hz refresh rate
+      does not slow down the 90 Hz rendering to the VR headset.
     icons : bool
       Whether to show a panel of icons when controller trackpad is touched.
       For demonstrations the icons can be too complex and it is better not to have icons.
@@ -58,7 +56,8 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
         else:
             stop_vr(session)
 
-    c = session.main_view.camera
+    v = session.main_view
+    c = v.camera
     if room_position is not None:
         if not isinstance(c, SteamVRCamera):
             from chimerax.core.errors import UserError
@@ -73,6 +72,7 @@ def vr(session, enable = None, room_position = None, mirror = False, icons = Fal
     if isinstance(c, SteamVRCamera):
         if mirror is not None:
             c.mirror_display = mirror
+            wait_for_vsync(session, mirror)
         if show_controllers is not None:
             for hc in c.hand_controllers(show_controllers):
                 hc.show_in_scene(show_controllers)
@@ -126,17 +126,28 @@ def start_vr(session, multishadow_allowed = False):
 #
 def stop_vr(session):
 
-    v = session.main_view
-    c = v.camera
+    c = session.main_view.camera
     if isinstance(c, SteamVRCamera):
         # Have to delay shutdown of SteamVR connection until draw callback
         # otherwise it clobbers the Qt OpenGL context making entire gui black.
         def replace_camera(s = session):
             from chimerax.core.graphics import MonoCamera
-            s.main_view.camera = MonoCamera()
+            v = s.main_view
+            v.camera = MonoCamera()
             s.ui.main_window.graphics_window.set_redraw_interval(10)
+            v.view_all()
         c.close(replace_camera)
-    
+        wait_for_vsync(session, True)
+
+# -----------------------------------------------------------------------------
+#
+def wait_for_vsync(session, mirror):
+    r = session.main_view.render
+    r.make_current()
+    if not r.wait_for_vsync(not mirror):
+        if mirror:
+            session.logger.warning('Mirror may cause VR stutter.'
+                                   '  Could not turn off wating for vsync on main display.')
 
 # -----------------------------------------------------------------------------
 #
@@ -156,7 +167,9 @@ class SteamVRCamera(Camera):
         self._controller_models = []	# List of HandControllerModel
         self.mirror_display = False	# Mirror right eye in ChimeraX window
         				# This causes stuttering in the Vive.
-        
+
+        self.room_position = None	# Camera position in room coordinates
+
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
 
@@ -282,9 +295,12 @@ class SteamVRCamera(Camera):
             # Camera moved by mouse or command.
             hs = self._last_h * S
             self.room_to_scene = C * hs.inverse()
-        Cnew = self.room_to_scene * H * S
+        self.room_position = rp = H * S
+        Cnew = self.room_to_scene * rp
         self.position = self._last_position = Cnew
         self._last_h = H
+
+        self._session.triggers.activate_trigger('vr update', self)
 
     @property
     def scene_scale(self):
@@ -362,9 +378,21 @@ class SteamVRCamera(Camera):
         if view_num == 0:
             render.push_framebuffer(fb)
         elif view_num == 1:
-            # Submit left eye texture (view 0) before rendering right eye (view 1)
-            import openvr
-            self.compositor.submit(openvr.Eye_Left, fb.openvr_texture)
+            if not self._close:
+                # Submit left eye texture (view 0) before rendering right eye (view 1)
+                import openvr
+                result = self.compositor.submit(openvr.Eye_Left, fb.openvr_texture)
+                self._check_for_compositor_error('left', result, render)
+
+    def _check_for_compositor_error(self, eye, result, render):
+        import openvr
+        if result != openvr.VRCompositorError_None:
+            self._session.logger.info('SteamVR compositor submit for %s eye returned error %d'
+                                      % (eye, result))
+        err_msg = render.check_for_opengl_errors()
+        if err_msg:
+            self._session.logger.info('SteamVR compositor submit for %s eye produced an OpenGL error "%s"'
+                                      % (eye, err_msg))
 
     def combine_rendered_camera_views(self, render):
         '''
@@ -372,8 +400,11 @@ class SteamVRCamera(Camera):
         by set_render_target() when render target switched to right eye.
         '''
         fb = render.pop_framebuffer()
-        import openvr
-        self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
+
+        if not self._close:
+            import openvr
+            result = self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
+            self._check_for_compositor_error('right', result, render)
 
         if self.mirror_display:
             # Render right eye to ChimeraX window.
@@ -445,6 +476,7 @@ from chimerax.core.models import Model
 class HandControllerModel(Model):
     casts_shadows = False
     _controller_colors = ((200,200,0,255), (0,200,200,255))
+    SESSION_SAVE = False
 
     def __init__(self, device_index, session, vr_system, show = True, size = 0.20, aspect = 0.2):
         name = 'Hand %s' % device_index
@@ -464,7 +496,9 @@ class HandControllerModel(Model):
         self._icon_rows = 0
         self._icon_shortcuts = []
         self._icons_shown = False
-        
+
+        self.room_position = None	# Hand controller position in room coordinates.
+
         from chimerax.core.surface.shapes import cone_geometry
         va, na, ta = cone_geometry(nc = 50, points_up = False)
         va[:,:2] *= aspect
@@ -500,9 +534,9 @@ class HandControllerModel(Model):
         '''Move hand controller model to new position.
         Keep size constant in physical room units.'''
         dp = camera._poses[self.device_index].mDeviceToAbsoluteTracking
-        self._pose = hmd34_to_position(dp)
+        self.room_position = self._pose = rp = hmd34_to_position(dp)
         if self._shown_in_scene:
-            self.position = camera.room_to_scene * self._pose
+            self.position = camera.room_to_scene * rp
 
     def tip_position(self):
         return self.scene_position.origin()
@@ -577,6 +611,7 @@ class HandControllerModel(Model):
             else:
                 move = previous_pose * pose.inverse()
                 camera.room_to_scene = camera.room_to_scene * move
+                self._update_position(camera)
         elif m == 'zoom' and self._zoom_center is not None:
             center = self._zoom_center
             move = previous_pose * pose.inverse()
@@ -587,6 +622,7 @@ class HandControllerModel(Model):
             from chimerax.core.geometry import distance, translation, scale
             scale = translation(center) * scale(s) * translation(-center)
             camera.room_to_scene = camera.room_to_scene * scale
+            self._update_position(camera)
         elif m == 'move atoms':
             move = pose * previous_pose.inverse()  # Room to room coords
             rts = camera.room_to_scene
@@ -605,6 +641,7 @@ class HandControllerModel(Model):
             s = max(min(s, 10.0), 0.1)	# Limit scaling
             scale = translation(center) * scale(s) * translation(-center)
             camera.room_to_scene = camera.room_to_scene * scale
+            self._update_position(camera)
 
     def icon_clicked(self):
         xy = self.touchpad_position()
