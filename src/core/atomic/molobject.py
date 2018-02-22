@@ -1541,13 +1541,6 @@ class StructureSeq(Sequence):
             name_part = ""
         return "%s (#%s)%s" % (self.structure.name, self.structure.id_string(), name_part)
 
-    @property
-    def has_protein(self):
-        for r in self.residues:
-            if r and Sequence.protein3to1(r.name) != 'X':
-                return True
-        return False
-
     def _get_numbering_start(self):
         if self._numbering_start == None:
             for i, r in enumerate(self.residues):
