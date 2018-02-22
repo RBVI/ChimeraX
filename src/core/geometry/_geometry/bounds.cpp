@@ -260,3 +260,115 @@ PyObject *points_within_planes(PyObject *, PyObject *args, PyObject *keywds)
   points_within_planes(points, planes, pmask);
   return pm;
 }
+
+// -----------------------------------------------------------------------------
+//
+static void points_bounding_box(const FArray &points, float *xyz_min, float *xyz_max)
+{
+  long n = points.size(0);
+  long ps0 = points.stride(0), ps1 = points.stride(1);
+  float *pa = points.values();
+  float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
+  for (long i = 0 ; i < n ; ++i, pa += ps0)
+    {
+      float x = pa[0], y = pa[ps1], z = pa[2*ps1];
+      if (i == 0)
+	{ xmin = xmax = x; ymin = ymax = y; zmin = zmax = z; }
+      else
+	{
+	  if (x < xmin) xmin = x;
+	  else if (x > xmax) xmax = x;
+	  if (y < ymin) ymin = y;
+	  else if (y > ymax) ymax = y;
+	  if (z < zmin) zmin = z;
+	  else if (z > zmax) zmax = z;
+	}
+    }
+  xyz_min[0] = xmin; xyz_min[1] = ymin; xyz_min[2] = zmin;
+  xyz_max[0] = xmax; xyz_max[1] = ymax; xyz_max[2] = zmax;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *point_bounds(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray points;
+  const char *kwlist[] = {"points", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &points))
+    return NULL;
+
+  float *xyz_bounds;
+  PyObject *bounds = python_float_array(2, 3, &xyz_bounds);
+  points_bounding_box(points, xyz_bounds, xyz_bounds+3);
+  return bounds;
+}
+
+// -----------------------------------------------------------------------------
+//
+static void point_copies_bounding_box(const FArray &points, const FArray &positions,
+				      float *xyz_min, float *xyz_max)
+{
+  long n = points.size(0), m = positions.size(0);
+  long ps0 = points.stride(0), ps1 = points.stride(1);
+  long pos0 = positions.stride(0), pos1 = positions.stride(1), pos2 = positions.stride(2);
+  float *pa0 = points.values(), *poa = positions.values();
+  float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
+  for (long j = 0 ; j < m ; ++j, poa += pos0)
+    {
+      long k0 = 0, k1 = pos2, k2 = 2*pos2, k3 = 3*pos2;
+      float *poa0 = poa, *poa1 = poa + pos1, *poa2 = poa + 2*pos1;
+      float p00 = poa0[k0], p01 = poa0[k1], p02 = poa0[k2], p03 = poa0[k3];
+      float p10 = poa1[k0], p11 = poa1[k1], p12 = poa1[k2], p13 = poa1[k3];
+      float p20 = poa2[k0], p21 = poa2[k1], p22 = poa2[k2], p23 = poa2[k3];
+      float *pa = pa0;
+      for (long i = 0 ; i < n ; ++i, pa += ps0)
+	{
+	  float x0 = pa[0], y0 = pa[ps1], z0 = pa[2*ps1];
+	  float x = p00*x0 + p01*y0 + p02*z0 + p03;
+	  float y = p10*x0 + p11*y0 + p12*z0 + p13;
+	  float z = p20*x0 + p21*y0 + p22*z0 + p23;
+	  if (j == 0 && i == 0)
+	    { xmin = xmax = x; ymin = ymax = y; zmin = zmax = z; }
+	  else
+	    {
+	      if (x < xmin) xmin = x;
+	      else if (x > xmax) xmax = x;
+	      if (y < ymin) ymin = y;
+	      else if (y > ymax) ymax = y;
+	      if (z < zmin) zmin = z;
+	      else if (z > zmax) zmax = z;
+	    }
+	}
+    }
+  xyz_min[0] = xmin; xyz_min[1] = ymin; xyz_min[2] = zmin;
+  xyz_max[0] = xmax; xyz_max[1] = ymax; xyz_max[2] = zmax;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *point_copies_bounds(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray points, positions;
+  const char *kwlist[] = {"points", "positions", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &points,
+				   parse_float_array, &positions))
+    return NULL;
+
+  if (positions.dimension() != 3)
+    return PyErr_Format(PyExc_ValueError, "Positions array is not 3 dimensional, got %d",
+			positions.dimension());
+  if (positions.size(1) != 3 || positions.size(2) != 4)
+    return PyErr_Format(PyExc_ValueError, "Positions array is not of size Nx3x4, got %ld by %ld by %ld",
+			positions.size(0), positions.size(1), positions.size(2));
+
+  float *xyz_bounds;
+  PyObject *bounds = python_float_array(2, 3, &xyz_bounds);
+  point_copies_bounding_box(points, positions, xyz_bounds, xyz_bounds+3);
+  return bounds;
+}

@@ -764,7 +764,8 @@ ExtractMolecule::finished_parse()
         chain_mapping.emplace_back(i.first);
         chain_mapping.emplace_back(i.second);
     }
-    generic_tables["chain_entity_map"] = chain_mapping;
+    generic_tables["struct_asym"] = { "id", "entity_id" };
+    generic_tables["struct_asym data"] = chain_mapping;
 
     // multiple molecules means there were multiple models,
     // so copy per-model information

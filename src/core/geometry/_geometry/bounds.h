@@ -23,6 +23,12 @@
 
 extern "C"
 {
+// Return value bounds is a 2 by 3 float32 numpy array xyz_min and xyz_max vectors.
+  
+// point_bounds(points) -> bounds
+PyObject *point_bounds(PyObject *, PyObject *args, PyObject *keywds);
+// point_copies_bounds(points, positions) -> bounds.  Positions is N by 3 by 4 float32 array.
+PyObject *point_copies_bounds(PyObject *, PyObject *args, PyObject *keywds);
 // sphere_xyz_bounds(centers, radii) -> bounds
 PyObject *sphere_bounds(PyObject *, PyObject *args, PyObject *keywds);
 // axes_sphere_bounds(centers, radii, axes) -> axes_bounds

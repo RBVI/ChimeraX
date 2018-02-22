@@ -61,34 +61,23 @@ class Bounds:
         return c
 
 
-def point_bounds(xyz, placements=[]):
+def point_bounds(xyz, placements=None):
     '''
     Return :py:class:`.Bounds` for a set of points, optionally
-    multiple positions given by a :py:class:`.Place` list.
+    multiple positions given by a :py:class:`.Places` instance.
     '''
     if len(xyz) == 0:
         return None
 
-    from numpy import array, ndarray
-    axyz = xyz if isinstance(xyz, ndarray) else array(xyz)
-
     if placements:
-        from numpy import empty, float32
-        n = len(placements)
-        xyz0 = empty((n, 3), float32)
-        xyz1 = empty((n, 3), float32)
-        txyz = empty(axyz.shape, float32)
-        for i, tf in enumerate(placements):
-            txyz[:] = axyz
-            tf.move(txyz)
-            xyz0[i, :], xyz1[i, :] = txyz.min(axis=0), txyz.max(axis=0)
-        xyz_min, xyz_max = xyz0.min(axis=0), xyz1.max(axis=0)
+        from ._geometry import point_copies_bounds
+        xyz_min, xyz_max = point_copies_bounds(xyz, placements.array())
     else:
-        xyz_min, xyz_max = axyz.min(axis=0), axyz.max(axis=0)
+        from ._geometry import point_bounds
+        xyz_min, xyz_max = point_bounds(xyz)
 
     b = Bounds(xyz_min, xyz_max)
     return b
-
 
 def union_bounds(blist):
     '''
@@ -127,8 +116,7 @@ def copies_bounding_box(bounds, positions):
         b = Bounds((xyz + outer(s, bounds.xyz_min)).min(axis=0),
                    (xyz + outer(s, bounds.xyz_max)).max(axis=0))
     else:
-        # TODO: Optimize instance matrix copies such as bond cylinders using C++.
-        b = union_bounds(point_bounds(p * bounds.box_corners()) for p in positions)
+        b = point_bounds(bounds.box_corners(), positions)
     return b
 
 def copy_tree_bounds(bounds, positions_list):
