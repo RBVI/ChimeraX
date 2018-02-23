@@ -202,6 +202,7 @@ class MarkerMouseMode(MouseMode):
 
     def mouse_up(self, event):
         self._moving_marker = None
+        self._resizing_marker_or_link = None
         
 # -----------------------------------------------------------------------------
 #
