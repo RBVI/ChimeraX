@@ -32,7 +32,7 @@ endif
 PATCHES = $(wildcard PyOpenGL-$(VERSION)-*.patch) \
 	$(wildcard PyOpenGL-$(VERSION)_$(OS).patch) \
 	$(wildcard PyOpenGL-$(VERSION)_$(OS)_$(OPENGL_PLATFORM).patch) \
-	PyOpenGL-wgl.patch
+	PyOpenGL-wgl.patch PyOpenGL-glbuffersubdata.patch
 
 all:
 
@@ -40,11 +40,13 @@ ifdef WIN32
 
 install:
 	$(PIP_INSTALL) $(WHEEL) | grep "not upgraded" || \
-		(cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch
+		((cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch && \
+		 (cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-glbuffersubdata.patch)
 
 app-install:
 	$(APP_PIP_INSTALL) $(WHEEL) | grep "not upgraded" || \
-		(cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch
+		((cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch && \
+		 (cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-glbuffersubdata.patch)
 
 else
 

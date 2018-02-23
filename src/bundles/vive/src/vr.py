@@ -146,8 +146,8 @@ def wait_for_vsync(session, mirror):
     r.make_current()
     if not r.wait_for_vsync(not mirror):
         if mirror:
-            session.log.warning('Mirror may cause VR stutter.'
-                                '  Could not turn off wating for vsync on main display.')
+            session.logger.warning('Mirror may cause VR stutter.'
+                                   '  Could not turn off wating for vsync on main display.')
 
 # -----------------------------------------------------------------------------
 #

@@ -633,7 +633,6 @@ class Atoms(Collection):
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
-        from numpy import unique
         return unique_ordered(self.chain_ids)
     @property
     def unique_structures(self):
@@ -1134,9 +1133,13 @@ class Residues(Collection):
         return self.structures.unique()
 
     @property
+    def unique_names(self):
+        '''The unique names as a numpy array of strings.'''
+        return unique_ordered(self.names)
+
+    @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
-        from numpy import unique
         return unique_ordered(self.chain_ids)
 
     @property

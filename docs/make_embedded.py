@@ -137,7 +137,7 @@ def print_pkgs(out):
     print('.', file=out)
     print('<dl>', file=out)
     for info, id in zip(infos, ids):
-        print('<dt><a href="%s" id="%s">%s</a> version %s' % (
+        print('<dt><a href="%s" id="%s" target="_blank">%s</a> version %s' % (
             escape(info['homepage']),
             id,
             escape(info['name']),

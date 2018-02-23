@@ -21,7 +21,8 @@ ifndef WIN32
 	cd $(SOURCE) && $(CONFIG_ENV) ./configure $(CONFIG_OPTS) && $(MAKE) install
 endif
 ifeq ($(OS),Linux)
-	cd $(bindir); for i in *h5*; do \
+	cd $(libdir) && chrpath -d libhdf5*.so
+	cd $(bindir) && for i in *h5*; do \
 		chrpath -r '$$ORIGIN/../lib' $$i; \
 	done
 endif

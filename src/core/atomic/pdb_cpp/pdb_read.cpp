@@ -22,6 +22,7 @@ namespace pdb {
 
 PDB::PDB(const char *buf)
 {
+    set_standard_locale();
     parse_line(buf);
 }
 

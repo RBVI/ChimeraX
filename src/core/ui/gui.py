@@ -657,7 +657,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _make_settings_ui(self, session):
         from .core_settings_ui import CoreSettingsPanel
         from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
-        self.settings_ui_widget = dw = QDockWidget("ChimeraX settings", self)
+        self.settings_ui_widget = dw = QDockWidget("ChimeraX Settings", self)
         dw.closeEvent = lambda e, dw=dw: dw.hide()
         container = QWidget()
         CoreSettingsPanel(session, container)

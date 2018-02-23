@@ -538,13 +538,22 @@ class Places:
             place = places_or_vector
             return Places([p*place for p in self])
         else:
-            v = places_or_vector
-            a = self.array()
             from numpy import array, float32, dot, empty
+            a = self.array()
             if len(a) == 0:
                 return empty((0,3),float32)
-            v4 = array((v[0], v[1], v[2], 1.0), float32)
-            return dot(a, v4)
+            v = places_or_vector
+            if v.ndim == 1:
+                v4 = array((v[0], v[1], v[2], 1.0), float32)
+                pv = dot(a, v4)
+            elif v.ndim == 2:
+                pv2 = dot(v, a[:,:,:3].transpose(0,2,1))
+                pv2 += a[:,:,3]
+                pv = pv2.reshape((len(a)*len(v), 3))
+            else:
+                raise ValueError('Multiplication of Places times array shape %s not supported'
+                                 % ','.join('%d' % s for s in v.shape))
+            return pv
 
     def is_identity(self):
         return len(self) == 1 and self[0].is_identity()
