@@ -126,13 +126,13 @@ def _patch_vertices(threshold, vertex_values, triangles):
 
 def register_command(session):
     from . import CmdDesc, register, SurfacesArg, ColormapArg, ColormapRangeArg
-    from . import IntArg, StringArg, FloatArg
+    from . import IntArg, SaveFileNameArg, FloatArg
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
         keyword = [('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('smoothing_iterations', IntArg),
-                   ('write_surface_data', StringArg),
+                   ('write_surface_data', SaveFileNameArg),
                    ('patches', FloatArg)],
         synopsis = 'compute surface covexity')
     register('measure convexity', desc, measure_convexity, logger=session.logger)
