@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def measure_convexity(session, surfaces, palette = None, range = None, smoothing_iterations = 5):
+def measure_convexity(session, surfaces, palette = None, range = None, smoothing_iterations = 5,
+                      write_surface_data = None):
     '''
     Compute the convexity at each surface vertex defined as 2*pi minus the cone-angle
     spanned by the triangles incident at the vertex.  The surface vertices are colored
@@ -34,6 +35,15 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
     smoothing_iterations : int
       Convexity values are averaged with neighbor vertices connected by an edge.
       This value specifies how many rounds of smoothing to perform.  Default 5.
+    write_surface_data : string
+      File path to write a text file containing surface data.  One line for each
+      surface vertex gives vertex number (starting at 0), xyz position, normal
+      vector, and (smoothed) convexity value. Vertex lines are followed by surface
+      triangle data, one line per triangle giving triangle number and 3 vertex
+      numbers for the triangle corners.  The vertex data and triangle data begin
+      with comment lines starting with the "#" character.  If multiple surfaces
+      are specified the vertex/triangle data sections for each surface are appended
+      to the file.
     '''
     if palette is None:
         from .. import colors
@@ -43,6 +53,7 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
     if range is not None and range != 'full':
         rmin, rmax = range
         palette = palette.rescale_range(rmin, rmax)
+    sd_file = None if write_surface_data is None else open(write_surface_data, 'w')
     surf_drawings = []
     for s in surfaces:
         if hasattr(s, 'surface_drawings_for_vertex_coloring'):
@@ -56,19 +67,46 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
         cmap = palette.rescale_range(c.min(), c.max()) if range == 'full' else palette
         vc = cmap.interpolated_rgba8(c)
         s.vertex_colors = vc
+        if sd_file:
+            sd_file.write(_surface_data(s, c))
         msg = ('Convexity %.3g - %.3g, mean %.3g, std deviation %.3g at %d vertices of %s'
                % (c.min(), c.max(), c.mean(), c.std(), len(va), s.name))
         from ..models import Model
         if isinstance(s, Model):
             msg += ' ' + s.id_string()
         session.logger.status(msg, log = True)
+    if sd_file:
+        sd_file.close()
             
+def _surface_data(surf, vertex_values):
+    surf_name = surf.name
+    from ..models import Model
+    if not isinstance(surf, Model) and hasattr(surf, 'parent'):
+        surf_name = surf.parent.name + ' ' + surf.name
+    vertices, normals, triangles = surf.vertices, surf.normals, surf.triangles
+    lines = ['# Surface vertex data for %s, %d vertices, %d triangles'
+             % (surf_name, len(vertices), len(triangles))]
+    lines.append('# vnum x y z nx ny nz c')
+    for i, (v, n, c) in enumerate(zip(vertices, normals, vertex_values)):
+        x,y,z = v
+        nx,ny,nz = n
+        lines.append('%d %.6g %.6g %.6g %.6g %.6g %.6g %.6g' % (i, x, y, z, nx, ny, nz, c))
+    lines.append('# Surface triangle data for %s, %d vertices, %d triangles'
+                 % (surf_name, len(vertices), len(triangles)))
+    lines.append('# tnum v1 v2 v3')
+    for i, t in enumerate(triangles):
+        v1,v2,v3 = t
+        lines.append('%d %d %d %d' % (i, v1, v2, v3))
+    sdata = '\n'.join(lines)
+    return sdata
+
 def register_command(session):
-    from . import CmdDesc, register, SurfacesArg, ColormapArg, ColormapRangeArg, IntArg
+    from . import CmdDesc, register, SurfacesArg, ColormapArg, ColormapRangeArg, IntArg, StringArg
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
         keyword = [('palette', ColormapArg),
                    ('range', ColormapRangeArg),
-                   ('smoothing_iterations', IntArg),],
+                   ('smoothing_iterations', IntArg),
+                   ('write_surface_data', StringArg)],
         synopsis = 'compute surface covexity')
     register('measure convexity', desc, measure_convexity, logger=session.logger)
