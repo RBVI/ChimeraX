@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def measure_convexity(session, surfaces, palette = None, range = None, smoothing_iterations = 5,
-                      write_surface_data = None):
+                      write_surface_data = None, patches = None):
     '''
     Compute the convexity at each surface vertex defined as 2*pi minus the cone-angle
     spanned by the triangles incident at the vertex.  The surface vertices are colored
@@ -44,6 +44,9 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
       with comment lines starting with the "#" character.  If multiple surfaces
       are specified the vertex/triangle data sections for each surface are appended
       to the file.
+    patches : float
+      Instead of coloring by convexity value, color each connected patch with convexity
+      above the specified value a unique color.
     '''
     if palette is None:
         from .. import colors
@@ -64,8 +67,17 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
         va,ta = s.vertices, s.triangles
         from ..surface import vertex_convexity
         c = vertex_convexity(va, ta, smoothing_iterations)
-        cmap = palette.rescale_range(c.min(), c.max()) if range == 'full' else palette
-        vc = cmap.interpolated_rgba8(c)
+        s.convexity = c
+        if patches is None:
+            cmap = palette.rescale_range(c.min(), c.max()) if range == 'full' else palette
+            vc = cmap.interpolated_rgba8(c)
+        else:
+            vc = s.get_vertex_colors(create = True)
+            pv = _patch_vertices(patches, c, ta)
+            from ..colors import random_colors
+            rc = random_colors(len(pv))
+            for i,v in enumerate(pv):
+                vc[v] = rc[i]
         s.vertex_colors = vc
         if sd_file:
             sd_file.write(_surface_data(s, c))
@@ -100,13 +112,27 @@ def _surface_data(surf, vertex_values):
     sdata = '\n'.join(lines)
     return sdata
 
+def _patch_vertices(threshold, vertex_values, triangles):
+    '''
+    Find connected surface patches with vertex values above a specified threshold.
+    Return list of vertex index arrays, one array for each connected patch.
+    '''
+    vset = set((vertex_values >= threshold).nonzero()[0])
+    tabove = [v1 in vset and v2 in vset and v3 in vset for v1,v2,v3 in triangles]
+    ta = triangles[tabove]
+    from ..surface import connected_pieces
+    vpatch = [v for v,t in connected_pieces(ta)]
+    return vpatch
+
 def register_command(session):
-    from . import CmdDesc, register, SurfacesArg, ColormapArg, ColormapRangeArg, IntArg, StringArg
+    from . import CmdDesc, register, SurfacesArg, ColormapArg, ColormapRangeArg
+    from . import IntArg, StringArg, FloatArg
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
         keyword = [('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('smoothing_iterations', IntArg),
-                   ('write_surface_data', StringArg)],
+                   ('write_surface_data', StringArg),
+                   ('patches', FloatArg)],
         synopsis = 'compute surface covexity')
     register('measure convexity', desc, measure_convexity, logger=session.logger)
