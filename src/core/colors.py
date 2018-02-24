@@ -685,6 +685,12 @@ BuiltinColors = SortedDict({
 BuiltinColors['transparent'] = (0, 0, 0, 0)
 
 
+def random_colors(n, opacity=255):
+    from numpy import random, uint8
+    c = random.randint(0, 255, (n,4), dtype = uint8)
+    c[:,3] = opacity
+    return c
+
 def most_common_color(colors):
     from numpy import ndarray, array, uint8, int32, argmax, unique
     if not isinstance(colors, ndarray):
