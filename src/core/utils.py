@@ -36,6 +36,8 @@ def flattened(input, *, return_types=(list, tuple, set), return_type=None, maxsi
     """
     if return_type is None:
         return_type = type(input)
+        if return_type not in return_types:
+            return_type = list  # eg., not zip
     output = list(input)
     try:
         # for every possible index

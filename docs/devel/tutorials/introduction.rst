@@ -81,7 +81,7 @@ Additional files, such as license text, icons,
 images, etc., may also be included.
 The source code must be turned into a bundle before
 it is ready for installation into ChimeraX.
-The _`Source Code Organization` section
+The `Source Code Organization`_ section
 goes into detail on the recommended file
 structure for ChimeraX bundle source code.
 
