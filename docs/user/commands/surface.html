@@ -67,6 +67,15 @@ See also:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/surfhide.png"></a>
 </p>
+
+<table class="clRight">
+<tr><td><a href="surface-diagram.png">
+<img src="surface-diagram.png" width="400px" style="border:1px solid gray"
+alt="SES-SAS diagram" title="click to enlarge..."></a></td></tr>
+<tr><td align="right">
+<font size="-1">Image courtesy of Sebastian Daberdaku&nbsp;</font>
+</td></tr></table>
+
 <a name="surfdefs"></a>
 <ul>
 <li>A <b><i>solvent-excluded surface</i></b> is
@@ -79,13 +88,15 @@ is tied to that of the corresponding atoms.
 An SES can also be specified by its own model number to enable/disable display
 as a whole without changing the display of its atomic patches
 (see <a href="../hierarchy.html">hierarchy</a>). 
-<li>A <b><i>solvent-accessible surface</i></b> (not shown by ChimeraX)
+<li>A <b><i>solvent-accessible surface</i></b> 
 is the surface traced out by the center of the probe sphere
 rolled over the atomic <a href="../radii.html">VDW spheres</a>.
-<li>A <b><i>Gaussian surface</i></b>
-is indicated with the <a href="#parameters"><b>resolution</b></a> option
-and will not retain atomic associations 
-unless <a href="#sharpBoundaries">sharp boundaries</a> are used.
+This type of surface is not shown by ChimeraX.
+<li>A <b><i>Gaussian surface</i></b> (GS) is an isosurface of
+pseudo-density in which atoms are represented by Gaussian distributions.
+This type of surface is indicated with the 
+<a href="#parameters"><b>resolution</b></a> option and will not retain atomic 
+associations unless <a href="#sharpBoundaries">sharp boundaries</a> are specified.
 A surface without atomic associations can only be controlled as a whole,
 by specifying its own model number or the atoms used in its calculation.
 <!-- can get GS patches by replacing SES with GS since sharp stays true -->
