@@ -134,5 +134,5 @@ def register_command(session):
                    ('smoothing_iterations', IntArg),
                    ('write_surface_data', SaveFileNameArg),
                    ('patches', FloatArg)],
-        synopsis = 'compute surface covexity')
+        synopsis = 'compute surface convexity')
     register('measure convexity', desc, measure_convexity, logger=session.logger)
