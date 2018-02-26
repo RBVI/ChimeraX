@@ -170,9 +170,12 @@ Python values.  It contains a list of 2-tuples for required arguments
 and another for optional arguments.  The first element of the 2-tuple
 is a string that matches one of the command function parameter names.
 The second element is a "type class".  ChimeraX provides a variety
-of built-in type classes such as ``BoolArg`` (Boolean), ``IntArg``
-(integer), ``AtomsArg`` (container of atoms), and ``AtomspecArg``
-(atom specifier).  See :py:class:`chimerax.core.commands` for the full
+of built-in type classes such as
+:py:class:`~chimerax.core.commands.BoolArg` (Boolean),
+:py:class:`~chimerax.core.commands.IntArg` (integer),
+:py:class:`~chimerax.core.commands.AtomsArg` (container of atoms),
+and :py:class:`~chimerax.core.commands.AtomSpecArg` (atom specifier).
+See :py:mod:`chimerax.core.commands` for the full
 list.  The order of the required parameters list (in the command
 description) must match the expected order for required arguments
 (in the input text).

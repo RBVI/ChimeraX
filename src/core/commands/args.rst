@@ -10,37 +10,18 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-Command Argument Types
-**********************
+chimerax.core.commmands Module
+******************************
 
-The *chimerax.core.commands* module defines argument types such as FloatArg, StringArg, AtomsArg,
-ModelArg, ColorArg, PlaceArg, ... which are Python classes used for parsing typed command arguments.
+The *chimerax.core.commands* module defines the registration function
+for new commands as well as argument types such as ``FloatArg`` and 
+``AtomsArg`` which are Python classes used for parsing typed
+command arguments.  These functions and classes are actually imported
+from a submodule, but the supported API only includes the items
+defined in the main *chimerax.core.commands* module.
 
-| :class:`.AtomicStructuresArg` - Atomic structures
-| :class:`.AtomsArg` - Atoms
-| :class:`.AtomSpecArg` - Atom specifier
-| :class:`.AxisArg` - Axis vector
-| :class:`.BoolArg` - True/false values
-| :class:`.CenterArg` - Point
-| :class:`.ColorArg` - Color
-| :class:`.ColormapArg` - Color maps
-| :class:`.EmptyArg` - Allows missing argument
-| :class:`.IntArg` - Integer
-| :class:`.ModelArg` - Single model
-| :class:`.ModelPlacesArg` - Models and positions
-| :class:`.ModelsArg` - Any number of models
-| :class:`.NoArg` - Keyword with no value
-| :class:`.ObjectsArg` - Models or atoms
-| :class:`.PlaceArg` - Orientation and position
-| :class:`.PseudobondGroupsArg` - Pseudobond groups
-| :class:`.StringArg` - Axis vector
-| :class:`.TopModelsArg` - Top level models in tree
+.. py:module:: chimerax.core.commands
 
-Color arguments
-===============
-.. autoclass:: chimerax.core.commands.colorarg.ColorArg
-.. autoclass:: chimerax.core.commands.colorarg.ColormapArg
-
-Model positions
-===============
-.. autoclass:: chimerax.core.commands.view.ModelPlacesArg
+.. automodule:: chimerax.core.commands
+    :show-inheritance:
+    :members: register, AtomicStructuresArg, AtomsArg, AtomSpecArg, AxisArg, BoolArg, CenterArg, ColorArg, ColormapArg, EmptyArg, IntArg, ModelArg, ModelPlacesArg, ModelsArg, NoArg, ObjectsArg, PlaceArg, PseudobondGroupsArg, StringArg, TopModelsArg, ColorArg, ColormapArg, ModelPlacesArg

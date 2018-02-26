@@ -41,7 +41,7 @@ Source Code Organization
 
 The source code for this example may be downloaded
 as a `zip-format file
-<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial?name=hello_world>`_
+<http://www.rbvi.ucsf.edu/chimerax/cgi-bin/bundle_tutorial.zip?name=hello_world>`_
 containing a folder named `hello_world`.
 Alternatively, one can start with an empty folder
 and create source files based on the samples below.

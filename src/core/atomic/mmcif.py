@@ -531,7 +531,7 @@ class MMCIFTable:
         else:
             print('loop_', file=file)
             for t in self._tags:
-                print('_%s.%s' % (self.table_name, t))
+                print('_%s.%s' % (self.table_name, t), file=file)
             n = len(self._tags)
             for i in range(0, len(self._data), n):
                 print(' '.join(quote(x) for x in self._data[i:i + n]), file=file)
