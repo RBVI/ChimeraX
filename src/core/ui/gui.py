@@ -134,6 +134,16 @@ class UI(QApplication):
     def close_splash(self):
         pass
 
+    def window_image(self):
+        screen = self.primaryScreen()
+        w = self.main_window
+        w_id = w.winId()
+#        g = w.geometry()  # Works on Mac, wrong origin on Windows
+        g = w.rect()
+        pixmap = screen.grabWindow(w_id, g.x(), g.y(), g.width(), g.height())
+        im = pixmap.toImage()
+        return im
+
     def build(self):
         self.main_window = mw = MainWindow(self, self.session)
         # key event forwarding from the main window itself seems to have
