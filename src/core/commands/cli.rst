@@ -13,5 +13,5 @@
     === UCSF ChimeraX Copyright ===
 
 .. automodule:: chimerax.core.commands.cli
-    :members:
     :show-inheritance:
+    :members:
