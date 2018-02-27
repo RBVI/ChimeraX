@@ -538,6 +538,9 @@ class UserInterface:
         px, py = sx * (x + hw) / (2*hw), sy * (hh - y) / (2*hh)
         self._post_mouse_event(pressed, px, py)
 
+        # TODO: Delay ui update until user interface echoes command.
+        self._update_ui_image(ui)
+
     def _post_mouse_event(self, pressed, window_x, window_y):
         ui = self._session.ui
         w = ui.main_window
@@ -560,10 +563,10 @@ class UserInterface:
         ses.models.add([m])
         return m
 
-    def _update_ui_image(self, model):	# width in meters
-        from chimerax.core.graphics.drawing import rgba_drawing, qimage_to_numpy
+    def _update_ui_image(self, model):
         ses = self._session
         im = ses.ui.window_image()
+        from chimerax.core.graphics.drawing import rgba_drawing, qimage_to_numpy
         rgba = qimage_to_numpy(im)
         h,w = rgba.shape[:2]
         self._window_size = (w, h)
@@ -619,6 +622,7 @@ class HandControllerModel(Model):
         self._pose = None
         self._previous_pose = None
         self._zoom_center = None
+        self._app_button_down = False
         self._icon_drawing = None
         self._icon_highlight_drawing = None
         self._icon_size = 128  # pixels
@@ -716,6 +720,7 @@ class HandControllerModel(Model):
                     camera.user_interface.click(pressed, self.room_position.origin())
             elif b == openvr.k_EButton_ApplicationMenu:
                 camera.user_interface.display_ui(pressed, self.room_position)
+                self._app_button_down = pressed
             elif b == openvr.k_EButton_Grip:
                 if pressed:
                     camera.fit_scene_to_room()
@@ -728,7 +733,8 @@ class HandControllerModel(Model):
         previous_pose = self._pose
         self._update_position(camera)
 
-        camera.user_interface.move_ui(self.room_position)
+        if self._app_button_down:
+            camera.user_interface.move_ui(self.room_position)
 
         if not self._trigger_held:
             return
