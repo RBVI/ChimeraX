@@ -18,7 +18,7 @@ core_settings_ui: GUI to control core settings
 TODO
 """
 
-from ..core_settings import settings as core_settings
+from chimerax.core.core_settings import settings as core_settings
 from .options import SymbolicEnumOption, ColorOption, BooleanOption
 from .widgets import hex_color_name
 
@@ -140,14 +140,14 @@ class CoreSettingsPanel:
             val = opt.value
             if converter:
                 val = converter(val)
-            from ..commands import run
+            from chimerax.core.commands import run
             run(self.session, updater % val)
         else:
             updater(self.session, opt.value)
 
     """
     def _reset(self):
-        from ..configfile import Value
+        from chimerax.core.configfile import Value
         all_categories = self.all_check.isChecked()
         if not all_categories:
             cur_cat = self.options_widget.tabText(self.options_widget.currentIndex())

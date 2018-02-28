@@ -487,7 +487,7 @@ def mouse_drag_select(start_xy, event, mode, session, view):
 
 def select_pick(session, pick, mode = 'replace'):
     sel = session.selection
-    from ..undo import UndoState
+    from chimerax.core.undo import UndoState
     undo_state = UndoState("select")
     sel.undo_add_selected(undo_state, False)
     if pick is None:
@@ -613,7 +613,7 @@ def any_parent_selected(m):
 
 def child_drawing_selected(m):
     # Check if a child is a Drawing and not a Model and is selected.
-    from ..models import Model
+    from chimerax.core.models import Model
     for d in m.child_drawings():
         if not isinstance(d, Model) and d.any_part_selected():
             return True
@@ -765,9 +765,9 @@ class LabelMode(MouseMode):
         pick = picked_object(x, y, ses.main_view)
         if pick is None:
             return
-        from ..objects import Objects
+        from chimerax.core.objects import Objects
         objects = Objects()
-        from .. import atomic
+        from chimerax.core import atomic
         if isinstance(pick, atomic.PickedAtom):
             objects.add_atoms(atomic.Atoms([pick.atom]))
             object_type = 'atoms'
@@ -837,7 +837,7 @@ class ClipMouseMode(MouseMode):
         # Check if slab thickness becomes less than zero.
         dt = -d*(front_shift+back_shift)
         if pf and pb and dt < 0:
-            from ..geometry import inner_product
+            from chimerax.core.geometry import inner_product
             sep = inner_product(pb.plane_point - pf.plane_point, pf.normal)
             if sep + dt <= 0:
                 # Would make slab thickness less than zero.
@@ -855,7 +855,7 @@ class ClipMouseMode(MouseMode):
                           else ('near','far'))
         
         pf, pb = p.find_plane(pfname), p.find_plane(pbname)
-        from ..commands.clip import adjust_plane
+        from chimerax.core.commands.clip import adjust_plane
         c = v.camera
         cfn, cbn = ((0,0,-1), (0,0,1)) if pfname == 'near' else (None, None)
 
@@ -923,7 +923,7 @@ class ClipRotateMouseMode(MouseMode):
     def clip_rotate(self, axis, angle):
         v = self.view
         scene_axis = v.camera.position.apply_without_translation(axis)
-        from ..geometry import rotation
+        from chimerax.core.geometry import rotation
         r = rotation(scene_axis, angle, v.center_of_rotation)
         for p in self._planes():
             p.normal = r.apply_without_translation(p.normal)
@@ -934,7 +934,7 @@ class ClipRotateMouseMode(MouseMode):
         cp = v.clip_planes
         rplanes = [p for p in cp.planes() if p.camera_normal is None]
         if len(rplanes) == 0:
-            from ..commands.clip import adjust_plane
+            from chimerax.core.commands.clip import adjust_plane
             pn, pf = cp.find_plane('near'), cp.find_plane('far')
             if pn is None and pf is None:
                 # Create clip plane since none are enabled.
@@ -954,7 +954,8 @@ class ClipRotateMouseMode(MouseMode):
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
     from chimerax import markers
-    from ..map import series, mouselevel, moveplanes
+    from chimerax.core.map import mouselevel, moveplanes
+    from chimerax.core.map.series import play
     mode_classes = [
         SelectMouseMode,
         SelectAddMouseMode,
@@ -975,7 +976,7 @@ def standard_mouse_mode_classes():
         moveplanes.PlanesMouseMode,
         markers.MarkerMouseMode,
         markers.ConnectMouseMode,
-        series.PlaySeriesMouseMode,
+        play.PlaySeriesMouseMode,
         NullMouseMode,
     ]
     return mode_classes

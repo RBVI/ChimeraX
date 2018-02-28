@@ -17,3 +17,15 @@ from .ui_cmd import register_ui_command
 from .htmltool import HtmlToolInstance
 from .font import shrink_font
 # Do not import anything from .gui so nogui mode works when UI toolkit can't be imported
+
+from chimerax.core.toolshed import BundleAPI
+
+class _UIBundleAPI(BundleAPI):
+
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command is lazily called when command is referenced
+        from .ui_cmd import register_ui_command
+        register_ui_command(logger)
+
+bundle_api = _UIBundleAPI()

@@ -1,13 +1,13 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from ..tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 class HtmlToolInstance(ToolInstance):
 
     def __init__(self, session, tool_name, size_hint=None):
         from PyQt5.QtWidgets import QGridLayout
-        from ..models import ADD_MODELS, REMOVE_MODELS
+        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         from .gui import MainToolWindow
         from .widgets import HtmlView
 

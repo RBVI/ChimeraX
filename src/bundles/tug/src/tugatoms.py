@@ -45,7 +45,7 @@
 #
 write_logs = False
 
-from chimerax.core.ui import MouseMode
+from chimerax.ui import MouseMode
 class TugAtomsMode(MouseMode):
     name = 'tug'
     icon_file = 'tug.png'

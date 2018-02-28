@@ -79,7 +79,7 @@ class ColorButton(QPushButton):
 def color_to_numpy_rgba8(color):
     if isinstance(color, QColor):
         return array([color.red(), color.green(), color.blue(), color.alpha()], dtype=uint8)
-    from ...colors import Color, BuiltinColors
+    from chimerax.core.colors import Color, BuiltinColors
     if isinstance(color, str):
         try:
             color = BuiltinColors[color]

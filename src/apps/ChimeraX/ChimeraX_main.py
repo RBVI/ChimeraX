@@ -414,10 +414,10 @@ def init(argv, event_loop=True):
 
     # initialize the user interface
     if opts.gui:
-        from chimerax.core.ui import gui
+        from chimerax.ui import gui
         ui_class = gui.UI
     else:
-        from chimerax.core.ui import nogui
+        from chimerax.core import nogui
         ui_class = nogui.UI
         if opts.color is not None:
             nogui._color_output = opts.color

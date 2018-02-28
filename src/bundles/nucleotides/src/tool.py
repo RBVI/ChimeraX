@@ -26,7 +26,7 @@ class NucleotidesTool(ToolInstance):
     def __init__(self, session, tool_name):
         # Standard template stuff for intializing tool
         super().__init__(session, tool_name)
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         self.tool_window.manage(placement="side")
         parent = self.tool_window.ui_area
@@ -34,7 +34,7 @@ class NucleotidesTool(ToolInstance):
         # Create an HTML viewer for our user interface.
         # We can include other Qt widgets if we want to.
         from PyQt5.QtWidgets import QGridLayout
-        from chimerax.core.ui.widgets import HtmlView
+        from chimerax.ui.widgets import HtmlView
         layout = QGridLayout()
         self.html_view = HtmlView(parent, size_hint=(575, 200))
         layout.addWidget(self.html_view, 0, 0)  # row 0, column 0

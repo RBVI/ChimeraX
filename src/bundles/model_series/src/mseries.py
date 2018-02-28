@@ -124,7 +124,7 @@ class ModelSequencePlayer:
 
 # ------------------------------------------------------------------------------
 #
-from chimerax.core.ui.widgets.slider import Slider
+from chimerax.ui.widgets.slider import Slider
 
 class ModelSequenceSlider(Slider):
 

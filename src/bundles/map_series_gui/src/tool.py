@@ -26,7 +26,7 @@ class MapSeriesSlider(ToolInstance):
         self._block_time_update = 0
         
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui.gui import MainToolWindow
         tw = MainToolWindow(self, close_destroys = False)
         self.tool_window = tw
         parent = tw.ui_area

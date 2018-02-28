@@ -82,13 +82,13 @@ class ToolshedUI(ToolInstance):
         # Standard template stuff
         ToolInstance.__init__(self, session, tool_name)
         self.display_name = "Toolshed"
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         self.tool_window.manage(placement=None)
         parent = self.tool_window.ui_area
 
         from PyQt5.QtWidgets import QGridLayout, QTabWidget
-        from chimerax.core.ui.widgets import HtmlView
+        from chimerax.ui.widgets import HtmlView
         layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.tab_widget = QTabWidget()
@@ -168,7 +168,7 @@ class ToolshedUI(ToolInstance):
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
-            from chimerax.core.ui.ask import ask
+            from chimerax.ui.ask import ask
             how = ask(self.session,
                       "Install %s for:" % filename,
                       ["all users", "just me", "cancel"],

@@ -23,7 +23,7 @@ class Fit_List:
         self.smooth_motion = True
         self.smooth_steps = 10
 
-        from ...ui.qt import QtWidgets
+        from chimerax.ui.qt import QtWidgets
         self.dock_widget = dw = QtWidgets.QDockWidget('Fit List', session.main_window)
 
         # Place list above row of buttons
@@ -33,7 +33,7 @@ class Fit_List:
         vb.setSpacing(0)                # Spacing between list and button row
         class ListBox(QtWidgets.QListWidget):
             def sizeHint(self):
-                from ...ui.qt import QtCore
+                from chimerax.ui.qt import QtCore
                 return QtCore.QSize(500,50)
         self.list_box = lb = ListBox(w)
 #        self.list_box = lb = QtWidgets.QListWidget(w)
@@ -63,13 +63,13 @@ class Fit_List:
         w.setLayout(vb)
         dw.setWidget(w)
 
-        from ...ui.qt import QtGui
+        from chimerax.ui.qt import QtGui
         lb.setFont(QtGui.QFont("Courier"))  # Fixed with font so columns line up
 
         self.refill_list()      # Set heading
 
     def show(self):
-        from ...ui.qt import QtCore
+        from chimerax.ui.qt import QtCore
         dw = self.dock_widget
         self.session.main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
         dw.setVisible(True)

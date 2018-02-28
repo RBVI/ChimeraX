@@ -11,15 +11,15 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.ui import HtmlToolInstance
+from chimerax.ui import HtmlToolInstance
 
 
 class TutorialGUI(HtmlToolInstance):
 
     # Inheriting from HtmlToolInstance gets us the following attributes
     # after initialization:
-    #   self.tool_window: instance of chimerax.core.ui.gui.MainToolWindow
-    #   self.html_view: instance of chimerax.core.ui.widgets.HtmlView
+    #   self.tool_window: instance of chimerax.ui.gui.MainToolWindow
+    #   self.html_view: instance of chimerax.ui.widgets.HtmlView
     # Defining methods in this subclass also trigger some automated callbacks:
     #   handle_scheme: called when custom-scheme link is visited
     #   update_models: called when models are opened or closed

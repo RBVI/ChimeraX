@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 # Mouse mode to place markers on surfaces
 #
-from chimerax.core.ui import MouseMode
+from chimerax.ui import MouseMode
 class MarkerMouseMode(MouseMode):
     name = 'place marker'
     icon_file = 'marker.png'
@@ -135,7 +135,7 @@ class MarkerMouseMode(MouseMode):
     
     def picked_marker_or_link(self, event, select = False):
         x,y = event.position()
-        from chimerax.core.ui.mousemodes import picked_object, select_pick
+        from chimerax.ui.mousemodes import picked_object, select_pick
         pick = picked_object(x, y, self.session.main_view)
         m = l = None
         from chimerax.core.atomic import PickedAtom, PickedBond

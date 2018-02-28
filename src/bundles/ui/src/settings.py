@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from ..settings import Settings
+from chimerax.core.settings import Settings
 
 class UI_Settings(Settings):
 

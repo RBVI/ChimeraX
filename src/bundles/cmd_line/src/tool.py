@@ -24,7 +24,7 @@ class CommandLine(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui.gui import MainToolWindow
 
         self._in_init = True
         self.tool_window = MainToolWindow(self, close_destroys=False)
@@ -235,7 +235,7 @@ class _HistoryDialog:
     def __init__(self, controller):
         # make dialog hidden initially
         self.controller = controller
-        from chimerax.core.ui.gui import ChildToolWindow
+        from chimerax.ui.gui import ChildToolWindow
 
         self.window = controller.tool_window.create_child_window(
             "Command History", close_destroys=False)
@@ -277,7 +277,7 @@ class _HistoryDialog:
 
     def button_clicked(self, label):
         if label == self.record_label:
-            from chimerax.core.ui.open_save import export_file_filter, SaveDialog
+            from chimerax.ui.open_save import export_file_filter, SaveDialog
             from chimerax.core.io import open_filename, format_from_name
             if self._record_dialog is None:
                 fmt = format_from_name("ChimeraX commands")

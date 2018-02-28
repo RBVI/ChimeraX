@@ -67,7 +67,7 @@ class Signals(MarkerSet):
 
 # -----------------------------------------------------------------------------------------
 #
-from chimerax.core.ui.widgets.slider import Slider
+from chimerax.ui.widgets.slider import Slider
 class TimeSlider(Slider):
 
     def __init__(self, session, signals, pause_frames = 1, movie_framerate = 25,

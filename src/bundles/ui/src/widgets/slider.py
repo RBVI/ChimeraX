@@ -37,7 +37,7 @@ class Slider(ToolInstance):
 
         self.display_name = title	# Text shown on panel title-bar
 
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui.gui import MainToolWindow
         tw = MainToolWindow(self)
         self.tool_window = tw
         parent = tw.ui_area

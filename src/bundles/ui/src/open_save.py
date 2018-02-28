@@ -82,7 +82,7 @@ def export_file_filter(category=None, format_name=None, all=False):
     """Return file name filter suitable for Export File dialog for Qt"""
 
     result = []
-    from .. import io
+    from chimerax.core import io
     for fmt in io.formats(open = (format_name is not None)):
         if format_name and fmt.name != format_name:
             continue
@@ -105,7 +105,7 @@ def open_file_filter(all=False):
     """Return file name filter suitable for Open File dialog for Qt"""
 
     combine = {}
-    from .. import io
+    from chimerax.core import io
     for fmt in io.formats(export=False):
         exts = combine.setdefault(fmt.category, [])
         exts.extend(fmt.extensions)

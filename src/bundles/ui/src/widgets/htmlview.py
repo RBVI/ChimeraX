@@ -305,7 +305,7 @@ class ChimeraXHtmlView(HtmlView):
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
-            from chimerax.core.ui.ask import ask
+            from chimerax.ui.ask import ask
             how = ask(self.session,
                       "Install %s for:" % filename,
                       ["just me", "all users", "cancel"],
