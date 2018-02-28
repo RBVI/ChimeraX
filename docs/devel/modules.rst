@@ -50,6 +50,8 @@ Python Modules
 
     core/atomic/molsurf.rst
 
+    core/objects.rst
+
     core/orderedset.rst
 
     core/atomic/mmcif.rst

@@ -4,6 +4,29 @@ from chimerax.core.tools import ToolInstance
 
 
 class HtmlToolInstance(ToolInstance):
+    """Class used to generate an HTML widget as the tool's main UI.
+
+    The :py:attr:`tool_window` instance attribute refers to the
+    :py:class:`~chimerax.core.ui.gui.MainToolWindow` instance
+    for the tool.
+
+    The :py:attr:`html_view` instance attribute refers to the
+    :py:class:`~chimerax.core.ui.widgets.HtmlView` instance
+    for managing HTML content and link actions.  To facilitate
+    customizing the HTML view, if the `HtmlToolInstance` class
+    has an attribute :py:attr:`CUSTOM_SCHEME` and a method
+    :py:meth:`handle_scheme`, then the `HtmlView` instance
+    will be configured to support the custom scheme.
+
+    Parameters
+    ----------
+    session : a :py:class:`~chimerax.core.session.Session` instance
+        The session in which the tool is created.
+    tool_name : a string
+        The name of the tool being created.
+    size_hint : a 2-tuple of integers, or ''None''
+        The suggested initial widget size in pixels.
+    """
 
     def __init__(self, session, tool_name, size_hint=None):
         from PyQt5.QtWidgets import QGridLayout

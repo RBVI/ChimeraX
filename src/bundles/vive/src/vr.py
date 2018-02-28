@@ -165,6 +165,7 @@ class SteamVRCamera(Camera):
         self._last_h = None
         self._close = False
         self._controller_models = []	# List of HandControllerModel
+        self.user_interface = UserInterface(self, session)
         self.mirror_display = False	# Mirror right eye in ChimeraX window
         				# This causes stuttering in the Vive.
 
@@ -241,6 +242,12 @@ class SteamVRCamera(Camera):
                               scale(scene_size/room_scene_size) *
                               translation(-array(room_center, float32)))
 
+    def move_scene(self, move):
+        self.room_to_scene = self.room_to_scene * move
+        ui = self.user_interface
+        if ui.shown():
+            ui.move()
+
     def close(self, close_cb = None):
         self._close = True
         self._close_cb = close_cb
@@ -256,6 +263,7 @@ class SteamVRCamera(Camera):
         for hc in self._controller_models:
             hc.close()
         self._controller_models = []
+        self.user_interface.close()
         import openvr
         openvr.shutdown()
         self.vr_system = None
@@ -471,7 +479,160 @@ class SteamVRCamera(Camera):
         cma =[hc for hc in cm if not hc.deleted]
         if len(cma) < len(cm):
             self._controller_models = cma
+
+class UserInterface:
+    '''
+    Panel in VR showing ChimeraX main window.
+    Buttons can be clicked with hand controllers.
+    '''
+    def __init__(self, camera, session):
+        self._camera = camera
+        self._session = session
+        self._width = 1		# Billboard width in room coords, meters.
+        self._height = None	# Height in room coords determined by window aspect and width.
+        self._window_size = None # Window size in pixels
+        self._click_range = 0.05 # Maximum distance of click from plane, room coords, meters.
+        self._ui_drawing = None
+        self._start_ui_move_time = None
+        self._last_ui_position = None
+        self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
+
+    def close(self):
+        ui = self._ui_drawing
+        if ui:
+            self._session.models.close([ui])
+            self._ui_drawing = None
+
+    def shown(self):
+        ui = self._ui_drawing
+        return ui is not None and ui.display
     
+    def show(self, room_position):
+        ui = self._ui_drawing
+        if ui is None:
+            self._ui_drawing = ui = self._create_ui_drawing()
+        self._update_ui_image(ui)
+        ui.room_position = room_position
+        ui.position = self._camera.room_to_scene * room_position
+        ui.display = True
+
+    def move(self, room_motion = None):
+        ui = self._ui_drawing
+        if ui and ui.display:
+            if room_motion:
+                ui.room_position = room_motion * ui.room_position
+            ui.position = self._camera.room_to_scene * ui.room_position            
+        
+    def hide(self):
+        ui = self._ui_drawing
+        if ui is not None:
+            ui.display = False
+            
+    def click(self, pressed, room_point):
+        if not self.shown():
+            return False
+        ui = self._ui_drawing
+        x,y,z = ui.room_position.inverse() * room_point
+        hw, hh = 0.5*self._width, 0.5*self._height
+        cr = self._click_range
+        if x < -hw or x > hw or y < -hh or y > hh or z < -cr or z > cr:
+            if pressed:
+                return False # click not on billboard
+        sx, sy = self._window_size
+        px, py = sx * (x + hw) / (2*hw), sy * (hh - y) / (2*hh)
+
+        if pressed:
+            mmode = self._clicked_mouse_mode(px, py)
+            if mmode:
+                return mmode
+        
+        if not self._post_mouse_event(pressed, px, py):
+            return False
+
+        # TODO: Delay ui update until user interface echoes command.
+        self._update_ui_image(ui)
+        return True
+
+    def _clicked_mouse_mode(self, window_x, window_y):
+        w, pos = self._clicked_widget(window_x, window_y)
+        from PyQt5.QtWidgets import QToolButton
+        if isinstance(w, QToolButton):
+            a = w.defaultAction()
+            if hasattr(a, 'mouse_mode'):
+                return a.mouse_mode
+        return None
+    
+    def _post_mouse_event(self, pressed, window_x, window_y):
+        w, pos = self._clicked_widget(window_x, window_y)
+        if w is None or pos is None:
+            return False
+        from PyQt5.QtGui import QMouseEvent
+        from PyQt5.QtCore import Qt, QEvent
+        type = QEvent.MouseButtonPress if pressed else QEvent.MouseButtonRelease
+        buttons = Qt.LeftButton if pressed else Qt.NoButton
+        me = QMouseEvent(type, pos, Qt.LeftButton, buttons, Qt.NoModifier)
+        self._session.ui.postEvent(w, me)
+        return True
+        
+    def _clicked_widget(self, window_x, window_y):
+        ui = self._session.ui
+        mw = ui.main_window
+        from PyQt5.QtCore import QPoint, QPointF
+        gp = mw.mapToGlobal(QPoint(int(window_x), int(window_y)))
+        # Mouse events sent to main window are not handled.  Need to send to widget under mouse.
+        w = ui.widgetAt(gp)
+        wpos = QPointF(w.mapFromGlobal(gp)) if w else None
+        return w, wpos
+
+    def _create_ui_drawing(self):
+        ses = self._session
+        from chimerax.core.models import Model
+        m = Model('vr user interface', ses)
+        ses.models.add([m])
+        return m
+
+    def _update_ui_image(self, model):
+        ses = self._session
+        im = ses.ui.window_image()
+        from chimerax.core.graphics.drawing import rgba_drawing, qimage_to_numpy
+        rgba = qimage_to_numpy(im)
+        h,w = rgba.shape[:2]
+        self._window_size = (w, h)
+        aspect = h/w
+        rw = self._width		# Billboard width in room coordinates
+        self._height = rh = aspect * rw
+        ses.main_view.render.make_current()	# Required OpenGL context for replacing texture.
+        rgba_drawing(model, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
+
+    def display_ui(self, button_pressed, hand_room_position):
+        if button_pressed:
+            rp = hand_room_position
+            self._last_ui_position = rp
+            if self.shown():
+                from time import time
+                self._start_ui_move_time = time()
+            else:
+                # Orient horizontally and perpendicular to floor
+                fx,fy,fz = rp.z_axis()
+                from chimerax.core.geometry import orthonormal_frame
+                p = orthonormal_frame((fx,0,fz), (0,1,0), origin = rp.origin())
+                self.show(p)
+        else:
+            # End UI move, or hide.
+            stime = self._start_ui_move_time
+            from time import time
+            if stime is not None and time() < stime + self._ui_hide_time:
+                self.hide()
+            self._start_ui_move_time = None
+
+    def move_ui(self, hand_room_position):
+        if self._start_ui_move_time is None:
+            return
+        luip = self._last_ui_position
+        rp = hand_room_position
+        self.move(rp * luip.inverse())
+        self._last_ui_position = rp
+        
 from chimerax.core.models import Model
 class HandControllerModel(Model):
     casts_shadows = False
@@ -485,10 +646,11 @@ class HandControllerModel(Model):
         self.vr_system = vr_system
         self.use_icons = False
         self._mode = 'move scene'
-        self._trigger_held = False
+        self._drag = False		# Whether trigger button is held down
         self._pose = None
         self._previous_pose = None
         self._zoom_center = None
+        self._app_button_down = False
         self._icon_drawing = None
         self._icon_highlight_drawing = None
         self._icon_size = 128  # pixels
@@ -496,7 +658,10 @@ class HandControllerModel(Model):
         self._icon_rows = 0
         self._icon_shortcuts = []
         self._icons_shown = False
-
+        self._mouse_mode = None		# MouseMode for hand controller clicks
+        self._click_range = 5		# Range for mouse mode laser clicks
+        self._ui_pressed = False	# Remember if click was on ui to make sure ui release event generated
+        
         self.room_position = None	# Hand controller position in room coordinates.
 
         from chimerax.core.surface.shapes import cone_geometry
@@ -567,26 +732,62 @@ class HandControllerModel(Model):
                 self.hide_icons()	# Untouch
                 self._icons_shown = False
                 
-        if ((t == openvr.VREvent_ButtonPress or
-             t == openvr.VREvent_ButtonUnpress) and
-            e.trackedDeviceIndex == self.device_index):
-            pressed = (t == openvr.VREvent_ButtonPress)
+        pressed = (t == openvr.VREvent_ButtonPress)
+        released = (t == openvr.VREvent_ButtonUnpress)
+        if (pressed or released) and e.trackedDeviceIndex == self.device_index:
             b = e.data.controller.button
             if b == openvr.k_EButton_SteamVR_Trigger:
-                self._trigger_held = pressed
-                if pressed:
-                    if self._mode == 'move atoms':
+                if pressed or self._ui_pressed:
+                    ui_click = camera.user_interface.click(pressed, self.room_position.origin())
+                    self._ui_pressed = ui_click and pressed
+                else:
+                    ui_click = None
+                from chimerax.core.ui import MouseMode
+                if isinstance(ui_click, MouseMode):
+                    mmode = ui_click
+                    if hasattr(mmode, 'laser_click') or hasattr(mmode, 'drag_3d'):
+                        self._mouse_mode = mmode
+                        self._mode = 'mouse mode'
+                        mname = mmode.name
+                    else:
+                        self._mouse_mode = None
+                        mname = 'zoom' if mmode.name == 'zoom' else 'move scene'
+                        self._mode = mname
+                    msg = 'VR hand controller mode %s' % mname
+                    self.session.logger.status(msg, log = True)
+                elif not ui_click:
+                    self._drag = pressed
+                    m = self._mode
+                    if m == 'mouse mode':
+                        self._process_click(camera, pressed)
+                    elif m == 'move atoms' and pressed:
                         self.select_sidechain()
-                    elif self._mode == 'zoom':
+                    elif m == 'zoom' and pressed:
                         self._zoom_center = self._pose.origin()
             elif b == openvr.k_EButton_SteamVR_Touchpad:
-                if pressed and self._icons_shown:
-                    self.icon_clicked()
+                if self._icons_shown:
+                    if pressed:
+                        self.icon_clicked()
             elif b == openvr.k_EButton_ApplicationMenu:
-                pass
+                camera.user_interface.display_ui(pressed, self.room_position)
+                self._app_button_down = pressed
             elif b == openvr.k_EButton_Grip:
-                camera.fit_scene_to_room()
-
+                if pressed:
+                    camera.fit_scene_to_room()
+                    
+    def _process_click(self, camera, pressed):
+        m = self._mouse_mode
+        if hasattr(m, 'laser_click'):
+            if pressed:
+                p = self.position
+                xyz1 = p * (0,0,0)
+                range_scene = self._click_range / camera.scene_scale
+                xyz2 = p * (0,0,-range_scene)
+                m.laser_click(xyz1, xyz2)
+        elif hasattr(m, 'drag_3d'):
+            p = self.position if pressed else None
+            m.drag_3d(p)
+        
     def process_motion(self, camera):
         # For controllers with trigger pressed, use controller motion to move scene
         # Rotation and scaling is about controller position -- has natural feel,
@@ -595,7 +796,10 @@ class HandControllerModel(Model):
         previous_pose = self._pose
         self._update_position(camera)
 
-        if not self._trigger_held:
+        if self._app_button_down:
+            camera.user_interface.move_ui(self.room_position)
+
+        if not self._drag:
             return
 
         if previous_pose is None:
@@ -605,12 +809,12 @@ class HandControllerModel(Model):
         pose = self._pose
         if m == 'move scene':
             oc = camera.other_controller(self)
-            if oc and oc._trigger_held and oc._mode == 'move scene':
+            if oc and oc._drag and oc._mode == 'move scene':
                 # Both controllers trying to move scene -- zoom
                 self.pinch_zoom(camera, previous_pose.origin(), pose.origin(), oc._pose.origin())
             else:
                 move = previous_pose * pose.inverse()
-                camera.room_to_scene = camera.room_to_scene * move
+                camera.move_scene(move)
                 self._update_position(camera)
         elif m == 'zoom' and self._zoom_center is not None:
             center = self._zoom_center
@@ -621,7 +825,7 @@ class HandControllerModel(Model):
             s = max(min(s, 10.0), 0.1)	# Limit scaling
             from chimerax.core.geometry import distance, translation, scale
             scale = translation(center) * scale(s) * translation(-center)
-            camera.room_to_scene = camera.room_to_scene * scale
+            camera.move_scene(scale)
             self._update_position(camera)
         elif m == 'move atoms':
             move = pose * previous_pose.inverse()  # Room to room coords
@@ -640,7 +844,7 @@ class HandControllerModel(Model):
             s = dp / d
             s = max(min(s, 10.0), 0.1)	# Limit scaling
             scale = translation(center) * scale(s) * translation(-center)
-            camera.room_to_scene = camera.room_to_scene * scale
+            camera.move_scene(scale)
             self._update_position(camera)
 
     def icon_clicked(self):
