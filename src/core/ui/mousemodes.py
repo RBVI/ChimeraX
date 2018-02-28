@@ -447,6 +447,10 @@ class SelectMouseMode(MouseMode):
             v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
             self._drawn_rectangle = None
 
+    def laser_click(self, xyz1, xyz2):
+        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        select_pick(self.session, pick, self.mode)
+
 class SelectAddMouseMode(SelectMouseMode):
     '''Mouse mode to add objects to selection by clicking on them.'''
     name = 'select add'
@@ -467,11 +471,18 @@ def mouse_select(event, mode, session, view):
     pick = picked_object(x, y, view)
     select_pick(session, pick, mode)
 
-def picked_object(x, y, view, max_transparent_layers = 3):
-    p2 = p = view.first_intercept(x, y, exclude=unpickable)
+def picked_object(window_x, window_y, view, max_transparent_layers = 3):
+    xyz1, xyz2 = view.clip_plane_points(window_x, window_y)
+    if xyz1 is None or xyz2 is None:
+        return None
+    p = picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = max_transparent_layers)
+    return p
+
+def picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = 3):    
+    p2 = p = view.first_intercept_on_segment(xyz1, xyz2, exclude=unpickable)
     for i in range(max_transparent_layers):
         if p2 and getattr(p2, 'pick_through', False) and p2.distance is not None:
-            p2 = view.first_intercept(x, y, exclude=unpickable, beyond=p2.distance)
+            p2 = view.first_intercept_on_segment(xyz1, xyz2, exclude=unpickable, beyond=p2.distance)
         else:
             break
     return p2 if p2 else p
@@ -691,7 +702,7 @@ class ZoomMouseMode(MouseMode):
         else:
             shift = c.position.apply_without_translation((0, 0, delta_z))
             v.translate(shift)
-
+        
 class ObjectIdMouseMode(MouseMode):
     '''
     Mouse mode to that shows the name of an object in a popup window
@@ -761,8 +772,10 @@ class LabelMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
-        ses = self.session
-        pick = picked_object(x, y, ses.main_view)
+        pick = picked_object(x, y, self.session.main_view)
+        self._label_pick(pick)
+
+    def _label_pick(self, pick):
         if pick is None:
             return
         from ..objects import Objects
@@ -782,9 +795,15 @@ class LabelMode(MouseMode):
             object_type = 'bonds'
         else:
             return
+
+        ses = self.session
         from chimerax.label.label3d import label, label_delete
         if label_delete(ses, objects, object_type) == 0:
             label(ses, objects, object_type)
+
+    def laser_click(self, xyz1, xyz2):
+        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        self._label_pick(pick)
            
 class NullMouseMode(MouseMode):
     '''Used to assign no mode to a mouse button.'''
