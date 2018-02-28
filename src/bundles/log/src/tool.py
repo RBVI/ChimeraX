@@ -113,7 +113,7 @@ class Log(ToolInstance, HtmlLog):
         ToolInstance.__init__(self, session, tool_name)
         self.warning_shows_dialog = False
         self.error_shows_dialog = True
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
                 def save_image(ses=session):

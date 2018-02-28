@@ -26,7 +26,7 @@ class MarkerModeSettings(ToolInstance):
 
         self.display_name = 'Markers'
 
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self, close_destroys=False)
         self.tool_window = tw
         parent = tw.ui_area

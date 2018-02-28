@@ -24,7 +24,7 @@ class CommandLine(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
 
         self._in_init = True
         self.tool_window = MainToolWindow(self, close_destroys=False)
@@ -235,7 +235,6 @@ class _HistoryDialog:
     def __init__(self, controller):
         # make dialog hidden initially
         self.controller = controller
-        from chimerax.ui.gui import ChildToolWindow
 
         self.window = controller.tool_window.create_child_window(
             "Command History", close_destroys=False)

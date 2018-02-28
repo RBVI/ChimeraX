@@ -47,7 +47,7 @@ ACTION_BUTTONS
         ToolInstance.__init__(self, session, "Bogus Toolshed-demo Tool")
 
         self.display_name = "Open Models"
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code

@@ -32,7 +32,7 @@ class RegistrationUI(ToolInstance):
         # Standard template stuff
         ToolInstance.__init__(self, session, tool_name)
         self.display_name = "ChimeraX Registration"
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         self.tool_window.manage(placement="side")
         parent = self.tool_window.ui_area

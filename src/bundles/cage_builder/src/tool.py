@@ -28,7 +28,7 @@ class CageBuilder(ToolInstance):
 
         self.display_name = 'Cage Builder'
 
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
         self.tool_window = tw
         parent = tw.ui_area

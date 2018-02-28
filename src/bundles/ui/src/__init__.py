@@ -21,7 +21,7 @@ from .mousemodes import MouseMode, SelectMouseMode, RotateMouseMode, TranslateMo
 from .ui_cmd import register_ui_command
 from .htmltool import HtmlToolInstance
 from .font import shrink_font
-# Do not import anything from .gui so nogui mode works when UI toolkit can't be imported
+from .gui import MainToolWindow
 
 from chimerax.core.toolshed import BundleAPI
 

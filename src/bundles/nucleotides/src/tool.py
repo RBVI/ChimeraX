@@ -26,7 +26,7 @@ class NucleotidesTool(ToolInstance):
     def __init__(self, session, tool_name):
         # Standard template stuff for intializing tool
         super().__init__(session, tool_name)
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         self.tool_window.manage(placement="side")
         parent = self.tool_window.ui_area

@@ -28,7 +28,7 @@ class ModelPanel(ToolInstance):
         now = self.settings.last_use = time()
         short_titles = last != None and now - last < 777700 # about 3 months
 
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \

@@ -21,7 +21,7 @@ class FilePanel(ToolInstance):
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys = False)
         parent = self.tool_window.ui_area
 

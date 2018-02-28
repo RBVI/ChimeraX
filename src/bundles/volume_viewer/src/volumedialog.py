@@ -30,7 +30,7 @@ class VolumeViewer(ToolInstance):
         self._redisplay_handler = None
         self._last_redisplay_frame_number = None
 
-        from chimerax.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
 

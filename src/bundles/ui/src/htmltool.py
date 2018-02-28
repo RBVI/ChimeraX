@@ -7,7 +7,7 @@ class HtmlToolInstance(ToolInstance):
     """Class used to generate an HTML widget as the tool's main UI.
 
     The :py:attr:`tool_window` instance attribute refers to the
-    :py:class:`~chimerax.core.ui.gui.MainToolWindow` instance
+    :py:class:`~chimerax.core.ui.MainToolWindow` instance
     for the tool.
 
     The :py:attr:`html_view` instance attribute refers to the
@@ -31,7 +31,7 @@ class HtmlToolInstance(ToolInstance):
     def __init__(self, session, tool_name, size_hint=None):
         from PyQt5.QtWidgets import QGridLayout
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
-        from .gui import MainToolWindow
+        from . import MainToolWindow
         from .widgets import HtmlView
 
         # ChimeraX tool instance setup
