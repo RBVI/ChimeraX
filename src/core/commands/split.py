@@ -240,8 +240,6 @@ def molecule_from_atoms(m, atoms, name = None):
             cpb.radius = pb.radius
             cpb.halfbond = pb.halfbond
 
-    cm.new_atoms()
-
     return cm
 
 # -----------------------------------------------------------------------------
