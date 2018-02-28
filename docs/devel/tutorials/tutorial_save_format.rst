@@ -89,7 +89,7 @@ for bundles written completely in Python.  The
 from the :doc:`tutorial_tool` example with changes highlighted.
 For explanations of the unhighlighted sections, please
 see :doc:`tutorial_hello`, :doc:`tutorial_command` and
-`tutorial_tool`.
+:doc:`tutorial_tool`.
 
 .. literalinclude:: ../../../src/examples/tutorials/tut_save/bundle_info.xml
     :language: xml

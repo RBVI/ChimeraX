@@ -24,4 +24,4 @@ defined in the main *chimerax.core.commands* module.
 
 .. automodule:: chimerax.core.commands
     :show-inheritance:
-    :members: register, run, AtomicStructuresArg, AtomsArg, AtomSpecArg, AxisArg, BoolArg, CenterArg, ColorArg, ColormapArg, EmptyArg, IntArg, ModelArg, ModelPlacesArg, ModelsArg, NoArg, ObjectsArg, PlaceArg, PseudobondGroupsArg, StringArg, TopModelsArg, ColorArg, ColormapArg
+    :members: register, register_selector, run, AtomicStructuresArg, AtomsArg, AtomSpecArg, AxisArg, BoolArg, CenterArg, ColorArg, ColormapArg, EmptyArg, IntArg, ModelArg, ModelPlacesArg, ModelsArg, NoArg, ObjectsArg, PlaceArg, PseudobondGroupsArg, StringArg, TopModelsArg, ColorArg, ColormapArg
