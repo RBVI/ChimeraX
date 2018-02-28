@@ -18,7 +18,8 @@ class _BumpsAPI(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import bumps
+        from . import bumps, cbumps
         bumps.register_bumps_command(logger)
+        cbumps.register_cbumps_command(logger)
 
 bundle_api = _BumpsAPI()
