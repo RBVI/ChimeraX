@@ -12,8 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 """
-gui: Main ChimeraX user interface
-==================================
+ui.gui: Main ChimeraX graphical user interface
+==============================================
 
 The principal class that tool writers will use from this module is
 :py:class:`MainToolWindow`, which is either instantiated directly, or

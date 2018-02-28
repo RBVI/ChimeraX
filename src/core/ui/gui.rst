@@ -12,6 +12,20 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-.. automodule:: chimerax.core.ui.gui
-    :members:
+.. py:module:: chimerax.core.ui
+
+.. automodule:: chimerax.core.ui
     :show-inheritance:
+    :members: HtmlToolInstance
+
+.. py:module:: chimerax.core.ui.gui
+
+.. automodule:: chimerax.core.ui.gui
+    :show-inheritance:
+    :members:
+
+.. py:module:: chimerax.core.widgets
+
+.. automodule:: chimerax.core.ui.widgets
+    :show-inheritance:
+    :members: HtmlView
