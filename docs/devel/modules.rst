@@ -32,6 +32,8 @@ Python Modules
 
     core/data_events.rst
 
+    core/fetch.rst
+
     core/geometry/geometry.rst
 
     core/graphics/graphics.rst
