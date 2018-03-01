@@ -206,16 +206,19 @@ class SteamVRCamera(Camera):
         self._new_frame_handler = h
 
     def _get_position(self):
-        return self.position
+        return Camera.get_position(self)
     def _set_position(self, position):
         '''Move camera in scene while keeping camera in a fixed position in room.'''
-        self.room_to_scene = self.room_to_scene * self.position * position.inverse()
-        setattr(super(), 'position', position)
+        self.room_to_scene =  position * self.position.inverse() * self.room_to_scene
+        Camera.set_position(self, position)
+        ui = self.user_interface
+        if ui.shown():
+            ui.move()
     position = property(_get_position, _set_position)
 
     def _move_camera_in_room(self, position):
         '''Move camera to given scene position without changing scene position in room.'''
-        setattr(super(), 'position', position)
+        Camera.set_position(self, position)
         
     def fit_scene_to_room(self,
                           scene_bounds = None,
@@ -650,6 +653,7 @@ class UserInterface:
 from chimerax.core.models import Model
 class HandControllerModel(Model):
     casts_shadows = False
+    pickable = False
     _controller_colors = ((200,200,0,255), (0,200,200,255))
     SESSION_SAVE = False
 
@@ -675,7 +679,7 @@ class HandControllerModel(Model):
         self._mouse_mode = None		# MouseMode for hand controller clicks
         self._laser_range = 5		# Range for mouse mode laser clicks
         self._ui_pressed = False	# Remember if click was on ui to make sure ui release event generated
-        self._last_drag_position = None # Hand controller position at last drag_3d call
+        self._last_drag_room_position = None # Hand controller position at last drag_3d call
         
         self.room_position = None	# Hand controller position in room coordinates.
 
@@ -720,9 +724,9 @@ class HandControllerModel(Model):
         if self._shown_in_scene:
             from chimerax.core.geometry import scale
             s = camera.scene_scale
-            self.position = scale(s) * camera.room_to_scene * rp
-            if s != self._last_cone_scale:
-                self.vertices = s * self._cone_vertices
+            self.position = camera.room_to_scene * rp * scale(s)
+            if s < 0.999*self._last_cone_scale or s > 1.001*self._last_cone_scale:
+                self.vertices = (1/s) * self._cone_vertices
                 self._last_cone_scale = s
 
     def tip_position(self):
@@ -767,15 +771,17 @@ class HandControllerModel(Model):
                 from chimerax.core.ui import MouseMode
                 if isinstance(ui_click, MouseMode):
                     mmode = ui_click
-                    if hasattr(mmode, 'laser_click') or hasattr(mmode, 'drag_3d'):
+                    if mmode.name == 'zoom':
+                        self._mouse_mode = None
+                        self._mode = mname = 'zoom'
+                    elif mmode.name in ('rotate', 'translate'):
+                        self._mouse_mode = None
+                        self._mode = mname = 'move scene'
+                    elif hasattr(mmode, 'laser_click') or hasattr(mmode, 'drag_3d'):
                         self._mouse_mode = mmode
                         self._mode = 'mouse mode'
                         mname = mmode.name
-                    else:
-                        self._mouse_mode = None
-                        mname = 'zoom' if mmode.name == 'zoom' else 'move scene'
-                        self._mode = mname
-                    msg = 'VR hand controller mode %s' % mname
+                    msg = 'VR mode %s' % mname
                     self.session.logger.status(msg, log = True)
                 elif not ui_click:
                     self._drag = pressed
@@ -808,19 +814,22 @@ class HandControllerModel(Model):
                 m.laser_click(xyz1, xyz2)
         if hasattr(m, 'drag_3d'):
             if pressed:
-                self._last_drag_position = self.position
+                self._last_drag_room_position = self.room_position
             else:
                 m.drag_3d(None, None, None)
-                self._last_drag_position = None
+                self._last_drag_room_position = None
                     
     def _process_drag(self, camera):
         m = self._mouse_mode
         if hasattr(m, 'drag_3d'):
-            p = self.position
-            ldp = self._last_drag_position
-            self._last_drag_position = p
-            move = p * ldp.inverse()
-            delta_z = (self.room_to_scene.inverse() * ldp.translation())[2]
+            rp = self.room_position
+            ldp = self._last_drag_room_position
+            self._last_drag_room_position = rp
+            room_move = rp * ldp.inverse()
+            delta_z = room_move.translation()[2] # Room z motion
+            rts = camera.room_to_scene
+            move = rts * room_move * rts.inverse()
+            p = rts * rp
             m.drag_3d(p, move, delta_z)
         
     def process_motion(self, camera):
@@ -869,7 +878,7 @@ class HandControllerModel(Model):
             from chimerax.core.atomic import selected_atoms
             atoms = selected_atoms(self.session)
             atoms.scene_coords = smove * atoms.scene_coords
-        elif m == 'mouse_mode':
+        elif m == 'mouse mode':
             self._process_drag(camera)
             
     def pinch_zoom(self, camera, prev_pos, pos, other_pos):
