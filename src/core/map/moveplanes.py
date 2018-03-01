@@ -95,19 +95,18 @@ class PlanesMouseMode(MouseMode):
 
     def laser_click(self, xyz1, xyz2):
         line = (xyz1, xyz2)
-        self._choose_box_face(self, line)
+        self._choose_box_face(line)
         
     def drag_3d(self, position, move, delta_z):
         if position is None:
             self.mouse_up()
         elif move is not None:
             v = self.map
-            dxyz = v.position.inverse() * move.translation()
-            dijk = v.data.xyz_to_ijk_transform.apply_without_translation(dxyz)
-            istep = dijk[self.axis]
-            if self.side == 1:
-                istep = -istep
-            self.move_plane(istep)
+            if v:
+                dxyz = v.position.inverse() * move.translation()
+                dijk = v.data.xyz_to_ijk_transform.apply_without_translation(dxyz)
+                istep = dijk[self.axis]
+                self._move_plane(istep)
 
 def matching_maps(v, maps):
     mm = []
