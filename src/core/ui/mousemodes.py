@@ -585,6 +585,10 @@ class RotateMouseMode(MouseMode):
     def models(self):
         return None
 
+    def drag_3d(self, position, move, delta_z):
+        if move:
+            self.view.move(move, self.models())
+
 class RotateAndSelectMouseMode(RotateMouseMode):
     '''
     Mouse mode to rotate objects like RotateMouseMode.
@@ -656,6 +660,10 @@ class TranslateMouseMode(MouseMode):
 
     def models(self):
         return None
+
+    def drag_3d(self, position, move, delta_z):
+        if move:
+            self.view.move(move, self.models())
 
 class TranslateSelectedMouseMode(TranslateMouseMode):
     '''
