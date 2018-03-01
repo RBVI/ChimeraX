@@ -34,6 +34,8 @@ class MarkerMouseMode(MouseMode):
         p = marker_panel(self.session, 'Markers')
         p.update_settings()
         p.show()
+        s = _mouse_marker_settings(self.session)
+        s['placement_mode'] = 'maximum'
 
     @property
     def placement_mode(self):
@@ -211,7 +213,7 @@ class MarkerMouseMode(MouseMode):
         elif l:
             l.delete()
 
-    def mouse_up(self, event):
+    def mouse_up(self, event = None):
         self._moving_marker = None
         self._resizing_marker_or_link = None
 
@@ -248,9 +250,9 @@ class ConnectMouseMode(MarkerMouseMode):
     icon_file = 'bond.png'
 
     def enable(self):
+        MarkerMouseMode.enable(self)
         s = _mouse_marker_settings(self.session)
         s['placement_mode'] = 'link'
-        MarkerMouseMode.enable(self)
         
 # -----------------------------------------------------------------------------
 #
