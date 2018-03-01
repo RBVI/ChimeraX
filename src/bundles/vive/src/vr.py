@@ -779,6 +779,7 @@ class HandControllerModel(Model):
                         self._mode = mname = 'move scene'
                     elif hasattr(mmode, 'laser_click') or hasattr(mmode, 'drag_3d'):
                         self._mouse_mode = mmode
+                        mmode.enable()
                         self._mode = 'mouse mode'
                         mname = mmode.name
                     msg = 'VR mode %s' % mname
