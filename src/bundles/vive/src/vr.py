@@ -205,6 +205,18 @@ class SteamVRCamera(Camera):
         h = session.triggers.add_handler('new frame', self.next_frame)
         self._new_frame_handler = h
 
+    def _get_position(self):
+        return self.position
+    def _set_position(self, position):
+        '''Move camera in scene while keeping camera in a fixed position in room.'''
+        self.room_to_scene = self.room_to_scene * self.position * position.inverse()
+        setattr(super(), 'position', position)
+    position = property(_get_position, _set_position)
+
+    def _move_camera_in_room(self, position):
+        '''Move camera to given scene position without changing scene position in room.'''
+        setattr(super(), 'position', position)
+        
     def fit_scene_to_room(self,
                           scene_bounds = None,
                           room_scene_size = 2, 		# Initial virtual model size in meters
@@ -305,7 +317,8 @@ class SteamVRCamera(Camera):
             self.room_to_scene = C * hs.inverse()
         self.room_position = rp = H * S
         Cnew = self.room_to_scene * rp
-        self.position = self._last_position = Cnew
+        self._last_position = Cnew
+        self._move_camera_in_room(Cnew)
         self._last_h = H
 
         self._session.triggers.activate_trigger('vr update', self)
@@ -365,7 +378,8 @@ class SteamVRCamera(Camera):
     def view_all(self, bounds, window_size = None, pad = 0):
         fov = 100	# Effective field of view, degrees
         from chimerax.core.graphics.camera import perspective_view_all
-        self.position = perspective_view_all(bounds, self.position, fov, window_size, pad)
+        p = perspective_view_all(bounds, self.position, fov, window_size, pad)
+        self._move_camera_in_room(p)
         self._last_position = None
         self._last_h = None
         self.fit_scene_to_room(bounds)
@@ -491,7 +505,7 @@ class UserInterface:
         self._width = 1		# Billboard width in room coords, meters.
         self._height = None	# Height in room coords determined by window aspect and width.
         self._window_size = None # Window size in pixels
-        self._click_range = 0.05 # Maximum distance of click from plane, room coords, meters.
+        self._ui_click_range = 0.05 # Maximum distance of click from plane, room coords, meters.
         self._ui_drawing = None
         self._start_ui_move_time = None
         self._last_ui_position = None
@@ -534,7 +548,7 @@ class UserInterface:
         ui = self._ui_drawing
         x,y,z = ui.room_position.inverse() * room_point
         hw, hh = 0.5*self._width, 0.5*self._height
-        cr = self._click_range
+        cr = self._ui_click_range
         if x < -hw or x > hw or y < -hh or y > hh or z < -cr or z > cr:
             if pressed:
                 return False # click not on billboard
@@ -659,8 +673,9 @@ class HandControllerModel(Model):
         self._icon_shortcuts = []
         self._icons_shown = False
         self._mouse_mode = None		# MouseMode for hand controller clicks
-        self._click_range = 5		# Range for mouse mode laser clicks
+        self._laser_range = 5		# Range for mouse mode laser clicks
         self._ui_pressed = False	# Remember if click was on ui to make sure ui release event generated
+        self._last_drag_position = None # Hand controller position at last drag_3d call
         
         self.room_position = None	# Hand controller position in room coordinates.
 
@@ -669,6 +684,8 @@ class HandControllerModel(Model):
         va[:,:2] *= aspect
         va[:,2] += 0.5		# Move tip to 0,0,0 for picking
         va *= size
+        self._cone_vertices = va
+        self._last_cone_scale = 1
         self._cone_length = size
         self.geometry = va, ta
         self.normals = na
@@ -701,7 +718,12 @@ class HandControllerModel(Model):
         dp = camera._poses[self.device_index].mDeviceToAbsoluteTracking
         self.room_position = self._pose = rp = hmd34_to_position(dp)
         if self._shown_in_scene:
-            self.position = camera.room_to_scene * rp
+            from chimerax.core.geometry import scale
+            s = camera.scene_scale
+            self.position = scale(s) * camera.room_to_scene * rp
+            if s != self._last_cone_scale:
+                self.vertices = s * self._cone_vertices
+                self._last_cone_scale = s
 
     def tip_position(self):
         return self.scene_position.origin()
@@ -781,12 +803,25 @@ class HandControllerModel(Model):
             if pressed:
                 p = self.position
                 xyz1 = p * (0,0,0)
-                range_scene = self._click_range / camera.scene_scale
+                range_scene = self._laser_range / camera.scene_scale
                 xyz2 = p * (0,0,-range_scene)
                 m.laser_click(xyz1, xyz2)
-        elif hasattr(m, 'drag_3d'):
-            p = self.position if pressed else None
-            m.drag_3d(p)
+        if hasattr(m, 'drag_3d'):
+            if pressed:
+                self._last_drag_position = self.position
+            else:
+                m.drag_3d(None, None, None)
+                self._last_drag_position = None
+                    
+    def _process_drag(self, camera):
+        m = self._mouse_mode
+        if hasattr(m, 'drag_3d'):
+            p = self.position
+            ldp = self._last_drag_position
+            self._last_drag_position = p
+            move = p * ldp.inverse()
+            delta_z = (self.room_to_scene.inverse() * ldp.translation())[2]
+            m.drag_3d(p, move, delta_z)
         
     def process_motion(self, camera):
         # For controllers with trigger pressed, use controller motion to move scene
@@ -834,7 +869,9 @@ class HandControllerModel(Model):
             from chimerax.core.atomic import selected_atoms
             atoms = selected_atoms(self.session)
             atoms.scene_coords = smove * atoms.scene_coords
-
+        elif m == 'mouse_mode':
+            self._process_drag(camera)
+            
     def pinch_zoom(self, camera, prev_pos, pos, other_pos):
         # Two controllers have trigger pressed, scale scene.
         from chimerax.core.geometry import distance, translation, scale
