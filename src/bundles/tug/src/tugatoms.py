@@ -147,8 +147,9 @@ class TugAtomsMode(MouseMode):
         a.display = True
 
     def laser_click(self, xyz1, xyz2):
+        from chimerax.core.ui.mousemodes import picked_object_on_segment
         view = self.session.main_view
-        pick = view.first_intercept_on_segment(xyz1, xyz2)
+        pick = picked_object_on_segment(xyz1, xyz2, view)
         self._pick_atom(pick)
         
     def drag_3d(self, position, move, delta_z):
@@ -156,7 +157,7 @@ class TugAtomsMode(MouseMode):
             self.mouse_up()
         elif move is not None:
             self._puller = Puller3D(position.origin())
-            self._continue_tugging()            
+            self._continue_tugging()
 
 class Puller2D:
     def __init__(self, x, y):
