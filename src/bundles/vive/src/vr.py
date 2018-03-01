@@ -826,7 +826,7 @@ class HandControllerModel(Model):
             ldp = self._last_drag_room_position
             self._last_drag_room_position = rp
             room_move = rp * ldp.inverse()
-            delta_z = room_move.translation()[2] # Room z motion
+            delta_z = room_move.translation()[1] # Room vertical motion
             rts = camera.room_to_scene
             move = rts * room_move * rts.inverse()
             p = rts * rp
