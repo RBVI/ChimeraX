@@ -344,11 +344,15 @@ class SteamVRCamera(Camera):
         vrs = self.vr_system
         import openvr
         e = openvr.VREvent_t()
-        if not vrs.pollNextEvent(e):
-            e = None
-        for hc in self.hand_controllers():
-            hc.process_event(e, self)
+        while vrs.pollNextEvent(e):
+            for hc in self.hand_controllers():
+                hc.process_event(e, self)
 
+        # Touchpad motion does not generate an event.
+        for hc in self.hand_controllers():
+            if hc.use_icons:
+                hc.process_touchpad_motion()
+                
     def process_controller_motion(self):
 
         self.check_if_controller_models_closed()
@@ -733,13 +737,6 @@ class HandControllerModel(Model):
         return self.scene_position.origin()
 
     def process_event(self, e, camera):
-        if e is None:
-            # Motion on touchpad does not generate an event.
-            if self._icons_shown:
-                xy = self.touchpad_position()
-                if xy is not None:
-                    self.show_icons(highlight_position = xy)
-            return
         
         t = e.eventType
         import openvr
@@ -803,6 +800,13 @@ class HandControllerModel(Model):
             elif b == openvr.k_EButton_Grip:
                 if pressed:
                     camera.fit_scene_to_room()
+
+    def process_touchpad_motion(self):
+        # Motion on touchpad does not generate an event.
+        if self._icons_shown:
+            xy = self.touchpad_position()
+            if xy is not None:
+                self.show_icons(highlight_position = xy)
                     
     def _process_click(self, camera, pressed):
         m = self._mouse_mode
