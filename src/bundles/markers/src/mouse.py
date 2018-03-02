@@ -53,7 +53,7 @@ class MarkerMouseMode(MouseMode):
             self.resize_begin(event)
         elif mode == 'delete':
             self.delete_marker_or_link(event)
-        elif mode in ('surface', 'surface center'):
+        elif mode in ('surface', 'center'):
             self.place_on_surface(event)
         elif mode == 'maximum':
             self.place_on_maximum(event)
@@ -67,7 +67,7 @@ class MarkerMouseMode(MouseMode):
         p = v.first_intercept_on_segment(xyz1, xyz2)
         if p is None:
             c = None
-        elif self.placement_mode == 'surface center' and hasattr(p, 'triangle_pick'):
+        elif self.placement_mode == 'center' and hasattr(p, 'triangle_pick'):
             c, vol = connected_center(p.triangle_pick)
             self.session.logger.info('Enclosed volume for marked surface: %.3g' % vol)
         else:
@@ -385,7 +385,7 @@ def _mouse_marker_settings(session, attr = None):
             'marker radius': 1.0,
             'link color': (101,156,239,255),	# cornflowerblue
             'link radius': 0.5,
-            'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'surface center'
+            'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'center'
                                                 #        'link', 'move', 'resize', 'delete'
             'link_new_markers': False,
         }
