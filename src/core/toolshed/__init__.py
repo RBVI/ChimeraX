@@ -497,10 +497,18 @@ class Toolshed:
                 self._installed_bundle_info.remove(bi)
         if per_user is None:
             per_user = True
-        results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
+        try:
+            results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
+        except PermissionError as e:
+            who = "everyone" if not per_user else "this account"
+            logger.error("You do not have permission to install %s for %s" %
+                         (bundle.name, who))
+            return
         installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
         if installed:
             logger.info('\n'.join(installed))
+        else:
+            logger.info('No bundles were installed')
         self.set_install_timestamp(per_user)
         self.reload(logger, rebuild_cache=True, report=True)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle)
@@ -715,7 +723,11 @@ class Toolshed:
             _debug("_run_pip return code:", cp.returncode, file=sys.__stderr__)
             _debug("_run_pip output:", output, file=sys.__stderr__)
             _debug("_run_pip error:", error, file=sys.__stderr__)
-            raise RuntimeError(output + error)
+            s = output + error
+            if "PermissionError" in s:
+                raise PermissionError(s)
+            else:
+                raise RuntimeError(s)
         result = cp.stdout.decode("utf-8")
         _debug("_run_pip result:", result)
         return result
