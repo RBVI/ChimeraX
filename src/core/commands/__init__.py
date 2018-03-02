@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .commands import register_core_commands
+from .commands import register_core_commands, ATOMSPEC_EVALUATED
 from .selectors import register_core_selectors
 from .run import run, concise_model_spec, quote_if_necessary
 from .runscript import runscript

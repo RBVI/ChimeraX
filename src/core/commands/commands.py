@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+ATOMSPEC_EVALUATED = "atomspec evaluated"
+
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
@@ -45,3 +47,4 @@ def register_core_commands(session):
     series.register_vseries_command(session.logger)
     from .. import ui
     ui.register_ui_command(session.logger)
+    session.triggers.add_trigger(ATOMSPEC_EVALUATED)
