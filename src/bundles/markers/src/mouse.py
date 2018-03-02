@@ -34,6 +34,8 @@ class MarkerMouseMode(MouseMode):
         p = marker_panel(self.session, 'Markers')
         p.update_settings()
         p.show()
+        s = _mouse_marker_settings(self.session)
+        s['placement_mode'] = 'maximum'
 
     @property
     def placement_mode(self):
@@ -61,10 +63,10 @@ class MarkerMouseMode(MouseMode):
             self.place_on_plane(event)
             
     def place_on_surface(self, event):
-        x,y = event.position()
+        xyz1, xyz2 = self._view_line(event)
         s = self.session
         v = s.main_view
-        p = v.first_intercept(x,y)
+        p = v.first_intercept_on_segment(xyz1, xyz2)
         if p is None:
             c = None
         elif self.placement_mode == 'surface center' and hasattr(p, 'triangle_pick'):
@@ -81,8 +83,7 @@ class MarkerMouseMode(MouseMode):
     def place_on_maximum(self, event):
         from chimerax.core.map import Volume
         vlist = self.session.models.list(type = Volume)
-        x,y = event.position()
-        xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
+        xyz1, xyz2 = self._view_line(event)
         sxyz, v = first_volume_maxima(xyz1, xyz2, vlist)
         if sxyz is not None:
             self._set_sizes(v)
@@ -100,8 +101,7 @@ class MarkerMouseMode(MouseMode):
     def place_on_plane(self, event):
         from chimerax.core.map import Volume
         vlist = self.session.models.list(type = Volume)
-        x,y = event.position()
-        xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
+        xyz1, xyz2 = self._view_line(event)
         sxyz, v = volume_plane_intercept(xyz1, xyz2, vlist)
         if sxyz is not None:
             self._set_sizes(v)
@@ -134,9 +134,9 @@ class MarkerMouseMode(MouseMode):
         return m
     
     def picked_marker_or_link(self, event, select = False):
-        x,y = event.position()
-        from chimerax.core.ui.mousemodes import picked_object, select_pick
-        pick = picked_object(x, y, self.session.main_view)
+        xyz1, xyz2 = self._view_line(event)
+        from chimerax.core.ui.mousemodes import picked_object_on_segment, select_pick
+        pick = picked_object_on_segment(xyz1, xyz2, self.session.main_view)
         m = l = None
         from chimerax.core.atomic import PickedAtom, PickedBond
         from .markers import MarkerSet
@@ -148,13 +148,23 @@ class MarkerMouseMode(MouseMode):
             select_pick(self.session, pick, 'replace')
         return m, l
 
+    def _view_line(self, event):
+        if isinstance(event, LaserEvent):
+            xyz1, xyz2 = event.xyz1, event.xyz2
+        else:
+            # Mouse event
+            x,y = event.position()
+            xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
+        return xyz1, xyz2
+
     def mouse_drag(self, event):
         self.move_marker(event)
         self.resize_marker_or_link(event)
 
     def move_marker_begin(self, event):
         self._moving_marker = self.picked_marker(event)
-        MouseMode.mouse_down(self, event)
+        if not isinstance(event, LaserEvent):
+            MouseMode.mouse_down(self, event)
 
     def move_marker(self, event):        
         m = self._moving_marker
@@ -171,7 +181,8 @@ class MarkerMouseMode(MouseMode):
     def resize_begin(self, event):
         m, l = self.picked_marker_or_link(event)
         self._resizing_marker_or_link = m or l
-        MouseMode.mouse_down(self, event)
+        if not isinstance(event, LaserEvent):
+            MouseMode.mouse_down(self, event)
 
     def resize_marker_or_link(self, event):        
         m = self._resizing_marker_or_link
@@ -179,7 +190,10 @@ class MarkerMouseMode(MouseMode):
             return
         dx, dy = self.mouse_motion(event)
         from math import exp
-        r = m.radius * exp(-0.01*dy)
+        self._resize_ml(m, exp(-0.01*dy))
+
+    def _resize_ml(self, m, scale):
+        r = m.radius * scale
         m.radius = r
         s = _mouse_marker_settings(self.session)
         from chimerax.core.atomic import Atom
@@ -189,7 +203,6 @@ class MarkerMouseMode(MouseMode):
             s['link radius'] = r
 
     def delete_marker_or_link(self, event):
-        x,y = event.position()
         m, l = self.picked_marker_or_link(event)
         if m:
             if m.structure.num_atoms == 1:
@@ -200,9 +213,35 @@ class MarkerMouseMode(MouseMode):
         elif l:
             l.delete()
 
-    def mouse_up(self, event):
+    def mouse_up(self, event = None):
         self._moving_marker = None
         self._resizing_marker_or_link = None
+
+    def laser_click(self, xyz1, xyz2):
+        # Do 3d equivalent of mouse down.
+        self.mouse_down(LaserEvent(xyz1,xyz2))
+        
+    def drag_3d(self, position, move, delta_z):
+        if position is None:
+            self.mouse_up()
+        elif move is not None:
+            # Do equivalent of mouse drag.
+            mm = self._moving_marker
+            if mm:
+                mm.scene_coord += move.translation()
+            rm = self._resizing_marker_or_link
+            if rm:
+                from math import exp
+                scale = exp(-delta_z*10)
+                self._resize_ml(rm, scale)
+
+# -----------------------------------------------------------------------------
+#
+class LaserEvent:
+    '''Handle 3d VR hand controller clicks.'''
+    def __init__(self, xyz1, xyz2):
+        self.xyz1 = xyz1
+        self.xyz2 = xyz2
         
 # -----------------------------------------------------------------------------
 #
@@ -211,9 +250,9 @@ class ConnectMouseMode(MarkerMouseMode):
     icon_file = 'bond.png'
 
     def enable(self):
+        MarkerMouseMode.enable(self)
         s = _mouse_marker_settings(self.session)
         s['placement_mode'] = 'link'
-        MarkerMouseMode.enable(self)
         
 # -----------------------------------------------------------------------------
 #
