@@ -646,7 +646,11 @@ class _SelectorName:
     def find_matches(self, session, models, results):
         f = get_selector(self.name)
         if f:
-            f(session, models, results)
+            from ..objects import Objects
+            if isinstance(f, Objects):
+                results.combine(f)
+            else:
+                f(session, models, results)
 
 
 class _ZoneSelector:
@@ -841,7 +845,7 @@ def register_selector(name, func, logger):
     _selectors[name] = func
 
 
-def deregister_selector(name):
+def deregister_selector(name, logger):
     """Deregister a name as an atom specifier selector.
 
     Parameters
@@ -860,10 +864,10 @@ def deregister_selector(name):
     try:
         del _selectors[name]
     except KeyError:
-        pass
+        logger.warning("deregistering unregistered selector \"%s\"" % name)
 
 
-def list_selectors(session):
+def list_selectors():
     """Return a list of all registered selector names.
 
     Parameters
