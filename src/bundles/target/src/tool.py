@@ -7,13 +7,14 @@ class TargetsTool(HtmlToolInstance):
     SESSION_ENDURING = False
     SESSION_SAVE = True
 
-    CUSTOM_SCHEME = "target"
+    CUSTOM_SCHEME = "tgttable"
 
     name = "User-defined Specifier Targets"
     help = "help:user/tools/targets.html"
 
-    def __init__(self, session, tool_name, all):
-        super().__init__(session, tool_name, size_hint=(575,400))
+    def __init__(self, session, tool_name, all, log_errors=False):
+        super().__init__(session, tool_name, size_hint=(575,400),
+                         log_errors=log_errors)
         self._show_all = all
         self._html_state = None
         self._loaded_page = False
@@ -29,7 +30,7 @@ class TargetsTool(HtmlToolInstance):
 
     def _setup(self):
         #
-        # TODO: Get list of user-defined targets
+        # TODO: Register for updates of register/deregister events
         #
         session = self.session
 
@@ -50,8 +51,20 @@ class TargetsTool(HtmlToolInstance):
         # before trying to update data.  Afterwards, we don't care.
         if success:
             self._loaded_page = True
+            self._update_targets()
             self._set_html_state()
             self.html_view.loadFinished.disconnect(self._load_finished)
+
+    def _update_targets(self):
+        from .cmd import target_list
+        targets = target_list(self.session, self._show_all)
+        data = []
+        for name in sorted(targets.keys()):
+            data.append({"name": name, "info": targets[name]})
+        import json
+        target_data = json.dumps(data)
+        js = "%s.update_targets(%s);" % (self.CUSTOM_SCHEME, target_data)
+        self.html_view.runJavaScript(js)
 
     def handle_scheme(self, url):
         # Called when custom link is clicked.
@@ -61,14 +74,9 @@ class TargetsTool(HtmlToolInstance):
         query = parse_qs(url.query())
         method(query)
 
-    def _cb_show_only(self, query):
+    def _cb_nothing(self, query):
         """shows only selected structure"""
-        try:
-            models = query["id"][0]
-        except KeyError:
-            self.show_set(None, False)
-        else:
-            self.show_only(models)
+        print("nothing", query)
 
     # Session stuff
 
@@ -77,6 +85,7 @@ class TargetsTool(HtmlToolInstance):
     def take_snapshot(self, session, flags):
         data = {
             "_super": super().take_snapshot(session, flags),
+            "_show_all": self._show_all,
         }
         self.add_webview_state(data)
         return data
@@ -84,6 +93,7 @@ class TargetsTool(HtmlToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data["_super"])
+        inst._show_all = data["_show_all"]
         inst.setup(data.get(cls.html_state, None))
         return inst
 

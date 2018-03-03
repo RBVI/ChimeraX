@@ -11,7 +11,7 @@ class _MyAPI(BundleAPI):
     def start_tool(session, bi, ti):
         if ti.name == "Targets":
             from .cmd import target
-            return target(name=name)
+            return target(session, name=ti.name)
         else:
             raise ValueError("trying to start unknown tool: %s" % ti.name)
 

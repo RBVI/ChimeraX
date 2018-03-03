@@ -5,7 +5,7 @@ from chimerax.core.commands import CmdDesc, StringArg, ObjectsArg, NoArg
 
 def target(session, name="Targets", all=False):
     from .tool import TargetsTool
-    tool = TargetsTool(session, name, all)
+    tool = TargetsTool(session, name, all, log_errors=True)
     tool.setup()
     return tool
 target_desc = CmdDesc(optional=[("name", StringArg),
@@ -28,7 +28,7 @@ target_undefine_desc = CmdDesc(required=[("name", StringArg)])
 def target_list(session, all=False):
     from chimerax.core.commands import list_selectors, get_selector
     from chimerax.core.objects import Objects
-    num_targets = 0
+    targets = {}
     for name in sorted(list_selectors()):
         sel = get_selector(name)
         if callable(sel):
@@ -42,7 +42,8 @@ def target_list(session, all=False):
         else:
             value = str(sel)
         session.logger.info('\t'.join([name, value]))
-        num_targets += 1
-    if num_targets == 0:
+        targets[name] = value
+    if not targets:
         session.logger.info("There are no user-defined targets.")
+    return targets
 target_list_desc = CmdDesc(optional=[("all", NoArg)])
