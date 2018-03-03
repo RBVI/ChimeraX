@@ -22,7 +22,6 @@ html, body, #full {
 
 /*
  * Style one and only table
- * "id" is always the left-most column
  */
 table, th, td {
   border: 1px solid grey;
@@ -44,16 +43,6 @@ td {
   text-align: center;
   font-family:arial;
 }
-td.id {
-  text-align: left;
-}
-
-/*
- * Selected rows
- */
-tr.selected {
-  background-color: #FF4;
-}
 
 /*
  * Indicators on sorted column
@@ -65,4 +54,28 @@ table thead tr .tablesorter-headerAsc {
 table thead tr .tablesorter-headerDesc {
   background-image: url("lib/uparrow.png");
   padding-right: 16px;
+}
+
+/*
+ * Action buttons per row
+ */
+td button img {
+  width: 16px;
+  height: 16px;
+  margin: 0px;
+  padding: 0px;
+  vertical-align: middle;
+}
+td button {
+  border: none;
+  background-color: transparent;
+  margin: 0px;
+  padding: 0px;
+  vertical-align: middle;
+}
+td input {
+  width: 24px;
+  height: 16px;
+  background-color: transparent;
+  vertical-align: middle;
 }

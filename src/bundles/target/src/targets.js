@@ -3,7 +3,7 @@
 var column_info = [
     "Name",
     "Info",
-    "Atom/Bonds",
+    "Atom",
     "Ribbon",
     "Surface",
 ]
@@ -36,7 +36,10 @@ var tgttable = function() {
                                    id: _row_id(name) });
             row.append($("<td/>").text(name));
             row.append($("<td/>").text(info));
-            // TODO: add checkbox/color-selector pairs
+            // add checkbox/color-selector pairs
+            row.append(_add_dc("show", "hide", "abp", name))
+            row.append(_add_dc("cartoon", "cartoon hide", "c", name))
+            row.append(_add_dc("surface", "surface hide", "s", name))
             tbody.append(row);
         });
         $("#targets_table").empty().append(thead, tbody);
@@ -51,6 +54,18 @@ var tgttable = function() {
     // jQuery does not like '.' in id names even though JS does not care
     function _row_id(id) {
         return "row_" + id.replace('.', '_', 'g');
+    }
+
+    function _add_dc(show, hide, tgt, name) {
+        return $("<td/>", { action_show: show, action_hide: hide,
+                            action_target: tgt, name:name})
+                    .append($("<button/>", { class: "show" })
+                            .append($("<img/>", { src: "lib/show.svg" })))
+                    .append($("<button/>", { class: "hide" })
+                            .append($("<img/>", { src: "lib/hide.svg" })))
+                    .append($("<input/>", { type: "color",
+                                            value: "#ffcf00",
+                                            class: "color" }));
     }
 
     function init() {
