@@ -43,8 +43,8 @@ public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
     enum SSType { SS_COIL = 0, SS_HELIX = 1, SS_STRAND = 2 };
-    // 1gsg chain T has 7.050 P-P length between residues 21 and 22
-    static constexpr Real TRACE_NUCLEIC_DISTSQ_CUTOFF = 50.0;
+    // 1adx chain 0 has 7.158 P-P length between residues 24 and 25
+    static constexpr Real TRACE_NUCLEIC_DISTSQ_CUTOFF = 51.5;
     // 3ixy chain B has 6.602 CA-CA length between residues 131 and 132
     static constexpr Real TRACE_PROTEIN_DISTSQ_CUTOFF = 45.0;
 private:

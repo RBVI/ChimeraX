@@ -28,7 +28,7 @@ class HtmlToolInstance(ToolInstance):
         The suggested initial widget size in pixels.
     """
 
-    def __init__(self, session, tool_name, size_hint=None):
+    def __init__(self, session, tool_name, size_hint=None, log_errors=False):
         from PyQt5.QtWidgets import QGridLayout
         from ..models import ADD_MODELS, REMOVE_MODELS
         from .gui import MainToolWindow
@@ -41,7 +41,8 @@ class HtmlToolInstance(ToolInstance):
         parent = self.tool_window.ui_area
 
         # Check if class wants to handle custom scheme
-        kw = {"tool_window": self.tool_window}
+        kw = {"tool_window": self.tool_window,
+              "log_errors": log_errors}
         if size_hint is not None:
             kw["size_hint"] = size_hint
         try:

@@ -32,6 +32,7 @@ def nag(session):
     if not check_registration(logger=session.logger):
         _check_usage(session.logger)
 
+
 def install(session, registration):
     reg_file = _registration_file()
     try:
@@ -42,6 +43,7 @@ def install(session, registration):
         session.logger.error("Cannot write registration file %r: %s" %
                              (reg_file, str(e)))
         return False
+
 
 def check_registration(logger=None):
     """Returns datetime instance for expiration, or None."""
@@ -71,18 +73,60 @@ def check_registration(logger=None):
     return expires
 
 
+def report_status(logger, verbose):
+    expires = check_registration(logger)
+    if expires is None:
+        # Report usage
+        usage = _get_usage()
+        logger.info("ChimeraX used %d times over %d days" %
+                    (usage["count"], len(usage["dates"])))
+        if verbose:
+            for dt in usage["dates"]:
+                logger.info("  %s" % dt.strftime(TimeFormat))
+    else:
+        # Check expiration
+        exp = expires.strftime(TimeFormat)
+        from datetime import datetime
+        now = datetime.now()
+        if expires < now:
+            logger.warning("Registration expired on %s" % exp)
+        else:
+            logger.info("Registration is valid through %s" % exp)
+
+
 def _registration_file():
     from chimerax import app_dirs_unversioned
     import os.path
     return os.path.join(app_dirs_unversioned.user_data_dir, RegistrationFile)
+
 
 def _usage_file():
     from chimerax import app_dirs_unversioned
     import os.path
     return os.path.join(app_dirs_unversioned.user_data_dir, UsageFile)
 
+
 def _check_usage(logger):
-    from datetime import datetime, date
+    from datetime import datetime
+    usage = _get_usage()
+    # Increment count and add date if this is the first invocation
+    # of the day.  Then check if it's time to nag.
+    usage["count"] += 1
+    now = datetime.now()
+    today = now.date()
+    for dt in usage["dates"]:
+        if dt.date() == today:
+            break
+    else:
+        usage["dates"].append(now)
+    _write_usage(logger, usage)
+    days = len(usage["dates"])
+    if days > GracePeriod and logger is not None:
+        logger.info(NagMessage % (usage["count"], days), is_html=True)
+
+
+def _get_usage():
+    from datetime import datetime
     usage_file = _usage_file()
     usage = {"count":0, "dates":[]}
     try:
@@ -96,26 +140,9 @@ def _check_usage(logger):
                 elif key == "count":
                     usage["count"] = int(value)
     except IOError:
-        # If there is no usage file, then it must be the first time
-        # ChimeraX was invoked
-        usage["count"] = 1
-        usage["dates"].append(datetime.now())
-        _write_usage(logger, usage)
-    else:
-        # Increment count and add date if this is the first invocation
-        # of the day.  Then check if it's time to nag.
-        usage["count"] += 1
-        now = datetime.now()
-        today = now.date()
-        for dt in usage["dates"]:
-            if dt.date() == today:
-                break
-        else:
-            usage["dates"].append(now)
-        _write_usage(logger, usage)
-        days = len(usage["dates"])
-        if days > GracePeriod:
-            logger.info(NagMessage % (usage["count"], days), is_html=True)
+        pass
+    return usage
+
 
 def _write_usage(logger, usage):
     from datetime import datetime

@@ -34,6 +34,8 @@ class MarkerMouseMode(MouseMode):
         p = marker_panel(self.session, 'Markers')
         p.update_settings()
         p.show()
+        s = _mouse_marker_settings(self.session)
+        s['placement_mode'] = 'maximum'
 
     @property
     def placement_mode(self):
@@ -53,7 +55,7 @@ class MarkerMouseMode(MouseMode):
             self.resize_begin(event)
         elif mode == 'delete':
             self.delete_marker_or_link(event)
-        elif mode in ('surface', 'surface center'):
+        elif mode in ('surface', 'center'):
             self.place_on_surface(event)
         elif mode == 'maximum':
             self.place_on_maximum(event)
@@ -63,20 +65,21 @@ class MarkerMouseMode(MouseMode):
     def place_on_surface(self, event):
         xyz1, xyz2 = self._view_line(event)
         s = self.session
-        v = s.main_view
-        p = v.first_intercept_on_segment(xyz1, xyz2)
+        log = s.logger
+        from chimerax.core.ui.mousemodes import picked_object_on_segment
+        p = picked_object_on_segment(xyz1, xyz2, s.main_view)
         if p is None:
             c = None
-        elif self.placement_mode == 'surface center' and hasattr(p, 'triangle_pick'):
+        elif self.placement_mode == 'center' and hasattr(p, 'triangle_pick'):
             c, vol = connected_center(p.triangle_pick)
-            self.session.logger.info('Enclosed volume for marked surface: %.3g' % vol)
+            log.info('Enclosed volume for marked surface: %.3g' % vol)
         else:
             c = p.position
-        log = s.logger
+
         if c is None:
             log.status('No marker placed')
             return
-        _mouse_place_marker(self.session, c, link_to_selected = self.link_new)
+        _mouse_place_marker(s, c, link_to_selected = self.link_new)
             
     def place_on_maximum(self, event):
         from chimerax.core.map import Volume
@@ -211,7 +214,7 @@ class MarkerMouseMode(MouseMode):
         elif l:
             l.delete()
 
-    def mouse_up(self, event):
+    def mouse_up(self, event = None):
         self._moving_marker = None
         self._resizing_marker_or_link = None
 
@@ -226,11 +229,11 @@ class MarkerMouseMode(MouseMode):
             # Do equivalent of mouse drag.
             mm = self._moving_marker
             if mm:
-                mm.scene_coord += move.translation()
+                mm.scene_coord = move * mm.scene_coord
             rm = self._resizing_marker_or_link
             if rm:
                 from math import exp
-                scale = exp(-delta_z*10)
+                scale = exp(2*delta_z)
                 self._resize_ml(rm, scale)
 
 # -----------------------------------------------------------------------------
@@ -248,9 +251,9 @@ class ConnectMouseMode(MarkerMouseMode):
     icon_file = 'bond.png'
 
     def enable(self):
+        MarkerMouseMode.enable(self)
         s = _mouse_marker_settings(self.session)
         s['placement_mode'] = 'link'
-        MarkerMouseMode.enable(self)
         
 # -----------------------------------------------------------------------------
 #
@@ -385,7 +388,7 @@ def _mouse_marker_settings(session, attr = None):
             'marker radius': 1.0,
             'link color': (101,156,239,255),	# cornflowerblue
             'link radius': 0.5,
-            'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'surface center'
+            'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'center'
                                                 #        'link', 'move', 'resize', 'delete'
             'link_new_markers': False,
         }
