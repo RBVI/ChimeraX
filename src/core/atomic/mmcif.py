@@ -522,6 +522,8 @@ class MMCIFTable:
 
     def print(self, file=None):
         """Print contents of table to given file"""
+        if len(self._data) == 0:
+            return
         if file is None:
             import sys
             file = sys.stdout
