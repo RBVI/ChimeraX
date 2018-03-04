@@ -43,6 +43,8 @@ var tgttable = function() {
             tbody.append(row);
         });
         $("#targets_table").empty().append(thead, tbody);
+        $("img.show, img.hide").click(cb_button_click);
+        $("input.color").change(cb_color_input);
 
         // Re-setup jQuery handlers
         $("#targets_table").tablesorter({
@@ -57,15 +59,37 @@ var tgttable = function() {
     }
 
     function _add_dc(show, hide, tgt, name) {
-        return $("<td/>", { action_show: show, action_hide: hide,
-                            action_target: tgt, name:name})
-                    .append($("<button/>", { class: "show" })
-                            .append($("<img/>", { src: "lib/show.svg" })))
-                    .append($("<button/>", { class: "hide" })
-                            .append($("<img/>", { src: "lib/hide.svg" })))
-                    .append($("<input/>", { type: "color",
-                                            value: "#ffcf00",
-                                            class: "color" }));
+        return $("<td/>", { name:name })
+                    .append($("<img/>", { class: "show", action: show,
+                                          src: "lib/show.svg" }))
+                    .append($("<img/>", { class: "hide", action: hide,
+                                          src: "lib/hide.svg" }))
+                    .append($("<input/>", { class: "color", type: "color",
+                                            value: "#ffcf00", target: tgt }));
+    }
+
+    function cb_button_click(event) {
+        var path = "show_hide";
+        var img = $(event.target);
+        var action = "action=" + img.attr("action");
+        var td = img.parent();
+        var selector = "selector=" + td.attr("name");
+        var url = custom_scheme + ':' + path + '?' + action + '&' + selector;
+        // console.log("image click " + url);
+        window.location = url;
+    }
+
+    function cb_color_input(event) {
+        var path = "color";
+        var cp = $(event.target);
+        var target = "target=" + cp.attr("target");
+        var color = "color=" + encodeURIComponent(cp.val());
+        var td = cp.parent();
+        var selector = "selector=" + td.attr("name");
+        var url = custom_scheme + ':' + path + '?'
+                  + target + '&' + selector + '&' + color;
+        // console.log("color input " + url);
+        window.location = url;
     }
 
     function init() {
@@ -76,12 +100,15 @@ var tgttable = function() {
     }
 
     function get_state() {
+        // Not much to return yet
         return {
             name:"tgttable",
         };
     }
 
     function set_state(state) {
+        // Nothing to do yet
+        return;
     }
 
     return {

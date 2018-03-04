@@ -74,6 +74,23 @@ class TargetsTool(HtmlToolInstance):
         query = parse_qs(url.query())
         method(query)
 
+    def _cb_show_hide(self, query):
+        """shows or hides user-defined target"""
+        action = query["action"][0];
+        selector = query["selector"][0];
+        cmd = "%s %s" % (action, selector)
+        from chimerax.core.commands import run
+        run(self.session, cmd);
+
+    def _cb_color(self, query):
+        """shows or hides user-defined target"""
+        color = query["color"][0];
+        target = query["target"][0];
+        selector = query["selector"][0];
+        cmd = "color %s %s target %s" % (selector, color, target)
+        from chimerax.core.commands import run
+        run(self.session, cmd);
+
     def _cb_nothing(self, query):
         """shows only selected structure"""
         print("nothing", query)

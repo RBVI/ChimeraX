@@ -59,19 +59,13 @@ table thead tr .tablesorter-headerDesc {
 /*
  * Action buttons per row
  */
-td button img {
+td img {
   width: 16px;
   height: 16px;
   margin: 0px;
   padding: 0px;
   vertical-align: middle;
-}
-td button {
-  border: none;
-  background-color: transparent;
-  margin: 0px;
-  padding: 0px;
-  vertical-align: middle;
+  /* background-color: transparent; */
 }
 td input {
   width: 24px;
