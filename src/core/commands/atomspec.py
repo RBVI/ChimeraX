@@ -843,6 +843,9 @@ def register_selector(name, func, logger):
             logger.warning("registering illegal selector name \"%s\"" % name)
             return
     _selectors[name] = func
+    from .. import triggers
+    from .commands import ATOMSPEC_TARGET_REGISTERED
+    triggers.activate_trigger(ATOMSPEC_TARGET_REGISTERED, name)
 
 
 def deregister_selector(name, logger):
@@ -865,6 +868,10 @@ def deregister_selector(name, logger):
         del _selectors[name]
     except KeyError:
         logger.warning("deregistering unregistered selector \"%s\"" % name)
+    else:
+        from .. import triggers
+        from .commands import ATOMSPEC_TARGET_DEREGISTERED
+        triggers.activate_trigger(ATOMSPEC_TARGET_DEREGISTERED, name)
 
 
 def list_selectors():

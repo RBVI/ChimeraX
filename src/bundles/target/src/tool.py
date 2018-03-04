@@ -18,6 +18,7 @@ class TargetsTool(HtmlToolInstance):
         self._show_all = all
         self._html_state = None
         self._loaded_page = False
+        self._handlers = None
         self.setup_page("targets.html")
 
     def setup(self, html_state=None):
@@ -33,6 +34,14 @@ class TargetsTool(HtmlToolInstance):
         # TODO: Register for updates of register/deregister events
         #
         session = self.session
+        from chimerax.core import triggers
+        from chimerax.core.commands import (ATOMSPEC_TARGET_REGISTERED,
+                                            ATOMSPEC_TARGET_DEREGISTERED)
+        t1 = triggers.add_handler(ATOMSPEC_TARGET_REGISTERED,
+                                  self._update_targets)
+        t2 = triggers.add_handler(ATOMSPEC_TARGET_DEREGISTERED,
+                                  self._update_targets)
+        self._handlers = (t1, t2)
 
     def setup_page(self, html_file):
         import os.path
@@ -55,7 +64,15 @@ class TargetsTool(HtmlToolInstance):
             self._set_html_state()
             self.html_view.loadFinished.disconnect(self._load_finished)
 
-    def _update_targets(self):
+    def delete(self):
+        if self._handlers:
+            from chimerax.core import triggers
+            for h in self._handlers:
+                triggers.remove_handler(h)
+            self._handlers = None
+        super().delete()
+
+    def _update_targets(self, trigger=None, trigger_data=None):
         from .cmd import target_list
         targets = target_list(self.session, self._show_all)
         data = []
