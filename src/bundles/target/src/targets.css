@@ -21,7 +21,7 @@ html, body, #full {
 }
 
 /*
- * Style one and only table
+ * Style tables
  */
 table, th, td {
   border: 1px solid grey;

@@ -32,7 +32,9 @@ def target_list(session, all=False):
     for name in sorted(list_selectors()):
         sel = get_selector(name)
         if callable(sel):
-            if not all and sel.__module__.startswith("chimerax.core"):
+            mod_name = sel.__module__
+            if not all and (mod_name.startswith("chimerax.core") or
+                            mod_name.startswith("chimerax.chem_group")):
                 continue
             value = "Function"
         elif isinstance(sel, Objects):

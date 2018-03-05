@@ -61,6 +61,7 @@ class TargetsTool(HtmlToolInstance):
         if success:
             self._loaded_page = True
             self._update_targets()
+            self.update_models()
             self._set_html_state()
             self.html_view.loadFinished.disconnect(self._load_finished)
 
@@ -71,6 +72,30 @@ class TargetsTool(HtmlToolInstance):
                 triggers.remove_handler(h)
             self._handlers = None
         super().delete()
+
+    def update_models(self, trigger=None, trigger_data=None):
+        models = []
+        from chimerax.core.models import Model
+        from chimerax.core.atomic import AtomicStructure
+        model_components = {}
+        composite_models = {}
+        for m in self.session.models.list():
+            if isinstance(m, AtomicStructure):
+                model_components[m] = getattr(m, "chains")
+            else:
+                composite_models[m] = m.child_models()
+        data = []
+        for m in sorted(model_components.keys()):
+            chains = model_components[m]
+            if len(chains) == 0:
+                data.append({"type":"Model", "atomspec":m.atomspec()})
+            else:
+                for c in chains:
+                    data.append({"type":"Chain", "atomspec":c.atomspec()})
+        import json
+        model_data = json.dumps(data)
+        js = "%s.update_components(%s);" % (self.CUSTOM_SCHEME, model_data)
+        self.html_view.runJavaScript(js)
 
     def _update_targets(self, trigger=None, trigger_data=None):
         from .cmd import target_list
@@ -93,6 +118,7 @@ class TargetsTool(HtmlToolInstance):
 
     def _cb_show_hide(self, query):
         """shows or hides user-defined target"""
+        # print("cb_show_hide", query)
         action = query["action"][0];
         selector = query["selector"][0];
         cmd = "%s %s" % (action, selector)
@@ -101,6 +127,7 @@ class TargetsTool(HtmlToolInstance):
 
     def _cb_color(self, query):
         """shows or hides user-defined target"""
+        # print("cb_color", query)
         color = query["color"][0];
         target = query["target"][0];
         selector = query["selector"][0];
