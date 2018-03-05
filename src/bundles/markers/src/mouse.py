@@ -65,20 +65,21 @@ class MarkerMouseMode(MouseMode):
     def place_on_surface(self, event):
         xyz1, xyz2 = self._view_line(event)
         s = self.session
-        v = s.main_view
-        p = v.first_intercept_on_segment(xyz1, xyz2)
+        log = s.logger
+        from chimerax.core.ui.mousemodes import picked_object_on_segment
+        p = picked_object_on_segment(xyz1, xyz2, s.main_view)
         if p is None:
             c = None
         elif self.placement_mode == 'center' and hasattr(p, 'triangle_pick'):
             c, vol = connected_center(p.triangle_pick)
-            self.session.logger.info('Enclosed volume for marked surface: %.3g' % vol)
+            log.info('Enclosed volume for marked surface: %.3g' % vol)
         else:
             c = p.position
-        log = s.logger
+
         if c is None:
             log.status('No marker placed')
             return
-        _mouse_place_marker(self.session, c, link_to_selected = self.link_new)
+        _mouse_place_marker(s, c, link_to_selected = self.link_new)
             
     def place_on_maximum(self, event):
         from chimerax.core.map import Volume
@@ -228,11 +229,11 @@ class MarkerMouseMode(MouseMode):
             # Do equivalent of mouse drag.
             mm = self._moving_marker
             if mm:
-                mm.scene_coord += move.translation()
+                mm.scene_coord = move * mm.scene_coord
             rm = self._resizing_marker_or_link
             if rm:
                 from math import exp
-                scale = exp(-delta_z*10)
+                scale = exp(2*delta_z)
                 self._resize_ml(rm, scale)
 
 # -----------------------------------------------------------------------------

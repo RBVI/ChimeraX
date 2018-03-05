@@ -12,11 +12,20 @@ class HtmlToolInstance(ToolInstance):
 
     The :py:attr:`html_view` instance attribute refers to the
     :py:class:`~chimerax.core.ui.widgets.HtmlView` instance
-    for managing HTML content and link actions.  To facilitate
-    customizing the HTML view, if the `HtmlToolInstance` class
-    has an attribute :py:attr:`CUSTOM_SCHEME` and a method
-    :py:meth:`handle_scheme`, then the `HtmlView` instance
-    will be configured to support the custom scheme.
+    for managing HTML content and link actions.
+
+    To facilitate customizing the HTML view, if the
+    `HtmlToolInstance` subclass has an attribute
+    :py:attr:`CUSTOM_SCHEME` and a method :py:meth:`handle_scheme`,
+    then the `HtmlView` instance will be configured to support
+    the custom scheme.
+
+    If the `HtmlToolInstance` has a method :py:meth:`update_models`,
+    then it will be called as a handler to model addition and
+    removal events.  :py:meth:`update_models` should take three
+    arguments: `self`, `trigger_name` and `trigger_data`.
+    `trigger_name` is a string and `trigger_data` is a list of
+    models added or removed.
 
     Parameters
     ----------

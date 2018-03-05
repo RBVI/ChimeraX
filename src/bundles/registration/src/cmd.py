@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc
-from chimerax.core.commands import StringArg, BoolArg, EnumOf, ListOf
+from chimerax.core.commands import StringArg, BoolArg, EnumOf, ListOf, NoArg
 
 ResearchAreas = ["atomic structure analysis",
                  "cryoEM",
@@ -85,6 +85,12 @@ def register(session, name, email, organization=None,
     if join_announcements:
         _subscribe(session, "announcements", AnnouncementsURL, name, email)
 
+
+def register_status(session, verbose=False):
+    from .nag import report_status
+    report_status(session.logger, verbose)
+
+
 def _get_registration(name, email, organization, research, research_other,
                       funding, funding_other):
     from urllib.parse import urlencode
@@ -123,11 +129,13 @@ def _get_registration(name, email, organization, research, research_other,
             raise UserError(error)
     return registration
 
+
 def _get_tag_text(dom, tag_name):
     text = []
     for e in dom.getElementsByTagName(tag_name):
         text.append(_get_text(e))
     return ''.join(text)
+
 
 def _get_text(e):
     text = []
@@ -135,6 +143,7 @@ def _get_text(e):
         if node.nodeType == node.TEXT_NODE:
             text.append(node.data)
     return ''.join(text)
+
 
 def _subscribe(session, label, url, name, email):
     from urllib.parse import urlencode
@@ -164,3 +173,5 @@ register_desc = CmdDesc(keyword=[("name", StringArg),
                                  ("join_discussion", BoolArg),
                                  ("join_announcements", BoolArg)],
                         required_arguments=["name", "email"])
+
+register_status_desc = CmdDesc(keyword=[("verbose", NoArg)])

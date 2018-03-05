@@ -21,7 +21,7 @@ SUBDIRS = addh align_algs alignments bild blastprotein bond_rot bumps \
 	  nucleotides \
 	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
-	  smooth_lines spacenavigator stl storm struts \
+	  smooth_lines spacenavigator stl storm struts target \
 	  test texture tug viewdockx vive volume_viewer vtk wavefront_obj
 
 include $(TOP)/mk/subdir.make
