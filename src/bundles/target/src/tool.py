@@ -117,7 +117,7 @@ class TargetsTool(HtmlToolInstance):
         method(query)
 
     def _cb_show_hide(self, query):
-        """shows or hides user-defined target"""
+        """Shows or hides target"""
         # print("cb_show_hide", query)
         action = query["action"][0];
         selector = query["selector"][0];
@@ -126,12 +126,20 @@ class TargetsTool(HtmlToolInstance):
         run(self.session, cmd);
 
     def _cb_color(self, query):
-        """shows or hides user-defined target"""
+        """Colors target"""
         # print("cb_color", query)
         color = query["color"][0];
         target = query["target"][0];
         selector = query["selector"][0];
         cmd = "color %s %s target %s" % (selector, color, target)
+        from chimerax.core.commands import run
+        run(self.session, cmd);
+
+    def _cb_select(self, query):
+        """Select target"""
+        # print("cb_select", query)
+        selector = query["selector"][0];
+        cmd = "select %s" % selector
         from chimerax.core.commands import run
         run(self.session, cmd);
 

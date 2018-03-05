@@ -44,7 +44,9 @@ var tgttable = function() {
             var name = tgt["name"];
             var info = tgt["info"];
             var row = $("<tr/>", { class: "target_row" });
-            row.append($("<td/>").text(name));
+            row.append($("<td/>").append($("<a/>",
+                                           { "href": _sel_url(name) })
+                                           .text(name)));
             row.append($("<td/>").text(info));
             // add checkbox/color-selector pairs
             row.append(_add_dc("show", "hide", "abp", name))
@@ -87,7 +89,9 @@ var tgttable = function() {
             var atomspec = tgt["atomspec"];
             var row = $("<tr/>", { class: "component_row" });
             row.append($("<td/>").text(type));
-            row.append($("<td/>").text(atomspec));
+            row.append($("<td/>").append($("<a/>",
+                                           { "href": _sel_url(atomspec) })
+                                           .text(atomspec)));
             // add checkbox/color-selector pairs
             row.append(_add_dc("show", "hide", "abp", atomspec))
             row.append(_add_dc("cartoon", "cartoon hide", "c", atomspec))
@@ -109,6 +113,13 @@ var tgttable = function() {
     // jQuery does not like '.' in id names even though JS does not care
     function _row_id(id) {
         return "row_" + id.replace('.', '_', 'g');
+    }
+
+    function _sel_url(name) {
+        var path = "select";
+        var selector = "selector=" + encodeURIComponent(name);
+        var url = custom_scheme + ':' + path + '?' + selector;
+        return url;
     }
 
     function _add_dc(show, hide, tgt, name) {
