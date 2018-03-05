@@ -31,16 +31,16 @@ class TargetsTool(HtmlToolInstance):
 
     def _setup(self):
         #
-        # TODO: Register for updates of register/deregister events
+        # Register for updates of target register/deregister events
         #
         session = self.session
         from chimerax.core import triggers
         from chimerax.core.commands import (ATOMSPEC_TARGET_REGISTERED,
                                             ATOMSPEC_TARGET_DEREGISTERED)
         t1 = triggers.add_handler(ATOMSPEC_TARGET_REGISTERED,
-                                  self._update_targets)
+                                  self.update_targets)
         t2 = triggers.add_handler(ATOMSPEC_TARGET_DEREGISTERED,
-                                  self._update_targets)
+                                  self.update_targets)
         self._handlers = (t1, t2)
 
     def setup_page(self, html_file):
@@ -60,7 +60,7 @@ class TargetsTool(HtmlToolInstance):
         # before trying to update data.  Afterwards, we don't care.
         if success:
             self._loaded_page = True
-            self._update_targets()
+            self.update_targets()
             self.update_models()
             self._set_html_state()
             self.html_view.loadFinished.disconnect(self._load_finished)
@@ -97,9 +97,9 @@ class TargetsTool(HtmlToolInstance):
         js = "%s.update_components(%s);" % (self.CUSTOM_SCHEME, model_data)
         self.html_view.runJavaScript(js)
 
-    def _update_targets(self, trigger=None, trigger_data=None):
+    def update_targets(self, trigger=None, trigger_data=None):
         from .cmd import target_list
-        targets = target_list(self.session, self._show_all)
+        targets = target_list(self.session, all=self._show_all, log=False)
         data = []
         for name in sorted(targets.keys()):
             data.append({"name": name, "info": targets[name]})
@@ -135,9 +135,10 @@ class TargetsTool(HtmlToolInstance):
         from chimerax.core.commands import run
         run(self.session, cmd);
 
-    def _cb_nothing(self, query):
+    def _cb_builtin(self, query):
         """shows only selected structure"""
-        print("nothing", query)
+        self._show_all = query["show"][0] == "true";
+        self.update_targets()
 
     # Session stuff
 

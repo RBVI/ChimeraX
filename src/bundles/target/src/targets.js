@@ -1,45 +1,43 @@
 // vim: set expandtab shiftwidth=4 softtabstop=4:
 
-var targets_column_info = [
-    "Name",
-    "Info",
-    "Atom",
-    "Ribbon",
-    "Surface",
-]
-
-var components_column_info = [
-    "Type",
-    "Specifier",
-    "Atom",
-    "Ribbon",
-    "Surface",
-]
-
 var tgttable = function() {
     var custom_scheme = "tgttable";
-    var mouse_down_row = null;
-    var mouse_down_index = null;
-    var mouse_last_index = null;
-    var mouse_down_toggle = null;
-    var mouse_down_selected = null;
+    var targets_column_info = [
+        "Name",
+        "Info",
+        "Atom",
+        "Ribbon",
+        "Surface",
+    ];
+    var components_column_info = [
+        "Type",
+        "Specifier",
+        "Atom",
+        "Ribbon",
+        "Surface",
+    ];
+    var show_builtins = false;
 
     function update_targets(targets) {
         // Clean up previous incarnation and save some state
         $("#targets_table").trigger("destroy");
         $("#targets").empty();
-        $("#targets").append($("<p/>").text(targets.length +
-                                            " user-defined targets."));
-        if (targets.length == 0)
-            return;
 
         // Create table headers
         var thead = $("<thead/>");
         var row = $("<tr/>");
-        for (var i = 0; i < targets_column_info.length; i++) {
+        var msg = "";
+        if (show_builtins)
+            msg = " built-in and user-defined targets."
+        else
+            msg = " user-defined targets."
+        row.append($("<th/>", { colspan: targets_column_info.length })
+                      .text(targets.length + msg));
+        thead.append(row);
+        row = $("<tr/>");
+        for (var i = 0; i < targets_column_info.length; i++)
             row.append($("<th/>").text(targets_column_info[i]));
-            thead.append(row);
-        }
+        thead.append(row);
         // Create table body
         var tbody = $("<tbody/>");
         $.each(targets, function(i, tgt) {
@@ -70,14 +68,14 @@ var tgttable = function() {
         // Clean up previous incarnation and save some state
         $("#components_table").trigger("destroy");
         $("#components").empty();
-        $("#components").append($("<p/>").text(components.length +
-                                                " model components."));
-        if (components.length == 0)
-            return;
 
         // Create table headers
         var thead = $("<thead/>");
         var row = $("<tr/>");
+        row.append($("<th/>", { colspan: components_column_info.length })
+                      .text(components.length + " model components."));
+        thead.append(row);
+        row = $("<tr/>");
         for (var i = 0; i < components_column_info.length; i++) {
             row.append($("<th/>").text(components_column_info[i]));
             thead.append(row);
@@ -148,11 +146,10 @@ var tgttable = function() {
     }
 
     function init() {
-        /*
-        $("#nothing_btn").click(function() {
-            window.location = custom_scheme + ":nothing";
+        $("#builtin_checkbox").change(function(event) {
+            window.location = custom_scheme + ":builtin?show="
+                              + $(event.target).is(":checked");
         });
-        */
         $("#targets_table").tablesorter();
         $("#components_table").tablesorter();
     }

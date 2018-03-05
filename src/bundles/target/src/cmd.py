@@ -25,7 +25,7 @@ def target_undefine(session, name):
 target_undefine_desc = CmdDesc(required=[("name", StringArg)])
 
 
-def target_list(session, all=False):
+def target_list(session, all=False, log=True):
     from chimerax.core.commands import list_selectors, get_selector
     from chimerax.core.objects import Objects
     targets = {}
@@ -36,16 +36,17 @@ def target_list(session, all=False):
             if not all and (mod_name.startswith("chimerax.core") or
                             mod_name.startswith("chimerax.chem_group")):
                 continue
-            value = "Function"
+            value = "Built-in"
         elif isinstance(sel, Objects):
             value = ("[%d atoms, %d bonds, %d pbonds, %d models]" %
                      (sel.num_atoms, sel.num_bonds, sel.num_pseudobonds,
                       len(sel.models)))
         else:
             value = str(sel)
-        session.logger.info('\t'.join([name, value]))
+        if log:
+            session.logger.info('\t'.join([name, value]))
         targets[name] = value
-    if not targets:
+    if not targets and log:
         session.logger.info("There are no user-defined targets.")
     return targets
 target_list_desc = CmdDesc(optional=[("all", NoArg)])
