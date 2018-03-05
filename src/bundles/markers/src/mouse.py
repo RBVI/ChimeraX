@@ -247,7 +247,7 @@ class LaserEvent:
 #
 class ConnectMouseMode(MarkerMouseMode):
     name = 'connect markers'
-    icon_file = 'bond.png'
+    icon_file = None
 
     def enable(self):
         MarkerMouseMode.enable(self)
