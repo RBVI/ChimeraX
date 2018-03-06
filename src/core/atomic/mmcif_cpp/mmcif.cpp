@@ -1450,16 +1450,16 @@ ExtractMolecule::parse_struct_conn()
     #define SYMMETRY "_symmetry"
 
     // bonds from struct_conn records
-    ChainID chain_id1, chain_id2;            // ptrn[12]_label_asym_id
-    long position1, position2;              // ptrn[12]_label_seq_id
+    ChainID chain_id1, chain_id2;           // ptnr[12]_label_asym_id
+    long position1, position2;              // ptnr[12]_label_seq_id
     long auth_position1 = INT_MAX,
-         auth_position2 = INT_MAX;          // ptrn[12]_auth_seq_id
-    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_ptrn[12]_PDB_ins_code
-    char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptrn[12]_label_alt_id
-    AtomName atom_name1, atom_name2;        // ptrn[12]_label_atom_id
-    ResName residue_name1, residue_name2;    // ptrn[12]_label_comp_id
+         auth_position2 = INT_MAX;          // ptnr[12]_auth_seq_id
+    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_ptnr[12]_PDB_ins_code
+    char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptnr[12]_label_alt_id
+    AtomName atom_name1, atom_name2;        // ptnr[12]_label_atom_id
+    ResName residue_name1, residue_name2;   // ptnr[12]_label_comp_id
     string conn_type;                       // conn_type_id
-    string symmetry1, symmetry2;            // ptrn[12]_symmetry
+    string symmetry1, symmetry2;            // ptnr[12]_symmetry
     float distance = 0;                     // pdbx_dist_value
 
     CIFFile::ParseValues pv;
