@@ -829,13 +829,13 @@ class HandControllerModel(Model):
         if hasattr(m, 'drag_3d'):
             rp = self.room_position
             ldp = self._last_drag_room_position
-            self._last_drag_room_position = rp
             room_move = rp * ldp.inverse()
-            delta_z = room_move.translation()[1] # Room vertical motion
+            delta_z = (rp.origin() - ldp.origin())[1] # Room vertical motion
             rts = camera.room_to_scene
             move = rts * room_move * rts.inverse()
             p = rts * rp
-            m.drag_3d(p, move, delta_z)
+            if m.drag_3d(p, move, delta_z) != 'accumulate drag':
+                self._last_drag_room_position = rp
         
     def process_motion(self, camera):
         # For controllers with trigger pressed, use controller motion to move scene
