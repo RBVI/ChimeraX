@@ -391,6 +391,9 @@ class PlaySeriesMouseMode(MouseMode):
       return
     self.last_mouse_x = x
 
+    self._take_step(tstep)
+
+  def _take_step(self, tstep):
     p = self.play_series()
     if p is None:
       return
@@ -409,6 +412,13 @@ class PlaySeriesMouseMode(MouseMode):
     if tn != t:
       p.change_time(tn)
     p.session.logger.status('%s time %d' % (s0.name, tn+1))
+
+  def drag_3d(self, position, move, delta_z):
+    if delta_z is not None:
+      tstep = int(round(20*delta_z))
+      if tstep == 0:
+        return 'accumulate drag'
+      self._take_step(tstep)
 
 # -----------------------------------------------------------------------------
 #
