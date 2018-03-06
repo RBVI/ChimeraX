@@ -146,11 +146,11 @@ public:
 };
 #endif
 
-bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = 0)
+bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_limits<float>::quiet_NaN())
 {
     float idealBL = Element::bond_length(a1->element(), a2->element());
     float sqlength;
-    if (distance > 0)
+    if (!isnan(distance))
         sqlength = distance * distance;
     else
         sqlength = a1->coord().sqdistance(a2->coord());
@@ -254,6 +254,8 @@ struct ExtractMolecule: public readcif::CIFFile
         }
     };
     unordered_map<AtomKey, Atom*, hash_AtomKey> atom_map;
+    // serial_num -> atom, alt_id for atom_site_anisotrop
+    std::map <long, std::pair<Atom*, char>> atom_lookup;
     map<ChainID, string> chain_entity_map;
     struct ResidueKey {
         string entity_id;
@@ -423,6 +425,7 @@ ExtractMolecule::reset_parse()
 {
     molecules.clear();
     atom_map.clear();
+    atom_lookup.clear();
     chain_entity_map.clear();
     all_residues.clear();
 #ifdef SHEET_HBONDS
@@ -778,7 +781,6 @@ ExtractMolecule::finished_parse()
         }
         m->use_best_alt_locs();
     }
-    vector<Structure*> save_molecules;
     reset_parse();
 }
 
@@ -1356,12 +1358,11 @@ ExtractMolecule::parse_atom_site()
                         atom_name, residue_name);
                 atom_map[k] = a;
             }
-            if (serial_num) {
+            if (serial_num)
                 atom_serial = serial_num;
-                a->set_serial_number(atom_serial);
-            } else {
-                a->set_serial_number(++atom_serial);
-            }
+            else
+                ++atom_serial;
+            a->set_serial_number(atom_serial);
         }
         Coord c(x, y, z);
         a->set_coord(c);
@@ -1369,7 +1370,8 @@ ExtractMolecule::parse_atom_site()
             a->set_bfactor(b_factor);
         if (occupancy != DBL_MAX)
             a->set_occupancy(occupancy);
-
+        if (serial_num)
+            atom_lookup[serial_num] = {a, alt_id};
     }
 }
 
@@ -1418,15 +1420,14 @@ ExtractMolecule::parse_atom_site_anisotrop()
 
     auto mol = all_residues.begin()->second.begin()->second->structure();
     auto& atoms = mol->atoms();
-    std::map <long, Atom*> atom_lookup;
-    for (auto&& a: atoms) {
-        atom_lookup[a->serial_number()] = a;
-    }
     while (parse_row(pv)) {
         const auto& ai = atom_lookup.find(serial_num);
         if (ai == atom_lookup.end())
             continue;
-        Atom *a = ai->second;
+        Atom *a = ai->second.first;
+        char alt_id = ai->second.second;
+        if (alt_id)
+            a->set_alt_loc(alt_id, false);
         a->set_aniso_u(u11, u12, u13, u22, u23, u33);
     }
 }
@@ -1460,7 +1461,7 @@ ExtractMolecule::parse_struct_conn()
     ResName residue_name1, residue_name2;   // ptnr[12]_label_comp_id
     string conn_type;                       // conn_type_id
     string symmetry1, symmetry2;            // ptnr[12]_symmetry
-    float distance = 0;                     // pdbx_dist_value
+    float distance = std::numeric_limits<float>::quiet_NaN();  // pdbx_dist_value
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
