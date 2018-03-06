@@ -436,6 +436,14 @@ def init(argv, event_loop=True):
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
 
+    # Set current working directory to Desktop when launched from icon.
+    if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
+        (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
+        try:
+            os.chdir(os.path.expanduser('~/Desktop'))
+        except:
+            pass
+
     # splash screen
     if opts.gui:
         sess.ui.show_splash()
