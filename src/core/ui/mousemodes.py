@@ -922,6 +922,13 @@ class ClipMouseMode(MouseMode):
         shift = (dx*nx + dy*ny) * self.pixel_size()
         return shift
 
+    def drag_3d(self, position, move, delta_z):
+        if move:
+            for p in self._planes(front_shift = 1, back_shift = 0):
+                if p:
+                    p.normal = move.apply_without_translation(p.normal)
+                    p.plane_point = move * p.plane_point
+
 class ClipRotateMouseMode(MouseMode):
     '''
     Rotate clip planes.
@@ -977,6 +984,12 @@ class ClipRotateMouseMode(MouseMode):
                     rplanes.append(adjust_plane('back', 0, pf.plane_point, pf.normal, cp))
                     cp.remove_plane('far')
         return rplanes
+
+    def drag_3d(self, position, move, delta_z):
+        if move:
+            for p in self._planes():
+                p.normal = move.apply_without_translation(p.normal)
+                p.plane_point = move * p.plane_point
 
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
