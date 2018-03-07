@@ -271,6 +271,45 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
+    # for modules that moved out of core, allow the old imports to work for awhile...
+    from importlib.abc import MetaPathFinder, Loader
+    class CoreCompatFinder(MetaPathFinder):
+        def find_spec(self, full_name, path, target=None):
+            unmoved_modules = ["atomic", "map", "surface"]
+            moved_modules = ["ui"]
+            for umod in unmoved_modules:
+                future_name = "chimerax." + umod
+                if full_name.startswith(future_name):
+                    current_name = "chimerax.core." + umod
+                    from importlib import util
+                    real_name = full_name.replace(future_name, current_name)
+                    real_spec = util.find_spec(real_name)
+                    class FakeLoader(Loader):
+                        def create_module(self, spec, real_name=real_name):
+                            return sys.modules[real_name]
+                        def exec_module(self, module):
+                            pass
+                    from importlib.machinery import ModuleSpec
+                    fake_spec = ModuleSpec(full_name, FakeLoader(), origin=real_spec.origin)
+                    return fake_spec
+            for mmod in moved_modules:
+                old_name = "chimerax.core." + mmod
+                if full_name.startswith(old_name):
+                    new_name = "chimerax." + mmod
+                    from importlib import util
+                    real_name = full_name.replace(old_name, new_name)
+                    real_spec = util.find_spec(real_name)
+                    class FakeLoader(Loader):
+                        def create_module(self, spec, real_name=real_name):
+                            return sys.modules[real_name]
+                        def exec_module(self, module):
+                            pass
+                    from importlib.machinery import ModuleSpec
+                    fake_spec = ModuleSpec(full_name, FakeLoader(), origin=real_spec.origin)
+                    return fake_spec
+            return None
+    sys.meta_path.append(CoreCompatFinder())
+
     from chimerax.core.utils import initialize_ssl_cert_dir
     initialize_ssl_cert_dir()
 
