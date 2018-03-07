@@ -765,7 +765,7 @@ class HandControllerModel(Model):
                     self._ui_pressed = ui_click and pressed
                 else:
                     ui_click = None
-                from chimerax.core.ui import MouseMode
+                from chimerax.ui import MouseMode
                 if isinstance(ui_click, MouseMode):
                     mmode = ui_click
                     if mmode.name == 'zoom':

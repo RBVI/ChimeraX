@@ -7,11 +7,11 @@ class HtmlToolInstance(ToolInstance):
     """Class used to generate an HTML widget as the tool's main UI.
 
     The :py:attr:`tool_window` instance attribute refers to the
-    :py:class:`~chimerax.core.ui.MainToolWindow` instance
+    :py:class:`~chimerax.ui.MainToolWindow` instance
     for the tool.
 
     The :py:attr:`html_view` instance attribute refers to the
-    :py:class:`~chimerax.core.ui.widgets.HtmlView` instance
+    :py:class:`~chimerax.ui.widgets.HtmlView` instance
     for managing HTML content and link actions.
 
     To facilitate customizing the HTML view, if the

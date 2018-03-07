@@ -1,5 +1,5 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-from chimerax.core.ui import HtmlToolInstance
+from chimerax.ui import HtmlToolInstance
 
 
 class TargetsTool(HtmlToolInstance):

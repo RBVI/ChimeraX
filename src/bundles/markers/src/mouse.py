@@ -66,7 +66,7 @@ class MarkerMouseMode(MouseMode):
         xyz1, xyz2 = self._view_line(event)
         s = self.session
         log = s.logger
-        from chimerax.core.ui.mousemodes import picked_object_on_segment
+        from chimerax.ui.mousemodes import picked_object_on_segment
         p = picked_object_on_segment(xyz1, xyz2, s.main_view)
         if p is None:
             c = None
