@@ -440,6 +440,10 @@ def init(argv, event_loop=True):
                         ad.site_config_dir, ad.user_log_dir,
                         chimerax.app_data_dir, adu.user_cache_dir)
 
+    # create a global trigger set for toolshed and atomspec target registration
+    from chimerax.core import triggerset
+    chimerax.core.triggers = triggerset.TriggerSet()
+
     from chimerax.core import session
     sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
 
@@ -470,6 +474,14 @@ def init(argv, event_loop=True):
     sess.ui = ui_class(sess)
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
+
+    # Set current working directory to Desktop when launched from icon.
+    if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
+        (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
+        try:
+            os.chdir(os.path.expanduser('~/Desktop'))
+        except:
+            pass
 
     # splash screen
     if opts.gui:

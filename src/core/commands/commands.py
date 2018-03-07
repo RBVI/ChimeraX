@@ -11,6 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+ATOMSPEC_EVALUATED = "atomspec evaluated"
+ATOMSPEC_TARGET_REGISTERED = "atomspec target registered"
+ATOMSPEC_TARGET_DEREGISTERED = "atomspec target deregistered"
+
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
@@ -43,3 +47,7 @@ def register_core_commands(session):
     fit.register_fitmap_command(session.logger)
     from ..map import series
     series.register_vseries_command(session.logger)
+    session.triggers.add_trigger(ATOMSPEC_EVALUATED)
+    from .. import triggers
+    triggers.add_trigger(ATOMSPEC_TARGET_REGISTERED)
+    triggers.add_trigger(ATOMSPEC_TARGET_DEREGISTERED)

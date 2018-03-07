@@ -58,17 +58,19 @@ class TugAtomsMode(MouseMode):
         self._tugging = False
         self._tug_handler = None
         self._last_frame_number = None
-        self._last_xy = None
+        self._puller = None
         self._arrow_model = None
 
         self._log = Logger('tug.log' if write_logs else None)
             
     def mouse_down(self, event):
         self._log('In mouse_down')
-        MouseMode.mouse_down(self, event)
         x,y = event.position()
         view = self.session.main_view
         pick = view.first_intercept(x,y)
+        self._pick_atom(pick)
+
+    def _pick_atom(self, pick):
         if hasattr(pick, 'atom'):
             a = pick.atom
             st = self._tugger
@@ -83,15 +85,12 @@ class TugAtomsMode(MouseMode):
 
     def mouse_drag(self, event):
         self._log('In mouse_drag')
-        self._last_xy = x,y = event.position()
-        self._tug(x, y)
-
-        if self._tug_handler is None:
-            self._tug_handler = self.session.triggers.add_handler('new frame', self._continue_tugging)
+        x,y = event.position()
+        self._puller = Puller2D(x,y)
+        self._continue_tugging()
         
-    def mouse_up(self, event):
+    def mouse_up(self, event = None):
         self._log('In mouse_up', close = True)
-        MouseMode.mouse_up(self, event)
         self._tugging = False
         self._last_frame_number = None
         th = self._tug_handler
@@ -102,7 +101,7 @@ class TugAtomsMode(MouseMode):
             if a and not a.deleted:
                 a.display = False
         
-    def _tug(self, x, y):
+    def _tug(self):
         self._log('In _tug')
         if not self._tugging:
             return
@@ -110,31 +109,22 @@ class TugAtomsMode(MouseMode):
         if v.frame_number == self._last_frame_number:
             return	# Make sure we draw a frame before doing another MD calculation
 
-        atom_xyz, offset = self._pull_direction(x, y)
+        a = self._tugger.atom
+        atom_xyz, offset = self._puller.pull_direction(a)
 
         from time import time
         t0 = time()
         if self._tugger.tug_displacement(offset):
             self._last_frame_number = v.frame_number
         t1 = time()
-        atom_xyz, offset = self._pull_direction(x, y)
+        atom_xyz, offset = self._puller.pull_direction(a)
         self._draw_arrow(atom_xyz+offset, atom_xyz)
-
-    def _pull_direction(self, x, y):
-        self._log('In pull_direction')
-        v = self.session.main_view
-        x0,x1 = v.clip_plane_points(x, y)
-        axyz = self._tugger.atom.scene_coord
-        # Project atom onto view ray to get displacement.
-        dir = x1 - x0
-        da = axyz - x0
-        from chimerax.core.geometry import inner_product
-        offset = da - (inner_product(da, dir)/inner_product(dir,dir)) * dir
-        return axyz, -offset
 
     def _continue_tugging(self, *_):
         self._log('In continue_tugging')
-        self._tug(*self._last_xy)
+        if self._tug_handler is None:
+            self._tug_handler = self.session.triggers.add_handler('new frame', self._continue_tugging)
+        self._tug()
 
     def _draw_arrow(self, xyz1, xyz2, radius = 0.1):
         self._log('In draw_arrow')
@@ -155,6 +145,43 @@ class TugAtomsMode(MouseMode):
                                                 array([radius],float32))
         a.position = p[0]
         a.display = True
+
+    def laser_click(self, xyz1, xyz2):
+        from chimerax.core.ui.mousemodes import picked_object_on_segment
+        view = self.session.main_view
+        pick = picked_object_on_segment(xyz1, xyz2, view)
+        self._pick_atom(pick)
+        
+    def drag_3d(self, position, move, delta_z):
+        if position is None:
+            self.mouse_up()
+        elif move is not None:
+            self._puller = Puller3D(position.origin())
+            self._continue_tugging()
+
+class Puller2D:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        
+    def pull_direction(self, atom):
+        v = atom.structure.session.main_view
+        x0,x1 = v.clip_plane_points(self.x, self.y)
+        axyz = atom.scene_coord
+        # Project atom onto view ray to get displacement.
+        dir = x1 - x0
+        da = axyz - x0
+        from chimerax.core.geometry import inner_product
+        offset = da - (inner_product(da, dir)/inner_product(dir,dir)) * dir
+        return axyz, -offset
+
+class Puller3D:
+    def __init__(self, xyz):
+        self.xyz = xyz
+        
+    def pull_direction(self, atom):
+        axyz = atom.scene_coord
+        return axyz, self.xyz - axyz
 
 class StructureTugger:
     def __init__(self, structure):

@@ -12,11 +12,20 @@ class HtmlToolInstance(ToolInstance):
 
     The :py:attr:`html_view` instance attribute refers to the
     :py:class:`~chimerax.core.ui.widgets.HtmlView` instance
-    for managing HTML content and link actions.  To facilitate
-    customizing the HTML view, if the `HtmlToolInstance` class
-    has an attribute :py:attr:`CUSTOM_SCHEME` and a method
-    :py:meth:`handle_scheme`, then the `HtmlView` instance
-    will be configured to support the custom scheme.
+    for managing HTML content and link actions.
+
+    To facilitate customizing the HTML view, if the
+    `HtmlToolInstance` subclass has an attribute
+    :py:attr:`CUSTOM_SCHEME` and a method :py:meth:`handle_scheme`,
+    then the `HtmlView` instance will be configured to support
+    the custom scheme.
+
+    If the `HtmlToolInstance` has a method :py:meth:`update_models`,
+    then it will be called as a handler to model addition and
+    removal events.  :py:meth:`update_models` should take three
+    arguments: `self`, `trigger_name` and `trigger_data`.
+    `trigger_name` is a string and `trigger_data` is a list of
+    models added or removed.
 
     Parameters
     ----------
@@ -28,7 +37,7 @@ class HtmlToolInstance(ToolInstance):
         The suggested initial widget size in pixels.
     """
 
-    def __init__(self, session, tool_name, size_hint=None):
+    def __init__(self, session, tool_name, size_hint=None, log_errors=False):
         from PyQt5.QtWidgets import QGridLayout
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         from . import MainToolWindow
@@ -41,7 +50,8 @@ class HtmlToolInstance(ToolInstance):
         parent = self.tool_window.ui_area
 
         # Check if class wants to handle custom scheme
-        kw = {"tool_window": self.tool_window}
+        kw = {"tool_window": self.tool_window,
+              "log_errors": log_errors}
         if size_hint is not None:
             kw["size_hint"] = size_hint
         try:

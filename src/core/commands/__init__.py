@@ -9,7 +9,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .commands import register_core_commands
+from .commands import register_core_commands, ATOMSPEC_EVALUATED
+from .commands import ATOMSPEC_TARGET_REGISTERED, ATOMSPEC_TARGET_DEREGISTERED
 from .selectors import register_core_selectors
 from .run import run, concise_model_spec, quote_if_necessary
 from .runscript import runscript
@@ -35,4 +36,5 @@ from .colorarg import ColorArg, Color8Arg, ColormapArg, ColormapRangeArg
 from .symarg import SymmetryArg
 
 from .atomspec import AtomSpecArg, all_objects
-from .atomspec import register_selector, deregister_selector, get_selector
+from .atomspec import register_selector, deregister_selector
+from .atomspec import list_selectors, get_selector

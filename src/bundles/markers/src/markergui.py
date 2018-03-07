@@ -26,6 +26,18 @@ class MarkerModeSettings(ToolInstance):
 
         self.display_name = 'Markers'
 
+        self.mode_menu_names = mnames = {
+            'maximum': 'Place marker at density maximum',
+            'plane': 'Place marker on volume plane',
+            'surface': 'Place marker on surface',
+            'center': 'Place marker at center of connected surface',
+            'link': 'Link consecutively clicked markers',
+            'move': 'Move markers',
+            'resize': 'Resize markers or links',
+            'delete': 'Delete markers or links',
+        }
+        self.mode_order = ('maximum', 'plane', 'surface', 'center', 'link', 'move', 'resize', 'delete')
+
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self, close_destroys=False)
         self.tool_window = tw
@@ -45,23 +57,15 @@ class MarkerModeSettings(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         f.setLayout(layout)
-        
-        mf = QFrame(f)
-#        mf.setStyleSheet('background-color: green')
 
+        # Toolbar icons for marker modes
+        tb = self.create_buttons(parent)
+        layout.addWidget(tb)
+
+        # Option menu for marker modes
+        mf = QFrame(f)
         mf.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         layout.addWidget(mf)
-        self.mode_menu_names = mnames = {
-            'maximum': 'Place marker at density maximum',
-            'plane': 'Place marker on volume plane',
-            'surface': 'Place marker on surface',
-            'surface center': 'Place marker at center of connected surface',
-            'link': 'Link consecutively clicked markers',
-            'move': 'Move markers',
-            'resize': 'Resize markers or links',
-            'delete': 'Delete markers or links',
-        }
-        mode_order = ('maximum', 'plane', 'surface', 'surface center', 'link', 'move', 'resize', 'delete')
         mm_layout = QHBoxLayout(mf)
         mm_layout.setContentsMargins(0,0,0,0)
         mm_layout.setSpacing(5)
@@ -70,12 +74,13 @@ class MarkerModeSettings(ToolInstance):
         mm_layout.addWidget(ml)
         self.mode_button = mb = QPushButton(mf)
         mm = QMenu()
-        for m in mode_order:
+        for m in self.mode_order:
             mm.addAction(mnames[m], lambda mode=m, self=self: self.mode_change_cb(mode))
         mb.setMenu(mm)
         mm_layout.addWidget(mb)
         mm_layout.addStretch(1)    # Extra space at end
 
+        # Link consecutive markers checkbutton
         self.link_new_button = lc = QCheckBox('Link new marker to selected marker', f)
         lc.stateChanged.connect(self.link_new_cb)
         layout.addWidget(lc)
@@ -83,6 +88,32 @@ class MarkerModeSettings(ToolInstance):
         self.update_settings()
         
         tw.manage(placement="side")
+
+    def create_buttons(self, parent):
+        from PyQt5.QtWidgets import QAction, QFrame, QHBoxLayout, QToolButton
+        from PyQt5.QtGui import QIcon
+        from PyQt5.QtCore import Qt, QSize
+        tb = QFrame(parent)
+        layout = QHBoxLayout(tb)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        tb.setStyleSheet('QFrame{spacing:0px;}\n'
+                         'QToolButton{padding:0px; margin:0px; border:none;}')
+        for mname in self.mode_order:
+            mdesc = self.mode_menu_names[mname]
+            b = QToolButton(tb)
+            b.setIconSize(QSize(40,40))
+            from os import path
+            icon_dir = path.join(path.dirname(__file__), 'icons')
+            icon_path = path.join(icon_dir, mname + '.png')
+            action = QAction(QIcon(icon_path), mdesc, tb)
+            b.setDefaultAction(action)
+            def button_press_cb(event, mode=mname, self=self):
+                self.mode_change_cb(mode)
+            action.triggered.connect(button_press_cb)
+            layout.addWidget(b)
+        layout.addStretch(1)    # Extra space at end
+        return tb
 
     def update_settings(self):
         s = self.session

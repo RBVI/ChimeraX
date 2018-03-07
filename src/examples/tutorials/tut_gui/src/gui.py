@@ -38,7 +38,9 @@ class TutorialGUI(HtmlToolInstance):
         self.display_name = "Tutorial GUI"
 
         # Initialize base class.  ``size_hint`` is the suggested
-        # initial tool size in pixels.
+        # initial tool size in pixels.  For debugging, add
+        # "log_errors=True" to get Javascript errors logged
+        # to the ChimeraX log window.
         super().__init__(session, ti.name, size_hint=(575, 400))
         self._build_ui()
 

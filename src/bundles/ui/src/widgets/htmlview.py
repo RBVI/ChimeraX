@@ -64,7 +64,7 @@ class HtmlView(QWebEngineView):
 
     def __init__(self, *args, size_hint=None, schemes=None,
                  interceptor=None, download=None, profile=None,
-                 tool_window=None, **kw):
+                 tool_window=None, log_errors=False, **kw):
         super().__init__(*args, **kw)
         self._size_hint = size_hint
         self._tool_window = tool_window
@@ -85,7 +85,10 @@ class HtmlView(QWebEngineView):
                         p.installUrlSchemeHandler(scheme, self._scheme_handler)
             if download:
                 p.downloadRequested.connect(download)
-        page = _LoggingPage(self._profile, self)
+        if log_errors:
+            page = _LoggingPage(self._profile, self)
+        else:
+            page = QWebEnginePage(self._profile, self)
         self.setPage(page)
         s = page.settings()
         s.setAttribute(s.LocalStorageEnabled, True)
