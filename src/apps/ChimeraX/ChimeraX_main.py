@@ -281,8 +281,10 @@ def init(argv, event_loop=True):
                 future_name = "chimerax." + umod
                 if full_name.startswith(future_name):
                     current_name = "chimerax.core." + umod
-                    from importlib import util
+                    from importlib import util, import_module
                     real_name = full_name.replace(future_name, current_name)
+                    # ensure real module has been imported...
+                    import_module(real_name)
                     real_spec = util.find_spec(real_name)
                     class FakeLoader(Loader):
                         def create_module(self, spec, real_name=real_name):
@@ -298,6 +300,8 @@ def init(argv, event_loop=True):
                     new_name = "chimerax." + mmod
                     from importlib import util
                     real_name = full_name.replace(old_name, new_name)
+                    # ensure real module has been imported...
+                    import_module(real_name)
                     real_spec = util.find_spec(real_name)
                     class FakeLoader(Loader):
                         def create_module(self, spec, real_name=real_name):
