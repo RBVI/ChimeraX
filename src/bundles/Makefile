@@ -42,6 +42,7 @@ clean:
 	rm -rf __pycache__
 
 align_algs.install: alignments.install
+bond_rot.install: ui.install
 bumps.install: markers.install
 crosslinks.install: interfaces.install
 markers.install: ui.install
