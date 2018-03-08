@@ -11,6 +11,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+"""
+fetch: Retrieve files from a network source
+===========================================
+
+The fetch module provides functions for fetching
+data from a network source.  Low-level functions
+such as fetch_file do not interpret the returned
+content, while high-level functions such as
+fetch_web maps the content to a particular format
+and tries to create models from the content.
+"""
+
 _database_fetches = {}
 _cache_dirs = []
 

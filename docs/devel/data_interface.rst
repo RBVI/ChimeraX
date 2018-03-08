@@ -42,6 +42,8 @@ Modules
 
     core/io.rst
 
+    core/objects.rst
+
     core/session.rst
 
     core/triggerset.rst

@@ -10,7 +10,7 @@ class _MyAPI(BundleAPI):
 
     api_version = 1
 
-    # Override method for opening file
+    # Override method for fetching from database
     @staticmethod
     def fetch_from_database(session, identifier, **kw):
         # 'fetch_from_database' is called by session code to fetch

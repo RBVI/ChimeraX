@@ -32,11 +32,13 @@ Python Modules
 
     core/data_events.rst
 
+    core/fetch.rst
+
     core/geometry/geometry.rst
 
     core/graphics/graphics.rst
 
-    core/ui/gui.rst
+    bundles/ui/src/gui.rst
 
     core/history.rst
 
@@ -49,6 +51,8 @@ Python Modules
     core/models.rst
 
     core/atomic/molsurf.rst
+
+    core/objects.rst
 
     core/orderedset.rst
 
@@ -74,7 +78,7 @@ Python Modules
 
     core/triggerset.rst
 
-    core/ui/mousemodes.rst
+    bundles/ui/src/mousemodes.rst
 
     core/utils.rst
 

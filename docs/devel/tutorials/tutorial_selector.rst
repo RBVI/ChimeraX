@@ -77,7 +77,7 @@ for bundles written completely in Python.  The
 from the :doc:`tutorial_tool` example with changes highlighted.
 For explanations of the unhighlighted sections, please
 see :doc:`tutorial_hello`, :doc:`tutorial_command` and
-`tutorial_tool`.
+:doc:`tutorial_tool`.
 
 .. literalinclude:: ../../../src/examples/tutorials/tut_sel/bundle_info.xml
     :language: xml
@@ -127,7 +127,7 @@ are ``bi``, a :py:class:`chimerax.core.toolshed.BundleInfo` instance,
 ``si``, a :py:class:`chimerax.core.toolshed.SelectorInfo` instance, and
 ``logger``, a :py:class:`chimerax.core.logger.Logger` instance.
 The method is expected to call
-:py:class:`chimerax.core.commands.register_selector` to define
+:py:meth:`chimerax.core.commands.register_selector` to define
 a selector whose name is given by ``si.name``.
 Note that there is no ``session`` argument because, like commands,
 selectors are session-independent; that is, once registered, a selector
@@ -159,10 +159,11 @@ A selector callback function is invoked with three arguments:
 The callback function is expected to process all the given ``models``
 and add items of interest to ``results``.  Currently, the only items
 that can be added are instances of :py:class:`chimerax.core.models.Model`,
-:py:class:`chimerax.core.atomic.Atom` and :py:class:`chimerax.core.atomic.Bond`.
+:py:class:`chimerax.core.atomic.molobject.Atom` and
+:py:class:`chimerax.core.atomic.molobject.Bond`.
 Typically, ``Model`` instances are only added explicitly for
 non-atomic models.  More commonly, atoms (and bonds) are added
-using the ``results.add_atoms`` method.
+using the :py:meth:`~chimerax.core.objects.Objects.add_atoms` method.
 
 .. include:: build_test_distribute.rst
 

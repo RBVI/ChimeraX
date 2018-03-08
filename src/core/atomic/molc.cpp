@@ -466,10 +466,23 @@ extern "C" EXPORT void atom_coord(void *atoms, size_t n, float64_t *xyz)
 extern "C" EXPORT void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
 {
     Atom **a = static_cast<Atom **>(atoms);
+    std::unordered_map<Structure*, std::vector<Atom*>> s_map;
+    Coord coord;
     try {
         for (size_t i = 0; i != n; ++i) {
-            Real x = *xyz++, y = *xyz++, z = *xyz++;
-            a[i]->set_coord(Coord(x,y,z));
+            s_map[(*a)->structure()].push_back(*a);
+            coord.set_xyz(*xyz, *(xyz+1), *(xyz+2));
+            (*a++)->set_coord(coord, /* track_change */ false);
+            xyz += 3;
+        }
+        for (auto &s_atoms: s_map) {
+            auto s = s_atoms.first;
+            auto &atoms = s_atoms.second;
+            auto ct = s->change_tracker();
+            ct->add_modified_set(s, atoms, ChangeTracker::REASON_COORD);
+            ct->add_modified(s, s->active_coord_set(), ChangeTracker::REASON_COORDSET);
+            s->set_gc_shape();
+            s->set_gc_ribbon();
         }
     } catch (...) {
         molc_error();

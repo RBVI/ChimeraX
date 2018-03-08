@@ -347,13 +347,18 @@ class BundleInfo:
                     raise ToolshedError(
                         "register_selector() failed for selector %s in bundle %s:\n%s" % (si.name, self.name, str(e)))
                 from ..commands import get_selector
-                return get_selector(si.name)(session, models, results)
+                sel = get_selector(si.name)
+                if not callable(sel):
+                    return sel
+                else:
+                    return (session, models, results)
+                return
             register_selector(si.name, selector_cb, logger)
 
     def _deregister_selectors(self, logger):
         from ..commands import deregister_selector
         for si in self.selectors:
-            deregister_selector(si.name)
+            deregister_selector(si.name, logger)
 
     def register_available_commands(self, logger):
         """Register available commands with cli."""

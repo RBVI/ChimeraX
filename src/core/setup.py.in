@@ -96,9 +96,6 @@ setup(
         "PKG_NAME.map.series",
         "PKG_NAME.surface",
         "PKG_NAME.toolshed",
-        "PKG_NAME.ui",
-        "PKG_NAME.ui.widgets",
-        "PKG_NAME.ui.options",
         "PKG_NAME.webservices",
     ],
     package_data={
@@ -109,8 +106,6 @@ setup(
         "PKG_NAME.graphics": ["*.txt", "*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.map": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.surface": ["*.PYMOD_EXT", "*.pdb"],
-        "PKG_NAME.ui.widgets": ["icons/*.png"],
-        "PKG_NAME.ui": ["*.jpg", "*.png", "*.html"],
     },
     data_files=[
         (rel_inst_shlib_dir, [

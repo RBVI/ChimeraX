@@ -29,6 +29,7 @@ summary statistics to NIH.</Description>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Registration :: General :: Register ChimeraX with RBVI</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: register :: General :: Register ChimeraX with RBVI</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: register status :: General :: Report registration status</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

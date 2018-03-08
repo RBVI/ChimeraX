@@ -21,8 +21,8 @@ SUBDIRS = addh align_algs alignments bild blastprotein bond_rot bumps \
 	  nucleotides \
 	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
-	  smooth_lines spacenavigator stl storm struts \
-	  test texture tug viewdockx vive volume_viewer vtk wavefront_obj
+	  smooth_lines spacenavigator stl storm struts swapaa target \
+	  test texture tug ui viewdockx vive volume_viewer vtk wavefront_obj
 
 include $(TOP)/mk/subdir.make
 
@@ -42,7 +42,9 @@ clean:
 	rm -rf __pycache__
 
 align_algs.install: alignments.install
+bond_rot.install: ui.install
 bumps.install: markers.install
 crosslinks.install: interfaces.install
+markers.install: ui.install
 match_maker.install: align_algs.install sim_matrices.install
 sim_matrices.install: alignments.install

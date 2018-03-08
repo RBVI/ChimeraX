@@ -641,7 +641,6 @@ def place_marker(marker_set, p, color, radius):
     rname = 'mark'
     r = m.new_residue(rname, chain_id, id)
     r.add_atom(a)
-    m.new_atoms()
     return a
 
 # -----------------------------------------------------------------------------

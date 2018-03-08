@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from ..ui import MouseMode
+from chimerax.ui import MouseMode
 class ContourLevelMouseMode(MouseMode):
     name = 'contour level'
     icon_file = 'contour.png'
@@ -37,6 +37,11 @@ class ContourLevelMouseMode(MouseMode):
 
         # Make sure new level is shown before another mouse event causes another level change.
         self.session.ui.update_graphics_now()
+
+    def drag_3d(self, position, move, delta_z):
+        if delta_z is not None:
+            for m in mouse_maps(self.session.models):
+                adjust_threshold_level(m, delta_z)
 
 def mouse_maps(models):    
     mall = models.list()

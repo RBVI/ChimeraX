@@ -30,7 +30,7 @@ class VolumeViewer(ToolInstance):
         self._redisplay_handler = None
         self._last_redisplay_frame_number = None
 
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
 
@@ -1774,29 +1774,6 @@ class Histogram_Pane:
     layout.setContentsMargins(0,0,0,0)
     layout.setSpacing(10)
 
-    self.data_id = did = QLabel(df)
-    layout.addWidget(did)
-    did.mousePressEvent = self.select_data_cb
-    
-    self.size = sz = QLabel(df)
-    layout.addWidget(sz)
-    sz.mousePressEvent = self.select_data_cb
-
-    # Subsampling step menu
-    sl = QLabel('step', df)
-    layout.addWidget(sl)
-    layout.addSpacing(-7)
-    self.data_step = dsm = QPushButton(df)
-    dsm.setStyleSheet('padding-left: 4px; padding-right: 0px;')
-    dsm.setMaximumSize(30,20)
-    # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
-    dsm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-    sm = QMenu()
-    for step in (1,2,4,8,16):
-        sm.addAction('%d' % step, lambda s=step: self.data_step_cb(s))
-    dsm.setMenu(sm)
-    layout.addWidget(dsm)
-
     # Display / hide map button
     self.shown = sh = QPushButton(df)
     sh.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
@@ -1819,6 +1796,29 @@ class Histogram_Pane:
     cl.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     cl.clicked.connect(self.show_color_chooser)
     layout.addWidget(cl)    
+
+    self.data_id = did = QLabel(df)
+    layout.addWidget(did)
+    did.mousePressEvent = self.select_data_cb
+    
+    self.size = sz = QLabel(df)
+    layout.addWidget(sz)
+    sz.mousePressEvent = self.select_data_cb
+
+    # Subsampling step menu
+    sl = QLabel('step', df)
+    layout.addWidget(sl)
+    layout.addSpacing(-7)
+    self.data_step = dsm = QPushButton(df)
+    dsm.setStyleSheet('padding-left: 4px; padding-right: 0px;')
+    dsm.setMaximumSize(30,20)
+    # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
+    dsm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    sm = QMenu()
+    for step in (1,2,4,8,16):
+        sm.addAction('%d' % step, lambda s=step: self.data_step_cb(s))
+    dsm.setMenu(sm)
+    layout.addWidget(dsm)
 
     # Threshold level entry
     lh = QLabel('Level', df)
@@ -2106,14 +2106,15 @@ class Histogram_Pane:
   def show_data_name(self):
 
     v = self.volume
-    if len(v.name) > 10:
+#    if len(v.name) > 10:
+    if len(v.name) >= 0:
         self.data_name.show()
         self.data_name.setText(v.name)
         self.data_id.setText('#%s' % v.id_string())
     else:
         self.data_name.hide()
         self.data_name.setText('')
-        self.data_id.setText('%s #%s' % (v.name, v.id_string()))
+        self.data_id.setText('#%s %s' % (v.id_string(), v.name))
 
   # ---------------------------------------------------------------------------
   #

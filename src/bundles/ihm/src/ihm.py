@@ -1827,7 +1827,6 @@ class SphereModel(Structure):
                 last_atom = a
             polymers.append(Residues(polymer))
 
-        self.new_atoms()
         self._polymers.extend(polymers)	# Needed for ribbon rendering
 
     def copy(self, name = None):

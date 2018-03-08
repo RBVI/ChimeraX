@@ -9,6 +9,10 @@
   <Synopsis>Place markers on density maps</Synopsis>
   <Description>Mouse mode to place markers on density maps.</Description>
 
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="Volume Data"/>
   </Categories>

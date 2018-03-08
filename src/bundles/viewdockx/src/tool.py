@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 from io import StringIO
-from chimerax.core.ui import HtmlToolInstance
+from chimerax.ui import HtmlToolInstance
 
 
 class _BaseTool(HtmlToolInstance):
@@ -385,7 +385,7 @@ class TableTool(_BaseTool):
         self._count_pb("clashes", "Clashes")
 
     def _cb_export(self, query):
-        from chimerax.core.ui.open_save import SaveDialog
+        from chimerax.ui.open_save import SaveDialog
         sd = SaveDialog(add_extension="mol2")
         if not sd.exec():
             return

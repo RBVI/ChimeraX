@@ -75,7 +75,7 @@ _class_class_init = {
     'View': '.graphics',
     'Volume': '.map',
     'XSectionManager': '.atomic.ribbon',
-    '_Input': '.ui.nogui',
+    '_Input': '.nogui',
 }
 
 

@@ -520,8 +520,10 @@ class MMCIFTable:
             return 0
         return len(self._data) // len(self._tags)
 
-    def print(self, file=None):
+    def print(self, file=None, *, fixed_width=False):
         """Print contents of table to given file"""
+        if len(self._data) == 0:
+            return
         if file is None:
             import sys
             file = sys.stdout
@@ -533,6 +535,31 @@ class MMCIFTable:
             for t in self._tags:
                 print('_%s.%s' % (self.table_name, t), file=file)
             n = len(self._tags)
-            for i in range(0, len(self._data), n):
-                print(' '.join(quote(x) for x in self._data[i:i + n]), file=file)
+            if not fixed_width:
+                for i in range(0, len(self._data), n):
+                    print(' '.join(quote(x) for x in self._data[i:i + n]), file=file)
+            else:
+                import sys
+                bad_fixed_width = False
+                data = [quote(x) for x in self._data]
+                columns = [data[i::n] for i in range(n)]
+                try:
+                    widths = [max(len(f) if '\n' not in f else sys.maxsize for f in c) for c in columns]
+                except:
+                    bad_fixed_width = True
+                else:
+                    bad_fixed_width = sys.maxsize in widths
+                if bad_fixed_width:
+                    first = True
+                    for i in range(0, len(data), n):
+                        if first:
+                            first = False
+                            print(' '.join(data[i:i + 1]), file=file)
+                            print(' '.join(data[i + 1:i + n]), file=file)
+                        else:
+                            print(' '.join(data[i:i + n]), file=file)
+                else:
+                    fmt = ''.join(['%%-%ds ' % w for w in widths])
+                    for i in range(0, len(data), n):
+                        print(fmt % tuple(data[i:i + n]), file=file)
         print('#', file=file)  # PDBx/mmCIF style
