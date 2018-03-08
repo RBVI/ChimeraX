@@ -20,8 +20,6 @@ command arguments.  These functions and classes are actually imported
 from a submodule, but the supported API only includes the items
 defined in the main *chimerax.core.commands* module.
 
-.. py:module:: chimerax.core.commands
-
 .. automodule:: chimerax.core.commands
     :show-inheritance:
-    :members: register, register_selector, run, AtomicStructuresArg, AtomsArg, AtomSpecArg, AxisArg, BoolArg, CenterArg, ColorArg, ColormapArg, EmptyArg, IntArg, ModelArg, ModelPlacesArg, ModelsArg, NoArg, ObjectsArg, PlaceArg, PseudobondGroupsArg, StringArg, TopModelsArg, ColorArg, ColormapArg
+    :members: register, register_selector, run, AtomicStructuresArg, AtomsArg, AtomSpecArg, AxisArg, BoolArg, CenterArg, ColorArg, ColormapArg, EmptyArg, IntArg, ModelArg, ModelsArg, NoArg, ObjectsArg, PlaceArg, PseudobondGroupsArg, StringArg, TopModelsArg, ColorArg, ColormapArg

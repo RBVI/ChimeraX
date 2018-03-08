@@ -614,13 +614,16 @@ def standard_metadata(previous_metadata={}):
 
     The standard metadata consists of:
 
-    name            value
-    -------------------------------------------------------
-    generator       HTML user agent (app name version (os))
-    created         date first created
-    modified        date last modified after being created
-    creator         user name(s)
-    dateCopyrighted copyright(s)
+    generator :
+        HTML user agent (app name version (os))
+    created :
+        date first created
+    modified :
+        date last modified after being created
+    creator :
+        user name(s)
+    dateCopyrighted :
+        copyright(s)
 
     creator and dateCopyrighted can be lists if there
     is previous metadata with different values.

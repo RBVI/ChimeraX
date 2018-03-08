@@ -38,7 +38,7 @@ Python Modules
 
     core/graphics/graphics.rst
 
-    core/ui/gui.rst
+    bundles/ui/src/gui.rst
 
     core/history.rst
 
@@ -78,7 +78,7 @@ Python Modules
 
     core/triggerset.rst
 
-    core/ui/mousemodes.rst
+    bundles/ui/src/mousemodes.rst
 
     core/utils.rst
 

@@ -13,6 +13,7 @@ Replacements = [
 
 def setup(app):
     app.connect("doctree-read", doctree_read)
+    app.connect("autodoc-skip-member", autodoc_skip_member)
     return {"version":"0.1"}
 
 
@@ -32,3 +33,9 @@ class DoctreeNodeVisitor(GenericNodeVisitor):
 
     def default_visit(self, node):
         return
+
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    # if what in ["method", "function", "attribute"]:
+    print("autodoc_skip_member", what, obj.__class__, obj)
+    return None
