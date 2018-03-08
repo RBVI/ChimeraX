@@ -1,4 +1,4 @@
-# distutils: language = c++
+# distutils: language=c++
 #cython: language_level=3, boundscheck=False
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
@@ -211,12 +211,18 @@ cdef class CyAtom:
         cydecl.Atom.set_py_class(klass)
 
 cdef class Element:
+    '''A chemical element having a name, number, mass, and other physical properties.'''
     cdef cydecl.Element *cpp_element
 
     NUM_SUPPORTED_ELEMENTS = cydecl.Element.AS.NUM_SUPPORTED_ELEMENTS
 
     def __cinit__(self, long ptr_val):
         self.cpp_element = <cydecl.Element *>ptr_val
+
+    def __init__(self, ptr_val):
+        if not isinstance(ptr_val, int) or ptr_val < 256:
+            raise ValueError("Do not use Element constructor directly;"
+                " use Element.get_element method to get an Element instance")
 
     # possibly long-term hack for interoperation with ctypes
     def __delattr__(self, name):
@@ -235,20 +241,52 @@ cdef class Element:
         return byref(self._c_pointer)
 
     @property
+    def is_alkali_metal(self):
+        '''Is atom an alkali metal?  Read only'''
+        return self.cpp_element.is_alkali_metal()
+
+    @property
     def is_halogen(self):
+        '''Is atom a halogen?  Read only'''
         return self.cpp_element.is_halogen()
 
     @property
     def is_metal(self):
+        '''Is atom a metal?  Read only'''
         return self.cpp_element.is_metal()
 
     @property
+    def is_noble_gas(self):
+        '''Is atom a noble gas?  Read only'''
+        return self.cpp_element.is_noble_gas()
+
+    @property
+    def mass(self):
+        '''Atomic mass, taken from
+        http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.  Read only.'''
+        return self.cpp_element.mass()
+
+    @property
     def name(self):
+        '''Atomic symbol.  Read only'''
         return self.cpp_element.name().decode()
+
+    names = { sym.decode() for sym in cydecl.Element.names() }
+    '''Set of known element names'''
 
     @property
     def number(self):
+        '''Atomic number.  Read only'''
         return self.cpp_element.number()
+
+    @property
+    def valence(self):
+        '''Electronic valence number, for example 7 for chlorine.  Read only'''
+        return self.cpp_element.valence()
+
+    def __str__(self):
+        # make printing easier
+        return self.name
 
     @staticmethod
     cdef float _bond_length(long e1, long e2):
@@ -257,6 +295,9 @@ cdef class Element:
 
     @staticmethod
     def bond_length(e1, e2):
+        '''Standard single-bond length between two elements
+
+        Arguments can be element instances, atomic numbers, or element names'''
         if not isinstance(e1, Element):
             e1 = Element.get_element(e1)
         if not isinstance(e2, Element):
@@ -269,6 +310,10 @@ cdef class Element:
 
     @staticmethod
     def bond_radius(e):
+        '''Standard single-bond 'radius'
+        (the amount this element would contribute to bond length)
+
+        Argument can be an element instance, atomic number, or element name'''
         if not isinstance(e, Element):
             e = Element.get_element(e)
         return Element._bond_radius(e.cpp_pointer)

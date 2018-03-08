@@ -37,12 +37,12 @@ endif
 
 all: $(PYOBJS) $(SHLIB)
 
-cython:
-	LDFLAGS="-L." /Users/chimera/Applications/ChimeraX_Daily.app/Contents/MacOS/ChimeraX --nogui --exit --script "setup.py build_ext -i"
-	mv cymol.cpython-36m-darwin.so cymol.so
-	$(RSYNC) cymol.so $(PKG_DIR)
+cymol.$(PYMOD_EXT): cymol.pyx
+	LDFLAGS="-L." $(PYTHON_EXE) setup.py build_ext -i
+	mv cymol.cpython-36m-darwin.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
+	$(RSYNC) cymol.$(PYMOD_EXT) $(PKG_DIR)
 
-install: all dir
+install: all dir $(PYSRCS)
 	$(RSYNC) $(PYSRCS) $(SHLIB) $(PKG_DIR)
 ifdef WIN32
 	#$(RSYNC) $(LIBRARY) $(libdir)
@@ -89,6 +89,8 @@ $(includedir)/atomstruct/Sequence.h: atomstruct_cpp.install
 $(includedir)/element/Element.h: element_cpp.install
 $(includedir)/pyinstance/PythonInstance.declare.h: pyinstance_cpp.install
 $(includedir)/pyinstance/PythonInstance.instantiate.h: pyinstance_cpp.install
+
+molobject.py: cymol.$(PYMOD_EXT)
 
 atomstruct_cpp.install: element_cpp.install pyinstance_cpp.install
 dssp_cpp.install: atomstruct_cpp.install

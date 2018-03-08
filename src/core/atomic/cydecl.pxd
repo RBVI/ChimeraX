@@ -1,4 +1,4 @@
-# distutils: language = c++
+# distutils: language=c++
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -24,11 +24,15 @@ cdef extern from "<element/Element.h>" namespace "element::Element":
 
 cdef extern from "<element/Element.h>" namespace "element":
     cdef cppclass Element:
+        bool is_alkali_metal()
         bool is_halogen()
         bool is_metal()
+        bool is_noble_gas()
+        float mass()
         const char* name()
         int number()
         object py_instance(bool)
+        int valence()
 
         @staticmethod
         float bond_length(Element&, Element&)
@@ -41,6 +45,9 @@ cdef extern from "<element/Element.h>" namespace "element":
 
         @staticmethod
         const Element& get_named_element "get_element"(const char*)
+
+        @staticmethod
+        const set[string] names()
 
         @staticmethod
         void set_py_class(object)
