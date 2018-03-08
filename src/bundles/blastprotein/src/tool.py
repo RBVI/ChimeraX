@@ -31,7 +31,7 @@ class ToolUI(ToolInstance):
         # Standard template stuff
         ToolInstance.__init__(self, session, tool_name)
         self.display_name = "Blast Protein"
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         self.tool_window.manage(placement="side")
         parent = self.tool_window.ui_area
@@ -40,7 +40,7 @@ class ToolUI(ToolInstance):
         # and HTML widget below for displaying results.
         # Layout all the widgets
         from PyQt5.QtWidgets import QGridLayout, QLabel, QComboBox, QPushButton
-        from chimerax.core.ui.widgets import HtmlView
+        from chimerax.ui.widgets import HtmlView
         layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         label = QLabel("Chain:")

@@ -31,6 +31,7 @@ __all__ = [
     'register_compression',
     'open_data',
     'open_multiple_data',
+    'open_filename',
     'formats',
     'format_from_name',
     'deduce_format',

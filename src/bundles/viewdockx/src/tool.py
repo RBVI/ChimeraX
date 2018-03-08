@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 from io import StringIO
-from chimerax.core.ui import HtmlToolInstance
+from chimerax.ui import HtmlToolInstance
 
 
 class _BaseTool(HtmlToolInstance):
@@ -10,17 +10,21 @@ class _BaseTool(HtmlToolInstance):
 
     help = "help:user/tools/viewdockx.html"
 
-    def __init__(self, session, tool_name, structures, html_state):
+    def __init__(self, session, tool_name):
         super().__init__(session, tool_name, size_hint=(575,400))
+        self.structures = []
+        self._html_state = None
         self._loaded_page = False
+
+    def setup(self, structures=None, html_state=None):
         self._html_state = html_state
         try:
-            self.setup(session, structures)
+            self._setup(structures)
         except ValueError as e:
             self.delete()
             raise
 
-    def setup(self, session, structures):
+    def _setup(self, structures):
         #
         # Set attributes that may be examined during delete.
         # Must be done before raising exceptions.
@@ -35,6 +39,7 @@ class _BaseTool(HtmlToolInstance):
         #
         # Get list of structures that we are displaying
         #
+        session = self.session
         if structures is None:
             # Include structures only if they have viewdock data
             from chimerax.core.atomic import AtomicStructure
@@ -233,7 +238,7 @@ class _BaseTool(HtmlToolInstance):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        bundle_info = session.toolshed.find_bundle_for_class(cls)
+        inst = super().restore_snapshot(session, data["_super"])
         structures = data.get("structures", None)
         # XXX: When we have attribute registration, "viewdockx_data"
         # should be handled by the atomic session code and we would
@@ -242,10 +247,7 @@ class _BaseTool(HtmlToolInstance):
             s.viewdockx_data = vdx_data
         structures = list([sd[0] for sd in structures])
         # XXX: end hack
-        super_data = data["_super"]
-        inst = cls(session, bundle_info.tools[0].name, structures=structures,
-                   html_state=data.get(cls.html_state, None))
-        super(_BaseTool, inst).set_state_from_snapshot(session, super_data)
+        inst.setup(structures, data.get(cls.html_state, None))
         return inst
 
     def add_webview_state(self, data):
@@ -289,7 +291,7 @@ class TableTool(_BaseTool):
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Table"
-        super().__init__(session, tool_name, structures, html_state)
+        super().__init__(session, tool_name)
         self.setup_page("viewdockx_table.html")
 
     def _update_ratings(self, trigger=None, trigger_data=None):
@@ -342,10 +344,12 @@ class TableTool(_BaseTool):
             self._update_ratings(trigger_data=structures)
 
     def _cb_graph(self, query):
-        ChartTool(self.session, "ViewDockX Graph", structures=self.structures)
+        tool = ChartTool(self.session, "ViewDockX Graph")
+        tool.setup(self.structures)
 
     def _cb_plot(self, query):
-        PlotTool(self.session, "ViewDockX Plot", structures=self.structures)
+        tool = PlotTool(self.session, "ViewDockX Plot")
+        tool.setup(self.structures)
 
     def _cb_hb(self, query):
         # Create hydrogen bonds between receptor(s) and ligands
@@ -381,7 +385,7 @@ class TableTool(_BaseTool):
         self._count_pb("clashes", "Clashes")
 
     def _cb_export(self, query):
-        from chimerax.core.ui.open_save import SaveDialog
+        from chimerax.ui.open_save import SaveDialog
         sd = SaveDialog(add_extension="mol2")
         if not sd.exec():
             return
@@ -426,7 +430,7 @@ class ChartTool(_BaseTool):
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Chart"
-        super().__init__(session, tool_name, structures, html_state)
+        super().__init__(session, tool_name)
         self.setup_page("viewdockx_chart.html")
 
     def handle_scheme(self, url):
@@ -454,7 +458,7 @@ class PlotTool(_BaseTool):
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
         self.display_name = "ViewDockX Plot"
-        super().__init__(session, tool_name, structures, html_state)
+        super().__init__(session, tool_name)
         self.setup_page("viewdockx_plot.html")
 
     def handle_scheme(self, url):

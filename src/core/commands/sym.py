@@ -207,7 +207,7 @@ def mmcif_assemblies(model):
                    'pdbx_nonpoly_scheme')
     from ..atomic import mmcif
     assem, assem_gen, oper, cremap1, cremap2 = mmcif.get_mmcif_tables(model.filename, table_names)
-    if assem is None or assem_gen is None or oper is None:
+    if not assem or not assem_gen or not oper:
         return []
 
     name = assem.mapping('id', 'details')

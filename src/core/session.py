@@ -379,6 +379,9 @@ class Session:
         # from .scenes import Scenes
         # sess.add_state_manager('scenes', Scenes(sess))
 
+        self.save_options = {}		# Options used when saving session files.
+        self.restore_options = {}	# Options used when restoring session files.
+        
     def _get_view(self):
         return self._state_containers['main_view']
 
@@ -493,13 +496,18 @@ class Session:
             mgr.cleanup()
             self.triggers.activate_trigger("end save session", self)
 
-    def restore(self, stream, path=None, metadata_only=False):
+    def restore(self, stream, path=None, resize_window=None, metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
             use_pickle = stream.peek(1)[0] != ord(b'#')
-        else:
+        elif hasattr(stream, 'buffer'):
             use_pickle = stream.buffer.peek(1)[0] != ord(b'#')
+        elif stream.seekable():
+            use_pickle = stream.read(1)[0] != ord(b'#')
+            stream.seek(0)
+        else:
+            raise RuntimeError('Could not peek at first byte of session file.')
         if use_pickle:
             version = serialize.pickle_deserialize(stream)
             if version != 1:
@@ -535,6 +543,9 @@ class Session:
         except RestoreError as e:
             self.logger.warning(str(e))
 
+        if resize_window is not None:
+            self.restore_options['resize window'] = resize_window
+        
         self.triggers.activate_trigger("begin restore session", self)
         try:
             self.reset()
@@ -574,6 +585,7 @@ class Session:
             self.reset()
         finally:
             self.triggers.activate_trigger("end restore session", self)
+            self.restore_options.clear()
             mgr.cleanup()
 
 
@@ -602,13 +614,16 @@ def standard_metadata(previous_metadata={}):
 
     The standard metadata consists of:
 
-    name            value
-    -------------------------------------------------------
-    generator       HTML user agent (app name version (os))
-    created         date first created
-    modified        date last modified after being created
-    creator         user name(s)
-    dateCopyrighted copyright(s)
+    generator :
+        HTML user agent (app name version (os))
+    created :
+        date first created
+    modified :
+        date last modified after being created
+    creator :
+        user name(s)
+    dateCopyrighted :
+        copyright(s)
 
     creator and dateCopyrighted can be lists if there
     is previous metadata with different values.
@@ -770,7 +785,7 @@ def sdump(session, session_file, output=None):
             pprint(data, stream=output)
 
 
-def open(session, path):
+def open(session, path, resize_window=None):
     if hasattr(path, 'read'):
         # Given a stream instead of a file name.
         fname = path.name
@@ -786,7 +801,7 @@ def open(session, path):
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.session_file_path = path
-    session.restore(stream, path=path)
+    session.restore(stream, path=path, resize_window=resize_window)
     return [], "opened ChimeraX session"
 
 
@@ -863,6 +878,9 @@ def register_session_format(session):
         mime="application/x-chimerax-session",
         reference="help:user/commands/save.html",
         open_func=open, export_func=save)
+    from .commands import add_keyword_arguments, BoolArg
+    add_keyword_arguments('open', {'resize_window': BoolArg})
+
 
     from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
     desc = CmdDesc(

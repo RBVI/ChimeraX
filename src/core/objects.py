@@ -9,6 +9,15 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+"""
+objects: Manage objects in selection
+====================================
+
+The objects module keeps track of collections of objects.
+The most common use is for parsing atom specifiers and
+tracking what atoms and bonds match.
+"""
+
 class Objects:
     """
     Objects is a collection of models and subparts of models such as atoms.

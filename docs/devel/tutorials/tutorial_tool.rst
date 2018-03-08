@@ -203,12 +203,13 @@ threads.  ``HtmlToolInstance`` simplifies the issues by calling
 subclass methods in the main thread when an interesting event
 occurs in the WebEngine thread.
 
-The ``HtmlToolInstance`` constructor checks the derived
-class for the presence of an attribute, ``CUSTOM_SCHEME`` and
-a method, ``handle_scheme``.  If both are defined, then 
-the base class will arrange for ``handle_scheme`` to be called
-(in the main thread) whenever a link matching ``CUSTOM_SCHEME``
-is followed.  In this example, the custom scheme is ``tutorial``
+The :py:class:`~chimerax.core.ui.HtmlToolInstance` constructor
+checks the derived class for the presence of an attribute,
+``CUSTOM_SCHEME`` and a method, ``handle_scheme``.
+If both are defined, then the base class will arrange for
+``handle_scheme`` to be called (in the main thread) whenever
+a link matching ``CUSTOM_SCHEME`` is followed. 
+In this example, the custom scheme is ``tutorial``
 (line 31), so when the user clicks on links such as
 ``tutorial:cofm`` and ``tutorial:highlight`` (see ``gui.html``
 below), ``handle_scheme`` is called with the clicked URL as
@@ -230,10 +231,11 @@ a ChimeraX command string, which is then executed using
 a command string is automatic display of command and replies
 in the ChimeraX log.
 
-The ``HtmlToolInstance`` class also helps monitoring the
-opening and closing of models.  If the derived class defines
-a method named ``update_models``, the method will be called
-whenever a new models is opened or an existing model is closed.
+The :py:class:`~chimerax.core.ui.HtmlToolInstance` class also
+helps monitoring the opening and closing of models.
+If the derived class defines a method named ``update_models``,
+the method will be called whenever a new models is opened or
+an existing model is closed.
 Note that this is *not* when a model instance is *created*
 or *deleted*, because transient models that are not shown to
 the user (opened) do not trigger calls to ``update_models``.

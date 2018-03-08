@@ -56,6 +56,7 @@ class MouseModePanel(ToolInstance):
                 from chimerax.core.commands import run
                 run(self.session, 'mousemode %s %s' % (button_to_bind, mname))
             action.triggered.connect(button_press_cb)
+            action.mouse_mode = mode
             group.addAction(action)
         tb.addActions(group.actions())
         tb.show()

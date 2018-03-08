@@ -28,7 +28,6 @@ class MarkerSet(Structure):
         chain_id = 'M'
         r = self.new_residue('mark', chain_id, id)
         r.add_atom(a)
-        self.new_atoms()
         return a
 
     @staticmethod

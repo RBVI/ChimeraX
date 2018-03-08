@@ -29,6 +29,10 @@ class _BondRotBundleAPI(BundleAPI):
         """Install bond-rotation manager into existing session"""
         from .manager import BondRotationManager
         session.bond_rotations = BondRotationManager(session, bundle_info)
+        if session.ui.is_gui:
+            mm = session.ui.mouse_modes
+            from .mouse_rot import BondRotationMouseMode
+            mm.add_mode(BondRotationMouseMode(session))
 
     @staticmethod
     def finish(session, bundle_info):

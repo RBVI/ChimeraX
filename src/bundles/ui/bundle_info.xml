@@ -1,0 +1,30 @@
+<BundleInfo name="ChimeraX-UI" version="1.0"
+	    package="chimerax.ui"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>ChimeraX user interface</Synopsis>
+  <Description>ChimeraX user interface</Description>
+
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+    <DataFile>widgets/icons/*.png</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="User Interface"/>
+  </Categories>
+
+  <Dependencies>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ui :: User interface :: control user interface behavior</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

@@ -646,7 +646,11 @@ class _SelectorName:
     def find_matches(self, session, models, results):
         f = get_selector(self.name)
         if f:
-            f(session, models, results)
+            from ..objects import Objects
+            if isinstance(f, Objects):
+                results.combine(f)
+            else:
+                f(session, models, results)
 
 
 class _ZoneSelector:
@@ -698,7 +702,7 @@ class _Term:
     def __str__(self):
         return str(self._specifier)
 
-    def evaluate(self, session, models):
+    def evaluate(self, session, models, top=True):
         """Return Objects for model elements that match."""
         from ..objects import Objects
         results = Objects()
@@ -720,7 +724,7 @@ class _Invert:
     def evaluate(self, session, models=None, **kw):
         if models is None:
             models = session.models.list(**kw)
-        results = self._atomspec.evaluate(session, models)
+        results = self._atomspec.evaluate(session, models, top=False)
         add_implied_bonds(results)
         results.invert(session, models)
         return results
@@ -776,24 +780,27 @@ class AtomSpec:
             models = session.models.list(**kw)
             models.sort(key=lambda m: m.id)
         if self._operator is None:
-            results = self._left_spec.evaluate(session, models)
+            results = self._left_spec.evaluate(session, models, top=False)
         elif self._operator == '|':
-            left_results = self._left_spec.evaluate(session, models)
-            right_results = self._right_spec.evaluate(session, models)
+            left_results = self._left_spec.evaluate(session, models, top=False)
+            right_results = self._right_spec.evaluate(session, models, top=False)
             from ..objects import Objects
             results = Objects.union(left_results, right_results)
         elif self._operator == '&':
-            left_results = self._left_spec.evaluate(session, models)
-            right_results = self._right_spec.evaluate(session, models)
+            left_results = self._left_spec.evaluate(session, models, top=False)
+            right_results = self._right_spec.evaluate(session, models, top=False)
             from ..objects import Objects
             results = Objects.intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
         add_implied_bonds(results)
+        if kw.get("top", True):
+            from . import ATOMSPEC_EVALUATED
+            session.triggers.activate_trigger(ATOMSPEC_EVALUATED, self)
         return results
 
     def find_matches(self, session, models, results):
-        my_results = self.evaluate(session, models)
+        my_results = self.evaluate(session, models, top=False)
         results.combine(my_results)
         return results
 
@@ -836,9 +843,12 @@ def register_selector(name, func, logger):
             logger.warning("registering illegal selector name \"%s\"" % name)
             return
     _selectors[name] = func
+    from .. import triggers
+    from .commands import ATOMSPEC_TARGET_REGISTERED
+    triggers.activate_trigger(ATOMSPEC_TARGET_REGISTERED, name)
 
 
-def deregister_selector(name):
+def deregister_selector(name, logger):
     """Deregister a name as an atom specifier selector.
 
     Parameters
@@ -857,10 +867,14 @@ def deregister_selector(name):
     try:
         del _selectors[name]
     except KeyError:
-        pass
+        logger.warning("deregistering unregistered selector \"%s\"" % name)
+    else:
+        from .. import triggers
+        from .commands import ATOMSPEC_TARGET_DEREGISTERED
+        triggers.activate_trigger(ATOMSPEC_TARGET_DEREGISTERED, name)
 
 
-def list_selectors(session):
+def list_selectors():
     """Return a list of all registered selector names.
 
     Parameters

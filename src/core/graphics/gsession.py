@@ -61,8 +61,16 @@ class ViewState:
         v.clip_planes.replace_planes(data['clip_planes'])
 
         # Restore window size
-        ui = session.ui
-        if not (ui.is_gui and ui.main_window.window_maximized()):
+        resize = session.restore_options.get('resize window')
+        if resize is None:
+            from ..core_settings import settings
+            resize = settings.resize_window_on_session_restore
+        if resize:
+            ui = session.ui
+            maximized = (ui.is_gui and ui.main_window.window_maximized())
+            if maximized:
+                resize = False
+        if resize:
             from ..commands.windowsize import window_size
             width, height = data['window_size']
             window_size(session, width, height)

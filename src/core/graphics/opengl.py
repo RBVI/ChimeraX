@@ -54,7 +54,10 @@ if log_opengl_calls:
     logging.info('started logging')
     import OpenGL
     OpenGL.FULL_LOGGING = True
-    
+
+#import OpenGL
+#OpenGL.ERROR_CHECKING = False
+
 from OpenGL import GL
 
 # OpenGL workarounds:
@@ -1682,10 +1685,7 @@ class Buffer:
             if replace_buffer:
                 GL.glBufferData(btype, size, d, GL.GL_STATIC_DRAW)
             else:
-                # TODO: PyOpenGL-20130502 has glBufferSubData() has python 3
-                #       bug, long undefined.
-                #   So use size None so size is computed from array.
-                GL.glBufferSubData(btype, 0, None, d)
+                GL.glBufferSubData(btype, 0, size, d)
             GL.glBindBuffer(btype, 0)
             self.opengl_buffer = b
             self.buffered_array = d

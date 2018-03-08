@@ -146,11 +146,11 @@ public:
 };
 #endif
 
-bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = 0)
+bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_limits<float>::quiet_NaN())
 {
     float idealBL = Element::bond_length(a1->element(), a2->element());
     float sqlength;
-    if (distance > 0)
+    if (!isnan(distance))
         sqlength = distance * distance;
     else
         sqlength = a1->coord().sqdistance(a2->coord());
@@ -254,6 +254,8 @@ struct ExtractMolecule: public readcif::CIFFile
         }
     };
     unordered_map<AtomKey, Atom*, hash_AtomKey> atom_map;
+    // serial_num -> atom, alt_id for atom_site_anisotrop
+    std::map <long, std::pair<Atom*, char>> atom_lookup;
     map<ChainID, string> chain_entity_map;
     struct ResidueKey {
         string entity_id;
@@ -423,6 +425,7 @@ ExtractMolecule::reset_parse()
 {
     molecules.clear();
     atom_map.clear();
+    atom_lookup.clear();
     chain_entity_map.clear();
     all_residues.clear();
 #ifdef SHEET_HBONDS
@@ -764,7 +767,8 @@ ExtractMolecule::finished_parse()
         chain_mapping.emplace_back(i.first);
         chain_mapping.emplace_back(i.second);
     }
-    generic_tables["chain_entity_map"] = chain_mapping;
+    generic_tables["struct_asym"] = { "id", "entity_id" };
+    generic_tables["struct_asym data"] = chain_mapping;
 
     // multiple molecules means there were multiple models,
     // so copy per-model information
@@ -777,7 +781,6 @@ ExtractMolecule::finished_parse()
         }
         m->use_best_alt_locs();
     }
-    vector<Structure*> save_molecules;
     reset_parse();
 }
 
@@ -1355,12 +1358,11 @@ ExtractMolecule::parse_atom_site()
                         atom_name, residue_name);
                 atom_map[k] = a;
             }
-            if (serial_num) {
+            if (serial_num)
                 atom_serial = serial_num;
-                a->set_serial_number(atom_serial);
-            } else {
-                a->set_serial_number(++atom_serial);
-            }
+            else
+                ++atom_serial;
+            a->set_serial_number(atom_serial);
         }
         Coord c(x, y, z);
         a->set_coord(c);
@@ -1368,7 +1370,8 @@ ExtractMolecule::parse_atom_site()
             a->set_bfactor(b_factor);
         if (occupancy != DBL_MAX)
             a->set_occupancy(occupancy);
-
+        if (serial_num)
+            atom_lookup[serial_num] = {a, alt_id};
     }
 }
 
@@ -1417,15 +1420,14 @@ ExtractMolecule::parse_atom_site_anisotrop()
 
     auto mol = all_residues.begin()->second.begin()->second->structure();
     auto& atoms = mol->atoms();
-    std::map <long, Atom*> atom_lookup;
-    for (auto&& a: atoms) {
-        atom_lookup[a->serial_number()] = a;
-    }
     while (parse_row(pv)) {
         const auto& ai = atom_lookup.find(serial_num);
         if (ai == atom_lookup.end())
             continue;
-        Atom *a = ai->second;
+        Atom *a = ai->second.first;
+        char alt_id = ai->second.second;
+        if (alt_id)
+            a->set_alt_loc(alt_id, false);
         a->set_aniso_u(u11, u12, u13, u22, u23, u33);
     }
 }
@@ -1449,17 +1451,17 @@ ExtractMolecule::parse_struct_conn()
     #define SYMMETRY "_symmetry"
 
     // bonds from struct_conn records
-    ChainID chain_id1, chain_id2;            // ptrn[12]_label_asym_id
-    long position1, position2;              // ptrn[12]_label_seq_id
+    ChainID chain_id1, chain_id2;           // ptnr[12]_label_asym_id
+    long position1, position2;              // ptnr[12]_label_seq_id
     long auth_position1 = INT_MAX,
-         auth_position2 = INT_MAX;          // ptrn[12]_auth_seq_id
-    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_ptrn[12]_PDB_ins_code
-    char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptrn[12]_label_alt_id
-    AtomName atom_name1, atom_name2;        // ptrn[12]_label_atom_id
-    ResName residue_name1, residue_name2;    // ptrn[12]_label_comp_id
+         auth_position2 = INT_MAX;          // ptnr[12]_auth_seq_id
+    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_ptnr[12]_PDB_ins_code
+    char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptnr[12]_label_alt_id
+    AtomName atom_name1, atom_name2;        // ptnr[12]_label_atom_id
+    ResName residue_name1, residue_name2;   // ptnr[12]_label_comp_id
     string conn_type;                       // conn_type_id
-    string symmetry1, symmetry2;            // ptrn[12]_symmetry
-    float distance = 0;                     // pdbx_dist_value
+    string symmetry1, symmetry2;            // ptnr[12]_symmetry
+    float distance = std::numeric_limits<float>::quiet_NaN();  // pdbx_dist_value
 
     CIFFile::ParseValues pv;
     pv.reserve(32);

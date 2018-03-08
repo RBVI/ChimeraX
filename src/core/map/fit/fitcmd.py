@@ -341,12 +341,9 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
 
 #    from chimera import tasks, CancelOperation
 #    task = tasks.Task("Symmetric fit", modal=True)
-#    def stop_cb(msg, task = task):
-#        return request_stop_cb(msg, task)
-#    stats = None
+    def stop_cb(msg, task = None, log = log):
+        return request_stop_cb(msg, task, log)
 #    try:
-    def stop_cb(msg):
-        return False
     move_tf, stats = F.locate_maximum(apoints, apoint_weights,
                                           data_array, xyz_to_ijk_transform,
                                           max_steps, grid_step_min, grid_step_max,
@@ -400,10 +397,8 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 
 #    from chimera import tasks
 #    task = tasks.Task("Fit search", modal=True)
-    task = None
-    def stop_cb(msg, task = task):
-        return request_stop_cb(msg, task)
-#    flist = []
+    def stop_cb(msg, task = None, log = log):
+        return request_stop_cb(msg, task = task, log = log)
 #    try:
     flist, outside = FS.fit_search(
             mlist, points, point_weights, volume, search, rotations, shifts,
@@ -418,8 +413,10 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 
 # -----------------------------------------------------------------------------
 #
-def request_stop_cb(message, task):
+def request_stop_cb(message, task = None, log = None):
 
+    if log:
+        log.status(message)
 #    from chimera import CancelOperation
 #    try:
 #        task.updateStatus(message)
@@ -460,10 +457,8 @@ def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope
     from .sequence import fit_sequence
 #    from chimera import tasks
 #    task = tasks.Task("Fit sequence", modal=True)
-#    def stop_cb(msg, task = task):
-#        return request_stop_cb(msg, task)
-    stop_cb = None
-    flist = []
+    def stop_cb(msg, task = None, log = log):
+        return request_stop_cb(msg, task = task, log = log)
 #    try:
     flist = fit_sequence(vlist, volume, sequence, subtract_maps, envelope, me, shift, rotate,
                          max_steps, grid_step_min, grid_step_max, stop_cb, log)

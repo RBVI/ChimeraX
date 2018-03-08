@@ -21,4 +21,15 @@ class _VRAPI(BundleAPI):
         from . import vr
         vr.register_vr_command(logger)
 
+    @staticmethod
+    def initialize(session, bundle_info):
+        # 'initialize' is called by the toolshed on start up
+        # Allow tools to register for vr updates before vr is started, e.g. meeting.
+        session.triggers.add_trigger('vr update')
+
+    @staticmethod
+    def finish(session, bundle_info):
+        # 'finish' is called by the toolshed when updated/reloaded
+        pass
+
 bundle_api = _VRAPI()

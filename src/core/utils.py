@@ -15,37 +15,46 @@
 utils: Generically useful stuff that doesn't fit elsewhere
 ==========================================================
 """
+import sys
 
 
-# from Mike C. Fletcher's BasicTypes library
-# via http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
+# Based on Mike C. Fletcher's BasicTypes library
+# https://sourceforge.net/projects/basicproperty/ and comments in
+# http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
 # Except called flattened, like sorted, since it is nondestructive
-def flattened(input, return_types=(list, tuple, set)):
+def flattened(input, *, return_types=(list, tuple, set), return_type=None, maxsize=sys.maxsize):
     """Return new flattened version of input
 
     Parameters
     ----------
     input : a sequence instance (list, tuple, or set)
+    return_type : optional return type (defaults to input type)
 
     Returns
     -------
     A sequence of the same type as the input.
     """
-    return_type = type(input)
+    if return_type is None:
+        return_type = type(input)
+        if return_type not in return_types:
+            return_type = list  # eg., not zip
     output = list(input)
-    i = 0
-    while i < len(output):
-        while isinstance(output[i], return_types):
-            if not output[i]:
-                output.pop(i)
-                i -= 1
-                break
-            else:
+    try:
+        # for every possible index
+        for i in range(maxsize):
+            # while that index currently holds a list
+            while isinstance(output[i], return_types):
+                # expand that list into the index (and subsequent indicies)
                 output[i:i + 1] = output[i]
-        i += 1
+    except IndexError:
+        pass
     if return_type == list:
         return output
     return return_type(output)
+
+
+_ssl_init_done = False
+
 
 def initialize_ssl_cert_dir():
     """Initialize OpenSSL's CA certificates file.
@@ -57,7 +66,6 @@ def initialize_ssl_cert_dir():
         return
     _ssl_init_done = True
 
-    import sys
     if not sys.platform.startswith('linux'):
         return
     import os
@@ -69,20 +77,20 @@ def initialize_ssl_cert_dir():
         "/etc/pki/tls/certs/ca-bundle.crt",    # Fedora/RHEL 6
         "/etc/ssl/ca-bundle.pem",              # OpenSUSE
         "/etc/pki/tls/cacert.pem",             # OpenELEC
-        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", # CentOS/RHEL 7
+        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  # CentOS/RHEL 7
     ]
     for fn in cert_files:
         if os.path.exists(fn):
             os.environ[dvp.openssl_cafile_env] = fn
             # os.environ[dvp.openssl_capath_env] = os.path.dirname(fn)
             return
-_ssl_init_done = False
 
 
 def can_set_file_icon():
     '''Can an icon image be associated with a file on this operating system.'''
     from sys import platform
     return platform == 'darwin'
+
 
 def set_file_icon(path, image):
     '''Assoicate an icon image with a file to be shown by the operating system file browser.'''

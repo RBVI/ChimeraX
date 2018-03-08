@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from ..ui.widgets.slider import Slider
+from chimerax.ui.widgets.slider import Slider
 class CoordinateSetSlider(Slider):
 
     def __init__(self, session, structure, pause_frames = 1, movie_framerate = 25,

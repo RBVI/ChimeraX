@@ -1930,8 +1930,6 @@ class Volume(Model):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    if not self.data.path:
-      session.logger.info('Map %s not saved in session because it has no file.' % self.name)
     from ..state import CORE_STATE_VERSION
     from .session import state_from_map, grid_data_state
     data = {
