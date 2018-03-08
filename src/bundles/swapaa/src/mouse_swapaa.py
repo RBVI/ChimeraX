@@ -16,8 +16,9 @@ class SwapAAMouseMode(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
+        self._residue = None
         self._align_atom_names = ['N', 'H', 'C', 'O', 'CA', 'HA']
-        self._step_pixels = 10
+        self._step_pixels = 20
         self._step_meters = 0.05
         self._last_y = None
         self._template_residues = []
@@ -49,7 +50,7 @@ class SwapAAMouseMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         r = self._picked_residue(event)
-        if r:
+        if r and self._has_alignment_atoms(r):
             self._residue = r
             self._last_y = event.position()[1]
     
@@ -102,14 +103,15 @@ class SwapAAMouseMode(MouseMode):
         rname = getattr(r, '_swapaa_name', r.name)
         ri = [i for i,rt in enumerate(tres) if rt.name == rname]
         tr = tres[0] if len(ri) == 0 else tres[(ri[0] + irstep) % len(tres)]
-        self._swap_residue(r, tr)
-        self._label(r)
-        return True
+        swapped = self._swap_residue(r, tr)
+        if swapped:
+            self._label(r)
+        return swapped
 
     def _swap_residue(self, r, new_r):
         pos, amap = self._backbone_alignment(r, new_r)
         if pos is None:
-            return	# Missing backbone atoms to align new residue
+            return False	# Missing backbone atoms to align new residue
 
         # Delete atoms
         from chimerax.core.atomic import Atoms
@@ -145,6 +147,8 @@ class SwapAAMouseMode(MouseMode):
         # r.name = new_r.name
         r._swapaa_name = new_r.name
 
+        return True
+    
     def _has_hydrogens(self, r):
         for a in r.atoms:
             if a.element_name == 'H':
@@ -157,6 +161,15 @@ class SwapAAMouseMode(MouseMode):
                 return a.color
         from chimerax.core.atomic.colors import element_color
         return element_color(6)
+    
+    def _has_alignment_atoms(self, r):
+        aan = self._align_atom_names
+        if len([a for a in r.atoms if a.name in aan]) < 3:
+            log = self.session.logger
+            log.status('swapaa cannot align to residues %s which has fewer than 3 backbone atoms (%s)'
+                       % (str(r), ', '.join(aan)), log = True)
+            return False
+        return True
         
     def _backbone_alignment(self, r, new_r):
         ra = dict((a.name, a) for a in r.atoms)
@@ -195,7 +208,9 @@ class SwapAAMouseMode(MouseMode):
     def laser_click(self, xyz1, xyz2):
         from chimerax.core.ui.mousemodes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
-        self._residue = self._residue_from_pick(pick)
+        r = self._residue_from_pick(pick)
+        if self._has_alignment_atoms(r):
+            self._residue = r
 
     def drag_3d(self, position, move, delta_z):
         if delta_z is None:
