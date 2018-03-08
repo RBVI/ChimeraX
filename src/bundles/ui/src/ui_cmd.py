@@ -16,8 +16,8 @@
 #
 def register_ui_command(logger):
 
-    from ..commands import CmdDesc, register
-    from ..commands import BoolArg, StringArg
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.core.commands import BoolArg, StringArg
 
     ui_autostart_desc = CmdDesc(
         required=[('do_start', BoolArg), ('tool_name', StringArg)],

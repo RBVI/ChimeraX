@@ -82,7 +82,7 @@ class _StatusBarOpenGL:
         from .graphics import OpenGLContext
         self._opengl_context = c = OpenGLContext(w, self.session.ui)
         # Create texture drawing to render status messages
-        from ..graphics import Drawing, Render
+        from chimerax.core.graphics import Drawing, Render
         self._drawing = Drawing('statusbar')
         self._drawing2 = Drawing('secondary statusbar')
         self._renderer = r = Render(c)
@@ -125,7 +125,7 @@ class _StatusBarOpenGL:
         self._update_texture(msg, color, secondary)
         dlist = self._drawings()
         if dlist:
-            from ..graphics.drawing import draw_overlays
+            from chimerax.core.graphics.drawing import draw_overlays
             draw_overlays(dlist, self._renderer)
 
     def _drawings(self):
@@ -142,7 +142,7 @@ class _StatusBarOpenGL:
         aspect = lh/lw
         xpad,ypad = self.pad_horz, self.pad_vert
 
-        from ..colors import BuiltinColors
+        from chimerax.core.colors import BuiltinColors
         tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
         from chimerax.label.label2d import text_image_rgba
         size = max(1, int((1-2*ypad) * lh))
@@ -159,7 +159,7 @@ class _StatusBarOpenGL:
         yp = 0.5*(lh-th)
         y = -1 + 2*yp/lh
 
-        from ..graphics.drawing import rgba_drawing, draw_overlays
+        from chimerax.core.graphics.drawing import rgba_drawing, draw_overlays
         rgba_drawing(d, rgba, (x, y), (uw, uh))
             
 #

@@ -1,17 +1,17 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from ..tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 class HtmlToolInstance(ToolInstance):
     """Class used to generate an HTML widget as the tool's main UI.
 
     The :py:attr:`tool_window` instance attribute refers to the
-    :py:class:`~chimerax.core.ui.gui.MainToolWindow` instance
+    :py:class:`~chimerax.ui.MainToolWindow` instance
     for the tool.
 
     The :py:attr:`html_view` instance attribute refers to the
-    :py:class:`~chimerax.core.ui.widgets.HtmlView` instance
+    :py:class:`~chimerax.ui.widgets.HtmlView` instance
     for managing HTML content and link actions.
 
     To facilitate customizing the HTML view, if the
@@ -39,8 +39,8 @@ class HtmlToolInstance(ToolInstance):
 
     def __init__(self, session, tool_name, size_hint=None, log_errors=False):
         from PyQt5.QtWidgets import QGridLayout
-        from ..models import ADD_MODELS, REMOVE_MODELS
-        from .gui import MainToolWindow
+        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+        from . import MainToolWindow
         from .widgets import HtmlView
 
         # ChimeraX tool instance setup

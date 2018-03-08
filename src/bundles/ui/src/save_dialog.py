@@ -56,8 +56,8 @@ class MainSaveDialogBase:
         self._registered_formats = {}
         self._format_selector = None
         self.register(self.DEFAULT_FORMAT, _session_wildcard, None, None, _session_save)
-        from ..toolshed import SESSION
-        from ..io import formats
+        from chimerax.core.toolshed import SESSION
+        from chimerax.core.io import formats
         from .open_save import export_file_filter
         for fmt in formats(open=False):
             if fmt.category not in (SESSION, "Image"):
@@ -77,19 +77,19 @@ class MainSaveDialogBase:
 
 def _session_wildcard():
     from .open_save import export_file_filter
-    from .. import toolshed
+    from chimerax.core import toolshed
     return export_file_filter(toolshed.SESSION)
 
 
 def _session_save(session, filename):
     import os.path
     ext = os.path.splitext(filename)[1]
-    from .. import io
+    from chimerax.core import io
     fmt = io.format_from_name("ChimeraX session")
     exts = fmt.extensions
     if exts and ext not in exts:
         filename += exts[0]
-    from ..commands import run, quote_if_necessary
+    from chimerax.core.commands import run, quote_if_necessary
     run(session, "save session %s" % quote_if_necessary(filename))
 
 
@@ -204,7 +204,7 @@ class ImageSaver(ImageSaverBase):
         layout = QGridLayout(container)
         layout.setContentsMargins(2, 0, 0, 0)
 
-        from ..image import image_formats
+        from chimerax.core.image import image_formats
         selector = QComboBox(container)
         selector.addItems(list(f.name for f in image_formats))
         selector.currentIndexChanged.connect(self._select_format)
@@ -256,13 +256,13 @@ class ImageSaver(ImageSaverBase):
             w = int(self._width.text())
             h = int(self._height.text())
         except ValueError:
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError("width/height must be integers")
         if w <= 0 or h <= 0:
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError("width/height must be positive integers")
         ss = self.SUPERSAMPLE_OPTIONS[self._supersample.currentIndex()][1]
-        from ..commands import run, quote_if_necessary
+        from chimerax.core.commands import run, quote_if_necessary
         cmd = "save image %s width %g height %g" % (quote_if_necessary(filename), w, h)
         if ss is not None:
             cmd += " supersample %g" % ss
@@ -275,7 +275,7 @@ class ImageSaver(ImageSaverBase):
         self._height.setText(str(h))
 
     def wildcard(self):
-        from ..image import image_formats
+        from chimerax.core.image import image_formats
         exts = sum((list(f.suffixes) for f in image_formats), [])
         exts.remove(self.DEFAULT_EXT)
         exts.insert(0, self.DEFAULT_EXT)
@@ -285,7 +285,7 @@ class ImageSaver(ImageSaverBase):
 
     def _get_current_extension(self):
         format_name = self._format_selector.currentText()
-        from ..image import image_formats
+        from chimerax.core.image import image_formats
         for f in image_formats:
             if f.name == format_name:
                 return f.suffixes[0]

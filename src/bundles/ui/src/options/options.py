@@ -282,7 +282,7 @@ class ColorOption(RGBA8Option):
     """Option for rgba colors"""
 
     def get(self):
-        from ...colors import Color
+        from chimerax.core.colors import Color
         return Color(rgba=RGBA8Option.get(self))
 
 class OptionalRGBA8Option(Option):

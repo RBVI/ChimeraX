@@ -17,8 +17,8 @@ nogui: Text UI
 
 Text-based user interface.  API-compatible with :py:module:`ui` package.
 """
-from ..tasks import Task
-from ..logger import PlainTextLog
+from .tasks import Task
+from .logger import PlainTextLog
 _color_output = None
 
 _log_level = {
@@ -72,8 +72,6 @@ class UI:
         global _color_output
         self.is_gui = False
         session.logger.add_log(NoGuiLog())
-        from .settings import UI_Settings
-        self.settings = UI_Settings(session, "ui")
 
         import weakref
         self._session = weakref.ref(session)
@@ -114,7 +112,7 @@ class UI:
             session.logger.info('Need OSMesa library from Mesa version 12.0 or newer for offscreen rendering.')
 
     def initialize_offscreen_rendering(self, view):
-        from .. import graphics
+        from . import graphics
         try:
             c = graphics.OffScreenRenderingContext()
         except Exception as e:
@@ -147,7 +145,7 @@ class UI:
         session = self._session()  # resolve back reference
         input = _Input(session)
         input.start()
-        from ..tasks import FINISHED, TERMINATED
+        from .tasks import FINISHED, TERMINATED
         while input.state not in [FINISHED, TERMINATED]:
             func, args, kw = self._queue.get()
             try:
@@ -169,7 +167,7 @@ class _Input(Task):
     def __init__(self, session):
         # Initializer, runs in UI thread
         super().__init__(session)
-        from ..commands import Command
+        from .commands import Command
         self._cmd = Command(session)
         from threading import Semaphore
         self._sem = Semaphore()
@@ -201,7 +199,7 @@ class _Input(Task):
 
     def execute(self, text):
         # Command execution, runs in UI thread
-        from .. import errors
+        from . import errors
         text = text.strip()
         if not text:
             return

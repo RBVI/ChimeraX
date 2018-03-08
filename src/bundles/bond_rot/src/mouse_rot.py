@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.ui import MouseMode
+from chimerax.ui import MouseMode
 class BondRotationMouseMode(MouseMode):
     name = 'bond rotation'
     icon_file = 'bondrot.png'
@@ -43,7 +43,7 @@ class BondRotationMouseMode(MouseMode):
 
     def _picked_bond(self, event):
         x,y = event.position()
-        from chimerax.core.ui.mousemodes import picked_object
+        from chimerax.ui.mousemodes import picked_object
         pick = picked_object(x, y, self.session.main_view)
         return pick
 
@@ -68,7 +68,7 @@ class BondRotationMouseMode(MouseMode):
             self._bond_rot = None
 
     def laser_click(self, xyz1, xyz2):
-        from chimerax.core.ui.mousemodes import picked_object_on_segment
+        from chimerax.ui.mousemodes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         self._bond_rot = self._bond_rotation(pick)
 

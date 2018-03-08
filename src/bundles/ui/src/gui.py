@@ -26,7 +26,7 @@ keystrokes typed to the main graphics window, or to execute code
 in a thread-safe manner.  The UI instance is accessed as session.ui.
 """
 
-from ..logger import PlainTextLog
+from chimerax.core.logger import PlainTextLog
 
 # remove the build tree plugin path, and add install tree plugin path
 import sys
@@ -40,7 +40,7 @@ if mac:
     # though if there is a comma in the app name, the magic gets
     # screwed up, so explicitly set the path in that case too
     import os.path
-    from ... import app_lib_dir
+    from chimerax import app_lib_dir
     plugins = os.path.join(os.path.dirname(app_lib_dir), "plugins")
     if not os.path.exists(plugins) and "," in app_lib_dir:
         # The comma character screws up the magic Qt plugin-finding code;
@@ -100,7 +100,7 @@ class UI(QApplication):
     def redirect_qt_messages(self):
         
         # redirect Qt log messages to our logger
-        from ..logger import Log
+        from chimerax.core.logger import Log
         from PyQt5.QtCore import QtDebugMsg, QtInfoMsg, QtWarningMsg, QtCriticalMsg, QtFatalMsg
         qt_to_cx_log_level_map = {
             QtDebugMsg: Log.LEVEL_INFO,
@@ -156,7 +156,7 @@ class UI(QApplication):
         self.splash.finish(mw)
         # Register for tool installation/deinstallation so that
         # we can update the Tools menu
-        from ..toolshed import (TOOLSHED_BUNDLE_INSTALLED,
+        from chimerax.core.toolshed import (TOOLSHED_BUNDLE_INSTALLED,
                                 TOOLSHED_BUNDLE_UNINSTALLED,
                                 TOOLSHED_BUNDLE_INFO_RELOADED)
         def handler(*args, mw=self.main_window, ses=self.session, **kw):
@@ -219,10 +219,10 @@ class UI(QApplication):
         """
         from PyQt5.QtCore import Qt
         if event.key() == Qt.Key_Up:
-            from ..commands import run
+            from chimerax.core.commands import run
             run(self.session, 'select up')
         elif event.key() == Qt.Key_Down:
-            from ..commands import run
+            from chimerax.core.commands import run
             run(self.session, 'select down')
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
@@ -359,7 +359,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
         self.setCentralWidget(self._stack)
-        from ..models import ADD_MODELS, REMOVE_MODELS
+        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
         self._rapid_access_shown_once = False # kludge to work around early OpenGL errors
@@ -470,7 +470,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
 
         def _qt_safe(session=session, paths=paths):
-            from ..commands import run, quote_if_necessary
+            from chimerax.core.commands import run, quote_if_necessary
             if len(paths) == 1:
                 run(session, "open " + quote_if_necessary(paths[0]))
             else:
@@ -610,7 +610,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView
         import os.path
-        from .. import buildinfo
+        from chimerax.core import buildinfo
         from chimerax import app_dirs as ad
         fn = os.path.join(os.path.dirname(__file__), "about.html")
         with open(fn) as f:
@@ -631,10 +631,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         from PyQt5.QtGui import QIcon
         import os.path
         cur_dir = os.path.dirname(__file__)
-        self._expand_icon = QIcon(os.path.join(cur_dir, "expand1.png"))
-        self._contract_icon = QIcon(os.path.join(cur_dir, "contract1.png"))
-        self._ra_shown_icon = QIcon(os.path.join(cur_dir, "lightning_day.png"))
-        self._ra_hidden_icon = QIcon(os.path.join(cur_dir, "lightning_night.png"))
+        self._expand_icon = QIcon(os.path.join(cur_dir, "icons", "expand1.png"))
+        self._contract_icon = QIcon(os.path.join(cur_dir, "icons", "contract1.png"))
+        self._ra_shown_icon = QIcon(os.path.join(cur_dir, "icons", "lightning_day.png"))
+        self._ra_hidden_icon = QIcon(os.path.join(cur_dir, "icons", "lightning_night.png"))
         ghb.setIcon(self._expand_icon)
         rab.setIcon(self._ra_shown_icon)
         ghb.setCheckable(True)
@@ -777,7 +777,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                     categories.setdefault(cat, {})[tool.name] = (bi, tool)
         cat_keys = sorted(categories.keys())
         one_menu = len(cat_keys) == 1
-        from ..commands import run, quote_if_necessary
+        from chimerax.core.commands import run, quote_if_necessary
         active_tool_names = set([tool.display_name for tool in session.tools.list()])
         for cat in cat_keys:
             if one_menu:
@@ -805,7 +805,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cat_menu.addAction(tool_action)
         def _show_toolshed(arg):
             from chimerax.help_viewer import show_url
-            from ..toolshed import Toolshed
+            from chimerax.core.toolshed import Toolshed
             show_url(session, Toolshed.get_toolshed().remote_url)
         more_tools = QAction("More Tools...", self)
         more_tools.setToolTip("Open ChimeraX Toolshed in Help Viewer")
@@ -881,10 +881,10 @@ def _open_dropped_file(session, path):
         return
     # Use quotes around path only if needed so log looks nice.
     p = ('"%s"' % path) if ' ' in path or ';' in path else path
-    from ..commands import run
+    from chimerax.core.commands import run
     run(session, 'open %s' % p)
 
-from ..logger import StatusLogger
+from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):
     """An area that a tool can populate with widgets.
 
@@ -1274,7 +1274,7 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
         auto_action = QAction("Start at ChimeraX startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
-        from ..commands import run, quote_if_necessary
+        from chimerax.core.commands import run, quote_if_necessary
         auto_action.triggered.connect(
             lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
@@ -1284,7 +1284,7 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
     dock_action = QAction("Dockable tool")
     dock_action.setCheckable(True)
     dock_action.setChecked(not undockable)
-    from ..commands import run, quote_if_necessary
+    from chimerax.core.commands import run, quote_if_necessary
     dock_action.triggered.connect(
         lambda arg, ses=session, run=run, tool_name=ti.tool_name:
         run(ses, "ui dockable %s %s" % (("true" if arg else "false"),

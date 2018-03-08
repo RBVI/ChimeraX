@@ -12,11 +12,14 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-ui.mousemodes: Mouse modes
-==========================
-
-Classes to create mouse modes and assign mouse buttons and modifier keys to specific modes.
-
-.. automodule:: chimerax.core.ui.mousemodes
-    :members:
+.. automodule:: chimerax.ui
     :show-inheritance:
+    :members: HtmlToolInstance
+
+.. automodule:: chimerax.ui.gui
+    :show-inheritance:
+    :members:
+
+.. automodule:: chimerax.ui.widgets
+    :show-inheritance:
+    :members: HtmlView

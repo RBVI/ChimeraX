@@ -18,7 +18,7 @@ class SettingsTool:
         self.tool_window = tool_window
 
         from .settings import defaults, APPEARANCE, SINGLE_PREFIX, ALIGNMENT_PREFIX
-        from chimerax.core.ui.options import CategorizedSettingsPanel, CategorizedOptionsPanel
+        from chimerax.ui.options import CategorizedSettingsPanel, CategorizedOptionsPanel
         class AppearanceOptionsPanel(CategorizedOptionsPanel):
             def options(self, category=None):
                 if category is None:

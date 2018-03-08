@@ -28,7 +28,7 @@ class ModelPanel(ToolInstance):
         now = self.settings.last_use = time()
         short_titles = last != None and now - last < 777700 # about 3 months
 
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
@@ -145,7 +145,7 @@ class ModelPanel(ToolInstance):
                 item_stack[len_id:] = [item]
                 self._items.append(item)
                 if bg_color is not False:
-                    from chimerax.core.ui.widgets import MultiColorButton
+                    from chimerax.ui.widgets import MultiColorButton
                     but = MultiColorButton(has_alpha_channel=True, max_size=(16,16))
                     def set_single_color(rgba, m=model):
                         for cm in m.all_models():

@@ -140,12 +140,11 @@ to actually retrieve and process the data.
 
 
 ``fetch.py``
-----------
+------------
 
 .. literalinclude:: ../../../src/examples/tutorials/tut_fetch/src/fetch.py
     :language: python
     :linenos:
-    :emphasize-lines: 109-150
 
 The ``fetch_homologene`` function performs the following steps:
 

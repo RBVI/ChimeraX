@@ -24,7 +24,7 @@ class Volume_Series_Slider:
         n = max(ser.number_of_times() for ser in series)
         sname = ', '.join('#%d' % ser.id for ser in series) + (' length %d' % n)
 
-        from ...ui.qt.qt import QtWidgets, Qt, QtCore
+        from chimerax.ui.qt.qt import QtWidgets, Qt, QtCore
         self.dock_widget = dw = QtWidgets.QDockWidget('Image Series %s' % sname, session.main_window)
         dw.destroyed.connect(self.widget_destroyed_cb)
         dw.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
@@ -62,7 +62,7 @@ class Volume_Series_Slider:
         hbox.addWidget(play)
         
         self.subsample_button = samp = QtWidgets.QToolButton(w)
-        from ...ui.qt.gui import icon
+        from chimerax.ui.qt.gui import icon
         samp.setContentsMargins(0,0,0,0)
         samp.setIcon(icon('x2.png'))
         samp.setCheckable(True)
@@ -78,7 +78,7 @@ class Volume_Series_Slider:
         session._volume_series_sliders.append(self)
 
     def show(self):
-        from ...ui.qt.qt import QtCore
+        from chimerax.ui.qt.qt import QtCore
         dw = self.dock_widget
         self.session.main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
         dw.setVisible(True)
@@ -89,7 +89,7 @@ class Volume_Series_Slider:
     def slider_moved_cb(self, t):
         # Don't update display in callback or mouse release is missed and slider
         # gets dragged without button held down.  Bug in Mac Qt 5.
-        from ...ui.qt.qt import QtCore
+        from chimerax.ui.qt.qt import QtCore
         QtCore.QTimer.singleShot(self.delay_time_msec, self.show_slider_time)
 
     def show_slider_time(self):
@@ -129,7 +129,7 @@ class Volume_Series_Slider:
 
     def set_play_button_icon(self, play):
         pb = self.play_button
-        from ...ui.qt.qt import QtWidgets
+        from chimerax.ui.qt.qt import QtWidgets
         icon = QtWidgets.QStyle.SP_MediaPlay if play else QtWidgets.QStyle.SP_MediaPause
         pb.setIcon(pb.style().standardIcon(icon))
 

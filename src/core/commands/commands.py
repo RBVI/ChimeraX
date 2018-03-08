@@ -47,8 +47,6 @@ def register_core_commands(session):
     fit.register_fitmap_command(session.logger)
     from ..map import series
     series.register_vseries_command(session.logger)
-    from .. import ui
-    ui.register_ui_command(session.logger)
     session.triggers.add_trigger(ATOMSPEC_EVALUATED)
     from .. import triggers
     triggers.add_trigger(ATOMSPEC_TARGET_REGISTERED)

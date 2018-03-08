@@ -232,7 +232,7 @@ class ReplacementFilePaths:
       return replacements[path]
     elif self._ui.is_gui:
       # If path doesn't exist show file dialog to let user enter new path to file.
-      from ..ui.open_save import OpenDialogWithMessage
+      from chimerax.ui.open_save import OpenDialogWithMessage
       d = OpenDialogWithMessage(self._ui.main_window,
                                 message = 'Replace missing file %s' % path,
                                 caption = 'Replace missing file',

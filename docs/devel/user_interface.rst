@@ -32,6 +32,6 @@ Modules
 
     core/commands/cli.rst
 
-    core/ui/gui.rst
+    bundles/ui/src/gui.rst
 
     core/settings.rst

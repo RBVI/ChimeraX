@@ -39,7 +39,7 @@ class GraphicsWindow(QWindow):
         self.last_redraw_start_time = self.last_redraw_finish_time = 0
         
         if use_stereo:
-            from ..graphics import StereoCamera
+            from chimerax.core.graphics import StereoCamera
             self.view.camera = StereoCamera()
         self.view.initialize_rendering(self.opengl_context)
 
@@ -75,7 +75,7 @@ class GraphicsWindow(QWindow):
         v.redraw_needed = True
         if self.isExposed():
             # Avoid flickering when resizing by drawing immediately.
-            from ..graphics import OpenGLVersionError
+            from chimerax.core.graphics import OpenGLVersionError
             try:
                 v.draw(check_for_changes = False)
             except OpenGLVersionError as e:
@@ -197,14 +197,14 @@ class OpenGLContext(QOpenGLContext):
         rmajor, rminor = self.required_opengl_version
         if major < rmajor or (major == rmajor and minor < rminor):
             self._initialize_failed = True
-            from ..graphics import OpenGLVersionError
+            from chimerax.core.graphics import OpenGLVersionError
             raise OpenGLVersionError('ChimeraX requires OpenGL graphics version %d.%d.\n' % (rmajor, rminor) +
                                      'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
                                      'Try updating your graphics driver.')
         if self.required_opengl_core_profile:
             if sf.profile() != sf.CoreProfile:
                 self._initialize_failed = True
-                from ..graphics import OpenGLVersionError
+                from chimerax.core.graphics import OpenGLVersionError
                 raise OpenGLVersionError('ChimeraX requires an OpenGL graphics core profile.\n' +
                                          'Your computer graphics driver a non-core profile (version %d.%d).\n' % (major, minor) +
                                          'Try updating your graphics driver.')

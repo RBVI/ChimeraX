@@ -38,7 +38,7 @@ class MarkerModeSettings(ToolInstance):
         }
         self.mode_order = ('maximum', 'plane', 'surface', 'center', 'link', 'move', 'resize', 'delete')
 
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self, close_destroys=False)
         self.tool_window = tw
         parent = tw.ui_area

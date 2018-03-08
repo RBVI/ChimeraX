@@ -45,7 +45,7 @@
 #
 write_logs = False
 
-from chimerax.core.ui import MouseMode
+from chimerax.ui import MouseMode
 class TugAtomsMode(MouseMode):
     name = 'tug'
     icon_file = 'tug.png'
@@ -147,7 +147,7 @@ class TugAtomsMode(MouseMode):
         a.display = True
 
     def laser_click(self, xyz1, xyz2):
-        from chimerax.core.ui.mousemodes import picked_object_on_segment
+        from chimerax.ui.mousemodes import picked_object_on_segment
         view = self.session.main_view
         pick = picked_object_on_segment(xyz1, xyz2, view)
         self._pick_atom(pick)

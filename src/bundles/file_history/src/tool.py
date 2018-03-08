@@ -21,11 +21,11 @@ class FilePanel(ToolInstance):
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys = False)
         parent = self.tool_window.ui_area
 
-        from chimerax.core.ui.file_history import FileHistory
+        from chimerax.ui.file_history import FileHistory
         fh = FileHistory(session, parent, size_hint=(575, 200))
         self.tool_window.manage(placement="side")
 

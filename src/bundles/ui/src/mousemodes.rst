@@ -12,20 +12,11 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-.. py:module:: chimerax.core.ui
+ui.mousemodes: Mouse modes
+==========================
 
-.. automodule:: chimerax.core.ui
-    :show-inheritance:
-    :members: HtmlToolInstance
+Classes to create mouse modes and assign mouse buttons and modifier keys to specific modes.
 
-.. py:module:: chimerax.core.ui.gui
-
-.. automodule:: chimerax.core.ui.gui
-    :show-inheritance:
+.. automodule:: chimerax.ui.mousemodes
     :members:
-
-.. py:module:: chimerax.core.widgets
-
-.. automodule:: chimerax.core.ui.widgets
     :show-inheritance:
-    :members: HtmlView

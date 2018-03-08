@@ -37,7 +37,7 @@ class FileHistory:
         t.add_handler('file history changed', self.file_history_changed_cb)
 
     def history_html(self):
-        from ..filehistory import file_history
+        from chimerax.core.filehistory import file_history
         files = file_history(self.session).files
         if len(files) == 0:
             html = self.no_hist_text
@@ -118,5 +118,5 @@ class HistoryWindow(ChimeraXHtmlView):
         cm.popup(event.globalPos())
 
     def remove_missing_files(self):
-        from ..filehistory import file_history
+        from chimerax.core.filehistory import file_history
         file_history(self.session).remove_missing_files()

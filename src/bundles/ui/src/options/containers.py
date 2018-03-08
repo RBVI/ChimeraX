@@ -178,7 +178,7 @@ class SettingsPanelBase(QWidget):
         return options
 
     def _reset(self):
-        from ...configfile import Value
+        from chimerax.core.configfile import Value
         for opt in self._get_actionable_options():
             setting = opt.attr_name
             default_val = self.settings.PROPERTY_INFO[setting]

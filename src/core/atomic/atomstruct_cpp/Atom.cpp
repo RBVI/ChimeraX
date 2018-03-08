@@ -101,21 +101,7 @@ Atom::aniso_u() const
 }
 
 void
-Atom::_coordset_set_coord(const Point &coord)
-{
-    CoordSet *cs = structure()->active_coord_set();
-    if (cs == nullptr) {
-        if (structure()->coord_sets().size() > 0)
-            cs = structure()->coord_sets()[0];
-        else
-            cs = structure()->new_coord_set();
-        structure()->set_active_coord_set(cs);
-    }
-    set_coord(coord, cs);
-}
-
-void
-Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
+Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
 {
     if (structure()->active_coord_set() == nullptr)
         structure()->set_active_coord_set(cs);
@@ -135,10 +121,13 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
         graphics_changes()->set_gc_shape();
         graphics_changes()->set_gc_ribbon();
     } else {
-        cs->_coords[_coord_index] = coord;
-        graphics_changes()->set_gc_shape();
-        graphics_changes()->set_gc_ribbon();
-        change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
+        //cs->_coords[_coord_index] = coord;
+        cs->_coords[_coord_index].set_xyz(coord[0], coord[1], coord[2]);
+        if (track_change) {
+            graphics_changes()->set_gc_shape();
+            graphics_changes()->set_gc_ribbon();
+            change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
+        }
     }
 }
 
@@ -1217,9 +1206,10 @@ Atom::set_color(const Rgba& rgba)
 }
 
 void
-Atom::set_coord(const Coord& coord, CoordSet* cs)
+Atom::set_coord(const Coord& coord, CoordSet* cs, bool track_change)
 {
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COORD);
+    if (track_change)
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COORD);
     if (cs == nullptr) {
         cs = structure()->active_coord_set();
         if (cs == nullptr) {
@@ -1237,7 +1227,7 @@ Atom::set_coord(const Coord& coord, CoordSet* cs)
         if (_coord_index == COORD_UNASSIGNED)
             _coord_index = _new_coord(coord);
     } else
-        _coordset_set_coord(coord, cs);
+        _coordset_set_coord(coord, cs, track_change);
 }
 
 void

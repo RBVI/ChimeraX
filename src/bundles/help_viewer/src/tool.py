@@ -18,7 +18,7 @@
 #   "delete" - called to clean up before instance is deleted
 #
 from chimerax.core.tools import ToolInstance
-from chimerax.core.ui.widgets import ChimeraXHtmlView
+from chimerax.ui.widgets import ChimeraXHtmlView
 
 _singleton = None
 _help_path = None
@@ -99,7 +99,7 @@ class HelpUI(ToolInstance):
     def __init__(self, session):
         tool_name = "Help Viewer"
         ToolInstance.__init__(self, session, tool_name)
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         self._confirm = set()
         parent = self.tool_window.ui_area
