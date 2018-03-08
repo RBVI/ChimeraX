@@ -115,8 +115,7 @@ private:
     Bonds  _bonds; // _bonds/_neighbors in same order
     mutable AtomType  _computed_idatm_type;
     unsigned int  _coord_index;
-    void  _coordset_set_coord(const Point &);
-    void  _coordset_set_coord(const Point &, CoordSet *cs);
+    void  _coordset_set_coord(const Point &, CoordSet *cs, bool track_change);
     bool  _display = true;
     DrawMode  _draw_mode = DrawMode::Sphere;
     const Element*  _element;
@@ -203,8 +202,12 @@ public:
     void  set_alt_loc(char alt_loc, bool create=false, bool _from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);
-    void  set_coord(const Point& coord) { set_coord(coord, nullptr); }
-    void  set_coord(const Point& coord, CoordSet* cs);
+    void  set_coord(const Point& coord) { set_coord(coord, nullptr, true); }
+    void  set_coord(const Point& coord, CoordSet* cs) { set_coord(coord, cs, true); }
+    void  set_coord(const Point& coord, bool track_change) {
+        set_coord(coord, nullptr, track_change);
+    }
+    void  set_coord(const Point& coord, CoordSet* cs, bool track_change);
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
     void  set_idatm_type(const char* it);

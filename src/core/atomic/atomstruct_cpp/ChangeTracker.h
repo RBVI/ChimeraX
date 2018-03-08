@@ -16,10 +16,12 @@
 #ifndef atomstruct_ChangeTracker
 #define atomstruct_ChangeTracker
 
+#include <algorithm>
 #include <array>
 #include <map>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "imex.h"
 
@@ -175,6 +177,28 @@ public:
             ++s_changes.num_deleted;
             s_changes.created.erase(ptr);
             s_changes.modified.erase(ptr);
+        }
+    }
+
+    template<class C>
+    void add_modified_set(Structure* s, const std::vector<C*>& ptrs, const std::string& reason) {
+        if (_discarding)
+            return;
+        if (_structure_okay(s)) {
+            auto& s_changes = _structure_type_changes[s][
+                _ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
+            auto& s_created = s_changes.created;
+            auto& s_modified = s_changes.modified;
+            if (s_created.size()) {
+                for (auto ptr: ptrs) {
+                    if (s_created.find(static_cast<const void*>(ptr)) == s_created.end())
+                        s_modified.insert(ptr);
+                }
+            } else {
+                for (auto ptr: ptrs)
+                    s_modified.insert(ptr);
+            }
+            s_changes.reasons.insert(reason);
         }
     }
 
