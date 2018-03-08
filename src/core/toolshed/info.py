@@ -348,11 +348,10 @@ class BundleInfo:
                         "register_selector() failed for selector %s in bundle %s:\n%s" % (si.name, self.name, str(e)))
                 from ..commands import get_selector
                 sel = get_selector(si.name)
-                if not callable(sel):
-                    return sel
+                if callable(sel):
+                    return sel(session, models, results)
                 else:
-                    return (session, models, results)
-                return
+                    return sel
             register_selector(si.name, selector_cb, logger)
 
     def _deregister_selectors(self, logger):
