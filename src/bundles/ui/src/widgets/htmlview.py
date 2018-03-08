@@ -41,21 +41,24 @@ class HtmlView(QWebEngineView):
     ----------
     size_hint :   a QSize compatible value, typically (width, height),
                   specifying the preferred initial size for the view.
+                  Default None.
     interceptor : a callback function taking one argument, an instance
                   of QWebEngineUrlRequestInfo, invoked to handle navigation
-                  requests.
+                  requests.  Default None.
     schemes :     an iterable of custom schemes that will be used in the
                   view.  If schemes is specified, then interceptor will
-                  be called when custom URLs are clicked.
+                  be called when custom URLs are clicked.  Default None.
     download :    a callback function taking one argument, an instance
                   of QWebEngineDownloadItem, invoked when download is
-                  requested.
+                  requested.  Default None.
     profile :     the QWebEngineProfile to use.  If it is given, then
                   'interceptor', 'schemes', and 'download' parameters are
                   ignored because they are assumed to be already set in
-                  the profile.
+                  the profile.  Default None.
     tool_window : if specified, ChimeraX context menu is displayed instead
-                  of default context menu
+                  of default context menu.  Default None.
+    log_errors :  whether to log JavaScript error/warning/info messages
+                  to ChimeraX console.  Default False.
 
     Attributes
     ----------
@@ -85,10 +88,7 @@ class HtmlView(QWebEngineView):
                         p.installUrlSchemeHandler(scheme, self._scheme_handler)
             if download:
                 p.downloadRequested.connect(download)
-        if log_errors:
-            page = _LoggingPage(self._profile, self)
-        else:
-            page = QWebEnginePage(self._profile, self)
+        page = _LoggingPage(self._profile, self, log_errors=log_errors)
         self.setPage(page)
         s = page.settings()
         s.setAttribute(s.LocalStorageEnabled, True)
@@ -168,7 +168,13 @@ class _LoggingPage(QWebEnginePage):
         2: "error",
     }
 
+    def __init__(self, *args, log_errors=False, **kw):
+        super().__init__(*args, **kw)
+        self.__log = log_errors
+
     def javaScriptConsoleMessage(self, level, msg, lineNumber, sourceId):
+        if not self.__log:
+            return
         import os.path
         filename = os.path.basename(sourceId)
         print("JS console(%s:%d:%s): %s" % (filename, lineNumber,
