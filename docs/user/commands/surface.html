@@ -50,8 +50,8 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The <b>surface</b> command creates and displays <b><i>molecular surfaces</i></b>,
-either atomically detailed solvent-excluded surfaces (SES, default) or
-lower-resolution Gaussian surfaces (GS).
+either atomically detailed solvent-excluded surfaces (default) or
+lower-resolution Gaussian surfaces.
 See also:
 <a href="#sop"><b>surface</b> operations</a>,
 <a href="show.html"><b>show</b></a>,
@@ -70,7 +70,7 @@ See also:
 
 <table class="clRight">
 <tr><td><a href="surface-diagram.png">
-<img src="surface-diagram.png" width="400px" style="border:1px solid gray"
+<img src="surface-diagram.png" width="450px" style="border:1px solid gray"
 alt="SES-SAS diagram" title="click to enlarge..."></a></td></tr>
 <tr><td align="right">
 <font size="-1">Image courtesy of Sebastian Daberdaku&nbsp;</font>
@@ -78,20 +78,23 @@ alt="SES-SAS diagram" title="click to enlarge..."></a></td></tr>
 
 <a name="surfdefs"></a>
 <ul>
-<li>A <b><i>solvent-excluded surface</i></b> is
+<li>A <b><i>solvent-excluded surface</i></b> (SES) is
 composed of the contact, toroidal, and reentrant surfaces of a probe sphere 
 rolled over the atomic <a href="../radii.html">VDW spheres</a>.
-Atomic patches in an SES can be controlled 
-(hidden, shown, <i>etc.</i>) independently by specifying the corresponding atoms,
+Atomic patches in an SES can be controlled (hidden, shown, <i>etc.</i>)
+independently by specifying the corresponding atoms,
 and their <a href="../selection.html">selection</a>
 is tied to that of the corresponding atoms.
 An SES can also be specified by its own model number to enable/disable display
 as a whole without changing the display of its atomic patches
 (see <a href="../hierarchy.html">hierarchy</a>). 
-<li>A <b><i>solvent-accessible surface</i></b> 
+<br><br>
+<li>A <b><i>solvent-accessible surface</i></b> (SAS)
 is the surface traced out by the center of the probe sphere
 rolled over the atomic <a href="../radii.html">VDW spheres</a>.
-This type of surface is not shown by ChimeraX.
+ChimeraX does not show this type of surface, but SAS areas can be 
+calculated with <a href="measure.html"><b>measure</b></a>.
+<br><br>
 <li>A <b><i>Gaussian surface</i></b> (GS) is an isosurface of
 pseudo-density in which atoms are represented by Gaussian distributions.
 This type of surface is indicated with the 
