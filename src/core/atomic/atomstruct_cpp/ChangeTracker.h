@@ -64,7 +64,7 @@ protected:
 
     bool  _discarding;
     // array much faster than map...
-    ChangesArray  _global_type_changes;
+    mutable ChangesArray  _global_type_changes;
     mutable std::map<Structure*, ChangesArray>  _structure_type_changes;
     std::set<Structure*> _dead_structures;
     bool  _structure_okay(Structure* s) {
@@ -111,8 +111,6 @@ public:
     void  add_created(Structure* s, C* ptr) {
         if (_discarding)
             return;
-        auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
-        g_changes.created.insert(ptr);
         if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             s_changes.created.insert(ptr);
@@ -125,17 +123,14 @@ public:
     void  add_created(Structure* s, const std::set<C*>& ptrs) {
         if (_discarding)
             return;
-        auto& g_changes = _global_type_changes[_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
-        // looping through and inserting individually empirically faster than the commented-out
-        //   single call below, possibly due to the generic nature of that call
-        for (auto ptr: ptrs)
-            g_changes.created.insert(ptr);
-        //g_changes.created.insert(ptrs.begin(), ptrs.end());
         if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s]
                 [_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
+            // looping through and inserting individually empirically faster than the commented-out
+            //   single call below, possibly due to the generic nature of that call
             for (auto ptr: ptrs)
                 s_changes.created.insert(ptr);
+            //s_changes.created.insert(ptrs.begin(), ptrs.end());
         }
     }
 
@@ -143,14 +138,8 @@ public:
     void  add_modified(Structure* s, C* ptr, const std::string& reason) {
         if (_discarding)
             return;
-        auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
-        if (g_changes.created.find(static_cast<const void*>(ptr)) == g_changes.created.end()) {
-            // newly created objects don't also go in modified set
-            g_changes.modified.insert(ptr);
-            g_changes.reasons.insert(reason);
-        }
         if (_structure_okay(s)) {
-        auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
+            auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
                 // newly created objects don't also go in modified set
                 s_changes.modified.insert(ptr);
@@ -163,13 +152,6 @@ public:
     void  add_modified(Structure* s, C* ptr, const std::string& reason, const std::string& reason2) {
         if (_discarding)
             return;
-        auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
-        if (g_changes.created.find(static_cast<const void*>(ptr)) == g_changes.created.end()) {
-            // newly created objects don't also go in modified set
-            g_changes.modified.insert(ptr);
-            g_changes.reasons.insert(reason);
-            g_changes.reasons.insert(reason2);
-        }
         if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
@@ -185,10 +167,6 @@ public:
     void  add_deleted(Structure* s, C* ptr) {
         if (_discarding)
             return;
-        auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
-        ++g_changes.num_deleted;
-        g_changes.created.erase(ptr);
-        g_changes.modified.erase(ptr);
         if (s == static_cast<void*>(ptr)) {
             _structure_type_changes.erase(s);
             _dead_structures.insert(s);
@@ -208,11 +186,26 @@ public:
         return false;
     }
     void  clear() {
-        for (auto& changes: _global_type_changes) changes.clear();
         _structure_type_changes.clear();
         _dead_structures.clear();
     }
     const ChangesArray&  get_global_changes() const {
+        for (auto& changes: _global_type_changes)
+            changes.clear();
+        for (auto& s_changes: _structure_type_changes) {
+            auto &structure_changes = s_changes.second;
+            for (int i = 0; i < _num_types; ++i) {
+                auto &target = _global_type_changes[i];
+                auto &source = structure_changes[i];
+                for (auto ptr: source.created)
+                    target.created.insert(ptr);
+                for (auto ptr: source.modified)
+                    target.modified.insert(ptr);
+                for (auto &reason: source.reasons)
+                    target.reasons.insert(reason);
+                target.num_deleted += source.num_deleted;
+            }
+        }
         return _global_type_changes;
     }
     const std::map<Structure*, ChangesArray>&  get_structure_changes() const {
