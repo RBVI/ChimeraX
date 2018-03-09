@@ -47,7 +47,7 @@ cdef extern from "<element/Element.h>" namespace "element":
         const Element& get_named_element "get_element"(const char*)
 
         @staticmethod
-        const set[string] names()
+        const set[string]& names()
 
         @staticmethod
         void set_py_class(object)
@@ -109,7 +109,9 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         float radius()
         Residue* residue()
         void set_alt_loc(char, bool, bool)
+        void set_bfactor(float)
         void set_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
+        void set_coord(const Point&)
         void set_coord(const Point&, CoordSet*)
         void set_display(bool)
         void set_draw_mode(DrawMode)

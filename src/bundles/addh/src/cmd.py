@@ -661,6 +661,8 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
                 continue
             candidates.append((nbb, h_rad))
 
+        from tinyarray import zeros
+        all_zero = zeros(3)
         for candidate, a_rad in candidates:
             c_pos = candidate._addh_coord
             # project into plane...
@@ -668,7 +670,7 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
 
             # find nearest approach of circle...
             cv = proj - center
-            if not cv.any(): # all elements are zero
+            if cv == all_zero:
                 continue
             cv *= radius / norm(cv)
             app = center + cv
@@ -787,7 +789,7 @@ def determine_h_color(parent_atom):
                 continue
             if a.element.name == "C":
                 continue
-            if (a.color == element_colors(a.element.number)).all():
+            if a.color == element_colors(a.element.number):
                 num_match_elements += 1
                 if num_match_elements > 1:
                     color_scheme = "element"

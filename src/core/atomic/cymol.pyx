@@ -16,8 +16,7 @@
 
 cimport cydecl
 import collections
-from numpy import array, uint8, empty
-cimport numpy as np
+from tinyarray import array, zeros
 from cython.operator import dereference
 from sys import getrefcount
 from ctypes import c_void_p, byref
@@ -47,9 +46,6 @@ cdef class CyAtom:
     def __cinit__(self, long ptr_val):
         self.cpp_atom = <cydecl.Atom *>ptr_val
         self._deleted = False
-
-    def __init__(self, ptr_val):
-        self._coord = None
 
 
     # possibly long-term hack for interoperation with ctypes
@@ -82,6 +78,10 @@ cdef class CyAtom:
     def bfactor(self):
         return self.cpp_atom.bfactor()
 
+    @bfactor.setter
+    def bfactor(self, bf):
+        self.cpp_atom.set_bfactor(bf)
+
     @property
     def bonds(self):
         # work around non-const-correct code by using temporary...
@@ -92,23 +92,24 @@ cdef class CyAtom:
     @property
     def color(self):
         color = self.cpp_atom.color()
-        return array([color.r, color.g, color.b, color.a], dtype=uint8)
+        return array([color.r, color.g, color.b, color.a])
 
     @color.setter
     @cython.boundscheck(False)  # turn off bounds checking
     @cython.wraparound(False)  # turn off negative index wrapping
-    def color(self, np.ndarray[np.uint8_t, ndim=1] rgba):
+    def color(self, rgba):
         if rgba.shape[0] != 4:
             raise ValueError("set_color(rgba): 'rgba' must be 1x4 numpy uint8 array")
         self.cpp_atom.set_color(rgba[0], rgba[1], rgba[2], rgba[3])
 
     @property
     def coord(self):
-        if self._coord is None or getrefcount(self._coord) > 2:
-            self._coord = empty(3, dtype='d')
         crd = self.cpp_atom.coord()
-        self._coord[:] = (crd[0], crd[1], crd[2])
-        return self._coord
+        return array((crd[0], crd[1], crd[2]))
+
+    @coord.setter
+    def coord(self, xyz):
+        self.cpp_atom.set_coord(cydecl.Point(xyz[0], xyz[1], xyz[2]))
 
     @property
     def deleted(self):
@@ -134,6 +135,14 @@ cdef class CyAtom:
     def element(self):
         from . import Element
         return Element.c_ptr_to_py_inst(<long>&self.cpp_atom.element())
+
+    @property
+    def element_name(self):
+        return self.element.name
+
+    @property
+    def element_number(self):
+        return self.element.number
 
     @property
     def hide(self):
@@ -184,7 +193,7 @@ cdef class CyAtom:
 
     @cython.boundscheck(False)  # turn off bounds checking
     @cython.wraparound(False)  # turn off negative index wrapping
-    def set_coord(self, np.ndarray[np.float64_t, ndim=1] xyz, int cs_id):
+    def set_coord(self, xyz, int cs_id):
         cdef int size = xyz.shape[0]
         if size != 3:
             raise ValueError('setcoord(xyz, cs_id): "xyz" must by numpy array of dimension 1x3')
@@ -343,14 +352,6 @@ cdef class Element:
             ele_ptr = Element._string_to_cpp_element(ident.encode())
         return ele_ptr.py_instance(True)
 
-    '''
-    @staticmethod
-    cdef _get_numeric_element(int e_num):
-        return Element.c_ptr_to_py_inst(<long>&cydecl.Element.get_element(e_num))
-
-    @staticmethod
-    cdef _get_string_element(const char* e_name):
-        return Element.c_ptr_to_py_inst(<long>&cydecl.Element.get_element(e_name))
-    '''
+    names = set(cydecl.Element.names())
 
 cydecl.Element.set_py_class(Element)
