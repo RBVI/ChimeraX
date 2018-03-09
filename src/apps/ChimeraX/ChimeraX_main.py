@@ -298,7 +298,7 @@ def init(argv, event_loop=True):
                 old_name = "chimerax.core." + mmod
                 if full_name.startswith(old_name):
                     new_name = "chimerax." + mmod
-                    from importlib import util
+                    from importlib import util, import_module
                     real_name = full_name.replace(old_name, new_name)
                     # ensure real module has been imported...
                     import_module(real_name)
