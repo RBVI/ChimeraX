@@ -63,7 +63,8 @@ _protein1to3 = {
     'W': "TRP",
     'Y': "TYR",
     'Z': "GLX",
-};
+}
+
 
 def write_mmcif(session, path, models=None):
     from . import Structure
@@ -95,6 +96,7 @@ def write_mmcif(session, path, models=None):
             else:
                 for m in models:
                     save_structure(session, f, [m], used_data_names)
+
 
 ChimeraX_audit_conform = mmcif.MMCIFTable(
     "audit_conform",
@@ -220,7 +222,7 @@ def save_structure(session, file, models, used_data_names):
     # All 'models' should have the same metadata.
     # All 'models' should have the same number of atoms, but in PDB files
     # then often don't, so pick the model with the most atoms.
-    # 
+    #
     if len(models) <= 1:
         best_m = models[0]
     else:
@@ -252,7 +254,7 @@ def save_structure(session, file, models, used_data_names):
     ChimeraX_audit_conform.print(file=file, fixed_width=True)
 
     citation, citation_author, software = mmcif.get_mmcif_tables_from_metadata(
-            best_m, ['citation', 'citation_author', 'software'])
+        best_m, ['citation', 'citation_author', 'software'])
     if not citation:
         citation = ChimeraX_citation
         citation_author = ChimeraX_authors
@@ -346,7 +348,7 @@ def save_structure(session, file, models, used_data_names):
                 descrip = '?'
             eid = len(entity_info) + 1
             entity_info[eid] = (type, descrip)
-            het_entities[n] = { 'entity': eid }
+            het_entities[n] = {'entity': eid}
         if mcid in het_entities[n]:
             continue
         asym_id += 1
@@ -367,18 +369,18 @@ def save_structure(session, file, models, used_data_names):
 
     atom_site_data = []
     atom_site = mmcif.MMCIFTable("atom_site", [
-            'group_PDB', 'id', 'type_symbol', 'label_atom_id', 'label_alt_id',
-            'label_comp_id', 'label_asym_id', 'label_entity_id', 'label_seq_id',
-            'Cartn_x', 'Cartn_y', 'Cartn_z',
-            'auth_asym_id', 'auth_seq_id', 'pdbx_PDB_ins_code',
-            'occupancy', 'B_iso_or_equiv', 'pdbx_PDB_model_num'
-        ], atom_site_data)
+        'group_PDB', 'id', 'type_symbol', 'label_atom_id', 'label_alt_id',
+        'label_comp_id', 'label_asym_id', 'label_entity_id', 'label_seq_id',
+        'Cartn_x', 'Cartn_y', 'Cartn_z',
+        'auth_asym_id', 'auth_seq_id', 'pdbx_PDB_ins_code',
+        'occupancy', 'B_iso_or_equiv', 'pdbx_PDB_model_num'
+    ], atom_site_data)
     atom_site_anisotrop_data = []
     atom_site_anisotrop = mmcif.MMCIFTable("atom_site_anisotrop", [
-            'id', 'type_symbol',
-            'U[1][1]', 'U[1][2]', 'U[1][3]',
-            'U[2][2]', 'U[2][3]', 'U[3][3]',
-        ], atom_site_anisotrop_data)
+        'id', 'type_symbol',
+        'U[1][1]', 'U[1][2]', 'U[1][3]',
+        'U[2][2]', 'U[2][3]', 'U[3][3]',
+    ], atom_site_anisotrop_data)
     serial_num = 0
 
     def atom_site_residue(residue, group, seq_id, asym_id, entity_id, model_num):
@@ -431,7 +433,7 @@ def save_structure(session, file, models, used_data_names):
                 asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
                 atom_site_residue(r, 'HETATM', '.', asym_id, entity_id, model_num)
         for r in het_residues:
-            asym_id, entity_id = het_asym_info[mmcif_chain_id]
+            asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
             atom_site_residue(r, 'HETATM', '.', asym_id, entity_id, model_num)
 
     atom_site_data[:] = flattened(atom_site_data)
@@ -440,35 +442,34 @@ def save_structure(session, file, models, used_data_names):
     atom_site_anisotrop.print(file, fixed_width=True)
     del atom_site_data, atom_site, atom_site_anisotrop_data, atom_site_anisotrop
 
-
     struct_conn_data = []
     struct_conn = mmcif.MMCIFTable("struct_conn", [
-            "id", "conn_type_id", 
-            "ptnr1_label_atom_id",
-            "pdbx_ptnr1_label_alt_id",
-            "ptnr1_label_asym_id",
-            "ptnr1_label_seq_id",
-            "ptnr1_auth_asym_id",
-            "ptnr1_auth_seq_id",
-            "pdbx_ptnr1_PDB_ins_code",
-            "ptnr1_label_comp_id",
-            "ptnr1_symmetry",
-            "ptnr2_label_atom_id",
-            "pdbx_ptnr2_label_alt_id",
-            "ptnr2_label_asym_id",
-            "ptnr2_label_seq_id",
-            "ptnr2_auth_asym_id",
-            "ptnr2_auth_seq_id",
-            "pdbx_ptnr2_PDB_ins_code",
-            "ptnr2_label_comp_id",
-            "ptnr2_symmetry",
-            "pdbx_dist_value",
-        ], struct_conn_data)
+        "id", "conn_type_id",
+        "ptnr1_label_atom_id",
+        "pdbx_ptnr1_label_alt_id",
+        "ptnr1_label_asym_id",
+        "ptnr1_label_seq_id",
+        "ptnr1_auth_asym_id",
+        "ptnr1_auth_seq_id",
+        "pdbx_ptnr1_PDB_ins_code",
+        "ptnr1_label_comp_id",
+        "ptnr1_symmetry",
+        "ptnr2_label_atom_id",
+        "pdbx_ptnr2_label_alt_id",
+        "ptnr2_label_asym_id",
+        "ptnr2_label_seq_id",
+        "ptnr2_auth_asym_id",
+        "ptnr2_auth_seq_id",
+        "pdbx_ptnr2_PDB_ins_code",
+        "ptnr2_label_comp_id",
+        "ptnr2_symmetry",
+        "pdbx_dist_value",
+    ], struct_conn_data)
 
     struct_conn_type_data = []
     struct_conn_type = mmcif.MMCIFTable("struct_conn_type", [
-            "id",
-        ], struct_conn_type_data)
+        "id",
+    ], struct_conn_type_data)
 
     def struct_conn_bond(tag, b, a0, a1):
         nonlocal count
@@ -583,34 +584,56 @@ def save_structure(session, file, models, used_data_names):
 
     struct_conn_data[:] = flattened(struct_conn_data)
     struct_conn.print(file, fixed_width=True)
-    #struct_conn_type_data[:] = flattened(struct_conn_type_data)
+    # struct_conn_type_data[:] = flattened(struct_conn_type_data)
     struct_conn_type.print(file, fixed_width=True)
     del struct_conn_data, struct_conn, struct_conn_type_data, struct_conn_type
 
     # struct_conf
     struct_conf_data = []
     struct_conf = mmcif.MMCIFTable("struct_conf", [
-            "id", "conf_type_id",
-            "beg_label_comp_id",
-            "beg_label_asym_id",
-            "beg_label_seq_id",
-            "end_label_comp_id",
-            "end_label_asym_id",
-            "end_label_seq_id",
-        ], struct_conf_data)
+        "id", "conf_type_id",
+        "beg_label_comp_id",
+        "beg_label_asym_id",
+        "beg_label_seq_id",
+        "end_label_comp_id",
+        "end_label_asym_id",
+        "end_label_seq_id",
+        "beg_auth_asym_id",
+        "beg_auth_seq_id",
+        "pdbx_beg_PDB_ins_code",
+        "end_auth_asym_id",
+        "end_auth_seq_id",
+        "pdbx_end_PDB_ins_code",
+    ], struct_conf_data)
 
     struct_conf_type_data = []
     struct_conf_type = mmcif.MMCIFTable("struct_conf_type", [
-            "id"
-        ], struct_conf_type_data)
+        "id"
+    ], struct_conf_type_data)
 
     def struct_conf_entry(id, type, beg_res, end_res):
         beg_asym, beg_seq = residue_info[beg_res]
         end_asym, end_seq = residue_info[end_res]
+        beg_cid = beg_res.chain_id
+        if beg_cid == ' ':
+            beg_cid = '.'
+        beg_rnum = beg_res.number
+        beg_rins = beg_res.insertion_code
+        if not beg_rins:
+            beg_rins = '?'
+        end_cid = end_res.chain_id
+        if end_cid == ' ':
+            end_cid = '.'
+        end_rnum = end_res.number
+        end_rins = end_res.insertion_code
+        if not end_rins:
+            end_rins = '?'
         struct_conf_data.append((
             id, type,
             beg_res.name, beg_asym, beg_seq,
-            end_res.name, end_asym, end_seq))
+            end_res.name, end_asym, end_seq,
+            beg_cid, beg_rnum, beg_rins,
+            end_cid, end_rnum, end_rins))
 
     helix_count = 0
     strand_count = 0
@@ -628,23 +651,19 @@ def save_structure(session, file, models, used_data_names):
         else:
             if beg_res.is_helix:
                 helix_count += 1
-                struct_conf_entry(
-                    "HELX%d" % helix_count, "HELX_P", beg_res, end_res)
+                struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
             elif beg_res.is_strand:
                 strand_count += 1
-                struct_conf_entry(
-                    "STRN%d" % strand_count, "STRN_P", beg_res, end_res)
+                struct_conf_entry('STRN%d' % strand_count, "STRN_P", beg_res, end_res)
             beg_res = end_res = r
             last_ssid = ssid
     if last_ssid:
         if beg_res.is_helix:
             helix_count += 1
-            struct_conf_entry(
-                "HELX%d" % helix_count, "HELX_P", beg_res, end_res)
+            struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
         elif beg_res.is_strand:
             strand_count += 1
-            struct_conf_entry(
-                "STRN%d" % strand_count, "STRN_P", beg_res, end_res)
+            struct_conf_entry('STRN%d' % strand_count, "STRN_P", beg_res, end_res)
 
     if helix_count:
         struct_conf_type_data.append("HELX_P")
@@ -653,7 +672,7 @@ def save_structure(session, file, models, used_data_names):
 
     struct_conf_data[:] = flattened(struct_conf_data)
     struct_conf.print(file, fixed_width=True)
-    #struct_conf_type_data[:] = flattened(struct_conf_type_data)
+    # struct_conf_type_data[:] = flattened(struct_conf_type_data)
     struct_conf_type.print(file, fixed_width=True)
     del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type
 
@@ -662,6 +681,7 @@ def save_structure(session, file, models, used_data_names):
     _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file)
     _save_metadata(best_m, ['cell', 'symmetry'], file)
     _save_metadata(best_m, ['pdbx_struct_assembly', 'pdbx_struct_assembly_gen', 'pdbx_sruct_oper_list'], file)
+
 
 def save_components(model, file):
     residues = model.residues
@@ -707,6 +727,7 @@ def save_components(model, file):
     # TODO: chem_comp_atom
     # TODO: chem_comp_bond
 
+
 if 0:
     # testing
     from chimerax.core.commands.open import open as open_cmd
@@ -716,9 +737,9 @@ if 0:
     # pdb_id = '1ejg'  # atom_site_anisotrop
     # pdb_id = '5cd4'  # struct_conn: disulf, covale, metalc, hydrog
     pdb_id = '2adw'  # struct_conn: bond to alternate atom
-    models = open_cmd(session, pdb_id)
+    models = open_cmd(session, pdb_id)  # noqa
     # models = open_cmd(session, pdb_id, format='pdb')
     # save_mmcif(session, '%s.cif' % pdb_id, models)
     with open('%s.cif' % pdb_id, 'w') as file:
-        save_structure(session, file, models, set())
+        save_structure(session, file, models, set())  # noqa
     raise SystemExit(-1)
