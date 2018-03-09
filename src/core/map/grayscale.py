@@ -161,7 +161,13 @@ class GrayScaleDrawing(Drawing):
     if color_mode != self.color_mode:
       self.color_mode = color_mode
       self.remove_planes()
-      
+
+  def set_linear_interpolation(self, lin_interp):
+    '''Can only call this when OpenGL context current.'''
+    if lin_interp != self.linear_interpolation:
+      self.linear_interpolation = lin_interp
+      self.remove_planes()
+        
   def set_grid_size(self, grid_size):
     if grid_size != self.grid_size:
       self.remove_planes()
@@ -346,6 +352,7 @@ class GrayScaleDrawing(Drawing):
       dc = d.copy()	# Data array may be reused before texture is filled so copy it.
       from ..graphics import Texture
       t = Texture(dc)
+      t.linear_interpolation = self.linear_interpolation
       self.texture_planes[(k,axis)] = t
     return t
 
