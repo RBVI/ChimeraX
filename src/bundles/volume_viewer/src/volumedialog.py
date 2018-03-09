@@ -1451,7 +1451,11 @@ class Thresholds_Panel(PopupPanel):
 
     self.histograms_layout = hl = QVBoxLayout(hf)
     hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
-    hl.setContentsMargins(0,0,0,0)
+    # On macOS 10.13 provide room on right for scrollbar.
+    import sys
+    right_margin = 12 if sys.platform == 'darwin' else 5
+    left_margin = 5
+    hl.setContentsMargins(left_margin,0,right_margin,0)
     hl.setSpacing(0)
     hl.addStretch(1)
     frame.setWidget(hf)	# Set scrollable child.
