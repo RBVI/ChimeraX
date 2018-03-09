@@ -150,7 +150,7 @@ bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_li
 {
     float idealBL = Element::bond_length(a1->element(), a2->element());
     float sqlength;
-    if (!isnan(distance))
+    if (!std::isnan(distance))
         sqlength = distance * distance;
     else
         sqlength = a1->coord().sqdistance(a2->coord());
