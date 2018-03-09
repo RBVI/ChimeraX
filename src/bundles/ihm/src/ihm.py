@@ -1194,7 +1194,6 @@ class FileInfo:
             path = join(self.ihm_dir, self.file_path)
             if isfile(path):
                 return path
-            return None
             
         r = self.ref
         if r and r.ref_type == 'DOI':
