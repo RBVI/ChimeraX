@@ -45,7 +45,7 @@ class VolumeViewerDefaultSettings:
   def factory_defaults(self):
 
     defaults = {
-        'max_histograms': 20,
+        'max_histograms': 1000,
         'use_initial_colors': True,
         'initial_colors': ((.7,.7,.7,1),
                            (1,1,.7,1),

@@ -27,7 +27,7 @@ endif
 ifeq ($(OS),Darwin)
 NEED_EXPAT=1
 NEED_HDF5=1
-#NEED_OPENSSL=1
+NEED_OPENSSL=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
 #SUBDIRS += leapmotion
