@@ -39,7 +39,7 @@ all: $(PYOBJS) $(SHLIB)
 
 cymol.$(PYMOD_EXT): cymol.pyx
 	LDFLAGS="-L." $(PYTHON_EXE) setup.py build_ext -i
-	mv cymol.cpython-36m-darwin.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
+	mv cymol.cpython-*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
 	$(RSYNC) cymol.$(PYMOD_EXT) $(PKG_DIR)
 
 install: all dir $(PYSRCS)

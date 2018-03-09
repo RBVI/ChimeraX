@@ -21,6 +21,7 @@ six==1.11.0
 sortedcontainers==1.5.9
 suds-jurko==0.6
 tables==3.4.2
+tinyarray==1.2.0
 webcolors==1.7
 #
 # Documentation
