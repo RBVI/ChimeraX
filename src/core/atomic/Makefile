@@ -12,7 +12,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= atomstruct_cpp dssp_cpp element_cpp mmcif_cpp pdb_cpp pdbio pyinstance_cpp readcif_cpp
+SUBDIRS	+= atomstruct_cpp dssp_cpp element_cpp mmcif_cpp pdb_cpp pdbio pyinstance_cpp readcif_cpp speed_test
 
 include $(TOP)/mk/subdir.make
 

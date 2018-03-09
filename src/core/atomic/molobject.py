@@ -104,6 +104,7 @@ class Atom(State):
 
     def __init__(self, c_pointer):
         set_c_pointer(self, c_pointer)
+        self.test_attr = 5.0
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
