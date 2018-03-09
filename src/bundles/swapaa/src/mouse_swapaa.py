@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.ui import MouseMode
+from chimerax.ui import MouseMode
 class SwapAAMouseMode(MouseMode):
     name = 'swapaa'
     icon_file = 'swapaa.png'
@@ -78,7 +78,7 @@ class SwapAAMouseMode(MouseMode):
 
     def _picked_residue(self, event):
         x,y = event.position()
-        from chimerax.core.ui.mousemodes import picked_object
+        from chimerax.ui.mousemodes import picked_object
         pick = picked_object(x, y, self.session.main_view)
         return self._residue_from_pick(pick)
 
@@ -206,7 +206,7 @@ class SwapAAMouseMode(MouseMode):
             label(self.session, Objects(atoms = r.atoms), 'residues', text = rname)
         
     def laser_click(self, xyz1, xyz2):
-        from chimerax.core.ui.mousemodes import picked_object_on_segment
+        from chimerax.ui.mousemodes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         r = self._residue_from_pick(pick)
         if self._has_alignment_atoms(r):
