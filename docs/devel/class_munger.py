@@ -70,7 +70,7 @@ def autodoc_process_docstring(app, what, name, obj, options, lines):
             lines.pop(0)
         else:
             break
-    if what in ["method", "attribute"]:
+    if what in ["method", "attribute", "function"]:
         for n, line in enumerate(lines):
             if "Supported API" in line:
                 lines[n] = line.replace("Supported API", "*Supported API*")
