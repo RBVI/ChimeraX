@@ -99,6 +99,10 @@ public:
     bool  is_het() const { return _is_het; }
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
+    void  set_name(const ResName &name) {
+      _name = name;
+      change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RESIDUE_NAME);
+    }
     PolymerType  polymer_type() const;
     int  number() const { return _number; }
     Atom*  principal_atom() const;
