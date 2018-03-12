@@ -11,6 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+'''
+ui.mousemodes: Mouse modes
+==========================
+
+Classes to create mouse modes and assign mouse buttons and modifier
+keys to specific modes.
+'''
+
 class MouseMode:
     '''
     Classes derived from MouseMode implement specific mouse modes providing

@@ -175,81 +175,88 @@ menu item from the ``Tools`` menu.
     :language: python
     :linenos:
 
-:py:class:`chimerax.core.ui.HtmlToolInstance` is the base class for
+:py:class:`chimerax.ui.htmltool.HtmlToolInstance` is the base class for
 simplifying construction of tools with HTML-based graphical
-interface.  When an instance of a subclass of ``HtmlToolInstance``
-is created, its constructor must call the ``HtmlToolInstance``
+interface.  When an instance of a subclass of
+:py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
+is created, its constructor must call the
+:py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
 constructor to set up the graphical interface framework.
-The arguments to the ``HtmlToolInstance`` constructor is the
+The arguments to the
+:py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
+constructor is the
 session and the tool name.  An optional argument, ``size_hint``,
 may be supplied to guide the tool layout, but, as the name suggests,
 it is only a hint and may not be honored.
 The superclass constructor creates a ChimeraX tool which contains
 a single widget for displaying an HTML page.  The widget is
 accessible using the ``html_view`` attribute, an instance of
-:py:class:`chimerax.core.ui.widgets.HtmlView`.  In this example, the
+:py:class:`chimerax.ui.widgets.htmlview.HtmlView`.  In this example, the
 ``TutorialGUI`` constructor calls its superclass constructor
 and then its own ``_build_ui`` method, which simply constructs
 the URL to a static HTML file in the bundle Python package and
 displays it in the widget using ``self.html_view.setUrl``.
 
-The ``HtmlToolInstance`` class also helps manage threading
+The :py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
+class also helps manage threading
 issues that arise from the way HTML is displayed using `PyQt5`_.
 The underlying `Qt WebEngine`_ machinery uses a separate thread
 for rendering HTML, so developers need to make sure that code
 is run in the proper thread.  In particular, access to shared
 data must be synchronized between the Qt main and WebEngine
-threads.  ``HtmlToolInstance`` simplifies the issues by calling
+threads.
+:py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
+simplifies the issues by calling
 subclass methods in the main thread when an interesting event
 occurs in the WebEngine thread.
 
-The :py:class:`~chimerax.core.ui.HtmlToolInstance` constructor
+The :py:class:`~chimerax.ui.htmltool.HtmlToolInstance` constructor
 checks the derived class for the presence of an attribute,
-``CUSTOM_SCHEME`` and a method, ``handle_scheme``.
+:py:attr:`CUSTOM_SCHEME` and a method, :py:meth:`handle_scheme`.
 If both are defined, then the base class will arrange for
-``handle_scheme`` to be called (in the main thread) whenever
-a link matching ``CUSTOM_SCHEME`` is followed. 
+py:meth:`handle_scheme` to be called (in the main thread) whenever
+a link matching :py:attr:`CUSTOM_SCHEME` is followed. 
 In this example, the custom scheme is ``tutorial``
 (line 31), so when the user clicks on links such as
 ``tutorial:cofm`` and ``tutorial:highlight`` (see ``gui.html``
-below), ``handle_scheme`` is called with the clicked URL as
+below), :py:meth:`handle_scheme` is called with the clicked URL as
 its lone argument.  Currently, the argument is an instance
-of ``PyQt5.QtCore.QUrl`` but that may change later to remove
-explicit dependency on PyQt.  ``handle_scheme`` is expected
+of :py:class:`PyQt5.QtCore.QUrl` but that may change later to remove
+explicit dependency on PyQt.  :py:meth:`handle_scheme` is expected
 to parse the URL and take appropriate action depending on
 the data.  In this example, the `URL`_ *path* is a command
 name and the *query* contains data for command arguments.
-Three command names are supported: ``update_models``, ``cofm``,
-and ``highlight``.  ``update_models`` is invoked when the page
+Three command names are supported: :py:meth:`update_models`, ``cofm``,
+and ``highlight``.  :py:meth:`update_models` is invoked when the page
 is loaded (see ``gui.html`` below) and is handled as special case
 (see below).
 For the other commands, known query fields are ``target``,
 ``model``, ``color``, ``count``, ``weighted`` and ``transformed``.
 The command names and query fields are combined to generate
 a ChimeraX command string, which is then executed using
-:py:func:`chimerax.core.commands.run`.  The main benefit of executing
+:py:func:`chimerax.core.commands.run.run`.  The main benefit of executing
 a command string is automatic display of command and replies
 in the ChimeraX log.
 
-The :py:class:`~chimerax.core.ui.HtmlToolInstance` class also
+The :py:class:`~chimerax.ui.htmltool.HtmlToolInstance` class also
 helps monitoring the opening and closing of models.
-If the derived class defines a method named ``update_models``,
+If the derived class defines a method named :py:meth:`update_models`,
 the method will be called whenever a new models is opened or
 an existing model is closed.
 Note that this is *not* when a model instance is *created*
 or *deleted*, because transient models that are not shown to
-the user (opened) do not trigger calls to ``update_models``.
-``update_models`` is typically called with two arguments:
+the user (opened) do not trigger calls to :py:meth:`update_models`.
+:py:meth:`update_models` is typically called with two arguments:
 the name of the triggering event (either "add models" or
 "remove models") and the list of models added or removed.
-In this example, ``update_models`` is used for updating
+In this example, :py:meth:`update_models` is used for updating
 the HTML drop-down list of models, so only the currently
 opened models are important, and neither the trigger
 name nor the models added or removed is relevant.
 In fact, its arguments are given default values so that
-``update_models`` can be called with no arguments when
+:py:meth:`update_models` can be called with no arguments when
 the HTML page is first loaded.  Whether called in response
-to model addition/removal or HTML events, ``update_models``
+to model addition/removal or HTML events, :py:meth:`update_models`
 does the following:
 
 #. build a list of 2-tuples of (*display text*, *atom_specifier*),
@@ -261,10 +268,10 @@ does the following:
 #. combine the HTML text string and the boolean string with a
    JavaScript template to generate a JavaScript script.
 #. execute the JavaScript script in the HTML widget using
-   ``self.html_view.runJavaScript``.
+   :py:meth:`self.html_view.runJavaScript`.
 
 Note the conversion from Python string to JavaScript string is
-accomplished using ``json.dumps``, which properly handles special
+accomplished using :py:func:`json.dumps`, which properly handles special
 characters such as quotes.  The JavaScript template uses standard
 `JavaScript HTML DOM`_ functionality to manipulate the HTML page
 contents.  If executing JavaScript results in errors, the messages

@@ -8,8 +8,41 @@ Only output the last component of the class name instead of the full path.
 from docutils.nodes import GenericNodeVisitor
 
 Replacements = [
-    (".commands.cli", ".commands"),
-    (".commands.atomspec", ".commands"),
+    # hide chimerax.core.commands submodules
+    (r"\.commands\.cli\b", ".commands"),
+    (r"\.commands\.atomspec\b", ".commands"),
+    (r"\.commands\.run.run\b", ".commands.run"),
+    (r"\.commands\.run.concise_model_spec\b", ".commands.concise_model_spec"),
+    (r"\.commands\.run.quote_if_necessary\b", ".commands.quote_if_necessary"),
+    (r"\.commands\.runscript.runscript\b", ".commands.runscript"),
+    (r"\.commands\.runscript\b", ".commands"),
+    (r"\.commands\.selectors\b", ".commands"),
+    (r"\.commands\.symarg\b", ".commands"),
+
+    # hide chimerax.ui submodules
+    # TODO: what about mousemodes?
+    (r"\.ui\.gui\b", ".ui"),
+    (r"\.ui\.htmltool\b", ".ui"),
+    (r"\.ui\.ui_cmd\b", ".ui"),
+    (r"\.ui\.font\b", ".ui"),
+    (r"\.ui\.mousemodes\b", ".ui"),
+    (r"\.ui\.widgets.htmlview\b", ".ui.widgets"),
+
+    # hide chimerax.atomic submodules
+    (r"\.atomic\.molobject\b", ".atomic"),
+    (r"\.atomic\.pbgroup\b", ".atomic"),
+    (r"\.atomic\.molarray\b", ".atomic"),
+    (r"\.atomic\.structure\b", ".atomic"),
+    (r"\.atomic\.molsurf\b", ".atomic"),
+    (r"\.atomic\.changes\b", ".atomic"),
+    (r"\.atomic\.pdbmatrices\b", ".atomic"),
+    (r"\.atomic\.triggers\b", ".atomic"),
+    (r"\.atomic\.mmcif\b", ".atomic"),
+    (r"\.atomic\.pdb\b", ".atomic"),
+    (r"\.atomic\.search\b", ".atomic"),
+    (r"\.atomic\.shapedrawing\b", ".atomic"),
+    # Implementation is still chimerax.core.atomic for now so we map that too.
+    (r"\.core\.atomic\b", ".atomic"),
 ]
 
 
@@ -24,13 +57,13 @@ def setup(app):
 def munge_autodoc():
     # Munge autodoc ClassDocumenter so that base classes do
     # not have full path
-    from sphinx.ext import autodoc
+    from sphinx.ext.autodoc import ClassDocumenter, Documenter, _
     # Code below is copied from Sphinx 1.6.8, with the '~' inserted
     # for non-builtin classes
     def my_add_directive_header(self, sig):
         if self.doc_as_attr:
             self.directivetype = 'attribute'
-        autodoc.Documenter.add_directive_header(self, sig)
+        Documenter.add_directive_header(self, sig)
 
         if not self.doc_as_attr and self.options.show_inheritance:
             sourcename = self.get_sourcename()
@@ -40,9 +73,9 @@ def munge_autodoc():
                          u':class:`%s`' % b.__name__ or
                          u':class:`~%s.%s`' % (b.__module__, b.__name__)
                          for b in self.object.__bases__]
-                self.add_line(u'   ' + autodoc._(u'Bases: %s') % ', '.join(bases),
+                self.add_line(u'   ' + _(u'Bases: %s') % ', '.join(bases),
                               sourcename)
-    autodoc.ClassDocumenter.add_directive_header = my_add_directive_header
+    ClassDocumenter.add_directive_header = my_add_directive_header
 
 
 def doctree_read(app, doctree):
@@ -52,9 +85,12 @@ def doctree_read(app, doctree):
 class DoctreeNodeVisitor(GenericNodeVisitor):
 
     def visit_Text(self, node):
+        import re
         text = orig_text = node.astext()
         for old, new in Replacements:
-            text = text.replace(old, new)
+            text = re.sub(old, new, text)
+        # for old, new in Replacements:
+        #     text = text.replace(old, new)
         if text != orig_text:
             from docutils.nodes import Text
             node.parent.replace(node, Text(text, node.rawsource))

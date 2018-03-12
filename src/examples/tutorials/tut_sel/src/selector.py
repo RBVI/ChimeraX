@@ -13,7 +13,7 @@ def register(selector_name, logger):
 
 def _select_endres(session, models, results):
     # session is an instance of chimerax.core.session.Session
-    # models is a list of chimerax.core.atomic.Model instances
+    # models is a list of chimerax.atomic.Model instances
     # results is an instance of chimerax.core.objects.Objects
 
     # Iterate through the models and add atoms that are end
@@ -24,12 +24,12 @@ def _select_endres(session, models, results):
             chains = m.chains
         except AttributeError:
             continue
-        # chains is an instance of chimerax.core.atomic.molarray.Chains
-        # whose elements are chimerax.core.atomic.molarray.Chain instances
+        # chains is an instance of chimerax.atomic.Chains
+        # whose elements are chimerax.atomic.Chain instances
         for c in chains:
             residues = c.existing_residues
-            # residues is an instance of chimerax.core.atomic.molarray.Residues
-            # whose elements are chimerax.core.atomic.molarray.Residue
+            # residues is an instance of chimerax.atomic.Residues
+            # whose elements are chimerax.atomic.Residue
             # instances.
             # 'results' only holds models, atoms and bonds, not residues.
             # We add atoms from the residues on the ends.  Bonds between

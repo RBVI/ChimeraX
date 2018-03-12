@@ -142,7 +142,8 @@ atoms, ``cofm`` requires several parameters supplied by the user:
 It then takes the parameters, computes the center of mass, and
 reports the result to the ChimeraX log.  The missing link is
 how the user-typed command gets translated into a call to ``cofm``.
-This is the purpose of the call to :py:class:`chimerax.core.commands.register`
+This is the purpose of the call to
+:py:class:`chimerax.core.commands.cli.register`
 in the ``register_command`` method in ``__init__.py``.
 The ``register`` call tells ChimeraX to associate a function and
 description with a command name.  In this case, ``cofm`` and
@@ -171,10 +172,10 @@ and another for optional arguments.  The first element of the 2-tuple
 is a string that matches one of the command function parameter names.
 The second element is a "type class".  ChimeraX provides a variety
 of built-in type classes such as
-:py:class:`~chimerax.core.commands.BoolArg` (Boolean),
-:py:class:`~chimerax.core.commands.IntArg` (integer),
-:py:class:`~chimerax.core.commands.AtomsArg` (container of atoms),
-and :py:class:`~chimerax.core.commands.AtomSpecArg` (atom specifier).
+:py:class:`~chimerax.core.commands.cli.BoolArg` (Boolean),
+:py:class:`~chimerax.core.commands.cli.IntArg` (integer),
+:py:class:`~chimerax.core.commands.cli.AtomsArg` (container of atoms),
+and :py:class:`~chimerax.core.commands.atomspec.AtomSpecArg` (atom specifier).
 See :py:mod:`chimerax.core.commands` for the full
 list.  The order of the required parameters list (in the command
 description) must match the expected order for required arguments
@@ -186,7 +187,7 @@ description) must match the expected order for required arguments
 
 For performance, ChimeraX makes use of `NumPy`_ arrays in many contexts.
 The container for atoms is typically a
-:py:class:`chimerax.core.atomic.Collection`
+:py:class:`chimerax.core.atomic.molarray.Collection`
 instance, as are those for bonds, residues, and atomic structures.
 Fetching the same attribute, e.g., coordinates, from a collection
 of molecular data, e.g., atoms, usually results in a NumPy array.

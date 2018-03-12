@@ -141,7 +141,7 @@ overridden for registering commands, tools, etc.
     :language: python
     :linenos:
 
-The ``open_file`` method is called by ChimeraX to read a file,
+The :py:meth:`open_file` method is called by ChimeraX to read a file,
 and return a list of models and a status message.  Unlike standard
 Python methods, the parameter names are significant because ChimeraX
 introspects the method definition to construct the arguments that
@@ -159,7 +159,7 @@ are passed to the method.
 4. An optional fourth argument, **file_name** may be supplied when
    both the file path and file-like object are needed.
 
-If the ``open_file`` method expects a file-like stream, ChimeraX
+If the :py:meth:`open_file` method expects a file-like stream, ChimeraX
 takes care of decompressing files with **.gz** suffix, as well as
 opening the file in either text or binary mode, matching the format
 specification in ``bundle_info.xml``.
@@ -179,7 +179,8 @@ In this example, only one format is supported, so
     :language: python
     :linenos:
 
-The ``open_xyz`` function is called from the ``__init__.bundle_api.open_file``
+The :py:func:`open_xyz` function is called from the
+:py:meth:`__init__.bundle_api.open_file`
 method to open an input file in `XYZ format`_.  The contents of such
 a file is a series of blocks, each representing a single molecular
 structure.  Each block in an XYZ format file consists of
@@ -189,11 +190,11 @@ structure.  Each block in an XYZ format file consists of
 - one line per atom, containing four space-separated fields: element type
   and x, y, and z coordinates.
 
-The return value that ChimeraX expects from ``open_xyz`` is a 2-tuple
-of a list of structures and a status message.  The ``open_xyz`` code
+The return value that ChimeraX expects from :py:meth:`open_xyz` is a 2-tuple
+of a list of structures and a status message.  The :py:meth:`open_xyz` code
 simply initializes an empty list of structures (line 10) and repeatedly
-calls ``_read_block`` until the entire file is read (lines 14-20).
-When ``read_block`` successfully reads a block, it returns an instance
+calls :py:func:`_read_block` until the entire file is read (lines 14-20).
+When :py:func:`read_block` successfully reads a block, it returns an instance
 of :py:class:`chimerax.core.atomic.structure.AtomicStructure`,
 which is added to the structure list (line 18); otherwise,
 it returns **None** which terminates the block-reading loop (lines 16-17).
@@ -202,7 +203,8 @@ atoms, and bonds (lines 21-22).
 The structure list and the status message are then returned to
 ChimeraX for display (line 23).
 
-``_read_block`` reads and constructs an atomic structure in several steps:
+:py:func:`_read_block` reads and constructs an atomic
+structure in several steps:
 
 #. read the number of atoms in the block (lines 32-43).
 #. build an empy atomic structure to which atoms will be added
