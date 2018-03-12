@@ -100,7 +100,7 @@ class SwapAAMouseMode(MouseMode):
             return False
         irstep = int(rstep) if rstep > 0 else -int(-rstep)
         tres = self._template_residues
-        rname = getattr(r, '_swapaa_name', r.name)
+        rname = r.name
         ri = [i for i,rt in enumerate(tres) if rt.name == rname]
         tr = tres[0] if len(ri) == 0 else tres[(ri[0] + irstep) % len(tres)]
         swapped = self._swap_residue(r, tr)
@@ -143,9 +143,7 @@ class SwapAAMouseMode(MouseMode):
                     nb = s.new_bond(na1, na2)
 
         # Set new residue name.
-        # TODO: Cannot set residue name.  May have to create a new residue instead.
-        # r.name = new_r.name
-        r._swapaa_name = new_r.name
+        r.name = new_r.name
 
         return True
     
@@ -195,7 +193,7 @@ class SwapAAMouseMode(MouseMode):
     def _label(self, r):
         from chimerax.core.objects import Objects
         from chimerax.label.label3d import label
-        rname = getattr(r, '_swapaa_name', r.name)
+        rname = r.name
         # Label CA atom so label does not jump around.
         la = [a for a in r.atoms if a.name == self._label_atom_name]
         if len(la) == 1:
