@@ -74,7 +74,8 @@ class TugAtomsMode(MouseMode):
         if hasattr(pick, 'atom'):
             a = pick.atom
             st = self._tugger
-            if st is None or st.structure is not a.structure:
+            s = a.structure
+            if st is None or st.structure is not s or st.atoms != s.atoms:
                 try:
                     self._tugger = st = StructureTugger(a.structure)
                 except ForceFieldError as e:
@@ -187,7 +188,14 @@ class StructureTugger:
     def __init__(self, structure):
         self._log = Logger('structuretugger.log' if write_logs else None)
         self.structure = structure
-        self.atoms = structure.atoms
+
+        # OpenMM requires the atoms to be sorted by residue number
+        satoms = list(structure.atoms)
+        satoms.sort(key = lambda a: a.residue.number)
+        from chimerax.core.atomic import Atoms
+        self.atoms = Atoms(satoms)
+
+        # Atom being tugged
         self.atom = None
 
         initialize_openmm()
@@ -233,7 +241,7 @@ class StructureTugger:
         # the new atom to the existing force and set the force constant to zero
         # for the previous atom. Use the latter approach.
         self.atom = atom
-        p = self.structure.atoms.index(atom)
+        p = self.atoms.index(atom)
         pp = self._particle_number
         f = self._force
         pfi = self._particle_force_index
@@ -248,8 +256,11 @@ class StructureTugger:
 
         # If a particle is added to a force an existing simulation using
         # that force does not get updated. So we create a new simulation each
-        # time a new atoms is pulled. The integrator can only be associated with
+        # time a new atom is pulled. The integrator can only be associated with
         # one simulation so we also create a new integrator.
+        self._make_simulation()
+
+    def _make_simulation(self):
         from simtk import openmm as mm
         integrator = mm.VariableLangevinIntegrator(self._temperature, self._friction, self._integrator_tolerance)
         integrator.setConstraintTolerance(self._constraint_tolerance)
@@ -278,16 +289,25 @@ class StructureTugger:
         pxyz = 0.1*pos[particle]	# Nanometers
         txyz = pxyz + 0.1*d		# displacement d is in Angstroms, convert to nanometers
         
-        simulation = self._simulation
-        c = simulation.context
+        c = self._simulation.context
         for p,v in zip(('x0','y0','z0'), txyz):
             c.setParameter(p,v)
         c.setPositions(0.1*pos)	# Nanometers
         c.setVelocitiesToTemperature(self._temperature)
 
+        self._simulate()
+
+        xyz = self._simulation_atom_coordinates(c)
+        self._particle_positions = xyz
+        self.atoms.coords = xyz
+        return True
+
+    def _simulate(self):
 # Minimization generates "Exception. Particle coordinate is nan" errors rather frequently, 1 in 10 minimizations.
 #        simulation.minimizeEnergy(maxIterations = self._sim_steps)
 # Get same error in LangevinIntegrator_step().
+        simulation = self._simulation
+        c = simulation.context
         from time import time,sleep
         t0 = time()
         try:
@@ -300,7 +320,7 @@ class StructureTugger:
         except:
                 max_force=self.get_max_force(c)
                 self._log("FAIL!!!\n")
-                c.setPositions(0.1*pos)
+                c.setPositions(0.1*self._particle_positions)
                 while (max_force > self._max_allowable_force):
                     self._log('Maximum force exceeded, %g > %g! Minimizing...'
                               % (max_force, self._max_allowable_force))
@@ -310,13 +330,29 @@ class StructureTugger:
         if write_logs:
             import sys
             sys.__stderr__.write('%d steps in %.2f seconds\n' % (self._sim_steps, t1-t0))
-        state = c.getState(getPositions = True)
+
+    def _minimize(self, steps = None):
+        simulation = self._simulation
+        c = simulation.context
+        c.setPositions(0.1*self._particle_positions)	# Nanometers
+        c.setVelocitiesToTemperature(self._temperature)
+        if steps is None:
+            steps = self._sim_steps
+        simulation.minimizeEnergy(maxIterations = steps)
+        xyz = self._simulation_atom_coordinates(c)
+        self._particle_positions = xyz
+        self.atoms.coords = xyz
+
+    def _set_particle_positions(self):
+        self._particle_positions = self.atoms.coords
+        
+    def _simulation_atom_coordinates(self, sim_context):
+        state = sim_context.getState(getPositions = True)
         from simtk import unit
         pos = state.getPositions().value_in_unit(unit.angstrom)
         from numpy import array, float64
-        self._particle_positions = xyz = array(pos, float64)
-        self.atoms.coords = xyz
-        return True
+        xyz = array(pos, float64)
+        return xyz
         
     def _create_openmm_system(self):
         self._log('In create_openmm_system ')
@@ -325,7 +361,10 @@ class StructureTugger:
         from simtk import openmm as mm
         from simtk import unit
 
-        self._topology, self._particle_positions = openmm_topology_and_coordinates(self.structure)
+        s = self.structure
+        atoms = self.atoms
+        self._particle_positions = atoms.coords
+        self._topology = openmm_topology_and_coordinates(atoms, s.bonds)
         
         forcefield = app.ForceField('amber99sbildn.xml', 'amber99_obc.xml')
 #        self._add_hydrogens(pdb, forcefield)
@@ -399,9 +438,9 @@ class Logger:
             f.close()
             self._log_file = None
 
-def openmm_topology_and_coordinates(mol):
+def openmm_topology_and_coordinates(atoms, bonds):
     '''Make OpenMM topology and positions from ChimeraX AtomicStructure.'''
-    a = mol.atoms
+    a = atoms
     n = len(a)
     r = a.residues
     aname = a.names
@@ -423,12 +462,10 @@ def openmm_topology_and_coordinates(mol):
             rmap[rid] = top.addResidue(rname[i], cmap[cid])
         element = Element.getBySymbol(ename[i])
         atoms[i] = top.addAtom(aname[i], element, rmap[rid])
-    a1, a2 = mol.bonds.atoms
+    a1, a2 = bonds.atoms
     for i1, i2 in zip(a.indices(a1), a.indices(a2)):
         top.addBond(atoms[i1], atoms[i2])
-    from simtk.openmm import Vec3
-    pos = a.coords
-    return top, pos
+    return top
 
 _openmm_initialized = False
 def initialize_openmm():
