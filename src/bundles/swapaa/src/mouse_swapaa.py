@@ -113,18 +113,20 @@ class SwapAAMouseMode(MouseMode):
         if pos is None:
             return False	# Missing backbone atoms to align new residue
 
-        # Delete atoms
+        # Delete atoms.  Backbone atom HA is deleted if new residues is GLY.
+        akeep = set(self._align_atom_names).intersection(new_r.atoms.names)
         from chimerax.core.atomic import Atoms
-        adel = Atoms([a for a in r.atoms if a.name not in self._align_atom_names])
+        adel = Atoms([a for a in r.atoms if a.name not in akeep])
         adel.delete()
 
         # Create new atoms
         s = r.structure
+        akept = set(r.atoms.names)
         add_hydrogens = self._has_hydrogens(r)
         carbon_color = self._carbon_color(r)
         from chimerax.core.atomic.colors import element_color
         for a in new_r.atoms:
-            if a.name not in self._align_atom_names:
+            if a.name not in akept:
                 if a.element_name != 'H' or add_hydrogens:
                     na = s.new_atom(a.name, a.element)
                     na.scene_coord = pos * a.scene_coord
