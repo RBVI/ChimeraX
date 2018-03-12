@@ -349,11 +349,11 @@ class MMCIFTable:
         self.table_name = table_name
         self._tags = [] if tags is None else tags
         self._data = [] if data is None else data
-        n = len(tags)
+        n = len(self._tags)
         if n == 0:
-            assert len(data) == 0
+            assert len(self._data) == 0
         else:
-            assert len(data) % n == 0
+            assert len(self._data) % n == 0
 
     def __bool__(self):
         return len(self._tags) != 0 and len(self._data) != 0

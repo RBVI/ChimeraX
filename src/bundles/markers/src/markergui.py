@@ -24,7 +24,7 @@ class MarkerModeSettings(ToolInstance):
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 
-        self.display_name = 'Markers'
+        self.display_name = 'Marker Placement'
 
         self.mode_menu_names = mnames = {
             'maximum': 'Place marker at density maximum',

@@ -46,7 +46,6 @@ ifeq ($(OS),Darwin)
 # which we don't want, so we add the rpath later, and set the DYLD_LIBRARY_PATH
 # to compensate while we're building
 export DYLD_LIBRARY_PATH=$(libdir)
-CFLAGS += -DOPENSSL_NO_EGD
 ifndef USE_MAC_FRAMEWORKS
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 CONFIG_OPTIONS += --enable-shared
@@ -280,9 +279,9 @@ ifdef USE_MAC_FRAMEWORKS
 			< pyconfig.h.old > pyconfig.h
 endif
 	# Don't use stuff from /usr/local (especially Tcl, Tk, and SSL)
-	#cd $(SOURCE) && \
-	#    mv setup.py setup.py.orig ; \
-	#    sed -e 's;/usr/local;$(build_prefix);' -e 's;/ssl/;/;' < setup.py.orig > setup.py
+	cd $(SOURCE) && \
+	    mv setup.py setup.py.orig ; \
+	    sed -e 's;/usr/local;$(build_prefix);' -e 's;/ssl/;/;' < setup.py.orig > setup.py
 ifdef USE_MAC_FRAMEWORKS
 	# say where to find Tcl and Tk (and any other frameworks)
 	(echo ':/framework_dirs =/s:$$: "$(frameworkdir)",:'; echo ':wq') \

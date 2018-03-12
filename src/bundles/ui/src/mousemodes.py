@@ -451,6 +451,18 @@ class SelectMouseMode(MouseMode):
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         select_pick(self.session, pick, self.mode)
 
+    def drag_3d(self, position, move, delta_z):
+        if delta_z:
+            ses = self.session
+            sel = ses.selection
+            if delta_z > 0.20:
+                sel.promote(ses)
+            elif delta_z < -0.20:
+                sel.demote(ses)
+            else:
+                return 'accumulate drag'
+
+
 class SelectAddMouseMode(SelectMouseMode):
     '''Mouse mode to add objects to selection by clicking on them.'''
     name = 'select add'
