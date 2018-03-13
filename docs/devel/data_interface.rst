@@ -36,7 +36,7 @@ Modules
 .. toctree::
     :maxdepth: 1
 
-    core/commands/cli.rst
+    core/commands/commands.rst
 
     core/data_events.rst
 

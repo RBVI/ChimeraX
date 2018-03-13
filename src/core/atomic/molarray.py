@@ -322,8 +322,6 @@ def depluralize(word):
 #
 class StructureDatas(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ atomic structure objects.
     '''
     def __init__(self, mol_pointers):
@@ -390,8 +388,6 @@ class StructureDatas(Collection):
 #
 class AtomicStructures(StructureDatas):
     '''
-    Bases: :class:`.StructureDatas`
-
     Collection of Python atomic structure objects.
     '''
     def __init__(self, mol_pointers):
@@ -408,8 +404,6 @@ class AtomicStructures(StructureDatas):
 #
 class Atoms(Collection):
     '''
-    Bases: :class:`.Collection`
-
     An ordered collection of atom objects. This offers better performance
     than using a list of atoms.  It provides methods to access atom attributes such
     as coordinates as numpy arrays. Atoms directly accesses the C++ atomic data
@@ -417,7 +411,6 @@ class Atoms(Collection):
     and are slower to use in computation.
     '''
     # replicate Atom class constants
-    from .molobject import Atom
     SPHERE_STYLE = Atom.SPHERE_STYLE
     BALL_STYLE = Atom.BALL_STYLE
     STICK_STYLE = Atom.STICK_STYLE
@@ -747,8 +740,6 @@ class Atoms(Collection):
 #
 class Bonds(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ bonds.
     '''
     def __init__(self, bond_pointers = None):
@@ -872,8 +863,6 @@ class Bonds(Collection):
 #
 class Elements(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Holds a collection of C++ Elements (chemical elements) and provides access to some of
     their attributes.  Used for the same reasons as the :class:`Atoms` class.
     '''
@@ -914,8 +903,6 @@ class Elements(Collection):
 #
 class Pseudobonds(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Holds a collection of C++ PBonds (pseudobonds) and provides access to some of
     their attributes. It has the same attributes as the
     :class:`Bonds` class and works in an analogous fashion.
@@ -1043,8 +1030,6 @@ class Pseudobonds(Collection):
 #
 class Residues(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ residue objects.
     '''
     def __init__(self, residue_pointers = None):
@@ -1239,8 +1224,6 @@ class Residues(Collection):
 #
 class Rings(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ ring objects.
     '''
     def __init__(self, ring_pointers = None, rings = None):
@@ -1263,8 +1246,6 @@ class Rings(Collection):
 #
 class Chains(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ chain objects.
     '''
 
@@ -1298,8 +1279,6 @@ class Chains(Collection):
 #
 class PseudobondGroupDatas(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ pseudobond group objects.
     '''
     def __init__(self, pbg_pointers):
@@ -1318,8 +1297,6 @@ class PseudobondGroupDatas(Collection):
 #
 class PseudobondGroups(PseudobondGroupDatas):
     '''
-    Bases: :class:`.PseudobondGroupDatas`
-
     Collection of Python pseudobond group objects.
     '''
     def __init__(self, pbg_pointers):
@@ -1336,8 +1313,6 @@ class PseudobondGroups(PseudobondGroupDatas):
 #
 class CoordSets(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ coordsets.
     '''
     def __init__(self, cs_pointers = None):
