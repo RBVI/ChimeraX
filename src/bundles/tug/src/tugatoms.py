@@ -75,7 +75,7 @@ class TugAtomsMode(MouseMode):
             a = pick.atom
             st = self._tugger
             s = a.structure
-            if st is None or st.structure is not s or st.atoms != s.atoms:
+            if st is None or not st.same_structure(s):
                 try:
                     self._tugger = st = StructureTugger(a.structure)
                 except ForceFieldError as e:
@@ -109,14 +109,14 @@ class TugAtomsMode(MouseMode):
         v = self.session.main_view
         if v.frame_number == self._last_frame_number:
             return	# Make sure we draw a frame before doing another MD calculation
+        self._last_frame_number = v.frame_number
 
         a = self._tugger.atom
         atom_xyz, offset = self._puller.pull_direction(a)
 
         from time import time
         t0 = time()
-        if self._tugger.tug_displacement(offset):
-            self._last_frame_number = v.frame_number
+        self._tugger.tug_displacement(offset)
         t1 = time()
         atom_xyz, offset = self._puller.pull_direction(a)
         self._draw_arrow(atom_xyz+offset, atom_xyz)
@@ -190,7 +190,8 @@ class StructureTugger:
         self.structure = structure
 
         # OpenMM requires the atoms to be sorted by residue number
-        satoms = list(structure.atoms)
+        self._structure_atoms = sa = structure.atoms
+        satoms = list(sa)
         satoms.sort(key = lambda a: a.residue.number)
         from chimerax.core.atomic import Atoms
         self.atoms = Atoms(satoms)
@@ -230,9 +231,14 @@ class StructureTugger:
         self._particle_number = None		# Integer index of tugged atom
         self._particle_positions = None		# Numpy array, Angstroms
         self._particle_force_index = {}
+        self._particle_masses = None		# Original particle masses
 
         self._create_openmm_system()
-        
+
+    def same_structure(self, structure):
+        return (structure is self.structure and
+                structure.atoms == self._structure_atoms)
+    
     def tug_atom(self, atom):
         self._log('In tug_atom')
 
@@ -270,89 +276,110 @@ class StructureTugger:
         s = app.Simulation(self._topology, self._system, integrator, self._platform)
         self._simulation = s
         
-    def get_max_force (self, c):
-        import numpy
+    def _max_force (self):
+        c = self._simulation.context
         from simtk.unit import kilojoule_per_mole, nanometer
         self._sim_forces = c.getState(getForces = True).getForces(asNumpy = True)/(kilojoule_per_mole/nanometer)
         forcesx = self._sim_forces[:,0]
         forcesy = self._sim_forces[:,1]
         forcesz = self._sim_forces[:,2]
+        import numpy
         magnitudes =numpy.sqrt(forcesx*forcesx + forcesy*forcesy + forcesz*forcesz)
         return max(magnitudes)
 
         
     def tug_displacement(self, d):
         self._log('In tug_displacement')
+        self._set_tug_position(d)
+        self._simulate()
 
-        particle = self._particle_number
-        pos = self._particle_positions
-        pxyz = 0.1*pos[particle]	# Nanometers
+    def _set_tug_position(self, d):
+        pxyz = 0.1*self._particle_positions[self._particle_number]	# Nanometers
         txyz = pxyz + 0.1*d		# displacement d is in Angstroms, convert to nanometers
-        
         c = self._simulation.context
         for p,v in zip(('x0','y0','z0'), txyz):
             c.setParameter(p,v)
-        c.setPositions(0.1*pos)	# Nanometers
-        c.setVelocitiesToTemperature(self._temperature)
 
-        self._simulate()
-
-        xyz = self._simulation_atom_coordinates(c)
-        self._particle_positions = xyz
-        self.atoms.coords = xyz
-        return True
-
-    def _simulate(self):
+    def _simulate(self, steps = None):
 # Minimization generates "Exception. Particle coordinate is nan" errors rather frequently, 1 in 10 minimizations.
 #        simulation.minimizeEnergy(maxIterations = self._sim_steps)
 # Get same error in LangevinIntegrator_step().
         simulation = self._simulation
-        c = simulation.context
+        self._set_simulation_coordinates()
+        sim_steps = self._sim_steps if steps is None else steps
         from time import time,sleep
         t0 = time()
         try:
-            simulation.step(self._sim_steps)
+            simulation.step(sim_steps)
             self._log('Did simulation step')
-            max_force = self.get_max_force(c)
+            max_force = self._max_force()
             if max_force > self._max_allowable_force:
                 raise Exception('Maximum force exceeded')
             self._log('Maximum force:')
         except:
-                max_force=self.get_max_force(c)
+                max_force=self._max_force()
                 self._log("FAIL!!!\n")
-                c.setPositions(0.1*self._particle_positions)
+                self._set_simulation_coordinates()
                 while (max_force > self._max_allowable_force):
                     self._log('Maximum force exceeded, %g > %g! Minimizing...'
                               % (max_force, self._max_allowable_force))
-                    simulation.minimizeEnergy(maxIterations = self._sim_steps)
-                    max_force = self.get_max_force(c)
+                    simulation.minimizeEnergy(maxIterations = sim_steps)
+                    max_force = self._max_force()
         t1 = time()
         if write_logs:
             import sys
-            sys.__stderr__.write('%d steps in %.2f seconds\n' % (self._sim_steps, t1-t0))
+            sys.__stderr__.write('%d steps in %.2f seconds\n' % (sim_steps, t1-t0))
+        self._update_atom_coords()
 
     def _minimize(self, steps = None):
-        simulation = self._simulation
-        c = simulation.context
+        self._set_simulation_coordinates()
+        min_steps = self._sim_steps if steps is None else steps
+        self._simulation.minimizeEnergy(maxIterations = min_steps)
+        self._update_atom_coords()
+
+    def mobile_atoms(self, atoms):
+        '''
+        Fix positions of some particles.  Must be called before creating OpenMM simulation otherwise
+        it has no effect.
+
+        This works by an OpenMM convention that zero mass particles do not move.
+        But the OpenMM docs says contraints to zero mass particles don't work.
+        Supposedly this means hbond constraints cannot be used.  But simulation or
+        energy minimization of a few nearby residues works in OpenMM 7.1.
+        '''
+        np = len(self.atoms)
+        m = self._particle_masses
+        system = self._system
+        if m is None:
+            self._particle_masses = m = [system.getParticleMass(i) for i in range(np)]
+            print ('max mass', max(m))
+        mi = set(self.atoms.indices(atoms))
+        freeze_mass = 0
+        for i in range(np):
+            mass = m[i] if i in mi else freeze_mass
+            system.setParticleMass(i, mass)
+
+    def _set_simulation_coordinates(self):
+        c = self._simulation.context
         c.setPositions(0.1*self._particle_positions)	# Nanometers
         c.setVelocitiesToTemperature(self._temperature)
-        if steps is None:
-            steps = self._sim_steps
-        simulation.minimizeEnergy(maxIterations = steps)
-        xyz = self._simulation_atom_coordinates(c)
-        self._particle_positions = xyz
-        self.atoms.coords = xyz
-
+        
     def _set_particle_positions(self):
         self._particle_positions = self.atoms.coords
         
-    def _simulation_atom_coordinates(self, sim_context):
-        state = sim_context.getState(getPositions = True)
+    def _simulation_atom_coordinates(self):
+        c = self._simulation.context
+        state = c.getState(getPositions = True)
         from simtk import unit
         pos = state.getPositions().value_in_unit(unit.angstrom)
         from numpy import array, float64
         xyz = array(pos, float64)
         return xyz
+
+    def _update_atom_coords(self):
+        xyz = self._simulation_atom_coordinates()
+        self._particle_positions = xyz
+        self.atoms.coords = xyz
         
     def _create_openmm_system(self):
         self._log('In create_openmm_system ')
@@ -381,11 +408,6 @@ class StructureTugger:
                                   'All heavy atoms and hydrogens with standard names are required.\n' +
                                   str(e))
         self._system = system
-
-        # Fix positions of some particles
-        # Test.
-#        for i in range(len(self._particle_positions)//2):
-#            system.setParticleMass(i, 0)
 
         platform = mm.Platform.getPlatformByName(self._platform_name)
         self._platform = platform
