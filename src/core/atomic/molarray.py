@@ -1066,8 +1066,8 @@ class Residues(Collection):
     '''Returns a numpy bool array whether each residue is in a protein helix''')
     is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
-    names = cvec_property('residue_name', string, read_only = True, doc =
-    '''Returns a numpy array of residue names. Read only.''')
+    names = cvec_property('residue_name', string, doc =
+    '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
     '''Returns a numpy integer array of the number of atoms in each residue. Read only.''')
     numbers = cvec_property('residue_number', int32, read_only = True, doc =
