@@ -12,8 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 """
-cli: Application command line support
-=====================================
+cli: Command line interface
+===========================
 
 This module provides a method for parsing text commands
 and calling the functions that implement them.

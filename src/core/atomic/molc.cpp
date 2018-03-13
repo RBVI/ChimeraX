@@ -2503,6 +2503,17 @@ extern "C" EXPORT void residue_name(void *residues, size_t n, pyobject_t *names)
     }
 }
 
+extern "C" EXPORT void set_residue_name(void *residues, size_t n, pyobject_t *names)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	    r[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void residue_num_atoms(void *residues, size_t n, size_t *natoms)
 {
     Residue **r = static_cast<Residue **>(residues);

@@ -12,14 +12,28 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-.. automodule:: chimerax.ui
-    :show-inheritance:
-    :members: HtmlToolInstance
+.. module:: chimerax.ui
 
 .. automodule:: chimerax.ui.gui
     :show-inheritance:
     :members:
 
-.. automodule:: chimerax.ui.widgets
+.. automodule:: chimerax.ui.htmltool
     :show-inheritance:
-    :members: HtmlView
+    :members:
+
+.. automodule:: chimerax.ui.widgets.htmlview
+    :show-inheritance:
+    :members:
+
+.. automodule:: chimerax.ui.font
+    :show-inheritance:
+    :members:
+
+.. automodule:: chimerax.ui.ui_cmd
+    :show-inheritance:
+    :members:
+
+.. automodule:: chimerax.ui.mousemodes
+    :members:
+    :show-inheritance:

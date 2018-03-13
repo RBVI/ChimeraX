@@ -100,7 +100,7 @@ class SwapAAMouseMode(MouseMode):
             return False
         irstep = int(rstep) if rstep > 0 else -int(-rstep)
         tres = self._template_residues
-        rname = getattr(r, '_swapaa_name', r.name)
+        rname = r.name
         ri = [i for i,rt in enumerate(tres) if rt.name == rname]
         tr = tres[0] if len(ri) == 0 else tres[(ri[0] + irstep) % len(tres)]
         swapped = self._swap_residue(r, tr)
@@ -113,18 +113,20 @@ class SwapAAMouseMode(MouseMode):
         if pos is None:
             return False	# Missing backbone atoms to align new residue
 
-        # Delete atoms
+        # Delete atoms.  Backbone atom HA is deleted if new residues is GLY.
+        akeep = set(self._align_atom_names).intersection(new_r.atoms.names)
         from chimerax.core.atomic import Atoms
-        adel = Atoms([a for a in r.atoms if a.name not in self._align_atom_names])
+        adel = Atoms([a for a in r.atoms if a.name not in akeep])
         adel.delete()
 
         # Create new atoms
         s = r.structure
+        akept = set(r.atoms.names)
         add_hydrogens = self._has_hydrogens(r)
         carbon_color = self._carbon_color(r)
         from chimerax.core.atomic.colors import element_color
         for a in new_r.atoms:
-            if a.name not in self._align_atom_names:
+            if a.name not in akept:
                 if a.element_name != 'H' or add_hydrogens:
                     na = s.new_atom(a.name, a.element)
                     na.scene_coord = pos * a.scene_coord
@@ -143,9 +145,7 @@ class SwapAAMouseMode(MouseMode):
                     nb = s.new_bond(na1, na2)
 
         # Set new residue name.
-        # TODO: Cannot set residue name.  May have to create a new residue instead.
-        # r.name = new_r.name
-        r._swapaa_name = new_r.name
+        r.name = new_r.name
 
         return True
     
@@ -195,7 +195,7 @@ class SwapAAMouseMode(MouseMode):
     def _label(self, r):
         from chimerax.core.objects import Objects
         from chimerax.label.label3d import label
-        rname = getattr(r, '_swapaa_name', r.name)
+        rname = r.name
         # Label CA atom so label does not jump around.
         la = [a for a in r.atoms if a.name == self._label_atom_name]
         if len(la) == 1:

@@ -168,8 +168,8 @@ What's Next
 
 - :doc:`tutorial_hello`
 - :doc:`tutorial_command`
-- :doc:`tutorial_tool` (previous topic)
-- :doc:`tutorial_read_format` (current topic)
-- :doc:`tutorial_save_format` (next topic)
-- :doc:`tutorial_fetch`
-- :doc:`tutorial_selector`
+- :doc:`tutorial_tool`
+- :doc:`tutorial_read_format`
+- :doc:`tutorial_save_format` (previous topic)
+- :doc:`tutorial_fetch` (current topic)
+- :doc:`tutorial_selector` (next topic)

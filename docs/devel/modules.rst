@@ -22,11 +22,9 @@ Python Modules
 
     core/atomic/atomic.rst
 
-    core/commands/atomspec.rst
-
-    core/commands/cli.rst
-
     core/commands/commands.rst
+
+    core/commands/user_commands.rst
 
     core/configfile.rst
 
@@ -77,8 +75,6 @@ Python Modules
     core/toolshed.rst
 
     core/triggerset.rst
-
-    bundles/ui/src/mousemodes.rst
 
     core/utils.rst
 

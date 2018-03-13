@@ -113,7 +113,7 @@ class TutorialGUI(HtmlToolInstance):
         # buttons depending on whether there are any structures open.
 
         # Get the list of atomic structures
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         options = []
         for m in self.session.models:
             if not isinstance(m, AtomicStructure):
