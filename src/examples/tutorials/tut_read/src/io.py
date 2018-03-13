@@ -45,7 +45,7 @@ def _read_block(session, stream, line_number):
     # Create the AtomicStructure instance for atoms in this block.
     # All atoms in the structure are placed in one residue
     # since XYZ format does not partition atoms into groups.
-    from chimerax.core.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure
     from numpy import array, float64
     s = AtomicStructure(session)
     residue = s.new_residue("UNK", 'A', 1)

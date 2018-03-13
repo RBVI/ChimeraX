@@ -18,7 +18,7 @@ def cofm(session, atoms, weighted=False, transformed=True):
     """Report center of mass of given atoms."""
 
     # ``session``     - ``chimerax.core.session.Session`` instance
-    # ``atoms``       - ``chimerax.core.atomic.Atoms`` instance or None
+    # ``atoms``       - ``chimerax.atomic.Atoms`` instance or None
     # ``weighted``    - boolean, whether to include atomic mass in calculation
     # ``transformed`` - boolean, use scene rather than original coordinates
 
@@ -65,7 +65,7 @@ cofm_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg))],
 # include the "atoms" keyword; the value for "atoms" can be either an
 # AtomsArg or an EmptyArg.  If the user enters an atom specification as
 # part of the command, then "atoms" value matches AtomsArg, which
-# translates to a ``chimerax.core.atomic.Atoms`` instance for the function
+# translates to a ``chimerax.atomic.Atoms`` instance for the function
 # parameter; if not, "atoms" matches EmptyArg, which translates to ``None``.
 #
 
@@ -74,7 +74,7 @@ def highlight(session, atoms, color, weighted=False, transformed=True, count=1):
     """Highlight the atoms nearest the center of mass of given atoms."""
 
     # ``session``     - ``chimerax.core.session.Session`` instance
-    # ``atoms``       - ``chimerax.core.atomic.Atoms`` instance or None
+    # ``atoms``       - ``chimerax.atomic.Atoms`` instance or None
     # ``color``       - ``chimerax.core.colors.Color` instance
     # ``weighted``    - boolean, whether to include atomic mass in calculation
     # ``transformed`` - boolean, use scene rather than original coordinates
@@ -115,7 +115,7 @@ highlight_desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg)),
 
 def _get_cofm(session, atoms, transformed, weighted):
     # ``session``     - ``chimerax.core.session.Session`` instance
-    # ``atoms``       - ``chimerax.core.atomic.Atoms`` instance
+    # ``atoms``       - ``chimerax.atomic.Atoms`` instance
     # ``transformed`` - boolean, use scene rather than original coordinates
     # ``weighted``    - boolean, whether to include atomic mass in calculation
 

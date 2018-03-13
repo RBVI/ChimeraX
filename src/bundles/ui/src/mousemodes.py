@@ -11,6 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+'''
+ui.mousemodes: Mouse modes
+==========================
+
+Classes to create mouse modes and assign mouse buttons and modifier
+keys to specific modes.
+'''
+
 class MouseMode:
     '''
     Classes derived from MouseMode implement specific mouse modes providing
@@ -450,6 +458,18 @@ class SelectMouseMode(MouseMode):
     def laser_click(self, xyz1, xyz2):
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         select_pick(self.session, pick, self.mode)
+
+    def drag_3d(self, position, move, delta_z):
+        if delta_z:
+            ses = self.session
+            sel = ses.selection
+            if delta_z > 0.20:
+                sel.promote(ses)
+            elif delta_z < -0.20:
+                sel.demote(ses)
+            else:
+                return 'accumulate drag'
+
 
 class SelectAddMouseMode(SelectMouseMode):
     '''Mouse mode to add objects to selection by clicking on them.'''

@@ -1099,8 +1099,8 @@ class Residue(State):
     '''Residue polymer type = nucleotide.'''
     polymer_type = c_property('residue_polymer_type', uint8, read_only = True)
     '''Polymer type of residue. Integer value.'''
-    name = c_property('residue_name', string, read_only = True)
-    '''Residue name. Maximum length 4 characters. Read only.'''
+    name = c_property('residue_name', string)
+    '''Residue name. Maximum length 4 characters.'''
     num_atoms = c_property('residue_num_atoms', size_t, read_only = True)
     '''Number of atoms belonging to the residue. Read only.'''
     number = c_property('residue_number', int32, read_only = True)

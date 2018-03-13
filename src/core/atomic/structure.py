@@ -20,6 +20,11 @@ from chimerax.core.graphics import Drawing, Pick, PickedTriangles
 CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
+    """
+    Structure model including atomic coordinates.
+    The data is managed by the :class:`.StructureData` base class
+    which provides access to the C++ structures.
+    """
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  auto_style = True, log_info = True):
@@ -2161,11 +2166,8 @@ class RibbonDrawing(Drawing):
 
 class AtomicStructure(Structure):
     """
-    Bases: :class:`.StructureData`, :class:`.Model`, :class:`.Structure`
-
-    Molecular model including atomic coordinates.
-    The data is managed by the :class:`.StructureData` base class
-    which provides access to the C++ structures.
+    Molecular model including support for chains, hetero-residues,
+    and assemblies.
     """
 
     from chimerax.core.colors import BuiltinColors

@@ -936,14 +936,14 @@ class ToolWindow(StatusLogger):
     def destroy(self):
         """Called to destroy the window (from non-UI code)
 
-           Destroying a tool's main window will also destroy all its
-           child windows.
+        Destroying a tool's main window will also destroy all its
+        child windows.
         """
         self.session.ui.main_window._tool_window_destroy(self)
 
     def fill_context_menu(self, menu, x, y):
         """Add items to this tool window's context menu,
-           whose downclick occurred at position (x,y)
+        whose downclick occurred at position (x,y)
 
         Override to add items to any context menu popped up over this window.
 
