@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from ..state import State, StateManager
+from chimerax.core.state import State, StateManager
 from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
 from .molc import CFunctions, string, cptr, pyobject, set_c_pointer, pointer, size_t
 import ctypes
@@ -135,7 +135,7 @@ class Atom(State):
     def __str__(self, atom_only = False, style = None, relative_to=None):
         '''Supported API.  Allow Atoms to be used directly in print() statements'''
         if style == None:
-            from ..core_settings import settings
+            from chimerax.core.core_settings import settings
             style = settings.atomspec_contents
         if relative_to:
             if self.residue == relative_to.residue:
@@ -800,7 +800,7 @@ class PseudobondGroupData:
         try:
             f(self._c_pointer, category.encode('utf-8'))
         except TypeError:
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError("Another pseudobond group is already named '%s'" % category)
 
     def clear(self):
@@ -1040,7 +1040,7 @@ class Residue(State):
 
     def __str__(self, residue_only = False, omit_structure = False, style = None):
         if style == None:
-            from ..core_settings import settings
+            from chimerax.core.core_settings import settings
             style = settings.atomspec_contents
         ic = self.insertion_code
         if style.startswith("simple"):
@@ -1059,7 +1059,7 @@ class Residue(State):
                 struct_string += " "
         else:
             struct_string = ""
-        from ..core_settings import settings
+        from chimerax.core.core_settings import settings
         if style.startswith("simple"):
             return '%s%s %s' % (struct_string, chain_str, res_str)
         if style.startswith("command"):
@@ -1279,7 +1279,7 @@ class Sequence(State):
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
-        from ..triggerset import TriggerSet
+        from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
         f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
@@ -1701,7 +1701,7 @@ class Chain(StructureSeq):
     '''
 
     def __str__(self):
-        from ..core_settings import settings
+        from chimerax.core.core_settings import settings
         cmd_style = settings.atomspec_contents == "command-line specifier"
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         from .structure import Structure
@@ -1709,7 +1709,7 @@ class Chain(StructureSeq):
             struct_string = str(self.structure)
         else:
             struct_string = ""
-        from ..core_settings import settings
+        from chimerax.core.core_settings import settings
         return struct_string + chain_str
 
     def atomspec(self):
@@ -2109,7 +2109,7 @@ class StructureData:
                 'misc': []}
         data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
         # data is all simple Python primitives, let session saving know that...
-        from ..state import FinalizedState
+        from chimerax.core.state import FinalizedState
         return FinalizedState(data)
 
     def session_atom_to_id(self, ptr):
@@ -2178,7 +2178,7 @@ class StructureData:
 
     def _ses_restore_teardown(self, *args):
         self._ses_call("restore_teardown")
-        from ..triggerset import DEREGISTER
+        from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
 
     def _start_change_tracking(self, change_tracker):

@@ -1,5 +1,5 @@
 # distutils: language=c++
-#cython: language_level=3, boundscheck=False
+#cython: language_level=3, boundscheck=False, auto_pickle=False 
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -109,25 +109,20 @@ cdef class CyAtom:
         alt_locs = self.cpp_atom.alt_locs()
         return [chr(loc) for loc in alt_locs]
 
-    cdef object _aniso_u_array(self):
-        c_arr = self.cpp_atom.aniso_u()
-        if c_arr:
-            a00 = c_arr[0]
-            a01 = c_arr[1]
-            a02 = c_arr[2]
-            a11 = c_arr[3]
-            a12 = c_arr[4]
-            a22 = c_arr[5]
-            return array([a00, a01, a02], [a01, a11, a12], [a02, a12, a22])
-        return array()
-
     @property
     def aniso_u(self):
         '''Supported API. Anisotropic temperature factors, returns 3x3 array of float or None.
            Read only.'''
-        arr = self._aniso_u_array()
-        if arr:
-            return arr
+        c_arr = self.cpp_atom.aniso_u()
+        if c_arr:
+            arr = dereference(c_arr)
+            a00 = arr[0]
+            a01 = arr[1]
+            a02 = arr[2]
+            a11 = arr[3]
+            a12 = arr[4]
+            a22 = arr[5]
+            return array([[a00, a01, a02], [a01, a11, a12], [a02, a12, a22]])
         return None
 
     cdef object _aniso_u6_array(self):
@@ -491,8 +486,9 @@ cdef class CyAtom:
         '''
         # work around non-const-correct code by using temporary...
         ring_ptrs = self.cpp_atom.rings(cross_residues, all_size_threshold)
-        from chimera.atomic import Rings
-        return Rings([<long>r for r in ring_ptrs])
+        from chimerax.atomic.molarray import Rings
+        import numpy
+        return Rings(numpy.array([<long>r for r in ring_ptrs], dtype=numpy.uintp))
 
     def set_alt_loc(self, loc, create):
         "Normally used to create alt locs. "
