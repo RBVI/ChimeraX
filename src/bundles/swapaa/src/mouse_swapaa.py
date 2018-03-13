@@ -125,11 +125,11 @@ class SwapAAMouseMode(MouseMode):
         from chimerax.core.atomic.colors import element_color
         for a in new_r.atoms:
             if a.name not in self._align_atom_names:
-                if a.element_name != 'H' or add_hydrogens:
+                if a.element.name != 'H' or add_hydrogens:
                     na = s.new_atom(a.name, a.element)
                     na.scene_coord = pos * a.scene_coord
                     # TODO: Color by element, but use model carbon color.
-                    na.color = carbon_color if a.element_name == 'C' else element_color(a.element_number)
+                    na.color = carbon_color if a.element.name == 'C' else element_color(a.element.number)
                     na.draw_mode = na.STICK_STYLE
                     r.add_atom(na)
                     amap[a] = na
@@ -151,13 +151,13 @@ class SwapAAMouseMode(MouseMode):
     
     def _has_hydrogens(self, r):
         for a in r.atoms:
-            if a.element_name == 'H':
+            if a.element.name == 'H':
                 return True
         return False
 
     def _carbon_color(self, r):
         for a in r.atoms:
-            if a.element_name == 'C':
+            if a.element.name == 'C':
                 return a.color
         from chimerax.core.atomic.colors import element_color
         return element_color(6)

@@ -54,8 +54,10 @@ cdef extern from "<element/Element.h>" namespace "element":
 
 cdef extern from "<atomstruct/Structure.h>" namespace "atomstruct":
     cdef cppclass CoordSet
+    cdef cppclass Atom
 
     cdef cppclass Structure:
+        void delete_atom(Atom*)
         CoordSet* find_coord_set(int)
         object py_instance(bool)
 
@@ -66,6 +68,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     ctypedef string AtomType
     cdef cppclass Bond
+    cdef cppclass Ring
 
     cdef cppclass Coord:
         double operator[](int)
@@ -76,6 +79,9 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     cdef cppclass Rgba:
         ctypedef unsigned char Channel
         Channel r, g, b, a
+
+    ctypedef enum BackboneExtent:
+        BBE_MIN, BBE_RIBBON, BBE_MAX
 
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct::Atom":
     ctypedef enum IdatmGeometry:
@@ -88,27 +94,54 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct::Atom":
     ctypedef enum DrawMode:
         Sphere, EndCap, Ball
     ctypedef vector[Bond*] Bonds
+    ctypedef vector[const Ring*] Rings
+    ctypedef enum StructCat:
+        Unassigned "atomstruct::Atom::StructCat::Unassigned",
+        Main "atomstruct::Atom::StructCat::Main",
+        Ligand "atomstruct::Atom::StructCat::Ligand",
+        Ions "atomstruct::Atom::StructCat::Ions",
+        Solvent "atomstruct::Atom::StructCat::Solvent"
 
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     cdef cppclass Atom:
         ctypedef vector[Atom*] Neighbors
         char alt_loc()
         set[char] alt_locs()
+        const vector[float]* aniso_u()
         float bfactor()
         Bonds bonds()
+        void clear_hide_bits(int)
         const Rgba& color()
+        bool connects_to(Atom*)
         const Coord& coord()
+        const Coord& coord(char)
+        const Coord& coord(CoordSet*)
+        int coord_index()
+        float default_radius()
         bool display()
         DrawMode draw_mode()
         const Element& element()
+        bool has_alt_loc(char)
         int hide()
         const char* idatm_type()
+        bool is_backbone(BackboneExtent)
+        bool is_ribose()
+        bool is_side_connector()
+        bool is_side_chain(bool)
+        float maximum_bond_radius(float)
         const char* name()
         const Neighbors& neighbors()
+        int num_explicit_bonds()
+        float occupancy()
         object py_instance(bool)
         float radius()
         Residue* residue()
+        const Rings& rings(bool, int)
+        bool selected()
+        int serial_number()
+        void set_alt_loc(char)
         void set_alt_loc(char, bool, bool)
+        void set_aniso_u(float, float, float, float, float, float)
         void set_bfactor(float)
         void set_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
         void set_coord(const Point&)
@@ -116,8 +149,17 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_display(bool)
         void set_draw_mode(DrawMode)
         void set_hide(int)
+        void set_hide_bits(int)
         void set_idatm_type(const char*)
+        void set_name(const char*)
+        void set_occupancy(float)
+        void set_radius(float)
+        void set_selected(bool)
+        void set_serial_number(int)
         Structure* structure()
+        StructCat structure_category()
+        void use_default_radius()
+        bool visible()
 
         @staticmethod
         const map[AtomType, IdatmInfo]& get_idatm_info_map()

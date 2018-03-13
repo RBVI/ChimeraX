@@ -388,7 +388,7 @@ def save_structure(session, file, models, used_data_names):
         residue_info[residue] = (asym_id, seq_id)
         atoms = residue.atoms
         for atom in atoms:
-            elem = atom.element_name
+            elem = atom.element.name
             aname = atom.name
             rname = residue.name
             cid = residue.chain_id

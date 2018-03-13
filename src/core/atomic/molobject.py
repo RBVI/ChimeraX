@@ -77,8 +77,15 @@ def _pseudobond_group_map(pbgc_map):
     return pbg_map
 
 from .cymol import CyAtom
-class Atom(CyAtom):
-    pass
+class Atom(CyAtom, State):
+    def take_snapshot(self, session, flags):
+        data = {'structure': self.structure,
+                'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
 Atom.set_py_class(Atom)
 """
 # -----------------------------------------------------------------------------
@@ -104,7 +111,6 @@ class Atom(State):
 
     def __init__(self, c_pointer):
         set_c_pointer(self, c_pointer)
-        self.test_attr = 5.0
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
