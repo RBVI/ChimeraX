@@ -28,11 +28,14 @@ class="clRight" title="User Guide Index"/></a>
 <b><i>Volume data</i></b> is a broad term for
 density maps, electrostatic potential maps, 3D imaging data, and other 
 data sets with numerical values associated with points on a 3D grid.
+Volume data can be <a href="#multichannel">multichannel</a> and/or
+<a href="../trajectories.html#vseries">time series</a>.
 </p>
 <table class="clRight">
 <tr><td>
-<img class="outline" src="3eebB-dx-screenshot.png"
-alt="3eebB ESP isosurfaces" width="700px"></td></tr>
+<a href="3eebB-dx-screenshot.png">
+<img class="outline" src="3eebB-dx-screenshot.png" title="click to enlarge..."
+alt="3eebB ESP isosurfaces" width="700px"></a></td></tr>
 </table>
 <p>
 <b>Volume Viewer</b> is a graphical interface for adjusting contour levels
@@ -66,16 +69,16 @@ although it may be subsampled
 (<a href="../commands/volume.html"><b>volume</b></a> command option
 <a href="../commands/volume.html#autostep"><b>limitVoxelCount</b></a>).
 </p><p>
-A histogram of values is shown for each data set.
+A histogram of values with moveable <a href="#threshold">thresholds</a>
+(contour levels) is shown for each data set.
 Above the histogram are:
 </p>
 <ul>
-<li>model name 
+<li>the model name 
 <li>an <b>eye icon</b> for showing/hiding the model
-<li>the color of the <a href="#threshold">threshold</a>
-most recently moved or clicked
-(the square color well can be clicked to choose a color interactively)
-<li>model number
+<li>a color well (can be clicked to change the color interactively)
+for the <a href="#threshold">threshold</a> most recently moved or clicked
+<li>the model number
 <li>dimensions in grid units of the <a href="#region">display region</a>
 <li>the <a href="#step">step size</a> (subsampling)
 <li>the level of the <a href="#threshold">threshold</a>
@@ -129,7 +132,7 @@ The <b><i>thresholds</i></b> on the histogram control how data values
 are mapped to the display:
 <blockquote>
 <b>surface</b> or <b>mesh</b> style:<br>
-Each threshold (contour level) is shown on the histogram as a vertical bar
+Each threshold is shown on the histogram as a vertical bar
 that can be moved horizontally.
 For unsigned data types, an initial threshold is set so that 1% of voxels
 (1% of the volume encompassed by the data region) lie above it;
