@@ -516,7 +516,7 @@ class Bond(State):
     def __str__(self, style = None):
         a1, a2 = self.atoms
         bond_sep = " \N{Left Right Arrow} "
-        return a1.__str__(style=style) + bond_sep + a2.__str__(style=style, relative_to=a1)
+        return a1.string(style=style) + bond_sep + a2.string(style=style, relative_to=a1)
 
     def atomspec(self):
         return a1.atomspec() + a2.atomspec()
