@@ -134,19 +134,13 @@ cdef class CyAtom:
             return array([[a00, a01, a02], [a01, a11, a12], [a02, a12, a22]])
         return None
 
-    cdef object _aniso_u6_array(self):
-        c_arr = self.cpp_atom.aniso_u()
-        if c_arr:
-            return array(dereference(c_arr))
-        return array()
-
     @property
     def aniso_u6(self):
         '''Get anisotropic temperature factors as a 6 element float array
         containing (u11, u22, u33, u12, u13, u23) or None.'''
-        arr = self._aniso_u6_array()
-        if arr:
-            return arr
+        c_arr = self.cpp_atom.aniso_u()
+        if c_arr:
+            return array(dereference(c_arr))
         return None
 
     @aniso_u6.setter
@@ -237,7 +231,7 @@ cdef class CyAtom:
             return self.radius
         if dm == CyAtom.BALL_STYLE:
             return self.radius * self.structure.ball_scale
-        if dm == CyAtom.STICK_SCALE:
+        if dm == CyAtom.STICK_STYLE:
             return self.cpp_atom.maximum_bond_radius(self.structure.bond_radius)
         raise ValueError("Unknown draw mode")
 
