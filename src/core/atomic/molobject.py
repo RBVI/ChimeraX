@@ -332,23 +332,21 @@ class Pseudobond(State):
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
         return Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, id))
 
-    """Need additional support to get per-coord-set pseudobonds
     # used by attribute registration to gather attributes for session saving...
     @staticmethod
     def get_existing_instances(session):
         collections = []
-        from . import PseudobondGroup
-        for m in session.models:
-            if not isinstance(m, PseudobondGroup):
-                continue
-            collections.append(m.pseudobonds)
-        #TODO: global pseudobonds
+        for pbg in PseudobondGroupData.get_existing_instances(session):
+            if pbg.group_type == PseudobondGroupData.GROUP_TYPE_COORD_SET:
+                for cs_id in pbg.structure.coordset_ids:
+                    collections.append(pbg.get_pseudobonds(cs_id))
+            else:
+                collections.append(pbg.pseudobonds)
         from .molarray import concatenate
         if collections:
             return [i for i in concatenate(collections).instances(instantiate=False)
                 if i is not None]
         return []
-    """
 
 # -----------------------------------------------------------------------------
 #
