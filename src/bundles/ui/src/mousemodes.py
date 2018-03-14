@@ -819,7 +819,7 @@ class LabelMode(MouseMode):
             objects.add_atoms(atomic.Atoms(pick.pbond.atoms))
             object_type = 'pseudobonds'
         elif isinstance(pick, atomic.PickedBond):
-            objects.add_atoms(atomic.Atoms(pick.bond.atoms))
+            objects.add_bonds(atomic.Bonds([pick.bond]))
             object_type = 'bonds'
         else:
             return
