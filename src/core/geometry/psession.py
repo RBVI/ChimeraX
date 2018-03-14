@@ -29,10 +29,6 @@ class PlaceState:
         p._is_identity = data['_is_identity']
         return p
 
-    @staticmethod
-    def reset_state(place, session):
-        pass
-
 class PlacesState:
     version = 1
 
@@ -51,7 +47,3 @@ class PlacesState:
         else:
             p = Places(place_array = data['array'])
         return p
-
-    @staticmethod
-    def reset_state(places, session):
-        pass

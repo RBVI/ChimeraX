@@ -123,7 +123,8 @@ class Region:
         return self._border_rgba
 
     def set_border_rgba(self, rgba):
-        if self.border_rgba == rgba:
+        import numpy
+        if numpy.array_equal(self.border_rgba, rgba):
             return
         self._border_rgba = rgba
         # kind of complicated due to highlighting; just redraw
@@ -203,7 +204,8 @@ class Region:
         return self._interior_rgba
 
     def set_interior_rgba(self, rgba):
-        if rgba == self.interior_rgba:
+        import numpy
+        if numpy.array_equal(self.interior_rgba, rgba):
             return
         self._interior_rgba = rgba
         if not self._items:
@@ -1543,7 +1545,7 @@ class RegionBrowser:
             self._prev_drag = self._drag_region
             rmsd = self._drag_region.rmsd
             if rmsd == None:
-                from chimerax.core.ui import mod_key_info
+                from chimerax.ui import mod_key_info
                 shift_name = mod_key_info("shift")[1]
                 control_name = mod_key_info("control")[1]
                 self.seq_canvas.sv.status(

@@ -23,12 +23,12 @@ from the CSS4 color draft, https://www.w3.org/TR/css-color-4/, and CSS4
 color names.
 """
 from sortedcontainers import SortedDict
-from .state import State, CORE_STATE_VERSION
+from .state import State, StateManager, CORE_STATE_VERSION
 
 BuiltinColormaps = SortedDict()
 
 
-class UserColors(SortedDict, State):
+class UserColors(SortedDict, StateManager):
     """Support for per-session colors.
 
     Accessed through the session object as ``session.user_colors``.
@@ -177,9 +177,6 @@ class Color(State):
     def restore_snapshot(session, data):
         return Color(data['rgba'], limit=False)
 
-    def reset_state(self, session):
-        pass
-
     def opaque(self):
         """Return if the color is opaque."""
         return self.rgba[3] >= 1.0
@@ -204,7 +201,7 @@ class Color(State):
 # -----------------------------------------------------------------------------
 
 
-class UserColormaps(SortedDict, State):
+class UserColormaps(SortedDict, StateManager):
     """Support for per-session colormaps.
 
     Accessed through the session object as ``session.user_colormaps``.
@@ -687,6 +684,12 @@ BuiltinColors = SortedDict({
 })
 BuiltinColors['transparent'] = (0, 0, 0, 0)
 
+
+def random_colors(n, opacity=255):
+    from numpy import random, uint8
+    c = random.randint(0, 255, (n,4), dtype = uint8)
+    c[:,3] = opacity
+    return c
 
 def most_common_color(colors):
     from numpy import ndarray, array, uint8, int32, argmax, unique

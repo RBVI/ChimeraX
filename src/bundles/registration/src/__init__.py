@@ -22,10 +22,13 @@ class _MyAPI(BundleAPI):
     def register_command(bundle_info, command_info, logger):
         from . import cmd
         from chimerax.core.commands import register
-        desc = cmd.register_desc
+        func_attr = command_info.name.replace(' ', '_')
+        func = getattr(cmd, func_attr)
+        desc_attr = func_attr + "_desc"
+        desc = getattr(cmd, desc_attr)
         if desc.synopsis is None:
             desc.synopsis = command_info.synopsis
-        register(command_info.name, desc, cmd.register)
+        register(command_info.name, desc, func)
 
     @staticmethod
     def start_tool(session, bundle_info, tool_info, **kw):

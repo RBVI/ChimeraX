@@ -205,7 +205,7 @@ def molecule_from_atoms(m, atoms, name = None):
 
     amap = {}
     for a in atoms:
-        ca = cm.new_atom(a.name, a.element_name)
+        ca = cm.new_atom(a.name, a.element.name)
         ca.coord = a.coord
 #        ca.altLoc = a.altLoc
         ca.color = a.color
@@ -239,8 +239,6 @@ def molecule_from_atoms(m, atoms, name = None):
             cpb.color = pb.color
             cpb.radius = pb.radius
             cpb.halfbond = pb.halfbond
-
-    cm.new_atoms()
 
     return cm
 

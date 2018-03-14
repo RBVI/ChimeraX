@@ -81,8 +81,10 @@ Attributes defined in the Python layer will not be included, however.
 </ul>
 -->
 
+<a name="atom"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><th colspan="2" style="background-color:#cccccc">
+<a href="#top" class="nounder">&larr;</a>
 Selected Atom Attributes</th></tr>
 <tr>
 <td align=center><b>area=</b><i>sasa</i></td>
@@ -114,21 +116,34 @@ see <a href="hierarchy.html">display hierarchy</a></td>
 </tr><tr>
 <td align=center><b>radius=</b><i>radius</i></td>
 <td><i>radius</i> is the current <a href="radii.html">VDW radius</a>
-of the atom in &Aring</td>
+of the atom in &Aring;</td>
 </tr><tr>
 <td align=center><b>serial_number=</b><i>N</i></td>
 <td><i>N</i> is the atom serial number in the input file</td>
 </tr>
 </table>
 <br>
+<a name="residue"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><td colspan="2" align="center" style="background-color:#cccccc">
+<a href="#top" class="nounder">&larr;</a>
 <b>Selected Residue Attributes</b>
 (see also <a href="commands/info.html#resattr"><b>info resattr</b></a>)</td></tr>
 <tr>
 <td align=center><b>area=</b><i>sasa</i></td>
 <td><i>sasa</i> is the solvent-accessible surface area of the residue 
 calculated with <a href="commands/measure.html#sasa"><b>measure sasa</b></a></td>
+</tr><tr>
+<td align=center><b>asym_detail=</b><i>value</i></td>
+<td>the <i>value</i> for a chain in
+<a href="commands/open.html#composite">IHM</a> data
+is read from the mmCIF field &ldquo;struct_asym.details&rdquo;</td>
+</tr><tr>
+<td align=center><b>entity_name=</b><i>name</i></td>
+<td>the <i>name</i> for a chain (entity) in
+<a href="commands/open.html#composite">IHM</a> data
+is read from the field &ldquo;ihm_struct_assembly.entity_description&rdquo;
+and reported in the <a href="tools/log.html"><b>Log</b></a></td>
 </tr><tr>
 <!--
 <td align=center><b>kdHydrophobicity=</b><i>value</i></td>
@@ -180,8 +195,10 @@ structure PDB file using a web service provided by the
 </tr>
 </table>
 <br>
+<a name="model"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><th colspan="2" style="background-color:#cccccc">
+<a href="#top" class="nounder">&larr;</a>
 Selected Atomic-Model Attributes</th></tr>
 <tr>
 <td align=center><b>ball_scale=</b><i>factor</i></td>

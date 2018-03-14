@@ -50,6 +50,12 @@ all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(PROG_LINK)
+ifeq ($(OS),Linux)
+	# convert to RPATH
+	if objdump -p $(PROG) | grep RUNPATH > /dev/null; then \
+		$(bindir)/chrpath -C $(PROG); \
+	fi
+endif
 
 install: $(PROG)
 	cp -fp $(PROG) $(bindir)/

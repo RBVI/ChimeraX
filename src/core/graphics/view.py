@@ -76,6 +76,12 @@ class View:
         if trigger_set:
             self.drawing.set_redraw_callback(dm)
 
+    def delete(self):
+        r = self._render
+        if r:
+            r.delete()
+            self._render = None
+
     @property
     def render(self):
         return self._render
@@ -717,6 +723,17 @@ class View:
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         if xyz1 is None or xyz2 is None:
             return None
+        p = self.first_intercept_on_segment(xyz1, xyz2, exclude=exclude, beyond=beyond)
+        return p
+
+    def first_intercept_on_segment(self, xyz1, xyz2, exclude=None, beyond = None):
+        '''
+        Return a Pick object for the first object along line segment from xyz1
+        to xyz2 in specified in scene coordinates. This Pick object will
+        have an attribute position giving the point where the intercept occurs.
+        Beyond is minimum distance as fraction (0-1) along the segment.
+        '''
+    
         if beyond is not None:
             fb = beyond + 1e-5
             xyz1 = (1-fb)*xyz1 + fb*xyz2

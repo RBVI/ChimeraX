@@ -171,7 +171,7 @@ class Solid:
     d.brightness_and_transparency_correction = self.bt_correction
     d.minimal_texture_memory = self.minimal_texture_memory
     d.maximum_intensity_projection = self.maximum_intensity_projection
-    d.linear_interpolation = self.linear_interpolation
+    d.set_linear_interpolation(self.linear_interpolation)
     d.show_outline_box = self.show_outline_box
     d.outline_box_rgb = self.outline_box_rgb
     d.outline_box_linewidth = self.outline_box_linewidth

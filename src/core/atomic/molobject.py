@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from ..state import State
+from chimerax.core.state import State, StateManager
 from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
 from .molc import CFunctions, string, cptr, pyobject, set_c_pointer, pointer, size_t
 import ctypes
@@ -76,6 +76,18 @@ def _pseudobond_group_map(pbgc_map):
     pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
 
+from .cymol import CyAtom
+class Atom(CyAtom, State):
+    def take_snapshot(self, session, flags):
+        data = {'structure': self.structure,
+                'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
+Atom.set_py_class(Atom)
+"""
 # -----------------------------------------------------------------------------
 #
 class Atom(State):
@@ -123,7 +135,7 @@ class Atom(State):
     def __str__(self, atom_only = False, style = None, relative_to=None):
         '''Supported API.  Allow Atoms to be used directly in print() statements'''
         if style == None:
-            from ..core_settings import settings
+            from chimerax.core.core_settings import settings
             style = settings.atomspec_contents
         if relative_to:
             if self.residue == relative_to.residue:
@@ -194,12 +206,12 @@ class Atom(State):
         "HIDE_NUCLEOTIDE\n"
         "    Hide mask for sidechain atoms in nucleotides.\n")
     def set_hide_bits(self, bit_mask):
-        """Set Atom's hide bits in bit mask"""
+        '''Set Atom's hide bits in bit mask'''
         f = c_array_function('set_atom_hide_bits', args=(uint32,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, bit_mask)
     def clear_hide_bits(self, bit_mask):
-        """Clear Atom's hide bits in bit mask"""
+        '''Clear Atom's hide bits in bit mask'''
         f = c_array_function('clear_atom_hide_bits', args=(uint32,), per_object=False)
         a_ref = ctypes.byref(self._c_pointer)
         f(a_ref, 1, bit_mask)
@@ -447,10 +459,6 @@ class Atom(State):
         f = c_function('atom_use_default_radius', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
 
-    def reset_state(self, session):
-        """For when the session is closed"""
-        pass
-
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
@@ -473,6 +481,7 @@ class Atom(State):
             return [i for i in concatenate(collections).instances(instantiate=False)
                 if i is not None]
         return []
+"""
 
 # -----------------------------------------------------------------------------
 #
@@ -531,12 +540,12 @@ class Bond(State):
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.  Use Atom.HIDE_* constants for hide bits.'''
     def set_hide_bits(self, bit_mask):
-        """Set Atom's hide bits in bit mask"""
+        '''Set Atom's hide bits in bit mask'''
         f = c_array_function('set_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
     def clear_hide_bits(self, bit_mask):
-        """Clear Atom's hide bits in bit mask"""
+        '''Clear Atom's hide bits in bit mask'''
         f = c_array_function('clear_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
@@ -564,10 +573,6 @@ class Bond(State):
         '''Delete this Bond from it's Structure'''
         f = c_function('bond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
-
-    def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Bond is involved in.
@@ -610,7 +615,7 @@ class Bond(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return _bond_ptr_to_inst(data['structure'].session_id_to_bond(data['ses_id']))
+        return Bond.c_ptr_to_py_inst(data['structure'].session_id_to_bond(data['ses_id']))
 
     # used by attribute registration to gather attributes for session saving...
     @staticmethod
@@ -709,10 +714,6 @@ class Pseudobond(State):
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
 
-    def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
-
     def take_snapshot(self, session, flags):
         return [self.group, self._ses_id]
 
@@ -721,7 +722,7 @@ class Pseudobond(State):
         group, id = data
         f = c_function('pseudobond_group_resolve_session_id',
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
-        return _pseudobond_ptr_to_inst(f(group._c_pointer, id))
+        return Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, id))
 
     """Need additional support to get per-coord-set pseudobonds
     # used by attribute registration to gather attributes for session saving...
@@ -800,7 +801,7 @@ class PseudobondGroupData:
         try:
             f(self._c_pointer, category.encode('utf-8'))
         except TypeError:
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError("Another pseudobond group is already named '%s'" % category)
 
     def clear(self):
@@ -873,7 +874,7 @@ class PseudobondGroupData:
 
 # -----------------------------------------------------------------------------
 #
-class PseudobondManager(State):
+class PseudobondManager(StateManager):
     '''Per-session singleton pseudobond manager keeps track of all
     :class:`.PseudobondGroupData` objects.'''
 
@@ -950,7 +951,7 @@ class PseudobondManager(State):
         obj_map = {}
         for ptr, ses_id in ptr_map.items():
             # shouldn't be _creating_ any objects, so pass None as the type
-            obj_map[ses_id] = _pbgroup_ptr_to_existing_inst(ptr)
+            obj_map[ses_id] = PseudobondGroup.c_ptr_to_py_inst(ptr)
         data = {'version': version,
                 'mgr data':retvals,
                 'structure mapping': obj_map}
@@ -1040,7 +1041,7 @@ class Residue(State):
 
     def __str__(self, residue_only = False, omit_structure = False, style = None):
         if style == None:
-            from ..core_settings import settings
+            from chimerax.core.core_settings import settings
             style = settings.atomspec_contents
         ic = self.insertion_code
         if style.startswith("simple"):
@@ -1059,7 +1060,7 @@ class Residue(State):
                 struct_string += " "
         else:
             struct_string = ""
-        from ..core_settings import settings
+        from chimerax.core.core_settings import settings
         if style.startswith("simple"):
             return '%s%s %s' % (struct_string, chain_str, res_str)
         if style.startswith("command"):
@@ -1099,8 +1100,8 @@ class Residue(State):
     '''Residue polymer type = nucleotide.'''
     polymer_type = c_property('residue_polymer_type', uint8, read_only = True)
     '''Polymer type of residue. Integer value.'''
-    name = c_property('residue_name', string, read_only = True)
-    '''Residue name. Maximum length 4 characters. Read only.'''
+    name = c_property('residue_name', string)
+    '''Residue name. Maximum length 4 characters.'''
     num_atoms = c_property('residue_num_atoms', size_t, read_only = True)
     '''Number of atoms belonging to the residue. Read only.'''
     number = c_property('residue_number', int32, read_only = True)
@@ -1159,10 +1160,6 @@ class Residue(State):
         r_ref = ctypes.byref(self._c_pointer)
         f(r_ref, 1, loc)
 
-    def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
-
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_residue_to_id(self._c_pointer)}
@@ -1170,7 +1167,7 @@ class Residue(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return _residue_ptr_to_inst(data['structure'].session_id_to_residue(data['ses_id']))
+        return Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
 
     # used by attribute registration to gather attributes for session saving...
     @staticmethod
@@ -1283,7 +1280,7 @@ class Sequence(State):
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
-        from ..triggerset import TriggerSet
+        from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
         f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
@@ -1400,10 +1397,6 @@ class Sequence(State):
         """Sequence length"""
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
         return f(self._c_pointer)
-
-    def reset_state(self, session):
-        """For when the session is closed"""
-        pass
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -1562,13 +1555,6 @@ class StructureSeq(Sequence):
             name_part = ""
         return "%s (#%s)%s" % (self.structure.name, self.structure.id_string(), name_part)
 
-    @property
-    def has_protein(self):
-        for r in self.residues:
-            if r and Sequence.protein3to1(r.name) != 'X':
-                return True
-        return False
-
     def _get_numbering_start(self):
         if self._numbering_start == None:
             for i, r in enumerate(self.residues):
@@ -1716,7 +1702,7 @@ class Chain(StructureSeq):
     '''
 
     def __str__(self):
-        from ..core_settings import settings
+        from chimerax.core.core_settings import settings
         cmd_style = settings.atomspec_contents == "command-line specifier"
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         from .structure import Structure
@@ -1724,7 +1710,7 @@ class Chain(StructureSeq):
             struct_string = str(self.structure)
         else:
             struct_string = ""
-        from ..core_settings import settings
+        from chimerax.core.core_settings import settings
         return struct_string + chain_str
 
     def atomspec(self):
@@ -2124,7 +2110,7 @@ class StructureData:
                 'misc': []}
         data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
         # data is all simple Python primitives, let session saving know that...
-        from ..state import FinalizedState
+        from chimerax.core.state import FinalizedState
         return FinalizedState(data)
 
     def session_atom_to_id(self, ptr):
@@ -2193,7 +2179,7 @@ class StructureData:
 
     def _ses_restore_teardown(self, *args):
         self._ses_call("restore_teardown")
-        from ..triggerset import DEREGISTER
+        from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
 
     def _start_change_tracking(self, change_tracker):
@@ -2238,10 +2224,6 @@ class CoordSet(State):
     id = c_property('coordset_id', int32, read_only = True, doc="ID number of coordset")
     structure = c_property('coordset_structure', pyobject, read_only=True,
         doc=":class:`.AtomicStructure` the coordset belongs to")
-
-    def reset_state(self, session):
-        """For when the session is closed"""
-        pass
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure, 'cs_id': self.id}
@@ -2384,6 +2366,8 @@ class ChangeTracker:
             return 7
         raise AssertionError("Unknown class for change tracking: %s" % inst.__class__.__name__)
 
+from .cymol import Element
+"""
 # -----------------------------------------------------------------------------
 #
 class Element:
@@ -2437,9 +2421,9 @@ class Element:
 
     @staticmethod
     def bond_length(e1, e2):
-        """Standard single-bond length between two elements
+        '''Standard single-bond length between two elements
 
-        Arguments can be element instances, atomic numbers, or element names"""
+        Arguments can be element instances, atomic numbers, or element names'''
         if not isinstance(e1, Element):
             e1 = Element.get_element(e1)
         if not isinstance(e2, Element):
@@ -2450,10 +2434,10 @@ class Element:
 
     @staticmethod
     def bond_radius(e):
-        """Standard single-bond 'radius'
+        '''Standard single-bond 'radius'
         (the amount this element would contribute to bond length)
 
-        Argument can be an element instance, atomic number, or element name"""
+        Argument can be an element instance, atomic number, or element name'''
         if not isinstance(e, Element):
             e = Element.get_element(e)
         f = c_function('element_bond_radius', args = (ctypes.c_void_p,), ret = ctypes.c_float)
@@ -2471,6 +2455,7 @@ class Element:
         else:
             raise ValueError("'get_element' arg must be string or int")
         return _element(f(f_arg))
+"""
 
 # -----------------------------------------------------------------------------
 #
@@ -2615,10 +2600,6 @@ class SeqMatchMap(State):
     def res_to_pos(self):
         return self._res_to_pos
 
-    def reset_state(self, session):
-        """For when the session is closed"""
-        pass
-
     @staticmethod
     def restore_snapshot(session, data):
         inst = SeqMatchMap(session, data['align seq'], data['struct seq'])
@@ -2663,7 +2644,8 @@ class SeqMatchMap(State):
 # from C++ with just a pointer, and put functions in those classes for getting the instance
 # from the pointer (needed by Collections)
 from .pbgroup import PseudobondGroup
-for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
+#for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
+for class_obj in [Bond, CoordSet, PseudobondGroup, Pseudobond, Residue, Ring]:
     cname = class_obj.__name__.lower()
     func_name = "set_" + cname + "_pyclass"
     f = c_function(func_name, args = (ctypes.py_object,))

@@ -13,4 +13,5 @@
 
 from .series import MapSeries
 from .vseries_command import register_vseries_command
-from .play import PlaySeriesMouseMode
+# with ui as a bundle, prevent import of ui.MouseMode
+#from .play import PlaySeriesMouseMode

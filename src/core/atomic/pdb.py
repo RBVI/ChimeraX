@@ -18,7 +18,8 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomic=True):
+def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomic=True,
+             max_models=None, log_info=True):
 
     path = stream.name if hasattr(stream, 'name') else None
 
@@ -30,8 +31,13 @@ def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomi
         from .structure import AtomicStructure as StructureClass
     else:
         from .structure import Structure as StructureClass
-    models = [StructureClass(session, name = file_name, c_pointer = p, auto_style = auto_style)
+    models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
         for p in pointers]
+
+    if max_models is not None:
+        for m in models[max_models:]:
+            m.delete()
+        models = models[:max_models]
 
     if path:
         for m in models:
@@ -143,8 +149,9 @@ def register_pdb_format():
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb, export_func=save_pdb)
-    from ..commands import add_keyword_arguments, BoolArg, ModelsArg, ModelArg
-    add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg, 'atomic': BoolArg})
+    from ..commands import add_keyword_arguments, BoolArg, ModelsArg, ModelArg, IntArg
+    add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg, 'atomic': BoolArg,
+                                   'max_models':IntArg})
     add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,
         'displayed_only':BoolArg, 'all_coordsets':BoolArg, 'pqr':BoolArg, 'rel_model':ModelArg})
 

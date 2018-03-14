@@ -45,7 +45,7 @@ def _read_block(session, stream, line_number):
     # Create the AtomicStructure instance for atoms in this block.
     # All atoms in the structure are placed in one residue
     # since XYZ format does not partition atoms into groups.
-    from chimerax.core.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure
     from numpy import array, float64
     s = AtomicStructure(session)
     residue = s.new_residue("UNK", 'A', 1)
@@ -95,12 +95,6 @@ def _read_block(session, stream, line_number):
 
     # Use AtomicStructure method to add bonds based on interatomic distances
     s.connect_structure([residue], [residue], [], [])
-
-    # Updating state such as atom types while adding atoms iteratively
-    # is unnecessary (and generally incorrect for partial structures).
-    # When all atoms have been added, the instance is notified to
-    # tell it to update internal state.
-    s.new_atoms()
 
     # Return AtomicStructure instance and current line number
     return s, line_number

@@ -50,12 +50,12 @@ Various subcommands of <b>info</b> report
 <li><a href="#residues"><b>info residues</b></a>
 <li><a href="#resattr"><b>info resattr</b></a>
 <li><a href="#chains"><b>info chains</b></a>
-<li><a href="#path"><b>info path</b></a>
 <li><a href="#polymers"><b>info polymers</b></a>
 <li><a href="#models"><b>info models</b></a>
 <li><a href="#selection"><b>info selection</b></a>
 <li><a href="#bounds"><b>info bounds</b></a>
 <li><a href="#distmat"><b>info distmat</b></a>
+<li><a href="#path"><b>info path</b></a>
 <li><b><a href="#notify">info notify</a>
 (&nbsp;start&nbsp;|&nbsp;suspend&nbsp;|&nbsp;resume&nbsp;|&nbsp;stop&nbsp;)</b>
 </ul>
@@ -110,19 +110,6 @@ of chains.
 By default, the <b>chain_id</b> attribute is reported 
 for the chains containing the specified atoms.
 If <b>attribute</b> is given, values of <i>attribute-name</i> are reported instead.
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="path"><b>info path</b></a>
-[&nbsp;<b>all</b>&nbsp;|&nbsp;system&nbsp;|&nbsp;user
-[&nbsp;<b>all</b>&nbsp;|&nbsp;versioned&nbsp;|&nbsp;unversioned
-[&nbsp;cache&nbsp;|&nbsp;config&nbsp;|&nbsp;data&nbsp;|&nbsp;log&nbsp;|&nbsp;state&nbsp;]]]
-<blockquote>
-Report local paths for ChimeraX-related files; default is <b>all</b> files,
-but reporting can be limited to those which are <b>system</b> or
-<b>user</b>-specific, <b>versioned</b> or <b>unversioned</b>, 
-and/or of a specific type:
-<b>cache</b>, <b>config</b>, <b>data</b>, <b>log</b>, or <b>state</b>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -185,6 +172,24 @@ with atoms in the order (if any) in which they were specified.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="path"><b>info path</b></a>
+[&nbsp;<b>all</b>&nbsp;|&nbsp;system&nbsp;|&nbsp;user
+[&nbsp;<b>all</b>&nbsp;|&nbsp;versioned&nbsp;|&nbsp;unversioned
+[&nbsp;cache&nbsp;|&nbsp;config&nbsp;|&nbsp;data&nbsp;|&nbsp;log&nbsp;|&nbsp;state&nbsp;]]]
+<blockquote>
+Report local paths for ChimeraX-related files; default is <b>all</b> files,
+but reporting can be limited to those which are <b>system</b> or
+<b>user</b>-specific, <b>versioned</b> or <b>unversioned</b>, 
+and/or of a specific type:
+<b>cache</b>, <b>config</b>, <b>data</b>, <b>log</b>, or <b>state</b>.
+</blockquote>
+<!--
+preferences (settings): user unversioned config
+file history, command history: user unversioned data
+registration: user unversioned data
+-->
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="notify"><b>info notify</b></a>
 <b>start</b>
 (&nbsp;<b>models</b>&nbsp;|&nbsp;<b>selection</b>&nbsp;) &nbsp;<i>clientId</i>&nbsp;
@@ -196,7 +201,8 @@ with atoms in the order (if any) in which they were specified.
 (&nbsp;<b>suspend</b>&nbsp;|&nbsp;<b>resume</b>&nbsp;|&nbsp;<b>stop</b>&nbsp;)
 (&nbsp;<b>models</b>&nbsp;|&nbsp;<b>selection</b>&nbsp;) &nbsp;<i>clientId</i>&nbsp;
 <blockquote>
-(The ChimeraX programmer documentation will include a description.)
+(The <a href="../../devel/index.html"
+target="_blank">ChimeraX Programming Manual</a> will include a description.)
 See also: <b>remotecontrol</b>
 <!-- 
 Send notifications to &ldquo;client&rdquo; programs that can control ChimeraX 

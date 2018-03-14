@@ -37,6 +37,7 @@ const std::string ChangeTracker::REASON_IS_HET("is_het changed");
 const std::string ChangeTracker::REASON_NAME("name changed");
 const std::string ChangeTracker::REASON_OCCUPANCY("occupancy changed");
 const std::string ChangeTracker::REASON_RADIUS("radius changed");
+const std::string ChangeTracker::REASON_RESIDUE_NAME("residue name changed");
 const std::string ChangeTracker::REASON_RESIDUES("residues changed");
 const std::string ChangeTracker::REASON_RIBBON_ADJUST("ribbon_adjust changed");
 const std::string ChangeTracker::REASON_RIBBON_COLOR("ribbon_color changed");

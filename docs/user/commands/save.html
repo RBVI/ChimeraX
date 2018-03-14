@@ -151,7 +151,7 @@ Sybyl Mol2<br>
 <td align="center">
 atomic coordinates,<br>
 mmCIF<br>
-<font color="brown">*experimental/incomplete*</font></td>
+(includes a subset of mmCIF data types)</td>
 </tr><tr>
 <td align="center"><b>dcd</b></td>
 <td align="center">.dcd</td>
@@ -195,7 +195,7 @@ target="_blank">X3D</a></td>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#formats"><i>file-format</i></a>&nbsp;]
-[[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
+[[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp;|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
 [&nbsp;<b>supersample</b>&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>transparentBackground</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -209,7 +209,7 @@ See also: <a href="windowsize.html"><b>windowsize</b></a>,
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>
 <blockquote>
-[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>
+[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp;|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>
 <br>
 Image pixel dimensions can be specified directly with 
 <b>width</b> and <b>height</b>, or relative to the physical dimensions
@@ -227,7 +227,7 @@ With <a href="camera.html">perspective</a>, the pixel size varies with depth,
 but <b>pixelSize</b> sets the value at half-depth
 (the midpoint along the line of sight).
 For example, if at half-depth the graphics window encloses
-a 400-&Aring by 300-&Aring; rectangle,
+a 400-&Aring; by 300-&Aring; rectangle,
 <b>pixelSize 0.4</b> specifies image pixel dimensions of 1000 by 750.
 </blockquote>
 <blockquote>
@@ -546,5 +546,5 @@ GAFF types are not yet computed, so this should be kept <b>false</b>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+March 2018</address>
 </body></html>

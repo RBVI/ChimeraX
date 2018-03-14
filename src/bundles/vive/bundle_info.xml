@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Vive" version="1.0"
-	    package="chimerax.vive"
+	    package="chimerax.vive" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -22,7 +22,6 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: device vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: vr_sync :: General :: Synchronize VR pointers</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -37,7 +37,7 @@ and `session.trigger.remove_handler`.
 
 
 # Tools and ToolInstance are session-specific
-from .state import State, CORE_STATE_VERSION
+from .state import State, StateManager, CORE_STATE_VERSION
 ADD_TOOL_INSTANCE = 'add tool instance'
 REMOVE_TOOL_INSTANCE = 'remove tool instance'
 
@@ -221,7 +221,7 @@ def get_singleton(session, tool_class, tool_name, create=True, display=False, **
     return tinst
 
 
-class Tools(State):
+class Tools(StateManager):
     """A per-session state manager for running tools.
 
     'Tools' instances are per-session singletons that track

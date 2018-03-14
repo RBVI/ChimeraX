@@ -77,6 +77,9 @@ build-from-scratch:
 	$(MAKE) distclean
 	$(MAKE) install
 
+prefetch:
+	$(MAKE) -C prereqs/PyQt -f Makefile.wheel prefetch
+
 # Linux debugging:
 
 gltrace:

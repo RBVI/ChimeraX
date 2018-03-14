@@ -22,6 +22,7 @@ python-dateutil==2.6.1
 six==1.11.0
 sortedcontainers==1.5.9
 suds-jurko==0.6
+tinyarray==1.2.0
 webcolors==1.7
 #
 # Documentation

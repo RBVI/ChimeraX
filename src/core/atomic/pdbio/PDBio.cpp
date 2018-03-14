@@ -1615,19 +1615,19 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
 
 static const char*
 docstr_read_pdb_file = 
-"read_pdb_file(f, log=None, explode=True, atomic=True)\n" \
-"\n" \
-"f\n" \
-"  A file-like object open for reading containing the PDB info\n" \
-"log\n" \
-"  A file-like object open for writing that warnings/errors and other\n" \
-"  information will be written to\n" \
-"explode\n" \
-"  Controls whether NMR ensembles will be handled as separate models (True)\n" \
-"  or as one model with multiple coordinate sets (False)\n" \
-"\n" \
-"Returns a numpy array of C++ pointers to AtomicStructure objects (if 'atomic'\n." \
-"is True, otherwise Structure objects)";
+"read_pdb_file(f, log=None, explode=True, atomic=True)\n"
+"\n"
+"'f' is a file-like object open for reading containing the PDB info\n"
+"'log' is a file-like object open for writing warnings/errors and other"
+" information\n"
+"'explode' controls whether NMR ensembles will be handled as separate models"
+" (default True) or as one model with multiple coordinate sets (False)\n"
+"'atomic' controls whether models are treated as atomic models with"
+" standard chemical properties (default True) or as graphical models"
+" (False)\n"
+"\n"
+"Returns a numpy array of C++ pointers to AtomicStructure objects"
+" (if 'atomic' is True, otherwise Structure objects)";
 
 extern "C" PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
@@ -1644,27 +1644,24 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 
 static const char*
 docstr_write_pdb_file = 
-"write_pdb_file(structures, file_name, selected_only=False, displayed_only=False, xforms=None\n" \
-"    all_coordsets=True, pqr=False)\n" \
-"\n" \
-"structures\n" \
-"  A sequence of C++ structure pointers\n" \
-"file_name\n" \
-"  The output file path\n" \
-"selected_only\n" \
-"  If True, only selected atoms will be written\n" \
-"displayed_only\n" \
-"  If True, only displayed atoms will be written\n" \
-"xforms\n" \
-"  A sequence of 3x4 numpy arrays to transform the atom coordinates of the corresponding\n" \
-"  structure.  If None then untransformed coordinates will be used for all structures.\n" \
-"  Similarly, any None in the sequence will cause untransformed coordinates to be used\n" \
-"  for that structure.\n" \
-"all_coordsets\n" \
-"  If True, all coordsets of a trajectory will be written (as multiple MODELS).\n" \
-"  Otherwise, just the current coordset will be written.\n" \
-"pqr\n" \
-"  If True, write PQR-style ATOM records\n" \
+"write_pdb_file(structures, file_name, selected_only=False,"
+" displayed_only=False, xforms=None, all_coordsets=True, pqr=False)\n"
+"\n"
+"'structures' is a sequence of C++ structure pointers\n"
+"'file_name' is the output file path\n"
+"'selected_only' controls if only selected atoms will be written"
+" (default False)\n"
+"'displayed_only' controls if only displayed atoms will be written"
+" (default False)\n"
+"'xforms' is a sequence of 3x4 numpy arrays to transform the atom"
+" coordinates of the corresponding structure."
+" If None then untransformed coordinates will be used for all structures."
+" Similarly, any None in the sequence will cause untransformed coordinates"
+" to be used for that structure. (default None)\n"
+"'all_coordsets' controls if all coordsets of a trajectory will be written"
+" (as multiple MODELS) or just the current coordset"
+" (default True = all coordsets)\n" \
+"'pqr' controls whether to write PQR-style ATOM records (default False)\n"
 "\n";
 
 extern "C" PyObject*

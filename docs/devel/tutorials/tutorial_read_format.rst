@@ -79,7 +79,7 @@ for bundles written completely in Python.  The
 from the :doc:`tutorial_tool` example with changes highlighted.
 For explanations of the unhighlighted sections, please
 see :doc:`tutorial_hello`, :doc:`tutorial_command` and
-`tutorial_tool`.
+:doc:`tutorial_tool`.
 
 .. literalinclude:: ../../../src/examples/tutorials/tut_read/bundle_info.xml
     :language: xml
@@ -141,7 +141,7 @@ overridden for registering commands, tools, etc.
     :language: python
     :linenos:
 
-The ``open_file`` method is called by ChimeraX to read a file,
+The :py:meth:`open_file` method is called by ChimeraX to read a file,
 and return a list of models and a status message.  Unlike standard
 Python methods, the parameter names are significant because ChimeraX
 introspects the method definition to construct the arguments that
@@ -159,7 +159,7 @@ are passed to the method.
 4. An optional fourth argument, **file_name** may be supplied when
    both the file path and file-like object are needed.
 
-If the ``open_file`` method expects a file-like stream, ChimeraX
+If the :py:meth:`open_file` method expects a file-like stream, ChimeraX
 takes care of decompressing files with **.gz** suffix, as well as
 opening the file in either text or binary mode, matching the format
 specification in ``bundle_info.xml``.
@@ -179,7 +179,8 @@ In this example, only one format is supported, so
     :language: python
     :linenos:
 
-The ``open_xyz`` function is called from the ``__init__.bundle_api.open_file``
+The :py:func:`open_xyz` function is called from the
+:py:meth:`__init__.bundle_api.open_file`
 method to open an input file in `XYZ format`_.  The contents of such
 a file is a series of blocks, each representing a single molecular
 structure.  Each block in an XYZ format file consists of
@@ -189,52 +190,51 @@ structure.  Each block in an XYZ format file consists of
 - one line per atom, containing four space-separated fields: element type
   and x, y, and z coordinates.
 
-The return value that ChimeraX expects from ``open_xyz`` is a 2-tuple
-of a list of structures and a status message.  The ``open_xyz`` code
+The return value that ChimeraX expects from :py:meth:`open_xyz` is a 2-tuple
+of a list of structures and a status message.  The :py:meth:`open_xyz` code
 simply initializes an empty list of structures (line 10) and repeatedly
-calls ``_read_block`` until the entire file is read (lines 14-20).
-When ``read_block`` successfully reads a block, it returns an instance
-of :py:class:`chimerax.core.atomic.AtomicStructure`, which is added to the
-structure list (line 18); otherwise, it returns **None** which
-terminates the block-reading loop (lines 16-17).
+calls :py:func:`_read_block` until the entire file is read (lines 14-20).
+When :py:func:`read_block` successfully reads a block, it returns an instance
+of :py:class:`chimerax.core.atomic.structure.AtomicStructure`,
+which is added to the structure list (line 18); otherwise,
+it returns **None** which terminates the block-reading loop (lines 16-17).
 A status message is constructed from the total number of structures,
 atoms, and bonds (lines 21-22).
 The structure list and the status message are then returned to
 ChimeraX for display (line 23).
 
-``_read_block`` reads and constructs an atomic structure in several steps:
+:py:func:`_read_block` reads and constructs an atomic
+structure in several steps:
 
-1. read the number of atoms in the block (lines 32-43).
-2. build an empy atomic structure to which atoms will be added
-   (lines 45-51).  The :py:class:`chimerax.core.atomic.AtomicStructure`
+#. read the number of atoms in the block (lines 32-43).
+#. build an empy atomic structure to which atoms will be added
+   (lines 45-51).
+   The :py:class:`chimerax.core.atomic.structure.AtomicStructure`
    instance is created on line 50, and a
-   :py:class:`chimerax.core.atomic.Residue` instance
+   :py:class:`chimerax.core.atomic.molobject.Residue` instance
    is created on line 51.  The latter is required because ChimeraX
    expects every atom in a structure to be part of exactly one residue
    in the same structure.  Even though XYZ format does not support the
    concept of residues, a *dummy* one is created anyway.
-3. skip the comment line (lines 61-63).
-4. loop over the expected number of atoms and add them to the structure
-   (lines 66-94).  The construction of a :py:class:`chimerax.core.atomic.Atom`
+#. skip the comment line (lines 61-63).
+#. loop over the expected number of atoms and add them to the structure
+   (lines 66-94).  The construction of a
+   :py:class:`chimerax.core.atomic.molobject.Atom`
    instance is somewhat elaborate (lines 80-94).  First, the atom
    parameters are prepared: the atomic coordinates are extracted from
    the input (line 84), and the atom name is constructed from the
    element type and an element-specific running index (lines 85-88).
    The **Atom** instance is created on line 92; the newly created atom
-   is part of the structure being built through the use of the ``new_atom``
+   is part of the structure being built through the use of the
+   :py:meth:`~chimerax.core.atomic.molobject.StructureData.new_atom`
    method of the structure.  The atomic coordinates are set on line 93.
    Finally, the atom is added to the dummy residue on line 94.
-5. XYZ format files do not have connectivity information, so no bonds
+#. XYZ format files do not have connectivity information, so no bonds
    are created while processing input lines.  Instead, the
-   ``~chimerax.core.atomic.AtomicStructure.connect_structure``
+   :py:meth:`~chimerax.core.atomic.molobject.StructureData.connect_structure`
    method of the structure is called to deduce connectivity from
    interatomic distances (line 97).
-6. The structure is *finalized* with the call to ``new_atoms`` (line 103).
-   Some atomic structure data, such as atom and bond types, change as
-   atoms and bonds are added.  Rather than recomputing on every change,
-   ChimeraX waits until a call to ``new_atoms`` before updating
-   structure data.
-7. Return success or failure to read a structure to ``open_xyz`` (line 106).
+#. Return success or failure to read a structure to ``open_xyz`` (line 100).
 
 
 .. include:: build_test_distribute.rst

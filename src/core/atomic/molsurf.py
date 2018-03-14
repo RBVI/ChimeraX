@@ -439,9 +439,6 @@ class MolecularSurface(Model):
             if attr in d:
                 setattr(s, attr, d[attr])
 
-    def reset_state(self, session):
-        pass
-
 def remove_solvent_ligands_ions(atoms, keep = None):
     '''Remove solvent, ligands and ions unless that removes all atoms
     in which case don't remove any.'''

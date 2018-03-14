@@ -28,42 +28,42 @@ UCSF ChimeraX is built upon other great software.
 <h2><a id="o"> Included Software </a></h2>
 
 <dl>
-<dt><a href="http://www.python.org/"> Python </a> version 3.5
+<dt><a href="http://www.python.org/" target="_blank"> Python </a> version 3.5
 <dd>&ldquo;The Python programming language and interpreter.&rdquo;
 <br>
-History and License: <a href="https://docs.python.org/3/license.html">open source</a>
+History and License: <a href="https://docs.python.org/3/license.html" target="_blank">open source</a>
 <p>
 ChimeraX is distributed as Python packages,
 either written in the Python language
 or as a binary package written in C or C++.
 
-<dt><a href="https://www.riverbankcomputing.com/software/pyqt/"> PyQt </a> version 5
-<dd>&ldquo;PyQt is a set of Python v2 and v3 bindings for <a href="http://www.qt.io">The Qt Company's</a> Qt application framework and runs on all platforms supported by Qt including Windows, OS X, Linux, iOS and Android.&rdquo;
+<dt><a href="https://www.riverbankcomputing.com/software/pyqt/" target="_blank"> PyQt </a> version 5
+<dd>&ldquo;PyQt is a set of Python v2 and v3 bindings for <a href="http://www.qt.io" target="_blank">The Qt Company's</a> Qt application framework and runs on all platforms supported by Qt including Windows, OS X, Linux, iOS and Android.&rdquo;
 &ldquo;PyQt is dual licensed on all supported platforms under the GNU GPL v3 and the Riverbank Commercial License.&rdquo;
 <br>
 License: ChimeraX is develped with a commercial license for PyQt.
-See the Riverbank <a href="https://www.riverbankcomputing.com/commercial/license-faq"> License FAQ </a> for more details.
+See the Riverbank <a href="https://www.riverbankcomputing.com/commercial/license-faq" target="_blank"> License FAQ </a> for more details.
 
 <p>
-<dt><a href="http://ffmpeg.org/"> FFmpeg </a> version 3.2.4
+<dt><a href="http://ffmpeg.org/" target="_blank"> FFmpeg </a> version 3.2.4
 <dd>&ldquo;A complete, cross-platform solution to record, convert and stream audio and video.&rdquo;
 <br>
-License: <a href="http://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License v3</a><br>
-Embedded licenses: <a href="licenses/ffmpeg/index.html">FFmpeg embedded licences</a>
+License: <a href="http://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3</a><br>
+Embedded licenses: <a href="licenses/ffmpeg/index.html" target="_blank">FFmpeg embedded licences</a>
 <p>
 FFmpeg is bundled as a convenience for users of ChimeraX.
 It is a separate product,
 and thus, its license does not affect ChimeraX's license.
 FFmpeg can be freely redistributed separately from ChimeraX.
-See the <a href="http://www.gnu.org/gpl-faq.html">GPL FAQ</a> for more details.
+See the <a href="http://www.gnu.org/gpl-faq.html" target="_blank">GPL FAQ</a> for more details.
 It can be found in the <code>bin</code> directory.
 
 <p>
-<dt><a href="http://www.gnu.org/software/freefont/">
+<dt><a href="http://www.gnu.org/software/freefont/" target="_blank">
 GNU FreeFont </a>
 <dd>&ldquo;GNU FreeFont is a free family of scalable outline fonts, suitable for general use on computers and for desktop publishing. It is Unicode-encoded for compatibility with all modern operating systems.&rdquo;
 <br>
-License: <a href="http://www.gnu.org/licenses/gpl-3.0.html">GNU Public License v3</a> or later and the following exception:
+License: <a href="http://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU Public License v3</a> or later and the following exception:
 <blockquote>
 "As a special exception, if you create a document which uses this font, and embed this font or unaltered portions of this font into the document, this font does not by itself cause the resulting document to be covered by the GNU General Public License. This exception does not however invalidate any other reasons why the document might be covered by the GNU General Public License.&rdquo;
 </blockquote>
@@ -72,25 +72,31 @@ GNU FreeFont is bundled as a convenience for users of ChimeraX.
 It is a separate product,
 and thus, its license does not affect ChimeraX's license.
 GNU FreeFont can be freely redistributed separately from ChimeraX.
-See the <a href="http://www.gnu.org/gpl-faq.html">GPL FAQ</a>
-and the <a href="http://www.gnu.org/software/freefont/FAQ.html">GNU FreeFont FAQ</a> for more details.
+See the <a href="http://www.gnu.org/gpl-faq.html" target="_blank">GPL FAQ</a>
+and the <a href="http://www.gnu.org/software/freefont/FAQ.html" target="_blank">GNU FreeFont FAQ</a> for more details.
 It can be found in the <code>bin/share/fonts/freefont</code> directory.
 
 <p>
-<dt><a href="https://www.freedesktop.org/wiki/Software/xdg-utils/"> xdg-utils </a> version 1.1.1
+<dt><a href="https://www.freedesktop.org/wiki/Software/xdg-utils/" target="_blank"> xdg-utils </a> version 1.1.1
 <dd>&ldquo;xdg-utils is a set of tools that allows applications to easily integrate with the desktop environment of the user, regardless of the specific desktop environment that the user runs.&rdquo;
 <br>
-License type: <a href="https://cgit.freedesktop.org/xdg/xdg-utils/tree/LICENSE">free</a>
+License type: <a href="https://cgit.freedesktop.org/xdg/xdg-utils/tree/LICENSE" target="_blank">free</a>
 <p>
 Linux only.
 
 <p>
-<dt><a href="http://www.webalys.com/minicons"> Minicons Free Vector Icons Pack </a> (downloaded 28 November 2016)
+<dt><a href="http://www.webalys.com/minicons" target="_blank"> Minicons Free Vector Icons Pack </a> (downloaded 28 November 2016)
 <dd>The Minicons Free Vector Icon Pack is a free set of scalable icons.
 <br>
-License type: <a href="http://creativecommons.org/licenses/by/3.0/deed.en_US">Creative Commons Abbtributions 3.0 Unported</a>
+License type: <a href="http://creativecommons.org/licenses/by/3.0/deed.en_US" target="_blank">Creative Commons Abbtributions 3.0 Unported</a>
 <p>
 Linux only.
+ 
+<p>
+<dt><a href="http://basicproperty.sourceforge.net/" target="_blank"> BasicProperty (and BasicTypes) for Python </a> (downloaded 15 February 2018)
+<dd> The <b>flatten</b> function in <b>basictypes/latebind.py</b> is the basis for our <b>chimerax.core.utils.flattened</b> function.  The Python packages are not included.
+<br>
+License type: <a href="licenses/basictypes-license.txt" target="_blank">BSD license</a>
 
 </dl>
 

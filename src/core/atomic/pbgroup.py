@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .molobject import PseudobondGroupData
-from ..models import Model
+from chimerax.core.models import Model
 class PseudobondGroup(PseudobondGroupData, Model):
     """
     A pseudobond group is a named group of :class:`.Pseudobond` objects
@@ -61,7 +61,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         ta = get_triggers(session)
         def pbg_update(*args, self=self):
             self._update_graphics()
-        from ..models import MODEL_DISPLAY_CHANGED
+        from chimerax.core.models import MODEL_DISPLAY_CHANGED
         self._handlers = [
             (t, t.add_handler('graphics update', self._update_graphics_if_needed)),
             (ta, ta.add_handler('changes', pbg_update)),
@@ -152,7 +152,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     def _get_single_color(self):
         pbonds = self.pseudobonds
-        from ..colors import most_common_color
+        from chimerax.core.colors import most_common_color
         shown = pbonds.filter(pbonds.displays)
         if shown:
             return most_common_color(shown.colors)
@@ -251,7 +251,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             return []
 
         picks = []
-        from ..geometry import transform_planes
+        from chimerax.core.geometry import transform_planes
         for p in self.positions:
             pplanes = transform_planes(p, planes)
             picks.extend(self._pseudobonds_planes_pick(pplanes))
@@ -295,9 +295,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
         grp._dashes = data['dashes']
         return grp
 
-    def reset_state(self, session):
-        pass
-
 # -----------------------------------------------------------------------------
 #
 def selected_pseudobonds(session):
@@ -314,7 +311,7 @@ def selected_pseudobonds(session):
 
 # -----------------------------------------------------------------------------
 #
-from ..selection import SelectionPromotion
+from chimerax.core.selection import SelectionPromotion
 class PromotePseudobondSelection(SelectionPromotion):
     def __init__(self, pbgroup, prev_pbond_sel_mask):
         level = 1001
@@ -369,5 +366,5 @@ def hidden_structures(structures):
 # -----------------------------------------------------------------------------
 #
 def _pseudobond_geometry(segments = 9):
-    from .. import surface
+    from chimerax.core import surface
     return surface.dashed_cylinder_geometry(segments, height = 0.5)

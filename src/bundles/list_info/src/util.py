@@ -59,7 +59,7 @@ def report_models(logger, models, attr):
         try:
             value = attr_string(m, attr)
         except AttributeError:
-            pass
+            value = "[undefined]"
         logger.info("model id %s type %s %s %s" % (spec(m), type(m).__name__,
                                                    attr, value))
 
@@ -201,9 +201,6 @@ def closing(thing):
 
 
 class RESTTransaction(Task):
-
-    def reset_state(self, session):
-        pass
 
     def run(self, url, msg):
         from urllib.parse import urlencode

@@ -10,7 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # Mouse mode to move map planes or move faces of bounding box.
-from ..ui import MouseMode
+from chimerax.ui import MouseMode
 class PlanesMouseMode(MouseMode):
     name = 'move planes'
     icon_file = 'cubearrow.png'
@@ -28,13 +28,15 @@ class PlanesMouseMode(MouseMode):
         self.axis = None        # Clicked face normal axis
         self.side = None        # 0 or 1 for min/max box face along axis
         self.xy_last = None
-        self.drag = None
         self.frac_istep = 0
         
     def mouse_down(self, event):
         self.xy_last = (x,y) = event.position()
         v = self.session.main_view
         line = v.clip_plane_points(x,y)    # scene coordinates
+        self._choose_box_face(line)
+
+    def _choose_box_face(self, line):
         from .volume import Volume
         maps = [m for m in self.session.models.list() if isinstance(m, Volume) and m.shown()]
         from .slice import nearest_volume_face
@@ -43,7 +45,6 @@ class PlanesMouseMode(MouseMode):
         if v:
             v.set_parameters(show_outline_box = True)
             self.matching_maps = matching_maps(v, maps)
-        self.drag = False
 
     def mouse_drag(self, event):
         v = self.map
@@ -61,36 +62,55 @@ class PlanesMouseMode(MouseMode):
         step = speed * drag_distance(v, self.ijk, self.axis, dx, dy, view)
         sa = v.data.step[self.axis]
         istep = step / sa      # grid units
+        self.xy_last = (x,y)
+        self._move_plane(istep)
+
+    def _move_plane(self, istep):
+        # Remember fractional grid step for next move.
         istep += self.frac_istep
-        if int(istep) != 0:
-            self.xy_last = (x,y)
-            self.drag = True
-            # Remember fractional grid step for next move.
-            self.frac_istep = istep - int(istep)
-            move_plane(v, self.axis, self.side, int(istep))
-            for m in self.matching_maps:
-                m.new_region(*tuple(v.region), adjust_step = False, adjust_voxel_limit = False)
-                if v.showing_orthoplanes() and m.showing_orthoplanes():
-                    m.set_parameters(orthoplane_positions = v.rendering_options.orthoplane_positions)
-            # Make sure new plane is shown before another mouse event shows another plane.
-            self.session.ui.update_graphics_now()
+        rstep = round(istep)
+        if rstep == 0:
+            self.frac_istep = istep
+            return
+        self.frac_istep = istep - rstep
+        v = self.map
+        move_plane(v, self.axis, self.side, rstep)
+        for m in self.matching_maps:
+            m.new_region(*tuple(v.region), adjust_step = False, adjust_voxel_limit = False)
+            if v.showing_orthoplanes() and m.showing_orthoplanes():
+                m.set_parameters(orthoplane_positions = v.rendering_options.orthoplane_positions)
+        # Make sure new plane is shown before another mouse event shows another plane.
+        self.session.ui.update_graphics_now()
 
     def wheel(self, event):
         self.mouse_down(event)
         v = self.map
         if v:
             d = event.wheel_value()
-            move_plane(v, self.axis, self.side, d)
-            # Make sure new plane is shown before another mouse event shows another plane.
-            self.session.ui.update_graphics_now()
+            self._move_plane(d)
 
-    def mouse_up(self, event):
+    def mouse_up(self, event = None):
         self.map = None
         self.ijk = None
-        self.drag = False
         self.xy_last = None
         self.frac_istep = 0
         return
+
+    def laser_click(self, xyz1, xyz2):
+        line = (xyz1, xyz2)
+        self._choose_box_face(line)
+        
+    def drag_3d(self, position, move, delta_z):
+        if position is None:
+            self.mouse_up()
+        elif move is not None:
+            v = self.map
+            if v:
+                trans = move * position.origin() - position.origin()
+                dxyz = v.position.inverse() * trans
+                dijk = v.data.xyz_to_ijk_transform.apply_without_translation(dxyz)
+                istep = dijk[self.axis]
+                self._move_plane(istep)
 
 def matching_maps(v, maps):
     mm = []

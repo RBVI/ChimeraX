@@ -1930,8 +1930,6 @@ class Volume(Model):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    if not self.data.path:
-      session.logger.info('Map %s not saved in session because it has no file.' % self.name)
     from ..state import CORE_STATE_VERSION
     from .session import state_from_map, grid_data_state
     data = {
@@ -1953,10 +1951,7 @@ class Volume(Model):
     set_map_state(data['volume state'], v)
     show_volume_dialog(session)
     return v
-
-  def reset_state(self, session):
-    pass
-    
+ 
 # -----------------------------------------------------------------------------
 #
 def maps_pickable(session, pickable):
@@ -3147,9 +3142,6 @@ class MapChannelsModel(Model, MapChannels):
     
     return c
 
-  def reset_state(self):
-    pass
-
 # -----------------------------------------------------------------------------
 #
 class MultiChannelSeries(Model):
@@ -3194,9 +3186,6 @@ class MultiChannelSeries(Model):
     session.triggers.add_handler('end restore session', restore_maps)
     
     return mcs
-
-  def reset_state(self):
-    pass
   
 # -----------------------------------------------------------------------------
 #

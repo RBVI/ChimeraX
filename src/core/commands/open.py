@@ -17,11 +17,11 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
 
     Parameters
     ----------
-    filename : string
+    filename : string or list of strings
         A path to a file (relative to the current directory), or a database id
         code to fetch prefixed by the database name, for example, pdb:1a0m,
         mmcif:1jj2, emdb:1080.  A 4-letter id that is not a local file is
-        interpreted as an mmCIF fetch.
+        interpreted as an mmCIF fetch.  Also allows a list of filenames and ids.
     format : string
         Read the file using this format, instead of using the file suffix to
         infer the format.
@@ -84,6 +84,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add_group(models)
         else:
             session.models.add(models)
+        show_citations(session, models)
         remember_file(session, filename, format, models, database=from_database, open_options = kw)
         session.logger.status(status, log=True)
         return models
@@ -112,6 +113,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     except OSError as e:
         from ..errors import UserError
         raise UserError(e)
+    show_citations(session, models)
     
     # Remember in file history
     rfmt = None if format is None else fmt.nicknames[0]
@@ -127,6 +129,25 @@ def format_from_name(name, open=True, save=False):
     if formats:
         return formats[0]
     return None
+
+
+def show_citations(session, models):
+    from ..atomic.mmcif import citations
+    c_tmp = []
+    for m in models:
+        c = citations(m, only='primary')
+        if c:
+            c_tmp.append((m.name, c))
+    cites = []
+    for c in c_tmp:
+        if c and c not in cites:
+            cites.append(c)
+    if cites:
+        from html import escape
+        info = '<dl>'
+        info += ''.join('<dt>%s citation:<dd>%s' % (escape(n), '<p>'.join(c)) for (n, c) in cites)
+        info += '</dl>'
+        session.logger.info(info, is_html=True)
 
 
 def open_formats(session):

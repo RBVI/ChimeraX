@@ -19,7 +19,7 @@ class Plot(ToolInstance):
     def __init__(self, session, tool_name, *, title=None):
         ToolInstance.__init__(self, session, tool_name)
 
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
         if title is not None:
             tw.title = title

@@ -19,6 +19,9 @@ class SequenceViewer(ToolInstance):
 
     MATCHED_REGION_INFO = ("matched residues", (1, .88, .8), "orange red")
 
+    ERROR_REGION_STRING = "mismatches"
+    GAP_REGION_STRING = "missing structure"
+
     """TODO
     buttons = ('Quit', 'Hide')
     help = "ContributedSoftware/multalignviewer/framemav.html"
@@ -154,7 +157,7 @@ class SequenceViewer(ToolInstance):
             else:
                 capped_words.append(word)
         self.display_name = " ".join(capped_words) + " [ID: %s]" % self.alignment.ident
-        from chimerax.core.ui.gui  import MainToolWindow
+        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._dock_widget.setMouseTracking(True)
         self.tool_window.fill_context_menu = self.fill_context_menu
@@ -508,9 +511,10 @@ class SequenceViewer(ToolInstance):
         if not hasattr(self, "settings_tool"):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
-                self.tool_window.create_child_window("Settings", close_destroys=False))
+                self.tool_window.create_child_window("Sequence Viewer Settings",
+                    close_destroys=False))
             self.child_tools.append(self.settings_tool)
-            self.settings_tool.tool_window.manage(self.tool_window)
+            self.settings_tool.tool_window.manage(None)
         self.settings_tool.tool_window.shown = True
 
     def show_ss(self, show=True):
@@ -527,9 +531,7 @@ class SequenceViewer(ToolInstance):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        bundle_info = session.toolshed.find_bundle_for_class(cls)
-        inst = cls(session, bundle_info.tools[0].name)
-        ToolInstance.set_state_from_snapshot(inst, session, data['ToolInstance'])
+        inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(session, data['alignment'])
         inst.region_browser.restore_state(data['region browser'])
         return inst
@@ -594,10 +596,10 @@ class SequenceViewer(ToolInstance):
                             cur_partial_block = None
 
         for shown, region_name_part, partial_blocks, full_blocks, fills, outlines in [
-                (self.settings.error_region_shown, "mismatches", partial_error_blocks,
+                (self.settings.error_region_shown, self.ERROR_REGION_STRING, partial_error_blocks,
                     full_error_blocks, self.settings.error_region_interiors,
                     self.settings.error_region_borders),
-                (self.settings.gap_region_shown, "missing structure", partial_gap_blocks,
+                (self.settings.gap_region_shown, self.GAP_REGION_STRING, partial_gap_blocks,
                     full_gap_blocks, self.settings.gap_region_interiors,
                     self.settings.gap_region_borders)]:
             if not shown:

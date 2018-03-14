@@ -18,7 +18,7 @@ register_attr: infrastructure for molecular classes to register custom attribute
 TODO
 """
 
-from ..state import State
+from ..state import State, StateManager
 
 # something that can't be a default value, yet can be saved in sessions...
 class _NoDefault(State):
@@ -29,9 +29,6 @@ class _NoDefault(State):
     @staticmethod
     def restore_snapshot(session, data):
         return _no_default
-
-    def reset_state(self, session):
-        pass
 _no_default = _NoDefault()
 
 # methods that the manager will insert into the managed classes (inheritance won't work)
@@ -129,7 +126,7 @@ registerable_classes = [ Atom, AtomicStructure, Bond, CoordSet,
     PseudobondGroup, PseudobondManager, Residue, Structure,
     ]
 
-class RegAttrManager(State):
+class RegAttrManager(StateManager):
 
     def __init__(self):
         for reg_class in registerable_classes:

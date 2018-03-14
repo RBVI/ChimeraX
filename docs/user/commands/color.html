@@ -265,9 +265,12 @@ An offset of 1.4 &Aring; is typically used for coloring a
 The rationale for looking outward is that the values at the centers 
 of any interacting atoms are more relevant than those at their surfaces.
 By default, a molecular surface shows where the surface of a spherical probe 
-of radius 1.4 &Aring; can lie, the <b><i>solvent-excluded</i></b> surface.
-An offset of 1.4 &Aring; approximates the <b><i>solvent-accessible</i></b>
-surface, about as close as the probe center can get to the molecule.
+of radius 1.4 &Aring; can lie, the
+<a href="surface.html#surfdefs">solvent-excluded surface</a>.
+An offset of 1.4 &Aring; approximates the 
+<a href="surface.html#surfdefs">solvent-accessible surface</a>,
+about as close as the probe center can get to the molecule.
+See also: <a href="mlp.html"><b>mlp</b></a>
 </p>
 
 <a name="zone"></a>
@@ -345,7 +348,7 @@ targets can be specified with one or more of the following keywords
 as a comma-separated list immediately after the 
 <a href="#colorname"><i>colorname</i></a> 
 (or for <a href="#modify">color modification</a>, at the end of the command):
-<n/p>
+</p>
 <ul>
 <li><b>atoms</b> - equivalent to <b>target a</b>
 <li><b>bonds</b> - equivalent to <b>target b</b>
@@ -499,7 +502,7 @@ Pennsylvania State University.
   </ul>
 <br>
 <li> <i>color1</i>:<i>color2</i>:<i>color3</i>...
-a series of <a href="colornames.html">color specifications</i></a> 
+a series of <a href="colornames.html">color specifications</a> 
 separated by colons,
 collectively enclosed in quotation marks if it contains any spaces
 (example: <b>palette&nbsp;cornflowerblue:red:gold</b> or
@@ -554,7 +557,7 @@ Web-fetched palettes are cached locally as
 </blockquote>
 <blockquote>
 <a name="range">
-<b>range</b> &nbsp<i>low</i>,<i>high</i>&nbsp;|&nbsp;<b>full</b></a>
+<b>range</b> &nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;<b>full</b></a>
 <br>
 For numerical data only (not <a href="#sequential">sequential coloring</a>), 
 what values should map to the extremes of the palette (default <b>full</b>,
@@ -572,13 +575,13 @@ the <b>full</b> range is determined separately for each model.
 <h3>Examples</h3>
 <blockquote>
 <b>color /d & helix &nbsp;sky blue &nbsp;target c</b>
-<br>&ndash; or &ndash;</br>
+<br>&ndash; or &ndash;<br>
 <b>color /d & helix &nbsp;sky blue &nbsp;cartoons</b>
 </blockquote>
 - color chain D helices sky blue, cartoons only (not atoms, <i>etc.</i>)
 <blockquote>
 <b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;target a</b>
-<br>&ndash; or &ndash;</br>
+<br>&ndash; or &ndash;<br>
 <b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;atoms</b>
 </blockquote>
 - color residues 12 and 260-275 in chains A and B, atoms/bonds only
@@ -706,5 +709,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2018</address>
+March 2018</address>
 </body></html>

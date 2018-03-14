@@ -583,6 +583,12 @@ def overlap_and_correlation(v1, v2):
 
     v1 = float_array(v1)
     v2 = float_array(v2)
+    if v2.dtype != v1.dtype:
+        # One array is 32-bit float, one is 64-bit float.
+        # inner_product_64() requires they have same type.
+        from numpy import float64
+        v1 = v1.astype(float64, copy = False)
+        v2 = v2.astype(float64, copy = False)
     # Use 64-bit accumulation of sums to avoid round-off errors.
     from ...geometry.vector import inner_product_64
     olap = inner_product_64(v1, v2)

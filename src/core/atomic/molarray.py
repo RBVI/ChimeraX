@@ -90,7 +90,7 @@ def _pseudobond_group_map(a):
 
 # -----------------------------------------------------------------------------
 #
-from ..state import State
+from chimerax.core.state import State
 class Collection(State):
     '''
     Base class of all molecular data collections that provides common
@@ -275,8 +275,6 @@ class Collection(State):
                              " update your ChimeraX".format(data['version'], self.STATE_VERSION))
         c_pointers = cls.session_restore_pointers(session, data['pointers'])
         return cls(c_pointers)
-    def reset_state(self, session):
-        self._pointers = numpy.empty((0,), cptr)
     @classmethod
     def session_restore_pointers(cls, session, data):
         raise NotImplementedError(
@@ -324,8 +322,6 @@ def depluralize(word):
 #
 class StructureDatas(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ atomic structure objects.
     '''
     def __init__(self, mol_pointers):
@@ -392,8 +388,6 @@ class StructureDatas(Collection):
 #
 class AtomicStructures(StructureDatas):
     '''
-    Bases: :class:`.StructureDatas`
-
     Collection of Python atomic structure objects.
     '''
     def __init__(self, mol_pointers):
@@ -410,8 +404,6 @@ class AtomicStructures(StructureDatas):
 #
 class Atoms(Collection):
     '''
-    Bases: :class:`.Collection`
-
     An ordered collection of atom objects. This offers better performance
     than using a list of atoms.  It provides methods to access atom attributes such
     as coordinates as numpy arrays. Atoms directly accesses the C++ atomic data
@@ -419,7 +411,6 @@ class Atoms(Collection):
     and are slower to use in computation.
     '''
     # replicate Atom class constants
-    from .molobject import Atom
     SPHERE_STYLE = Atom.SPHERE_STYLE
     BALL_STYLE = Atom.BALL_STYLE
     STICK_STYLE = Atom.STICK_STYLE
@@ -563,7 +554,7 @@ class Atoms(Collection):
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
         blist = []
-        from ..geometry import sphere_bounds, copy_tree_bounds, union_bounds
+        from chimerax.core.geometry import sphere_bounds, copy_tree_bounds, union_bounds
         for m, a in self.by_structure:
             ba = sphere_bounds(a.coords, a.radii)
             ib = copy_tree_bounds(ba,
@@ -635,7 +626,6 @@ class Atoms(Collection):
     @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
-        from numpy import unique
         return unique_ordered(self.chain_ids)
     @property
     def unique_structures(self):
@@ -750,8 +740,6 @@ class Atoms(Collection):
 #
 class Bonds(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ bonds.
     '''
     def __init__(self, bond_pointers = None):
@@ -859,7 +847,7 @@ class Bonds(Collection):
         f = c_function('bond_halfbond_cylinder_placements',
                        args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
         f(self._c_pointers, n, pointer(opengl_array))
-        from ..geometry import Places
+        from chimerax.core.geometry import Places
         return Places(opengl_array = opengl_array)
         
     @classmethod
@@ -875,8 +863,6 @@ class Bonds(Collection):
 #
 class Elements(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Holds a collection of C++ Elements (chemical elements) and provides access to some of
     their attributes.  Used for the same reasons as the :class:`Atoms` class.
     '''
@@ -917,8 +903,6 @@ class Elements(Collection):
 #
 class Pseudobonds(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Holds a collection of C++ PBonds (pseudobonds) and provides access to some of
     their attributes. It has the same attributes as the
     :class:`Bonds` class and works in an analogous fashion.
@@ -1046,8 +1030,6 @@ class Pseudobonds(Collection):
 #
 class Residues(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ residue objects.
     '''
     def __init__(self, residue_pointers = None):
@@ -1069,8 +1051,8 @@ class Residues(Collection):
     '''Returns a numpy bool array whether each residue is in a protein helix''')
     is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
-    names = cvec_property('residue_name', string, read_only = True, doc =
-    '''Returns a numpy array of residue names. Read only.''')
+    names = cvec_property('residue_name', string, doc =
+    '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
     '''Returns a numpy integer array of the number of atoms in each residue. Read only.''')
     numbers = cvec_property('residue_number', int32, read_only = True, doc =
@@ -1136,9 +1118,13 @@ class Residues(Collection):
         return self.structures.unique()
 
     @property
+    def unique_names(self):
+        '''The unique names as a numpy array of strings.'''
+        return unique_ordered(self.names)
+
+    @property
     def unique_chain_ids(self):
         '''The unique chain IDs as a numpy array of strings.'''
-        from numpy import unique
         return unique_ordered(self.chain_ids)
 
     @property
@@ -1238,8 +1224,6 @@ class Residues(Collection):
 #
 class Rings(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ ring objects.
     '''
     def __init__(self, ring_pointers = None, rings = None):
@@ -1262,8 +1246,6 @@ class Rings(Collection):
 #
 class Chains(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ chain objects.
     '''
 
@@ -1297,8 +1279,6 @@ class Chains(Collection):
 #
 class PseudobondGroupDatas(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ pseudobond group objects.
     '''
     def __init__(self, pbg_pointers):
@@ -1317,8 +1297,6 @@ class PseudobondGroupDatas(Collection):
 #
 class PseudobondGroups(PseudobondGroupDatas):
     '''
-    Bases: :class:`.PseudobondGroupDatas`
-
     Collection of Python pseudobond group objects.
     '''
     def __init__(self, pbg_pointers):
@@ -1335,8 +1313,6 @@ class PseudobondGroups(PseudobondGroupDatas):
 #
 class CoordSets(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ coordsets.
     '''
     def __init__(self, cs_pointers = None):

@@ -12,50 +12,53 @@
 # === UCSF ChimeraX Copyright ===
 
 SINGLE_PREFIX = "single_seq_"
+ALIGNMENT_PREFIX = "alignment_"
 
-from chimerax.core.ui.options import Option, BooleanOption, IntOption
-class OptionalRGBAPair(Option): pass # maybe make it a real option?
-class OptionalRGBAOption(Option): pass # maybe make it a real option?
+from chimerax.ui.options import Option, BooleanOption, IntOption, OptionalRGBAOption, \
+    OptionalRGBAPairOption
 
 APPEARANCE = "Appearance"
 REGIONS = "Regions"
 
+LINE_WRAP_BALLOON = 'Only applies if wrapping is on.\n' \
+            'Fit into window size and wrap at a multiple of the given value.'
 defaults = {
     "block_space": (APPEARANCE,
-        "Put vertical space between wrapped lines of sequence", BooleanOption, {}, True),
+        "Vertically separate wrapped blocks", 4, BooleanOption, {}, True),
     SINGLE_PREFIX + "block_space": (APPEARANCE,
-        "Put vertical space between wrapped blocks of sequences", BooleanOption, {}, False),
+        "Vertically separate wrapped lines", 4, BooleanOption, {}, False),
 	"column_separation": (APPEARANCE,
-        "Separation between columns, in pixels", IntOption, {}, 0),
+        "Horizontal spacing (pixels)", 1, IntOption, {}, 0),
     SINGLE_PREFIX + "column_separation": (APPEARANCE,
-        "Separation between columns, in pixels", IntOption, {}, -2),
+        "Horizontal spacing (pixels)", 1, IntOption, {}, -2),
     "error_region_shown": (REGIONS,
-        "Show structure-association errors as region", BooleanOption, {}, True),
-#TODO
-    "error_region_borders": (OptionalRGBAPair, (None, None)),
-    "error_region_interiors": (OptionalRGBAPair, ((1.0, 0.3, 0.3, 1.0), "pink")),
-    "gap_region_shown": (BooleanOption, True),
-    "gap_region_borders": (OptionalRGBAPair, ("black",
-        [chan/255.0 for chan in (190, 190, 190, 255)])),
-    "gap_region_interiors": (OptionalRGBAPair, (None, None)),
-    "line_width": (IntOption, -5),
-    SINGLE_PREFIX + "line_width": (IntOption, -5),
-    "new_region_border": (OptionalRGBAOption, None),
-    "new_region_interior": (OptionalRGBAOption, [chan/255.0 for chan in (233, 218, 198, 255)]),
-    "sel_region_border": (OptionalRGBAOption, None),
-    "sel_region_interior": (OptionalRGBAOption, "light green"),
-    "show_ruler_at_startup": (BooleanOption, True),
-    "show_sel": (BooleanOption, True),
-    # if 'wrap_if' is True, then alignment will be wrapped if the number of
-    # sequences is no more than 'wrap_threshold'.  If 'wrap_if' is false, then
-    # wrapping will occur if 'wrap' is true.  Wrapping will occur at
-    # 'line_width' columns, if positive.  if negative, alignment will be
-    # wrapped to window size, at a multiple of abs(line_width) characters.
-    "wrap": (BooleanOption, False),
-    SINGLE_PREFIX + "wrap": (BooleanOption, True),
-    "wrap_if": (BooleanOption, True),
-    SINGLE_PREFIX + "wrap_if": (BooleanOption, False),
-    "wrap_threshold": (IntOption, 8),
+        "Show structure-mismatch regions", 9, BooleanOption, {}, True),
+    "error_region_borders": (REGIONS, "Structure-mismatch border", 10,
+        OptionalRGBAPairOption, {'labels': ("full", "partial")}, (None, None)),
+    "error_region_interiors": (REGIONS, "Structure-mismatch interior", 11,
+        OptionalRGBAPairOption, {'labels': ("full", "partial")}, ((1.0, 0.3, 0.3, 1.0), "pink")),
+    "gap_region_shown": (REGIONS, "Show missing-structure regions", 6, BooleanOption, {}, True),
+    "gap_region_borders": (REGIONS, "Missing-structure border", 7, OptionalRGBAPairOption,
+        {'labels': ("full", "partial")}, ("black", [chan/255.0 for chan in (190, 190, 190, 255)])),
+    "gap_region_interiors": (REGIONS, "Missing-structure interior", 8,
+        OptionalRGBAPairOption, {'labels': ("full", "partial")}, (None, None)),
+    "line_width_multiple": (APPEARANCE, "Wrap lines at multiple of", 3, IntOption,
+        {'balloon': LINE_WRAP_BALLOON, 'min': 1}, 5),
+    SINGLE_PREFIX + "line_width_multiple": (APPEARANCE, "Wrap lines at multiple of", 3, IntOption,
+        {'balloon': LINE_WRAP_BALLOON}, 5),
+    "new_region_border": (REGIONS, "New-region border", 1, OptionalRGBAOption, {}, None),
+    "new_region_interior": (REGIONS, "New-region interior", 2, OptionalRGBAOption, {},
+        [chan/255.0 for chan in (233, 218, 198, 255)]),
+    "sel_region_border": (REGIONS, "Selected-structure border", 4,
+        OptionalRGBAOption, {}, None),
+    "sel_region_interior": (REGIONS, "Selected-structure interior", 5,
+        OptionalRGBAOption, {}, "light green"),
+    ALIGNMENT_PREFIX + "show_ruler_at_startup": (APPEARANCE, "Show numbering at startup", 5,
+        BooleanOption, {}, True),
+    "show_sel": (REGIONS, "Show selection region", 3, BooleanOption, {}, True),
+    SINGLE_PREFIX + "wrap": (APPEARANCE, "Wrap", 2, BooleanOption, {}, True),
+    ALIGNMENT_PREFIX + "wrap_threshold":
+        (APPEARANCE, "Wrap if", 2, IntOption, {'trailing_text': "sequences or fewer"}, 8),
 }
 
 from  chimerax.core.settings import Settings
