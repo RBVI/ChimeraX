@@ -527,15 +527,15 @@ cdef class CyAtom:
             style = settings.atomspec_contents
         if relative_to:
             if self.residue == relative_to.residue:
-                return self.__str__(atom_only=True, style=style)
+                return self.string(atom_only=True, style=style)
             if self.structure == relative_to.structure:
                 # tautology for bonds, but this func is conscripted by pseudobonds, so test...
                 if style.startswith('serial'):
-                    return self.__str__(atom_only=True, style=style)
+                    return self.string(atom_only=True, style=style)
                 chain_str = "" if  self.residue.chain_id == relative_to.residue.chain_id \
                     else '/' + self.residue.chain_id + (' ' if style.startswith("simple") else "")
-                res_str = self.residue.__str__(residue_only=True)
-                atom_str = self.__str__(atom_only=True, style=style)
+                res_str = self.residue.string(residue_only=True)
+                atom_str = self.string(atom_only=True, style=style)
                 joiner = "" if res_str.startswith(":") else " "
                 return chain_str + res_str + joiner + atom_str
         if style.startswith("simple"):
@@ -547,8 +547,8 @@ cdef class CyAtom:
         if atom_only:
             return atom_str
         if not style.startswith('simple'):
-            return '%s%s' % (self.residue.__str__(style=style), atom_str)
-        return '%s %s' % (self.residue.__str__(style=style), atom_str)
+            return '%s%s' % (self.residue.string(style=style), atom_str)
+        return '%s %s' % (self.residue.string(style=style), atom_str)
 
     def use_default_radius(self):
         '''Supported API.  If an atom's radius has previously been explicitly set, this call will

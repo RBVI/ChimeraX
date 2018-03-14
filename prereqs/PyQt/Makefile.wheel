@@ -9,9 +9,9 @@ REMOTE_HOST = plato.cgl.ucsf.edu:
 REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
-VERSION = 5.9
-PYQT_MINOR_VERSION = 2
-QT_MINOR_VERSION = 3
+VERSION = 5.10
+PYQT_MINOR_VERSION = 1
+QT_MINOR_VERSION = 1
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(VERSION)
 else
@@ -21,25 +21,32 @@ QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
 
 # use local directory for the wheel, so we don't have to convert it
 # to a Windows path when installing
-WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(WHEEL_PLATFORM).whl
+WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(BUILD_TAGS).whl
 # Explicitly choose sip version that works -- depends how unlicensed wheel
 # from Riverbank Computing Limited was built and presumably matches the gpl
 # wheel in PyPI.
-SIP_VERSION = 4.19.6
+SIP_VERSION = 4.19.8
+
+PYQT_LICENSE_VERSION = 1.8
+PYTHON_TAGS = cp35.cp36.cp37.cp38
 
 ifeq ($(OS),Darwin)
-PLATFORM = osx
-WHEEL_PLATFORM = $(QT_VERSION)-cp35.cp36.cp37-abi3-macosx_10_6_intel
-QTDIR = $(HOME)/Qt$(QT_VERSION)/$(QT_VERSION)/clang_64
+BIN_PLATFORM = macos
+WHEEL_ABI = abi3
+WHEEL_PLATFORM = macosx_10_6_intel
+QTDIR = $(HOME)/Qt/$(QT_VERSION)/clang_64
 else ifeq ($(OS),Linux)
-PLATFORM = linux
-WHEEL_PLATFORM = $(QT_VERSION)-cp35.cp36.cp37-abi3-manylinux1_x86_64
+BIN_PLATFORM = linux
+WHEEL_ABI = abi3
+WHEEL_PLATFORM = manylinux1_x86_64
 QTDIR = $(HOME)/Qt$(QT_VERSION)/$(QT_VERSION)/gcc_64
 else ifeq ($(OS),Windows)
-PLATFORM = win
-WHEEL_PLATFORM = $(QT_VERSION)-cp35.cp36.cp37-none-win_amd64
+BIN_PLATFORM = win
+WHEEL_ABI = none
+WHEEL_PLATFORM = win_amd64
 QTDIR = c:\\Qt\\Qt$(QT_VERSION)\\$(QT_VERSION)\\msvc2015_64
 endif
+BUILD_TAGS = $(QT_VERSION)-$(PYTHON_TAGS)-$(WHEEL_ABI)-$(WHEEL_PLATFORM)
 
 ifneq ($(PYQT_LICENSE),commercial)
 WHEEL := PyQt5==$(PYQT_VERSION)
@@ -49,6 +56,7 @@ LICENSE_ARGS = --quiet --license pyqt-commercial.sip --qt $(QTDIR) --qt-version 
 ifdef WIN32
 LICENSE_ARGS += --no-msvc-runtime
 endif
+PYQTLICENSE=pyqtlicense-$(PYQT_LICENSE_VERSION)-$(BIN_PLATFORM)
 
 
 all:
@@ -66,12 +74,12 @@ endif
 
 pyqt-commercial.sip:
 	# separate rsyncs due to bug in rsync 2.6.9 on Mac OS X
-	rsync -a $(REMOTE_DIR)/$(PYQT_VERSION)/PyQt5_commercial*-$(PYQT_VERSION)-*$(PLATFORM)*.whl-unlicensed .
-	rsync -a $(REMOTE_DIR)/$(PYQT_VERSION)/pyqtlicense-$(PLATFORM)* .
+	rsync -a $(REMOTE_DIR)/$(PYQT_VERSION)/PyQt5_commercial*-$(PYQT_VERSION)-*$(WHEEL_PLATFORM).whl-unlicensed .
+	rsync -a $(REMOTE_DIR)/$(PYQT_VERSION)/$(PYQTLICENSE) .
 	rsync -a $(REMOTE_DIR)/pyqt-commercial.sip .
 
 wheel: pyqt-commercial.sip
-	./pyqtlicense-$(PLATFORM) $(LICENSE_ARGS) *.whl-unlicensed
+	./$(PYQTLICENSE) $(LICENSE_ARGS) *.whl-unlicensed
 
 upload: wheel
 	rsync -av $(WHEEL) $(REMOTE_DIR)/$(PYQT_VERSION)/.

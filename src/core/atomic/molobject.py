@@ -87,401 +87,6 @@ class Atom(CyAtom, State):
     def restore_snapshot(session, data):
         return Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
 Atom.set_py_class(Atom)
-"""
-# -----------------------------------------------------------------------------
-#
-class Atom(State):
-    '''
-    An atom includes physical and graphical properties such as an element name,
-    coordinates in space, and color and radius for rendering.
-
-    To create an Atom use the :class:`.AtomicStructure` new_atom() method.
-    '''
-    # constants are replicated in Atoms class
-    SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
-    HIDE_RIBBON = 0x1
-    '''Hide mask for backbone atoms in ribbon.'''
-    HIDE_ISOLDE = 0x2
-    '''Hide mask for backbone atoms for ISOLDE.'''
-    HIDE_NUCLEOTIDE = 0x4
-    '''Hide mask for sidechain atoms in nucleotides.'''
-    BBE_MIN, BBE_RIBBON, BBE_MAX = range(3)
-
-    idatm_info_map = c_function('atom_idatm_info_map', args = (), ret = ctypes.py_object)()
-
-    def __init__(self, c_pointer):
-        set_c_pointer(self, c_pointer)
-
-    # cpp_pointer and deleted are "base class" methods, though for performance reasons
-    # we are placing them directly in each class rather than using a base class,
-    # and for readability by most programmers we avoid using metaclasses
-    @property
-    def cpp_pointer(self):
-        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
-        return self._c_pointer.value
-
-    @property
-    def deleted(self):
-        '''Supported API. Has the C++ side been deleted?'''
-        return not hasattr(self, '_c_pointer')
-
-    def __lt__(self, other):
-        # for sorting (objects of the same type)
-        if self.residue == other.residue:
-            return self.name < other.name \
-                if self.name != other.name else self.serial_number < other.serial_number
-        return self.residue < other.residue
-
-    def __str__(self, atom_only = False, style = None, relative_to=None):
-        '''Supported API.  Allow Atoms to be used directly in print() statements'''
-        if style == None:
-            from chimerax.core.core_settings import settings
-            style = settings.atomspec_contents
-        if relative_to:
-            if self.residue == relative_to.residue:
-                return self.__str__(atom_only=True, style=style)
-            if self.structure == relative_to.structure:
-                # tautology for bonds, but this func is conscripted by pseudobonds, so test...
-                if style.startswith('serial'):
-                    return self.__str__(atom_only=True, style=style)
-                chain_str = "" if  self.residue.chain_id == relative_to.residue.chain_id \
-                    else '/' + self.residue.chain_id + (' ' if style.startswith("simple") else "")
-                res_str = self.residue.__str__(residue_only=True)
-                atom_str = self.__str__(atom_only=True, style=style)
-                joiner = "" if res_str.startswith(":") else " "
-                return chain_str + res_str + joiner + atom_str
-        if style.startswith("simple"):
-            atom_str = self.name
-        elif style.startswith("command"):
-            atom_str = '@' + self.name
-        else:
-            atom_str = str(self.serial_number)
-        if atom_only:
-            return atom_str
-        if not style.startswith('simple'):
-            return '%s%s' % (self.residue.__str__(style=style), atom_str)
-        return '%s %s' % (self.residue.__str__(style=style), atom_str)
-
-    def atomspec(self):
-        return self.residue.atomspec() + '@' + self.name
-
-    alt_loc = c_property('atom_alt_loc', string, doc='Supported API. Alternate location indicator')
-    bfactor = c_property('atom_bfactor', float32, doc="Supported API."
-        " B-factor, floating point value.")
-    bonds = c_property('atom_py_obj_bonds', pyobject, read_only=True, doc="Supported API."
-        " Bonds connected to this atom as a list of :py:class:`Bond` objects. Read only.")
-    chain_id = c_property('atom_chain_id', string, read_only = True, doc = "Supported API."
-        " Protein Data Bank chain identifier. Limited to 4 characters. Read only string.")
-    color = c_property('atom_color', uint8, 4, doc="Supported API."
-        " Color RGBA length 4 numpy uint8 array.")
-    coord = c_property('atom_coord', float64, 3, doc="Supported API."
-        ''' Coordinates from the current coordinate set (or alt loc) as a numpy length 3 array,
-         64-bit float values.  See get_coord method for other coordsets / alt locs.
-         See scene_coord for coordinates after rotations and translations.''')
-    coord_index = c_property('atom_coord_index', uint32, read_only = True,
-        doc="Supported API. Coordinate index of atom in coordinate set.")
-    display = c_property('atom_display', npy_bool,
-        doc="Supported API. Whether to display the atom. Boolean value.")
-    draw_mode = c_property('atom_draw_mode', uint8,
-        doc="Supported API. Controls how the atom is depicted.\n\nPossible values:\n\n"
-        "SPHERE_STYLE\n"
-        "    Use full atom radius\n\n"
-        "BALL_STYLE\n"
-        "    Use reduced atom radius, but larger than bond radius\n\n"
-        "STICK_STYLE\n"
-        "    Match bond radius")
-    element = c_property('atom_element', cptr, astype = _element, read_only = True,
-        doc="Supported API. :class:`Element` corresponding to the chemical element for the atom.")
-    element_name = c_property('atom_element_name', string, read_only = True,
-        doc="Supported API. Chemical element name. Read only.")
-    element_number = c_property('atom_element_number', uint8, read_only = True,
-        doc="Supported API. Chemical element number. Read only.")
-    hide = c_property('atom_hide', int32,
-        doc="Supported API. Whether atom is hidden (overrides display).  Integer bitmask."
-        "\n\nPossible values:\n\n"
-        "HIDE_RIBBON\n"
-        "    Hide mask for backbone atoms in ribbon.\n"
-        "HIDE_ISOLDE\n"
-        "    Hide mask for backbone atoms for ISOLDE.\n"
-        "HIDE_NUCLEOTIDE\n"
-        "    Hide mask for sidechain atoms in nucleotides.\n")
-    def set_hide_bits(self, bit_mask):
-        '''Set Atom's hide bits in bit mask'''
-        f = c_array_function('set_atom_hide_bits', args=(uint32,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, bit_mask)
-    def clear_hide_bits(self, bit_mask):
-        '''Clear Atom's hide bits in bit mask'''
-        f = c_array_function('clear_atom_hide_bits', args=(uint32,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, bit_mask)
-    _idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
-    def _get_idatm_type(self):
-        return self._idatm_type
-    def _set_idatm_type(self, iat):
-        self._idatm_type = "" if iat is None else iat
-    idatm_type = property(_get_idatm_type, _set_idatm_type, doc="Supported API."
-        ''' Atom's <a href="help:user/atomtypes.html">IDATM type</a>''')
-    in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
-        doc = "Whether this atom belongs to a polymer. Read only.")
-    is_ribose = c_property('atom_is_ribose', npy_bool, read_only = True,
-        doc = "Whether this atom is part of an nucleic acid ribose moiety. Read only.")
-    is_side_connector = c_property('atom_is_side_connector', npy_bool, read_only = True,
-        doc = "Whether this atom is connects the side chain to the backbone"
-        " e.g. CA/ribose. Read only.")
-    is_side_chain = c_property('atom_is_side_chain', npy_bool, read_only = True,
-        doc = "Whether this atom is part of an amino/nucleic acid sidechain. Includes atoms"
-        " needed to connect to backbone (CA/ribose). Read only.")
-    is_side_only = c_property('atom_is_side_only', npy_bool, read_only = True,
-        doc = "Whether this atom is part of an amino/nucleic acid sidechain."
-        "  Does not include atoms needed to connect to backbone (CA/ribose). Read only.")
-    name = c_property('atom_name', string, doc="Supported API."
-        " Atom name. Maximum length 4 characters.")
-    neighbors = c_property('atom_py_obj_neighbors', pyobject, read_only=True, doc="Supported API."
-        " :class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
-    num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
-        doc="Supported API. Number of bonds connected to this atom. Read only.")
-    num_explicit_bonds = c_property("atom_num_explicit_bonds", size_t, read_only=True,
-        doc="Supported API."
-        " Number of bonds and missing-structure pseudobonds connected to this atom. Read only.")
-    occupancy = c_property('atom_occupancy', float32, doc="Supported API."
-        " Occupancy, floating point value.")
-    radius = c_property('atom_radius', float32, doc="Supported API. Radius of atom.")
-    default_radius = c_property('atom_default_radius', float32, read_only = True,
-                               doc="Supported API. Default atom radius.")
-    residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
-        doc = "Supported API. :class:`Residue` the atom belongs to.")
-    selected = c_property('atom_selected', npy_bool, doc="Supported API."
-        " Whether the atom is selected.")
-    has_selected_bond = c_property('atom_has_selected_bond', npy_bool, read_only = True,
-                                   doc = "Whether any connected bond is selected.")
-    serial_number = c_property('atom_serial_number', int32,
-        doc="Supported API. Atom serial number from input file.")
-    structure = c_property('atom_structure', pyobject, read_only=True,
-        doc="Supported API. :class:`.AtomicStructure` the atom belongs to")
-    structure_category = c_property('atom_structure_category', string, read_only=True,
-        doc = "Supported API. Whether atom is ligand, ion, etc.")
-    visible = c_property('atom_visible', npy_bool, read_only=True,
-        doc="Supported API. Whether atom is displayed and not hidden.")
-
-    @property
-    def display_radius(self):
-        dm = self.draw_mode
-        if dm == Atom.SPHERE_STYLE:
-            r = self.radius
-        elif dm == Atom.BALL_STYLE:
-            r = self.radius * self.structure.ball_scale
-        elif dm == Atom.STICK_STYLE:
-            r = self.maximum_bond_radius(self.structure.bond_radius)
-        return r
-
-    @property
-    def ribbon_coord(self):
-        return self.structure.ribbon_coord(self)
-
-    def maximum_bond_radius(self, default_radius = 0.2):
-        "Return maximum bond radius.  Used for stick style atom display."
-        f = c_function('atom_maximum_bond_radius',
-                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
-        r = ctypes.c_float()
-        f(ctypes.byref(self._c_pointer), 1, default_radius, ctypes.byref(r))
-        return r.value
-
-    def set_alt_loc(self, loc, create):
-        if isinstance(loc, str):
-            loc = loc.encode('utf-8')
-        f = c_function('atom_set_alt_loc', args=(ctypes.c_void_p, ctypes.c_char, ctypes.c_bool, ctypes.c_bool))
-        f(self._c_pointer, loc, create, False)
-
-    def has_alt_loc(self, loc):
-        '''Supported API. Does this Atom have an alt loc with the given letter?'''
-        if isinstance(loc, str):
-            loc = loc.encode('utf-8')
-        #value_type = npy_bool
-        #vtype = numpy_type_to_ctype[value_type]
-        vtype = ctypes.c_uint8
-        v = vtype()
-        v_ref = ctypes.byref(v)
-        f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, loc, v_ref)
-        return bool(v.value)
-
-    @property
-    def alt_locs(self):
-        '''Supported API. Returns a list of the valid alt-loc characters for this Atom (which will
-           be [' '] for a "non-alt-loc" atom).
-        '''
-        f = c_function('atom_alt_locs',
-                       args = (ctypes.c_void_p,), ret = ctypes.py_object)
-        return f(self._c_pointer)
-
-    @property
-    def aniso_u(self):
-        '''Supported API. Anisotropic temperature factors, returns 3x3 array of numpy float32
-           or None.  Read only.'''
-        f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
-        from numpy import empty, float32
-        ai = empty((3,3), float32)
-        try:
-            f(self._c_pointer_ref, 1, pointer(ai))
-        except ValueError:
-            ai = None
-        return ai
-
-    def _get_aniso_u6(self):
-        '''Get anisotropic temperature factors as a 6 element numpy float32 array
-        containing (u11, u22, u33, u12, u13, u23) or None.'''
-        f = c_function('atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
-        from numpy import empty, float32
-        ai = empty((6,), float32)
-        try:
-            f(self._c_pointer_ref, 1, pointer(ai))
-        except ValueError:
-            ai = None
-        return ai
-    def _set_aniso_u6(self, u6):
-        '''Set anisotropic temperature factors as a 6 element numpy float32 array
-        representing the unique elements of the symmetrix matrix
-        containing (u11, u22, u33, u12, u13, u23).'''
-        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
-        from numpy import empty, float32
-        ai = empty((6,), float32)
-        ai[:] = u6
-        f(self._c_pointer_ref, 1, pointer(ai))
-    aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
-
-    def connects_to(self, atom):
-        '''Supported API. Whether this atom is directly bonded to a specified atom.'''
-        f = c_function('atom_connects_to', args = (ctypes.c_void_p, ctypes.c_void_p),
-               ret = ctypes.c_bool)
-        c = f(self._c_pointer, atom._c_pointer)
-        return c
-
-    def delete(self):
-        '''Supported API. Delete this Atom from it's Structure'''
-        f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
-        c = f(self._c_pointer_ref, 1)
-
-    def is_backbone(self, bb_extent=BBE_MAX):
-        '''Supported API. Whether this Atom is considered backbone, given the 'extent' criteria.
-
-        Possible 'extent' values are:
-
-        BBE_MIN
-            Only the atoms needed to connect the residue chain (and their hydrogens)
-
-        BBE_MAX
-            All non-sidechain atoms
-
-        BBE_RIBBON
-            The backbone atoms that a ribbon depiction hides
-        '''
-        vtype = ctypes.c_uint8
-        v = vtype()
-        v_ref = ctypes.byref(v)
-        f = c_array_function('atom_is_backbone', args=(int32,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, bb_extent, v_ref)
-        return bool(v.value)
-
-    def set_coord(self, xyz, cs_id):
-        '''Supported API. Used to set the atom's xyz for a particular coordset.
-           Just use the 'coord' attr for changing the current coordinate set.'''
-        if xyz.dtype != float64:
-            raise ValueError('set_coord(): array must be float64, got %s' % xyz.dtype.name)
-        if len(xyz.shape) != 1 or len(xyz) != 3:
-            raise ValueError('set_coord(): array must of dimension 1x3, not %s' % repr(xyz.shape))
-        f = c_function('atom_set_coord',
-                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int))
-        f(self._c_pointer, pointer(xyz), cs_id)
-
-    def rings(self, cross_residues=False, all_size_threshold=0):
-        '''Return :class:`.Rings` collection of rings this Atom participates in.
-
-        If 'cross_residues' is False, then rings that cross residue boundaries are not
-        included.  If 'all_size_threshold' is zero, then return only minimal rings, of
-        any size.  If it is greater than zero, then return all rings not larger than the
-        given value.
-
-        The returned rings are quite emphemeral, and shouldn't be cached or otherwise
-        retained for long term use.  They may only live until the next call to rings()
-        [from anywhere, including C++].
-        '''
-        f = c_function('atom_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
-                ret = ctypes.py_object)
-        return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
-
-    def _get_scene_coord(self):
-        return self.structure.scene_position * self.coord
-    def _set_scene_coord(self, xyz):
-        self.coord = self.structure.scene_position.inverse() * xyz
-    scene_coord = property(_get_scene_coord, _set_scene_coord, doc="Supported API."
-        '''Atom center coordinates in the global scene coordinate system.
-        This accounts for the :class:`Drawing` positions for the hierarchy
-        of models this atom belongs to.''')
-
-    def get_altloc_coord(self, altloc):
-        '''Supported API.
-        Like the 'coord' property, but uses the given altloc (character)
-        rather than the current altloc.
-        '''
-        from numpy import empty, float64
-        ai = empty((3,), float64)
-        crdset_or_altloc = crdset_or_altloc.encode('utf-8')
-        f = c_function('atom_get_coord_altloc',
-            args = (ctypes.c_void_p, ctypes.c_char, ctypes.c_void_p))
-        f(self._c_pointer, altloc, pointer(ai))
-        return ai
-
-    def get_coordset_coord(self, crdset):
-        '''Supported API.
-        Like the 'coord' property, but uses the given coordset ID (integer)
-        rather than the current coordset.
-        '''
-        from numpy import empty, float64
-        ai = empty((3,), float64)
-        f = c_function('atom_get_coord_crdset',
-            args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
-        f(self._c_pointer, crdset, pointer(ai))
-        return ai
-
-    def get_scene_coord(self, crdset_or_altloc):
-        '''Supported API.
-        Like the 'scene_coord' property, but uses the given coordset ID (integer) / altloc
-        (character) rather than the current coordset / altloc.
-        '''
-        return self.structure.scene_position * self.get_coord(crdset_or_altloc)
-
-    def use_default_radius(self):
-        '''Supported API.  If an atom's radius has previously been explicitly set, this call will
-        revert to using the default radius'''
-        f = c_function('atom_use_default_radius', args = (ctypes.c_void_p, ctypes.c_size_t))
-        c = f(self._c_pointer_ref, 1)
-
-    def take_snapshot(self, session, flags):
-        data = {'structure': self.structure,
-                'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
-        return data
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        return Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.atoms)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
-"""
 
 # -----------------------------------------------------------------------------
 #
@@ -513,10 +118,8 @@ class Bond(State):
         o1, o2 = other.atoms
         return s1 < o1 if s1 != o1 else s2 < o2
 
-    def __str__(self, style = None):
-        a1, a2 = self.atoms
-        bond_sep = " \N{Left Right Arrow} "
-        return a1.__str__(style=style) + bond_sep + a2.__str__(style=style, relative_to=a1)
+    def __str__(self):
+        return self.string()
 
     def atomspec(self):
         return a1.atomspec() + a2.atomspec()
@@ -607,6 +210,11 @@ class Bond(State):
         '''Returns the bond atom on the side of the bond with fewer total atoms attached'''
         f = c_function('bond_smaller_side', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
+
+    def string(self, style = None):
+        a1, a2 = self.atoms
+        bond_sep = " \N{Left Right Arrow} "
+        return a1.string(style=style) + bond_sep + a2.string(style=style, relative_to=a1)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
@@ -1039,33 +647,8 @@ class Residue(State):
         return self.number < other.number \
             if self.number != other.number else self.insertion_code < other.insertion_code
 
-    def __str__(self, residue_only = False, omit_structure = False, style = None):
-        if style == None:
-            from chimerax.core.core_settings import settings
-            style = settings.atomspec_contents
-        ic = self.insertion_code
-        if style.startswith("simple"):
-            res_str = self.name + " " + str(self.number) + ic
-        else:
-            res_str = ":" + str(self.number) + ic
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
-        if residue_only:
-            return res_str
-        if omit_structure:
-            return '%s %s' % (chain_str, res_str)
-        from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
-            struct_string = str(self.structure)
-            if style.startswith("serial"):
-                struct_string += " "
-        else:
-            struct_string = ""
-        from chimerax.core.core_settings import settings
-        if style.startswith("simple"):
-            return '%s%s %s' % (struct_string, chain_str, res_str)
-        if style.startswith("command"):
-            return struct_string + chain_str + res_str
-        return struct_string
+    def __str__(self):
+        return self.string()
 
     def atomspec(self):
         res_str = ":" + str(self.number) + self.insertion_code
@@ -1159,6 +742,34 @@ class Residue(State):
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         r_ref = ctypes.byref(self._c_pointer)
         f(r_ref, 1, loc)
+
+    def string(self, residue_only = False, omit_structure = False, style = None):
+        if style == None:
+            from chimerax.core.core_settings import settings
+            style = settings.atomspec_contents
+        ic = self.insertion_code
+        if style.startswith("simple"):
+            res_str = self.name + " " + str(self.number) + ic
+        else:
+            res_str = ":" + str(self.number) + ic
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        if residue_only:
+            return res_str
+        if omit_structure:
+            return '%s %s' % (chain_str, res_str)
+        from .structure import Structure
+        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+            struct_string = str(self.structure)
+            if style.startswith("serial"):
+                struct_string += " "
+        else:
+            struct_string = ""
+        from chimerax.core.core_settings import settings
+        if style.startswith("simple"):
+            return '%s%s %s' % (struct_string, chain_str, res_str)
+        if style.startswith("command"):
+            return struct_string + chain_str + res_str
+        return struct_string
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
@@ -1702,16 +1313,7 @@ class Chain(StructureSeq):
     '''
 
     def __str__(self):
-        from chimerax.core.core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
-        from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
-            struct_string = str(self.structure)
-        else:
-            struct_string = ""
-        from chimerax.core.core_settings import settings
-        return struct_string + chain_str
+        return self.string()
 
     def atomspec(self):
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
@@ -1729,6 +1331,18 @@ class Chain(StructureSeq):
             chain = Chain(ptr)
         chain.description = data.get('description', None)
         return chain
+
+    def string(self):
+        from chimerax.core.core_settings import settings
+        cmd_style = settings.atomspec_contents == "command-line specifier"
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        from .structure import Structure
+        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+            struct_string = str(self.structure)
+        else:
+            struct_string = ""
+        from chimerax.core.core_settings import settings
+        return struct_string + chain_str
 
     def take_snapshot(self, session, flags):
         data = {
