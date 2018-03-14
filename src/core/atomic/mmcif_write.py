@@ -697,7 +697,7 @@ def save_structure(session, file, models, used_data_names):
                 struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
             elif beg_res.is_strand:
                 strand_count += 1
-                sheet_range_entry('.', strand_count, beg_res, end_res)
+                sheet_range_entry('?', strand_count, beg_res, end_res)
             beg_res = end_res = r
             last_ssid = ssid
     if last_ssid:
