@@ -231,7 +231,7 @@ cdef class CyAtom:
             return self.radius
         if dm == CyAtom.BALL_STYLE:
             return self.radius * self.structure.ball_scale
-        if dm == CyAtom.STICK_SCALE:
+        if dm == CyAtom.STICK_STYLE:
             return self.cpp_atom.maximum_bond_radius(self.structure.bond_radius)
         raise ValueError("Unknown draw mode")
 
