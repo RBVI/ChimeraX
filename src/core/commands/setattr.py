@@ -88,6 +88,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         if hasattr(items, attr_names):
             attempt_set_attr(items, attr_names, value, attr_name, attr_value)
         elif create:
+            register_attr(session, items.object_class, attr_name)
             for item in items:
                 setattr(item, attr_name, value)
         else:
@@ -100,7 +101,9 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
             for inst in instances:
                 setattr(inst, attr_name, value)
     else:
-        if not create:
+        if create:
+            register_attr(session, items[0].__class__, attr_name)
+        else:
             # First check if they all have the attr
             for item in items:
                 if not hasattr(item, attr_name):
@@ -118,6 +121,13 @@ def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
         except:
             from chimerax.core.errors import UserError
             raise UserError("Cannot set attribute '%s' to '%s'" % (orig_attr_name, value_string))
+
+def register_attr(session, klass, attr_name):
+    if hasattr(klass, 'register_attr'):
+        klass.register_attr(session, attr_name, "setattr command")
+    else:
+        session.logger.warning("Class %s does not support attribute registration; '%s' attribute"
+            " will not be preserved in sessions." % (klass.__name__, attr_name))
 
 # -----------------------------------------------------------------------------
 #
