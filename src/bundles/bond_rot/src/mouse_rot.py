@@ -17,6 +17,7 @@ class BondRotationMouseMode(MouseMode):
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self._bond_rot = None
+        self._speed_factor = 4
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -73,9 +74,13 @@ class BondRotationMouseMode(MouseMode):
         self._bond_rot = self._bond_rotation(pick)
 
     def drag_3d(self, position, move, delta_z):
-        if delta_z is None:
+        if move is None:
             self._delete_bond_rotation()
         else:
             br = self._bond_rot
             if br:
-                br.angle += 360*dz
+                axis, angle = move.rotation_axis_and_angle()
+                from chimerax.core.geometry import inner_product
+                if inner_product(axis, br.axis) < 0:
+                    angle = -angle
+                br.angle += self._speed_factor * angle
