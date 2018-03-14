@@ -16,7 +16,11 @@
 
 cimport cydecl
 import collections
-from tinyarray import array, zeros
+from chimerax import use_tinyarray
+if use_tinyarray:
+    from tinyarray import array, zeros
+else:
+    from numpy import array, zeros
 from cython.operator import dereference
 from sys import getrefcount
 from ctypes import c_void_p, byref
