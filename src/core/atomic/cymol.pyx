@@ -22,6 +22,11 @@ from sys import getrefcount
 from ctypes import c_void_p, byref
 cimport cython
 
+IF UNAME_SYSNAME == "Windows":
+    ctypedef long long ptr_type
+ELSE:
+    ctypedef long ptr_type
+
 cdef const char * _translate_struct_cat(cydecl.StructCat cat):
     if cat == cydecl.StructCat.Main:
         return "main"
@@ -54,7 +59,7 @@ cdef class CyAtom:
         for idatm_type, info in _non_const_map.items()
     }
 
-    def __cinit__(self, long ptr_val):
+    def __cinit__(self, ptr_type ptr_val):
         self.cpp_atom = <cydecl.Atom *>ptr_val
         self._deleted = False
 
@@ -67,7 +72,7 @@ cdef class CyAtom:
             super().__delattr__(name)
     @property
     def cpp_pointer(self):
-        return int(<long>self.cpp_atom)
+        return int(<ptr_type>self.cpp_atom)
     @property
     def _c_pointer(self):
         return c_void_p(self.cpp_pointer)
@@ -165,7 +170,7 @@ cdef class CyAtom:
         # work around non-const-correct code by using temporary...
         bonds = self.cpp_atom.bonds()
         from . import Bond
-        return [Bond.c_ptr_to_py_inst(<long>b) for b in bonds]
+        return [Bond.c_ptr_to_py_inst(<ptr_type>b) for b in bonds]
 
     @property
     def color(self):
@@ -251,7 +256,7 @@ cdef class CyAtom:
     def element(self):
         '''="Supported API. :class:`Element` corresponding to the chemical element for the atom.'''
         from . import Element
-        return Element.c_ptr_to_py_inst(<long>&self.cpp_atom.element())
+        return Element.c_ptr_to_py_inst(<ptr_type>&self.cpp_atom.element())
 
     @property
     def hide(self):
@@ -488,7 +493,7 @@ cdef class CyAtom:
         ring_ptrs = self.cpp_atom.rings(cross_residues, all_size_threshold)
         from chimerax.atomic.molarray import Rings
         import numpy
-        return Rings(numpy.array([<long>r for r in ring_ptrs], dtype=numpy.uintp))
+        return Rings(numpy.array([<ptr_type>r for r in ring_ptrs], dtype=numpy.uintp))
 
     def set_alt_loc(self, loc, create):
         "Normally used to create alt locs. "
@@ -549,11 +554,11 @@ cdef class CyAtom:
     # static methods...
 
     @staticmethod
-    def c_ptr_to_existing_py_inst(long ptr_val):
+    def c_ptr_to_existing_py_inst(ptr_type ptr_val):
         return (<cydecl.Atom *>ptr_val).py_instance(False)
 
     @staticmethod
-    def c_ptr_to_py_inst(long ptr_val):
+    def c_ptr_to_py_inst(ptr_type ptr_val):
         return (<cydecl.Atom *>ptr_val).py_instance(True)
 
     # used by attribute registration to gather attributes for session saving...
@@ -581,7 +586,7 @@ cdef class Element:
 
     NUM_SUPPORTED_ELEMENTS = cydecl.Element.AS.NUM_SUPPORTED_ELEMENTS
 
-    def __cinit__(self, long ptr_val):
+    def __cinit__(self, ptr_type ptr_val):
         self.cpp_element = <cydecl.Element *>ptr_val
 
     def __init__(self, ptr_val):
@@ -597,7 +602,7 @@ cdef class Element:
             super().__delattr__(name)
     @property
     def cpp_pointer(self):
-        return int(<long>self.cpp_element)
+        return int(<ptr_type>self.cpp_element)
     @property
     def _c_pointer(self):
         return c_void_p(self.cpp_pointer)
@@ -654,7 +659,7 @@ cdef class Element:
         return self.name
 
     @staticmethod
-    cdef float _bond_length(long e1, long e2):
+    cdef float _bond_length(ptr_type e1, ptr_type e2):
         return cydecl.Element.bond_length(
             dereference(<cydecl.Element*>e1), dereference(<cydecl.Element*>e2))
 
@@ -670,7 +675,7 @@ cdef class Element:
         return Element._bond_length(e1.cpp_pointer, e2.cpp_pointer)
 
     @staticmethod
-    cdef float _bond_radius(long e):
+    cdef float _bond_radius(ptr_type e):
         return cydecl.Element.bond_radius(dereference(<cydecl.Element*>e))
 
     @staticmethod
@@ -684,11 +689,11 @@ cdef class Element:
         return Element._bond_radius(e.cpp_pointer)
 
     @staticmethod
-    def c_ptr_to_existing_py_inst(long ptr_val):
+    def c_ptr_to_existing_py_inst(ptr_type ptr_val):
         return (<cydecl.Element *>ptr_val).py_instance(False)
 
     @staticmethod
-    def c_ptr_to_py_inst(long ptr_val):
+    def c_ptr_to_py_inst(ptr_type ptr_val):
         return (<cydecl.Element *>ptr_val).py_instance(True)
 
     @staticmethod
