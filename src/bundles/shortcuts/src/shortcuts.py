@@ -141,8 +141,9 @@ def standard_shortcuts(session):
         ('sw', 'show solvent', 'Show water atoms', molcat, noarg, mlmenu),
         ('hw', 'hide solvent', 'Hide water atoms', molcat, noarg, mlmenu, sep),
 
-        ('db', 'show selAtoms bonds', 'Display bonds', molcat, noarg, mlmenu),
-        ('hb', 'hide selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
+        ('sB', 'show selAtoms bonds', 'Display bonds', molcat, noarg, mlmenu),
+        ('hB', 'hide selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
+        ('hb', 'hbonds selAtoms', 'Show hydrogen bonds', molcat, noarg, mlmenu),
 
         ('Hb', 'color selAtoms halfbond true', 'Half bond coloring', molcat, noarg, mlmenu),
         ('Sb', 'color selAtoms halfbond false', 'Single color bonds', molcat, noarg, mlmenu),

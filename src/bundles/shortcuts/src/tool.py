@@ -103,7 +103,7 @@ class MoleculeDisplayPanel(ShortcutPanel):
         ('bs', 'ball.png', 'Show molecule in ball and stick style'),
         ('ce', 'colorbyelement.png', 'Color atoms by element'),
         ('cc', 'colorbychain.png', 'Color atoms by chain'),
-        ('rc', 'colorrandom.png', 'Random atom colors'),
+        ('hb', 'hbonds.png', 'Show hydrogen bonds'),
     )
     help = "help:user/tools/moldisplay.html"
 
