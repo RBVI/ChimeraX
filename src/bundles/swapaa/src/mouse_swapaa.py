@@ -209,7 +209,7 @@ class SwapAAMouseMode(MouseMode):
         from chimerax.ui.mousemodes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         r = self._residue_from_pick(pick)
-        if self._has_alignment_atoms(r):
+        if r and self._has_alignment_atoms(r):
             self._residue = r
 
     def drag_3d(self, position, move, delta_z):
@@ -218,5 +218,6 @@ class SwapAAMouseMode(MouseMode):
         else:
             r = self._residue
             if r:
-                rstep = dz / self._step_meters
-                self._swap_residue_step(r, rstep)
+                rstep = delta_z / self._step_meters
+                if not self._swap_residue_step(r, rstep):
+                    return 'accumulate drag'
