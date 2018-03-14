@@ -78,4 +78,4 @@ class BondRotationMouseMode(MouseMode):
         else:
             br = self._bond_rot
             if br:
-                br.angle += 360*dz
+                br.angle += 360*delta_z
