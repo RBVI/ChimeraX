@@ -34,7 +34,8 @@
 # probably avoid losing the mouse event.
 #
 # Tried fixing positions of some atoms by setting particle mass to 0.  Did not appear to speed up
-# simulation with villin with first half of particles with mass 0.  Had to remove hbond constraints too
+# simulation with villin with first half of particles with mass 0.  Had to remove bond length
+# constraints to hydrogens which allows longer time steps also
 # since error said constraints not allowed connecting to 0 mass particles.  Testing showed that it did
 # avoid passing molecule through fixed atoms, so their forces are considered.
 # Would need to make a fragment system to speed up calculation for larger systems.
@@ -188,11 +189,12 @@ class StructureTugger:
     def __init__(self, structure):
         self._log = Logger('structuretugger.log' if write_logs else None)
         self.structure = structure
+        self._minimized = False
 
         # OpenMM requires the atoms to be sorted by residue number
         self._structure_atoms = sa = structure.atoms
         satoms = list(sa)
-        satoms.sort(key = lambda a: a.residue.number)
+        satoms.sort(key = lambda a: (a.residue.chain_id, a.residue.number))
         from chimerax.core.atomic import Atoms
         self.atoms = Atoms(satoms)
 
@@ -291,6 +293,8 @@ class StructureTugger:
     def tug_displacement(self, d):
         self._log('In tug_displacement')
         self._set_tug_position(d)
+        if not self._minimized:
+            self._minimize()
         self._simulate()
 
     def _set_tug_position(self, d):
@@ -336,6 +340,7 @@ class StructureTugger:
         min_steps = self._sim_steps if steps is None else steps
         self._simulation.minimizeEnergy(maxIterations = min_steps)
         self._update_atom_coords()
+        self._minimized = True
 
     def mobile_atoms(self, atoms):
         '''
@@ -344,15 +349,15 @@ class StructureTugger:
 
         This works by an OpenMM convention that zero mass particles do not move.
         But the OpenMM docs says contraints to zero mass particles don't work.
-        Supposedly this means hbond constraints cannot be used.  But simulation or
-        energy minimization of a few nearby residues works in OpenMM 7.1.
+        This means bond length constraints cannot be used to allow longer integration
+        time steps. For reasons I do not understand, OpenMM
+        it will work.
         '''
         np = len(self.atoms)
         m = self._particle_masses
         system = self._system
         if m is None:
             self._particle_masses = m = [system.getParticleMass(i) for i in range(np)]
-            print ('max mass', max(m))
         mi = set(self.atoms.indices(atoms))
         freeze_mass = 0
         for i in range(np):
@@ -391,18 +396,22 @@ class StructureTugger:
         s = self.structure
         atoms = self.atoms
         self._particle_positions = atoms.coords
-        self._topology = openmm_topology_and_coordinates(atoms, s.bonds)
+        self._topology = openmm_topology(atoms, s.bonds)
         
         forcefield = app.ForceField('amber99sbildn.xml', 'amber99_obc.xml')
 #        self._add_hydrogens(pdb, forcefield)
 
         try:
+            # constraints = HBonds means the length of covalent bonds involving
+            # hydrogen atoms are fixed to allow larger integration time steps.
+            # Constraints are not supported to atoms with particle mass = 0 which
+            # indicates a fixed atom position, and will generate errors.
             system = forcefield.createSystem(self._topology, 
                                              nonbondedMethod=app.CutoffNonPeriodic,
                                              nonbondedCutoff=1.0*unit.nanometers,
-                                             # Can't have hbond constraints with 0 mass fixed particles.
                                              constraints=app.HBonds,
-                                             rigidWater=True)
+                                             rigidWater=True,
+                                             ignoreExternalBonds=True)
         except ValueError as e:
             raise ForceFieldError('Missing atoms or parameterization needed by force field.\n' +
                                   'All heavy atoms and hydrogens with standard names are required.\n' +
@@ -460,8 +469,8 @@ class Logger:
             f.close()
             self._log_file = None
 
-def openmm_topology_and_coordinates(atoms, bonds):
-    '''Make OpenMM topology and positions from ChimeraX AtomicStructure.'''
+def openmm_topology(atoms, bonds):
+    '''Make OpenMM topology from ChimeraX atoms and bonds.'''
     a = atoms
     n = len(a)
     r = a.residues

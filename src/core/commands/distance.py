@@ -34,7 +34,7 @@ def distance(session, atoms, *, color=None, dashes=None, radius=None):
     if radius is not None:
         pb.radius = radius
     session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
-        % (a1, a2.__str__(relative_to=a1), pb.length))
+        % (a1, a2.string(relative_to=a1), pb.length))
 
 def xdistance(session, pbonds=None):
     pbg = session.pb_manager.get_group("distances", create=False)

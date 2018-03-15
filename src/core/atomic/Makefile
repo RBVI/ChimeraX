@@ -37,8 +37,12 @@ endif
 
 all: $(PYOBJS) $(SHLIB)
 
-install: all dir
-	$(RSYNC) $(PYSRCS) $(SHLIB) $(PKG_DIR)
+cymol.$(PYMOD_EXT): cymol.pyx atomstruct_cpp.install element_cpp.install
+	LDFLAGS="-L." $(PYTHON_EXE) setup.py build_ext -i
+	mv cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
+
+install: all dir $(PYSRCS)
+	$(RSYNC) $(PYSRCS) $(SHLIB) cymol.$(PYMOD_EXT) $(PKG_DIR)
 ifdef WIN32
 	#$(RSYNC) $(LIBRARY) $(libdir)
 ifdef DEBUG
@@ -84,6 +88,8 @@ $(includedir)/atomstruct/Sequence.h: atomstruct_cpp.install
 $(includedir)/element/Element.h: element_cpp.install
 $(includedir)/pyinstance/PythonInstance.declare.h: pyinstance_cpp.install
 $(includedir)/pyinstance/PythonInstance.instantiate.h: pyinstance_cpp.install
+
+molobject.py: cymol.$(PYMOD_EXT)
 
 atomstruct_cpp.install: element_cpp.install pyinstance_cpp.install
 dssp_cpp.install: atomstruct_cpp.install

@@ -388,7 +388,7 @@ def save_structure(session, file, models, used_data_names):
         residue_info[residue] = (asym_id, seq_id)
         atoms = residue.atoms
         for atom in atoms:
-            elem = atom.element_name
+            elem = atom.element.name
             aname = atom.name
             rname = residue.name
             cid = residue.chain_id
@@ -635,6 +635,49 @@ def save_structure(session, file, models, used_data_names):
             beg_cid, beg_rnum, beg_rins,
             end_cid, end_rnum, end_rins))
 
+    sheet_range_data = []
+    sheet_range = mmcif.MMCIFTable("struct_sheet_range", [
+        "sheet_id", "id",
+        "beg_label_comp_id",
+        "beg_label_asym_id",
+        "beg_label_seq_id",
+        "end_label_comp_id",
+        "end_label_asym_id",
+        "end_label_seq_id",
+        "symmetry",
+        "beg_auth_asym_id",
+        "beg_auth_seq_id",
+        "pdbx_beg_PDB_ins_code",
+        "end_auth_asym_id",
+        "end_auth_seq_id",
+        "pdbx_end_PDB_ins_code",
+    ], sheet_range_data)
+
+    def sheet_range_entry(sheet_id, count, beg_res, end_res, symmetry="1_555"):
+        beg_asym, beg_seq = residue_info[beg_res]
+        end_asym, end_seq = residue_info[end_res]
+        beg_cid = beg_res.chain_id
+        if beg_cid == ' ':
+            beg_cid = '.'
+        beg_rnum = beg_res.number
+        beg_rins = beg_res.insertion_code
+        if not beg_rins:
+            beg_rins = '?'
+        end_cid = end_res.chain_id
+        if end_cid == ' ':
+            end_cid = '.'
+        end_rnum = end_res.number
+        end_rins = end_res.insertion_code
+        if not end_rins:
+            end_rins = '?'
+        sheet_range_data.append((
+            sheet_id, count,
+            beg_res.name, beg_asym, beg_seq,
+            end_res.name, end_asym, end_seq,
+            symmetry,
+            beg_cid, beg_rnum, beg_rins,
+            end_cid, end_rnum, end_rins))
+
     helix_count = 0
     strand_count = 0
     residues = best_m.residues
@@ -654,7 +697,7 @@ def save_structure(session, file, models, used_data_names):
                 struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
             elif beg_res.is_strand:
                 strand_count += 1
-                struct_conf_entry('STRN%d' % strand_count, "STRN_P", beg_res, end_res)
+                sheet_range_entry('?', strand_count, beg_res, end_res)
             beg_res = end_res = r
             last_ssid = ssid
     if last_ssid:
@@ -667,16 +710,15 @@ def save_structure(session, file, models, used_data_names):
 
     if helix_count:
         struct_conf_type_data.append("HELX_P")
-    if strand_count:
-        struct_conf_type_data.append("STRN_P")
 
     struct_conf_data[:] = flattened(struct_conf_data)
     struct_conf.print(file, fixed_width=True)
     # struct_conf_type_data[:] = flattened(struct_conf_type_data)
     struct_conf_type.print(file, fixed_width=True)
     del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type
-
-    # TODO: struct_sheet_range (would remove strands from struct_conf table)
+    sheet_range_data[:] = flattened(sheet_range_data)
+    sheet_range.print(file, fixed_width=True)
+    del sheet_range_data, sheet_range
 
     _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file)
     _save_metadata(best_m, ['cell', 'symmetry'], file)

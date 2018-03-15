@@ -121,10 +121,8 @@ from . import Atom, AtomicStructure, Bond, CoordSet, Pseudobond, \
     PseudobondGroup, PseudobondManager, Residue, Structure
 
 # the classes need to have a get_existing_instances static method...
-registerable_classes = [ Atom, AtomicStructure, Bond, CoordSet,
-    #Pseudobond,
-    PseudobondGroup, PseudobondManager, Residue, Structure,
-    ]
+registerable_classes = [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond,
+    PseudobondGroup, PseudobondManager, Residue, Structure ]
 
 class RegAttrManager(StateManager):
 

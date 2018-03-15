@@ -225,7 +225,7 @@ def _file_output(file_name, info, naming_style):
                 out1, out2 = a, c
             else:
                 out1, out2 = c, a
-            l1, l2 = out1.__str__(style=naming_style), out2.__str__(style=naming_style)
+            l1, l2 = out1.string(style=naming_style), out2.string(style=naming_style)
             data.append((val, l1, l2, distance(out1.scene_coord, out2.scene_coord)))
     data.sort()
     data.reverse()
