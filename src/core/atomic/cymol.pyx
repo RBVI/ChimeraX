@@ -196,8 +196,8 @@ cdef class CyAtom:
     @cython.boundscheck(False)  # turn off bounds checking
     @cython.wraparound(False)  # turn off negative index wrapping
     def coord(self, xyz):
-        if xyz.shape[0] != 3:
-            raise ValueError("set_coord(xyz): 'xyz' must be 1x3 array")
+        if len(xyz) != 3:
+            raise ValueError("set_coord(xyz): 'xyz' must be length 3")
         self.cpp_atom.set_coord(cydecl.Point(xyz[0], xyz[1], xyz[2]))
 
     @property
