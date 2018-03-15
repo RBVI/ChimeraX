@@ -17,7 +17,7 @@ class BondRotationMouseMode(MouseMode):
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self._bond_rot = None
-        self._speed_factor = 4
+        self._speed_factor = 2
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
