@@ -27,6 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>open</b> (&nbsp;<i>filename</i>&nbsp;|&nbsp;<i>URL</i>&nbsp;|&nbsp;[&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;)
+[&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<i>other-options</i>
 </h3>
@@ -513,6 +514,7 @@ hypertext to render in the
 <b>open</b> &nbsp;<i>filename</i>&nbsp;
 [&nbsp;<i>filename2</i>...&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>maxModels</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -550,6 +552,14 @@ Opening a Chimera session file automatically runs
 </p><p>
 Further command options:
 </p>
+<blockquote>
+<a name="maxModels"></a>
+<b>maxModels</b>&nbsp;&nbsp;<i>M</i>
+<br>
+Maximum number of models to keep when opening a multi-model file 
+in mmCIF or PDB format as multiple models in ChimeraX
+(<b><a href="#coordsets">coordsets</a> false</b>).
+</blockquote>
 <blockquote>
 <a name="coordsets"></a>
 <b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -674,6 +684,7 @@ Whether to open an HTML file in a new tab of the
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>URL</i>&nbsp;
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>maxModels</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -708,6 +719,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 [[&nbsp;<a href="#fetch-table"><i>prefix2</i></a>:]<i>identifier2</i>...&nbsp;]
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
+[&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>
@@ -885,5 +897,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2018</address>
+March 2018</address>
 </body></html>
