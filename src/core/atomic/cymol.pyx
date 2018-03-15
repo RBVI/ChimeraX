@@ -172,6 +172,7 @@ cdef class CyAtom:
 
     @property
     def color(self):
+        '''Supported API. Color RGBA length 4 array. Values in range 0-255'''
         color = self.cpp_atom.color()
         return array([color.r, color.g, color.b, color.a])
 
@@ -179,9 +180,8 @@ cdef class CyAtom:
     @cython.boundscheck(False)  # turn off bounds checking
     @cython.wraparound(False)  # turn off negative index wrapping
     def color(self, rgba):
-        '''Supported API. Color RGBA length 4 array. Values in range 0-255'''
-        if rgba.shape[0] != 4:
-            raise ValueError("set_color(rgba): 'rgba' must be 1x4 array")
+        if len(rgba) != 4:
+            raise ValueError("set_color(rgba): 'rgba' must be length 4")
         self.cpp_atom.set_color(rgba[0], rgba[1], rgba[2], rgba[3])
 
     @property
@@ -196,8 +196,8 @@ cdef class CyAtom:
     @cython.boundscheck(False)  # turn off bounds checking
     @cython.wraparound(False)  # turn off negative index wrapping
     def coord(self, xyz):
-        if xyz.shape[0] != 3:
-            raise ValueError("set_coord(xyz): 'xyz' must be 1x3 array")
+        if len(xyz) != 3:
+            raise ValueError("set_coord(xyz): 'xyz' must be length 3")
         self.cpp_atom.set_coord(cydecl.Point(xyz[0], xyz[1], xyz[2]))
 
     @property

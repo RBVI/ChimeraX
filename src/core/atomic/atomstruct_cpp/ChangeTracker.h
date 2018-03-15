@@ -204,9 +204,11 @@ public:
     }
 
     bool  changed() const {
-        for (auto& changes: _global_type_changes) {
-            if (changes.changed())
-                return true;
+        for (auto& s_changes: _structure_type_changes) {
+            auto& structure_changes = s_changes.second;
+            for (auto& c: structure_changes)
+                if (c.changed())
+                    return true;
         }
         return false;
     }

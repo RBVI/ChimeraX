@@ -613,7 +613,9 @@ def _rebuild_molecule(trigger_name, mol):
         mol, changes = mol
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
-        if 'ribbon_display changed' in changes.residue_reasons():
+        if changes.num_deleted_atoms():
+            pass  # rebuild
+        elif 'ribbon_display changed' in changes.residue_reasons():
             pass  # rebuild
         elif 'active_coordset changed' in changes.structure_reasons():
             pass  # rebuild

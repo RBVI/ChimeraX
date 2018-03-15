@@ -144,10 +144,9 @@ class Collection(State):
         return len(self) > 0
     def __iter__(self):
         '''Iterator over collection objects.'''
-        if not hasattr(self, '_object_list'):
+        if not hasattr(self, '_object_list') or len(self._object_list) > len(self._pointers):
             c = self._object_class
             self._object_list = [c.c_ptr_to_py_inst(p) for p in self._pointers]
-        #TODO: isn't caching here a bug?
         return iter(self._object_list)
     def __getitem__(self, i):
         '''Indexing of collection objects using square brackets, *e.g.* c[i].'''
