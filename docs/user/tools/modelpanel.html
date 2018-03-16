@@ -1,0 +1,85 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Model Panel</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Model Panel</h3>
+<p>
+In ChimeraX, <b><i>models</i></b> include atomic structures, 
+<a href="../commands/surface.html">molecular surfaces</a>,
+<a href="../pseudobonds.html">pseudobond models</a>,
+<a href="volumeviewer.html">volume data</a>,
+<a href="../markers.html">marker sets</a>, and
+graphical objects, for example, those read from
+<a href="../formats/bild.html">BILD</a> format.
+A model can be read from a file,
+derived from another model, or created from scratch.
+</p><p>
+Model numbers can be assigned automatically or in some cases,
+specified by the user.
+They are hierarchical, with any number of levels
+(positive integers N, N.N, <i>etc.</i>); for example,
+#1.1, #1.2, ... #1.10 could be 10 structures in an NMR ensemble.
+A <b><i>submodel</i></b> (model at a lower level) is still an entire model,
+but the hierarchy allows grouping.
+</p><p>
+Like other tools, the <b>Model Panel</b> can be opened from the 
+<b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
+It lists the current models, with columns:
+</p>
+<ul>
+<li><b>Name</b> - model name
+<li><b>ID</b> - model number
+<li>a color well that can be clicked to change the color interactively
+<li><b>S</b> or <b>Shown</b> - show/hide checkbox
+</ul>
+<p>
+Disclosure triangles allow collapsing/expanding the hierarchy when multiple
+levels are present.
+</p><p>
+One or more entries (rows) can be highlighted with the mouse. 
+Buttons on the right act on only the highlighted entries, 
+or if none are highlighted, all entries: 
+</p>
+<ul>
+<li><b>Close</b> - <a href="../commands/close.html">close</a> model(s)
+<li><b>Hide</b> - <a href="../commands/show.html">hide</a> model(s)
+<li><b>Show</b> - <a href="../commands/show.html">show</a> model(s)
+<li><b>View</b> - <a href="../commands/view.html#initial">focus the view</a>
+on model(s) and turn off clipping
+</ul>
+<p>
+The corresponding command is shown in the <a href="log.html"><b>Log</b></a>.
+</p><p>
+See also:
+<a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>,
+<a href="densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="shortcut-icons/showmap.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="shortcut-icons/hidemap.png"></a>
+</p>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2018</address>
+</body></html>
