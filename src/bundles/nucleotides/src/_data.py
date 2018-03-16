@@ -988,7 +988,7 @@ def _c3pos(residue):
             return c3p, coord
     except KeyError:
         pass
-    if c3p.visible:
+    if c3p.display:
         return c3p, c3p.coord
     return None
 
