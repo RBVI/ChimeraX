@@ -871,6 +871,8 @@ class HandMode:
 class ShowUIMode(HandMode):
     def pressed(self, camera, hand_controller):
         camera.user_interface.display_ui(True, hand_controller.room_position)
+    def released(self, camera, hand_controller):
+        camera.user_interface.display_ui(False, hand_controller.room_position)
     def drag(self, camera, hand_controller, previous_pose, pose):
         camera.user_interface.move_ui(hand_controller.room_position)
 
