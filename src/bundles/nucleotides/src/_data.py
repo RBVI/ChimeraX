@@ -598,6 +598,7 @@ def _remove_nuc_drawing(nuc, mol, nd):
     nuc.need_rebuild.discard(mol)
     nuc.structures.discard(mol)
     mol.remove_drawing(nd)
+    del mol._nucleotides_drawing
     del mol._nucleotide_info
     del mol._ladder_params
     h = mol._nucleotide_changes
@@ -982,11 +983,14 @@ def _c3pos(residue):
     if not c3p:
         return None
     try:
-        coord = c3p.ribbon_coord
-        return c3p, coord
+        if residue.ribbon_display:
+            coord = c3p.ribbon_coord
+            return c3p, coord
     except KeyError:
         pass
-    return c3p, c3p.coord
+    if c3p.visible:
+        return c3p, c3p.coord
+    return None
 
 
 def set_normal(residues):
