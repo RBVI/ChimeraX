@@ -48,6 +48,7 @@ Replacements = [
 
 def setup(app):
     munge_autodoc()
+    app.add_role("raw-html", raw_html_role)
     app.connect("doctree-read", doctree_read)
     app.connect("autodoc-process-docstring", autodoc_process_docstring)
     app.connect("autodoc-skip-member", autodoc_skip_member)
@@ -109,14 +110,23 @@ def autodoc_process_docstring(app, what, name, obj, options, lines):
     if what in ["method", "attribute", "function"]:
         for n, line in enumerate(lines):
             if "Supported API" in line:
-                lines[n] = line.replace("Supported API", "*Supported API*")
+                lines[n] = line.replace("Supported API",
+                                        ":raw-html:`<i>` "
+                                        ":ref:`supported-api` "
+                                        ":raw-html:`</i>` ")
                 api_status = "supported"
             elif "Experimental API" in line:
+                lines[n] = line.replace("Experimental API",
+                                        ":raw-html:`<i>` "
+                                        ":ref:`experimental-api` "
+                                        ":raw-html:`</i>` ")
                 api_status = "experimental"
             elif "Private API" in line:
                 api_status = "private"
         if api_status == "unknown":
-            lines.insert(0, "*Experimental API*.")
+            lines.insert(0, ":raw-html:`<i>` "
+                            ":ref:`experimental-api` "
+                            ":raw-html:`</i>`.")
 
 
 def autodoc_skip_member(app, what, name, obj, skip, options):
@@ -130,3 +140,9 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
         if doc and "Private API" in doc:
             return True
         return None
+
+
+def raw_html_role(*args, options={}, **kw):
+    options["format"] = "html"
+    from docutils.parsers.rst.roles import raw_role
+    return raw_role(*args, options=options, **kw)
