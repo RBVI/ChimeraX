@@ -871,6 +871,8 @@ class HandMode:
 class ShowUIMode(HandMode):
     def pressed(self, camera, hand_controller):
         camera.user_interface.display_ui(True, hand_controller.room_position)
+    def released(self, camera, hand_controller):
+        camera.user_interface.display_ui(False, hand_controller.room_position)
     def drag(self, camera, hand_controller, previous_pose, pose):
         camera.user_interface.move_ui(hand_controller.room_position)
 
@@ -907,7 +909,7 @@ class ZoomMode(HandMode):
     def __init__(self):
         self._zoom_center = None
     def pressed(self, camera, hand_controller):
-        self._zoom_center = self._pose.origin()
+        self._zoom_center = hand_controller._pose.origin()
     def drag(self, camera, hand_controller, previous_pose, pose):
         if self._zoom_center is None:
             return

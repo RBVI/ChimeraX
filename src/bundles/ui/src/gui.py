@@ -674,8 +674,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         dw.setWidget(container)
         from PyQt5.QtCore import Qt
         self.addDockWidget(Qt.RightDockWidgetArea, dw)
-        dw.setFloating(True)
         dw.hide()
+        dw.setFloating(True)
 
     def _new_tool_window(self, tw):
         if self.hide_tools:

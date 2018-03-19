@@ -18,6 +18,7 @@ class ModelPanel(ToolInstance):
 
     SESSION_ENDURING = True
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
+    help = "help:user/tools/modelpanel.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)

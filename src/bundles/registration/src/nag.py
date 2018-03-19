@@ -16,8 +16,9 @@ RegistrationFile = "registration"
 UsageFile = "preregistration"
 TimeFormat = "%a %b %d %H:%M:%S %Y"
 GracePeriod = 14
-NagMessage = """You have used ChimeraX for %d times over %d days.
-Please register your copy by using the <a href="cxcmd:toolshed show Registration">Registration</a> tool or the "register" command.
+NagMessage = """You have used ChimeraX %d times over %d days.
+Please register your copy by using the Registration tool
+or the "register" command.
 
 Registration is free.  By providing the information
 requested, you will be helping us document the impact
@@ -29,8 +30,10 @@ will be released.
 
 
 def nag(session):
+    if not session.ui.is_gui:
+        return
     if not check_registration(logger=session.logger):
-        _check_usage(session.logger)
+        _check_usage(session)
 
 
 def install(session, registration):
@@ -89,9 +92,9 @@ def report_status(logger, verbose):
         from datetime import datetime
         now = datetime.now()
         if expires < now:
-            logger.warning("Registration expired on %s" % exp)
+            logger.warning("Registration expired (%s)" % exp)
         else:
-            logger.info("Registration is valid through %s" % exp)
+            logger.info("Registration valid (expires %s)" % exp)
 
 
 def _registration_file():
@@ -106,7 +109,7 @@ def _usage_file():
     return os.path.join(app_dirs_unversioned.user_data_dir, UsageFile)
 
 
-def _check_usage(logger):
+def _check_usage(session):
     from datetime import datetime
     usage = _get_usage()
     # Increment count and add date if this is the first invocation
@@ -119,10 +122,17 @@ def _check_usage(logger):
             break
     else:
         usage["dates"].append(now)
-    _write_usage(logger, usage)
+    _write_usage(session.logger, usage)
     days = len(usage["dates"])
-    if days > GracePeriod and logger is not None:
-        logger.info(NagMessage % (usage["count"], days), is_html=True)
+    if days > GracePeriod and session is not None:
+        from chimerax.ui.ask import ask
+        answer = ask(session, NagMessage % (usage["count"], days),
+                     buttons=["Dismiss", "Register"])
+        if answer == "Register":
+            try:
+                session.ui.settings.autostart.append("Registration")
+            except AttributeError:
+                session.ui.settings.autostart = ["Registration"]
 
 
 def _get_usage():

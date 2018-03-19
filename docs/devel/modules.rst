@@ -48,8 +48,6 @@ Python Modules
 
     core/models.rst
 
-    core/atomic/molsurf.rst
-
     core/objects.rst
 
     core/orderedset.rst
