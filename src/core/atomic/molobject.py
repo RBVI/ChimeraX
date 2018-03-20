@@ -919,7 +919,7 @@ class Sequence(State):
     characters = c_property('sequence_characters', string, doc=
         "A string representing the contents of the sequence")
     circular = c_property('sequence_circular', npy_bool, doc="Indicates the sequence involves"
-        " a cicular permutation; the sequence characters have been doubled, and residue"
+        " a circular permutation; the sequence characters have been doubled, and residue"
         " correspondences of the first half implicitly exist in the second half as well."
         " Typically used in alignments to line up with sequences that aren't permuted.")
     name = c_property('sequence_name', string, doc="The sequence name")
@@ -940,8 +940,12 @@ class Sequence(State):
     def __del__(self):
         if Sequence.chimera_exiting:
             return
-        del_f = c_function('sequence_del_pyobj', args = (ctypes.c_void_p,))
-        del_f(self._c_pointer) # will destroy C++ object unless it's an active Chain
+        # __del__ methods that create additional references (which the code in the
+        # 'if' below apparently does) can cause __del__ to be called multiple times,
+        # so the test below is necessary
+        if not self.deleted:
+            del_f = c_function('sequence_del_pyobj', args = (ctypes.c_void_p,))
+            del_f(self._c_pointer) # will destroy C++ object unless it's an active Chain
 
     def extend(self, chars):
         """Extend the sequence with the given string"""

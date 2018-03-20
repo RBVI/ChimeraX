@@ -457,7 +457,7 @@ cdef class CyAtom:
         '''Supported API. Does this Atom have an alt loc with the given letter?'''
         if len(loc) != 1:
             raise ValueError("Alt loc must be single character, not '%s'" % loc)
-        return self.cpp_atom.has_alt_loc(loc.encode())
+        return self.cpp_atom.has_alt_loc(ord(loc[0]))
 
     def is_backbone(self, bb_extent=CyAtom.BBE_MAX):
         '''Supported API. Whether this Atom is considered backbone, given the 'extent' criteria.
