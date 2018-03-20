@@ -66,26 +66,50 @@ class CFunctions:
             return self.c_array_property(func_name, value_type, value_count, read_only, astype, doc)
 
         vtype = numpy_type_to_ctype[value_type]
-        v = vtype()
-        v_ref = ctypes.byref(v)
-
         cget = self.c_array_function(func_name, ret=value_type)
-        if astype is None:
-            def get_prop(self):
-                cget(self._c_pointer_ref, 1, v_ref)
-                return v.value
+        if vtype == ctypes.py_object:
+            # Using ctypes py_object for value v make the value get an extra reference count.
+            # The ctypes code looks like it is not intended to have C++ code set the pointer PyObject * value.
+            # Use a one element numpy array to get the reference counting right.
+            v = empty((1,), value_type)       # Numpy array return value
+            v_ref = pointer(v)
+            if astype is None:
+                def get_prop(self):
+                    cget(self._c_pointer_ref, 1, v_ref)
+                    vv = v[0]
+                    v[0] = None		# Avoid holding an extra reference to value
+                    return vv
+            else:
+                def get_prop(self):
+                    cget(self._c_pointer_ref, 1, v_ref)
+                    vv = v[0]
+                    v[0] = None		# Avoid holding an extra reference to value
+                    return astype(vv)
         else:
-            def get_prop(self):
-                cget(self._c_pointer_ref, 1, v_ref)
-                return astype(v.value)
+            v = vtype()
+            v_ref = ctypes.byref(v)
+            if astype is None:
+                def get_prop(self):
+                    cget(self._c_pointer_ref, 1, v_ref)
+                    return v.value
+            else:
+                def get_prop(self):
+                    cget(self._c_pointer_ref, 1, v_ref)
+                    return astype(v.value)
 
         if read_only:
             set_prop = None
         else:
             cset = self.c_array_function('set_'+func_name, ret=value_type)
-            def set_prop(self, value):
-                v.value = value
-                cset(self._c_pointer_ref, 1, v_ref)
+            if vtype == ctypes.py_object:
+                def set_prop(self, value):
+                    v[0] = value
+                    cset(self._c_pointer_ref, 1, v_ref)
+                    v[0] = None		# Avoid holding an extra reference to value
+            else:
+                def set_prop(self, value):
+                    v.value = value
+                    cset(self._c_pointer_ref, 1, v_ref)
 
         return property(get_prop, set_prop, doc = doc)
  

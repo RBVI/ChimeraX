@@ -980,7 +980,7 @@ def draw_tube(nd, residue, name, params):
 
 def _c3pos(residue):
     c3p = residue.find_atom("C3'")
-    if not c3p:
+    if not c3p or not c3p.display:
         return None
     try:
         if residue.ribbon_display:
@@ -988,9 +988,7 @@ def _c3pos(residue):
             return c3p, coord
     except KeyError:
         pass
-    if c3p.display:
-        return c3p, c3p.coord
-    return None
+    return c3p, c3p.coord
 
 
 def set_normal(residues):

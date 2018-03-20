@@ -63,8 +63,29 @@ User documentation for the ChimeraX application is in the `User's Manual`_.
 
    cpplibs.rst
 
+**********
+API Status
+**********
+
+.. _supported-api:
+
+Supported API
+=============
+
+Items marked as **Supported API** are guaranteed to continue to
+work in subsequent ChimeraX releases with the same major version number.
+
+.. _experimental-api:
+
+Experimental API
+================
+
+Items marked as **Experimental API** are likely to be added as
+**Supported API** in the future but the exact arguments, return
+values, and even functionality may still change.
+
 ******************
-Indices and tables
+Indices and Tables
 ******************
 
 * :ref:`genindex`
