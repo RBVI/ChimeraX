@@ -98,7 +98,7 @@ private:
         std::vector<float> *create_aniso_u() {
             if (aniso_u.get() == nullptr) {
                 aniso_u = std::make_shared<std::vector<float>>();
-                aniso_u.get()->reserve(6);
+                aniso_u.get()->resize(6);
             }
             return aniso_u.get();
         }
