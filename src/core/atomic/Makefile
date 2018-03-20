@@ -37,7 +37,7 @@ endif
 
 all: $(PYOBJS) $(SHLIB)
 
-cymol.$(PYMOD_EXT): cymol.pyx atomstruct_cpp.install element_cpp.install
+cymol.$(PYMOD_EXT): cymol.pyx $(includedir)/atomstruct/Atom.h
 	LDFLAGS="-L." $(PYTHON_EXE) setup.py build_ext -i
 	mv cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
 

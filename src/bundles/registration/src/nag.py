@@ -16,16 +16,9 @@ RegistrationFile = "registration"
 UsageFile = "preregistration"
 TimeFormat = "%a %b %d %H:%M:%S %Y"
 GracePeriod = 14
-NagMessage = """You have used ChimeraX %d times over %d days.
-Please register your copy by using the Registration tool
-or the "register" command.
+NagMessage = """You have used ChimeraX %d times over %d days.  Please register your copy by using the Registration tool or the "register" command.
 
-Registration is free.  By providing the information
-requested, you will be helping us document the impact
-this software is having in the scientific community.
-The information you supply will only be used for
-reporting summary statistics; no individual data
-will be released.
+Registration is optional and free.  Registration helps us document the impact of ChimeraX on the scientific community. The information you supply will only be used for reporting summary statistics; no individual data will be released.
 """
 
 
