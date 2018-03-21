@@ -12,6 +12,7 @@ flake8==3.5.0
 funcparserlib==0.3.6
 grako==3.16.5
 line_profiler==2.1.2
+lxml==4.2.0
 markupsafe==1.0
 mccabe==0.6.1
 pep8==1.7.1
