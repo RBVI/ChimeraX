@@ -110,14 +110,16 @@ def _check_usage(session):
     usage["count"] += 1
     now = datetime.now()
     today = now.date()
+    nagged = True
     for dt in usage["dates"]:
         if dt.date() == today:
             break
     else:
         usage["dates"].append(now)
+        nagged = False
     _write_usage(session.logger, usage)
     days = len(usage["dates"])
-    if days > GracePeriod and session is not None:
+    if not nagged and days > GracePeriod and session is not None:
         from chimerax.ui.ask import ask
         answer = ask(session, NagMessage % (usage["count"], days),
                      buttons=["Dismiss", "Register"])
