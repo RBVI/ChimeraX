@@ -76,16 +76,34 @@ def _pseudobond_group_map(pbgc_map):
     pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
 
+def get_custom_attrs(klass, inst):
+    custom_attrs = []
+    from .attr_registration import NO_DEFAULT
+    for attr_name, attr_info in klass._attr_registration.reg_attr_info.items():
+        if hasattr(inst, attr_name):
+            registrant, default_value, attr_type = attr_info
+            val = getattr(inst, attr_name)
+            if default_value == NO_DEFAULT or val != default_value:
+                custom_attrs.append((attr_name, val))
+    return custom_attrs
+
+def set_custom_attrs(inst, ses_data):
+    for attr_name, val in ses_data.get('custom_attrs', []):
+        setattr(inst, attr_name, val)
+
 from .cymol import CyAtom
 class Atom(CyAtom, State):
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
-                'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
+                'ses_id': self.structure.session_atom_to_id(self._c_pointer),
+                'custom attrs': get_custom_attrs(Atom, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
+        a = Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
+        set_custom_attrs(a, data)
+        return a
 Atom.set_py_class(Atom)
 
 # -----------------------------------------------------------------------------
@@ -218,26 +236,15 @@ class Bond(State):
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
-                'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
+                'ses_id': self.structure.session_bond_to_id(self._c_pointer),
+                'custom attrs': get_custom_attrs(Bond, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Bond.c_ptr_to_py_inst(data['structure'].session_id_to_bond(data['ses_id']))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.bonds)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        b = Bond.c_ptr_to_py_inst(data['structure'].session_id_to_bond(data['ses_id']))
+        set_custom_attrs(b, data)
+        return b
 
 # -----------------------------------------------------------------------------
 #
@@ -323,30 +330,24 @@ class Pseudobond(State):
         doc="Used by session save/restore internals")
 
     def take_snapshot(self, session, flags):
-        return [self.group, self._ses_id]
+        data = {'group': self.group,
+                'ses_id': self._ses_id,
+                'custom attrs': get_custom_attrs(Pseudobond, self)}
+        return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        group, id = data
         f = c_function('pseudobond_group_resolve_session_id',
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
-        return Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, id))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for pbg in PseudobondGroupData.get_existing_instances(session):
-            if pbg.group_type == PseudobondGroupData.GROUP_TYPE_COORD_SET:
-                for cs_id in pbg.structure.coordset_ids:
-                    collections.append(pbg.get_pseudobonds(cs_id))
-            else:
-                collections.append(pbg.pseudobonds)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        if isinstance(data, dict):
+            group = data['group']
+            ses_id = data['ses_id']
+        else:
+            group, ses_id = data
+        pb = Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, ses_id))
+        if isinstance(data, dict):
+            set_custom_attrs(pb, data)
+        return pb
 
 # -----------------------------------------------------------------------------
 #
@@ -420,17 +421,6 @@ class PseudobondGroupData:
         f = c_function('pseudobond_group_delete_pseudobond',
             args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, pb._c_pointer)
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        groups = []
-        from . import PseudobondGroup
-        for m in session.models:
-            if not isinstance(m, PseudobondGroup):
-                continue
-            groups.append(m)
-        return groups
 
     def get_num_pseudobonds(self, cs_id):
         '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'
@@ -560,7 +550,8 @@ class PseudobondManager(StateManager):
             obj_map[ses_id] = PseudobondGroup.c_ptr_to_py_inst(ptr)
         data = {'version': version,
                 'mgr data':retvals,
-                'structure mapping': obj_map}
+                'structure mapping': obj_map,
+                'custom attrs': get_custom_attrs(PseudobondManager, self)}
         return data
 
     @staticmethod
@@ -578,6 +569,7 @@ class PseudobondManager(StateManager):
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
         f(pbm._c_pointer, data['version'], ints, floats, misc)
+        set_custom_attrs(pbm, data)
         return pbm
 
     def reset_state(self, session):
@@ -586,11 +578,6 @@ class PseudobondManager(StateManager):
         # away, which causes delete() to get called
         for pbg in list(self.group_map.values()):
             pbg.delete()
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        return [session.pb_manager]
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -771,26 +758,15 @@ class Residue(State):
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
-                'ses_id': self.structure.session_residue_to_id(self._c_pointer)}
+                'ses_id': self.structure.session_residue_to_id(self._c_pointer),
+                'custom attrs': get_custom_attrs(Residue, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.residues)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        r = Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
+        set_custom_attrs(r, data)
+        return r
 
 
 # -----------------------------------------------------------------------------
@@ -965,41 +941,6 @@ class Sequence(State):
             return None
         return g2u
 
-    """Need a way to discover all Sequences
-    # used by attribute registration to gather attributes for session saving...
-    @classmethod
-    def get_existing_instances(cls, session):
-        # find what type of sequence class this is (or inherits from)
-        sequence = structure_seq = chain = False
-        check_list = [cls]
-        while check_list:
-            check_cls = check_list.pop()
-            if check_cls is Chain:
-                chain = True
-                break
-            elif check_cls is StructureSeq:
-                structure_seq = True
-                break
-            elif check_cls is Sequence:
-                sequence = True
-                break
-            check_list.extend(check_cls.__bases__)
-        if chain:
-            check_cls = Chain
-        elif structure_seq:
-            check_cls = StructureSeq
-        elif sequence:
-            check_cls = Sequence
-        else:
-            raise ValueError("%s is not a Sequence/StructureSeq/Chain" % cls.__name__)
-        sequences = []
-        for m in session.models:
-            if not isinstance(m, check_cls):
-                continue
-            sequences.append(m)
-        return structures
-    """
-
     def __getitem__(self, key):
         return self.characters[key]
 
@@ -1015,6 +956,7 @@ class Sequence(State):
     def restore_snapshot(session, data):
         seq = Sequence()
         seq.set_state_from_snapshot(session, data)
+        set_custom_attrs(seq, data)
         return seq
 
     def __setitem__(self, key, val):
@@ -1053,7 +995,8 @@ class Sequence(State):
 
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
-            'markups': self.markups, 'numbering_start': self.numbering_start }
+            'markups': self.markups, 'numbering_start': self.numbering_start,
+            'custom attrs': get_custom_attrs(Sequence, self)}
         return data
 
     def ungapped(self):
@@ -1225,6 +1168,7 @@ class StructureSeq(Sequence):
         sseq.description = data['description']
         sseq.bulk_set(data['residues'], sseq.characters)
         sseq.description = data.get('description', None)
+        set_custom_attrs(sseq, data)
         return sseq
 
     def ss_type(self, loc, loc_is_ungapped=False):
@@ -1247,7 +1191,8 @@ class StructureSeq(Sequence):
             'chain_id': self.chain_id,
             'description': self.description,
             'residues': self.residues,
-            'structure': self.structure
+            'structure': self.structure,
+            'custom attrs': get_custom_attrs(StructureSeq, self)
         }
         return data
 
@@ -1332,6 +1277,7 @@ class Chain(StructureSeq):
         if not chain:
             chain = Chain(ptr)
         chain.description = data.get('description', None)
+        set_custom_attrs(chain, data)
         return chain
 
     def string(self):
@@ -1350,7 +1296,8 @@ class Chain(StructureSeq):
         data = {
             'description': self.description,
             'ses_id': self.structure.session_chain_to_id(self._c_pointer),
-            'structure': self.structure
+            'structure': self.structure,
+            'custom attrs': get_custom_attrs(StructureSeq, self)
         }
         return data
 
@@ -1552,35 +1499,6 @@ class StructureData:
         '''Delete the specified Atom.'''
         f = c_function('structure_delete_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
-
-    # used by attribute registration to gather attributes for session saving...
-    @classmethod
-    def get_existing_instances(cls, session):
-        # find what type of structure class this is (or inherits from)
-        from . import AtomicStructure, Structure
-        atomic = structure = False
-        check_list = [cls]
-        while check_list:
-            check_cls = check_list.pop()
-            if check_cls is AtomicStructure:
-                atomic = True
-                break
-            elif check_cls is Structure:
-                structure = True
-                break
-            check_list.extend(check_cls.__bases__)
-        if atomic:
-            check_cls = AtomicStructure
-        elif structure:
-            check_cls = Structure
-        else:
-            raise ValueError("%s is neither a Structure nor AtomicStructure" % cls.__name__)
-        structures = []
-        for m in session.models:
-            if not isinstance(m, check_cls):
-                continue
-            structures.append(m)
-        return structures
 
     @property
     def molecules(self):
@@ -1842,26 +1760,15 @@ class CoordSet(State):
         doc=":class:`.AtomicStructure` the coordset belongs to")
 
     def take_snapshot(self, session, flags):
-        data = {'structure': self.structure, 'cs_id': self.id}
+        data = {'structure': self.structure, 'cs_id': self.id,
+                'custom attrs': get_custom_attrs(CoordSet, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return data['structure'].coordset(data['cs_id'])
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.coordsets)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        cs = data['structure'].coordset(data['cs_id'])
+        set_custom_attrs(cs, data)
+        return cs
 
 # -----------------------------------------------------------------------------
 #
