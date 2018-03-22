@@ -17,7 +17,7 @@ class SwapAAMouseMode(MouseMode):
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self._residue = None
-        self._align_atom_names = ['N', 'H', 'C', 'O', 'CA', 'HA']
+        self._align_atom_names = ['N', 'C', 'CA']
         self._step_pixels = 20
         self._step_meters = 0.05
         self._last_y = None
@@ -42,7 +42,7 @@ class SwapAAMouseMode(MouseMode):
         found = {}
         tnames = self._template_residue_names
         # TODO: Exclude residues with terminal groups.
-        for r in m.residues:
+        for r in m.residues[1:-1]:
             if r.name not in found and r.name in tnames:
                 found[r.name] = r
         tres.extend(found[name] for name in tnames if name in found)
@@ -113,6 +113,9 @@ class SwapAAMouseMode(MouseMode):
         if pos is None:
             return False	# Missing backbone atoms to align new residue
 
+        add_hydrogens = self._has_hydrogens(r)
+        carbon_color = self._carbon_color(r)
+
         # Delete atoms.  Backbone atom HA is deleted if new residues is GLY.
         akeep = set(self._align_atom_names).intersection(new_r.atoms.names)
         from chimerax.core.atomic import Atoms
@@ -122,8 +125,6 @@ class SwapAAMouseMode(MouseMode):
         # Create new atoms
         s = r.structure
         akept = set(r.atoms.names)
-        add_hydrogens = self._has_hydrogens(r)
-        carbon_color = self._carbon_color(r)
         from chimerax.core.atomic.colors import element_color
         for a in new_r.atoms:
             if a.name not in akept:
