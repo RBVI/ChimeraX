@@ -686,6 +686,28 @@ def _change_blackness(colors, amount, tag):
     return colors
 
 
+def _change_component(colors, amount, tag, component):
+    from numpy import clip, around
+    if component == 'red':
+        i = 0
+    elif component == 'green':
+        i = 1
+    elif component == 'blue':
+        i = 2
+    elif component == 'alpha':
+        i = 3
+    else:
+        raise RuntimeError("unknown color component")
+    amount *= 255.0
+    if tag == 'add':
+        colors[:, i] = clip(colors[:, i] + amount, 0, 255)
+    elif tag == 'mul':
+        colors[:, i] = clip(colors[:, i] * amount, 0, 255)
+    elif tag == 'set':
+        colors[:, i] = clip(amount, 0, 255)
+    return colors
+
+
 def _rgb_interpolate(colors, amount, to):
     colors[:, 0:3] = colors[:, 0:3] + amount * (to - colors[:, 0:3])
     return colors
@@ -762,8 +784,8 @@ def _constrast(colors, amount):
     return colors
 
 
-# leave out 'tint' and 'shade' to avoid having to document them
-ADJUST_TYPES = ('hue', 'saturation', 'lightness', 'whiteness', 'blackness', 'contrast')
+# leave out 'tint', 'shade', and 'alpha' to avoid having to document them
+ADJUST_TYPES = ('hue', 'saturation', 'lightness', 'whiteness', 'blackness', 'contrast', 'red', 'green', 'blue')
 OP_TYPES = ('+', '-', '*')
 
 
@@ -886,6 +908,23 @@ def color_modify(session, objects, adjuster, op, number=None, what=None, target=
                      "Set contrasting color of ", "color contrast")
         else:
             raise UserError("percentage must be between 0 and 100 inclusive")
+    elif adjuster in ('red', 'green', 'blue', 'alpha'):
+        if op == '+':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_component(c, a, 'add', adjuster),
+                     "Increased %sness of" % adjuster, "color %s" % adjuster)
+        elif op == '-':
+            color_func(session, objects, what, target,
+                     lambda c, a=-amount: _change_component(c, a, 'add', adjuster),
+                     "Decreased %sness of" % adjuster, "color %s" % adjuster)
+        elif op == '*':
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_component(c, a, 'mul', adjuster),
+                     "Changed %sness of" % adjuster, "color %s" % adjuster)
+        else:  # op == None
+            color_func(session, objects, what, target,
+                     lambda c, a=amount: _change_component(c, a, 'set', adjuster),
+                     "Set %sness of" % adjuster, "color %s" % adjuster)
     else:
         raise UserError("Color \"%s\" not implemented yet" % adjuster)
 
