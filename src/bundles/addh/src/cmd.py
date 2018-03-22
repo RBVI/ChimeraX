@@ -28,11 +28,7 @@ def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=Tr
         struct_collection = structures
         structures = list(structures)
 
-    #add_h_func = hbond_add_hydrogens if hbond else simple_add_hydrogens
-    if hbond:
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("'hbond true' option not yet implemented (use 'hbond false')")
-    add_h_func = simple_add_hydrogens
+    add_h_func = hbond_add_hydrogens if hbond else simple_add_hydrogens
 
     prot_schemes = {}
     for res_name in ['his', 'glu', 'asp', 'lys', 'cys']:
@@ -51,12 +47,17 @@ def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=Tr
     # that we use this hack to use .coord if possible
     from chimerax.core.atomic import Atom
     Atom._addh_coord = Atom.coord if in_isolation else Atom.scene_coord
+    session.logger.status("Adding hydrogens")
     try:
         add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
+    except:
+        session.logger.status("")
+        raise
     finally:
         delattr(Atom, "_addh_coord")
         for structure in structures:
             structure.alt_loc_change_notify = True
+    session.logger.status("Hydrogens added")
     atoms = struct_collection.atoms
     # If side chains are displayed, then the CA is _not_ hidden, so we
     # need to let the ribbon code update the hide bits so that the CA's
@@ -64,10 +65,10 @@ def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=Tr
     atoms.update_ribbon_visibility()
     session.logger.info("%s hydrogens added" %
         (len(atoms.filter(atoms.elements.numbers == 1)) - num_pre_hs))
-#TODO: hbond_add_hydrogens
 #TODO: initiate_add_hyd
 
-def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=False, **prot_schemes):
+def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=False,
+        **prot_schemes):
     """Add hydrogens to given structures using simple geometric criteria
 
     Geometric info for atoms whose IDATM types don't themselves provide
@@ -112,8 +113,9 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
                 in_isolation=in_isolation, **prot_schemes)
         return
     from .simple import add_hydrogens
-    atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, coordinations, \
-        fake_N, fake_C = _prep_add(session, structures, unknowns_info, **prot_schemes)
+    atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, \
+        coordinations, fake_N, fake_C = \
+        _prep_add(session, structures, unknowns_info, **prot_schemes)
     _make_shared_data(session, structures, in_isolation)
     invert_xforms = {}
     for atom in atoms:
@@ -130,7 +132,30 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
             idatm_type, invert, coordinations.get(atom, []))
     post_add(session, fake_N, fake_C)
     _delete_shared_data()
-    session.logger.status("Hydrogens added")
+
+def hbond_add_hydrogens(session, structures, unknowns_info={}, in_isolation=False,
+        **prot_schemes):
+    """Add hydrogens to given structures, trying to preserve H-bonding
+
+    Argument are similar to simple_add_hydrogens() except that for the
+    'hisScheme' keyword, histidines not in the hisScheme dictionary the
+    hydrogen-bond interactions determine the histidine protonation
+    """
+
+    if in_isolation and len(structures) > 1:
+        for struct in structures:
+            hbond_add_hydrogens(session, [struct], unknowns_info=unknowns_info,
+                in_isolation=in_isolation, **prot_schemes)
+        return
+    from .hbond import add_hydrogens
+    atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, \
+        coordinations, fake_N, fake_C = \
+        _prep_add(session, structures, unknowns_info, **prot_schemes)
+    _make_shared_data(session, structures, in_isolation)
+    add_hydrogens(atoms, naming_schemas, hydrogen_totals, idatm_type, his_Ns,
+        coordinations, in_isolation)
+    post_add(session, fake_N, fake_C)
+    _delete_shared_data()
 
 class IdatmTypeInfo:
     def __init__(self, geometry, substituents):

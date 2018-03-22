@@ -11,12 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#from chimera import Coord, Point
-#from chimera.bondGeom import tetrahedral, planar, linear, single, bondPositions
-#from chimera.idatm import *
 from math import sin, cos, pi, sqrt
-#from chimera import Element
-#Element_H = Element(1)
 
 sin5475 = sin(pi * 54.75 / 180.0)
 cos5475 = cos(pi * 54.75 / 180.0)
@@ -71,7 +66,8 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
         if geom == 4 and atom.num_bonds == 0:
             away, d, natom = find_nearest(at_pos, atom, exclude, 3.5)
             if away is not None:
-                away2, d2, natom2 = find_rotamer_nearest(at_pos, idatm_type[atom], atom, natom, 3.5)
+                away2, d2, natom2 = find_rotamer_nearest(at_pos, idatm_type[atom],
+                    atom, natom, 3.5)
         elif geom == 4 and len(coordinations) + atom.num_bonds == 1:
             away, d, natom = find_rotamer_nearest(at_pos,
                     idatm_type[atom], atom, (list(atom.neighbors)+coordinations)[0], 3.5)
