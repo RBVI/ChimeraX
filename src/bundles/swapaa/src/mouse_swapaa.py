@@ -18,6 +18,7 @@ class SwapAAMouseMode(MouseMode):
         MouseMode.__init__(self, session)
         self._residue = None
         self._align_atom_names = ['N', 'C', 'CA']
+        self._keep_atom_names = ['N', 'C', 'CA', 'O', 'H']
         self._step_pixels = 20
         self._step_meters = 0.05
         self._last_y = None
@@ -117,7 +118,7 @@ class SwapAAMouseMode(MouseMode):
         carbon_color = self._carbon_color(r)
 
         # Delete atoms.  Backbone atom HA is deleted if new residues is GLY.
-        akeep = set(self._align_atom_names).intersection(new_r.atoms.names)
+        akeep = set(self._keep_atom_names).intersection(new_r.atoms.names)
         from chimerax.core.atomic import Atoms
         adel = Atoms([a for a in r.atoms if a.name not in akeep])
         adel.delete()
