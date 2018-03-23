@@ -47,6 +47,14 @@ Atomic data classes
     :members:
     :show-inheritance:
 
+.. autoclass:: cymol.CyAtom
+    :members:
+    :show-inheritance:
+
+.. autoclass:: cymol.Element
+    :members:
+    :show-inheritance:
+
 .. automodule:: chimerax.core.atomic.molarray
     :members:
     :member-order: bysource
