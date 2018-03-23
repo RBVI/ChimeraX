@@ -124,56 +124,54 @@ class Bond(State):
     def atomspec(self):
         return a1.atomspec() + a2.atomspec()
 
-    atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
-    '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
-    color = c_property('bond_color', uint8, 4)
-    '''Color RGBA length 4 numpy uint8 array.'''
-    display = c_property('bond_display', npy_bool)
-    '''
-    Whether to display the bond if both atoms are shown.
-    Can be overriden by the hide attribute.
-    '''
-    halfbond = c_property('bond_halfbond', npy_bool)
-    '''
-    Whether to color the each half of the bond nearest an end atom to match that atom
-    color, or use a single color and the bond color attribute.  Boolean value.
-    '''
-    radius = c_property('bond_radius', float32)
-    '''Displayed cylinder radius for the bond.'''
-    hide = c_property('bond_hide', int32)
-    '''Whether bond is hidden (overrides display).  Integer bitmask.  Use Atom.HIDE_* constants for hide bits.'''
+    atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True,
+        doc = "Supported API. "
+        "Two-tuple of :py:class:`Atom` objects that are the bond end points.")
+    color = c_property('bond_color', uint8, 4, doc =
+        "Supported API. Color RGBA length 4 numpy uint8 array.")
+    display = c_property('bond_display', npy_bool, doc =
+        "Supported API.  Whether to display the bond if both atoms are shown. "
+        "Can be overriden by the hide attribute.")
+    halfbond = c_property('bond_halfbond', npy_bool, doc = "Supported API. Whether to "
+        "color the each half of the bond nearest an end atom to match that atom color, "
+        "or use a single color and the bond color attribute.  Boolean value.")
+    radius = c_property('bond_radius', float32,
+        doc = "Displayed cylinder radius for the bond.")
+    hide = c_property('bond_hide', int32, doc = "Supported API. Whether bond is hidden "
+        "(overrides display). Integer bitmask. Use Atom.HIDE_* constants for hide bits.")
     def set_hide_bits(self, bit_mask):
-        '''Set Atom's hide bits in bit mask'''
+        "Set Atom's hide bits in bit mask"
         f = c_array_function('set_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
     def clear_hide_bits(self, bit_mask):
-        '''Clear Atom's hide bits in bit mask'''
+        "Clear Atom's hide bits in bit mask"
         f = c_array_function('clear_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
-    selected = c_property('bond_selected', npy_bool)
-    '''Whether the bond is selected.'''
-    ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True)
-    '''Whether both bond end atoms are selected.'''
-    shown = c_property('bond_shown', npy_bool, read_only = True)
-    '''Whether bond is visible and both atoms are shown and at least one is not Sphere style. Read only.'''
-    structure = c_property('bond_structure', pyobject, read_only = True)
-    ''':class:`.AtomicStructure` the bond belongs to.'''
-    visible = c_property('bond_visible', npy_bool, read_only = True)
-    '''Whether bond is display and not hidden. Read only.'''
-    length = c_property('bond_length', float32, read_only = True)
-    '''Bond length. Read only.'''
+    selected = c_property('bond_selected', npy_bool, doc =
+        "Supported API. Whether the bond is selected.")
+    ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True,
+        doc = "Whether both bond end atoms are selected.")
+    shown = c_property('bond_shown', npy_bool, read_only = True, doc = "Supported API. "
+        "Whether bond is visible and both atoms are shown and at least one is not "
+        " Sphere style. Read only.")
+    structure = c_property('bond_structure', pyobject, read_only = True, doc =
+        "Supported API. :class:`.AtomicStructure` the bond belongs to.")
+    visible = c_property('bond_visible', npy_bool, read_only = True, doc =
+        "Supported API. Whether bond is display and not hidden. Read only.")
+    length = c_property('bond_length', float32, read_only = True, doc =
+        "Supported API. Bond length. Read only.")
 
     def other_atom(self, atom):
-        '''Return the :class:`Atom` at the other end of this bond opposite
-        the specified atom.'''
+        "Supported API. Return the :class:`Atom` at the other end of this bond opposite"
+        " the specified atom."
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
         o = f(self._c_pointer, atom._c_pointer)
         return Atom.c_ptr_to_py_inst(o)
 
     def delete(self):
-        '''Delete this Bond from it's Structure'''
+        "Supported API. Delete this Bond from it's Structure"
         f = c_function('bond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
 
@@ -212,6 +210,8 @@ class Bond(State):
         return f(self._c_pointer)
 
     def string(self, style = None):
+        "Supported API.  Get text representation of Bond"
+        " (also used by __str__ for printing)"
         a1, a2 = self.atoms
         bond_sep = " \N{Left Right Arrow} "
         return a1.string(style=style) + bond_sep + a2.string(style=style, relative_to=a1)
