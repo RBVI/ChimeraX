@@ -268,6 +268,7 @@ class Pseudobond(State):
 
     __lt__ = Bond.__lt__
     __str__ = Bond.__str__
+    string = Bond.string
 
     atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
     '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
