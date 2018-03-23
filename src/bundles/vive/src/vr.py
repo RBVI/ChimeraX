@@ -793,7 +793,7 @@ class HandControllerModel(Model):
             if pressed:
                 m.pressed(camera, self)
                 adm.add(m)
-            else:
+            elif m in adm:
                 m.released(camera, self)
                 adm.remove(m)
 
