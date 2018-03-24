@@ -254,8 +254,7 @@ cdef class CyAtom:
     @property
     def element(self):
         "Supported API. :class:`Element` corresponding to the atom's chemical element"
-        from . import Element
-        return Element.c_ptr_to_py_inst(<ptr_type>&self.cpp_atom.element())
+        return self.cpp_atom.element().py_instance(True)
 
     @property
     def hide(self):
