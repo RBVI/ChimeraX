@@ -43,6 +43,7 @@ cdef const char * _translate_struct_cat(cydecl.StructCat cat):
     raise ValueError("Unknown structure category")
 
 cdef class CyAtom:
+    '''Base class for Atom, and is present only for performance reasons.'''
     cdef cydecl.Atom *cpp_atom
     cdef cydecl.bool _deleted
 
