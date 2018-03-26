@@ -199,7 +199,7 @@ def quote(s):
     sing_quote = examine == "'"
     dbl_quote = examine == '"'
     line_break = examine == '\n'
-    special = examine in ' [;'
+    special = examine in ' [;'  # True if empty string too
     for i in range(1, len(s)):
         examine = s[i:i + 1]
         if examine == '" ':
@@ -211,7 +211,7 @@ def quote(s):
         elif examine[0] == ' ':
             special = True
     if line_break or (sing_quote and dbl_quote):
-        return ';' + s + '\n;\n'
+        return '\n;' + s + '\n;\n'
     if sing_quote:
         return '"%s"' % s
     if dbl_quote:
@@ -336,24 +336,27 @@ def get_mmcif_tables_from_metadata(model, table_names):
         raise ValueError("Expected a structure")
     tlist = []
     for n in table_names:
+        n = n.casefold()
         if n not in raw_tables or (n + ' data') not in raw_tables:
             tlist.append(None)
         else:
-            tags = raw_tables[n]
+            info = raw_tables[n]
             values = raw_tables[n + ' data']
-            tlist.append(MMCIFTable(n, tags, values))
+            tlist.append(MMCIFTable(info[0], info[1:], values))
     return tlist
 
 
 class MMCIFTable:
     """
     Present a table interface for a mmCIF category
+
+    Tags should be in the mixed case version given in the associated dictionary
     """
-    # TODO: deal with case insensitivity of tags
 
     def __init__(self, table_name, tags=None, data=None):
         self.table_name = table_name
-        self._tags = [] if tags is None else tags
+        self._tags = [] if tags is None else list(tags)
+        self._folded_tags = [t.casefold() for t in self._tags]
         self._data = [] if data is None else data
         n = len(self._tags)
         if n == 0:
@@ -489,8 +492,8 @@ class MMCIFTable:
         num_new_rows = len(new_columns[0])
         # extend existing columns
         new_unknown = ['?'] * num_new_rows
-        new_data = dict(zip(table._tags, new_columns))
-        for t, c in zip(self._tags, old_columns):
+        new_data = dict(zip(table._folded_tags, new_columns))
+        for t, c in zip(self._folded_tags, old_columns):
             d = new_data.pop(t, None)
             if d is None:
                 c.extend(new_unknown)
@@ -500,8 +503,11 @@ class MMCIFTable:
         if new_data:
             old_tags = self._tags[:]
             old_unknown = ['?'] * num_old_rows
-            for t, c in new_data.items():
-                old_tags.append(t)
+            for folded_tag, c in new_data.items():
+                for tag in table._tags:
+                    if folded_tag == tag.casefold():
+                        break
+                old_tags.append(tag)
                 old_columns.append(old_unknown + c)
             self._tags = old_tags
         from chimerax.core.utils import flattened
@@ -509,12 +515,14 @@ class MMCIFTable:
 
     def has_field(self, field_name):
         """Return if given field name is in the table"""
-        return field_name in self._tags
+        field_name = field_name.casefold()
+        return field_name in self._folded_tags
 
     def field_has(self, field_name, value):
         """Return if given field has the given value"""
+        field_name = field_name.casefold()
         try:
-            i = self._tags.index(field_name)
+            i = self._folded_tags.index(field_name)
         except ValueError:
             return False
         n = len(self._tags)
@@ -530,17 +538,20 @@ class MMCIFTable:
         """Print contents of table to given file"""
         if len(self._data) == 0:
             return
+        n = len(self._tags)
+        if n == 0:
+            return
+        assert len(self._data) % n == 0
         if file is None:
             import sys
             file = sys.stdout
-        if len(self._tags) == len(self._data):
+        if n == len(self._data):
             for t, v in zip(self._tags, self._data):
                 print('_%s.%s %s' % (self.table_name, t, quote(v)), file=file)
         else:
             print('loop_', file=file)
             for t in self._tags:
                 print('_%s.%s' % (self.table_name, t), file=file)
-            n = len(self._tags)
             if not fixed_width:
                 for i in range(0, len(self._data), n):
                     print(' '.join(quote(x) for x in self._data[i:i + n]), file=file)
@@ -550,8 +561,8 @@ class MMCIFTable:
                 data = [quote(x) for x in self._data]
                 columns = [data[i::n] for i in range(n)]
                 try:
-                    widths = [max(len(f) if '\n' not in f else sys.maxsize for f in c) for c in columns]
-                except:
+                    widths = [max(len(f) if f[0] != '\n' else sys.maxsize for f in c) for c in columns]
+                except Exception:
                     bad_fixed_width = True
                 else:
                     bad_fixed_width = sys.maxsize in widths
