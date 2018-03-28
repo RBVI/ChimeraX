@@ -100,9 +100,10 @@ is_not_eol(char c)
 #else
 // icaseeqn:
 //	compare name in a case independent way to buf
-bool
+inline bool
 icaseeqn(const char* name, const char* buf, size_t len)
 {
+	// This only works for ASCII characters
 	for (size_t i = 0; i < len; ++i) {
 		if (name[i] == '\0' || buf[i] == '\0')
 			return name[i] == buf[i];
@@ -110,6 +111,14 @@ icaseeqn(const char* name, const char* buf, size_t len)
 			return false;
 	}
 	return true;
+}
+
+inline bool
+icaseeqn(const string& s0, const string& s1)
+{
+	if (s0.size() != s1.size())
+		return false;
+	return icaseeqn(s0.c_str(), s1.c_str());
 }
 
 // frequently, it is known that the first character already matches
@@ -198,8 +207,9 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 		for (auto& c: dep)
 			c = tolower(c);
 	}
-#define category cname
-#define dependencies deps
+#else
+	const string& cname = category;
+	const StringVector& deps = dependencies;
 #endif
 
 	for (auto& dep: dependencies) {
@@ -212,8 +222,8 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 	}
 	if (callback) {
 		categoryOrder.push_back(category);
-		categories.emplace(category,
-				   CategoryInfo(callback, dependencies));
+		categories.emplace(cname,
+			   CategoryInfo(category, callback, deps));
 	} else {
 		// TODO: find category in categoryOrder
 		// make sure none of the later categories depend on it
@@ -221,15 +231,18 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 		categories.erase(category);
 	}
 }
-#ifdef CASE_INSENSITIVE
-#undef category
-#undef dependencies
-#endif
 
 void
 CIFFile::set_PDBx_fixed_width_columns(const std::string& category)
 {
-	use_fixed_width_columns.insert(category);
+#ifdef CASE_INSENSITIVE
+	string c(category);
+	for (auto& c: current_category)
+		c = tolower(c);
+#else
+	const string& c = category;
+#endif
+	use_fixed_width_columns.insert(c);
 }
 
 #ifdef _WIN32
@@ -440,16 +453,33 @@ CIFFile::internal_parse(bool one_table)
 			size_t sep = cv.find('.');
 			DDL_v2 = (sep != string::npos);
 			if (DDL_v2) {
+#ifndef CASE_INSENSITIVE
 				current_category = cv.substr(0, sep);
+#else
+				current_category_cp = cv.substr(0, sep);
+				current_category = current_category_cp;
+				for (auto& c: current_category)
+					c = tolower(c);
+#endif
 				cii = categories.find(current_category);
 			} else {
 				cii = categories.end();
+#ifndef CASE_INSENSITIVE
 				current_category = cv;
+#else
+				current_category_cp = cv;
+				current_category = current_category_cp;
+				for (auto& c: current_category)
+					c = tolower(c);
+#endif
 				for (;;) {
 					sep = current_category.rfind('_');
 					if (sep == string::npos)
 						break;
 					current_category.resize(sep);
+#ifdef CASE_INSENSITIVE
+					current_category_cp.resize(sep);
+#endif
 					cii = categories.find(current_category);
 					if (cii != categories.end()) {
 						// if already seen, then
@@ -475,21 +505,38 @@ CIFFile::internal_parse(bool one_table)
 				}
 			}
 			if (save_values) {
-				current_colnames.push_back(cv.substr(
+				string colname(cv.substr(
 					current_category.size() + 1));
+#ifdef CASE_INSENSITIVE
+				current_colnames_cp.push_back(colname);
+				for (auto& c: colname)
+					c = tolower(c);
+#endif
+				current_colnames.emplace_back(colname);
 			}
 			next_token();
 			while (current_token == T_TAG) {
 				size_t clen = current_category.size();
 				cv = current_value();
 				string category = cv.substr(0, clen);
-				if (category != current_category
+				if (
+#ifdef CASE_INSENSITIVE
+				    category != current_category_cp
+#else
+				    category != current_category
+#endif
 				|| (DDL_v2 && cv[clen] != '.')
 				|| (!DDL_v2 && cv[clen] != '_'))
 					throw error("loop_ may only be for one category");
-				if (save_values)
-					current_colnames.push_back(
-							cv.substr(clen + 1));
+				if (save_values) {
+					string colname(cv.substr(clen + 1));
+#ifdef CASE_INSENSITIVE
+					current_colnames_cp.push_back(colname);
+					for (auto& c: colname)
+						c = tolower(c);
+#endif
+					current_colnames.emplace_back(colname);
+				}
 				next_token();
 			}
 			if (save_values) {
@@ -503,6 +550,7 @@ CIFFile::internal_parse(bool one_table)
 				fixed = false;
 				current_category.clear();
 				current_colnames.clear();
+				current_colnames_cp.clear();
 				values.clear();
 				save_values = false;
 			}
@@ -552,19 +600,38 @@ CIFFile::internal_parse(bool one_table)
 			DDL_v2 = (sep != string::npos);
 			for (;;) {
 				string category;
+#ifdef CASE_INSENSITIVE
+				string category_cp;
+#endif
 				if (DDL_v2) {
 					category = cv.substr(0, sep);
+#ifdef CASE_INSENSITIVE
+					category_cp = category;
+					for (auto& c: category)
+						c = tolower(c);
+#endif
 				} else {
 					category = cv;
+#ifdef CASE_INSENSITIVE
+					category_cp = category;
+					for (auto& c: category)
+						c = tolower(c);
+#endif
 					sep = current_category.size();
 					if (category.substr(0, sep) == current_category
-					&& category[sep] == '_')
+					&& category[sep] == '_') {
 						category = current_category;
-					else for (;;) {
+#ifdef CASE_INSENSITIVE
+						category_cp = current_category_cp;
+#endif
+					} else for (;;) {
 						sep = category.rfind('_');
 						if (sep == string::npos)
 							break;
 						category.resize(sep);
+#ifdef CASE_INSENSITIVE
+						category_cp.resize(sep);
+#endif
 						if (categories.find(category)
 								!= categories.end()) {
 							// if already seen, then
@@ -591,6 +658,7 @@ CIFFile::internal_parse(bool one_table)
 						fixed = false;
 						//current_category.clear();
 						current_colnames.clear();
+						current_colnames_cp.clear();
 						values.clear();
 						save_values = false;
 					}
@@ -600,6 +668,9 @@ CIFFile::internal_parse(bool one_table)
 						return;
 					}
 					current_category = category;
+#ifdef CASE_INSENSITIVE
+					current_category_cp = category_cp;
+#endif
 					cii = categories.find(current_category);
 					save_values = cii != categories.end();
 					if (!save_values && unregistered)
@@ -615,12 +686,25 @@ CIFFile::internal_parse(bool one_table)
 						}
 					}
 					if (save_values) {
-						current_colnames.push_back(cv.substr(
+						string colname(cv.substr(
 							current_category.size() + 1));
+#ifdef CASE_INSENSITIVE
+						current_colnames_cp.push_back(colname);
+						for (auto& c: colname)
+							c = tolower(c);
+#endif
+						current_colnames.emplace_back(colname);
 					}
-				} else if (save_values)
-					current_colnames.push_back(cv.substr(
+				} else if (save_values) {
+					string colname(cv.substr(
 						current_category.size() + 1));
+#ifdef CASE_INSENSITIVE
+					current_colnames_cp.push_back(colname);
+					for (auto& c: colname)
+						c = tolower(c);
+#endif
+					current_colnames.emplace_back(colname);
+				}
 				next_token();
 				if (current_token != T_VALUE)
 					throw error("expected data value after data name");
@@ -647,6 +731,7 @@ CIFFile::internal_parse(bool one_table)
 				fixed = false;
 				current_category.clear();
 				current_colnames.clear();
+				current_colnames_cp.clear();
 				values.clear();
 				save_values = false;
 			}
@@ -681,6 +766,7 @@ CIFFile::internal_reset_parse()
 	current_data_block.clear();
 	current_category.clear();
 	current_colnames.clear();
+	current_colnames_cp.clear();
 	values.clear();
 	in_loop = false;
 	first_row = false;
@@ -728,13 +814,7 @@ again:
 			++lineno;
 		}
 	}
-	switch (
-#ifdef CASE_INSENSITIVE
-		tolower(*pos)
-#else
-		*pos
-#endif
-	) {
+	switch (*pos) {
 	case '\0':
 		current_token = T_EOI;
 		return;
@@ -799,17 +879,15 @@ again:
 		for (e = pos + 1; is_not_whitespace(*e); ++e)
 			continue;
 		current_value_tmp = string(pos + 1, e - pos - 1);
-#ifdef CASE_INSENSITIVE
-		for (auto& c: current_value_tmp)
-			c = tolower(c);
-#endif
 		current_value_start = current_value_tmp.c_str();
 		current_value_end = current_value_start + current_value_tmp.size();
 		current_token = T_TAG;
 		pos = e;
 		return;
 	}
+#ifdef CASE_INSENSITIVE
 	case 'D':
+#endif
 	case 'd':
 		for (e = pos + 1; is_not_whitespace(*e); ++e)
 			continue;
@@ -821,7 +899,9 @@ again:
 			return;
 		}
 		goto data_value_e_set;
+#ifdef CASE_INSENSITIVE
 	case 'G':
+#endif
 	case 'g':
 		for (e = pos + 1; is_not_whitespace(*e); ++e)
 			continue;
@@ -831,7 +911,9 @@ again:
 			return;
 		}
 		goto data_value_e_set;
+#ifdef CASE_INSENSITIVE
 	case 'L':
+#endif
 	case 'l':
 		for (e = pos + 1; is_not_whitespace(*e); ++e)
 			continue;
@@ -841,7 +923,9 @@ again:
 			return;
 		}
 		goto data_value_e_set;
+#ifdef CASE_INSENSITIVE
 	case 'S':
+#endif
 	case 's':
 		for (e = pos + 1; is_not_whitespace(*e); ++e)
 			continue;
@@ -965,10 +1049,6 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 			for (e = pos + 1; is_not_whitespace(*e); ++e)
 				continue;
 			current_value_tmp = string(pos + 1, e - pos - 1);
-#ifdef CASE_INSENSITIVE
-			for (auto& c: current_value_tmp)
-				c = tolower(c);
-#endif
 			current_value_start = current_value_tmp.c_str();
 			current_value_end = current_value_start + current_value_tmp.size();
 			current_token = T_TAG;
@@ -1127,11 +1207,13 @@ CIFFile::parse_row(ParseValues& pv)
 				pvi->func1(current_value_start);
 		}
 		current_colnames.clear();
+		current_colnames_cp.clear();
 		values.clear();
 		return true;
 	}
 	if (current_token != T_VALUE) {
 		current_colnames.clear();
+		current_colnames_cp.clear();
 		return false;
 	}
 	if (pvi == pve) {
@@ -1254,6 +1336,7 @@ CIFFile::parse_whole_category()
 		// values were given per-tag
 		// assert(current_colnames.size() == values.size())
 		current_colnames.clear();
+		current_colnames_cp.clear();
 		return values;
 	}
 
@@ -1268,6 +1351,7 @@ CIFFile::parse_whole_category()
 	// assert(data.size() % current_colnames.size() == 0);
 
 	current_colnames.clear();
+	current_colnames_cp.clear();
 	return values;
 }
 
@@ -1290,6 +1374,7 @@ CIFFile::parse_whole_category(ParseValue2 func)
 			func(start, end);
 		}
 		current_colnames.clear();
+		current_colnames_cp.clear();
 		return;
 	}
 
@@ -1298,6 +1383,7 @@ CIFFile::parse_whole_category(ParseValue2 func)
 		next_token();
 	}
 	current_colnames.clear();
+	current_colnames_cp.clear();
 }
 
 void
