@@ -72,25 +72,11 @@ void PDB::parse_line(const char *buf)
                 atom.serial += 100000 * (r_type - ATOM);
                 r_type = ATOM;
             }
+            atom_serial_number = atom.serial;
             break;
         }
-        if (isupper(buf[6])) {
-            // possible weird base-36 number for large structures
-            atom_serial_number = 0;
-            for (int i = 6; i < 11; ++i) {
-                // for some unknown reason, if the variable 'c' is
-                // declared as char, the computed value is wrong!
-                int c = buf[i];
-                int val;
-                if (isupper(c))
-                    val = c - 'A' + 10;
-                else if (isdigit(c))
-                    val = c - '0';
-                else
-                    goto unknown;
-                atom_serial_number = 36 * atom_serial_number + val;
-            }
-        } else if (isdigit(buf[11])) {
+        // hybrid-36 numbers now handled intrinsically by 'd' format character
+        if (isdigit(buf[11])) {
             // serial numbers overflowing to the right?
             char altfmt[80];
             strcpy(altfmt, "%6 %6d%4s%c%4s%c%5d   %8f%8f%8f%6f%6f");
@@ -107,11 +93,12 @@ void PDB::parse_line(const char *buf)
                     atom.serial += 1000000 * (r_type - ATOM);
                     r_type = ATOM;
                 }
+                atom_serial_number = atom.serial;
                 break;
             }
         } else if (strncmp(&buf[6], "*****", 5) != 0)
             goto atomqr;
-        // handle atom serial number overflows (and base-36 numbers)
+        // handle atom serial number overflows
         char new_buf[BUF_LEN];
         strncpy(new_buf, buf, BUF_LEN);
         strncpy(&new_buf[6], "00000", 5);
@@ -123,7 +110,7 @@ void PDB::parse_line(const char *buf)
                 &atom.xyz[1], &atom.xyz[2], &atom.occupancy,
                 &atom.temp_factor, atom.seg_id,
                 atom.element, atom.charge)) {
-            atom.serial = atom_serial_number++;
+            atom.serial = ++atom_serial_number;
             break;
         }
 atomqr:
@@ -135,7 +122,7 @@ atomqr:
                 &atomqr.res.i_code, &atomqr.xyz[0],
                 &atomqr.xyz[1], &atomqr.xyz[2],
                 &atomqr.charge, &atomqr.radius)) {
-            atomqr.serial = atom_serial_number++;
+            atomqr.serial = ++atom_serial_number;
             r_type = ATOMQR;
             break;
         }
@@ -514,7 +501,6 @@ atomqr:
                 &sigatm.sig_xyz[1], &sigatm.sig_xyz[2],
                 &sigatm.sig_occ, &sigatm.sig_temp, &ftnote_num,
                 sigatm.seg_id, sigatm.element, sigatm.charge)) {
-            sigatm.serial = sigatm_serial_number++;
             break;
         }
         goto unknown;
@@ -617,6 +603,7 @@ atomqr:
                 ter.res.name, &ter.res.chain_id, &ter.res.seq_num,
                 &ter.res.i_code))
             goto unknown;
+        atom_serial_number = ter.serial;
         break;
     
     case TITLE:

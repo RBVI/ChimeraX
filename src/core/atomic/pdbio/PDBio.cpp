@@ -1208,11 +1208,11 @@ primes_to_asterisks(const char* orig_name)
 static void
 write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
     std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double* xform,
-    bool pqr, std::set<const Atom*>& written, std::map<const Residue*, int>& polymer_map)
+    bool pqr, bool h36, std::set<const Atom*>& written, std::map<const Residue*, int>& polymer_map)
 {
     Residue* prev_res = nullptr;
     bool prev_standard = false;
-    PDB p, p_ter;
+    PDB p(h36), p_ter(h36);
     bool need_ter = false;
     bool some_output = false;
     int serial = 0;
@@ -1537,9 +1537,9 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
 
 static void
 write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selected_only,
-    bool displayed_only, std::vector<double*>& xforms, bool all_coordsets, bool pqr)
+    bool displayed_only, std::vector<double*>& xforms, bool all_coordsets, bool pqr, bool h36)
 {
-    PDB p;
+    PDB p(h36);
     // non-selected/displayed atoms may not be written out, so we need to track what
     // was written so we know which CONECT records to output
     std::set<const Atom*> written;
@@ -1600,8 +1600,8 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
                     p.model.serial = ++out_model_num;
                 os << p << "\n";
             }
-            write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, pqr, written,
-                polymer_map);
+            write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, pqr, h36,
+                written, polymer_map);
             if (use_MODEL) {
                 p.set_type(PDB::ENDMDL);
                 os << p << "\n";
@@ -1662,6 +1662,11 @@ docstr_write_pdb_file =
 " (as multiple MODELS) or just the current coordset"
 " (default True = all coordsets)\n" \
 "'pqr' controls whether to write PQR-style ATOM records (default False)\n"
+"'h36' controls the handling of serial numbers of more than"
+" 5 digits (maximum supported by PDB standard).  If False, then the sixth"
+" column of ATOM records will be stolen for an additional digit (AMBER style), so up to"
+" 999,999 atoms.  If True, then hybrid-36 encoding will be used (see"
+" http://cci.lbl.gov/hybrid_36), so up to 87,440,031 atoms."
 "\n";
 
 extern "C" PyObject*
@@ -1674,13 +1679,14 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
     PyObject* py_xforms = Py_None;
     int all_coordsets = (int)true;
     int pqr = (int)false;
+    int h36 = (int)true;
     static const char *kw_list[] = {
         "structures", "file_name", "selected_only", "displayed_only", "xforms", "all_coordsets",
-        "pqr", nullptr
+        "pqr", "h36", nullptr
     };
-    if (!PyArg_ParseTupleAndKeywords(args, keywords, "OO&|$ppOpp",
+    if (!PyArg_ParseTupleAndKeywords(args, keywords, "OO&|$ppOppp",
             (char **) kw_list, &py_structures, PyUnicode_FSConverter, &py_path, &selected_only,
-            &displayed_only, &py_xforms, &all_coordsets, &pqr))
+            &displayed_only, &py_xforms, &all_coordsets, &pqr, &h36))
         return nullptr;
 
     if (!PySequence_Check(py_structures)) {
@@ -1753,7 +1759,7 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
         }
     }
     write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xforms,
-        (bool)all_coordsets, (bool)pqr);
+        (bool)all_coordsets, (bool)pqr, (bool)h36);
 
     if (os.bad()) {
         PyErr_SetString(PyExc_ValueError, "Problem writing output PDB file");
