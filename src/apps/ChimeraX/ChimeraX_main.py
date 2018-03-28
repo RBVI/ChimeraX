@@ -16,7 +16,7 @@ app_author = "UCSF"
 localized_app_name = {
     'af': u'ChimeraX',          # Afrikaans
     'cs': u'PřízrakX',          # Czech
-    'da': u'ChiemraX',          # Danish
+    'da': u'ChimeraX',          # Danish
     'de': u'ChimäreX',          # German
     'el': u'ΧίμαιραX',          # Greek
     'en': u'ChimeraX',          # English
