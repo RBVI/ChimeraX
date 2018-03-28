@@ -167,21 +167,23 @@ def find_clashes(session, test_atoms,
             clashes.setdefault(nb, {})[a] = clash
     return clashes
 
-negative = set(["N", "O", "S"])
+from chimerax.core.atomic import Element
+hyd = Element.get_element(1)
+negative = set([Element.get_element(sym) for sym in ["N", "O", "S"]])
 from chimerax.core.atomic.idatm import type_info
 def _donor(a):
-    if a.element.number == 1:
-        if a.neighbors and a.neighbors[0].element.name in negative:
+    if a.element == hyd:
+        if a.num_bonds > 0 and a.neighbors[0].element.name in negative:
             return True
-    elif a.element.name in negative:
+    elif a.element in negative:
         try:
-            if len(a.bonds) < type_info[a.idatm_type].substituents:
+            if a.num_bonds < type_info[a.idatm_type].substituents:
                 # implicit hydrogen
                 return True
         except KeyError:
             pass
         for nb in a.neighbors:
-            if nb.element.number == 1:
+            if nb.element == hyd:
                 return True
     return False
 

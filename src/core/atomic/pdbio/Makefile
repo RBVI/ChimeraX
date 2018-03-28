@@ -26,7 +26,7 @@ else
 LIBS += -latomstruct -lelement -lpyinstance -llogger -lpdb -larrays -llogger -lappdirs $(PYTHON_LIB)
 endif
 
-$(PYMOD): $(OBJS)
+$(PYMOD): $(OBJS) $(libdir)/libpdb.$(LIB_EXT)
 	$(PYMOD_LINK)
 
 install: $(PYMOD)

@@ -879,10 +879,8 @@ class MainWindow(QMainWindow, PlainTextLog):
 def _open_dropped_file(session, path):
     if not path:
         return
-    # Use quotes around path only if needed so log looks nice.
-    p = ('"%s"' % path) if ' ' in path or ';' in path else path
-    from chimerax.core.commands import run
-    run(session, 'open %s' % p)
+    from chimerax.core.commands import run, quote_if_necessary
+    run(session, 'open %s' % quote_if_necessary(p))
 
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):

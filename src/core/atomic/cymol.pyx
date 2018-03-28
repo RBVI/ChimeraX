@@ -43,6 +43,7 @@ cdef const char * _translate_struct_cat(cydecl.StructCat cat):
     raise ValueError("Unknown structure category")
 
 cdef class CyAtom:
+    '''Base class for Atom, and is present only for performance reasons.'''
     cdef cydecl.Atom *cpp_atom
     cdef cydecl.bool _deleted
 
@@ -95,20 +96,20 @@ cdef class CyAtom:
         return self.residue < other.residue
 
     def __str__(self):
-        '''Supported API.  Allow Atoms to be used directly in print() statements'''
+        "Supported API.  Allow Atoms to be used directly in print() statements"
         return self.string()
 
     # properties...
 
     @property
     def alt_loc(self):
-        '''Supported API. Alternate location indicator'''
+        "Supported API. Alternate location indicator"
         return chr(self.cpp_atom.alt_loc())
 
     @alt_loc.setter
     def alt_loc(self, loc):
-        '''For switching between existing alt locs;
-           use 'set_alt_loc' method for creating alt locs'''
+        "For switching between existing alt locs;"
+        " use 'set_alt_loc' method for creating alt locs"
         if len(loc) != 1:
             raise ValueError("Alt loc must be single character, not '%s'" % loc)
         self.cpp_atom.set_alt_loc(ord(loc[0]))
@@ -120,8 +121,8 @@ cdef class CyAtom:
 
     @property
     def aniso_u(self):
-        '''Supported API. Anisotropic temperature factors, returns 3x3 array of float or None.
-           Read only.'''
+        "Supported API. Anisotropic temperature factors,"
+        " returns 3x3 array of float or None.  Read only."
         c_arr = self.cpp_atom.aniso_u()
         if c_arr:
             arr = dereference(c_arr)
@@ -136,8 +137,8 @@ cdef class CyAtom:
 
     @property
     def aniso_u6(self):
-        '''Get anisotropic temperature factors as a 6 element float array
-        containing (u11, u22, u33, u12, u13, u23) or None.'''
+        "Get anisotropic temperature factors as a 6 element float array"
+        " containing (u11, u22, u33, u12, u13, u23) or None."
         c_arr = self.cpp_atom.aniso_u()
         if c_arr:
             return array(dereference(c_arr))
@@ -145,16 +146,16 @@ cdef class CyAtom:
 
     @aniso_u6.setter
     def aniso_u6(self, u6):
-        '''Set anisotropic temperature factors as a 6 element float array
-        representing the unique elements of the symmetrix matrix
-        containing (u11, u22, u33, u12, u13, u23).'''
+        "Set anisotropic temperature factors as a 6 element float array"
+        " representing the unique elements of the symmetrix matrix"
+        " containing (u11, u22, u33, u12, u13, u23)."
         if len(u6) != 6:
             raise ValueError("aniso_u6 array isn't length 6")
         self.cpp_atom.set_aniso_u(u6[0], u6[1], u6[2], u6[3], u6[4], u6[5])
 
     @property
     def bfactor(self):
-        '''Supported API. B-factor, floating point value.'''
+        "Supported API. B-factor, floating point value."
         return self.cpp_atom.bfactor()
 
     @bfactor.setter
@@ -163,8 +164,8 @@ cdef class CyAtom:
 
     @property
     def bonds(self):
-        '''Supported API. Bonds connected to this atom as a list of :py:class:`Bond` objects. '''
-        '''Read only.'''
+        "Supported API. Bonds connected to this atom"
+        " as a list of :py:class:`Bond` objects. Read only."
         # work around non-const-correct code by using temporary...
         bonds = self.cpp_atom.bonds()
         from . import Bond
@@ -172,7 +173,7 @@ cdef class CyAtom:
 
     @property
     def color(self):
-        '''Supported API. Color RGBA length 4 array. Values in range 0-255'''
+        "Supported API. Color RGBA length 4 sequence/array. Values in range 0-255"
         color = self.cpp_atom.color()
         return array([color.r, color.g, color.b, color.a])
 
@@ -186,9 +187,10 @@ cdef class CyAtom:
 
     @property
     def coord(self):
-        '''Supported API. Coordinates from the current coordinate set (or alt loc) as a
-        length 3 array, float values.  See get_coord method for other coordsets / alt locs.
-         See scene_coord for coordinates after rotations and translations.'''
+        "Supported API. Coordinates from the current coordinate set (or alt loc) as a"
+        " length 3 sequence/array, float values.  See get_coord method for other"
+        " coordsets / alt locs.  See scene_coord for coordinates after rotations and"
+        " translations."
         crd = self.cpp_atom.coord()
         return array((crd[0], crd[1], crd[2]))
 
@@ -202,7 +204,7 @@ cdef class CyAtom:
 
     @property
     def coord_index(self):
-        '''Supported API. Coordinate index of atom in coordinate set.'''
+        "Supported API. Coordinate index of atom in coordinate set."
         return self.cpp_atom.coord_index()
 
     @property
@@ -212,12 +214,12 @@ cdef class CyAtom:
 
     @property
     def deleted(self):
-        '''Supported API. Has the C++ side been deleted?'''
+        "Supported API. Has the C++ side been deleted?"
         return self._deleted
 
     @property
     def display(self):
-        '''Supported API. Whether to display the atom. Boolean value.'''
+        "Supported API. Whether to display the atom. Boolean value."
         return self.cpp_atom.display()
 
     @display.setter
@@ -252,9 +254,8 @@ cdef class CyAtom:
 
     @property
     def element(self):
-        '''="Supported API. :class:`Element` corresponding to the chemical element for the atom.'''
-        from . import Element
-        return Element.c_ptr_to_py_inst(<ptr_type>&self.cpp_atom.element())
+        "Supported API. :class:`Element` corresponding to the atom's chemical element"
+        return self.cpp_atom.element().py_instance(True)
 
     @property
     def hide(self):
@@ -289,13 +290,15 @@ cdef class CyAtom:
 
     @property
     def is_side_connector(self):
-        "Whether this atom is connects the side chain to the backbone e.g. CA/ribose. Read only."
+        "Whether this atom is connects the side chain to the backbone, e.g. CA/ribose."
+        " Read only."
         return self.cpp_atom.is_side_connector()
 
     @property
     def is_side_chain(self):
-        "Whether this atom is part of an amino/nucleic acid sidechain. Includes atoms needed to"
-        " connect to backbone (CA/ribose). is_side_only property excludes those. Read only."
+        "Whether this atom is part of an amino/nucleic acid sidechain."
+        " Includes atoms needed to connect to backbone (CA/ribose)."
+        " is_side_only property excludes those. Read only."
         return self.cpp_atom.is_side_chain(False)
 
     @property
@@ -307,7 +310,7 @@ cdef class CyAtom:
 
     @property
     def name(self):
-        '''Supported API. Atom name. Maximum length 4 characters.'''
+        "Supported API. Atom name. Maximum length 4 characters."
         return self.cpp_atom.name().decode()
 
     @name.setter
@@ -316,7 +319,8 @@ cdef class CyAtom:
 
     @property
     def neighbors(self):
-        "Supported API. :class:`.Atom`\\ s connnected to this atom directly by one bond. Read only."
+        "Supported API. :class:`.Atom`\\ s connnected to this atom directly by one bond."
+        " Read only."
         # work around Cython not always generating const-correct code
         tmp = <cydecl.vector[cydecl.Atom*]>self.cpp_atom.neighbors()
         return [nb.py_instance(True) for nb in tmp]
@@ -328,8 +332,8 @@ cdef class CyAtom:
 
     @property
     def num_explicit_bonds(self):
-        "Supported API. "
-        "Number of bonds and missing-structure pseudobonds connected to this atom. Read only."
+        "Supported API. Number of bonds and missing-structure pseudobonds"
+        " connected to this atom. Read only."
         return self.cpp_atom.num_explicit_bonds()
 
     @property
@@ -361,8 +365,8 @@ cdef class CyAtom:
 
     @property
     def scene_coord(self):
-        "Supported API. Atom center coordinates in the global scene coordinate system. "
-        "This accounts for the :class:`Drawing` positions for the hierarchy "
+        "Supported API. Atom center coordinates in the global scene coordinate system."
+        " This accounts for the :class:`Drawing` positions for the hierarchy "
         " of models this atom belongs to."
         return self.structure.scene_position * self.coord
 
@@ -410,36 +414,34 @@ cdef class CyAtom:
         return self.residue.atomspec() + '@' + self.name
 
     def clear_hide_bits(self, bit_mask):
-        '''Set the hide bits 'off' that are 'on' in "bitmask" and leave others unchanged.
-           Opposite of set_hide_bits()'''
+        '''Set the hide bits 'off' that are 'on' in "bitmask"'''
+        " and leave others unchanged. Opposite of set_hide_bits()"
         self.cpp_atom.clear_hide_bits(bit_mask)
 
     def connects_to(self, CyAtom atom):
-        '''Supported API. Whether this atom is directly bonded to a specified atom.'''
+        "Supported API. Whether this atom is directly bonded to a specified atom."
         return self.cpp_atom.connects_to(atom.cpp_atom)
 
     def delete(self):
-        '''Supported API. Delete this Atom from it's Structure'''
+        "Supported API. Delete this Atom from it's Structure"
         self.cpp_atom.structure().delete_atom(self.cpp_atom)
 
     def get_altloc_coord(self, loc):
-        "Supported API.  Like the 'coord' property, but uses the given altloc (character) "
-        "rather than the current altloc."
+        "Supported API.  Like the 'coord' property, but uses the given altloc"
+        " (character) rather than the current altloc."
         if self.has_alt_loc(loc):
             crd = self.cpp_atom.coord(ord(loc[0]))
             return array((crd[0], crd[1], crd[2]))
         raise ValueError("Atom %s has no altloc %s" % (self, loc))
 
     def get_altloc_scene_coord(self, loc):
-        '''Supported API.
-        Like the 'scene_coord' property, but uses the given altloc
-        (character) rather than the current altloc.
-        '''
+        "Supported API.  Like the 'scene_coord' property, but uses the given altloc"
+        " (character) rather than the current altloc."
         return self.structure.scene_position * self.get_altloc_coord(loc)
 
     def get_coordset_coord(self, cs_id):
-        "Supported API.  Like the 'coord' property, but uses the given coordset ID (integer) "
-        " rather than the current coordset."
+        "Supported API.  Like the 'coord' property, but uses the given coordset ID"
+        " (integer) rather than the current coordset."
         cdef cydecl.CoordSet* cs = self.cpp_atom.structure().find_coord_set(cs_id)
         if not cs:
             raise ValueError("No such coordset ID: %d" % cs_id)
@@ -447,32 +449,26 @@ cdef class CyAtom:
         return array((crd[0], crd[1], crd[2]))
 
     def get_coordset_scene_coord(self, cs_id):
-        '''Supported API.
-        Like the 'scene_coord' property, but uses the given coordset ID (integer)
-        rather than the current coordset.
-        '''
+        "Supported API.  Like the 'scene_coord' property, but uses the given coordset ID"
+        " (integer) rather than the current coordset."
         return self.structure.scene_position * self.get_coordset_coord(cs_id)
 
     def has_alt_loc(self, loc):
-        '''Supported API. Does this Atom have an alt loc with the given letter?'''
+        "Supported API. Does this Atom have an alt loc with the given letter?"
         if len(loc) != 1:
             raise ValueError("Alt loc must be single character, not '%s'" % loc)
         return self.cpp_atom.has_alt_loc(ord(loc[0]))
 
     def is_backbone(self, bb_extent=CyAtom.BBE_MAX):
-        '''Supported API. Whether this Atom is considered backbone, given the 'extent' criteria.
-
-        Possible 'extent' values are:
-
-        BBE_MIN
-            Only the atoms needed to connect the residue chain (and their hydrogens)
-
-        BBE_MAX
-            All non-sidechain atoms
-
-        BBE_RIBBON
-            The backbone atoms that a ribbon depiction hides
-        '''
+        "Supported API. Whether this Atom is considered backbone,"
+        " given the 'extent' criteria. "
+        "\n\nPossible 'extent' values are:\n\n"
+        "BBE_MIN\n"
+        "    Only the atoms needed to connect the residue chain (and their hydrogens)"
+        "BBE_MAX\n"
+        "    All non-sidechain atoms"
+        "BBE_RIBBON\n"
+        "    The backbone atoms that a ribbon depiction hides"
         return self.cpp_atom.is_backbone(<cydecl.BackboneExtent>bb_extent)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
@@ -510,12 +506,13 @@ cdef class CyAtom:
         self.cpp_atom.set_coord(cydecl.Point(xyz[0], xyz[1], xyz[2]), cs)
 
     def set_hide_bits(self, bit_mask):
-        '''Set the hide bits 'on' that are 'on' in "bitmask" and leave others unchanged.
-           Opposite of clear_hide_bits()'''
+        '''Set the hide bits 'on' that are 'on' in "bitmask"'''
+        " and leave others unchanged. Opposite of clear_hide_bits()"
         self.cpp_atom.set_hide_bits(bit_mask)
 
     def string(self, atom_only = False, style = None, relative_to=None):
-        '''Supported API.  Get text representation of Atom, and used by __str__ for printing'''
+        "Supported API.  Get text representation of Atom"
+        " (also used by __str__ for printing)"
         if style == None:
             from chimerax.core.core_settings import settings
             style = settings.atomspec_contents
@@ -545,8 +542,8 @@ cdef class CyAtom:
         return '%s %s' % (self.residue.string(style=style), atom_str)
 
     def use_default_radius(self):
-        '''Supported API.  If an atom's radius has previously been explicitly set, this call will
-        revert to using the default radius'''
+        "Supported API.  If an atom's radius has previously been explicitly set,"
+        " this call will revert it to using the default radius"
         self.cpp_atom.use_default_radius()
 
     # static methods...
@@ -610,33 +607,33 @@ cdef class Element:
 
     @property
     def is_alkali_metal(self):
-        '''Is atom an alkali metal?  Read only'''
+        "Supported API. Is atom an alkali metal?  Read only"
         return self.cpp_element.is_alkali_metal()
 
     @property
     def is_halogen(self):
-        '''Is atom a halogen?  Read only'''
+        "Supported API. Is atom a halogen?  Read only"
         return self.cpp_element.is_halogen()
 
     @property
     def is_metal(self):
-        '''Is atom a metal?  Read only'''
+        "Supported API. Is atom a metal?  Read only"
         return self.cpp_element.is_metal()
 
     @property
     def is_noble_gas(self):
-        '''Is atom a noble gas?  Read only'''
+        "Supported API. Is atom a noble gas?  Read only"
         return self.cpp_element.is_noble_gas()
 
     @property
     def mass(self):
-        '''Atomic mass, taken from
-        http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.  Read only.'''
+        "Supported API. Atomic mass, taken from"
+        " http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.  Read only."
         return self.cpp_element.mass()
 
     @property
     def name(self):
-        '''Atomic symbol.  Read only'''
+        "Supported API. Atomic symbol.  Read only"
         return self.cpp_element.name().decode()
 
     names = { sym.decode() for sym in cydecl.Element.names() }
@@ -644,12 +641,12 @@ cdef class Element:
 
     @property
     def number(self):
-        '''Atomic number.  Read only'''
+        "Supported API. Atomic number.  Read only"
         return self.cpp_element.number()
 
     @property
     def valence(self):
-        '''Electronic valence number, for example 7 for chlorine.  Read only'''
+        "Supported API. Electronic valence number, for example 7 for chlorine. Read only"
         return self.cpp_element.valence()
 
     def __str__(self):
@@ -663,9 +660,8 @@ cdef class Element:
 
     @staticmethod
     def bond_length(e1, e2):
-        '''Standard single-bond length between two elements
-
-        Arguments can be element instances, atomic numbers, or element names'''
+        "Supported API. Standard single-bond length between two elements."
+        " Arguments can be element instances, atomic numbers, or element names"
         if not isinstance(e1, Element):
             e1 = Element.get_element(e1)
         if not isinstance(e2, Element):
@@ -678,10 +674,9 @@ cdef class Element:
 
     @staticmethod
     def bond_radius(e):
-        '''Standard single-bond 'radius'
-        (the amount this element would contribute to bond length)
-
-        Argument can be an element instance, atomic number, or element name'''
+        "Supported API. Standard single-bond 'radius'"
+        " (the amount this element would contribute to bond length)."
+        " Argument can be an element instance, atomic number, or element name"
         if not isinstance(e, Element):
             e = Element.get_element(e)
         return Element._bond_radius(e.cpp_pointer)
@@ -704,6 +699,8 @@ cdef class Element:
 
     @staticmethod
     def get_element(ident):
+        "Supported API.  Given an atomic symbol or atomic number, return the"
+        " corresponding Element instance."
         cdef const cydecl.Element* ele_ptr
         if isinstance(ident, int):
             ele_ptr = Element._int_to_cpp_element(ident)
