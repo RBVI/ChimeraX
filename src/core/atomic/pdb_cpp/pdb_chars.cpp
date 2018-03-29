@@ -45,8 +45,11 @@ PDB::c_str(void) const
         break;
 
     case ATOM:
-        count = sprintf(buf,
-"ATOM %6d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %-4s%2s%-.2s",
+        if (_h36)
+            fmt = "ATOM  %5d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %-4s%2s%-.2s";
+        else
+            fmt = "ATOM %6d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %-4s%2s%-.2s";
+        count = sprintf(buf, fmt,
             atom.serial, atom.name, atom.alt_loc, atom.res.name,
             atom.res.chain_id, atom.res.seq_num, atom.res.i_code,
             atom.xyz[0], atom.xyz[1], atom.xyz[2], atom.occupancy,

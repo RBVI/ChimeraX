@@ -455,12 +455,12 @@ public:
 private:
     static int  input_version;
     static int  atom_serial_number;
-    static int  sigatm_serial_number;
     static int  byte_cmp(const PDB &l, const PDB &r);
+    static bool  _h36;
 public:
 
-            PDB() { set_standard_locale(); set_type(UNKNOWN); }
-            PDB(RecordType t) { set_standard_locale(); set_type(t); }
+            PDB(bool h36=true) { set_standard_locale(); set_type(UNKNOWN); _h36 = h36; }
+            PDB(RecordType t, bool h36=true) { set_standard_locale(); set_type(t); _h36 = h36; }
             PDB(const char *buf);
             ~PDB() { setlocale(LC_ALL, orig_locale); }
     RecordType  type() const { return r_type; }

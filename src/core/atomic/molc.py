@@ -202,7 +202,7 @@ class CFunctions:
             def set_prop(self, values):
                 n = len(self._pointer_array)
                 vdim = 1 if value_count == 1 else 2
-                if isinstance(values,ndarray) and values.ndim == vdim:
+                if isinstance(values,ndarray) and values.ndim == vdim and values.flags.c_contiguous:
                     # Values are already specified as a numpy array.
                     if len(values) != n:
                         raise ValueError('Values array length %d does not match objects array length %d'

@@ -42,6 +42,55 @@ static const int MAXFIELDSIZE = PDB::BUF_LEN;
 
 #define endbuf(buf) (*buf == '\0' || *buf == '\n' || *buf == '\r')
 
+static int
+ipow(int base, int exp)
+{
+    int val = 1;
+    while (exp-- > 0) {
+        val *= base;
+    }
+    return val;
+}
+
+static int
+h36_to_int(char *buf, char **end)
+{
+    char *orig_start = buf;
+    while (*buf == ' ') ++buf;
+    if (*buf >= '0' && *buf <= '9')
+        return strtol(orig_start, end, 10);
+
+    int field_width = 0;
+    int ret_val = 0;
+    while (*buf != '\0') {
+        // for some unknown reason, if the variable 'c' is
+        // declared as char, the computed value is wrong!
+        int c = *buf++;
+        ++field_width;
+        int val;
+        if (isupper(c))
+            val = c - 'A' + 10;
+        else if (isdigit(c))
+            val = c - '0';
+        else {
+            *end = nullptr;
+            return 0;
+        }
+        ret_val = 36 * ret_val + val;
+    }
+    if (field_width == 0) {
+        *end = nullptr;
+        return 0;
+    }
+    // To make 'A0...00' one more than '99..00'...
+    int target = ipow(10, field_width);
+    int Aval = 10 * ipow(36, field_width-1);
+    ret_val -= Aval;
+    ret_val += target;
+    *end = buf;
+    return ret_val; // to make A0000 come out as 100,000
+}
+
 int
 PDB::sscanf(const char *buffer, const char *fmt, ...)
 {
@@ -93,7 +142,10 @@ PDB::sscanf(const char *buffer, const char *fmt, ...)
             // remove trailing spaces
             while (s > tmp && isspace(*(s - 1)))
                 *--s = '\0';
-            *(va_arg(ap, int *)) = (int) strtol(tmp, &t, 10);
+            if (_h36)
+                *(va_arg(ap, int *)) = h36_to_int(tmp, &t);
+            else
+                *(va_arg(ap, int *)) = (int) strtol(tmp, &t, 10);
             if (t != s)
                 return -1;
             break;

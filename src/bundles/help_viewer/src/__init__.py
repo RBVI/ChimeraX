@@ -50,7 +50,10 @@ def show_url(session, url, *, new_tab=False, confirm=False):
         help_viewer.show(url, new_tab=new_tab, confirm=confirm)
     else:
         import webbrowser
-        webbrowser.open(url, new_tab=new_tab)
+        if new_tab:
+            webbrowser.open_new_tab(url)
+        else:
+            webbrowser.open(url)
 
 
 bundle_api = _MyAPI()

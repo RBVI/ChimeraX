@@ -185,6 +185,72 @@ description) must match the expected order for required arguments
     :language: python
     :linenos:
 
+:py:func:`cofm` is the function called from ``__init__.py`` when the
+user enters the ``cofm`` command.  It retrieves the array of atoms,
+their coordinates, and their center of mass by calling the internal
+function :py:func:`_get_cofm` and reports the result via
+:py:attr:`session.logger`, an instance of
+:py:class:`chimerax.core.logger.Logger`.
+
+:py:attr:`cofm_desc` contains the description of what arguments are
+required or allowed for the ``cofm`` command.  The details of its
+declaration are described in the comments in the example.
+
+:py:func:`highlight` is the function called from ``__init__.py`` when the
+user enters the ``highlight`` command.  Like :py:func:`cofm`, it retrieves
+the array of atoms, their coordinates, and their center of mass by
+calling :py:func:`_get_cofm`.  It then
+
+#. computes the distances from each atom to the center of mass
+   using Numpy (line 88),
+#. sorts the atom indices by distances so that indices of atoms that
+   are closer to the center of mass are towards the front of the
+   sort result (:code:`argsort(distances)`), and select the first
+   :code:`count` indices (line 94),
+#. turn the array of indices into an array of atoms (line 97),
+   and
+#. finally, set the color of the selected atoms (line 101).
+   The :py:attr:`colors` attribute of the atomic array is an
+   Nx4 array of integers, where N is the number of atoms and
+   the rows (of 4 elements) are the RGBA values for each atom.
+   The :code:`color` argument to :py:func:`highlight` is an instance
+   of :py:class:`chimera.core.colors.Color`, whose :py:meth:`uint8x4`
+   returns its RGBA value as an array of four (:code:`x4`) of
+   8-bit integers (:code:`uint8`).
+
+:py:func:`_get_cofm`, used by both :py:func:`cofm` and
+:py:func:`highlight`, is passed three arguments:
+
+- :code:`atoms`, the atoms specified by the user, if any.
+- :code:`transformed`, whether to retrieve transformed (scene) or
+  untransformed (original) coordinates.  Untransformed coordinates
+  can typically be used when only a single model is involved because
+  the atoms are fixed relative to each other.  Transformed coordinates
+  must be used when distances among multiple models are being computed
+  (*i.e.*, the models must all be in same coordinate system).
+- :code:`weighted`, whether to include atomic mass as part of the
+  center of mass computation.  Frequently, an unweighted average of
+  atomic coordinates, which is simpler and faster to compute, is
+  sufficient for qualitative analysis.
+
+If the user did not choose specific atoms (when :code:`atoms`
+is :code:`None`), the usual ChimeraX interpretation is that all
+atoms should be used (lines 123-125).
+:py:func:`chimerax.core.commands.atomspec.all_objects` returns
+an instance of `chimerax.core.objects.Object` that contains
+all open models in the current ChimeraX session, and whose
+:py:attr:`atoms` attribute is an array of atoms in the included
+models.  Transformed and untransformed coordinates are accessed
+using the :py:attr:`scene_coords` and :py:attr:`coords` attributes
+of the atom array, respectively (lines 132-135).  If atomic mass
+need not be included, the "center of mass" is simply the average
+of the coordinates (line 141); if a weighted calculation is required,
+(a) the atomic masses are retrieved by :code:`atoms.elements.masses`
+(line 143),
+(b) the coordinates are scaled by the corresponding atomic masses
+(line 144), and
+(c) the weighted average is computed (line 145).
+
 For performance, ChimeraX makes use of `NumPy`_ arrays in many contexts.
 The container for atoms is typically a
 :py:class:`chimerax.core.atomic.molarray.Collection`

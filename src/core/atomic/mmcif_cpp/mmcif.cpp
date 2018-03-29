@@ -324,6 +324,7 @@ const char* ExtractMolecule::builtin_categories[] = {
     "struct_sheet_order", "pdbx_struct_sheet_hbond",
 #endif
 };
+#define MIXED_CASE_BUILTIN_CATEGORIES 0
 
 std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
     out << k.chain_id << ':' << k.residue_name << '.' << k.position
@@ -394,7 +395,14 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         }, { "chem_comp" });
     // must be last:
     for (auto& c: generic_categories) {
-        if (std::find(std::begin(builtin_categories), std::end(builtin_categories), c) != std::end(builtin_categories)) {
+#if MIXED_CASE_BUILTIN_CATEGORIES==0
+        const string& category_ci = c;
+#else
+        string category_ci(c);
+        for (auto& c: category_ci)
+            c = tolower(c);
+#endif
+        if (std::find(std::begin(builtin_categories), std::end(builtin_categories), category_ci) != std::end(builtin_categories)) {
             logger::warning(_logger, "Can not overriden builtin parsing for "
                             "category: ", c);
             continue;
@@ -767,7 +775,7 @@ ExtractMolecule::finished_parse()
         chain_mapping.emplace_back(i.first);
         chain_mapping.emplace_back(i.second);
     }
-    generic_tables["struct_asym"] = { "id", "entity_id" };
+    generic_tables["struct_asym"] = { "struct_asym", "id", "entity_id" };
     generic_tables["struct_asym data"] = chain_mapping;
 
     // multiple molecules means there were multiple models,
@@ -851,9 +859,16 @@ ExtractMolecule::parse_generic_category()
 {
     const string& category = this->category();
     const StringVector& colnames = this->colnames();
-    generic_tables[category] = colnames;
+    string category_ci = category;
+    for (auto& c: category_ci)
+        c = tolower(c);
+    StringVector colinfo;
+    colinfo.reserve(colnames.size() + 1);
+    colinfo.push_back(category);
+    colinfo.insert(colinfo.end(), colnames.begin(), colnames.end());
+    generic_tables[category_ci] = colinfo;
     StringVector& data = parse_whole_category();
-    generic_tables[category + " data"].swap(data);
+    generic_tables[category_ci + " data"].swap(data);
 }
 
 void
@@ -918,7 +933,11 @@ ExtractMolecule::parse_chem_comp()
                 tr->description("nucleotide");
         }
     }
-    generic_tables["chem_comp"] = col_names;
+    StringVector colinfo;
+    colinfo.reserve(col_names.size() + 1);
+    colinfo.emplace_back("chem_comp");
+    colinfo.insert(colinfo.end(), col_names.begin(), col_names.end());
+    generic_tables["chem_comp"] = colinfo;
     generic_tables["chem_comp data"].swap(data);
 }
 
@@ -1419,7 +1438,6 @@ ExtractMolecule::parse_atom_site_anisotrop()
     }
 
     auto mol = all_residues.begin()->second.begin()->second->structure();
-    auto& atoms = mol->atoms();
     while (parse_row(pv)) {
         const auto& ai = atom_lookup.find(serial_num);
         if (ai == atom_lookup.end())

@@ -499,9 +499,9 @@ class IHMModel(Model):
                 'seq_id_begin',
                 'seq_id_end',
                 'asym_id',
-                'cartn_x',
-                'cartn_y',
-                'cartn_z',
+                'Cartn_x',
+                'Cartn_y',
+                'Cartn_z',
                 'object_radius',
                 'model_id']
             spheres = sost.fields(sos_fields)

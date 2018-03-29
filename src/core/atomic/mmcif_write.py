@@ -120,7 +120,7 @@ ChimeraX_citation = mmcif.MMCIFTable(
     (
         'id', 'title', 'journal_abbrev', 'journal_volume', 'year',
         'page_first', 'page_last',
-        'journal_issue', 'pdbx_database_id_pubmed', 'pdbx_database_id_doi'
+        'journal_issue', 'pdbx_database_id_PubMed', 'pdbx_database_id_DOI'
     ), [
         'chimerax',
         "UCSF ChimeraX: Meeting Modern Challenges in Visualization and Analysis",
@@ -132,7 +132,7 @@ ChimeraX_citation = mmcif.MMCIFTable(
         '1',
         '28710774',
         '10.1002/pro.3235',
-    ]
+    ],
 )
 
 ChimeraX_authors = mmcif.MMCIFTable(
@@ -154,40 +154,30 @@ _CHAIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 system = platform.system()
 if system == 'Darwin':
     system = 'macOS'  # TODO? Mac OS X (thru 10.7)/OS X thru 10.11/macOS
-    os_version = platform.mac_ver()[0]
-elif system == 'Linux':
-    system, os_version, _ = platform.dist()
-    if not system:
-        system = 'Linux'
-        os_version = platform.version()
-elif system == 'Windows':
-    os_version = platform.win32_ver()[1]
-else:
-    os_version = platform.version()
 ChimeraX_software_values = [
-    'chimerax',
-    'model building',
     '%s %s' % (app_dirs.appauthor, app_dirs.appname),
     "%s/%s" % (app_dirs.version, WRITER_VERSION),
+    'https://www.rbvi.ucsf.edu/chimerax/',
+    'model building',
     system,
-    os_version,
-    'other',
+    'package',
+    'chimerax',
     'ORIDINAL',
 ]
 ChimeraX_software = mmcif.MMCIFTable(
     "software",
     (
-        'citation_id',
-        'classification',
         'name',
         'version',
+        'location',
+        'classification',
         'os',
-        'os_version',
         'type',
+        'citation_id',
         'pdbx_ordinal',
     ), ChimeraX_software_values
 )
-del system, os_version
+del system
 
 
 def _mmcif_chain_id(i):
@@ -290,6 +280,7 @@ def save_structure(session, file, models, used_data_names):
     entity_info = {}    # { entity_id: (type, pdbx_description) }
     asym_info = {}      # { auth_chain_id: (entity_id, label_asym_id) }
     het_asym_info = {}  # { mmcif_chain_id: (entity_id, label_asym_id) }
+    poly_info = []      # [(entity_id, type, one-letter-seq)]
     poly_seq_info = []  # [(entity_id, num, mon_id)]
     residue_info = {}   # { residue: (label_asym_id, label_seq_id) }
     asym_id = 0
@@ -300,16 +291,6 @@ def save_structure(session, file, models, used_data_names):
         if chars in seq_entities:
             eid = seq_entities[chars]
         else:
-            # _1to3 is reverse map to handle missing residues
-            if c.polymer_type == Residue.PT_AMINO:
-                _1to3 = _protein1to3
-            else:
-                # figure out if DNA
-                names = set(c.existing_residues.names)
-                if names.isdisjoint(set(_dna1to3)):
-                    _1to3 = _rna1to3
-                else:
-                    _1to3 = _dna1to3
             mcid = c.existing_residues[0].mmcif_chain_id
             try:
                 descrip = old_entity_to_description[old_mmcif_chain_to_entity[mcid]]
@@ -318,6 +299,19 @@ def save_structure(session, file, models, used_data_names):
             eid = len(entity_info) + 1
             entity_info[eid] = ('polymer', descrip)
             seq_entities[chars] = eid
+            # _1to3 is reverse map to handle missing residues
+            if c.polymer_type == Residue.PT_AMINO:
+                _1to3 = _protein1to3
+                poly_info.append((eid, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
+            else:
+                # figure out if DNA
+                names = set(c.existing_residues.names)
+                if names.isdisjoint(set(_dna1to3)):
+                    _1to3 = _rna1to3
+                    poly_info.append((eid, 'polydeoxyribonucleotide', chars))
+                else:
+                    _1to3 = _dna1to3
+                    poly_info.append((eid, 'polyribonucleotide', chars))
             for seq_id, ch, r in zip(range(1, sys.maxsize), chars, c.residues):
                 label_seq_id = str(seq_id)
                 if r:
@@ -339,15 +333,15 @@ def save_structure(session, file, models, used_data_names):
             eid = het_entities[n]['entity']
         else:
             if n == 'HOH':
-                type = 'water'
+                etype = 'water'
             else:
-                type = 'non-polymer'
+                etype = 'non-polymer'
             try:
                 descrip = old_entity_to_description[old_mmcif_chain_to_entity[mcid]]
             except KeyError:
                 descrip = '?'
             eid = len(entity_info) + 1
-            entity_info[eid] = (type, descrip)
+            entity_info[eid] = (etype, descrip)
             het_entities[n] = {'entity': eid}
         if mcid in het_entities[n]:
             continue
@@ -358,6 +352,8 @@ def save_structure(session, file, models, used_data_names):
 
     entity = mmcif.MMCIFTable('entity', ['id', 'type', 'pdbx_description'], flattened(entity_info.items()))
     entity.print(file, fixed_width=True)
+    entity_poly = mmcif.MMCIFTable('entity_poly', ['entity_id', 'type', 'pdbx_seq_one_letter_code_can'], flattened(poly_info))
+    entity_poly.print(file, fixed_width=True)
     entity_poly_seq = mmcif.MMCIFTable('entity_poly_seq', ['entity_id', 'num', 'mon_id'], flattened(poly_seq_info))
     entity_poly_seq.print(file, fixed_width=True)
     import itertools
@@ -366,6 +362,13 @@ def save_structure(session, file, models, used_data_names):
         flattened(itertools.chain(asym_info.values(), het_asym_info.values())))
     struct_asym.print(file, fixed_width=True)
     del entity, entity_poly_seq, struct_asym
+
+    elements = list(set(best_m.atoms.elements))
+    elements.sort(key=lambda e: e.number)
+    atom_type_data = [e.name for e in elements]
+    atom_type = mmcif.MMCIFTable("atom_type", ["symbol"], atom_type_data)
+    atom_type.print(file, fixed_width=True)
+    del atom_type_data, atom_type
 
     atom_site_data = []
     atom_site = mmcif.MMCIFTable("atom_site", [
@@ -411,7 +414,7 @@ def save_structure(session, file, models, used_data_names):
                     entity_id, seq_id, *xyz, cid, rnum, rins, occ, bfact,
                     model_num))
                 u6 = atom.aniso_u6
-                if u6 is not None:
+                if u6 is not None and len(u6) > 0:
                     u6 = ['%.4f' % f for f in u6]
                     atom_site_anisotrop_data.append((serial_num, elem, u6))
             if alt_loc is not '.':
@@ -611,7 +614,7 @@ def save_structure(session, file, models, used_data_names):
         "id"
     ], struct_conf_type_data)
 
-    def struct_conf_entry(id, type, beg_res, end_res):
+    def struct_conf_entry(id, ctype, beg_res, end_res):
         beg_asym, beg_seq = residue_info[beg_res]
         end_asym, end_seq = residue_info[end_res]
         beg_cid = beg_res.chain_id
@@ -629,7 +632,7 @@ def save_structure(session, file, models, used_data_names):
         if not end_rins:
             end_rins = '?'
         struct_conf_data.append((
-            id, type,
+            id, ctype,
             beg_res.name, beg_asym, beg_seq,
             end_res.name, end_asym, end_seq,
             beg_cid, beg_rnum, beg_rins,
@@ -754,12 +757,12 @@ def save_components(model, file):
             names = residues.names.tolist()
         r = residues[names.index(n)]
         if r.polymer_type == r.PT_AMINO:
-            type = 'peptide linking'
+            rtype = 'peptide linking'
         elif r.polymer_type == r.PT_NUCLEIC:
-            type = 'rna linking'
+            rtype = 'rna linking'
         else:
-            type = 'non-polymer'
-        new_values.append(type)
+            rtype = 'non-polymer'
+        new_values.append(rtype)
         if has_name:
             new_values.append('?')
 
