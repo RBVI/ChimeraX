@@ -128,7 +128,7 @@ class Bond(State):
         doc = "Supported API. "
         "Two-tuple of :py:class:`Atom` objects that are the bond end points.")
     color = c_property('bond_color', uint8, 4, doc =
-        "Supported API. Color RGBA length 4 numpy uint8 array.")
+        "Supported API. Color RGBA length 4 sequence/array. Values in range 0-255")
     display = c_property('bond_display', npy_bool, doc =
         "Supported API.  Whether to display the bond if both atoms are shown. "
         "Can be overriden by the hide attribute.")
@@ -164,8 +164,7 @@ class Bond(State):
         "Supported API. Bond length. Read only.")
 
     def other_atom(self, atom):
-        "Supported API. Return the :class:`Atom` at the other end of this bond opposite"
-        " the specified atom."
+        "Supported API. 'atom' should be one of the atoms in the bond.  Return the other atom."
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
         o = f(self._c_pointer, atom._c_pointer)
         return Atom.c_ptr_to_py_inst(o)
@@ -243,7 +242,7 @@ class Bond(State):
 #
 class Pseudobond(State):
     '''
-    A Pseudobond is a graphical line between atoms for example depicting a distance
+    A Pseudobond is a graphical line between atoms, for example depicting a distance
     or a gap in an amino acid chain, often shown as a dotted or dashed line.
     Pseudobonds can join atoms belonging to different :class:`.AtomicStructure`\\ s
     which is not possible with a :class:`Bond`\\ .
@@ -270,28 +269,24 @@ class Pseudobond(State):
     __str__ = Bond.__str__
     string = Bond.string
 
-    atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
-    '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
-    color = c_property('pseudobond_color', uint8, 4)
-    '''Color RGBA length 4 numpy uint8 array.'''
-    display = c_property('pseudobond_display', npy_bool)
-    '''
-    Whether to display the bond if both atoms are shown.
-    Can be overriden by the hide attribute.
-    '''
-    group = c_property('pseudobond_group', cptr, astype = _pseudobond_group, read_only = True)
-    ''':py:class:`.pbgroup.PseudobondGroup` that this pseudobond belongs to'''
-    halfbond = c_property('pseudobond_halfbond', npy_bool)
-    '''
-    Whether to color the each half of the bond nearest an end atom to match that atom
-    color, or use a single color and the bond color attribute.  Boolean value.
-    '''
-    radius = c_property('pseudobond_radius', float32)
-    '''Displayed cylinder radius for the bond.'''
-    selected = c_property('pseudobond_selected', npy_bool)
-    '''Whether the pseudobond is selected.'''
-    shown = c_property('pseudobond_shown', npy_bool, read_only = True)
-    '''Whether bond is visible and both atoms are shown. Read only.'''
+    atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True,
+        doc = "Supported API. Two-tuple of :py:class:`Atom` objects that are the bond end points.")
+    color = c_property('pseudobond_color', uint8, 4,
+        doc = "Supported API. Color RGBA length 4 sequence/array. Values in range 0-255")
+    display = c_property('pseudobond_display', npy_bool, doc =
+        "Whether to display the bond if both atoms are shown. "
+        "Can be overriden by the hide attribute.")
+    group = c_property('pseudobond_group', cptr, astype = _pseudobond_group, read_only = True,
+        doc = "Supported API. :py:class:`.pbgroup.PseudobondGroup` that this pseudobond belongs to")
+    halfbond = c_property('pseudobond_halfbond', npy_bool, doc =
+        "Supported API. Whether to color the each half of the bond nearest an end atom to match "
+        " that atom color, or use a single color and the bond color attribute.  Boolean value.")
+    radius = c_property('pseudobond_radius', float32, doc =
+        "Displayed cylinder radius for the bond.")
+    selected = c_property('pseudobond_selected', npy_bool, doc =
+        "Supported API. Whether the pseudobond is selected.")
+    shown = c_property('pseudobond_shown', npy_bool, read_only = True, doc =
+        "Supported API. Whether bond is visible and both atoms are shown. Read only.")
     shown_when_atoms_hidden = c_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
     '''Normally, whether a pseudbond is shown only depends on the endpoint atoms' 'display'
     attribute and not on those atoms' 'hide' attribute, on the theory that the hide bits
@@ -302,21 +297,20 @@ class Pseudobond(State):
     the 'display' attribute when the atoms aren't hidden.  Defaults to True.''')
 
     def delete(self):
-        '''Delete this pseudobond from it's group'''
+        "Supported API. Delete this pseudobond from it's group"
         f = c_function('pseudobond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
 
     @property
     def length(self):
-        '''Distance between centers of two bond end point atoms.'''
+        "Supported API. Distance between centers of two bond end point atoms."
         a1, a2 = self.atoms
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
         return sqrt((v*v).sum())
 
     def other_atom(self, atom):
-        '''Return the :class:`Atom` at the other end of this bond opposite
-        the specified atom.'''
+        "Supported API. 'atom' should be one of the atoms in the bond.  Return the other atom."
         a1,a2 = self.atoms
         return a2 if atom is a1 else a1
 
