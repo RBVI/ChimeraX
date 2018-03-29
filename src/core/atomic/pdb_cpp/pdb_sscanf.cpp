@@ -57,7 +57,7 @@ h36_to_int(char *buf, char **end)
 {
     char *orig_start = buf;
     while (*buf == ' ') ++buf;
-    if (*buf >= '0' and *buf <= '9')
+    if (*buf >= '0' && *buf <= '9')
         return strtol(orig_start, end, 10);
 
     int field_width = 0;
