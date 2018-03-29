@@ -326,6 +326,11 @@ cdef class CyAtom:
         return [nb.py_instance(True) for nb in tmp]
 
     @property
+    def num_alt_locs(self):
+        "Number of alternate locations for this atom. Read only."
+        return self.cpp_atom.alt_loc().size()
+
+    @property
     def num_bonds(self):
         "Supported API. Number of bonds connected to this atom. Read only."
         return self.cpp_atom.bonds().size()
