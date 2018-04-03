@@ -210,7 +210,7 @@ atomqr:
 
     case DBREF2:
         if (0 > sscanf(buf,
-                "%7 %4s %c     %22s    %10d   %10d",
+                "%7 %4s %c     %22s     %10d  %10d",
                 dbref2.id_code, &dbref2.chain_id,
                 dbref2.db_accession,
                 &dbref2.seq_begin, &dbref2.seq_end))

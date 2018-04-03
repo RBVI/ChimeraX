@@ -26,8 +26,8 @@ FundingSources = ["NIH",
                   "EMBO",
                   "Wellcome Trust",
                   "other"]
-#RegistrationURL = "https://www.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
-RegistrationURL = "https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
+RegistrationURL = "https://www.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
+#RegistrationURL = "https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
 DiscussionURL = "https://www.rbvi.ucsf.edu/mailman/subscribe/chimerax-users"
 AnnouncementsURL = "https://www.rbvi.ucsf.edu/mailman/subscribe/chimerax-announce"
 ThankYou = """Thank you for registering your copy of ChimeraX.
@@ -41,7 +41,7 @@ individual data will be released."""
 
 def register(session, name, email, organization=None,
              research=None, research_other="",
-             funding=None, funding_other="",
+             funding=None, funding_other="", comment=None,
              join_discussion=False, join_announcements=True):
     from chimerax.core.errors import UserError
     from .nag import check_registration
@@ -57,6 +57,7 @@ def register(session, name, email, organization=None,
     research_other = research_other.strip()
     funding = [f.strip() for f in funding] if funding is not None else []
     funding_other = funding_other.strip()
+    comment = comment.strip() if comment is not None else ""
     # Do some error checking
     if not name:
         raise UserError('"Name" field cannot be empty')
@@ -72,12 +73,12 @@ def register(session, name, email, organization=None,
     # Get registration from server
     registration = _get_registration(name, email, organization,
                                      research, research_other,
-                                     funding, funding_other)
+                                     funding, funding_other, comment)
     from .nag import install
     if not install(session, registration):
         # Do not join mailing lists if we cannot install registration data
         return
-    session.logger.info(ThankYou)
+    session.logger.info(ThankYou, is_html=True)
 
     # Register for mailing lists
     if join_discussion:
@@ -86,13 +87,13 @@ def register(session, name, email, organization=None,
         _subscribe(session, "announcements", AnnouncementsURL, name, email)
 
 
-def register_status(session, verbose=False):
+def registration_status(session, verbose=False):
     from .nag import report_status
     report_status(session.logger, verbose)
 
 
 def _get_registration(name, email, organization, research, research_other,
-                      funding, funding_other):
+                      funding, funding_other, comment):
     from urllib.parse import urlencode
     from urllib.request import urlopen
     from xml.dom import minidom
@@ -114,6 +115,8 @@ def _get_registration(name, email, organization, research, research_other,
         params.append(("funding", f))
     if "other" in funding:
         params.append(("funding_other", funding_other))
+    if comment:
+        params.append(("comment", comment))
     with urlopen(RegistrationURL, urlencode(params).encode()) as f:
         text = f.read()
     try:
@@ -170,8 +173,9 @@ register_desc = CmdDesc(keyword=[("name", StringArg),
                                  ("research_other", StringArg),
                                  ("funding", ListOf(EnumOf(FundingSources))),
                                  ("funding_other", StringArg),
+                                 ("comment", StringArg),
                                  ("join_discussion", BoolArg),
                                  ("join_announcements", BoolArg)],
                         required_arguments=["name", "email"])
 
-register_status_desc = CmdDesc(keyword=[("verbose", NoArg)])
+registration_status_desc = CmdDesc(keyword=[("verbose", NoArg)])
