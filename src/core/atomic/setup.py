@@ -36,7 +36,7 @@ build_dir = os.path.split(os.path.split(sys.executable)[0])[0]
 include_path = os.path.join(build_dir, "include")
 lib_path = os.path.join(build_dir, "lib")
 
-ext = Extension("cymol", ["cymol.pyx"],
+ext = Extension("chimerax.core.atomic.cymol", ["cymol.pyx"],
     include_dirs=[include_path, numpy.get_include()],
     extra_compile_args=extra_compile_args,
     libraries=libraries,

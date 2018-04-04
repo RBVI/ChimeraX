@@ -1,4 +1,4 @@
-// vi: set expandtab ts=4 sw-4:
+// vi: set expandtab ts=4 sw=4:
 
 /*
  * === UCSF ChimeraX Copyright ===
@@ -32,9 +32,19 @@ e_out(int width, char *where)
 	return where;
 }
 
+static int
+ipow(int base, int exp)
+{
+    int val = 1;
+    while (exp-- > 0) {
+        val *= base;
+    }
+    return val;
+}
+
 static char *
 outint(int value, int width, int radix, char fill_char, char hex,
-					bool left_justify, char *p, char zero)
+					bool left_justify, char *p, char zero, bool h36)
 {
 	char	*s;
 	int	n;
@@ -45,18 +55,38 @@ outint(int value, int width, int radix, char fill_char, char hex,
 		value = -value;
 		--width;
 	}
+    int orig_val = value;
 	s = scratch;
-	if (value)
-		do {
-			n = value % radix;
-			*s++ = n < 10 ? '0' + n : hex + n - 10;
-			value /= radix;
-		} while (value);
-	else
-		*s++ = zero;
+    {
+        if (value)
+            do {
+                n = value % radix;
+                *s++ = n < 10 ? '0' + n : hex + n - 10;
+                value /= radix;
+            } while (value);
+        else
+            *s++ = zero;
+    }
 	n = s - scratch;
-	if (width != -1 && n > width)
-		return e_out(width + negative, p);
+	if (width != -1 && n > width) {
+        if (h36) {
+            // decimal representation overflows field width; use hybrid36
+            s = scratch;
+            // adjust the target value so that the first hybrid value (A0..00)
+            // is one more than the last non-overflow decimal value
+            int firstOver = ipow(10, width);
+            int firstA = 10 * ipow(36, width-1);
+            int target_value = orig_val - firstOver + firstA;
+            do {
+                n = target_value % 36;
+                *s++ = n < 10 ? '0' + n : 'A' + n - 10;
+                target_value /= 36;
+            } while (target_value);
+            if (s - scratch > width)
+                return e_out(width + negative, p);
+        } else
+            return e_out(width + negative, p);
+    }
 
 	if (negative && fill_char == '0')
 		*p++ = '-';
@@ -327,7 +357,7 @@ PDB::sprintf(char *outbuf, const char *fmt, ...)
 			  case 'D':
 				inum = va_arg(argv, int);
 				p = outint(inum, field1, 10, fill_char, 'a',
-					left_justify, p, (*f == 'D') ? ' ':'0');
+					left_justify, p, (*f == 'D') ? ' ':'0', _h36);
 				break;
 			  case 'e':
 				fnum = va_arg(argv, double);
@@ -347,7 +377,7 @@ PDB::sprintf(char *outbuf, const char *fmt, ...)
 			  case 'o':
 				inum = va_arg(argv, int);
 				p = outint(inum, field1, 8, fill_char, 'a',
-					left_justify, p, '0');
+					left_justify, p, '0', false);
 				break;
 			  case 's':
 				p = outstr(va_arg(argv, char *), field1,
@@ -361,12 +391,12 @@ PDB::sprintf(char *outbuf, const char *fmt, ...)
 			  case 'x':
 				inum = va_arg(argv, int);
 				p = outint(inum, field1, 16, fill_char, 'a',
-					left_justify, p, '0');
+					left_justify, p, '0', false);
 				break;
 			  case 'X':
 				inum = va_arg(argv, int);
 				p = outint(inum, field1, 16, fill_char, 'A',
-					left_justify, p, '0');
+					left_justify, p, '0', false);
 				break;
 			  default:
 				if (left_justify)

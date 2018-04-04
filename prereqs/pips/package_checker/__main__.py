@@ -3,17 +3,16 @@
 
 Comments = {
     "blockdiag": "required by Sphinx",
-    "Cython": "required by pytables",
     "docutils": "required by Sphinx",
     "filelock": "",
     "flake8": "used for Python lint",
+    "grako": "3.16.5 is the last version that works for ChimeraX"
     "Jinja2": "required by Sphinx",
     "mccabe": "required by flake8",
     "numpydoc": "required for Sphinx",
     "pep8-naming": "required by flake8",
     "pyflakes": "required by flake8",
     "Pygments": "required by Sphinx",
-    "python-dateutil": "required by pycollada",
     "sip": "used by PyQt",
     "Sphinx": "used by docs",
     "webcolors": "required by blockdiag",

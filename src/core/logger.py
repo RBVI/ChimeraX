@@ -649,7 +649,9 @@ class _EarlyCollator(CollatingLog):
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
-    from bs4 import BeautifulSoup
-    # return BeautifulSoup(html).get_text() -- loses line breaks
-    bs = BeautifulSoup(html, 'html.parser')
-    return bs.get_text('\n', strip=True) + '\n'
+    import io
+    from lxml import etree
+    parser = etree.HTMLParser()
+    tree = etree.parse(io.StringIO(html), parser)
+    t = ' '.join(node.text for node in tree.iter() if node.text is not None)
+    return t.strip() + '\n'
