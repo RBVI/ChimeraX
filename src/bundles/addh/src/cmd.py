@@ -117,15 +117,19 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
         coordinations, fake_N, fake_C = \
         _prep_add(session, structures, unknowns_info, **prot_schemes)
     _make_shared_data(session, structures, in_isolation)
+    from chimerax.atomic import Atom
     invert_xforms = {}
     for atom in atoms:
         if atom not in type_info_for_atom:
             continue
         bonding_info = type_info_for_atom[atom]
-        try:
-            invert = invert_xforms[atom.structure]
-        except KeyError:
-            invert_xforms[atom.structure] = invert = atom.structure.scene_position.inverse()
+        if Atom._addh_coord == Atom.coord:
+            invert = None
+        else:
+            try:
+                invert = invert_xforms[atom.structure]
+            except KeyError:
+                invert_xforms[atom.structure] = invert = atom.structure.scene_position.inverse()
 
         add_hydrogens(atom, bonding_info, (naming_schemas[atom.residue],
             naming_schemas[atom.structure]), hydrogen_totals[atom],
@@ -152,8 +156,8 @@ def hbond_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fals
         coordinations, fake_N, fake_C = \
         _prep_add(session, structures, unknowns_info, **prot_schemes)
     _make_shared_data(session, structures, in_isolation)
-    add_hydrogens(atoms, naming_schemas, hydrogen_totals, idatm_type, his_Ns,
-        coordinations, in_isolation)
+    add_hydrogens(session, atoms, type_info_for_atom, naming_schemas, hydrogen_totals,
+        idatm_type, his_Ns, coordinations, in_isolation)
     post_add(session, fake_N, fake_C)
     _delete_shared_data()
 
@@ -768,6 +772,35 @@ def bond_with_H_length(heavy, geom):
     elif element == "S":
         return 1.336
     return Element.bond_length(heavy.element, Element.get_element(1))
+
+def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogens, naming_schema):
+    added_hs = []
+    for alt_loc, occupancy, positions in altloc_hpos_info:
+        if added_hs:
+            for h, pos in zip(added_hs, positions):
+                if h is None:
+                    continue
+                h.set_alt_loc(alt_loc, True)
+                if invert is None:
+                    h.coord = pos
+                else:
+                    h.coord = invert * pos
+                h.occupancy = occupancy
+        else:
+            for i, pos in enumerate(positions):
+                if invert is not None:
+                    pos = invert * pos
+                h = new_hydrogen(atom, i+1, total_hydrogens, naming_schema,
+                                    pos, bonding_info, alt_loc)
+                added_hs.append(h)
+                if h is not None:
+                    h.occupancy = occupancy
+    # creating alt locs doesn't change any other atom's altloc settings, so...
+    for alt_loc, occupany, positions in altloc_hpos_info:
+        for added in added_hs:
+            added.alt_loc = alt_loc
+            added.bfactor = atom.bfactor
+    return added_hs
 
 def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info,
         alt_loc):
