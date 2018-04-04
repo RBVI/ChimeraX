@@ -328,7 +328,7 @@ cdef class CyAtom:
     @property
     def num_alt_locs(self):
         "Number of alternate locations for this atom. Read only."
-        return self.cpp_atom.alt_loc().size()
+        return self.cpp_atom.alt_locs().size()
 
     @property
     def num_bonds(self):

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic.bond_geom import tetrahedral, planar, linear, single, bond_positions
-from chimerax.atomic import Atom
+from chimerax.atomic import Atom, idatm
 from .cmd import new_hydrogen, find_nearest, roomiest, _tree_dist, vdw_radius, \
                 bond_with_H_length, N_H, find_rotamer_nearest, h_rad, add_altloc_hyds
 from chimerax.core.geometry import distance_squared
@@ -212,7 +212,8 @@ def add_hydrogens(session, atom_list, *args):
             for alt_loc in _alt_locs(altloc_atom):
                 altloc_atom.alt_loc = alt_loc
                 h_positions = bond_positions(atom._addh_coord, geom, bond_length,
-                        neighbors, coplanar=[cpa._add_coord for cpa in coplanar_atoms])
+                        [nb._addh_coord for nb in atom.neighbors],
+                        coplanar=[cpa._addh_coord for cpa in coplanar_atoms])
                 altloc_hpos_info.append((alt_loc, altloc_atom.occupancy, h_positions))
             _attach_hydrogens(atom, altloc_hpos_info, bonding_info)
             finished[atom] = True
@@ -842,6 +843,8 @@ def _alt_locs(atom):
     # you are at the right alt loc)
     cur_loc = atom.alt_loc
     locs = atom.alt_locs
+    if not locs:
+        return [cur_loc]
     locs.remove(cur_loc)
     locs.append(cur_loc)
     return locs
@@ -1411,13 +1414,14 @@ def _resolveAnilene(donor, acceptor, aro_amines, hbond_info):
                     return True
             return False
     return False
+'''
 
 def _type_info(atom):
-    from chimera.idatm import typeInfo
     if atom in aro_amines:
-        return typeInfo['N3']
+        return idatm.type_info['N3']
     return type_info_for_atom[atom]
 
+'''
 def _tetCheck(tet, partner, hbond_info, tetAcc):
     """Check if tet can still work"""
     tetPos = tet.xformCoord()
