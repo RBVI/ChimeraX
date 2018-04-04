@@ -210,7 +210,7 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
         for cb in cur_bonded:
             v = normalize(cb - bondee)
             unitized.append(bondee + v)
-        from ..geometry.plane import Plane
+        from chimerax.core.geometry.plane import Plane
         pl = Plane(unitized)
         normal = pl.normal
         # if normal on other side of plane from bondee, we need to
@@ -236,14 +236,14 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
             up = cpos - atom_pos
             if xforms:
                 up = numpy.negative(up)
-            from ..geometry import look_at, rotation
+            from chimerax.core.geometry import look_at, rotation
             # lookAt puts ref point opposite that of zAlign, so 
             # also rotate 180 degrees around y axis
             xform = rotation((0.0,1.0,0.0), 180.0) * look_at(atom_pos, bond_pos, up)
             xforms.append(xform)
 
     else:
-        from ..geometry.place import z_align
+        from chimerax.core.geometry.place import z_align
         xforms = [z_align(atom_pos, bond_pos)]
     points = []
     for xform in xforms:
