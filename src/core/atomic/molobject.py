@@ -839,6 +839,9 @@ class Ring:
     def __gt__(self, r):
         return not (self < r or self == r)
 
+    def __hash__(self):
+        return id(self)
+
     def __le__(self, r):
         return self < r or self == r
 
