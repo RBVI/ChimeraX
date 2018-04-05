@@ -50,11 +50,11 @@ Targets may be listed, defined and undefined.
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
 ]
-    <ChimeraXClassifier>ChimeraX :: Tool :: Targets :: General :: manage user-defined targets</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: target :: General :: Show user-defined target manager</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: target define :: General :: Create user-defined target</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: target undefine :: General :: Remove user-defined target</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: target list :: General :: List user-defined targets</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Basic Actions :: General :: show/hide atoms, ribbons and surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: name :: General :: Show user-defined target manager</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: name frozen :: General :: Create user-defined target</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: name delete :: General :: Remove user-defined target</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: name list :: General :: List user-defined targets</ChimeraXClassifier>
 ]
   </Classifiers>
 

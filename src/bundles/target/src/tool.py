@@ -2,20 +2,20 @@
 from chimerax.ui import HtmlToolInstance
 
 
-class TargetsTool(HtmlToolInstance):
+class BasicActionsTool(HtmlToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
 
     CUSTOM_SCHEME = "tgttable"
 
-    name = "User-defined Specifier Targets"
+    name = "Basic Actions"
     help = "help:user/tools/targets.html"
 
-    def __init__(self, session, tool_name, all, log_errors=False):
+    def __init__(self, session, tool_name, show_all=False, log_errors=False):
         super().__init__(session, tool_name, size_hint=(575,400),
                          log_errors=log_errors)
-        self._show_all = all
+        self._show_all = show_all
         self._html_state = None
         self._loaded_page = False
         self._handlers = None
@@ -98,8 +98,8 @@ class TargetsTool(HtmlToolInstance):
         self.html_view.runJavaScript(js)
 
     def update_targets(self, trigger=None, trigger_data=None):
-        from .cmd import target_list
-        targets = target_list(self.session, all=self._show_all, log=False)
+        from .cmd import name_list
+        targets = name_list(self.session, all=self._show_all, log=False)
         data = []
         for name in sorted(targets.keys()):
             data.append({"name": name, "info": targets[name]})

@@ -9,9 +9,11 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, bi, ti):
-        if ti.name == "Targets":
-            from .cmd import target
-            return target(session, name=ti.name)
+        if ti.name == "Basic Actions":
+            from .tool import BasicActionsTool
+            tool = BasicActionsTool(session, ti.name)
+            tool.setup()
+            return tool
         else:
             raise ValueError("trying to start unknown tool: %s" % ti.name)
 
@@ -30,7 +32,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
-        if class_name in ["TargetsTool"]:
+        if class_name in ["BasicActionsTool"]:
             from . import tool
             return getattr(tool, class_name, None)
         else:
