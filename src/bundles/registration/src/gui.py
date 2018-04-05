@@ -11,43 +11,21 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# ToolUI classes may also override
-#   "delete" - called to clean up before instance is deleted
-#
-from chimerax.core.tools import ToolInstance
-
-_EmptyPage = "<h2>Please select a chain and press <b>BLAST</b></h2>"
-_InProgressPage = "<h2>BLAST search in progress&hellip;</h2>"
+from chimerax.ui import HtmlToolInstance
 
 
-class RegistrationUI(ToolInstance):
+class RegistrationUI(HtmlToolInstance):
 
     name = "Registration"
 
-    SESSION_SAVE = False
     SESSION_ENDURING = False
+    SESSION_SAVE = False
     CUSTOM_SCHEME = "cxreg"
 
-    def __init__(self, session, tool_name, blast_results=None, atomspec=None):
+    def __init__(self, session, ti):
         # Standard template stuff
-        ToolInstance.__init__(self, session, tool_name)
         self.display_name = "ChimeraX Registration"
-        from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self)
-        self.tool_window.manage(placement="side")
-        parent = self.tool_window.ui_area
-
-        # UI consists of a chain selector and search button on top
-        # and HTML widget below for displaying results.
-        # Layout all the widgets
-        from PyQt5.QtWidgets import QGridLayout, QLabel, QComboBox, QPushButton
-        from chimerax.ui.widgets import HtmlView
-        layout = QGridLayout()
-        self.html_view = HtmlView(parent, size_hint=(575, 700),
-                                  interceptor=self._navigate,
-                                  schemes=[self.CUSTOM_SCHEME])
-        layout.addWidget(self.html_view, 0, 0)
-        parent.setLayout(layout)
+        super().__init__(session, ti.name, size_hint=(575, 400))
 
         # Fill in our registration form
         import os.path
@@ -85,15 +63,8 @@ class RegistrationUI(ToolInstance):
             lines.append(line)
         return '<br/>'.join(lines)
 
-    def _navigate(self, info):
-        # "info" is an instance of QWebEngineUrlRequestInfo
-        url = info.requestUrl()
-        scheme = url.scheme()
-        if scheme == self.CUSTOM_SCHEME:
-            # self._load_pdb(url.path())
-            self.session.ui.thread_safe(self._register, url)
-        # For now, we only intercept our custom scheme.  All other
-        # requests are processed normally.
+    def handle_scheme(self, url):
+        self.session.ui.thread_safe(self._register, url)
 
     def _register(self, url):
         from urllib.parse import parse_qs
@@ -106,6 +77,7 @@ class RegistrationUI(ToolInstance):
             "research_other": ("Other research area", ""),
             "funding": ("Funding sources", []),
             "funding_other": ("Other funding source", ""),
+            "comment": ("Comment", ""),
             "join_discussion": ("Join discussion mailing list", False),
             "join_announcements": ("Join announcements mailing list", False),
         }
@@ -138,8 +110,13 @@ class RegistrationUI(ToolInstance):
             self.session.logger.error('\n'.join(errors))
             return
         from .cmd import register
-        register(self.session, values["name"], values["email"], values["org"],
-                 values["research"], values["research_other"],
-                 values["funding"], values["funding_other"],
+        register(self.session, values["name"], values["email"],
+                 organization=values["org"],
+                 research=values["research"],
+                 research_other=values["research_other"],
+                 funding=values["funding"],
+                 funding_other=values["funding_other"],
+                 comment=values["comment"],
                  join_discussion=values["join_discussion"],
                  join_announcements=values["join_announcements"])
+        self.delete()

@@ -2,13 +2,13 @@
 # Application runtime
 #
 appdirs==1.4.3
-beautifulsoup4==4.6.0
 colorama==0.3.9
 comtypes==1.1.4
 Cython==0.28
 distlib==0.2.6
 filelock==3.0.4
 line_profiler==2.1.2
+lxml==4.2.0
 matplotlib==2.2.0
 networkx==2.1
 openvr==1.0.1201

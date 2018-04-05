@@ -35,6 +35,7 @@ _class_class_init = {
     'ClipPlane': '.graphics',
     'Color': '.colors',
     'CoordSet': '.atomic',
+    'CustomizedInstanceManager': '.atomic.attr_registration',
     'Drawing': '.graphics',
     'Generic3DModel': '.generic3d',
     'GridDataState': '.map.session',
@@ -117,3 +118,7 @@ def profile(func):
         p.strip_dirs().sort_stats("cumulative", "time").print_callers(40)
         return v
     return wrapper
+
+import chimerax
+if not hasattr(chimerax, "use_tinyarray"):
+    chimerax.use_tinyarray = True

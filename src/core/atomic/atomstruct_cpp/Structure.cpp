@@ -79,11 +79,21 @@ Structure::~Structure() {
     for (auto a: _atoms)
         delete a;
     if (_chains != nullptr) {
-        for (auto ch: *_chains)
+        for (auto ch: *_chains) {
             ch->clear_residues();
-        // don't delete the actual chains -- they may be being
-        // used as Sequences and the Python layer will delete 
-        // them (as sequences) as appropriate
+            // since Python layer may be referencing Chain, only
+            // delete immediately if not in object map;
+            // otherwise decref and let garbage collection work
+            // its magic (__del__ will destroy C++ side)
+            auto inst = ch->py_instance(false);
+            // py_instance() returns new reference, so ...
+            Py_DECREF(inst);
+            if (inst == Py_None)
+                delete ch;
+            else
+                // decref C++ object-map reference
+                Py_DECREF(inst);
+        }
         delete _chains;
     }
     for (auto r: _residues)

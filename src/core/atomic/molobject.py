@@ -76,16 +76,50 @@ def _pseudobond_group_map(pbgc_map):
     pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
 
+def has_custom_attrs(klass, inst):
+    for attr_name, attr_info in klass._attr_registration.reg_attr_info.items():
+        if hasattr(inst, attr_name):
+            return True
+    return False
+
+def get_custom_attrs(klass, inst):
+    custom_attrs = []
+    from .attr_registration import NO_DEFAULT
+    for attr_name, attr_info in klass._attr_registration.reg_attr_info.items():
+        if hasattr(inst, attr_name):
+            registrant, default_value, attr_type = attr_info
+            val = getattr(inst, attr_name)
+            if default_value == NO_DEFAULT or val != default_value:
+                custom_attrs.append((attr_name, val))
+    return custom_attrs
+
+def set_custom_attrs(inst, ses_data):
+    for attr_name, val in ses_data.get('custom_attrs', []):
+        setattr(inst, attr_name, val)
+
+def all_python_instances():
+    f = c_function('all_python_instances', args = (), ret = ctypes.py_object)
+    return f()
+
 from .cymol import CyAtom
 class Atom(CyAtom, State):
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Atom, self)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
-                'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
+                'ses_id': self.structure.session_atom_to_id(self._c_pointer),
+                'custom attrs': get_custom_attrs(Atom, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
+        a = Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
+        set_custom_attrs(a, data)
+        return a
 Atom.set_py_class(Atom)
 
 # -----------------------------------------------------------------------------
@@ -124,58 +158,60 @@ class Bond(State):
     def atomspec(self):
         return a1.atomspec() + a2.atomspec()
 
-    atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
-    '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
-    color = c_property('bond_color', uint8, 4)
-    '''Color RGBA length 4 numpy uint8 array.'''
-    display = c_property('bond_display', npy_bool)
-    '''
-    Whether to display the bond if both atoms are shown.
-    Can be overriden by the hide attribute.
-    '''
-    halfbond = c_property('bond_halfbond', npy_bool)
-    '''
-    Whether to color the each half of the bond nearest an end atom to match that atom
-    color, or use a single color and the bond color attribute.  Boolean value.
-    '''
-    radius = c_property('bond_radius', float32)
-    '''Displayed cylinder radius for the bond.'''
-    hide = c_property('bond_hide', int32)
-    '''Whether bond is hidden (overrides display).  Integer bitmask.  Use Atom.HIDE_* constants for hide bits.'''
+    atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True,
+        doc = "Supported API. "
+        "Two-tuple of :py:class:`Atom` objects that are the bond end points.")
+    color = c_property('bond_color', uint8, 4, doc =
+        "Supported API. Color RGBA length 4 sequence/array. Values in range 0-255")
+    display = c_property('bond_display', npy_bool, doc =
+        "Supported API.  Whether to display the bond if both atoms are shown. "
+        "Can be overriden by the hide attribute.")
+    halfbond = c_property('bond_halfbond', npy_bool, doc = "Supported API. Whether to "
+        "color the each half of the bond nearest an end atom to match that atom color, "
+        "or use a single color and the bond color attribute.  Boolean value.")
+    radius = c_property('bond_radius', float32,
+        doc = "Displayed cylinder radius for the bond.")
+    hide = c_property('bond_hide', int32, doc = "Supported API. Whether bond is hidden "
+        "(overrides display). Integer bitmask. Use Atom.HIDE_* constants for hide bits.")
     def set_hide_bits(self, bit_mask):
-        '''Set Atom's hide bits in bit mask'''
+        "Set Atom's hide bits in bit mask"
         f = c_array_function('set_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
     def clear_hide_bits(self, bit_mask):
-        '''Clear Atom's hide bits in bit mask'''
+        "Clear Atom's hide bits in bit mask"
         f = c_array_function('clear_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
-    selected = c_property('bond_selected', npy_bool)
-    '''Whether the bond is selected.'''
-    ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True)
-    '''Whether both bond end atoms are selected.'''
-    shown = c_property('bond_shown', npy_bool, read_only = True)
-    '''Whether bond is visible and both atoms are shown and at least one is not Sphere style. Read only.'''
-    structure = c_property('bond_structure', pyobject, read_only = True)
-    ''':class:`.AtomicStructure` the bond belongs to.'''
-    visible = c_property('bond_visible', npy_bool, read_only = True)
-    '''Whether bond is display and not hidden. Read only.'''
-    length = c_property('bond_length', float32, read_only = True)
-    '''Bond length. Read only.'''
+    selected = c_property('bond_selected', npy_bool, doc =
+        "Supported API. Whether the bond is selected.")
+    ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True,
+        doc = "Whether both bond end atoms are selected.")
+    shown = c_property('bond_shown', npy_bool, read_only = True, doc = "Supported API. "
+        "Whether bond is visible and both atoms are shown and at least one is not "
+        " Sphere style. Read only.")
+    structure = c_property('bond_structure', pyobject, read_only = True, doc =
+        "Supported API. :class:`.AtomicStructure` the bond belongs to.")
+    visible = c_property('bond_visible', npy_bool, read_only = True, doc =
+        "Supported API. Whether bond is display and not hidden. Read only.")
+    length = c_property('bond_length', float32, read_only = True, doc =
+        "Supported API. Bond length. Read only.")
 
     def other_atom(self, atom):
-        '''Return the :class:`Atom` at the other end of this bond opposite
-        the specified atom.'''
+        "Supported API. 'atom' should be one of the atoms in the bond.  Return the other atom."
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
         o = f(self._c_pointer, atom._c_pointer)
         return Atom.c_ptr_to_py_inst(o)
 
     def delete(self):
-        '''Delete this Bond from it's Structure'''
+        "Supported API. Delete this Bond from it's Structure"
         f = c_function('bond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Bond, self)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Bond is involved in.
@@ -192,6 +228,11 @@ class Bond(State):
         f = c_function('bond_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
                 ret = ctypes.py_object)
         return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
+
+    @property
+    def session(self):
+        "Session that this Bond is in"
+        return self.structure.session
 
     def side_atoms(self, side_atom):
         '''All the atoms on the same side of the bond as side_atom.
@@ -212,38 +253,29 @@ class Bond(State):
         return f(self._c_pointer)
 
     def string(self, style = None):
+        "Supported API.  Get text representation of Bond"
+        " (also used by __str__ for printing)"
         a1, a2 = self.atoms
         bond_sep = " \N{Left Right Arrow} "
         return a1.string(style=style) + bond_sep + a2.string(style=style, relative_to=a1)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
-                'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
+                'ses_id': self.structure.session_bond_to_id(self._c_pointer),
+                'custom attrs': get_custom_attrs(Bond, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Bond.c_ptr_to_py_inst(data['structure'].session_id_to_bond(data['ses_id']))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.bonds)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        b = Bond.c_ptr_to_py_inst(data['structure'].session_id_to_bond(data['ses_id']))
+        set_custom_attrs(b, data)
+        return b
 
 # -----------------------------------------------------------------------------
 #
 class Pseudobond(State):
     '''
-    A Pseudobond is a graphical line between atoms for example depicting a distance
+    A Pseudobond is a graphical line between atoms, for example depicting a distance
     or a gap in an amino acid chain, often shown as a dotted or dashed line.
     Pseudobonds can join atoms belonging to different :class:`.AtomicStructure`\\ s
     which is not possible with a :class:`Bond`\\ .
@@ -268,29 +300,26 @@ class Pseudobond(State):
 
     __lt__ = Bond.__lt__
     __str__ = Bond.__str__
+    string = Bond.string
 
-    atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
-    '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
-    color = c_property('pseudobond_color', uint8, 4)
-    '''Color RGBA length 4 numpy uint8 array.'''
-    display = c_property('pseudobond_display', npy_bool)
-    '''
-    Whether to display the bond if both atoms are shown.
-    Can be overriden by the hide attribute.
-    '''
-    group = c_property('pseudobond_group', cptr, astype = _pseudobond_group, read_only = True)
-    ''':py:class:`.pbgroup.PseudobondGroup` that this pseudobond belongs to'''
-    halfbond = c_property('pseudobond_halfbond', npy_bool)
-    '''
-    Whether to color the each half of the bond nearest an end atom to match that atom
-    color, or use a single color and the bond color attribute.  Boolean value.
-    '''
-    radius = c_property('pseudobond_radius', float32)
-    '''Displayed cylinder radius for the bond.'''
-    selected = c_property('pseudobond_selected', npy_bool)
-    '''Whether the pseudobond is selected.'''
-    shown = c_property('pseudobond_shown', npy_bool, read_only = True)
-    '''Whether bond is visible and both atoms are shown. Read only.'''
+    atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True,
+        doc = "Supported API. Two-tuple of :py:class:`Atom` objects that are the bond end points.")
+    color = c_property('pseudobond_color', uint8, 4,
+        doc = "Supported API. Color RGBA length 4 sequence/array. Values in range 0-255")
+    display = c_property('pseudobond_display', npy_bool, doc =
+        "Whether to display the bond if both atoms are shown. "
+        "Can be overriden by the hide attribute.")
+    group = c_property('pseudobond_group', cptr, astype = _pseudobond_group, read_only = True,
+        doc = "Supported API. :py:class:`.pbgroup.PseudobondGroup` that this pseudobond belongs to")
+    halfbond = c_property('pseudobond_halfbond', npy_bool, doc =
+        "Supported API. Whether to color the each half of the bond nearest an end atom to match "
+        " that atom color, or use a single color and the bond color attribute.  Boolean value.")
+    radius = c_property('pseudobond_radius', float32, doc =
+        "Displayed cylinder radius for the bond.")
+    selected = c_property('pseudobond_selected', npy_bool, doc =
+        "Supported API. Whether the pseudobond is selected.")
+    shown = c_property('pseudobond_shown', npy_bool, read_only = True, doc =
+        "Supported API. Whether bond is visible and both atoms are shown. Read only.")
     shown_when_atoms_hidden = c_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
     '''Normally, whether a pseudbond is shown only depends on the endpoint atoms' 'display'
     attribute and not on those atoms' 'hide' attribute, on the theory that the hide bits
@@ -301,52 +330,55 @@ class Pseudobond(State):
     the 'display' attribute when the atoms aren't hidden.  Defaults to True.''')
 
     def delete(self):
-        '''Delete this pseudobond from it's group'''
+        "Supported API. Delete this pseudobond from it's group"
         f = c_function('pseudobond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
 
     @property
     def length(self):
-        '''Distance between centers of two bond end point atoms.'''
+        "Supported API. Distance between centers of two bond end point atoms."
         a1, a2 = self.atoms
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
         return sqrt((v*v).sum())
 
     def other_atom(self, atom):
-        '''Return the :class:`Atom` at the other end of this bond opposite
-        the specified atom.'''
+        "Supported API. 'atom' should be one of the atoms in the bond.  Return the other atom."
         a1,a2 = self.atoms
         return a2 if atom is a1 else a1
+
+    @property
+    def session(self):
+        "Session that this Pseudobond is in"
+        return self.atoms[0].structure.session
 
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Pseudobond, self)
+
     def take_snapshot(self, session, flags):
-        return [self.group, self._ses_id]
+        data = {'group': self.group,
+                'ses_id': self._ses_id,
+                'custom attrs': get_custom_attrs(Pseudobond, self)}
+        return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        group, id = data
         f = c_function('pseudobond_group_resolve_session_id',
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
-        return Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, id))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for pbg in PseudobondGroupData.get_existing_instances(session):
-            if pbg.group_type == PseudobondGroupData.GROUP_TYPE_COORD_SET:
-                for cs_id in pbg.structure.coordset_ids:
-                    collections.append(pbg.get_pseudobonds(cs_id))
-            else:
-                collections.append(pbg.pseudobonds)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        if isinstance(data, dict):
+            group = data['group']
+            ses_id = data['ses_id']
+        else:
+            group, ses_id = data
+        pb = Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, ses_id))
+        if isinstance(data, dict):
+            set_custom_attrs(pb, data)
+        return pb
 
 # -----------------------------------------------------------------------------
 #
@@ -420,17 +452,6 @@ class PseudobondGroupData:
         f = c_function('pseudobond_group_delete_pseudobond',
             args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, pb._c_pointer)
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        groups = []
-        from . import PseudobondGroup
-        for m in session.models:
-            if not isinstance(m, PseudobondGroup):
-                continue
-            groups.append(m)
-        return groups
 
     def get_num_pseudobonds(self, cs_id):
         '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'
@@ -543,6 +564,11 @@ class PseudobondManager(StateManager):
             obj_map[cat] = obj
         return obj_map
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(PseudobondManager, self)
+
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
         f = c_function('pseudobond_global_manager_session_info',
@@ -560,7 +586,8 @@ class PseudobondManager(StateManager):
             obj_map[ses_id] = PseudobondGroup.c_ptr_to_py_inst(ptr)
         data = {'version': version,
                 'mgr data':retvals,
-                'structure mapping': obj_map}
+                'structure mapping': obj_map,
+                'custom attrs': get_custom_attrs(PseudobondManager, self)}
         return data
 
     @staticmethod
@@ -578,6 +605,7 @@ class PseudobondManager(StateManager):
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
         f(pbm._c_pointer, data['version'], ints, floats, misc)
+        set_custom_attrs(pbm, data)
         return pbm
 
     def reset_state(self, session):
@@ -586,11 +614,6 @@ class PseudobondManager(StateManager):
         # away, which causes delete() to get called
         for pbg in list(self.group_map.values()):
             pbg.delete()
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        return [session.pb_manager]
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -734,6 +757,11 @@ class Residue(State):
             ret = ctypes.c_void_p)
         return _atom_or_none(f(self._c_pointer, atom_name.encode('utf-8')))
 
+    @property
+    def session(self):
+        "Session that this Residue is in"
+        return self.structure.session
+
     def set_alt_loc(self, loc):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
@@ -769,28 +797,22 @@ class Residue(State):
             return struct_string + chain_str + res_str
         return struct_string
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Residue, self)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
-                'ses_id': self.structure.session_residue_to_id(self._c_pointer)}
+                'ses_id': self.structure.session_residue_to_id(self._c_pointer),
+                'custom attrs': get_custom_attrs(Residue, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.residues)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        r = Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
+        set_custom_attrs(r, data)
+        return r
 
 
 # -----------------------------------------------------------------------------
@@ -843,6 +865,9 @@ class Ring:
 
     def __gt__(self, r):
         return not (self < r or self == r)
+
+    def __hash__(self):
+        return id(self)
 
     def __le__(self, r):
         return self < r or self == r
@@ -919,7 +944,7 @@ class Sequence(State):
     characters = c_property('sequence_characters', string, doc=
         "A string representing the contents of the sequence")
     circular = c_property('sequence_circular', npy_bool, doc="Indicates the sequence involves"
-        " a cicular permutation; the sequence characters have been doubled, and residue"
+        " a circular permutation; the sequence characters have been doubled, and residue"
         " correspondences of the first half implicitly exist in the second half as well."
         " Typically used in alignments to line up with sequences that aren't permuted.")
     name = c_property('sequence_name', string, doc="The sequence name")
@@ -940,8 +965,12 @@ class Sequence(State):
     def __del__(self):
         if Sequence.chimera_exiting:
             return
-        del_f = c_function('sequence_del_pyobj', args = (ctypes.c_void_p,))
-        del_f(self._c_pointer) # will destroy C++ object unless it's an active Chain
+        # __del__ methods that create additional references (which the code in the
+        # 'if' below apparently does) can cause __del__ to be called multiple times,
+        # so the test below is necessary
+        if not self.deleted:
+            del_f = c_function('sequence_del_pyobj', args = (ctypes.c_void_p,))
+            del_f(self._c_pointer) # will destroy C++ object unless it's an active Chain
 
     def extend(self, chars):
         """Extend the sequence with the given string"""
@@ -961,43 +990,13 @@ class Sequence(State):
             return None
         return g2u
 
-    """Need a way to discover all Sequences
-    # used by attribute registration to gather attributes for session saving...
-    @classmethod
-    def get_existing_instances(cls, session):
-        # find what type of sequence class this is (or inherits from)
-        sequence = structure_seq = chain = False
-        check_list = [cls]
-        while check_list:
-            check_cls = check_list.pop()
-            if check_cls is Chain:
-                chain = True
-                break
-            elif check_cls is StructureSeq:
-                structure_seq = True
-                break
-            elif check_cls is Sequence:
-                sequence = True
-                break
-            check_list.extend(check_cls.__bases__)
-        if chain:
-            check_cls = Chain
-        elif structure_seq:
-            check_cls = StructureSeq
-        elif sequence:
-            check_cls = Sequence
-        else:
-            raise ValueError("%s is not a Sequence/StructureSeq/Chain" % cls.__name__)
-        sequences = []
-        for m in session.models:
-            if not isinstance(m, check_cls):
-                continue
-            sequences.append(m)
-        return structures
-    """
-
     def __getitem__(self, key):
         return self.characters[key]
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Sequence, self)
 
     def __hash__(self):
         return id(self)
@@ -1030,6 +1029,7 @@ class Sequence(State):
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
         self.numbering_start = data.get('numbering_start', None)
+        set_custom_attrs(self, data)
 
     def ss_type(self, loc, loc_is_ungapped=False):
         try:
@@ -1049,7 +1049,8 @@ class Sequence(State):
 
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
-            'markups': self.markups, 'numbering_start': self.numbering_start }
+            'markups': self.markups, 'numbering_start': self.numbering_start,
+            'custom attrs': get_custom_attrs(Sequence, self)}
         return data
 
     def ungapped(self):
@@ -1164,6 +1165,11 @@ class StructureSeq(Sequence):
             name_part = ""
         return "%s (#%s)%s" % (self.structure.name, self.structure.id_string(), name_part)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Sequence, self) or has_custom_attrs(StructureSeq, self)
+
     def _get_numbering_start(self):
         if self._numbering_start == None:
             for i, r in enumerate(self.residues):
@@ -1221,7 +1227,13 @@ class StructureSeq(Sequence):
         sseq.description = data['description']
         sseq.bulk_set(data['residues'], sseq.characters)
         sseq.description = data.get('description', None)
+        set_custom_attrs(sseq, data)
         return sseq
+
+    @property
+    def session(self):
+        "Session that this StructureSeq is in"
+        return self.structure.session
 
     def ss_type(self, loc, loc_is_ungapped=False):
         if not loc_is_ungapped:
@@ -1243,7 +1255,8 @@ class StructureSeq(Sequence):
             'chain_id': self.chain_id,
             'description': self.description,
             'residues': self.residues,
-            'structure': self.structure
+            'structure': self.structure,
+            'custom attrs': get_custom_attrs(StructureSeq, self)
         }
         return data
 
@@ -1328,6 +1341,7 @@ class Chain(StructureSeq):
         if not chain:
             chain = Chain(ptr)
         chain.description = data.get('description', None)
+        set_custom_attrs(chain, data)
         return chain
 
     def string(self):
@@ -1346,7 +1360,8 @@ class Chain(StructureSeq):
         data = {
             'description': self.description,
             'ses_id': self.structure.session_chain_to_id(self._c_pointer),
-            'structure': self.structure
+            'structure': self.structure,
+            'custom attrs': get_custom_attrs(StructureSeq, self)
         }
         return data
 
@@ -1548,35 +1563,6 @@ class StructureData:
         '''Delete the specified Atom.'''
         f = c_function('structure_delete_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
-
-    # used by attribute registration to gather attributes for session saving...
-    @classmethod
-    def get_existing_instances(cls, session):
-        # find what type of structure class this is (or inherits from)
-        from . import AtomicStructure, Structure
-        atomic = structure = False
-        check_list = [cls]
-        while check_list:
-            check_cls = check_list.pop()
-            if check_cls is AtomicStructure:
-                atomic = True
-                break
-            elif check_cls is Structure:
-                structure = True
-                break
-            check_list.extend(check_cls.__bases__)
-        if atomic:
-            check_cls = AtomicStructure
-        elif structure:
-            check_cls = Structure
-        else:
-            raise ValueError("%s is neither a Structure nor AtomicStructure" % cls.__name__)
-        structures = []
-        for m in session.models:
-            if not isinstance(m, check_cls):
-                continue
-            structures.append(m)
-        return structures
 
     @property
     def molecules(self):
@@ -1837,27 +1823,26 @@ class CoordSet(State):
     structure = c_property('coordset_structure', pyobject, read_only=True,
         doc=":class:`.AtomicStructure` the coordset belongs to")
 
+    @property
+    def session(self):
+        "Session that this CoordSet is in"
+        return self.structure.session
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(CoordSet, self)
+
     def take_snapshot(self, session, flags):
-        data = {'structure': self.structure, 'cs_id': self.id}
+        data = {'structure': self.structure, 'cs_id': self.id,
+                'custom attrs': get_custom_attrs(CoordSet, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return data['structure'].coordset(data['cs_id'])
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.coordsets)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        cs = data['structure'].coordset(data['cs_id'])
+        set_custom_attrs(cs, data)
+        return cs
 
 # -----------------------------------------------------------------------------
 #

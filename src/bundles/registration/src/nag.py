@@ -16,21 +16,17 @@ RegistrationFile = "registration"
 UsageFile = "preregistration"
 TimeFormat = "%a %b %d %H:%M:%S %Y"
 GracePeriod = 14
-NagMessage = """You have used ChimeraX for %d times over %d days.
-Please register your copy by using the <a href="cxcmd:toolshed show Registration">Registration</a> tool or the "register" command.
+NagMessage = """You have used ChimeraX %d times over %d days.  Please register your copy by using the Registration tool or the "register" command.
 
-Registration is free.  By providing the information
-requested, you will be helping us document the impact
-this software is having in the scientific community.
-The information you supply will only be used for
-reporting summary statistics; no individual data
-will be released.
+Registration is optional and free.  Registration helps us document the impact of ChimeraX on the scientific community. The information you supply will only be used for reporting summary statistics; no individual data will be released.
 """
 
 
 def nag(session):
+    if not session.ui.is_gui:
+        return
     if not check_registration(logger=session.logger):
-        _check_usage(session.logger)
+        _check_usage(session)
 
 
 def install(session, registration):
@@ -47,7 +43,13 @@ def install(session, registration):
 
 def check_registration(logger=None):
     """Returns datetime instance for expiration, or None."""
-    from datetime import datetime, timedelta
+    param = _get_registration(logger)
+    if param is None:
+        return None
+    return _check_expiration(param, logger)
+
+
+def _get_registration(logger):
     reg_file = _registration_file()
     try:
         param = {}
@@ -61,11 +63,19 @@ def check_registration(logger=None):
         if logger:
             logger.error("Registration file %r is invalid." % reg_file)
         return None
+    return param
+
+
+def _check_expiration(param, logger):
+    from datetime import datetime, timedelta
     try:
         expires = datetime.strptime(param["Expires"], TimeFormat)
     except KeyError:
-        t = param.get("Signed", "Wed Sep 28 00:00:00 2010")
-        expires = datetime.strptime(t, TimeFormat) + timedelta(year=1)
+        try:
+            signed = param.get("Signed", None)
+        except KeyError:
+            return None
+        expires = datetime.strptime(signed, TimeFormat) + timedelta(year=1)
     if datetime.now() > expires:
         if logger:
             logger.warning("Registration file %r has expired" % reg_file)
@@ -74,7 +84,11 @@ def check_registration(logger=None):
 
 
 def report_status(logger, verbose):
-    expires = check_registration(logger)
+    param = _get_registration(logger)
+    if param:
+        expires = _check_expiration(param, logger)
+    else:
+        expires = None
     if expires is None:
         # Report usage
         usage = _get_usage()
@@ -89,9 +103,12 @@ def report_status(logger, verbose):
         from datetime import datetime
         now = datetime.now()
         if expires < now:
-            logger.warning("Registration expired on %s" % exp)
+            logger.warning("Registration expired (%s)" % exp)
         else:
-            logger.info("Registration is valid through %s" % exp)
+            logger.info("Registration valid (expires %s)" % exp)
+        if verbose:
+            for key, value in param.items():
+                logger.info("%s: %s" % (key.title(), value))
 
 
 def _registration_file():
@@ -106,7 +123,7 @@ def _usage_file():
     return os.path.join(app_dirs_unversioned.user_data_dir, UsageFile)
 
 
-def _check_usage(logger):
+def _check_usage(session):
     from datetime import datetime
     usage = _get_usage()
     # Increment count and add date if this is the first invocation
@@ -114,15 +131,24 @@ def _check_usage(logger):
     usage["count"] += 1
     now = datetime.now()
     today = now.date()
+    nagged = True
     for dt in usage["dates"]:
         if dt.date() == today:
             break
     else:
         usage["dates"].append(now)
-    _write_usage(logger, usage)
+        nagged = False
+    _write_usage(session.logger, usage)
     days = len(usage["dates"])
-    if days > GracePeriod and logger is not None:
-        logger.info(NagMessage % (usage["count"], days), is_html=True)
+    if not nagged and days > GracePeriod and session is not None:
+        from chimerax.ui.ask import ask
+        answer = ask(session, NagMessage % (usage["count"], days),
+                     buttons=["Dismiss", "Register"])
+        if answer == "Register":
+            try:
+                session.ui.settings.autostart.append("Registration")
+            except AttributeError:
+                session.ui.settings.autostart = ["Registration"]
 
 
 def _get_usage():

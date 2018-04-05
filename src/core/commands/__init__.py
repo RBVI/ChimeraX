@@ -12,14 +12,14 @@
 from .commands import register_core_commands, ATOMSPEC_EVALUATED
 from .commands import ATOMSPEC_TARGET_REGISTERED, ATOMSPEC_TARGET_DEREGISTERED
 from .selectors import register_core_selectors
-from .run import run, concise_model_spec, quote_if_necessary
+from .run import run, concise_model_spec
 from .runscript import runscript
 
 from .cli import CmdDesc, register, Command, create_alias, command_function
 from .cli import commas, plural_form, plural_of, discard_article
 from .cli import ListOf, SetOf, TupleOf, Or, RepeatOf
 
-from .cli import Annotation, next_token, AnnotationError
+from .cli import Annotation, AnnotationError, next_token, quote_if_necessary
 from .cli import NoArg, NoneArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEnum
 from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg

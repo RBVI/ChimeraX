@@ -92,13 +92,13 @@ private:
     char  _alt_loc;
     class _Alt_loc_info {
       public:
-        _Alt_loc_info() : serial_number(0) {}
+        _Alt_loc_info() : bfactor(0.0), serial_number(0) {}
         ~_Alt_loc_info() { }
 
         std::vector<float> *create_aniso_u() {
             if (aniso_u.get() == nullptr) {
                 aniso_u = std::make_shared<std::vector<float>>();
-                aniso_u.get()->reserve(6);
+                aniso_u.get()->resize(6);
             }
             return aniso_u.get();
         }

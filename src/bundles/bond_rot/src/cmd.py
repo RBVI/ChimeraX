@@ -42,7 +42,7 @@ def register_command(command_name, logger):
         import CmdDesc, register, BondArg, IntArg, Or, EmptyArg, EnumOf, create_alias
     if command_name == "torsion create":
         desc = CmdDesc(required=[('ident', Or(IntArg,EmptyArg)), ('bond', BondArg)],
-            keyword = [('move', EnumOf("large","small"))],
+            keyword = [('move', EnumOf(("large","small")))],
             synopsis = 'Activate bond for rotation'
         )
         register('torsion create', desc, cmd_torsion_create, logger=logger)

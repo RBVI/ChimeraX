@@ -37,9 +37,10 @@ endif
 
 all: $(PYOBJS) $(SHLIB)
 
-cymol.$(PYMOD_EXT): cymol.pyx atomstruct_cpp.install element_cpp.install
+cymol.$(PYMOD_EXT): cymol.pyx $(includedir)/atomstruct/Atom.h
 	LDFLAGS="-L." $(PYTHON_EXE) setup.py build_ext -i
-	mv cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
+	mv chimerax/core/atomic/cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
+	rmdir -p chimerax/core/atomic
 
 install: all dir $(PYSRCS)
 	$(RSYNC) $(PYSRCS) $(SHLIB) cymol.$(PYMOD_EXT) $(PKG_DIR)
@@ -57,7 +58,7 @@ dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
 
 clean:
-	rm -rf __pycache__ $(OBJS) $(SHLIB)
+	rm -rf __pycache__ $(OBJS) $(SHLIB) cymol.$(PYMOD_EXT)
 ifdef WIN32
 	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
 endif

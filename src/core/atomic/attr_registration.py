@@ -18,7 +18,7 @@ register_attr: infrastructure for molecular classes to register custom attribute
 TODO
 """
 
-from ..state import State, StateManager
+from chimerax.core.state import State, StateManager
 
 # something that can't be a default value, yet can be saved in sessions...
 class _NoDefault(State):
@@ -28,8 +28,8 @@ class _NoDefault(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return _no_default
-_no_default = _NoDefault()
+        return NO_DEFAULT
+NO_DEFAULT = _NoDefault()
 
 # methods that the manager will insert into the managed classes (inheritance won't work)
 def __getattr__(self, attr_name, look_in_class=None):
@@ -45,7 +45,7 @@ def __getattr__(self, attr_name, look_in_class=None):
             raise
 
 @classmethod
-def register_attr(cls, session, attr_name, registerer, default_value=_no_default, attr_type=None):
+def register_attr(cls, session, attr_name, registerer, default_value=NO_DEFAULT, attr_type=None):
     cls._attr_registration.register(session, attr_name, registerer, default_value, attr_type)
 
 # used within the class to hold the registration info
@@ -61,7 +61,7 @@ class AttrRegistration:
             registrant, default_value, attr_type = self.reg_attr_info[attr_name]
         except KeyError:
             raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
-        if default_value == _no_default:
+        if default_value == NO_DEFAULT:
             raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
         return default_value
 
@@ -96,33 +96,20 @@ class AttrRegistration:
         attr_names = self._session_attrs.get(session, [])
         for attr_name in attr_names:
             ses_reg_attr_info[attr_name] = self.reg_attr_info[attr_name]
-        instance_data = {}
-        if attr_names:
-            # if no registered attrs; don't need to look at instances
-            instance_data[attr_name] = per_instance_info = []
-            for instance in self.class_.get_existing_instances(session):
-                try:
-                    attr_val = getattr(instance, attr_name)
-                except AttributeError:
-                    continue
-                per_instance_info.append((instance, attr_val))
-        data = {'reg_attr_info': ses_reg_attr_info, 'instance_data': instance_data}
+        data = {'reg_attr_info': ses_reg_attr_info}
         return data
 
     def restore_session_data(self, session, data):
         for attr_name, reg_info in data['reg_attr_info'].items():
             self.register(session, attr_name, *reg_info)
-        for attr_name, per_instance_data in data['instance_data'].items():
-            for instance, attr_val in per_instance_data:
-                setattr(instance, attr_name, attr_val)
 
 # used in session so that registered attributes get saved/restored
 from . import Atom, AtomicStructure, Bond, CoordSet, Pseudobond, \
-    PseudobondGroup, PseudobondManager, Residue, Structure
+    PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq
 
-# the classes need to have a get_existing_instances static method...
+# custom Chain attrs should be registered in the StructureSeq base class
 registerable_classes = [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond,
-    PseudobondGroup, PseudobondManager, Residue, Structure ]
+    PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq ]
 
 class RegAttrManager(StateManager):
 
@@ -132,13 +119,10 @@ class RegAttrManager(StateManager):
                 reg_class._attr_registration = AttrRegistration(reg_class)
                 reg_class.__getattr__ = __getattr__
                 reg_class.register_attr = register_attr
-        # for now, this is how we track all Sequence, etc. instances
-        from weakref import WeakSet
-        self._seq_instances = WeakSet()
 
     # session functions; there is one manager per session, and is only in charge of
-    # remembering registrations from its session (actual dirty work delegated to
-    # AttrRegistration instances)
+    # remembering registrations from its session (atomic instances save their own
+    # attrs)
     def reset_state(self, session):
         for reg_class in registerable_classes:
             reg_class._attr_registration.reset_state(session)
@@ -159,3 +143,24 @@ class RegAttrManager(StateManager):
             bundle_api.get_class(class_name)._attr_registration.restore_session_data(
                 session, registration)
         return inst
+
+class CustomizedInstanceManager(StateManager):
+    # This manager's only job is to remember instances that have
+    # custom attibutes, so that they get saved/restored in sessions
+    # even if there are no Python-layer references to them
+
+    def reset_state(self, session):
+        pass
+
+    def take_snapshot(self, session, flags):
+        from chimerax.atomic.molobject import all_python_instances
+        # pure Sequence instances don't have 'session' attrs since they shouldn't
+        # be saved if nothing else in the Python layer wants them saved
+        return { 'instances': [inst for inst in all_python_instances()
+            if inst.has_custom_attrs and getattr(inst, 'session', None) == session] }
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        # simply having the Python instances in 'data' restored was the whole point,
+        # so mission accomplished already
+        return CustomizedInstanceManager()

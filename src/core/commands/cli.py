@@ -1404,6 +1404,59 @@ def _remove_child_models(models):
     return tuple(m for m in models if m in s)
 
 
+def quote_if_necessary(s):
+    """quote a string
+
+    So :py:func`next_token` treats it like a single value"""
+    import unicodedata
+    has_single_quote = "'" in s
+    has_double_quote = '"' in s
+    has_special = False
+    has_space = _whitespace.search(s) is not None
+    use_single_quote = not has_single_quote and has_double_quote
+    special_map = {
+        '\a': '\\a',
+        '\b': '\\b',
+        '\f': '\\f',
+        '\n': '\\n',
+        '\r': '\\r',
+        '\t': '\\t',
+        '\v': '\\v',
+        '\\': '\\\\',
+        ';': ';',
+        ' ': ' ',
+    }
+
+    result = []
+    for ch in s:
+        i = ord(ch)
+        if ch == "'":
+            result.append(ch)
+        elif ch == '"':
+            if use_single_quote:
+                result.append('"')
+            else:
+                result.append('\\"')
+        elif ch in special_map:
+            has_special = True
+            result.append(special_map[ch])
+        elif ord(ch) < 32:
+            has_special = True
+            result.append('\\x%02x' % i)
+        elif ch.strip() == '':
+            # non-space and non-newline spaces
+            has_special = True
+            result.append('\\N{%s}' % unicodedata.name(ch))
+        else:
+            result.append(ch)
+    if has_single_quote or has_double_quote or has_special:
+        if use_single_quote:
+            return "'%s'" % ''.join(result)
+        else:
+            return '"%s"' % ''.join(result)
+    return ''.join(result)
+
+
 _escape_table = {
     "'": "'",
     '"': '"',

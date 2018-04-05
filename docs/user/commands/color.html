@@ -198,7 +198,7 @@ to certain representations with the <a href="#target"><b>target</b></a> option.
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color modify</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-(&nbsp;<b>saturation</b>&nbsp;|&nbsp;<b>lightness</b>&nbsp;|&nbsp;<b>whiteness</b>&nbsp;|&nbsp;<b>blackness</b>&nbsp;)
+(&nbsp;<b>saturation</b>&nbsp;|&nbsp;<b>lightness</b>&nbsp;|&nbsp;<b>whiteness</b>&nbsp;|&nbsp;<b>blackness</b>&nbsp;|&nbsp;<b>red</b>&nbsp;|&nbsp;<b>green</b>&nbsp;|&nbsp;<b>blue</b>&nbsp;)
 [&nbsp;&plus;&nbsp;|&nbsp;&minus;&nbsp;|&nbsp;*&nbsp;]
 &nbsp;<i>percent</i>&nbsp;
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
@@ -226,15 +226,24 @@ target="_blank">hue-whiteness-blackness</a> (HWB) color spaces
 <li><b>lightness</b> - lightness <i>percent</i> in the HSL color space
 <li><b>whiteness</b> - whiteness <i>percent</i> in the HWB color space
 <li><b>blackness</b> - blackness <i>percent</i> in the HWB color space
+<li><b>red</b> - red <i>percent</i> in the 
+<a href="https://en.wikipedia.org/wiki/RGB_color_space"
+target="_blank">red-green-blue</a> (RGB) color space
+<li><b>green</b> - green <i>percent</i> in the RGB color space
+<li><b>blue</b> - blue <i>percent</i> in the RGB color space
 <li><b>contrast</b> - contrast <i>percent</i> from a reference color 
 related to the current color (0) to a maximally contrasting color (100).
 The default is <b>100</b>, either white or black depending on the current color.
 </ul>
 <p>
 For <b>saturation</b>, <b>lightness</b>, <b>whiteness</b>,
-or <b>blackness</b>, the <i>percent</i> can be added to (&plus;), 
+<b>blackness</b>, <b>red</b>, <b>green</b>, or <b>blue</b>,
+the <i>percent</i> can be added to (&plus;), 
 subtracted from (&minus;), or multiplied by (*) the current value,
-or simply set as the current value if no operator symbol is given. 
+or simply set as the current value if no operator symbol is given
+(or the space after the operator symbol is omitted;
+the space is needed to indicate a change from the current value 
+rather than an absolute value).
 For <b>hue</b>, the <i>angle</i> can be added to or subtracted from
 the current value, or simply set as the current value.
 </p>
