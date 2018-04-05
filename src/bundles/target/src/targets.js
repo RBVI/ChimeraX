@@ -6,14 +6,14 @@ var tgttable = function() {
         "Name",
         "Info",
         "Atom",
-        "Ribbon",
+        "Cartoon",
         "Surface",
     ];
     var components_column_info = [
         "Type",
         "Specifier",
         "Atom",
-        "Ribbon",
+        "Cartoon",
         "Surface",
     ];
     var show_builtins = false;
@@ -28,9 +28,9 @@ var tgttable = function() {
         var row = $("<tr/>");
         var msg = "";
         if (show_builtins)
-            msg = " built-in and user-defined targets."
+            msg = " built-in and user-defined names"
         else
-            msg = " user-defined targets."
+            msg = " user-defined names"
         row.append($("<th/>", { colspan: targets_column_info.length })
                       .text(targets.length + msg));
         thead.append(row);

@@ -43,7 +43,13 @@ def install(session, registration):
 
 def check_registration(logger=None):
     """Returns datetime instance for expiration, or None."""
-    from datetime import datetime, timedelta
+    param = _get_registration(logger)
+    if param is None:
+        return None
+    return _check_expiration(param, logger)
+
+
+def _get_registration(logger):
     reg_file = _registration_file()
     try:
         param = {}
@@ -57,11 +63,19 @@ def check_registration(logger=None):
         if logger:
             logger.error("Registration file %r is invalid." % reg_file)
         return None
+    return param
+
+
+def _check_expiration(param, logger):
+    from datetime import datetime, timedelta
     try:
         expires = datetime.strptime(param["Expires"], TimeFormat)
     except KeyError:
-        t = param.get("Signed", "Wed Sep 28 00:00:00 2010")
-        expires = datetime.strptime(t, TimeFormat) + timedelta(year=1)
+        try:
+            signed = param.get("Signed", None)
+        except KeyError:
+            return None
+        expires = datetime.strptime(signed, TimeFormat) + timedelta(year=1)
     if datetime.now() > expires:
         if logger:
             logger.warning("Registration file %r has expired" % reg_file)
@@ -70,7 +84,11 @@ def check_registration(logger=None):
 
 
 def report_status(logger, verbose):
-    expires = check_registration(logger)
+    param = _get_registration(logger)
+    if param:
+        expires = _check_expiration(param, logger)
+    else:
+        expires = None
     if expires is None:
         # Report usage
         usage = _get_usage()
@@ -88,6 +106,9 @@ def report_status(logger, verbose):
             logger.warning("Registration expired (%s)" % exp)
         else:
             logger.info("Registration valid (expires %s)" % exp)
+        if verbose:
+            for key, value in param.items():
+                logger.info("%s: %s" % (key.title(), value))
 
 
 def _registration_file():

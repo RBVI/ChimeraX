@@ -5805,3 +5805,22 @@ extern "C" EXPORT PyObject* structure_existing_py_inst(void* ptr)
         return nullptr;
     }
 }
+
+#include <pyinstance/PythonInstance.declare.h>
+#include <pyinstance/PythonInstance.instantiate.h>
+extern "C" EXPORT PyObject *all_python_instances()
+{
+    PyObject *obj_list = nullptr;
+    try {
+        obj_list = PyList_New(0);
+        for (auto ptr_obj: pyinstance::_pyinstance_object_map) {
+            if (PyList_Append(obj_list, ptr_obj.second) < 0)
+                return nullptr;
+        }
+        return obj_list;
+    } catch (...) {
+        Py_XDECREF(obj_list);
+        molc_error();
+        return nullptr;
+    }
+}

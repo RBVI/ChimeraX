@@ -393,6 +393,11 @@ cdef class CyAtom:
         self.cpp_atom.set_serial_number(new_sn)
 
     @property
+    def session(self):
+        "Session that this Atom is in"
+        return self.structure.session
+
+    @property
     def structure(self):
         "Supported API. :class:`.AtomicStructure` the atom belongs to"
         return self.cpp_atom.structure().py_instance(True)
@@ -604,6 +609,10 @@ cdef class Element:
     @property
     def _c_pointer_ref(self):
         return byref(self._c_pointer)
+
+    @property
+    def has_custom_attrs(self):
+        return False
 
     @property
     def is_alkali_metal(self):

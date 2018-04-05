@@ -137,7 +137,7 @@ PDB::c_str(void) const
 
     case DBREF2:
         count = sprintf(buf,
-        "DBREF2 %-4s %c     %-22s    %10D   %10D",
+        "DBREF2 %-4s %c     %-22s     %10D  %10D",
             dbref2.id_code, dbref2.chain_id, dbref2.db_accession,
             dbref2.seq_begin, dbref2.seq_end);
         break;

@@ -43,6 +43,12 @@ td {
   text-align: center;
   font-family:arial;
 }
+td:nth-child(2) {
+  max-width: 12em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /*
  * Indicators on sorted column

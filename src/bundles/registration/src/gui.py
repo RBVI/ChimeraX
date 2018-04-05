@@ -77,6 +77,7 @@ class RegistrationUI(HtmlToolInstance):
             "research_other": ("Other research area", ""),
             "funding": ("Funding sources", []),
             "funding_other": ("Other funding source", ""),
+            "comment": ("Comment", ""),
             "join_discussion": ("Join discussion mailing list", False),
             "join_announcements": ("Join announcements mailing list", False),
         }
@@ -109,9 +110,13 @@ class RegistrationUI(HtmlToolInstance):
             self.session.logger.error('\n'.join(errors))
             return
         from .cmd import register
-        register(self.session, values["name"], values["email"], values["org"],
-                 values["research"], values["research_other"],
-                 values["funding"], values["funding_other"],
+        register(self.session, values["name"], values["email"],
+                 organization=values["org"],
+                 research=values["research"],
+                 research_other=values["research_other"],
+                 funding=values["funding"],
+                 funding_other=values["funding_other"],
+                 comment=values["comment"],
                  join_discussion=values["join_discussion"],
                  join_announcements=values["join_announcements"])
         self.delete()

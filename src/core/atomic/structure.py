@@ -198,9 +198,21 @@ class Structure(Model, StructureData):
             cmd = Command(self.session)
             cmd.run("lighting " + lighting, log=False)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Structure, self)
+
     def take_snapshot(self, session, flags):
+        from .molobject import get_custom_attrs
         data = {'model state': Model.take_snapshot(self, session, flags),
-                'structure state': StructureData.save_state(self, session, flags)}
+                'structure state': StructureData.save_state(self, session, flags),
+                'custom attrs': get_custom_attrs(Structure, self),
+                # put in dependency on custom-attribute manager so that
+                # such attributes are registered with the classes before the
+                # instances become available to other part of the session
+                # restore, which may access attributes with default values
+                'attr-reg manager': session.attr_registration}
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
         from chimerax.core.state import CORE_STATE_VERSION
@@ -227,6 +239,9 @@ class Structure(Model, StructureData):
         # TODO: For some reason ribbon drawing does not update automatically.
         # TODO: Also marker atoms do not draw without this.
         self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
+
+        from .molobject import set_custom_attrs
+        set_custom_attrs(self, data)
 
     def _get_bond_radius(self):
         return self._bond_radius
@@ -2198,10 +2213,30 @@ class AtomicStructure(Structure):
                 self._report_chain_descriptions(session)
             self._report_assemblies(session)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        from .molobject import has_custom_attrs
+        return has_custom_attrs(Structure, self) or has_custom_attrs(AtomicStructure, self)
+
+    def take_snapshot(self, session, flags):
+        from .molobject import get_custom_attrs
+        data = {
+            'AtomicStructure version': 2,
+            'structure state': Structure.take_snapshot(self, session, flags),
+            'custom attrs': get_custom_attrs(AtomicStructure, self)
+        }
+        return data
+
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, auto_style = False, log_info = False)
-        Structure.set_state_from_snapshot(s, session, data)
+        if data.get('AtomicStructure version', 1) == 1:
+            Structure.set_state_from_snapshot(s, session, data)
+        else:
+            from .molobject import set_custom_attrs
+            Structure.set_state_from_snapshot(s, session, data['structure state'])
+            set_custom_attrs(s, data)
         return s
 
     def _determine_het_res_descriptions(self, session):
