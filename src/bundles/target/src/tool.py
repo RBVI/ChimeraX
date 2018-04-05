@@ -12,7 +12,7 @@ class BasicActionsTool(HtmlToolInstance):
     name = "Basic Actions"
     help = "help:user/tools/targets.html"
 
-    def __init__(self, session, tool_name, show_all=False, log_errors=False):
+    def __init__(self, session, tool_name, show_all=False, log_errors=True):
         super().__init__(session, tool_name, size_hint=(575,400),
                          log_errors=log_errors)
         self._show_all = show_all

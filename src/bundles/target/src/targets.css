@@ -79,3 +79,8 @@ td input {
   background-color: transparent;
   vertical-align: middle;
 }
+
+.spacer {
+  display: inline-block;
+  width: 0.3em;
+}
