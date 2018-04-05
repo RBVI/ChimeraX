@@ -5806,7 +5806,7 @@ extern "C" EXPORT PyObject* structure_existing_py_inst(void* ptr)
     }
 }
 
-#include <pyinstance/PythonInstance.instantiate.h>
+#include <pyinstance/PythonInstance.declare.h>
 extern "C" EXPORT PyObject *all_python_instances()
 {
     PyObject *obj_list = nullptr;
