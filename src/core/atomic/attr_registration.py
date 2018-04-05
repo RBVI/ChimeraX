@@ -18,7 +18,7 @@ register_attr: infrastructure for molecular classes to register custom attribute
 TODO
 """
 
-from ..state import State, StateManager
+from chimerax.core.state import State, StateManager
 
 # something that can't be a default value, yet can be saved in sessions...
 class _NoDefault(State):
@@ -143,3 +143,24 @@ class RegAttrManager(StateManager):
             bundle_api.get_class(class_name)._attr_registration.restore_session_data(
                 session, registration)
         return inst
+
+class CustomizedInstanceManager(StateManager):
+    # This manager's only job is to remember instances that have
+    # custom attibutes, so that they get saved/restored in sessions
+    # even if there are no Python-layer references to them
+
+    def reset_state(self, session):
+        pass
+
+    def take_snapshot(self, session, flags):
+        from chimerax.atomic.molobject import all_python_instances
+        # pure Sequence instances don't have 'session' attrs since they shouldn't
+        # be saved if nothing else in the Python layer wants them saved
+        return { 'instances': [inst for inst in all_python_instances()
+            if inst.has_custom_attrs and getattr(inst, 'session', None) == session] }
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        # simply having the Python instances in 'data' restored was the whole point,
+        # so mission accomplished already
+        return CustomizedInstanceManager()

@@ -530,6 +530,7 @@ def init(argv, event_loop=True):
         sess.tasks = tasks.Tasks(sess, first=True)
         from chimerax.core.atomic import attr_registration
         sess.attr_registration = attr_registration.RegAttrManager()
+        sess.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
         from chimerax.core import undo
         sess.undo = undo.Undo(sess, first=True)
 

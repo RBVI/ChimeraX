@@ -76,6 +76,12 @@ def _pseudobond_group_map(pbgc_map):
     pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
 
+def has_custom_attrs(klass, inst):
+    for attr_name, attr_info in klass._attr_registration.reg_attr_info.items():
+        if hasattr(inst, attr_name):
+            return True
+    return False
+
 def get_custom_attrs(klass, inst):
     custom_attrs = []
     from .attr_registration import NO_DEFAULT
@@ -91,8 +97,18 @@ def set_custom_attrs(inst, ses_data):
     for attr_name, val in ses_data.get('custom_attrs', []):
         setattr(inst, attr_name, val)
 
+def all_python_instances():
+    f = c_function('all_python_instances', args = (), ret = ctypes.py_object)
+    return f()
+
 from .cymol import CyAtom
 class Atom(CyAtom, State):
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Atom, self)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_atom_to_id(self._c_pointer),
@@ -192,6 +208,11 @@ class Bond(State):
         f = c_function('bond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Bond, self)
+
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Bond is involved in.
 
@@ -207,6 +228,11 @@ class Bond(State):
         f = c_function('bond_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
                 ret = ctypes.py_object)
         return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
+
+    @property
+    def session(self):
+        "Session that this Bond is in"
+        return self.structure.session
 
     def side_atoms(self, side_atom):
         '''All the atoms on the same side of the bond as side_atom.
@@ -321,8 +347,18 @@ class Pseudobond(State):
         a1,a2 = self.atoms
         return a2 if atom is a1 else a1
 
+    @property
+    def session(self):
+        "Session that this Pseudobond is in"
+        return self.atoms[0].structure.session
+
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Pseudobond, self)
 
     def take_snapshot(self, session, flags):
         data = {'group': self.group,
@@ -528,6 +564,11 @@ class PseudobondManager(StateManager):
             obj_map[cat] = obj
         return obj_map
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(PseudobondManager, self)
+
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
         f = c_function('pseudobond_global_manager_session_info',
@@ -716,6 +757,11 @@ class Residue(State):
             ret = ctypes.c_void_p)
         return _atom_or_none(f(self._c_pointer, atom_name.encode('utf-8')))
 
+    @property
+    def session(self):
+        "Session that this Residue is in"
+        return self.structure.session
+
     def set_alt_loc(self, loc):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
@@ -750,6 +796,11 @@ class Residue(State):
         if style.startswith("command"):
             return struct_string + chain_str + res_str
         return struct_string
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Residue, self)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
@@ -942,6 +993,11 @@ class Sequence(State):
     def __getitem__(self, key):
         return self.characters[key]
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Sequence, self)
+
     def __hash__(self):
         return id(self)
 
@@ -954,7 +1010,6 @@ class Sequence(State):
     def restore_snapshot(session, data):
         seq = Sequence()
         seq.set_state_from_snapshot(session, data)
-        set_custom_attrs(seq, data)
         return seq
 
     def __setitem__(self, key, val):
@@ -974,6 +1029,7 @@ class Sequence(State):
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
         self.numbering_start = data.get('numbering_start', None)
+        set_custom_attrs(self, data)
 
     def ss_type(self, loc, loc_is_ungapped=False):
         try:
@@ -1109,6 +1165,11 @@ class StructureSeq(Sequence):
             name_part = ""
         return "%s (#%s)%s" % (self.structure.name, self.structure.id_string(), name_part)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Sequence, self) or has_custom_attrs(StructureSeq, self)
+
     def _get_numbering_start(self):
         if self._numbering_start == None:
             for i, r in enumerate(self.residues):
@@ -1168,6 +1229,11 @@ class StructureSeq(Sequence):
         sseq.description = data.get('description', None)
         set_custom_attrs(sseq, data)
         return sseq
+
+    @property
+    def session(self):
+        "Session that this StructureSeq is in"
+        return self.structure.session
 
     def ss_type(self, loc, loc_is_ungapped=False):
         if not loc_is_ungapped:
@@ -1756,6 +1822,16 @@ class CoordSet(State):
     id = c_property('coordset_id', int32, read_only = True, doc="ID number of coordset")
     structure = c_property('coordset_structure', pyobject, read_only=True,
         doc=":class:`.AtomicStructure` the coordset belongs to")
+
+    @property
+    def session(self):
+        "Session that this CoordSet is in"
+        return self.structure.session
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(CoordSet, self)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure, 'cs_id': self.id,
