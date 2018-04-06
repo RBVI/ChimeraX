@@ -126,8 +126,10 @@ var tgttable = function() {
         return $("<td/>", { name:name })
                     .append($("<img/>", { class: "show", action: show,
                                           src: "lib/show.svg" }))
+                    .append($("<span/>", { class: "spacer" }))
                     .append($("<img/>", { class: "hide", action: hide,
                                           src: "lib/hide.svg" }))
+                    .append($("<span/>", { class: "spacer" }))
                     .append($("<input/>", { class: "color", type: "color",
                                             value: "#ffcf00", target: tgt }));
     }
