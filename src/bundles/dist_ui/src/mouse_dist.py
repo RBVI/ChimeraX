@@ -21,8 +21,8 @@ class DistMouseMode(MouseMode):
         self._first_atom = None
 
     def enable(self):
-        self.session.logger.status(
-            "Distance mouse mode: right-click on two atoms to show(/hide) distance")
+        self.session.logger.status("Distance mouse mode:"
+            " right-click on two atoms to show(/hide) distance", color="green")
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
