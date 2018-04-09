@@ -119,7 +119,7 @@ class DistancesMonitor(StateManager):
                         settings=label_settings)
             else:
                 label_settings['text'] = ""
-                lm.add_labels(pbs, PseudobondLabel, self.session.main_view, None,
+                lm.add_labels(pbs, PseudobondLabel, self.session.main_view,
                     settings=label_settings)
             if grp in self.update_callbacks:
                 self.update_callbacks[group]()
