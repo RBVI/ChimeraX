@@ -21,16 +21,12 @@ CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
-PYSRCS = $(wildcard src/*.py)
-DATAFILES = $(wildcard src/icons/*.png src/widgets/icons/*.png)
-SRCS = $(PYSRCS) $(DATAFILES)
+SRCS = $(wildcard src/*.py)
 
 wheel:	bundle_info.xml $(SRCS)
-	make -C src about.html
 	$(RUN) "devel build . exit true"
 
 install app-install:	bundle_info.xml $(SRCS)
-	make -C src about.html
 	$(RUN) "devel install . user false exit true"
 
 test:

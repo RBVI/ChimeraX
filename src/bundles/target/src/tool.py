@@ -12,13 +12,16 @@ class BasicActionsTool(HtmlToolInstance):
     name = "Basic Actions"
     help = "help:user/tools/targets.html"
 
-    def __init__(self, session, tool_name, show_all=False, log_errors=False):
+    def __init__(self, session, tool_name, log_errors=True):
         super().__init__(session, tool_name, size_hint=(575,400),
                          log_errors=log_errors)
-        self._show_all = show_all
+        self._show_all = False
+        self._hide_nonmatching = False
+        self._nonmatching = {}
         self._html_state = None
         self._loaded_page = False
         self._handlers = None
+        self._updating_targets = False
         self.setup_page("targets.html")
 
     def setup(self, html_state=None):
@@ -74,6 +77,7 @@ class BasicActionsTool(HtmlToolInstance):
         super().delete()
 
     def update_models(self, trigger=None, trigger_data=None):
+        self._nonmatching = {}
         models = []
         from chimerax.core.models import Model
         from chimerax.core.atomic import AtomicStructure
@@ -98,15 +102,48 @@ class BasicActionsTool(HtmlToolInstance):
         self.html_view.runJavaScript(js)
 
     def update_targets(self, trigger=None, trigger_data=None):
+        if trigger is not None and self._updating_targets:
+            # We are in the middle of an update of target names,
+            # so this must be called when the first time a
+            # selector was used and is being reregistered with
+            # the real function.
+            # Just ignore and let the update continue
+            return
+        self._updating_targets = True
         from .cmd import name_list
         targets = name_list(self.session, all=self._show_all, log=False)
         data = []
         for name in sorted(targets.keys()):
+            if self._hide_nonmatching and self._is_nonmatching(name):
+                continue
             data.append({"name": name, "info": targets[name]})
         import json
         target_data = json.dumps(data)
         js = "%s.update_targets(%s);" % (self.CUSTOM_SCHEME, target_data)
         self.html_view.runJavaScript(js)
+        self._updating_targets = False
+
+    def _is_nonmatching(self, name):
+        try:
+            return self._nonmatching[name]
+        except KeyError:
+            from chimerax.core.commands import get_selector
+            sel = get_selector(name)
+            if callable(sel):
+                from chimerax.core.objects import Objects
+                results = Objects()
+                sel(self.session, self.session.models.list(), results)
+                nonmatching = not results.models
+            elif isinstance(sel, Objects):
+                for m in objects.models:
+                    if not m.deleted:
+                        nonmatching = False
+                else:
+                    nonmatching = True
+            else:
+                nonmatching = False
+            self._nonmatching[name] = nonmatching
+            return nonmatching
 
     def handle_scheme(self, url):
         # Called when custom link is clicked.
@@ -144,8 +181,13 @@ class BasicActionsTool(HtmlToolInstance):
         run(self.session, cmd);
 
     def _cb_builtin(self, query):
-        """shows only selected structure"""
+        """shows builtin names"""
         self._show_all = query["show"][0] == "true";
+        self.update_targets()
+
+    def _cb_nonmatching(self, query):
+        """hide names with no matching items"""
+        self._hide_nonmatching = query["hide"][0] == "true";
         self.update_targets()
 
     # Session stuff

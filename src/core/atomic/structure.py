@@ -89,9 +89,12 @@ class Structure(Model, StructureData):
         for handler in self._ses_handlers:
             t.remove_handler(handler)
         self._ses_handlers.clear()
+        ses = self.session
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
         if not self.deleted:
+            self.session = ses
             StructureData.delete(self)
+            delattr(self, 'session')
 
     deleted = StructureData.deleted
 

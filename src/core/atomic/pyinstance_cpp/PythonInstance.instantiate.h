@@ -24,24 +24,8 @@
 
 #include "Python.h"
 
-#include "imex.h"
-
 #include <iostream>
 namespace pyinstance {
-
-// in anywhere but the pyinstance library itself, the map needs to be declared as "imported",
-// so do some fancy footwork to get that to happen
-#ifndef PYINSTANCE_EXPORT_MAP
-#define PYINSTANCE_ORIG_IMEX PYINSTANCE_IMEX
-#undef PYINSTANCE_EXPORT
-#include "imex.h"
-#endif
-extern PYINSTANCE_IMEX std::map<const void*, PyObject*>  _pyinstance_object_map;
-#ifndef PYINSTANCE_EXPORT_MAP
-#undef PYINSTANCE_IMEX
-#define PYINSTANCE_IMEX PYINSTANCE_ORIG_IMEX
-#undef PYINSTANCE_ORIG_IMEX
-#endif
 
 template <class C> std::string PythonInstance<C>::_buffer;
 template <class C> PyObject* PythonInstance<C>::_py_class = nullptr;

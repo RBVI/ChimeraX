@@ -94,7 +94,7 @@ def get_custom_attrs(klass, inst):
     return custom_attrs
 
 def set_custom_attrs(inst, ses_data):
-    for attr_name, val in ses_data.get('custom_attrs', []):
+    for attr_name, val in ses_data.get('custom attrs', []):
         setattr(inst, attr_name, val)
 
 def all_python_instances():
@@ -554,7 +554,7 @@ class PseudobondManager(StateManager):
         for cat, pbg_ptr in ptr_map.items():
             # get the python pbg instance if it already exists; otherwise create it
             # and inform the C++ layer
-            obj = _pbgroup_ptr_to_existing_inst(pbg_ptr)
+            obj = PseudobondGroupData.c_ptr_to_existing_py_inst(pbg_ptr)
             if not obj:
                 from .pbgroup import PseudobondGroup
                 obj = PseudobondGroup(pbg_ptr, session=self.session)
@@ -1337,7 +1337,7 @@ class Chain(StructureSeq):
     @staticmethod
     def restore_snapshot(session, data):
         ptr = data['structure'].session_id_to_chain(data['ses_id'])
-        chain = _sseq_ptr_to_existing_inst(ptr)
+        chain = Chain.c_ptr_to_existing_py_inst(ptr)
         if not chain:
             chain = Chain(ptr)
         chain.description = data.get('description', None)
@@ -1390,6 +1390,7 @@ class StructureData:
         set_c_pointer(self, mol_pointer)
         f = c_function('set_structure_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
+        self._ses_end_handler = None
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -1406,6 +1407,8 @@ class StructureData:
 
     def delete(self):
         '''Deletes the C++ data for this atomic structure.'''
+        if self._ses_end_handler:
+            self.session.triggers.remove_handler(self._ses_end_handler)
         c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
 
     active_coordset_change_notify = c_property('structure_active_coordset_change_notify', npy_bool,
@@ -1693,7 +1696,8 @@ class StructureData:
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
         f(self._c_pointer, data['version'], tuple(data['ints']), tuple(data['floats']), tuple(data['misc']))
-        session.triggers.add_handler("end restore session", self._ses_restore_teardown)
+        self._ses_end_handler = session.triggers.add_handler("end restore session",
+            self._ses_restore_teardown)
 
     def save_state(self, session, flags):
         '''Gather session info; return version number'''
@@ -1777,6 +1781,7 @@ class StructureData:
 
     def _ses_restore_teardown(self, *args):
         self._ses_call("restore_teardown")
+        self._ses_end_handler = None
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
 

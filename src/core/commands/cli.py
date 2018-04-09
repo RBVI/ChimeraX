@@ -1133,7 +1133,7 @@ class PseudobondsArg(ObjectsArg):
         from ..atomic import interatom_pseudobonds, Pseudobonds, concatenate
         apb = interatom_pseudobonds(objects.atoms)
         opb = objects.pseudobonds
-        pbonds = concatenate([apb, opb], Pseudobonds)
+        pbonds = concatenate([apb, opb], Pseudobonds, remove_duplicates=True)
         return pbonds, used, rest
 
 

@@ -126,8 +126,10 @@ var tgttable = function() {
         return $("<td/>", { name:name })
                     .append($("<img/>", { class: "show", action: show,
                                           src: "lib/show.svg" }))
+                    .append($("<span/>", { class: "spacer" }))
                     .append($("<img/>", { class: "hide", action: hide,
                                           src: "lib/hide.svg" }))
+                    .append($("<span/>", { class: "spacer" }))
                     .append($("<input/>", { class: "color", type: "color",
                                             value: "#ffcf00", target: tgt }));
     }
@@ -159,6 +161,10 @@ var tgttable = function() {
     function init() {
         $("#builtin_checkbox").change(function(event) {
             window.location = custom_scheme + ":builtin?show="
+                              + $(event.target).is(":checked");
+        });
+        $("#nonmatching_checkbox").change(function(event) {
+            window.location = custom_scheme + ":nonmatching?hide="
                               + $(event.target).is(":checked");
         });
         $("#targets_table").tablesorter();
