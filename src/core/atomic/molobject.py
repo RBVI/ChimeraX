@@ -554,7 +554,7 @@ class PseudobondManager(StateManager):
         for cat, pbg_ptr in ptr_map.items():
             # get the python pbg instance if it already exists; otherwise create it
             # and inform the C++ layer
-            obj = _pbgroup_ptr_to_existing_inst(pbg_ptr)
+            obj = PseudobondGroupData.c_ptr_to_existing_py_inst(pbg_ptr)
             if not obj:
                 from .pbgroup import PseudobondGroup
                 obj = PseudobondGroup(pbg_ptr, session=self.session)
@@ -1337,7 +1337,7 @@ class Chain(StructureSeq):
     @staticmethod
     def restore_snapshot(session, data):
         ptr = data['structure'].session_id_to_chain(data['ses_id'])
-        chain = _sseq_ptr_to_existing_inst(ptr)
+        chain = Chain.c_ptr_to_existing_py_inst(ptr)
         if not chain:
             chain = Chain(ptr)
         chain.description = data.get('description', None)
