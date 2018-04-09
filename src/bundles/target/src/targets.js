@@ -163,6 +163,10 @@ var tgttable = function() {
             window.location = custom_scheme + ":builtin?show="
                               + $(event.target).is(":checked");
         });
+        $("#nonmatching_checkbox").change(function(event) {
+            window.location = custom_scheme + ":nonmatching?hide="
+                              + $(event.target).is(":checked");
+        });
         $("#targets_table").tablesorter();
         $("#components_table").tablesorter();
     }
