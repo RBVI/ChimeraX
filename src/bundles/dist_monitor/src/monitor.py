@@ -137,14 +137,21 @@ class DistancesMonitor(StateManager):
         return mon
 
     def take_snapshot(self, session, flags):
+        from .settings import settings
         return {
-            'version': 1,
+            'version': 2,
 
             'distances shown': self._distances_shown,
-            'monitored groups': self.monitored_groups
+            'monitored groups': self.monitored_groups,
+            'precision': settings.precision,
+            'show units': settings.show_units,
         }
 
     def _ses_restore(self, data):
+        if data['version'] > 1:
+            from .settings import settings
+            settings.precision = data['precision']
+            settings.show_units = data['show units']
         self._already_restored.clear()
         for grp in list(self.monitored_groups)[:]:
             self.remove_group(grp)
