@@ -21,8 +21,8 @@ class DistMouseMode(MouseMode):
         self._first_atom = None
 
     def enable(self):
-        self.session.logger.status("Distance mouse mode:"
-            " right-click on two atoms to show(/hide) distance", color="green")
+        self.session.logger.status(
+            "Right-click on two atoms to show distance, or on distance to hide", color="green")
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -35,7 +35,8 @@ class DistMouseMode(MouseMode):
         warning = lambda txt: self.session.logger.status(
             "Distance mouse mode: %s" % txt, color = "red")
         message = self.session.logger.status
-        from chimerax.core.atomic import PickedAtom
+        from chimerax.core.atomic import PickedAtom, PickedPseudobond
+        from chimerax.core.commands import run
         if isinstance(pick, PickedAtom):
             if self._first_atom and self._first_atom.deleted:
                 self._first_atom = None
@@ -43,28 +44,25 @@ class DistMouseMode(MouseMode):
                 if pick.atom == self._first_atom:
                     warning("same atom picked twice")
                 else:
-                    pbg = self.session.pb_manager.get_group("distances", create=False)
-                    pbs = pbg.pseudobonds if pbg else []
-                    for pb in pbs:
-                        a1, a2 = pb.atoms
-                        if (a1 == self._first_atom and pick.atom == a2) \
-                        or (a1 == pick.atom and self._first_atom == a2):
-                            command = "~dist %s %s" % (a1.string(style="command line"),
-                                a2.string(style="command line"))
-                            message("Removing distance")
-                            break
-                    else:
-                        a1, a2 = self._first_atom, pick.atom
-                        command = "dist %s %s" % (a1.string(style="command line"),
-                            a2.string(style="command line"))
-                        from chimerax.core.geometry import distance
-                        message("Distance from %s to %s is %g" % (a1, a2, distance(a1.scene_coord,
-                            a2.scene_coord)))
+                    a1, a2 = self._first_atom, pick.atom
+                    command = "dist %s %s" % (a1.string(style="command line"),
+                        a2.string(style="command line"))
+                    from chimerax.core.geometry import distance
+                    message("Distance from %s to %s is %g" % (a1, a2,
+                        distance(a1.scene_coord, a2.scene_coord)))
                     self._first_atom = None
-                    from chimerax.core.commands import run
                     run(self.session, command)
             else:
                 self._first_atom = pick.atom
                 message("Distance from %s to..." % pick.atom)
+        elif isinstance(pick, PickedPseudobond):
+            if pick.pbond.group.category == "distances":
+                a1, a2 = pick.pbond.atoms
+                command = "~dist %s %s" % (a1.string(style="command line"),
+                        a2.string(style="command line"))
+                message("Removing distance")
+                run(self.session, command)
+            else:
+                warning("not a distance")
         else:
-            warning("no atom picked by mouse click")
+            warning("no atom/distance picked by mouse click")
