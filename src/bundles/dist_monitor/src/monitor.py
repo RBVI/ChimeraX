@@ -23,13 +23,20 @@ class DistancesMonitor(StateManager):
         from chimerax.core.atomic import get_triggers
         triggers = get_triggers(session)
         triggers.add_handler("changes", self._changes_handler)
+        self._already_restored = set()
 
-    def add_group(self, group, update_callback=None):
+    def add_group(self, group, update_callback=None, session_restore=False):
         self.monitored_groups.add(group)
         if update_callback:
             self.update_callbacks[group] = update_callback
-        if group.num_pseudobonds > 0:
+        if group.num_pseudobonds > 0 and not session_restore:
             self._update_distances(group.pseudobonds)
+        if session_restore:
+            # there will be a "check for changes" after the session restore,
+            # so remember these so they can be skipped then
+            self._already_restored.update([pb for pb in group.pseudobonds])
+        else:
+            self._already_restored.clear()
 
     @property
     def distance_format(self):
@@ -80,8 +87,11 @@ class DistancesMonitor(StateManager):
                 if mg.deleted:
                     self.remove_group(mg)
         for pb in changes.created_pseudobonds():
+            if pb in self._already_restored:
+                continue
             if pb.group in self.monitored_groups:
                 self._update_distances(pseudobonds=[pb])
+        self._already_restored.clear()
         if "position changed" in changes.structure_reasons() \
         or "active_coordset changed" in changes.structure_reasons() \
         or len(changes.modified_coordsets()) > 0:
@@ -135,8 +145,9 @@ class DistancesMonitor(StateManager):
         }
 
     def _ses_restore(self, data):
+        self._already_restored.clear()
         for grp in list(self.monitored_groups)[:]:
             self.remove_group(grp)
         self._distances_shown = data['distances shown']
         for grp in data['monitored groups']:
-            self.add_group(grp)
+            self.add_group(grp, session_restore=True)
