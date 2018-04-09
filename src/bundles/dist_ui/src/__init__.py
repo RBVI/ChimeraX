@@ -13,26 +13,14 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _DistMonitorBundleAPI(BundleAPI):
-
-    @staticmethod
-    def get_class(class_name):
-        if class_name == "DistancesMonitor":
-            from . import monitor
-            return monitor.DistancesMonitor
+class _DistUIBundleAPI(BundleAPI):
 
     @staticmethod
     def initialize(session, bundle_info):
-        """Install distance monitor into existing session"""
-        from . import settings
-        settings.init(session)
+        """Install distance mouse mode"""
+        if session.ui.is_gui:
+            mm = session.ui.mouse_modes
+            from .mouse_dist import DistMouseMode
+            mm.add_mode(DistMouseMode(session))
 
-        from .monitor import DistancesMonitor
-        session.pb_dist_monitor = DistancesMonitor(session, bundle_info)
-
-    @staticmethod
-    def finish(session, bundle_info):
-        """De-install distance monitor from existing session"""
-        del session.pb_dist_monitor
-
-bundle_api = _DistMonitorBundleAPI()
+bundle_api = _DistUIBundleAPI()

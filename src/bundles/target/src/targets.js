@@ -6,14 +6,14 @@ var tgttable = function() {
         "Name",
         "Info",
         "Atom",
-        "Ribbon",
+        "Cartoon",
         "Surface",
     ];
     var components_column_info = [
         "Type",
         "Specifier",
         "Atom",
-        "Ribbon",
+        "Cartoon",
         "Surface",
     ];
     var show_builtins = false;
@@ -28,9 +28,9 @@ var tgttable = function() {
         var row = $("<tr/>");
         var msg = "";
         if (show_builtins)
-            msg = " built-in and user-defined targets."
+            msg = " built-in and user-defined names"
         else
-            msg = " user-defined targets."
+            msg = " user-defined names"
         row.append($("<th/>", { colspan: targets_column_info.length })
                       .text(targets.length + msg));
         thead.append(row);
@@ -126,8 +126,10 @@ var tgttable = function() {
         return $("<td/>", { name:name })
                     .append($("<img/>", { class: "show", action: show,
                                           src: "lib/show.svg" }))
+                    .append($("<span/>", { class: "spacer" }))
                     .append($("<img/>", { class: "hide", action: hide,
                                           src: "lib/hide.svg" }))
+                    .append($("<span/>", { class: "spacer" }))
                     .append($("<input/>", { class: "color", type: "color",
                                             value: "#ffcf00", target: tgt }));
     }
@@ -159,6 +161,10 @@ var tgttable = function() {
     function init() {
         $("#builtin_checkbox").change(function(event) {
             window.location = custom_scheme + ":builtin?show="
+                              + $(event.target).is(":checked");
+        });
+        $("#nonmatching_checkbox").change(function(event) {
+            window.location = custom_scheme + ":nonmatching?hide="
                               + $(event.target).is(":checked");
         });
         $("#targets_table").tablesorter();

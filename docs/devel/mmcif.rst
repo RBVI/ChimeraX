@@ -418,10 +418,10 @@ Recognized Data Categories and Keywords
    |                            | ptnr1_label_comp_id |req|,             |
    |                            | ptnr1_symmetry,                        |
    |                            | ptnr2_label_asym_id |req|,             |
-   |                            | pdbx_ptnr2 _PDB_ins_code,              |
+   |                            | pdbx_ptnr2_PDB_ins_code,               |
    |                            | ptnr2_label_seq_id |req|,              |
    |                            | ptnr2_auth_seq_id,                     |
-   |                            | pdbx_ptnr2 _label_alt_id,              |
+   |                            | pdbx_ptnr2_label_alt_id,               |
    |                            | ptnr2_label_atom_id |req|,             |
    |                            | ptnr2_label_comp_id |req|,             |
    |                            | ptnr2_symmetry, pdbx_dist_value        |

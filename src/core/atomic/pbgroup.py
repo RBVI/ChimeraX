@@ -150,6 +150,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
         Model.name.fset(self, name)
     name = property(_get_name, _set_name)
 
+    # since we're a Model, we already have a 'session' attr, so don't need property
+
     def _get_single_color(self):
         pbonds = self.pseudobonds
         from chimerax.core.colors import most_common_color
@@ -270,13 +272,21 @@ class PseudobondGroup(PseudobondGroupData, Model):
         p = PickedPseudobonds(bonds)
         return [p]
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        from .molobject import has_custom_attrs
+        return has_custom_attrs(PseudobondGroup, self)
+
     def take_snapshot(self, session, flags):
+        from .molobject import get_custom_attrs
         data = {
             'version': 1,
             'category': self.category,
             'dashes': self._dashes,
             'model state': Model.take_snapshot(self, session, flags),
             'structure': self.structure,
+            'custom attrs': get_custom_attrs(PseudobondGroup, self),
         }
         if self._global_group:
             # Make the global manager restore before we do
@@ -293,6 +303,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if 'model state' in data:
             Model.set_state_from_snapshot(grp, session, data['model state'])
         grp._dashes = data['dashes']
+        from .molobject import set_custom_attrs
+        set_custom_attrs(grp, data)
         return grp
 
 # -----------------------------------------------------------------------------

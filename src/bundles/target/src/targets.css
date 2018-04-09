@@ -43,6 +43,12 @@ td {
   text-align: center;
   font-family:arial;
 }
+td:nth-child(2) {
+  max-width: 12em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /*
  * Indicators on sorted column
@@ -72,4 +78,9 @@ td input {
   height: 1.2em;
   background-color: transparent;
   vertical-align: middle;
+}
+
+.spacer {
+  display: inline-block;
+  width: 0.3em;
 }

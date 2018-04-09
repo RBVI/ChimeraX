@@ -25,8 +25,11 @@
 #include "Python.h"
 
 #include "imex.h"
+#include "imex.map.h"
 
 namespace pyinstance {
+
+extern PYINSTANCE_MAP_IMEX std::map<const void*, PyObject*>  _pyinstance_object_map;
 
 class PYINSTANCE_IMEX AcquireGIL {
 public:

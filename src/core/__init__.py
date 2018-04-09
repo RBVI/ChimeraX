@@ -35,6 +35,7 @@ _class_class_init = {
     'ClipPlane': '.graphics',
     'Color': '.colors',
     'CoordSet': '.atomic',
+    'CustomizedInstanceManager': '.atomic.attr_registration',
     'Drawing': '.graphics',
     'Generic3DModel': '.generic3d',
     'GridDataState': '.map.session',

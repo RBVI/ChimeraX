@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-Target" version="0.1" package="chimerax.target"
-  	    minSessionVersion="1" maxSessionVersion="1">
+<BundleInfo name="ChimeraX-Dist_UI" version="1.0" package="chimerax.dist_ui"
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>
@@ -8,25 +8,13 @@
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>User-defined specifier targets</Synopsis>
-  <Description>Manager for user-defined specifier targets.
+  <Synopsis>Distance measurement user interface</Synopsis>
+  <Description>Distance measurement tool, mouse mode, and context-menu entry</Description>
 
-Targets may be listed, defined and undefined.
-  </Description>
-
-    <DataFiles>
-      <DataFile>lib/*</DataFile>
-      <DataFile>targets.*</DataFile>
-
-      <!-- <DataFile></DataFile> -->
-
-    </DataFiles>
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
-    <Category name="General"/>
+    <Category name="Structure Analysis"/>
   </Categories>
-
-<AdditionalPackages/>
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
@@ -49,13 +37,6 @@ Targets may be listed, defined and undefined.
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-]
-    <ChimeraXClassifier>ChimeraX :: Tool :: Basic Actions :: General :: show/hide atoms, ribbons and surfaces</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name :: General :: Show user-defined target manager</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name frozen :: General :: Create user-defined target</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name delete :: General :: Remove user-defined target</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name list :: General :: List user-defined targets</ChimeraXClassifier>
-]
   </Classifiers>
 
 </BundleInfo>

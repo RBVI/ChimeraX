@@ -1004,35 +1004,48 @@ def minimize_crosslinks(atoms, session):
     from chimerax.core.crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
-def save_image(session, basepath = '~/Desktop/image', suffix = '.png'):
-    from chimerax.core.commands import run
-    run(session, 'save %s supersample 3' % unused_file_name(basepath, suffix))
-
-def save_spin_movie(session, basepath = '~/Desktop/movie', suffix = '.mp4'):
-    cmd = 'movie record ; turn y 2 180 ; wait 180 ; movie encode %s' % unused_file_name(basepath, suffix)
+def save_image(session, directory = None, basename = 'image', suffix = '.png'):
+    cmd = 'save %s supersample 3' % unused_file_name(directory, basename, suffix)
     from chimerax.core.commands import run
     run(session, cmd)
-    
-def unused_file_name(basepath, suffix):
+
+def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp4'):
+    cmd = ('movie record ; turn y 2 180 ; wait 180 ; movie encode %s'
+           % unused_file_name(directory, basename, suffix))
+    from chimerax.core.commands import run
+    run(session, cmd)
+        
+def unused_file_name(directory, basename, suffix):
     '''
-    Return path which is basepath plus a positive integer plus the file suffix
-    such that the integer is greater than any other file that has this form.
+    Return path in the specified directory with file name basename plus
+    a positive integer plus the file suffix such that the integer is greater
+    than any other file that has this form.
     '''
-    from os.path import dirname, basename, expanduser
-    dir = expanduser(dirname(basepath))
+    if directory is None:
+        directory = default_save_directory()
+    from os import path, listdir
+    dir = path.expanduser(directory)
     from os import listdir
     files = listdir(dir)
-    bname = basename(basepath)
     nums = []
     for f in files:
-        if f.startswith(bname) and f.endswith(suffix):
+        if f.startswith(basename) and f.endswith(suffix):
             try:
-                nums.append(int(f[len(bname):len(f)-len(suffix)]))
+                nums.append(int(f[len(basename):len(f)-len(suffix)]))
             except:
                 pass
     n = max(nums, default = 0) + 1
-    path = '%s%d%s' % (basepath, n, suffix)
-    return path
+    filename = '%s%d%s' % (basename, n, suffix)
+    p = path.join(directory, filename)
+    return p
+
+def default_save_directory():
+    dir = '~/Desktop'
+    from os import path, getcwd
+    d = path.expanduser(dir)
+    if not path.isdir(d):
+        d = getcwd()
+    return d
     
 def keyboard_shortcuts(session):
     ks = getattr(session, 'keyboard_shortcuts', None)

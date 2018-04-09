@@ -9,11 +9,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def read_collada_surfaces(session, path, name, color = (200,200,200,255), **kw):
+def read_collada_surfaces(session, path, name = None, color = (200,200,200,255), **kw):
     '''Open a collada file.'''
 
     from collada import Collada
     c = Collada(path)
+    if name is None:
+        from os.path import basename
+        name = basename(path)
     from ..geometry import Place
     splist = surfaces_from_nodes(c.scene.nodes, color, Place(), {}, session)
     if len(splist) > 1:

@@ -148,6 +148,7 @@ class Mol2Parser:
             # Create structure
             s = SC(self.session, auto_style=self.auto_style)
             s.name = self._molecule.mol_name
+            SC.register_attr(self.session, "viewdockx_data", "ViewDockX")
             s.viewdockx_data = self._data
             if self._molecule.charge_type:
                 s.charge_model = self._molecule.charge_type

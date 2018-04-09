@@ -92,7 +92,7 @@ private:
     char  _alt_loc;
     class _Alt_loc_info {
       public:
-        _Alt_loc_info() : serial_number(0) {}
+        _Alt_loc_info() : bfactor(0.0), serial_number(0) {}
         ~_Alt_loc_info() { }
 
         std::vector<float> *create_aniso_u() {

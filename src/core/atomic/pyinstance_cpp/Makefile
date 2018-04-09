@@ -24,7 +24,7 @@ CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= $(PYTHON_LIB)
 
-$(SHLIB): imex.h $(OBJS)
+$(SHLIB): imex.h imex.map.h $(OBJS)
 	$(SHLIB_LINK)
 
 install: $(SHLIB)
@@ -35,9 +35,9 @@ ifdef DEBUG
 	$(RSYNC) lib$(LIBNAME).pdb $(shlibdir)
 endif
 endif
-	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)/
+	$(RSYNC) imex.h imex.map.h $(wildcard *.h) $(includedir)/$(DIRNAME)/
 	if [ -d "$(app_includedir)" ]; then \
-		$(RSYNC) imex.h $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
+		$(RSYNC) imex.h imex.map.h $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
 	fi
 ifdef WIN32
 	if [ -d "$(app_libdir)" ]; then \
@@ -46,8 +46,11 @@ ifdef WIN32
 endif
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
+imex.map.h: imex.h
+	sed -e 's/$(UPLIBNAME)/$(UPLIBNAME)_MAP/' < imex.h > imex.map.h
+
 clean:
-	rm -f $(OBJS) $(SHLIB) imex.h
+	rm -f $(OBJS) $(SHLIB) imex.h imex.map.h
 ifdef WIN32
 	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
 endif
