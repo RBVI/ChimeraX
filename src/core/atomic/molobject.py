@@ -676,81 +676,82 @@ class Residue(State):
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         return self.structure.atomspec() + chain_str + res_str
 
-    atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
-    ''':class:`.Atoms` collection containing all atoms of the residue.'''
-    center = c_property('residue_center', float64, 3, read_only = True)
-    '''Average of atom positions as a numpy length 3 array, 64-bit float values.'''
-    chain = c_property('residue_chain', cptr, astype = _chain, read_only = True)
-    ''':class:`.Chain` that this residue belongs to, if any. Read only.'''
-    chain_id = c_property('residue_chain_id', string, read_only = True)
-    '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
-    mmcif_chain_id = c_property('residue_mmcif_chain_id', string, read_only = True)
-    '''mmCIF chain identifier. Limited to 4 characters. Read only string.'''
+    atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True,
+        doc = "Supported API. :class:`.Atoms` collection containing all atoms of the residue.")
+    center = c_property('residue_center', float64, 3, read_only = True,
+        doc = "Average of atom positions as a numpy length 3 array, 64-bit float values.")
+    chain = c_property('residue_chain', cptr, astype = _chain, read_only = True,
+        doc = "Supported API. :class:`.Chain` that this residue belongs to, if any. Read only.")
+    chain_id = c_property('residue_chain_id', string, read_only = True,
+        doc = "Supported API. PDB chain identifier. Limited to 4 characters. Read only string.")
+    mmcif_chain_id = c_property('residue_mmcif_chain_id', string, read_only = True,
+        doc = "mmCIF chain identifier. Limited to 4 characters. Read only string.")
     @property
     def description(self):
         '''Description of residue (if available) from HETNAM/HETSYN records or equivalent'''
         return getattr(self.structure, '_hetnam_descriptions', {}).get(self.name, None)
-    insertion_code = c_property('residue_insertion_code', string)
-    '''Protein Data Bank residue insertion code. 1 character or empty string.'''
+    insertion_code = c_property('residue_insertion_code', string,
+        doc = "Supported API. PDB residue insertion code. 1 character or empty string.")
     is_helix = c_property('residue_is_helix', npy_bool, doc=
-        "Whether this residue belongs to a protein alpha helix. Boolean value. ")
+        "Supported API. Whether this residue belongs to a protein alpha helix. Boolean value. ")
     is_strand = c_property('residue_is_strand', npy_bool, doc=
-        "Whether this residue belongs to a protein beta sheet. Boolean value. ")
+        "Supported API. Whether this residue belongs to a protein beta sheet. Boolean value. ")
     PT_NONE = 0
-    '''Residue polymer type = none.'''
+    "Residue polymer type = none."
     PT_AMINO = 1
-    '''Residue polymer type = amino acid.'''
+    "Residue polymer type = amino acid."
     PT_NUCLEIC = 2
-    '''Residue polymer type = nucleotide.'''
-    polymer_type = c_property('residue_polymer_type', uint8, read_only = True)
-    '''Polymer type of residue. Integer value.'''
-    name = c_property('residue_name', string)
-    '''Residue name. Maximum length 4 characters.'''
-    num_atoms = c_property('residue_num_atoms', size_t, read_only = True)
-    '''Number of atoms belonging to the residue. Read only.'''
-    number = c_property('residue_number', int32, read_only = True)
-    '''Integer sequence position number as defined in the input data file. Read only.'''
-    principal_atom = c_property('residue_principal_atom', cptr, astype = _atom_or_none, read_only=True)
-    '''The 'chain trace' :class:`.Atom`\\ , if any.
-
-    Normally returns the C4' from a nucleic acid since that is always present,
-    but in the case of a P-only trace it returns the P.'''
-    ribbon_display = c_property('residue_ribbon_display', npy_bool)
-    '''Whether to display the residue as a ribbon/pipe/plank. Boolean value.'''
-    ribbon_hide_backbone = c_property('residue_ribbon_hide_backbone', npy_bool)
-    '''Whether a ribbon automatically hides the residue backbone atoms. Boolean value.'''
-    ribbon_color = c_property('residue_ribbon_color', uint8, 4)
-    '''Ribbon color RGBA length 4 numpy uint8 array.'''
-    ribbon_adjust = c_property('residue_ribbon_adjust', float32)
-    '''Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized).'''
-    ss_id = c_property('residue_ss_id', int32)
-    '''Secondary structure id number. Integer value.'''
+    "Residue polymer type = nucleotide."
+    polymer_type = c_property('residue_polymer_type', uint8, read_only = True,
+        doc = "Supported API.  Polymer type of residue. Integer value.")
+    name = c_property('residue_name', string,
+        doc = "Supported API. Residue name. Maximum length 4 characters.")
+    num_atoms = c_property('residue_num_atoms', size_t, read_only = True,
+        doc = "Supported API. Number of atoms belonging to the residue. Read only.")
+    number = c_property('residue_number', int32, read_only = True,
+        doc = "Supported API. Integer sequence position number from input data file. Read only.")
+    principal_atom = c_property('residue_principal_atom', cptr, astype = _atom_or_none,
+        read_only=True, doc =
+        '''The 'chain trace' :class:`.Atom`\\ , if any.  
+        Normally returns the C4' from a nucleic acid since that is always present,
+        but in the case of a P-only trace it returns the P.''')
+    ribbon_display = c_property('residue_ribbon_display', npy_bool,
+        doc = "Whether to display the residue as a ribbon/pipe/plank. Boolean value.")
+    ribbon_hide_backbone = c_property('residue_ribbon_hide_backbone', npy_bool,
+        doc = "Whether a ribbon automatically hides the residue backbone atoms. Boolean value.")
+    ribbon_color = c_property('residue_ribbon_color', uint8, 4,
+        doc = "Ribbon color RGBA length 4 numpy uint8 array.")
+    ribbon_adjust = c_property('residue_ribbon_adjust', float32,
+        doc = "Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized).")
+    ss_id = c_property('residue_ss_id', int32,
+        doc = "Secondary structure id number. Integer value.")
     ss_type = c_property('residue_ss_type', int32, doc=
-        "Secondary structure type of residue.  Integer value.  One of Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_SHEET (a.k.a. SS_STRAND)")
-    structure = c_property('residue_structure', pyobject, read_only = True)
-    ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
+        "Supported API. Secondary structure type of residue.  Integer value.  One of Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_SHEET (a.k.a. SS_STRAND)")
+    structure = c_property('residue_structure', pyobject, read_only = True,
+        doc = "Supported API. ':class:`.AtomicStructure` that this residue belongs to. Read only.")
 
     def add_atom(self, atom):
-        '''Add the specified :class:`.Atom` to this residue.
+        '''Supported API. Add the specified :class:`.Atom` to this residue.
         An atom can only belong to one residue, and all atoms
         must belong to a residue.'''
         f = c_function('residue_add_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
 
     def bonds_between(self, other_res):
-        '''Return the bonds between this residue and other_res as a Bonds collection.'''
+        "Supported API. Return the bonds between this residue and other_res as a Bonds collection."
         f = c_function('residue_bonds_between', args = (ctypes.c_void_p, ctypes.c_void_p),
                 ret = ctypes.py_object)
         return _bonds(f(self._c_pointer, other_res._c_pointer))
 
     def connects_to(self, other_res):
-        '''Return True if this residue is connected by at least one bond (not pseudobond) to other_res'''
+        "Supported API. Return True if this residue is connected by at least one bond "
+        " (not pseudobond) to other_res"
         f = c_function('residue_connects_to', args = (ctypes.c_void_p, ctypes.c_void_p),
                 ret = ctypes.c_bool)
         return f(self._c_pointer, other_res._c_pointer, ret = ctypes.c_bool)
 
     def find_atom(self, atom_name):
-        '''Return the atom with the given name, or None if not found.\n'''
+        '''Supported API. Return the atom with the given name, or None if not found.\n'''
         '''If multiple atoms in the residue have that name, an arbitrary one that matches will'''
         ''' be returned.'''
         f = c_function('residue_find_atom', args = (ctypes.c_void_p, ctypes.c_char_p),
@@ -763,6 +764,7 @@ class Residue(State):
         return self.structure.session
 
     def set_alt_loc(self, loc):
+        "Set the appropiate atoms in the residue to the given (existing) alt loc"
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
@@ -770,6 +772,7 @@ class Residue(State):
         f(r_ref, 1, loc)
 
     def string(self, residue_only = False, omit_structure = False, style = None):
+        "Supported API.  Get text representation of Residue"
         if style == None:
             from chimerax.core.core_settings import settings
             style = settings.atomspec_contents
