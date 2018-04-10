@@ -101,8 +101,8 @@ def report_atoms(logger, atoms, attr):
         else:
             logger.info("atom id %s %s %s" % (spec(a), attr, value))
 
-def report_resattr(logger, attr):
-    logger.info("resattr %s" % attr)
+def report_attr(logger, prefix, attr):
+    logger.info("%sattr %s" % (prefix, attr))
 
 def report_distmat(logger, atoms, distmat):
     num_atoms = len(atoms)

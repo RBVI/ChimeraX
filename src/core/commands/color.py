@@ -50,7 +50,7 @@ def get_targets(targets, what, default_targets=DEFAULT_TARGETS):
 def color(session, objects, color=None, what=None,
           target=None, transparency=None,
           sequential=None, palette=None, halfbond=None,
-          map=None, range=None, offset=0, zone=None, distance=2,
+          map=None, range=None, offset=0, zone=None, distance=2, sharp_edges=False,
           undo_name="color"):
     """Color atoms, ribbons, surfaces, ....
 
@@ -86,6 +86,10 @@ def color(session, objects, color=None, what=None,
       Color surfaces to match closest atom within specified zone distance.
     distance : float
       Zone distance used with zone option.
+    sharp_edges : bool
+      If true change the surface to add cut lines exactly at color zone the boundaries. This makes sharp
+      color transitions at the boundaries between different color patches.  If false, or zone option is not
+      used then the surface is not changed.
     """
     if objects is None:
         from . import all_objects
@@ -138,12 +142,14 @@ def color(session, objects, color=None, what=None,
                 slist.extend(m.surface_drawings_for_vertex_coloring())
         bonds = None
         auto_update = False
-        from ..surface.colorzone import points_and_colors, color_zone
+        from ..surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
         for s in slist:
             points, colors = points_and_colors(zone, bonds)
             # TODO: save undo data
             s.scene_position.inverse().move(points)	# Transform points to surface coordinates
             color_zone(s, points, colors, distance, auto_update)
+            if sharp_edges:
+                color_zone_sharp_edges(s, points, colors, distance, replace = True)
 
     what = []
 
@@ -949,6 +955,7 @@ def register_command(session):
                             ('offset', FloatArg),
                             ('zone', AtomsArg),
                             ('distance', FloatArg),
+                            ('sharp_edges', BoolArg),
                    ],
                    synopsis="color objects")
     register('color', desc, color, logger=session.logger)

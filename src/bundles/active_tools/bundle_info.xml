@@ -1,4 +1,5 @@
-<BundleInfo name="ChimeraX-Target" version="0.1" package="chimerax.target"
+<BundleInfo name="ChimeraX-ActiveTools" version="0.1"
+	    package="chimerax.active_tools"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -16,7 +17,7 @@ Targets may be listed, defined and undefined.
 
     <DataFiles>
       <DataFile>lib/*</DataFile>
-      <DataFile>targets.*</DataFile>
+      <DataFile>active_tools.*</DataFile>
 
       <!-- <DataFile></DataFile> -->
 
@@ -49,11 +50,7 @@ Targets may be listed, defined and undefined.
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Basic Actions :: General :: show/hide atoms, ribbons and surfaces</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name :: General :: Show user-defined target manager</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name frozen :: General :: Create user-defined target</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name delete :: General :: Remove user-defined target</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name list :: General :: List user-defined targets</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Active Tools :: General :: show/hide/close active tools</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

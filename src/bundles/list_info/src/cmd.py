@@ -13,7 +13,7 @@
 
 from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, StructuresArg, ModelsArg, ListOf
 from .util import report_models, report_chains, report_polymers, report_residues
-from .util import report_residues, report_atoms, report_resattr, report_distmat
+from .util import report_residues, report_atoms, report_attr, report_distmat
 
 
 def info(session, models=None):
@@ -191,26 +191,31 @@ info_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
                               synopsis="Report selection information")
 
 
+def _type_attrs(t):
+    from types import GetSetDescriptorType
+    attrs = [name for name in dir(t)
+        if name[0] != '_' and type(getattr(t, name)) in [property, GetSetDescriptorType]]
+    attrs.extend(t._attr_registration.reg_attr_info.keys())
+    attrs.sort()
+    return attrs
+
+def info_atomattr(session):
+    from chimerax.core.atomic import Atom
+    for a in _type_attrs(Atom):
+        report_attr(session.logger, "atom", a)
+info_atomattr_desc = CmdDesc(synopsis="Report atom attribute information")
+
+def info_bondattr(session):
+    from chimerax.core.atomic import Bond
+    for a in _type_attrs(Bond):
+        report_attr(session.logger, "bond", a)
+info_bondattr_desc = CmdDesc(synopsis="Report bond attribute information")
+
 def info_resattr(session):
-    for a in _ResidueAttributes:
-        report_resattr(session.logger, a)
+    from chimerax.core.atomic import Residue
+    for a in _type_attrs(Residue):
+        report_attr(session.logger, "res", a)
 info_resattr_desc = CmdDesc(synopsis="Report residue attribute information")
-_ResidueAttributes = [
-    "chain_id",
-    "description",
-    "insertion_code",
-    "is_helix",
-    "is_strand",
-    "polymer_type",
-    "name",
-    "num_atoms",
-    "number",
-    "ribbon_display",
-    "ribbon_color",
-    "ribbon_style",
-    "ribbon_adjust",
-    "ss_id",
-]
 
 
 def info_distmat(session, atoms):

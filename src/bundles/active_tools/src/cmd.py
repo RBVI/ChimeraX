@@ -24,8 +24,6 @@ def name(session, name, text=None):
                 raise AnnotationError("contains extra trailing text")
         except AnnotationError as e:
             raise UserError("\"%s\": %s" % (text, str(e)))
-        if _is_predefined(name):
-            raise UserError("\"%s\" is reserved and cannot be redefined" % name)
         def selector(session, models, results, spec=text):
             objects, used, unused = ObjectsArg.parse(spec, session)
             results.combine(objects)
@@ -38,8 +36,8 @@ name_desc = CmdDesc(required=[("name", StringArg)],
 
 
 def name_frozen(session, name, objects):
-    if _is_predefined(name):
-        raise UserError("\"%s\" is reserved and cannot be redefined" % name)
+    if name == "all":
+        raise UserError("\"all\" is reserved and cannot be redefined")
     from chimerax.core.commands import register_selector
     register_selector(name, objects, session.logger)
 name_frozen_desc = CmdDesc(required=[("name", StringArg),
@@ -49,14 +47,12 @@ name_frozen_desc = CmdDesc(required=[("name", StringArg),
 def name_delete(session, name):
     from chimerax.core.commands import deregister_selector
     if name != "all":
-        if _is_predefined(name):
-            raise UserError("\"%s\" is reserved and cannot be deleted" % name)
         deregister_selector(name, session.logger)
     else:
         from chimerax.core.commands import list_selectors, get_selector
-        for name in list(list_selectors()):
+        for name in list_selectors():
             sel = get_selector(name)
-            if not _is_predefined(sel):
+            if not _is_builtin(sel):
                 deregister_selector(name, session.logger)
 name_delete_desc = CmdDesc(required=[("name", StringArg)])
 
@@ -108,11 +104,3 @@ def _is_builtin(func):
     mod_name = func.__module__
     return (mod_name.startswith("chimerax.core") or
             mod_name.startswith("chimerax.chem_group"))
-
-
-def _is_predefined(name):
-    if name == "all":
-        return True
-    from chimerax.core.commands import get_selector
-    sel = get_selector(name)
-    return callable(sel) and _is_builtin(sel)
