@@ -1,0 +1,82 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: meeting</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: meeting</h3>
+
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>meeting</b> (&nbsp;<b>start</b>&nbsp;|&nbsp;<i>host</i>&nbsp;)
+[&nbsp;<b>port</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>meeting-name</i>&nbsp;] 
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>&nbsp;] 
+[&nbsp;<b>headImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
+[&nbsp;<b>copyScene</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;] 
+[&nbsp;<b>updateInterval</b>&nbsp;&nbsp;<i>M</i>&nbsp;] 
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>meeting</b> &nbsp;<b>send</b>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>meeting</b> &nbsp;<b>close</b>
+</h3>
+<p>
+The <b>meeting</b> command lets two or more ChimeraX instances 
+running on different computers to view the same scene.
+Its main purpose is to allow multi-person 
+<a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX, 
+although it can also be used without VR.  
+Its main function is to show a head image and hand controller pointers, 
+or if not using VR, the mouse pointer for each participant, so that
+other participants can see them pointing at atoms in the scene.
+Aside from synchronizing pointers, the <b>meeting</b> command will 
+copy a session from the ChimeraX instance that initiates the meeting 
+(using <b>meeting start</b>) to each person who joins the meeting
+(using <b>meeting</b> <i>host</i>, where <i>host</i> is the hostname
+or IP address of the starting instance, for example, 
+<b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>).
+This copying is done only when a person joins the meeting. 
+Subsequently if any participant opens a new model
+or changes the display of existing models, 
+those changes do not appear for the other participants.
+If a particpant using VR moves the scene,
+then others using VR will see the motion.
+The model positions do not change for participants not using VR
+&mdash; each of those users maintains their own preferred viewing direction.
+In VR, the hand controller motion is tracked at a somewhat
+slow rate of about 10 updates per second.
+For non-VR users the mouse pointer is not tracked continuously;
+the mouse position is only displayed to others when it hovers over an atom.
+VR hand controller and mouse positions in the scene are shown with cones.
+</p><p>
+This command is under development and is currently rudimentary.
+In the future we hope to synchronize changes 
+to model display, molecule display styles, colors, and other changes.
+The command does not provide an audio connection, 
+so for remote participants, it is necessary to set up a separate audio link.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+April 2018</address>
+</body></html>
