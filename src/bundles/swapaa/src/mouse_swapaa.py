@@ -66,6 +66,7 @@ class SwapAAMouseMode(MouseMode):
                     self._last_y = y
 
     def mouse_up(self, event):
+        self._unlabel()
         MouseMode.mouse_up(self, event)
         self._residue = None
         self._last_y = None
@@ -195,17 +196,31 @@ class SwapAAMouseMode(MouseMode):
         return p, amap
 
     def _label(self, r):
-        from chimerax.core.objects import Objects
         from chimerax.label.label3d import label
         rname = r.name
+        objects, otype = self._label_objects(r)
+        label(self.session, objects, otype, text = rname)
+
+    def _label_objects(self, r):
         # Label CA atom so label does not jump around.
         la = [a for a in r.atoms if a.name == self._label_atom_name]
+        from chimerax.core.objects import Objects
         if len(la) == 1:
             from chimerax.core.atomic import Atoms
-            label(self.session, Objects(atoms = Atoms(la)), 'atoms', text = rname)
+            objects = Objects(atoms = Atoms(la))
+            otype = 'atoms'
         else:
             # If no CA atom them label center of residue
-            label(self.session, Objects(atoms = r.atoms), 'residues', text = rname)
+            objects = Objects(atoms = r.atoms)
+            otype = 'residues'
+        return objects, otype
+    
+    def _unlabel(self):
+        r = self._residue
+        if r is not None:
+            objects, otype = self._label_objects(r)
+            from chimerax.label.label3d import label_delete
+            label_delete(self.session, objects, otype)
         
     def laser_click(self, xyz1, xyz2):
         from chimerax.ui.mousemodes import picked_object_on_segment
@@ -216,6 +231,7 @@ class SwapAAMouseMode(MouseMode):
 
     def drag_3d(self, position, move, delta_z):
         if delta_z is None:
+            self._unlabel()
             self._residue = None
         else:
             r = self._residue
