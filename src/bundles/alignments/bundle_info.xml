@@ -42,10 +42,12 @@
 	<ChimeraXClassifier>ChimeraX :: DataFormat :: MSF :: :: Sequence alignment :: .msf :: :: :: :: :: GCG MSF (multiple sequence file) format :: utf-8</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: DataFormat :: PIR :: :: Sequence alignment :: .ali,.pir :: :: http://www.bioinformatics.nl/tools/crab_pir.html :: :: :: NBRF/PIR format :: utf-8</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: DataFormat :: ALN :: :: Sequence alignment :: .aln,.clustal,.clustalw,.clustalx :: :: :: :: :: Clustal ALN format :: utf-8</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: DataFormat :: HSSP :: :: Sequence alignment :: .hssp :: :: :: :: :: HSSP format :: utf-8</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: FASTA :: fasta :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: MSF :: msf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: PIR :: pir :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: ALN :: clustal :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Open :: HSSP :: hssp :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: sequence :: Sequence alignment :: control/open sequence alignments</ChimeraXClassifier>
 ]
   </Classifiers>
