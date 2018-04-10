@@ -156,38 +156,38 @@ class BasicActionsTool(HtmlToolInstance):
     def _cb_show_hide(self, query):
         """Shows or hides target"""
         # print("cb_show_hide", query)
-        action = query["action"][0];
-        selector = query["selector"][0];
+        action = query["action"][0]
+        selector = query["selector"][0]
         cmd = "%s %s" % (action, selector)
         from chimerax.core.commands import run
-        run(self.session, cmd);
+        run(self.session, cmd)
 
     def _cb_color(self, query):
         """Colors target"""
         # print("cb_color", query)
-        color = query["color"][0];
-        target = query["target"][0];
-        selector = query["selector"][0];
+        color = query["color"][0]
+        target = query["target"][0]
+        selector = query["selector"][0]
         cmd = "color %s %s target %s" % (selector, color, target)
         from chimerax.core.commands import run
-        run(self.session, cmd);
+        run(self.session, cmd)
 
     def _cb_select(self, query):
         """Select target"""
         # print("cb_select", query)
-        selector = query["selector"][0];
+        selector = query["selector"][0]
         cmd = "select %s" % selector
         from chimerax.core.commands import run
-        run(self.session, cmd);
+        run(self.session, cmd)
 
     def _cb_builtin(self, query):
         """shows builtin names"""
-        self._show_all = query["show"][0] == "true";
+        self._show_all = query["show"][0] == "true"
         self.update_targets()
 
     def _cb_nonmatching(self, query):
         """hide names with no matching items"""
-        self._hide_nonmatching = query["hide"][0] == "true";
+        self._hide_nonmatching = query["hide"][0] == "true"
         self.update_targets()
 
     # Session stuff
@@ -198,6 +198,7 @@ class BasicActionsTool(HtmlToolInstance):
         data = {
             "_super": super().take_snapshot(session, flags),
             "_show_all": self._show_all,
+            "_hide_nonmatching": self._hide_nonmatching,
         }
         self.add_webview_state(data)
         return data
@@ -206,6 +207,7 @@ class BasicActionsTool(HtmlToolInstance):
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data["_super"])
         inst._show_all = data["_show_all"]
+        inst._hide_nonmatching = data["_hide_nonmatching"]
         inst.setup(data.get(cls.html_state, None))
         return inst
 

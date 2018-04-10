@@ -26,9 +26,23 @@ def distance(session, atoms, *, color=None, dashes=None, radius=None):
         session.models.add([grp])
         session.pb_dist_monitor.add_group(grp)
     a1, a2 = atoms
-    pb = grp.new_pseudobond(a1, a2)
+    # might just be changing color/radius, so look for existing pseudobond
+    update_label_color = False
+    for pb in grp.pseudobonds:
+        pa1, pa2 = pb.atoms
+        if (pa1 == a1 and pa2 == a2) or (pa1 == a2 and pa2 == a1):
+            update_label_color = True
+            break
+    else:
+        pb = grp.new_pseudobond(a1, a2)
     if color is not None:
         pb.color = color.uint8x4()
+        if update_label_color:
+            from chimerax.label.label3d import labels_model, PseudobondLabel
+            lm = labels_model(grp, create=False)
+            if lm:
+                lm.add_labels([pb], PseudobondLabel, session.main_view,
+                    settings={ 'color': pb.color })
     if dashes is not None:
         grp.dashes = dashes
     if radius is not None:
