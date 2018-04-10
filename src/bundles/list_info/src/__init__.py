@@ -45,6 +45,12 @@ class _InfoAPI(BundleAPI):
         register("info selection",
                  cmd.info_selection_desc,
                  cmd.info_selection, logger=logger)
+        register("info atomattr",
+                 cmd.info_atomattr_desc,
+                 cmd.info_atomattr, logger=logger)
+        register("info bondattr",
+                 cmd.info_bondattr_desc,
+                 cmd.info_bondattr, logger=logger)
         register("info resattr",
                  cmd.info_resattr_desc,
                  cmd.info_resattr, logger=logger)
