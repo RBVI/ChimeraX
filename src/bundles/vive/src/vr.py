@@ -256,9 +256,13 @@ class SteamVRCamera(Camera):
         self.room_to_scene = (translation(scene_center) *
                               scale(scene_size/room_scene_size) *
                               translation(-array(room_center, float32)))
-
+        self._reposition_user_interface()
+        
     def move_scene(self, move):
         self.room_to_scene = self.room_to_scene * move
+        self._reposition_user_interface()
+        
+    def _reposition_user_interface(self):
         ui = self.user_interface
         if ui.shown():
             ui.move()
