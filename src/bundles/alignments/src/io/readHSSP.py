@@ -18,7 +18,7 @@ reads a HSSP format file
 from chimerax.core.atomic import Sequence
 from ..parse import FormatSyntaxError, make_readable
 
-def read(f):
+def read(session, f):
     doing = None
     sequences = []
     header_ok = False
