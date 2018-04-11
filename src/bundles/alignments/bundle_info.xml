@@ -45,6 +45,7 @@
 	<ChimeraXClassifier>ChimeraX :: DataFormat :: HSSP :: :: Sequence alignment :: .hssp :: :: :: :: :: Selex (Pfam) format :: utf-8</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: DataFormat :: Pfam :: :: Sequence alignment :: .selex,.slx,.pfam :: :: :: :: :: HSSP format :: utf-8</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: DataFormat :: RSF :: :: Sequence alignment :: .rsf :: :: :: :: :: GCG RSF format :: utf-8</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: DataFormat :: Stockholm :: :: Sequence alignment :: .sth,.sto :: :: https://en.wikipedia.org/wiki/Stockholm_format :: :: :: Stockholm format :: utf-8</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: FASTA :: fasta :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: MSF :: msf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: PIR :: pir :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
@@ -52,6 +53,7 @@
 	<ChimeraXClassifier>ChimeraX :: Open :: HSSP :: hssp :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: Pfam :: selex :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: RSF :: rsf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Open :: Stockholm :: stockholm :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: sequence :: Sequence alignment :: control/open sequence alignments</ChimeraXClassifier>
 ]
   </Classifiers>
