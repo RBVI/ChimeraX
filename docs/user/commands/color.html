@@ -293,6 +293,7 @@ See also: <a href="mlp.html"><b>mlp</b></a>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 <b>zone</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
+[&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 Coloring by <b>zone</b> to match nearby atoms or
@@ -303,6 +304,8 @@ When multiple specified atoms fall within the cutoff distance of a
 surface vertex, the vertex will be colored to match the closest one.
 Vertices not within the cutoff of any of the atoms are assigned 
 the default color of the surface model (single-color mode).
+The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
+triangles to create sharp boundaries between the different colored regions.
 </p>
 
 <a name="general-options"></a>
@@ -718,5 +721,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2018</address>
+April 2018</address>
 </body></html>
