@@ -18,7 +18,7 @@ reads a PIR file
 from chimerax.core.atomic import Sequence
 from ..parse import FormatSyntaxError, make_readable
 
-def read(f):
+def read(session, f):
     want = 'init'
     sequences = []
     for line in f.readlines():

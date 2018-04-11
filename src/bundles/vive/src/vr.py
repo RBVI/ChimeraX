@@ -683,7 +683,10 @@ class UserInterface:
 
     def scale_ui(self, scale_factor):
         self._width *= scale_factor
-        self._update_ui_image()
+        self._height *= scale_factor
+        rw, rh = self._width, self._height
+        from chimerax.core.graphics.drawing import resize_rgba_drawing
+        resize_rgba_drawing(self._ui_drawing, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
         
 from chimerax.core.models import Model
 class HandControllerModel(Model):

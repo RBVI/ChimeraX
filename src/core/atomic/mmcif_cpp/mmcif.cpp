@@ -489,8 +489,7 @@ ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bo
                 conn_type = "linking atoms for ";
             } else {
                 // double check that there is a bond connecting the residues
-                auto bonds = r0->bonds_between(r1, true);
-                if (bonds.size() > 0)
+                if (r0->connects_to(r1))
                     continue;
                 conn_type = "connection between ";
             }
@@ -523,6 +522,11 @@ ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bo
                 gap = false;    // bad data
             }
 #endif
+            if (same_type && !gap && !reasonable_bond_length(a0, a1) && r0->connects_to(r1)) {
+                logger::warning(_logger, "Apparent non-polymeric linkage between ",
+                                residue_str(r0, r1), " and ", residue_str(r1));
+                continue;
+            }
             if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
                 // gap or CA trace
                 auto as = r0->structure();
@@ -816,6 +820,8 @@ ExtractMolecule::parse_entry()
         return;
     }
     parse_row(pv);
+    generic_tables["entry"] = { "entry", "id" };
+    generic_tables["entry data"] = { entry_id };
 }
 
 void

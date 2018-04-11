@@ -18,7 +18,7 @@ reads a ClustalW ALN format file
 from chimerax.core.atomic import Sequence
 from ..parse import FormatSyntaxError, make_readable
 
-def read(f):
+def read(session, f):
     in_header = True
     sequences = []
     line_num = 0
