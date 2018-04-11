@@ -1873,7 +1873,16 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     d.texture = texture
     return d
 
-
+def resize_rgba_drawing(drawing, pos = (-1,-1), size = (2,2)):
+    x, y = pos
+    sx, sy = size
+    from numpy import array, float32
+    varray = array(((x, y, 0),
+                    (x + sx, y, 0),
+                    (x + sx, y + sy, 0),
+                    (x, y + sy, 0)), float32)
+    drawing.vertices = varray
+    
 def _draw_texture(texture, renderer):
     d = _texture_drawing(texture)
     d.opaque_texture = True
