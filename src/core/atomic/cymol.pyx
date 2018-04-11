@@ -22,7 +22,6 @@ if use_tinyarray:
 else:
     from numpy import array, zeros
 from cython.operator import dereference
-from sys import getrefcount
 from ctypes import c_void_p, byref
 cimport cython
 

@@ -36,6 +36,8 @@ build_dir = os.path.split(os.path.split(sys.executable)[0])[0]
 include_path = os.path.join(build_dir, "include")
 lib_path = os.path.join(build_dir, "lib")
 
+# would like to use multiple source files, but you get multiple inits in the shared library,
+# corresponding to the various source files and none corresponding to the library itself
 ext = Extension("chimerax.core.atomic.cymol", ["cymol.pyx"],
     include_dirs=[include_path, numpy.get_include()],
     extra_compile_args=extra_compile_args,
