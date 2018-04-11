@@ -128,6 +128,10 @@ APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages
 APP_PIP = $(APP_EXE) -m pip
 APP_BOOTSTRAP_PIP = $(APP_PYTHON_EXE) -m pip
 
+ifeq ($(OS),Darwin)
+export SSL_CERT_FILE = $(PYSITEDIR)/certifi/cacert.pem
+endif
+
 PYLINT = $(PYTHON_EXE) -I -m flake8
 
 # common makefile targets
