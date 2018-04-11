@@ -275,6 +275,10 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
+        # Setup SSL CA certificates file
+        import certifi
+        os.environ["SSL_CERT_FILE"] = certifi.where()
+
     # for modules that moved out of core, allow the old imports to work for awhile...
     from importlib.abc import MetaPathFinder, Loader
     class CoreCompatFinder(MetaPathFinder):

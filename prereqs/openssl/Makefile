@@ -48,7 +48,12 @@ TARGET	= darwin64-x86_64-cc
 endif
 
 ifeq ($(OS),Darwin)
-USE_OLD_HEADERS=1
+# Using old headers no longer works because PyPI requires TLS 1.2+
+# and OpenSSL 0.9.8 does not speak that.  Instead, we will compile
+# a more modern OpenSSL and point it to use the certificates file 
+# from the "certifi" package, which can be updated from PyPI.
+#
+# USE_OLD_HEADERS=1
 # OpenSSL headers for 0.9.8 were copied from
 # /usr/local/src/MacOSX.sdks/MacOSX10.10.sdk/usr/include/openssl
 # from El Capitan

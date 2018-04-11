@@ -36,6 +36,9 @@ _additional_categories = (
     "citation",
     "citation_author",
 )
+_reserved_words = {
+    'loop_', 'stop_', 'global_'
+}
 
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
@@ -193,13 +196,16 @@ def register_mmcif_fetch():
 
 
 def quote(s):
-    """Return CIF quoted value"""
+    """Return CIF 1.1 data value version of string"""
     s = str(s)
     examine = s[0:1]
     sing_quote = examine == "'"
     dbl_quote = examine == '"'
     line_break = examine == '\n'
-    special = examine in ' [;'  # True if empty string too
+    special = examine in ' _$[;'  # True if empty string too
+    if not (special or sing_quote or dbl_quote or line_break):
+        cf = s[0:8].casefold()
+        special = cf.startswith(('data_', 'save_')) or cf in _reserved_words
     for i in range(1, len(s)):
         examine = s[i:i + 1]
         if examine == '" ':
