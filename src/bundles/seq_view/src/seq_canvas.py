@@ -170,7 +170,7 @@ class SeqCanvas:
         layout.setSpacing(0)
         layout.addWidget(self.label_view)
         #layout.addWidget(self._vdivider)
-        layout.addWidget(self.main_view, stretch=1)
+        layout.addWidget(self.main_view, stretch=1, alignment=Qt.AlignLeft)
         parent.setLayout(layout)
         parent.resizeEvent = self.resizeEvent
         self.label_view.hide()
