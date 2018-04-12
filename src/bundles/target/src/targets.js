@@ -93,9 +93,9 @@ var tgttable = function() {
                                            { "href": _sel_url(atomspec) })
                                            .text(atomspec)));
             // add checkbox/color-selector pairs
-            row.append(_add_dc("show", "hide", "abp", atomspec))
-            row.append(_add_dc("cartoon", "cartoon hide", "c", atomspec))
-            row.append(_add_dc("surface", "surface hide", "s", atomspec))
+            row.append(_add_dc("show", "hide", "abp", atomspec, "atom"))
+            row.append(_add_dc("cartoon", "cartoon hide", "c", atomspec, "rib"))
+            row.append(_add_dc("surface", "surface hide", "s", atomspec, "surf"))
             tbody.append(row);
         });
         $("#components").append($("<table/>", { id: "components_table" })
