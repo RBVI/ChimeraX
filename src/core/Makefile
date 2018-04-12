@@ -32,7 +32,7 @@ CYTHON_EXE = $(bindir)/cython
 endif
 
 BUNDLE_NAME = ChimeraX-Core
-BUNDLE_VERSION = 0.6
+BUNDLE_VERSION = 0.7
 PKG_NAME = chimerax.core
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)

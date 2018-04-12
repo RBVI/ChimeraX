@@ -212,19 +212,19 @@ target="_blank"><b>UCSF Chimera</b></a>)</td>
 <a href="http://www.ccp4.ac.uk/html/maplib.html" target="_blank">CCP4</a>
 map</td>
 <td align="center"><b>ccp4</b></td>
-<td align="center">.ccp4<br>.map</td>
+<td align="center">.ccp4, .map</td>
 <td align="center">electron density map</td>
 </tr><tr>
 <td align="center"><a href="save.html#chimap">Chimera map</a></td>
 <td align="center"><b>cmap</b></td>
-<td align="center">.cmp<br>.cmap</td>
+<td align="center">.cmp, .cmap</td>
 <td align="center">volume data from Chimera/ChimeraX
 <br>(based on the hierarchical data format
 <a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
 </tr><tr>
 <td align="center">CNS or XPLOR map</td>
 <td align="center"><b>xplor</b></td>
-<td align="center">.cns<br>.xplor</td>
+<td align="center">.cns, .xplor</td>
 <td align="center">unformatted ASCII density map</td>
 </tr><tr>
 <td align="center">DelPhi or GRASP potential</td>
@@ -268,14 +268,14 @@ bump, contact, and energy scoring grids<br>
 </tr><tr>
 <td align="center">EMAN HDF map</td>
 <td align="center"><b>emanhdf</b></td>
-<td align="center">.hdf<br>.h5</td>
+<td align="center">.hdf, .h5</td>
 <td align="center">electron density map
 <br>(based on the hierarchical data format
 <a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
 </tr><tr>
 <td align="center">Gaussian cube grid</td>
 <td align="center"><b>cube</b></td>
-<td align="center">.cube<br>.cub</td>
+<td align="center">.cube, .cub</td>
 <td align="center">orbitals, electron densities, other</td>
 </tr><tr>
 <td align="center"><a href="https://research.csc.fi/-/gopenmol_download"
@@ -288,7 +288,7 @@ target="_blank">gOpenMol</a> grid</td>
 <a href="https://www-legacy.openmicroscopy.org/site/products/ome-tiff"
 target="_blank">OME</a> TIFF</td>
 <td align="center"><b></b></td>
-<td align="center">.tif<br>.tiff</td>
+<td align="center">.tif, .tiff</td>
 <td align="center">microscopy data
 <br>(multiple channels and/or time points specified in file header)</td>
 </tr><tr>
@@ -352,14 +352,14 @@ versions 6 and 7)</td>
 <td align="center"><a href="http://situs.biomachina.org/index.html"
 target="_blank">Situs</a> map</td>
 <td align="center"><b>situs</b></td>
-<td align="center">.situs<br>.sit</td>
+<td align="center">.situs, .sit</td>
 <td align="center">electron density map</td>
 </tr><tr>
 <td align="center">
 <a href="https://spider.wadsworth.org/spider_doc/spider/docs/spider.html"
 target="_blank">SPIDER</a> map</td>
 <td align="center"><b>spider</b></td>
-<td align="center">.spi<br>.vol</td>
+<td align="center">.spi, .vol</td>
 <td align="center">electron density map</td>
 </tr><tr>
 <td align="center">STORM data</td>
@@ -390,7 +390,7 @@ University of Houston Brownian Dynamics</td>
 <a href="../formats/bild.html">Chimera/ChimeraX BILD</a>
 </td>
 <td align="center"><b>bild</b></td>
-<td align="center">.bild<br>.bld</td>
+<td align="center">.bild, .bld</td>
 <td align="center">graphical objects</td>
 </tr><tr>
 <td align="center">
@@ -442,20 +442,52 @@ target="_blank">Wavefront OBJ</a></td>
 <b>Sequences</b> (associated tool: 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
 </tr><tr>
+<td align="center">Clustal ALN</td>
+<td align="center"><b>aln</b></td>
+<td align="center" class="text">.aln, .clustal<br>.clustalw,&nbsp;.clustalx</td>
+<td align="center">sequence alignment</td>
+</tr><tr>
 <td align="center">FASTA, aligned FASTA</td>
 <td align="center"><b>fasta</b></td>
 <td align="center">.fasta, .fa<br>.afasta, .afa</td>
 <td align="center">individual sequence(s) or sequence alignment</td>
 </tr><tr>
-<td align="center">MSF (Multiple Sequence Format)</td>
+<td align="center">GCG MSF (Multiple Sequence Format)</td>
 <td align="center"><b>msf</b></td>
 <td align="center">.msf</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
-<td align="center">PIR, aligned PIR</td>
+<td align="center">GCG RSF (Rich Sequence Format)</td>
+<td align="center"><b>rsf</b></td>
+<td align="center">.rsf</td>
+<td align="center">sequence alignment</td>
+</tr><tr>
+<td align="center">
+<a href="http://nar.oxfordjournals.org/content/25/1/226.full"
+target="_blank">HSSP</a></td>
+<td align="center"><b>hssp</b></td>
+<td align="center">.hssp</td>
+<td align="center">sequence alignment
+<br>(other information not read; see
+<a href="http://swift.cmbi.ru.nl/gv/hssp/" target="_blank">HSSP database</a>)
+</td>
+</tr><tr>
+<td align="center" class="text">PIR (NBRF), aligned PIR</td>
 <td align="center"><b>pir</b></td>
-<td align="center">.pir<br>.ali</td>
+<td align="center">.pir, .ali</td>
 <td align="center">individual sequence(s) or sequence alignment</td>
+</tr><tr>
+<td align="center">Selex (Pfam)</td>
+<td align="center"><b>pfam</b></td>
+<td align="center">.selex, .slx<br>.pfam</td>
+<td align="center">sequence alignment</td>
+</tr><tr>
+<td align="center">
+<a href="http://en.wikipedia.org/wiki/Stockholm_format"
+target="_blank">Stockholm</a></td>
+<td align="center"><b>stockholm</b></td>
+<td align="center">.sth, .sto</td>
+<td align="center">sequence alignment</td>
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="composite"></a>
