@@ -74,8 +74,10 @@ td img {
   /* background-color: transparent; */
 }
 td input {
-  width: 1.8em;
-  height: 1.2em;
+  width: 1.2em;
+  height: 1.5em;
+  margin: 0px;
+  padding: 0px 2px 0px 2px;
   background-color: transparent;
   vertical-align: middle;
 }
