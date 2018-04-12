@@ -32,7 +32,7 @@ class MouseModePanel(ToolInstance):
 
         parent = session.ui.main_window
         self.buttons = self.create_toolbar(parent)
-
+        
     def create_toolbar(self, parent):
         from PyQt5.QtWidgets import QAction, QToolBar, QActionGroup
         from PyQt5.QtGui import QIcon
@@ -89,11 +89,11 @@ class MouseModePanel(ToolInstance):
         group = QActionGroup(tb)
         s = self._icon_size
         columns = self._icons_per_row
+        from os import path
+        icon_dir = path.join(path.dirname(__file__), 'icons')
         for mnum,mode in enumerate(self.modes):
             b = QToolButton(tb)
             b.setIconSize(QSize(s,s))
-            from os import path
-            icon_dir = path.join(path.dirname(__file__), 'icons')
             action = QAction(QIcon(path.join(icon_dir, mode.icon_file)), mode.name, group)
             b.setDefaultAction(action)
             action.setCheckable(True)
