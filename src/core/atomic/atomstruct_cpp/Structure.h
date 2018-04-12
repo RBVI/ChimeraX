@@ -183,7 +183,7 @@ protected:
         return version < 5 ? 1 : 3;
     }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version == 1 ? 9 : (version < 5 ? 10 : 16);
+        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : 17));
     }
     static int  SESSION_NUM_MISC(int version=CURRENT_SESSION_VERSION) {
         return version > 7 ? 3 : 4;
