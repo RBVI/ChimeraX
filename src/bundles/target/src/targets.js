@@ -49,9 +49,9 @@ var tgttable = function() {
                                            .text(name)));
             row.append($("<td/>").text(info));
             // add checkbox/color-selector pairs
-            row.append(_add_dc("show", "hide", "abp", name))
-            row.append(_add_dc("cartoon", "cartoon hide", "c", name))
-            row.append(_add_dc("surface", "surface hide", "s", name))
+            row.append(_add_dc("show", "hide", "abp", name, "atom"))
+            row.append(_add_dc("cartoon", "cartoon hide", "c", name, "rib"))
+            row.append(_add_dc("surface", "surface hide", "s", name, "surf"))
             tbody.append(row);
         });
         $("#targets").append($("<table/>", { id: "targets_table" })
@@ -122,13 +122,15 @@ var tgttable = function() {
         return url;
     }
 
-    function _add_dc(show, hide, tgt, name) {
+    function _add_dc(show, hide, tgt, name, type) {
+        var show_icon = "lib/" + type + "show.png";
+        var hide_icon = "lib/" + type + "hide.png";
         return $("<td/>", { name:name })
                     .append($("<img/>", { class: "show", action: show,
-                                          src: "lib/show.svg" }))
+                                          src: show_icon }))
                     .append($("<span/>", { class: "spacer" }))
                     .append($("<img/>", { class: "hide", action: hide,
-                                          src: "lib/hide.svg" }))
+                                          src: hide_icon }))
                     .append($("<span/>", { class: "spacer" }))
                     .append($("<input/>", { class: "color", type: "color",
                                             value: "#ffcf00", target: tgt }));
