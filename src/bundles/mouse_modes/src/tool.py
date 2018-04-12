@@ -87,10 +87,11 @@ class MouseModePanel(ToolInstance):
         tb.setStyleSheet('QFrame{spacing:0px;}\n'
                          'QToolButton{padding:0px; margin:0px; border:none;}')
         group = QActionGroup(tb)
+        s = self._icon_size
         columns = self._icons_per_row
         for mnum,mode in enumerate(self.modes):
             b = QToolButton(tb)
-            b.setIconSize(QSize(40,40))
+            b.setIconSize(QSize(s,s))
             from os import path
             icon_dir = path.join(path.dirname(__file__), 'icons')
             action = QAction(QIcon(path.join(icon_dir, mode.icon_file)), mode.name, group)
