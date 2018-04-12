@@ -65,7 +65,7 @@ Structure::Structure(PyObject* logger):
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
     _ss_assigned(false), _structure_cats_dirty(true),
     asterisks_translated(false), is_traj(false),
-    lower_case_chains(false), pdb_version(0)
+    lower_case_chains(false), pdb_version(0), ss_ids_normalized(false)
 {
     change_tracker()->add_created(this, this);
 }

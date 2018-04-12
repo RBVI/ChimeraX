@@ -738,6 +738,7 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
         }
         compute_chain(params);
 		set_ss_assigned(true);
+		ss_ids_normalized = false;
         for (auto crd: params.coords)
             delete crd;
         for (auto ih: params.imide_Hs)
