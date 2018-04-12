@@ -26,7 +26,8 @@ class MouseModePanel(ToolInstance):
         self.mouse_modes = mm = session.ui.mouse_modes
         self.button_to_bind = 'right'
         self._icon_size = 40
-        self._icons_per_row = 12
+        self._icons_per_row = 13
+        self.tool_window = None
         
         self.modes = [m for m in mm.modes if m.icon_file]
 
@@ -119,6 +120,15 @@ class MouseModePanel(ToolInstance):
 
     def displayed(self):
         return not self.buttons.isHidden()
+        
+    def display_panel(self, show):
+        tw = self.tool_window
+        if show:
+            if tw is None:
+                self.create_button_panel()
+            self.tool_window.shown = True
+        elif tw:
+            tw.shown = False
 
     @classmethod
     def get_singleton(cls, session):
