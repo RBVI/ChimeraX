@@ -28,7 +28,7 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
         fname = os.path.basename(path)
         stream = open_filename(path)
     try:
-        seqs, file_attrs, file_markups = ns['read'](stream)
+        seqs, file_attrs, file_markups = ns['read'](session, stream)
     except FormatSyntaxError as err:
         raise IOError("Syntax error in %s file '%s': %s" % (format_name, fname, err))
     if not seqs:

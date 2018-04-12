@@ -51,7 +51,8 @@ can be specified using:
   - <b>sel</b> (current <a href="../selection.html">selection</a>),
   <b>protein</b>, <b>helix</b>, <b>strand</b>, <b>ligand</b>, <b>hbonds</b>,
   element symbols, functional groups, <i>etc.</i>
-  <li><a href="#user">user-defined targets</a>
+  <li><a href="#user">user-defined targets</a> - named selections 
+  or other targets defined with <a href="name.html"><b>name</b></a>
   <li><a href="#attributes">attribute</a> names and values
   <font color="brown">(partially implemented)</font>
   <li><a href="#zones">zones</a> - by distance from other items
@@ -466,12 +467,18 @@ see <a href="#combinations">combinations</a>)
 <p>
 With the <a href="name.html"><b>name</b></a> command,
 users can assign a name to a <a href="../selection.html">selection</a>
-or to a longer target string for easy use in subsequent commands.
-</p>
-<!-- or the Basic Actions tool -->
-<!-- currently not prohibited, needs to be fixed
+or to a target specification string for easy use in later commands.
+For example:
+<blockquote><b>
+<!-- 1hxz rhodopsin -->
+<a href="name.html">name</a> tm1 /a:34-64
+<br><a href="name.html">name</a> tm2 /a:70-101
+<br><a href="color.html#simple">color</a> tm1 medium blue
+<br><a href="color.html#simple">color</a> tm2 deep sky blue
+</b></blockquote>
+<p>
 Built-in classifications cannot be redefined by the user.
--->
+</p>
 
 <hr>
 <a name="attributes"></a>

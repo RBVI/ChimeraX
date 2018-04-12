@@ -271,9 +271,13 @@ class SteamVRCamera(Camera):
         self.room_to_scene = (translation(scene_center) *
                               scale(scene_size/room_scene_size) *
                               translation(-array(room_center, float32)))
-
+        self._reposition_user_interface()
+        
     def move_scene(self, move):
         self.room_to_scene = self.room_to_scene * move
+        self._reposition_user_interface()
+        
+    def _reposition_user_interface(self):
         ui = self.user_interface
         if ui.shown():
             ui.move()
@@ -691,6 +695,13 @@ class UserInterface:
         rp = hand_room_position
         self.move(rp * luip.inverse())
         self._last_ui_position = rp
+
+    def scale_ui(self, scale_factor):
+        self._width *= scale_factor
+        self._height *= scale_factor
+        rw, rh = self._width, self._height
+        from chimerax.core.graphics.drawing import resize_rgba_drawing
+        resize_rgba_drawing(self._ui_drawing, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
         
 from chimerax.core.models import Model
 class HandControllerModel(Model):
@@ -889,7 +900,18 @@ class ShowUIMode(HandMode):
     def released(self, camera, hand_controller):
         camera.user_interface.display_ui(False, hand_controller.room_position)
     def drag(self, camera, hand_controller, previous_pose, pose):
-        camera.user_interface.move_ui(hand_controller.room_position)
+        oc = camera.other_controller(hand_controller)
+        if self._ui_zoom(oc):
+            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc._pose.origin())
+            if scale is not None:
+                camera.user_interface.scale_ui(scale)
+        else:
+            camera.user_interface.move_ui(hand_controller.room_position)
+    def _ui_zoom(self, oc):
+        for m in oc._active_drag_modes:
+            if isinstance(m, ShowUIMode):
+                return True
+        return False
 
 class MoveSceneMode(HandMode):
     name = 'move scene'
@@ -897,7 +919,9 @@ class MoveSceneMode(HandMode):
         oc = camera.other_controller(hand_controller)
         if self._other_controller_move(oc):
             # Both controllers trying to move scene -- zoom
-            self._pinch_zoom(camera, hand_controller, previous_pose.origin(), pose.origin(), oc._pose.origin())
+            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc._pose.origin())
+            if scale is not None:
+                self._pinch_zoom(camera, hand_controller, center, scale)
         else:
             move = previous_pose * pose.inverse()
             camera.move_scene(move)
@@ -907,17 +931,22 @@ class MoveSceneMode(HandMode):
             if isinstance(m, MoveSceneMode):
                 return True
         return False
-    def _pinch_zoom(self, camera, hand_controller, prev_pos, pos, other_pos):
+    def _pinch_zoom(self, camera, hand_controller, center, scale_factor):
         # Two controllers have trigger pressed, scale scene.
-        from chimerax.core.geometry import distance, translation, scale
-        d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
+        from chimerax.core.geometry import translation, scale
+        scale = translation(center) * scale(1/scale_factor) * translation(-center)
+        camera.move_scene(scale)
+        hand_controller._update_position(camera)
+
+def _pinch_scale(prev_pos, pos, other_pos):
+    from chimerax.core.geometry import distance
+    d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
+    if dp > 0:
+        s = d / dp
+        s = max(min(s, 10.0), 0.1)	# Limit scaling
         center = 0.5*(pos+other_pos)
-        if d > 0.5*dp and dp > 0:
-            s = dp / d
-            s = max(min(s, 10.0), 0.1)	# Limit scaling
-            scale = translation(center) * scale(s) * translation(-center)
-            camera.move_scene(scale)
-            hand_controller._update_position(camera)
+        return s, center
+    return None, None
 
 class ZoomMode(HandMode):
     name = 'zoom'
