@@ -1469,6 +1469,21 @@ extern "C" EXPORT PyObject *bond_smaller_side(void *bond)
     }
 }
 
+extern "C" EXPORT PyObject *bond_polymeric_start_atom(void *bond)
+{
+    Bond *b = static_cast<Bond *>(bond);
+    try {
+        Atom* a = b->polymeric_start_atom();
+        if (a == nullptr) {
+            Py_RETURN_NONE;
+        }
+        return a->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT int bonds_num_selected(void *bonds, size_t n)
 {
     Bond **b = static_cast<Bond **>(bonds);
@@ -2901,8 +2916,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         return o;
     } catch (...) {
         molc_error();
-        Py_INCREF(Py_None);
-        return Py_None;
+        Py_RETURN_NONE;
     }
 }
 #else
@@ -3027,8 +3041,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
         }
     } catch (...) {
         molc_error();
-        Py_INCREF(Py_None);
-        return Py_None;
+        Py_RETURN_NONE;
     }
 }
 #endif
@@ -3722,8 +3735,7 @@ extern "C" EXPORT pyobject_t sequence_ungapped(void *seq)
         return unicode_from_string(std::string(ungapped.begin(), ungapped.end()));
     } catch (...) {
         molc_error();
-        Py_INCREF(Py_None);
-        return Py_None;
+        Py_RETURN_NONE;
     }
 }
 
@@ -4277,8 +4289,7 @@ extern "C" EXPORT PyObject *structure_pseudobond_group(void *mol, const char *na
     try {
         Proxy_PBGroup *pbg = m->pb_mgr().get_group(name, create_type);
         if (pbg == nullptr) {
-            Py_INCREF(Py_None);
-            return Py_None;
+            Py_RETURN_NONE;
         }
         return pbg->py_instance(true);
     } catch (...) {

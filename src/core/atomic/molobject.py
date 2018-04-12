@@ -252,6 +252,11 @@ class Bond(State):
         f = c_function('bond_smaller_side', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
+    @property
+    def polymeric_start_atom(self):
+        f = c_function('bond_polymeric_start_atom', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
+
     def string(self, style = None):
         "Supported API.  Get text representation of Bond"
         " (also used by __str__ for printing)"
