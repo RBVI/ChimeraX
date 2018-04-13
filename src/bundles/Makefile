@@ -12,7 +12,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = addh active_tools align_algs alignments bild blastprotein bond_rot bumps \
+SUBDIRS = addh active_tools align_algs alignments basic_actions bild blastprotein bond_rot bumps \
 	  bundle_builder cage_builder cellpack chem_group clashes cmd_line \
 	  color_globe crosslinks dist_monitor dist_ui exp_cmd file_history \
 	  gltf hbonds help_viewer ihm interfaces label list_info \
@@ -21,7 +21,7 @@ SUBDIRS = addh active_tools align_algs alignments bild blastprotein bond_rot bum
 	  nucleotides \
 	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
-	  smooth_lines spacenavigator stl storm struts swapaa target \
+	  smooth_lines spacenavigator stl storm struts swapaa \
 	  test texture tug ui viewdockx vive volume_viewer vtk wavefront_obj
 
 include $(TOP)/mk/subdir.make
