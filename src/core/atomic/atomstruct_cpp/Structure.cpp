@@ -65,7 +65,7 @@ Structure::Structure(PyObject* logger):
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
     _ss_assigned(false), _structure_cats_dirty(true),
     asterisks_translated(false), is_traj(false),
-    lower_case_chains(false), pdb_version(0)
+    lower_case_chains(false), pdb_version(0), ss_ids_normalized(false)
 {
     change_tracker()->add_created(this, this);
 }
@@ -838,6 +838,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = _ribbon_tether_sides;
     *int_array++ = _ribbon_mode_helix;
     *int_array++ = _ribbon_mode_strand;
+    *int_array++ = ss_ids_normalized;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -1119,6 +1120,8 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         _ribbon_mode_helix = static_cast<RibbonMode>(*int_array++);
         _ribbon_mode_strand = static_cast<RibbonMode>(*int_array++);
     }
+    if (version >= 12)
+        ss_ids_normalized = *int_array++;
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 

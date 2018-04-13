@@ -126,6 +126,8 @@ public:
     int  ss_id() const {
         if (!structure()->ss_assigned())
             structure()->compute_secondary_structure();
+        if (!structure()->ss_ids_normalized)
+            structure()->normalize_ss_ids();
         return _ss_id;
     }
     SSType  ss_type() const {

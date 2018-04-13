@@ -183,7 +183,7 @@ protected:
         return version < 5 ? 1 : 3;
     }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version == 1 ? 9 : (version < 5 ? 10 : 16);
+        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : 17));
     }
     static int  SESSION_NUM_MISC(int version=CURRENT_SESSION_VERSION) {
         return version > 7 ? 3 : 4;
@@ -237,6 +237,7 @@ public:
     CoordSet*  new_coord_set(int index, int size);
     Residue*  new_residue(const ResName& name, const ChainID& chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
+    virtual void  normalize_ss_ids() {}
     size_t  num_atoms() const { return atoms().size(); }
     size_t  num_bonds() const { return bonds().size(); }
     size_t  num_hyds() const { return _num_hyds; }
@@ -289,6 +290,7 @@ public:
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }
+    bool  ss_ids_normalized;
     void  start_change_tracking(ChangeTracker* ct) {
         _change_tracker = ct;
         ct->add_created(this, this);

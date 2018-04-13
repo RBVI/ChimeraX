@@ -13,7 +13,7 @@
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
 def vr(session, enable = None, room_position = None, mirror = True, icons = False,
-       show_controllers = True, multishadow_allowed = False):
+       show_controllers = True, multishadow_allowed = False, toolbar_panels = True):
     '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
     Parameters
@@ -45,6 +45,9 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
       changes to lighting mode are made.  Often rendering is not fast enough
       to support multishadow lighting so this option makes sure it is off so that stuttering
       does not occur.  Default False.
+    toolbar_panels : bool
+      Whether to hide mouse modes and shortcut toolbars and instead show them as tool panels.
+      This is useful for consolidating the controls in the VR gui panel.  Default true.
     '''
     
     if enable is None and room_position is None:
@@ -79,6 +82,15 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
         if icons is not None: 
             for hc in c.hand_controllers():
                 hc.enable_icon_panel(icons)
+
+    if toolbar_panels:
+        from chimerax.mouse_modes.tool import MouseModePanel
+        from chimerax.shortcuts.tool import ShortcutPanel
+        toolbar_classes = (MouseModePanel, ShortcutPanel)
+        for tb in session.tools.list():
+            if isinstance(tb, toolbar_classes):
+                tb.display(False)
+                tb.display_panel(True)
             
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
@@ -90,7 +102,10 @@ def register_vr_command(logger):
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
                               ('mirror', BoolArg),
                               ('icons', BoolArg),
-                              ('show_controllers', BoolArg),],
+                              ('show_controllers', BoolArg),
+                              ('multshadow_allowed', BoolArg),
+                              ('toolbar_panels', BoolArg),
+                   ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
     create_alias('vr', 'device vr $*', logger=logger)
