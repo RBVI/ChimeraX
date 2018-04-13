@@ -86,3 +86,20 @@ td input {
   display: inline-block;
   width: 0.3em;
 }
+
+.color {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-image: url("lib/colorpicker.png")
+}
+
+.colorinput {
+  height: 100%;
+  width: 100%;
+  opacity: 0;
+}
