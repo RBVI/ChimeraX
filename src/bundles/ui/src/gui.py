@@ -880,7 +880,7 @@ def _open_dropped_file(session, path):
     if not path:
         return
     from chimerax.core.commands import run, quote_if_necessary
-    run(session, 'open %s' % quote_if_necessary(p))
+    run(session, 'open %s' % quote_if_necessary(path))
 
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):
