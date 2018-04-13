@@ -328,6 +328,8 @@ class SteamVRCamera(Camera):
         H = hmd34_to_position(hmd_pose0.mDeviceToAbsoluteTracking)
 
         self.process_controller_events()
+
+        self.user_interface.update_if_needed()
         
         # Compute camera scene position from HMD position in room
         from chimerax.core.geometry import scale
@@ -533,6 +535,8 @@ class UserInterface:
         self._panel_size = None 	# Panel size in pixels
         self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle 
         self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
+        self._update_later = 0		# Redraw panel after this many frames
+        self._update_delay = 10		# After click on panel, update after this number of frames
         self._ui_drawing = None
         self._start_ui_move_time = None
         self._last_ui_position = None
@@ -600,11 +604,17 @@ class UserInterface:
         
     def _click(self, pressed, window_xy):
         if self._post_mouse_event(pressed, window_xy):
-            # TODO: Delay ui update until user interface echoes command.
+            self._update_later = self._update_delay
             self._update_ui_image()
             return True
         return False
 
+    def update_if_needed(self):
+        if self.shown() and self._update_later:
+            self._update_later -= 1
+            if self._update_later == 0:
+                self._update_ui_image()
+                
     def clicked_mouse_mode(self, window_xy):
         w, pos = self._clicked_widget(window_xy)
         from PyQt5.QtWidgets import QToolButton
