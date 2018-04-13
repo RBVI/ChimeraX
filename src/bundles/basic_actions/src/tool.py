@@ -124,7 +124,7 @@ class BasicActionsTool(HtmlToolInstance):
             return
         self._updating_targets = True
         from .cmd import name_list
-        targets = name_list(self.session, all=self._show_all, log=False)
+        targets = name_list(self.session, builtins=self._show_all, log=False)
         data = []
         for name in sorted(targets.keys()):
             if self._hide_nonmatching and self._is_nonmatching(name):
