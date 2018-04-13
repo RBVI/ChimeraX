@@ -125,7 +125,7 @@ class Objects:
         if ca is None:
             from . import atomic
             ca = atomic.concatenate(self._atoms, atomic.Atoms, remove_duplicates = True)
-            self._cached_atoms = None
+            self._cached_atoms = ca
         return ca
 
     @property
