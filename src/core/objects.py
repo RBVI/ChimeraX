@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -198,3 +200,34 @@ class Objects:
             b = m.bounds(positions = False)
             bm.append(copies_bounding_box(b, m.positions.masked(minst)))
         return union_bounds(bm + [self.atoms.scene_bounds])
+
+    def refresh(self, session):
+        """Remove atoms/bonds/pseudobonds of deleted model.
+
+        Returns True if something changed during refresh; False otherwise."""
+
+        from .orderedset import OrderedSet
+        from .atomic import AtomicStructures, AtomicStructure
+        all_models = set(session.models.list())
+        models = [m for m in self._models if m in all_models]
+        if len(models) == len(self._models):
+            return False
+        self._models = OrderedSet(models)
+        self._model_instances = {(m, i)
+                                 for (m, i) in self._model_instances.items()
+                                 if not m.deleted}
+        structures = AtomicStructures(session.models.list(type=AtomicStructure))
+        atoms = self.atoms
+        mask = structures.indices(atoms.structures) != -1
+        self._atoms = [atoms.filter(mask)]
+        self._cached_atoms = None
+        bonds = self.bonds
+        mask = structures.indices(bonds.structures) != -1
+        self._bonds = [bonds.filter(mask)]
+        pseudobonds = self.pseudobonds
+        a0s, a1s = pseudobonds.atoms
+        mask0 = structures.indices(a0s.structures) != -1
+        mask1 = structures.indices(a1s.structures) != -1
+        mask = mask0 & mask1
+        self._pseudobonds = [pseudobonds.filter(mask)]
+        return True
