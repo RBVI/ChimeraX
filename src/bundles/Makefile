@@ -41,6 +41,7 @@ endif
 clean:
 	rm -rf __pycache__
 
+active_tools.install: ui.install
 align_algs.install: alignments.install
 bond_rot.install: ui.install
 bumps.install: markers.install
