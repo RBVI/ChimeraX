@@ -94,20 +94,26 @@ see :doc:`tutorial_hello` and :doc:`tutorial_command`.
 .. literalinclude:: ../../../src/examples/tutorials/tut_gui/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,17-25,35,38-41,48-50
+    :emphasize-lines: 8-10,17-25,35-36,39-42,49-51
 
 The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
 (lines 8-10 and 17-25).  Three other changes are needed
 for this bundle to declare that:
 
-#. this bundle depends on the ``ChimeraX-Tutorial_Command`` bundle (line 35),
-#. non-Python files need to be included in the bundle (lines 38-41), and
-#. a single graphical interface tool is provided in this bundle (lines 48-50).
+#. this bundle depends on the ``ChimeraX-UI`` and
+   ``ChimeraX-Tutorial_Command`` bundles (line 35-36),
+#. non-Python files need to be included in the bundle (lines 39-42), and
+#. a single graphical interface tool is provided in this bundle (lines 49-51).
 
-The ``Dependency`` tag on line 35 informs ChimeraX that the
-``ChimeraX-Tutorial_Command`` bundle must be present when this bundle
-is installed.  If it is not, it is installed first.
+The ``Dependency`` tags on lines 35 and 36 inform ChimeraX that the
+``ChimeraX-UI`` and ``ChimeraX-Tutorial_Command`` bundles must be
+present when this bundle is installed.  If they are not, they are
+installed first.  The ``ChimeraX-UI`` bundle is needed to provide
+the :py:class:`chimerax.ui.htmltool.HtmlToolInstance` class used
+for building the user interface (see `gui.py`_ below) and the
+``ChimeraX-Tutorial_Command`` is needed to provide the ChimeraX
+commands that will be used for actually performing user actions.
 
 The ``DataFiles`` tag on lines 38-41 informs ChimeraX to include
 non-Python files as part of the bundle when building.  In this case,
