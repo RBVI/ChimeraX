@@ -46,10 +46,16 @@ class MouseMode:
         self.view = session.main_view
 
         self.mouse_down_position = None
-        '''Pixel position (x,y) of mouse down, sometimes useful to detect on mouse up
+        '''Pixel position (x,y) of mouse-down, sometimes useful to detect on mouse-up
         whether any mouse motion occured. Set to None after mouse up.'''
         self.last_mouse_position = None
         '''Last mouse position during a mouse drag.'''
+        self.double_click = False
+        '''Whether the last mouse-down was actually a double_click.  Can be used in the mouse-up
+        event handler if different behavior needed after a double click.  There is a
+        mouse_double_click method for doing something on a double click (which happens on the
+        second mouse down), so this boolean is only for mouse-up handlers that behave differently
+        after single vs. double clicks.'''
 
     def enable(self):
         '''Override if mode wants to know that it has been bound to a mouse button.'''
@@ -59,11 +65,13 @@ class MouseMode:
         '''
         Override this method to handle mouse down events.
         Derived methods can call this base class method to
-        set mouse_down_position and last_mouse_position.
+        set mouse_down_position and last_mouse_position
+        and properly handle double clicks.
         '''
         pos = event.position()
         self.mouse_down_position = pos
         self.last_mouse_position = pos
+        self.double_click = False
 
     def mouse_up(self, event):
         '''
@@ -73,6 +81,17 @@ class MouseMode:
         '''
         self.mouse_down_position = None
         self.last_mouse_position = None
+
+    def mouse_double_click(self, event):
+        '''
+        Override this method to handle double clicks.
+        Keep in mind that you will also receive the mouse_down and
+        mouse_up events.  If your mouse_up handler needs to behave
+        differently depending on whether it is the second part of a
+        double click, have it check the self.double_click boolean,
+        and make sure to call this base method so that the boolean is set.
+        '''
+        self.double_click = True
 
     def mouse_motion(self, event):
         '''
@@ -354,6 +373,7 @@ class MouseModes:
         gw.mousePressEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_down")
         gw.mouseMoveEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_drag")
         gw.mouseReleaseEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_up")
+        gw.mouseDoubleClickEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_double_click")
         gw.wheelEvent = self._wheel_event
 
     def _wheel_event(self, event):
