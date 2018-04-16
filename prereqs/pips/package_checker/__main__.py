@@ -6,7 +6,7 @@ Comments = {
     "docutils": "required by Sphinx",
     "filelock": "",
     "flake8": "used for Python lint",
-    "grako": "3.16.5 is the last version that works for ChimeraX"
+    "grako": "3.16.5 is the last version that works for ChimeraX",
     "Jinja2": "required by Sphinx",
     "mccabe": "required by flake8",
     "numpydoc": "required for Sphinx",
