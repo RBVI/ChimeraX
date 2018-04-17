@@ -420,6 +420,8 @@ class SelectMouseMode(MouseMode):
     name = 'select'
     icon_file = 'select.png'
 
+    _menu_entry_info = []
+
     def __init__(self, session):
         MouseMode.__init__(self, session)
 
@@ -444,10 +446,47 @@ class SelectMouseMode(MouseMode):
         if self._is_drag(event):
             # Select objects in rectangle
             mouse_drag_select(self.mouse_down_position, event, self.mode, self.session, self.view)
-        else:
+        elif not self.double_click:
             # Select object under pointer
             mouse_select(event, self.mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
+
+    def mouse_double_click(self, event):
+        MouseMode.mouse_double_click(self, event)
+        entries = []
+        for label_info, criteria, callback in SelectMouseMode._menu_entry_info:
+            if criteria(self.session):
+                if callable(label_info):
+                    label_text = label_info(self.session)
+                else:
+                    label_text = label_info
+                entries.append((label_text, callback))
+        entries.sort()
+        from PyQt5.QtWidgets import QMenu, QAction
+        menu = QMenu()
+        if entries:
+            for label, callback in entries:
+                action = QAction(label)
+                action.triggered.connect(lambda arg, cb=callback, sess=self.session: cb(sess))
+                menu.addAction(action)
+        else:
+            menu.addAction("No applicable actions")
+        # this will prevent atom-spec balloons from showing up
+        menu.exec(event._event.globalPos())
+
+    @staticmethod
+    def register_menu_entry(label, criteria, callback):
+        '''Register a context-menu entry.
+
+        'label' is the text of the menu entry.  It can be a callable that return the text of the
+            entry.  If it is, then it is called with the session as an argument.
+        'criteria' is a callable that is given the session as an argument.  It should return a
+            boolean that indicates whether the menu should include this entry (usually based on
+            the current contents of the selection).
+        'callback' is a callable that is given the session as an argument.  It should perform
+            the entry's corresponding action.
+        '''
+        SelectMouseMode._menu_entry_info.append((label, criteria, callback))
 
     def _is_drag(self, event):
         dp = self.mouse_down_position
@@ -770,6 +809,11 @@ class ObjectIdMouseMode(MouseMode):
         # ensure that no other top-level window is above the graphics
         from PyQt5.QtGui import QCursor
         if ui.topLevelAt(QCursor.pos()) != ui.main_window:
+            return
+        # ensure there's no popup menu above the graphics
+        apw = ui.activePopupWidget()
+        from PyQt5.QtCore import QPoint
+        if apw and ui.topLevelAt(apw.mapToGlobal(QPoint())) == ui.main_window:
             return
         x,y = position
         p = picked_object(x, y, self.view)
