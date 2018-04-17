@@ -15,7 +15,7 @@ def name(session, name, text=None):
         except KeyError:
             raise UserError("\"%s\" is not defined" % name)
         else:
-            value = _get_name_desc(sel, True)
+            value = _get_name_desc(sel, True, session)
             session.logger.info('\t'.join([name, value]))
     else:
         try:
@@ -64,7 +64,7 @@ def name_list(session, builtins=False, log=True):
     from chimerax.core.commands import list_selectors
     targets = {}
     for name in sorted(list_selectors()):
-        value = _get_name_desc(name, builtins)
+        value = _get_name_desc(name, builtins, session)
         if value:
             if log:
                 session.logger.info('\t'.join([name, value]))
@@ -75,7 +75,7 @@ def name_list(session, builtins=False, log=True):
 name_list_desc = CmdDesc(keyword=[("builtins", BoolArg)])
 
 
-def _get_name_desc(name, builtin_okay):
+def _get_name_desc(name, builtin_okay, session):
     from chimerax.core.commands import get_selector
     from chimerax.core.objects import Objects
     sel = get_selector(name)
@@ -90,6 +90,7 @@ def _get_name_desc(name, builtin_okay):
             except AttributeError:
                 value = "[Function]"
     elif isinstance(sel, Objects):
+        sel.refresh(session)
         title = []
         if sel.num_atoms:
             title.append("%d atoms" % sel.num_atoms)
@@ -97,7 +98,10 @@ def _get_name_desc(name, builtin_okay):
             title.append("%d bonds" % sel.num_bonds)
         if len(sel.models) > 1:
             title.append("%d models" % len(sel.models))
-        value = "[%s]" % ', '.join(title)
+        if title:
+            value = "[%s]" % ', '.join(title)
+        else:
+            value = "[empty]"
     else:
         value = str(sel)
     return value
