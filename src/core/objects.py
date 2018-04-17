@@ -213,9 +213,10 @@ class Objects:
         if len(models) == len(self._models):
             return False
         self._models = OrderedSet(models)
-        self._model_instances = {(m, i)
-                                 for (m, i) in self._model_instances.items()
-                                 if not m.deleted}
+        self._model_instances = dict([(m, i)
+                                      for (m, i)
+                                      in self._model_instances.items()
+                                      if not m.deleted])
         structures = AtomicStructures(session.models.list(type=AtomicStructure))
         atoms = self.atoms
         mask = structures.indices(atoms.structures) != -1

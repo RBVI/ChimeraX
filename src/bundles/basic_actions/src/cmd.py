@@ -15,8 +15,9 @@ def name(session, name, text=None):
         except KeyError:
             raise UserError("\"%s\" is not defined" % name)
         else:
-            value = _get_name_desc(sel, True)
-            session.logger.info('\t'.join([name, value]))
+            value = _get_name_desc(sel, True, session)
+            if value:
+                session.logger.info('\t'.join([name, value]))
     else:
         try:
             ast, used, unused = AtomSpecArg.parse(text, session)
@@ -64,7 +65,7 @@ def name_list(session, builtins=False, log=True):
     from chimerax.core.commands import list_selectors
     targets = {}
     for name in sorted(list_selectors()):
-        value = _get_name_desc(name, builtins)
+        value = _get_name_desc(name, builtins, session)
         if value:
             if log:
                 session.logger.info('\t'.join([name, value]))
@@ -75,8 +76,8 @@ def name_list(session, builtins=False, log=True):
 name_list_desc = CmdDesc(keyword=[("builtins", BoolArg)])
 
 
-def _get_name_desc(name, builtin_okay):
-    from chimerax.core.commands import get_selector
+def _get_name_desc(name, builtin_okay, session):
+    from chimerax.core.commands import get_selector, deregister_selector
     from chimerax.core.objects import Objects
     sel = get_selector(name)
     if callable(sel):
@@ -90,6 +91,10 @@ def _get_name_desc(name, builtin_okay):
             except AttributeError:
                 value = "[Function]"
     elif isinstance(sel, Objects):
+        sel.refresh(session)
+        if sel.empty():
+            deregister_selector(name, session.logger)
+            return None
         title = []
         if sel.num_atoms:
             title.append("%d atoms" % sel.num_atoms)
@@ -97,6 +102,12 @@ def _get_name_desc(name, builtin_okay):
             title.append("%d bonds" % sel.num_bonds)
         if len(sel.models) > 1:
             title.append("%d models" % len(sel.models))
+        if not title:
+            if sel.num_pseudobonds:
+                title.append("%d pseudobonds" % sel.num_pseudobonds)
+        if not title:
+            if sel.model_instances:
+                title.append("%d model instances" % len(sel.model_instances))
         value = "[%s]" % ', '.join(title)
     else:
         value = str(sel)

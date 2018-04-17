@@ -99,20 +99,7 @@ class BasicActionsTool(HtmlToolInstance):
         model_data = json.dumps(data)
         js = "%s.update_components(%s);" % (self.CUSTOM_SCHEME, model_data)
         self.html_view.runJavaScript(js)
-        if self._refresh_objects() or force:
-            self.update_targets()
-
-    def _refresh_objects(self):
-        from chimerax.core.commands import list_selectors, get_selector
-        from chimerax.core.objects import Objects
-        updated = False
-        for name in list_selectors():
-            sel = get_selector(name)
-            if not isinstance(sel, Objects):
-                continue
-            if sel.refresh(self.session):
-                updated = True
-        return updated
+        self.update_targets()
 
     def update_targets(self, trigger=None, trigger_data=None):
         if trigger is not None and self._updating_targets:
