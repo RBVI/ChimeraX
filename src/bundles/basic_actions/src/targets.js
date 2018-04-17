@@ -101,7 +101,8 @@ var tgttable = function() {
         $("#components").append($("<table/>", { id: "components_table" })
                                                 .append(thead, tbody));
         $("img.show, img.hide").click(cb_button_click);
-        $("input.color").change(cb_color_input);
+        // $("input.color").change(cb_color_input);
+        $(".colorinput").change(cb_color_input);
 
         // Re-setup jQuery handlers
         $("#components_table").tablesorter({
@@ -132,8 +133,15 @@ var tgttable = function() {
                     .append($("<img/>", { class: "hide", action: hide,
                                           src: hide_icon }))
                     .append($("<span/>", { class: "spacer" }))
-                    .append($("<input/>", { class: "color", type: "color",
+                    /*
+                    .append($("<input/>", { type: "color",
                                             value: "#ffcf00", target: tgt }));
+                     */
+                    .append($("<div/>", { class: "color" })
+                                .append($("<input/>", { class: "colorinput",
+                                                        type: "color",
+                                                        value: "#ffcf00",
+                                                        target: tgt })));
     }
 
     function cb_button_click(event) {

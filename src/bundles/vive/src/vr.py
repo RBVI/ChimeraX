@@ -328,6 +328,8 @@ class SteamVRCamera(Camera):
         H = hmd34_to_position(hmd_pose0.mDeviceToAbsoluteTracking)
 
         self.process_controller_events()
+
+        self.user_interface.update_if_needed()
         
         # Compute camera scene position from HMD position in room
         from chimerax.core.geometry import scale
@@ -528,10 +530,13 @@ class UserInterface:
     def __init__(self, camera, session):
         self._camera = camera
         self._session = session
-        self._width = 1		# Billboard width in room coords, meters.
-        self._height = None	# Height in room coords determined by window aspect and width.
-        self._window_size = None # Window size in pixels
-        self._ui_click_range = 0.05 # Maximum distance of click from plane, room coords, meters.
+        self._width = 0.5		# Billboard width in room coords, meters.
+        self._height = None		# Height in room coords determined by window aspect and width.
+        self._panel_size = None 	# Panel size in pixels
+        self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle 
+        self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
+        self._update_later = 0		# Redraw panel after this many frames
+        self._update_delay = 10		# After click on panel, update after this number of frames
         self._ui_drawing = None
         self._start_ui_move_time = None
         self._last_ui_position = None
@@ -581,8 +586,9 @@ class UserInterface:
         hw, hh = 0.5*self._width, 0.5*self._height
         cr = self._ui_click_range
         on_panel = (x >= -hw and x <= hw and y >= -hh and y <= hh and z >= -cr and z <= cr)
-        sx, sy = self._window_size
-        px, py = sx * (x + hw) / (2*hw), sy * (hh - y) / (2*hh)
+        sx, sy = self._panel_size
+        ox, oy = self._panel_offset
+        px, py = ox + sx * (x + hw) / (2*hw), oy + sy * (hh - y) / (2*hh)
         return (px,py), on_panel
 
     def press(self, button, window_xy):
@@ -598,11 +604,17 @@ class UserInterface:
         
     def _click(self, pressed, window_xy):
         if self._post_mouse_event(pressed, window_xy):
-            # TODO: Delay ui update until user interface echoes command.
+            self._update_later = self._update_delay
             self._update_ui_image()
             return True
         return False
 
+    def update_if_needed(self):
+        if self.shown() and self._update_later:
+            self._update_later -= 1
+            if self._update_later == 0:
+                self._update_ui_image()
+                
     def clicked_mouse_mode(self, window_xy):
         w, pos = self._clicked_widget(window_xy)
         from PyQt5.QtWidgets import QToolButton
@@ -655,17 +667,28 @@ class UserInterface:
         return m
 
     def _update_ui_image(self):
-        ses = self._session
-        im = ses.ui.window_image()
-        from chimerax.core.graphics.drawing import rgba_drawing, qimage_to_numpy
-        rgba = qimage_to_numpy(im)
+        rgba = self._panel_image()
         h,w = rgba.shape[:2]
-        self._window_size = (w, h)
         aspect = h/w
         rw = self._width		# Billboard width in room coordinates
         self._height = rh = aspect * rw
-        ses.main_view.render.make_current()	# Required OpenGL context for replacing texture.
+        self._session.main_view.render.make_current()	# Required OpenGL context for replacing texture.
+        from chimerax.core.graphics.drawing import rgba_drawing
         rgba_drawing(self._ui_drawing, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
+
+    def _panel_image(self):
+        ui = self._session.ui
+        im = ui.window_image()
+        from chimerax.core.graphics.drawing import qimage_to_numpy
+        rgba = qimage_to_numpy(im)
+        gw = ui.main_window.graphics_window
+        self._panel_offset = (ox, oy) = (gw.x() + gw.width(), gw.y())
+        ph = gw.height()
+        wh,ww = rgba.shape[:2]
+        prgba = rgba[wh-(ph+oy):wh-oy,ox:,:]
+        h,w = prgba.shape[:2]
+        self._panel_size = (w, h)
+        return prgba
 
     def display_ui(self, button_pressed, hand_room_position):
         if button_pressed:

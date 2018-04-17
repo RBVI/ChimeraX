@@ -23,4 +23,17 @@ class _DistUIBundleAPI(BundleAPI):
             from .mouse_dist import DistMouseMode
             mm.add_mode(DistMouseMode(session))
 
+            def criteria(session):
+                from chimerax.atomic import selected_atoms
+                return len(selected_atoms(session)) == 2
+            def callback(session):
+                from chimerax.atomic import selected_atoms
+                a1, a2 = selected_atoms(session)
+                command = "dist %s %s" % (a1.string(style="command line"),
+                    a2.string(style="command line"))
+                from chimerax.core.commands import run
+                run(session, command)
+            from chimerax.ui import SelectMouseMode
+            SelectMouseMode.register_menu_entry("Distance", criteria, callback)
+
 bundle_api = _DistUIBundleAPI()
