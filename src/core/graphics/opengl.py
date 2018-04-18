@@ -603,7 +603,7 @@ class Render:
                 break
             from OpenGL import GLU
             es = GLU.gluErrorString(e)
-            lines.append('OpenGL error %s' % es.decode('utf-8'))
+            lines.append('OpenGL error %s' % es.decode('iso-8859-1'))
         msg = '\n'.join(lines)
         return msg
 
