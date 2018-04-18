@@ -13,6 +13,6 @@
 
 from .containers import OptionsPanel, CategorizedOptionsPanel, \
     SettingsPanel, CategorizedSettingsPanel
-from .options import Option, BooleanOption, ColorOption, EnumOption, IntOption, \
+from .options import Option, BooleanOption, ColorOption, EnumOption, FloatOption, IntOption, \
     OptionalRGBAOption, OptionalRGBAPairOption, OptionalRGBA8Option, OptionalRGBA8PairOption, \
     RGBAOption, RGBA8Option, SymbolicEnumOption

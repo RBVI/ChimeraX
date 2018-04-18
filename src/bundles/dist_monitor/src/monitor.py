@@ -38,11 +38,25 @@ class DistancesMonitor(StateManager):
         else:
             self._already_restored.clear()
 
+    def _get_decimal_places(self):
+        from chimerax.core.core_settings import settings
+        return settings.distance_decimal_places
+
+    def _set_decimal_places(self, places):
+        from chimerax.core.core_settings import settings
+        if places == settings.distance_decimal_places:
+            return
+        settings.distance_decimal_places = places
+        self._update_distances()
+        self.session.triggers.activate_trigger("distance decimal places changed", places)
+
+    decimal_places = property(_get_decimal_places, _set_decimal_places)
+
     @property
     def distance_format(self):
-        from .settings import settings
-        fmt = "%%.%df" % settings.precision
-        if settings.show_units:
+        from chimerax.core.core_settings import settings
+        fmt = "%%.%df" % settings.distance_decimal_places
+        if settings.distance_show_units:
             fmt += u'\u00C5'
         return fmt
 
@@ -62,24 +76,19 @@ class DistancesMonitor(StateManager):
         if group in self.update_callbacks:
             del self.update_callbacks[group]
 
-    def set_distance_format_params(self, *, decimal_places=None, show_units=None, save=False):
-        """Set the distance format parameters (and update all distances)
-        
-        'show_units' controls whether the angstrom symbol is displayed.  'save' indicates
-        whether the new settings should be saved as defaults.  Values of None for 'decimal_places'
-        and 'show_units' indicate that the current setting should not be changed.
-        """
-        from .settings import settings
-        save_attrs = []
-        if decimal_places is not None:
-            settings.precision = decimal_places
-            save_attrs.append('precision')
-        if show_units is not None:
-            settings.show_units = show_units
-            save_attrs.append('show_units')
-        if save:
-            settings.save(settings=save_attrs)
+    def _get_show_units(self):
+        from chimerax.core.core_settings import settings
+        return settings.distance_show_units
+
+    def _set_show_units(self, show):
+        from chimerax.core.core_settings import settings
+        if show == settings.distance_show_units:
+            return
+        settings.distance_show_units = show
         self._update_distances()
+        self.session.triggers.activate_trigger("distance show units changed", show)
+
+    show_units = property(_get_show_units, _set_show_units)
 
     def _changes_handler(self, _, changes):
         if changes.num_deleted_pseudobond_groups() > 0:
@@ -137,21 +146,14 @@ class DistancesMonitor(StateManager):
         return mon
 
     def take_snapshot(self, session, flags):
-        from .settings import settings
         return {
-            'version': 2,
+            'version': 3,
 
             'distances shown': self._distances_shown,
             'monitored groups': self.monitored_groups,
-            'precision': settings.precision,
-            'show units': settings.show_units,
         }
 
     def _ses_restore(self, data):
-        if data['version'] > 1:
-            from .settings import settings
-            settings.precision = data['precision']
-            settings.show_units = data['show units']
         self._already_restored.clear()
         for grp in list(self.monitored_groups)[:]:
             self.remove_group(grp)

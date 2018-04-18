@@ -11,44 +11,97 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def distance(session, atoms, *, color=None, dashes=None, radius=None):
+def distance(session, atoms, *, color=None, dashes=None,
+        decimal_places=None, radius=None, symbol=None):
     '''
     Show/report distance between two atoms.
     '''
     grp = session.pb_manager.get_group("distances", create=False)
+    from chimerax.core.core_settings import settings
     if not grp:
         # create group and add to DistMonitor
         grp = session.pb_manager.get_group("distances")
         if color is not None:
             grp.color = color.uint8x4()
+        else:
+            grp.color = settings.distance_color.uint8x4()
         if radius is not None:
             grp.radius = radius
+        else:
+            grp.radius = settings.distance_radius
+        grp.dashes = settings.distance_dashes
         session.models.add([grp])
         session.pb_dist_monitor.add_group(grp)
     a1, a2 = atoms
-    # might just be changing color/radius, so look for existing pseudobond
-    update_label_color = False
     for pb in grp.pseudobonds:
         pa1, pa2 = pb.atoms
         if (pa1 == a1 and pa2 == a2) or (pa1 == a2 and pa2 == a1):
-            update_label_color = True
-            break
-    else:
-        pb = grp.new_pseudobond(a1, a2)
+            from chimerax.core.errors import UserError
+            raise UserError("Distance already exists;"
+                " modify distance properites with 'distance style'")
+    pb = grp.new_pseudobond(a1, a2)
+
     if color is not None:
         pb.color = color.uint8x4()
-        if update_label_color:
-            from chimerax.label.label3d import labels_model, PseudobondLabel
-            lm = labels_model(grp, create=False)
-            if lm:
-                lm.add_labels([pb], PseudobondLabel, session.main_view,
-                    settings={ 'color': pb.color })
     if dashes is not None:
         grp.dashes = dashes
     if radius is not None:
         pb.radius = radius
+    if decimal_places is not None or symbol is not None:
+        if decimal_places is not None:
+            session.pb_dist_monitor.decimal_places = decimal_places
+        if symbol is not None:
+            session.pb_dist_monitor.show_units = symbol
+
     session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
         % (a1, a2.string(relative_to=a1), pb.length))
+
+def distance_style(session, pbonds, *, color=None, dashes=None,
+        decimal_places=None, radius=None, symbol=None, set_defaults=False):
+    '''
+    Modify appearance of existing distance(s).
+    '''
+    grp = session.pb_manager.get_group("distances", create=False)
+    if pbonds is not None:
+        pbs = [pb for pb in pbonds if pb.category == "distances"]
+    elif grp:
+        pbs = grp.pseudobonds
+    else:
+        pbs = []
+    from chimerax.core.core_settings import settings
+    if color is not None:
+        for pb in pbs:
+            pb.color = color.uint8x4()
+        if grp:
+            from chimerax.label.label3d import labels_model, PseudobondLabel
+            lm = labels_model(grp, create=False)
+            if lm:
+                lm.add_labels(pbs, PseudobondLabel, session.main_view,
+                    settings={ 'color': color.uint8x4() })
+        if set_defaults and settings.distance_color != color:
+            settings.distance_color = color
+            session.triggers.activate_trigger("distance color changed", color)
+
+    if dashes is not None:
+        if not grp:
+            grp = session.pb_manager.get_group("distances", create=True)
+        grp.dashes = dashes
+        if set_defaults and settings.distance_dashes != dashes:
+            settings.distance_dashes = dashes
+            session.triggers.activate_trigger("distance dashes changed", dashes)
+
+    if decimal_places is not None:
+        session.pb_dist_monitor.decimal_places = decimal_places
+
+    if radius is not None:
+        for pb in pbs:
+            pb.radius = radius
+        if settings.distance_radius != radius:
+            settings.distance_radius = radius
+            session.triggers.activate_trigger("distance radius changed", radius)
+
+    if symbol is not None:
+        session.pb_dist_monitor.show_units = symbol
 
 def xdistance(session, pbonds=None):
     pbg = session.pb_manager.get_group("distances", create=False)
@@ -60,10 +113,6 @@ def xdistance(session, pbonds=None):
         return
     for pb in dist_pbonds:
         pbg.delete_pseudobond(pb)
-
-def distance_format(session, *, decimal_places=None, symbol=None, save=False):
-    session.pb_dist_monitor.set_distance_format_params(decimal_places=decimal_places,
-        show_units=symbol, save=save)
 
 def register_command(session):
     from . import CmdDesc, register, AtomsArg, AnnotationError, PseudobondsArg, Or, EmptyArg, \
@@ -81,7 +130,8 @@ def register_command(session):
             return atoms, text, rest
     d_desc = CmdDesc(
         required = [('atoms', AtomPairArg)],
-        keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg)],
+        keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg),
+            ('decimal_places', NonNegativeIntArg), ('symbol', BoolArg)],
         synopsis = 'show/report distance')
     register('distance', d_desc, distance, logger=session.logger)
     xd_desc = CmdDesc(
@@ -89,6 +139,8 @@ def register_command(session):
         synopsis = 'remove distance monitors')
     register('~distance', xd_desc, xdistance, logger=session.logger)
     df_desc = CmdDesc(
-        keyword = [('decimal_places', NonNegativeIntArg), ('symbol', BoolArg), ('save', BoolArg)],
-        synopsis = 'set distance formatting')
-    register('distance format', df_desc, distance_format, logger=session.logger)
+        required = [('pbonds', Or(PseudobondsArg,EmptyArg))],
+        keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg),
+            ('decimal_places', NonNegativeIntArg), ('symbol', BoolArg), ('set_defaults', BoolArg)],
+        synopsis = 'set distance display properties')
+    register('distance style', df_desc, distance_style, logger=session.logger)
