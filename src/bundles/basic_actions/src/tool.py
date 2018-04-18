@@ -63,8 +63,7 @@ class BasicActionsTool(HtmlToolInstance):
         # before trying to update data.  Afterwards, we don't care.
         if success:
             self._loaded_page = True
-            self.update_targets()
-            self.update_models()
+            self.update_models(force=True)
             self._set_html_state()
             self.html_view.loadFinished.disconnect(self._load_finished)
 
@@ -76,7 +75,7 @@ class BasicActionsTool(HtmlToolInstance):
             self._handlers = None
         super().delete()
 
-    def update_models(self, trigger=None, trigger_data=None):
+    def update_models(self, trigger=None, trigger_data=None, force=False):
         self._nonmatching = {}
         models = []
         from chimerax.core.models import Model
@@ -100,6 +99,7 @@ class BasicActionsTool(HtmlToolInstance):
         model_data = json.dumps(data)
         js = "%s.update_components(%s);" % (self.CUSTOM_SCHEME, model_data)
         self.html_view.runJavaScript(js)
+        self.update_targets()
 
     def update_targets(self, trigger=None, trigger_data=None):
         if trigger is not None and self._updating_targets:
@@ -111,7 +111,7 @@ class BasicActionsTool(HtmlToolInstance):
             return
         self._updating_targets = True
         from .cmd import name_list
-        targets = name_list(self.session, all=self._show_all, log=False)
+        targets = name_list(self.session, builtins=self._show_all, log=False)
         data = []
         for name in sorted(targets.keys()):
             if self._hide_nonmatching and self._is_nonmatching(name):

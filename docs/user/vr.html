@@ -46,11 +46,14 @@ alt="using HTC Vive VR system" title="click to enlarge..."></a>
 <li><a href="#mousemodes"><b>Hand Controller Modes</b></a>
 <li><a href="#handproblems"><b>Hand Controller Problems</b></a>
 <li><a href="#interactive"><b>Limitations of Interactive Viewing</b></a>
-<li><a href="#movies"><b>Recording Movies for VR</b></a>
+<li><a href="#movies"><b>Recording Movies for Cellphone VR</b></a>
 <li><a href="#movie-details"><b>Movie Details</b></a>
 </ul>
 
 <a name="starting"></a>
+<p class="nav">
+[<a href="#top">back to top: Virtual Reality</a>]
+</p>
 <h3>Starting VR Mode</h3>
 
 <p>
@@ -61,7 +64,7 @@ and Samsung Odyssey headsets.
 <ol>
 <li>start <a href="http://store.steampowered.com/about/" 
 target="_blank">SteamVR</a> 
-<li>start ChimeraX and open some data, for example, a PDB model
+<li>start ChimeraX and open some data, for example, a PDB model:
 <blockquote>
 <b><a href="commands/open.html">open</a> 2gbp</b> 
 </blockquote>
@@ -91,7 +94,7 @@ such as toolbar icons to control
 <a href="tools/densitymaps.html"><b>Density Maps</b></a>,
 and
 <a href="tools/mousemodes.html"><b>Mouse Modes</b></a>
-icons to assign the hand controller function.
+icons to assign the hand controller function
 </ul>
 <p>
 The physical room bounds are shown
@@ -107,10 +110,14 @@ desktop display, use the ChimeraX command:
 </blockquote>
 
 <a name="mousemodes"></a>
+<p class="nav">
+[<a href="#top">back to top: Virtual Reality</a>]
+</p>
 <h3>Hand Controller Modes</h3>
 <p>
-Most of the ChimeraX mousemodes can be used with the VR hand controllers.
-To assign a mousemode to a hand controller button:
+Most of the ChimeraX <a href="commands/mousemode.html">mouse modes</a>
+can be used with the VR hand controllers.
+To assign a mouse mode to a hand controller button:
 </p>
 
 <ol>
@@ -121,12 +128,12 @@ To assign a mousemode to a hand controller button:
 <li>put the tip of a hand controller cone on a mouse mode icon and click with
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
    target="_blank">trigger, trackpad, or grip</a> hand controller buttons to assign
-that mouse mode to the clicked button.
+that mouse mode to the clicked button
 </ol>
 
 <p>
-  There are 3 assignable buttons on each controller so 6 modes can be assigned.  These modes include
-  most of the standard ChimeraX <a href="commands/mousemode.html">mouse modes</a>
+  There are three assignable buttons on each controller,
+  so six modes can be assigned. Functions include:
 </p>
 
 <ul>
@@ -139,10 +146,10 @@ that mouse mode to the clicked button.
   <li>Label atoms
   <li>Change map contour level
   <li>Crop map box
-  <li>Place markers, move, resize, delete, connnect markers.
-  <li>Play 3d image time series.
+  <li>Place markers, move, resize, delete, connnect markers
+  <li>Play 3D image time series
   <li>Rotate bonds
-  <li>Tug on atoms with molecular dynamics.
+  <li>Tug on atoms with molecular dynamics
   <li>Run molecular dynamics on residue and neighbors
   <li>Swap an amino acid
 </ul>
@@ -157,6 +164,9 @@ that mouse mode to the clicked button.
 </p>
 
 <a name="handproblems"></a>
+<p class="nav">
+[<a href="#top">back to top: Virtual Reality</a>]
+</p>
 <h3>Hand Controller Problems</h3>
 
 <p>
@@ -168,10 +178,10 @@ that mouse mode to the clicked button.
   small and it is easy to miss. It helps to move the panel close by holding the menu button on the hand
   controller.  The Log panel will show if the mode was changed.
 <p><b>No mode indicator.</b> There is no visual indication of what modes are currently assigned to the buttons.
-  It is easy to forget the 6 modes assigned to the two controllers.  In the future we plan to put the mode icon
-  on the cone at the location of each of the 3 assignable buttons.
+  It is easy to forget the six modes assigned to the two controllers.  In the future we plan to put the mode icon
+  on the cone at the location of each of the three assignable buttons.
 <p><b>Blackout.</b> Modes that perform calculations taking longer than 1/90th second cause the graphics not
-  to update and the VR scene will gray out after a fraction of a second with no graphics updates.  Changing
+  to update, and the VR scene will gray out after a fraction of a second without graphics updates.  Changing
   map contour level and running molecular dynamics are prone to this problem.  In the future these calculations
   will be done in parallel so the graphics will not be slowed down.
 <p><b>Flickering labels.</b> Atom labels or residue labels crated by the swap amino acid mode can cause
@@ -278,7 +288,7 @@ coordset <b>pauseFrames 9</b> option to slow the playback rate from the
 <h3>Recording Movies for Cellphone VR</h3>
 
 <p>
-In addition to interactive rendering of molecules, ChimeraX can record 360 degree movies for
+In addition to interactive rendering of molecules, ChimeraX can record 360&deg; movies for
 playback in less powerful VR headsets, such as those powered by cellphones.
 </p>
 
@@ -440,5 +450,5 @@ that of the headset, 90 frames per second with current VR headsets.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2017</address>
+April 2018</address>
 </body></html> 

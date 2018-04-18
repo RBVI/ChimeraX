@@ -30,6 +30,21 @@ class MouseModePanel(ToolInstance):
         self.tool_window = None
         
         self.modes = [m for m in mm.modes if m.icon_file]
+        # there should be a generic ordering scheme, but for now move distance mode
+        # and bond-rotation mode up some
+        mode_names = [m.name for m in self.modes]
+        if "distance" in mode_names:
+            index = mode_names.index("distance")
+            if index > 8:
+                self.modes = self.modes[:9] + [self.modes[index]] + self.modes[9:index] \
+                    + self.modes[index+1:]
+                mode_names = mode_names[:9] + [mode_names[index]] + mode_names[9:index] \
+                    + mode_names[index+1:]
+        if "bond rotation" in mode_names:
+            index = mode_names.index("bond rotation")
+            if index > 12:
+                self.modes = self.modes[:12] + [self.modes[index]] + self.modes[12:index] \
+                    + self.modes[index+1:]
 
         parent = session.ui.main_window
         self.buttons = self.create_toolbar(parent)
