@@ -22,37 +22,35 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: name</h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>name</b> 
 &nbsp;<i>target-name</i> &nbsp;<a href="atomspec.html"><i>spec</i></a>
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>name</b> &nbsp;<b>frozen</b>
 &nbsp;<i>target-name</i> &nbsp;<a href="atomspec.html"><i>spec</i></a>
 </h3>
 <!--
-Consider also the functionality in Chimera1 
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/rmfalias.html"
-target="_blank"><b>rmfalias</b></a>.
-<ul>
-<li>Trac ticket 
-<a href="https://plato.cgl.ucsf.edu/trac/ChimeraX/ticket/838">#838</a>
-<li>ChimeraX-users feature request and discussion
-<a href="http://plato.cgl.ucsf.edu/pipermail/chimerax-users/2017-September/000140.html">Sep 2017</a>
-</ul>
--->
-<h3><a href="usageconventions.html">Usage</a>:
+Consider also the functionality in Chimera command rmfalias.
+--> 
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>name</b> &nbsp;<b>list</b>
-[&nbsp;<b>builtins</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>builtins</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
-<h3><a href="usageconventions.html">Usage</a>:
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>name</b> &nbsp;<b>delete</b>
 (&nbsp;<i>target-name</i>&nbsp;|&nbsp;<b>all</b>&nbsp;)
 </h3>
 <p>
 The <b>name</b> command defines a <i>target-name</i>
 to be used as a synonym for <a href="atomspec.html"><i>spec</i></a>
-in subsequent commands.  This can be used 
+in subsequent commands. The <i>target-name</i> will also be listed in
+<a href="../tools/basicactions.html"><b>Basic Actions</b></a>
+for easy showing/hiding/coloring without typing any commands.
+See also: <a href="alias.html"><b>alias</b></a>,
+<a href="rename.html"><b>rename</b></a>
+</p><p>
+Defining a name is useful
 to replace a long <a href="atomspec.html">target specification</a>
 string with something shorter and easier to type, 
 or to name the current <a href="../selection.html">selection</a> 
@@ -60,8 +58,6 @@ for easy access to its contents later.
 Occurrences of <i>target-name</i>
 (space- and/or semicolon-delimited) in commands
 will be translated to the corresponding items.
-See also: <a href="alias.html"><b>alias</b></a>,
-<a href="rename.html"><b>rename</b></a>
 </p><p>
 A target can be defined as evaluate-now or evaluate-later:
 </p>

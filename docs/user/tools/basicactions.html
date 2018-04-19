@@ -1,0 +1,92 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Basic Actions</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Basic Actions</h3>
+<p>
+<b>Basic Actions</b> is a simple graphical interface for 
+showing, hiding, and changing the colors of named sets of atoms,
+their <a href="../commands/cartoon.html">cartoon</a> segments,
+and their <a href="../commands/surface.html">molecular surface</a> patches.
+See also:
+<a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>,
+<a href="../commands/color.html"><b>color</b></a>,
+<a href="../commands/name.html"><b>name</b></a>,
+<a href="../images.html">making images</a>
+</p><p>
+Like other tools, <b>Basic Actions</b> can be opened from 
+the <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
+The dialog contains tables in which the rows are sets of atoms:
+</p>
+<ul>
+<li>sets defined by the user with the
+<a href="../commands/name.html"><b>name</b></a> command
+<li><a href="../commands/atomspec.html#builtin">built-in classifications</a>,
+optionally listed with <b>Show built-in target names</b>
+<li>model components, namely chains
+</ul>
+<p>
+<b>Hide non-matching names</b> filters out the sets with zero atoms
+in currently open structures.
+</p><p>
+Other than information on the sets of atoms,
+the columns in the tables are icons to show, hide, and color
+their different representations:
+</p>
+<table border cellpadding="4" cellspacing="0">
+<tr>
+<th style="background-color: #eaeaea">Atom</th>
+<th style="background-color: #eaeaea">Cartoon</th>
+<th style="background-color: #eaeaea">Surface</th>
+</tr><tr>
+<td><img class="icon2" src="shortcut-icons/atomshow.png"
+title="show atoms/bonds">
+<img class="icon2" src="shortcut-icons/atomhide.png"
+title="hide atoms/bonds">
+<img class="icon2" src="basic-icons/colorpicker.svg"
+title="color atoms/bonds"></td>
+<td><img class="icon2" src="shortcut-icons/ribshow.png"
+title="show cartoon">
+<img class="icon2" src="shortcut-icons/ribhide.png"
+title="hide cartoon">
+<img class="icon2" src="basic-icons/colorpicker.svg"
+title="color cartoon"></td>
+<td><img class="icon2" src="shortcut-icons/surfshow.png"
+title="show molecular surface">
+<img class="icon2" src="shortcut-icons/surfhide.png"
+title="hide molecular surface">
+<img class="icon2" src="basic-icons/colorpicker.svg"
+title="color molecular surface"></td>
+</tr>
+</table>
+<p>
+Clicking a show/hide icon or choosing a color acts on the
+specified representation of the atoms and shows the executed command 
+in the <a href="log.html"><b>Log</b></a>. 
+Clicking a name <a href="../selection.html">selects</a> the set of atoms.
+</p>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+April 2018</address>
+</body></html>
