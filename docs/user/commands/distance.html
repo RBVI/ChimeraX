@@ -31,17 +31,23 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>symbol</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>~distance</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
-<a name="format"></a>
+<a name="style"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>distance format</b>
+<br><b>distance style</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>symbol</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>save</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>setDefaults</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
 The <b>distance</b> command adds a <a href="../pseudobonds.html">pseudobond</a>
@@ -51,6 +57,9 @@ The label will update automatically to reflect any changes in distance,
 but updates are not sent to the <a href="../tools/log.html"><b>Log</b></a>.
 For click-to-measure, see <a href="mousemode.html"><b>mousemode</b></a>.
 See also: 
+<a href="color.html"><b>color</b></a>,
+<a href="style.html"><b>style</b></a>,
+<a href="size.html"><b>size</b></a>,
 <a href="clashes.html"><b>clashes/contacts</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="crosslinks.html"><b>crosslinks</b></a>,
@@ -65,40 +74,46 @@ the first monitor in the model unless different values are given:
 <br>
 Color to use for the
 <a href="../pseudobonds.html">pseudobonds</a>
-(default <b>gold</b>);
-can be changed later with <a href="color.html"><b>color</b></a>.
+(initial default <b>gold</b>).
 </blockquote>
 <blockquote>
 <a name="radius"></a>
 <b>radius</b> &nbsp;<i>r</i>
 <br>
 Radius in &Aring; to use for the <a href="../pseudobonds.html">pseudobonds</a>
-(default <b>0.1</b>);
-can be changed later with <a href="size.html"><b>size</b></a>.
+(initial default <b>0.1</b>).
 </blockquote>
 <blockquote>
 <a name="dashes"></a>
 <b>dashes</b> &nbsp;<i>N</i>
 <br>Number of dashes per <a href="../pseudobonds.html">pseudobond</a>
-(default <b>9</b>).
+(initial default <b>9</b>).
 Only whole numbers are accepted, with 0
 indicating solid sticks. Currently, odd numbers are rounded down
-to give an even number of dashes. The number of dashes
-can be changed later with <a href="style.html"><b>style</b></a>.
+to give an even number of dashes.
+</blockquote>
+<blockquote>
+<b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Number of digits after the decimal point (initial default <b>3</b>);
+affects all distance monitors even if a subset is specified.
+</blockquote>
+<blockquote>
+<b>symbol</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether to show the Angstrom symbol &Aring; (initial default <b>true</b>);
+affects all distance monitors even if a subset is specified.
+Distances are assumed to be in Angstroms.
 </blockquote>
 <p>
 The <b>~distance</b> command removes any distance monitors between
 specified atoms, or if nothing is specified, all distance monitors.
 </p><p>
-Distances are assumed to be in Angstroms.
-The <b>distance format</b> command controls distance-label format:
-the number of digits after the decimal point (initial default <b>3</b>), 
-whether to show the Angstrom symbol &Aring; (initial default <b>true</b>), 
-and whether to save these format settings in
-<a href="../preferences.html#other">preferences</a>.
-Parameters that are not specified retain their current values.
-Label color, size, and font can be
-adjusted with the <a href="label.html"><b>label</b></a> command.
+The <b>distance style</b> command changes the style of
+existing distance monitors, and <b>setDefaults true</b>
+(default <b>false</b>) indicates saving the specified values 
+in <a href="../preferences.html#other">preferences</a>
+as defaults for subsequently created monitors.
 </p>
 
 <hr>
