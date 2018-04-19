@@ -888,6 +888,9 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
     '''
+    if objects is None:
+        from . import all_objects
+        objects = all_objects(session)
     
     try:
         f = _SequentialColor[level]
