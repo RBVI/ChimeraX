@@ -1289,7 +1289,7 @@ class PseudobondGroupDatas(Collection):
     '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
     names = cvec_property('pseudobond_group_category', string, read_only = True)
     '''A numpy string array of categories of each group.'''
-    num_bonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
+    num_pseudobonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     '''Number of pseudobonds in each group. Read only.'''
 
 # -----------------------------------------------------------------------------

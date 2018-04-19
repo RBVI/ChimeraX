@@ -254,7 +254,7 @@ def struts_delete(session, atoms = None):
 
 def strut_models(session, model_id = None):
     from chimerax.core import atomic 
-    pbglist = atomic.all_pseudobond_groups(session.models)
+    pbglist = atomic.all_pseudobond_groups(session)
     slist = [s for s in pbglist if hasattr(s, 'strut_atoms')]
     if not model_id is None:
         slist = [s for s in slist if s.id == model_id]
@@ -282,7 +282,7 @@ def strut_model(session, atoms, replace, name, model_id):
 def unique_struts_name(session):
     # PseudobondGroup category name must be unique.
     from chimerax.core import atomic 
-    pbglist = atomic.all_pseudobond_groups(session.models)
+    pbglist = atomic.all_pseudobond_groups(session)
     cats = set(pbg.category for pbg in pbglist)
     for i in range(len(cats)+1):
         name = 'struts %d' % (i+1)
