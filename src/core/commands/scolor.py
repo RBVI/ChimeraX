@@ -155,24 +155,24 @@ def _color_by_map_value(session, surfaces, map, palette = None, range = None,
         surf.vertex_colors = vcolors
 
 def color_radial(session, surfaces, center = None, coordinate_system = None, palette = None, range = None):
-    _color_geometry(surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
+    _color_geometry(session, surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
                     palette = palette, range = range)
 
 def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_system = None,
                       palette = None, range = None):
-    _color_geometry(surfaces, geometry = 'cylindrical',
-                   center = center, axis = axis, coordinate_system = coordinate_system,
-                   palette = palette, range = range)
+    _color_geometry(session, surfaces, geometry = 'cylindrical',
+                    center = center, axis = axis, coordinate_system = coordinate_system,
+                    palette = palette, range = range)
 
 def color_height(session, surfaces, center = None, axis = None, coordinate_system = None,
                  palette = None, range = None):
-    _color_geometry(surfaces, geometry = 'height',
-                   center = center, axis = axis, coordinate_system = coordinate_system,
-                   palette = palette, range = range)
+    _color_geometry(session, surfaces, geometry = 'height',
+                    center = center, axis = axis, coordinate_system = coordinate_system,
+                    palette = palette, range = range)
 
 # -----------------------------------------------------------------------------
 #
-def _color_geometry(surfaces, geometry = 'radial',
+def _color_geometry(session, surfaces, geometry = 'radial',
                     center = None, axis = None, coordinate_system = None,
                     palette = 'redblue', range = None,
                     auto_update = False, cap_only = False):
@@ -199,13 +199,14 @@ def _color_geometry(surfaces, geometry = 'radial',
             cs.set_origin(c)
         if cs.uses_axis:
             if axis:
-                c = surf.session.main_view.camera
+                c = session.main_view.camera
                 a = axis.scene_coordinates(coordinate_system, c)	# Scene coords
             else:
                 a = surf.scene_position.z_axis()
             cs.set_axis(a)
 
-        cm = _colormap_with_range(surf, palette, range, cap_only, cs)
+        vrange = lambda: _compute_value_range(surf, cs.value_range, cap_only)
+        cm = _colormap_with_range(palette, range, vrange)
         cs.set_colormap(cm)
         
         vc = cs.vertex_colors(surf)
@@ -226,23 +227,24 @@ def _surface_drawings(surfaces):
 #
 def _set_color_source_palette(color_source, surf, cmap = None, cmap_range = None, color_outside_volume = 'gray',
                               per_pixel = False, cap_only = False):
-    cm = _colormap_with_range(surf, cmap, cmap_range, cap_only, color_source)
+    vrange = lambda: _compute_value_range(surf, color_source.value_range, cap_only)
+    cm = _colormap_with_range(cmap, cmap_range, vrange)
     color_source.set_colormap(cm)
     color_source.per_pixel_coloring = per_pixel
 
 # -----------------------------------------------------------------------------
 #
-def _colormap_with_range(surf, cmap, cmap_range, cap_only, color_source):
+def _colormap_with_range(cmap, cmap_range, value_range, default = 'redblue'):
     if cmap is None:
         from ..colors import BuiltinColormaps
-        cmap = BuiltinColormaps['redblue']
+        cmap = BuiltinColormaps[default]
     if cmap_range is None and (cmap is None or not cmap.values_specified):
         cmap_range = 'full'
     if cmap_range is None:
         cm = cmap
     else:
         if cmap_range == 'full':
-            vmin,vmax = _compute_value_range(surf, color_source.value_range, cap_only)
+            vmin,vmax = value_range()
         else:
             vmin,vmax = cmap_range
         if cmap.values_specified:
