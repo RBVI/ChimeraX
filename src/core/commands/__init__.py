@@ -38,3 +38,4 @@ from .symarg import SymmetryArg
 from .atomspec import AtomSpecArg, all_objects
 from .atomspec import register_selector, deregister_selector
 from .atomspec import list_selectors, get_selector
+from .atomspec import is_selector_user_defined, get_selector_description
