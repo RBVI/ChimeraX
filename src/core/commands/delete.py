@@ -66,7 +66,7 @@ def delete_pbonds(session, pbonds, name=None):
     pbonds.delete()
 
 def register_command(session):
-    from . import cli
+    from . import cli, create_alias
     desc = cli.CmdDesc(required=[('atoms', cli.AtomsArg)],
                        synopsis='delete atoms')
     cli.register('delete', desc, delete, logger=session.logger)
@@ -80,3 +80,4 @@ def register_command(session):
                        keyword=[('name', cli.StringArg)],
                        synopsis='delete pseudobonds')
     cli.register('delete pbonds', desc, delete_pbonds, logger=session.logger)
+    create_alias('delete pseudobonds', 'delete pbonds $*', logger=session.logger)
