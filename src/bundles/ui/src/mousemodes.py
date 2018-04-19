@@ -464,11 +464,13 @@ class SelectMouseMode(MouseMode):
         entries.sort()
         from PyQt5.QtWidgets import QMenu, QAction
         menu = QMenu()
+        actions = []
         if entries:
             for label, callback in entries:
                 action = QAction(label)
                 action.triggered.connect(lambda arg, cb=callback, sess=self.session: cb(sess))
                 menu.addAction(action)
+                actions.append(action) # keep reference
         else:
             menu.addAction("No applicable actions")
         # this will prevent atom-spec balloons from showing up
@@ -1131,3 +1133,48 @@ def mod_key_info(key_function):
         if sys.platform == "darwin":
             return Qt.ControlModifier, "control"
         return Qt.MetaModifier, command_name
+
+# generic additions to context selection menu...
+def del_atoms_label(ses):
+    from chimerax.atomic import selected_atoms
+    return "Delete atom" if len(selected_atoms(ses)) == 1 else "Delete atoms"
+
+def del_atoms_criteria(ses):
+    from chimerax.atomic import selected_atoms
+    return len(selected_atoms(ses)) > 0
+
+def del_atoms_callback(ses):
+    from chimerax.atomic import selected_atoms
+    selected_atoms(ses).delete()
+
+SelectMouseMode.register_menu_entry(del_atoms_label, del_atoms_criteria, del_atoms_callback)
+
+def del_bonds_label(ses):
+    from chimerax.atomic import selected_bonds
+    return "Delete bond" if len(selected_bonds(ses)) == 1 else "Delete bonds"
+
+def del_bonds_criteria(ses):
+    from chimerax.atomic import selected_bonds
+    return len(selected_bonds(ses)) > 0
+
+def del_bonds_callback(ses):
+    from chimerax.atomic import selected_bonds
+    selected_bonds(ses).delete()
+
+SelectMouseMode.register_menu_entry(del_bonds_label, del_bonds_criteria, del_bonds_callback)
+
+def del_pseudobonds_label(ses):
+    from chimerax.atomic import selected_pseudobonds
+    return "Delete pseudobond" if len(selected_pseudobonds(ses)) == 1 else "Delete pseudobonds"
+
+def del_pseudobonds_criteria(ses):
+    from chimerax.atomic import selected_pseudobonds
+    return len(selected_pseudobonds(ses)) > 0
+
+def del_pseudobonds_callback(ses):
+    from chimerax.atomic import selected_pseudobonds
+    selected_pseudobonds(ses).delete()
+
+SelectMouseMode.register_menu_entry(del_pseudobonds_label, del_pseudobonds_criteria,
+    del_pseudobonds_callback)
+
