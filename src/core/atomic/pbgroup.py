@@ -339,8 +339,9 @@ class PromotePseudobondSelection(SelectionPromotion):
 
 # -----------------------------------------------------------------------------
 #
-def all_pseudobond_groups(models):
-    return [m for m in models.list() if isinstance(m, PseudobondGroup)]
+def all_pseudobond_groups(session):
+    from . import PseudobondGroups
+    return PseudobondGroups([m for m in session.models.list() if isinstance(m, PseudobondGroup)])
 
 # -----------------------------------------------------------------------------
 #
