@@ -119,7 +119,7 @@ class CoreSettingsPanel:
             "How many digits after the decimal point to show for distances",
             False),
         'distance_radius': (
-            "Thickness",
+            "Radius",
             "Distances",
             (FloatOption, {'min': 'positive', 'decimal_places': 3 }),
             "distance style radius %g",
