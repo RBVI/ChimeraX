@@ -209,6 +209,78 @@ class EnumOption(Option):
         self.set(label)
         self.make_callback()
 
+class FloatOption(Option):
+    """Option for floating-point values.
+       Constructor takes option min/max keywords to specify lower/upper bound values.
+       Besides being numeric values, those keyords can also be 'positive' or 'negative'
+       respectively, in which case the allowed value can be arbitrarily close to zero but
+       cannot be equal to zero.
+
+       'decimal_places' indicates allowable number of digits after the decimal point
+       (default: 3).  Values with more digits will be rounded.  If the widget provides
+       a means to increment the value (e.g. up/down arrow) then 'step' is how much the
+       value will be incremented (default: 10x the smallest value implied by 'decimal_places').
+       
+       Supports 'preceding_text' and 'trailing_text' keywords for putting text before
+       and after the entry widget on the right side of the form"""
+
+    default_minimum = -(2^31)
+    default_maximum = 2^31 - 1
+
+    def get(self):
+        val = self.spinbox.value()
+        if val == 0.0 and self.non_zero:
+            step = self.spinbox.singleStep()
+            if self.spinbox.minimum() == 0.0:
+                val = step
+            else:
+                val = -step
+        return val
+
+    def set(self, value):
+        self.spinbox.setSpecialValueText("")
+        self.spinbox.setValue(value)
+
+    def set_multiple(self):
+        self.spinbox.setSpecialValueText(self.multiple_value)
+        self.spinbox.setValue(self.spinbox.minimum())
+
+    def _make_widget(self, min=None, max=None, preceding_text=None, trailing_text=None,
+            decimal_places=3, step=None, **kw):
+        from PyQt5.QtWidgets import QDoubleSpinBox, QWidget, QHBoxLayout, QLabel
+        def compute_bound(bound, default_bound):
+            if bound is None:
+                return default_bound
+            if bound in ('positive', 'negative'):
+                return 0.0
+            return bound
+        self.non_zero = (max == 'negative' or min == 'positive')
+        minimum = compute_bound(min, self.default_minimum)
+        maximum = compute_bound(max, self.default_maximum)
+        self.spinbox = QDoubleSpinBox(**kw)
+        self.spinbox.setDecimals(decimal_places)
+        if step is None:
+            step = 10 ** (0 - (decimal_places-1))
+        self.spinbox.setMinimum(minimum)
+        self.spinbox.setMaximum(maximum)
+        self.spinbox.setSingleStep(step)
+        self.spinbox.valueChanged.connect(lambda val, s=self: s.make_callback())
+        if not preceding_text and not trailing_text:
+            self.widget = self.spinbox
+            return
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
+        if preceding_text:
+            layout.addWidget(QLabel(preceding_text))
+            l = 0
+        layout.addWidget(self.spinbox)
+        if trailing_text:
+            layout.addWidget(QLabel(trailing_text))
+            r = 0
+        self.widget.setLayout(layout)
+
 class IntOption(Option):
     """Option for integer values.
        Constructor takes option min/max keywords to specify lower/upper bound values.
@@ -230,10 +302,8 @@ class IntOption(Option):
         self.spinbox.setSpecialValueText(self.multiple_value)
         self.spinbox.setValue(self.spinbox.minimum())
 
-    def _make_widget(self, min=None, max=None, **kw):
+    def _make_widget(self, min=None, max=None, preceding_text=None, trailing_text=None, **kw):
         from PyQt5.QtWidgets import QSpinBox, QWidget, QHBoxLayout, QLabel
-        preceding_text = kw.pop('preceding_text', None)
-        trailing_text = kw.pop('trailing_text', None)
         self.spinbox = QSpinBox(**kw)
         self.spinbox.setMinimum(self.default_minimum if min is None else min)
         self.spinbox.setMaximum(self.default_maximum if max is None else max)
