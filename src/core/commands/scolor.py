@@ -155,24 +155,24 @@ def _color_by_map_value(session, surfaces, map, palette = None, range = None,
         surf.vertex_colors = vcolors
 
 def color_radial(session, surfaces, center = None, coordinate_system = None, palette = None, range = None):
-    _color_geometry(surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
+    _color_geometry(session, surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
                     palette = palette, range = range)
 
 def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_system = None,
                       palette = None, range = None):
-    _color_geometry(surfaces, geometry = 'cylindrical',
-                   center = center, axis = axis, coordinate_system = coordinate_system,
-                   palette = palette, range = range)
+    _color_geometry(session, surfaces, geometry = 'cylindrical',
+                    center = center, axis = axis, coordinate_system = coordinate_system,
+                    palette = palette, range = range)
 
 def color_height(session, surfaces, center = None, axis = None, coordinate_system = None,
                  palette = None, range = None):
-    _color_geometry(surfaces, geometry = 'height',
-                   center = center, axis = axis, coordinate_system = coordinate_system,
-                   palette = palette, range = range)
+    _color_geometry(session, surfaces, geometry = 'height',
+                    center = center, axis = axis, coordinate_system = coordinate_system,
+                    palette = palette, range = range)
 
 # -----------------------------------------------------------------------------
 #
-def _color_geometry(surfaces, geometry = 'radial',
+def _color_geometry(session, surfaces, geometry = 'radial',
                     center = None, axis = None, coordinate_system = None,
                     palette = 'redblue', range = None,
                     auto_update = False, cap_only = False):
@@ -199,7 +199,7 @@ def _color_geometry(surfaces, geometry = 'radial',
             cs.set_origin(c)
         if cs.uses_axis:
             if axis:
-                c = surf.session.main_view.camera
+                c = session.main_view.camera
                 a = axis.scene_coordinates(coordinate_system, c)	# Scene coords
             else:
                 a = surf.scene_position.z_axis()
