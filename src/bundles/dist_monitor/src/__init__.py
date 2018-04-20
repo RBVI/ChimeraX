@@ -24,9 +24,6 @@ class _DistMonitorBundleAPI(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         """Install distance monitor into existing session"""
-        from . import settings
-        settings.init(session)
-
         from .monitor import DistancesMonitor
         session.pb_dist_monitor = DistancesMonitor(session, bundle_info)
 

@@ -57,7 +57,7 @@ var tgttable = function() {
         $("#targets").append($("<table/>", { id: "targets_table" })
                                             .append(thead, tbody));
         $("img.show, img.hide").click(cb_button_click);
-        $("input.color").change(cb_color_input);
+        $(".colorinput").change(cb_color_input);
 
         // Re-setup jQuery handlers
         $("#targets_table").tablesorter({
@@ -101,7 +101,6 @@ var tgttable = function() {
         $("#components").append($("<table/>", { id: "components_table" })
                                                 .append(thead, tbody));
         $("img.show, img.hide").click(cb_button_click);
-        // $("input.color").change(cb_color_input);
         $(".colorinput").change(cb_color_input);
 
         // Re-setup jQuery handlers
@@ -160,7 +159,7 @@ var tgttable = function() {
         var cp = $(event.target);
         var target = "target=" + cp.attr("target");
         var color = "color=" + encodeURIComponent(cp.val());
-        var td = cp.parent();
+        var td = cp.parent().parent();
         var selector = "selector=" + encodeURIComponent(td.attr("name"));
         var url = custom_scheme + ':' + path + '?'
                   + target + '&' + selector + '&' + color;
