@@ -46,13 +46,15 @@ def surface_vertex_opacities(surf, opacity, vmask, vcolors):
 
 # -----------------------------------------------------------------------------
 #
-def color_electrostatic(session, surfaces, map, palette = None, range = None, offset = 1.4, transparency = None):
+def color_electrostatic(session, surfaces, map, palette = None, range = None,
+                        offset = 1.4, transparency = None, auto_update = True):
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency)
+                        offset = offset, transparency = transparency, auto_update = auto_update)
     
 # -----------------------------------------------------------------------------
 #
-def color_sample(session, surfaces, map, palette = None, range = None, offset = 0, transparency = None):
+def color_sample(session, surfaces, map, palette = None, range = None,
+                 offset = 0, transparency = None, auto_update = True):
     '''
     Color surfaces using a palette and interpolated map value at each surface vertex.
 
@@ -71,22 +73,25 @@ def color_sample(session, surfaces, map, palette = None, range = None, offset = 
     '''
 
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency)
+                        offset = offset, transparency = transparency, auto_update = auto_update)
 
 # -----------------------------------------------------------------------------
 #
-def color_gradient(session, surfaces, map, palette = None, range = None, offset = 0, transparency = None):
+def color_gradient(session, surfaces, map, palette = None, range = None,
+                   offset = 0, transparency = None, auto_update = True):
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency, gradient = True)
+                        offset = offset, transparency = transparency, gradient = True, auto_update = auto_update)
 
 # -----------------------------------------------------------------------------
 #
 def _color_by_map_value(session, surfaces, map, palette = None, range = None,
-                        offset = 0, transparency = None, gradient = False, caps_only = False):
+                        offset = 0, transparency = None, gradient = False, caps_only = False,
+                        auto_update = True):
     surfs = _surface_drawings(surfaces, caps_only)
     cs_class = GradientColor if gradient else VolumeColor
     for surf in surfs:
-        cs = cs_class(surf, map, palette, range, transparency = transparency, offset = offset)
+        cs = cs_class(surf, map, palette, range, transparency = transparency,
+                      offset = offset, auto_recolor = auto_update)
         cs.set_vertex_colors()
 
 # -----------------------------------------------------------------------------
@@ -99,32 +104,33 @@ def _adjust_opacities(vcolors, opacity, surf):
 
 # -----------------------------------------------------------------------------
 #
-def color_radial(session, surfaces, center = None, coordinate_system = None, palette = None, range = None):
+def color_radial(session, surfaces, center = None, coordinate_system = None, palette = None, range = None,
+                 auto_update = True):
     _color_geometry(session, surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
-                    palette = palette, range = range)
+                    palette = palette, range = range, auto_update = auto_update)
 
 # -----------------------------------------------------------------------------
 #
 def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_system = None,
-                      palette = None, range = None):
+                      palette = None, range = None, auto_update = True):
     _color_geometry(session, surfaces, geometry = 'cylindrical',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range)
+                    palette = palette, range = range, auto_update = auto_update)
 
 # -----------------------------------------------------------------------------
 #
 def color_height(session, surfaces, center = None, axis = None, coordinate_system = None,
-                 palette = None, range = None):
+                 palette = None, range = None, auto_update = True):
     _color_geometry(session, surfaces, geometry = 'height',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range)
+                    palette = palette, range = range, auto_update = auto_update)
 
 # -----------------------------------------------------------------------------
 #
 def _color_geometry(session, surfaces, geometry = 'radial',
                     center = None, axis = None, coordinate_system = None,
                     palette = 'redblue', range = None,
-                    auto_update = False, caps_only = False):
+                    auto_update = True, caps_only = False):
     surfs = _surface_drawings(surfaces, caps_only)
 
     c0 = None
@@ -137,7 +143,7 @@ def _color_geometry(session, surfaces, geometry = 'radial',
               'cylindrical': CylinderColor,
               'height': HeightColor}[geometry]
     for surf in surfs:
-        cs = cclass(surf)
+        cs = cclass(surf, palette, range, auto_recolor = auto_update)
         # Set origin and axis for coloring
         cs.set_origin(c0)
         if cs.uses_axis:
@@ -146,7 +152,6 @@ def _color_geometry(session, surfaces, geometry = 'radial',
             else:
                 a = surf.scene_position.z_axis()
             cs.set_axis(a)
-        cs.set_colormap(palette, range)
         cs.set_vertex_colors()
 
 # -----------------------------------------------------------------------------
@@ -201,7 +206,8 @@ class VolumeColor:
     uses_origin = False
     uses_axis = False
 
-    def __init__(self, surface, volume, palette = None, range = None, transparency = None, offset = 0):
+    def __init__(self, surface, volume, palette = None, range = None,
+                 transparency = None, offset = 0, auto_recolor = True):
 
         self.surface = surface
         self.volume = volume
@@ -212,6 +218,12 @@ class VolumeColor:
         self.solid = None             # Manages 3D texture
 
         self.set_colormap(palette, range)
+        
+        if auto_recolor:
+            arv = lambda self=self: self.set_vertex_colors(report_stats = False)
+        else:
+            arv = None
+        surface.auto_recolor_vertices = arv
 
     # -------------------------------------------------------------------------
     #
@@ -268,15 +280,18 @@ class VolumeColor:
             opacity = min(255, max(0, int(2.56 * (100 - self.transparency))))
             rgba8[:,3] = opacity
         else:
-            s = self.surface
-            rgba8[:,3] = s.color[3] if s.vertex_colors is None else s.vertex_colors[:,3]
+            rgba8[:,3] = self.surface.color[3]
 
         return rgba8
         
     # -------------------------------------------------------------------------
     #
-    def set_vertex_colors(self):
-        self.surface.vertex_colors = self.vertex_colors()
+    def set_vertex_colors(self, report_stats = True):
+        s = self.surface
+        arv = s.auto_recolor_vertices
+        s.vertex_colors = self.vertex_colors(report_stats)
+        if arv:
+            s.auto_recolor_vertices = arv
         
     # -------------------------------------------------------------------------
     #
@@ -307,6 +322,11 @@ class VolumeColor:
         if self.offset == 0:
             # No offset.
             values, outside = self.vertex_values(v, xf)
+        elif len(n) != len(v):
+            # TODO: Normals are out of sync with vertices.
+            values, outside = self.vertex_values(v, xf)
+            vol = self.volume
+            vol.session.logger.info('Warning! Normals for %s are out of sync with vertices so coloring offset is not being used.' % vol.name)
         elif isinstance(self.offset, (tuple, list)):
             # Average values from several offsets.
             val = None
@@ -504,12 +524,17 @@ class GeometryColor:
     uses_origin = True
     uses_axis = True
 
-    def __init__(self, surface):
+    def __init__(self, surface, palette, range, auto_recolor = True):
 
         self.surface = surface
         self.colormap = None
         self.origin = (0,0,0)
         self.axis = (0,0,1)
+
+        self.set_colormap(palette, range)
+        
+        arv = self.set_vertex_colors if auto_recolor else None
+        surface.auto_recolor_vertices = arv
 
     # -------------------------------------------------------------------------
     #
@@ -562,7 +587,11 @@ class GeometryColor:
     # -------------------------------------------------------------------------
     #
     def set_vertex_colors(self):
-        self.surface.vertex_colors = self.vertex_colors()
+        s = self.surface
+        arv = s.auto_recolor_vertices
+        s.vertex_colors = self.vertex_colors()
+        if arv:
+            s.auto_recolor_vertices = arv
         
     # -------------------------------------------------------------------------
     #

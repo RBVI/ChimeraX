@@ -1049,6 +1049,7 @@ def register_command(session):
                 ('range', ColormapRangeArg),
                 ('offset', FloatArg),
                 ('transparency', FloatArg),
+                ('auto_update', BoolArg),
     ]
     # color by electrostatic potential map 
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
@@ -1086,6 +1087,7 @@ def register_command(session):
                  ('coordinate_system', CoordSysArg),
                  ('palette', ColormapArg),
                  ('range', ColormapRangeArg),
+                 ('auto_update', BoolArg),
     ]
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                    keyword=geom_args,
