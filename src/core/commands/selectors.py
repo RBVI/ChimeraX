@@ -38,8 +38,8 @@ def register_core_selectors(session):
     from ..atomic import Element, Atom
     # Since IDATM has types in conflict with element symbols (e.g. 'H'), register
     # the types first so that they get overriden by the symbols
-    for idatm in Atom.idatm_info_map.keys():
-        reg(idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results), logger)
+    for idatm, info in Atom.idatm_info_map.items():
+        reg(idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results), logger, desc=info.description)
     for i in range(1, 115):
         e = Element.get_element(i)
         reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results), logger)
