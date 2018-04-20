@@ -80,7 +80,7 @@ class Drawing:
         self._cached_position_bounds = None
 
         # Geometry and colors
-        self.vertices = None
+        self._vertices = None
         """Vertices of the rendered geometry, a numpy N by 3 array of
         float32 values."""
 
@@ -96,6 +96,7 @@ class Drawing:
 
         self._vertex_colors = None
         self._opaque_vertex_color_count = 0
+        self.auto_recolor_vertices = None	# Function to call when vertices change
 
         self._triangle_mask = None
         '''
@@ -175,6 +176,15 @@ class Drawing:
         if rn is not None:
             rn(self, **kw)
 
+    def _get_vertices(self):
+        return self._vertices
+    def _set_vertices(self, vertices):
+        self._vertices = vertices
+        arv = self.auto_recolor_vertices
+        if arv:
+            self.auto_recolor_vertices()
+    vertices = property(_get_vertices, _set_vertices)
+    
     def _get_shape_changed(self):
         rn = self._redraw_needed
         return rn.shape_changed if rn else False
@@ -505,6 +515,7 @@ class Drawing:
         opvc = opaque_count(vcolors)
         tchange = (opvc != self._opaque_vertex_color_count)
         self._opaque_vertex_color_count = opvc
+        self.auto_recolor_vertices = None
         self.redraw_needed(transparency_changed = tchange)
     vertex_colors = property(get_vertex_colors, set_vertex_colors)
     '''
