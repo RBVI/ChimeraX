@@ -16,7 +16,6 @@ var tgttable = function() {
         "Cartoon",
         "Surface",
     ];
-    var show_builtins = false;
 
     function update_targets(targets) {
         // Clean up previous incarnation and save some state
@@ -27,7 +26,7 @@ var tgttable = function() {
         var thead = $("<thead/>");
         var row = $("<tr/>");
         var msg = "";
-        if (show_builtins)
+        if ($("#builtin_checkbox").is(":checked"))
             msg = " built-in and user-defined names"
         else
             msg = " user-defined names"

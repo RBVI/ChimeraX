@@ -164,7 +164,7 @@ class BasicActionsTool(HtmlToolInstance):
 
     def _cb_color(self, query):
         """Colors target"""
-        print("cb_color", query)
+        # print("cb_color", query)
         color = query["color"][0]
         target = query["target"][0]
         selector = query["selector"][0]

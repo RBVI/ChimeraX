@@ -15,26 +15,26 @@ def register_core_selectors(session):
     # Selectors
     from .atomspec import register_selector as reg
     logger = session.logger
-    reg("sel", _sel_selector, logger)
-    reg("all", _all_selector, logger)
-    reg("ions", lambda s, m, r: _structure_category_selector("ions", m, r), logger)
-    reg("ligand", lambda s, m, r: _structure_category_selector("ligand", m, r), logger)
-    reg("main", lambda s, m, r: _structure_category_selector("main", m, r), logger)
-    reg("solvent", lambda s, m, r: _structure_category_selector("solvent", m, r), logger)
-    reg("strand", _strands_selector, logger)
-    reg("helix", _helices_selector, logger)
-    reg("coil", _coil_selector, logger)
-    reg("protein", lambda s, m, r: _polymer_selector(m, r, True), logger)
-    reg("nucleic", lambda s, m, r: _polymer_selector(m, r, False), logger)
-    reg("nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False), logger)
-    reg("pbonds", _pbonds_selector, logger)
-    reg("hbonds", _hbonds_selector, logger)
-    reg("hbondatoms", _hbondatoms_selector, logger)
-    reg("backbone", _backbone_selector, logger)
-    reg("mainchain", _backbone_selector, logger)
-    reg("sidechain", _sidechain_selector, logger)
-    reg("sideonly", _sideonly_selector, logger)
-    reg("ribose", _ribose_selector, logger)
+    reg("sel", _sel_selector, logger, desc="selected atoms")
+    reg("all", _all_selector, logger, desc="everything")
+    reg("ions", lambda s, m, r: _structure_category_selector("ions", m, r), logger, desc="ions")
+    reg("ligand", lambda s, m, r: _structure_category_selector("ligand", m, r), logger, desc="ligands")
+    reg("main", lambda s, m, r: _structure_category_selector("main", m, r), logger, desc="main structure")
+    reg("solvent", lambda s, m, r: _structure_category_selector("solvent", m, r), logger, desc="solvent")
+    reg("strand", _strands_selector, logger, desc="strands")
+    reg("helix", _helices_selector, logger, desc="helices")
+    reg("coil", _coil_selector, logger, desc="coils")
+    reg("protein", lambda s, m, r: _polymer_selector(m, r, True), logger, desc="proteins")
+    reg("nucleic", lambda s, m, r: _polymer_selector(m, r, False), logger, desc="nucleic acids")
+    reg("nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False), logger, desc="nuecleic acids")
+    reg("pbonds", _pbonds_selector, logger, desc="pseudobonds")
+    reg("hbonds", _hbonds_selector, logger, desc="hydrogen bonds")
+    reg("hbondatoms", _hbondatoms_selector, logger, desc="hydrogen bond atoms")
+    reg("backbone", _backbone_selector, logger, desc="backbone atoms")
+    reg("mainchain", _backbone_selector, logger, desc="backbone atoms")
+    reg("sidechain", _sidechain_selector, logger, desc="side-chain atoms")
+    reg("sideonly", _sideonly_selector, logger, desc="side-chain atoms")
+    reg("ribose", _ribose_selector, logger, desc="ribose")
     from ..atomic import Element, Atom
     # Since IDATM has types in conflict with element symbols (e.g. 'H'), register
     # the types first so that they get overriden by the symbols
@@ -42,7 +42,7 @@ def register_core_selectors(session):
         reg(idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results), logger, desc=info.description)
     for i in range(1, 115):
         e = Element.get_element(i)
-        reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results), logger)
+        reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results), logger, desc="%s (element)" % e.name)
 
     
 
