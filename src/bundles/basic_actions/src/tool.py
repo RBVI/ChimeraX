@@ -10,7 +10,7 @@ class BasicActionsTool(HtmlToolInstance):
     CUSTOM_SCHEME = "tgttable"
 
     name = "Basic Actions"
-    help = "help:user/tools/targets.html"
+    help = "help:user/tools/basicactions.html"
 
     def __init__(self, session, tool_name, log_errors=True):
         super().__init__(session, tool_name, size_hint=(575,400),
