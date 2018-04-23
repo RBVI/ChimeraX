@@ -28,8 +28,8 @@ table, th, td {
   border-collapse: collapse;
 }
 table {
-  width:100%;
-  user-select: none;
+  /* 100% results in unwanted horizontal scroll bar */
+  width:99%;
 }
 th {
   background-color: #BBB;
@@ -43,11 +43,14 @@ td {
   text-align: center;
   font-family:arial;
 }
-td:nth-child(2) {
-  max-width: 12em;
+td:nth-child(1), td:nth-child(2) {
+  max-width: 10em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+  min-width: 4.4em;
 }
 
 /*
@@ -81,12 +84,10 @@ td input {
   background-color: transparent;
   vertical-align: middle;
 }
-
 .spacer {
   display: inline-block;
   width: 0.3em;
 }
-
 .color {
   display: inline-block;
   width: 1.2em;
@@ -97,7 +98,6 @@ td input {
   background-size: contain;
   background-image: url("lib/colorpicker.svg")
 }
-
 .colorinput {
   height: 100%;
   width: 100%;

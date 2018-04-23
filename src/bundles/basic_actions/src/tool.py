@@ -10,7 +10,7 @@ class BasicActionsTool(HtmlToolInstance):
     CUSTOM_SCHEME = "tgttable"
 
     name = "Basic Actions"
-    help = "help:user/tools/targets.html"
+    help = "help:user/tools/basicactions.html"
 
     def __init__(self, session, tool_name, log_errors=True):
         super().__init__(session, tool_name, size_hint=(575,400),
@@ -164,7 +164,7 @@ class BasicActionsTool(HtmlToolInstance):
 
     def _cb_color(self, query):
         """Colors target"""
-        print("cb_color", query)
+        # print("cb_color", query)
         color = query["color"][0]
         target = query["target"][0]
         selector = query["selector"][0]

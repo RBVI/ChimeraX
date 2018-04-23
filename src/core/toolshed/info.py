@@ -352,7 +352,7 @@ class BundleInfo:
                     return sel(session, models, results)
                 else:
                     return sel
-            register_selector(si.name, selector_cb, logger)
+            register_selector(si.name, selector_cb, logger, desc=si.synopsis)
 
     def _deregister_selectors(self, logger):
         from ..commands import deregister_selector

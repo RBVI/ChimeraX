@@ -67,7 +67,10 @@ See also:
 </p><p>
 Distance-monitor <a href="../pseudobonds.html">pseudobonds</a>
 are added to a model named <b>distances</b>, with properties matching
-the first monitor in the model unless different values are given:
+the first monitor in the model unless different values are given.
+The defaults can be changed in the
+<a href="../preferences.html#distances"><b>Distances</b> preferences</a>
+or by using the <b>distance style</b> command with <b>setDefaults true</b>.
 <blockquote>
 <a name="color"></a>
 <b>color</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
@@ -96,14 +99,14 @@ to give an even number of dashes.
 <b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>
 <br>
 Number of digits after the decimal point (initial default <b>3</b>);
-affects all distance monitors even if a subset is specified.
+affects all distance monitors and is instantly saved as the default.
 </blockquote>
 <blockquote>
 <b>symbol</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
-Whether to show the Angstrom symbol &Aring; (initial default <b>true</b>);
-affects all distance monitors even if a subset is specified.
-Distances are assumed to be in Angstroms.
+Whether to show the angstrom symbol &Aring; (initial default <b>true</b>);
+affects all distance monitors and is instantly saved as the default.
+Distances are assumed to be in &Aring;.
 </blockquote>
 <p>
 The <b>~distance</b> command removes any distance monitors between
@@ -111,8 +114,8 @@ specified atoms, or if nothing is specified, all distance monitors.
 </p><p>
 The <b>distance style</b> command changes the style of
 existing distance monitors, and <b>setDefaults true</b>
-(default <b>false</b>) indicates saving the specified values 
-in <a href="../preferences.html#other">preferences</a>
+(default <b>false</b>) indicates saving the specified values in the 
+<a href="../preferences.html#distances"><b>Distances</b> preferences</a>
 as defaults for subsequently created monitors.
 </p>
 

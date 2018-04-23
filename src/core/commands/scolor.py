@@ -12,63 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Code for scolor (spatial coloring) command, providing the campabilities of
-# the Surface Color dialog.
 #
-#   Syntax: scolor <surfaceSpec>
-#               [volume <vspec>]
-#               [gradient <vspec>]
-#               [geometry radial|cylindrical|height]
-#               [zone <aspec>]
-#               [color <color>]
-#               [center <x,y,z>|<atomspec>]
-#               [axis x|y|z|<x,y,z>|<atomspec,atomspec>]
-#               [coordinateSystem <modelid>]
-#               [cmap <v,color>:<v,color>:...|rainbow|gray|redblue|cyanmaroon]
-#               [cmapRange <min,max>|full]
-#		[reverseColors true|false]
-#		[colorOutsideVolume <color>]
-#               [offset <d>|<d1,d2,n>]
-#               [autoUpdate true|false]
-#               [capOnly true|false]
-#               [perPixel true|false]
-#               [range <r>]
-#
-def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
-           per_atom_colors = None, map = None, palette = None, range = None, offset = 0):
-    '''
-    Color surfaces using a variety of methods, for example, to match nearby
-    atom colors, or use a single color, or color by electrostatic potential,
-    or color radially.  TODO: Only a few options are currently supported.
-    '''
-    if byatom:
-        ns = color_surfaces_at_atoms(atoms, color = color, opacity = opacity,
-                                     per_atom_colors = per_atom_colors)
-    elif map is not None:
-        ns = color_surfaces_by_map_value(atoms, opacity=opacity, map=map,
-                                         palette=palette, range=range, offset=offset)
-    elif color is not None or opacity is not None:
-        ns = color_surfaces_at_atoms(atoms, color = color, opacity = opacity)
-    else:
-        ns = 0
-
-    return ns
-
-def register_command(session):
-    from . import cli, color, ColorArg, FloatArg, ColormapArg, ColormapRangeArg
-    from ..map import MapArg
-    _scolor_desc = cli.CmdDesc(
-        optional = [('atoms', cli.Or(cli.AtomsArg, cli.EmptyArg)),
-                    ('color', ColorArg),],
-        keyword = [('opacity', cli.IntArg),
-                   ('byatom', cli.NoArg),
-                   ('map', MapArg),
-                   ('palette', ColormapArg),
-                   ('range', ColormapRangeArg),
-                   ('offset', FloatArg)],
-        synopsis = 'color surfaces')
-    cli.register('scolor', _scolor_desc, scolor, logger=session.logger)
-
 def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom_colors = None):
     from .. import atomic
     surfs = atomic.surfaces_with_atoms(atoms)
@@ -76,6 +20,8 @@ def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom
         s.color_atom_patches(atoms, color, opacity, per_atom_colors)
     return len(surfs)
 
+# -----------------------------------------------------------------------------
+#
 def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
                                 palette = None, range = None, offset = 0):
     from .. import atomic
@@ -83,27 +29,14 @@ def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
     for s in surfs:
         v, all_atoms = s.vertices_for_atoms(atoms)
         if v is not None:
-            cs = VolumeColor(map, offset = offset)
-            _set_color_source_palette(cs, s, palette, range)
+            cs = VolumeColor(s, map, palette, range, offset = offset)
             vcolors = s.get_vertex_colors(create = True, copy = True)
-            vcolors[v] = cs.vertex_colors(s, s.session.logger.info)[v]
+            vcolors[v] = cs.vertex_colors()[v]
             s.set_vertex_colors_and_opacities(v, vcolors, opacity)
     return len(surfs)
 
-def color_surface_by_map_value(surf, map, palette = None, range = None,
-                               offset = None, opacity = None):
-    cs = VolumeColor(map, offset = offset)
-    _set_color_source_palette(cs, surf, palette, range)
-    vcolors = cs.vertex_colors(surf, map.session.logger.info)
-    _adjust_opacities(vcolors, opacity, surf)
-    surf.vertex_colors = vcolors
-
-def _adjust_opacities(vcolors, opacity, surf):
-    if opacity is not None:
-        vcolors[:,3] = opacity
-    else:
-        vcolors[:,3] = surf.color[3] if surf.vertex_colors is None else surf.vertex_colors[:,3]
-
+# -----------------------------------------------------------------------------
+#
 def surface_vertex_opacities(surf, opacity, vmask, vcolors):
     if opacity is None:
         # Preserve current transparency
@@ -111,11 +44,17 @@ def surface_vertex_opacities(surf, opacity, vmask, vcolors):
     elif opacity != 'computed':
         vcolors[vmask,3] = opacity
 
-def color_electrostatic(session, surfaces, map, palette = None, range = None, offset = 1.4, transparency = None):
+# -----------------------------------------------------------------------------
+#
+def color_electrostatic(session, surfaces, map, palette = None, range = None,
+                        offset = 1.4, transparency = None, auto_update = True):
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency)
+                        offset = offset, transparency = transparency, auto_update = auto_update)
     
-def color_sample(session, surfaces, map, palette = None, range = None, offset = 0, transparency = None):
+# -----------------------------------------------------------------------------
+#
+def color_sample(session, surfaces, map, palette = None, range = None,
+                 offset = 0, transparency = None, auto_update = True):
     '''
     Color surfaces using a palette and interpolated map value at each surface vertex.
 
@@ -134,49 +73,65 @@ def color_sample(session, surfaces, map, palette = None, range = None, offset = 
     '''
 
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency)
+                        offset = offset, transparency = transparency, auto_update = auto_update)
 
-def color_gradient(session, surfaces, map, palette = None, range = None, offset = 0, transparency = None):
+# -----------------------------------------------------------------------------
+#
+def color_gradient(session, surfaces, map, palette = None, range = None,
+                   offset = 0, transparency = None, auto_update = True):
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency, gradient = True)
+                        offset = offset, transparency = transparency, gradient = True, auto_update = auto_update)
 
+# -----------------------------------------------------------------------------
+#
 def _color_by_map_value(session, surfaces, map, palette = None, range = None,
-                        offset = 0, transparency = None, gradient = False):
-    surfs = _surface_drawings(surfaces)
-    opacity = None
-    if transparency is not None:
-        opacity = min(255, max(0, int(2.56 * (100 - transparency))))
+                        offset = 0, transparency = None, gradient = False, caps_only = False,
+                        auto_update = True):
+    surfs = _surface_drawings(surfaces, caps_only)
     cs_class = GradientColor if gradient else VolumeColor
     for surf in surfs:
-        cs = cs_class(map, offset = offset)
-        _set_color_source_palette(cs, surf, palette, range)
-        vcolors = cs.vertex_colors(surf, map.session.logger.info)
-        _adjust_opacities(vcolors, opacity, surf)
-        surf.vertex_colors = vcolors
+        cs = cs_class(surf, map, palette, range, transparency = transparency,
+                      offset = offset, auto_recolor = auto_update)
+        cs.set_vertex_colors()
 
-def color_radial(session, surfaces, center = None, coordinate_system = None, palette = None, range = None):
+# -----------------------------------------------------------------------------
+#
+def _adjust_opacities(vcolors, opacity, surf):
+    if opacity is not None:
+        vcolors[:,3] = opacity
+    else:
+        vcolors[:,3] = surf.color[3] if surf.vertex_colors is None else surf.vertex_colors[:,3]
+
+# -----------------------------------------------------------------------------
+#
+def color_radial(session, surfaces, center = None, coordinate_system = None, palette = None, range = None,
+                 auto_update = True):
     _color_geometry(session, surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
-                    palette = palette, range = range)
+                    palette = palette, range = range, auto_update = auto_update)
 
+# -----------------------------------------------------------------------------
+#
 def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_system = None,
-                      palette = None, range = None):
+                      palette = None, range = None, auto_update = True):
     _color_geometry(session, surfaces, geometry = 'cylindrical',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range)
+                    palette = palette, range = range, auto_update = auto_update)
 
+# -----------------------------------------------------------------------------
+#
 def color_height(session, surfaces, center = None, axis = None, coordinate_system = None,
-                 palette = None, range = None):
+                 palette = None, range = None, auto_update = True):
     _color_geometry(session, surfaces, geometry = 'height',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range)
+                    palette = palette, range = range, auto_update = auto_update)
 
 # -----------------------------------------------------------------------------
 #
 def _color_geometry(session, surfaces, geometry = 'radial',
                     center = None, axis = None, coordinate_system = None,
                     palette = 'redblue', range = None,
-                    auto_update = False, cap_only = False):
-    surfs = _surface_drawings(surfaces)
+                    auto_update = True, caps_only = False):
+    surfs = _surface_drawings(surfaces, caps_only)
 
     c0 = None
     if center:
@@ -184,37 +139,24 @@ def _color_geometry(session, surfaces, geometry = 'radial',
     elif axis:
         c0 = axis.base_point()
 
-    for surf in surfs:
-        cs = {'radial': RadialColor,
+    cclass = {'radial': RadialColor,
               'cylindrical': CylinderColor,
-              'height': HeightColor}[geometry]()
-        # Find center and axis for surface
-        if cs.uses_origin:
-            if c0 is None:
-                b = surf.bounds()
-                lc = (0,0,0) if b is None else b.center()
-                c = surf.scene_position * lc
-            else:
-                c = c0
-            cs.set_origin(c)
+              'height': HeightColor}[geometry]
+    for surf in surfs:
+        cs = cclass(surf, palette, range, auto_recolor = auto_update)
+        # Set origin and axis for coloring
+        cs.set_origin(c0)
         if cs.uses_axis:
             if axis:
-                c = session.main_view.camera
-                a = axis.scene_coordinates(coordinate_system, c)	# Scene coords
+                a = axis.scene_coordinates(coordinate_system, session.main_view.camera)	# Scene coords
             else:
                 a = surf.scene_position.z_axis()
             cs.set_axis(a)
-
-        vrange = lambda: _compute_value_range(surf, cs.value_range, cap_only)
-        cm = _colormap_with_range(palette, range, vrange)
-        cs.set_colormap(cm)
-        
-        vc = cs.vertex_colors(surf)
-        surf.vertex_colors = vc
+        cs.set_vertex_colors()
 
 # -----------------------------------------------------------------------------
 #
-def _surface_drawings(surfaces):
+def _surface_drawings(surfaces, caps_only = False, include_outline_boxes = False):
     surfs = []
     for s in surfaces:
         if s.vertices is not None:
@@ -222,15 +164,6 @@ def _surface_drawings(surfaces):
         if hasattr(s, 'surface_drawings_for_vertex_coloring'):
             surfs.extend(s.surface_drawings_for_vertex_coloring())
     return surfs
-
-# -----------------------------------------------------------------------------
-#
-def _set_color_source_palette(color_source, surf, cmap = None, cmap_range = None, color_outside_volume = 'gray',
-                              per_pixel = False, cap_only = False):
-    vrange = lambda: _compute_value_range(surf, color_source.value_range, cap_only)
-    cm = _colormap_with_range(cmap, cmap_range, vrange)
-    color_source.set_colormap(cm)
-    color_source.per_pixel_coloring = per_pixel
 
 # -----------------------------------------------------------------------------
 #
@@ -254,43 +187,14 @@ def _colormap_with_range(cmap, cmap_range, value_range, default = 'redblue'):
     return cm
 
 # -----------------------------------------------------------------------------
-#
-def _compute_value_range(surf, value_range_func, cap_only):
-
-    v0,v1 = _surface_value_range(surf, value_range_func, cap_only)
-    if v0 == None:
-        v0,v1 = (0,1)
-    return v0,v1
-
-# -----------------------------------------------------------------------------
 # Calculate range of surface values.  The value range function takes an
 # n by 3 NumPy array of floats and returns a min and max value.
 #
-def _surface_value_range(surf, value_range_function, caps_only,
-                        include_outline_boxes = False):
-
-    vrange = (None, None)
-    plist = [surf]
-    if caps_only:
-        import SurfaceCap
-        plist = [p for p in plist if SurfaceCap.is_surface_cap(p)]
-    if not include_outline_boxes:
-        plist = [p for p in plist if not hasattr(p, 'outline_box')]
-    for p in plist:
-        grange = value_range_function(p)
-        vrange = _combine_min_max(vrange, grange)
-    return vrange
-    
-# -----------------------------------------------------------------------------
-#
-def _combine_min_max(min_max_1, min_max_2):
-
-    if tuple(min_max_1) == (None, None):
-        return min_max_2
-    elif tuple(min_max_2) == (None, None):
-        return min_max_1
-    return (min((min_max_1[0], min_max_2[0])),
-            max((min_max_1[1], min_max_2[1])))
+def _compute_value_range(color_source):
+    v0,v1 = color_source.value_range()
+    if v0 == None:
+        v0,v1 = (0,1)
+    return v0,v1
 
 # -----------------------------------------------------------------------------
 #
@@ -302,13 +206,24 @@ class VolumeColor:
     uses_origin = False
     uses_axis = False
 
-    def __init__(self, volume, offset = 0):
+    def __init__(self, surface, volume, palette = None, range = None,
+                 transparency = None, offset = 0, auto_recolor = True):
 
+        self.surface = surface
         self.volume = volume
         self.colormap = None
+        self.transparency = transparency
         self.offset = offset
         self.per_pixel_coloring = False
         self.solid = None             # Manages 3D texture
+
+        self.set_colormap(palette, range)
+        
+        if auto_recolor:
+            arv = lambda self=self: self.set_vertex_colors(report_stats = False)
+        else:
+            arv = None
+        surface.auto_recolor_vertices = arv
 
     # -------------------------------------------------------------------------
     #
@@ -321,9 +236,10 @@ class VolumeColor:
 
     # -------------------------------------------------------------------------
     #
-    def set_colormap(self, colormap):
-
-        self.colormap = colormap
+    def set_colormap(self, palette, range, per_pixel = False):
+        vrange = lambda: _compute_value_range(self)
+        self.colormap = _colormap_with_range(palette, range, vrange)
+        self.per_pixel_coloring = per_pixel
         self.set_texture_colormap()
 
     # -------------------------------------------------------------------------
@@ -343,12 +259,13 @@ class VolumeColor:
         
     # -------------------------------------------------------------------------
     #
-    def vertex_colors(self, surface, report_stats = None):
+    def vertex_colors(self, report_stats = True):
 
-        values, outside = self.volume_values(surface)
+        values, outside = self.volume_values()
         if report_stats and len(values) > 0:
-            report_stats('Map values for surface "%s": minimum %.4g, mean %.4g, maximum %.4g'
-                         % (surface.name, values.min(), values.mean(), values.max()))
+            log = self.volume.session.logger.info
+            log('Map values for surface "%s": minimum %.4g, mean %.4g, maximum %.4g'
+                % (self.surface.name, values.min(), values.mean(), values.max()))
         cmap = self.colormap
         rgba = interpolate_colormap(values, cmap.data_values, cmap.colors,
                                     cmap.color_above_value_range,
@@ -358,24 +275,40 @@ class VolumeColor:
 
         from numpy import uint8
         rgba8 = (255*rgba).astype(uint8)
+
+        if self.transparency is not None:
+            opacity = min(255, max(0, int(2.56 * (100 - self.transparency))))
+            rgba8[:,3] = opacity
+        else:
+            rgba8[:,3] = self.surface.color[3]
+
         return rgba8
         
     # -------------------------------------------------------------------------
     #
-    def value_range(self, surface_piece):
+    def set_vertex_colors(self, report_stats = True):
+        s = self.surface
+        arv = s.auto_recolor_vertices
+        s.vertex_colors = self.vertex_colors(report_stats)
+        if arv:
+            s.auto_recolor_vertices = arv
+        
+    # -------------------------------------------------------------------------
+    #
+    def value_range(self):
 
         if self.volume is None:
             return (None, None)
 
-        values, outside = self.volume_values(surface_piece)
+        values, outside = self.volume_values()
         v = inside_values(values, outside)
         return array_value_range(v)
         
     # -------------------------------------------------------------------------
     #
-    def volume_values(self, surface):
+    def volume_values(self):
 
-        s = surface
+        s = self.surface
         # Transform from surface to volume coordinates
         tf = self.volume.scene_position.inverse() * s.scene_position
         v = s.vertices
@@ -389,6 +322,11 @@ class VolumeColor:
         if self.offset == 0:
             # No offset.
             values, outside = self.vertex_values(v, xf)
+        elif len(n) != len(v):
+            # TODO: Normals are out of sync with vertices.
+            values, outside = self.vertex_values(v, xf)
+            vol = self.volume
+            vol.session.logger.info('Warning! Normals for %s are out of sync with vertices so coloring offset is not being used.' % vol.name)
         elif isinstance(self.offset, (tuple, list)):
             # Average values from several offsets.
             val = None
@@ -495,13 +433,6 @@ class VolumeColor:
 
 # -----------------------------------------------------------------------------
 #
-class ElectrostaticColor(VolumeColor):
-
-    menu_name = 'electrostatic potential'
-    volume_name = 'potential'
-
-# -----------------------------------------------------------------------------
-#
 class GradientColor(VolumeColor):
 
     menu_name ='volume data gradient norm'
@@ -593,24 +524,40 @@ class GeometryColor:
     uses_origin = True
     uses_axis = True
 
-    def __init__(self):
+    def __init__(self, surface, palette, range, auto_recolor = True):
 
+        self.surface = surface
         self.colormap = None
         self.origin = (0,0,0)
         self.axis = (0,0,1)
 
+        self.set_colormap(palette, range)
+        
+        arv = self.set_vertex_colors if auto_recolor else None
+        surface.auto_recolor_vertices = arv
+
     # -------------------------------------------------------------------------
     #
     def set_origin(self, origin):
+        if not self.uses_origin:
+            return
+        if origin is None:
+            s = self.surface
+            b = s.bounds()
+            lc = (0,0,0) if b is None else b.center()
+            origin = s.scene_position * lc
         self.origin = tuple(origin)
+
+    # -------------------------------------------------------------------------
+    #
     def set_axis(self, axis):
         self.axis = tuple(axis)
         
     # -------------------------------------------------------------------------
     #
-    def set_colormap(self, colormap):
-
-        self.colormap = colormap
+    def set_colormap(self, palette, range):
+        vrange = lambda: _compute_value_range(self)
+        self.colormap = _colormap_with_range(palette, range, vrange)
 
     # -------------------------------------------------------------------------
     #
@@ -622,10 +569,11 @@ class GeometryColor:
 
     # -------------------------------------------------------------------------
     #
-    def vertex_colors(self, surface):
+    def vertex_colors(self):
 
-        vertices, tarray = surface.geometry
-        sp = surface.scene_position
+        s = self.surface
+        vertices, tarray = s.geometry
+        sp = s.scene_position
         va = vertices if sp.is_identity() else sp * vertices
         values = self.values(va)
         cmap = self.colormap
@@ -638,15 +586,25 @@ class GeometryColor:
         
     # -------------------------------------------------------------------------
     #
+    def set_vertex_colors(self):
+        s = self.surface
+        arv = s.auto_recolor_vertices
+        s.vertex_colors = self.vertex_colors()
+        if arv:
+            s.auto_recolor_vertices = arv
+        
+    # -------------------------------------------------------------------------
+    #
     def values(self, vertices):
         raise RuntimeError('Derived class "%s" did not implement values() method' % self.__class__)
         
     # -------------------------------------------------------------------------
     #
-    def value_range(self, surface):
+    def value_range(self):
 
-        vertices, tarray = surface.geometry
-        sp = surface.scene_position
+        s = self.surface
+        vertices, tarray = s.geometry
+        sp = s.scene_position
         va = vertices if sp.is_identity() else sp * vertices
         v = self.values(va)
         return array_value_range(v)
@@ -966,9 +924,7 @@ def texture_surface_piece(p, t, txf, border_color, offset = 0):
 
 # -----------------------------------------------------------------------------
 #
-coloring_methods = (RadialColor, CylinderColor, HeightColor,
-                    ElectrostaticColor, VolumeColor, GradientColor,
-                    )
+coloring_methods = (RadialColor, CylinderColor, HeightColor, VolumeColor, GradientColor)
 
 # -----------------------------------------------------------------------------
 #
