@@ -4,7 +4,7 @@
 appdirs==1.4.3
 colorama==0.3.9
 comtypes==1.1.4
-Cython==0.28
+Cython==0.28.2
 distlib==0.2.6
 filelock==3.0.4
 flake8==3.5.0
