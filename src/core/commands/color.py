@@ -911,7 +911,7 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
 
     session.undo.register(undo_state)
 
-def color_bfactor(session, atoms, what='atoms', palette=None, range='full',
+def color_bfactor(session, atoms=None, what='atoms', palette=None, range='full',
                   transparency=None, undo_name="color bfactor"):
     '''
     Color atoms by bfactor using a color palette.
@@ -930,6 +930,10 @@ def color_bfactor(session, atoms, what='atoms', palette=None, range='full',
     from ..undo import UndoState
     undo_state = UndoState(undo_name)
 
+    if atoms is None:
+        from ..atomic import all_atoms
+        atoms = all_atoms(session)
+        
     opacity = None
     if transparency is not None:
         opacity = min(255, max(0, int(2.56 * (100 - transparency))))
@@ -1036,7 +1040,7 @@ def register_command(session):
     register('color sequential', desc, color_sequential, logger=session.logger)
 
     # color atoms by bfactor
-    desc = CmdDesc(required=[('atoms', AtomsArg)],
+    desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
                    optional=[('what', EnumOf(('atoms', 'cartoons', 'ribbons')))],
                    keyword=[('palette', ColormapArg),
                             ('range', ColormapRangeArg),
