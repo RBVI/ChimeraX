@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -616,7 +618,8 @@ class PseudobondLabel(ObjectLabel):
         ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text, color=color,
                              size=size, height=height, font=font)
     def default_text(self):
-        return '%.2f' % self.pseudobond.length
+        dm = self.pseudobond.session.pb_dist_monitor
+        return dm.distance_format % self.pseudobond.length
     def default_offset(self):
         return (0.2+self.pseudobond.radius, 0, 0.5)
     def location(self):
