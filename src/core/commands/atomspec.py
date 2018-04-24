@@ -822,10 +822,11 @@ _selectors = {}
 
 class _Selector:
 
-    def __init__(self, name, value, user, desc):
+    def __init__(self, name, value, user, desc, atomic):
         self.name = name
         self.value = value
         self.user_defined = user
+        self.atomic = atomic
         self._description = desc
 
     def description(self, session):
@@ -862,7 +863,8 @@ class _Selector:
         return value
 
 
-def register_selector(name, value, logger, user=False, desc=None):
+def register_selector(name, value, logger, *,
+                      user=False, desc=None, atomic=True):
     """Register a (name, value) pair as an atom specifier selector.
 
     Parameters
@@ -885,7 +887,9 @@ def register_selector(name, value, logger, user=False, desc=None):
     desc : string
         Selector description.  Returned by get_selector_description().
         If not supplied, a generic description will be generated.
-
+    atomic : boolean
+        Boolean value indicating atoms may be selected using selector.
+        Non-atomic selectors will not appear in Basic Actions tool.
     """
     if not name[0].isalpha():
         logger.warning("registering illegal selector name \"%s\"" % name)
@@ -894,7 +898,7 @@ def register_selector(name, value, logger, user=False, desc=None):
         if not c.isalnum() and c not in "-+":
             logger.warning("registering illegal selector name \"%s\"" % name)
             return
-    _selectors[name] = _Selector(name, value, user, desc)
+    _selectors[name] = _Selector(name, value, user, desc, atomic)
     from .. import triggers
     from .commands import ATOMSPEC_TARGET_REGISTERED
     triggers.activate_trigger(ATOMSPEC_TARGET_REGISTERED, name)
@@ -914,7 +918,6 @@ def deregister_selector(name, logger):
     ------
     KeyError
         If name is not registered.
-
     """
     try:
         del _selectors[name]
@@ -933,7 +936,6 @@ def list_selectors():
     -------
     iterator yielding str
         Iterator that yields registered selector names.
-
     """
     return _selectors.keys()
 
@@ -950,7 +952,6 @@ def get_selector(name):
     -------
     Callable object, Objects instance, or None.
         Callable object if name was registered; None, if not.
-
     """
     try:
         return _selectors[name].value
@@ -970,9 +971,24 @@ def is_selector_user_defined(name):
     -------
     Boolean
         Whether selector name is user-defined.
-
     """
     return _selectors[name].user_defined
+
+
+def is_selector_atomic(name):
+    """Return whether selector may select any atoms.
+
+    Parameters
+    ----------
+    name : str
+        Previously registered selector name.
+
+    Returns
+    -------
+    Boolean
+        Whether selector name may select any atoms.
+    """
+    return _selectors[name].atomic
 
 
 def get_selector_description(name, session):
@@ -991,7 +1007,6 @@ def get_selector_description(name, session):
         Description of selector.  Registered description is
         used when available; otherwise, description is generated
         from the selector value.
-
     """
     return _selectors[name].description(session)
 
