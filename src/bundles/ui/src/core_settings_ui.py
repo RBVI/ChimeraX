@@ -26,6 +26,10 @@ class AtomSpecOption(SymbolicEnumOption):
     values = ("command", "serial", "simple")
     labels = ("command line", "serial number", "simple")
 
+class UpdateIntervalOption(SymbolicEnumOption):
+    values = ("day", "week", "month")
+    labels = ("every day", "every week", "every month")
+
 class CoreSettingsPanel:
 
     # settings_info is keyed on setting name, and value is a tuple composed of:
@@ -147,6 +151,16 @@ class CoreSettingsPanel:
             None,
             None,
             'Whether to resize main window when restoring a session to the size it had when the session was saved.',
+            True),
+        'toolshed_update_interval': (
+            "Toolshed update interval",
+            "Toolshed",
+            UpdateIntervalOption,
+            None,
+            None,
+            None,
+            None,
+            'How frequently to check toolshed for new updates<br>',
             True),
     }
 
