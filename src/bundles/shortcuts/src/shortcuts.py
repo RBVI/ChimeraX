@@ -377,8 +377,8 @@ class Keyboard_Shortcuts:
 def register_selectors(logger):
     from chimerax.core.commands import register_selector
     register_selector("selAtoms", _sel_atoms_selector, logger)
-    register_selector("selMaps", _sel_maps_selector, logger)
-    register_selector("selModels", _sel_models_selector, logger)
+    register_selector("selMaps", _sel_maps_selector, logger, atomic=False)
+    register_selector("selModels", _sel_models_selector, logger, atomic=False)
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):

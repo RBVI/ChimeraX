@@ -352,7 +352,8 @@ class BundleInfo:
                     return sel(session, models, results)
                 else:
                     return sel
-            register_selector(si.name, selector_cb, logger, desc=si.synopsis)
+            register_selector(si.name, selector_cb, logger,
+                              desc=si.synopsis, atomic=si.atomic)
 
     def _deregister_selectors(self, logger):
         from ..commands import deregister_selector
@@ -586,22 +587,25 @@ class SelectorInfo(ToolInfo):
        Tool name.
     synopsis : str
         One line description.
+    atomic : boolean
+        Whether selector applies to atoms and bonds.
     """
-    def __init__(self, name, synopsis=None):
+    def __init__(self, name, synopsis=None, atomic=True):
         self.name = name
         if synopsis:
             self.synopsis = synopsis
         else:
             self.synopsis = "No synopsis given"
+        self.atomic = atomic
 
     def __repr__(self):
         s = self.name
         if self.synopsis:
-            s += " [synopsis: %s]" % self.synopsis
+            s += " [atomic: %s, synopsis: %s]" % (self.atomic, self.synopsis)
         return s
 
     def cache_data(self):
-        return (self.name, self.synopsis)
+        return (self.name, self.synopsis, self.atomic)
 
     @classmethod
     def from_cache_data(cls, data):
