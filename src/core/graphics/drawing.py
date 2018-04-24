@@ -1031,7 +1031,8 @@ class Drawing:
         self._positions = None
         self._colors = None
         self._displayed_positions = None
-        self.vertices = None
+        self.auto_recolor_vertices = None
+        self._vertices = None
         self.triangles = None
         self.normals = None
         self._edge_mask = None
