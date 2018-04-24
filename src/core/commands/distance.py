@@ -38,7 +38,7 @@ def distance(session, atoms, *, color=None, dashes=None,
         if (pa1 == a1 and pa2 == a2) or (pa1 == a2 and pa2 == a1):
             from chimerax.core.errors import UserError
             raise UserError("Distance already exists;"
-                " modify distance properites with 'distance style'")
+                " modify distance properties with 'distance style'")
     pb = grp.new_pseudobond(a1, a2)
 
     if color is not None:
@@ -55,6 +55,32 @@ def distance(session, atoms, *, color=None, dashes=None,
 
     session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
         % (a1, a2.string(relative_to=a1), pb.length))
+
+def distance_save(session, save_file_name):
+    from chimerax.core.io import open_filename
+    save_file = open_filename(save_file_name, 'w')
+    from chimerax.atomic import Structure
+    for model in session.models:
+        if not isinstance(model, Structure):
+            continue
+        print("Model", model.id_string(), "is", model.name, file=save_file)
+
+    print("\nDistance information:", file=save_file)
+    grp = session.pb_manager.get_group("distances", create=False)
+    if grp:
+        pbs = list(grp.pseudobonds)
+        pbs.sort(key=lambda pb: pb.length)
+        fmt = "%s <-> %s:  " + session.pb_dist_monitor.distance_format
+        for pb in pbs:
+            a1, a2 = pb.atoms
+            d_string = fmt % (a1, a2.string(relative_to=a1), pb.length)
+            # drop angstrom symbol...
+            if not d_string[-1].isdigit():
+                d_string = d_string[:-1]
+            print(d_string, file=save_file)
+    if save_file_name != save_file:
+        # Wasn't a stream that was passed in...
+        save_file.close()
 
 def distance_style(session, pbonds, *, color=None, dashes=None,
         decimal_places=None, radius=None, symbol=None, set_defaults=False):
@@ -116,7 +142,7 @@ def xdistance(session, pbonds=None):
 
 def register_command(session):
     from . import CmdDesc, register, AtomsArg, AnnotationError, PseudobondsArg, Or, EmptyArg, \
-        ColorArg, NonNegativeIntArg, FloatArg, BoolArg
+        ColorArg, NonNegativeIntArg, FloatArg, BoolArg, SaveFileNameArg
     # eventually this will handle more than just atoms, but for now...
     class AtomPairArg(AtomsArg):
         name = "an atom-pair specifier"
@@ -144,3 +170,7 @@ def register_command(session):
             ('decimal_places', NonNegativeIntArg), ('symbol', BoolArg), ('set_defaults', BoolArg)],
         synopsis = 'set distance display properties')
     register('distance style', df_desc, distance_style, logger=session.logger)
+    ds_desc = CmdDesc(
+        required = [('save_file_name', SaveFileNameArg)],
+        synopsis = 'save distance information')
+    register('distance save', ds_desc, distance_save, logger=session.logger)
