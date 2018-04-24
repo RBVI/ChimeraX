@@ -143,15 +143,13 @@ def _color_geometry(session, surfaces, geometry = 'radial',
               'cylindrical': CylinderColor,
               'height': HeightColor}[geometry]
     for surf in surfs:
-        cs = cclass(surf, palette, range, auto_recolor = auto_update)
         # Set origin and axis for coloring
-        cs.set_origin(c0)
-        if cs.uses_axis:
-            if axis:
-                a = axis.scene_coordinates(coordinate_system, session.main_view.camera)	# Scene coords
-            else:
-                a = surf.scene_position.z_axis()
-            cs.set_axis(a)
+        c = surf.scene_position.origin() if c0 is None else c0
+        if axis:
+            a = axis.scene_coordinates(coordinate_system, session.main_view.camera)	# Scene coords
+        else:
+            a = surf.scene_position.z_axis()
+        cs = cclass(surf, palette, range, origin = c, axis = a, auto_recolor = auto_update)
         cs.set_vertex_colors()
 
 # -----------------------------------------------------------------------------
@@ -524,12 +522,12 @@ class GeometryColor:
     uses_origin = True
     uses_axis = True
 
-    def __init__(self, surface, palette, range, auto_recolor = True):
+    def __init__(self, surface, palette, range, origin = (0,0,0), axis = (0,0,1), auto_recolor = True):
 
         self.surface = surface
         self.colormap = None
-        self.origin = (0,0,0)
-        self.axis = (0,0,1)
+        self.origin = origin
+        self.axis = axis
 
         self.set_colormap(palette, range)
         
@@ -652,7 +650,6 @@ class RadialColor(GeometryColor):
     # -------------------------------------------------------------------------
     #
     def values(self, vertices):
-
         d = distances_from_origin(vertices, self.origin)
         return d
 
