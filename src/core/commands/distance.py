@@ -63,7 +63,7 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
     '''
     grp = session.pb_manager.get_group("distances", create=False)
     if pbonds is not None:
-        pbs = [pb for pb in pbonds if pb.category == "distances"]
+        pbs = [pb for pb in pbonds if pb.name == "distances"]
     elif grp:
         pbs = grp.pseudobonds
     else:

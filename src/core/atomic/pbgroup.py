@@ -27,7 +27,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._structure = s = self.structure	# Keep structure in case PseudobondGroupData deleted.
         if session is None:
             session = s.session
-        Model.__init__(self, self.category, session)
+        Model.__init__(self, self.name, session)
         self._pbond_drawing = None
         self._dashes = 9
         self._global_group = (s is None)
@@ -141,11 +141,11 @@ class PseudobondGroup(PseudobondGroupData, Model):
     dashes = property(_get_dashes, _set_dashes)
 
     def _get_name(self):
-        return self.category
+        return self._category
 
     def _set_name(self, name):
-        if name != self.category:
-            self.change_category(name)
+        if name != self.name:
+            self.change_name(name)
         # allow Model to fire 'name changed' trigger
         Model.name.fset(self, name)
     name = property(_get_name, _set_name)
@@ -282,7 +282,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         from .molobject import get_custom_attrs
         data = {
             'version': 1,
-            'category': self.category,
+            'category': self.name,
             'dashes': self._dashes,
             'model state': Model.take_snapshot(self, session, flags),
             'structure': self.structure,
@@ -359,7 +359,7 @@ def interatom_pseudobonds(atoms, group_name = None):
             pbgs.add(pbg)
     # Collect bonds
     pbonds = [pbg.pseudobonds for pbg in pbgs
-              if group_name is None or pbg.category == group_name]
+              if group_name is None or pbg.name == group_name]
     from . import Pseudobonds, concatenate
     pb = concatenate(pbonds, Pseudobonds)
     ipb = pb.filter(pb.between_atoms(atoms))

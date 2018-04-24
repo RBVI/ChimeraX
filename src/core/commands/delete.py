@@ -55,8 +55,8 @@ def delete_pbonds(session, pbonds, name=None):
     ----------
     pbonds : Pseudobonds collection or None (all pseudobonds)
         Delete these pseudobonds.
-    category: string
-        If specified, restrict deletion to pseudobonds matching the category.
+    name: string
+        If specified, restrict deletion to pseudobonds in the named pseudobond group.
     '''
     if pbonds is None:
         from chimerax.atomic import all_pseudobond_groups
