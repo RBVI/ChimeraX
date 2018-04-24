@@ -40,16 +40,17 @@ th {
   background-size: 1.2em;
 }
 td {
-  text-align: center;
   font-family:arial;
 }
 td:nth-child(1), td:nth-child(2) {
+  text-align: left;
   max-width: 10em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+  text-align: center;
   min-width: 4.4em;
 }
 

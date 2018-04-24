@@ -42,15 +42,26 @@ var tgttable = function() {
         $.each(targets, function(i, tgt) {
             var name = tgt["name"];
             var info = tgt["info"];
+            var builtin = tgt["builtin"]
             var row = $("<tr/>", { class: "target_row" });
-            row.append($("<td/>").append($("<a/>",
-                                           { "href": _sel_url(name) })
-                                           .text(name)));
-            row.append($("<td/>").text(info));
+            if (builtin) {
+                row.append($("<td/>").append($("<a/>",
+                                               { "href": _sel_url(name),
+                                                 "title": name })
+                                               .text(name)));
+                row.append($("<td/>", { "title": info }).text(info));
+            } else {
+                row.append($("<td/>").append($("<b/>").append($("<a/>",
+                                               { "href": _sel_url(name),
+                                                 "title": name })
+                                               .text(name))));
+                row.append($("<td/>").append($("<b/>", { "title": info })
+                                               .text(info)));
+            }
             // add checkbox/color-selector pairs
             row.append(_add_dc("show", "hide", "abp", name, "atom"))
-            row.append(_add_dc("cartoon", "cartoon hide", "c", name, "rib"))
-            row.append(_add_dc("surface", "surface hide", "s", name, "surf"))
+            row.append(_add_dc("show", "hide", "c", name, "rib"))
+            row.append(_add_dc("show", "hide", "s", name, "surf"))
             tbody.append(row);
         });
         $("#targets").append($("<table/>", { id: "targets_table" })
@@ -74,7 +85,7 @@ var tgttable = function() {
         var thead = $("<thead/>");
         var row = $("<tr/>");
         row.append($("<th/>", { colspan: components_column_info.length })
-                      .text(components.length + " model components."));
+                      .text(components.length + " model components"));
         thead.append(row);
         row = $("<tr/>");
         for (var i = 0; i < components_column_info.length; i++) {
@@ -93,8 +104,8 @@ var tgttable = function() {
                                            .text(atomspec)));
             // add checkbox/color-selector pairs
             row.append(_add_dc("show", "hide", "abp", atomspec, "atom"))
-            row.append(_add_dc("cartoon", "cartoon hide", "c", atomspec, "rib"))
-            row.append(_add_dc("surface", "surface hide", "s", atomspec, "surf"))
+            row.append(_add_dc("show", "hide", "c", atomspec, "rib"))
+            row.append(_add_dc("show", "hide", "s", atomspec, "surf"))
             tbody.append(row);
         });
         $("#components").append($("<table/>", { id: "components_table" })
@@ -126,10 +137,10 @@ var tgttable = function() {
         var hide_icon = "lib/" + type + "hide.png";
         return $("<td/>", { name:name })
                     .append($("<img/>", { class: "show", action: show,
-                                          src: show_icon }))
+                                          target: tgt, src: show_icon }))
                     .append($("<span/>", { class: "spacer" }))
                     .append($("<img/>", { class: "hide", action: hide,
-                                          src: hide_icon }))
+                                          target: tgt, src: hide_icon }))
                     .append($("<span/>", { class: "spacer" }))
                     /*
                     .append($("<input/>", { type: "color",
@@ -148,7 +159,9 @@ var tgttable = function() {
         var action = "action=" + img.attr("action");
         var td = img.parent();
         var selector = "selector=" + encodeURIComponent(td.attr("name"));
-        var url = custom_scheme + ':' + path + '?' + action + '&' + selector;
+        var target = "target=" + img.attr("target")
+        var url = custom_scheme + ':' + path + '?' + action +
+                  '&' + selector + '&' + target;
         // console.log("image click " + url);
         window.location = url;
     }

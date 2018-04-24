@@ -39,12 +39,12 @@ all:
 ifdef WIN32
 
 install:
-	$(PIP_INSTALL) $(WHEEL) | grep "not upgraded" || \
+	$(PIP_INSTALL) $(WHEEL) | grep "already satisfied" || \
 		((cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch && \
 		 (cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-glbuffersubdata.patch)
 
 app-install:
-	$(APP_PIP_INSTALL) $(WHEEL) | grep "not upgraded" || \
+	$(APP_PIP_INSTALL) $(WHEEL) | grep "already satisfied" || \
 		((cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch && \
 		 (cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-glbuffersubdata.patch)
 

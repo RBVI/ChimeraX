@@ -129,7 +129,8 @@ def _build_bundle(d):
         for sel_name, sd in sel_d.items():
             _debug("processing selector: %s" % sel_name)
             synopsis = sd.get("synopsis", "")
-            si = SelectorInfo(sel_name, synopsis)
+            atomic = sd.get("atomic", "").lower() != "false"
+            si = SelectorInfo(sel_name, synopsis, atomic)
             bi.selectors.append(si)
 
     #
