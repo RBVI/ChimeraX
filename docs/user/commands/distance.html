@@ -49,6 +49,9 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>symbol</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>setDefaults</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>distance save</b> &nbsp;<i>distance-file</i>
+</h3>
 <p>
 The <b>distance</b> command adds a <a href="../pseudobonds.html">pseudobond</a>
 between the specified atoms and labels it with the distance. The current 
@@ -117,6 +120,12 @@ existing distance monitors, and <b>setDefaults true</b>
 (default <b>false</b>) indicates saving the specified values in the 
 <a href="../preferences.html#distances"><b>Distances</b> preferences</a>
 as defaults for subsequently created monitors.
+</p><p>
+The <b>distance save</b> command writes all current distance information
+to a text file with pathname <i>distance-file</i>.
+The word <a href="usageconventions.html#browse"><b>browse</b></a>
+can substituted for <i>distance-file</i> to raise a file browser window
+for specifying the name and location interactively.
 </p>
 
 <hr>
