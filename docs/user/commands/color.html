@@ -25,32 +25,32 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: color, rainbow</h3>
 <p>
-The <b>color</b> command colors atomic models, including
-atoms, bonds, <a href="../pseudobonds.html">pseudobonds</a>,
-<a href="cartoon.html">cartoons</a>, 
-and <a href="surface.html">molecular surfaces</a>.
-It can also apply to nonmolecular surfaces, depending on the type of coloring:
+Depending on the type of coloring, <b>color</b> may apply to
+atomic models and their parts, including <a href="cartoon.html">cartoon</a> 
+and <a href="surface.html">molecular surface</a> representations,
+and <a href="../tools/volumeviewer.html">volume data</a> (map) displays:
 </p>
-<ul>
-<li><a href="#simple">simple coloring</a>
-- atomic models and
-<a href="../tools/volumeviewer.html">volume data</a> (map) displays
-<li><a href="#sequential">sequential (rainbow) coloring</a> 
+<ul class="none">
+<li><a href="#simple"><b>Simple coloring</b></a>
+- atomic models and map displays
+<li><a href="#sequential"><b>Sequential coloring (rainbow)</b></a> 
 - atomic models
-<li><a href="#modify">color modification</a> 
-(lightening, darkening, <i>etc.</i>)
-- atomic models
-<li><a href="#map">coloring by map value</a> (sample, electrostatic, gradient)
-- molecular and nonmolecular surfaces
-<li><a href="#distance">coloring by distance</a> (radial, cylindrical, height)
-- molecular and nonmolecular surfaces
-<li><a href="#zone">coloring by zone</a> to match nearby atoms or markers
-- nonmolecular surfaces only
-<li>coloring by <a href="../attributes.html">attribute</a> value
-<font color="brown">(not yet implemented)</font>
+<li><a href="#modify"><b>Color modification</b></a>
+- lightening, hue shift, <i>etc.</i> for atomic models
+<li><b>Coloring by value</b>:
+  <ul>
+  <li><a href="#attribute"><b>Attribute</b></a>
+  - currently only <a href="#attribute"><b>color bfactor</b></a>
+  for atomic models
+  <li><a href="#map"><b>Map</b></a> (sample, electrostatic, gradient)
+  - molecular and nonmolecular surfaces
+  <li><a href="#distance"><b>Distance</b></a> (radial, cylindrical, height)
+  - molecular and nonmolecular surfaces
+  </ul>
+<li><a href="#zone"><b>Coloring by Zone</b></a>
+- coloring nonmolecular surfaces to match nearby atoms or markers
 </ul>
 <p>
-See <a href="#examples">examples</a> below.
 See also: <a href="transparency.html"><b>transparency</b></a>,
 <a href="mlp.html"><b>mlp</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
@@ -101,7 +101,8 @@ The <a name="colorname"><i>colorname</i></a> can be:
 hexadecimal color code, or component values
 <li><a name="byelement"><b>byelement</b> or <b>byatom</b></a>
 - a <a href="colortables.html#element">color-by-element scheme</a>;
-only applies to atomic representations and per-atom patches of molecular surfaces
+only applies to atomic representations and per-atom patches of 
+molecular surfaces
 <li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
 - same as <b>byelement</b>, except leaving carbon atoms unchanged
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
@@ -115,7 +116,7 @@ as in the
 <a href="http://ndbserver.rutgers.edu/" target="_blank">Nucleic Acid Database</a>:
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr style="line-height:10px">
-<td bgcolor="red">A</td>
+<td style="background:red;color:white">A</td>
 <td style="background:blue;color:white">T</td>
 <td bgcolor="yellow">C</td>
 <td bgcolor="lime">G</td>
@@ -139,8 +140,6 @@ using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 -->
 <li><a name="random"><b>random</b></a>
 - random color per atom and residue
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon3" border=1 src="../tools/shortcut-icons/colorrandom.png"></a>
 </ul>
 <p>
 <a name="target"></a>
@@ -165,8 +164,8 @@ without commas or spaces:
 <font color="brown">Surface coloring is
 not yet implemented for <a href="#sequential">sequential coloring</a></font>;
 however, if atoms have been colored sequentially, their
-molecular surfaces can be colored to match them with the command: 
-<b>color fromatoms target s</b>
+molecular surfaces can be colored to match with the command: 
+<b><a href="#simple">color</a> fromatoms target s</b>
  <li><b>p</b> - pseudobonds-only
  (coloring shown for <a href="../pseudobonds.html">pseudobonds</a>
  not in <a href="#halfbond">halfbond mode</a>)
@@ -220,6 +219,31 @@ alpha (opacity). An alpha value overrides this option if both are given.
 Note that the <a href="transparency.html"><b>transparency</b></a> command
 can be used to set transparency apart from color.
 </p>
+<h4>Examples (<a href="#simple">Simple</a>)</h4>
+Color chain D helices sky blue, cartoons only (not atoms, <i>etc.</i>):
+<blockquote>
+<b>color /d & helix &nbsp;sky blue &nbsp;target c</b>
+<br>&ndash; or &ndash;<br>
+<b>color /d & helix &nbsp;sky blue &nbsp;cartoons</b>
+</blockquote>
+Color residues 12 and 260-275 in chains A and B, atoms/bonds only:
+<blockquote>
+<b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;target a</b>
+<br>&ndash; or &ndash;<br>
+<b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;atoms</b>
+</blockquote>
+Color all <a href="../pseudobonds">pseudobonds</a> yellow:
+<blockquote>
+<b>color <a href="atomspec.html#builtin">pbonds</a> &nbsp;yellow</b>
+</blockquote>
+Restore original model coloring to all carbon atoms:
+<blockquote>
+<b>color C &nbsp;bymodel &nbsp;targ a</b>
+</blockquote>
+Color map #4:
+<blockquote>
+<b>color #4 &nbsp;medium violet</b>
+</blockquote>
 
 <p>
 <a name="sequential"></a>
@@ -245,8 +269,7 @@ can be used to set transparency apart from color.
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
-The <b>color sequential</b> command
-(synonym <b>rainbow</b>, see <a href="#examples">examples</a>)
+The <b>color sequential</b> command (synonym <b>rainbow</b>)
 applies a <a href="#palette-options">series of colors</a>
 to atomic models at the specified <i>level</i>:
 <ul>
@@ -269,6 +292,32 @@ The <a href="#palette-options"><b>palette</b></a> option specifies
 what colors to use, and <a href="#transparency"><b>transparency</b></a>
 can be set independently.
 </p>
+<h4>Examples (<a href="#sequential">Sequential</a>)</h4>
+Rainbow-color residues blue &rarr; red along each biopolymer chain:
+<blockquote>
+<b>color seq res</b>
+<br>&ndash; or &ndash;<br>
+<b>rainbow res</b>
+<br>&ndash; or &ndash;<br>
+<b>rainbow</b>
+</blockquote>
+Color the unique biopolymers in each atomic model, cartoons only,
+along the range cornflower blue &rarr; red &rarr; gold
+(chains that are the same biopolymer will be the same color):
+<blockquote>
+<b>color seq polymers &nbsp;targ c
+&nbsp;palette cornflowerblue:red:gold</b>
+<br>&ndash; or &ndash;<br>
+<b>rainbow polymers &nbsp;targ c
+&nbsp;palette cornflowerblue:red:gold</b>
+</blockquote>
+Color the 10-mer in PDB entry 
+<a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=1qmv"
+target="_blank">1qmv</a> using the 10-color version of the &ldquo;paired&rdquo;
+<a href="palettes.html#colorbrewer">ColorBrewer palette</a>:
+<blockquote>
+<b>open 1qmv; rainbow chain palette paired-10</b>
+</blockquote>
 
 <a name="modify"></a>
 <p class="nav">
@@ -334,6 +383,48 @@ For <b>hue</b>, the <i>angle</i> can be added to or subtracted from
 the current value, or simply set as the current value.
 </p>
 
+<a name="attribute"></a>
+<p class="nav">
+[<a href="#top">back to top: color</a>]
+</p>
+<h3>Coloring by Attribute Value</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>color</b> &nbsp;<b>bfactor</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>atoms</b>&nbsp;|&nbsp;cartoons&nbsp;|&nbsp;ribbons&nbsp;]
+<!--
+[&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+-->
+[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+&nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
+</blockquote>
+<p>
+Coloring by <a href="../attributes.html">attribute</a> value is
+<font color="brown">not yet implemented</font>,
+except for coloring by atomic B-factor values read from mmCIF or PDB.
+Choices are to color <b>atoms</b> (default) or 
+<b>cartoons</b> (same as <b>ribbons</b>).
+Cartoons are colored by the average B-factor of the atoms in each residue. 
+The color-to-value mapping is specified
+with <a href="#palette-options">palette options</a>,
+and <a href="#transparency"><b>transparency</b></a>
+can be set independently.
+For example,
+to rainbow-color chain A cartoon by the average B-factor per residue:
+</p>
+<blockquote>
+<b>color bfactor /A cartoons palette rainbow</b>
+</blockquote>
+<p>
+Although <b>color bfactor</b> does not color molecular surfaces,
+if atoms have been colored by B-factor, their
+molecular surfaces can be colored to match with: 
+</p>
+<blockquote>
+<b><a href="#simple">color</a> fromatoms target s</b>
+</blockquote>
+
 <a name="map"></a>
 <a name="sample"></a>
 <a name="electrostatic"></a>
@@ -348,6 +439,7 @@ the current value, or simply set as the current value.
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 <b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>autoUpdate</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 </blockquote>
@@ -357,7 +449,12 @@ value applies to surfaces only, both molecular and nonmolecular.
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>,
 and <a href="#transparency"><b>transparency</b></a>
-can be set independently. See also: <a href="mlp.html"><b>mlp</b></a>
+can be set independently. 
+The <b>autoUpdate</b> option (default <b>true</b>)
+indicates whether to update the coloring automatically 
+when the shape of the surface changes.
+See also: <a href="mlp.html"><b>mlp</b></a>
+</p>
 <ul>
 <li><b>color sample</b> colors by map value.
 The value for each surface vertex is found by trilinear interpolation
@@ -371,7 +468,8 @@ with default offset <b>1.4</b> &Aring;, which is typically used for coloring a
 <a href="surface.html">molecular surface</a> by electrostatic potential.
 The rationale for looking outward is that the values at the centers 
 of any interacting atoms are more relevant than those at their surfaces.
-By default, a molecular surface shows where the surface of a spherical probe 
+By default, a <a href="surface.html#surfdefs">molecular surface</a>
+shows where the surface of a spherical probe 
 of radius 1.4 &Aring; can lie, the
 <a href="surface.html#surfdefs">solvent-excluded surface</a>.
 An offset of 1.4 &Aring; approximates the 
@@ -389,6 +487,19 @@ from the eight corners of the enclosing data grid cell.
 The norm of the interpolated gradient (the length of the gradient vector)
 is used for assigning colors.
 </ul>
+<!--
+<h4><a href="#map" class="nounder">&larr;</a> Examples</h4>
+-->
+<h4>Examples (<a href="#map">Map</a>)</h4>
+Color molecular surface of #1 by the electrostatic potential in map #2,
+from red at -10 (and below) to white in the middle to blue at +10 (and above):
+<blockquote>
+<b>color electrostatic #1 map #2 palette redblue &nbsp;range -10,10</b>
+</blockquote>
+Same as previous except use royal blue instead of blue:
+<blockquote>
+<b>color elec #1 map #2 palette -10,red:0,white:10,royalblue</b>
+</blockquote>
 
 <a name="distance"></a>
 <a name="radial"></a>
@@ -404,6 +515,7 @@ is used for assigning colors.
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>autoUpdate</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
@@ -412,6 +524,7 @@ is used for assigning colors.
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>axis</b>&nbsp;&nbsp;<i>vector</i>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>autoUpdate</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -419,6 +532,9 @@ Coloring by distance applies to surfaces only,
 both molecular and nonmolecular (such as volume isosurfaces).
 The color-to-distance mapping is specified
 with <a href="#palette-options">palette options</a>.
+The <b>autoUpdate</b> option (default <b>true</b>)
+indicates whether to update the coloring automatically 
+when the shape of the surface changes.
 </p>
 <ul>
 <li><b>color radial</b> colors by distance from a center point
@@ -496,8 +612,9 @@ triangles to create sharp boundaries between the different colored regions.
 <p>
 A <b><i>palette</i></b> is an ordered set of 
 <a href="colornames.html">colors</a> or value,color pairs
-used for <a href="#sequential">sequential coloring</a> 
-or <a href="#map">coloring by map value</a>.
+used for <a href="#sequential">sequential coloring</a> or coloring by value 
+(<a href="#map">map</a>, <a href="#distance">distance</a>,
+or <a href="#attribute">attribute</a>).
 See also: <a href="mlp.html"><b>mlp</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>
 <blockquote>
@@ -514,7 +631,6 @@ Predefined palettes include the following, with
 colors shown in ascending value order:
   <ul>
   <li><b>rainbow</b>
-(default for <a href="#sequential">sequential coloring</a>)
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=blue width="30px"></td>
@@ -523,14 +639,16 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=yellow width="30px"></td>
 <td bgcolor=red width="30px"></td>
 </tr></table>
+(default for <a href="#sequential">sequential coloring</a>)
   <li><b>red-white-blue</b> or <b>redblue</b>
-(default for <a href="#map">coloring by map value</a>)
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=red width="30px"></td>
 <td bgcolor=white width="30px"></td>
 <td bgcolor=blue width="30px"></td>
 </tr></table>
+(default for <a href="#map">coloring by map value</a>
+or <a href="#distance">coloring by distance</a>)
   <li><b>blue-white-red</b> or <b>bluered</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -538,6 +656,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="30px"></td>
 <td bgcolor=red width="30px"></td>
 </tr></table>
+(default for <a href="#attribute">coloring by bfactor</a>)
   <li><b>cyan-white-maroon</b> or <b>cyanmaroon</b> 
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -546,14 +665,14 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=#9eb820005eb8 width="30px"></td>
 </tr></table>
   <li><b>cyan-gray-maroon</b>
-  (default for <a href="measure.html#convexity"><b>measure convexity</b></a>,
-  along with <a href="#range"><b>range</b></a> -1,1)
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=#0f1bc7adcf5b width="30px"></td>
 <td bgcolor=#b333b333b333 width="30px"></td>
 <td bgcolor=#9eb820005eb8 width="30px"></td>
 </tr></table>
+  (default for <a href="measure.html#convexity"><b>measure convexity</b></a>,
+  along with <a href="#range"><b>range</b></a> -1,1)
   <li><b>grayscale</b> or <b>gray</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -673,74 +792,6 @@ When multiple models are colored in a single command,
 the <b>full</b> range is determined separately for each model.
 </blockquote>
 
-<a name="examples"></a>
-<p class="nav">
-[<a href="#top">back to top: color</a>]
-</p>
-<h3>Examples</h3>
-Color chain D helices sky blue, cartoons only (not atoms, <i>etc.</i>):
-<blockquote>
-<b>color /d & helix &nbsp;sky blue &nbsp;target c</b>
-<br>&ndash; or &ndash;<br>
-<b>color /d & helix &nbsp;sky blue &nbsp;cartoons</b>
-</blockquote>
-Color residues 12 and 260-275 in chains A and B, atoms/bonds only:
-<blockquote>
-<b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;target a</b>
-<br>&ndash; or &ndash;<br>
-<b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;atoms</b>
-</blockquote>
-Color all <a href="../pseudobonds">pseudobonds</a> yellow:
-<blockquote>
-<b>color <a href="atomspec.html#builtin">pbonds</a> &nbsp;yellow</b>
-</blockquote>
-Restore original model coloring to all carbon atoms:
-<blockquote>
-<b>color C &nbsp;bymodel &nbsp;targ a</b>
-</blockquote>
-Rainbow-color residues blue &rarr; red along each biopolymer chain:
-<blockquote>
-<b>color seq res</b>
-<br>&ndash; or &ndash;<br>
-<b>rainbow res</b>
-<br>&ndash; or &ndash;<br>
-<b>rainbow</b>
-</blockquote>
-Color the unique biopolymers in each atomic model, cartoons only,
-along the range cornflower blue &rarr; red &rarr; gold
-(chains that are the same biopolymer will be the same color):
-<blockquote>
-<b>color seq polymers &nbsp;targ c
-&nbsp;palette cornflowerblue:red:gold</b>
-<br>&ndash; or &ndash;<br>
-<b>rainbow polymers &nbsp;targ c
-&nbsp;palette cornflowerblue:red:gold</b>
-</blockquote>
-Color the protein 10-mer in PDB entry 
-<a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=1qmv"
-target="_blank">1qmv</a> using the 10-color version of the &ldquo;paired&rdquo;
-<a href="palettes.html#colorbrewer">ColorBrewer palette</a>:
-<blockquote>
-<b>open 1qmv; rainbow protein chain palette paired-10</b>
-</blockquote>
-<!--
-<blockquote>
-<b>color /A &nbsp;attribute bfactor &nbsp;target ac &nbsp;residueVal max</b>
-</blockquote>
-- rainbow-color chain A atoms by atomic <b>bfactor</b>, 
-cartoon segments by maximum atomic <b>bfactor</b> per residue
-<blockquote>
-<b>color #0 &nbsp;volume #1 &nbsp;palette redblue &nbsp;range -10,10
-&nbsp;newAttr esp</b>
-</blockquote>
-- color model #0 by values in map #1; if #0 includes atoms (as opposed to
-surface-only), create new atom attribute named <b>esp</b>
-<blockquote>
-<b>color #0 &nbsp;volume #1 &nbsp;palette -10,red:0,white:10,medium blue
-&nbsp;newAttr esp</b>
-</blockquote>
-- same as previous except use <b>medium blue</b> instead of <b>blue</b>
--->
 <hr>
 
 <a name="name"></a>
