@@ -93,6 +93,10 @@ def register_surface_subcommands(session):
                         synopsis = 'hide small connected surface patches')
     register('surface dust', dust_desc, surface_dust, logger=session.logger)
 
+    undust_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                          synopsis = 'reshow surface dust')
+    register('surface undust', undust_desc, surface_undust, logger=session.logger)
+
     zone_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('near_atoms', AtomsArg),
                                    ('distance', FloatArg),
@@ -259,7 +263,7 @@ def new_surface(name, align_to, model_id):
 
 # -----------------------------------------------------------------------------
 #
-def surface_dust(session, surfaces, metric = 'size', size = None, update = False):
+def surface_dust(session, surfaces, metric = 'size', size = None, update = True):
     '''
     Hide connected surface patchs smaller than a specified size.
 
@@ -273,8 +277,6 @@ def surface_dust(session, surfaces, metric = 'size', size = None, update = False
       Hide patches smaller than this size.
     update : bool
       Whether to update dust hiding when surface shape changes.
-      Not implemented.
-
     '''
 
     if len(surfaces) == 0:
@@ -283,13 +285,12 @@ def surface_dust(session, surfaces, metric = 'size', size = None, update = False
         raise UserError('Must specify dust size')
     from ..surface import dust
     for s in surfaces:
-        dust.hide_dust(s, metric, size, update)
+        dust.hide_dust(s, metric, size, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
-def unhide_dust_op(surfaces):
-
-    from HideDust import dust
+def surface_undust(session, surfaces):
+    from ..surface import dust
     for s in surfaces:
         dust.unhide_dust(s)
 
