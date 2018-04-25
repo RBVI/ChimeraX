@@ -378,7 +378,7 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state
             if chain.chain_id not in cids:
                 continue
             residues = chain.existing_residues
-            colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(residues)))
+            colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
             for color, r in zip(colors, residues):
                 c = Color(color)
                 if target is None or 'a' in target:
@@ -389,6 +389,10 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state
                         rgba[3] = opacity
                     undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
                     r.ribbon_color = rgba
+            if 's' in target:
+                # TODO: save surface undo data
+                from .scolor import color_surfaces_at_residues
+                color_surfaces_at_residues(residues, colors, opacity)
 
 # -----------------------------------------------------------------------------
 #
@@ -875,7 +879,7 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
     objects : Objects
       Which objects to color.
     level : "residues", "chains", "polymers", "structures"
-      Assigns each object a color from a palette
+      Assigns each object a color from a palette.  Default "residues".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
     target : string

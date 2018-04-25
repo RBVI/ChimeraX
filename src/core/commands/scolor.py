@@ -22,6 +22,20 @@ def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom
 
 # -----------------------------------------------------------------------------
 #
+def color_surfaces_at_residues(residues, colors, opacity = None):
+    atoms, acolors = _residue_atoms_and_colors(residues, colors)
+    color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors = acolors)
+
+# -----------------------------------------------------------------------------
+#
+def _residue_atoms_and_colors(residues, colors):
+    atoms = residues.atoms
+    from numpy import repeat
+    acolors = repeat(colors, residues.num_atoms, axis=0)
+    return atoms, acolors
+
+# -----------------------------------------------------------------------------
+#
 def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
                                 palette = None, range = None, offset = 0):
     from .. import atomic
