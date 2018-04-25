@@ -594,20 +594,6 @@ class Drawing:
         if art:
             art()
 
-    def all_geometries(self):
-        '''
-        Return geometry of this drawing and all its chidren as a list of
-        3-tuples, each containing the vertices, triangles, and a Places
-        object that contains all the scene locations of those vertices
-        and triangles.
-        '''
-        va, ta = self.geometry
-        g = [] if va is None else [(va, ta, self.positions)]
-        for d in self.child_drawings():
-            g.extend([(_va, _ta, self.positions * dpositions)
-                      for _va, _ta, dpositions in d.all_geometries()])
-        return g
-
     def empty_drawing(self):
         '''Does this drawing have no geometry? Does not consider child
         drawings.'''
