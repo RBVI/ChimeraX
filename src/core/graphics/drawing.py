@@ -573,7 +573,10 @@ class Drawing:
         return self.vertices, self.triangles
 
     def set_geometry(self, g):
-        self.vertices, self.triangles = g
+        v,t = g
+        self._vertices = v
+        self.triangles = t
+        self.vertices = v	# Trigger auto recolor.
         self._edge_mask = None
         self._triangle_mask = None
         self.redraw_needed(shape_changed=True)
