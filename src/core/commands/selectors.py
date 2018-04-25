@@ -185,7 +185,7 @@ def _pbonds_selector(session, models, results):
 def _hbonds_selector(session, models, results):
     from ..atomic import Pseudobonds, PseudobondGroup, concatenate
     pbonds = concatenate([pbg.pseudobonds for pbg in models
-                          if isinstance(pbg, PseudobondGroup) and pbg.category == 'hydrogen bonds'],
+                          if isinstance(pbg, PseudobondGroup) and pbg.name == 'hydrogen bonds'],
                          Pseudobonds)
     results.add_pseudobonds(pbonds)
     for m in pbonds.unique_groups:
@@ -194,9 +194,7 @@ def _hbonds_selector(session, models, results):
 def _hbondatoms_selector(session, models, results):
     from ..atomic import Pseudobonds, PseudobondGroup, concatenate
     pbonds = concatenate([pbg.pseudobonds for pbg in models
-                          if isinstance(pbg, PseudobondGroup)
-                          and pbg.category == 'hydrogen bonds'],
-                         Pseudobonds)
+              if isinstance(pbg, PseudobondGroup) and pbg.name == 'hydrogen bonds'], Pseudobonds)
     if len(pbonds) > 0:
         atoms = concatenate(pbonds.atoms)
         results.add_atoms(atoms)

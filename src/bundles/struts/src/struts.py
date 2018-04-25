@@ -280,10 +280,10 @@ def strut_model(session, atoms, replace, name, model_id):
     return pbg
 
 def unique_struts_name(session):
-    # PseudobondGroup category name must be unique.
+    # PseudobondGroup name must be unique.
     from chimerax.core import atomic 
     pbglist = atomic.all_pseudobond_groups(session)
-    cats = set(pbg.category for pbg in pbglist)
+    cats = set(pbg.name for pbg in pbglist)
     for i in range(len(cats)+1):
         name = 'struts %d' % (i+1)
         if not name in cats:

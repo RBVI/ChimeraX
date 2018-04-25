@@ -56,7 +56,7 @@ class DistMouseMode(MouseMode):
                 self._first_atom = pick.atom
                 message("Distance from %s to..." % pick.atom)
         elif isinstance(pick, PickedPseudobond):
-            if pick.pbond.group.category == "distances":
+            if pick.pbond.group.name == "distances":
                 a1, a2 = pick.pbond.atoms
                 command = "~dist %s %s" % (a1.string(style="command line"),
                         a2.string(style="command line"))

@@ -390,8 +390,7 @@ class Pseudobond(State):
 class PseudobondGroupData:
     '''
     A group of pseudobonds typically used for one purpose such as display
-    of distances or missing segments.  The category attribute names the group,
-    for example "distances" or "missing segments".
+    of distances or missing segments.
 
     This base class of :class:`.PseudobondGroup` represents the C++ data while
     the derived class handles rendering the pseudobonds.
@@ -418,7 +417,8 @@ class PseudobondGroupData:
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    category = c_property('pseudobond_group_category', string, read_only = True,
+    # Model class uses _name, so...
+    _category = c_property('pseudobond_group_category', string, read_only = True,
         doc = "Name of the pseudobond group.  Read only string.")
     color = c_property('pseudobond_group_color', uint8, 4,
         doc="Sets the color attribute of current pseudobonds and new pseudobonds")
@@ -438,14 +438,14 @@ class PseudobondGroupData:
         read_only = True, doc ="Structure that pseudobond group is owned by.  "
         "Returns None if called on a group managed by the global pseudobond manager")
 
-    def change_category(self, category):
+    def change_name(self, name):
         f = c_function('pseudobond_group_change_category',
             args = (ctypes.c_void_p, ctypes.c_char_p))
         try:
-            f(self._c_pointer, category.encode('utf-8'))
+            f(self._c_pointer, name.encode('utf-8'))
         except TypeError:
             from chimerax.core.errors import UserError
-            raise UserError("Another pseudobond group is already named '%s'" % category)
+            raise UserError("Another pseudobond group is already named '%s'" % name)
 
     def clear(self):
         '''Delete all pseudobonds in group'''
@@ -529,12 +529,12 @@ class PseudobondManager(StateManager):
                        args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
         f(self._c_pointer, pbg._c_pointer)
 
-    def get_group(self, category, create = True):
-        '''Get an existing :class:`.PseudobondGroup` or create a new one given a category name.'''
+    def get_group(self, name, create = True):
+        '''Get an existing :class:`.PseudobondGroup` or create a new one with the given name.'''
         f = c_function('pseudobond_global_manager_get_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
-        pbg = f(self._c_pointer, category.encode('utf-8'), create)
+        pbg = f(self._c_pointer, name.encode('utf-8'), create)
         if not pbg:
             return None
         # C++ layer doesn't know how to create Python global pseudobond groups, because it can't
@@ -550,7 +550,7 @@ class PseudobondManager(StateManager):
 
     @property
     def group_map(self):
-        '''Returns a dict that maps from :class:`.PseudobondGroup` category to group'''
+        '''Returns a dict that maps from :class:`.PseudobondGroup` name to group'''
         f = c_function('pseudobond_global_manager_group_map',
                        args = (ctypes.c_void_p,),
                        ret = ctypes.py_object)

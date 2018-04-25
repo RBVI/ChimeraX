@@ -94,11 +94,11 @@ see :doc:`tutorial_hello` and :doc:`tutorial_command`.
 .. literalinclude:: ../../../src/examples/tutorials/tut_gui/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,17-25,35-36,39-42,49-51
+    :emphasize-lines: 8-10,19-24,35-36,40-43,51-52
 
 The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
-(lines 8-10 and 17-25).  Three other changes are needed
+(lines 8-10 and 19-24).  Three other changes are needed
 for this bundle to declare that:
 
 #. this bundle depends on the ``ChimeraX-UI`` and
@@ -115,11 +115,12 @@ for building the user interface (see `gui.py`_ below) and the
 ``ChimeraX-Tutorial_Command`` is needed to provide the ChimeraX
 commands that will be used for actually performing user actions.
 
-The ``DataFiles`` tag on lines 38-41 informs ChimeraX to include
+The ``DataFiles`` tag on lines 40-43 informs ChimeraX to include
 non-Python files as part of the bundle when building.  In this case,
-``gui.html`` (implicitly in the ``src`` folder) should be included.
+``gui.html`` (implicitly in the ``src`` folder) should be included,
+as well as all documentation files in ``helpdir``.
 
-The ``ChimeraXClassifier`` tag on lines 49-50 informs ChimeraX that
+The ``ChimeraXClassifier`` tag on lines 51-52 informs ChimeraX that
 there is one graphical interface *tool* named ``Tutorial GUI`` in
 the bundle.  The last two fields (separated by ``::``) are the tool
 category and the tool description.  ChimeraX will add a
