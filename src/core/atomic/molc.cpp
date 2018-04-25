@@ -1034,6 +1034,22 @@ extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_s
     }
 }
 
+extern "C" EXPORT void atom_scene_coord(void *atoms, size_t n, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto c = a[i]->scene_coord();
+            *xyz++ = c[0];
+            *xyz++ = c[1];
+            *xyz++ = c[2];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+
 // Apply per-structure transform to atom coordinates.
 extern "C" EXPORT void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
 {
