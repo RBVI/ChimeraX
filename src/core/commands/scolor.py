@@ -61,14 +61,14 @@ def surface_vertex_opacities(surf, opacity, vmask, vcolors):
 # -----------------------------------------------------------------------------
 #
 def color_electrostatic(session, surfaces, map, palette = None, range = None,
-                        offset = 1.4, transparency = None, auto_update = True):
+                        offset = 1.4, transparency = None, update = True):
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency, auto_update = auto_update)
+                        offset = offset, transparency = transparency, auto_update = update)
     
 # -----------------------------------------------------------------------------
 #
 def color_sample(session, surfaces, map, palette = None, range = None,
-                 offset = 0, transparency = None, auto_update = True):
+                 offset = 0, transparency = None, update = True):
     '''
     Color surfaces using a palette and interpolated map value at each surface vertex.
 
@@ -87,14 +87,14 @@ def color_sample(session, surfaces, map, palette = None, range = None,
     '''
 
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency, auto_update = auto_update)
+                        offset = offset, transparency = transparency, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
 def color_gradient(session, surfaces, map, palette = None, range = None,
-                   offset = 0, transparency = None, auto_update = True):
+                   offset = 0, transparency = None, update = True):
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency, gradient = True, auto_update = auto_update)
+                        offset = offset, transparency = transparency, gradient = True, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
@@ -119,25 +119,25 @@ def _adjust_opacities(vcolors, opacity, surf):
 # -----------------------------------------------------------------------------
 #
 def color_radial(session, surfaces, center = None, coordinate_system = None, palette = None, range = None,
-                 auto_update = True):
+                 update = True):
     _color_geometry(session, surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
-                    palette = palette, range = range, auto_update = auto_update)
+                    palette = palette, range = range, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
 def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_system = None,
-                      palette = None, range = None, auto_update = True):
+                      palette = None, range = None, update = True):
     _color_geometry(session, surfaces, geometry = 'cylindrical',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range, auto_update = auto_update)
+                    palette = palette, range = range, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
 def color_height(session, surfaces, center = None, axis = None, coordinate_system = None,
-                 palette = None, range = None, auto_update = True):
+                 palette = None, range = None, update = True):
     _color_geometry(session, surfaces, geometry = 'height',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range, auto_update = auto_update)
+                    palette = palette, range = range, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
@@ -584,7 +584,7 @@ class GeometryColor:
     def vertex_colors(self):
 
         s = self.surface
-        vertices, tarray = s.geometry
+        vertices = s.vertices
         sp = s.scene_position
         va = vertices if sp.is_identity() else sp * vertices
         values = self.values(va)
@@ -615,7 +615,7 @@ class GeometryColor:
     def value_range(self):
 
         s = self.surface
-        vertices, tarray = s.geometry
+        vertices = s.vertices
         sp = s.scene_position
         va = vertices if sp.is_identity() else sp * vertices
         v = self.values(va)
@@ -921,7 +921,7 @@ def texture_surface_piece(p, t, txf, border_color, offset = 0):
     p.useTextureTransparency = ('a' in t.color_mode)
     p.textureModulationColor = t.modulation_rgba()
     p.textureBorderColor = border_color
-    va = offset_vertices(p.geometry[0], p.normals, offset)
+    va = offset_vertices(p.vertices, p.normals, offset)
     s2tc = t.texture_matrix()
     p2s = p.model.openState.xform
     p2s.premultiply(txf.inverse())
