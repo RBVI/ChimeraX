@@ -4477,6 +4477,16 @@ extern "C" EXPORT void structure_session_save_teardown(void *mol)
     }
 }
 
+extern "C" EXPORT void structure_set_position(void *mol, void *pos)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->set_position_matrix((double*)pos);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_ss_assigned(void *structures, size_t n, npy_bool *ss_assigned)
 {
     Structure **s = static_cast<Structure **>(structures);

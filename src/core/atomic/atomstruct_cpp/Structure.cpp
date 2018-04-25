@@ -67,6 +67,11 @@ Structure::Structure(PyObject* logger):
     asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0), ss_ids_normalized(false)
 {
+    for (int i=0; i<3; ++i) {
+        for (int j=0; j<4; ++j) {
+            _position[i][j] = (i == j ? 1.0 : 0.0);
+        }
+    }
     change_tracker()->add_created(this, this);
 }
 
@@ -848,6 +853,9 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *float_array++ = _ball_scale;
     *float_array++ = _ribbon_tether_scale;
     *float_array++ = _ribbon_tether_opacity;
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 4; ++j)
+            *float_array++ = _position[i][j];
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
 
@@ -1139,6 +1147,11 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         _ribbon_tether_scale = *float_array++;
         _ribbon_tether_opacity = *float_array++;
     }
+    if (version >= 12) {
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 4; ++j)
+                _position[i][j] = *float_array++;
+    }
     // if more added, change the array dimension check above
 
     // AtomicStructure misc info
@@ -1427,6 +1440,14 @@ Structure::set_color(const Rgba& rgba)
         b->set_color(rgba);
     for (auto r: _residues)
         r->set_ribbon_color(rgba);
+}
+
+void
+Structure::set_position_matrix(double* pos)
+{
+    double *_pos = &_position[0][0];
+    for (int i=0; i<12; ++i)
+        *_pos++ = *pos++;
 }
 
 void

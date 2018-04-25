@@ -67,6 +67,8 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
+        from chimerax.core.models import MODEL_POSITION_CHANGED
+        self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
         from chimerax.core import triggerset
         self.triggers = triggerset.TriggerSet()
         self.triggers.add_trigger("changes")
@@ -454,6 +456,18 @@ class Structure(Model, StructureData):
         ad = self._atoms_drawing
         if ad:
             lod.set_atom_sphere_geometry(ad, total_atoms)
+
+    def _update_position(self, trig_name, updated_model):
+        need_update = False
+        check_model = self
+        while isinstance(check_model, Model):
+            if updated_model == check_model:
+                need_update = True
+                break
+            check_model = getattr(check_model, 'parent', None)
+        
+        if need_update:
+            self._cpp_notify_position(self.scene_position)
 
     def _add_r2t(self, r, tr):
         try:
