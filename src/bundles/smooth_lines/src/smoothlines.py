@@ -42,13 +42,11 @@ def smoothlines(session, models, step_factor = 0.1, iterations = 10, replace = F
         sva = smoothed_vertices(va, ta, step_factor, iterations)
 
         if replace:
-            model.vertices = sva
+            model.set_geometry(sva, model.normals, model.triangles)
         else:
             from chimerax.core.models import Model
             m = Model('%s smoothed' % model.name, session)
-            m.vertices = sva
-            m.triangles = ta
-            m.normals = model.normals
+            m.set_geometry(sva, model.normals, ta)
             m.display_style = m.Mesh
             m.color = model.color
             session.models.add([m])

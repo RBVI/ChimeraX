@@ -80,19 +80,9 @@ class Drawing:
         self._cached_position_bounds = None
 
         # Geometry and colors
-        self._vertices = None
-        """Vertices of the rendered geometry, a numpy N by 3 array of
-        float32 values."""
-
-        self.triangles = None
-        '''
-        Vertex indices for the corners of each triangle making up the
-        rendered geometry, a numpy M by 3 array of int32 values.
-        '''
-
-        self.normals = None
-        """Normal vectors of the rendered geometry, a numpy N by 3 array
-        of float32 values."""
+        self._vertices = None		# N x 3 float32 numpy array
+        self._triangles = None		# N x 3 int32 numpy array
+        self._normals = None		# N x 3 float32 numpy array
 
         self._vertex_colors = None
         self._opaque_vertex_color_count = 0
@@ -176,14 +166,30 @@ class Drawing:
         if rn is not None:
             rn(self, **kw)
 
-    def _get_vertices(self):
+    @property
+    def vertices(self):
+        '''
+        Vertices of the rendered geometry, a numpy N by 3 array of float32 values.
+        Read-only. Set using set_geometry() method.
+        '''
         return self._vertices
-    def _set_vertices(self, vertices):
-        self._vertices = vertices
-        arv = self.auto_recolor_vertices
-        if arv:
-            self.auto_recolor_vertices()
-    vertices = property(_get_vertices, _set_vertices)
+
+    @property
+    def normals(self):
+        '''
+        Normal vectors of the rendered geometry, a numpy N by 3 array of float32 values.
+        Read-only. Set using set_geometry() method.
+        '''
+        return self._normals
+
+    @property
+    def triangles(self):
+        '''
+        Vertex indices for the corners of each triangle making up the
+        rendered geometry, a numpy M by 3 array of int32 values.
+        Read-only.  Set using set_geometry() method.
+        '''
+        return self._triangles
     
     def _get_shape_changed(self):
         rn = self._redraw_needed
@@ -199,7 +205,7 @@ class Drawing:
             self.redraw_needed()
         if key in self._effects_buffers:
             self._attribute_changes.add(key)
-            sc = key in ('vertices', 'triangles', '_triangle_mask')
+            sc = key in ('_vertices', '_triangles', '_triangle_mask')
             if sc:
                 self._cached_geometry_bounds = None
                 self._cached_position_bounds = None
@@ -569,20 +575,18 @@ class Drawing:
                     return True
         return False
 
-    def get_geometry(self):
-        return self.vertices, self.triangles
-
-    def set_geometry(self, g):
-        v,t = g
-        self._vertices = v
-        self.triangles = t
-        self.vertices = v	# Trigger auto recolor.
+    def set_geometry(self, vertices, normals, triangles):
+        '''Set vertices, normals and triangles defining the shape to be drawn.'''
+        self._vertices = vertices
+        self._normals = normals
+        self._triangles = triangles
         self._edge_mask = None
         self._triangle_mask = None
         self.redraw_needed(shape_changed=True)
 
-    geometry = property(get_geometry, set_geometry)
-    '''Geometry is the array of vertices and array of triangles.'''
+        arv = self.auto_recolor_vertices
+        if arv:
+            self.auto_recolor_vertices()
 
     def all_geometries(self):
         '''
@@ -761,7 +765,7 @@ class Drawing:
         ds, dss = self._draw_shape, self._draw_selection
 
         # Update drawing and selection triangle buffers
-        if ('triangles' in changes or
+        if ('_triangles' in changes or
             'display_style' in changes or
             '_triangle_mask' in changes or
             (self.display_style == self.Mesh and '_edge_mask' in changes) or
@@ -1036,8 +1040,8 @@ class Drawing:
         self._displayed_positions = None
         self.auto_recolor_vertices = None
         self._vertices = None
-        self.triangles = None
-        self.normals = None
+        self._triangles = None
+        self._normals = None
         self._edge_mask = None
         self._triangle_mask = None
         if self.texture:
@@ -1066,8 +1070,8 @@ class Drawing:
     def _create_vertex_buffers(self):
         from . import opengl
         vbufs = (
-            ('vertices', opengl.VERTEX_BUFFER),
-            ('normals', opengl.NORMAL_BUFFER),
+            ('_vertices', opengl.VERTEX_BUFFER),
+            ('_normals', opengl.NORMAL_BUFFER),
             ('_vertex_colors', opengl.VERTEX_COLOR_BUFFER),
             ('texture_coordinates', opengl.TEXTURE_COORDS_BUFFER),
         )
@@ -1082,8 +1086,8 @@ class Drawing:
         self._draw_selection = _DrawShape(vb)
 
     _effects_buffers = set(
-        ('vertices', 'normals', '_vertex_colors', 'texture_coordinates',
-         'triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
+        ('_vertices', '_normals', '_vertex_colors', 'texture_coordinates',
+         '_triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
          '_edge_mask', '_triangle_mask', '_selected_triangles_mask', '_selected_positions'))
 
     EDGE0_DISPLAY_MASK = 1
@@ -1406,7 +1410,8 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     if drawing is None:
         d = Drawing('selection drag box')
         from numpy import array, int32, uint8
-        d.triangles = array(((0,1,2), (0,2,3)), int32)
+        t = array(((0,1,2), (0,2,3)), int32)
+        d.set_geometry(None, None, t)
         d.edge_mask = array((3, 6), uint8)
         d.display_style = d.Mesh
         d.use_lighting = False
@@ -1416,9 +1421,10 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     r = renderer
     s = r.pixel_scale()
     from numpy import array, float32
-    d.vertices = array(((s*x1, s*y1, 0), (s*x2, s*y1, 0),
-                        (s*x2, s*y2, 0), (s*x1, s*y2, 0)),
-                       float32)
+    v = array(((s*x1, s*y1, 0), (s*x2, s*y1, 0),
+               (s*x2, s*y2, 0), (s*x1, s*y2, 0)),
+              float32)
+    d.set_geometry(v, None, d.triangles)
     d.color = color
 
     from ..geometry import identity
@@ -1860,10 +1866,11 @@ def position_rgba_drawing(drawing, pos, size):
     x,y = pos
     sx,sy = size
     from numpy import array, float32
-    drawing.vertices = array(((x, y, 0),
-                              (x + sx, y, 0),
-                              (x + sx, y + sy, 0),
-                              (x, y + sy, 0)), float32)
+    v = array(((x, y, 0),
+               (x + sx, y, 0),
+               (x + sx, y + sy, 0),
+               (x, y + sy, 0)), float32)
+    drawing.set_geometry(v, drawing.normals, drawing.triangles)
 
 def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     '''
@@ -1873,13 +1880,13 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     x, y = pos
     sx, sy = size
     from numpy import array, float32, int32
-    vlist = array(((x, y, 0),
-                   (x + sx, y, 0),
-                   (x + sx, y + sy, 0),
-                   (x, y + sy, 0)), float32)
-    tlist = array(((0, 1, 2), (0, 2, 3)), int32)
+    va = array(((x, y, 0),
+                (x + sx, y, 0),
+                (x + sx, y + sy, 0),
+                (x, y + sy, 0)), float32)
+    ta = array(((0, 1, 2), (0, 2, 3)), int32)
     tc = array(((0, 0), (1, 0), (1, 1), (0, 1)), float32)
-    d.geometry = vlist, tlist
+    d.set_geometry(va, None, ta)
     d.color = (255, 255, 255, 255)         # Modulates texture values
     d.use_lighting = False
     d.texture_coordinates = tc
@@ -1896,7 +1903,7 @@ def resize_rgba_drawing(drawing, pos = (-1,-1), size = (2,2)):
                     (x + sx, y, 0),
                     (x + sx, y + sy, 0),
                     (x, y + sy, 0)), float32)
-    drawing.vertices = varray
+    drawing.set_geometry(varray, drawing.normals, drawing.triangles)
     
 def _draw_texture(texture, renderer):
     d = _texture_drawing(texture)

@@ -102,6 +102,7 @@ def copy_piece_blob(m, varray, tarray, narray, color, vrgba, temask,
                      vi, ti, vmap):
 
   va = varray.take(vi, axis = 0)
+  na = narray.take(vi, axis = 0)
   ta = tarray.take(ti, axis = 0)
 
   # Remap triangle vertex indices for shorter vertex list.
@@ -110,11 +111,8 @@ def copy_piece_blob(m, varray, tarray, narray, color, vrgba, temask,
   ta = vmap.take(ta.ravel()).reshape((len(ti),3))
 
   gp = m.new_drawing()
-  gp.geometry = va, ta
+  gp.set_geometry(va, na, ta)
   gp.save_in_session = True
-
-  na = narray.take(vi, axis = 0)
-  gp.normals = na
 
   gp.color = color
 

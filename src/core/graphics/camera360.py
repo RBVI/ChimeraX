@@ -286,7 +286,7 @@ def _equirectangular_projection_drawing(size):
     # Create rectangle drawing with sphere point texture coordinates.
     from . import Drawing
     d = Drawing('equirectangular projection')
-    d.geometry = va, ta
+    d.set_geometry(va, None, ta)
     d.color = (255,255,255,255)
     d.use_lighting = False
     d.texture_coordinates = tc

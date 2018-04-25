@@ -433,10 +433,10 @@ class ObjectLabel(Drawing):
 
         # Set initial billboard geometry
         from numpy import array, float32, int32
-        vlist = array(((0,0,0), (1,0,0), (1,1,0), (0,1,0)), float32)
-        tlist = array(((0, 1, 2), (0, 2, 3)), int32)
+        va = array(((0,0,0), (1,0,0), (1,1,0), (0,1,0)), float32)
+        ta = array(((0, 1, 2), (0, 2, 3)), int32)
         tc = array(((0, 0), (1, 0), (1, 1), (0, 1)), float32)
-        self.geometry = vlist, tlist
+        self.set_geometry(va, None, ta)
         self.texture_coordinates = tc
         self.use_lighting = False
 
@@ -569,7 +569,7 @@ class ObjectLabel(Drawing):
             va += clpos.apply_without_translation(offset)
         if (va == self.vertices).all():
             return 	# Don't set vertices causing redraw if label has not moved.
-        self.vertices = va
+        self.set_geometry(va, self.normals, self.triangles)
 
 # -----------------------------------------------------------------------------
 #

@@ -501,9 +501,7 @@ class MousePointerModel(Model):
         from chimerax.core.surface import cone_geometry
         va, na, ta = cone_geometry(radius = radius, height = height)
         va[:,2] -= 0.5*height	# Place tip of cone at origin
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
+        self.set_geometry(va, na, ta)
         self.color = color
 
     def update_pointer(self, msg):
@@ -685,9 +683,7 @@ class VRHandModel(Model):
         from chimerax.core.surface import cone_geometry
         va, na, ta = cone_geometry(radius = radius, height = height, points_up = False)
         va[:,2] += 0.5*height	# Place tip of cone at origin
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
+        self.set_geometry(va, na, ta)
         self.color = color
 
 class VRHeadModel(Model):
@@ -716,9 +712,7 @@ class VRHeadModel(Model):
         tc[:] = 0.5
         tc[8:12,:] = ((0,0), (1,0), (0,1), (1,1))
 
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
+        self.set_geometry(va, na, ta)
         self.color = (255,255,255,255)
         self.texture = Texture(rgba)
         self.texture_coordinates = tc
@@ -732,7 +726,7 @@ class VRHeadModel(Model):
         va = self.vertices
         caspect = va[:,0].max() / va[:,1].max()
         va[:,0] *= aspect / caspect
-        self.vertices = va
+        self.set_geometry(va, self.normals, self.triangles)
         from chimerax.core.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         r = self.session.main_view.render

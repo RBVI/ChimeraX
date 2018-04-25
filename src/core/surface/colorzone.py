@@ -100,9 +100,7 @@ def color_zone_sharp_edges(surface, points, colors, distance, replace = False):
     va, na, ta, ca = _cut_triangles(ec, varray, surface.normals, tarray, carray)
 
     if replace:
-        surface.vertices = va
-        surface.normals = na
-        surface.triangles = ta
+        surface.set_geometry(va, na, ta)
         surface.vertex_colors = ca
         
     return va, na, ta, ca

@@ -509,7 +509,7 @@ class SplitStereoCamera(Camera):
                 x = va[:,0]
                 x[:] += (-1 if eye == 'left' else 1)
                 x[:] /= 2
-            d.geometry = va, ta
+            d.set_geometry(va, None, ta)
             d.color = (255,255,255,255)
             d.use_lighting = False
             d.texture_coordinates = tc

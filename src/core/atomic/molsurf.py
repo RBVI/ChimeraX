@@ -122,9 +122,7 @@ class MolecularSurface(Model):
             shape_change = True
 
         if shape_change:
-            self.vertices = None
-            self.normals = None
-            self.triangles = None
+            self.set_geometry(None, None, None)
             self.color = self._average_color()
             self.vertex_colors = None
             self._vertex_to_atom = None
@@ -171,9 +169,7 @@ class MolecularSurface(Model):
             self.joined_triangles = tj	# With non-duplicate vertices for clip cap calculation
             self._vertex_to_atom = v2a
 
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
+        self.set_geometry(va, na, ta)
         self.triangle_mask = self._calc_triangle_mask()
         self._show_atom_patch_colors()
         self.update_selection()
