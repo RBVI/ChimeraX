@@ -47,7 +47,7 @@ def surface_volume_and_area(model):
 # TODO: exclude surface caps and outline boxes.
     volume = holes = area = 0
     for d in model.all_drawings():
-        varray, tarray = d.geometry
+        varray, tarray = d.vertices, d.triangles
         if not varray is None:
             v, hc = enclosed_volume(varray, tarray)
             volume += 0 if v is None else v

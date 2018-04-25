@@ -50,7 +50,7 @@ def split_surfaces(plist, session, in_place = False):
 #
 def split_surface_piece(p, into_surf):
 
-  varray, tarray = p.geometry
+  varray, tarray = p.vertices, p.triangles
   from ._surface import connected_pieces
   cplist = connected_pieces(tarray)
   if len(cplist) <= 1 and p.surface == into_surf:
