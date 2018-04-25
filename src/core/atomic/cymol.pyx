@@ -367,7 +367,8 @@ cdef class CyAtom:
         "Supported API. Atom center coordinates in the global scene coordinate system."
         " This accounts for the :class:`Drawing` positions for the hierarchy "
         " of models this atom belongs to."
-        return self.structure.scene_position * self.coord
+        crd = self.cpp_atom.scene_coord()
+        return array((crd[0], crd[1], crd[2]))
 
     @scene_coord.setter
     def scene_coord(self, xyz):

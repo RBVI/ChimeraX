@@ -29,6 +29,11 @@ the center of mass.
     <Category name="General"/>
   </Categories>
 
+  <!-- DataFiles is a list of additional files to include in bundle -->
+  <DataFiles>
+    <DataFile>helpdir/*</DataFile>
+  </DataFiles>
+
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>

@@ -192,6 +192,9 @@ public:
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
+    Coord  scene_coord() const;
+    Coord  scene_coord(const CoordSet* cs) const;
+    Coord  scene_coord(char alt_loc) const;
     int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
         return SESSION_NUM_INTS(version) + Rgba::session_num_ints()
             + _alt_loc_map.size() * SESSION_ALTLOC_INTS(version);

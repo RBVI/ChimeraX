@@ -560,19 +560,7 @@ class Atoms(Collection):
                 [d.positions for d in m.drawing_lineage])
             blist.append(ib)
         return union_bounds(blist)
-    def _get_scene_coords(self):
-        n = len(self)
-        from numpy import array, empty, float64
-        xyz = empty((n,3), float64)
-        if n == 0: return xyz
-        structs = self.unique_structures
-        gtable = array(tuple(s.scene_position.matrix for s in structs), float64)
-        from .molc import pointer
-        f = c_function('atom_scene_coords',
-            args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
-                    ctypes.c_size_t, ctypes.c_void_p, ctypes.c_void_p])
-        f(self._c_pointers, n, structs._c_pointers, len(structs), pointer(gtable), pointer(xyz))
-        return xyz
+    _scene_coords_tmp = cvec_property('atom_scene_coord', float64, 3, read_only = True)
     def _set_scene_coords(self, xyz):
         n = len(self)
         if n == 0: return
@@ -586,10 +574,10 @@ class Atoms(Collection):
             args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                     ctypes.c_size_t, ctypes.c_void_p, ctypes.c_void_p])
         f(self._c_pointers, n, structs._c_pointers, len(structs), pointer(gtable), pointer(xyz))
-    scene_coords = property(_get_scene_coords, _set_scene_coords)
-    '''Atoms' coordinates in the global scene coordinate system.
-    This accounts for the :class:`Drawing` positions for the hierarchy
-    of models each atom belongs to.'''
+    scene_coords = property(_scene_coords_tmp.fget, _set_scene_coords, doc =
+        '''Atoms' coordinates in the global scene coordinate system.
+        This accounts for the :class:`Drawing` positions for the hierarchy
+        of models each atom belongs to.''')
     selected = cvec_property('atom_selected', npy_bool,
         doc="numpy bool array whether each Atom is selected.")
     selecteds = selected

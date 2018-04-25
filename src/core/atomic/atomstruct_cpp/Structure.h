@@ -105,6 +105,7 @@ public:
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     static const char*  PBG_HYDROGEN_BONDS;
+    typedef double PositionMatrix[3][4];
     typedef std::vector<Residue*>  Residues;
     // The MSR-finding step of ring perception depends on the iteration
     // being in ascending order (which std::set guarantees), so use std::set
@@ -136,6 +137,7 @@ protected:
     int  _num_hyds = 0;
     AS_PBManager  _pb_mgr;
     mutable bool  _polymers_computed;
+    PositionMatrix  _position;
     mutable bool  _recompute_rings;
     Residues  _residues;
     int _ribbon_display_count = 0;
@@ -180,7 +182,7 @@ protected:
     bool  _rings_cached (bool cross_residues, unsigned int all_size_threshold,
         std::set<const Residue *>* ignore = nullptr) const;
     static int  SESSION_NUM_FLOATS(int version=CURRENT_SESSION_VERSION) {
-        return version < 5 ? 1 : 3;
+        return version < 5 ? 1 : (version < 13 ? 3: 15);
     }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
         return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : 17));
@@ -257,6 +259,7 @@ public:
         bool /*consider_chain_ids*/ = true) const {
             return std::vector<std::pair<Chain::Residues,PolymerType>>();
         }
+    const PositionMatrix&  position() const { return _position; }
     void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
@@ -288,6 +291,7 @@ public:
         change_tracker()->add_modified(this, this, ChangeTracker::REASON_DISPLAY);
     }
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
+    void  set_position_matrix(double* pos);
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }
     bool  ss_ids_normalized;

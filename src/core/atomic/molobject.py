@@ -1783,6 +1783,10 @@ class StructureData:
         f = c_function('structure_use_default_atom_radii', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
+    def _cpp_notify_position(self, pos):
+        f = c_function('structure_set_position', args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, pointer(pos.matrix))
+
     def _ses_call(self, func_qual):
         f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))
         f(self._c_pointer)
