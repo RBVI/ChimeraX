@@ -2652,7 +2652,12 @@ class Histogram_Pane:
     
     markers = self.surface_thresholds.markers
     v.surface_levels = [m.xy[0] for m in markers]
-    v.surface_colors = [m.rgba for m in markers]
+    scolors = [m.rgba for m in markers]
+    if scolors != v.surface_colors:
+        v.surface_colors = scolors
+        # TODO: replace only vertex coloring for surfaces where color changed.
+        for d in v.surface_drawings:
+            d.vertex_colors = None
     markers = self.solid_thresholds.markers
     v.solid_levels = [m.xy for m in markers]
     v.solid_colors = [m.rgba for m in markers]

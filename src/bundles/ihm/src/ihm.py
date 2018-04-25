@@ -843,7 +843,7 @@ class IHMModel(Model):
         # Show crosslink end-point atoms and spheres
         from chimerax.core.atomic import PseudobondGroup
         pbgs = sum([[pbg for pbg in m.child_models()
-                     if isinstance(pbg, PseudobondGroup) and pbg.category != 'missing structure']
+                     if isinstance(pbg, PseudobondGroup) and pbg.name != 'missing structure']
                     for m in smodels[:1] + amodels], [])
         for pbg in pbgs:
             a1,a2 = pbg.pseudobonds.atoms

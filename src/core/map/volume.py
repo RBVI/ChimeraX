@@ -830,9 +830,12 @@ class Volume(Model):
                    % (name, level, len(tarray)), blank_after = 3.0)
 
     p = piece
-    p.geometry = varray, tarray
+    # TODO: Set vertices, normals, triangles in one call so they are consistent.
+    #       Need this so auto vertex color updates get correct normals for offset interpolation.
     p.normals = narray
-    p.vertex_colors = None
+    p.geometry = varray, tarray
+    if p.auto_recolor_vertices is None:
+      p.vertex_colors = None
     p.edge_mask = hidden_edges if ro.square_mesh else None
     p.clip_cap = True
     # TODO: Clip cap offset for different contour levels is not related to voxel size.

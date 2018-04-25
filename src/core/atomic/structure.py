@@ -874,6 +874,8 @@ class Structure(Model, StructureData):
             from .molarray import Atoms
             tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
             spline_coords = array(list(self._ribbon_spline_backbone.values()))
+            if len(spline_coords) == 0:
+                spline_coords = spline_coords.reshape((0,3))
             atom_coords = tether_atoms.coords
             offsets = array(atom_coords) - spline_coords
             tethered = norm(offsets, axis=1) > self.bond_radius

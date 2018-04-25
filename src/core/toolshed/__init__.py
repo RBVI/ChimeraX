@@ -94,6 +94,11 @@ Bundles that provide selectors need:
     A short description of the selector.  It is here for uninstalled selectors,
     so that users can get more than just a name for deciding whether
     they want the selector or not.
+4: ``atomic`` : str
+    An optional boolean specifying whether the selector applies to
+    atoms and bonds.  Defaults to 'true' and should be set to
+    'false' if selector should not appear in Basic Actions tool,
+    e.g., showing/hiding selected items does nothing.
 
 Commands are lazily registered,
 so the argument specification isn't needed until the command is first used.
@@ -201,16 +206,21 @@ _TIMESTAMP = 'install-timestamp'
 _debug_toolshed = False
 
 
-def _debug(*args, **kw):
+def _debug(*args, file=None, flush=True, **kw):
     if _debug_toolshed:
-        import sys
-        print("Toolshed:", *args, file=sys.__stderr__, flush=True, **kw)
+        if file is None:
+            import sys
+            file = sys.__stderr__
+        print("Toolshed:", *args, file=file, flush=flush, **kw)
 
 
 # Package constants
 
 
 # Default URL of remote toolshed
+# If testing, use
+#_RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
+# But BE SURE TO CHANGE IT BACK BEFORE COMMITTING !!!
 _RemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _ToolshedFolder = "toolshed"
@@ -274,8 +284,7 @@ class Toolshed:
             rebuild it by scanning Python directories; False otherwise.
         check_remote : boolean
             True to check remote server for updated information;
-            False to ignore remote server;
-            None to use setting from user preferences.
+            False to ignore remote server
         remote_url : str
             URL of the remote toolshed server.
             If set to None, a default URL is used.
@@ -323,10 +332,39 @@ class Toolshed:
         # Reload the bundle info list
         _debug("loading bundles")
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
+        _debug("check available/remote: %s/%s" %
+               (check_available, check_remote))
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
-            # so start a thread and do it asynchronously
-            self.async_reload_available(logger)
+            # so start a thread and do it asynchronously if necessary
+            from ..core_settings import settings
+            from datetime import datetime, timedelta
+            now = datetime.now()
+            interval = settings.toolshed_update_interval
+            last_check = settings.toolshed_last_check
+            _debug("now, interval, last_check: %s, %s, %s" %
+                   (now, interval, last_check))
+            if not last_check:
+                need_check = True
+            else:
+                last_check = datetime.strptime(settings.toolshed_last_check,
+                                               "%Y-%m-%dT%H:%M:%S.%f")
+                delta = now - last_check
+                max_delta = timedelta(days=1)
+                if interval == "week":
+                    max_delta = timedelta(days=7)
+                elif interval == "day":
+                    max_delta = timedelta(days=1)
+                elif interval == "month":
+                    max_delta = timedelta(days=30)
+                _debug("%s <? %s" % (delta, max_delta))
+                need_check = delta > max_delta
+            need_check = True
+            if need_check:
+                self.async_reload_available(logger)
+                settings.toolshed_last_check = now.isoformat()
+                _debug("Initiate toolshed check: %s" %
+                       settings.toolshed_last_check)
         _debug("finished loading bundles")
 
     def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
@@ -342,8 +380,7 @@ class Toolshed:
             rebuild it by scanning Python directories; False otherwise.
         check_remote : boolean
             True to check remote server for updated information;
-            False to ignore remote server;
-            None to use setting from user preferences.
+            False to ignore remote server
         """
 
         _debug("reload", rebuild_cache, check_remote)

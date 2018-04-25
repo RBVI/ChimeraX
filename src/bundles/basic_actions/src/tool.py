@@ -10,7 +10,7 @@ class BasicActionsTool(HtmlToolInstance):
     CUSTOM_SCHEME = "tgttable"
 
     name = "Basic Actions"
-    help = "help:user/tools/targets.html"
+    help = "help:user/tools/basicactions.html"
 
     def __init__(self, session, tool_name, log_errors=True):
         super().__init__(session, tool_name, size_hint=(575,400),
@@ -111,12 +111,18 @@ class BasicActionsTool(HtmlToolInstance):
             return
         self._updating_targets = True
         from .cmd import name_list
+        from chimerax.core.commands import (is_selector_atomic,
+                                            is_selector_user_defined)
         targets = name_list(self.session, builtins=self._show_all, log=False)
         data = []
         for name in sorted(targets.keys()):
+            if not is_selector_atomic(name):
+                continue
             if self._hide_nonmatching and self._is_nonmatching(name):
                 continue
-            data.append({"name": name, "info": targets[name]})
+            data.append({"name": name,
+                         "info": targets[name],
+                         "builtin": not is_selector_user_defined(name)})
         import json
         target_data = json.dumps(data)
         js = "%s.update_targets(%s);" % (self.CUSTOM_SCHEME, target_data)
@@ -127,21 +133,18 @@ class BasicActionsTool(HtmlToolInstance):
         try:
             return self._nonmatching[name]
         except KeyError:
-            from chimerax.core.commands import get_selector
+            from chimerax.core.commands import get_selector, is_selector_atomic
+            from chimerax.core.objects import Objects
             sel = get_selector(name)
             if callable(sel):
-                from chimerax.core.objects import Objects
-                results = Objects()
-                sel(self.session, self.session.models.list(), results)
-                nonmatching = not results.models
+                objs = Objects()
+                sel(self.session, self.session.models.list(), objs)
+                nonmatching = objs.num_atoms == 0 and objs.num_pseudobonds == 0
             elif isinstance(sel, Objects):
-                for m in objects.models:
-                    if not m.deleted:
-                        nonmatching = False
-                else:
-                    nonmatching = True
+                nonmatching = sel.num_atoms == 0 and sel.num_pseudobonds == 0
             else:
-                nonmatching = False
+                # Do not know, so assume it matches something
+                nonmatching = is_selector_atomic(name)
             self._nonmatching[name] = nonmatching
             return nonmatching
 
@@ -157,14 +160,15 @@ class BasicActionsTool(HtmlToolInstance):
         """Shows or hides target"""
         # print("cb_show_hide", query)
         action = query["action"][0]
+        target = query["target"][0]
         selector = query["selector"][0]
-        cmd = "%s %s" % (action, selector)
+        cmd = "%s %s target %s" % (action, selector, target)
         from chimerax.core.commands import run
         run(self.session, cmd)
 
     def _cb_color(self, query):
         """Colors target"""
-        print("cb_color", query)
+        # print("cb_color", query)
         color = query["color"][0]
         target = query["target"][0]
         selector = query["selector"][0]

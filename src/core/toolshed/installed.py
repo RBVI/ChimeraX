@@ -410,12 +410,17 @@ def _make_bundle_info(d, installed, logger):
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None
-            if len(parts) != 4:
+            if len(parts) != 4 and len(parts) != 5:
                 logger.warning("Malformed ChimeraX :: Selector line in %s skipped." % name)
-                logger.warning("Expected 4 fields and got %d." % len(parts))
+                logger.warning("Expected 4 or 5 fields and got %d." % len(parts))
                 continue
-            name, synopsis = parts[2:]
-            si = SelectorInfo(name, synopsis)
+            name = parts[2]
+            synopsis = parts[3]
+            if len(parts) == 5:
+                atomic = parts[4].lower() != "false"
+            else:
+                atomic = True
+            si = SelectorInfo(name, synopsis, atomic)
             bi.selectors.append(si)
         elif parts[1] == 'DataFormat':
             # ChimeraX :: DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis :: encoding

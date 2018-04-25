@@ -23,8 +23,9 @@ class AvailableBundleCache(list):
         # json interface.
         #
         _debug("AvailableBundleCache.load: toolshed_url", toolshed_url)
-        from urllib.parse import urljoin
-        url = urljoin(toolshed_url, "bundle/")
+        from urllib.parse import urljoin, urlencode
+        params = [("uuid", self.uuid())]
+        url = urljoin(toolshed_url, "bundle/") + '?' + urlencode(params)
         _debug("AvailableBundleCache.load: url", url)
         from urllib.request import urlopen
         with urlopen(url) as f:
@@ -34,6 +35,16 @@ class AvailableBundleCache(list):
             b = _build_bundle(d)
             if b:
                 self.append(b)
+
+    def uuid(self):
+        # Return a mostly unrecognizable string representing
+        # current user for accessing ChimeraX toolshed
+        from getpass import getuser
+        import uuid
+        node = uuid.getnode()   # Locality
+        name = getuser()
+        dn = "CN=%s, L=%s" % (name, node)
+        return uuid.uuid5(uuid.NAMESPACE_X500, dn)
 
 
 def _build_bundle(d):
@@ -129,7 +140,8 @@ def _build_bundle(d):
         for sel_name, sd in sel_d.items():
             _debug("processing selector: %s" % sel_name)
             synopsis = sd.get("synopsis", "")
-            si = SelectorInfo(sel_name, synopsis)
+            atomic = sd.get("atomic", "").lower() != "false"
+            si = SelectorInfo(sel_name, synopsis, atomic)
             bi.selectors.append(si)
 
     #
