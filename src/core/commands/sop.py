@@ -95,7 +95,7 @@ def register_surface_subcommands(session):
 
     zone_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('near_atoms', AtomsArg),
-                                   ('range', FloatArg),
+                                   ('distance', FloatArg),
                                    ('bond_point_spacing', FloatArg),
                                    ('max_components', IntArg),
                                    ('update', BoolArg)],
@@ -374,7 +374,7 @@ def transform_op(surfaces, scale = None, radius = None, move = None,
     
 # -----------------------------------------------------------------------------
 #
-def surface_zone(session, surfaces, near_atoms = None, range = 2,
+def surface_zone(session, surfaces, near_atoms = None, distance = 2,
                  max_components = None, bond_point_spacing = None, update = True):
     '''
     Hide parts of a surface beyond a given distance from specified atoms.
@@ -384,9 +384,9 @@ def surface_zone(session, surfaces, near_atoms = None, range = 2,
     surfaces : Model list
       Surface models to act on.
     near_atoms : Atoms
-      Display only surface triangles that have all vertices in range of
-      at least one of these atoms.
-    range : float
+      Display only surface triangles that have all vertices within a specified distance
+      of at least one of these atoms.
+    distance : float
       Maximum distance from atoms.
     max_components : integer
       Show at most this number of connected surface patches, hiding the smaller ones.
@@ -408,7 +408,7 @@ def surface_zone(session, surfaces, near_atoms = None, range = 2,
     for s in surfaces:
         points = zone.path_points(atoms, bonds, bond_point_spacing)
         spoints = s.position.inverse() * points
-        zone.surface_zone(s, spoints, range, auto_update = update,
+        zone.surface_zone(s, spoints, distance, auto_update = update,
                           max_components = max_components)
 
 # -----------------------------------------------------------------------------
