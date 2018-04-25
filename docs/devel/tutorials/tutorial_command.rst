@@ -83,13 +83,15 @@ For explanations of the unhighlighted lines, please see
 .. literalinclude:: ../../../src/examples/tutorials/tut_cmd/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,17-25,41-45
+    :emphasize-lines: 8-10,17-25,33-35,49-52
 
 The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
-(lines 8-10 and 17-25).  The only other change is replacing
+(lines 8-10 and 17-25).  The ``DataFiles`` tag is added
+to include documentation files (lines 33-35).
+The only other change is replacing
 the ``ChimeraXClassifier`` tags to declare the two commands
-in this bundle (lines 41-45).
+in this bundle (lines 49-52).
 
 Note that the two command, ``tutorial cofm`` (Center OF Mass)
 and ``tutorial highlight``, are multi-word commands that share

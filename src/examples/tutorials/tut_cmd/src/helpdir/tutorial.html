@@ -1,0 +1,70 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2018 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: tutorial</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: tutorial</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>tutorial cofm</b>
+&nbsp;<a href="atomspec.html"><i>spec</i></a>
+[&nbsp;<b>weighted</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>transformed</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>tutorial highlight</b>
+&nbsp;<a href="atomspec.html"><i>spec</i></a>
+&nbsp;<a href="color.html#colorname"><i>colorname</i></a>
+[&nbsp;<b>weighted</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>transformed</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>count</b>&nbsp;<i>count</i>&nbsp;]
+</h3>
+
+<a name="cofm"/>
+<p>
+The <b>tutorial cofm</b> command reports the
+center of mass for <a href="atomspec.html"><i>spec</i></a>.
+By default, the unweighted average of the transformed coordinates
+of the specified atoms is reported.
+Untransformed coordinates are the values read from the input file,
+while transformed coordinates include all user-applied rotations
+and translations.  If atoms from multiple models are specified,
+transformed coordinates reflect their relative positions correctly
+while untransformed coordinates may not (unless the model coordinates
+started in the same coordinate system).  To get the mass-weighted
+center, use the <b>weighted true</b> option.  To get the center
+for untransformed coordinates, use the <b>transformed false</b>
+option.
+</p>
+<a name="highlight"/>
+<p>
+The <b>tutorial highlight</b> command changes the color
+of the atom(s) nearest the center of the specified atoms.
+The <b>weighted</b> and <b>transformed</b> options are
+the same as in the <b><a href="#cofm">tutorial cofm</a></b>
+command.  The <b>count</b> option specifies the number
+of atoms whose color should be set.  The default is one
+and may be as many as five.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+April 2018</address>
+</body></html>
