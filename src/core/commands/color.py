@@ -993,7 +993,7 @@ def _value_colors(palette, range, values):
     colors = cmap.interpolated_rgba8(values)
     return colors
         
-def color_zone(session, surfaces, near, distance=2, sharp_edges = False):
+def color_zone(session, surfaces, near, distance=2, sharp_edges = False, auto_update = True):
     '''
     Color surfaces to match nearby atom colors.
 
@@ -1008,18 +1008,16 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False):
       color transitions at the boundaries between different color patches.  If false, or zone option is not
       used then the surface is not changed.
     '''
+    atoms = near
     from .scolor import _surface_drawings
     surfs = _surface_drawings(surfaces)
     bonds = None
-    auto_update = False
     from ..surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
-    points, colors = points_and_colors(near, bonds)
+    points, colors = points_and_colors(atoms, bonds)
     for s in surfs:
         # TODO: save undo data
         spoints = s.scene_position.inverse() * points	# Transform points to surface coordinates
-        color_zone(s, spoints, colors, distance, auto_update)
-        if sharp_edges:
-            color_zone_sharp_edges(s, spoints, colors, distance, replace = True)
+        color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges, auto_update = auto_update)
 
 # -----------------------------------------------------------------------------
 #
@@ -1112,6 +1110,7 @@ def register_command(session):
                    keyword=[('near', AtomsArg),
                             ('distance', FloatArg),
                             ('sharp_edges', BoolArg),
+                            ('auto_update', BoolArg),
                        ],
                    required_arguments = ['near'],
                    synopsis="color surfaces to match nearby atoms")
