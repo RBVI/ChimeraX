@@ -103,6 +103,10 @@ def register_surface_subcommands(session):
                         synopsis = 'show surface near atoms')
     register('surface zone', zone_desc, surface_zone, logger=session.logger)
 
+    unzone_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                          synopsis = 'show full surface without zone')
+    register('surface unzone', unzone_desc, surface_unzone, logger=session.logger)
+
     from . import create_alias
     create_alias('sop', 'surface $*', logger=session.logger)
 
@@ -371,7 +375,7 @@ def transform_op(surfaces, scale = None, radius = None, move = None,
 # -----------------------------------------------------------------------------
 #
 def surface_zone(session, surfaces, near_atoms = None, range = 2,
-             max_components = None, bond_point_spacing = None, update = False):
+                 max_components = None, bond_point_spacing = None, update = True):
     '''
     Hide parts of a surface beyond a given distance from specified atoms.
 
@@ -389,10 +393,8 @@ def surface_zone(session, surfaces, near_atoms = None, range = 2,
       The limit applies for each surface model.
     bond_point_spacing : float
       Include distances from points along bonds between the given atoms at this spacing.
-      Not implemented.
     update : bool
       Whether to recompute the zone when the surface geometry changes.
-      Not implemented.
     '''
     if len(surfaces) == 0:
         raise UserError('No surfaces specified')
@@ -400,8 +402,7 @@ def surface_zone(session, surfaces, near_atoms = None, range = 2,
     if len(atoms) == 0:
         raise UserError('No atoms specified')
 
-#    bonds = atoms.intra_bonds if bond_point_spacing is not None else None
-    bonds = None
+    bonds = atoms.intra_bonds if bond_point_spacing is not None else None
 
     from ..surface import zone
     for s in surfaces:
@@ -412,8 +413,7 @@ def surface_zone(session, surfaces, near_atoms = None, range = 2,
 
 # -----------------------------------------------------------------------------
 #
-def unzone_op(surfaces):
-
-    import SurfaceZone as SZ
+def surface_unzone(session, surfaces):
+    from ..surface import zone
     for s in surfaces:
-        SZ.no_surface_zone(s)
+        zone.surface_unzone(s)

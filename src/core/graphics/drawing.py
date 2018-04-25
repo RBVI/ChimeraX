@@ -86,7 +86,7 @@ class Drawing:
 
         self._vertex_colors = None
         self._opaque_vertex_color_count = 0
-        self.auto_recolor_vertices = None	# Function to call when vertices change
+        self.auto_recolor_vertices = None	# Function to call when geometry changes
 
         self._triangle_mask = None
         '''
@@ -94,6 +94,7 @@ class Drawing:
         length M (# of triangles) of type bool. This is used for
         showing just a patch of a surface.
         '''
+        self.auto_remask_triangles = None	# Function to call when geometry changes
 
         self._edge_mask = None
         '''
@@ -580,13 +581,18 @@ class Drawing:
         self._vertices = vertices
         self._normals = normals
         self._triangles = triangles
+        self._vertex_colors = None
         self._edge_mask = None
         self._triangle_mask = None
         self.redraw_needed(shape_changed=True)
 
         arv = self.auto_recolor_vertices
         if arv:
-            self.auto_recolor_vertices()
+            arv()
+
+        art = self.auto_remask_triangles
+        if art:
+            art()
 
     def all_geometries(self):
         '''
@@ -1039,6 +1045,7 @@ class Drawing:
         self._colors = None
         self._displayed_positions = None
         self.auto_recolor_vertices = None
+        self.auto_remask_triangles = None
         self._vertices = None
         self._triangles = None
         self._normals = None
@@ -1100,7 +1107,8 @@ class Drawing:
     def set_triangle_mask(self, tmask):
         self._triangle_mask = tmask
         self.redraw_needed(shape_changed=True)
-
+        self.auto_remask_triangles = None
+        
     triangle_mask = property(get_triangle_mask, set_triangle_mask)
     '''
     The triangle mask is a 1-dimensional bool numpy array of
