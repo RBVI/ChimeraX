@@ -378,7 +378,7 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state
             if chain.chain_id not in cids:
                 continue
             residues = chain.existing_residues
-            colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(residues)))
+            colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
             for color, r in zip(colors, residues):
                 c = Color(color)
                 if target is None or 'a' in target:
@@ -389,6 +389,10 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state
                         rgba[3] = opacity
                     undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
                     r.ribbon_color = rgba
+            if 's' in target:
+                # TODO: save surface undo data
+                from .scolor import color_surfaces_at_residues
+                color_surfaces_at_residues(residues, colors, opacity)
 
 # -----------------------------------------------------------------------------
 #
@@ -875,7 +879,7 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
     objects : Objects
       Which objects to color.
     level : "residues", "chains", "polymers", "structures"
-      Assigns each object a color from a palette
+      Assigns each object a color from a palette.  Default "residues".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
     target : string
@@ -911,14 +915,21 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
 
     session.undo.register(undo_state)
 
-def color_bfactor(session, atoms, what='atoms', palette=None, range='full',
+def color_bfactor(session, atoms=None, what=None, target=None, average=None,
+                  palette=None, range='full',
                   transparency=None, undo_name="color bfactor"):
     '''
     Color atoms by bfactor using a color palette.
 
     atoms : Atoms
-    what : 'atoms', 'cartoons', 'ribbons'
-      What to color.  If cartoon or ribbon use average bfactor for each residue.
+    what : list of 'atoms', 'cartoons', 'ribbons', 'surface'
+      What to color.  Cartoon and ribbon use average bfactor for each residue.
+      Default is to color all depictions.
+    target : string
+      Alternate way to specify what to color allows specifying more than one of atoms (a),
+      cartoon (c), ribbon (r), surface (s).
+    average : 'residues' or None
+      Whether to average b-factors over residues.
     palette : :class:`.Colormap`
       Color map to use with sequential coloring.
     range : 2 comma-separated floats or "full"
@@ -927,31 +938,53 @@ def color_bfactor(session, atoms, what='atoms', palette=None, range='full',
       Percent transparency to use.  If not specified current transparency is preserved.
     '''
 
+    if atoms is None:
+        from ..atomic import all_atoms
+        atoms = all_atoms(session)
+        
+    target, is_default_target = get_targets(target, what)
+
     from ..undo import UndoState
     undo_state = UndoState(undo_name)
-
+        
     opacity = None
     if transparency is not None:
         opacity = min(255, max(0, int(2.56 * (100 - transparency))))
 
-    if what == 'atoms':
-        values = atoms.bfactors
-        colors = _value_colors(palette, range, values)
-        colors[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
-        undo_state.add(atoms, "colors", atoms.colors, colors)
-        atoms.colors = colors
-        msg = 'Colored %d atoms bfactor range %.3g to %.3g' % (len(atoms), values.min(), values.max())
-    elif what in ('cartoons', 'ribbons'):
+    if average == 'residues':
+        rbf = {r:r.atoms.bfactors.mean() for r in atoms.unique_residues}
+        abf = [rbf[r] for r in atoms.residues]
+    else:
+        abf = atoms.bfactors
+    acolors = _value_colors(palette, range, abf)
+    acolors[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
+    
+    msg = []
+    if 'a' in target:
+        undo_state.add(atoms, "colors", atoms.colors, acolors)
+        atoms.colors = acolors
+        msg.append('%d atoms' % len(atoms))
+
+    if 'c' in target:
         residues = atoms.unique_residues
-        values = [r.atoms.bfactors.mean() for r in residues]
-        colors = _value_colors(palette, range, values)
-        colors[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
-        undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, colors)
-        residues.ribbon_colors = colors
-        msg = 'Colored %d residues bfactor range %.3g to %.3g' % (len(residues), min(values), max(values))
+        rbf = [r.atoms.bfactors.mean() for r in residues]
+        rcolors = _value_colors(palette, range, rbf)
+        rcolors[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
+        undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, rcolors)
+        residues.ribbon_colors = rcolors
+        msg.append('%d residues' % len(residues))
+
+    if 's' in target:
+        from .scolor import color_surfaces_at_atoms
+        ns = color_surfaces_at_atoms(atoms, per_atom_colors = acolors)
+        if ns > 0:
+            msg.append('%d surfaces' % ns)
 
     session.undo.register(undo_state)
-    session.logger.status(msg, log=True)
+    if msg:
+        r = 'bfactor range' if average is None else 'residue average bfactor range'
+        m = ', '.join(msg) + ', %s %.3g to %.3g' % (r, min(abf), max(abf))
+        session.logger.status(m, log=True)
 
 def _value_colors(palette, range, values):
     vrange = lambda: (min(values), max(values))
@@ -959,7 +992,7 @@ def _value_colors(palette, range, values):
     cmap = _colormap_with_range(palette, range, vrange, default = 'blue-white-red')
     colors = cmap.interpolated_rgba8(values)
     return colors
-    
+        
 def color_zone(session, surfaces, near, distance=2, sharp_edges = False):
     '''
     Color surfaces to match nearby atom colors.
@@ -1036,9 +1069,11 @@ def register_command(session):
     register('color sequential', desc, color_sequential, logger=session.logger)
 
     # color atoms by bfactor
-    desc = CmdDesc(required=[('atoms', AtomsArg)],
-                   optional=[('what', EnumOf(('atoms', 'cartoons', 'ribbons')))],
-                   keyword=[('palette', ColormapArg),
+    desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
+                   optional=[('what', ListOf(EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces'))))],
+                   keyword=[('target', StringArg),
+                            ('average', EnumOf(('residues',))),
+                            ('palette', ColormapArg),
                             ('range', ColormapRangeArg),
                             ('transparency', FloatArg)],
                    synopsis="color atoms by bfactor")
