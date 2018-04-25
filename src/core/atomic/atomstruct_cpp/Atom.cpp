@@ -986,6 +986,40 @@ Atom::rings(bool cross_residues, int all_size_threshold,
     return _rings;
 }
 
+static inline double
+row_mul(const double row[4], const Coord& crd)
+{
+    return row[0] * crd[0] + row[1] * crd[1] + row[2] * crd[2] + row[3];
+}
+
+static Coord
+mat_mul(const Structure::PositionMatrix& pos, const Coord& crd)
+{
+    double x = row_mul(pos[0], crd);
+    double y = row_mul(pos[1], crd);
+    double z = row_mul(pos[2], crd);
+    return Coord(x, y, z);
+}
+
+Coord
+Atom::scene_coord() const
+{
+    return mat_mul(structure()->position(), coord());
+
+}
+
+Coord
+Atom::scene_coord(const CoordSet* cs) const
+{
+    return mat_mul(structure()->position(), coord(cs));
+}
+
+Coord
+Atom::scene_coord(char alt_loc) const
+{
+    return mat_mul(structure()->position(), coord(alt_loc));
+}
+
 int
 Atom::session_num_floats(int version) const
 {

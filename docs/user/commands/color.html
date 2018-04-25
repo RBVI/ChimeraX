@@ -161,12 +161,14 @@ without commas or spaces:
  <li><b>s</b> - surfaces
  (molecular surfaces divisible to per-atom patches, other surface models such
  as volume isosurfaces, and for <a href="#simple">simple coloring</a> only, 
- solid volume displays).
+ solid volume displays)
+<!--
 <font color="brown">Surface coloring is
 not yet implemented for <a href="#sequential">sequential coloring</a></font>;
 however, if atoms have been colored sequentially, their
 molecular surfaces can be colored to match with the command: 
 <b><a href="#simple">color</a> fromatoms target s</b>
+-->
  <li><b>p</b> - pseudobonds-only
  (coloring shown for <a href="../pseudobonds.html">pseudobonds</a>
  not in <a href="#halfbond">halfbond mode</a>)
@@ -183,7 +185,8 @@ in the case of <a href="#simple">simple coloring</a>.
 3D labels can be colored independently
 with the <a href="label.html"><b>label</b></a> command.
 <p>
-Alternatively, for <a href="#simple">simple coloring</a> only,
+Alternatively, for <a href="#simple">simple</a> or
+<a href="#attribute">bfactor</a> coloring,
 targets can be specified with one or more of the following keywords
 as a comma-separated list immediately after the 
 <a href="#colorname"><i>colorname</i></a> 
@@ -290,8 +293,16 @@ Sequential coloring applies to all atoms within the affected residues,
 chains, or models even if fewer atoms are specified, but can be restricted 
 to certain representations with the <a href="#target"><b>target</b></a> option.
 The <a href="#palette-options"><b>palette</b></a> option specifies
-what colors to use, and <a href="#transparency"><b>transparency</b></a>
-can be set independently.
+what colors to use (default
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=blue width="10px"></td>
+<td bgcolor=cyan width="10px"></td>
+<td bgcolor=lime width="10px"></td>
+<td bgcolor=yellow width="10px"></td>
+<td bgcolor=red width="10px"></td>
+</tr></table>),
+and <a href="#transparency"><b>transparency</b></a> can be set independently.
 </p>
 <h4>Examples (<a href="#sequential">Sequential</a>)</h4>
 Rainbow-color residues blue &rarr; red along each biopolymer chain:
@@ -393,30 +404,44 @@ the current value, or simply set as the current value.
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> &nbsp;<b>bfactor</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;<b>atoms</b>&nbsp;|&nbsp;cartoons&nbsp;|&nbsp;ribbons&nbsp;]
-<!--
+[&nbsp;<b>average</b>&nbsp;&nbsp;residue&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
--->
-[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
+[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 Coloring by <a href="../attributes.html">attribute</a> value is
 <font color="brown">not yet implemented</font>,
 except for coloring by atomic B-factor values read from mmCIF or PDB.
-Choices are to color <b>atoms</b> (default) or 
-<b>cartoons</b> (same as <b>ribbons</b>).
-Cartoons are colored by the average B-factor of the atoms in each residue. 
 The color-to-value mapping is specified
-with <a href="#palette-options">palette options</a>,
+with <a href="#palette-options">palette options</a>
+(default <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=blue width="10px"></td>
+<td bgcolor=white width="10px"></td>
+<td bgcolor=red width="10px"></td>
+</tr></table> over the full range),
 and <a href="#transparency"><b>transparency</b></a>
 can be set independently.
-For example,
-to rainbow-color chain A cartoon by the average B-factor per residue:
+</p><p>
+The coloring applies to atomic models,
+including cartoons and molecular surfaces, but can be restricted
+to certain representations with the <a href="#target"><b>target</b></a> option.
+Cartoons are colored by the average B-factor of the atoms in each residue. 
+Atoms (and their corresponding molecular surface patches) are colored
+by the atomic values unless <b>average residue</b> is given to indicate
+they should be colored by the average per residue.
+For example, to rainbow-color chain A atoms by B-factor 
+and cartoons by the average B-factor per residue:
 </p>
 <blockquote>
-<b>color bfactor /A cartoons palette rainbow</b>
+<b>color bfactor /A palette rainbow</b>
 </blockquote>
+To rainbow-color chain A atoms <i>etc.</i> by the average B-factor per residue:
+<blockquote>
+<b>color bfactor /A palette rainbow ave residue</b>
+</blockquote>
+<!--
 <p>
 Although <b>color bfactor</b> does not color molecular surfaces,
 if atoms have been colored by B-factor, their
@@ -425,6 +450,7 @@ molecular surfaces can be colored to match with:
 <blockquote>
 <b><a href="#simple">color</a> fromatoms target s</b>
 </blockquote>
+-->
 
 <a name="map"></a>
 <a name="sample"></a>
@@ -441,14 +467,20 @@ molecular surfaces can be colored to match with:
 <b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>autoUpdate</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
+[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 Coloring by <b>map</b> (<a href="../tools/volumeviewer.html">volume data</a>)
 value applies to surfaces only, both molecular and nonmolecular.
 The color-to-value mapping is specified
-with <a href="#palette-options">palette options</a>,
+with <a href="#palette-options">palette options</a>
+(default <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=red width="10px"></td>
+<td bgcolor=white width="10px"></td>
+<td bgcolor=blue width="10px"></td>
+</tr></table> across the full range),
 and <a href="#transparency"><b>transparency</b></a>
 can be set independently. 
 The <b>autoUpdate</b> option (default <b>true</b>)
@@ -532,7 +564,13 @@ Same as previous except use royal blue instead of blue:
 Coloring by distance applies to surfaces only,
 both molecular and nonmolecular (such as volume isosurfaces).
 The color-to-distance mapping is specified
-with <a href="#palette-options">palette options</a>.
+with <a href="#palette-options">palette options</a>
+(default <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=red width="10px"></td>
+<td bgcolor=white width="10px"></td>
+<td bgcolor=blue width="10px"></td>
+</tr></table> across the full range).
 The <b>autoUpdate</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
@@ -681,14 +719,14 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="30px"></td>
 </tr></table>
   <li><b>lipophilicity</b>
-  (default for the <a href="mlp.html"><b>mlp</b></a> command,
-  along with <a href="#range"><b>range</b></a> -20,20)
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=darkcyan width="30px"></td>
 <td bgcolor=white width="30px"></td>
 <td bgcolor=darkgoldenrod width="30px"></td>
 </tr></table>
+  (default for the <a href="mlp.html"><b>mlp</b></a> command,
+  along with <a href="#range"><b>range</b></a> -20,20)
   <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> -
 a default number of colors will be used if the number is omitted from the name.
 Examples:
