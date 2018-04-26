@@ -11,13 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import CmdDesc, EnumOf, StringArg, BoolArg, plural_form, commas
+from . import CmdDesc, EnumOf, StringArg, NoArg, BoolArg, plural_form, commas
 
 _bundle_types = EnumOf(["all", "installed", "user", "available"])
 _reload_types = EnumOf(["all", "cache", "installed", "available"])
 
 
-def _display_bundles(bi_list, logger, use_html=False):
+def _display_bundles(bi_list, logger, use_html=False, full=True):
     def bundle_key(bi):
         return bi.name
     info = ""
@@ -42,35 +42,36 @@ th.bundle {
                 name = name[len('ChimeraX-'):]
             info += "<dt><b>%s</b> (%s): <i>%s</i>\n" % (
                 name, bi.version, escape(bi.synopsis))
-            info += "<dd>\n"
-            info += "%s: %s<p>" % (
-                plural_form(bi.categories, "Category"),
-                commas(bi.categories, ' and '))
-            # TODO: convert description's rst text to HTML
-            info += escape(bi.description).replace('\n\n', '<p>\n')
-            if bi.tools or bi.commands or bi.formats:
-                info += "<table class='bundle' border='1'>\n"
-            if bi.tools:
-                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
-            for t in bi.tools:
-                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (t.name, escape(t.synopsis))
-            if bi.commands:
-                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
-            for c in bi.commands:
-                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (c.name, escape(c.synopsis))
-            if bi.selectors:
-                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.selectors, "Selector")
-            for s in bi.selectors:
-                info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (s.name, escape(s.synopsis))
-            if bi.formats:
-                info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.formats, "Format")
-            for f in bi.formats:
-                can_open = ' open' if f.has_open else ''
-                can_save = ' save' if f.has_save else ''
-                info += "<tr><td><b>%s</b></td> <td><i>%s</i></td><td>%s%s</td></tr>\n" % (
-                    f.name, f.category, can_open, can_save)
-            if bi.tools or bi.commands or bi.formats:
-                info += "</table>\n"
+            if full:
+                info += "<dd>\n"
+                info += "%s: %s<p>" % (
+                    plural_form(bi.categories, "Category"),
+                    commas(bi.categories, ' and '))
+                # TODO: convert description's rst text to HTML
+                info += escape(bi.description).replace('\n\n', '<p>\n')
+                if bi.tools or bi.commands or bi.formats:
+                    info += "<table class='bundle' border='1'>\n"
+                if bi.tools:
+                    info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.tools, "Tool")
+                for t in bi.tools:
+                    info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (t.name, escape(t.synopsis))
+                if bi.commands:
+                    info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.commands, "Command")
+                for c in bi.commands:
+                    info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (c.name, escape(c.synopsis))
+                if bi.selectors:
+                    info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.selectors, "Selector")
+                for s in bi.selectors:
+                    info += "<tr><td><b>%s</b></td> <td colspan='2'><i>%s</i></td></tr>\n" % (s.name, escape(s.synopsis))
+                if bi.formats:
+                    info += "<tr><th class='bundle' colspan='3'>%s:</th></tr>\n" % plural_form(bi.formats, "Format")
+                for f in bi.formats:
+                    can_open = ' open' if f.has_open else ''
+                    can_save = ' save' if f.has_save else ''
+                    info += "<tr><td><b>%s</b></td> <td><i>%s</i></td><td>%s%s</td></tr>\n" % (
+                        f.name, f.category, can_open, can_save)
+                if bi.tools or bi.commands or bi.formats:
+                    info += "</table>\n"
         info += "</dl>\n"
     else:
         for bi in sorted(bi_list, key=bundle_key):
@@ -79,25 +80,26 @@ th.bundle {
                 name = name[len('ChimeraX-'):]
             info += "%s (%s) [%s]: %s\n" % (
                 name, bi.version, ', '.join(bi.categories), bi.synopsis)
-            if bi.tools:
-                info += "  %s:\n" % plural_form(bi.tools, "Tool")
-            for t in bi.tools:
-                info += "    %s: %s\n" % (t.name, t.synopsis)
-            if bi.commands:
-                info += "  %s:\n" % plural_form(bi.commands, "Command")
-            for c in bi.commands:
-                info += "    %s: %s\n" % (c.name, c.synopsis)
-            if bi.selectors:
-                info += "  %s:\n" % plural_form(bi.selectors, "Selector")
-            for s in bi.selectors:
-                info += "    %s: %s\n" % (s.name, s.synopsis)
-            if bi.formats:
-                info += "  %s:\n" % plural_form(bi.formats, "Format")
-            for f in bi.formats:
-                can_open = ' open' if f.has_open else ''
-                can_save = ' save' if f.has_save else ''
-                info += "    %s [%s]%s%s\n" % (f.name, f.category, can_open,
-                                               can_save)
+            if full:
+                if bi.tools:
+                    info += "  %s:\n" % plural_form(bi.tools, "Tool")
+                for t in bi.tools:
+                    info += "    %s: %s\n" % (t.name, t.synopsis)
+                if bi.commands:
+                    info += "  %s:\n" % plural_form(bi.commands, "Command")
+                for c in bi.commands:
+                    info += "    %s: %s\n" % (c.name, c.synopsis)
+                if bi.selectors:
+                    info += "  %s:\n" % plural_form(bi.selectors, "Selector")
+                for s in bi.selectors:
+                    info += "    %s: %s\n" % (s.name, s.synopsis)
+                if bi.formats:
+                    info += "  %s:\n" % plural_form(bi.formats, "Format")
+                for f in bi.formats:
+                    can_open = ' open' if f.has_open else ''
+                    can_save = ' save' if f.has_save else ''
+                    info += "    %s [%s]%s%s\n" % (f.name, f.category, can_open,
+                                                   can_save)
     logger.info(info, is_html=use_html)
 
 
@@ -116,7 +118,7 @@ def _newest_by_name(bi_list):
 
 
 def toolshed_list(session, bundle_type="installed",
-                  outdated=False, newest=True):
+                  full=False, outdated=False, newest=True):
     '''List installed bundles in the log.
 
     Parameters
@@ -131,7 +133,7 @@ def toolshed_list(session, bundle_type="installed",
         bi_list = ts.bundle_info(logger, installed=True, available=False)
         if bi_list:
             logger.info("List of installed bundles:")
-            _display_bundles(bi_list, logger, use_html)
+            _display_bundles(bi_list, logger, use_html, full)
         else:
             logger.info("No installed bundles found.")
     if bundle_type in ("available", "all"):
@@ -140,10 +142,11 @@ def toolshed_list(session, bundle_type="installed",
             logger.info("List of available bundles:")
             if newest:
                 bi_list = _newest_by_name(bi_list)
-            _display_bundles(bi_list, logger, use_html)
+            _display_bundles(bi_list, logger, use_html, full)
         else:
             logger.info("No available bundles found.")
 toolshed_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types),
+                                       ("full", NoArg),
                                        ("outdated", BoolArg),
                                        ("newest", BoolArg),],
                              non_keyword=['bundle_type'],

@@ -93,15 +93,23 @@ def register_surface_subcommands(session):
                         synopsis = 'hide small connected surface patches')
     register('surface dust', dust_desc, surface_dust, logger=session.logger)
 
+    undust_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                          synopsis = 'reshow surface dust')
+    register('surface undust', undust_desc, surface_undust, logger=session.logger)
+
     zone_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('near_atoms', AtomsArg),
-                                   ('range', FloatArg),
+                                   ('distance', FloatArg),
                                    ('bond_point_spacing', FloatArg),
                                    ('max_components', IntArg),
                                    ('update', BoolArg)],
                         required_arguments = ['near_atoms'],
                         synopsis = 'show surface near atoms')
     register('surface zone', zone_desc, surface_zone, logger=session.logger)
+
+    unzone_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                          synopsis = 'show full surface without zone')
+    register('surface unzone', unzone_desc, surface_unzone, logger=session.logger)
 
     from . import create_alias
     create_alias('sop', 'surface $*', logger=session.logger)
@@ -255,7 +263,7 @@ def new_surface(name, align_to, model_id):
 
 # -----------------------------------------------------------------------------
 #
-def surface_dust(session, surfaces, metric = 'size', size = None, update = False):
+def surface_dust(session, surfaces, metric = 'size', size = None, update = True):
     '''
     Hide connected surface patchs smaller than a specified size.
 
@@ -269,8 +277,6 @@ def surface_dust(session, surfaces, metric = 'size', size = None, update = False
       Hide patches smaller than this size.
     update : bool
       Whether to update dust hiding when surface shape changes.
-      Not implemented.
-
     '''
 
     if len(surfaces) == 0:
@@ -279,13 +285,12 @@ def surface_dust(session, surfaces, metric = 'size', size = None, update = False
         raise UserError('Must specify dust size')
     from ..surface import dust
     for s in surfaces:
-        dust.hide_dust(s, metric, size, update)
+        dust.hide_dust(s, metric, size, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
-def unhide_dust_op(surfaces):
-
-    from HideDust import dust
+def surface_undust(session, surfaces):
+    from ..surface import dust
     for s in surfaces:
         dust.unhide_dust(s)
 
@@ -370,8 +375,8 @@ def transform_op(surfaces, scale = None, radius = None, move = None,
     
 # -----------------------------------------------------------------------------
 #
-def surface_zone(session, surfaces, near_atoms = None, range = 2,
-             max_components = None, bond_point_spacing = None, update = False):
+def surface_zone(session, surfaces, near_atoms = None, distance = 2,
+                 max_components = None, bond_point_spacing = None, update = True):
     '''
     Hide parts of a surface beyond a given distance from specified atoms.
 
@@ -380,19 +385,17 @@ def surface_zone(session, surfaces, near_atoms = None, range = 2,
     surfaces : Model list
       Surface models to act on.
     near_atoms : Atoms
-      Display only surface triangles that have all vertices in range of
-      at least one of these atoms.
-    range : float
+      Display only surface triangles that have all vertices within a specified distance
+      of at least one of these atoms.
+    distance : float
       Maximum distance from atoms.
     max_components : integer
       Show at most this number of connected surface patches, hiding the smaller ones.
       The limit applies for each surface model.
     bond_point_spacing : float
       Include distances from points along bonds between the given atoms at this spacing.
-      Not implemented.
     update : bool
       Whether to recompute the zone when the surface geometry changes.
-      Not implemented.
     '''
     if len(surfaces) == 0:
         raise UserError('No surfaces specified')
@@ -400,20 +403,18 @@ def surface_zone(session, surfaces, near_atoms = None, range = 2,
     if len(atoms) == 0:
         raise UserError('No atoms specified')
 
-#    bonds = atoms.intra_bonds if bond_point_spacing is not None else None
-    bonds = None
+    bonds = atoms.intra_bonds if bond_point_spacing is not None else None
 
     from ..surface import zone
     for s in surfaces:
         points = zone.path_points(atoms, bonds, bond_point_spacing)
         spoints = s.position.inverse() * points
-        zone.surface_zone(s, spoints, range, auto_update = update,
+        zone.surface_zone(s, spoints, distance, auto_update = update,
                           max_components = max_components)
 
 # -----------------------------------------------------------------------------
 #
-def unzone_op(surfaces):
-
-    import SurfaceZone as SZ
+def surface_unzone(session, surfaces):
+    from ..surface import zone
     for s in surfaces:
-        SZ.no_surface_zone(s)
+        zone.surface_unzone(s)

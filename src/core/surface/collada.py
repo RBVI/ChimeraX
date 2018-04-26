@@ -94,8 +94,7 @@ def geometry_node_surfaces(primitives, place, color, materials, colors, session)
         name = '%d' % (len(splist) + 1)
         from ..models import Model
         sp = Model(name, session)
-        sp.geometry = v, t
-        sp.normals = vn
+        sp.set_geometry(v, vn, t)
         sp.color_list = [c]
         sp.position_list = [place]
         if not vcolors is None:

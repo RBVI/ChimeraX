@@ -337,7 +337,7 @@ class GrayScaleDrawing(Drawing):
     p.color = tuple(int(255*r) for r in self.modulation_rgba())
     p.use_lighting = False
     p.opaque_texture = (not 'a' in self.color_mode)
-    p.geometry = va, ta
+    p.set_geometry(va, None, ta)
     p.texture_coordinates = tc
     p.multitexture = textures
     p.planes = planes

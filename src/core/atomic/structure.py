@@ -680,8 +680,7 @@ class Structure(Model, StructureData):
                 cp = p.new_drawing(str(self) + " control points")
                 from chimerax.core import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
-                cp.geometry = va, ta
-                cp.normals = na
+                cp.set_geometry(va, na, ta)
                 from numpy import empty, float32
                 cp_radii = empty(len(coords), float)
                 cp_radii.fill(0.1)
@@ -870,11 +869,12 @@ class Structure(Model, StructureData):
             # Create drawing from arrays
             if vertex_list:
                 rp.display = True
-                rp.vertices = concatenate(vertex_list)
-                rp.normals = concatenate(normal_list)
+                va = concatenate(vertex_list)
+                na = concatenate(normal_list)
                 from .ribbon import normalize_vector_array_inplace
-                normalize_vector_array_inplace(rp.normals)
-                rp.triangles = concatenate(triangle_list)
+                normalize_vector_array_inplace(na)
+                ta = concatenate(triangle_list)
+                rp.set_geometry(va, na, ta)
                 rp.vertex_colors = concatenate(color_list)
             else:
                 rp.display = False
@@ -907,8 +907,7 @@ class Structure(Model, StructureData):
                 else:
                     # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
                     va, na, ta = surface.cone_geometry(nc=nc, caps=False, points_up=False)
-                tp.geometry = va, ta
-                tp.normals = na
+                tp.set_geometry(va, na, ta)
                 self._ribbon_tether.append((tether_atoms, tp,
                                             spline_coords[tethered],
                                             tether_atoms.filter(tethered),
@@ -922,8 +921,7 @@ class Structure(Model, StructureData):
                 sp = p.new_drawing(str(self) + " spine")
                 from chimerax.core import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
-                sp.geometry = va, ta
-                sp.normals = na
+                sp.set_geometry(va, na, ta)
                 from numpy import empty, float32
                 spine_radii = empty(len(spine_colors), float32)
                 spine_radii.fill(0.3)
@@ -965,8 +963,7 @@ class Structure(Model, StructureData):
         t = linspace(0.0, num_coords, num=num_pts, endpoint=False)
         xyz1 = array([spline(i) for i in t], dtype=float32)
         xyz2 = array([other_spline(i) for i in t], dtype=float32)
-        sp.geometry = va, ta
-        sp.normals = na
+        sp.set_geometry(va, na, ta)
         sp.positions = _tether_placements(xyz1, xyz2, radii, self.TETHER_CYLINDER)
         sp_colors = empty((len(xyz1), 4), dtype=float32)
         sp_colors[:] = (255, 0, 0, 255)
@@ -1305,8 +1302,7 @@ class Structure(Model, StructureData):
         name = "helix-%d" % ssids[start]
         ssp = RibbonDrawing(name)
         p.add_drawing(ssp)
-        ssp.geometry = va, ta
-        ssp.normals = na
+        ssp.set_geometry(va, na, ta)
         ssp.vertex_colors = ca
 
         # Finally, update selection data structures
@@ -1425,8 +1421,7 @@ class Structure(Model, StructureData):
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
-        ssp.geometry = va, ta
-        ssp.normals = na
+        ssp.set_geometry(va, na, ta)
         ss_radii = empty(len(centers) - 1, float32)
         ss_radii.fill(0.2)
         ssp.positions = _tether_placements(centers[:-1], centers[1:], ss_radii, self.TETHER_CYLINDER)
@@ -1439,8 +1434,7 @@ class Structure(Model, StructureData):
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
-        ssp.geometry = va, ta
-        ssp.normals = na
+        ssp.set_geometry(va, na, ta)
         ss_radii = empty(len(centers), float32)
         ss_radii.fill(0.2)
         ssp.positions = _tether_placements(centers, guides, ss_radii, self.TETHER_CYLINDER)
@@ -2571,9 +2565,7 @@ class LevelOfDetail(State):
             # Update instanced sphere triangulation
             w = len(ta) if ta is not None else 0
             va, na, ta = self.sphere_geometry(ntri)
-            drawing.vertices = va
-            drawing.normals = na
-            drawing.triangles = ta
+            drawing.set_geometry(va, na, ta)
 
     def sphere_geometry(self, ntri):
         # Cache sphere triangulations of different sizes.
@@ -2614,9 +2606,7 @@ class LevelOfDetail(State):
             # Update instanced sphere triangulation
             w = len(ta) if ta is not None else 0
             va, na, ta = self.cylinder_geometry(div = ntri//4)
-            drawing.vertices = va
-            drawing.normals = na
-            drawing.triangles = ta
+            drawing.set_geometry(va, na, ta)
 
     def cylinder_geometry(self, div):
         # Cache cylinder triangulations of different sizes.

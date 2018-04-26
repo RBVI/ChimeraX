@@ -336,7 +336,7 @@ class Oculus_Rift_Camera(Camera):
         va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
         ta = array(((0,1,2),(0,2,3)), int32)
         tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
-        s.geometry = va, ta
+        s.set_geometry(va, None, ta)
         s.color = (255,255,255,255)
         s.use_lighting = False
         s.texture_coordinates = tc

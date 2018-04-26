@@ -39,14 +39,14 @@ def hide_surface_dust(surface, metric, limit, auto_update = False, use_cached_ge
     b = getattr(s, 'blobs', None) if use_cached_geometry else None
     if b is None or len(s.vertices) != b.vertex_count:
         s.blobs = b = Blob_Masker(s.vertices, s.triangles)
-#    import Surface
-#    if Surface.visibility_method(p.model) != 'hide dust':
-#        Surface.set_visibility_method('hide dust', p.model , None)
     m = b.triangle_mask(metric, limit)
     s.triangle_mask = m
 
     if auto_update:
-        dust_updater.auto_dust(s, metric, limit)
+        remask = Redust(s, metric, limit)
+    else:
+        remask = None
+    s.auto_remask_triangles = remask
 
 # -----------------------------------------------------------------------------
 #
@@ -78,17 +78,27 @@ def show_only_largest_blobs(surface, visible_only = False, blob_count = 1,
     b = Blob_Masker(s.vertices, t, tmask)
     tmask = b.triangle_mask(metric = rank_metric, limit = blob_count)
     s.triangle_mask = tmask
-#    import Surface
-#    Surface.set_visibility_method('hide dust', p.model , None)
+
+# -----------------------------------------------------------------------------
+#
+class Redust:
+    def __init__(self, surface, metric, limit):
+        self.surface = surface
+        self.metric = metric
+        self.limit = limit
+
+    def __call__(self):
+        surf = self.surface
+        hide_dust(surf, self.metric, self.limit, auto_update = False)
+        surf.auto_remask_triangles = self
         
 # -----------------------------------------------------------------------------
 # Stop updating dust hiding.
 #
 def unhide_dust(model):
-    
-    dust_updater.stop_hiding_dust(model)
-    import Surface
-    Surface.reshow_surface(model)
+    for s in model.all_drawings():
+        s.triangle_mask = None
+        s.auto_remask_triangles = None
 
 # -----------------------------------------------------------------------------
 #
@@ -224,76 +234,3 @@ class Blob_Masker:
             from numpy  import empty, bool
             self.tmask = empty((self.triangle_count,), bool)
         return self.tmask
-            
-# -----------------------------------------------------------------------------
-#
-class Dust_Updater:
-
-    def __init__(self):
-
-        self.models = {}
-
-        import SimpleSession
-        import chimera
-        chimera.triggers.addHandler(SimpleSession.SAVE_SESSION,
-                                    self.save_session_cb, None)
-            
-    # -------------------------------------------------------------------------
-    #
-    def auto_dust(self, model, metric, limit):
-
-        add_callback = not self.models.has_key(model)
-        self.models[model] = (metric, limit)
-        if add_callback:
-            from Surface import set_visibility_method
-            set_visibility_method('hide dust', model, self.stop_hiding_dust)
-            model.addGeometryChangedCallback(self.surface_changed_cb)
-            import chimera
-            chimera.addModelClosedCallback(model, self.model_closed_cb)
-            
-    # -------------------------------------------------------------------------
-    #
-    def stop_hiding_dust(self, model):
-
-        if model in self.models:
-            del self.models[model]
-            model.removeGeometryChangedCallback(self.surface_changed_cb)
-            for p in model.surfacePieces:
-                if hasattr(p, 'blobs'):
-                    delattr(p, 'blobs')
-            
-    # -------------------------------------------------------------------------
-    #
-    def surface_changed_cb(self, p, detail):
-
-        if detail == 'removed':
-            return
-
-        m = p.model
-        (metric, limit) = self.models[m]
-        hide_surface_dust(p, metric, limit)
-            
-    # -------------------------------------------------------------------------
-    #
-    def model_closed_cb(self, model):
-
-        if model in self.models:
-            del self.models[model]
-    
-    # -------------------------------------------------------------------------
-    #
-    def save_session_cb(self, trigger, x, file):
-
-        import session
-        session.save_hide_dust_state(self.models, file)
-
-# -----------------------------------------------------------------------------
-#
-def hiding_dust(model):
-    return model in dust_updater.models
-def dust_limit(model):
-    return dust_updater.models[model]
-
-# -----------------------------------------------------------------------------
-#
-#dust_updater = Dust_Updater()

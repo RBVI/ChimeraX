@@ -830,10 +830,8 @@ class Volume(Model):
                    % (name, level, len(tarray)), blank_after = 3.0)
 
     p = piece
-    # TODO: Set vertices, normals, triangles in one call so they are consistent.
-    #       Need this so auto vertex color updates get correct normals for offset interpolation.
-    p.normals = narray
-    p.geometry = varray, tarray
+    p.set_geometry(varray, narray, tarray)
+
     if p.auto_recolor_vertices is None:
       p.vertex_colors = None
     p.edge_mask = hidden_edges if ro.square_mesh else None
@@ -2046,7 +2044,7 @@ class Outline_Box:
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.
     from numpy import array
-    p.geometry = array(vlist), array(tlist)
+    p.set_geometry(array(vlist), None, array(tlist))
     p.edge_mask = hide_diagonals
     p.color = tuple(int(255*r) for r in rgba)
 

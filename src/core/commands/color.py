@@ -993,7 +993,7 @@ def _value_colors(palette, range, values):
     colors = cmap.interpolated_rgba8(values)
     return colors
         
-def color_zone(session, surfaces, near, distance=2, sharp_edges = False):
+def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update = True):
     '''
     Color surfaces to match nearby atom colors.
 
@@ -1007,19 +1007,19 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False):
       If true change the surface to add cut lines exactly at color zone the boundaries. This makes sharp
       color transitions at the boundaries between different color patches.  If false, or zone option is not
       used then the surface is not changed.
+    update : bool
+      Whether to update surface color when surface shape changes.  Default true.
     '''
+    atoms = near
     from .scolor import _surface_drawings
     surfs = _surface_drawings(surfaces)
     bonds = None
-    auto_update = False
     from ..surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
-    points, colors = points_and_colors(near, bonds)
+    points, colors = points_and_colors(atoms, bonds)
     for s in surfs:
         # TODO: save undo data
         spoints = s.scene_position.inverse() * points	# Transform points to surface coordinates
-        color_zone(s, spoints, colors, distance, auto_update)
-        if sharp_edges:
-            color_zone_sharp_edges(s, spoints, colors, distance, replace = True)
+        color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
@@ -1084,7 +1084,7 @@ def register_command(session):
                 ('range', ColormapRangeArg),
                 ('offset', FloatArg),
                 ('transparency', FloatArg),
-                ('auto_update', BoolArg),
+                ('update', BoolArg),
     ]
     # color by electrostatic potential map 
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
@@ -1112,6 +1112,7 @@ def register_command(session):
                    keyword=[('near', AtomsArg),
                             ('distance', FloatArg),
                             ('sharp_edges', BoolArg),
+                            ('update', BoolArg),
                        ],
                    required_arguments = ['near'],
                    synopsis="color surfaces to match nearby atoms")
@@ -1122,7 +1123,7 @@ def register_command(session):
                  ('coordinate_system', CoordSysArg),
                  ('palette', ColormapArg),
                  ('range', ColormapRangeArg),
-                 ('auto_update', BoolArg),
+                 ('update', BoolArg),
     ]
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                    keyword=geom_args,

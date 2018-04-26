@@ -154,9 +154,9 @@ class PivotIndicator(Drawing):
         ty = Place(axes = [[1,0,0],[0,0,-1],[0,1,0]])
         vay, nay, tay = ty.moved(vaz), ty.apply_without_translation(naz), taz.copy() + 2*nv
 
-        self.vertices = concatenate((vax,vay,vaz))
-        self.normals = concatenate((nax,nay,naz))
-        self.triangles = concatenate((tax,tay,taz))
+        self.set_geometry(concatenate((vax,vay,vaz)),
+                          concatenate((nax,nay,naz)),
+                          concatenate((tax,tay,taz)))
 
     def set_colors(self, axis_colors):
         # Axis colors red = x, green = y, blue = z

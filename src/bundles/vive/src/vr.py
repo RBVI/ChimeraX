@@ -772,8 +772,7 @@ class HandControllerModel(Model):
         self._cone_vertices = va
         self._last_cone_scale = 1
         self._cone_length = size
-        self.geometry = va, ta
-        self.normals = na
+        self.set_geometry(va, na, ta)
         self.color = array(rgba8, uint8)
             
     def close(self):
@@ -800,7 +799,8 @@ class HandControllerModel(Model):
             s = camera.scene_scale
             self.position = camera.room_to_scene * rp * scale(s)
             if s < 0.999*self._last_cone_scale or s > 1.001*self._last_cone_scale:
-                self.vertices = (1/s) * self._cone_vertices
+                va = (1/s) * self._cone_vertices
+                self.set_geometry(va, self.normals, self.triangles)
                 self._last_cone_scale = s
 
     def tip_position(self):
@@ -1213,7 +1213,8 @@ class IconPanel(HandMode):
         size = (2*s, 2*s*aspect)
         rgba_drawing(d, rgba, pos, size)
         from chimerax.core.geometry import rotation
-        d.vertices = rotation(axis = (1,0,0), angle = -90) * d.vertices
+        v = rotation(axis = (1,0,0), angle = -90) * d.vertices
+        d.set_geometry(v, d.normals, d.triangles)
         self.add_drawing(d)
         return d
 
@@ -1229,8 +1230,7 @@ class IconPanel(HandMode):
         from chimerax.core.surface import sphere_geometry
         va, na, ta = sphere_geometry(200)
         va *= 0.1*s
-        d.geometry = va,ta
-        d.normals = na
+        d.set_geometry(va, na, ta)
         d.color = (0,255,0,255)
         self.add_drawing(d)
         return d

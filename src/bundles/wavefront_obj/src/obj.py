@@ -98,14 +98,13 @@ def read_obj(session, filename, name):
                        % (len(texcoords), len(vertices)))
 
     from numpy import array, float32, int32, uint8
-    model.vertices = array(vertices, float32)
     if texcoords:
         model.texture_coordinates = array(texcoords, float32)
-    if normals:
-        model.normals = array(normals, float32)
+    na = array(normals, float32) if normals else None
     ta = array(triangles, int32)
     ta -= 1	# OBJ first vertex index is 1 while model first vertex index is 0
-    model.triangles = ta
+    va = array(vertices, float32)
+    model.set_geometry(va, na, ta)
     model.color = array((170,170,170,255), uint8)
 
     return [model], ('Opened OBJ file containing %d triangles'

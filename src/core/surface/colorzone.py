@@ -7,14 +7,19 @@
 # list of points using the corresponding point colors.
 # The points are in model object coordinates.
 #
-def color_zone(model, points, point_colors, distance, auto_update):
+def color_zone(model, points, point_colors, distance,
+               sharp_edges = False, auto_update = False):
+
+    color_surface(model, points, point_colors, distance)
+
+    if sharp_edges:
+        color_zone_sharp_edges(model, points, point_colors, distance, replace = True)
 
     if auto_update:
-        zone_updater.auto_zone(model, points, point_colors, distance)
+        recolor = ZoneRecolor(model, points, point_colors, distance, sharp_edges)
     else:
-        uncolor_zone(model)
-    
-    color_surface(model, points, point_colors, distance)
+        recolor = None
+    model.auto_recolor_vertices = recolor
 
 # -----------------------------------------------------------------------------
 #
@@ -51,109 +56,28 @@ def color_surface(surf, points, point_colors, distance):
     surf.coloring_zone = True
 
 # -----------------------------------------------------------------------------
-#
-def is_surface_piece_deleted(g):
-
-    try:
-        g.display
-    except:
-        return True
-    return False
-        
-# -----------------------------------------------------------------------------
 # Stop updating surface zone.
 #
 def uncolor_zone(model):
     model.vertex_colors = None
-    # zone_updater.stop_zone(model, use_single_color = True)
-            
-# -----------------------------------------------------------------------------
-#
-class Zone_Updater:
-
-    def __init__(self):
-
-        self.models = {}
-
-        import SimpleSession
-        import chimera
-        chimera.triggers.addHandler(SimpleSession.SAVE_SESSION,
-                                    self.save_session_cb, None)
-            
-    # -------------------------------------------------------------------------
-    #
-    def auto_zone(self, model, points, colors, distance):
-
-        add_callback = not self.models.has_key(model)
-        self.models[model] = (points, colors, distance)
-        from Surface import set_coloring_method
-        set_coloring_method('color zone', model, self.stop_zone)
-        if add_callback:
-            model.addGeometryChangedCallback(self.surface_changed_cb)
-            import chimera
-            chimera.addModelClosedCallback(model, self.model_closed_cb)
-            
-    # -------------------------------------------------------------------------
-    #
-    def stop_zone(self, model, use_single_color = False):
-
-        if model in self.models:
-            del self.models[model]
-            model.removeGeometryChangedCallback(self.surface_changed_cb)
-            # Redisplay single color
-            plist = model.surfacePieces
-            for p in plist:
-                if hasattr(p, 'coloring_zone') and p.coloring_zone:
-                    if use_single_color:
-                        p.vertexColors = None
-                    p.coloring_zone = False
-            
-    # -------------------------------------------------------------------------
-    #
-    def surface_changed_cb(self, p, detail):
-
-        if detail == 'removed':
-            return
-        m = p.model
-        (points, point_colors, distance) = self.models[m]
-        color_piece(p, points, point_colors, distance)
-            
-    # -------------------------------------------------------------------------
-    #
-    def model_closed_cb(self, model):
-
-        if model in self.models:
-            del self.models[model]
-    
-    # -------------------------------------------------------------------------
-    #
-    def save_session_cb(self, trigger, x, file):
-
-        import session
-        session.save_color_zone_state(self.models, file)
+    model.auto_recolor_vertices = None
 
 # -----------------------------------------------------------------------------
 #
-def zonable_surface_models():
+class ZoneRecolor:
+    def __init__(self, model, points, point_colors, distance, sharp_edges):
+        self.model = model
+        self.points = points
+        self.point_colors = point_colors
+        self.distance = distance
+        self.sharp_edges = sharp_edges
 
-  import chimera
-  import _surface
-  mlist = chimera.openModels.list(modelTypes = [_surface.SurfaceModel])
-  import SurfaceCap
-  mlist = filter(lambda m: not SurfaceCap.is_surface_cap(m), mlist)
+    def __call__(self):
+        surf = self.model
+        color_zone(surf, self.points, self.point_colors, self.distance,
+                   sharp_edges = self.sharp_edges, auto_update = False)
+        surf.auto_recolor_vertices = self
 
-  return mlist
-
-# -----------------------------------------------------------------------------
-#
-def coloring_zone(model):
-    return model in zone_updater.models
-def zone_points_colors_and_distance(model):
-    return zone_updater.models[model]
-
-# -----------------------------------------------------------------------------
-#
-#zone_updater = Zone_Updater()
         
 # -----------------------------------------------------------------------------
 #
@@ -176,9 +100,7 @@ def color_zone_sharp_edges(surface, points, colors, distance, replace = False):
     va, na, ta, ca = _cut_triangles(ec, varray, surface.normals, tarray, carray)
 
     if replace:
-        surface.vertices = va
-        surface.normals = na
-        surface.triangles = ta
+        surface.set_geometry(va, na, ta)
         surface.vertex_colors = ca
         
     return va, na, ta, ca

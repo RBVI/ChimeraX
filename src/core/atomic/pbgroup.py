@@ -181,9 +181,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self.add_drawing(d)
             d._visible_atoms = None
             va, na, ta = _pseudobond_geometry(self._dashes//2)
-            d.vertices = va
-            d.normals = na
-            d.triangles = ta
+            d.set_geometry(va, na, ta)
             changes = self._ALL_CHANGE
         elif self.num_pseudobonds == 0:
             self.remove_drawing(d)
