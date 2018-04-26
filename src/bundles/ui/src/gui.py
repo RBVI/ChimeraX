@@ -527,6 +527,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         if ht == True:
             icon = self._contract_icon
             self._hide_tools_shown_states = states = {}
+            settings_dw = self.settings_ui_widget
+            self._pref_dialog_state = not settings_dw.isHidden() and not settings_dw.isFloating()
+            if self._pref_dialog_state:
+                settings_dw.hide()
             for tool_windows in self.tool_instance_to_windows.values():
                 for tw in tool_windows:
                     if tw.title == "Command Line Interface":
@@ -544,6 +548,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                 if state:
                     tw.shown = True
             self._hide_tools_shown_states.clear()
+            if self._pref_dialog_state:
+                self.settings_ui_widget.show()
 
         self._global_hide_button.setIcon(icon)
 
