@@ -466,7 +466,7 @@ molecular surfaces can be colored to match with:
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 <b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
-[&nbsp;<b>autoUpdate</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
@@ -483,7 +483,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table> across the full range),
 and <a href="#transparency"><b>transparency</b></a>
 can be set independently. 
-The <b>autoUpdate</b> option (default <b>true</b>)
+The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
 See also: <a href="mlp.html"><b>mlp</b></a>
@@ -548,7 +548,7 @@ Same as previous except use royal blue instead of blue:
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>autoUpdate</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
@@ -557,7 +557,7 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>axis</b>&nbsp;&nbsp;<i>vector</i>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>autoUpdate</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -571,7 +571,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px"></td>
 <td bgcolor=blue width="10px"></td>
 </tr></table> across the full range).
-The <b>autoUpdate</b> option (default <b>true</b>)
+The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
 </p>
@@ -629,6 +629,7 @@ when they are given as coordinates
 <b>near</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
 Coloring by <b>zone</b> to match nearby atoms or
@@ -641,6 +642,9 @@ Vertices not within the cutoff of any of the atoms are assigned
 the default color of the surface model (single-color mode).
 The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
 triangles to create sharp boundaries between the different colored regions.
+The <b>update</b> option (default <b>true</b>)
+indicates whether to update the coloring automatically 
+when the shape of the surface changes.
 </p>
 
 <a name="palette-options"></a>
