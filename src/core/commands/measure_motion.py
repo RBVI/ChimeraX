@@ -71,7 +71,7 @@ def _show_prickles(surface, length = 1, color = None, prickles_model = None, chi
         pm = Model('prickles', surface.session)
         pm.set_geometry(van, None, tan)
         pm.display_style = pm.Mesh
-        pm.color = color.uint8x4() if color else (255,255,255,255)
+        pm.color = color.uint8x4() if color else (0,255,0,255)
         pm.use_lighting = False
         if prickles_model:
             p = prickles_model
