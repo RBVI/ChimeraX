@@ -39,7 +39,7 @@ def surfaces_from_nodes(nodes, color, place, instances, session):
 
     from collada.scene import GeometryNode, Node
     from ..geometry import Place
-    from ..models import Model
+    from ..models import Surface
     splist = []
     for n in nodes:
         if isinstance(n, GeometryNode):
@@ -56,7 +56,7 @@ def surfaces_from_nodes(nodes, color, place, instances, session):
             spieces = surfaces_from_nodes(n.children, color, pl, instances, session)
             name = n.xmlnode.get('name')
             if len(spieces) > 1:
-                m = Model(name, session)
+                m = Surface(name, session)
                 m.add(spieces)
                 splist.append(m)
             elif len(spieces) == 1:
@@ -92,8 +92,8 @@ def geometry_node_surfaces(primitives, place, color, materials, colors, session)
         c = material_color(materials.get(p.material), color)
 
         name = '%d' % (len(splist) + 1)
-        from ..models import Model
-        sp = Model(name, session)
+        from ..models import Surface
+        sp = Surface(name, session)
         sp.set_geometry(v, vn, t)
         sp.color_list = [c]
         sp.position_list = [place]

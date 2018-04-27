@@ -21,7 +21,7 @@ def cbumps(session, surfaces, convexity_minimum = 0.3, area = None,
 
     Parameters
     ----------
-    surfaces : Model list
+    surfaces : Surface list
     convexity_minimum : float
       Instead of coloring by convexity value, color each connected patch with convexity
       above the specified value a unique color.
@@ -43,11 +43,7 @@ def cbumps(session, surfaces, convexity_minimum = 0.3, area = None,
     output : string
         File path to write output from signal_map option.
     '''
-    surf_drawings = []
     for s in surfaces:
-        if hasattr(s, 'surface_drawings_for_vertex_coloring'):
-            surf_drawings.extend(s.surface_drawings_for_vertex_coloring())
-    for s in surfaces + surf_drawings:
         if s.empty_drawing():
             continue
         va,ta = s.vertices, s.triangles

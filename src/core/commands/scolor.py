@@ -173,8 +173,6 @@ def _surface_drawings(surfaces, caps_only = False, include_outline_boxes = False
     for s in surfaces:
         if s.vertices is not None:
             surfs.append(s)
-        if hasattr(s, 'surface_drawings_for_vertex_coloring'):
-            surfs.extend(s.surface_drawings_for_vertex_coloring())
     return surfs
 
 # -----------------------------------------------------------------------------

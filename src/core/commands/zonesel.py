@@ -74,9 +74,7 @@ def surfaces(models, exclude_molecular_surfaces = False):
             continue
         if exclude_molecular_surfaces and isinstance(s, MolecularSurface):
             continue
-        if hasattr(s, 'surface_drawings_for_vertex_coloring'):
-            surfs.extend(s.surface_drawings_for_vertex_coloring())
-        elif not s.empty_drawing():
+        if not s.empty_drawing():
             surfs.append(s)
     return surfs
 

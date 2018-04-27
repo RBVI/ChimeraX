@@ -686,7 +686,6 @@ class Volume(Model):
   #
   def _match_surfaces(self, levels):
 
-    smodel = self
     plist = [p for p in self.surface_drawings if not p.was_deleted]
     for k,level in enumerate(levels):
       if k < len(plist) and level == plist[k].contour_settings['level']:
@@ -695,20 +694,35 @@ class Volume(Model):
             levels[k+1] == plist[k+1].contour_settings['level']):
         pass
       elif k+1 < len(plist) and level == plist[k+1].contour_settings['level']:
-        smodel.remove_drawing(plist[k])
+        self._remove_contour_surface(plist[k])
         del plist[k]
       elif (k < len(plist) and k+1 < len(levels) and
             levels[k+1] == plist[k].contour_settings['level']):
-        plist.insert(k, smodel.new_drawing())
+        plist.insert(k, self._new_contour_surface())
       elif k >= len(plist):
-        plist.append(smodel.new_drawing())
+        plist.append(self._new_contour_surface())
 
     while len(plist) > len(levels):
-      smodel.remove_drawing(plist[-1])
+      self._remove_contour_surface(plist[-1])
       del plist[-1]
       
     return plist
-  
+
+  # ---------------------------------------------------------------------------
+  #
+  def _new_contour_surface(self):
+    ses = self.session
+    from ..models import Surface
+    s = Surface('contour surface', ses)
+    s.SESSION_SAVE = False		# Volume will restore contour surfaces
+    ses.models.add([s], parent = self)
+    return s
+
+  # ---------------------------------------------------------------------------
+  #
+  def _remove_contour_surface(self, surf):
+    self.session.models.close([surf])
+
   # ---------------------------------------------------------------------------
   #
   def _update_surface(self, level, rgba, show_mesh, rendering_options, surface):
@@ -869,12 +883,6 @@ class Volume(Model):
       self.session.warning(str(e))
       level = None
     return level
-    
-  # ---------------------------------------------------------------------------
-  #
-  def surface_drawings_for_vertex_coloring(self):
-
-    return self.surface_drawings
   
   # ---------------------------------------------------------------------------
   #
