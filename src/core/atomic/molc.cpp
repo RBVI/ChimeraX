@@ -4978,9 +4978,14 @@ private:
         if (j < s) {
             //std::cerr << "resizing array " << a << " from " << s << " to " << j << std::endl;
             *PyArray_DIMS(a) = j;        // TODO: This hack may break numpy.
+            // TODO: Resizing the array in place is not possible from Python numpy API,
+            // so this breaks assumptions about numpy.  Cause of subtle ChimeraX bug #1096.
             /*
-            // Numpy array can't be resized with weakref made by weakref.finalize().  Not sure why.
-            // Won't work anyways because array will reallocate while looping over old array of atoms being deleted.
+            // Numpy array can't be resized in place with PyArray_Resize() if references to
+            // the array (different views?) exist as described in PyArray_Resize() documentation.
+            // This is because PyArray_Resize() reallocates the array to the new size.
+            // Won't work anyways because array will reallocate while looping over old array
+            // of atoms being deleted.
             PyArray_Dims dims;
             dims.len = 1;
             dims.ptr = &j;
