@@ -1148,48 +1148,48 @@ def mod_key_info(key_function):
         return Qt.MetaModifier, command_name
 
 # generic additions to context selection menu...
-def del_atoms_label(ses):
-    from chimerax.atomic import selected_atoms
-    return "Delete atom" if len(selected_atoms(ses)) == 1 else "Delete atoms"
+from chimerax.core.commands import run
+for cmd in ("hide", "delete"):
+    cap_cmd = cmd.capitalize()
+    cmd_fmt = "delete %s sel" if cmd == "delete" else "hide sel %s"
+    def atoms_label(ses, cap_cmd=cap_cmd):
+        from chimerax.atomic import selected_atoms
+        return ("%s atom" if len(selected_atoms(ses)) == 1 else "%s atoms") % cap_cmd
 
-def del_atoms_criteria(ses):
-    from chimerax.atomic import selected_atoms
-    return len(selected_atoms(ses)) > 0
+    def atoms_criteria(ses):
+        from chimerax.atomic import selected_atoms
+        return len(selected_atoms(ses)) > 0
 
-def del_atoms_callback(ses):
-    from chimerax.atomic import selected_atoms
-    selected_atoms(ses).delete()
+    def atoms_callback(ses, cmd_fmt=cmd_fmt):
+        run(ses, cmd_fmt % "atoms")
 
-SelectMouseMode.register_menu_entry(del_atoms_label, del_atoms_criteria, del_atoms_callback,
-    dangerous=True)
+    SelectMouseMode.register_menu_entry(atoms_label, atoms_criteria, atoms_callback,
+        dangerous=(cmd == "delete"))
 
-def del_bonds_label(ses):
-    from chimerax.atomic import selected_bonds
-    return "Delete bond" if len(selected_bonds(ses)) == 1 else "Delete bonds"
+    def bonds_label(ses, cap_cmd=cap_cmd):
+        from chimerax.atomic import selected_bonds
+        return ("%s bond" if len(selected_bonds(ses)) == 1 else "%s bonds") % cap_cmd
 
-def del_bonds_criteria(ses):
-    from chimerax.atomic import selected_bonds
-    return len(selected_bonds(ses)) > 0
+    def bonds_criteria(ses):
+        from chimerax.atomic import selected_bonds
+        return len(selected_bonds(ses)) > 0
 
-def del_bonds_callback(ses):
-    from chimerax.atomic import selected_bonds
-    selected_bonds(ses).delete()
+    def bonds_callback(ses, cmd_fmt=cmd_fmt):
+        run(ses, cmd_fmt % "bonds")
 
-SelectMouseMode.register_menu_entry(del_bonds_label, del_bonds_criteria, del_bonds_callback,
-    dangerous=True)
+    SelectMouseMode.register_menu_entry(bonds_label, bonds_criteria, bonds_callback,
+        dangerous=(cmd == "delete"))
 
-def del_pseudobonds_label(ses):
-    from chimerax.atomic import selected_pseudobonds
-    return "Delete pseudobond" if len(selected_pseudobonds(ses)) == 1 else "Delete pseudobonds"
+    def pseudobonds_label(ses, cap_cmd=cap_cmd):
+        from chimerax.atomic import selected_pseudobonds
+        return ("%s pseudobond" if len(selected_pseudobonds(ses)) == 1 else "%s pseudobonds") % cap_cmd
 
-def del_pseudobonds_criteria(ses):
-    from chimerax.atomic import selected_pseudobonds
-    return len(selected_pseudobonds(ses)) > 0
+    def pseudobonds_criteria(ses):
+        from chimerax.atomic import selected_pseudobonds
+        return len(selected_pseudobonds(ses)) > 0
 
-def del_pseudobonds_callback(ses):
-    from chimerax.atomic import selected_pseudobonds
-    selected_pseudobonds(ses).delete()
+    def pseudobonds_callback(ses, cmd_fmt=cmd_fmt):
+        run(ses, cmd_fmt % "pseudobonds")
 
-SelectMouseMode.register_menu_entry(del_pseudobonds_label, del_pseudobonds_criteria,
-    del_pseudobonds_callback, dangerous=True)
-
+    SelectMouseMode.register_menu_entry(pseudobonds_label, pseudobonds_criteria,
+        pseudobonds_callback, dangerous=(cmd == "delete"))
