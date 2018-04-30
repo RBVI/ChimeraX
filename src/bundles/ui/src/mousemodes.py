@@ -454,19 +454,30 @@ class SelectMouseMode(MouseMode):
     def mouse_double_click(self, event):
         MouseMode.mouse_double_click(self, event)
         entries = []
-        for label_info, criteria, callback in SelectMouseMode._menu_entry_info:
+        dangerous_entries = []
+        for label_info, criteria, callback, dangerous in SelectMouseMode._menu_entry_info:
             if criteria(self.session):
                 if callable(label_info):
                     label_text = label_info(self.session)
                 else:
                     label_text = label_info
-                entries.append((label_text, callback))
+                if dangerous:
+                    dangerous_entries.append((label_text, callback))
+                else:
+                    entries.append((label_text, callback))
         entries.sort()
+        dangerous_entries.sort()
         from PyQt5.QtWidgets import QMenu, QAction
         menu = QMenu()
         actions = []
-        if entries:
-            for label, callback in entries:
+        all_entries = entries
+        if dangerous_entries:
+            all_entries = all_entries + [(None, None)] + dangerous_entries
+        if all_entries:
+            for label, callback in all_entries:
+                if label is None:
+                    menu.addSeparator()
+                    continue
                 action = QAction(label)
                 action.triggered.connect(lambda arg, cb=callback, sess=self.session: cb(sess))
                 menu.addAction(action)
@@ -477,7 +488,7 @@ class SelectMouseMode(MouseMode):
         menu.exec(event._event.globalPos())
 
     @staticmethod
-    def register_menu_entry(label, criteria, callback):
+    def register_menu_entry(label, criteria, callback, dangerous=False):
         '''Register a context-menu entry.
 
         'label' is the text of the menu entry.  It can be a callable that return the text of the
@@ -487,8 +498,10 @@ class SelectMouseMode(MouseMode):
             the current contents of the selection).
         'callback' is a callable that is given the session as an argument.  It should perform
             the entry's corresponding action.
+        If a menu is hazardous to click accidentally, supply the 'dangerous' keyword as True.
+            Such entries will be organized at the bottom of the menu after a separator.
         '''
-        SelectMouseMode._menu_entry_info.append((label, criteria, callback))
+        SelectMouseMode._menu_entry_info.append((label, criteria, callback, dangerous))
 
     def _is_drag(self, event):
         dp = self.mouse_down_position
@@ -1147,7 +1160,8 @@ def del_atoms_callback(ses):
     from chimerax.atomic import selected_atoms
     selected_atoms(ses).delete()
 
-SelectMouseMode.register_menu_entry(del_atoms_label, del_atoms_criteria, del_atoms_callback)
+SelectMouseMode.register_menu_entry(del_atoms_label, del_atoms_criteria, del_atoms_callback,
+    dangerous=True)
 
 def del_bonds_label(ses):
     from chimerax.atomic import selected_bonds
@@ -1161,7 +1175,8 @@ def del_bonds_callback(ses):
     from chimerax.atomic import selected_bonds
     selected_bonds(ses).delete()
 
-SelectMouseMode.register_menu_entry(del_bonds_label, del_bonds_criteria, del_bonds_callback)
+SelectMouseMode.register_menu_entry(del_bonds_label, del_bonds_criteria, del_bonds_callback,
+    dangerous=True)
 
 def del_pseudobonds_label(ses):
     from chimerax.atomic import selected_pseudobonds
@@ -1176,5 +1191,5 @@ def del_pseudobonds_callback(ses):
     selected_pseudobonds(ses).delete()
 
 SelectMouseMode.register_menu_entry(del_pseudobonds_label, del_pseudobonds_criteria,
-    del_pseudobonds_callback)
+    del_pseudobonds_callback, dangerous=True)
 
