@@ -345,7 +345,10 @@ class Pseudobond(State):
         a1, a2 = self.atoms
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
-        return sqrt((v*v).sum())
+        # tinyarray doesn't have .sum()
+        #return sqrt((v*v).sum())
+        v2 = v*v
+        return sqrt(v2[0] + v2[1] + v2[2])
 
     def other_atom(self, atom):
         "Supported API. 'atom' should be one of the atoms in the bond.  Return the other atom."
