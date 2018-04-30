@@ -18,8 +18,8 @@ open_save: open/save dialogs
 TODO
 """
 
-"""Just use PyQt5.QtWidgets.QFileDialog for opening files"""
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import Qt
 class SaveDialog(QFileDialog):
     def __init__(self, parent = None, *args, **kw):
         default_suffix = kw.pop('add_extension', None)
@@ -41,7 +41,6 @@ class SaveDialog(QFileDialog):
             row = layout.rowCount()
             from PyQt5.QtWidgets import QFrame
             self._custom_area = QFrame(self)
-            from PyQt5.QtCore import Qt
             layout.addWidget(self._custom_area, row, 0, 1, -1, Qt.AlignCenter)
         return self._custom_area
 
@@ -66,7 +65,6 @@ class OpenDialogWithMessage(QFileDialog):
             row = layout.rowCount()
             from PyQt5.QtWidgets import QLabel
             label = QLabel(message, self)
-            from PyQt5.QtCore import Qt
             layout.addWidget(label, row, 0, 1, -1, Qt.AlignLeft)
 
     def get_path(self):
@@ -77,6 +75,35 @@ class OpenDialogWithMessage(QFileDialog):
             return None
         path = paths[0]
         return path
+
+# Unless you need to add custom widgets to the dialog, you should use PyQt5.QtWidgets.QFileDialog
+# for opening files, since that will have native look and feel.  The OpenDialog below is for
+# those situations where you do need to add widgets.
+class OpenDialog(QFileDialog):
+    def __init__(self, parent = None, caption = 'Open File', starting_directory = None,
+            widget_alignment = Qt.AlignLeft):
+        if starting_directory is None:
+            import os
+            starting_directory = os.getcwd()
+        QFileDialog.__init__(self, parent, caption = caption, directory = starting_directory)
+        self.setFileMode(QFileDialog.AnyFile)
+        self.setOption(QFileDialog.DontUseNativeDialog)
+
+        from PyQt5.QtWidgets import QWidget
+        self.custom_area = QWidget()
+        layout = self.layout()
+        row = layout.rowCount()
+        layout.addWidget(self.custom_area, row, 0, 1, -1, widget_alignment)
+
+    def get_path(self):
+        if not self.exec():
+            return None
+        paths = self.selectedFiles()
+        if not paths:
+            return None
+        path = paths[0]
+        return path
+
 
 def export_file_filter(category=None, format_name=None, all=False):
     """Return file name filter suitable for Export File dialog for Qt"""

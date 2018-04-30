@@ -799,6 +799,7 @@ class RegionBrowser:
 
     def lastDrag(self):
         return self._prev_drag
+    """
 
     def loadScfCB(self, okayed, dialog):
         if not okayed:
@@ -810,7 +811,7 @@ class RegionBrowser:
             self.loadScfFile(path,
                 self.seq_canvas.sv.prefs[SCF_COLOR_STRUCTURES])
         
-    def loadScfFile(self, path, colorStructures=True):
+    def load_scf_file(self, path, color_structures=True):
         if path is None:
             if not self._scf_dialog:
                 self._scf_dialog = ScfDialog(
@@ -895,7 +896,8 @@ class RegionBrowser:
                     a.color = c
         self.seq_canvas.sv.status("%d scf regions created"
                         % len(regionInfo))
-        
+
+    """
     def lowerRegion(self, region, rebuild_table=True):
         if not region:
             self.seq_canvas.sv.status("No active region",
