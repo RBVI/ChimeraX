@@ -1152,44 +1152,67 @@ from chimerax.core.commands import run
 for cmd in ("hide", "delete"):
     cap_cmd = cmd.capitalize()
     cmd_fmt = "delete %s sel" if cmd == "delete" else "hide sel %s"
-    def atoms_label(ses, cap_cmd=cap_cmd):
+    dangerous = cmd == "delete"
+    # avoid directly importing atomic module
+    def num_sel(ses):
         from chimerax.atomic import selected_atoms
-        return ("%s atom" if len(selected_atoms(ses)) == 1 else "%s atoms") % cap_cmd
+        return len(selected_atoms(ses))
 
-    def atoms_criteria(ses):
-        from chimerax.atomic import selected_atoms
-        return len(selected_atoms(ses)) > 0
+    def atoms_label(ses, cap_cmd=cap_cmd, num_sel=num_sel):
+        return ("%s atom" if num_sel(ses) == 1 else "%s atoms") % cap_cmd
 
-    def atoms_callback(ses, cmd_fmt=cmd_fmt):
+    def atoms_criteria(ses, num_sel=num_sel):
+        return num_sel(ses) > 0
+
+    def atoms_callback(ses, cmd_fmt=cmd_fmt, num_sel=num_sel, dangerous=dangerous):
+        if dangerous:
+            from .ask import ask
+            if ask(ses, "Really delete %s atom(s)" % num_sel(ses),
+                    title="Deletion Request") == "no":
+                return
         run(ses, cmd_fmt % "atoms")
 
     SelectMouseMode.register_menu_entry(atoms_label, atoms_criteria, atoms_callback,
-        dangerous=(cmd == "delete"))
+        dangerous=dangerous)
 
-    def bonds_label(ses, cap_cmd=cap_cmd):
+    def num_sel(ses):
         from chimerax.atomic import selected_bonds
-        return ("%s bond" if len(selected_bonds(ses)) == 1 else "%s bonds") % cap_cmd
+        return len(selected_bonds(ses))
 
-    def bonds_criteria(ses):
-        from chimerax.atomic import selected_bonds
-        return len(selected_bonds(ses)) > 0
+    def bonds_label(ses, cap_cmd=cap_cmd, num_sel=num_sel):
+        return ("%s bond" if num_sel(ses) == 1 else "%s bonds") % cap_cmd
 
-    def bonds_callback(ses, cmd_fmt=cmd_fmt):
+    def bonds_criteria(ses, num_sel=num_sel):
+        return num_sel(ses) > 0
+
+    def bonds_callback(ses, cmd_fmt=cmd_fmt, dangerous=dangerous):
+        if dangerous:
+            from .ask import ask
+            if ask(ses, "Really delete %s bond(s)" % num_sel(ses),
+                    title="Deletion Request") == "no":
+                return
         run(ses, cmd_fmt % "bonds")
 
     SelectMouseMode.register_menu_entry(bonds_label, bonds_criteria, bonds_callback,
-        dangerous=(cmd == "delete"))
+        dangerous=dangerous)
 
-    def pseudobonds_label(ses, cap_cmd=cap_cmd):
+    def num_sel(ses):
         from chimerax.atomic import selected_pseudobonds
-        return ("%s pseudobond" if len(selected_pseudobonds(ses)) == 1 else "%s pseudobonds") % cap_cmd
+        return len(selected_pseudobonds(ses))
 
-    def pseudobonds_criteria(ses):
-        from chimerax.atomic import selected_pseudobonds
-        return len(selected_pseudobonds(ses)) > 0
+    def pseudobonds_label(ses, cap_cmd=cap_cmd, num_sel=num_sel):
+        return ("%s pseudobond" if num_sel(ses) == 1 else "%s pseudobonds") % cap_cmd
 
-    def pseudobonds_callback(ses, cmd_fmt=cmd_fmt):
+    def pseudobonds_criteria(ses, num_sel=num_sel):
+        return num_sel(ses) > 0
+
+    def pseudobonds_callback(ses, cmd_fmt=cmd_fmt, dangerous=dangerous):
+        if dangerous:
+            from .ask import ask
+            if ask(ses, "Really delete %s pseudobond(s)" % num_sel(ses),
+                    title="Deletion Request") == "no":
+                return
         run(ses, cmd_fmt % "pseudobonds")
 
     SelectMouseMode.register_menu_entry(pseudobonds_label, pseudobonds_criteria,
-        pseudobonds_callback, dangerous=(cmd == "delete"))
+        pseudobonds_callback, dangerous=dangerous)
