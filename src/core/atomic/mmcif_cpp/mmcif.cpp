@@ -172,7 +172,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
-    void connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap);
+    void connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap, bool nstd_okay);
     void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
     const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
@@ -185,6 +185,7 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_struct_sheet_order();
     void parse_pdbx_struct_sheet_hbond();
 #endif
+    void parse_entity_poly();
     void parse_entity_poly_seq();
     void parse_entry();
     void parse_pdbx_database_PDB_obs_spr();
@@ -299,7 +300,12 @@ struct ExtractMolecule: public readcif::CIFFile
         }
     };
     typedef multiset<PolySeq> EntityPolySeq;
-    map<string /* entity_id */, EntityPolySeq> poly_seq;
+    struct EntityPoly {
+        multiset<PolySeq> seq;
+        bool nstd;
+        EntityPoly(bool nstd): nstd(nstd) {}
+    };
+    map<string /* entity_id */, EntityPoly> poly;
     int first_model_num;
     string entry_id;
     tmpl::Molecule* my_templates;
@@ -318,7 +324,7 @@ struct ExtractMolecule: public readcif::CIFFile
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
-    "audit_conform", "atom_site", "entity_poly_seq"
+    "audit_conform", "atom_site", "entity_poly", "entity_poly_seq"
     "struct_conn", "struct_conf", "struct_sheet_range",
 #ifdef SHEET_HBONDS
     "struct_sheet_order", "pdbx_struct_sheet_hbond",
@@ -351,10 +357,14 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_pdbx_database_PDB_obs_spr();
         }, { "entry" });
+    register_category("entity_poly",
+        [this] () {
+            parse_entity_poly();
+        });
     register_category("entity_poly_seq",
         [this] () {
             parse_entity_poly_seq();
-        });
+        }, { "entity_poly" });
     register_category("atom_site",
         [this] () {
             parse_atom_site();
@@ -461,7 +471,7 @@ ExtractMolecule::find_template_residue(const ResName& name)
 }
 
 void
-ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap)
+ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap, bool nstd_okay)
 {
     // Connect adjacent residues that have the same type
     // and have link & chief atoms (i.e., peptides and nucleotides)
@@ -523,8 +533,10 @@ ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bo
             }
 #endif
             if (same_type && !gap && !reasonable_bond_length(a0, a1) && r0->connects_to(r1)) {
-                logger::warning(_logger, "Apparent non-polymeric linkage between ",
-                                residue_str(r0, r1), " and ", residue_str(r1));
+                if (!nstd_okay)
+                    logger::warning(_logger,
+                        "Apparent non-polymeric linkage between ",
+                        residue_str(r0, r1), " and ", residue_str(r1));
                 continue;
             }
             if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
@@ -698,20 +710,21 @@ ExtractMolecule::finished_parse()
         ResidueMap& residue_map = chain.second;
         auto ri = residue_map.begin();
         const string& entity_id = ri->first.entity_id;
-        if (poly_seq.find(entity_id) == poly_seq.end())
+        if (poly.find(entity_id) == poly.end())
             continue;
         const PolySeq* lastp = nullptr;
         bool gap = false;
         vector<Residue*> previous, current;
         ChainID auth_chain_id;
-        auto& entity_poly_seq = poly_seq[entity_id];
-        for (auto& p: entity_poly_seq) {
+        auto& entity_poly = poly.at(entity_id);
+        bool nstd = entity_poly.nstd;
+        for (auto& p: entity_poly.seq) {
             auto ri = residue_map.find(ResidueKey(entity_id, p.seq_id, p.mon_id));
             if (ri == residue_map.end()) {
                 if (current.empty())
                     continue;
                 if (!previous.empty())
-                    connect_polymer_pair(previous, current, gap);
+                    connect_polymer_pair(previous, current, gap, nstd);
                 previous = std::move(current);
                 current.clear();
                 gap = true;
@@ -736,7 +749,7 @@ ExtractMolecule::finished_parse()
                 mol->delete_residue(r);
             } else {
                 if (!previous.empty() && !current.empty()) {
-                    connect_polymer_pair(previous, current, gap);
+                    connect_polymer_pair(previous, current, gap, nstd);
                     gap = false;
                 }
                 if (!current.empty()) {
@@ -748,16 +761,16 @@ ExtractMolecule::finished_parse()
             lastp = &p;
         }
         if (!previous.empty())
-            connect_polymer_pair(previous, current, gap);
+            connect_polymer_pair(previous, current, gap, nstd);
         if (auth_chain_id.empty())
             continue;
         auto& input_seq_info = mol->input_seq_info();
         if (input_seq_info.find(auth_chain_id) != input_seq_info.end())
             continue;
         vector<ResName> seqres;
-        seqres.reserve(entity_poly_seq.size());
+        seqres.reserve(entity_poly.seq.size());
         lastp = nullptr;
-        for (auto& p: entity_poly_seq) {
+        for (auto& p: entity_poly.seq) {
             if (lastp && lastp->seq_id == p.seq_id)
                 continue;  // ignore duplicates and microheterogeneity
             seqres.push_back(p.mon_id);
@@ -1088,7 +1101,7 @@ ExtractMolecule::parse_atom_site()
     double b_factor = DBL_MAX;    // B_iso_or_equiv
     int model_num = 0;            // pdbx_PDB_model_num
 
-    missing_poly_seq = poly_seq.empty();
+    missing_poly_seq = poly.empty();  // assume if entity_poly present, sequence info is present
     if (missing_poly_seq)
         logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity.");
 
@@ -1320,7 +1333,7 @@ ExtractMolecule::parse_atom_site()
             cur_comp_id = residue_name;
             if (missing_poly_seq) {
                 if (entity_id.empty())
-                    entity_id = cid.c_str();
+                    entity_id = cid.c_str();  // no entity_id, use chain id
                 auto tr = find_template_residue(residue_name);
                 if (tr && !tr->description().empty()) {
                     // only save polymer residues
@@ -1328,10 +1341,16 @@ ExtractMolecule::parse_atom_site()
                         logger::warning(_logger, "Unable to infer polymer connectivity due to "
                                         "unspecified label_seq_id for standard residue \"",
                                         residue_name, "\" near line ", line_number());
-                        // Bad data, don't try to reconstrut entity_poly_seq information
+                        // Bad data, don't try to reconstruct entity_poly_seq information
                         missing_poly_seq = false;
                     }
-                    auto& entity_poly_seq = poly_seq[entity_id];
+                    if (poly.find(entity_id) == poly.end()) {
+                        logger::warning(_logger, "Unknown polymer entity '", entity_id,
+                                        "' near line ", line_number());
+                        // fake polymer entity to cut down on secondary warnings
+                        poly.emplace(entity_id, false);
+                    }
+                    auto& entity_poly_seq = poly.at(entity_id).seq;
                     PolySeq p(position, residue_name, false);
                     auto pit = entity_poly_seq.equal_range(p);
                     bool found = false;
@@ -1795,14 +1814,14 @@ ExtractMolecule::parse_struct_conf()
             continue;
         }
         string entity_id = cemi->second;
-        auto psi = poly_seq.find(entity_id);
-        if (psi == poly_seq.end()) {
+        auto psi = poly.find(entity_id);
+        if (psi == poly.end()) {
             logger::warning(_logger, "Invalid residue range for secondary",
                             " structure \"", id, "\": invalid entity \"",
                             entity_id, "\", near line ", line_number());
             continue;
         }
-        auto& entity_poly_seq = psi->second;
+        auto& entity_poly_seq = psi->second.seq;
 
         auto init_ps_key = PolySeq(position1, residue_name1, false);
         auto end_ps_key = PolySeq(position2, residue_name2, false);
@@ -1934,14 +1953,14 @@ ExtractMolecule::parse_struct_sheet_range()
             continue;
         }
         string entity_id = cemi->second;
-        auto psi = poly_seq.find(entity_id);
-        if (psi == poly_seq.end()) {
+        auto psi = poly.find(entity_id);
+        if (psi == poly.end()) {
             logger::warning(_logger, "Invalid sheet range for strand \"",
                             sheet_id, ' ', id, "\": invalid entity \"",
                             entity_id, "\", near line ", line_number());
             continue;
         }
-        auto& entity_poly_seq = psi->second;
+        auto& entity_poly_seq = psi->second.seq;
 
         auto init_ps_key = PolySeq(position1, residue_name1, false);
         auto end_ps_key = PolySeq(position2, residue_name2, false);
@@ -2255,6 +2274,44 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
 #endif
 
 void
+ExtractMolecule::parse_entity_poly()
+{
+    CIFFile::ParseValues pv;
+    pv.reserve(4);
+
+    string entity_id;
+    string type;
+    bool nstd_monomer = false;
+
+    pv.reserve(4);
+    try {
+        pv.emplace_back(get_column("entity_id", Required),
+            [&] (const char* start, const char* end) {
+                entity_id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("type"),
+            [&] (const char* start, const char* end) {
+                type = string(start, end - start);
+            });
+        pv.emplace_back(get_column("nstd_monomer"),
+            [&] (const char* start) {
+                nstd_monomer = *start == 'Y' || *start == 'y';
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping entity_poly category: ", e.what());
+        return;
+    }
+
+    while (parse_row(pv)) {
+        if (poly.find(entity_id) == poly.end())
+            poly.emplace(entity_id, nstd_monomer);
+        else
+            logger::warning(_logger, "Duplicate polymer '", entity_id,
+                            "' near line ", line_number());
+    }
+}
+
+void
 ExtractMolecule::parse_entity_poly_seq()
 {
     // have to save all of entity_poly_seq because the same entity
@@ -2289,7 +2346,13 @@ ExtractMolecule::parse_entity_poly_seq()
     }
 
     while (parse_row(pv)) {
-        poly_seq[entity_id].emplace(seq_id, mon_id, hetero);
+        if (poly.find(entity_id) == poly.end()) {
+            logger::warning(_logger, "Unknown polymer entity '", entity_id,
+                            "' near line ", line_number());
+            // fake polymer entity to cut down on secondary warnings
+            poly.emplace(entity_id, false);
+        }
+        poly.at(entity_id).seq.emplace(seq_id, mon_id, hetero);
     }
 }
 
