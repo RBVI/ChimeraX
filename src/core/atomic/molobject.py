@@ -345,7 +345,10 @@ class Pseudobond(State):
         a1, a2 = self.atoms
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
-        return sqrt((v*v).sum())
+        # tinyarray doesn't have .sum()
+        #return sqrt((v*v).sum())
+        v2 = v*v
+        return sqrt(v2[0] + v2[1] + v2[2])
 
     def other_atom(self, atom):
         "Supported API. 'atom' should be one of the atoms in the bond.  Return the other atom."
@@ -421,22 +424,22 @@ class PseudobondGroupData:
     _category = c_property('pseudobond_group_category', string, read_only = True,
         doc = "Name of the pseudobond group.  Read only string.")
     color = c_property('pseudobond_group_color', uint8, 4,
-        doc="Sets the color attribute of current pseudobonds and new pseudobonds")
+        doc="Supported API. Sets the color attribute of current pseudobonds and new pseudobonds")
     group_type = c_property('pseudobond_group_group_type', uint8, read_only = True, doc=
-        "PseudobondGroup.GROUP_TYPE_NORMAL is a normal group,"
+        "Supported API. PseudobondGroup.GROUP_TYPE_NORMAL is a normal group,"
         "PseudobondGroup.GROUP_TYPE_COORD_SET is a per-coord-set pseudobond group")
     halfbond = c_property('pseudobond_group_halfbond', npy_bool,
         doc = "Sets the halfbond attribute of current pseudobonds and new pseudobonds")
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True,
-        doc = "Number of pseudobonds in group. Read only.")
+        doc = "Supported API. Number of pseudobonds in group. Read only.")
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
         astype = _pseudobonds, read_only = True,
-        doc = "Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
+        doc = "Supported API. Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
     radius = c_property('pseudobond_group_radius', float32,
-        doc = "Sets the radius attribute of current pseudobonds and new pseudobonds")
+        doc = "Supported API. Sets the radius attribute of current pseudobonds and new pseudobonds")
     structure = c_property('pseudobond_group_structure', pyobject,
         read_only = True, doc ="Structure that pseudobond group is owned by.  "
-        "Returns None if called on a group managed by the global pseudobond manager")
+        "Supported API. Returns None if called on a group managed by the global pseudobond manager")
 
     def change_name(self, name):
         f = c_function('pseudobond_group_change_category',
@@ -448,27 +451,27 @@ class PseudobondGroupData:
             raise UserError("Another pseudobond group is already named '%s'" % name)
 
     def clear(self):
-        '''Delete all pseudobonds in group'''
+        "Supported API. Delete all pseudobonds in group"
         f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
     def delete_pseudobond(self, pb):
-        '''Delete a specific pseudobond from a group'''
+        "Supported API. Delete a specific pseudobond from a group"
         f = c_function('pseudobond_group_delete_pseudobond',
             args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, pb._c_pointer)
 
     def get_num_pseudobonds(self, cs_id):
-        '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'
-        property to get the number of pseudobonds for the current coordinate set.'''
+        "Supported API. Get the number of pseudobonds for a particular coordinate set. "
+        " Use the 'num_pseudobonds' property to get the number of pseudobonds for the current "
+        " coordinate set."
         f = c_function('pseudobond_group_get_num_pseudobonds',
-                       args = (ctypes.c_void_p, ctypes.c_int,),
-                       ret = ctypes.c_size_t)
+                       args = (ctypes.c_void_p, ctypes.c_int,), ret = ctypes.c_size_t)
         return f(self._c_pointer, cs_id)
 
     def get_pseudobonds(self, cs_id):
-        '''Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'
-        property to get the pseudobonds for the current coordinate set.'''
+        "Supported API. Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'"
+        " property to get the pseudobonds for the current coordinate set."
         from numpy import empty
         ai = empty((self.get_num_pseudobonds(cs_id),), cptr)
         f = c_function('pseudobond_group_get_pseudobonds',
@@ -478,9 +481,9 @@ class PseudobondGroupData:
         return _pseudobonds(ai)
 
     def new_pseudobond(self, atom1, atom2, cs_id = None):
-        '''Create a new pseudobond between the specified :class:`Atom` objects.
-        If the pseudobond group supports per-coordset pseudobonds, you may
-        specify a coordinate set ID (defaults to the current coordinate set).'''
+        "Supported API. Create a new pseudobond between the specified :class:`Atom` objects. "
+        " If the pseudobond group supports per-coordset pseudobonds, you may"
+        " specify a coordinate set ID (defaults to the current coordinate set)."
         if cs_id is None:
             f = c_function('pseudobond_group_new_pseudobond',
                            args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),

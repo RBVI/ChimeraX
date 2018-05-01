@@ -16,9 +16,9 @@ molsurf: Compute molecular surfaces
 ===================================
 """
 
-from ..models import Model
+from ..models import Surface
 
-class MolecularSurface(Model):
+class MolecularSurface(Surface):
     '''
     A molecular surface computed from a set of atoms.
     This can be a solvent excluded surface which is the
@@ -70,7 +70,7 @@ class MolecularSurface(Model):
     def __init__(self, session, enclose_atoms, show_atoms, probe_radius, grid_spacing,
                  resolution, level, name, color, visible_patches, sharp_boundaries):
         
-        Model.__init__(self, name, session)
+        Surface.__init__(self, name, session)
 
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
@@ -417,7 +417,7 @@ class MolecularSurface(Model):
         init_attrs = ('atoms', 'show_atoms', 'probe_radius', 'grid_spacing', 'resolution', 'level',
                       'name', 'color', 'visible_patches', 'sharp_boundaries')
         data = {attr:getattr(self, attr) for attr in init_attrs}
-        data['model state'] = Model.take_snapshot(self, session, flags)
+        data['model state'] = Surface.take_snapshot(self, session, flags)
         data.update({attr:getattr(self,attr) for attr in self._save_attrs if hasattr(self,attr)})
         from ..state import CORE_STATE_VERSION
         data['version'] = CORE_STATE_VERSION
@@ -430,9 +430,11 @@ class MolecularSurface(Model):
                              d['probe_radius'], d['grid_spacing'], d['resolution'],
                              d['level'], d['name'], d['color'], d['visible_patches'],
                              d['sharp_boundaries'])
-        Model.set_state_from_snapshot(s, session, d['model state'])
+        Surface.set_state_from_snapshot(s, session, d['model state'])
+        geom_attrs = ('vertices', 'normals', 'triangles')
+        s.set_geometry(d['vertices'], d['normals'], d['triangles'])
         for attr in MolecularSurface._save_attrs:
-            if attr in d:
+            if attr in d and attr not in geom_attrs:
                 setattr(s, attr, d[attr])
 
 def remove_solvent_ligands_ions(atoms, keep = None):

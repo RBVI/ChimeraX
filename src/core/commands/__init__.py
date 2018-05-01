@@ -25,7 +25,7 @@ from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg
 from .cli import AxisArg, Axis, CenterArg, Center, CoordSysArg, PlaceArg, Bounded
 from .cli import ModelIdArg, AtomsArg, UniqueChainsArg, AtomicStructuresArg
-from .cli import StructureArg, StructuresArg, SurfacesArg
+from .cli import StructureArg, StructuresArg, SurfacesArg, SurfaceArg
 from .cli import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
 from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg

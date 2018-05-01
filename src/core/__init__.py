@@ -67,6 +67,7 @@ _class_class_init = {
     'Sequence': '.atomic',
     'Structure': '.atomic',
     'StructureSeq': '.atomic',
+    'Surface': '.models',
     'Tasks': '.tasks',
     'Tools': '.tools',
     'TriangleInfo': '.stl',

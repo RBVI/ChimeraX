@@ -172,10 +172,10 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     cm.set_geometry(varray, narray, tarray)
 
 def new_cap(drawing, cap_name):
-    from ..models import Model
+    from ..models import Model, Surface
     if isinstance(drawing, Model):
         # Make cap a model when capping a model so color can be set by command.
-        c = Model(cap_name, drawing.session)
+        c = Surface(cap_name, drawing.session)
         c.SESSION_SAVE = False
         drawing.add([c])
     else:

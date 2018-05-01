@@ -243,6 +243,13 @@ class Model(State, Drawing):
         return True
 
 
+class Surface(Model):
+    '''
+    A surface is a type of model where vertex coloring, style (filled, mesh, dot) and masking
+    can be controlled by user commands.
+    '''
+    pass
+
 class Models(StateManager):
 
     def __init__(self, session):

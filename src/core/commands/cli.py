@@ -1160,19 +1160,6 @@ class BondArg(BondsArg):
         return bonds[0], used, rest
 
 
-class SurfacesArg(AtomSpecArg):
-    """Parse command surfaces specifier"""
-    name = "a surfaces specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import Structure
-        surfs = [m for m in models if not isinstance(m, Structure)]
-        return surfs, text, rest
-
-
 class ModelArg(AtomSpecArg):
     """Parse command model specifier"""
     name = "a model specifier"
@@ -1197,6 +1184,29 @@ class StructureArg(ModelArg):
         if not isinstance(m, Structure):
             raise AnnotationError('Specified model is not a Structure')
         return m, text, rest
+
+
+class SurfacesArg(ModelsArg):
+    """Parse command surfaces specifier"""
+    name = "a surfaces specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        models, text, rest = super().parse(text, session)
+        from ..models import Surface
+        surfs = [m for m in models if isinstance(m, Surface)]
+        return surfs, text, rest
+
+class SurfaceArg(SurfacesArg):
+    """Parse command surfaces specifier"""
+    name = "a surface specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        surfs, text, rest = super().parse(text, session)
+        if len(surfs) != 1:
+            raise AnnotationError('Require 1 surface, got %d' % len(surfs))
+        return surfs[0], text, rest
 
 
 class AxisArg(Annotation):

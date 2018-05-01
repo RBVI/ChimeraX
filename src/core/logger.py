@@ -649,9 +649,9 @@ class _EarlyCollator(CollatingLog):
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
-    import io
-    from lxml import etree
-    parser = etree.HTMLParser()
-    tree = etree.parse(io.StringIO(html), parser)
-    t = ' '.join(node.text for node in tree.iter() if node.text is not None)
-    return t.strip() + '\n'
+    import html2text
+    h = html2text.HTML2Text()
+    h.unicode_snob = True
+    # h.pad_tables = True  # 2018.1.9 is confused by multiline data in td
+    # h.body_width = ?  # TODO: track terminal size changes
+    return h.handle(html)

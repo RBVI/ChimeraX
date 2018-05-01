@@ -20,8 +20,8 @@ Read and write little-endian STL binary format.
 
 from chimerax.core.state import State, CORE_STATE_VERSION
 
-from chimerax.core import generic3d
-class STLModel(generic3d.Generic3DModel):
+from chimerax.core.models import Surface
+class STLModel(Surface):
     clip_cap = True
 
     @property
