@@ -11,6 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+_builtin_subcommands = set(['chain'])
+_viewer_subcommands = set()
+_commands_registered = False
+
 from chimerax.core.state import StateManager
 class AlignmentsManager(StateManager):
     """Manager for sequence alignments"""
@@ -20,16 +24,20 @@ class AlignmentsManager(StateManager):
         self.bundle_info = bundle_info
         self.session = session
         self.viewer_info = {'alignment': {}, 'sequence': {}}
+        self.tool_to_subcommand = {}
 
     def destroy_alignment(self, alignment):
         del self.alignments[alignment.ident]
         alignment._destroy()
 
-    def deregister_viewer(self, tool_name, sequence_viewer=True, alignment_viewer=True):
+    def deregister_viewer(self, tool_name, *, sequence_viewer=True, alignment_viewer=True):
         if sequence_viewer:
             del self.viewer_info['sequence'][tool_name]
         if alignment_viewer:
             del self.viewer_info['alignment'][tool_name]
+        sc = self.tool_to_subcommand.get(tool_name, None)
+        if sc:
+            _viewer_subcommands.remove(sc)
 
     def new_alignment(self, seqs, identify_as, attrs=None, markups=None, auto_destroy=None,
             align_viewer=None, seq_viewer=None, auto_associate=True, name=None, intrinsic=False):
@@ -131,7 +139,7 @@ class AlignmentsManager(StateManager):
         return alignment
 
     def register_viewer(self, tool_name, startup_cb, *,
-            sequence_viewer=True, alignment_viewer=True, synonyms=[]):
+            sequence_viewer=True, alignment_viewer=True, synonyms=[], subcommand_name=None):
         """Register an alignment viewer for possible use by the user.
 
         Parameters
@@ -149,6 +157,16 @@ class AlignmentsManager(StateManager):
            Shorthands that the user could type instead of standard_name to refer to your tool
            in commands.  Example:  ['sv']
         """
+        if subcommand_name:
+            if subcommand_name in _builtin_subcommands:
+                raise ValueError("Viewer subcommand '%s' is already a builtin"
+                    " 'sequence' subcommand name" % subcommand_name)
+            if subcommand_name in _viewer_subcommands:
+                raise ValueError("Viewer subcommand name '%s' is already taken" % subcommand_name)
+            _viewer_subcommands.add(subcommand_name)
+            self.tool_to_subcommand[tool_name] = subcommand_name
+            if _commands_registered:
+                _register_viewer_subcommand(self.session.logger, subcommand_name)
         if sequence_viewer:
             self.viewer_info['sequence'][tool_name] = (startup_cb, synonyms)
         if alignment_viewer:
@@ -188,3 +206,24 @@ class AlignmentsManager(StateManager):
         for am in self.alignments.values():
             am.close()
         self.alignments = data['alignments']
+
+def _register_viewer_subcommands(logger):
+    global _commands_registered
+    _commands_registered = True
+    for viewer_sub in _viewer_subcommands:
+        _register_viewer_subcommand(logger, viewer_sub)
+
+def _register_viewer_subcommand(logger, viewer_sub):
+    def viewer_subcommand(session, align_id, subcommand_text, *, _viewer_keyword=viewer_sub):
+        if align_id is None:
+            align_id = ""
+        from .cmd import get_alignment_by_id
+        alignments = get_alignment_by_id(session, align_id, multiple_okay=True)
+        for alignment in alignments:
+            alignment._dispatch_viewer_command(session, _viewer_keyword, subcommand_text)
+    from chimerax.core.commands import CmdDesc, register, StringArg, Or, EmptyArg
+    desc = CmdDesc(
+        required = [('align_id', Or(StringArg,EmptyArg), ('subcommand_text', StringArg)],
+        synopsis = "send subcommand to viewer '%s'" %viewer_sub
+    )
+    register('sequence %s' % viewer_sub, desc, viewer_subcommand, logger=logger)

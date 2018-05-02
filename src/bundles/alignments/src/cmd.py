@@ -32,6 +32,30 @@ class SeqArg(Annotation):
         if ':' not in token:
             raise AnnotationError("Expected at least one ':' character in %s" % SeqArg.name)
         align_id, seq_id = token.split(':', 1)
+        alignment = get_alignnment_by_id(session, align_id)
+        seq = get_alignment_sequence(alignment, seq_id)
+        return seq, text, rest
+
+class SeqArg(Annotation):
+    '''A single sequence (in a single alignment)
+
+       If only one alignment is open, the alignment ID can be omitted.
+       Within the alignment, sequences can be specified by name or number, with
+       negative numbers counting backwards from the end of the alignment.
+    '''
+
+    name = "[alignment-id]:sequence-name-or-number"
+    _html_name = "[<i>alignment-id</i>]:<i>sequence-name-or-number</i>"
+
+    @staticmethod
+    def parse(text, session):
+        from chimerax.core.commands import AnnotationError, next_token
+        if not text:
+            raise AnnotationError("Expected %s" % SeqArg.name)
+        token, text, rest = next_token(text)
+        if ':' not in token:
+            raise AnnotationError("Expected at least one ':' character in %s" % SeqArg.name)
+        align_id, seq_id = token.split(':', 1)
         if not align_id:
             if not session.alignments.alignments:
                 raise AnnotationError("No alignments open!")
@@ -44,26 +68,49 @@ class SeqArg(Annotation):
                 alignment = session.alignments.alignments[align_id]
             except KeyError:
                 raise AnnotationError("No known alignment with ID: '%s'" % align_id)
-        try:
-            sn = int(seq_id)
-        except ValueError:
-            for seq in alignment.seqs:
-                if seq.name == seq_id:
-                    break
-            else:
-                raise AnnotationError("No sequence named '%s' found in alignment" % seq_id)
-        else:
-            if sn == 0:
-                raise AnnotationError("Sequence index must be positive or negative integer,"
-                    " not zero")
-            if abs(sn) > len(alignment.seqs):
-                raise AnnotationError("Sequence index (%d) larger than number of sequences"
-                    " in alignment (%d)" % (sn, len(alignment.seqs)))
-            if sn > 0:
-                seq = alignment.seqs[sn-1]
-            else:
-                seq = alignment.seqs[sn]
+        seq = get_alignment_sequence(alignment, seq_id)
         return seq, text, rest
+
+def get_alignment_sequence(alignment, seq_id):
+    try:
+        sn = int(seq_id)
+    except ValueError:
+        for seq in alignment.seqs:
+            if seq.name == seq_id:
+                break
+        else:
+            raise AnnotationError("No sequence named '%s' found in alignment" % seq_id)
+    else:
+        if sn == 0:
+            raise AnnotationError("Sequence index must be positive or negative integer,"
+                " not zero")
+        if abs(sn) > len(alignment.seqs):
+            raise AnnotationError("Sequence index (%d) larger than number of sequences"
+                " in alignment (%d)" % (sn, len(alignment.seqs)))
+        if sn > 0:
+            seq = alignment.seqs[sn-1]
+        else:
+            seq = alignment.seqs[sn]
+    return seq
+
+def get_alignment_by_id(session, align_id, *, multiple_okay=False):
+    if not align_id:
+        if not session.alignments.alignments:
+            raise AnnotationError("No alignments open!")
+        elif len(session.alignments.alignments) > 1:
+            if multiple_okay:
+                return session.alignments.alignments[:]
+            raise AnnotationError("More than one sequence alignment open;"
+                " need to specify an alignment ID")
+        alignment = list(session.alignments.values())[0]
+    else:
+        try:
+            alignment = session.alignments.alignments[align_id]
+        except KeyError:
+            raise AnnotationError("No known alignment with ID: '%s'" % align_id)
+    if multiple_okay:
+        return [alignment]
+    return alignment
 
 def seqalign_chain(session, chains):
     '''
@@ -118,4 +165,7 @@ def register_seqalign_command(logger):
         required = [('chains', UniqueChainsArg)],
         synopsis = 'show structure chain sequence'
     )
+    # REMINDER: update manager._builtin_subcommands as additional subcommands are added
     register('sequence chain', desc, seqalign_chain, logger=logger)
+    from . import manager
+    manager._register_viewer_subcommands(logger)

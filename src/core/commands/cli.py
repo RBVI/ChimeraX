@@ -2039,11 +2039,6 @@ def register(name, cmd_desc=(), function=None, *, logger=None, _parent_info=None
 
     To delay introspecting the function until it is actually used,
     register using the :py:func:`delay_registration` function.
-
-    For autocompletion, the first command registered with a
-    given prefix wins.  Registering a command that is a prefix
-    of an existing command is an error since it breaks backwards
-    compatibility.
     """
     if function is None:
         # act as a decorator
