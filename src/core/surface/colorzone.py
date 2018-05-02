@@ -17,8 +17,8 @@ def color_zone(surface, points, point_colors, distance,
 
     if auto_update:
         recolor = ZoneRecolor(surface, points, point_colors, distance, sharp_edges)
-        from .colorvol import add_color_session_saving
-        add_color_session_saving(surface.session, recolor)
+        from .updaters import add_updater_for_session_saving
+        add_updater_for_session_saving(surface.session, recolor)
     else:
         recolor = None
     surface.auto_recolor_vertices = recolor
