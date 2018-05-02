@@ -26,3 +26,5 @@ from .dust import largest_blobs_triangle_mask
 from .gaussian import gaussian_surface
 from .cap import update_clip_caps, remove_clip_caps
 from .topology import check_surface_topology
+from .colorgeom import color_radial, color_cylindrical, color_height
+from .colorvol import color_sample, color_electrostatic, color_gradient, color_surfaces_by_map_value
