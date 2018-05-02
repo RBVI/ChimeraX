@@ -273,7 +273,6 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
 
 def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state=None):
     # TODO: save undo data
-    from .scolor import color_surfaces_at_atoms
     if color in _SpecialColors:
         if color == 'fromatoms':
             ns = color_surfaces_at_atoms(atoms, opacity=opacity)
@@ -391,7 +390,6 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state
                     r.ribbon_color = rgba
             if 's' in target:
                 # TODO: save surface undo data
-                from .scolor import color_surfaces_at_residues
                 color_surfaces_at_residues(residues, colors, opacity)
 
 # -----------------------------------------------------------------------------
@@ -420,7 +418,6 @@ def _set_sequential_structures(session, selected, cmap, opacity, target, undo_st
             _set_ribbon_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
             # TODO: save surface undo data
-            from .scolor import color_surfaces_at_atoms
             color_surfaces_at_atoms(m.atoms, c)
 
 # -----------------------------------------------------------------------------
@@ -975,7 +972,6 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
         msg.append('%d residues' % len(residues))
 
     if 's' in target:
-        from .scolor import color_surfaces_at_atoms
         ns = color_surfaces_at_atoms(atoms, per_atom_colors = acolors)
         if ns > 0:
             msg.append('%d surfaces' % ns)
@@ -986,10 +982,33 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
         m = ', '.join(msg) + ', %s %.3g to %.3g' % (r, min(abf), max(abf))
         session.logger.status(m, log=True)
 
+# -----------------------------------------------------------------------------
+#
+def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom_colors = None):
+    from .. import atomic
+    surfs = atomic.surfaces_with_atoms(atoms)
+    for s in surfs:
+        s.color_atom_patches(atoms, color, opacity, per_atom_colors)
+    return len(surfs)
+
+# -----------------------------------------------------------------------------
+#
+def color_surfaces_at_residues(residues, colors, opacity = None):
+    atoms, acolors = _residue_atoms_and_colors(residues, colors)
+    color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors = acolors)
+
+# -----------------------------------------------------------------------------
+#
+def _residue_atoms_and_colors(residues, colors):
+    atoms = residues.atoms
+    from numpy import repeat
+    acolors = repeat(colors, residues.num_atoms, axis=0)
+    return atoms, acolors
+
 def _value_colors(palette, range, values):
-    vrange = lambda: (min(values), max(values))
-    from .scolor import _colormap_with_range
-    cmap = _colormap_with_range(palette, range, vrange, default = 'blue-white-red')
+    from ..surface.colorvol import _use_full_range, _colormap_with_range
+    r = (min(values), max(values)) if _use_full_range(range, palette) else range
+    cmap = _colormap_with_range(palette, r, default = 'blue-white-red')
     colors = cmap.interpolated_rgba8(values)
     return colors
         
@@ -1011,8 +1030,7 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
       Whether to update surface color when surface shape changes.  Default true.
     '''
     atoms = near
-    from .scolor import _surface_drawings
-    surfs = _surface_drawings(surfaces)
+    surfs = [s for s in surfaces if s.vertices is not None]
     bonds = None
     from ..surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
     points, colors = points_and_colors(atoms, bonds)
@@ -1023,8 +1041,8 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
 
 # -----------------------------------------------------------------------------
 #
-from .scolor import color_radial, color_cylindrical, color_height
-from .scolor import color_electrostatic, color_sample, color_gradient
+from ..surface import color_radial, color_cylindrical, color_height
+from ..surface import color_electrostatic, color_sample, color_gradient
 
 # -----------------------------------------------------------------------------
 #

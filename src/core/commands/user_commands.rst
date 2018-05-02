@@ -65,7 +65,6 @@ and their code location is described with the function descriptions.
 | `run`_ - Run a user command string
 | `rungs`_ - Display nucleotides as cylinders
 | `save`_ - Save sessions, images, density maps...
-| `scolor`_ - Color surfaces
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
@@ -314,10 +313,6 @@ rungs
 save
 ====
 .. autofunction:: chimerax.core.commands.save.save
-
-scolor
-======
-.. autofunction:: chimerax.core.commands.scolor.scolor
 
 select
 ======
