@@ -136,7 +136,9 @@ class _UniqueName:
             # double check that class will be able to be restored
             if obj_cls != bundle_info.get_class(obj_cls.__name__, session.logger):
                 raise RuntimeError(
-                    'Unable to restore objects of %s class in %s bundle' %
+                    'Unable to restore objects of %s class in %s bundle'
+                    ' because the class name is not listed in the name to class table'
+                    ' for session restore' %
                     (obj_cls.__name__, bundle_info.name))
 
         if not known_class and bundle_info != 'builtin':
