@@ -16,7 +16,7 @@ def volume_center_of_mass(v, level = None, step = None, subregion = None):
 
     if level is None:
         # Use lowest displayed contour level.
-        level = min(v.surface_levels)
+        level = v.minimum_surface_level
 
     # Get 3-d array of map values.
     m = v.matrix(step = step, subregion = subregion)

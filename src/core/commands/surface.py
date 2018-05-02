@@ -249,7 +249,7 @@ def surface_style(session, surfaces, style):
     for s in surfaces:
         if isinstance(s, Volume) and s.representation in ('surface', 'mesh'):
             if style == 'dot':
-                for d in s.surface_drawings:
+                for d in s.surfaces:
                     d.display_style = d.Dot
             else:
                 rep = 'surface' if style == 'solid' else 'mesh'

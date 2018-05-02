@@ -268,10 +268,10 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         set_enclosed_volume(v, enclose_volume, fast_enclose_volume)
 
     if not normalize_level is None:
-        if len(v.surface_levels) == 0:
+        level = v.maximum_surface_level
+        if level is None:
             from ...commands.parse import CommandError
             raise CommandError('vseries save: normalize_level used but no level set for volume %s' % v.name)
-        level = max(v.surface_levels)
         if zero_mean:
             level -= mean
         scale = normalize_level / level
@@ -316,7 +316,7 @@ def vseries_measure(session, series, output = None, centroids = True,
             shown = s.time_shown(t)
             s.show_time(t)
             v = s.maps[t]
-            level = min(v.surface_levels)
+            level = v.minimum_surface_level
             vol, area, holes = surface_volume_and_area(v)
             axes, d2, c = inertia.map_inertia([v])
             elen = inertia.inertia_ellipsoid_size(d2)

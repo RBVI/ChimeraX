@@ -453,8 +453,6 @@ map_attributes = (
   'representation',
   'rendering_options',
   'region_list',
-  'surface_levels',
-  'surface_colors',
   'surface_brightness_factor',
   'transparency_factor',
   'solid_levels',
@@ -467,7 +465,6 @@ map_attributes = (
 )
 basic_map_attributes = (
   'id', 'display', 'region', 'representation',
-  'surface_levels', 'surface_colors',
   'surface_brightness_factor', 'transparency_factor',
   'solid_levels', 'solid_colors', 'solid_brightness_factor',
   'transparency_depth', 'default_rgba')
@@ -483,7 +480,7 @@ def state_from_map(volume):
   s['rendering_options'] = state_from_rendering_options(v.rendering_options)
   s['region_list'] = state_from_region_list(v.region_list)
   s['session_volume_id'] = session_volume_id(v)
-  s['version'] = 1
+  s['version'] = 2
   if hasattr(v, 'parent'):
     from .series import MapSeries
     if isinstance(v.parent, MapSeries):
@@ -531,6 +528,10 @@ def set_map_state(s, volume, notify = True):
   if 'region_list' in s:
     region_list_from_state(s['region_list'], v.region_list)
 
+  if s['version'] == 1:
+    for lev, color in zip(s['surface_levels'], s['surface_colors']):
+      v.add_surface(lev, rgba = color)
+      
 #  dsize = [a*b for a,b in zip(v.data.step, v.data.size)]
 #  v.transparency_depth /= min(dsize)
 

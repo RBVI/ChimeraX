@@ -74,9 +74,7 @@ class Volume(Model):
     self.initialized_thresholds = False
 
     # Surface display parameters
-    self.surface_levels = []
-    self.surface_colors = []
-    self.surface_drawings = []    		# Drawing graphics objects
+    self._surfaces = []				# VolumeSurface instances
     self.surface_brightness_factor = 1
     self.transparency_factor = 0                # for surface/mesh
     self.outline_box = Outline_Box(self)
@@ -89,8 +87,6 @@ class Volume(Model):
 
     self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
 
-    if open_model:
-      self.open_model(model_id)
 
 #    from chimera import addModelClosedCallback
 #    addModelClosedCallback(self, self.model_closed_cb)
@@ -158,54 +154,6 @@ class Volume(Model):
     for cb in self.change_callbacks:
       for ct in change_types:
         cb(self, ct)
-    
-  # ---------------------------------------------------------------------------
-  # Detect surface piece color change and display style change.
-  #
-  def surface_piece_changed_cb(self, trigger, unused, changes):
-
-    change = ('color changed' in changes.reasons
-              or 'display style changed' in changes.reasons)
-    if not change:
-      return
-
-    if len(self.surface_drawings) != len(self.surface_colors):
-      return
-
-    pindex = {}
-    for i, p in enumerate(self.surface_drawings):
-      pindex[p] = i
-
-    # Check if surface pieces for this volume have changed.
-    ctypes = set()
-    pchange = False
-    for p in changes.modified:
-      if p in pindex:
-        i = pindex[p]
-        vcolor = self._modulated_surface_color(self.surface_colors[i])
-        from numpy import array, single as floatc
-        if (p.color != tuple(int(255*r) for r in vcolor)).any():
-          self.surface_colors[i] = p.color / 255.0
-          ctypes.add('colors changed')
-        pchange = True
-
-    # Check if display style of all surface pieces has changed.
-    if pchange and self.representation != 'solid':
-      styles = set()
-      for p in self.surface_drawings:
-        styles.add(p.display_style)
-      if len(styles) == 1:
-        pstyle = {p.Solid: 'surface', p.Mesh: 'mesh'}.get(styles.pop(), None)
-        if pstyle and self.representation != pstyle:
-          # TODO: Eliminate special case for 2d contour rendering.
-          contour_2d = (pstyle == 'mesh' and
-                        not self.rendering_options.cap_faces
-                        and self.single_plane())
-          if not contour_2d:
-            self.set_representation(pstyle)
-
-    # Notify about changes.
-    self.call_change_callbacks(ctypes)
   
   # ---------------------------------------------------------------------------
   #
@@ -223,6 +171,38 @@ class Volume(Model):
     if cc:
       dc('coordinates changed')
     
+  # ---------------------------------------------------------------------------
+  #
+  @property
+  def surfaces(self):
+    return self._surfaces
+  
+  # ---------------------------------------------------------------------------
+  #
+  def add_surface(self, level, rgba = None):
+    ses = self.session
+    s = VolumeSurface(self, level, rgba)
+    self._surfaces.append(s)
+    if self.id is None:
+      self.add([s])
+    else:
+      ses.models.add([s], parent = self)
+    return s
+  
+  # ---------------------------------------------------------------------------
+  #
+  def remove_surfaces(self, surfaces = None):
+    self.session.models.close(self._surfaces if surfaces is None else surfaces)
+
+  # ---------------------------------------------------------------------------
+  #
+  @property
+  def minimum_surface_level(self):
+    return min((s.level for s in self.surfaces), default = None)
+  @property
+  def maximum_surface_level(self):
+    return max((s.level for s in self.surfaces), default = None)
+  
   # ---------------------------------------------------------------------------
   #
   def set_parameters(self, **kw):
@@ -264,7 +244,7 @@ class Volume(Model):
 
     if ('surface_levels' in kw and
         not 'surface_colors' in kw and
-        len(kw['surface_levels']) != len(self.surface_levels)):
+        len(kw['surface_levels']) != len(self.surfaces)):
       kw['surface_colors'] = [self.default_rgba] * len(kw['surface_levels'])
     if ('solid_levels' in kw and
         not 'solid_colors' in kw and
@@ -284,7 +264,23 @@ class Volume(Model):
     for param in parameters:
       if param in kw:
         values = kw[param]
-        setattr(self, param, values)
+        if param == 'surface_levels':
+          if len(values) == len(self.surfaces):
+            for s,level in zip(self.surfaces, values):
+              s.level = level
+          else:
+            self.remove_surfaces()
+            for level in values:
+              self.add_surface(level)
+        elif param == 'surface_colors':
+          if len(values) == len(self.surfaces):
+            for s,color in zip(self.surfaces, values):
+              s.rgba = color
+          else:
+            raise ValueError('Number of surface colors (%d) does not match number of surfaces (%d)'
+                             % (len(values), len(self.surfaces)))
+        else:
+          setattr(self, param, values)
 
     # Update rendering options.
     option_changed = False
@@ -325,8 +321,8 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def set_color(self, rgba):
-    self.surface_colors = [rgba]*len(self.surface_levels)
-    for s in self.surface_drawings:
+    for s in self.surfaces:
+      s.rgba = rgba
       s.vertex_colors = None
     self.solid_colors = [rgba]*len(self.solid_levels)
     self._drawings_need_update()
@@ -339,9 +335,9 @@ class Volume(Model):
     from ..colors import rgba_to_rgba8
     from numpy import argmin
     if rep in ('surface', 'mesh'):
-      lev = self.surface_levels
-      if lev:
-        return rgba_to_rgba8(self.surface_colors[argmin(lev)])
+      surfs = self.surfaces
+      if surfs:
+        return min(surfs, key = lambda s: s.level).color
     elif rep == 'solid':
       lev = self.solid_levels
       if lev:
@@ -362,13 +358,15 @@ class Volume(Model):
     '''Alpha values in range 0-255. Only changes current style (surface/mesh or solid).'''
     a1 = alpha/255
     if self.representation in ('surface', 'mesh'):
-      self.set_parameters(surface_colors = [(r,g,b,a1) for r,g,b,a in self.surface_colors])
+      for s in self.surfaces:
+        r,g,b,a = s.rgba
+        s.rgba = (r,g,b,a1)
     else:
       self.set_parameters(solid_colors = [(r,g,b,a1) for r,g,b,a in self.solid_colors])
     self._drawings_need_update()
     
     # Update transparency on per-vertex coloring
-    for s in self.surface_drawings:
+    for s in self.surfaces:
       vc = s.vertex_colors
       if vc is not None:
         vc[:,3] = alpha
@@ -485,7 +483,7 @@ class Volume(Model):
   #
   def has_thresholds(self):
 
-    return len(self.surface_levels) > 0 and len(self.solid_levels) > 0
+    return len(self.surfaces) > 0 and len(self.solid_levels) > 0
 
   # ---------------------------------------------------------------------------
   #
@@ -512,19 +510,22 @@ class Volume(Model):
 
     polar = (hasattr(self.data, 'polar_values') and self.data.polar_values)
 
-    if replace or len(self.surface_levels) == 0:
+    if replace or len(self.surfaces) == 0:
       if mfrac is None:
         v = s.rank_data_value(1-vfrac[0])
       else:
         v = s.mass_rank_data_value(1-mfrac[0])
       rgba = self.default_rgba
       if polar:
-        self.surface_levels = [-v,v]
+        levels = [-v,v]
         neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
-        self.surface_colors = [neg_rgba,rgba]
+        colors = [neg_rgba,rgba]
       else:
-        self.surface_levels = [v]
-        self.surface_colors = [rgba]
+        levels = [v]
+        colors = [rgba]
+      self.remove_surfaces()
+      for lev, c in zip(levels, colors):
+        self.add_surface(lev, rgba = c)
 
     if replace or len(self.solid_levels) == 0:
       ilow, imid, imax = 0, 0.8, 1
@@ -577,7 +578,7 @@ class Volume(Model):
 
     # Show or hide surfaces
     surfshow = (rep == 'surface' or rep == 'mesh')
-    for s in self.surface_drawings:
+    for s in self.surfaces:
       s.display = surfshow
 
     # Show or hide solid
@@ -660,63 +661,16 @@ class Volume(Model):
   #
   def _update_surfaces(self):
 
-    pieces = self._match_surfaces(self.surface_levels)
-    self.surface_drawings = pieces
     show_mesh = (self.representation == 'mesh')
     ro = self.rendering_options
     try:
-      for k, level in enumerate(self.surface_levels):
-        color = self.surface_colors[k]
-        rgba = self._modulated_surface_color(color)
-        p = pieces[k]
-        p.name = 'level %.4g' % level
-        self._update_surface(level, rgba, show_mesh, ro, p)
+      for s in self.surfaces:
+        self._update_surface(s, show_mesh, ro)
     except CancelOperation:
       pass
 
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
-
-  # ---------------------------------------------------------------------------
-  # Pair up surface pieces with contour levels.  Aim is to avoid
-  # recalculating contours if a piece already exists for a contour
-  # level.  Common cases are 1) no levels have changed, 2) one level
-  # has changed, 3) one level added or deleted, 4) multiple levels
-  # added or deleted.  Level order is typically preserved.
-  #
-  def _match_surfaces(self, levels):
-
-    plist = [p for p in self.surface_drawings if not p.was_deleted]
-    for k,level in enumerate(levels):
-      if k < len(plist) and level == plist[k].contour_settings['level']:
-        pass
-      elif (k+1 < len(plist) and k+1 < len(levels) and
-            levels[k+1] == plist[k+1].contour_settings['level']):
-        pass
-      elif k+1 < len(plist) and level == plist[k+1].contour_settings['level']:
-        self._remove_contour_surface(plist[k])
-        del plist[k]
-      elif (k < len(plist) and k+1 < len(levels) and
-            levels[k+1] == plist[k].contour_settings['level']):
-        plist.insert(k, self._new_contour_surface())
-      elif k >= len(plist):
-        plist.append(self._new_contour_surface())
-
-    while len(plist) > len(levels):
-      self._remove_contour_surface(plist[-1])
-      del plist[-1]
-      
-    return plist
-
-  # ---------------------------------------------------------------------------
-  #
-  def _new_contour_surface(self):
-    ses = self.session
-    from ..models import Surface
-    s = Surface('contour surface', ses)
-    s.SESSION_SAVE = False		# Volume will restore contour surfaces
-    ses.models.add([s], parent = self)
-    return s
 
   # ---------------------------------------------------------------------------
   #
@@ -725,12 +679,15 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _update_surface(self, level, rgba, show_mesh, rendering_options, surface):
+  def _update_surface(self, surface, show_mesh, rendering_options):
+
+    surface.name = 'level %.4g' % surface.level
+    rgba = self._modulated_surface_color(surface.rgba)
 
     ro = rendering_options
     s = surface
 
-    contour_settings = {'level': level,
+    contour_settings = {'level': surface.level,
                         'matrix_id': self.matrix_id,
                         'transform': self.matrix_indices_to_xyz_transform(),
                         'surface_smoothing': ro.surface_smoothing,
@@ -744,7 +701,7 @@ class Volume(Model):
                         }
     if (not hasattr(s, 'contour_settings') or
         s.contour_settings != contour_settings):
-      if self.calculate_contour_surface(level, rendering_options, s):
+      if self.calculate_contour_surface(surface.level, rendering_options, s):
         s.contour_settings = contour_settings
 
     s.color = tuple(int(255*r) for r in rgba)
@@ -851,7 +808,7 @@ class Volume(Model):
     p.edge_mask = hidden_edges if ro.square_mesh else None
     p.clip_cap = True
     # TODO: Clip cap offset for different contour levels is not related to voxel size.
-    p.clip_offset = .002* len([l for l in self.surface_levels if level < l])
+    p.clip_offset = .002* len([s for s in self.surfaces if level < s.level])
 
     return True
     
@@ -883,30 +840,6 @@ class Volume(Model):
       self.session.warning(str(e))
       level = None
     return level
-  
-  # ---------------------------------------------------------------------------
-  #
-  def remove_surfaces(self):
-
-    for p in self.surface_drawings:
-      if not p.was_deleted:
-        self.remove_drawing(p)
-    self.surface_drawings = []
-    
-  # ---------------------------------------------------------------------------
-  #
-  def open_model(self, model_id):
-
-    return
-    from chimera import openModels
-    if model_id == None:
-      m_id = m_subid = openModels.Default
-    elif isinstance(model_id, int):
-      m_id = model_id
-      m_subid = openModels.Default
-    else:
-      m_id, m_subid = model_id
-    openModels.add([self], baseId = m_id, subid = m_subid)
 
   # ---------------------------------------------------------------------------
   #
@@ -985,7 +918,7 @@ class Volume(Model):
   #
   def shown(self):
 
-    surf_disp = len([d for d in self.surface_drawings if d.display]) > 0
+    surf_disp = len([s for s in self.surfaces if s.display]) > 0
     solid_disp = (self.solid and self.solid.drawing.display)
     return self.display and (surf_disp or solid_disp)
     
@@ -1059,13 +992,13 @@ class Volume(Model):
     if copy_thresholds:
       # Copy thresholds
       self.set_parameters(
-        surface_levels = v.surface_levels,
+        surface_levels = [s.level for s in v.surfaces],
         solid_levels = v.solid_levels,
         )
     if copy_colors:
       # Copy colors
       self.set_parameters(
-        surface_colors = v.surface_colors,
+        surface_colors = [s.rgba for s in v.surfaces],
         surface_brightness_factor = v.surface_brightness_factor,
         transparency_factor = v.transparency_factor,
         solid_colors = v.solid_colors,
@@ -1224,15 +1157,15 @@ class Volume(Model):
   #
   def _set_selected(self, sel):
     Model.set_selected(self, sel)
-    for d in self.surface_drawings:
-      d.set_selected(sel)
+    for s in self.surfaces:
+      s.set_selected(sel)
   selected = property(Model.get_selected, _set_selected)
 
   # ---------------------------------------------------------------------------
   #
   def clear_selection(self):
-    for d in self.surface_drawings:
-      d.selected = False
+    for s in self.surfaces:
+      s.selected = False
     self.selected = False
 
   # ---------------------------------------------------------------------------
@@ -1571,7 +1504,9 @@ class Volume(Model):
     d = self.data
     m = d.full_matrix()
     if scale == 'minrms':
-      level = min(v.surface_levels) if v.surface_levels else 0
+      level = v.minimum_surface_level
+      if level is None:
+        level = 0
       scale = -minimum_rms_scale(values, m, level)
       log = self.session.logger
       log.info('Minimum RMS scale factor for "%s" above level %.5g is %.5g\n'
@@ -1960,7 +1895,42 @@ class Volume(Model):
     set_map_state(data['volume state'], v)
     show_volume_dialog(session)
     return v
- 
+
+# -----------------------------------------------------------------------------
+#
+from ..models import Surface
+class VolumeSurface(Surface):
+
+    def __init__(self, volume, level, rgba = (1.0,1.0,1.0,1.0)):
+      name = 'level %.3g' % level
+      Surface.__init__(self, name, volume.session)
+      self.volume = volume
+      self.level = level
+      self.rgba = rgba
+
+    def delete(self):
+      self.volume._surfaces.remove(self)
+      Surface.delete(self)
+
+    # State save/restore in ChimeraX
+    def take_snapshot(self, session, flags):
+      data = {
+        'volume': self.volume,
+        'level': self.level,
+        'rgba': self.rgba,
+        'model state': Surface.take_snapshot(self, session, flags),
+        'version': 1
+      }
+      return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+      v = data['volume']
+      s = VolumeSurface(v, data['level'], data['rgba'])
+      Model.set_state_from_snapshot(s, session, data['model state'])
+      v._surfaces.append(s)
+      return s
+      
 # -----------------------------------------------------------------------------
 #
 def maps_pickable(session, pickable):
@@ -1981,14 +1951,14 @@ class PickedMap(Pick):
   def select(self, mode = 'add'):
     m = self.map
     if mode == 'add':
-      s = True
+      sel = True
     elif mode == 'subtract':
-      s = False
+      sel = False
     elif mode == 'toggle':
-      s = not m.selected
-    m.selected = s
-    for d in m.surface_drawings:
-      d.selected = s
+      sel = not m.selected
+    m.selected = sel
+    for s in m.surfaces:
+      s.selected = sel
     
 # -----------------------------------------------------------------------------
 #
@@ -3051,7 +3021,7 @@ def open_grids(session, grids, name, **kw):
             ', pixel %s' % psize +
             ', shown at ')
     if m0.representation == 'surface':
-      msg += 'level %s, ' % ','.join('%.3g' % l for l in m0.surface_levels)
+      msg += 'level %s, ' % ','.join('%.3g' % s.level for s in m0.surfaces)
     sx,sy,sz = m0.region[2]
     step = '%d' % sx if sy == sx and sz == sx else '%d,%d,%d' % (sx,sy,sz)
     msg += 'step %s' % step

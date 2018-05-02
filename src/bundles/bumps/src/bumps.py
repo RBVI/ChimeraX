@@ -178,7 +178,7 @@ class Bumps(MarkerSet):
         return text
 
 def radial_extrema(volume, center_point, max_radius):
-    level = max(volume.surface_levels)
+    level = volume.maximum_surface_level
     m = volume.full_matrix()
     d = volume.data
     r = radius_map(d, center_point)
@@ -316,7 +316,7 @@ def color_surface_from_mask(volume, mask):
     pcolors = random.randint(0, 255, (n+1,4), dtype = uint8)
     pcolors[:,3] = 255
     from chimerax.core.map import _map
-    for d in volume.surface_drawings:
+    for d in volume.surfaces:
         values = empty((len(d.vertices),), float32)
         vijk = volume.data.xyz_to_ijk(d.vertices)
         _map.interpolate_volume_data(vijk, tf, emask, 'nearest', values)

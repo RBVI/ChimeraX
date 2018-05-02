@@ -60,5 +60,5 @@ def adjust_threshold_level(m, f):
         new_levels[-1] = (max(l,1.01*ms.maximum),b)
         m.set_parameters(solid_levels = new_levels)
     else:
-        new_levels = tuple(l+step for l in m.surface_levels)
+        new_levels = tuple(s.level+step for s in m.surfaces)
         m.set_parameters(surface_levels = new_levels)

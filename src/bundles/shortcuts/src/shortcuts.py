@@ -711,7 +711,10 @@ def toggle_surface_transparency(session):
     from chimerax.core.graphics import Drawing
     for m in shortcut_surfaces_and_maps(session):
         if isinstance(m, Volume):
-            m.set_parameters(surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors))
+            for s in m.surfaces:
+                r,g,b,a = s.rgba
+                ta = (0.5 if a == 1 else 1)
+                s.rgba = (r,g,b,ta)
         else:
             for d in m.all_drawings():
                 c = d.colors
@@ -728,7 +731,9 @@ def show_surface_transparent(session, alpha = 0.5):
         if not m.display:
             continue
         if isinstance(m, Volume):
-            m.set_parameters(surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors))
+            for s in m.surfaces:
+                r,g,b,a = s.rgba
+                s.rgba = (r,g,b,alpha)
         elif isinstance(m, Drawing):
             for d in m.all_drawings():
                 c = d.colors

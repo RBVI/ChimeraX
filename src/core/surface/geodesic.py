@@ -5,7 +5,7 @@
 
 def geodesic(session, volume, length = 100, color = None, radius = 1, minimal = True):
     rgba = color.uint8x4() if color else (255,255,0,255)
-    surface_path(session, volume.surface_drawings[0],
+    surface_path(session, volume.surfaces[0],
                  length = length, rgba = rgba, radius = radius, geodesic = minimal)
 
 def surface_path(session, surface, length = 100, rgba = (255,255,0,255), radius = 1, geodesic = True):

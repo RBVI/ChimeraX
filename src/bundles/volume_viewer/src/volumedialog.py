@@ -2552,7 +2552,11 @@ class Histogram_Pane:
       return
 
     from .histogram import Marker
-    surf_markers = [Marker((t,0), c) for t,c in zip(v.surface_levels, v.surface_colors)]
+    surf_markers = []
+    for s in v.surfaces:
+        m = Marker((s.level,0), s.rgba)
+        m.volume_surface = s
+        surf_markers.append(m)
     self.surface_thresholds.set_markers(surf_markers)
     
   # ---------------------------------------------------------------------------
@@ -2649,15 +2653,24 @@ class Histogram_Pane:
     v = self.volume
     if v is None:
       return
-    
+
+    # Update surface levels and colors
     markers = self.surface_thresholds.markers
-    v.surface_levels = [m.xy[0] for m in markers]
-    scolors = [m.rgba for m in markers]
-    if scolors != v.surface_colors:
-        v.surface_colors = scolors
-        # TODO: replace only vertex coloring for surfaces where color changed.
-        for d in v.surface_drawings:
-            d.vertex_colors = None
+    for m in markers:
+        level, color = m.xy[0], m.rgba
+        if not hasattr(m, 'volume_surface'):
+            m.volume_surface = v.add_surface(level, color)
+        else:
+            s = m.volume_surface
+            s.level = level
+            if tuple(s.rgba) != tuple(color):
+                s.rgba = color
+                s.vertex_colors = None
+
+    # Delete surfaces when marker has been deleted.
+    msurfs = set(m.volume_surface for m in markers)
+    v.remove_surfaces([s for s in v.surfaces if s not in msurfs])
+    
     markers = self.solid_thresholds.markers
     v.solid_levels = [m.xy for m in markers]
     v.solid_colors = [m.rgba for m in markers]

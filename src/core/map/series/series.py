@@ -193,10 +193,11 @@ class MapSeries(Model):
   #
   def copy_threshold_rank_levels(self, v1, v2):
 
-    levels, ranks = equivalent_rank_values(v1, v1.surface_levels,
-                                           v2, v2.surface_levels,
+    levels, ranks = equivalent_rank_values(v1, [s.level for s in v1.surfaces],
+                                           v2, [s.level for s in v2.surfaces],
                                            self.surface_level_ranks)
-    v2.surface_levels = levels
+    for s, lev in zip(v2.surfaces, levels):
+      s.level = lev
     self.surface_level_ranks = ranks
 
     lev1 = [l for l,b in v1.solid_levels]

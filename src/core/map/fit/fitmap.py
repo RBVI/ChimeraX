@@ -544,7 +544,7 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
           
     if above_threshold:
         # Keep only points where density is above lowest displayed threshold
-        threshold = min(v.surface_levels)
+        threshold = v.minimum_surface_level
         from .. import _map
         points_int = _map.high_indices(m, threshold)
         from numpy import single as floatc
@@ -675,11 +675,10 @@ def points_outside_contour(points, tf, volume):
     if volume is None:
         return None, None
 
-    levels = volume.surface_levels
-    if len(levels) == 0:
+    contour_level = volume.minimum_surface_level
+    if contour_level is None:
         return None, None
 
-    contour_level = min(levels)
     values = volume.interpolated_values(points, tf, subregion = None, step = None)
     from numpy import sum
     poc = sum(values < contour_level)

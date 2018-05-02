@@ -40,7 +40,7 @@ def measure_motion(session, surface, to_map = None, scale = 1, color = None,
         mp = to_map.scene_position
         vv = va if sp.is_identity() and mp.is_identity() else (mp.inverse() * sp) * va
         step_size = min(to_map.data.step)
-        level = min(to_map.surface_levels)
+        level = to_map.minimum_surface_level
         n = len(va)
         from numpy import ones, bool, zeros, float32, logical_and
         vinside = ones((n,), bool)

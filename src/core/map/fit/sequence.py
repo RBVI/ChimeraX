@@ -54,7 +54,7 @@ def fit_sequence(models, volume, steps, subtract_maps = [],
             if not m is v:
                 values = m.interpolated_values(grid_points, grid_points_to_scene_transform,
                                                subregion = None, step = None)
-                level = min(m.surface_levels)
+                level = m.minimum_surface_level
                 scale = minimum_rms_scale(values, data_array.ravel(), level)
                 multiply(values, scale, values)
                 add(d, values.reshape(d.shape), d)

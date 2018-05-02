@@ -80,7 +80,7 @@ def cylinder_radii(v, center, axis):
     rmins = []
     rmaxs = []
     from numpy import empty, single as floatc
-    for p in v.surface_drawings:
+    for p in v.surfaces:
         vertices = p.vertices
         r = empty((len(vertices),), floatc)
         from ...geometry.vector import distances_perpendicular_to_axis

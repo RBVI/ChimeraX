@@ -202,7 +202,7 @@ class Interpolated_Map:
     ms = v.matrix_value_statistics()
 
     rlev = [ms.rank_data_value(r) for r in self.surface_level_ranks]
-    slev = v.surface_levels
+    slev = [s.level for s in v.surfaces]
     if slev != rlev:
       self.surface_level_ranks = [ms.data_value_rank(lev) for lev in slev]
 
@@ -244,12 +244,11 @@ def linear_combination(f1, v1, f2, v2, v, subregion, step):
 #
 def interpolate_colors(f1, v1, f2, v2, v):
 
-  nc = len(v.surface_colors)
-  if len(v1.surface_colors) == nc and len(v2.surface_colors) == nc:
+  nc = len(v.surfaces)
+  if len(v1.surfaces) == nc and len(v2.surfaces) == nc:
     from ...geometry import linear_combination
-    scolors = [linear_combination(f1, v1.surface_colors[c], f2, v2.surface_colors[c])
-               for c in range(nc)]
-    v.set_parameters(surface_colors = scolors)
+    for s, s1, s2 in zip(v.surfaces, v1.surfaces, v2.surfaces):
+      s.rgba = linear_combination(f1, s1.rgba, f2, s2.rgba)
 
   nc = len(v.solid_colors)
   if len(v1.solid_colors) == nc and len(v2.solid_colors) == nc:

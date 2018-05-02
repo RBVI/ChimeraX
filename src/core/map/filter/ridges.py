@@ -15,7 +15,7 @@
 def ridges(volume, level = None, step = 1, subregion = None, modelId = None):
 
     if level is None:
-        level = min(volume.surface_levels)
+        level = volume.minimum_surface_level
     rg = ridge_grid(volume, level, step, subregion)
     from .. import volume_from_grid_data
     rv = volume_from_grid_data(rg, volume.session, model_id = modelId)

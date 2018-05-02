@@ -222,7 +222,7 @@ class Fit:
         # Find grid points in base volume local coordinates.
         matrix, xyz_to_ijk_tf = m.matrix_and_transform(None, subregion = None,
                                                        step = None)
-        threshold = min(m.surface_levels)
+        threshold = m.minimum_surface_level
         import _volume
         points_int = _volume.high_indices(matrix, threshold)
         from numpy import float32
