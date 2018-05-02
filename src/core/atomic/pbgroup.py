@@ -138,7 +138,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self.redraw_needed(shape_changed = True)
         self.session.change_tracker.add_modified(self, "dashes changed")
 
-    dashes = property(_get_dashes, _set_dashes)
+    dashes = property(_get_dashes, _set_dashes,
+        doc="How many dashes pseudobonds will be drawn with")
 
     def _get_name(self):
         return self._category
@@ -148,7 +149,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self.change_name(name)
         # allow Model to fire 'name changed' trigger
         Model.name.fset(self, name)
-    name = property(_get_name, _set_name)
+    name = property(_get_name, _set_name,
+        doc="Supported API. The name of the group.")
 
     # since we're a Model, we already have a 'session' attr, so don't need property
 

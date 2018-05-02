@@ -133,7 +133,7 @@ class CFunctions:
         else:
             def get_prop(self):
                 cget(self._c_pointer_ref, 1, v_ref)
-                return astype(v)
+                return astype(v.copy())
 
         if read_only:
             set_prop = None

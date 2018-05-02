@@ -191,7 +191,7 @@ Recognized Data Categories and Keywords
    |                            | id, type, pdbx_description             |
    +----------------------------+----------------------------------------+
    | entity_poly                |                                        |
-   |                            | entity_id, type,                       |
+   |                            | entity_id, type, nstd_monomer,         |
    |                            | pdbx_seq_one_letter_code_can           |
    +----------------------------+----------------------------------------+
    | entity_poly_seq            |                                        |

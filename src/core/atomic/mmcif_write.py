@@ -64,6 +64,13 @@ _protein1to3 = {
     'Y': "TYR",
     'Z': "GLX",
 }
+_standard_residues = set()  # filled in once at runtime
+
+
+def _set_standard_residues():
+    _standard_residues.update(_rna1to3.values())
+    _standard_residues.update(_dna1to3.values())
+    _standard_residues.update(_protein1to3.values())
 
 
 def write_mmcif(session, path, models=None):
@@ -76,6 +83,9 @@ def write_mmcif(session, path, models=None):
     if not models:
         session.logger.info("no structures to save")
         return
+
+    if not _standard_residues:
+        _set_standard_residues()
 
     # Need to figure out which ChimeraX models should be grouped together
     # as mmCIF models.  For now assume all models with the same "parent"
@@ -307,19 +317,20 @@ def save_structure(session, file, models, used_data_names):
                 descrip = '?'
             eid = len(entity_info) + 1
             entity_info[eid] = ('polymer', descrip)
+            names = set(c.existing_residues.names)
+            nstd = 'yes' if names.difference(_standard_residues) else 'no'
             # _1to3 is reverse map to handle missing residues
             if c.polymer_type == Residue.PT_AMINO:
                 _1to3 = _protein1to3
-                poly_info.append((eid, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
+                poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
+            elif names.isdisjoint(set(_rna1to3)):
+                # must be DNA
+                _1to3 = _dna1to3
+                poly_info.append((eid, nstd, 'polyribonucleotide', chars))
             else:
-                # figure out if DNA
-                names = set(c.existing_residues.names)
-                if names.isdisjoint(set(_dna1to3)):
-                    _1to3 = _rna1to3
-                    poly_info.append((eid, 'polydeoxyribonucleotide', chars))
-                else:
-                    _1to3 = _dna1to3
-                    poly_info.append((eid, 'polyribonucleotide', chars))
+                # must be RNA
+                _1to3 = _rna1to3
+                poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
             seq_entities[chars] = (eid, _1to3, [c])
 
     # use all chains of the same entity to figure out what the sequence's residues are named
@@ -403,7 +414,7 @@ def save_structure(session, file, models, used_data_names):
 
     entity = mmcif.MMCIFTable('entity', ['id', 'type', 'pdbx_description'], flattened(entity_info.items()))
     entity.print(file, fixed_width=True)
-    entity_poly = mmcif.MMCIFTable('entity_poly', ['entity_id', 'type', 'pdbx_seq_one_letter_code_can'], flattened(poly_info))
+    entity_poly = mmcif.MMCIFTable('entity_poly', ['entity_id', 'nstd_monomer', 'type', 'pdbx_seq_one_letter_code_can'], flattened(poly_info))
     entity_poly.print(file, fixed_width=True)
     entity_poly_seq = mmcif.MMCIFTable('entity_poly_seq', ['entity_id', 'num', 'mon_id'], flattened(poly_seq_info))
     entity_poly_seq.print(file, fixed_width=True)
@@ -603,7 +614,7 @@ def save_structure(session, file, models, used_data_names):
             continue
         if r0.chain is None or r0.chain != r1.chain:
             covalent.append((b, a0, a1))
-        elif rname3to1(r0.name) == 'X' or rname3to1(r1.name) == 'X':
+        elif r0.name not in _standard_residues or r1.name not in _standard_residues:
             covalent.append((b, a0, a1))
         else:
             # check for non-implicit bond
