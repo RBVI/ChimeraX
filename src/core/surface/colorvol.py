@@ -353,10 +353,12 @@ class VolumeColor(State):
         surf = data['surface']
         if surf is None:
             session.logger.warning('Could not restore coloring on surface because surface does not exist.')
+            return None
         vol = data['volume']
         if surf is None:
             session.logger.warning('Could not restore coloring on surface %s because volume does not exist.'
                                    % surf.name)
+            return None
         c = cls(surf, vol, palette = data['colormap'], range = None,
                 transparency = data['transparency'], offset = data['offset'])
         c.set_vertex_colors()

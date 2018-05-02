@@ -181,6 +181,7 @@ class GeometryColor(State):
         if surf is None:
             session.logger.warning('Could not restore coloring on surface %s because surface does not exist.'
                                    % '.'.join('%d' % i for i in id))
+            return None
         c = cls(surf, palette = data['colormap'], range = None,
                 origin = data['origin'], axis = data['axis'])
         c.set_vertex_colors()
