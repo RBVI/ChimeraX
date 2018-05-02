@@ -131,7 +131,8 @@ class VolumeColor(State):
         surface.auto_recolor_vertices = arv
 
         if auto_recolor:
-            add_color_session_saving(surface.session, self)
+            from .updaters import add_updater_for_session_saving
+            add_updater_for_session_saving(surface.session, self)
 
     # -------------------------------------------------------------------------
     #
@@ -353,10 +354,12 @@ class VolumeColor(State):
         surf = data['surface']
         if surf is None:
             session.logger.warning('Could not restore coloring on surface because surface does not exist.')
+            return None
         vol = data['volume']
         if surf is None:
             session.logger.warning('Could not restore coloring on surface %s because volume does not exist.'
                                    % surf.name)
+            return None
         c = cls(surf, vol, palette = data['colormap'], range = None,
                 transparency = data['transparency'], offset = data['offset'])
         c.set_vertex_colors()
@@ -434,33 +437,3 @@ def _offset_vertices(vertices, normals, offset):
     vo = offset * normals
     vo += vertices
     return vo
-
-# -----------------------------------------------------------------------------
-#
-class SurfaceColorers(State):
-    def __init__(self):
-        from weakref import WeakSet
-        self._colorers = WeakSet()
-
-    def add(self, colorer):
-        self._colorers.add(colorer)
-        
-    def take_snapshot(self, session, flags):
-        data = {'colorers': tuple(self._colorers),
-                'version': 1}
-        return data
-
-    @classmethod
-    def restore_snapshot(cls, session, data):
-        # Actual colorers are added when each is restored.
-        return SurfaceColorers()
-
-    def clear(self):
-        self._colorers.clear()
-        
-# -----------------------------------------------------------------------------
-#
-def add_color_session_saving(session, colorer):
-    if not hasattr(session, '_surface_vertex_colorings'):
-        session._surface_vertex_colorings = SurfaceColorers()
-    session._surface_vertex_colorings.add(colorer)

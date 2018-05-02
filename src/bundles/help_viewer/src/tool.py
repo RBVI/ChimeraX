@@ -101,7 +101,6 @@ class HelpUI(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
-        self._confirm = set()
         parent = self.tool_window.ui_area
 
         # UI content code
@@ -219,7 +218,7 @@ class HelpUI(ToolInstance):
         p.linkHovered.connect(self.link_hovered)
         return w
 
-    def show(self, url, *, new_tab=False, confirm=False):
+    def show(self, url, *, new_tab=False, html=None):
         from urllib.parse import urlparse, urlunparse
         parts = urlparse(url)
         if not parts.scheme:
@@ -231,10 +230,11 @@ class HelpUI(ToolInstance):
         else:
             w = self.tabs.currentWidget()
         from PyQt5.QtCore import QUrl
-        w.setUrl(QUrl(url))
+        if html:
+            w.setHtml(html, url)
+        else:
+            w.setUrl(QUrl(url))
         self.display(True)
-        # if confirm and w not in self._confirm:
-        #     pass
 
     def go_to(self):
         self.show(self.url.text())
@@ -316,7 +316,7 @@ class HelpUI(ToolInstance):
         from PyQt5.QtCore import QUrl
         try:
             self.status(_qurl2text(QUrl(url)))
-        except:
+        except Exception:
             self.status(url)
 
     def tab_changed(self, i):

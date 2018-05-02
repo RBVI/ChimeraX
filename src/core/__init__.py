@@ -65,6 +65,7 @@ _class_class_init = {
     'PseudobondManager': '.atomic.molobject',
     'Pseudobonds': '.atomic',
     'RadialColor': '.surface.colorgeom',
+    'Redust': '.surface.dust',
     'RegAttrManager': '.atomic.attr_registration',
     'Residue': '.atomic',
     'Residues': '.atomic',
@@ -73,7 +74,7 @@ _class_class_init = {
     'Structure': '.atomic',
     'StructureSeq': '.atomic',
     'Surface': '.models',
-    'SurfaceColorers': '.surface.colorvol',
+    'SurfaceUpdaters': '.surface.updaters',
     'Tasks': '.tasks',
     'Tools': '.tools',
     'TriangleInfo': '.stl',
@@ -85,6 +86,8 @@ _class_class_init = {
     'VolumeColor': '.surface.colorvol',
     'VolumeSurface': '.map.volume',
     'XSectionManager': '.atomic.ribbon',
+    'ZoneRecolor': '.surface.colorzone',
+    'ZoneRemask': '.surface.zone',
     '_Input': '.nogui',
 }
 

@@ -19,7 +19,7 @@ SUBDIRS	= _surface
 
 PYSRCS = __init__.py area.py cap.py collada.py colorgeom.py colorvol.py colorzone.py \
 	 dust.py gaussian.py gridsurf.py icosahedron.py \
-	 sasa.py shapes.py split.py topology.py tube.py zone.py
+	 sasa.py shapes.py split.py topology.py tube.py updaters.py zone.py
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

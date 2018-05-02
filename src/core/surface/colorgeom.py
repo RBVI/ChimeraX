@@ -84,8 +84,8 @@ class GeometryColor(State):
         surface.auto_recolor_vertices = arv
 
         if auto_recolor:
-            from .colorvol import add_color_session_saving
-            add_color_session_saving(surface.session, self)
+            from .updaters import add_updater_for_session_saving
+            add_updater_for_session_saving(surface.session, self)
 
     # -------------------------------------------------------------------------
     #
@@ -181,6 +181,7 @@ class GeometryColor(State):
         if surf is None:
             session.logger.warning('Could not restore coloring on surface %s because surface does not exist.'
                                    % '.'.join('%d' % i for i in id))
+            return None
         c = cls(surf, palette = data['colormap'], range = None,
                 origin = data['origin'], axis = data['axis'])
         c.set_vertex_colors()
