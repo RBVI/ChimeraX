@@ -283,7 +283,7 @@ def init(argv, event_loop=True):
     from importlib.abc import MetaPathFinder, Loader
     class CoreCompatFinder(MetaPathFinder):
         def find_spec(self, full_name, path, target=None):
-            unmoved_modules = ["atomic", "map", "surface"]
+            unmoved_modules = ["atomic", "map"]
             moved_modules = ["ui"]
             for umod in unmoved_modules:
                 future_name = "chimerax." + umod

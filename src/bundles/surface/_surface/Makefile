@@ -12,8 +12,8 @@
 TOP	= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/core/surface
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/surface
+PKG_DIR = $(PYSITEDIR)/chimerax/surface
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/surface
 
 PYMOD_NAME = _surface
 SRCS	= border.cpp capper.cpp connected.cpp convexity.cpp measure.cpp normals.cpp \

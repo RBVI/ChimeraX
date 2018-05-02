@@ -16,7 +16,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
 	   chutil_cpp commands \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
-	   map pysupport_cpp surface toolshed \
+	   map pysupport_cpp toolshed \
 	   webservices
 
 ifeq ($(OS),Darwin)

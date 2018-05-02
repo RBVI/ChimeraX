@@ -29,7 +29,7 @@ def split_surfaces(plist, session, in_place = False):
   surf = None
   if not in_place:
     name = '%s split' % plist[0].surface.name if plist else 'split surface'
-    from ..graphics import Drawing
+    from chimerax.core.graphics import Drawing
     surf = Drawing(name)
     session.models.add_models([surf])
 

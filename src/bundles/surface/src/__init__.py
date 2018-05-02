@@ -28,3 +28,38 @@ from .cap import update_clip_caps, remove_clip_caps
 from .topology import check_surface_topology
 from .colorgeom import color_radial, color_cylindrical, color_height
 from .colorvol import color_sample, color_electrostatic, color_gradient, color_surfaces_by_map_value
+
+from chimerax.core.toolshed import BundleAPI
+
+class _SurfaceBundle(BundleAPI):
+
+    @staticmethod
+    def open_file(session, stream, file_name):
+        # 'open_file' is called by session code to open a file
+        # returns (list of models, status message)
+        from . import collada
+        return collada.read_collada_surfaces(session, stream, file_name)
+
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        from .colorgeom import CylinderColor, HeightColor, RadialColor
+        from .colorvol import GradientColor, VolumeColor
+        from .dust import Redust
+        from .zone import ZoneRemask
+        from .colorzone import ZoneRecolor
+        from .updaters import SurfaceUpdaters
+        ct = {
+            'CylinderColor': CylinderColor,
+            'GradientColor': GradientColor,
+            'HeightColor': HeightColor,
+            'RadialColor': RadialColor,
+            'Redust': Redust,
+            'SurfaceUpdaters': SurfaceUpdaters,
+            'VolumeColor': VolumeColor,
+            'ZoneRecolor': ZoneRecolor,
+            'ZoneRemask': ZoneRemask,
+        }
+        return ct.get(class_name)
+
+bundle_api = _SurfaceBundle()

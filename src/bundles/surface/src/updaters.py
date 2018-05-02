@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 #
-from ..state import State
+from chimerax.core.state import State
 class SurfaceUpdaters(State):
     '''
     Keep track of the surface auto update routines so they can be saved in sessions.

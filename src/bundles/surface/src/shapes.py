@@ -43,7 +43,7 @@ def sphere_geometry2(ntri):
     Alternate techinque that produces any even number of triangles >= 4.
     Use in place of :py:func:`sphere_geometry` in new code.
     '''
-    from ..geometry import sphere
+    from chimerax.core.geometry import sphere
     va, ta = sphere.sphere_triangulation(ntri)
     return va, va[:], ta
 
@@ -191,7 +191,7 @@ def cone_geometry(radius = 1, height = 1, nc = 20, caps = True, points_up = True
     tarray[:nc,0] = arange(nc)
     tarray[:nc,1] = arange(nc) + nc
     tarray[:nc,2] = (arange(nc) + 1) % nc + nc
-    from ..geometry.vector import normalize_vectors
+    from chimerax.core.geometry import normalize_vectors
     normalize_vectors(narray[:nc2])
     
     # Create cone base (last nc+1 vertices)

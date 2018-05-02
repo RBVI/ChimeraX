@@ -19,7 +19,7 @@ def surface_zone(surface, points, distance, auto_update = False, max_components 
     if t is None:
         return
 
-    from ..geometry import find_close_points
+    from chimerax.core.geometry import find_close_points
     i1, i2 = find_close_points(v, points, distance)
 
     nv = len(v)
@@ -58,7 +58,7 @@ def path_points(atoms, bonds, bond_point_spacing = None):
 
 # -----------------------------------------------------------------------------
 #
-from ..state import State
+from chimerax.core.state import State
 class ZoneRemask(State):
     def __init__(self, surface, points, distance, max_components):
         self.surface = surface

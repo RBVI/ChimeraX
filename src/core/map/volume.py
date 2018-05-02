@@ -763,7 +763,7 @@ class Volume(Model):
       varray[:,2-a] = 0
     
     if ro.flip_normals and level < 0:
-      from ..surface import invert_vertex_normals
+      from chimerax.surface import invert_vertex_normals
       invert_vertex_normals(narray, tarray)
 
     # Preserve triangle vertex traversal direction about normal.
@@ -773,7 +773,7 @@ class Volume(Model):
       reverse_triangle_vertex_order(tarray)
 
     if ro.subdivide_surface:
-      from ..surface import subdivide_triangles
+      from chimerax.surface import subdivide_triangles
       for level in range(ro.subdivision_levels):
         varray, tarray, narray = subdivide_triangles(varray, tarray, narray)
 
@@ -785,7 +785,7 @@ class Volume(Model):
 
     if ro.surface_smoothing:
       sf, si = ro.smoothing_factor, ro.smoothing_iterations
-      from ..surface import smooth_vertex_positions
+      from chimerax.surface import smooth_vertex_positions
       smooth_vertex_positions(varray, tarray, sf, si)
       smooth_vertex_positions(narray, tarray, sf, si)
 

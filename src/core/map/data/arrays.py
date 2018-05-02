@@ -355,7 +355,7 @@ def surface_level_enclosing_volume(matrix, volume, tolerance = 1e-3,
     except MemoryError:
       raise MemoryError('Ran out of memory contouring at level %.3g.\n' % level)
 
-    from ...surface import enclosed_volume
+    from chimerax.surface import enclosed_volume
     evol, holes = enclosed_volume(varray, tarray)
     if abs(evol-volume) < tolerance*volume:
       break

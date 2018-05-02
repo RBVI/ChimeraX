@@ -54,7 +54,7 @@ def color_gradient(session, surfaces, map, palette = None, range = None,
 #
 def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
                                 palette = None, range = None, offset = 0):
-    from .. import atomic
+    from chimerax.core import atomic
     surfs = atomic.surfaces_with_atoms(atoms)
     for s in surfs:
         v, all_atoms = s.vertices_for_atoms(atoms)
@@ -87,7 +87,7 @@ def _use_full_range(range, palette):
 #
 def _colormap_with_range(cmap, range, default = 'redblue'):
     if cmap is None:
-        from ..colors import BuiltinColormaps
+        from chimerax.core.colors import BuiltinColormaps
         cmap = BuiltinColormaps[default]
     if range is None or range[0] is None:
         cm = cmap
@@ -101,7 +101,7 @@ def _colormap_with_range(cmap, range, default = 'redblue'):
 
 # -----------------------------------------------------------------------------
 #
-from ..state import State
+from chimerax.core.state import State
 class VolumeColor(State):
 
     menu_name = 'volume data value'
@@ -181,7 +181,7 @@ class VolumeColor(State):
         cmap = self.colormap
         rgba = cmap.interpolated_rgba(values)
         if len(outside) > 0:
-            from .. import map
+            from chimerax.core import map
             map.set_outside_volume_colors(outside, cmap.color_no_value, rgba)
 
         from numpy import uint8

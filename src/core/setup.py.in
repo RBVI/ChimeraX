@@ -94,7 +94,6 @@ setup(
         "PKG_NAME.map.filter",
         "PKG_NAME.map.fit",
         "PKG_NAME.map.series",
-        "PKG_NAME.surface",
         "PKG_NAME.toolshed",
         "PKG_NAME.webservices",
     ],
@@ -105,7 +104,6 @@ setup(
         "PKG_NAME.geometry": ["*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.graphics": ["*.txt", "*.PYMOD_EXT", "*.pdb"],
         "PKG_NAME.map": ["*.PYMOD_EXT", "*.pdb"],
-        "PKG_NAME.surface": ["*.PYMOD_EXT", "*.pdb"],
     },
     data_files=[
         (rel_inst_shlib_dir, [

@@ -35,7 +35,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     matrix[:,:,:] = max_index_range
 
     # Transform centers and radii to grid index coordinates
-    from ..geometry import Place
+    from chimerax.core.geometry import Place
     xyz_to_ijk_tf = Place(((1.0/s, 0, 0, -origin[0]/s),
                            (0, 1.0/s, 0, -origin[1]/s),
                            (0, 0, 1.0/s, -origin[2]/s)))
@@ -47,11 +47,11 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     ri /= s
 
     # Compute distance map from surface of spheres, positive outside.
-    from ..map import sphere_surface_distance
+    from chimerax.core.map import sphere_surface_distance
     sphere_surface_distance(ijk, ri, max_index_range, matrix)
 
     # Get the SAS surface as a contour surface of the distance map
-    from ..map import contour_surface
+    from chimerax.core.map import contour_surface
     level = 0
     sas_va, sas_ta, sas_na = contour_surface(matrix, level, cap_faces = False,
                                              calculate_normals = True)

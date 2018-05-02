@@ -27,7 +27,7 @@ def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None
     from math import pi, sqrt, pow
     sigma_factor = 1 / (pi*sqrt(2))
     sdev = resolution*sigma_factor
-    from ..map.molmap import bounding_grid, add_gaussians
+    from chimerax.core.map.molmap import bounding_grid, add_gaussians
     grid = bounding_grid(xyz, grid_spacing, pad)
     add_gaussians(grid, xyz, weights, sdev, cutoff_range)
 
@@ -35,18 +35,18 @@ def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None
 
     if level is None:
         # Use level of half the minimum density at point positions
-        from ..map import data
+        from chimerax.core.map import data
         mxyz, outside = data.interpolate_volume_data(xyz, grid.xyz_to_ijk_transform, m)
         level = 0.5*min(mxyz)
 
-    from ..map import contour_surface
+    from chimerax.core.map import contour_surface
     va, ta, na = contour_surface(m, level, cap_faces = True, calculate_normals = True)
 
     # Convert ijk to xyz
     tf = grid.ijk_to_xyz_transform
     tf.move(va)
     tf.zero_translation().move(na)
-    from ..geometry import vector
+    from chimerax.core.geometry import vector
     vector.normalize_vectors(na)
 
     return va, na, ta, level

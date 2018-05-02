@@ -10,7 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def update_clip_caps(view):
-    from ..core_settings import settings
+    from chimerax.core.core_settings import settings
     if not settings.clipping_surface_caps:
         return
     cp = view.clip_planes
@@ -41,7 +41,7 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
         if hasattr(cap, 'clip_cap_owner') and cap.clip_plane_name not in plane_names:
             d = cap.clip_cap_owner
             del d._clip_cap_drawings[cap.clip_plane_name]
-            from ..models import Model
+            from chimerax.core.models import Model
             if isinstance(cap, Model):
                 cap.session.models.remove([cap])
             else:
@@ -52,7 +52,7 @@ def remove_clip_caps(drawings):
         if hasattr(cap, 'clip_cap_owner'):
             d = cap.clip_cap_owner
             del d._clip_cap_drawings[cap.clip_plane_name]
-            from ..models import Model
+            from chimerax.core.models import Model
             if isinstance(cap, Model):
                 cap.session.models.remove([cap])
             else:
@@ -80,7 +80,7 @@ def compute_cap(drawing, plane, offset):
     else:
         dp = d.scene_position.inverse()
         pnormal = dp.apply_without_translation(plane.normal)
-        from ..geometry import inner_product
+        from chimerax.core.geometry import inner_product
         poffset = inner_product(pnormal, dp*plane.plane_point) + offset + getattr(d, 'clip_offset', 0)
         from . import compute_cap
         varray, tarray = compute_cap(pnormal, poffset, d.vertices, t)
@@ -113,7 +113,7 @@ def compute_instances_cap(drawing, triangles, plane, offset):
     for pos in ipos:
         pinv = pos.inverse()
         pnormal = pinv.apply_without_translation(parent_pnormal)
-        from ..geometry import inner_product
+        from chimerax.core.geometry import inner_product
         poffset = inner_product(pnormal, pinv*parent_ppoint) + doffset
         from . import compute_cap
         ivarray, itarray = compute_cap(pnormal, poffset, d.vertices, triangles)
@@ -172,7 +172,7 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     cm.set_geometry(varray, narray, tarray)
 
 def new_cap(drawing, cap_name):
-    from ..models import Model, Surface
+    from chimerax.core.models import Model, Surface
     if isinstance(drawing, Model):
         # Make cap a model when capping a model so color can be set by command.
         c = Surface(cap_name, drawing.session)

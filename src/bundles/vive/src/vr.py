@@ -760,7 +760,7 @@ class HandControllerModel(Model):
             session.models.add([self])
 
     def _create_model_geometry(self, size, aspect):
-        from chimerax.core.surface.shapes import cone_geometry
+        from chimerax.surface.shapes import cone_geometry
         va, na, ta = cone_geometry(nc = 50, points_up = False)
         va[:,:2] *= aspect
         va[:,2] += 0.5		# Move tip to 0,0,0 for picking
@@ -1227,7 +1227,7 @@ class IconPanel(HandMode):
         self._icon_highlight_drawing = d = Drawing('VR icon highlight')
         d.casts_shadows = False
         s = self._cone_length
-        from chimerax.core.surface import sphere_geometry
+        from chimerax.surface import sphere_geometry
         va, na, ta = sphere_geometry(200)
         va *= 0.1*s
         d.set_geometry(va, na, ta)

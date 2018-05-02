@@ -83,7 +83,7 @@ def show_only_largest_blobs(surface, visible_only = False, blob_count = 1,
 
 # -----------------------------------------------------------------------------
 #
-from ..state import State
+from chimerax.core.state import State
 class Redust(State):
     def __init__(self, surface, metric, limit):
         self.surface = surface

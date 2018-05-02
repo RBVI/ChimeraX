@@ -972,8 +972,6 @@ def _register_core_file_formats(session):
     map.register_map_file_formats(session)
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
-    from .surface import collada
-    collada.register_collada_format()
     from . import image
     image.register_image_save(session)
     register_x3d_format()

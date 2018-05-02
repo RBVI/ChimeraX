@@ -305,7 +305,7 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
 def vseries_measure(session, series, output = None, centroids = True,
                color = (.7,.7,.7,1), radius = None):
     '''Report centroid motion of a map series.'''
-    from ...surface import surface_volume_and_area
+    from chimerax.surface import surface_volume_and_area
     from ...measure import inertia
     meas = []
     for s in series:

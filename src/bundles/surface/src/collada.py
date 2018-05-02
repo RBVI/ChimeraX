@@ -17,10 +17,10 @@ def read_collada_surfaces(session, path, name = None, color = (200,200,200,255),
     if name is None:
         from os.path import basename
         name = basename(path)
-    from ..geometry import Place
+    from chimerax.core.geometry import Place
     splist = surfaces_from_nodes(c.scene.nodes, color, Place(), {}, session)
     if len(splist) > 1:
-        from ..models import Model
+        from chimerax.core.models import Model
         s = Model(name, session)
         s.add(splist)
     elif len(splist) == 1:
@@ -38,8 +38,8 @@ def read_collada_surfaces(session, path, name = None, color = (200,200,200,255),
 def surfaces_from_nodes(nodes, color, place, instances, session):
 
     from collada.scene import GeometryNode, Node
-    from ..geometry import Place
-    from ..models import Surface
+    from chimerax.core.geometry import Place
+    from chimerax.core.models import Surface
     splist = []
     for n in nodes:
         if isinstance(n, GeometryNode):
@@ -92,7 +92,7 @@ def geometry_node_surfaces(primitives, place, color, materials, colors, session)
         c = material_color(materials.get(p.material), color)
 
         name = '%d' % (len(splist) + 1)
-        from ..models import Surface
+        from chimerax.core.models import Surface
         sp = Surface(name, session)
         sp.set_geometry(v, vn, t)
         sp.color_list = [c]
@@ -142,17 +142,10 @@ def vertex_colors(triangle_set, tarray, nv, colors):
 
 # For drawings with multiple instances make colors a numpy uint8 array.
 def set_instance_positions_and_colors(drawings):
-    from ..geometry import Places
+    from chimerax.core.geometry import Places
     for d in drawings:
         if hasattr(d, 'position_list') and hasattr(d, 'color_list'):
             clist = d.color_list
             from numpy import array, uint8
             d.colors = array(clist, uint8).reshape((len(clist),4))
             d.positions = Places(d.position_list)
-
-def register_collada_format():
-    from .. import io, generic3d
-    io.register_format(
-        "Collada", generic3d.CATEGORY, (".dae",), ("collada",),
-        reference="https://www.khronos.org/collada/",
-        open_func=read_collada_surfaces)

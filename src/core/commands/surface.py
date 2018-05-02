@@ -279,7 +279,7 @@ def surface_cap(session, enable = None, offset = None):
             clip_planes = session.main_view.clip_planes
             clip_planes.changed = True
         else:
-            from chimerax.core.surface import remove_clip_caps
+            from chimerax.surface import remove_clip_caps
             drawings = session.main_view.drawing.all_drawings()
             remove_clip_caps(drawings)
         session.triggers.activate_trigger('clipping caps changed', enable)

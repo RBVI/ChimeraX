@@ -45,7 +45,7 @@ def points_and_colors(atoms, bonds, bond_point_spacing = None):
 def color_surface(surf, points, point_colors, distance):
 
     varray = surf.vertices
-    from ..geometry import find_closest_points
+    from chimerax.core.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
     from numpy import empty, uint8
@@ -66,7 +66,7 @@ def uncolor_zone(model):
 
 # -----------------------------------------------------------------------------
 #
-from ..state import State
+from chimerax.core.state import State
 class ZoneRecolor(State):
     def __init__(self, surface, points, point_colors, distance, sharp_edges):
         self.surface = surface
@@ -188,7 +188,7 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
 # -----------------------------------------------------------------------------
 #
 def _cut_at_range(x1, x2, p, distance):
-    from ..geometry import distance as dist
+    from chimerax.core.geometry import distance as dist
     d1 = dist(x1, p)
     d2 = dist(x2, p)
     f = (d1-distance)/(d1-d2)

@@ -379,5 +379,5 @@ def hidden_structures(structures):
 # -----------------------------------------------------------------------------
 #
 def _pseudobond_geometry(segments = 9):
-    from chimerax.core import surface
+    from chimerax import surface
     return surface.dashed_cylinder_geometry(segments, height = 0.5)

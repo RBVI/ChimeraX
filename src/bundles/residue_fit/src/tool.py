@@ -147,7 +147,7 @@ def show_residue_fit(session, residues, map, range = 2, last_pos = None, motion_
 
     from numpy import concatenate
     zone_points = concatenate([r.atoms.scene_coords for r in residues])
-    from chimerax.core.surface import zone
+    from chimerax.surface import zone
     zone.surface_zone(map, zone_points, range)
 
     for r in residues:

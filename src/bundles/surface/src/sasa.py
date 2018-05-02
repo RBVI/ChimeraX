@@ -27,7 +27,7 @@ def buried_sphere_area(i, centers, radii, draw = False):
 
     if draw:
         surf0 = sphere_model([i], centers, radii)
-        from ..geometry.vector import norm
+        from chimerax.core.geometry import norm
         jlist = [j for j in range(len(centers)) if j != i and norm(centers[j]-centers[i]) < radii[j]+radii[i]]
 #        jlist = list(range(i)) + list(range(i+1,len(centers)))
         print(len(jlist), 'spheres intersect sphere', i)
@@ -72,7 +72,7 @@ def sphere_intersection_circles(i, centers, radii):
 
 def sphere_intersection(c0, r0, c1, r1):
 
-    from ..geometry.vector import distance
+    from chimerax.core.geometry import distance
     d = distance(c0,c1)
     if d > r0+r1 or r1+d < r0 or r0+d < r1:
         return None
@@ -96,7 +96,7 @@ def area_in_circles_on_unit_sphere(circles, draw = False, draw_center = (0,0,0),
         return 0
 
     if draw:
-        from ..graphics import Drawing
+        from chimerax.core.graphics import Drawing
         surfc = Drawing('circles')
         s0 = (draw_center, draw_radius)
         draw_circles(circles, s0, surfc, width = 0.01, offset = 0.01)
@@ -162,7 +162,7 @@ def circle_intersections(circles, draw = False):
     return cint, lc, nreg
 
 def circle_in_circles(i, circles):
-    from ..geometry.vector import inner_product
+    from chimerax.core.geometry import inner_product
     p,a = circles[i].center, circles[i].angle
     for j,c in enumerate(circles):
         if c.angle >= a and inner_product(p, c.center) >= cos(c.angle-a) and j != i:
@@ -171,7 +171,7 @@ def circle_in_circles(i, circles):
 
 def circle_intercepts(c0, c1):
 
-    from ..geometry.vector import inner_product, cross_product
+    from chimerax.core.geometry import inner_product, cross_product
     ca01 = inner_product(c0.center,c1.center)
     x01 = cross_product(c0.center,c1.center)
     s2 = inner_product(x01,x01)
@@ -191,7 +191,7 @@ def circle_intercepts(c0, c1):
             a*c0.center + b*c1.center + d*x01)
 
 def point_in_circles(p, circles, exclude):
-    from ..geometry.vector import inner_product
+    from chimerax.core.geometry import inner_product
     for i,c in enumerate(circles):
         if inner_product(p,c.center) >= c.cos_angle and not i in exclude:
             return True
@@ -291,7 +291,7 @@ def circle_intercept_angle(center1, pintersect, center2):
 # Angle from plane defined by z and v1 rotated to plane defined by z and v2
 # range 0 to 2*pi.
 def polar_angle(zaxis, v1, v2):
-    from ..geometry import orthonormal_frame
+    from chimerax.core.geometry import orthonormal_frame
     f = orthonormal_frame(zaxis, xdir = v1)
     x,y,z = f.transpose()*v2
     a = atan2(y,x)
@@ -341,7 +341,7 @@ def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
 
     arc = polar_angle(circle.center, p1, p2)
     va, ta = sphere_band_arc(circle.angle, arc, width)
-    from ..geometry import orthonormal_frame
+    from chimerax.core.geometry import orthonormal_frame
     f = orthonormal_frame(circle.center, xdir = p1)
     f.move(va)
     na = va.copy()
@@ -358,7 +358,7 @@ def draw_sphere_points(points, sphere, s, color, radius = 0.02, offset = 0.02):
 
 def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
     cs, r = sphere
-    from ..geometry import orthonormal_frame
+    from chimerax.core.geometry import orthonormal_frame
     for c in circles:
         f = orthonormal_frame(c.center)
         va, ta = sphere_band_geometry(c.angle, width = width)
@@ -434,7 +434,7 @@ def arc_points(arc, n):
 
 def sphere_model(indices, centers, radii, ntri = 2000):
 
-    from ..graphics import Drawing
+    from chimerax.core.graphics import Drawing
     s = Drawing('spheres')
     from .shapes import sphere_geometry
     for i in indices:

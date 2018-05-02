@@ -678,7 +678,7 @@ class Structure(Model, StructureData):
             if False:
                 # Debugging code to display line from control point to guide
                 cp = p.new_drawing(str(self) + " control points")
-                from chimerax.core import surface
+                from chimerax import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
                 cp.set_geometry(va, na, ta)
                 from numpy import empty, float32
@@ -901,7 +901,7 @@ class Structure(Model, StructureData):
                 tp = p.new_drawing(str(self) + " ribbon_tethers")
                 tp.skip_bounds = True
                 nc = m.ribbon_tether_sides
-                from chimerax.core import surface
+                from chimerax import surface
                 if m.ribbon_tether_shape == self.TETHER_CYLINDER:
                     va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
@@ -919,7 +919,7 @@ class Structure(Model, StructureData):
             # Create spine if necessary
             if self.ribbon_show_spine:
                 sp = p.new_drawing(str(self) + " spine")
-                from chimerax.core import surface
+                from chimerax import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
                 sp.set_geometry(va, na, ta)
                 from numpy import empty, float32
@@ -940,7 +940,7 @@ class Structure(Model, StructureData):
         except AttributeError:
             return
         sp = p.new_drawing(str(self) + " normal spline")
-        from chimerax.core import surface
+        from chimerax import surface
         from numpy import empty, array, float32, linspace
         from chimerax.core.geometry import Places
         num_pts = num_coords*self._level_of_detail.ribbon_divisions
@@ -1417,7 +1417,7 @@ class Structure(Model, StructureData):
         return axes, centroid, rel_coords
 
     def _ss_display(self, p, name, centers):
-        from chimerax.core import surface
+        from chimerax import surface
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
@@ -1430,7 +1430,7 @@ class Structure(Model, StructureData):
         ssp.colors = ss_colors
 
     def _ss_guide_display(self, p, name, centers, guides):
-        from chimerax.core import surface
+        from chimerax import surface
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
@@ -2612,7 +2612,7 @@ class LevelOfDetail(State):
         # Cache cylinder triangulations of different sizes.
         cg = self._cylinder_geometries
         if not div in cg:
-            from chimerax.core import surface
+            from chimerax import surface
             cg[div] = surface.cylinder_geometry(nc = div, caps = False, height = 0.5)
         return cg[div]
 
