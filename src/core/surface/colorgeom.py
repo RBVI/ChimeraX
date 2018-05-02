@@ -84,8 +84,8 @@ class GeometryColor(State):
         surface.auto_recolor_vertices = arv
 
         if auto_recolor:
-            from .colorvol import add_color_session_saving
-            add_color_session_saving(surface.session, self)
+            from .updaters import add_updater_for_session_saving
+            add_updater_for_session_saving(surface.session, self)
 
     # -------------------------------------------------------------------------
     #
