@@ -492,7 +492,8 @@ def level_and_color_settings(v, options):
         if levels:
             clist = [colors[0].rgba]*len(levels)
         else:
-            clist = [colors[0].rgba]*len(getattr(v, style + '_levels'))
+            nlev = len(v.solid_levels if style == 'solid' else [s.level for s in v.surfaces])
+            clist = [colors[0].rgba]*nlev
         kw[style+'_colors'] = clist
     elif len(colors) > 1:
         kw[style+'_colors'] = [c.rgba for c in colors]
