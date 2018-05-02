@@ -214,16 +214,22 @@ def _register_viewer_subcommands(logger):
         _register_viewer_subcommand(logger, viewer_sub)
 
 def _register_viewer_subcommand(logger, viewer_sub):
-    def viewer_subcommand(session, align_id, subcommand_text, *, _viewer_keyword=viewer_sub):
-        if align_id is None:
-            align_id = ""
-        from .cmd import get_alignment_by_id
-        alignments = get_alignment_by_id(session, align_id, multiple_okay=True)
+    def viewer_subcommand(session, alignment_s, subcommand_text, *, _viewer_keyword=viewer_sub):
+        from .alignment import Alignment
+        if alignment_s is None:
+            from .cmd import get_alignment_by_id
+            alignments = get_alignment_by_id(session, "", multiple_okay=True)
+        elif isinstance(alignment_s, Alignment):
+            alignments = [alignment_s]
+        else:
+            alignments = alignment_s
         for alignment in alignments:
             alignment._dispatch_viewer_command(session, _viewer_keyword, subcommand_text)
-    from chimerax.core.commands import CmdDesc, register, StringArg, Or, EmptyArg, RestOfLine
+    from .cmd import AlignmentArg
+    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, RestOfLine, ListOf
     desc = CmdDesc(
-        required = [('align_id', Or(StringArg,EmptyArg), ('subcommand_text', RestOfLine)],
+        required = [('align_id', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg),
+            ('subcommand_text', RestOfLine)],
         synopsis = "send subcommand to viewer '%s'" %viewer_sub
     )
     register('sequence %s' % viewer_sub, desc, viewer_subcommand, logger=logger)

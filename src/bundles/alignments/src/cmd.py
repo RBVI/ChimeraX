@@ -36,16 +36,11 @@ class SeqArg(Annotation):
         seq = get_alignment_sequence(alignment, seq_id)
         return seq, text, rest
 
-class SeqArg(Annotation):
-    '''A single sequence (in a single alignment)
+class AlignmentArg(Annotation):
+    '''A sequence alignment'''
 
-       If only one alignment is open, the alignment ID can be omitted.
-       Within the alignment, sequences can be specified by name or number, with
-       negative numbers counting backwards from the end of the alignment.
-    '''
-
-    name = "[alignment-id]:sequence-name-or-number"
-    _html_name = "[<i>alignment-id</i>]:<i>sequence-name-or-number</i>"
+    name = "alignment-id"
+    _html_name = "<i>alignment-id</i>"
 
     @staticmethod
     def parse(text, session):
@@ -53,23 +48,8 @@ class SeqArg(Annotation):
         if not text:
             raise AnnotationError("Expected %s" % SeqArg.name)
         token, text, rest = next_token(text)
-        if ':' not in token:
-            raise AnnotationError("Expected at least one ':' character in %s" % SeqArg.name)
-        align_id, seq_id = token.split(':', 1)
-        if not align_id:
-            if not session.alignments.alignments:
-                raise AnnotationError("No alignments open!")
-            elif len(session.alignments.alignments) > 1:
-                raise AnnotationError("More than one sequence alignment open;"
-                    " need to specify an alignment ID")
-            alignment = list(session.alignments.values())[0]
-        else:
-            try:
-                alignment = session.alignments.alignments[align_id]
-            except KeyError:
-                raise AnnotationError("No known alignment with ID: '%s'" % align_id)
-        seq = get_alignment_sequence(alignment, seq_id)
-        return seq, text, rest
+        alignment = get_alignnment_by_id(session, token)
+        return alignment, text, rest
 
 def get_alignment_sequence(alignment, seq_id):
     try:

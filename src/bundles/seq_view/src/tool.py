@@ -85,7 +85,8 @@ class SequenceViewer(ToolInstance):
         self.seqs = seqs
         """
         self.alignment = alignment
-        alignment.attach_viewer(self)
+        from . import subcommand_name
+        alignment.attach_viewer(self, subcommand_name=subcommand_name)
         from . import settings
         self.settings = settings.init(session)
         """
