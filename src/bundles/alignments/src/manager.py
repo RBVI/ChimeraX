@@ -221,9 +221,9 @@ def _register_viewer_subcommand(logger, viewer_sub):
         alignments = get_alignment_by_id(session, align_id, multiple_okay=True)
         for alignment in alignments:
             alignment._dispatch_viewer_command(session, _viewer_keyword, subcommand_text)
-    from chimerax.core.commands import CmdDesc, register, StringArg, Or, EmptyArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, Or, EmptyArg, RestOfLine
     desc = CmdDesc(
-        required = [('align_id', Or(StringArg,EmptyArg), ('subcommand_text', StringArg)],
+        required = [('align_id', Or(StringArg,EmptyArg), ('subcommand_text', RestOfLine)],
         synopsis = "send subcommand to viewer '%s'" %viewer_sub
     )
     register('sequence %s' % viewer_sub, desc, viewer_subcommand, logger=logger)
