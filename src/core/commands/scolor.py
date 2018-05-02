@@ -208,7 +208,8 @@ def _compute_value_range(color_source):
 
 # -----------------------------------------------------------------------------
 #
-class VolumeColor:
+from ..state import State
+class VolumeColor(State):
 
     menu_name = 'volume data value'
     volume_name = 'volume'
@@ -224,6 +225,7 @@ class VolumeColor:
         self.colormap = None
         self.transparency = transparency
         self.offset = offset
+
         self.per_pixel_coloring = False
         self.solid = None             # Manages 3D texture
 
@@ -234,6 +236,9 @@ class VolumeColor:
         else:
             arv = None
         surface.auto_recolor_vertices = arv
+
+        if auto_recolor:
+            _add_color_session_saving(surface.session, self)
 
     # -------------------------------------------------------------------------
     #
@@ -272,6 +277,9 @@ class VolumeColor:
     def vertex_colors(self, report_stats = True):
 
         values, outside = self.volume_values()
+        if values is None:
+            return None
+        
         if report_stats and len(values) > 0:
             log = self.volume.session.logger.info
             log('Map values for surface "%s": minimum %.4g, mean %.4g, maximum %.4g'
@@ -311,6 +319,8 @@ class VolumeColor:
             return (None, None)
 
         values, outside = self.volume_values()
+        if values is None:
+            return None, None
         v = inside_values(values, outside)
         return array_value_range(v)
         
@@ -322,6 +332,8 @@ class VolumeColor:
         # Transform from surface to volume coordinates
         tf = self.volume.scene_position.inverse() * s.scene_position
         v = s.vertices
+        if v is None:
+            return None, None
         n = s.normals
         return self.offset_values(v, n, tf)
 
@@ -428,18 +440,41 @@ class VolumeColor:
                         cmap.data_values, cmap.colors)
             s.set_colormap(tfunc, 1, None, clamp = True)
             s.update_drawing(open = False)
+
+    # -------------------------------------------------------------------------
+    #
+    def take_snapshot(self, session, flags):
+        data = {
+            'surface': self.surface,
+            'volume': self.volume,
+            'colormap': self.colormap,
+            'transparency': self.transparency,
+            'offset': self.offset,
+            'version': 1,
+        }
+        return data
+
+    # -------------------------------------------------------------------------
+    #
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        surf = data['surface']
+        if surf is None:
+            session.logger.warning('Could not restore coloring on surface because surface does not exist.')
+        vol = data['volume']
+        if surf is None:
+            session.logger.warning('Could not restore coloring on surface %s because volume does not exist.'
+                                   % surf.name)
+        c = cls(surf, vol, palette = data['colormap'], range = None,
+                transparency = data['transparency'], offset = data['offset'])
+        c.set_vertex_colors()
+        return c
             
     # -------------------------------------------------------------------------
     #
     def volume_closed_cb(self, volume):
 
         self.volume = None
-        
-    # -------------------------------------------------------------------------
-    #
-    def closed(self):
-
-        return self.volume is None
 
 # -----------------------------------------------------------------------------
 #
@@ -527,7 +562,8 @@ def offset_vertices(vertices, normals, offset):
     
 # -----------------------------------------------------------------------------
 #
-class GeometryColor:
+from ..state import State
+class GeometryColor(State):
 
     menu_name = 'distance'
     uses_volume_data = False
@@ -545,6 +581,9 @@ class GeometryColor:
         
         arv = self.set_vertex_colors if auto_recolor else None
         surface.auto_recolor_vertices = arv
+
+        if auto_recolor:
+            _add_color_session_saving(surface.session, self)
 
     # -------------------------------------------------------------------------
     #
@@ -583,6 +622,8 @@ class GeometryColor:
 
         s = self.surface
         vertices = s.vertices
+        if vertices is None:
+            return None
         sp = s.scene_position
         va = vertices if sp.is_identity() else sp * vertices
         values = self.values(va)
@@ -618,12 +659,31 @@ class GeometryColor:
         va = vertices if sp.is_identity() else sp * vertices
         v = self.values(va)
         return array_value_range(v)
-        
+
     # -------------------------------------------------------------------------
     #
-    def closed(self):
+    def take_snapshot(self, session, flags):
+        data = {
+            'surface': self.surface,
+            'colormap': self.colormap,
+            'origin': self.origin,
+            'axis': self.axis,
+            'version': 1,
+        }
+        return data
 
-        return False
+    # -------------------------------------------------------------------------
+    #
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        surf = data['surface']
+        if surf is None:
+            session.logger.warning('Could not restore coloring on surface %s because surface does not exist.'
+                                   % '.'.join('%d' % i for i in id))
+        c = cls(surf, palette = data['colormap'], range = None,
+                origin = data['origin'], axis = data['axis'])
+        c.set_vertex_colors()
+        return c
     
 # -----------------------------------------------------------------------------
 #
@@ -703,114 +763,36 @@ def distances_from_axis(points, origin, axis):
     geometry.distances_perpendicular_to_axis(points, origin, axis, d)
 
     return d
+
+# -----------------------------------------------------------------------------
+#
+class SurfaceColorers(State):
+    def __init__(self):
+        from weakref import WeakSet
+        self._colorers = WeakSet()
+
+    def add(self, colorer):
+        self._colorers.add(colorer)
+        
+    def take_snapshot(self, session, flags):
+        data = {'colorers': tuple(self._colorers),
+                'version': 1}
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        # Actual colorers are added when each is restored.
+        return SurfaceColorers()
+
+    def clear(self):
+        self._colorers.clear()
         
 # -----------------------------------------------------------------------------
-# Stop coloring a surface using a coloring function.
 #
-def stop_coloring_surface(model):
-    
-    color_updater.stop_coloring(model)
-
-    import SurfaceCap
-    cm = SurfaceCap.cap_model(model, create = False)
-    if cm and cm != model:
-        color_updater.stop_coloring(cm)
-            
-# -----------------------------------------------------------------------------
-#
-class Color_Updater:
-
-    def __init__(self):
-
-        self.models = {}
-
-        import SimpleSession
-        import chimera
-        chimera.triggers.addHandler(SimpleSession.SAVE_SESSION,
-                                    self.save_session_cb, None)
-            
-    # -------------------------------------------------------------------------
-    #
-    def auto_recolor(self, model, color_source, caps_only):
-
-        add_callback = not self.models.has_key(model)
-        self.models[model] = (color_source, caps_only)
-        from Surface import set_coloring_method
-        set_coloring_method('surface color', model, self.stop_coloring)
-        if add_callback:
-            model.addGeometryChangedCallback(self.surface_changed_cb)
-            from chimera import addModelClosedCallback
-            addModelClosedCallback(model, self.model_closed_cb)
-            
-    # -------------------------------------------------------------------------
-    #
-    def stop_coloring(self, model, erase_coloring = True):
-
-        if not model in self.models:
-            return
-
-        del self.models[model]
-        model.removeGeometryChangedCallback(self.surface_changed_cb)
-
-        # Remove per-vertex coloring.
-        plist = [p for p in model.surfacePieces
-                 if hasattr(p, 'using_surface_coloring')
-                 and p.using_surface_coloring]
-        for p in plist:
-            if erase_coloring:
-                p.vertexColors = None
-                p.textureId = 0
-                p.textureCoordinates = None
-            p.using_surface_coloring = False
-            
-    # -------------------------------------------------------------------------
-    # p is SurfacePiece.
-    #
-    def surface_changed_cb(self, p, detail):
-
-        if detail == 'removed':
-            return
-
-        m = p.model
-        (color_source, caps_only) = self.models[m]
-        if color_source.closed():
-            self.stop_coloring(m)
-            return
-        if caps_only:
-            import SurfaceCap
-            if not SurfaceCap.is_surface_cap(p):
-                return
-        include_outline_boxes = False
-        if not include_outline_boxes and hasattr(p, 'outline_box'):
-            return
-        color_source.color_surface_pieces([p])
-
-    # -------------------------------------------------------------------------
-    #
-    def model_closed_cb(self, model):
-
-        if model in self.models:
-            del self.models[model]
-            
-    # -------------------------------------------------------------------------
-    #
-    def surface_coloring(self, surface):
-
-        mtable = self.models
-        if surface in mtable:
-            color_source, caps_only = mtable[surface]
-            if color_source.closed():
-                self.stop_coloring(surface, erase_coloring = False)
-            else:
-                return color_source, caps_only
-        return None, None
-            
-    # -------------------------------------------------------------------------
-    #
-    def save_session_cb(self, trigger, x, file):
-
-        import session
-        session.save_surface_color_state(self.models, file)
+def _add_color_session_saving(session, colorer):
+    if not hasattr(session, '_surface_vertex_colorings'):
+        session._surface_vertex_colorings = SurfaceColorers()
+    session._surface_vertex_colorings.add(colorer)
 
 # -----------------------------------------------------------------------------
 #
@@ -877,38 +859,6 @@ def triangle_vertex_weights(xyz, triangle_corners):
   a1 = ip(n2,p)/i2 if i2 != 0 else 0
   w = ((1-a1-a2),a1,a2)
   return w
-
-# -----------------------------------------------------------------------------
-#
-def colorable_surface_models():
-
-    from chimera import openModels
-    from _surface import SurfaceModel
-    mlist = openModels.list(modelTypes = [SurfaceModel])
-    from SurfaceCap import is_surface_cap
-    mlist = [m for m in mlist if not is_surface_cap(m)]
-
-    return mlist
-            
-# -----------------------------------------------------------------------------
-#
-def surface_coloring(surface):
-
-    return color_updater.surface_coloring(surface)
-
-# -----------------------------------------------------------------------------
-# Unused.
-#
-def unscolor(surfaces):
-
-    from _surface import SurfaceModel
-    surfs = set([s for s in surfaces if isinstance(s, SurfaceModel)])
-    if len(surfs) == 0:
-        raise CommandError('No surfaces specified')
-    import ColorZone
-    for s in surfs:
-        stop_coloring_surface(s)
-        ColorZone.uncolor_zone(s)
 
 # -------------------------------------------------------------------------
 # Unused.
