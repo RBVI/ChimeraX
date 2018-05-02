@@ -251,7 +251,7 @@ class ChimeraXHtmlView(HtmlView):
                 finally:
                     if prev_dir:
                         os.chdir(prev_dir)
-            self.session.ui.thread_safe(defer, self.session, qurl.toString(qurl.FullyDecoded), from_dir)
+            self.session.ui.thread_safe(defer, self.session, qurl.url(), from_dir)
             return
 
     def download_requested(self, item):
