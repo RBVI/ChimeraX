@@ -7,19 +7,21 @@
 # list of points using the corresponding point colors.
 # The points are in model object coordinates.
 #
-def color_zone(model, points, point_colors, distance,
-               sharp_edges = False, auto_update = False):
+def color_zone(surface, points, point_colors, distance,
+               sharp_edges = False, auto_update = True):
 
-    color_surface(model, points, point_colors, distance)
+    color_surface(surface, points, point_colors, distance)
 
     if sharp_edges:
-        color_zone_sharp_edges(model, points, point_colors, distance, replace = True)
+        color_zone_sharp_edges(surface, points, point_colors, distance, replace = True)
 
     if auto_update:
-        recolor = ZoneRecolor(model, points, point_colors, distance, sharp_edges)
+        recolor = ZoneRecolor(surface, points, point_colors, distance, sharp_edges)
+        from .colorvol import add_color_session_saving
+        add_color_session_saving(surface.session, recolor)
     else:
         recolor = None
-    model.auto_recolor_vertices = recolor
+    surface.auto_recolor_vertices = recolor
 
 # -----------------------------------------------------------------------------
 #
@@ -64,19 +66,48 @@ def uncolor_zone(model):
 
 # -----------------------------------------------------------------------------
 #
-class ZoneRecolor:
-    def __init__(self, model, points, point_colors, distance, sharp_edges):
-        self.model = model
+from ..state import State
+class ZoneRecolor(State):
+    def __init__(self, surface, points, point_colors, distance, sharp_edges):
+        self.surface = surface
         self.points = points
         self.point_colors = point_colors
         self.distance = distance
         self.sharp_edges = sharp_edges
 
     def __call__(self):
-        surf = self.model
-        color_zone(surf, self.points, self.point_colors, self.distance,
-                   sharp_edges = self.sharp_edges, auto_update = False)
+        self.set_vertex_colors()
+
+    def set_vertex_colors(self):
+        surf = self.surface
+        if surf.vertices is not None:
+            color_zone(surf, self.points, self.point_colors, self.distance,
+                       sharp_edges = self.sharp_edges, auto_update = False)
         surf.auto_recolor_vertices = self
+
+    # -------------------------------------------------------------------------
+    #
+    def take_snapshot(self, session, flags):
+        data = {
+            'surface': self.surface,
+            'points': self.points,
+            'point_colors': self.point_colors,
+            'distance': self.distance,
+            'sharp_edges': self.sharp_edges,
+            'version': 1,
+        }
+        return data
+
+    # -------------------------------------------------------------------------
+    #
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        surf = data['surface']
+        if surf is None:
+            return None		# Surface to color is gone.
+        c = cls(surf, data['points'], data['point_colors'], data['distance'], data['sharp_edges'])
+        c.set_vertex_colors()
+        return c
 
         
 # -----------------------------------------------------------------------------

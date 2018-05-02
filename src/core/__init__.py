@@ -85,6 +85,7 @@ _class_class_init = {
     'VolumeColor': '.surface.colorvol',
     'VolumeSurface': '.map.volume',
     'XSectionManager': '.atomic.ribbon',
+    'ZoneRecolor': '.surface.colorzone',
     '_Input': '.nogui',
 }
 
