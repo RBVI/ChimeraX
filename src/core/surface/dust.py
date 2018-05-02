@@ -44,6 +44,8 @@ def hide_surface_dust(surface, metric, limit, auto_update = False, use_cached_ge
 
     if auto_update:
         remask = Redust(s, metric, limit)
+        from .updaters import add_updater_for_session_saving
+        add_updater_for_session_saving(surface.session, remask)
     else:
         remask = None
     s.auto_remask_triangles = remask
@@ -81,16 +83,42 @@ def show_only_largest_blobs(surface, visible_only = False, blob_count = 1,
 
 # -----------------------------------------------------------------------------
 #
-class Redust:
+from ..state import State
+class Redust(State):
     def __init__(self, surface, metric, limit):
         self.surface = surface
         self.metric = metric
         self.limit = limit
 
     def __call__(self):
+        self.set_surface_mask()
+
+    def set_surface_mask(self):
         surf = self.surface
         hide_dust(surf, self.metric, self.limit, auto_update = False)
         surf.auto_remask_triangles = self
+
+    # -------------------------------------------------------------------------
+    #
+    def take_snapshot(self, session, flags):
+        data = {
+            'surface': self.surface,
+            'metric': self.metric,
+            'limit': self.limit,
+            'version': 1,
+        }
+        return data
+
+    # -------------------------------------------------------------------------
+    #
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        surf = data['surface']
+        if surf is None:
+            return None		# Surface to mask is gone.
+        c = cls(surf, data['metric'], data['limit'])
+        c.set_surface_mask()
+        return c
         
 # -----------------------------------------------------------------------------
 # Stop updating dust hiding.

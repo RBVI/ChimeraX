@@ -65,6 +65,7 @@ _class_class_init = {
     'PseudobondManager': '.atomic.molobject',
     'Pseudobonds': '.atomic',
     'RadialColor': '.surface.colorgeom',
+    'Redust': '.surface.dust',
     'RegAttrManager': '.atomic.attr_registration',
     'Residue': '.atomic',
     'Residues': '.atomic',
