@@ -85,7 +85,9 @@ def register_surface_subcommands(session):
 
     from . import CmdDesc, register, SurfacesArg, AtomsArg, FloatArg, IntArg, BoolArg, EnumOf
 
-    from chimerax.surface.dust import metrics
+# TODO: use surface.dust.metrics once command module moved out of core
+# from chimerax.surface.dust import metrics
+    metrics = ('size', 'area', 'volume', 'size rank', 'area rank', 'volume rank')
     dust_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('metric', EnumOf(metrics)),
                                    ('size', FloatArg),

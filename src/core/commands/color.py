@@ -1041,16 +1041,9 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.surface import color_radial, color_cylindrical, color_height
-from chimerax.surface import color_electrostatic, color_sample, color_gradient
-
-# -----------------------------------------------------------------------------
-#
 def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg, ObjectsArg, create_alias
-    from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg
-    from . import SurfacesArg, CenterArg, AxisArg, CoordSysArg
-    from ..map import MapArg
+    from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg, SurfacesArg
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),
@@ -1097,34 +1090,6 @@ def register_command(session):
                    synopsis="color atoms by bfactor")
     register('color bfactor', desc, color_bfactor, logger=session.logger)
 
-    map_args = [('map', MapArg),
-                ('palette', ColormapArg),
-                ('range', ColormapRangeArg),
-                ('offset', FloatArg),
-                ('transparency', FloatArg),
-                ('update', BoolArg),
-    ]
-    # color by electrostatic potential map 
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=map_args,
-                   required_arguments = ['map'],
-                   synopsis="color surfaces by electrostatic potential map value")
-    register('color electrostatic', desc, color_electrostatic, logger=session.logger)
-
-    # color by map value
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=map_args,
-                   required_arguments = ['map'],
-                   synopsis="color surfaces by map value")
-    register('color sample', desc, color_sample, logger=session.logger)
-
-    # color by map gradient norm
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=map_args,
-                   required_arguments = ['map'],
-                   synopsis="color surfaces by map gradient norm")
-    register('color gradient', desc, color_gradient, logger=session.logger)
-
     # color by nearby atoms
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                    keyword=[('near', AtomsArg),
@@ -1135,27 +1100,3 @@ def register_command(session):
                    required_arguments = ['near'],
                    synopsis="color surfaces to match nearby atoms")
     register('color zone', desc, color_zone, logger=session.logger)
-    
-    # color by radius
-    geom_args = [('center', CenterArg),
-                 ('coordinate_system', CoordSysArg),
-                 ('palette', ColormapArg),
-                 ('range', ColormapRangeArg),
-                 ('update', BoolArg),
-    ]
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=geom_args,
-                   synopsis="color surfaces by radius")
-    register('color radial', desc, color_radial, logger=session.logger)
-
-    # color by cylinder radius
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=geom_args + [('axis', AxisArg)],
-                   synopsis="color surfaces by cylinder radius")
-    register('color cylindrical', desc, color_cylindrical, logger=session.logger)
-
-    # color by height
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=geom_args + [('axis', AxisArg)],
-                   synopsis="color surfaces by distance along an axis")
-    register('color height', desc, color_height, logger=session.logger)
