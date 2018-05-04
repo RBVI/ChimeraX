@@ -64,7 +64,7 @@ def name_delete(session, name):
     else:
         from chimerax.core.commands import list_selectors
         for name in list(list_selectors()):
-            if not is_selector_reserved(name):
+            if is_selector_user_defined(name):
                 deregister_selector(name, session.logger)
 name_delete_desc = CmdDesc(required=[("name", StringArg)])
 

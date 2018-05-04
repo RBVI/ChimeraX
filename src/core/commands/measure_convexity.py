@@ -61,7 +61,7 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
         if s.empty_drawing():
             continue
         va,ta = s.vertices, s.triangles
-        from ..surface import vertex_convexity
+        from chimerax.surface import vertex_convexity
         c = vertex_convexity(va, ta, smoothing_iterations)
         s.convexity = c
         if patches is None:
@@ -116,7 +116,7 @@ def _patch_vertices(threshold, vertex_values, triangles):
     vset = set((vertex_values >= threshold).nonzero()[0])
     tabove = [v1 in vset and v2 in vset and v3 in vset for v1,v2,v3 in triangles]
     ta = triangles[tabove]
-    from ..surface import connected_pieces
+    from chimerax.surface import connected_pieces
     vpatch = [v for v,t in connected_pieces(ta)]
     return vpatch
 

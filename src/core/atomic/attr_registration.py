@@ -60,7 +60,10 @@ class AttrRegistration:
         try:
             registrant, default_value, attr_type = self.reg_attr_info[attr_name]
         except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
+            if attr_name in dir(self.class_):
+                raise AttributeError("Execution of '%s' object's '%s' property raised AttributeError" % (self.class_.__name__, attr_name))
+            else:
+                raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
         if default_value == NO_DEFAULT:
             raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
         return default_value
@@ -153,7 +156,7 @@ class CustomizedInstanceManager(StateManager):
         pass
 
     def take_snapshot(self, session, flags):
-        from chimerax.atomic.molobject import all_python_instances
+        from .molobject import all_python_instances
         # pure Sequence instances don't have 'session' attrs since they shouldn't
         # be saved if nothing else in the Python layer wants them saved
         return { 'instances': [inst for inst in all_python_instances()

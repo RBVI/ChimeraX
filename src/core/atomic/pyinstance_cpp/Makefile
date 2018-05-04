@@ -46,6 +46,8 @@ ifdef WIN32
 endif
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
+PythonInstance.o: imex.map.h
+
 imex.map.h: imex.h
 	sed -e 's/$(UPLIBNAME)/$(UPLIBNAME)_MAP/' < imex.h > imex.map.h
 

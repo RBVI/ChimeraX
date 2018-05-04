@@ -135,7 +135,7 @@ class TugAtomsMode(MouseMode):
             from chimerax.core.models import Model
             s = self.session
             self._arrow_model = a = Model('Tug arrow', s)
-            from chimerax.core.surface import cone_geometry
+            from chimerax.surface import cone_geometry
             a.vertices, a.normals, a.triangles  = cone_geometry(points_up = False)
             a.color = (0,255,0,255)
             s.models.add([a])

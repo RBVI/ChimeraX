@@ -359,6 +359,9 @@ Recognized Data Categories and Keywords
    |                            | comp_id |req|, atom_id_1 |req|,        |
    |                            | atom_id_2 |req|                        |
    +----------------------------+----------------------------------------+
+   | entity_poly                |                                        |
+   |                            | entity_id |req|, nstd_monomer, type    |
+   +----------------------------+----------------------------------------+
    | entity_poly_seq            |                                        |
    |                            | entity_id |req|, num |req|,            |
    |                            | mon_id |req|, hetero                   |
@@ -469,6 +472,10 @@ entity
   Contains details "about the molecular entities that are
   present in the crystallographic structure."
   Used to extract description of chains.
+
+entity_poly
+  Tell if entity has non-standard monomers in it and thus, potentially,
+  non-polymeric linkage.
 
 entity_poly_seq
   Contains the sequence of residues in a chain.

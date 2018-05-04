@@ -623,7 +623,7 @@ class Toolshed:
                     best_bi = bi
                     best_version = Version(bi.version)
                 elif best_bi.name != bi.name:
-                    logger("%r matches multiple bundles" % name)
+                    logger.warning("%r matches multiple bundles" % name)
                     return None
                 else:
                     v = Version(bi.version)
@@ -974,6 +974,56 @@ class BundleAPI:
         """
         return None
 
+    @staticmethod
+    def include_dir(bundle_info):
+        """Returns path to directory of C++ header files.
+
+        Parameters
+        ----------
+        bundle_info : :py:class:`BundleInfo` instance.
+
+        Used to get directory path to C++ header files needed for
+        compiling against libraries provided by the bundle.
+
+        Returns
+        -------
+        :py:class:`str` or None
+        """
+        return None
+
+    @staticmethod
+    def library_dir(bundle_info):
+        """Returns path to directory of compiled libraries.
+
+        Parameters
+        ----------
+        bundle_info : :py:class:`BundleInfo` instance.
+
+        Used to get directory path to libraries (shared objects, DLLs)
+        for linking against libraries provided by the bundle.
+
+        Returns
+        -------
+        :py:class:`str` or None
+        """
+        return None
+
+    @staticmethod
+    def data_dir(bundle_info):
+        """Returns path to directory of bundle-specific data.
+
+        Parameters
+        ----------
+        bundle_info : :py:class:`BundleInfo` instance.
+
+        Used to get directory path to data included in the bundle.
+
+        Returns
+        -------
+        :py:class:`str` or None
+        """
+        return None
+
     @property
     def _api_caller(self):
         try:
@@ -1019,12 +1069,24 @@ class _CallBundleAPIv0:
         return cls._get_func(api, "finish")(session, bi)
 
     @classmethod
-    def _get_func(cls, api, func_name):
+    def include_dir(cls, api, bi):
+        return cls._get_func(api, "include_dir", default_okay=True)(bi)
+
+    @classmethod
+    def library_dir(cls, api, bi):
+        return cls._get_func(api, "library_dir", default_okay=True)(bi)
+
+    @classmethod
+    def data_dir(cls, api, bi):
+        return cls._get_func(api, "data_dir", default_okay=True)(bi)
+
+    @classmethod
+    def _get_func(cls, api, func_name, default_okay=False):
         try:
             f = getattr(api, func_name)
         except AttributeError:
             raise ToolshedError("bundle has no %s method" % func_name)
-        if f is getattr(BundleAPI, func_name):
+        if not default_okay and f is getattr(BundleAPI, func_name):
             raise ToolshedError("bundle forgot to override %s method" % func_name)
         return f
 

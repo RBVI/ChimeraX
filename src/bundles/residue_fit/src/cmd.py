@@ -53,7 +53,7 @@ def residues_with_backbone(residues):
 
 def register_resfit_command(logger):
     from chimerax.core.commands import CmdDesc, register, AtomsArg, IntArg, Int2Arg
-    from chimerax.core.map import MapArg
+    from chimerax.map import MapArg
     desc = CmdDesc(required = [('atoms', AtomsArg)],
                    keyword = [('map', MapArg),
                               ('residue_range', Int2Arg),

@@ -398,6 +398,39 @@ class BundleInfo:
                 raise ToolshedError(
                     "finish() failed in bundle %s:\n%s" % (self.name, str(e)))
 
+    def include_dir(self):
+        """Deinitialize bundle by calling custom finish code if needed."""
+        try:
+            api = self._get_api()
+            return api._api_caller.include_dir(api, self)
+        except Exception as e:
+            import traceback, sys
+            traceback.print_exc(file=sys.stdout)
+            raise ToolshedError(
+                "include_dir() failed in bundle %s:\n%s" % (self.name, str(e)))
+
+    def library_dir(self):
+        """Deinitialize bundle by calling custom finish code if needed."""
+        try:
+            api = self._get_api()
+            return api._api_caller.library_dir(api, self)
+        except Exception as e:
+            import traceback, sys
+            traceback.print_exc(file=sys.stdout)
+            raise ToolshedError(
+                "library_dir() failed in bundle %s:\n%s" % (self.name, str(e)))
+
+    def data_dir(self):
+        """Deinitialize bundle by calling custom finish code if needed."""
+        try:
+            api = self._get_api()
+            return api._api_caller.data_dir(api, self)
+        except Exception as e:
+            import traceback, sys
+            traceback.print_exc(file=sys.stdout)
+            raise ToolshedError(
+                "data_dir() failed in bundle %s:\n%s" % (self.name, str(e)))
+
     def unload(self, logger):
         """Unload bundle modules (as best as we can)."""
         import sys
@@ -430,7 +463,7 @@ class BundleInfo:
             raise ToolshedError("Error importing bundle %s's module: %s" % (self.name, str(e)))
         return m
 
-    def _get_api(self, logger):
+    def _get_api(self, logger=None):
         """Return BundleAPI instance for this bundle."""
         m = self.get_module()
         try:

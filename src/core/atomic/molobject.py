@@ -345,7 +345,8 @@ class Pseudobond(State):
         a1, a2 = self.atoms
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
-        return sqrt((v*v).sum())
+        # tinyarray doesn't have .sum()
+        return sqrt(sum(v*v))
 
     def other_atom(self, atom):
         "Supported API. 'atom' should be one of the atoms in the bond.  Return the other atom."
@@ -421,22 +422,22 @@ class PseudobondGroupData:
     _category = c_property('pseudobond_group_category', string, read_only = True,
         doc = "Name of the pseudobond group.  Read only string.")
     color = c_property('pseudobond_group_color', uint8, 4,
-        doc="Sets the color attribute of current pseudobonds and new pseudobonds")
+        doc="Supported API. Sets the color attribute of current pseudobonds and new pseudobonds")
     group_type = c_property('pseudobond_group_group_type', uint8, read_only = True, doc=
-        "PseudobondGroup.GROUP_TYPE_NORMAL is a normal group,"
+        "Supported API. PseudobondGroup.GROUP_TYPE_NORMAL is a normal group,"
         "PseudobondGroup.GROUP_TYPE_COORD_SET is a per-coord-set pseudobond group")
     halfbond = c_property('pseudobond_group_halfbond', npy_bool,
         doc = "Sets the halfbond attribute of current pseudobonds and new pseudobonds")
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True,
-        doc = "Number of pseudobonds in group. Read only.")
+        doc = "Supported API. Number of pseudobonds in group. Read only.")
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
         astype = _pseudobonds, read_only = True,
-        doc = "Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
+        doc = "Supported API. Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
     radius = c_property('pseudobond_group_radius', float32,
-        doc = "Sets the radius attribute of current pseudobonds and new pseudobonds")
+        doc = "Supported API. Sets the radius attribute of current pseudobonds and new pseudobonds")
     structure = c_property('pseudobond_group_structure', pyobject,
         read_only = True, doc ="Structure that pseudobond group is owned by.  "
-        "Returns None if called on a group managed by the global pseudobond manager")
+        "Supported API. Returns None if called on a group managed by the global pseudobond manager")
 
     def change_name(self, name):
         f = c_function('pseudobond_group_change_category',
@@ -448,27 +449,27 @@ class PseudobondGroupData:
             raise UserError("Another pseudobond group is already named '%s'" % name)
 
     def clear(self):
-        '''Delete all pseudobonds in group'''
+        "Supported API. Delete all pseudobonds in group"
         f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
     def delete_pseudobond(self, pb):
-        '''Delete a specific pseudobond from a group'''
+        "Supported API. Delete a specific pseudobond from a group"
         f = c_function('pseudobond_group_delete_pseudobond',
             args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, pb._c_pointer)
 
     def get_num_pseudobonds(self, cs_id):
-        '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'
-        property to get the number of pseudobonds for the current coordinate set.'''
+        "Supported API. Get the number of pseudobonds for a particular coordinate set. "
+        " Use the 'num_pseudobonds' property to get the number of pseudobonds for the current "
+        " coordinate set."
         f = c_function('pseudobond_group_get_num_pseudobonds',
-                       args = (ctypes.c_void_p, ctypes.c_int,),
-                       ret = ctypes.c_size_t)
+                       args = (ctypes.c_void_p, ctypes.c_int,), ret = ctypes.c_size_t)
         return f(self._c_pointer, cs_id)
 
     def get_pseudobonds(self, cs_id):
-        '''Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'
-        property to get the pseudobonds for the current coordinate set.'''
+        "Supported API. Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'"
+        " property to get the pseudobonds for the current coordinate set."
         from numpy import empty
         ai = empty((self.get_num_pseudobonds(cs_id),), cptr)
         f = c_function('pseudobond_group_get_pseudobonds',
@@ -478,9 +479,9 @@ class PseudobondGroupData:
         return _pseudobonds(ai)
 
     def new_pseudobond(self, atom1, atom2, cs_id = None):
-        '''Create a new pseudobond between the specified :class:`Atom` objects.
-        If the pseudobond group supports per-coordset pseudobonds, you may
-        specify a coordinate set ID (defaults to the current coordinate set).'''
+        "Supported API. Create a new pseudobond between the specified :class:`Atom` objects. "
+        " If the pseudobond group supports per-coordset pseudobonds, you may"
+        " specify a coordinate set ID (defaults to the current coordinate set)."
         if cs_id is None:
             f = c_function('pseudobond_group_new_pseudobond',
                            args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
@@ -1393,8 +1394,10 @@ class StructureData:
         if mol_pointer is None:
             # Create a new graph
             from .structure import AtomicStructure
-            new_func = 'atomic_structure_new' if isinstance(self, AtomicStructure) else 'structure_new'
-            mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
+            new_func = 'atomic_structure_new' \
+                if isinstance(self, AtomicStructure) else 'structure_new'
+            mol_pointer = c_function(new_func, args = (ctypes.py_object,),
+                ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
         f = c_function('set_structure_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
@@ -1420,66 +1423,68 @@ class StructureData:
         c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
 
     active_coordset_change_notify = c_property('structure_active_coordset_change_notify', npy_bool,
-    doc='''Whether notifications are issued when the active coordset is changed.  Should only be
-    set to true when temporarily changing the active coordset in a Python script. Boolean''')
+    doc = '''Whether notifications are issued when the active coordset is changed.  Should only be
+        set to true when temporarily changing the active coordset in a Python script. Boolean''')
     active_coordset = c_property('structure_active_coordset', cptr, astype = _coordset,
-        read_only = True, doc="Supported API. Currently active :class:`CoordSet`.")
-    active_coordset_id = c_property('structure_active_coordset_id', int32)
-    '''Index of the active coordinate set.'''
+        read_only = True, doc="Supported API. Currently active :class:`CoordSet`. Read only.")
+    active_coordset_id = c_property('structure_active_coordset_id', int32,
+        doc = "Supported API. Index of the active coordinate set.")
     alt_loc_change_notify = c_property('structure_alt_loc_change_notify', npy_bool, doc=
-    '''Whether notifications are issued when altlocs are changed.  Should only be
-    set to true when temporarily changing alt locs in a Python script. Boolean''')
-    atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
-    ''':class:`.Atoms` collection containing all atoms of the structure.'''
+        '''Whether notifications are issued when altlocs are changed.  Should only be
+        set to true when temporarily changing alt locs in a Python script. Boolean''')
+    atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True,
+        doc = "Supported API. :class:`.Atoms` collection containing all atoms of the structure.")
     ball_scale = c_property('structure_ball_scale', float32,
         doc = "Scales sphere radius in ball-and-stick style.")
-    bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
-    ''':class:`.Bonds` collection containing all bonds of the structure.'''
-    chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
-    ''':class:`.Chains` collection containing all chains of the structure.'''
-    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True)
-    '''Return array of ids of all coordinate sets.'''
-    coordset_size = c_property('structure_coordset_size', int32, read_only = True)
-    '''Return the size of the active coordinate set array.'''
-    lower_case_chains = c_property('structure_lower_case_chains', npy_bool)
-    '''Structure has lower case chain ids. Boolean'''
-    num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
-    '''Number of atoms in structure. Read only.'''
-    num_atoms_visible = c_property('structure_num_atoms_visible', size_t, read_only = True)
-    '''Number of visible atoms in structure. Read only.'''
-    num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
-    '''Number of bonds in structure. Read only.'''
-    num_bonds_visible = c_property('structure_num_bonds_visible', size_t, read_only = True)
-    '''Number of visible bonds in structure. Read only.'''
-    num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True)
-    '''Number of coordinate sets in structure. Read only.'''
-    num_chains = c_property('structure_num_chains', size_t, read_only = True)
-    '''Number of chains structure. Read only.'''
-    num_residues = c_property('structure_num_residues', size_t, read_only = True)
-    '''Number of residues structure. Read only.'''
-    residues = c_property('structure_residues', cptr, 'num_residues', astype = _residues, read_only = True)
-    ''':class:`.Residues` collection containing the residues of this structure. Read only.'''
-    pbg_map = c_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
-    '''Dictionary mapping name to :class:`.PseudobondGroup` for pseudobond groups
-    belonging to this structure. Read only.'''
-    metadata = c_property('metadata', pyobject, read_only = True)
-    '''Dictionary with metadata. Read only.'''
-    pdb_version = c_property('pdb_version', int32)
-    '''Dictionary with metadata. Read only.'''
-    ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32)
-    '''Ribbon tether thickness scale factor (1.0 = match displayed atom radius, 0=invisible).'''
-    ribbon_tether_shape = c_property('structure_ribbon_tether_shape', int32)
-    '''Ribbon tether shape. Integer value.'''
+    bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True,
+        doc = ":class:`.Bonds` collection containing all bonds of the structure.")
+    chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True,
+        doc = "Supported API. :class:`.Chains` collection containing all chains of the structure.")
+    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True,
+        doc = "Supported API. Return array of ids of all coordinate sets.")
+    coordset_size = c_property('structure_coordset_size', int32, read_only = True,
+        doc = "Supported API. Return the size of the active coordinate set array.")
+    lower_case_chains = c_property('structure_lower_case_chains', npy_bool,
+        doc = "Supported API. Structure has lower case chain ids. Boolean")
+    num_atoms = c_property('structure_num_atoms', size_t, read_only = True,
+        doc = "Supported API. Number of atoms in structure. Read only.")
+    num_atoms_visible = c_property('structure_num_atoms_visible', size_t, read_only = True,
+        doc = "Number of visible atoms in structure. Read only.")
+    num_bonds = c_property('structure_num_bonds', size_t, read_only = True,
+        doc = "Supported API. Number of bonds in structure. Read only.")
+    num_bonds_visible = c_property('structure_num_bonds_visible', size_t, read_only = True,
+        doc = "Number of visible bonds in structure. Read only.")
+    num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True,
+        doc = "Supported API. Number of coordinate sets in structure. Read only.")
+    num_chains = c_property('structure_num_chains', size_t, read_only = True,
+        doc = "Supported API. Number of chains structure. Read only.")
+    num_residues = c_property('structure_num_residues', size_t, read_only = True,
+        doc = "Supported API. Number of residues structure. Read only.")
+    residues = c_property('structure_residues', cptr, 'num_residues', astype = _residues,
+        read_only = True, doc = "Supported API. :class:`.Residues` collection containing the"
+        " residues of this structure. Read only.")
+    pbg_map = c_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map,
+        read_only = True, doc = "Suported API. Dictionary mapping name to"
+        " :class:`.PseudobondGroup` for pseudobond groups belonging to this structure. Read only.")
+    metadata = c_property('metadata', pyobject, read_only = True,
+        doc = "Supported API. Dictionary with metadata. Read only.")
+    pdb_version = c_property('pdb_version', int32, doc = "If this structure came from a PDB file,"
+        " the major PDB version number of that file (2 or 3). Read only.")
+    ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32,
+        doc = "Ribbon tether thickness scale factor"
+        " (1.0 = match displayed atom radius, 0=invisible).")
+    ribbon_tether_shape = c_property('structure_ribbon_tether_shape', int32,
+        doc = "Ribbon tether shape. Integer value.")
     TETHER_CONE = 0
     '''Tether is cone with point at ribbon.'''
     TETHER_REVERSE_CONE = 1
     '''Tether is cone with point at atom.'''
     TETHER_CYLINDER = 2
     '''Tether is cylinder.'''
-    ribbon_show_spine = c_property('structure_ribbon_show_spine', npy_bool)
-    '''Display ribbon spine. Boolean.'''
-    ribbon_orientation = c_property('structure_ribbon_orientation', int32)
-    '''Ribbon orientation. Integer value.'''
+    ribbon_show_spine = c_property('structure_ribbon_show_spine', npy_bool,
+        doc = "Display ribbon spine. Boolean.")
+    ribbon_orientation = c_property('structure_ribbon_orientation', int32,
+        doc = "Ribbon orientation. Integer value.")
     RIBBON_ORIENT_GUIDES = 1
     '''Ribbon orientation from guide atoms.'''
     RIBBON_ORIENT_ATOMS = 2
@@ -1488,16 +1493,16 @@ class StructureData:
     '''Ribbon orientation perpendicular to ribbon curvature.'''
     RIBBON_ORIENT_PEPTIDE = 4
     '''Ribbon orientation perpendicular to peptide planes.'''
-    ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True)
-    '''Return number of residues with ribbon display set. Integer.'''
-    ribbon_tether_sides = c_property('structure_ribbon_tether_sides', int32)
-    '''Number of sides for ribbon tether. Integer value.'''
-    ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32)
-    '''Ribbon tether opacity scale factor (relative to the atom).'''
-    ribbon_mode_helix = c_property('structure_ribbon_mode_helix', int32)
-    '''Ribbon mode for helices. Integer value.'''
-    ribbon_mode_strand = c_property('structure_ribbon_mode_strand', int32)
-    '''Ribbon mode for strands. Integer value.'''
+    ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True,
+        doc = "Return number of residues with ribbon display set. Integer.")
+    ribbon_tether_sides = c_property('structure_ribbon_tether_sides', int32,
+        doc = "Number of sides for ribbon tether. Integer value.")
+    ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32,
+        doc = "Ribbon tether opacity scale factor (relative to the atom).")
+    ribbon_mode_helix = c_property('structure_ribbon_mode_helix', int32,
+        doc = "Ribbon mode for helices. Integer value.")
+    ribbon_mode_strand = c_property('structure_ribbon_mode_strand', int32,
+        doc = "Ribbon mode for strands. Integer value.")
     RIBBON_MODE_DEFAULT = 0
     '''Default ribbon mode showing secondary structure with ribbons.'''
     RIBBON_MODE_ARC = 1
@@ -1522,7 +1527,7 @@ class StructureData:
         return p
 
     def add_coordset(self, id, xyz):
-        '''Add a coordinate set with the given id.'''
+        '''Supported API. Add a coordinate set with the given id.'''
         if xyz.dtype != float64:
             raise ValueError('add_coordset(): array must be float64, got %s' % xyz.dtype.name)
         f = c_function('structure_add_coordset',
@@ -1546,7 +1551,7 @@ class StructureData:
         f(self._c_pointer, replace, pointer(xyzs), *xyzs.shape[:2])
 
     def coordset(self, cs_id):
-        '''Return the CoordSet for the given coordset ID'''
+        '''Supported API. Return the CoordSet for the given coordset ID'''
         f = c_function('structure_py_obj_coordset', args = (ctypes.c_void_p, ctypes.c_int),
             ret = ctypes.py_object)
         return f(self._c_pointer, cs_id)
@@ -1571,7 +1576,7 @@ class StructureData:
         f = c_function('structure_delete_alt_locs', args = (ctypes.c_void_p,))(self._c_pointer)
 
     def delete_atom(self, atom):
-        '''Delete the specified Atom.'''
+        '''Supported API. Delete the specified Atom.'''
         f = c_function('structure_delete_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
 
@@ -1586,9 +1591,10 @@ class StructureData:
         return tuple(Atoms(aa) for aa in atom_arrays)
 
     def new_atom(self, atom_name, element):
-        '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
-        belonging to this structure before being used.  'element' can be a string (atomic symbol),
-        an integer (atomic number), or an Element instance'''
+        '''Supported API. Create a new :class:`.Atom` object. It must be added to a
+        :class:`.Residue` object belonging to this structure before being used.
+        'element' can be a string (atomic symbol), an integer (atomic number),
+        or an Element instance'''
         if not isinstance(element, Element):
             element = Element.get_element(element)
         f = c_function('structure_new_atom',
@@ -1597,16 +1603,16 @@ class StructureData:
         return f(self._c_pointer, atom_name.encode('utf-8'), element._c_pointer)
 
     def new_bond(self, atom1, atom2):
-        '''Create a new :class:`.Bond` joining two :class:`Atom` objects.'''
+        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.'''
         f = c_function('structure_new_bond',
                        args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
                        ret = ctypes.py_object)
         return f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
 
     def new_coordset(self, index=None, size=None):
-        '''Create a new empty coordset.  In almost all circumstances one would use the
-           add_coordset(s) method instead (to add fully populated coordsets), but in some
-           cases when building a Structure from scratch this method is needed.
+        '''Supported API. Create a new empty coordset.  In almost all circumstances one would
+            use the add_coordset(s) method instead (to add fully populated coordsets), but in
+            some cases when building a Structure from scratch this method is needed.
 
            'index' defaults to one more than highest existing index (or 1 if none existing);
            'size' is for efficiency when creating the first coordinate set of a new Structure,
@@ -1626,7 +1632,7 @@ class StructureData:
                 f(index, size)
 
     def new_residue(self, residue_name, chain_id, pos, insert=' '):
-        '''Create a new :class:`.Residue`.'''
+        '''Supported API. Create a new :class:`.Residue`.'''
         f = c_function('structure_new_residue',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
                        ret = ctypes.py_object)
@@ -1649,7 +1655,7 @@ class StructureData:
         return [(Residues(res_array), ptype) for res_array, ptype in polymers]
 
     def pseudobond_group(self, name, *, create_type = "normal"):
-        '''Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
+        '''Supported API. Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
         if isinstance(create_type, int):
             create_arg = create_type
         elif create_type is None:

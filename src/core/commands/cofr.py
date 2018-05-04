@@ -135,7 +135,7 @@ class PivotIndicator(Drawing):
         self.set_colors(axis_colors)
 
     def set_size(self, axis_length, axis_radius):
-        from ..surface.shapes import cylinder_geometry, cone_geometry
+        from chimerax.surface.shapes import cylinder_geometry, cone_geometry
         vaz, naz, taz = cylinder_geometry(radius = axis_radius, height = axis_length)
         vcz, ncz, tcz = cone_geometry(radius = axis_radius * 2, height = axis_length * 0.2, 
                                         caps = True)
