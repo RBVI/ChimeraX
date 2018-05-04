@@ -181,7 +181,7 @@ cdef class CyAtom:
     @cython.wraparound(False)  # turn off negative index wrapping
     def color(self, rgba):
         if len(rgba) != 4:
-            raise ValueError("set_color(rgba): 'rgba' must be length 4")
+            raise ValueError("Atom.color = rgba: 'rgba' must be length 4")
         self.cpp_atom.set_color(rgba[0], rgba[1], rgba[2], rgba[3])
 
     @property
@@ -561,21 +561,6 @@ cdef class CyAtom:
     def c_ptr_to_py_inst(ptr_type ptr_val):
         return (<cydecl.Atom *>ptr_val).py_instance(True)
 
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        from .molobject import StructureData
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.atoms)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
-
     @staticmethod
     def set_py_class(klass):
         cydecl.Atom.set_py_class(klass)
@@ -720,3 +705,317 @@ cdef class Element:
     names = set(cydecl.Element.names())
 
 cydecl.Element.set_py_class(Element)
+
+cdef class CyResidue:
+    '''Base class for Residue, and is present only for performance reasons.'''
+    cdef cydecl.Residue *cpp_res
+    cdef cydecl.bool _deleted
+
+    def __cinit__(self, ptr_type ptr_val):
+        self.cpp_res = <cydecl.Residue *>ptr_val
+        self._deleted = False
+
+    # possibly long-term hack for interoperation with ctypes
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
+    @property
+    def cpp_pointer(self):
+        return int(<ptr_type>self.cpp_res)
+    @property
+    def _c_pointer(self):
+        return c_void_p(self.cpp_pointer)
+    @property
+    def _c_pointer_ref(self):
+        return byref(self._c_pointer)
+
+    def __hash__(self):
+        return id(self)
+
+    def __lt__(self, other):
+        # for sorting (objects of the same type)
+        if self.structure != other.structure:
+            return self.structure < other.structure
+
+        if self.chain_id != other.chain_id:
+            return self.chain_id < other.chain_id
+
+        return self.number < other.number \
+            if self.number != other.number else self.insertion_code < other.insertion_code
+
+    def __str__(self):
+        return self.string()
+
+
+    # properties...
+
+    @property
+    def atoms(self):
+        "Supported API. :class:`.Atoms` collection containing all atoms of the residue."
+        from .molarray import Atoms
+        import numpy
+        # work around non-const-correct code by using temporary...
+        atoms = self.cpp_res.atoms()
+        return Atoms(numpy.array([<ptr_type>a for a in atoms], dtype=numpy.uintp))
+
+    @property
+    def chain(self):
+        "Supported API. :class:`.Chain` that this residue belongs to, if any. Read only."
+        chain_ptr = self.cpp_res.chain()
+        if chain_ptr:
+            return chain_ptr.py_instance(True)
+        return None
+
+    @property
+    def chain_id(self):
+        "Supported API. PDB chain identifier. Limited to 4 characters. Read only string."
+        return self.cpp_res.chain_id().decode()
+
+    @property
+    def center(self):
+        "Average of atom positions as a length 3 array, 64-bit float values."
+        return sum([a.coord for a in self.atoms]) / self.num_atoms
+
+    @property
+    def deleted(self):
+        "Supported API. Has the C++ side been deleted?"
+        return self._deleted
+
+    @property
+    def description(self):
+        '''Description of residue (if available) from HETNAM/HETSYN records or equivalent'''
+        return getattr(self.structure, '_hetnam_descriptions', {}).get(self.name, None)
+
+    @property
+    def insertion_code(self):
+        "Supported API. PDB residue insertion code. 1 character or empty string."
+        code = chr(self.cpp_res.insertion_code())
+        return "" if code == ' ' else code
+
+    @insertion_code.setter
+    def insertion_code(self, ic):
+        if not ic:
+            ic = ' '
+        elif len(ic) != 1:
+            raise ValueError("Insertion code must be single character, not '%s'" % ic)
+        self.cpp_res.set_insertion_code(ord(ic[0]))
+
+    @property
+    def is_helix(self):
+        "Supported API. Whether this residue belongs to a protein alpha helix. Boolean value. "
+        return self.cpp_res.is_helix()
+
+    @property
+    def is_strand(self):
+        "Supported API. Whether this residue belongs to a protein beta sheet. Boolean value. "
+        return self.cpp_res.is_strand()
+
+    @property
+    def mmcif_chain_id(self):
+        "mmCIF chain identifier. Limited to 4 characters. Read only string."
+        return self.cpp_res.mmcif_chain_id().decode()
+
+    @property
+    def name(self):
+        "Supported API. Residue name. Maximum length 4 characters."
+        return self.cpp_res.name().decode()
+
+    @name.setter
+    def name(self, new_name):
+        self.cpp_res.set_name(new_name.encode())
+
+    @property
+    def num_atoms(self):
+        "Supported API. Number of atoms belonging to the residue. Read only."
+        return self.cpp_res.atoms().size()
+
+    @property
+    def number(self):
+        "Supported API. Integer sequence position number from input data file. Read only."
+        return self.cpp_res.number()
+
+    PT_NONE, PT_AMINO, PT_NUCLEIC = range(3)
+    @property
+    def polymer_type(self):
+        '''Supported API.  Polymer type of residue. Values are:
+            PT_NONE: not a polymeric residue
+            PT_AMINO: amino acid
+            PT_NUCLEIC: nucleotide
+        (Access as Residue.PT_XXX)
+        '''
+        return self.cpp_res.polymer_type()
+
+    @property
+    def principal_atom(self):
+        '''The 'chain trace' :class:`.Atom`\\ , if any.
+        Normally returns the C4' from a nucleic acid since that is always present,
+        but in the case of a P-only trace it returns the P.'''
+        princ_ptr = self.cpp_res.principal_atom()
+        if princ_ptr:
+            return princ_ptr.py_instance(True)
+        return None
+
+    @property
+    def ribbon_adjust(self):
+        "Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized)."
+        return self.cpp_res.ribbon_adjust()
+
+    @ribbon_adjust.setter
+    def ribbon_adjust(self, ra):
+        self.cpp_res.set_ribbon_adjust(ra)
+
+    @property
+    def ribbon_display(self):
+        "Whether to display the residue as a ribbon/pipe/plank. Boolean value."
+        return self.cpp_res.ribbon_display()
+
+    @ribbon_display.setter
+    def ribbon_display(self, rd):
+        self.cpp_res.set_ribbon_display(rd)
+
+    @property
+    def ribbon_hide_backbone(self):
+        "Whether a ribbon automatically hides the residue backbone atoms. Boolean value."
+        return self.cpp_res.ribbon_hide_backbone()
+
+    @ribbon_hide_backbone.setter
+    def ribbon_hide_backbone(self, rhb):
+        self.cpp_res.set_ribbon_hide_backbone(rhb)
+
+    @property
+    def ribbon_color(self):
+        "Ribbon color RGBA length 4 sequence/array. Values in range 0-255"
+        color = self.cpp_res.ribbon_color()
+        return array([color.r, color.g, color.b, color.a])
+
+    @ribbon_color.setter
+    @cython.boundscheck(False)  # turn off bounds checking
+    @cython.wraparound(False)  # turn off negative index wrapping
+    def ribbon_color(self, rgba):
+        if len(rgba) != 4:
+            raise ValueError("Residue.ribbon_color = rgba: 'rgba' must be length 4")
+        self.cpp_res.set_ribbon_color(rgba[0], rgba[1], rgba[2], rgba[3])
+
+    @property
+    def session(self):
+        return self.structure.session
+
+    @property
+    def ss_id(self):
+        "Secondary structure id number. Integer value."
+        return self.cpp_res.ss_id()
+
+    @ss_id.setter
+    def ss_id(self, new_ss_id):
+        self.cpp_res.set_ss_id(new_ss_id)
+
+    SS_COIL, SS_HELIX, SS_STRAND = range(3)
+    SS_SHEET = SS_STRAND
+    @property
+    def ss_type(self):
+        "Supported API. Secondary structure type of residue. Integer value."
+        " One of Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_SHEET (a.k.a. SS_STRAND)"
+        return self.cpp_res.ss_type()
+
+    @ss_type.setter
+    def ss_type(self, st):
+        self.cpp_res.set_ss_type(st)
+
+    @property
+    def structure(self):
+        "Supported API. ':class:`.AtomicStructure` that this residue belongs to. Read only."
+        return self.cpp_res.structure().py_instance(True)
+
+    water_res_names = set(["HOH", "WAT", "H2O", "D2O", "TIP3"])
+
+
+    # instance methods...
+
+    def add_atom(self, CyAtom atom):
+        '''Supported API. Add the specified :class:`.Atom` to this residue.
+        An atom can only belong to one residue, and all atoms
+        must belong to a residue.'''
+        self.cpp_res.add_atom(<cydecl.Atom*>atom.cpp_atom)
+
+    def atomspec(self):
+        res_str = ":" + str(self.number) + self.insertion_code
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        return self.structure.atomspec() + chain_str + res_str
+
+    def bonds_between(self, CyResidue other_res):
+        "Supported API. Return the bonds between this residue and other_res as a Bonds collection."
+        from .molarray import Bonds
+        import numpy
+        # work around non-const-correct code by using temporary...
+        between = self.cpp_res.bonds_between(<cydecl.Residue*>other_res.cpp_res)
+        return Bonds(numpy.array([<ptr_type>b for b in between], dtype=numpy.uintp))
+
+    def connects_to(self, CyResidue other_res):
+        "Supported API. Return True if this residue is connected by at least one bond "
+        " (not pseudobond) to other_res"
+        return self.cpp_res.connects_to(<cydecl.Residue*>other_res.cpp_res)
+
+    def delete(self):
+        "Supported API. Delete this Residue from it's Structure"
+        self.cpp_res.structure().delete_atoms(self.cpp_res.atoms())
+
+    def find_atom(self, atom_name):
+        '''Supported API. Return the atom with the given name, or None if not found.\n'''
+        '''If multiple atoms in the residue have that name, an arbitrary one that matches will'''
+        ''' be returned.'''
+        fa_ptr = self.cpp_res.find_atom(atom_name.encode())
+        if fa_ptr:
+            return fa_ptr.py_instance(True)
+        return None
+
+    def set_alt_loc(self, loc):
+        "Set the appropiate atoms in the residue to the given (existing) alt loc"
+        if not loc:
+            loc = ' '
+        self.cpp_res.set_alt_loc(ord(loc[0]))
+
+    def string(self, residue_only = False, omit_structure = False, style = None):
+        "Supported API.  Get text representation of Residue"
+        if style == None:
+            from chimerax.core.core_settings import settings
+            style = settings.atomspec_contents
+        ic = self.insertion_code
+        if style.startswith("simple"):
+            res_str = self.name + " " + str(self.number) + ic
+        else:
+            res_str = ":" + str(self.number) + ic
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        if residue_only:
+            return res_str
+        if omit_structure:
+            return '%s %s' % (chain_str, res_str)
+        from .structure import Structure
+        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+            struct_string = str(self.structure)
+            if style.startswith("serial"):
+                struct_string += " "
+        else:
+            struct_string = ""
+        if style.startswith("simple"):
+            return '%s%s %s' % (struct_string, chain_str, res_str)
+        if style.startswith("command"):
+            return struct_string + chain_str + res_str
+        return struct_string
+
+
+    # static methods...
+
+    @staticmethod
+    def c_ptr_to_existing_py_inst(ptr_type ptr_val):
+        return (<cydecl.Residue *>ptr_val).py_instance(False)
+
+    @staticmethod
+    def c_ptr_to_py_inst(ptr_type ptr_val):
+        return (<cydecl.Residue *>ptr_val).py_instance(True)
+
+    @staticmethod
+    def set_py_class(klass):
+        cydecl.Residue.set_py_class(klass)
+
