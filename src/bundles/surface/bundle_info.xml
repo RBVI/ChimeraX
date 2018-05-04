@@ -28,6 +28,8 @@
     <SourceFile>_surface/triangulate.cpp</SourceFile>
     <SourceFile>_surface/tube.cpp</SourceFile>
     <Library>arrays</Library>
+    <Library platform="windows">glu32.lib</Library>
+    <Library platform="windows">opengl32.lib</Library>
   </CModule>
 
   <Dependencies>
