@@ -213,7 +213,7 @@ def group_symmetries(session, group, molecule):
 #
 def model_symmetry(model):
 
-    from ..map import Volume
+    from chimerax.map import Volume
     from ..atomic import Structure
     if isinstance(model, Volume):
         tflist = model.data.symmetries

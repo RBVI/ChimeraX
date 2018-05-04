@@ -167,6 +167,9 @@ public:
     bool  ribbon_selected() const { return _ribbon_selected; }
     void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
+    void  set_ribbon_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
+        set_ribbon_color(Rgba({r, g, b, a}));
+    }
     void  set_ribbon_display(bool d);
     void  set_ribbon_hide_backbone(bool d);
     void  set_ribbon_selected(bool s);

@@ -1093,8 +1093,8 @@ class ClipRotateMouseMode(MouseMode):
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
     from chimerax import markers
-    from chimerax.core.map import mouselevel, moveplanes
-    from chimerax.core.map.series import play
+    from chimerax.map import ContourLevelMouseMode, PlanesMouseMode
+    from chimerax.map.series import PlaySeriesMouseMode
     mode_classes = [
         SelectMouseMode,
         SelectAddMouseMode,
@@ -1111,11 +1111,11 @@ def standard_mouse_mode_classes():
         ObjectIdMouseMode,
         LabelMode,
         AtomCenterOfRotationMode,
-        mouselevel.ContourLevelMouseMode,
-        moveplanes.PlanesMouseMode,
+        ContourLevelMouseMode,
+        PlanesMouseMode,
         markers.MarkerMouseMode,
         markers.ConnectMouseMode,
-        play.PlaySeriesMouseMode,
+        PlaySeriesMouseMode,
         NullMouseMode,
     ]
     return mode_classes

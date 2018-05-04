@@ -1790,9 +1790,10 @@ def _check_autocomplete(word, mapping, name):
     # This is a primary debugging aid for developers,
     # but it prevents existing abbreviated commands from changing
     # what command they correspond to.
-    for key in mapping:
-        if key.startswith(word) and key != word:
-            raise ValueError("'%s' is a prefix of an existing command" % name)
+    if word not in mapping:
+        for key in mapping:
+            if key.startswith(word) and key != word:
+                raise ValueError("'%s' in '%s' is a prefix of an existing command '%s'" % (word, name, key))
 
 
 class CmdDesc:

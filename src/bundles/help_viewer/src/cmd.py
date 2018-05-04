@@ -14,7 +14,7 @@
 from chimerax.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, run, cli
 
 
-def help(session, topic=None, *, option=None, is_query=False):
+def help(session, topic=None, *, option=None):
     '''Display help
 
     Parameters
@@ -23,32 +23,18 @@ def help(session, topic=None, *, option=None, is_query=False):
         Show documentation for the specified topic.  If no topic is
         specified then the overview is shown.  Topics that are command names
         can be abbreviated.
-    is_query : bool
-        Instead of showing the documetation, return if it exists.
     '''
+    url = None
+    html = None
     if topic is None:
-        if is_query:
-            return True
         topic = 'help:index.html'
-    if topic.startswith('cxcmd:'):
-        from urllib.parse import unquote
-        cmd = unquote(topic.split(':', 1)[1])
-        from chimerax.cmd_line.tool import CommandLine
-        ti = CommandLine.get_singleton(session, create=False)
-        if ti:
-            ti.cmd_replace(cmd)
-            ti.execute()
-        else:
-            # no command line?!?
-            run(session, cmd)
-        return
-    elif topic.startswith('help:'):
+    if topic.startswith('help:'):
         # Help URLs are rooted at base_dir
         import os
         import sys
         from chimerax import app_data_dir
         base_dir = os.path.join(app_data_dir, 'docs')
-        from urllib.parse import urlparse, urlunparse, quote, unquote
+        from urllib.parse import urlparse, urlunparse, quote
         from urllib.request import url2pathname, pathname2url
         (_, _, url_path, _, _, fragment) = urlparse(topic)
         url_path = quote(url_path)
@@ -63,32 +49,28 @@ def help(session, topic=None, *, option=None, is_query=False):
         if not os.path.exists(path):
             # TODO: check if http url is within ChimeraX docs
             # TODO: handle missing doc -- redirect to web server
-            if is_query:
-                return False
             session.logger.error("No help found for '%s'" % topic)
             return
-        if is_query:
-            return True
         if os.path.isdir(path):
             path += '/index.html'
+        # TODO: if path == 'user/index.html':
+        # TODO:     html = merged_user_index()
         url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
     else:
         cmd_name = topic
-        while 1:
+        found = False
+        while True:
             try:
                 url = cli.command_url(cmd_name)
             except ValueError:
                 session.logger.error("No help found for '%s'" % topic)
                 return
             if url:
-                if is_query:
-                    return True
-                return help(session, url, option=option, is_query=is_query)
+                found = True
+                break
             alias = cli.expand_alias(cmd_name)
             if not alias:
                 break
-            # if not is_query:
-            #     run(session, "usage %s" % cmd_name, log=False)
             alias_words = alias.split()
             for i in range(len(alias_words)):
                 try:
@@ -97,12 +79,11 @@ def help(session, topic=None, *, option=None, is_query=False):
                 except ValueError:
                     cmd_name = ' '.join(alias_words[0:i])
                     break
-        if is_query:
-            return False
-        run(session, "usage %s" % topic, log=False)
-        return
+        if not found:
+            run(session, "usage %s" % topic, log=False)
+            return
     from . import show_url
-    show_url(session, url, new_tab=(option == 'newTab'))
+    show_url(session, url, new_tab=(option == 'newTab'), html=html)
 
 
 help_desc = CmdDesc(

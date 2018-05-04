@@ -406,10 +406,10 @@ class Drawing:
             for d in self.child_drawings():
                 d.clear_selection()
 
-    def get_position(self):
+    def _drawing_get_position(self):
         return self._positions[0]
 
-    def set_position(self, pos):
+    def _drawing_set_position(self, pos):
         from ..geometry import Places
         self._positions = Places([pos])
         if (not self._displayed_positions is None
@@ -417,7 +417,7 @@ class Drawing:
             self._displayed_positions = None
         self.redraw_needed(shape_changed=True)
 
-    position = property(get_position, set_position)
+    position = property(_drawing_get_position, _drawing_set_position)
     '''Position and orientation of the surface in space.'''
 
     def _get_scene_position(self):

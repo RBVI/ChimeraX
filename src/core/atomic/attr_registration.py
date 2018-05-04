@@ -156,7 +156,7 @@ class CustomizedInstanceManager(StateManager):
         pass
 
     def take_snapshot(self, session, flags):
-        from chimerax.atomic.molobject import all_python_instances
+        from .molobject import all_python_instances
         # pure Sequence instances don't have 'session' attrs since they shouldn't
         # be saved if nothing else in the Python layer wants them saved
         return { 'instances': [inst for inst in all_python_instances()

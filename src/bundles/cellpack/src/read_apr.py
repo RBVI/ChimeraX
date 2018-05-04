@@ -67,7 +67,7 @@ def read_json(path):
 
 def create_surface(session, mesh_path, name, placements):
 
-    from chimerax.core.surface.collada import read_collada_surfaces
+    from chimerax.surface.collada import read_collada_surfaces
     from chimerax.core.geometry import Places
     slist, msg = read_collada_surfaces(session, mesh_path, name)
     surf = slist[0]

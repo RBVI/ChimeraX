@@ -134,7 +134,6 @@ def register_attr(session, klass, attr_name):
 def register_command(session):
     from . import register, CmdDesc, ObjectsArg
     from . import EmptyArg, Or, StringArg, BoolArg, IntArg, FloatArg
-    from ..map import MapArg
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                             ('target', StringArg),
                             ('attr_name', StringArg),

@@ -114,7 +114,7 @@ def _set_surface_transparency(atoms, objects, session, alpha):
 
     # Handle surface models specified without specifying atoms
     from ..atomic import MolecularSurface, Structure
-    from ..map import Volume
+    from chimerax.map import Volume
     osurfs = []
     for s in objects.models:
         if isinstance(s, MolecularSurface):
