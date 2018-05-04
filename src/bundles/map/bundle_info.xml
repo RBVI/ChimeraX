@@ -37,7 +37,6 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
-    <Dependency name="ChimeraX-MapData" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
