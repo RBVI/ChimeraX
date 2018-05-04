@@ -623,7 +623,7 @@ class Toolshed:
                     best_bi = bi
                     best_version = Version(bi.version)
                 elif best_bi.name != bi.name:
-                    logger("%r matches multiple bundles" % name)
+                    logger.warning("%r matches multiple bundles" % name)
                     return None
                 else:
                     v = Version(bi.version)

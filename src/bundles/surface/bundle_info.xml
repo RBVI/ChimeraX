@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-Surface" version="1.0"
 	    package="chimerax.surface"
-  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
+  	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
@@ -44,6 +44,12 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: DataFormat :: Collada :: collada :: Generic 3D objects :: .dae :: :: https://www.khronos.org/collada :: :: :: 3D scene format</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: Collada :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: color electrostatic :: Surfaces :: color surface by electrostatic potential map</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: color sample :: Surfaces :: color surface by map value</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: color gradient :: Surfaces :: color surface by map gradient norm</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: color radial :: Surfaces :: color surface by distance from a point</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: color cylindrical :: Surfaces :: color surface by distance from an axis</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: color height :: Surfaces :: color surface by distance from a plane</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

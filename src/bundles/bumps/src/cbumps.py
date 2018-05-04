@@ -89,7 +89,7 @@ def cbumps(session, surfaces, convexity_minimum = 0.3, area = None,
 
 def register_cbumps_command(logger):
     from chimerax.core.commands import CmdDesc, register, SurfacesArg, IntArg, FloatArg, CenterArg, SaveFileNameArg
-    from chimerax.core.map import MapArg
+    from chimerax.map import MapArg
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
         keyword = [('convexity_minimum', FloatArg),

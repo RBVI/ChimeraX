@@ -14,9 +14,10 @@ include $(TOP)/mk/config.make
 
 SUBDIRS = addh active_tools align_algs alignments basic_actions bild blastprotein bond_rot bumps \
 	  bundle_builder cage_builder cellpack chem_group clashes cmd_line \
-	  color_globe crosslinks dist_monitor dist_ui exp_cmd file_history \
-	  gltf hbonds help_viewer ihm interfaces label list_info \
-	  log map_series_gui markers match_maker md_crds meeting mlp model_series \
+	  color_globe crosslinks crystal dist_monitor dist_ui exp_cmd file_history \
+	  gltf hbonds help_viewer ihm interfaces label list_info log \
+	  map map_data map_filter map_fit map_series \
+	  map_series_gui markers match_maker md_crds meeting mlp model_series \
 	  mmtf model_panel mol2 morph mouse_modes movie \
 	  nucleotides \
 	  registration remote_control rest_server \
@@ -43,9 +44,15 @@ clean:
 
 active_tools.install: ui.install surface.install
 align_algs.install: alignments.install
+bild.install: surface.install
 bond_rot.install: ui.install
 bumps.install: markers.install
 crosslinks.install: interfaces.install
+ihm.install: map.install
+map.install: map_data.install
+map_filter.install: map.install
+map_fit.install: map.install
+map_series.install: map.install
 markers.install: ui.install
 match_maker.install: align_algs.install sim_matrices.install
 sim_matrices.install: alignments.install

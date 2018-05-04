@@ -116,7 +116,7 @@ class VolumeViewer(ToolInstance):
         remove_volume_closed_callback(s, self._volume_close_handler)
         delattr(self, '_volume_close_handler')
         self.thresholds_panel.delete()	# Remove volume close callback
-        from chimerax.core.map import Volume
+        from chimerax.map import Volume
         for v in s.models.list(type = Volume):
             if getattr(v, '_volume_viewer_tracking', False):
                 v.remove_volume_change_callback(self.data_region_changed)
@@ -383,7 +383,7 @@ def show_viewer_on_open(session):
 
 def models_added_cb(models, session):
     # Show volume viewer when a map is opened.
-    from chimerax.core.map import Volume
+    from chimerax.map import Volume
     vlist = [m for m in models if isinstance(m, Volume)]
     if vlist:
         for v in vlist:
@@ -2263,7 +2263,7 @@ class Histogram_Pane:
     s = self.dialog.session
     if s.ui.shift_key_down():
         # Hide other maps when shift key held down during icon click.
-        from chimerax.core.map import Volume
+        from chimerax.map import Volume
         for m in s.models.list(type = Volume):
             if m != v:
                 m.display = False
@@ -4842,7 +4842,7 @@ def subregion_selection_bounds():
 #
 def add_volume_opened_callback(session, volume_opened_cb):
     def models_opened(name, models, cb = volume_opened_cb):
-        from chimerax.core.map import Volume
+        from chimerax.map import Volume
         vlist = [m for m in models if isinstance(m, Volume)]
         if vlist:
             cb(vlist)
@@ -4859,7 +4859,7 @@ def remove_volume_opened_callback(session, h):
 #
 def add_volume_closed_callback(session, volume_closed_cb):
     def models_closed(name, models, cb = volume_closed_cb):
-        from chimerax.core.map import Volume
+        from chimerax.map import Volume
         vlist = [m for m in models if isinstance(m, Volume)]
         if vlist:
             cb(vlist)
@@ -4875,7 +4875,7 @@ def remove_volume_closed_callback(session, h):
 # -----------------------------------------------------------------------------
 #
 def volume_list(session):
-    from chimerax.core.map import Volume
+    from chimerax.map import Volume
     return session.models.list(type = Volume)
     
 # -----------------------------------------------------------------------------

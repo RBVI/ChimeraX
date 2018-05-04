@@ -107,7 +107,7 @@ def next_direction(direction, e, vertices, normal1, normal2):
     
 def register_geodesic_command(session):
     from chimerax.core.commands import CmdDesc, register, IntArg, ColorArg, FloatArg
-    from chimerax.core.map import MapArg
+    from chimerax.map import MapArg
     desc = CmdDesc(
         required=[('volume', MapArg)],
         keyword=[('length', IntArg),

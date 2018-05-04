@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 #
-def register_color_subcommands(session):
+def register_color_subcommands(logger):
     from chimerax.core.commands import register, CmdDesc, ColormapArg, ColormapRangeArg
     from chimerax.core.commands import FloatArg, BoolArg, AtomsArg
     from chimerax.core.commands import SurfacesArg, CenterArg, AxisArg, CoordSysArg
@@ -22,21 +22,21 @@ def register_color_subcommands(session):
                    keyword=map_args,
                    required_arguments = ['map'],
                    synopsis="color surfaces by electrostatic potential map value")
-    register('color electrostatic', desc, color_electrostatic, logger=session.logger)
+    register('color electrostatic', desc, color_electrostatic, logger=logger)
 
     # color by map value
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                    keyword=map_args,
                    required_arguments = ['map'],
                    synopsis="color surfaces by map value")
-    register('color sample', desc, color_sample, logger=session.logger)
+    register('color sample', desc, color_sample, logger=logger)
 
     # color by map gradient norm
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                    keyword=map_args,
                    required_arguments = ['map'],
                    synopsis="color surfaces by map gradient norm")
-    register('color gradient', desc, color_gradient, logger=session.logger)
+    register('color gradient', desc, color_gradient, logger=logger)
     
     # color by radius
     geom_args = [('center', CenterArg),
@@ -48,16 +48,16 @@ def register_color_subcommands(session):
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                    keyword=geom_args,
                    synopsis="color surfaces by radius")
-    register('color radial', desc, color_radial, logger=session.logger)
+    register('color radial', desc, color_radial, logger=logger)
 
     # color by cylinder radius
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                    keyword=geom_args + [('axis', AxisArg)],
                    synopsis="color surfaces by cylinder radius")
-    register('color cylindrical', desc, color_cylindrical, logger=session.logger)
+    register('color cylindrical', desc, color_cylindrical, logger=logger)
 
     # color by height
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                    keyword=geom_args + [('axis', AxisArg)],
                    synopsis="color surfaces by distance along an axis")
-    register('color height', desc, color_height, logger=session.logger)
+    register('color height', desc, color_height, logger=logger)

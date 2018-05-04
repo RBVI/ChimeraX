@@ -61,7 +61,7 @@ def register_bumps_command(logger):
 
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import CenterArg, FloatArg, Color8Arg, StringArg, BoolArg, SaveFileNameArg, ModelsArg
-    from chimerax.core.map import MapArg
+    from chimerax.map import MapArg
 
     from os.path import dirname, join
     help_url = 'help:' + join(dirname(__file__), 'bumps.html')
@@ -315,7 +315,7 @@ def color_surface_from_mask(volume, mask):
     from numpy import random, uint8, int32, float32, empty
     pcolors = random.randint(0, 255, (n+1,4), dtype = uint8)
     pcolors[:,3] = 255
-    from chimerax.core.map import _map
+    from chimerax.map import _map
     for d in volume.surfaces:
         values = empty((len(d.vertices),), float32)
         vijk = volume.data.xyz_to_ijk(d.vertices)

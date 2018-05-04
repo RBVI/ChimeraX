@@ -530,7 +530,7 @@ def _set_surface_color_func(atoms, objects, session, func, undo_state=None):
     # TODO:
     # # Handle surface models specified without specifying atoms
     # from ..atomic import MolecularSurface, Structure
-    # from ..map import Volume
+    # from chimerax.map import Volume
     # osurfs = []
     # for s in objects.models:
     #     if isinstance(s, MolecularSurface):

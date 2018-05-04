@@ -34,10 +34,11 @@ from chimerax.core.toolshed import BundleAPI
 class _SurfaceBundle(BundleAPI):
 
     @staticmethod
-    def initialize(session, bundle_info):
-        """Register surface color commands"""
-        from . import colorcmds
-        colorcmds.register_color_subcommands(session)
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when the command is referenced
+        if command_name == 'color radial':
+            from . import colorcmds
+            colorcmds.register_color_subcommands(logger)
 
     @staticmethod
     def open_file(session, stream, file_name):

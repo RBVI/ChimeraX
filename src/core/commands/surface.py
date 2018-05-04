@@ -245,7 +245,7 @@ def surface_style(session, surfaces, style):
     if surfaces is None:
         from ..atomic import Structure
         surfaces = [m for m in session.models.list() if not isinstance(m, Structure)]
-    from ..map import Volume
+    from chimerax.map import Volume
     for s in surfaces:
         if isinstance(s, Volume) and s.representation in ('surface', 'mesh'):
             if style == 'dot':

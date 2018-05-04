@@ -968,8 +968,6 @@ def _register_core_file_formats(session):
     mmcif.register_mmcif_format()
     from . import scripting
     scripting.register()
-    from . import map
-    map.register_map_file_formats(session)
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
     from . import image
@@ -982,8 +980,5 @@ def _register_core_database_fetch():
     pdb.register_pdb_fetch()
     from .atomic import mmcif
     mmcif.register_mmcif_fetch()
-    from . import map
-    map.register_eds_fetch()
-    map.register_emdb_fetch()
     from . import fetch
     fetch.register_web_fetch()

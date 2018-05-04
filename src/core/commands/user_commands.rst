@@ -177,7 +177,7 @@ exit
 
 fitmap
 ======
-.. autofunction:: chimerax.core.map.fit.fitcmd.fitmap
+.. autofunction:: chimerax.map.fit.fitcmd.fitmap
 
 help
 ====
@@ -239,7 +239,7 @@ Function found in *chimerax.mlp.mlp*
 
 molmap
 ======
-.. autofunction:: chimerax.core.map.molmap.molmap
+.. autofunction:: chimerax.map.molmap.molmap
 
 morph
 =====
@@ -397,38 +397,38 @@ view
 
 volume
 ======
-.. autofunction:: chimerax.core.map.volumecommand.volume
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_add
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_bin
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_boxes
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_cover
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_falloff
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_flatten
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_flip
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_fourier
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_gaussian
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_laplacian
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_local_correlation
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_maximum
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_median
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_minimum
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_morph
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_multiply
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_octant
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_permute_axes
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_resample
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_ridges
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_scale
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_subtract
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_threshold
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_tile
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_unbend
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_unroll
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_zone
+.. autofunction:: chimerax.map.volumecommand.volume
+.. autofunction:: chimerax.map.filter.vopcommand.volume_add
+.. autofunction:: chimerax.map.filter.vopcommand.volume_bin
+.. autofunction:: chimerax.map.filter.vopcommand.volume_boxes
+.. autofunction:: chimerax.map.filter.vopcommand.volume_cover
+.. autofunction:: chimerax.map.filter.vopcommand.volume_falloff
+.. autofunction:: chimerax.map.filter.vopcommand.volume_flatten
+.. autofunction:: chimerax.map.filter.vopcommand.volume_flip
+.. autofunction:: chimerax.map.filter.vopcommand.volume_fourier
+.. autofunction:: chimerax.map.filter.vopcommand.volume_gaussian
+.. autofunction:: chimerax.map.filter.vopcommand.volume_laplacian
+.. autofunction:: chimerax.map.filter.vopcommand.volume_local_correlation
+.. autofunction:: chimerax.map.filter.vopcommand.volume_maximum
+.. autofunction:: chimerax.map.filter.vopcommand.volume_median
+.. autofunction:: chimerax.map.filter.vopcommand.volume_minimum
+.. autofunction:: chimerax.map.filter.vopcommand.volume_morph
+.. autofunction:: chimerax.map.filter.vopcommand.volume_multiply
+.. autofunction:: chimerax.map.filter.vopcommand.volume_octant
+.. autofunction:: chimerax.map.filter.vopcommand.volume_permute_axes
+.. autofunction:: chimerax.map.filter.vopcommand.volume_resample
+.. autofunction:: chimerax.map.filter.vopcommand.volume_ridges
+.. autofunction:: chimerax.map.filter.vopcommand.volume_scale
+.. autofunction:: chimerax.map.filter.vopcommand.volume_subtract
+.. autofunction:: chimerax.map.filter.vopcommand.volume_threshold
+.. autofunction:: chimerax.map.filter.vopcommand.volume_tile
+.. autofunction:: chimerax.map.filter.vopcommand.volume_unbend
+.. autofunction:: chimerax.map.filter.vopcommand.volume_unroll
+.. autofunction:: chimerax.map.filter.vopcommand.volume_zone
 
 vseries
 =======
-.. automodule:: chimerax.core.map.series.vseries_command
+.. automodule:: chimerax.map.series.vseries_command
   :members:
   :show-inheritance:
 

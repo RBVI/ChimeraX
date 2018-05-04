@@ -299,7 +299,7 @@ class Colormap(State):
         ------------
         numpy array of rgba (Nx4 where N is the length of "values".)
         """
-        from . import map
+        from chimerax import map
         colors = map.interpolate_colormap(values, self.data_values, self.colors,
                                           self.color_above_value_range,
                                           self.color_below_value_range)

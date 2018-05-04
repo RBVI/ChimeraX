@@ -165,7 +165,7 @@ def pseudobond_group_info(m):
 
 def volume_info(m):
 
-    from chimerax.core.map import Volume
+    from chimerax.map import Volume
     if not isinstance(m, Volume):
         return ''
 
