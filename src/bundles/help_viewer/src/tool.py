@@ -179,7 +179,7 @@ class HelpUI(ToolInstance):
 
         self.search_terms = QLineEdit()
         self.search_terms.setClearButtonEnabled(True)
-        self.search_terms.setPlaceholderText("search terms")
+        self.search_terms.setPlaceholderText("search in page")
         self.search_terms.setMaximumWidth(200)
         self.search_terms.returnPressed.connect(self.page_search)
         tb.addWidget(self.search_terms)
