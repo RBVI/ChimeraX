@@ -30,6 +30,9 @@
     <Library>arrays</Library>
     <Library platform="windows">glu32.lib</Library>
     <Library platform="windows">opengl32.lib</Library>
+    <Library platform="linux">GLU</Library>
+    <Library platform="linux">GL</Library>
+    <Framework>OpenGL</Framework>
   </CModule>
 
   <Dependencies>
