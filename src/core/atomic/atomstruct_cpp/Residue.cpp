@@ -279,7 +279,7 @@ std::string
 Residue::str() const
 {
     std::stringstream num_string;
-    std::string ret = (const char*)_name;
+    std::string ret = _name;
     ret += ' ';
     if (_chain_id != " ") {
         ret += '/';

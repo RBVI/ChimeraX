@@ -94,7 +94,7 @@ std::string
 residue_str(Residue* r, Residue* other = nullptr)
 {
     std::stringstream pos_string;
-    std::string ret = static_cast<const char*>(r->name());
+    std::string ret = r->name();
     ret += " #";
     pos_string << r->number();
     ret += pos_string.str();
@@ -922,7 +922,7 @@ ExtractMolecule::parse_chem_comp()
         if (tr)
             continue;
 
-        tr = my_templates->new_residue(id);
+        tr = my_templates->new_residue(id.c_str());
         tr->pdbx_ambiguous = ambiguous;
         // convert type to lowercase
         for (auto& c: type) {
@@ -1443,7 +1443,6 @@ ExtractMolecule::parse_atom_site_anisotrop()
         return;
     }
 
-    auto mol = all_residues.begin()->second.begin()->second->structure();
     while (parse_row(pv)) {
         const auto& ai = atom_lookup.find(serial_num);
         if (ai == atom_lookup.end())

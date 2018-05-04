@@ -88,7 +88,7 @@ AtomicStructure::_compute_structure_cats() const
             continue;
 
         // potential solvent
-        solvents[static_cast<const char*>(root->residue()->name())].push_back(root);
+        solvents[root->residue()->name().c_str()].push_back(root);
     }
     std::string best_solvent_name;
     size_t best_solvent_size = 10;

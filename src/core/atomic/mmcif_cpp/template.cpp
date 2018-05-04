@@ -237,7 +237,7 @@ ExtractTemplate::parse_chem_comp()
     is_peptide = type.find("peptide") != string::npos;
     is_nucleotide = type.find("dna ") == string::npos
         || type.find("rna ") == string::npos;
-    residue = templates->new_residue(name);
+    residue = templates->new_residue(name.c_str());
     residue->pdbx_ambiguous = ambiguous;
     all_residues.push_back(residue);
     if (!code || (!is_peptide && !is_nucleotide))
@@ -427,7 +427,7 @@ set_Python_locate_function(PyObject* function)
     save_reference_to_function = function;
 
     locate_func = [function] (const ResName& name) -> std::string {
-        PyObject* name_arg = wrappy::pyObject((const char*)name);
+      PyObject* name_arg = wrappy::pyObject(name.c_str());
         PyObject* result = PyObject_CallFunction(function, "O", name_arg);
         Py_XDECREF(name_arg);
         if (result == nullptr)
