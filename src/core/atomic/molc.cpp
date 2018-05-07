@@ -4033,6 +4033,16 @@ extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz, size
     }
 }
 
+extern "C" EXPORT void structure_remove_coordsets(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->clear_coord_sets();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_add_coordsets(void *mol, bool replace, void *xyz, size_t n_sets, size_t n_coords)
 {
     Structure *m = static_cast<Structure *>(mol);
