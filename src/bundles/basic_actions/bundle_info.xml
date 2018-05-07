@@ -1,5 +1,6 @@
-<BundleInfo name="ChimeraX-Target" version="0.1" package="chimerax.target"
-  	    minSessionVersion="1" maxSessionVersion="1">
+<BundleInfo name="ChimeraX-BasicActions" version="0.1"
+            package="chimerax.basic_actions"
+            minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>
@@ -8,15 +9,16 @@
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>User-defined specifier targets</Synopsis>
-  <Description>Manager for user-defined specifier targets.
+  <Synopsis>Basic actions for user-defined specifier names</Synopsis>
+  <Description>Manager for user-defined specifier names.
 
-Targets may be listed, defined and undefined.
+Names are listed and may be used to display, hide or color associated
+atoms, cartoons and surfaces.
   </Description>
 
     <DataFiles>
       <DataFile>lib/*</DataFile>
-      <DataFile>targets.*</DataFile>
+      <DataFile>basic_actions.*</DataFile>
 
       <!-- <DataFile></DataFile> -->
 
@@ -51,10 +53,10 @@ Targets may be listed, defined and undefined.
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Basic Actions :: General :: show/hide atoms, ribbons and surfaces</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name :: General :: Show user-defined target manager</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name frozen :: General :: Create user-defined target</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name delete :: General :: Remove user-defined target</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: name list :: General :: List user-defined targets</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: name :: General :: Define specifier name as a string</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: name frozen :: General :: Define specifier name as atoms in current session matching a string</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: name delete :: General :: Remove user-defined specifier name</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: name list :: General :: List user-defined specifier names</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
