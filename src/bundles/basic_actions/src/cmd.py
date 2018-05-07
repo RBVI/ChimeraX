@@ -7,7 +7,7 @@ from chimerax.core.commands import RestOfLine, BoolArg, AnnotationError
 
 def name(session, name, text=None):
     if name == "all":
-        raise UserError("\"all\" is reserved and cannot be redefined")
+        raise UserError("\"all\" is reserved and cannot be shown or defined")
     if text is None:
         from chimerax.core.commands import get_selector_description
         try:
@@ -41,7 +41,7 @@ def _is_reserved(name):
     try:
         return not is_selector_user_defined(name)
     except KeyError:
-        return False
+        return name == "all"
 
 
 def name_frozen(session, name, objects):
@@ -62,9 +62,9 @@ def name_delete(session, name):
         from chimerax.core.commands import deregister_selector
         deregister_selector(name, session.logger)
     else:
-        from chimerax.core.commands import list_selectors
+        from chimerax.core.commands import list_selectors, deregister_selector
         for name in list(list_selectors()):
-            if is_selector_user_defined(name):
+            if not _is_reserved(name):
                 deregister_selector(name, session.logger)
 name_delete_desc = CmdDesc(required=[("name", StringArg)])
 
@@ -72,7 +72,7 @@ name_delete_desc = CmdDesc(required=[("name", StringArg)])
 def name_list(session, builtins=False, log=True):
     from chimerax.core.commands import list_selectors, is_selector_user_defined
     from chimerax.core.commands import get_selector_description
-    targets = {}
+    names = {}
     for name in sorted(list_selectors()):
         if not builtins and not is_selector_user_defined(name):
             continue
@@ -80,8 +80,8 @@ def name_list(session, builtins=False, log=True):
         if desc:
             if log:
                 session.logger.info('\t'.join([name, desc]))
-            targets[name] = desc
-    if not targets and log:
-        session.logger.info("There are no user-defined targets.")
-    return targets
+            names[name] = desc
+    if not names and log:
+        session.logger.info("There are no user-defined specifier names.")
+    return names
 name_list_desc = CmdDesc(keyword=[("builtins", BoolArg)])
