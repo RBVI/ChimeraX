@@ -251,7 +251,7 @@ class ChimeraXHtmlView(HtmlView):
                 finally:
                     if prev_dir:
                         os.chdir(prev_dir)
-            self.session.ui.thread_safe(defer, self.session, qurl.url(), from_dir)
+            self.session.ui.thread_safe(defer, self.session, qurl.url(qurl.None_), from_dir)
             return
 
     def download_requested(self, item):
@@ -336,7 +336,9 @@ class ChimeraXHtmlView(HtmlView):
 
 
 def cxcmd(session, url):
+    from urllib.parse import unquote
     cmd = url.split(':', 1)[1]  # skip cxcmd:
+    cmd = unquote(cmd)  # undo expected quoting
     from chimerax.cmd_line.tool import CommandLine
     ti = CommandLine.get_singleton(session, create=False)
     if ti:
