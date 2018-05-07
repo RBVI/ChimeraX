@@ -31,7 +31,7 @@ the center of mass.
 
   <!-- DataFiles is a list of additional files to include in bundle -->
   <DataFiles>
-    <DataFile>helpdir/*</DataFile>
+    <DataFile>docs/user/commands/tutorial.html</DataFile>
   </DataFiles>
 
   <!-- Dependencies on other ChimeraX/Python packages -->
