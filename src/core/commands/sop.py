@@ -265,7 +265,7 @@ def new_surface(name, align_to, model_id):
 
 # -----------------------------------------------------------------------------
 #
-def surface_dust(session, surfaces, metric = 'size', size = None, update = True):
+def surface_dust(session, surfaces, metric = 'size', size = 5, update = True):
     '''
     Hide connected surface patchs smaller than a specified size.
 
