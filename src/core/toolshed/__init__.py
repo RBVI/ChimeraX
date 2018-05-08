@@ -612,7 +612,7 @@ class Toolshed:
         best_bi = None
         best_version = None
         for bi in container:
-            if lc_name not in bi.name.lower():
+            if lc_name != bi.name.lower():
                 continue
             #if bi.name != name and name not in bi.supercedes:
             #    continue
@@ -623,7 +623,7 @@ class Toolshed:
                     best_bi = bi
                     best_version = Version(bi.version)
                 elif best_bi.name != bi.name:
-                    logger.warning("%r matches multiple bundles" % name)
+                    logger.warning("%r matches multiple bundles %s, %s" % (name, best_bi.name, bi.name))
                     return None
                 else:
                     v = Version(bi.version)
