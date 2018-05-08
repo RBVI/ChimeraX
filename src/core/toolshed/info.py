@@ -470,7 +470,7 @@ class BundleInfo:
             bundle_api = getattr(m, 'bundle_api')
         except AttributeError:
             raise ToolshedError("missing bundle_api for bundle \"%s\"" % self.name)
-        _debug("_get_api", self._api_package_name, m, bundle_api)
+        # _debug("_get_api", self._api_package_name, m, bundle_api)
         return bundle_api
 
     def get_path(self, subpath):
