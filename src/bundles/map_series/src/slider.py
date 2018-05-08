@@ -71,6 +71,12 @@ class MapSeriesSlider(ToolInstance):
 
         tw.manage(placement="side")
 
+        if series:
+            times = series[0].shown_times
+            if times:
+                t = next(iter(times))
+                self.time.setValue(t)
+                
         from chimerax.core.models import REMOVE_MODELS
         self.model_close_handler = session.triggers.add_handler(
             REMOVE_MODELS, self.models_closed_cb)
