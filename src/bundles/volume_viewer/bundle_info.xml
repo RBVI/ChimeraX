@@ -13,7 +13,7 @@ The data can be shown as solid or mesh isosurfaces (contour surfaces)
 or as partially transparent solids.</Description>
 
   <DataFiles>
-    <DataFile>*.png</DataFile>
+    <DataFile>icons/*.png</DataFile>
   </DataFiles>
 
   <Categories>
