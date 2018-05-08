@@ -18,8 +18,8 @@ from chimerax.core.tools import ToolInstance
 #
 class MapSeriesSlider(ToolInstance):
 
-    def __init__(self, session, tool_name, *, series=[]):
-        ToolInstance.__init__(self, session, tool_name)
+    def __init__(self, session, *, series=[]):
+        ToolInstance.__init__(self, session, tool_name = 'Map Series')
 
         self.series = list(series)
         self.playing = False
@@ -241,6 +241,6 @@ def models_added_cb(models, session):
             if mss:
                 mss.add_series(m)
             else:
-                mss = MapSeriesSlider(session, "Map Series", series = [m])
+                mss = MapSeriesSlider(session, series = [m])
                 mss.show()
                 msstable[mss.size()] = mss

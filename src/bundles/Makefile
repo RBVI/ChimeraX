@@ -17,7 +17,7 @@ SUBDIRS = addh active_tools align_algs alignments basic_actions bild blastprotei
 	  color_globe crosslinks crystal dist_monitor dist_ui exp_cmd file_history \
 	  gltf hbonds help_viewer ihm interfaces label list_info log \
 	  map map_data map_filter map_fit map_series \
-	  map_series_gui markers match_maker md_crds meeting mlp model_series \
+	  markers match_maker md_crds meeting mlp model_series \
 	  mmtf model_panel mol2 morph mouse_modes movie \
 	  nucleotides \
 	  registration remote_control rest_server \

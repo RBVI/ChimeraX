@@ -32,6 +32,18 @@ class _MapSeriesBundle(BundleAPI):
             measure_motion.register_command(logger)
 
     @staticmethod
+    def initialize(session, bundle_info):
+        # 'initialize' is called by the toolshed on start up
+        from . import slider
+        slider.show_slider_on_open(session)
+
+    @staticmethod
+    def finish(session, bundle_info):
+        # 'finish' is called by the toolshed when updated/reloaded
+        from . import slider
+        slider.remove_slider_on_open(session)
+
+    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'MapSeries':
