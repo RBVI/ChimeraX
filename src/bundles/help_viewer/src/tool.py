@@ -21,31 +21,22 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.widgets import ChimeraXHtmlView
 
 _singleton = None
-_help_path = None
 
 
 def _qurl2text(qurl):
     # recreate help: version
-    global _help_path
-    if _help_path is None:
-        from chimerax import app_data_dir
-        import os
-        from urllib.request import pathname2url
-        _help_path = pathname2url(os.path.join(app_data_dir, 'docs'))
-        if _help_path.startswith('///'):
-            _help_path = _help_path[2:]
-        if not _help_path.endswith('/'):
-            _help_path += '/'
+    from . import help_url_paths
     if qurl.scheme() == 'file':
         path = qurl.path()
         frag = qurl.fragment()
         if frag:
             frag = '#%s' % frag
-        if path.startswith(_help_path):
-            path = path[len(_help_path):]
-            if path.endswith("/index.html"):
-                path = path[:-11]
-            return "help:%s%s" % (path, frag)
+        for hp in help_url_paths:
+            if path.startswith(hp):
+                path = path[len(hp):]
+                if path.endswith("/index.html"):
+                    path = path[:-11]
+                return "help:%s%s" % (path, frag)
     return qurl.toString()
 
 
