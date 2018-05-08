@@ -473,11 +473,14 @@ class BundleInfo:
         _debug("_get_api", self._api_package_name, m, bundle_api)
         return bundle_api
 
-    def find_icon_path(self, icon_name):
+    def get_path(self, subpath):
         import os
         m = self.get_module()
-        icon_dir = os.path.dirname(m.__file__)
-        return os.path.join(icon_dir, icon_name)
+        directory = os.path.dirname(m.__file__)
+        path = os.path.join(directory, subpath)
+        if os.path.exists(path):
+            return path
+        return None
 
     def start_tool(self, session, tool_name, *args, **kw):
         """Create and return a tool instance.
