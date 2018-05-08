@@ -164,7 +164,7 @@ class _LoggingPage(QWebEnginePage):
 
     Levels = {
         0: "info",
-        1: "warning", 
+        1: "warning",
         2: "error",
     }
 
@@ -232,7 +232,6 @@ class ChimeraXHtmlView(HtmlView):
                 from_dir = os.path.dirname(originating_url.toLocalFile())
 
             def defer(session, topic, from_dir):
-                from chimerax.help_viewer.cmd import help
                 prev_dir = None
                 try:
                     if from_dir:
@@ -244,11 +243,15 @@ class ChimeraXHtmlView(HtmlView):
                             prev_dir = None
                             session.logger.warning(
                                 'Unable to change working directory: %s' % e)
-                    help(session, topic)
+                    if scheme == 'cxcmd':
+                        cxcmd(session, topic)
+                    elif scheme == 'help':
+                        from chimerax.help_viewer.cmd import help
+                        help(session, topic)
                 finally:
                     if prev_dir:
                         os.chdir(prev_dir)
-            self.session.ui.thread_safe(defer, self.session, qurl.url(), from_dir)
+            self.session.ui.thread_safe(defer, self.session, qurl.url(qurl.None_), from_dir)
             return
 
     def download_requested(self, item):
@@ -330,3 +333,18 @@ class ChimeraXHtmlView(HtmlView):
                                                  self.session.logger,
                                                  per_user=per_user,
                                                  session=self.session)
+
+
+def cxcmd(session, url):
+    from urllib.parse import unquote
+    cmd = url.split(':', 1)[1]  # skip cxcmd:
+    cmd = unquote(cmd)  # undo expected quoting
+    from chimerax.cmd_line.tool import CommandLine
+    ti = CommandLine.get_singleton(session, create=False)
+    if ti:
+        ti.cmd_replace(cmd)
+        ti.execute()
+    else:
+        # no command line?!?
+        from chimerax.core.commands import run
+        run(session, cmd)

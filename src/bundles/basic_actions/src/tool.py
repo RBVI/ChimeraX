@@ -21,8 +21,8 @@ class BasicActionsTool(HtmlToolInstance):
         self._html_state = None
         self._loaded_page = False
         self._handlers = None
-        self._updating_targets = False
-        self.setup_page("targets.html")
+        self._updating_names = False
+        self.setup_page("basic_actions.html")
 
     def setup(self, html_state=None):
         self._html_state = html_state
@@ -34,16 +34,16 @@ class BasicActionsTool(HtmlToolInstance):
 
     def _setup(self):
         #
-        # Register for updates of target register/deregister events
+        # Register for updates of name register/deregister events
         #
         session = self.session
         from chimerax.core import triggers
         from chimerax.core.commands import (ATOMSPEC_TARGET_REGISTERED,
                                             ATOMSPEC_TARGET_DEREGISTERED)
         t1 = triggers.add_handler(ATOMSPEC_TARGET_REGISTERED,
-                                  self.update_targets)
+                                  self.update_names)
         t2 = triggers.add_handler(ATOMSPEC_TARGET_DEREGISTERED,
-                                  self.update_targets)
+                                  self.update_names)
         self._handlers = (t1, t2)
 
     def setup_page(self, html_file):
@@ -99,35 +99,35 @@ class BasicActionsTool(HtmlToolInstance):
         model_data = json.dumps(data)
         js = "%s.update_components(%s);" % (self.CUSTOM_SCHEME, model_data)
         self.html_view.runJavaScript(js)
-        self.update_targets()
+        self.update_names()
 
-    def update_targets(self, trigger=None, trigger_data=None):
-        if trigger is not None and self._updating_targets:
-            # We are in the middle of an update of target names,
+    def update_names(self, trigger=None, trigger_data=None):
+        if trigger is not None and self._updating_names:
+            # We are in the middle of an update of specifier names,
             # so this must be called when the first time a
             # selector was used and is being reregistered with
             # the real function.
             # Just ignore and let the update continue
             return
-        self._updating_targets = True
+        self._updating_names = True
         from .cmd import name_list
         from chimerax.core.commands import (is_selector_atomic,
                                             is_selector_user_defined)
-        targets = name_list(self.session, builtins=self._show_all, log=False)
+        names = name_list(self.session, builtins=self._show_all, log=False)
         data = []
-        for name in sorted(targets.keys()):
+        for name in sorted(names.keys()):
             if not is_selector_atomic(name):
                 continue
             if self._hide_nonmatching and self._is_nonmatching(name):
                 continue
             data.append({"name": name,
-                         "info": targets[name],
+                         "info": names[name],
                          "builtin": not is_selector_user_defined(name)})
         import json
-        target_data = json.dumps(data)
-        js = "%s.update_targets(%s);" % (self.CUSTOM_SCHEME, target_data)
+        name_data = json.dumps(data)
+        js = "%s.update_names(%s);" % (self.CUSTOM_SCHEME, name_data)
         self.html_view.runJavaScript(js)
-        self._updating_targets = False
+        self._updating_names = False
 
     def _is_nonmatching(self, name):
         try:
@@ -157,7 +157,7 @@ class BasicActionsTool(HtmlToolInstance):
         method(query)
 
     def _cb_show_hide(self, query):
-        """Shows or hides target"""
+        """Shows or hides names"""
         # print("cb_show_hide", query)
         action = query["action"][0]
         target = query["target"][0]
@@ -167,7 +167,7 @@ class BasicActionsTool(HtmlToolInstance):
         run(self.session, cmd)
 
     def _cb_color(self, query):
-        """Colors target"""
+        """Colors names"""
         # print("cb_color", query)
         color = query["color"][0]
         target = query["target"][0]
@@ -177,7 +177,7 @@ class BasicActionsTool(HtmlToolInstance):
         run(self.session, cmd)
 
     def _cb_select(self, query):
-        """Select target"""
+        """Select names"""
         # print("cb_select", query)
         selector = query["selector"][0]
         cmd = "select %s" % selector
@@ -187,12 +187,12 @@ class BasicActionsTool(HtmlToolInstance):
     def _cb_builtin(self, query):
         """shows builtin names"""
         self._show_all = query["show"][0] == "true"
-        self.update_targets()
+        self.update_names()
 
     def _cb_nonmatching(self, query):
         """hide names with no matching items"""
         self._hide_nonmatching = query["hide"][0] == "true"
-        self.update_targets()
+        self.update_names()
 
     # Session stuff
 

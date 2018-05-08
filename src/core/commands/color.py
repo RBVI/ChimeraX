@@ -273,7 +273,6 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
 
 def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state=None):
     # TODO: save undo data
-    from .scolor import color_surfaces_at_atoms
     if color in _SpecialColors:
         if color == 'fromatoms':
             ns = color_surfaces_at_atoms(atoms, opacity=opacity)
@@ -391,7 +390,6 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state
                     r.ribbon_color = rgba
             if 's' in target:
                 # TODO: save surface undo data
-                from .scolor import color_surfaces_at_residues
                 color_surfaces_at_residues(residues, colors, opacity)
 
 # -----------------------------------------------------------------------------
@@ -420,7 +418,6 @@ def _set_sequential_structures(session, selected, cmap, opacity, target, undo_st
             _set_ribbon_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
             # TODO: save surface undo data
-            from .scolor import color_surfaces_at_atoms
             color_surfaces_at_atoms(m.atoms, c)
 
 # -----------------------------------------------------------------------------
@@ -533,7 +530,7 @@ def _set_surface_color_func(atoms, objects, session, func, undo_state=None):
     # TODO:
     # # Handle surface models specified without specifying atoms
     # from ..atomic import MolecularSurface, Structure
-    # from ..map import Volume
+    # from chimerax.map import Volume
     # osurfs = []
     # for s in objects.models:
     #     if isinstance(s, MolecularSurface):
@@ -975,7 +972,6 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
         msg.append('%d residues' % len(residues))
 
     if 's' in target:
-        from .scolor import color_surfaces_at_atoms
         ns = color_surfaces_at_atoms(atoms, per_atom_colors = acolors)
         if ns > 0:
             msg.append('%d surfaces' % ns)
@@ -986,10 +982,33 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
         m = ', '.join(msg) + ', %s %.3g to %.3g' % (r, min(abf), max(abf))
         session.logger.status(m, log=True)
 
+# -----------------------------------------------------------------------------
+#
+def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom_colors = None):
+    from .. import atomic
+    surfs = atomic.surfaces_with_atoms(atoms)
+    for s in surfs:
+        s.color_atom_patches(atoms, color, opacity, per_atom_colors)
+    return len(surfs)
+
+# -----------------------------------------------------------------------------
+#
+def color_surfaces_at_residues(residues, colors, opacity = None):
+    atoms, acolors = _residue_atoms_and_colors(residues, colors)
+    color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors = acolors)
+
+# -----------------------------------------------------------------------------
+#
+def _residue_atoms_and_colors(residues, colors):
+    atoms = residues.atoms
+    from numpy import repeat
+    acolors = repeat(colors, residues.num_atoms, axis=0)
+    return atoms, acolors
+
 def _value_colors(palette, range, values):
-    vrange = lambda: (min(values), max(values))
-    from .scolor import _colormap_with_range
-    cmap = _colormap_with_range(palette, range, vrange, default = 'blue-white-red')
+    from chimerax.surface.colorvol import _use_full_range, _colormap_with_range
+    r = (min(values), max(values)) if _use_full_range(range, palette) else range
+    cmap = _colormap_with_range(palette, r, default = 'blue-white-red')
     colors = cmap.interpolated_rgba8(values)
     return colors
         
@@ -1011,10 +1030,9 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
       Whether to update surface color when surface shape changes.  Default true.
     '''
     atoms = near
-    from .scolor import _surface_drawings
-    surfs = _surface_drawings(surfaces)
+    surfs = [s for s in surfaces if s.vertices is not None]
     bonds = None
-    from ..surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
+    from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
     points, colors = points_and_colors(atoms, bonds)
     for s in surfs:
         # TODO: save undo data
@@ -1023,16 +1041,9 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
 
 # -----------------------------------------------------------------------------
 #
-from .scolor import color_radial, color_cylindrical, color_height
-from .scolor import color_electrostatic, color_sample, color_gradient
-
-# -----------------------------------------------------------------------------
-#
 def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg, ObjectsArg, create_alias
-    from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg
-    from . import SurfacesArg, CenterArg, AxisArg, CoordSysArg
-    from ..map import MapArg
+    from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg, SurfacesArg
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),
@@ -1079,34 +1090,6 @@ def register_command(session):
                    synopsis="color atoms by bfactor")
     register('color bfactor', desc, color_bfactor, logger=session.logger)
 
-    map_args = [('map', MapArg),
-                ('palette', ColormapArg),
-                ('range', ColormapRangeArg),
-                ('offset', FloatArg),
-                ('transparency', FloatArg),
-                ('update', BoolArg),
-    ]
-    # color by electrostatic potential map 
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=map_args,
-                   required_arguments = ['map'],
-                   synopsis="color surfaces by electrostatic potential map value")
-    register('color electrostatic', desc, color_electrostatic, logger=session.logger)
-
-    # color by map value
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=map_args,
-                   required_arguments = ['map'],
-                   synopsis="color surfaces by map value")
-    register('color sample', desc, color_sample, logger=session.logger)
-
-    # color by map gradient norm
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=map_args,
-                   required_arguments = ['map'],
-                   synopsis="color surfaces by map gradient norm")
-    register('color gradient', desc, color_gradient, logger=session.logger)
-
     # color by nearby atoms
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                    keyword=[('near', AtomsArg),
@@ -1117,27 +1100,3 @@ def register_command(session):
                    required_arguments = ['near'],
                    synopsis="color surfaces to match nearby atoms")
     register('color zone', desc, color_zone, logger=session.logger)
-    
-    # color by radius
-    geom_args = [('center', CenterArg),
-                 ('coordinate_system', CoordSysArg),
-                 ('palette', ColormapArg),
-                 ('range', ColormapRangeArg),
-                 ('update', BoolArg),
-    ]
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=geom_args,
-                   synopsis="color surfaces by radius")
-    register('color radial', desc, color_radial, logger=session.logger)
-
-    # color by cylinder radius
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=geom_args + [('axis', AxisArg)],
-                   synopsis="color surfaces by cylinder radius")
-    register('color cylindrical', desc, color_cylindrical, logger=session.logger)
-
-    # color by height
-    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
-                   keyword=geom_args + [('axis', AxisArg)],
-                   synopsis="color surfaces by distance along an axis")
-    register('color height', desc, color_height, logger=session.logger)

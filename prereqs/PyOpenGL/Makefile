@@ -17,6 +17,8 @@ PYOPENGL_SOURCE = $(tmpdir)/PyOpenGL-$(VERSION)
 ACCELERATE_DISTRIBUTION = PyOpenGL-accelerate-$(VERSION).tar.gz
 ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-accelerate-$(VERSION)
 
+ALREADY_INSTALLED = grep -E "(already satisfied|not upgraded)"
+
 ifdef WIN32
 include ../pips/Makefile.pip
 WHEEL = PyOpenGL-$(VERSION)-cp36-cp36m-win_amd64.whl \
@@ -39,12 +41,12 @@ all:
 ifdef WIN32
 
 install:
-	$(PIP_INSTALL) $(WHEEL) | grep "already satisfied" || \
+	$(PIP_INSTALL) $(WHEEL) | $(ALREADY_INSTALLED) || \
 		((cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch && \
 		 (cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-glbuffersubdata.patch)
 
 app-install:
-	$(APP_PIP_INSTALL) $(WHEEL) | grep "already satisfied" || \
+	$(APP_PIP_INSTALL) $(WHEEL) | $(ALREADY_INSTALLED) || \
 		((cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch && \
 		 (cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-glbuffersubdata.patch)
 

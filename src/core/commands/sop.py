@@ -85,7 +85,9 @@ def register_surface_subcommands(session):
 
     from . import CmdDesc, register, SurfacesArg, AtomsArg, FloatArg, IntArg, BoolArg, EnumOf
 
-    from ..surface.dust import metrics
+# TODO: use surface.dust.metrics once command module moved out of core
+# from chimerax.surface.dust import metrics
+    metrics = ('size', 'area', 'volume', 'size rank', 'area rank', 'volume rank')
     dust_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('metric', EnumOf(metrics)),
                                    ('size', FloatArg),
@@ -263,7 +265,7 @@ def new_surface(name, align_to, model_id):
 
 # -----------------------------------------------------------------------------
 #
-def surface_dust(session, surfaces, metric = 'size', size = None, update = True):
+def surface_dust(session, surfaces, metric = 'size', size = 5, update = True):
     '''
     Hide connected surface patchs smaller than a specified size.
 
@@ -283,14 +285,14 @@ def surface_dust(session, surfaces, metric = 'size', size = None, update = True)
         raise UserError('No surfaces specified')
     if size is None:
         raise UserError('Must specify dust size')
-    from ..surface import dust
+    from chimerax.surface import dust
     for s in surfaces:
         dust.hide_dust(s, metric, size, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
 def surface_undust(session, surfaces):
-    from ..surface import dust
+    from chimerax.surface import dust
     for s in surfaces:
         dust.unhide_dust(s)
 
@@ -405,7 +407,7 @@ def surface_zone(session, surfaces, near_atoms = None, distance = 2,
 
     bonds = atoms.intra_bonds if bond_point_spacing is not None else None
 
-    from ..surface import zone
+    from chimerax.surface import zone
     for s in surfaces:
         points = zone.path_points(atoms, bonds, bond_point_spacing)
         spoints = s.position.inverse() * points
@@ -415,6 +417,6 @@ def surface_zone(session, surfaces, near_atoms = None, distance = 2,
 # -----------------------------------------------------------------------------
 #
 def surface_unzone(session, surfaces):
-    from ..surface import zone
+    from chimerax.surface import zone
     for s in surfaces:
         zone.surface_unzone(s)

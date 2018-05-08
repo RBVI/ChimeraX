@@ -153,7 +153,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
             clash_vals.sort()
             setattr(a, attr_name, clash_vals[-1])
     if color_atoms:
-        from chimerax.core.commands.scolor import color_surfaces_at_atoms
+        from chimerax.core.commands.color import color_surfaces_at_atoms
         if atom_color is not None:
             clash_atoms.colors = atom_color.uint8x4()
             color_surfaces_at_atoms(clash_atoms, atom_color)

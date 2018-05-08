@@ -147,7 +147,7 @@ class MolecularSurface(Surface):
         atoms = self.atoms
         xyz = self.atom_coords()
         res = self.resolution
-        from .. import surface
+        from chimerax import surface
         if res is None:
             # Compute solvent excluded surface
             r = atoms.radii
@@ -164,7 +164,7 @@ class MolecularSurface(Surface):
             kw = {'refinement_steps': self._refinement_steps}
             if self.resolution is None:
                 kw['atom_radii'] = atoms.radii
-            from ..surface import sharp_edge_patches
+            from chimerax.surface import sharp_edge_patches
             va, na, ta, tj, v2a = sharp_edge_patches(va, na, ta, v2a, xyz, **kw)
             self.joined_triangles = tj	# With non-duplicate vertices for clip cap calculation
             self._vertex_to_atom = v2a
@@ -179,7 +179,7 @@ class MolecularSurface(Surface):
         if self.visible_patches is None:
             return tmask
 
-        from .. import surface
+        from chimerax import surface
         if self.sharp_boundaries:
             # With sharp boundaries triangles are not connected.
             vmap = surface.unique_vertex_map(self.vertices)
@@ -532,7 +532,7 @@ def close_surfaces(atoms_or_surfs):
         models.close(surfs)
 
 def buried_area(a1, a2, probe_radius):
-    from ..surface import spheres_surface_area
+    from chimerax.surface import spheres_surface_area
     xyz1, r1 = atom_spheres(a1, probe_radius)
     a1a = spheres_surface_area(xyz1, r1)
     xyz2, r2 = atom_spheres(a2, probe_radius)

@@ -167,7 +167,7 @@ class AtomicShapeDrawing(Drawing):
         description : a string describing the shape
 
         The vertices, normals, and triangles can be custom or the results
-        from one of the :py:mod:`~chimerax.core.surface`'s geometry functions.
+        from one of the :py:mod:`~chimerax.surface`'s geometry functions.
         If the description is not given, it defaults to a list of the atoms.
         """
         # extend drawing's vertices, normals, vertex_colors, and triangles
