@@ -1,0 +1,90 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: resfit</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: resfit</h3>
+
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>resfit</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>atom-spec</i></a>&nbsp;
+&nbsp;<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
+[&nbsp;<b>residueRange</b>&nbsp;&nbsp;<i>before,after</i>]
+[&nbsp;<b>motionFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>pauseFrames</b>&nbsp;&nbsp;<i>P</i>&nbsp;]
+[&nbsp;<b>movieFramerate</b>&nbsp;&nbsp;<i>fps</i>&nbsp;]
+</h3>
+<p>
+The <b>resfit</b> command animates showing the fit of residues along a chain 
+within a corresponding <a href="../tools/volumeviewer.html">density map</a>,
+using a slider interface.
+See also: 
+<a href="volume.html"><b>volume</b></a>,
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="vseries.html"><b>vseries</b></a>,
+<a href="../movies.html">making movies</a>
+</p><p>
+Examples:
+</p>
+<blockquote><b>
+resfit /b:10-38 map #4 
+<br>
+resfit #1/d map #3 res -2,2 motion 50 pause 100
+</b></blockquote>
+<p>
+Some or all of the residues in a single chain of an atomic model 
+should be specified, along with the corresponding <b>map</b> model.
+</p><p>
+In the resulting slider interface, the slider can be dragged, a
+<b>Residue</b> number entered directly, or the play/pause button pressed 
+to cycle through the residues continuously.
+Each residue is oriented and centered in the view, in turn.
+Map isosurface display is limited to a <a href="surface.html#zone">zone</a> 
+around the featured residue, and the <b>residueRange</b> option indicates
+how many flanking residues should also be shown
+(default <b>-2,1</b>, two residues before and one after).
+Display styles and volume isosurface level
+are not affected by <b>resfit</b> and can be adjusted separately, 
+<i>e.g.</i>, with <a href="style.html"><b>style</b></a>
+and <a href="volume.html"><b>volume</b></a> or the
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> tool.
+</p><p>
+During continuous playback, 
+<b>motionFrames</b> <i>M</i> image update frames (default <b>50</b>)
+are used to move from one residue to the next, and <b>pauseFrames</b> <i>P</i>
+(default <b>50</b>) to stay on the view for each residue.
+The slider interface also includes a button (red dot) for recording a movie.  
+The <b>movieFramerate</b> <i>fps</i> of a movie recorded with that
+button defaults to <b>25</b> frames/s.
+</p><p>
+A <a href="2dlabels.html">2D label</a> named <b>resfit</b> 
+with the current residue name and number
+is displayed in the upper right corner of the main window;
+its color, size, <i>etc.</i> can be changed with the 
+<a href="2dlabels.html"><b>2dlabels</b></a> command.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2018</address>
+</body></html>
