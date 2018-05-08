@@ -332,8 +332,6 @@ class Toolshed:
         # Reload the bundle info list
         _debug("loading bundles")
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
-        _debug("check available/remote: %s/%s" %
-               (check_available, check_remote))
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously if necessary
@@ -342,8 +340,6 @@ class Toolshed:
             now = datetime.now()
             interval = settings.toolshed_update_interval
             last_check = settings.toolshed_last_check
-            _debug("now, interval, last_check: %s, %s, %s" %
-                   (now, interval, last_check))
             if not last_check:
                 need_check = True
             else:
@@ -357,13 +353,11 @@ class Toolshed:
                     max_delta = timedelta(days=1)
                 elif interval == "month":
                     max_delta = timedelta(days=30)
-                _debug("%s <? %s" % (delta, max_delta))
                 need_check = delta > max_delta
-            need_check = True
             if need_check:
                 self.async_reload_available(logger)
                 settings.toolshed_last_check = now.isoformat()
-                _debug("Initiate toolshed check: %s" %
+                _debug("Initiated toolshed check: %s" %
                        settings.toolshed_last_check)
         _debug("finished loading bundles")
 
@@ -681,7 +675,7 @@ class Toolshed:
         (For symmetry, there should be a way to uninstall all bundles
         before a session is discarded, but we don't do that yet.)
         """
-        _debug(session.logger, "initialize_bundles")
+        _debug("initialize_bundles")
         failed = []
         for bi in self._installed_bundle_info:
             try:
