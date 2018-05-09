@@ -35,7 +35,7 @@ class VolumeViewer(ToolInstance):
         parent = tw.ui_area
 
         from . import defaultsettings
-        self.default_settings = defaultsettings.VolumeViewerDefaultSettings()
+        self.default_settings = defaultsettings.VolumeDefaultSettings()
 
         self.make_panels(parent)
 

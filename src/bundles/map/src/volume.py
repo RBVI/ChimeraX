@@ -2764,7 +2764,7 @@ def open_volume_file(path, session, format = None, name = None, representation =
 def default_settings(session):
   if not hasattr(session, 'volume_defaults'):
     from . import defaultsettings
-    session.volume_defaults = defaultsettings.Volume_Default_Settings()
+    session.volume_defaults = defaultsettings.VolumeDefaultSettings()
   return session.volume_defaults
 
 # -----------------------------------------------------------------------------
@@ -2828,7 +2828,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
 # -----------------------------------------------------------------------------
 #
 def show_volume_dialog(session):
-  from chimerax.volume_viewer.volumedialog import show_volume_dialog
+  from .volume_viewer import show_volume_dialog
   show_volume_dialog(session)
 
 # -----------------------------------------------------------------------------
