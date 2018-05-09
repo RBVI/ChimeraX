@@ -71,16 +71,117 @@ class OpenGLError(RuntimeError):
 
 class OpenGLContext:
     '''
-    OpenGL context used by View for drawing.  This should be subclassed
-    to provide window system specific opengl context methods.
+    OpenGL context used by View for drawing.
+    This implementation uses PyQt5 QOpenGLContext.
     '''
-    def make_current(self):
-        '''Make the OpenGL context active.'''
-        pass
+    
+    required_opengl_version = (3, 3)
+    required_opengl_core_profile = True
 
-    def swap_buffers(self):
+    def __init__(self, graphics_window, ui, use_stereo = False):
+        self.window = graphics_window
+        self._ui = ui
+        self._use_stereo = use_stereo
+        from PyQt5.QtGui import QOpenGLContext
+        self._qopengl_context = QOpenGLContext(graphics_window)
+        self._context_initialized = False
+        self._initialize_failed = False
+        self._deleted = False
+
+    def __del__(self):
+        if not self._deleted:
+            self.delete()
+
+    def delete(self):
+        self._deleted = True
+        self._qopengl_context.deleteLater()
+        self._qopengl_context = None
+
+    def make_current(self, window = None):
+        '''Make the OpenGL context active.'''
+        # creates context if needed
+        if not self._context_initialized:
+            if self._initialize_failed:
+                return False # Error is raised only when initialization first fails.
+            self._initialize_context()
+            self._context_initialized = True
+
+        w = self.window if window is None else window
+        if not self._qopengl_context.makeCurrent(w):
+            raise RuntimeError("Could not make graphics context current")
+        return True
+    
+    def _initialize_context(self):
+        ui = self._ui
+        qc = self._qopengl_context
+        qc.setScreen(ui.primaryScreen())
+        from PyQt5.QtGui import QSurfaceFormat
+        fmt = QSurfaceFormat()
+        fmt.setVersion(*self.required_opengl_version)
+        fmt.setDepthBufferSize(24)
+        if self.required_opengl_core_profile:
+            fmt.setProfile(QSurfaceFormat.CoreProfile)
+        fmt.setRenderableType(QSurfaceFormat.OpenGL)
+#        fmt.setSwapInterval(0)	# Don't wait for vsync, tested on Mac OS 10.13 Nvidia graphics working.
+#                               # Has no effect on Windows 10, Nvidia GTX 1080.
+        if self._use_stereo:
+            fmt.setStereo(True)
+        qc.setFormat(fmt)
+        self.window.setFormat(fmt)
+        if not qc.create():
+            raise ValueError("Could not create OpenGL context")
+        sf = qc.format()
+        major, minor = sf.version()
+        rmajor, rminor = self.required_opengl_version
+        if major < rmajor or (major == rmajor and minor < rminor):
+            self._initialize_failed = True
+            from chimerax.core.graphics import OpenGLVersionError
+            raise OpenGLVersionError('ChimeraX requires OpenGL graphics version %d.%d.\n' % (rmajor, rminor) +
+                                     'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
+                                     'Try updating your graphics driver.')
+        if self.required_opengl_core_profile:
+            if sf.profile() != sf.CoreProfile:
+                self._initialize_failed = True
+                from chimerax.core.graphics import OpenGLVersionError
+                raise OpenGLVersionError('ChimeraX requires an OpenGL graphics core profile.\n' +
+                                         'Your computer graphics driver a non-core profile (version %d.%d).\n' % (major, minor) +
+                                         'Try updating your graphics driver.')
+
+    def done_current(self):
+        '''Makes no context current.'''
+        self._qopengl_context.doneCurrent()
+
+    def swap_buffers(self, window = None):
         '''Swap back and front OpenGL buffers.'''
-        pass
+        w = self.window if window is None else window
+        self._qopengl_context.swapBuffers(w)
+
+    def pixel_scale(self):
+        '''
+        Ratio window toolkit pixel size to OpenGL pixel size.
+        Usually 1, but 2 for Mac retina displays.
+        '''
+        return self.window.devicePixelRatio()
+
+def remember_current_opengl_context():
+    '''
+    Return an object that notes the current opengl context and its window
+    so it can later be restored by restore_current_opengl_context().
+    '''
+    from PyQt5.QtGui import QOpenGLContext
+    opengl_context = QOpenGLContext.currentContext()
+    opengl_surface = opengl_context.surface() if opengl_context else None
+    return (opengl_context, opengl_surface)
+
+def restore_current_opengl_context(remembered_context):
+    '''
+    Make the opengl context and window returned by remember_current_opengl_context()
+    the current context.
+    '''
+    opengl_context, opengl_surface = remembered_context
+    from PyQt5.QtGui import QOpenGLContext
+    if opengl_context and QOpenGLContext.currentContext() != opengl_context:
+        opengl_context.makeCurrent(opengl_surface)
 
 class Render:
     '''

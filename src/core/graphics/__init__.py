@@ -31,6 +31,7 @@ from .crossfade import CrossFade, MotionBlur
 
 from .opengl import Texture, Lighting, Material
 from .opengl import OffScreenRenderingContext, OpenGLContext
+from .opengl import remember_current_opengl_context, restore_current_opengl_context
 from .opengl import Render, OpenGLError, OpenGLVersionError
 
 from .view import View, ClipPlane
