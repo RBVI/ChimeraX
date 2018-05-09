@@ -951,7 +951,8 @@ class Render:
             dt = Texture()
             dt.initialize_depth((size, size))
             fb = Framebuffer(depth_texture=dt, color=False)
-            if not fb.valid():
+            if not fb.activate():
+                fb.delete()
                 return None           # Requested size exceeds framebuffer limits
 
         # Make sure depth texture is not bound from previous drawing so that
@@ -1281,7 +1282,9 @@ class Framebuffer:
         self._depth_rb = None
         self._deleted = False
 
-        self._fbo = 0 if w is None else self._create_framebuffer()
+        self._fbo = None
+        if w is None:
+            self._fbo = 0	# Default framebuffer
 
     def _create_framebuffer(self):
         w, h = self.width, self.height
@@ -1398,11 +1401,15 @@ class Framebuffer:
                                   GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X+face, 
                                   self.color_texture.id, level)
 
-    def valid(self):
-        return self._fbo is not None
-
     def activate(self):
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self._fbo)
+        fbo = self._fbo
+        if fbo is None:
+            self._fbo = fbo = self._create_framebuffer()
+            if fbo is None:
+                return False
+
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, fbo)
+        return True
 
     def copy_from_framebuffer(self, framebuffer, color=True, depth=True):
         # Copy current framebuffer contents to another framebuffer.  This
@@ -1574,7 +1581,7 @@ class Bindings:
                     'instance_shift_and_scale': 4, 'instance_placement': 5}
 
     def __init__(self):
-        self._vao_id = GL.glGenVertexArrays(1)
+        self._vao_id = None
         self._bound_attr_ids = {}        # Maps buffer to list of ids
         self._bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
 
@@ -1590,6 +1597,8 @@ class Bindings:
 
     def activate(self):
         'Activate the bindings by binding the OpenGL vertex array object.'
+        if self._vao_id is None:
+            self._vao_id = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(self._vao_id)
 
     def bind_shader_variable(self, buffer):

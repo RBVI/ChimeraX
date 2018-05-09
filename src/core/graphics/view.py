@@ -350,7 +350,7 @@ class View:
 
         from .opengl import Framebuffer
         fb = Framebuffer(w, h, alpha = transparent_background)
-        if not fb.valid():
+        if not fb.activate():
             return None         # Image size exceeds framebuffer limits
 
         r = self._render
