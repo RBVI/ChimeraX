@@ -136,14 +136,15 @@ class TugAtomsMode(MouseMode):
             s = self.session
             self._arrow_model = a = Model('Tug arrow', s)
             from chimerax.surface import cone_geometry
-            a.vertices, a.normals, a.triangles  = cone_geometry(points_up = False)
+            v,n,t = cone_geometry(points_up = False)
+            a.set_geometry(v, n, t)
             a.color = (0,255,0,255)
             s.models.add([a])
         # Scale and rotate prototype cylinder.
         from chimerax.core.atomic import structure
         from numpy import array, float32
-        p = structure._bond_cylinder_placements(xyz1.reshape((1,3)),
-                                                xyz2.reshape((1,3)),
+        p = structure._bond_cylinder_placements(array(xyz1).reshape((1,3)),
+                                                array(xyz2).reshape((1,3)),
                                                 array([radius],float32))
         a.position = p[0]
         a.display = True
