@@ -214,6 +214,7 @@ class StructureTugger:
         
 
         # OpenMM simulation parameters
+        self._forcefields = ('amber99sbildn.xml', 'amber99_obc.xml')
         self._sim_steps = 50		# Simulation steps between mouse position updates
         self._force_constant = 10000
         from simtk import unit
@@ -399,7 +400,7 @@ class StructureTugger:
         self._particle_positions = atoms.coords
         self._topology = openmm_topology(atoms, s.bonds)
         
-        forcefield = app.ForceField('amber99sbildn.xml', 'amber99_obc.xml')
+        forcefield = app.ForceField(*self._forcefields)
 #        self._add_hydrogens(pdb, forcefield)
 
         try:
