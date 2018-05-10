@@ -682,7 +682,7 @@ class Drawing:
         self._update_buffers()
 
         ds = self._draw_selection if selected_only else self._draw_shape
-        ds.activate_bindings()
+        ds.activate_bindings(renderer)
 
         sopt = self._shader_options(transparent_only, opaque_only)
         r = renderer
@@ -1667,11 +1667,11 @@ class _DrawShape:
             bi.bind_shader_variable(b)
         bu.clear()
 
-    def activate_bindings(self):
+    def activate_bindings(self, renderer):
         bi = self.bindings
         if bi is None:
             from . import opengl
-            self.bindings = bi = opengl.Bindings()
+            self.bindings = bi = opengl.Bindings(renderer.opengl_context)
 
         bi.activate()
         self.update_buffers()
