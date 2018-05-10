@@ -445,7 +445,7 @@ def _make_bundle_info(d, installed, logger):
             # construct absolute path name of icon by looking
             # in package directory
             if icon:
-                icon = bi.find_icon_path(icon)
+                icon = bi.get_path(icon)
             fi = FormatInfo(name=name, nicknames=nicknames,
                             category=category, suffixes=suffixes,
                             mime_types=mime_types, url=url, icon=icon,

@@ -1383,6 +1383,11 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t))
         f(self._c_pointer, replace, pointer(xyzs), *xyzs.shape[:2])
 
+    def remove_coordsets(self):
+        '''Remove all coordinate sets.'''
+        f = c_function('structure_remove_coordsets', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
     def coordset(self, cs_id):
         '''Supported API. Return the CoordSet for the given coordset ID'''
         f = c_function('structure_py_obj_coordset', args = (ctypes.c_void_p, ctypes.c_int),

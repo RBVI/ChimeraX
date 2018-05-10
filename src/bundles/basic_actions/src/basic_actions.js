@@ -2,7 +2,7 @@
 
 var tgttable = function() {
     var custom_scheme = "tgttable";
-    var targets_column_info = [
+    var names_column_info = [
         "Name",
         "Info",
         "Atom",
@@ -17,10 +17,10 @@ var tgttable = function() {
         "Surface",
     ];
 
-    function update_targets(targets) {
+    function update_names(names) {
         // Clean up previous incarnation and save some state
-        $("#targets_table").trigger("destroy");
-        $("#targets").empty();
+        $("#names_table").trigger("destroy");
+        $("#names").empty();
 
         // Create table headers
         var thead = $("<thead/>");
@@ -30,20 +30,20 @@ var tgttable = function() {
             msg = " built-in and user-defined names"
         else
             msg = " user-defined names"
-        row.append($("<th/>", { colspan: targets_column_info.length })
-                      .text(targets.length + msg));
+        row.append($("<th/>", { colspan: names_column_info.length })
+                      .text(names.length + msg));
         thead.append(row);
         row = $("<tr/>");
-        for (var i = 0; i < targets_column_info.length; i++)
-            row.append($("<th/>").text(targets_column_info[i]));
+        for (var i = 0; i < names_column_info.length; i++)
+            row.append($("<th/>").text(names_column_info[i]));
         thead.append(row);
         // Create table body
         var tbody = $("<tbody/>");
-        $.each(targets, function(i, tgt) {
+        $.each(names, function(i, tgt) {
             var name = tgt["name"];
             var info = tgt["info"];
             var builtin = tgt["builtin"]
-            var row = $("<tr/>", { class: "target_row" });
+            var row = $("<tr/>", { class: "name_row" });
             if (builtin) {
                 row.append($("<td/>").append($("<a/>",
                                                { "href": _sel_url(name),
@@ -64,13 +64,13 @@ var tgttable = function() {
             row.append(_add_dc("show", "hide", "s", name, "surf"))
             tbody.append(row);
         });
-        $("#targets").append($("<table/>", { id: "targets_table" })
+        $("#names").append($("<table/>", { id: "names_table" })
                                             .append(thead, tbody));
         $("img.show, img.hide").click(cb_button_click);
         $(".colorinput").change(cb_color_input);
 
         // Re-setup jQuery handlers
-        $("#targets_table").tablesorter({
+        $("#names_table").tablesorter({
             theme: 'blue',
             widgets: [ "resizable" ],
         });
@@ -188,7 +188,7 @@ var tgttable = function() {
             window.location = custom_scheme + ":nonmatching?hide="
                               + $(event.target).is(":checked");
         });
-        $("#targets_table").tablesorter();
+        $("#names_table").tablesorter();
         $("#components_table").tablesorter();
     }
 
@@ -206,7 +206,7 @@ var tgttable = function() {
 
     return {
         custom_scheme: custom_scheme,
-        update_targets: update_targets,
+        update_names: update_names,
         update_components: update_components,
         get_state: get_state,
         set_state: set_state,

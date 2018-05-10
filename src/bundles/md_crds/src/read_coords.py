@@ -32,10 +32,9 @@ def read_coords(session, file_name, model, format_name, replace=True):
         from .dcd.MDToolsMarch97.md_DCD import DCD
         session.logger.status("Reading DCD coordinates", blank_after=0)
         dcd = DCD(file_name)
-        num_atoms = dcd.numatoms
-        coords_list = [dcd[i] for i in range(dcd.numframes)]
-        coords = array(coords_list, dtype=float64)
+        num_frames = _set_model_dcd_coordinates(model, dcd)
         session.logger.status("Finished reading DCD coordinates")
+        return num_frames
     else:
         raise ValueError("Unknown MD coordinate format: %s" % format_name)
     if model.num_atoms != num_atoms:
@@ -43,3 +42,17 @@ def read_coords(session, file_name, model, format_name, replace=True):
             " whereas the coordinates are for %d atoms" % (model.num_atoms, num_atoms))
     model.add_coordsets(coords, replace=replace)
     return len(coords)
+
+def _set_model_dcd_coordinates(model, dcd):
+    '''Read DCD coordinates and add to model efficiently when there are thousands of frames.'''
+    num_atoms = dcd.numatoms
+    if model.num_atoms != num_atoms:
+        from chimerax.core.errors import UserError
+        raise UserError("Specified structure has %d atoms"
+            " whereas the coordinates are for %d atoms" % (model.num_atoms, num_atoms))
+    model.remove_coordsets()
+    from numpy import asarray, float64
+    for i in range(dcd.numframes):
+        model.add_coordset(i+1, asarray(dcd[i], float64, order = 'C'))
+    model.active_coordset_id = 1
+    return dcd.numframes

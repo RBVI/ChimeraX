@@ -164,7 +164,7 @@ class MapSeries(Model):
     if v is None:
       return
 
-    from chimerax.volume_viewer.volumedialog import set_active_volume
+    from chimerax.map.volume_viewer import set_active_volume
     set_active_volume(self.session, v)
 
   # ---------------------------------------------------------------------------

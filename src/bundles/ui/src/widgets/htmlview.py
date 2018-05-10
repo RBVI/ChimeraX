@@ -222,8 +222,34 @@ class ChimeraXHtmlView(HtmlView):
 
     def link_clicked(self, request_info, *args):
         qurl = request_info.requestUrl()
+        import sys
         scheme = qurl.scheme()
-        if scheme in ('cxcmd', 'help'):
+        if scheme == 'file':
+            import os
+            path = os.path.normpath(qurl.path())
+            if sys.platform == "win32" and path[0] == os.path.sep:
+                # change \C:\ to C:\
+                path = path[1:]
+            if not os.path.exists(path):
+                # If in a help directory, look in other help directories
+                from chimerax.help_viewer import help_directories
+                for hd in help_directories:
+                    if path.startswith(hd):
+                        break
+                else:
+                    # not found, no change
+                    return
+                tail = path[len(hd) + 1:]
+                for hd in help_directories:
+                    path = os.path.join(hd, tail)
+                    if os.path.exists(path):
+                        path = os.path.sep + path
+                        if sys.platform == "win32":
+                            path = path.replace(os.path.sep, '/')
+                        qurl.setPath(path)
+                        request_info.redirect(qurl)
+                        return
+        elif scheme in ('cxcmd', 'help'):
             # originating_url = request_info.firstPartyUrl()  # doesn't work
             originating_url = self.url()
             from_dir = None
@@ -251,7 +277,7 @@ class ChimeraXHtmlView(HtmlView):
                 finally:
                     if prev_dir:
                         os.chdir(prev_dir)
-            self.session.ui.thread_safe(defer, self.session, qurl.url(), from_dir)
+            self.session.ui.thread_safe(defer, self.session, qurl.url(qurl.None_), from_dir)
             return
 
     def download_requested(self, item):
@@ -336,7 +362,9 @@ class ChimeraXHtmlView(HtmlView):
 
 
 def cxcmd(session, url):
+    from urllib.parse import unquote
     cmd = url.split(':', 1)[1]  # skip cxcmd:
+    cmd = unquote(cmd)  # undo expected quoting
     from chimerax.cmd_line.tool import CommandLine
     ti = CommandLine.get_singleton(session, create=False)
     if ti:

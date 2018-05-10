@@ -424,7 +424,7 @@ class SteamVRCamera(Camera):
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
-        fb = self._texture_framebuffer()
+        fb = self._texture_framebuffer(render)
         if view_num == 0:
             render.push_framebuffer(fb)
         elif view_num == 1:
@@ -464,7 +464,7 @@ class SteamVRCamera(Camera):
         if self._close:
             self._delayed_close()
 
-    def _texture_framebuffer(self):
+    def _texture_framebuffer(self, render):
 
         tw,th = self._render_size
         fb = self._framebuffer
@@ -472,7 +472,7 @@ class SteamVRCamera(Camera):
             from chimerax.core.graphics import Texture, opengl
             t = Texture()
             t.initialize_rgba((tw,th))
-            self._framebuffer = fb = opengl.Framebuffer(color_texture = t)
+            self._framebuffer = fb = opengl.Framebuffer(render.opengl_context, color_texture = t)
             # OpenVR texture id object
             import openvr
             fb.openvr_texture = ovrt = openvr.Texture_t()

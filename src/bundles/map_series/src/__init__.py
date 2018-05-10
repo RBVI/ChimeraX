@@ -25,11 +25,23 @@ class _MapSeriesBundle(BundleAPI):
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         if command_name == 'vseries':
-            from . import series
-            series.register_vseries_command(logger)
+            from . import vseries_command
+            vseries_command.register_vseries_command(logger)
         elif command_name == 'measure motion':
             from . import measure_motion
             measure_motion.register_command(logger)
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        # 'initialize' is called by the toolshed on start up
+        from . import slider
+        slider.show_slider_on_open(session)
+
+    @staticmethod
+    def finish(session, bundle_info):
+        # 'finish' is called by the toolshed when updated/reloaded
+        from . import slider
+        slider.remove_slider_on_open(session)
 
     @staticmethod
     def get_class(class_name):

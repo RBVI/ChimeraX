@@ -113,7 +113,6 @@ class View:
         r = self._render
         r.check_opengl_version()
         r.set_background_color(self.background_color)
-        r.enable_depth_test(True)
 
         w, h = self.window_size
         r.initialize_opengl(w, h)
@@ -171,7 +170,11 @@ class View:
         if drawings is None:
             any_selected = self.any_drawing_selected()
         else:
-            any_selected = True
+            any_selected = False
+            for d in drawings:
+                if d.any_part_selected():
+                    any_selected = True
+                    break
 
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
@@ -349,8 +352,9 @@ class View:
         w, h = self._window_size_matching_aspect(width, height)
 
         from .opengl import Framebuffer
-        fb = Framebuffer(w, h, alpha = transparent_background)
-        if not fb.valid():
+        fb = Framebuffer(self.render.opengl_context, w, h, alpha = transparent_background)
+        if not fb.activate():
+            fb.delete()
             return None         # Image size exceeds framebuffer limits
 
         r = self._render

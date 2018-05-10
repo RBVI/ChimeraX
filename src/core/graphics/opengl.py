@@ -71,16 +71,174 @@ class OpenGLError(RuntimeError):
 
 class OpenGLContext:
     '''
-    OpenGL context used by View for drawing.  This should be subclassed
-    to provide window system specific opengl context methods.
+    OpenGL context used by View for drawing.
+    This implementation uses PyQt5 QOpenGLContext.
     '''
-    def make_current(self):
-        '''Make the OpenGL context active.'''
-        pass
+    
+    required_opengl_version = (3, 3)
+    required_opengl_core_profile = True
 
-    def swap_buffers(self):
+    def __init__(self, graphics_window, ui, use_stereo = False):
+        self.window = graphics_window
+        self._ui = ui
+        self._mode = 'stereo' if use_stereo else 'mono'
+        self._contexts = {}		# Map mode to QOpenGLContext, or False if creation failed
+        self._share_context = None	# First QOpenGLContext, shares state with others
+        self._wait_for_vsync = True
+        self._deleted = False
+
+        # Keep track of allocated framebuffers and vertex array objects
+        # so we can release those when switching to a quad-buffered stereo context.
+        from weakref import WeakSet
+        self._framebuffers = WeakSet()		# Set of Framebuffer objects
+        self._bindings = WeakSet()		# Set of Bindings objects
+        
+    def __del__(self):
+        if not self._deleted:
+            self.delete()
+
+    def delete(self):
+        self._deleted = True
+        for oc in self._contexts.values():
+            oc.deleteLater()
+        self._contexts.clear()
+        self._share_context = None
+
+    @property
+    def _qopengl_context(self):
+        return self._contexts.get(self._mode)
+    
+    def make_current(self, window = None):
+        '''Make the OpenGL context active.'''
+        qc = self._qopengl_context
+        if qc is None:
+            # create context
+            qc = self._initialize_context()
+
+        if not qc:
+            raise RuntimeError("Context initialization failed, could not make graphics context current")
+
+        w = self.window if window is None else window
+        if not qc.makeCurrent(w):
+            raise RuntimeError("Could not make graphics context current")
+        return True
+    
+    def _initialize_context(self, mode = None):
+        ui = self._ui
+        from PyQt5.QtGui import QOpenGLContext
+        qc = QOpenGLContext(self.window)
+        qc.setScreen(ui.primaryScreen())
+        if self._share_context:
+            qc.setShareContext(self._share_context)
+        from PyQt5.QtGui import QSurfaceFormat
+        fmt = QSurfaceFormat()
+        fmt.setVersion(*self.required_opengl_version)
+        fmt.setDepthBufferSize(24)
+        if self.required_opengl_core_profile:
+            fmt.setProfile(QSurfaceFormat.CoreProfile)
+        fmt.setRenderableType(QSurfaceFormat.OpenGL)
+        if not self._wait_for_vsync:
+            # Don't wait for vsync, tested on Mac OS 10.13 Nvidia graphics working.
+            # Has no effect on Windows 10, Nvidia GTX 1080.
+            fmt.setSwapInterval(0)
+        if mode is None:
+            mode = self._mode
+        if mode == 'stereo':
+            fmt.setStereo(True)
+        qc.setFormat(fmt)
+        self.window.setFormat(fmt)
+        if not qc.create():
+            self._contexts[mode] = False
+            raise OpenGLError("Could not create OpenGL context")
+        sf = qc.format()
+        major, minor = sf.version()
+        rmajor, rminor = self.required_opengl_version
+        if major < rmajor or (major == rmajor and minor < rminor):
+            self._contexts[mode] = False
+            from chimerax.core.graphics import OpenGLVersionError
+            raise OpenGLVersionError('ChimeraX requires OpenGL graphics version %d.%d.\n' % (rmajor, rminor) +
+                                     'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
+                                     'Try updating your graphics driver.')
+        if self.required_opengl_core_profile:
+            if sf.profile() != sf.CoreProfile:
+                self._contexts[mode] = False
+                from chimerax.core.graphics import OpenGLVersionError
+                raise OpenGLVersionError('ChimeraX requires an OpenGL graphics core profile.\n' +
+                                         'Your computer graphics driver a non-core profile (version %d.%d).\n'
+                                         % (major, minor) +
+                                         'Try updating your graphics driver.')
+        if self._share_context is None:
+            self._share_context = qc
+        self._contexts[mode] = qc
+        self._mode = mode
+        return qc
+        
+    def done_current(self):
+        '''Makes no context current.'''
+        self._qopengl_context.doneCurrent()
+
+    def swap_buffers(self, window = None):
         '''Swap back and front OpenGL buffers.'''
-        pass
+        w = self.window if window is None else window
+        self._qopengl_context.swapBuffers(w)
+
+    def pixel_scale(self):
+        '''
+        Ratio window toolkit pixel size to OpenGL pixel size.
+        Usually 1, but 2 for Mac retina displays.
+        '''
+        return self.window.devicePixelRatio()
+
+    def enable_stereo(self, stereo = True):
+        if stereo == (self._mode == 'stereo'):
+            return True
+        
+        if len(self._contexts) == 0:
+            self._mode = 'stereo' if stereo else 'mono'
+            return True
+
+        # Delete framebuffers and vertex array objects since those cannot be shared.
+        self.make_current()
+        for fb in tuple(self._framebuffers):
+            fb._release()
+        for bi in tuple(self._bindings):
+            bi._release()
+        self.current_shader_program = None
+        self.current_viewport = None
+
+        # Replace current context with stereo context sharing state.
+        mode = 'stereo' if stereo else 'mono'
+        qc = self._contexts.get(mode)
+        if not qc:
+            try:
+                qc = self._initialize_context(mode)
+            except OpenGLError:
+                return False
+            if not qc:
+                return False
+
+        self.make_current()
+        return True
+
+def remember_current_opengl_context():
+    '''
+    Return an object that notes the current opengl context and its window
+    so it can later be restored by restore_current_opengl_context().
+    '''
+    from PyQt5.QtGui import QOpenGLContext
+    opengl_context = QOpenGLContext.currentContext()
+    opengl_surface = opengl_context.surface() if opengl_context else None
+    return (opengl_context, opengl_surface)
+
+def restore_current_opengl_context(remembered_context):
+    '''
+    Make the opengl context and window returned by remember_current_opengl_context()
+    the current context.
+    '''
+    opengl_context, opengl_surface = remembered_context
+    from PyQt5.QtGui import QOpenGLContext
+    if opengl_context and QOpenGLContext.currentContext() != opengl_context:
+        opengl_context.makeCurrent(opengl_surface)
 
 class Render:
     '''
@@ -211,7 +369,7 @@ class Render:
 
     def default_framebuffer(self):
         if self._default_framebuffer is None:
-            self._default_framebuffer = Framebuffer(color=False, depth=False)
+            self._default_framebuffer = Framebuffer(self.opengl_context, color=False, depth=False)
         return self._default_framebuffer
 
     def set_default_framebuffer_size(self, width, height):
@@ -657,6 +815,15 @@ class Render:
         'Return if sequential stereo is supported.'
         return GL.glGetBoolean(GL.GL_STEREO)
 
+    def enable_stereo(self, stereo = True):
+        xywh = self.current_viewport
+        success = self._opengl_context.enable_stereo(stereo)
+        if success and xywh:
+            x,y,w,h = xywh
+            s = self._opengl_context.pixel_scale()
+            self.initialize_opengl(w//s, h//s)
+        return success
+        
     def opengl_context_changed(self):
         'Called after opengl context is switched.'
         p = self.current_shader_program
@@ -677,6 +844,8 @@ class Render:
         fb = self.default_framebuffer()
         fb.width, fb.height = w, h
         self.set_viewport(0, 0, w, h)
+
+        self.enable_depth_test(True)
 
         # Detect OpenGL workarounds
         vendor = GL.glGetString(GL.GL_VENDOR)
@@ -849,8 +1018,9 @@ class Render:
                 fb.delete()
             dt = Texture()
             dt.initialize_depth((size, size))
-            fb = Framebuffer(depth_texture=dt, color=False)
-            if not fb.valid():
+            fb = Framebuffer(self.opengl_context, depth_texture=dt, color=False)
+            if not fb.activate():
+                fb.delete()
                 return None           # Requested size exceeds framebuffer limits
 
         # Make sure depth texture is not bound from previous drawing so that
@@ -953,7 +1123,7 @@ class Render:
             mfb.delete()
         t = Texture()
         t.initialize_8_bit(size)
-        self.mask_framebuffer = mfb = Framebuffer(color_texture=t)
+        self.mask_framebuffer = mfb = Framebuffer(self.opengl_context, color_texture=t)
         return mfb
 
     def make_outline_framebuffer(self, size):
@@ -965,7 +1135,7 @@ class Render:
             ofb.delete()
         t = Texture()
         t.initialize_8_bit(size)
-        self.outline_framebuffer = ofb = Framebuffer(color_texture=t,
+        self.outline_framebuffer = ofb = Framebuffer(self.opengl_context, color_texture=t,
                                                      depth=False)
         return ofb
 
@@ -1051,7 +1221,7 @@ class Render:
         if sfb is None:
             dt = Texture()
             dt.initialize_depth(size, depth_compare_mode=False)
-            self._silhouette_framebuffer = sfb = Framebuffer(depth_texture=dt, alpha=alpha)
+            self._silhouette_framebuffer = sfb = Framebuffer(self.opengl_context, depth_texture=dt, alpha=alpha)
         return sfb
 
     def draw_depth_outline(self, depth_texture, thickness=1,
@@ -1153,7 +1323,8 @@ class Framebuffer:
     OpenGL framebuffer for off-screen rendering.  Allows rendering colors
     and/or depth to a texture.
     '''
-    def __init__(self, width=None, height=None,
+    def __init__(self, opengl_context,
+                 width=None, height=None,
                  color=True, color_texture=None,
                  depth=True, depth_texture=None,
                  alpha=False):
@@ -1180,14 +1351,18 @@ class Framebuffer:
         self._depth_rb = None
         self._deleted = False
 
-        self._fbo = 0 if w is None else self._create_framebuffer()
+        self._fbo = None
+        if w is None:
+            self._fbo = 0	# Default framebuffer
 
+        self._opengl_context = opengl_context
+        
     def _create_framebuffer(self):
         w, h = self.width, self.height
         if w is None:
             fbo = 0
         elif not self.valid_size(w, h):
-            raise OpenGLError('Attempt to activate an unallocated framebuffer')
+            raise OpenGLError('Frame buffer invalid size %d, %d' % (w,h))
         else:
             if self._color_rb is None and self.color and self.color_texture is None and w is not None:
                 self._color_rb = self.color_renderbuffer(w, h, self.alpha)
@@ -1199,6 +1374,7 @@ class Framebuffer:
 
     def _create_fbo(self, color_buf, depth_buf):
         fbo = GL.glGenFramebuffers(1)
+        self._opengl_context._framebuffers.add(self)
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, fbo)
 
         if isinstance(color_buf, Texture):
@@ -1238,19 +1414,14 @@ class Framebuffer:
         if not self._deleted:
             raise RuntimeError('OpenGL framebuffer was not deleted before core.graphics.Framebuffer destroyed')
 
-    def delete(self):
+    def delete(self, make_current = False):
         self._deleted = True
-        
-        fbo = self._fbo
-        if fbo is not None and fbo != 0:
-            if self._color_rb is not None:
-                GL.glDeleteRenderbuffers(1, (self._color_rb,))
-            if self._depth_rb is not None:
-                GL.glDeleteRenderbuffers(1, (self._depth_rb,))
-            GL.glDeleteFramebuffers(1, (fbo,))
-            self._color_rb = self._depth_rb = None
-            self._fbo = None
+
+        if make_current:
+            self._opengl_context.make_current()
             
+        self._release()
+
         ct = self.color_texture
         if ct is not None:
             ct.delete_texture()
@@ -1260,6 +1431,19 @@ class Framebuffer:
         if dt is not None:
             dt.delete_texture()
             self.depth_texture = None
+
+    def _release(self):
+        '''Delete opengl framebuffer allowing it to be recreated.'''
+        fbo = self._fbo
+        if fbo is not None and fbo != 0:
+            if self._color_rb is not None:
+                GL.glDeleteRenderbuffers(1, (self._color_rb,))
+            if self._depth_rb is not None:
+                GL.glDeleteRenderbuffers(1, (self._depth_rb,))
+            GL.glDeleteFramebuffers(1, (fbo,))
+            self._color_rb = self._depth_rb = None
+            self._fbo = None
+            self._opengl_context._framebuffers.remove(self)
 
     def valid_size(self, width, height):
 
@@ -1297,17 +1481,25 @@ class Framebuffer:
                                   GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X+face, 
                                   self.color_texture.id, level)
 
-    def valid(self):
-        return self._fbo is not None
-
+    @property
+    def framebuffer_id(self):
+        fbo = self._fbo
+        if fbo is None:
+            self._fbo = fbo = self._create_framebuffer()
+        return fbo
+        
     def activate(self):
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self._fbo)
+        fbo = self.framebuffer_id
+        if fbo is None:
+            return False
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, fbo)
+        return True
 
     def copy_from_framebuffer(self, framebuffer, color=True, depth=True):
         # Copy current framebuffer contents to another framebuffer.  This
         # leaves read and draw framebuffers set to the current framebuffer.
-        from_id = framebuffer._fbo
-        to_id = self._fbo
+        from_id = framebuffer.framebuffer_id
+        to_id = self.framebuffer_id
         GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, from_id)
         GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, to_id)
         what = GL.GL_COLOR_BUFFER_BIT if color else 0
@@ -1321,8 +1513,8 @@ class Framebuffer:
     def copy_to_framebuffer(self, framebuffer, color=True, depth=True):
         # Copy current framebuffer contents to another framebuffer.  This
         # leaves read and draw framebuffers set to the current framebuffer.
-        from_id = self._fbo
-        to_id = framebuffer._fbo
+        from_id = self.framebuffer_id
+        to_id = framebuffer.framebuffer_id
         GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, from_id)
         GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, to_id)
         what = GL.GL_COLOR_BUFFER_BIT if color else 0
@@ -1472,10 +1664,11 @@ class Bindings:
     attribute_id = {'position': 0, 'tex_coord': 1, 'normal': 2, 'vcolor': 3,
                     'instance_shift_and_scale': 4, 'instance_placement': 5}
 
-    def __init__(self):
-        self._vao_id = GL.glGenVertexArrays(1)
+    def __init__(self, opengl_context):
+        self._vao_id = None
         self._bound_attr_ids = {}        # Maps buffer to list of ids
         self._bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
+        self._opengl_context = opengl_context
 
     def __del__(self):
         if self._vao_id is not None:
@@ -1483,12 +1676,23 @@ class Bindings:
 
     def delete_bindings(self):
         'Delete the OpenGL vertex array object.'
+        self._release()
+
+    def _release(self):
+        'Delete the OpenGL vertex array object allowing it to be recreated.'
         if self._vao_id is not None:
             GL.glDeleteVertexArrays(1, (self._vao_id,))
             self._vao_id = None
+            self._opengl_context._bindings.remove(self)
 
     def activate(self):
         'Activate the bindings by binding the OpenGL vertex array object.'
+        if self._vao_id is None:
+            self._vao_id = GL.glGenVertexArrays(1)
+            self._opengl_context._bindings.add(self)
+            GL.glBindVertexArray(self._vao_id)
+            for buffer in tuple(self._bound_attr_buffers.values()):
+                self.bind_shader_variable(buffer)
         GL.glBindVertexArray(self._vao_id)
 
     def bind_shader_variable(self, buffer):
@@ -1832,7 +2036,7 @@ class Shader:
         validation = GL.glGetProgramiv(p, GL.GL_VALIDATE_STATUS )
         if validation == GL.GL_FALSE:
             raise RuntimeError('OpenGL Program validation failure (%r): %s'
-                               % (validation, glGetProgramInfoLog(p)))
+                               % (validation, GL.glGetProgramInfoLog(p)))
 
     # Add #define lines after #version line of shader
     def insert_define_macros(self, shader, capabilities, max_shadows):
@@ -2076,7 +2280,7 @@ class TextureWindow:
     def __init__(self, render, shader_options):
 
         # Must have vao bound before compiling shader.
-        self.vao = vao = Bindings()
+        self.vao = vao = Bindings(render.opengl_context)
         vao.activate()
 
         p = render.opengl_shader(shader_options)
