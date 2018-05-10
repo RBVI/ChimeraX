@@ -36,15 +36,15 @@ def help(session, topic=None, *, option=None):
         from urllib.request import url2pathname, pathname2url
         (_, _, url_path, _, _, fragment) = urlparse(topic)
         url_path = quote(url_path)
-        path = url2pathname(url_path)
+        help_path = url2pathname(url_path)
         # make sure path is a relative path
-        if os.path.isabs(path):
+        if os.path.isabs(help_path):
             if sys.platform.startswith('win'):
-                path = os.path.relpath(path, os.path.splitdrive(path)[0])
+                help_path = os.path.relpath(help_path, os.path.splitdrive(path)[0])
             else:
-                path = os.path.relpath(path, '/')
+                help_path = os.path.relpath(help_path, '/')
         for hd in help_directories:
-            path = os.path.join(hd, path)
+            path = os.path.join(hd, help_path)
             if os.path.exists(path):
                 break
         else:
