@@ -221,47 +221,49 @@ class ChimeraXHtmlView(HtmlView):
         self._pending_downloads = []
 
     def link_clicked(self, request_info, *args):
+        import os
         qurl = request_info.requestUrl()
-        import sys
         scheme = qurl.scheme()
         if scheme == 'file':
-            import os
+            # Treat all directories with help documentation as equivalent
+            # to integrate bundle help with the main help.  That is, so
+            # relative hrefs will find files in other help directories.
+            import sys
             path = os.path.normpath(qurl.path())
             if sys.platform == "win32" and path[0] == os.path.sep:
-                # change \C:\ to C:\
-                path = path[1:]
-            if not os.path.exists(path):
-                # If in a help directory, look in other help directories
-                from chimerax.help_viewer import help_directories
-                for hd in help_directories:
-                    if path.startswith(hd):
-                        break
-                else:
-                    # not found, no change
-                    return
-                tail = path[len(hd) + 1:]
-                for hd in help_directories:
-                    path = os.path.join(hd, tail)
-                    if os.path.exists(path):
-                        path = os.path.sep + path
-                        if sys.platform == "win32":
-                            path = path.replace(os.path.sep, '/')
-                        qurl.setPath(path)
-                        request_info.redirect(qurl)
-                        return
-        elif scheme in ('cxcmd', 'help'):
+                path = path[1:]   # change \C:\ to C:\
+            if os.path.exists(path):
+                return
+            from chimerax.help_viewer import help_directories
+            for hd in help_directories:
+                if path.startswith(hd):
+                    break
+            else:
+                return   # not in a help directory
+            tail = path[len(hd) + 1:]
+            for hd in help_directories:
+                path = os.path.join(hd, tail)
+                if os.path.exists(path):
+                    break
+            else:
+                return  # not in another help directory
+            path = os.path.sep + path
+            if sys.platform == "win32":
+                path = path.replace(os.path.sep, '/')
+            qurl.setPath(path)
+            request_info.redirect(qurl)  # set requested url to good location
+            return
+        if scheme in ('cxcmd', 'help'):
             # originating_url = request_info.firstPartyUrl()  # doesn't work
             originating_url = self.url()
             from_dir = None
             if originating_url.isLocalFile():
-                import os
                 from_dir = os.path.dirname(originating_url.toLocalFile())
 
             def defer(session, topic, from_dir):
                 prev_dir = None
                 try:
                     if from_dir:
-                        import os
                         prev_dir = os.getcwd()
                         try:
                             os.chdir(from_dir)
