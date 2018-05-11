@@ -36,9 +36,8 @@ class _SurfaceBundle(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        if command_name == 'color radial':
-            from . import colorcmds
-            colorcmds.register_color_subcommands(logger)
+        from . import colorcmds
+        colorcmds.register_color_subcommand(command_name, logger)
 
     @staticmethod
     def open_file(session, stream, file_name):

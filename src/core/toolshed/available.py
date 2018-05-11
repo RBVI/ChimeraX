@@ -31,6 +31,13 @@ class AvailableBundleCache(list):
         with urlopen(url) as f:
             import json
             data = json.loads(f.read())
+        try:
+            from chimerax.registration import nag
+        except ImportError:
+            _debug("chimerax.registration import failed")
+        else:
+            _debug("extend registration")
+            nag.extend_registration(logger)
         for d in data:
             b = _build_bundle(d)
             if b:
@@ -74,6 +81,7 @@ def _build_bundle(d):
         kw["version"] = bundle_d["version"]
     except KeyError:
         return None
+    _debug("build available bundle", bundle_name, kw["version"])
     s = d.get("description", None)
     if s:
         kw["synopsis"] = s
@@ -104,7 +112,7 @@ def _build_bundle(d):
     else:
         from .info import ToolInfo
         for tool_name, td in tool_d.items():
-            _debug("processing tool: %s" % tool_name)
+            # _debug("processing tool: %s" % tool_name)
             categories = td.get("categories", [])
             synopsis = td.get("synopsis", "")
             ti = ToolInfo(tool_name, categories, synopsis)
@@ -121,7 +129,7 @@ def _build_bundle(d):
     else:
         from .info import CommandInfo
         for cmd_name, cd in cmd_d.items():
-            _debug("processing command: %s" % cmd_name)
+            # _debug("processing command: %s" % cmd_name)
             categories = cd.get("categories", [])
             synopsis = cd.get("synopsis", "")
             ci = CommandInfo(cmd_name, categories, synopsis)
@@ -138,7 +146,7 @@ def _build_bundle(d):
     else:
         from .info import SelectorInfo
         for sel_name, sd in sel_d.items():
-            _debug("processing selector: %s" % sel_name)
+            # _debug("processing selector: %s" % sel_name)
             synopsis = sd.get("synopsis", "")
             atomic = sd.get("atomic", "").lower() != "false"
             si = SelectorInfo(sel_name, synopsis, atomic)
@@ -156,7 +164,7 @@ def _build_bundle(d):
     else:
         from .info import FormatInfo
         for fmt_name, fd in fmt_d.items():
-            _debug("processing data format: %s" % fmt_name)
+            # _debug("processing data format: %s" % fmt_name)
             nicknames = fd.get("nicknames", [])
             categories = fd.get("categories", [])
             suffixes = fd.get("suffixes", [])
@@ -184,7 +192,7 @@ def _build_bundle(d):
         pass
     else:
         for db_name, fd in fetch_d.items():
-            _debug("processing fetch: %s" % db_name)
+            # _debug("processing fetch: %s" % db_name)
             format_name = fd.get("format", "")
             prefixes = fd.get("prefixes", [])
             example = fd.get("example", "")
@@ -203,7 +211,7 @@ def _build_bundle(d):
     else:
         from .installed import _extract_extra_keywords
         for fmt_name, fd in open_d.items():
-            _debug("processing open: %s" % fmt_name)
+            # _debug("processing open: %s" % fmt_name)
             try:
                 fi = format_map[fmt_name]
             except KeyError:
@@ -226,7 +234,7 @@ def _build_bundle(d):
         pass
     else:
         for fmt_name, fd in save_d.items():
-            _debug("processing save: %s" % fmt_name)
+            # _debug("processing save: %s" % fmt_name)
             try:
                 fi = format_map[fmt_name]
             except KeyError:

@@ -36,22 +36,6 @@
 #include <pyinstance/PythonInstance.instantiate.h>
 template class pyinstance::PythonInstance<atomstruct::Structure>;
 
-namespace {
-
-class AcquireGIL {
-    // RAII for Python GIL
-    PyGILState_STATE gil_state;
-public:
-    AcquireGIL() {
-        gil_state = PyGILState_Ensure();
-    }
-    ~AcquireGIL() {
-        PyGILState_Release(gil_state);
-    }
-};
-
-}
-
 namespace atomstruct {
 
 const char*  Structure::PBG_METAL_COORDINATION = "metal coordination bonds";
@@ -87,16 +71,25 @@ Structure::~Structure() {
         for (auto ch: *_chains) {
             ch->clear_residues();
             // since Python layer may be referencing Chain, only
-            // delete immediately if not in object map;
+            // delete immediately if no Python-layer references,
             // otherwise decref and let garbage collection work
             // its magic (__del__ will destroy C++ side)
             auto inst = ch->py_instance(false);
+
             // py_instance() returns new reference, so ...
             Py_DECREF(inst);
-            if (inst == Py_None)
+
+            // If ref count is 1 afterward, _don't_ simply decref
+            // again.  That will cause the Python __del__ to 
+            // execute, which will see that the C++ side is not
+            // destroyed yet, and call the destructor -- which
+            // due to inheriting from PyInstance, will decref
+            // __again__. Instead, just destroy the chain to
+            // indirectly accomplish the second decref.
+            if (inst == Py_None || Py_REFCNT(inst) == 1)
                 delete ch;
             else
-                // decref C++ object-map reference
+                // decref "C++ side" reference
                 Py_DECREF(inst);
         }
         delete _chains;

@@ -2096,20 +2096,27 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
 
 
 def _get_help_url(words):
-    import chimerax
     import os
+    from urllib.parse import urlunparse
+    from urllib.request import pathname2url
     cname = words[0]
     if cname.startswith('~'):
         cname = cname[1:]
-        frag = ' '.join(words)
+        frag = '%20'.join(words)
     else:
-        frag = ' '.join(words[1:])
-    cpath = os.path.join(chimerax.app_data_dir, 'docs', 'user', 'commands',
-                         '%s.html' % cname)
+        frag = '%20'.join(words[1:])
     if frag:
         frag = '#' + frag
-    if os.path.exists(cpath):
-        return "help:user/commands/%s.html%s" % (cname, frag)
+    try:
+        from chimerax.help_viewer import help_directories
+    except ImportError:
+        import chimerax
+        help_directories = [os.path.join(chimerax.app_data_dir, 'docs')]
+    cmd_subpath = os.path.join('user', 'commands', '%s.html' % cname)
+    for hd in help_directories:
+        cpath = os.path.join(hd, cmd_subpath)
+        if os.path.exists(cpath):
+            return urlunparse(('file', '', pathname2url(cpath), '', '', frag))
     return None
 
 

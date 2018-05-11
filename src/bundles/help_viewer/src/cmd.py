@@ -24,31 +24,31 @@ def help(session, topic=None, *, option=None):
         specified then the overview is shown.  Topics that are command names
         can be abbreviated.
     '''
+    from . import help_directories
     url = None
     html = None
     if topic is None:
         topic = 'help:index.html'
     if topic.startswith('help:'):
-        # Help URLs are rooted at base_dir
         import os
         import sys
-        from chimerax import app_data_dir
-        base_dir = os.path.join(app_data_dir, 'docs')
         from urllib.parse import urlparse, urlunparse, quote
         from urllib.request import url2pathname, pathname2url
         (_, _, url_path, _, _, fragment) = urlparse(topic)
         url_path = quote(url_path)
-        path = url2pathname(url_path)
+        help_path = url2pathname(url_path)
         # make sure path is a relative path
-        if os.path.isabs(path):
+        if os.path.isabs(help_path):
             if sys.platform.startswith('win'):
-                path = os.path.relpath(path, os.path.splitdrive(path)[0])
+                help_path = os.path.relpath(help_path, os.path.splitdrive(path)[0])
             else:
-                path = os.path.relpath(path, '/')
-        path = os.path.join(base_dir, path)
-        if not os.path.exists(path):
-            # TODO: check if http url is within ChimeraX docs
-            # TODO: handle missing doc -- redirect to web server
+                help_path = os.path.relpath(help_path, '/')
+        for hd in help_directories:
+            path = os.path.join(hd, help_path)
+            if os.path.exists(path):
+                break
+        else:
+            # TODO? handle missing doc -- redirect to web server
             session.logger.error("No help found for '%s'" % topic)
             return
         if os.path.isdir(path):

@@ -18,7 +18,7 @@ class GraphicsWindow(QWindow):
     The graphics window that displays the three-dimensional models.
     """
 
-    def __init__(self, parent, ui):
+    def __init__(self, parent, ui, stereo = False, opengl_context = None):
         QWindow.__init__(self)
         from PyQt5.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
@@ -28,20 +28,24 @@ class GraphicsWindow(QWindow):
         self.session = ui.session
         self.view = ui.session.main_view
 
-        use_stereo = getattr(ui, 'stereo', False)
-        self.opengl_context = OpenGLContext(self, ui, use_stereo = use_stereo)
-
         self.redraw_interval = 16.667  # milliseconds
         #   perhaps redraw interval should be 10 to reduce
         #   frame drops at 60 frames/sec
         self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
         # of time since start of last drawing
         self.last_redraw_start_time = self.last_redraw_finish_time = 0
-        
-        if use_stereo:
-            from chimerax.core.graphics import StereoCamera
-            self.view.camera = StereoCamera()
-        self.view.initialize_rendering(self.opengl_context)
+
+        if opengl_context is None:
+            from chimerax.core.graphics import OpenGLContext
+            oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
+        elif opengl_context.enable_stereo(stereo, window = self):
+            oc = opengl_context
+        else:
+            from chimerax.core.errors import UserError
+            raise UserError('Failed to switch OpenGL stereo mode')
+
+        self.opengl_context = oc
+        self.view.initialize_rendering(oc)
 
         self.popup = Popup(self)        # For display of atom spec balloons
 
@@ -137,87 +141,3 @@ class Popup(QLabel):
         from PyQt5.QtCore import QPoint
         self.move(self.graphics_window.mapToGlobal(QPoint(*position)))
         self.show()
-
-from PyQt5.QtGui import QOpenGLContext
-class OpenGLContext(QOpenGLContext):
-    
-    required_opengl_version = (3, 3)
-    required_opengl_core_profile = True
-
-    def __init__(self, graphics_window, ui, use_stereo = False):
-        self.window = graphics_window
-        self._ui = ui
-        self._use_stereo = use_stereo
-        QOpenGLContext.__init__(self, graphics_window)
-        self._context_initialized = False
-        self._initialize_failed = False
-        self._deleted = False
-
-    def __del__(self):
-        if not self._deleted:
-            self.delete()
-
-    def delete(self):
-        self._deleted = True
-        self.deleteLater()
-
-    def make_current(self, window = None):
-        # creates context if needed
-        if not self._context_initialized:
-            if self._initialize_failed:
-                return False # Error is raised only when initialization first fails.
-            self._initialize_context()
-            self._context_initialized = True
-
-        w = self.window if window is None else window
-        if not self.makeCurrent(w):
-            raise RuntimeError("Could not make graphics context current")
-        return True
-    
-    def _initialize_context(self):
-        ui = self._ui
-        self.setScreen(ui.primaryScreen())
-        from PyQt5.QtGui import QSurfaceFormat
-        fmt = QSurfaceFormat()
-        fmt.setVersion(*self.required_opengl_version)
-        fmt.setDepthBufferSize(24)
-        if self.required_opengl_core_profile:
-            fmt.setProfile(QSurfaceFormat.CoreProfile)
-        fmt.setRenderableType(QSurfaceFormat.OpenGL)
-#        fmt.setSwapInterval(0)	# Don't wait for vsync, tested on Mac OS 10.13 Nvidia graphics working.
-#                               # Has no effect on Windows 10, Nvidia GTX 1080.
-        if self._use_stereo:
-            fmt.setStereo(True)
-        self.setFormat(fmt)
-        self.window.setFormat(fmt)
-        if not self.create():
-            raise ValueError("Could not create OpenGL context")
-        sf = self.format()
-        major, minor = sf.version()
-        rmajor, rminor = self.required_opengl_version
-        if major < rmajor or (major == rmajor and minor < rminor):
-            self._initialize_failed = True
-            from chimerax.core.graphics import OpenGLVersionError
-            raise OpenGLVersionError('ChimeraX requires OpenGL graphics version %d.%d.\n' % (rmajor, rminor) +
-                                     'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
-                                     'Try updating your graphics driver.')
-        if self.required_opengl_core_profile:
-            if sf.profile() != sf.CoreProfile:
-                self._initialize_failed = True
-                from chimerax.core.graphics import OpenGLVersionError
-                raise OpenGLVersionError('ChimeraX requires an OpenGL graphics core profile.\n' +
-                                         'Your computer graphics driver a non-core profile (version %d.%d).\n' % (major, minor) +
-                                         'Try updating your graphics driver.')
-
-    def done_current(self):
-        # Makes no context current.
-        self.doneCurrent()
-
-    def swap_buffers(self, window = None):
-        w = self.window if window is None else window
-        self.swapBuffers(w)
-
-    def pixel_scale(self):
-        # Ratio Qt pixel size to OpenGL pixel size.
-        # Usually 1, but 2 for Mac retina displays.
-        return self.window.devicePixelRatio()

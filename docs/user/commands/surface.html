@@ -389,8 +389,8 @@ cut edge of the surface will be evident.
 <a href="#sop" class="nounder">&bull;</a>
 <b>surface dust</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
-  <b>size</b>&nbsp;<i>s</i>&nbsp;
-[&nbsp;<b>metric</b>&nbsp;&nbsp;<b>size</b>&nbsp;|&nbsp;area&nbsp;|&nbsp;volume&nbsp;|&nbsp;&lsquo;size&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;area&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;volume&nbsp;rank&rsquo;&nbsp;]
+[&nbsp;<b>size</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>metric</b>&nbsp;&nbsp;area&nbsp;|&nbsp;&lsquo;area&nbsp;rank&rsquo;&nbsp;|&nbsp;<b>size</b>&nbsp;|&nbsp;&lsquo;size&nbsp;rank&rsquo;&nbsp;|&nbsp;volume&nbsp;|&nbsp;&lsquo;volume&nbsp;rank&rsquo;&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 <a href="#sop" class="nounder">&bull;</a>
@@ -399,16 +399,15 @@ cut edge of the surface will be evident.
 <blockquote>
 Hide smaller blobs (disconnected parts) of a surface, 
 such as to simplify the display of noisy density.
-The cutoff <b>size</b> for hiding must be specified; blobs smaller
-than <i>s</i> will be hidden, where the units depend on the <b>metric</b>:
+Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>)
+will be hidden. The size units depend on the <b>metric</b>:
   <ul>
-  <li><b>size</b> (default) - bounding box dimension (largest of X, Y, Z)
   <li><b>area</b> - surface area
-  <li><b>volume</b> - enclosed volume
-  <li><b>size rank</b> - rank by largest <b>size</b> 
-  (a value of <i>N</i> indicates
-  showing the <i>N</i> largest blobs by the <b>size</b> criterion)
   <li><b>area rank</b> - rank by largest <b>area</b> 
+  (a value of <i>N</i> indicates showing the <i>N</i> largest blobs)
+  <li><b>size</b> (default) - bounding box dimension (largest of X, Y, Z)
+  <li><b>size rank</b> - rank by largest <b>size</b> 
+  <li><b>volume</b> - enclosed volume
   <li><b>volume rank</b> - rank by largest <b>volume</b> 
   </ul>
 Size measurements will include any blob parts that have been undisplayed
@@ -490,5 +489,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2018</address>
+May 2018</address>
 </body></html>

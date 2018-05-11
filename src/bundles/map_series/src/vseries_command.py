@@ -389,11 +389,8 @@ def release_stopped_players():
 #
 def vseries_slider(session, series):
     '''Display a graphical user interface slider to play through frames of a map series.'''
-    bundle_info = session.toolshed.find_bundle('ChimeraX-MapSeriesGUI',
-                                               session.logger)
-    if bundle_info:
-        from chimerax.map_series_gui.tool import MapSeries
-        MapSeries(session, bundle_info, series = series).show()
+    from .slider import MapSeriesSlider
+    MapSeriesSlider(session, series = series).show()
 
 # -----------------------------------------------------------------------------
 #

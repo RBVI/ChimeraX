@@ -67,7 +67,7 @@ def _show_prickles(surface, length = 1, color = None, prickles_model = None, chi
         tan = empty((n,2), int32)
         tan[:,0] = arange(n)
         tan[:,1] = tan[:,0] + n
-        from ..models import Model
+        from chimerax.core.models import Model
         pm = Model('prickles', surface.session)
         pm.set_geometry(van, None, tan)
         pm.display_style = pm.Mesh
@@ -88,7 +88,7 @@ def _show_prickles(surface, length = 1, color = None, prickles_model = None, chi
             show_prickles(d, length, color, prickles_model)
 
 def register_command(logger):
-    from . import CmdDesc, register, SurfaceArg, FloatArg, ColorArg, ModelArg, IntArg
+    from chimerax.core.commands import CmdDesc, register, SurfaceArg, FloatArg, ColorArg, ModelArg, IntArg
     from chimerax.map import MapArg
     desc = CmdDesc(
         required = [('surface', SurfaceArg)],

@@ -20,7 +20,7 @@
     
 # ---------------------------------------------------------------------------
 #
-class Volume_Default_Settings:
+class VolumeDefaultSettings:
 
   def __init__(self):
 
@@ -47,7 +47,7 @@ class Volume_Default_Settings:
   def factory_defaults(self):
 
     defaults = {
-        'max_histograms': 3,
+        'max_histograms': 1000,
         'use_initial_colors': True,
         'initial_colors': ((.7,.7,.7,1),
                            (1,1,.7,1),
@@ -163,6 +163,7 @@ class Volume_Default_Settings:
     d = dialog
     p = self.current_prefs
 
+    global_settings = False
     if global_settings:
       srp = d.subregion_panel
       srp.selectable_subregions.set(p['selectable_subregions'],
@@ -182,6 +183,7 @@ class Volume_Default_Settings:
       dop = d.display_options_panel
       dop.set_gui_state(p)
 
+    data_settings = False
     if data_settings:
       ro_defaults = self.rendering_option_defaults()
       dop = d.display_options_panel
@@ -194,7 +196,7 @@ class Volume_Default_Settings:
       sop.set_gui_from_rendering_options(ro_defaults)
 
     if panel_settings:
-      d.update_default_panels(p['shown_panels'])
+#      d.update_default_panels(p['shown_panels'])
       d.show_panels(p['shown_panels'])
 
   # ---------------------------------------------------------------------------

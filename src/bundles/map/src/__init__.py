@@ -63,6 +63,12 @@ from chimerax.core.toolshed import BundleAPI
 class _MapBundle(BundleAPI):
 
     @staticmethod
+    def start_tool(session, tool_name):
+        # 'start_tool' is called to start an instance of the tool
+        from . import volume_viewer
+        return volume_viewer.show_volume_dialog(session)
+
+    @staticmethod
     def open_file(session, stream, file_name):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)

@@ -23,19 +23,19 @@ def resfit(session, atoms, map = None, residue_range = (-2,1),
       Density map to show near each residue.
     '''
 
-    from chimerax.core.commands import AnnotationError
+    from chimerax.core.errors import UserError
     if map is None:
-        raise AnnotationError('Require "map" option: resfit #1 map #2')
+        raise UserError('Require "map" option: resfit #1 map #2')
 
     cids = atoms.unique_chain_ids
     if len(cids) != 1:
-        raise AnnotationError('Atoms must belong to one chain, got %d chains %s'
-                              % (len(cids), ', '.join(cids)))
+        raise UserError('Atoms must belong to one chain, got %d chains %s'
+                        % (len(cids), ', '.join(cids)))
 
     res = atoms.unique_residues
     bbres = residues_with_backbone(res)
     if len(bbres) == 0:
-        raise AnnotationError('None of %d specified residues have backbone atoms "N", "CA" and "C"' % len(res))
+        raise UserError('None of %d specified residues have backbone atoms "N", "CA" and "C"' % len(res))
     
     from . import tool
     tool.ResidueFit(session, "Residue Fit", bbres, map, residue_range = residue_range,
@@ -60,5 +60,6 @@ def register_resfit_command(logger):
                               ('motion_frames', IntArg),
                               ('pause_frames', IntArg),
                               ('movie_framerate', IntArg)],
+                   required_arguments = ['map'],
                    synopsis = 'Display slider to show fit of each residue in density map')
     register('resfit', desc, resfit, logger=logger)
