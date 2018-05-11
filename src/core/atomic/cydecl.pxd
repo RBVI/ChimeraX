@@ -114,6 +114,8 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         bool ribbon_hide_backbone()
         void set_alt_loc(char)
         void set_insertion_code(char)
+        void set_is_helix(bool)
+        void set_is_strand(bool)
         void set_name(const char*)
         void set_ribbon_adjust(float)
         void set_ribbon_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)

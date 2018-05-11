@@ -807,10 +807,18 @@ cdef class CyResidue:
         "Supported API. Whether this residue belongs to a protein alpha helix. Boolean value. "
         return self.cpp_res.is_helix()
 
+    @is_helix.setter
+    def is_helix(self, val):
+        self.cpp_res.set_is_helix(val)
+
     @property
     def is_strand(self):
         "Supported API. Whether this residue belongs to a protein beta sheet. Boolean value. "
         return self.cpp_res.is_strand()
+
+    @is_strand.setter
+    def is_strand(self, val):
+        self.cpp_res.set_is_strand(val)
 
     @property
     def mmcif_chain_id(self):

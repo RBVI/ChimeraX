@@ -36,22 +36,6 @@
 #include <pyinstance/PythonInstance.instantiate.h>
 template class pyinstance::PythonInstance<atomstruct::Structure>;
 
-namespace {
-
-class AcquireGIL {
-    // RAII for Python GIL
-    PyGILState_STATE gil_state;
-public:
-    AcquireGIL() {
-        gil_state = PyGILState_Ensure();
-    }
-    ~AcquireGIL() {
-        PyGILState_Release(gil_state);
-    }
-};
-
-}
-
 namespace atomstruct {
 
 const char*  Structure::PBG_METAL_COORDINATION = "metal coordination bonds";
