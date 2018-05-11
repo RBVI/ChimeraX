@@ -228,7 +228,7 @@ def _register_viewer_subcommand(logger, viewer_sub):
     from .cmd import AlignmentArg
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, RestOfLine, ListOf
     desc = CmdDesc(
-        required = [('align_id', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg),
+        required = [('alignment_s', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg)),
             ('subcommand_text', RestOfLine)],
         synopsis = "send subcommand to viewer '%s'" %viewer_sub
     )

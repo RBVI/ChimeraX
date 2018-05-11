@@ -273,7 +273,7 @@ class Alignment(State):
            your viewer (same as given to the manager's 'register_viewer' call) as 'subcommand_name'.
         """
         self.viewers.append(viewer)
-        if subcommand:
+        if subcommand_name:
             self.viewers_by_subcommand.setdefault(subcommand_name, []).append(viewer)
             self.viewer_to_subcommand[viewer] = subcommand_name
 
@@ -449,7 +449,7 @@ class Alignment(State):
         viewers = self.viewers_by_subcommand.get(viewer_keyword, [])
         if not viewers:
             raise UserError("No '%s' viewers attached to alignment '%s'"
-                % (viewer_keyword, self.ident)
+                % (viewer_keyword, self.ident))
         self._notify_viewers("command", subcommand_text, viewer_criteria=viewer_keyword)
 
     def _notify_viewers(self, note_name, note_data, *, viewer_criteria=None):
@@ -458,7 +458,7 @@ class Alignment(State):
             return
         if viewer_criteria is None:
             viewers = self.viewers
-        else;
+        else:
             viewers = self.viewers_by_subcommand.get(viewer_criteria, [])
         for viewer in viewers:
             viewer.alignment_notification(note_name, note_data)

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import Annotation
+from chimerax.core.commands import Annotation, AnnotationError
 class SeqArg(Annotation):
     '''A single sequence (in a single alignment)
 
@@ -32,7 +32,7 @@ class SeqArg(Annotation):
         if ':' not in token:
             raise AnnotationError("Expected at least one ':' character in %s" % SeqArg.name)
         align_id, seq_id = token.split(':', 1)
-        alignment = get_alignnment_by_id(session, align_id)
+        alignment = get_alignment_by_id(session, align_id)
         seq = get_alignment_sequence(alignment, seq_id)
         return seq, text, rest
 
@@ -48,7 +48,7 @@ class AlignmentArg(Annotation):
         if not text:
             raise AnnotationError("Expected %s" % SeqArg.name)
         token, text, rest = next_token(text)
-        alignment = get_alignnment_by_id(session, token)
+        alignment = get_alignment_by_id(session, token)
         return alignment, text, rest
 
 def get_alignment_sequence(alignment, seq_id):
@@ -82,7 +82,7 @@ def get_alignment_by_id(session, align_id, *, multiple_okay=False):
                 return session.alignments.alignments[:]
             raise AnnotationError("More than one sequence alignment open;"
                 " need to specify an alignment ID")
-        alignment = list(session.alignments.values())[0]
+        alignment = list(session.alignments.alignments.values())[0]
     else:
         try:
             alignment = session.alignments.alignments[align_id]

@@ -459,6 +459,8 @@ class SequenceViewer(ToolInstance):
             self.region_browser._pre_remove_lines(note_data)
         elif note_name == "destroyed":
             self.delete()
+        elif note_name == "command":
+            print("TODO: parse this text as command: '%s'" % note_data)
 
     def delete(self):
         self.region_browser.destroy()
