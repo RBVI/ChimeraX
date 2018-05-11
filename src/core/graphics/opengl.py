@@ -78,9 +78,9 @@ class OpenGLContext:
     required_opengl_version = (3, 3)
     required_opengl_core_profile = True
 
-    def __init__(self, graphics_window, ui, use_stereo = False):
+    def __init__(self, graphics_window, screen, use_stereo = False):
         self.window = graphics_window
-        self._ui = ui
+        self._screen = screen
         self._mode = 'stereo' if use_stereo else 'mono'
         self._contexts = {}		# Map mode to QOpenGLContext, or False if creation failed
         self._share_context = None	# First QOpenGLContext, shares state with others
@@ -123,13 +123,45 @@ class OpenGLContext:
             raise RuntimeError("Could not make graphics context current")
         return True
     
-    def _initialize_context(self, mode = None):
-        ui = self._ui
+    def _initialize_context(self, mode = None, window = None):
+        if mode is None:
+            mode = self._mode
+
+        if window is None:
+            window = self.window
+
+        # Create context
         from PyQt5.QtGui import QOpenGLContext
-        qc = QOpenGLContext(self.window)
-        qc.setScreen(ui.primaryScreen())
+        qc = QOpenGLContext(window)
+        qc.setScreen(self._screen)
+
         if self._share_context:
             qc.setShareContext(self._share_context)
+
+        # Set OpenGL context format
+        fmt = self._context_format(mode)
+        qc.setFormat(fmt)
+        window.setFormat(fmt)
+
+        # Validate context
+        if not qc.create():
+            self._contexts[mode] = False
+            raise OpenGLError("Could not create OpenGL context")
+        try:
+            self._check_context_version(qc.format())
+        except:
+            self._contexts[mode] = False
+            raise
+
+        if window:
+            self.window = window
+        if self._share_context is None:
+            self._share_context = qc
+        self._contexts[mode] = qc
+        self._mode = mode
+        return qc
+
+    def _context_format(self, mode):
         from PyQt5.QtGui import QSurfaceFormat
         fmt = QSurfaceFormat()
         fmt.setVersion(*self.required_opengl_version)
@@ -141,37 +173,27 @@ class OpenGLContext:
             # Don't wait for vsync, tested on Mac OS 10.13 Nvidia graphics working.
             # Has no effect on Windows 10, Nvidia GTX 1080.
             fmt.setSwapInterval(0)
-        if mode is None:
-            mode = self._mode
         if mode == 'stereo':
             fmt.setStereo(True)
-        qc.setFormat(fmt)
-        self.window.setFormat(fmt)
-        if not qc.create():
-            self._contexts[mode] = False
-            raise OpenGLError("Could not create OpenGL context")
-        sf = qc.format()
-        major, minor = sf.version()
+        return fmt
+
+    def _check_context_version(self, fmt):
+        major, minor = fmt.version()
         rmajor, rminor = self.required_opengl_version
         if major < rmajor or (major == rmajor and minor < rminor):
-            self._contexts[mode] = False
             from chimerax.core.graphics import OpenGLVersionError
-            raise OpenGLVersionError('ChimeraX requires OpenGL graphics version %d.%d.\n' % (rmajor, rminor) +
-                                     'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
-                                     'Try updating your graphics driver.')
+            raise OpenGLVersionError(
+                'ChimeraX requires OpenGL graphics version %d.%d.\n' % (rmajor, rminor) +
+                'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
+                'Try updating your graphics driver.')
         if self.required_opengl_core_profile:
-            if sf.profile() != sf.CoreProfile:
-                self._contexts[mode] = False
+            if fmt.profile() != fmt.CoreProfile:
                 from chimerax.core.graphics import OpenGLVersionError
-                raise OpenGLVersionError('ChimeraX requires an OpenGL graphics core profile.\n' +
-                                         'Your computer graphics driver a non-core profile (version %d.%d).\n'
-                                         % (major, minor) +
-                                         'Try updating your graphics driver.')
-        if self._share_context is None:
-            self._share_context = qc
-        self._contexts[mode] = qc
-        self._mode = mode
-        return qc
+                raise OpenGLVersionError(
+                    'ChimeraX requires an OpenGL graphics core profile.\n' +
+                    'Your computer graphics driver a non-core profile (version %d.%d).\n'
+                    % (major, minor) +
+                    'Try updating your graphics driver.')
         
     def done_current(self):
         '''Makes no context current.'''
@@ -189,8 +211,13 @@ class OpenGLContext:
         '''
         return self.window.devicePixelRatio()
 
-    def enable_stereo(self, stereo = True):
-        if stereo == (self._mode == 'stereo'):
+    @property
+    def stereo(self):
+        return self._mode == 'stereo'
+
+    def enable_stereo(self, stereo, window):
+        mode = 'stereo' if stereo else 'mono'
+        if mode == self._mode:
             return True
         
         if len(self._contexts) == 0:
@@ -205,19 +232,21 @@ class OpenGLContext:
             bi._release()
         self.current_shader_program = None
         self.current_viewport = None
+        self.done_current()
 
         # Replace current context with stereo context sharing state.
-        mode = 'stereo' if stereo else 'mono'
         qc = self._contexts.get(mode)
         if not qc:
             try:
-                qc = self._initialize_context(mode)
+                qc = self._initialize_context(mode, window)
             except OpenGLError:
                 return False
             if not qc:
                 return False
 
-        self.make_current()
+        self._mode = mode
+        self.window = window
+
         return True
 
 def remember_current_opengl_context():
@@ -814,15 +843,6 @@ class Render:
     def support_stereo(self):
         'Return if sequential stereo is supported.'
         return GL.glGetBoolean(GL.GL_STEREO)
-
-    def enable_stereo(self, stereo = True):
-        xywh = self.current_viewport
-        success = self._opengl_context.enable_stereo(stereo)
-        if success and xywh:
-            x,y,w,h = xywh
-            s = self._opengl_context.pixel_scale()
-            self.initialize_opengl(w//s, h//s)
-        return success
         
     def opengl_context_changed(self):
         'Called after opengl context is switched.'

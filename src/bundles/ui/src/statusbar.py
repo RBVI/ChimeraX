@@ -80,7 +80,7 @@ class _StatusBarOpenGL:
         # Create opengl context
         w = self._window
         from chimerax.core.graphics import OpenGLContext
-        self._opengl_context = c = OpenGLContext(w, self.session.ui)
+        self._opengl_context = c = OpenGLContext(w, self.session.ui.primaryScreen())
         # Create texture drawing to render status messages
         from chimerax.core.graphics import Drawing, Render
         self._drawing = Drawing('statusbar')

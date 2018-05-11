@@ -88,12 +88,16 @@ class View:
     
     def initialize_rendering(self, opengl_context):
         r = self._render
-        if r:
+        if r is None:
+            from .opengl import Render
+            self._render = r = Render(opengl_context)
+            r.lighting = self._lighting
+            r.material = self._material
+        elif opengl_context is r.opengl_context:
+            # OpenGL context switched between stereo and mono mode
+            self._opengl_initialized = False
+        else:
             raise ValueError("OpenGL context is already set")
-        from .opengl import Render
-        self._render = r = Render(opengl_context)
-        r.lighting = self._lighting
-        r.material = self._material
 
     def _use_opengl(self):
         if self._render is None:

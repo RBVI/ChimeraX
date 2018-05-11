@@ -18,7 +18,7 @@ class GraphicsWindow(QWindow):
     The graphics window that displays the three-dimensional models.
     """
 
-    def __init__(self, parent, ui):
+    def __init__(self, parent, ui, stereo = False, opengl_context = None):
         QWindow.__init__(self)
         from PyQt5.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
@@ -28,21 +28,24 @@ class GraphicsWindow(QWindow):
         self.session = ui.session
         self.view = ui.session.main_view
 
-        use_stereo = getattr(ui, 'stereo', False)
-        from chimerax.core.graphics import OpenGLContext
-        self.opengl_context = OpenGLContext(self, ui, use_stereo = use_stereo)
-
         self.redraw_interval = 16.667  # milliseconds
         #   perhaps redraw interval should be 10 to reduce
         #   frame drops at 60 frames/sec
         self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
         # of time since start of last drawing
         self.last_redraw_start_time = self.last_redraw_finish_time = 0
-        
-        if use_stereo:
-            from chimerax.core.graphics import StereoCamera
-            self.view.camera = StereoCamera()
-        self.view.initialize_rendering(self.opengl_context)
+
+        if opengl_context is None:
+            from chimerax.core.graphics import OpenGLContext
+            oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
+        elif opengl_context.enable_stereo(stereo, window = self):
+            oc = opengl_context
+        else:
+            from chimerax.core.errors import UserError
+            raise UserError('Failed to switch OpenGL stereo mode')
+
+        self.opengl_context = oc
+        self.view.initialize_rendering(oc)
 
         self.popup = Popup(self)        # For display of atom spec balloons
 
