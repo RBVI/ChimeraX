@@ -47,7 +47,7 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
 
     # Fetch compartment surface files.
     csurfs = []
-    from chimerax.core.surface.collada import read_collada_surfaces
+    from chimerax.surface.collada import read_collada_surfaces
     for comp_name, comp_loc, geom_loc in comp_surfaces:
         csurf = Model(comp_name, session)
         if comp_loc is not None:

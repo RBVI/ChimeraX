@@ -499,9 +499,9 @@ class IHMModel(Model):
                 'seq_id_begin',
                 'seq_id_end',
                 'asym_id',
-                'cartn_x',
-                'cartn_y',
-                'cartn_z',
+                'Cartn_x',
+                'Cartn_y',
+                'Cartn_z',
                 'object_radius',
                 'model_id']
             spheres = sost.fields(sos_fields)
@@ -843,7 +843,7 @@ class IHMModel(Model):
         # Show crosslink end-point atoms and spheres
         from chimerax.core.atomic import PseudobondGroup
         pbgs = sum([[pbg for pbg in m.child_models()
-                     if isinstance(pbg, PseudobondGroup) and pbg.category != 'missing structure']
+                     if isinstance(pbg, PseudobondGroup) and pbg.name != 'missing structure']
                     for m in smodels[:1] + amodels], [])
         for pbg in pbgs:
             a1,a2 = pbg.pseudobonds.atoms
@@ -992,7 +992,7 @@ class IHMModel(Model):
 
         pmods = []
         asym_colors = self.asym_colors()
-        from chimerax.core.map.volume import open_map
+        from chimerax.map.volume import open_map
         from os.path import join
         for ensemble_id in sorted(ens.keys()):
             asym_loc = ens[ensemble_id]
@@ -1071,7 +1071,7 @@ class IHMModel(Model):
         # Compute probability volume models
         pmods = []
         asym_colors = self.asym_colors()
-        from chimerax.core.map import volume_from_grid_data
+        from chimerax.map import volume_from_grid_data
 
         for ensemble_id in sorted(cov.keys()):
             asym_gaussians = cov[ensemble_id]
@@ -1194,7 +1194,6 @@ class FileInfo:
             path = join(self.ihm_dir, self.file_path)
             if isfile(path):
                 return path
-            return None
             
         r = self.ref
         if r and r.ref_type == 'DOI':
@@ -1262,8 +1261,8 @@ class FileDataSet(DataSet):
         filename = finfo.file_name
         image_path = finfo.path(session)
         if image_path:
-            from chimerax.core.map.volume import open_map
-            from chimerax.core.map.data import Unknown_File_Type
+            from chimerax.map.volume import open_map
+            from chimerax.map.data import Unknown_File_Type
             try:
                 maps,msg = open_map(session, image_path)
             except Unknown_File_Type:
@@ -1290,7 +1289,7 @@ class DatabaseDataSet(DataSet):
         dbc = self.db_code
         if self.db_name == 'EMDB' and dbc != '?':
             dbc = dbc[4:] if dbc.startswith('EMD-') else dbc
-            from chimerax.core.map.emdb_fetch import fetch_emdb
+            from chimerax.map.emdb_fetch import fetch_emdb
             models, status = fetch_emdb(session, dbc)
             return models[0]
         return None
@@ -1448,7 +1447,7 @@ def probability_grid(wcc, voxel_size = 5, cutoff_sigmas = 3):
         cov *= 1/(voxel_size*voxel_size)
         add_gaussian(weight, acenter, cov, a)
 
-    from chimerax.core.map.data import Array_Grid_Data
+    from chimerax.map.data import Array_Grid_Data
     g = Array_Grid_Data(a, origin = xyz0, step = vsize)
     return g
 
@@ -1476,7 +1475,7 @@ def covariance_sum(cinv, center, s, array):
                 v = (i-i0, j-j0, k-k0)
                 array[k,j,i] += s*exp(-0.5*dot(v, dot(cinv, v)))
 
-from chimerax.core.map import covariance_sum
+from chimerax.map import covariance_sum
         
 # -----------------------------------------------------------------------------
 #
@@ -1827,7 +1826,6 @@ class SphereModel(Structure):
                 last_atom = a
             polymers.append(Residues(polymer))
 
-        self.new_atoms()
         self._polymers.extend(polymers)	# Needed for ribbon rendering
 
     def copy(self, name = None):

@@ -43,15 +43,10 @@ Subsequent uses of <i>name</i>
 as a command (at the beginning of a line, following a semicolon,
 or as a command argument of <a href="perframe.html"><b>perframe</b></a>)
 will be replaced with <i>wordlist</i>.
-<!--
-<font color="brown">
-For defining command targets based on
-<a href="atomspec.html">specification</a> strings or 
-the current <a href="../selection.html">selection</a>, see
-the <a href="namespec.html"><b>namespec</b></a> command
-(not yet implemented).
-</font>
--->
+</p><p>
+For assigning a name to a <a href="../selection.html">selection</a> or
+longer <a href="atomspec.html">target specification</a>, see
+the <a href="name.html"><b>name</b></a> command instead.
 </p><p>
 <!--
 Aliases are saved in sessions.
@@ -69,7 +64,6 @@ may be used to indicate the first, second, third ... arguments of
 <i>name</i>. A string that contains spaces can be designated as a single 
 argument by enclosing it in single or double quotation marks.
 The quotation marks will be omitted when the alias is expanded.
-</a>
 For example,
 <blockquote>
 <b>alias ribcolor <a href="color.html">color</a> $1 $2 targ c</b>

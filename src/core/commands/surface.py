@@ -245,11 +245,11 @@ def surface_style(session, surfaces, style):
     if surfaces is None:
         from ..atomic import Structure
         surfaces = [m for m in session.models.list() if not isinstance(m, Structure)]
-    from ..map import Volume
+    from chimerax.map import Volume
     for s in surfaces:
         if isinstance(s, Volume) and s.representation in ('surface', 'mesh'):
             if style == 'dot':
-                for d in s.surface_drawings:
+                for d in s.surfaces:
                     d.display_style = d.Dot
             else:
                 rep = 'surface' if style == 'solid' else 'mesh'
@@ -279,7 +279,7 @@ def surface_cap(session, enable = None, offset = None):
             clip_planes = session.main_view.clip_planes
             clip_planes.changed = True
         else:
-            from chimerax.core.surface import remove_clip_caps
+            from chimerax.surface import remove_clip_caps
             drawings = session.main_view.drawing.all_drawings()
             remove_clip_caps(drawings)
         session.triggers.activate_trigger('clipping caps changed', enable)

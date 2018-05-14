@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.ui.widgets.slider import Slider
+from chimerax.ui.widgets.slider import Slider
 
 # ------------------------------------------------------------------------------
 #
@@ -147,8 +147,9 @@ def show_residue_fit(session, residues, map, range = 2, last_pos = None, motion_
 
     from numpy import concatenate
     zone_points = concatenate([r.atoms.scene_coords for r in residues])
-    from chimerax.core.surface import zone
-    zone.surface_zone(map, zone_points, range)
+    from chimerax.surface import zone
+    for s in map.surfaces:
+        zone.surface_zone(s, zone_points, range, auto_update = True)
 
     for r in residues:
         r.atoms.displays = True

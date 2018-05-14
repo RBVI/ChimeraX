@@ -19,26 +19,29 @@ class _MyAPI(BundleAPI):
     api_version = 1
 
     @staticmethod
-    def register_command(bundle_info, command_info, logger):
+    def register_command(bi, ci, logger):
         from . import cmd
         from chimerax.core.commands import register
-        desc = cmd.register_desc
+        func_attr = ci.name.replace(' ', '_')
+        func = getattr(cmd, func_attr)
+        desc_attr = func_attr + "_desc"
+        desc = getattr(cmd, desc_attr)
         if desc.synopsis is None:
-            desc.synopsis = command_info.synopsis
-        register(command_info.name, desc, cmd.register)
+            desc.synopsis = ci.synopsis
+        register(ci.name, desc, func)
 
     @staticmethod
-    def start_tool(session, bundle_info, tool_info, **kw):
+    def start_tool(session, bi, ti):
         from .gui import RegistrationUI
-        return RegistrationUI(session, tool_info.name, **kw)
+        return RegistrationUI(session, ti)
 
     @staticmethod
-    def initialize(session, bundle_info):
+    def initialize(session, bi):
         from .nag import nag
         nag(session)
 
     @staticmethod
-    def finish(session, bundle_info):
+    def finish(session, bi):
         pass
 
 bundle_api = _MyAPI()

@@ -57,7 +57,7 @@ public:
     }
 protected:
     std::string  _category;
-    Rgba  _color = {255,255,0,255}; // yellow
+    Rgba  _color = {255,215,0,255}; // gold
     bool  _destruction_relevant;
     bool  _halfbond = false;
     BaseManager*  _manager;

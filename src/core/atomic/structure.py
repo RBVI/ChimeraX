@@ -11,15 +11,20 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .. import toolshed
-from ..models import Model
-from ..state import State
+from chimerax.core import toolshed
+from chimerax.core.models import Model
+from chimerax.core.state import State
 from .molobject import StructureData
-from ..graphics import Drawing, Pick, PickedTriangles
+from chimerax.core.graphics import Drawing, Pick, PickedTriangles
 
 CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
+    """
+    Structure model including atomic coordinates.
+    The data is managed by the :class:`.StructureData` base class
+    which provides access to the C++ structures.
+    """
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  auto_style = True, log_info = True):
@@ -62,14 +67,16 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
-        from .. import triggerset
+        from chimerax.core.models import MODEL_POSITION_CHANGED
+        self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
+        from chimerax.core import triggerset
         self.triggers = triggerset.TriggerSet()
         self.triggers.add_trigger("changes")
 
         self._make_drawing()
 
     def __str__(self):
-        from ..core_settings import settings
+        from chimerax.core.core_settings import settings
         id = '#' + self.id_string()
         if settings.atomspec_contents == "command-line specifier" or not self.name:
             return id
@@ -84,9 +91,12 @@ class Structure(Model, StructureData):
         for handler in self._ses_handlers:
             t.remove_handler(handler)
         self._ses_handlers.clear()
+        ses = self.session
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
         if not self.deleted:
+            self.session = ses
             StructureData.delete(self)
+            delattr(self, 'session')
 
     deleted = StructureData.deleted
 
@@ -164,7 +174,7 @@ class Structure(Model, StructureData):
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords
                     mol_points = atoms.coords
-                    from ..geometry import find_closest_points
+                    from chimerax.core.geometry import find_closest_points
                     close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
                     display |= atoms.filter(close_indices).residues
                 display_atoms = display.atoms
@@ -189,16 +199,28 @@ class Structure(Model, StructureData):
             lighting = "soft multiShadow 16"
 
         if set_lighting:
-            from ..commands import Command
+            from chimerax.core.commands import Command
             cmd = Command(self.session)
             cmd.run("lighting " + lighting, log=False)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Structure, self)
+
     def take_snapshot(self, session, flags):
+        from .molobject import get_custom_attrs
         data = {'model state': Model.take_snapshot(self, session, flags),
-                'structure state': StructureData.save_state(self, session, flags)}
+                'structure state': StructureData.save_state(self, session, flags),
+                'custom attrs': get_custom_attrs(Structure, self),
+                # put in dependency on custom-attribute manager so that
+                # such attributes are registered with the classes before the
+                # instances become available to other part of the session
+                # restore, which may access attributes with default values
+                'attr-reg manager': session.attr_registration}
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
-        from ..state import CORE_STATE_VERSION
+        from chimerax.core.state import CORE_STATE_VERSION
         data['version'] = CORE_STATE_VERSION
         return data
 
@@ -222,6 +244,9 @@ class Structure(Model, StructureData):
         # TODO: For some reason ribbon drawing does not update automatically.
         # TODO: Also marker atoms do not draw without this.
         self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
+
+        from .molobject import set_custom_attrs
+        set_custom_attrs(self, data)
 
     def _get_bond_radius(self):
         return self._bond_radius
@@ -266,7 +291,7 @@ class Structure(Model, StructureData):
         het_atoms.colors = element_colors(het_atoms.element_numbers)
         
     def set_color(self, color):
-        from ..colors import Color
+        from chimerax.core.colors import Color
         if isinstance(color, Color):
             rgba = color.uint8x4()
         else:
@@ -277,7 +302,7 @@ class Structure(Model, StructureData):
     def _get_single_color(self):
         residues = self.residues
         ribbon_displays = residues.ribbon_displays
-        from ..colors import most_common_color
+        from chimerax.core.colors import most_common_color
         if ribbon_displays.any():
             return most_common_color(residues.filter(ribbon_displays).ribbon_colors)
         atoms = self.atoms
@@ -378,7 +403,7 @@ class Structure(Model, StructureData):
             xyzr[:, :3] = atoms.coords
             xyzr[:, 3] = self._atom_display_radii(atoms)
 
-            from ..geometry import Places
+            from chimerax.core.geometry import Places
             p.positions = Places(shift_and_scale=xyzr)
 
         if changes & self._COLOR_CHANGE:
@@ -431,6 +456,18 @@ class Structure(Model, StructureData):
         ad = self._atoms_drawing
         if ad:
             lod.set_atom_sphere_geometry(ad, total_atoms)
+
+    def _update_position(self, trig_name, updated_model):
+        need_update = False
+        check_model = self
+        while isinstance(check_model, Model):
+            if updated_model == check_model:
+                need_update = True
+                break
+            check_model = getattr(check_model, 'parent', None)
+        
+        if need_update:
+            self._cpp_notify_position(self.scene_position)
 
     def _add_r2t(self, r, tr):
         try:
@@ -641,10 +678,9 @@ class Structure(Model, StructureData):
             if False:
                 # Debugging code to display line from control point to guide
                 cp = p.new_drawing(str(self) + " control points")
-                from .. import surface
+                from chimerax import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
-                cp.geometry = va, ta
-                cp.normals = na
+                cp.set_geometry(va, na, ta)
                 from numpy import empty, float32
                 cp_radii = empty(len(coords), float)
                 cp_radii.fill(0.1)
@@ -833,11 +869,12 @@ class Structure(Model, StructureData):
             # Create drawing from arrays
             if vertex_list:
                 rp.display = True
-                rp.vertices = concatenate(vertex_list)
-                rp.normals = concatenate(normal_list)
+                va = concatenate(vertex_list)
+                na = concatenate(normal_list)
                 from .ribbon import normalize_vector_array_inplace
-                normalize_vector_array_inplace(rp.normals)
-                rp.triangles = concatenate(triangle_list)
+                normalize_vector_array_inplace(na)
+                ta = concatenate(triangle_list)
+                rp.set_geometry(va, na, ta)
                 rp.vertex_colors = concatenate(color_list)
             else:
                 rp.display = False
@@ -851,6 +888,8 @@ class Structure(Model, StructureData):
             from .molarray import Atoms
             tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
             spline_coords = array(list(self._ribbon_spline_backbone.values()))
+            if len(spline_coords) == 0:
+                spline_coords = spline_coords.reshape((0,3))
             atom_coords = tether_atoms.coords
             offsets = array(atom_coords) - spline_coords
             tethered = norm(offsets, axis=1) > self.bond_radius
@@ -862,14 +901,13 @@ class Structure(Model, StructureData):
                 tp = p.new_drawing(str(self) + " ribbon_tethers")
                 tp.skip_bounds = True
                 nc = m.ribbon_tether_sides
-                from .. import surface
+                from chimerax import surface
                 if m.ribbon_tether_shape == self.TETHER_CYLINDER:
                     va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
                     # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
                     va, na, ta = surface.cone_geometry(nc=nc, caps=False, points_up=False)
-                tp.geometry = va, ta
-                tp.normals = na
+                tp.set_geometry(va, na, ta)
                 self._ribbon_tether.append((tether_atoms, tp,
                                             spline_coords[tethered],
                                             tether_atoms.filter(tethered),
@@ -881,10 +919,9 @@ class Structure(Model, StructureData):
             # Create spine if necessary
             if self.ribbon_show_spine:
                 sp = p.new_drawing(str(self) + " spine")
-                from .. import surface
+                from chimerax import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
-                sp.geometry = va, ta
-                sp.normals = na
+                sp.set_geometry(va, na, ta)
                 from numpy import empty, float32
                 spine_radii = empty(len(spine_colors), float32)
                 spine_radii.fill(0.3)
@@ -903,9 +940,9 @@ class Structure(Model, StructureData):
         except AttributeError:
             return
         sp = p.new_drawing(str(self) + " normal spline")
-        from .. import surface
+        from chimerax import surface
         from numpy import empty, array, float32, linspace
-        from ..geometry import Places
+        from chimerax.core.geometry import Places
         num_pts = num_coords*self._level_of_detail.ribbon_divisions
         #S
         #S va, na, ta = surface.sphere_geometry(20)
@@ -926,8 +963,7 @@ class Structure(Model, StructureData):
         t = linspace(0.0, num_coords, num=num_pts, endpoint=False)
         xyz1 = array([spline(i) for i in t], dtype=float32)
         xyz2 = array([other_spline(i) for i in t], dtype=float32)
-        sp.geometry = va, ta
-        sp.normals = na
+        sp.set_geometry(va, na, ta)
         sp.positions = _tether_placements(xyz1, xyz2, radii, self.TETHER_CYLINDER)
         sp_colors = empty((len(xyz1), 4), dtype=float32)
         sp_colors[:] = (255, 0, 0, 255)
@@ -1266,8 +1302,7 @@ class Structure(Model, StructureData):
         name = "helix-%d" % ssids[start]
         ssp = RibbonDrawing(name)
         p.add_drawing(ssp)
-        ssp.geometry = va, ta
-        ssp.normals = na
+        ssp.set_geometry(va, na, ta)
         ssp.vertex_colors = ca
 
         # Finally, update selection data structures
@@ -1382,12 +1417,11 @@ class Structure(Model, StructureData):
         return axes, centroid, rel_coords
 
     def _ss_display(self, p, name, centers):
-        from .. import surface
+        from chimerax import surface
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
-        ssp.geometry = va, ta
-        ssp.normals = na
+        ssp.set_geometry(va, na, ta)
         ss_radii = empty(len(centers) - 1, float32)
         ss_radii.fill(0.2)
         ssp.positions = _tether_placements(centers[:-1], centers[1:], ss_radii, self.TETHER_CYLINDER)
@@ -1396,12 +1430,11 @@ class Structure(Model, StructureData):
         ssp.colors = ss_colors
 
     def _ss_guide_display(self, p, name, centers, guides):
-        from .. import surface
+        from chimerax import surface
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
-        ssp.geometry = va, ta
-        ssp.normals = na
+        ssp.set_geometry(va, na, ta)
         ss_radii = empty(len(centers), float32)
         ss_radii.fill(0.2)
         ssp.positions = _tether_placements(centers, guides, ss_radii, self.TETHER_CYLINDER)
@@ -1909,7 +1942,7 @@ class Structure(Model, StructureData):
         return selected
 
     def atomspec_zone(self, session, coords, distance, target_type, operator, results):
-        from ..geometry import find_close_points
+        from chimerax.core.geometry import find_close_points
         atoms = self.atoms
         a, _ = find_close_points(atoms.scene_coords, coords, distance)
         def not_a():
@@ -1973,7 +2006,7 @@ class AtomsDrawing(Drawing):
         #       If that was fixed by using a precomputed radius, then it would make
         #       sense to optimize this bounds calculation in C++ so arrays
         #       of display state, radii and coordinates are not needed.
-        from .. import geometry
+        from chimerax.core import geometry
         b = geometry.sphere_bounds(coords, radii)
         self._cached_position_bounds = b
         return b
@@ -1989,7 +2022,7 @@ class AtomsDrawing(Drawing):
         coords, radii = xyzr[:,:3], xyzr[:,3]
 
         # Check for atom sphere intercept
-        from .. import geometry
+        from chimerax.core import geometry
         fmin, anum = geometry.closest_sphere_intercept(coords, radii, mxyz1, mxyz2)
         if fmin is None:
             return None
@@ -2009,7 +2042,7 @@ class AtomsDrawing(Drawing):
             return []
 
         xyz = self.positions.shift_and_scale_array()[:,:3]
-        from .. import geometry
+        from chimerax.core import geometry
         pmask = geometry.points_within_planes(xyz, planes)
         if pmask.sum() == 0:
             return []
@@ -2018,7 +2051,7 @@ class AtomsDrawing(Drawing):
         return [p]
 
     def x3d_needs(self, x3d_scene):
-        from .. import x3d
+        from chimerax.core import x3d
         x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
         x3d_scene.need(x3d.Components.Shape, 1)  # Appearance, Material, Shape
         x3d_scene.need(x3d.Components.Geometry3D, 1)  # Sphere
@@ -2063,7 +2096,7 @@ class BondsDrawing(Drawing):
         from numpy import amin, amax
         xyz_min = amin([amin(c1 - r, axis=0), amin(c2 - r, axis=0)], axis=0)
         xyz_max = amax([amax(c1 + r, axis=0), amax(c2 + r, axis=0)], axis=0)
-        from .. import geometry
+        from chimerax.core import geometry
         b = geometry.Bounds(xyz_min, xyz_max)
         self._cached_position_bounds = b
         return b
@@ -2096,7 +2129,7 @@ class BondsDrawing(Drawing):
         return [p]
 
     def x3d_needs(self, x3d_scene):
-        from .. import x3d
+        from chimerax.core import x3d
         x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
         x3d_scene.need(x3d.Components.Shape, 1)  # Appearance, Material, Shape
         x3d_scene.need(x3d.Components.Geometry3D, 1)  # Cylinder
@@ -2161,14 +2194,11 @@ class RibbonDrawing(Drawing):
 
 class AtomicStructure(Structure):
     """
-    Bases: :class:`.StructureData`, :class:`.Model`, :class:`.Structure`
-
-    Molecular model including atomic coordinates.
-    The data is managed by the :class:`.StructureData` base class
-    which provides access to the C++ structures.
+    Molecular model including support for chains, hetero-residues,
+    and assemblies.
     """
 
-    from ..colors import BuiltinColors
+    from chimerax.core.colors import BuiltinColors
     default_hbond_color = BuiltinColors["dark cyan"]
     default_hbond_radius = 0.075
     default_hbond_dashes = 6
@@ -2196,10 +2226,30 @@ class AtomicStructure(Structure):
                 self._report_chain_descriptions(session)
             self._report_assemblies(session)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        from .molobject import has_custom_attrs
+        return has_custom_attrs(Structure, self) or has_custom_attrs(AtomicStructure, self)
+
+    def take_snapshot(self, session, flags):
+        from .molobject import get_custom_attrs
+        data = {
+            'AtomicStructure version': 2,
+            'structure state': Structure.take_snapshot(self, session, flags),
+            'custom attrs': get_custom_attrs(AtomicStructure, self)
+        }
+        return data
+
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, auto_style = False, log_info = False)
-        Structure.set_state_from_snapshot(s, session, data)
+        if data.get('AtomicStructure version', 1) == 1:
+            Structure.set_state_from_snapshot(s, session, data)
+        else:
+            from .molobject import set_custom_attrs
+            Structure.set_state_from_snapshot(s, session, data['structure state'])
+            set_custom_attrs(s, data)
         return s
 
     def _determine_het_res_descriptions(self, session):
@@ -2336,7 +2386,7 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join(["#%s/%s" % (chain.structure.id_string(), chain.chain_id)
                     for chain in chains]), description)
-        from ..logger import html_table_params
+        from chimerax.core.logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
         summary += '    <tr>\n'
@@ -2365,7 +2415,7 @@ class AtomicStructure(Structure):
     def _report_assemblies(self, session):
         if getattr(self, 'ignore_assemblies', False):
             return
-        from ..commands import sym
+        from chimerax.core.commands import sym
         html = sym.assembly_html_table(self)
         if html:
             session.logger.info(html, is_html=True)
@@ -2387,7 +2437,7 @@ class StructureGraphicsChangeManager:
         self.num_atoms_shown = 0
         self.level_of_detail = LevelOfDetail()
         self._last_ribbon_divisions = 20
-        from ..models import MODEL_DISPLAY_CHANGED
+        from chimerax.core.models import MODEL_DISPLAY_CHANGED
         self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
         self._need_update = False
 
@@ -2423,7 +2473,7 @@ class StructureGraphicsChangeManager:
                 self.update_level_of_detail()
             self._need_update = False
             if (gc & StructureData._SELECT_CHANGE).any():
-                from ..selection import SELECTION_CHANGED
+                from chimerax.core.selection import SELECTION_CHANGED
                 self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
                 # XXX: No data for now.  What should be passed?
 
@@ -2515,15 +2565,13 @@ class LevelOfDetail(State):
             # Update instanced sphere triangulation
             w = len(ta) if ta is not None else 0
             va, na, ta = self.sphere_geometry(ntri)
-            drawing.vertices = va
-            drawing.normals = na
-            drawing.triangles = ta
+            drawing.set_geometry(va, na, ta)
 
     def sphere_geometry(self, ntri):
         # Cache sphere triangulations of different sizes.
         sg = self._sphere_geometries
         if not ntri in sg:
-            from ..geometry.sphere import sphere_triangulation
+            from chimerax.core.geometry.sphere import sphere_triangulation
             va, ta = sphere_triangulation(ntri)
             sg[ntri] = (va,va,ta)
         return sg[ntri]
@@ -2558,15 +2606,13 @@ class LevelOfDetail(State):
             # Update instanced sphere triangulation
             w = len(ta) if ta is not None else 0
             va, na, ta = self.cylinder_geometry(div = ntri//4)
-            drawing.vertices = va
-            drawing.normals = na
-            drawing.triangles = ta
+            drawing.set_geometry(va, na, ta)
 
     def cylinder_geometry(self, div):
         # Cache cylinder triangulations of different sizes.
         cg = self._cylinder_geometries
         if not div in cg:
-            from .. import surface
+            from chimerax import surface
             cg[div] = surface.cylinder_geometry(nc = div, caps = False, height = 0.5)
         return cg[div]
 
@@ -2585,7 +2631,7 @@ class LevelOfDetail(State):
 
 # -----------------------------------------------------------------------------
 #
-from ..selection import SelectionPromotion
+from chimerax.core.selection import SelectionPromotion
 class PromoteAtomSelection(SelectionPromotion):
     def __init__(self, structure, level, atom_sel_mask, prev_atom_sel_mask, prev_bond_sel_mask):
         SelectionPromotion.__init__(self, level)
@@ -2669,7 +2715,7 @@ def _bond_intercept(bonds, mxyz1, mxyz2, scene_coordinates = False):
     r = bs.radii
 
     # Check for atom sphere intercept
-    from .. import geometry
+    from chimerax.core import geometry
     f, bnum = geometry.closest_cylinder_intercept(cxyz1, cxyz2, r, mxyz1, mxyz2)
 
     if f is None:
@@ -2689,7 +2735,7 @@ def _bonds_planes_pick(drawing, planes):
     hb_xyz = drawing.positions.array()[:,:,3]	# Half-bond centers
     n = len(hb_xyz)//2
     xyz = 0.5*(hb_xyz[:n] + hb_xyz[n:])	# Bond centers
-    from .. import geometry
+    from chimerax.core import geometry
     pmask = geometry.points_within_planes(xyz, planes)
     return pmask
 
@@ -2833,12 +2879,12 @@ def _bond_cylinder_placements(axyz0, axyz1, radii):
   from numpy import empty, float32
   p = empty((n,4,4), float32)
 
-  from ..geometry import cylinder_rotations
+  from chimerax.core.geometry import cylinder_rotations
   cylinder_rotations(axyz0, axyz1, radii, p)
 
   p[:,3,:3] = 0.5*(axyz0 + axyz1)
 
-  from ..geometry import Places
+  from chimerax.core.geometry import Places
   pl = Places(opengl_array = p)
   return pl
 
@@ -2854,10 +2900,10 @@ def _halfbond_cylinder_placements(axyz0, axyz1, radii, parray = None):
   else:
       p = parray
       
-  from ..geometry import half_cylinder_rotations
+  from chimerax.core.geometry import half_cylinder_rotations
   half_cylinder_rotations(axyz0, axyz1, radii, p)
 
-  from ..geometry import Places
+  from chimerax.core.geometry import Places
   pl = Places(opengl_array = p)
 
   return pl
@@ -2872,7 +2918,7 @@ def _halfbond_cylinder_x3d(axyz0, axyz1, radii):
   from numpy import empty, float32
   ci = empty((2 * n, 9), float32)
 
-  from ..geometry import cylinder_rotations_x3d
+  from chimerax.core.geometry import cylinder_rotations_x3d
   cylinder_rotations_x3d(axyz0, axyz1, radii, ci[:n])
   ci[n:, :] = ci[:n, :]
 

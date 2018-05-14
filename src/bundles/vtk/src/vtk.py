@@ -200,8 +200,7 @@ def polygon_triangles(pgons, ntri):
 def lines_model(session, points, line_segments, name = 'vtk lines', color = (255,255,255,255)):
     from chimerax.core.models import Model
     m = Model(name, session)
-    m.vertices = points
-    m.triangles = line_segments
+    m.set_geometry(points, None, line_segments)
     m.display_style = m.Mesh
     m.color = color
     return m
@@ -210,11 +209,10 @@ def lines_model(session, points, line_segments, name = 'vtk lines', color = (255
 #
 def triangles_model(session, points, triangles,
                     name = 'vtk polygons', color = (180,180,180,255)):
-    from chimerax.core.models import Model
-    m = Model(name, session)
-    m.vertices = points
-    m.triangles = triangles
+    from chimerax.core.models import Surface
+    m = Surface(name, session)
     from chimerax.core import surface
-    m.normals = surface.calculate_vertex_normals(points, triangles)
+    normals = surface.calculate_vertex_normals(points, triangles)
+    m.set_geometry(points, normals, triangles)
     m.color = color
     return m

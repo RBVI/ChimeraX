@@ -21,7 +21,7 @@ import re
 import weakref
 import numpy
 from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
-from chimerax.core.surface import box_geometry, sphere_geometry2, cylinder_geometry
+from chimerax.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.state import State, StateManager, RestoreError
 from chimerax.core.atomic import Residues, Atoms, Sequence, Pseudobonds
 nucleic3to1 = Sequence.nucleic3to1
@@ -598,6 +598,7 @@ def _remove_nuc_drawing(nuc, mol, nd):
     nuc.need_rebuild.discard(mol)
     nuc.structures.discard(mol)
     mol.remove_drawing(nd)
+    del mol._nucleotides_drawing
     del mol._nucleotide_info
     del mol._ladder_params
     h = mol._nucleotide_changes
@@ -613,7 +614,9 @@ def _rebuild_molecule(trigger_name, mol):
         mol, changes = mol
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
-        if 'ribbon_display changed' in changes.residue_reasons():
+        if changes.num_deleted_atoms():
+            pass  # rebuild
+        elif 'ribbon_display changed' in changes.residue_reasons():
             pass  # rebuild
         elif 'active_coordset changed' in changes.structure_reasons():
             pass  # rebuild
@@ -977,11 +980,12 @@ def draw_tube(nd, residue, name, params):
 
 def _c3pos(residue):
     c3p = residue.find_atom("C3'")
-    if not c3p:
+    if not c3p or not c3p.display:
         return None
     try:
-        coord = c3p.ribbon_coord
-        return c3p, coord
+        if residue.ribbon_display:
+            coord = c3p.ribbon_coord
+            return c3p, coord
     except KeyError:
         pass
     return c3p, c3p.coord

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .molobject import PseudobondGroupData
-from ..models import Model
+from chimerax.core.models import Model
 class PseudobondGroup(PseudobondGroupData, Model):
     """
     A pseudobond group is a named group of :class:`.Pseudobond` objects
@@ -27,7 +27,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._structure = s = self.structure	# Keep structure in case PseudobondGroupData deleted.
         if session is None:
             session = s.session
-        Model.__init__(self, self.category, session)
+        Model.__init__(self, self.name, session)
         self._pbond_drawing = None
         self._dashes = 9
         self._global_group = (s is None)
@@ -61,7 +61,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         ta = get_triggers(session)
         def pbg_update(*args, self=self):
             self._update_graphics()
-        from ..models import MODEL_DISPLAY_CHANGED
+        from chimerax.core.models import MODEL_DISPLAY_CHANGED
         self._handlers = [
             (t, t.add_handler('graphics update', self._update_graphics_if_needed)),
             (ta, ta.add_handler('changes', pbg_update)),
@@ -138,21 +138,25 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self.redraw_needed(shape_changed = True)
         self.session.change_tracker.add_modified(self, "dashes changed")
 
-    dashes = property(_get_dashes, _set_dashes)
+    dashes = property(_get_dashes, _set_dashes,
+        doc="How many dashes pseudobonds will be drawn with")
 
     def _get_name(self):
-        return self.category
+        return self._category
 
     def _set_name(self, name):
-        if name != self.category:
-            self.change_category(name)
+        if name != self.name:
+            self.change_name(name)
         # allow Model to fire 'name changed' trigger
         Model.name.fset(self, name)
-    name = property(_get_name, _set_name)
+    name = property(_get_name, _set_name,
+        doc="Supported API. The name of the group.")
+
+    # since we're a Model, we already have a 'session' attr, so don't need property
 
     def _get_single_color(self):
         pbonds = self.pseudobonds
-        from ..colors import most_common_color
+        from chimerax.core.colors import most_common_color
         shown = pbonds.filter(pbonds.displays)
         if shown:
             return most_common_color(shown.colors)
@@ -179,9 +183,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self.add_drawing(d)
             d._visible_atoms = None
             va, na, ta = _pseudobond_geometry(self._dashes//2)
-            d.vertices = va
-            d.normals = na
-            d.triangles = ta
+            d.set_geometry(va, na, ta)
             changes = self._ALL_CHANGE
         elif self.num_pseudobonds == 0:
             self.remove_drawing(d)
@@ -251,7 +253,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             return []
 
         picks = []
-        from ..geometry import transform_planes
+        from chimerax.core.geometry import transform_planes
         for p in self.positions:
             pplanes = transform_planes(p, planes)
             picks.extend(self._pseudobonds_planes_pick(pplanes))
@@ -270,13 +272,21 @@ class PseudobondGroup(PseudobondGroupData, Model):
         p = PickedPseudobonds(bonds)
         return [p]
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        from .molobject import has_custom_attrs
+        return has_custom_attrs(PseudobondGroup, self)
+
     def take_snapshot(self, session, flags):
+        from .molobject import get_custom_attrs
         data = {
             'version': 1,
-            'category': self.category,
+            'category': self.name,
             'dashes': self._dashes,
             'model state': Model.take_snapshot(self, session, flags),
             'structure': self.structure,
+            'custom attrs': get_custom_attrs(PseudobondGroup, self),
         }
         if self._global_group:
             # Make the global manager restore before we do
@@ -293,6 +303,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if 'model state' in data:
             Model.set_state_from_snapshot(grp, session, data['model state'])
         grp._dashes = data['dashes']
+        from .molobject import set_custom_attrs
+        set_custom_attrs(grp, data)
         return grp
 
 # -----------------------------------------------------------------------------
@@ -311,7 +323,7 @@ def selected_pseudobonds(session):
 
 # -----------------------------------------------------------------------------
 #
-from ..selection import SelectionPromotion
+from chimerax.core.selection import SelectionPromotion
 class PromotePseudobondSelection(SelectionPromotion):
     def __init__(self, pbgroup, prev_pbond_sel_mask):
         level = 1001
@@ -327,8 +339,9 @@ class PromotePseudobondSelection(SelectionPromotion):
 
 # -----------------------------------------------------------------------------
 #
-def all_pseudobond_groups(models):
-    return [m for m in models.list() if isinstance(m, PseudobondGroup)]
+def all_pseudobond_groups(session):
+    from . import PseudobondGroups
+    return PseudobondGroups([m for m in session.models.list() if isinstance(m, PseudobondGroup)])
 
 # -----------------------------------------------------------------------------
 #
@@ -346,7 +359,7 @@ def interatom_pseudobonds(atoms, group_name = None):
             pbgs.add(pbg)
     # Collect bonds
     pbonds = [pbg.pseudobonds for pbg in pbgs
-              if group_name is None or pbg.category == group_name]
+              if group_name is None or pbg.name == group_name]
     from . import Pseudobonds, concatenate
     pb = concatenate(pbonds, Pseudobonds)
     ipb = pb.filter(pb.between_atoms(atoms))
@@ -366,5 +379,5 @@ def hidden_structures(structures):
 # -----------------------------------------------------------------------------
 #
 def _pseudobond_geometry(segments = 9):
-    from .. import surface
+    from chimerax import surface
     return surface.dashed_cylinder_geometry(segments, height = 0.5)

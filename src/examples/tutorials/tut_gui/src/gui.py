@@ -11,15 +11,15 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.ui import HtmlToolInstance
+from chimerax.ui import HtmlToolInstance
 
 
 class TutorialGUI(HtmlToolInstance):
 
     # Inheriting from HtmlToolInstance gets us the following attributes
     # after initialization:
-    #   self.tool_window: instance of chimerax.core.ui.gui.MainToolWindow
-    #   self.html_view: instance of chimerax.core.ui.widgets.HtmlView
+    #   self.tool_window: instance of chimerax.ui.gui.MainToolWindow
+    #   self.html_view: instance of chimerax.ui.widgets.HtmlView
     # Defining methods in this subclass also trigger some automated callbacks:
     #   handle_scheme: called when custom-scheme link is visited
     #   update_models: called when models are opened or closed
@@ -38,7 +38,9 @@ class TutorialGUI(HtmlToolInstance):
         self.display_name = "Tutorial GUI"
 
         # Initialize base class.  ``size_hint`` is the suggested
-        # initial tool size in pixels.
+        # initial tool size in pixels.  For debugging, add
+        # "log_errors=True" to get Javascript errors logged
+        # to the ChimeraX log window.
         super().__init__(session, ti.name, size_hint=(575, 400))
         self._build_ui()
 
@@ -111,7 +113,7 @@ class TutorialGUI(HtmlToolInstance):
         # buttons depending on whether there are any structures open.
 
         # Get the list of atomic structures
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         options = []
         for m in self.session.models:
             if not isinstance(m, AtomicStructure):

@@ -167,7 +167,7 @@ class AtomicShapeDrawing(Drawing):
         description : a string describing the shape
 
         The vertices, normals, and triangles can be custom or the results
-        from one of the :py:mod:`~chimerax.core.surface`'s geometry functions.
+        from one of the :py:mod:`~chimerax.surface`'s geometry functions.
         If the description is not given, it defaults to a list of the atoms.
         """
         # extend drawing's vertices, normals, vertex_colors, and triangles
@@ -184,18 +184,18 @@ class AtomicShapeDrawing(Drawing):
         if self.vertices is None:
             if atoms is not None:
                 self._add_handler_if_needed()
-            self.vertices = asarray(vertices, dtype=numpy.float32)
-            self.normals = asarray(normals, dtype=numpy.float32)
-            self.triangles = asarray(triangles, dtype=numpy.int32)
+            self.set_geometry(asarray(vertices, dtype=numpy.float32),
+                              asarray(normals, dtype=numpy.float32),
+                              asarray(triangles, dtype=numpy.int32))
             self.vertex_colors = colors
             s = _AtomicShape(range(0, self.triangles.shape[0]), description, atoms)
             self._shapes.append(s)
             return
         offset = self.vertices.shape[0]
         start = self.triangles.shape[0]
-        self.vertices = asarray(concat((self.vertices, vertices)), dtype=numpy.float32)
-        self.normals = asarray(concat((self.normals, normals)), dtype=numpy.float32)
-        self.triangles = asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32)
+        self.set_geometry(asarray(concat((self.vertices, vertices)), dtype=numpy.float32),
+                          asarray(concat((self.normals, normals)), dtype=numpy.float32),
+                          asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32))
         self.vertex_colors = concat((self.vertex_colors, colors))
         s = _AtomicShape(range(start, self.triangles.shape[0]), description, atoms)
         self._shapes.append(s)
@@ -228,9 +228,9 @@ class AtomicShapeDrawing(Drawing):
             colors = color.asarray(color, dtype=numpy.uint8)
             assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
         offset = self.vertices.shape[0]
-        self.vertices = asarray(concat((self.vertices, vertices)), dtype=numpy.float32)
-        self.normals = asarray(concat((self.normals, normals)), dtype=numpy.float32)
-        self.triangles = asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32)
+        self.set_geometry(asarray(concat((self.vertices, vertices)), dtype=numpy.float32),
+                          asarray(concat((self.normals, normals)), dtype=numpy.float32),
+                          asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32))
         self.vertex_colors = concat((self.vertex_colors, colors))
         s = self._shapes[-1]
         s.triangle_range = range(s.triangle_range.start, self.triangles.shape[0])

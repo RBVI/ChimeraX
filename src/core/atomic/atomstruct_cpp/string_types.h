@@ -16,6 +16,7 @@
 #ifndef atomstruct_string_types
 #define atomstruct_string_types
 
+#include <string>		// use std::string
 #include <chutil/CString.h>
 
 namespace atomstruct {
@@ -25,8 +26,8 @@ using chutil::CString;
 // len param includes null
 typedef CString<5, 'A', 't', 'o', 'm', ' ', 'N', 'a', 'm', 'e'>  AtomName;
 typedef CString<5, 'A', 't', 'o', 'm', ' ', 'T', 'y', 'p', 'e'>  AtomType;
-typedef CString<5, 'C', 'h', 'a', 'i', 'n', ' ', 'I', 'D'>  ChainID;
-typedef CString<5, 'R', 'e', 's', 'i', 'd', 'u', 'e', ' ', 'n', 'a', 'm', 'e'>  ResName;
+typedef std::string ChainID;
+typedef std::string ResName;
 
 }  // namespace atomstruct
 

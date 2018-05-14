@@ -24,9 +24,6 @@ class _DistMonitorBundleAPI(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         """Install distance monitor into existing session"""
-        from . import settings
-        settings.init(session)
-
         from .monitor import DistancesMonitor
         session.pb_dist_monitor = DistancesMonitor(session, bundle_info)
 
@@ -34,13 +31,5 @@ class _DistMonitorBundleAPI(BundleAPI):
     def finish(session, bundle_info):
         """De-install distance monitor from existing session"""
         del session.pb_dist_monitor
-
-    '''
-    @staticmethod
-    def register_command(command_name, logger):
-        # 'register_command' is lazily called when the command is referenced
-        from . import cmd
-        cmd.register_seqalign_command(logger)
-    '''
 
 bundle_api = _DistMonitorBundleAPI()

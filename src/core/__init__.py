@@ -34,21 +34,19 @@ _class_class_init = {
     'Chains': '.atomic',
     'ClipPlane': '.graphics',
     'Color': '.colors',
+    'Colormap': '.colors',
     'CoordSet': '.atomic',
+    'CustomizedInstanceManager': '.atomic.attr_registration',
     'Drawing': '.graphics',
     'Generic3DModel': '.generic3d',
-    'GridDataState': '.map.session',
     'Job': '.tasks',
     'LevelOfDetail': '.atomic.structure',
     'Lighting': '.graphics',
-    'MapChannelsModel': '.map',
-    'MapSeries': '.map.series',
     'Material': '.graphics',
     'Model': '.models',
     'Models': '.models',
     'MolecularSurface': '.atomic',
     'MonoCamera': '.graphics',
-    'MultiChannelSeries': '.map',
     'NamedView': '.commands.view',
     'NamedViews': '.commands.view',
     '_NoDefault': '.atomic.attr_registration',
@@ -66,6 +64,7 @@ _class_class_init = {
     'Sequence': '.atomic',
     'Structure': '.atomic',
     'StructureSeq': '.atomic',
+    'Surface': '.models',
     'Tasks': '.tasks',
     'Tools': '.tools',
     'TriangleInfo': '.stl',
@@ -73,9 +72,8 @@ _class_class_init = {
     'UserColors': '.colors',
     'UserColormaps': '.colors',
     'View': '.graphics',
-    'Volume': '.map',
     'XSectionManager': '.atomic.ribbon',
-    '_Input': '.ui.nogui',
+    '_Input': '.nogui',
 }
 
 
@@ -117,3 +115,7 @@ def profile(func):
         p.strip_dirs().sort_stats("cumulative", "time").print_callers(40)
         return v
     return wrapper
+
+import chimerax
+if not hasattr(chimerax, "use_tinyarray"):
+    chimerax.use_tinyarray = True

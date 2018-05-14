@@ -9,12 +9,17 @@
   <Synopsis>Place markers on density maps</Synopsis>
   <Description>Mouse mode to place markers on density maps.</Description>
 
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="Volume Data"/>
   </Categories>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>

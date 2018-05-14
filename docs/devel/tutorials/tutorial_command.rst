@@ -83,13 +83,15 @@ For explanations of the unhighlighted lines, please see
 .. literalinclude:: ../../../src/examples/tutorials/tut_cmd/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,17-25,41-45
+    :emphasize-lines: 8-10,17-25,33-35,49-52
 
 The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
-(lines 8-10 and 17-25).  The only other change is replacing
+(lines 8-10 and 17-25).  The ``DataFiles`` tag is added
+to include documentation files (lines 33-35).
+The only other change is replacing
 the ``ChimeraXClassifier`` tags to declare the two commands
-in this bundle (lines 41-45).
+in this bundle (lines 49-52).
 
 Note that the two command, ``tutorial cofm`` (Center OF Mass)
 and ``tutorial highlight``, are multi-word commands that share
@@ -142,7 +144,8 @@ atoms, ``cofm`` requires several parameters supplied by the user:
 It then takes the parameters, computes the center of mass, and
 reports the result to the ChimeraX log.  The missing link is
 how the user-typed command gets translated into a call to ``cofm``.
-This is the purpose of the call to :py:class:`chimerax.core.commands.register`
+This is the purpose of the call to
+:py:class:`chimerax.core.commands.cli.register`
 in the ``register_command`` method in ``__init__.py``.
 The ``register`` call tells ChimeraX to associate a function and
 description with a command name.  In this case, ``cofm`` and
@@ -170,9 +173,12 @@ Python values.  It contains a list of 2-tuples for required arguments
 and another for optional arguments.  The first element of the 2-tuple
 is a string that matches one of the command function parameter names.
 The second element is a "type class".  ChimeraX provides a variety
-of built-in type classes such as ``BoolArg`` (Boolean), ``IntArg``
-(integer), ``AtomsArg`` (container of atoms), and ``AtomspecArg``
-(atom specifier).  See :py:class:`chimerax.core.commands` for the full
+of built-in type classes such as
+:py:class:`~chimerax.core.commands.cli.BoolArg` (Boolean),
+:py:class:`~chimerax.core.commands.cli.IntArg` (integer),
+:py:class:`~chimerax.core.commands.cli.AtomsArg` (container of atoms),
+and :py:class:`~chimerax.core.commands.atomspec.AtomSpecArg` (atom specifier).
+See :py:mod:`chimerax.core.commands` for the full
 list.  The order of the required parameters list (in the command
 description) must match the expected order for required arguments
 (in the input text).
@@ -181,9 +187,75 @@ description) must match the expected order for required arguments
     :language: python
     :linenos:
 
+:py:func:`cofm` is the function called from ``__init__.py`` when the
+user enters the ``cofm`` command.  It retrieves the array of atoms,
+their coordinates, and their center of mass by calling the internal
+function :py:func:`_get_cofm` and reports the result via
+:py:attr:`session.logger`, an instance of
+:py:class:`chimerax.core.logger.Logger`.
+
+:py:attr:`cofm_desc` contains the description of what arguments are
+required or allowed for the ``cofm`` command.  The details of its
+declaration are described in the comments in the example.
+
+:py:func:`highlight` is the function called from ``__init__.py`` when the
+user enters the ``highlight`` command.  Like :py:func:`cofm`, it retrieves
+the array of atoms, their coordinates, and their center of mass by
+calling :py:func:`_get_cofm`.  It then
+
+#. computes the distances from each atom to the center of mass
+   using Numpy (line 88),
+#. sorts the atom indices by distances so that indices of atoms that
+   are closer to the center of mass are towards the front of the
+   sort result (:code:`argsort(distances)`), and select the first
+   :code:`count` indices (line 94),
+#. turn the array of indices into an array of atoms (line 97),
+   and
+#. finally, set the color of the selected atoms (line 101).
+   The :py:attr:`colors` attribute of the atomic array is an
+   Nx4 array of integers, where N is the number of atoms and
+   the rows (of 4 elements) are the RGBA values for each atom.
+   The :code:`color` argument to :py:func:`highlight` is an instance
+   of :py:class:`chimera.core.colors.Color`, whose :py:meth:`uint8x4`
+   returns its RGBA value as an array of four (:code:`x4`) of
+   8-bit integers (:code:`uint8`).
+
+:py:func:`_get_cofm`, used by both :py:func:`cofm` and
+:py:func:`highlight`, is passed three arguments:
+
+- :code:`atoms`, the atoms specified by the user, if any.
+- :code:`transformed`, whether to retrieve transformed (scene) or
+  untransformed (original) coordinates.  Untransformed coordinates
+  can typically be used when only a single model is involved because
+  the atoms are fixed relative to each other.  Transformed coordinates
+  must be used when distances among multiple models are being computed
+  (*i.e.*, the models must all be in same coordinate system).
+- :code:`weighted`, whether to include atomic mass as part of the
+  center of mass computation.  Frequently, an unweighted average of
+  atomic coordinates, which is simpler and faster to compute, is
+  sufficient for qualitative analysis.
+
+If the user did not choose specific atoms (when :code:`atoms`
+is :code:`None`), the usual ChimeraX interpretation is that all
+atoms should be used (lines 123-125).
+:py:func:`chimerax.core.commands.atomspec.all_objects` returns
+an instance of `chimerax.core.objects.Object` that contains
+all open models in the current ChimeraX session, and whose
+:py:attr:`atoms` attribute is an array of atoms in the included
+models.  Transformed and untransformed coordinates are accessed
+using the :py:attr:`scene_coords` and :py:attr:`coords` attributes
+of the atom array, respectively (lines 132-135).  If atomic mass
+need not be included, the "center of mass" is simply the average
+of the coordinates (line 141); if a weighted calculation is required,
+(a) the atomic masses are retrieved by :code:`atoms.elements.masses`
+(line 143),
+(b) the coordinates are scaled by the corresponding atomic masses
+(line 144), and
+(c) the weighted average is computed (line 145).
+
 For performance, ChimeraX makes use of `NumPy`_ arrays in many contexts.
 The container for atoms is typically a
-:py:class:`chimerax.core.atomic.Collection`
+:py:class:`chimerax.core.atomic.molarray.Collection`
 instance, as are those for bonds, residues, and atomic structures.
 Fetching the same attribute, e.g., coordinates, from a collection
 of molecular data, e.g., atoms, usually results in a NumPy array.

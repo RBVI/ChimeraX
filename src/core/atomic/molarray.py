@@ -90,7 +90,7 @@ def _pseudobond_group_map(a):
 
 # -----------------------------------------------------------------------------
 #
-from ..state import State
+from chimerax.core.state import State
 class Collection(State):
     '''
     Base class of all molecular data collections that provides common
@@ -144,10 +144,9 @@ class Collection(State):
         return len(self) > 0
     def __iter__(self):
         '''Iterator over collection objects.'''
-        if not hasattr(self, '_object_list'):
+        if not hasattr(self, '_object_list') or len(self._object_list) > len(self._pointers):
             c = self._object_class
             self._object_list = [c.c_ptr_to_py_inst(p) for p in self._pointers]
-        #TODO: isn't caching here a bug?
         return iter(self._object_list)
     def __getitem__(self, i):
         '''Indexing of collection objects using square brackets, *e.g.* c[i].'''
@@ -322,8 +321,6 @@ def depluralize(word):
 #
 class StructureDatas(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ atomic structure objects.
     '''
     def __init__(self, mol_pointers):
@@ -390,8 +387,6 @@ class StructureDatas(Collection):
 #
 class AtomicStructures(StructureDatas):
     '''
-    Bases: :class:`.StructureDatas`
-
     Collection of Python atomic structure objects.
     '''
     def __init__(self, mol_pointers):
@@ -408,8 +403,6 @@ class AtomicStructures(StructureDatas):
 #
 class Atoms(Collection):
     '''
-    Bases: :class:`.Collection`
-
     An ordered collection of atom objects. This offers better performance
     than using a list of atoms.  It provides methods to access atom attributes such
     as coordinates as numpy arrays. Atoms directly accesses the C++ atomic data
@@ -417,7 +410,6 @@ class Atoms(Collection):
     and are slower to use in computation.
     '''
     # replicate Atom class constants
-    from .molobject import Atom
     SPHERE_STYLE = Atom.SPHERE_STYLE
     BALL_STYLE = Atom.BALL_STYLE
     STICK_STYLE = Atom.STICK_STYLE
@@ -561,26 +553,14 @@ class Atoms(Collection):
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
         blist = []
-        from ..geometry import sphere_bounds, copy_tree_bounds, union_bounds
+        from chimerax.core.geometry import sphere_bounds, copy_tree_bounds, union_bounds
         for m, a in self.by_structure:
             ba = sphere_bounds(a.coords, a.radii)
             ib = copy_tree_bounds(ba,
                 [d.positions for d in m.drawing_lineage])
             blist.append(ib)
         return union_bounds(blist)
-    def _get_scene_coords(self):
-        n = len(self)
-        from numpy import array, empty, float64
-        xyz = empty((n,3), float64)
-        if n == 0: return xyz
-        structs = self.unique_structures
-        gtable = array(tuple(s.scene_position.matrix for s in structs), float64)
-        from .molc import pointer
-        f = c_function('atom_scene_coords',
-            args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
-                    ctypes.c_size_t, ctypes.c_void_p, ctypes.c_void_p])
-        f(self._c_pointers, n, structs._c_pointers, len(structs), pointer(gtable), pointer(xyz))
-        return xyz
+    _scene_coords_tmp = cvec_property('atom_scene_coord', float64, 3, read_only = True)
     def _set_scene_coords(self, xyz):
         n = len(self)
         if n == 0: return
@@ -594,10 +574,10 @@ class Atoms(Collection):
             args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
                     ctypes.c_size_t, ctypes.c_void_p, ctypes.c_void_p])
         f(self._c_pointers, n, structs._c_pointers, len(structs), pointer(gtable), pointer(xyz))
-    scene_coords = property(_get_scene_coords, _set_scene_coords)
-    '''Atoms' coordinates in the global scene coordinate system.
-    This accounts for the :class:`Drawing` positions for the hierarchy
-    of models each atom belongs to.'''
+    scene_coords = property(_scene_coords_tmp.fget, _set_scene_coords, doc =
+        '''Atoms' coordinates in the global scene coordinate system.
+        This accounts for the :class:`Drawing` positions for the hierarchy
+        of models each atom belongs to.''')
     selected = cvec_property('atom_selected', npy_bool,
         doc="numpy bool array whether each Atom is selected.")
     selecteds = selected
@@ -747,8 +727,6 @@ class Atoms(Collection):
 #
 class Bonds(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ bonds.
     '''
     def __init__(self, bond_pointers = None):
@@ -856,7 +834,7 @@ class Bonds(Collection):
         f = c_function('bond_halfbond_cylinder_placements',
                        args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
         f(self._c_pointers, n, pointer(opengl_array))
-        from ..geometry import Places
+        from chimerax.core.geometry import Places
         return Places(opengl_array = opengl_array)
         
     @classmethod
@@ -872,8 +850,6 @@ class Bonds(Collection):
 #
 class Elements(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Holds a collection of C++ Elements (chemical elements) and provides access to some of
     their attributes.  Used for the same reasons as the :class:`Atoms` class.
     '''
@@ -914,8 +890,6 @@ class Elements(Collection):
 #
 class Pseudobonds(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Holds a collection of C++ PBonds (pseudobonds) and provides access to some of
     their attributes. It has the same attributes as the
     :class:`Bonds` class and works in an analogous fashion.
@@ -1043,8 +1017,6 @@ class Pseudobonds(Collection):
 #
 class Residues(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ residue objects.
     '''
     def __init__(self, residue_pointers = None):
@@ -1066,8 +1038,8 @@ class Residues(Collection):
     '''Returns a numpy bool array whether each residue is in a protein helix''')
     is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
-    names = cvec_property('residue_name', string, read_only = True, doc =
-    '''Returns a numpy array of residue names. Read only.''')
+    names = cvec_property('residue_name', string, doc =
+    '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
     '''Returns a numpy integer array of the number of atoms in each residue. Read only.''')
     numbers = cvec_property('residue_number', int32, read_only = True, doc =
@@ -1239,8 +1211,6 @@ class Residues(Collection):
 #
 class Rings(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ ring objects.
     '''
     def __init__(self, ring_pointers = None, rings = None):
@@ -1263,8 +1233,6 @@ class Rings(Collection):
 #
 class Chains(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ chain objects.
     '''
 
@@ -1298,8 +1266,6 @@ class Chains(Collection):
 #
 class PseudobondGroupDatas(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ pseudobond group objects.
     '''
     def __init__(self, pbg_pointers):
@@ -1311,15 +1277,13 @@ class PseudobondGroupDatas(Collection):
     '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
     names = cvec_property('pseudobond_group_category', string, read_only = True)
     '''A numpy string array of categories of each group.'''
-    num_bonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
+    num_pseudobonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     '''Number of pseudobonds in each group. Read only.'''
 
 # -----------------------------------------------------------------------------
 #
 class PseudobondGroups(PseudobondGroupDatas):
     '''
-    Bases: :class:`.PseudobondGroupDatas`
-
     Collection of Python pseudobond group objects.
     '''
     def __init__(self, pbg_pointers):
@@ -1336,8 +1300,6 @@ class PseudobondGroups(PseudobondGroupDatas):
 #
 class CoordSets(Collection):
     '''
-    Bases: :class:`.Collection`
-
     Collection of C++ coordsets.
     '''
     def __init__(self, cs_pointers = None):

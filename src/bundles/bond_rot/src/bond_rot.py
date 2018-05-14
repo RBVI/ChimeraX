@@ -48,3 +48,11 @@ class BondRotation:
         # manager listening on changes will fire 'modified' trigger...
 
     angle = property(get_angle, set_angle)
+
+    @property
+    def axis(self):
+        moving, fixed = self.moving_side.coord, self.bond.other_atom(self.moving_side).coord
+        from chimerax.core.geometry import normalize_vector
+        axis = normalize_vector(moving - fixed)
+        return axis
+

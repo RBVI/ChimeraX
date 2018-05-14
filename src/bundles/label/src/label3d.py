@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -431,10 +433,10 @@ class ObjectLabel(Drawing):
 
         # Set initial billboard geometry
         from numpy import array, float32, int32
-        vlist = array(((0,0,0), (1,0,0), (1,1,0), (0,1,0)), float32)
-        tlist = array(((0, 1, 2), (0, 2, 3)), int32)
+        va = array(((0,0,0), (1,0,0), (1,1,0), (0,1,0)), float32)
+        ta = array(((0, 1, 2), (0, 2, 3)), int32)
         tc = array(((0, 0), (1, 0), (1, 1), (0, 1)), float32)
-        self.geometry = vlist, tlist
+        self.set_geometry(va, None, ta)
         self.texture_coordinates = tc
         self.use_lighting = False
 
@@ -567,7 +569,7 @@ class ObjectLabel(Drawing):
             va += clpos.apply_without_translation(offset)
         if (va == self.vertices).all():
             return 	# Don't set vertices causing redraw if label has not moved.
-        self.vertices = va
+        self.set_geometry(va, self.normals, self.triangles)
 
 # -----------------------------------------------------------------------------
 #
@@ -616,7 +618,8 @@ class PseudobondLabel(ObjectLabel):
         ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text, color=color,
                              size=size, height=height, font=font)
     def default_text(self):
-        return '%.2f' % self.pseudobond.length
+        dm = self.pseudobond.session.pb_dist_monitor
+        return dm.distance_format % self.pseudobond.length
     def default_offset(self):
         return (0.2+self.pseudobond.radius, 0, 0.5)
     def location(self):

@@ -231,18 +231,17 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     // leave gaps to left and right
     std::vector<int> left_offsets, right_offsets;
     unsigned int left_errors = 0, right_errors = 0;
-    AssocParams left_ap, right_ap;
-    if (bsi > 0) {
-        left_ap = AssocParams(0, cm_ap.segments.cbegin(),
+    AssocParams left_ap(0, cm_ap.segments.cbegin(),
             cm_ap.segments.cbegin()+bsi,
             cm_ap.gaps.cbegin(), cm_ap.gaps.cbegin()+bsi+1);
+    AssocParams right_ap(0, cm_ap.segments.begin()+bsi+1,
+            cm_ap.segments.end(), cm_ap.gaps.begin()+bsi+1, cm_ap.gaps.end());
+    if (bsi > 0) {
         Sequence::Contents left_aseq(aseq.begin(), aseq.begin()+min_offset-1);
         left_errors = _constrained(left_aseq, left_ap, left_offsets,
             max_errors - min_errs);
     }
     if (left_errors + min_errs <= max_errors && bsi+1 < cm_ap.segments.size()) {
-        right_ap = AssocParams(0, cm_ap.segments.begin()+bsi+1,
-            cm_ap.segments.end(), cm_ap.gaps.begin()+bsi+1, cm_ap.gaps.end());
         Sequence::Contents right_aseq(aseq.begin() + min_offset + longest + 1,
             aseq.end());
         right_errors = _constrained(right_aseq, right_ap, right_offsets,

@@ -82,6 +82,7 @@ public:
 
     const char*  c_str() const { return _data; }
     void  clear() { _data[0] = '\0'; }
+    const char*  data() const { return _data; }
     bool  empty() const { return _data[0] == '\0'; }
     std::size_t  length() const { return strlen(_data); }
     std::size_t  size() const { return length(); }

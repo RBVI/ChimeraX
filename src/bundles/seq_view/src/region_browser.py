@@ -1545,7 +1545,7 @@ class RegionBrowser:
             self._prev_drag = self._drag_region
             rmsd = self._drag_region.rmsd
             if rmsd == None:
-                from chimerax.core.ui import mod_key_info
+                from chimerax.ui import mod_key_info
                 shift_name = mod_key_info("shift")[1]
                 control_name = mod_key_info("control")[1]
                 self.seq_canvas.sv.status(

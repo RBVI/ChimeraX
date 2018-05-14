@@ -92,13 +92,13 @@ private:
     char  _alt_loc;
     class _Alt_loc_info {
       public:
-        _Alt_loc_info() : serial_number(0) {}
+        _Alt_loc_info() : bfactor(0.0), serial_number(0) {}
         ~_Alt_loc_info() { }
 
         std::vector<float> *create_aniso_u() {
             if (aniso_u.get() == nullptr) {
                 aniso_u = std::make_shared<std::vector<float>>();
-                aniso_u.get()->reserve(6);
+                aniso_u.get()->resize(6);
             }
             return aniso_u.get();
         }
@@ -115,8 +115,7 @@ private:
     Bonds  _bonds; // _bonds/_neighbors in same order
     mutable AtomType  _computed_idatm_type;
     unsigned int  _coord_index;
-    void  _coordset_set_coord(const Point &);
-    void  _coordset_set_coord(const Point &, CoordSet *cs);
+    void  _coordset_set_coord(const Point &, CoordSet *cs, bool track_change);
     bool  _display = true;
     DrawMode  _draw_mode = DrawMode::Sphere;
     const Element*  _element;
@@ -193,6 +192,9 @@ public:
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
+    Coord  scene_coord() const;
+    Coord  scene_coord(const CoordSet* cs) const;
+    Coord  scene_coord(char alt_loc) const;
     int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
         return SESSION_NUM_INTS(version) + Rgba::session_num_ints()
             + _alt_loc_map.size() * SESSION_ALTLOC_INTS(version);
@@ -203,8 +205,12 @@ public:
     void  set_alt_loc(char alt_loc, bool create=false, bool _from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);
-    void  set_coord(const Point& coord) { set_coord(coord, nullptr); }
-    void  set_coord(const Point& coord, CoordSet* cs);
+    void  set_coord(const Point& coord) { set_coord(coord, nullptr, true); }
+    void  set_coord(const Point& coord, CoordSet* cs) { set_coord(coord, cs, true); }
+    void  set_coord(const Point& coord, bool track_change) {
+        set_coord(coord, nullptr, track_change);
+    }
+    void  set_coord(const Point& coord, CoordSet* cs, bool track_change);
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
     void  set_idatm_type(const char* it);
@@ -225,6 +231,7 @@ public:
     ChangeTracker*  change_tracker() const;
 
     // graphics related
+    void  clear_hide_bits(int bit_mask) { set_hide(hide() & ~bit_mask); }
     const Rgba&  color() const { return _rgba; }
     bool  display() const { return _display; }
     int  hide() const { return _hide; }
@@ -238,7 +245,6 @@ public:
     void  set_display(bool d);
     void  set_hide(int h);
     void  set_hide_bits(int bit_mask) { set_hide(hide() | bit_mask); }
-    void  clear_hide_bits(int bit_mask) { set_hide(hide() & ~bit_mask); }
     void  set_selected(bool s);
     bool  visible() const { return _display && !_hide; }
 };

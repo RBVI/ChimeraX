@@ -646,7 +646,11 @@ class _SelectorName:
     def find_matches(self, session, models, results):
         f = get_selector(self.name)
         if f:
-            f(session, models, results)
+            from ..objects import Objects
+            if isinstance(f, Objects):
+                results.combine(f)
+            else:
+                f(session, models, results)
 
 
 class _ZoneSelector:
@@ -698,7 +702,7 @@ class _Term:
     def __str__(self):
         return str(self._specifier)
 
-    def evaluate(self, session, models):
+    def evaluate(self, session, models, top=True):
         """Return Objects for model elements that match."""
         from ..objects import Objects
         results = Objects()
@@ -720,7 +724,7 @@ class _Invert:
     def evaluate(self, session, models=None, **kw):
         if models is None:
             models = session.models.list(**kw)
-        results = self._atomspec.evaluate(session, models)
+        results = self._atomspec.evaluate(session, models, top=False)
         add_implied_bonds(results)
         results.invert(session, models)
         return results
@@ -776,24 +780,27 @@ class AtomSpec:
             models = session.models.list(**kw)
             models.sort(key=lambda m: m.id)
         if self._operator is None:
-            results = self._left_spec.evaluate(session, models)
+            results = self._left_spec.evaluate(session, models, top=False)
         elif self._operator == '|':
-            left_results = self._left_spec.evaluate(session, models)
-            right_results = self._right_spec.evaluate(session, models)
+            left_results = self._left_spec.evaluate(session, models, top=False)
+            right_results = self._right_spec.evaluate(session, models, top=False)
             from ..objects import Objects
             results = Objects.union(left_results, right_results)
         elif self._operator == '&':
-            left_results = self._left_spec.evaluate(session, models)
-            right_results = self._right_spec.evaluate(session, models)
+            left_results = self._left_spec.evaluate(session, models, top=False)
+            right_results = self._right_spec.evaluate(session, models, top=False)
             from ..objects import Objects
             results = Objects.intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
         add_implied_bonds(results)
+        if kw.get("top", True):
+            from . import ATOMSPEC_EVALUATED
+            session.triggers.activate_trigger(ATOMSPEC_EVALUATED, self)
         return results
 
     def find_matches(self, session, models, results):
-        my_results = self.evaluate(session, models)
+        my_results = self.evaluate(session, models, top=False)
         results.combine(my_results)
         return results
 
@@ -813,20 +820,76 @@ def add_implied_bonds(objects):
 _selectors = {}
 
 
-def register_selector(name, func, logger):
-    """Register a (name, func) pair as an atom specifier selector.
+class _Selector:
+
+    def __init__(self, name, value, user, desc, atomic):
+        self.name = name
+        self.value = value
+        self.user_defined = user
+        self.atomic = atomic
+        self._description = desc
+
+    def description(self, session):
+        if self._description:
+            return self._description
+        from chimerax.core.objects import Objects
+        sel = self.value
+        if callable(sel):
+            if self.user_defined:
+                value = "[Function]"
+            else:
+                value = "[Built-in]"
+        elif isinstance(sel, Objects):
+            sel.refresh(session)
+            if sel.empty():
+                deregister_selector(self.name, session.logger)
+                return None
+            title = []
+            if sel.num_atoms:
+                title.append("%d atoms" % sel.num_atoms)
+            if sel.num_bonds:
+                title.append("%d bonds" % sel.num_bonds)
+            if len(sel.models) > 1:
+                title.append("%d models" % len(sel.models))
+            if not title:
+                if sel.num_pseudobonds:
+                    title.append("%d pseudobonds" % sel.num_pseudobonds)
+            if not title:
+                if sel.model_instances:
+                    title.append("%d model instances" % len(sel.model_instances))
+            value = "[%s]" % ', '.join(title)
+        else:
+            value = str(sel)
+        return value
+
+
+def register_selector(name, value, logger, *,
+                      user=False, desc=None, atomic=True):
+    """Register a (name, value) pair as an atom specifier selector.
 
     Parameters
     ----------
-    session : instance of chimerax.core.session.Session
-        Session in which the name may be used.  If None, name is global.
     name : str
         Selector name, preferably without whitespace.
-    func : callable object
-        Selector evaluation function, called as 'func(session, models, results)'
-        where 'models' are chimerax.core.models.Model instances and
-        'results' is an Objects instance.
-
+    value : callable object or instance of Objects
+        Selector value.  If a callable object, called as
+        'value(session, models, results)' where 'models'
+        are chimerax.core.models.Model instances and
+        'results' is an Objects instance; the callable
+        is expected to add selected items to 'results'.
+        If an Objects instance, items in value are merged
+        with already selected items.
+    logger : instance of chimerax.core.logger.Logger
+        Logger used to report warnings.
+    user : boolean
+        Boolean value indicating whether name is considered
+        user-defined or not.
+    desc : string
+        Selector description.  Returned by get_selector_description().
+        If not supplied, a generic description will be generated.
+    atomic : boolean
+        Boolean value indicating atoms may be selected using selector.
+        Non-atomic selectors will not appear in Basic Actions tool.
     """
     if not name[0].isalpha():
         logger.warning("registering illegal selector name \"%s\"" % name)
@@ -835,50 +898,101 @@ def register_selector(name, func, logger):
         if not c.isalnum() and c not in "-+":
             logger.warning("registering illegal selector name \"%s\"" % name)
             return
-    _selectors[name] = func
+    _selectors[name] = _Selector(name, value, user, desc, atomic)
+    from .. import triggers
+    from .commands import ATOMSPEC_TARGET_REGISTERED
+    triggers.activate_trigger(ATOMSPEC_TARGET_REGISTERED, name)
 
 
-def deregister_selector(name):
+def deregister_selector(name, logger):
     """Deregister a name as an atom specifier selector.
 
     Parameters
     ----------
-    session : instance of chimerax.core.session.Session
-        Session in which the name may be used.  If None, name is global.
     name : str
         Previously registered selector name.
+    logger : instance of chimerax.core.logger.Logger
+        Logger used to report warnings.
 
     Raises
     ------
     KeyError
         If name is not registered.
-
     """
     try:
         del _selectors[name]
     except KeyError:
-        pass
+        logger.warning("deregistering unregistered selector \"%s\"" % name)
+    else:
+        from .. import triggers
+        from .commands import ATOMSPEC_TARGET_DEREGISTERED
+        triggers.activate_trigger(ATOMSPEC_TARGET_DEREGISTERED, name)
 
 
-def list_selectors(session):
+def list_selectors():
     """Return a list of all registered selector names.
-
-    Parameters
-    ----------
-    session : instance of chimerax.core.session.Session
-        Session in which the name may be used.  If None, name is global.
 
     Returns
     -------
     iterator yielding str
         Iterator that yields registered selector names.
-
     """
     return _selectors.keys()
 
 
 def get_selector(name):
-    """Return function associated with registered selector name.
+    """Return value associated with registered selector name.
+
+    Parameters
+    ----------
+    name : str
+        Previously registered selector name.
+
+    Returns
+    -------
+    Callable object, Objects instance, or None.
+        Callable object if name was registered; None, if not.
+    """
+    try:
+        return _selectors[name].value
+    except KeyError:
+        return None
+
+
+def is_selector_user_defined(name):
+    """Return whether selector name is user-defined.
+
+    Parameters
+    ----------
+    name : str
+        Previously registered selector name.
+
+    Returns
+    -------
+    Boolean
+        Whether selector name is user-defined.
+    """
+    return _selectors[name].user_defined
+
+
+def is_selector_atomic(name):
+    """Return whether selector may select any atoms.
+
+    Parameters
+    ----------
+    name : str
+        Previously registered selector name.
+
+    Returns
+    -------
+    Boolean
+        Whether selector name may select any atoms.
+    """
+    return _selectors[name].atomic
+
+
+def get_selector_description(name, session):
+    """Return description for selector.
 
     Parameters
     ----------
@@ -889,11 +1003,12 @@ def get_selector(name):
 
     Returns
     -------
-    Callable object or None.
-        Callable object if name was registered; None, if not.
-
+    string
+        Description of selector.  Registered description is
+        used when available; otherwise, description is generated
+        from the selector value.
     """
-    return _selectors.get(name, None)
+    return _selectors[name].description(session)
 
 
 def everything(session):

@@ -17,11 +17,11 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
 
     Parameters
     ----------
-    filename : string
+    filename : string or list of strings
         A path to a file (relative to the current directory), or a database id
         code to fetch prefixed by the database name, for example, pdb:1a0m,
         mmcif:1jj2, emdb:1080.  A 4-letter id that is not a local file is
-        interpreted as an mmCIF fetch.
+        interpreted as an mmCIF fetch.  Also allows a list of filenames and ids.
     format : string
         Read the file using this format, instead of using the file suffix to
         infer the format.

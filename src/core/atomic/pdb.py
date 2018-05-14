@@ -18,7 +18,8 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomic=True, log_info=True):
+def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomic=True,
+             max_models=None, log_info=True):
 
     path = stream.name if hasattr(stream, 'name') else None
 
@@ -32,6 +33,11 @@ def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomi
         from .structure import Structure as StructureClass
     models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
         for p in pointers]
+
+    if max_models is not None:
+        for m in models[max_models:]:
+            m.delete()
+        models = models[:max_models]
 
     if path:
         for m in models:
@@ -56,7 +62,7 @@ def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomi
 
 
 def save_pdb(session, path, models=None, selected_only=False, displayed_only=False,
-        all_coordsets=False, pqr=False, rel_model=None):
+        all_coordsets=False, pqr=False, rel_model=None, serial_numbering="h36"):
     from ..errors import UserError
     if models is None:
         models = session.models
@@ -85,10 +91,12 @@ def save_pdb(session, path, models=None, selected_only=False, displayed_only=Fal
         for m, xform in zip(models, xforms):
             file_name = path.replace("[ID]", m.id_string()).replace("[NAME]", m.name)
             pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only=selected_only,
-                displayed_only=displayed_only, xforms=[xform], all_coordsets=all_coordsets, pqr=pqr)
+                displayed_only=displayed_only, xforms=[xform],
+                all_coordsets=all_coordsets, pqr=pqr, h36=(serial_numbering == "h36"))
     else:
         pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only=selected_only,
-            displayed_only=displayed_only, xforms=xforms, all_coordsets=all_coordsets, pqr=pqr)
+            displayed_only=displayed_only, xforms=xforms, all_coordsets=all_coordsets, pqr=pqr,
+            h36=(serial_numbering == "h36"))
 
 
 _pdb_sources = {
@@ -143,10 +151,13 @@ def register_pdb_format():
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb, export_func=save_pdb)
-    from ..commands import add_keyword_arguments, BoolArg, ModelsArg, ModelArg
-    add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg, 'atomic': BoolArg})
+    from ..commands import add_keyword_arguments, BoolArg, ModelsArg, ModelArg, IntArg, \
+        EnumOf
+    add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg,
+        'atomic': BoolArg, 'max_models':IntArg})
     add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,
-        'displayed_only':BoolArg, 'all_coordsets':BoolArg, 'pqr':BoolArg, 'rel_model':ModelArg})
+        'displayed_only':BoolArg, 'all_coordsets':BoolArg, 'pqr':BoolArg,
+        'rel_model':ModelArg, 'serial_numbering': EnumOf(("amber", "h36"))})
 
 
 def register_pdb_fetch():

@@ -31,7 +31,7 @@ def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None,
     atoms = check_atoms(atoms, session)
     r = atoms.radii
     r += probe_radius
-    from ..surface import spheres_surface_area
+    from chimerax.surface import spheres_surface_area
     areas = spheres_surface_area(atoms.scene_coords, r)
 
     # Set area atom and residue attributes

@@ -136,7 +136,9 @@ class _UniqueName:
             # double check that class will be able to be restored
             if obj_cls != bundle_info.get_class(obj_cls.__name__, session.logger):
                 raise RuntimeError(
-                    'Unable to restore objects of %s class in %s bundle' %
+                    'Unable to restore objects of %s class in %s bundle'
+                    ' because the class name is not listed in the name to class table'
+                    ' for session restore' %
                     (obj_cls.__name__, bundle_info.name))
 
         if not known_class and bundle_info != 'builtin':
@@ -614,13 +616,16 @@ def standard_metadata(previous_metadata={}):
 
     The standard metadata consists of:
 
-    name            value
-    -------------------------------------------------------
-    generator       HTML user agent (app name version (os))
-    created         date first created
-    modified        date last modified after being created
-    creator         user name(s)
-    dateCopyrighted copyright(s)
+    generator :
+        HTML user agent (app name version (os))
+    created :
+        date first created
+    modified :
+        date last modified after being created
+    creator :
+        user name(s)
+    dateCopyrighted :
+        copyright(s)
 
     creator and dateCopyrighted can be lists if there
     is previous metadata with different values.
@@ -963,12 +968,8 @@ def _register_core_file_formats(session):
     mmcif.register_mmcif_format()
     from . import scripting
     scripting.register()
-    from . import map
-    map.register_map_file_formats(session)
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
-    from .surface import collada
-    collada.register_collada_format()
     from . import image
     image.register_image_save(session)
     register_x3d_format()
@@ -979,8 +980,5 @@ def _register_core_database_fetch():
     pdb.register_pdb_fetch()
     from .atomic import mmcif
     mmcif.register_mmcif_fetch()
-    from . import map
-    map.register_eds_fetch()
-    map.register_emdb_fetch()
     from . import fetch
     fetch.register_web_fetch()

@@ -18,36 +18,36 @@ reads a PIR file
 from chimerax.core.atomic import Sequence
 from ..parse import FormatSyntaxError, make_readable
 
-def read(f):
-	want = 'init'
-	sequences = []
-	for line in f.readlines():
-		line = line.strip()
-		if want == 'init':
-			if len(line) < 4:
-				continue
-			if line[0] != '>' or line[3] != ';':
-				continue
-			sequences.append(Sequence(name=make_readable(line[4:])))
-			pir_type = line[1:3]
-			if pir_type in ("P1", "F1"):
-				sequences[-1].nucleic = True
-			else:
-				sequences[-1].nucleic = False
-			sequences[-1].pir_type = pir_type
-			want = 'descript'
-		elif want == 'descript':
-			sequences[-1].descript = line
-			sequences[-1].pir_descript = line
-			want = 'sequence'
-		elif want == 'sequence':
-			if not line:
-				continue
-			if line[-1] == '*':
-				want = 'init'
-				line = line[:-1]
-			sequences[-1].extend("".join([c for c in line if not c.isspace()]))
-	f.close()
-	if want != 'init':
-		raise FormatSyntaxError("Could not find end of sequence '%s'" % sequences[-1].name)
-	return sequences, {}, {}
+def read(session, f):
+    want = 'init'
+    sequences = []
+    for line in f.readlines():
+        line = line.strip()
+        if want == 'init':
+            if len(line) < 4:
+                continue
+            if line[0] != '>' or line[3] != ';':
+                continue
+            sequences.append(Sequence(name=make_readable(line[4:])))
+            pir_type = line[1:3]
+            if pir_type in ("P1", "F1"):
+                sequences[-1].nucleic = True
+            else:
+                sequences[-1].nucleic = False
+            sequences[-1].pir_type = pir_type
+            want = 'descript'
+        elif want == 'descript':
+            sequences[-1].descript = line
+            sequences[-1].pir_descript = line
+            want = 'sequence'
+        elif want == 'sequence':
+            if not line:
+                continue
+            if line[-1] == '*':
+                want = 'init'
+                line = line[:-1]
+            sequences[-1].extend("".join([c for c in line if not c.isspace()]))
+    f.close()
+    if want != 'init':
+        raise FormatSyntaxError("Could not find end of sequence '%s'" % sequences[-1].name)
+    return sequences, {}, {}

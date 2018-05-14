@@ -14,7 +14,7 @@
 SINGLE_PREFIX = "single_seq_"
 ALIGNMENT_PREFIX = "alignment_"
 
-from chimerax.core.ui.options import Option, BooleanOption, IntOption, OptionalRGBAOption, \
+from chimerax.ui.options import Option, BooleanOption, IntOption, OptionalRGBAOption, \
     OptionalRGBAPairOption
 
 APPEARANCE = "Appearance"

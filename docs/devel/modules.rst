@@ -22,21 +22,21 @@ Python Modules
 
     core/atomic/atomic.rst
 
-    core/commands/atomspec.rst
-
-    core/commands/cli.rst
-
     core/commands/commands.rst
+
+    core/commands/user_commands.rst
 
     core/configfile.rst
 
     core/data_events.rst
 
+    core/fetch.rst
+
     core/geometry/geometry.rst
 
     core/graphics/graphics.rst
 
-    core/ui/gui.rst
+    bundles/ui/src/gui.rst
 
     core/history.rst
 
@@ -48,7 +48,7 @@ Python Modules
 
     core/models.rst
 
-    core/atomic/molsurf.rst
+    core/objects.rst
 
     core/orderedset.rst
 
@@ -64,7 +64,7 @@ Python Modules
 
     core/settings.rst
 
-    core/surface/surface.rst
+    bundles/surface/src/surface.rst
 
     core/tasks.rst
 
@@ -73,8 +73,6 @@ Python Modules
     core/toolshed.rst
 
     core/triggerset.rst
-
-    core/ui/mousemodes.rst
 
     core/utils.rst
 

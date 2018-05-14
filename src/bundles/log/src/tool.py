@@ -113,7 +113,7 @@ class Log(ToolInstance, HtmlLog):
         ToolInstance.__init__(self, session, tool_name)
         self.warning_shows_dialog = False
         self.error_shows_dialog = True
-        from chimerax.core.ui.gui import MainToolWindow
+        from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
                 def save_image(ses=session):
@@ -130,7 +130,7 @@ class Log(ToolInstance, HtmlLog):
         self.tool_window = LogToolWindow(self, close_destroys = False)
 
         parent = self.tool_window.ui_area
-        from chimerax.core.ui.widgets import ChimeraXHtmlView
+        from chimerax.ui.widgets import ChimeraXHtmlView
 
         from PyQt5.QtWebEngineWidgets import QWebEnginePage
         class MyPage(QWebEnginePage):
@@ -171,13 +171,13 @@ class Log(ToolInstance, HtmlLog):
                 #from PyQt5.QtCore import Qt
                 #self.setContextMenuPolicy(Qt.NoContextMenu)
 
-            ## Moved into core/ui/widgets/htmlview.py
+            ## Moved into ui/widgets/htmlview.py
             ## def contextMenuEvent(self, event):
             ##     # kludge to allow QWebView to show our context menu (see comment above)
             ##     self.log.tool_window._show_context_menu(event)
 
             def cm_save(self):
-                from chimerax.core.ui.open_save import export_file_filter, SaveDialog
+                from chimerax.ui.open_save import export_file_filter, SaveDialog
                 from chimerax.core.io import format_from_name
                 fmt = format_from_name("HTML")
                 ext = fmt.extensions[0]

@@ -25,6 +25,7 @@ from ._geometry import find_close_points, find_closest_points, find_close_points
 from ._geometry import closest_sphere_intercept, closest_cylinder_intercept, closest_triangle_intercept
 from ._geometry import segment_intercepts_spheres, points_within_planes
 from ._geometry import cylinder_rotations, half_cylinder_rotations, cylinder_rotations_x3d
+from ._geometry import distances_from_origin, distances_parallel_to_axis, distances_perpendicular_to_axis
 from .align import align_points
 from .symmetry import cyclic_symmetry_matrices
 from .symmetry import dihedral_symmetry_matrices

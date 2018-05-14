@@ -48,8 +48,7 @@ void
 PDB::reset_state()
 {
     input_version = 0;
-    atom_serial_number = 10000;
-    sigatm_serial_number = 10000;
+    atom_serial_number = 0;
 }
 
 }  // namespace pdb

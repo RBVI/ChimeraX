@@ -237,19 +237,24 @@ ExtractTemplate::parse_chem_comp()
     is_peptide = type.find("peptide") != string::npos;
     is_nucleotide = type.find("dna ") == string::npos
         || type.find("rna ") == string::npos;
-    residue = templates->new_residue(name);
+    residue = templates->new_residue(name.c_str());
     residue->pdbx_ambiguous = ambiguous;
     all_residues.push_back(residue);
+    if (!code || (!is_peptide && !is_nucleotide))
+        return;
     if (!modres.empty()) {
-        if (!code) {
-            if (is_peptide)
-                code = Sequence::protein3to1(modres);
-            else if (is_nucleotide)
-                code = Sequence::nucleic3to1(modres);
-        }
-        if (code && code != 'X')
+        char old_code;
+        if (is_peptide)
+            old_code = Sequence::protein3to1(modres);
+        else // if (is_nucleotide)
+            old_code = Sequence::nucleic3to1(modres);
+        if (old_code != 'X' && old_code != code)
+            std::cerr << "Not changing " << modres <<
+                " sequence abbrevation (old: " << old_code << ", new: " <<
+                code << ")\n";
+        else
             Sequence::assign_rname3to1(name, code, is_peptide);
-    } else if (code) {
+    } else {
         if (is_peptide) {
             if (Sequence::protein3to1(name) == 'X')
                 Sequence::assign_rname3to1(name, code, true);
@@ -422,7 +427,7 @@ set_Python_locate_function(PyObject* function)
     save_reference_to_function = function;
 
     locate_func = [function] (const ResName& name) -> std::string {
-        PyObject* name_arg = wrappy::pyObject((const char*)name);
+      PyObject* name_arg = wrappy::pyObject(name.c_str());
         PyObject* result = PyObject_CallFunction(function, "O", name_arg);
         Py_XDECREF(name_arg);
         if (result == nullptr)

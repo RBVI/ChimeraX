@@ -28,14 +28,15 @@ required::before {
 <body>
 <h2>ChimeraX Registration</h2>
 <p>
-Please take a few moments to provide some information about
-your use of ChimeraX.  We aggregate registration data to
-assist in securing continued funding for development and
-support of this software.
+Please take a few moments to describe your use of ChimeraX.
+The information you provide helps us to document the impact
+of ChimeraX on the scientific community and is used in
+aggregate to secure continued funding.
+No individual data will be released.
 </p>
 EXPIRATION_PLACEHOLDER
 <form action="cxreg:register">
-<table border="0">
+<table>
 <tr>
 <th class="label"><required>Name:</required></th>
 <td class="data"><input type="text" name="name"/></td>
@@ -55,6 +56,10 @@ EXPIRATION_PLACEHOLDER
 <tr>
 <th class="label">Funding Sources:</th>
 <td class="data">FUNDING_PLACEHOLDER</td>
+</tr>
+<tr>
+<th class="label">Comments:</th>
+<td class="data"><input type="text" name="comment"/></td>
 </tr>
 </table>
 <p><required>required field</required></p>

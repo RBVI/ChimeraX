@@ -23,6 +23,12 @@ class Mono360Camera(Camera):
         self._drawing = None			# Drawing of rectangle with cube map texture
         self._view_rotations = _cube_map_face_views()   # Camera views for cube faces
 
+    def delete(self):
+        fb = self._framebuffer
+        if fb:
+            fb.delete(make_current = True)
+            self._framebuffer = None
+            
     def view(self, camera_position, view_num):
         '''
         Return the Place coordinate frame for a specific camera view number.
@@ -57,7 +63,7 @@ class Mono360Camera(Camera):
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
-        fb = self._cube_face_framebuffer()
+        fb = self._cube_face_framebuffer(render.opengl_context)
         if view_num == 0:
             render.push_framebuffer(fb)
         fb.set_cubemap_face(view_num)
@@ -67,14 +73,14 @@ class Mono360Camera(Camera):
         '''Render the cube map using a projection.'''
         _adjust_light_directions(render)	# Restore light directions
         render.pop_framebuffer()	        # Pop the cube face framebuffer.
-        cubemap = self._cube_face_framebuffer().color_texture
+        cubemap = self._cube_face_framebuffer(render.opengl_context).color_texture
         proj = self._projection_drawing()
         _project_cubemap(cubemap, proj, render) # Project cubemap to longitude/lattitude rectangle
 
-    def _cube_face_framebuffer(self):
+    def _cube_face_framebuffer(self, opengl_context):
         fb = self._framebuffer
         if fb is None:
-            self._framebuffer = fb = _cube_map_framebuffer(self._cube_face_size)
+            self._framebuffer = fb = _cube_map_framebuffer(opengl_context, self._cube_face_size)
         return fb
 
     def _projection_drawing(self):
@@ -102,6 +108,16 @@ class Stereo360Camera(Camera):
         self._view_rotations = v + v		# Camera views for cube faces
         self.layout = layout			# Packing of left/right eye images: top-bottom or side-by-side
 
+    def delete(self):
+        for fb in self._framebuffer.values():
+            if fb:
+                fb.delete(make_current = True)
+        self._framebuffer = {}
+
+        for d in self._drawing.values():
+            d.delete()
+        self._drawing = {}
+        
     def view(self, camera_position, view_num):
         '''
         Return the Place coordinate frame for a specific camera view number.
@@ -142,7 +158,7 @@ class Stereo360Camera(Camera):
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         eye = 'left' if view_num < 6 else 'right'
-        fb = self._cube_face_framebuffer(eye)
+        fb = self._cube_face_framebuffer(eye, render.opengl_context)
         if view_num == 0:
             render.push_framebuffer(fb)		# Push left eye framebuffer
             self._set_stereo_360_shader_parameters(render, eye)
@@ -164,14 +180,14 @@ class Stereo360Camera(Camera):
         _adjust_light_directions(render)	# Restore light directions
         render.pop_framebuffer()	        # Pop the cube face framebuffer.
         for eye in ('left', 'right'):
-            cubemap = self._cube_face_framebuffer(eye).color_texture
+            cubemap = self._cube_face_framebuffer(eye, render.opengl_context).color_texture
             proj = self._projection_drawing(eye)
             _project_cubemap(cubemap, proj, render) # Project cubemap to longitude/lattitude rectangle
 
-    def _cube_face_framebuffer(self, eye):
+    def _cube_face_framebuffer(self, eye, opengl_context):
         fb = self._framebuffer[eye]
         if fb is None:
-            self._framebuffer[eye] = fb = _cube_map_framebuffer(self._cube_face_size)
+            self._framebuffer[eye] = fb = _cube_map_framebuffer(opengl_context, self._cube_face_size)
         return fb
 
     def _projection_drawing(self, eye):
@@ -214,11 +230,11 @@ def _cube_map_face_views():
               ((-1,0,0,0),(0,-1,0,0),(0,0,1,0)))]
     return views
 
-def _cube_map_framebuffer(size):
+def _cube_map_framebuffer(opengl_context, size):
     from . import Texture, opengl
     t = Texture(cube_map = True)
     t.initialize_rgba((size,size))
-    fb = opengl.Framebuffer(color_texture = t)
+    fb = opengl.Framebuffer(opengl_context, color_texture = t)
     return fb
 
 # Project cubemap to longitude/lattitude rectangle
@@ -286,7 +302,7 @@ def _equirectangular_projection_drawing(size):
     # Create rectangle drawing with sphere point texture coordinates.
     from . import Drawing
     d = Drawing('equirectangular projection')
-    d.geometry = va, ta
+    d.set_geometry(va, None, ta)
     d.color = (255,255,255,255)
     d.use_lighting = False
     d.texture_coordinates = tc

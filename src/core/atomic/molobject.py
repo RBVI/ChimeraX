@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from ..state import State, StateManager
+from chimerax.core.state import State, StateManager
 from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
 from .molc import CFunctions, string, cptr, pyobject, set_c_pointer, pointer, size_t
 import ctypes
@@ -76,399 +76,52 @@ def _pseudobond_group_map(pbgc_map):
     pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
 
-# -----------------------------------------------------------------------------
-#
-class Atom(State):
-    '''
-    An atom includes physical and graphical properties such as an element name,
-    coordinates in space, and color and radius for rendering.
+def has_custom_attrs(klass, inst):
+    for attr_name, attr_info in klass._attr_registration.reg_attr_info.items():
+        if hasattr(inst, attr_name):
+            return True
+    return False
 
-    To create an Atom use the :class:`.AtomicStructure` new_atom() method.
-    '''
-    # constants are replicated in Atoms class
-    SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
-    HIDE_RIBBON = 0x1
-    '''Hide mask for backbone atoms in ribbon.'''
-    HIDE_ISOLDE = 0x2
-    '''Hide mask for backbone atoms for ISOLDE.'''
-    HIDE_NUCLEOTIDE = 0x4
-    '''Hide mask for sidechain atoms in nucleotides.'''
-    BBE_MIN, BBE_RIBBON, BBE_MAX = range(3)
+def get_custom_attrs(klass, inst):
+    custom_attrs = []
+    from .attr_registration import NO_DEFAULT
+    for attr_name, attr_info in klass._attr_registration.reg_attr_info.items():
+        if hasattr(inst, attr_name):
+            registrant, default_value, attr_type = attr_info
+            val = getattr(inst, attr_name)
+            if default_value == NO_DEFAULT or val != default_value:
+                custom_attrs.append((attr_name, val))
+    return custom_attrs
 
-    idatm_info_map = c_function('atom_idatm_info_map', args = (), ret = ctypes.py_object)()
+def set_custom_attrs(inst, ses_data):
+    for attr_name, val in ses_data.get('custom attrs', []):
+        setattr(inst, attr_name, val)
 
-    def __init__(self, c_pointer):
-        set_c_pointer(self, c_pointer)
+def all_python_instances():
+    f = c_function('all_python_instances', args = (), ret = ctypes.py_object)
+    return f()
 
-    # cpp_pointer and deleted are "base class" methods, though for performance reasons
-    # we are placing them directly in each class rather than using a base class,
-    # and for readability by most programmers we avoid using metaclasses
+from .cymol import CyAtom
+class Atom(CyAtom, State):
+    '''An atom in a (chemical) structure'''
+
+    # used by custom-attr registration code
     @property
-    def cpp_pointer(self):
-        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
-        return self._c_pointer.value
-
-    @property
-    def deleted(self):
-        '''Supported API. Has the C++ side been deleted?'''
-        return not hasattr(self, '_c_pointer')
-
-    def __lt__(self, other):
-        # for sorting (objects of the same type)
-        if self.residue == other.residue:
-            return self.name < other.name \
-                if self.name != other.name else self.serial_number < other.serial_number
-        return self.residue < other.residue
-
-    def __str__(self, atom_only = False, style = None, relative_to=None):
-        '''Supported API.  Allow Atoms to be used directly in print() statements'''
-        if style == None:
-            from ..core_settings import settings
-            style = settings.atomspec_contents
-        if relative_to:
-            if self.residue == relative_to.residue:
-                return self.__str__(atom_only=True, style=style)
-            if self.structure == relative_to.structure:
-                # tautology for bonds, but this func is conscripted by pseudobonds, so test...
-                if style.startswith('serial'):
-                    return self.__str__(atom_only=True, style=style)
-                chain_str = "" if  self.residue.chain_id == relative_to.residue.chain_id \
-                    else '/' + self.residue.chain_id + (' ' if style.startswith("simple") else "")
-                res_str = self.residue.__str__(residue_only=True)
-                atom_str = self.__str__(atom_only=True, style=style)
-                joiner = "" if res_str.startswith(":") else " "
-                return chain_str + res_str + joiner + atom_str
-        if style.startswith("simple"):
-            atom_str = self.name
-        elif style.startswith("command"):
-            atom_str = '@' + self.name
-        else:
-            atom_str = str(self.serial_number)
-        if atom_only:
-            return atom_str
-        if not style.startswith('simple'):
-            return '%s%s' % (self.residue.__str__(style=style), atom_str)
-        return '%s %s' % (self.residue.__str__(style=style), atom_str)
-
-    def atomspec(self):
-        return self.residue.atomspec() + '@' + self.name
-
-    alt_loc = c_property('atom_alt_loc', string, doc='Supported API. Alternate location indicator')
-    bfactor = c_property('atom_bfactor', float32, doc="Supported API."
-        " B-factor, floating point value.")
-    bonds = c_property('atom_py_obj_bonds', pyobject, read_only=True, doc="Supported API."
-        " Bonds connected to this atom as a list of :py:class:`Bond` objects. Read only.")
-    chain_id = c_property('atom_chain_id', string, read_only = True, doc = "Supported API."
-        " Protein Data Bank chain identifier. Limited to 4 characters. Read only string.")
-    color = c_property('atom_color', uint8, 4, doc="Supported API."
-        " Color RGBA length 4 numpy uint8 array.")
-    coord = c_property('atom_coord', float64, 3, doc="Supported API."
-        ''' Coordinates from the current coordinate set (or alt loc) as a numpy length 3 array,
-         64-bit float values.  See get_coord method for other coordsets / alt locs.
-         See scene_coord for coordinates after rotations and translations.''')
-    coord_index = c_property('atom_coord_index', uint32, read_only = True,
-        doc="Supported API. Coordinate index of atom in coordinate set.")
-    display = c_property('atom_display', npy_bool,
-        doc="Supported API. Whether to display the atom. Boolean value.")
-    draw_mode = c_property('atom_draw_mode', uint8,
-        doc="Supported API. Controls how the atom is depicted.\n\nPossible values:\n\n"
-        "SPHERE_STYLE\n"
-        "    Use full atom radius\n\n"
-        "BALL_STYLE\n"
-        "    Use reduced atom radius, but larger than bond radius\n\n"
-        "STICK_STYLE\n"
-        "    Match bond radius")
-    element = c_property('atom_element', cptr, astype = _element, read_only = True,
-        doc="Supported API. :class:`Element` corresponding to the chemical element for the atom.")
-    element_name = c_property('atom_element_name', string, read_only = True,
-        doc="Supported API. Chemical element name. Read only.")
-    element_number = c_property('atom_element_number', uint8, read_only = True,
-        doc="Supported API. Chemical element number. Read only.")
-    hide = c_property('atom_hide', int32,
-        doc="Supported API. Whether atom is hidden (overrides display).  Integer bitmask."
-        "\n\nPossible values:\n\n"
-        "HIDE_RIBBON\n"
-        "    Hide mask for backbone atoms in ribbon.\n"
-        "HIDE_ISOLDE\n"
-        "    Hide mask for backbone atoms for ISOLDE.\n"
-        "HIDE_NUCLEOTIDE\n"
-        "    Hide mask for sidechain atoms in nucleotides.\n")
-    def set_hide_bits(self, bit_mask):
-        """Set Atom's hide bits in bit mask"""
-        f = c_array_function('set_atom_hide_bits', args=(uint32,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, bit_mask)
-    def clear_hide_bits(self, bit_mask):
-        """Clear Atom's hide bits in bit mask"""
-        f = c_array_function('clear_atom_hide_bits', args=(uint32,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, bit_mask)
-    _idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
-    def _get_idatm_type(self):
-        return self._idatm_type
-    def _set_idatm_type(self, iat):
-        self._idatm_type = "" if iat is None else iat
-    idatm_type = property(_get_idatm_type, _set_idatm_type, doc="Supported API."
-        ''' Atom's <a href="help:user/atomtypes.html">IDATM type</a>''')
-    in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
-        doc = "Whether this atom belongs to a polymer. Read only.")
-    is_ribose = c_property('atom_is_ribose', npy_bool, read_only = True,
-        doc = "Whether this atom is part of an nucleic acid ribose moiety. Read only.")
-    is_side_connector = c_property('atom_is_side_connector', npy_bool, read_only = True,
-        doc = "Whether this atom is connects the side chain to the backbone"
-        " e.g. CA/ribose. Read only.")
-    is_side_chain = c_property('atom_is_side_chain', npy_bool, read_only = True,
-        doc = "Whether this atom is part of an amino/nucleic acid sidechain. Includes atoms"
-        " needed to connect to backbone (CA/ribose). Read only.")
-    is_side_only = c_property('atom_is_side_only', npy_bool, read_only = True,
-        doc = "Whether this atom is part of an amino/nucleic acid sidechain."
-        "  Does not include atoms needed to connect to backbone (CA/ribose). Read only.")
-    name = c_property('atom_name', string, doc="Supported API."
-        " Atom name. Maximum length 4 characters.")
-    neighbors = c_property('atom_py_obj_neighbors', pyobject, read_only=True, doc="Supported API."
-        " :class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
-    num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
-        doc="Supported API. Number of bonds connected to this atom. Read only.")
-    num_explicit_bonds = c_property("atom_num_explicit_bonds", size_t, read_only=True,
-        doc="Supported API."
-        " Number of bonds and missing-structure pseudobonds connected to this atom. Read only.")
-    occupancy = c_property('atom_occupancy', float32, doc="Supported API."
-        " Occupancy, floating point value.")
-    radius = c_property('atom_radius', float32, doc="Supported API. Radius of atom.")
-    default_radius = c_property('atom_default_radius', float32, read_only = True,
-                               doc="Supported API. Default atom radius.")
-    residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
-        doc = "Supported API. :class:`Residue` the atom belongs to.")
-    selected = c_property('atom_selected', npy_bool, doc="Supported API."
-        " Whether the atom is selected.")
-    has_selected_bond = c_property('atom_has_selected_bond', npy_bool, read_only = True,
-                                   doc = "Whether any connected bond is selected.")
-    serial_number = c_property('atom_serial_number', int32,
-        doc="Supported API. Atom serial number from input file.")
-    structure = c_property('atom_structure', pyobject, read_only=True,
-        doc="Supported API. :class:`.AtomicStructure` the atom belongs to")
-    structure_category = c_property('atom_structure_category', string, read_only=True,
-        doc = "Supported API. Whether atom is ligand, ion, etc.")
-    visible = c_property('atom_visible', npy_bool, read_only=True,
-        doc="Supported API. Whether atom is displayed and not hidden.")
-
-    @property
-    def display_radius(self):
-        dm = self.draw_mode
-        if dm == Atom.SPHERE_STYLE:
-            r = self.radius
-        elif dm == Atom.BALL_STYLE:
-            r = self.radius * self.structure.ball_scale
-        elif dm == Atom.STICK_STYLE:
-            r = self.maximum_bond_radius(self.structure.bond_radius)
-        return r
-
-    @property
-    def ribbon_coord(self):
-        return self.structure.ribbon_coord(self)
-
-    def maximum_bond_radius(self, default_radius = 0.2):
-        "Return maximum bond radius.  Used for stick style atom display."
-        f = c_function('atom_maximum_bond_radius',
-                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_float, ctypes.c_void_p])
-        r = ctypes.c_float()
-        f(ctypes.byref(self._c_pointer), 1, default_radius, ctypes.byref(r))
-        return r.value
-
-    def set_alt_loc(self, loc, create):
-        if isinstance(loc, str):
-            loc = loc.encode('utf-8')
-        f = c_function('atom_set_alt_loc', args=(ctypes.c_void_p, ctypes.c_char, ctypes.c_bool, ctypes.c_bool))
-        f(self._c_pointer, loc, create, False)
-
-    def has_alt_loc(self, loc):
-        '''Supported API. Does this Atom have an alt loc with the given letter?'''
-        if isinstance(loc, str):
-            loc = loc.encode('utf-8')
-        #value_type = npy_bool
-        #vtype = numpy_type_to_ctype[value_type]
-        vtype = ctypes.c_uint8
-        v = vtype()
-        v_ref = ctypes.byref(v)
-        f = c_array_function('atom_has_alt_loc', args=(byte,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, loc, v_ref)
-        return bool(v.value)
-
-    @property
-    def alt_locs(self):
-        '''Supported API. Returns a list of the valid alt-loc characters for this Atom (which will
-           be [' '] for a "non-alt-loc" atom).
-        '''
-        f = c_function('atom_alt_locs',
-                       args = (ctypes.c_void_p,), ret = ctypes.py_object)
-        return f(self._c_pointer)
-
-    @property
-    def aniso_u(self):
-        '''Supported API. Anisotropic temperature factors, returns 3x3 array of numpy float32
-           or None.  Read only.'''
-        f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
-        from numpy import empty, float32
-        ai = empty((3,3), float32)
-        try:
-            f(self._c_pointer_ref, 1, pointer(ai))
-        except ValueError:
-            ai = None
-        return ai
-
-    def _get_aniso_u6(self):
-        '''Get anisotropic temperature factors as a 6 element numpy float32 array
-        containing (u11, u22, u33, u12, u13, u23) or None.'''
-        f = c_function('atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
-        from numpy import empty, float32
-        ai = empty((6,), float32)
-        try:
-            f(self._c_pointer_ref, 1, pointer(ai))
-        except ValueError:
-            ai = None
-        return ai
-    def _set_aniso_u6(self, u6):
-        '''Set anisotropic temperature factors as a 6 element numpy float32 array
-        representing the unique elements of the symmetrix matrix
-        containing (u11, u22, u33, u12, u13, u23).'''
-        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
-        from numpy import empty, float32
-        ai = empty((6,), float32)
-        ai[:] = u6
-        f(self._c_pointer_ref, 1, pointer(ai))
-    aniso_u6 = property(_get_aniso_u6, _set_aniso_u6)
-
-    def connects_to(self, atom):
-        '''Supported API. Whether this atom is directly bonded to a specified atom.'''
-        f = c_function('atom_connects_to', args = (ctypes.c_void_p, ctypes.c_void_p),
-               ret = ctypes.c_bool)
-        c = f(self._c_pointer, atom._c_pointer)
-        return c
-
-    def delete(self):
-        '''Supported API. Delete this Atom from it's Structure'''
-        f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
-        c = f(self._c_pointer_ref, 1)
-
-    def is_backbone(self, bb_extent=BBE_MAX):
-        '''Supported API. Whether this Atom is considered backbone, given the 'extent' criteria.
-
-        Possible 'extent' values are:
-
-        BBE_MIN
-            Only the atoms needed to connect the residue chain (and their hydrogens)
-
-        BBE_MAX
-            All non-sidechain atoms
-
-        BBE_RIBBON
-            The backbone atoms that a ribbon depiction hides
-        '''
-        vtype = ctypes.c_uint8
-        v = vtype()
-        v_ref = ctypes.byref(v)
-        f = c_array_function('atom_is_backbone', args=(int32,), per_object=False)
-        a_ref = ctypes.byref(self._c_pointer)
-        f(a_ref, 1, bb_extent, v_ref)
-        return bool(v.value)
-
-    def set_coord(self, xyz, cs_id):
-        '''Supported API. Used to set the atom's xyz for a particular coordset.
-           Just use the 'coord' attr for changing the current coordinate set.'''
-        if xyz.dtype != float64:
-            raise ValueError('set_coord(): array must be float64, got %s' % xyz.dtype.name)
-        if len(xyz.shape) != 1 or len(xyz) != 3:
-            raise ValueError('set_coord(): array must of dimension 1x3, not %s' % repr(xyz.shape))
-        f = c_function('atom_set_coord',
-                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int))
-        f(self._c_pointer, pointer(xyz), cs_id)
-
-    def rings(self, cross_residues=False, all_size_threshold=0):
-        '''Return :class:`.Rings` collection of rings this Atom participates in.
-
-        If 'cross_residues' is False, then rings that cross residue boundaries are not
-        included.  If 'all_size_threshold' is zero, then return only minimal rings, of
-        any size.  If it is greater than zero, then return all rings not larger than the
-        given value.
-
-        The returned rings are quite emphemeral, and shouldn't be cached or otherwise
-        retained for long term use.  They may only live until the next call to rings()
-        [from anywhere, including C++].
-        '''
-        f = c_function('atom_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
-                ret = ctypes.py_object)
-        return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
-
-    def _get_scene_coord(self):
-        return self.structure.scene_position * self.coord
-    def _set_scene_coord(self, xyz):
-        self.coord = self.structure.scene_position.inverse() * xyz
-    scene_coord = property(_get_scene_coord, _set_scene_coord, doc="Supported API."
-        '''Atom center coordinates in the global scene coordinate system.
-        This accounts for the :class:`Drawing` positions for the hierarchy
-        of models this atom belongs to.''')
-
-    def get_altloc_coord(self, altloc):
-        '''Supported API.
-        Like the 'coord' property, but uses the given altloc (character)
-        rather than the current altloc.
-        '''
-        from numpy import empty, float64
-        ai = empty((3,), float64)
-        crdset_or_altloc = crdset_or_altloc.encode('utf-8')
-        f = c_function('atom_get_coord_altloc',
-            args = (ctypes.c_void_p, ctypes.c_char, ctypes.c_void_p))
-        f(self._c_pointer, altloc, pointer(ai))
-        return ai
-
-    def get_coordset_coord(self, crdset):
-        '''Supported API.
-        Like the 'coord' property, but uses the given coordset ID (integer)
-        rather than the current coordset.
-        '''
-        from numpy import empty, float64
-        ai = empty((3,), float64)
-        f = c_function('atom_get_coord_crdset',
-            args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p))
-        f(self._c_pointer, crdset, pointer(ai))
-        return ai
-
-    def get_scene_coord(self, crdset_or_altloc):
-        '''Supported API.
-        Like the 'scene_coord' property, but uses the given coordset ID (integer) / altloc
-        (character) rather than the current coordset / altloc.
-        '''
-        return self.structure.scene_position * self.get_coord(crdset_or_altloc)
-
-    def use_default_radius(self):
-        '''Supported API.  If an atom's radius has previously been explicitly set, this call will
-        revert to using the default radius'''
-        f = c_function('atom_use_default_radius', args = (ctypes.c_void_p, ctypes.c_size_t))
-        c = f(self._c_pointer_ref, 1)
+    def has_custom_attrs(self):
+        return has_custom_attrs(Atom, self)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
-                'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
+                'ses_id': self.structure.session_atom_to_id(self._c_pointer),
+                'custom attrs': get_custom_attrs(Atom, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.atoms)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        a = Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
+        set_custom_attrs(a, data)
+        return a
+Atom.set_py_class(Atom)
 
 # -----------------------------------------------------------------------------
 #
@@ -500,66 +153,66 @@ class Bond(State):
         o1, o2 = other.atoms
         return s1 < o1 if s1 != o1 else s2 < o2
 
-    def __str__(self, style = None):
-        a1, a2 = self.atoms
-        bond_sep = " \N{Left Right Arrow} "
-        return a1.__str__(style=style) + bond_sep + a2.__str__(style=style, relative_to=a1)
+    def __str__(self):
+        return self.string()
 
     def atomspec(self):
         return a1.atomspec() + a2.atomspec()
 
-    atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
-    '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
-    color = c_property('bond_color', uint8, 4)
-    '''Color RGBA length 4 numpy uint8 array.'''
-    display = c_property('bond_display', npy_bool)
-    '''
-    Whether to display the bond if both atoms are shown.
-    Can be overriden by the hide attribute.
-    '''
-    halfbond = c_property('bond_halfbond', npy_bool)
-    '''
-    Whether to color the each half of the bond nearest an end atom to match that atom
-    color, or use a single color and the bond color attribute.  Boolean value.
-    '''
-    radius = c_property('bond_radius', float32)
-    '''Displayed cylinder radius for the bond.'''
-    hide = c_property('bond_hide', int32)
-    '''Whether bond is hidden (overrides display).  Integer bitmask.  Use Atom.HIDE_* constants for hide bits.'''
+    atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True,
+        doc = "Supported API. "
+        "Two-tuple of :py:class:`Atom` objects that are the bond end points.")
+    color = c_property('bond_color', uint8, 4, doc =
+        "Supported API. Color RGBA length 4 sequence/array. Values in range 0-255")
+    display = c_property('bond_display', npy_bool, doc =
+        "Supported API.  Whether to display the bond if both atoms are shown. "
+        "Can be overriden by the hide attribute.")
+    halfbond = c_property('bond_halfbond', npy_bool, doc = "Supported API. Whether to "
+        "color the each half of the bond nearest an end atom to match that atom color, "
+        "or use a single color and the bond color attribute.  Boolean value.")
+    radius = c_property('bond_radius', float32,
+        doc = "Displayed cylinder radius for the bond.")
+    hide = c_property('bond_hide', int32, doc = "Supported API. Whether bond is hidden "
+        "(overrides display). Integer bitmask. Use Atom.HIDE_* constants for hide bits.")
     def set_hide_bits(self, bit_mask):
-        """Set Atom's hide bits in bit mask"""
+        "Set Atom's hide bits in bit mask"
         f = c_array_function('set_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
     def clear_hide_bits(self, bit_mask):
-        """Clear Atom's hide bits in bit mask"""
+        "Clear Atom's hide bits in bit mask"
         f = c_array_function('clear_bond_hide_bits', args=(uint32,), per_object=False)
         b_ref = ctypes.byref(self._c_pointer)
         f(b_ref, 1, bit_mask)
-    selected = c_property('bond_selected', npy_bool)
-    '''Whether the bond is selected.'''
-    ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True)
-    '''Whether both bond end atoms are selected.'''
-    shown = c_property('bond_shown', npy_bool, read_only = True)
-    '''Whether bond is visible and both atoms are shown and at least one is not Sphere style. Read only.'''
-    structure = c_property('bond_structure', pyobject, read_only = True)
-    ''':class:`.AtomicStructure` the bond belongs to.'''
-    visible = c_property('bond_visible', npy_bool, read_only = True)
-    '''Whether bond is display and not hidden. Read only.'''
-    length = c_property('bond_length', float32, read_only = True)
-    '''Bond length. Read only.'''
+    selected = c_property('bond_selected', npy_bool, doc =
+        "Supported API. Whether the bond is selected.")
+    ends_selected = c_property('bond_ends_selected', npy_bool, read_only = True,
+        doc = "Whether both bond end atoms are selected.")
+    shown = c_property('bond_shown', npy_bool, read_only = True, doc = "Supported API. "
+        "Whether bond is visible and both atoms are shown and at least one is not "
+        " Sphere style. Read only.")
+    structure = c_property('bond_structure', pyobject, read_only = True, doc =
+        "Supported API. :class:`.AtomicStructure` the bond belongs to.")
+    visible = c_property('bond_visible', npy_bool, read_only = True, doc =
+        "Supported API. Whether bond is display and not hidden. Read only.")
+    length = c_property('bond_length', float32, read_only = True, doc =
+        "Supported API. Bond length. Read only.")
 
     def other_atom(self, atom):
-        '''Return the :class:`Atom` at the other end of this bond opposite
-        the specified atom.'''
+        "Supported API. 'atom' should be one of the atoms in the bond.  Return the other atom."
         f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
         o = f(self._c_pointer, atom._c_pointer)
         return Atom.c_ptr_to_py_inst(o)
 
     def delete(self):
-        '''Delete this Bond from it's Structure'''
+        "Supported API. Delete this Bond from it's Structure"
         f = c_function('bond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Bond, self)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Bond is involved in.
@@ -576,6 +229,11 @@ class Bond(State):
         f = c_function('bond_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
                 ret = ctypes.py_object)
         return _rings(f(self._c_pointer, cross_residues, all_size_threshold))
+
+    @property
+    def session(self):
+        "Session that this Bond is in"
+        return self.structure.session
 
     def side_atoms(self, side_atom):
         '''All the atoms on the same side of the bond as side_atom.
@@ -595,34 +253,35 @@ class Bond(State):
         f = c_function('bond_smaller_side', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
+    @property
+    def polymeric_start_atom(self):
+        f = c_function('bond_polymeric_start_atom', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
+
+    def string(self, style = None):
+        "Supported API.  Get text representation of Bond"
+        " (also used by __str__ for printing)"
+        a1, a2 = self.atoms
+        bond_sep = " \N{Left Right Arrow} "
+        return a1.string(style=style) + bond_sep + a2.string(style=style, relative_to=a1)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
-                'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
+                'ses_id': self.structure.session_bond_to_id(self._c_pointer),
+                'custom attrs': get_custom_attrs(Bond, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Bond.c_ptr_to_py_inst(data['structure'].session_id_to_bond(data['ses_id']))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.bonds)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        b = Bond.c_ptr_to_py_inst(data['structure'].session_id_to_bond(data['ses_id']))
+        set_custom_attrs(b, data)
+        return b
 
 # -----------------------------------------------------------------------------
 #
 class Pseudobond(State):
     '''
-    A Pseudobond is a graphical line between atoms for example depicting a distance
+    A Pseudobond is a graphical line between atoms, for example depicting a distance
     or a gap in an amino acid chain, often shown as a dotted or dashed line.
     Pseudobonds can join atoms belonging to different :class:`.AtomicStructure`\\ s
     which is not possible with a :class:`Bond`\\ .
@@ -647,29 +306,26 @@ class Pseudobond(State):
 
     __lt__ = Bond.__lt__
     __str__ = Bond.__str__
+    string = Bond.string
 
-    atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
-    '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
-    color = c_property('pseudobond_color', uint8, 4)
-    '''Color RGBA length 4 numpy uint8 array.'''
-    display = c_property('pseudobond_display', npy_bool)
-    '''
-    Whether to display the bond if both atoms are shown.
-    Can be overriden by the hide attribute.
-    '''
-    group = c_property('pseudobond_group', cptr, astype = _pseudobond_group, read_only = True)
-    ''':py:class:`.pbgroup.PseudobondGroup` that this pseudobond belongs to'''
-    halfbond = c_property('pseudobond_halfbond', npy_bool)
-    '''
-    Whether to color the each half of the bond nearest an end atom to match that atom
-    color, or use a single color and the bond color attribute.  Boolean value.
-    '''
-    radius = c_property('pseudobond_radius', float32)
-    '''Displayed cylinder radius for the bond.'''
-    selected = c_property('pseudobond_selected', npy_bool)
-    '''Whether the pseudobond is selected.'''
-    shown = c_property('pseudobond_shown', npy_bool, read_only = True)
-    '''Whether bond is visible and both atoms are shown. Read only.'''
+    atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True,
+        doc = "Supported API. Two-tuple of :py:class:`Atom` objects that are the bond end points.")
+    color = c_property('pseudobond_color', uint8, 4,
+        doc = "Supported API. Color RGBA length 4 sequence/array. Values in range 0-255")
+    display = c_property('pseudobond_display', npy_bool, doc =
+        "Whether to display the bond if both atoms are shown. "
+        "Can be overriden by the hide attribute.")
+    group = c_property('pseudobond_group', cptr, astype = _pseudobond_group, read_only = True,
+        doc = "Supported API. :py:class:`.pbgroup.PseudobondGroup` that this pseudobond belongs to")
+    halfbond = c_property('pseudobond_halfbond', npy_bool, doc =
+        "Supported API. Whether to color the each half of the bond nearest an end atom to match "
+        " that atom color, or use a single color and the bond color attribute.  Boolean value.")
+    radius = c_property('pseudobond_radius', float32, doc =
+        "Displayed cylinder radius for the bond.")
+    selected = c_property('pseudobond_selected', npy_bool, doc =
+        "Supported API. Whether the pseudobond is selected.")
+    shown = c_property('pseudobond_shown', npy_bool, read_only = True, doc =
+        "Supported API. Whether bond is visible and both atoms are shown. Read only.")
     shown_when_atoms_hidden = c_property('pseudobond_shown_when_atoms_hidden', npy_bool, doc =
     '''Normally, whether a pseudbond is shown only depends on the endpoint atoms' 'display'
     attribute and not on those atoms' 'hide' attribute, on the theory that the hide bits
@@ -680,61 +336,63 @@ class Pseudobond(State):
     the 'display' attribute when the atoms aren't hidden.  Defaults to True.''')
 
     def delete(self):
-        '''Delete this pseudobond from it's group'''
+        "Supported API. Delete this pseudobond from it's group"
         f = c_function('pseudobond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
 
     @property
     def length(self):
-        '''Distance between centers of two bond end point atoms.'''
+        "Supported API. Distance between centers of two bond end point atoms."
         a1, a2 = self.atoms
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
-        return sqrt((v*v).sum())
+        # tinyarray doesn't have .sum()
+        return sqrt(sum(v*v))
 
     def other_atom(self, atom):
-        '''Return the :class:`Atom` at the other end of this bond opposite
-        the specified atom.'''
+        "Supported API. 'atom' should be one of the atoms in the bond.  Return the other atom."
         a1,a2 = self.atoms
         return a2 if atom is a1 else a1
+
+    @property
+    def session(self):
+        "Session that this Pseudobond is in"
+        return self.atoms[0].structure.session
 
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Pseudobond, self)
+
     def take_snapshot(self, session, flags):
-        return [self.group, self._ses_id]
+        data = {'group': self.group,
+                'ses_id': self._ses_id,
+                'custom attrs': get_custom_attrs(Pseudobond, self)}
+        return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        group, id = data
         f = c_function('pseudobond_group_resolve_session_id',
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
-        return Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, id))
-
-    """Need additional support to get per-coord-set pseudobonds
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        from . import PseudobondGroup
-        for m in session.models:
-            if not isinstance(m, PseudobondGroup):
-                continue
-            collections.append(m.pseudobonds)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
-    """
+        if isinstance(data, dict):
+            group = data['group']
+            ses_id = data['ses_id']
+        else:
+            group, ses_id = data
+        pb = Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, ses_id))
+        if isinstance(data, dict):
+            set_custom_attrs(pb, data)
+        return pb
 
 # -----------------------------------------------------------------------------
 #
 class PseudobondGroupData:
     '''
     A group of pseudobonds typically used for one purpose such as display
-    of distances or missing segments.  The category attribute names the group,
-    for example "distances" or "missing segments".
+    of distances or missing segments.
 
     This base class of :class:`.PseudobondGroup` represents the C++ data while
     the derived class handles rendering the pseudobonds.
@@ -761,68 +419,58 @@ class PseudobondGroupData:
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    category = c_property('pseudobond_group_category', string, read_only = True,
+    # Model class uses _name, so...
+    _category = c_property('pseudobond_group_category', string, read_only = True,
         doc = "Name of the pseudobond group.  Read only string.")
     color = c_property('pseudobond_group_color', uint8, 4,
-        doc="Sets the color attribute of current pseudobonds and new pseudobonds")
+        doc="Supported API. Sets the color attribute of current pseudobonds and new pseudobonds")
     group_type = c_property('pseudobond_group_group_type', uint8, read_only = True, doc=
-        "PseudobondGroup.GROUP_TYPE_NORMAL is a normal group,"
+        "Supported API. PseudobondGroup.GROUP_TYPE_NORMAL is a normal group,"
         "PseudobondGroup.GROUP_TYPE_COORD_SET is a per-coord-set pseudobond group")
     halfbond = c_property('pseudobond_group_halfbond', npy_bool,
         doc = "Sets the halfbond attribute of current pseudobonds and new pseudobonds")
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True,
-        doc = "Number of pseudobonds in group. Read only.")
+        doc = "Supported API. Number of pseudobonds in group. Read only.")
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
         astype = _pseudobonds, read_only = True,
-        doc = "Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
+        doc = "Supported API. Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
     radius = c_property('pseudobond_group_radius', float32,
-        doc = "Sets the radius attribute of current pseudobonds and new pseudobonds")
+        doc = "Supported API. Sets the radius attribute of current pseudobonds and new pseudobonds")
     structure = c_property('pseudobond_group_structure', pyobject,
         read_only = True, doc ="Structure that pseudobond group is owned by.  "
-        "Returns None if called on a group managed by the global pseudobond manager")
+        "Supported API. Returns None if called on a group managed by the global pseudobond manager")
 
-    def change_category(self, category):
+    def change_name(self, name):
         f = c_function('pseudobond_group_change_category',
             args = (ctypes.c_void_p, ctypes.c_char_p))
         try:
-            f(self._c_pointer, category.encode('utf-8'))
+            f(self._c_pointer, name.encode('utf-8'))
         except TypeError:
-            from ..errors import UserError
-            raise UserError("Another pseudobond group is already named '%s'" % category)
+            from chimerax.core.errors import UserError
+            raise UserError("Another pseudobond group is already named '%s'" % name)
 
     def clear(self):
-        '''Delete all pseudobonds in group'''
+        "Supported API. Delete all pseudobonds in group"
         f = c_function('pseudobond_group_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
     def delete_pseudobond(self, pb):
-        '''Delete a specific pseudobond from a group'''
+        "Supported API. Delete a specific pseudobond from a group"
         f = c_function('pseudobond_group_delete_pseudobond',
             args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, pb._c_pointer)
 
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        groups = []
-        from . import PseudobondGroup
-        for m in session.models:
-            if not isinstance(m, PseudobondGroup):
-                continue
-            groups.append(m)
-        return groups
-
     def get_num_pseudobonds(self, cs_id):
-        '''Get the number of pseudobonds for a particular coordinate set. Use the 'num_pseudobonds'
-        property to get the number of pseudobonds for the current coordinate set.'''
+        "Supported API. Get the number of pseudobonds for a particular coordinate set. "
+        " Use the 'num_pseudobonds' property to get the number of pseudobonds for the current "
+        " coordinate set."
         f = c_function('pseudobond_group_get_num_pseudobonds',
-                       args = (ctypes.c_void_p, ctypes.c_int,),
-                       ret = ctypes.c_size_t)
+                       args = (ctypes.c_void_p, ctypes.c_int,), ret = ctypes.c_size_t)
         return f(self._c_pointer, cs_id)
 
     def get_pseudobonds(self, cs_id):
-        '''Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'
-        property to get the pseudobonds for the current coordinate set.'''
+        "Supported API. Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'"
+        " property to get the pseudobonds for the current coordinate set."
         from numpy import empty
         ai = empty((self.get_num_pseudobonds(cs_id),), cptr)
         f = c_function('pseudobond_group_get_pseudobonds',
@@ -832,9 +480,9 @@ class PseudobondGroupData:
         return _pseudobonds(ai)
 
     def new_pseudobond(self, atom1, atom2, cs_id = None):
-        '''Create a new pseudobond between the specified :class:`Atom` objects.
-        If the pseudobond group supports per-coordset pseudobonds, you may
-        specify a coordinate set ID (defaults to the current coordinate set).'''
+        "Supported API. Create a new pseudobond between the specified :class:`Atom` objects. "
+        " If the pseudobond group supports per-coordset pseudobonds, you may"
+        " specify a coordinate set ID (defaults to the current coordinate set)."
         if cs_id is None:
             f = c_function('pseudobond_group_new_pseudobond',
                            args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
@@ -883,12 +531,12 @@ class PseudobondManager(StateManager):
                        args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
         f(self._c_pointer, pbg._c_pointer)
 
-    def get_group(self, category, create = True):
-        '''Get an existing :class:`.PseudobondGroup` or create a new one given a category name.'''
+    def get_group(self, name, create = True):
+        '''Get an existing :class:`.PseudobondGroup` or create a new one with the given name.'''
         f = c_function('pseudobond_global_manager_get_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
-        pbg = f(self._c_pointer, category.encode('utf-8'), create)
+        pbg = f(self._c_pointer, name.encode('utf-8'), create)
         if not pbg:
             return None
         # C++ layer doesn't know how to create Python global pseudobond groups, because it can't
@@ -904,7 +552,7 @@ class PseudobondManager(StateManager):
 
     @property
     def group_map(self):
-        '''Returns a dict that maps from :class:`.PseudobondGroup` category to group'''
+        '''Returns a dict that maps from :class:`.PseudobondGroup` name to group'''
         f = c_function('pseudobond_global_manager_group_map',
                        args = (ctypes.c_void_p,),
                        ret = ctypes.py_object)
@@ -913,7 +561,7 @@ class PseudobondManager(StateManager):
         for cat, pbg_ptr in ptr_map.items():
             # get the python pbg instance if it already exists; otherwise create it
             # and inform the C++ layer
-            obj = _pbgroup_ptr_to_existing_inst(pbg_ptr)
+            obj = PseudobondGroupData.c_ptr_to_existing_py_inst(pbg_ptr)
             if not obj:
                 from .pbgroup import PseudobondGroup
                 obj = PseudobondGroup(pbg_ptr, session=self.session)
@@ -922,6 +570,11 @@ class PseudobondManager(StateManager):
                 f(pbg_ptr, obj)
             obj_map[cat] = obj
         return obj_map
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(PseudobondManager, self)
 
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
@@ -940,7 +593,8 @@ class PseudobondManager(StateManager):
             obj_map[ses_id] = PseudobondGroup.c_ptr_to_py_inst(ptr)
         data = {'version': version,
                 'mgr data':retvals,
-                'structure mapping': obj_map}
+                'structure mapping': obj_map,
+                'custom attrs': get_custom_attrs(PseudobondManager, self)}
         return data
 
     @staticmethod
@@ -958,6 +612,7 @@ class PseudobondManager(StateManager):
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
         f(pbm._c_pointer, data['version'], ints, floats, misc)
+        set_custom_attrs(pbm, data)
         return pbm
 
     def reset_state(self, session):
@@ -967,11 +622,6 @@ class PseudobondManager(StateManager):
         for pbg in list(self.group_map.values()):
             pbg.delete()
 
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        return [session.pb_manager]
-
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
         f(self._c_pointer)
@@ -979,7 +629,8 @@ class PseudobondManager(StateManager):
 
 # -----------------------------------------------------------------------------
 #
-class Residue(State):
+from .cymol import CyResidue
+class Residue(CyResidue, State):
     '''
     A group of atoms such as an amino acid or nucleic acid. Every atom in
     an :class:`.AtomicStructure` belongs to a residue, including solvent and ions.
@@ -987,193 +638,23 @@ class Residue(State):
     To create a Residue use the :class:`.AtomicStructure` new_residue() method.
     '''
 
-    SS_COIL = 0
-    SS_HELIX = 1
-    SS_SHEET = SS_STRAND = 2
-
-    # Since there are no class properties, these are simply sets; changing them
-    # will have no effect on the C++ layer.  If that is needed we will have to
-    # add add_standard_solvent/water_name functions
-    standard_solvent_names = c_function('residue_standard_solvent_names', args = (),
-        ret = ctypes.py_object)()
-    standard_water_names = c_function('residue_standard_water_names', args = (),
-        ret = ctypes.py_object)()
-
-    def __init__(self, residue_pointer):
-        set_c_pointer(self, residue_pointer)
-
-    # cpp_pointer and deleted are "base class" methods, though for performance reasons
-    # we are placing them directly in each class rather than using a base class,
-    # and for readability by most programmers we avoid using metaclasses
+    # used by custom-attr registration code
     @property
-    def cpp_pointer(self):
-        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
-        return self._c_pointer.value
-
-    def delete(self):
-        '''Delete this Residue from it's Structure'''
-        f = c_function('residue_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
-        c = f(self._c_pointer_ref, 1)
-
-    @property
-    def deleted(self):
-        '''Has the C++ side been deleted?'''
-        return not hasattr(self, '_c_pointer')
-
-    def __lt__(self, other):
-        # for sorting (objects of the same type)
-        if self.structure != other.structure:
-            return self.structure < other.structure
-
-        if self.chain_id != other.chain_id:
-            return self.chain_id < other.chain_id
-
-        return self.number < other.number \
-            if self.number != other.number else self.insertion_code < other.insertion_code
-
-    def __str__(self, residue_only = False, omit_structure = False, style = None):
-        if style == None:
-            from ..core_settings import settings
-            style = settings.atomspec_contents
-        ic = self.insertion_code
-        if style.startswith("simple"):
-            res_str = self.name + " " + str(self.number) + ic
-        else:
-            res_str = ":" + str(self.number) + ic
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
-        if residue_only:
-            return res_str
-        if omit_structure:
-            return '%s %s' % (chain_str, res_str)
-        from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
-            struct_string = str(self.structure)
-            if style.startswith("serial"):
-                struct_string += " "
-        else:
-            struct_string = ""
-        from ..core_settings import settings
-        if style.startswith("simple"):
-            return '%s%s %s' % (struct_string, chain_str, res_str)
-        if style.startswith("command"):
-            return struct_string + chain_str + res_str
-        return struct_string
-
-    def atomspec(self):
-        res_str = ":" + str(self.number) + self.insertion_code
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
-        return self.structure.atomspec() + chain_str + res_str
-
-    atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
-    ''':class:`.Atoms` collection containing all atoms of the residue.'''
-    center = c_property('residue_center', float64, 3, read_only = True)
-    '''Average of atom positions as a numpy length 3 array, 64-bit float values.'''
-    chain = c_property('residue_chain', cptr, astype = _chain, read_only = True)
-    ''':class:`.Chain` that this residue belongs to, if any. Read only.'''
-    chain_id = c_property('residue_chain_id', string, read_only = True)
-    '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
-    mmcif_chain_id = c_property('residue_mmcif_chain_id', string, read_only = True)
-    '''mmCIF chain identifier. Limited to 4 characters. Read only string.'''
-    @property
-    def description(self):
-        '''Description of residue (if available) from HETNAM/HETSYN records or equivalent'''
-        return getattr(self.structure, '_hetnam_descriptions', {}).get(self.name, None)
-    insertion_code = c_property('residue_insertion_code', string)
-    '''Protein Data Bank residue insertion code. 1 character or empty string.'''
-    is_helix = c_property('residue_is_helix', npy_bool, doc=
-        "Whether this residue belongs to a protein alpha helix. Boolean value. ")
-    is_strand = c_property('residue_is_strand', npy_bool, doc=
-        "Whether this residue belongs to a protein beta sheet. Boolean value. ")
-    PT_NONE = 0
-    '''Residue polymer type = none.'''
-    PT_AMINO = 1
-    '''Residue polymer type = amino acid.'''
-    PT_NUCLEIC = 2
-    '''Residue polymer type = nucleotide.'''
-    polymer_type = c_property('residue_polymer_type', uint8, read_only = True)
-    '''Polymer type of residue. Integer value.'''
-    name = c_property('residue_name', string, read_only = True)
-    '''Residue name. Maximum length 4 characters. Read only.'''
-    num_atoms = c_property('residue_num_atoms', size_t, read_only = True)
-    '''Number of atoms belonging to the residue. Read only.'''
-    number = c_property('residue_number', int32, read_only = True)
-    '''Integer sequence position number as defined in the input data file. Read only.'''
-    principal_atom = c_property('residue_principal_atom', cptr, astype = _atom_or_none, read_only=True)
-    '''The 'chain trace' :class:`.Atom`\\ , if any.
-
-    Normally returns the C4' from a nucleic acid since that is always present,
-    but in the case of a P-only trace it returns the P.'''
-    ribbon_display = c_property('residue_ribbon_display', npy_bool)
-    '''Whether to display the residue as a ribbon/pipe/plank. Boolean value.'''
-    ribbon_hide_backbone = c_property('residue_ribbon_hide_backbone', npy_bool)
-    '''Whether a ribbon automatically hides the residue backbone atoms. Boolean value.'''
-    ribbon_color = c_property('residue_ribbon_color', uint8, 4)
-    '''Ribbon color RGBA length 4 numpy uint8 array.'''
-    ribbon_adjust = c_property('residue_ribbon_adjust', float32)
-    '''Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized).'''
-    ss_id = c_property('residue_ss_id', int32)
-    '''Secondary structure id number. Integer value.'''
-    ss_type = c_property('residue_ss_type', int32, doc=
-        "Secondary structure type of residue.  Integer value.  One of Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_SHEET (a.k.a. SS_STRAND)")
-    structure = c_property('residue_structure', pyobject, read_only = True)
-    ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
-
-    def add_atom(self, atom):
-        '''Add the specified :class:`.Atom` to this residue.
-        An atom can only belong to one residue, and all atoms
-        must belong to a residue.'''
-        f = c_function('residue_add_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
-        f(self._c_pointer, atom._c_pointer)
-
-    def bonds_between(self, other_res):
-        '''Return the bonds between this residue and other_res as a Bonds collection.'''
-        f = c_function('residue_bonds_between', args = (ctypes.c_void_p, ctypes.c_void_p),
-                ret = ctypes.py_object)
-        return _bonds(f(self._c_pointer, other_res._c_pointer))
-
-    def connects_to(self, other_res):
-        '''Return True if this residue is connected by at least one bond (not pseudobond) to other_res'''
-        f = c_function('residue_connects_to', args = (ctypes.c_void_p, ctypes.c_void_p),
-                ret = ctypes.c_bool)
-        return f(self._c_pointer, other_res._c_pointer, ret = ctypes.c_bool)
-
-    def find_atom(self, atom_name):
-        '''Return the atom with the given name, or None if not found.\n'''
-        '''If multiple atoms in the residue have that name, an arbitrary one that matches will'''
-        ''' be returned.'''
-        f = c_function('residue_find_atom', args = (ctypes.c_void_p, ctypes.c_char_p),
-            ret = ctypes.c_void_p)
-        return _atom_or_none(f(self._c_pointer, atom_name.encode('utf-8')))
-
-    def set_alt_loc(self, loc):
-        if isinstance(loc, str):
-            loc = loc.encode('utf-8')
-        f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
-        r_ref = ctypes.byref(self._c_pointer)
-        f(r_ref, 1, loc)
+    def has_custom_attrs(self):
+        return has_custom_attrs(Residue, self)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
-                'ses_id': self.structure.session_residue_to_id(self._c_pointer)}
+                'ses_id': self.structure.session_residue_to_id(self._c_pointer),
+                'custom attrs': get_custom_attrs(Residue, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.residues)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        r = Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
+        set_custom_attrs(r, data)
+        return r
+Residue.set_py_class(Residue)
 
 
 # -----------------------------------------------------------------------------
@@ -1227,6 +708,9 @@ class Ring:
     def __gt__(self, r):
         return not (self < r or self == r)
 
+    def __hash__(self):
+        return id(self)
+
     def __le__(self, r):
         return self < r or self == r
 
@@ -1272,7 +756,7 @@ class Sequence(State):
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
-        from ..triggerset import TriggerSet
+        from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
         f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
@@ -1302,7 +786,7 @@ class Sequence(State):
     characters = c_property('sequence_characters', string, doc=
         "A string representing the contents of the sequence")
     circular = c_property('sequence_circular', npy_bool, doc="Indicates the sequence involves"
-        " a cicular permutation; the sequence characters have been doubled, and residue"
+        " a circular permutation; the sequence characters have been doubled, and residue"
         " correspondences of the first half implicitly exist in the second half as well."
         " Typically used in alignments to line up with sequences that aren't permuted.")
     name = c_property('sequence_name', string, doc="The sequence name")
@@ -1323,8 +807,12 @@ class Sequence(State):
     def __del__(self):
         if Sequence.chimera_exiting:
             return
-        del_f = c_function('sequence_del_pyobj', args = (ctypes.c_void_p,))
-        del_f(self._c_pointer) # will destroy C++ object unless it's an active Chain
+        # __del__ methods that create additional references (which the code in the
+        # 'if' below apparently does) can cause __del__ to be called multiple times,
+        # so the test below is necessary
+        if not self.deleted:
+            del_f = c_function('sequence_del_pyobj', args = (ctypes.c_void_p,))
+            del_f(self._c_pointer) # will destroy C++ object unless it's an active Chain
 
     def extend(self, chars):
         """Extend the sequence with the given string"""
@@ -1344,43 +832,13 @@ class Sequence(State):
             return None
         return g2u
 
-    """Need a way to discover all Sequences
-    # used by attribute registration to gather attributes for session saving...
-    @classmethod
-    def get_existing_instances(cls, session):
-        # find what type of sequence class this is (or inherits from)
-        sequence = structure_seq = chain = False
-        check_list = [cls]
-        while check_list:
-            check_cls = check_list.pop()
-            if check_cls is Chain:
-                chain = True
-                break
-            elif check_cls is StructureSeq:
-                structure_seq = True
-                break
-            elif check_cls is Sequence:
-                sequence = True
-                break
-            check_list.extend(check_cls.__bases__)
-        if chain:
-            check_cls = Chain
-        elif structure_seq:
-            check_cls = StructureSeq
-        elif sequence:
-            check_cls = Sequence
-        else:
-            raise ValueError("%s is not a Sequence/StructureSeq/Chain" % cls.__name__)
-        sequences = []
-        for m in session.models:
-            if not isinstance(m, check_cls):
-                continue
-            sequences.append(m)
-        return structures
-    """
-
     def __getitem__(self, key):
         return self.characters[key]
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Sequence, self)
 
     def __hash__(self):
         return id(self)
@@ -1413,6 +871,7 @@ class Sequence(State):
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
         self.numbering_start = data.get('numbering_start', None)
+        set_custom_attrs(self, data)
 
     def ss_type(self, loc, loc_is_ungapped=False):
         try:
@@ -1432,7 +891,8 @@ class Sequence(State):
 
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
-            'markups': self.markups, 'numbering_start': self.numbering_start }
+            'markups': self.markups, 'numbering_start': self.numbering_start,
+            'custom attrs': get_custom_attrs(Sequence, self)}
         return data
 
     def ungapped(self):
@@ -1547,12 +1007,10 @@ class StructureSeq(Sequence):
             name_part = ""
         return "%s (#%s)%s" % (self.structure.name, self.structure.id_string(), name_part)
 
+    # used by custom-attr registration code
     @property
-    def has_protein(self):
-        for r in self.residues:
-            if r and Sequence.protein3to1(r.name) != 'X':
-                return True
-        return False
+    def has_custom_attrs(self):
+        return has_custom_attrs(Sequence, self) or has_custom_attrs(StructureSeq, self)
 
     def _get_numbering_start(self):
         if self._numbering_start == None:
@@ -1611,7 +1069,13 @@ class StructureSeq(Sequence):
         sseq.description = data['description']
         sseq.bulk_set(data['residues'], sseq.characters)
         sseq.description = data.get('description', None)
+        set_custom_attrs(sseq, data)
         return sseq
+
+    @property
+    def session(self):
+        "Session that this StructureSeq is in"
+        return self.structure.session
 
     def ss_type(self, loc, loc_is_ungapped=False):
         if not loc_is_ungapped:
@@ -1633,7 +1097,8 @@ class StructureSeq(Sequence):
             'chain_id': self.chain_id,
             'description': self.description,
             'residues': self.residues,
-            'structure': self.structure
+            'structure': self.structure,
+            'custom attrs': get_custom_attrs(StructureSeq, self)
         }
         return data
 
@@ -1701,16 +1166,7 @@ class Chain(StructureSeq):
     '''
 
     def __str__(self):
-        from ..core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
-        from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
-            struct_string = str(self.structure)
-        else:
-            struct_string = ""
-        from ..core_settings import settings
-        return struct_string + chain_str
+        return self.string()
 
     def atomspec(self):
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
@@ -1723,17 +1179,31 @@ class Chain(StructureSeq):
     @staticmethod
     def restore_snapshot(session, data):
         ptr = data['structure'].session_id_to_chain(data['ses_id'])
-        chain = _sseq_ptr_to_existing_inst(ptr)
+        chain = Chain.c_ptr_to_existing_py_inst(ptr)
         if not chain:
             chain = Chain(ptr)
         chain.description = data.get('description', None)
+        set_custom_attrs(chain, data)
         return chain
+
+    def string(self):
+        from chimerax.core.core_settings import settings
+        cmd_style = settings.atomspec_contents == "command-line specifier"
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        from .structure import Structure
+        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+            struct_string = str(self.structure)
+        else:
+            struct_string = ""
+        from chimerax.core.core_settings import settings
+        return struct_string + chain_str
 
     def take_snapshot(self, session, flags):
         data = {
             'description': self.description,
             'ses_id': self.structure.session_chain_to_id(self._c_pointer),
-            'structure': self.structure
+            'structure': self.structure,
+            'custom attrs': get_custom_attrs(StructureSeq, self)
         }
         return data
 
@@ -1757,11 +1227,14 @@ class StructureData:
         if mol_pointer is None:
             # Create a new graph
             from .structure import AtomicStructure
-            new_func = 'atomic_structure_new' if isinstance(self, AtomicStructure) else 'structure_new'
-            mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
+            new_func = 'atomic_structure_new' \
+                if isinstance(self, AtomicStructure) else 'structure_new'
+            mol_pointer = c_function(new_func, args = (ctypes.py_object,),
+                ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
         f = c_function('set_structure_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
+        self._ses_end_handler = None
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -1778,69 +1251,73 @@ class StructureData:
 
     def delete(self):
         '''Deletes the C++ data for this atomic structure.'''
+        if self._ses_end_handler:
+            self.session.triggers.remove_handler(self._ses_end_handler)
         c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
 
     active_coordset_change_notify = c_property('structure_active_coordset_change_notify', npy_bool,
-    doc='''Whether notifications are issued when the active coordset is changed.  Should only be
-    set to true when temporarily changing the active coordset in a Python script. Boolean''')
+    doc = '''Whether notifications are issued when the active coordset is changed.  Should only be
+        set to true when temporarily changing the active coordset in a Python script. Boolean''')
     active_coordset = c_property('structure_active_coordset', cptr, astype = _coordset,
-        read_only = True, doc="Supported API. Currently active :class:`CoordSet`.")
-    active_coordset_id = c_property('structure_active_coordset_id', int32)
-    '''Index of the active coordinate set.'''
+        read_only = True, doc="Supported API. Currently active :class:`CoordSet`. Read only.")
+    active_coordset_id = c_property('structure_active_coordset_id', int32,
+        doc = "Supported API. Index of the active coordinate set.")
     alt_loc_change_notify = c_property('structure_alt_loc_change_notify', npy_bool, doc=
-    '''Whether notifications are issued when altlocs are changed.  Should only be
-    set to true when temporarily changing alt locs in a Python script. Boolean''')
-    atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
-    ''':class:`.Atoms` collection containing all atoms of the structure.'''
+        '''Whether notifications are issued when altlocs are changed.  Should only be
+        set to true when temporarily changing alt locs in a Python script. Boolean''')
+    atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True,
+        doc = "Supported API. :class:`.Atoms` collection containing all atoms of the structure.")
     ball_scale = c_property('structure_ball_scale', float32,
         doc = "Scales sphere radius in ball-and-stick style.")
-    bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
-    ''':class:`.Bonds` collection containing all bonds of the structure.'''
-    chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
-    ''':class:`.Chains` collection containing all chains of the structure.'''
-    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True)
-    '''Return array of ids of all coordinate sets.'''
-    coordset_size = c_property('structure_coordset_size', int32, read_only = True)
-    '''Return the size of the active coordinate set array.'''
-    lower_case_chains = c_property('structure_lower_case_chains', npy_bool)
-    '''Structure has lower case chain ids. Boolean'''
-    num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
-    '''Number of atoms in structure. Read only.'''
-    num_atoms_visible = c_property('structure_num_atoms_visible', size_t, read_only = True)
-    '''Number of visible atoms in structure. Read only.'''
-    num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
-    '''Number of bonds in structure. Read only.'''
-    num_bonds_visible = c_property('structure_num_bonds_visible', size_t, read_only = True)
-    '''Number of visible bonds in structure. Read only.'''
-    num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True)
-    '''Number of coordinate sets in structure. Read only.'''
-    num_chains = c_property('structure_num_chains', size_t, read_only = True)
-    '''Number of chains structure. Read only.'''
-    num_residues = c_property('structure_num_residues', size_t, read_only = True)
-    '''Number of residues structure. Read only.'''
-    residues = c_property('structure_residues', cptr, 'num_residues', astype = _residues, read_only = True)
-    ''':class:`.Residues` collection containing the residues of this structure. Read only.'''
-    pbg_map = c_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
-    '''Dictionary mapping name to :class:`.PseudobondGroup` for pseudobond groups
-    belonging to this structure. Read only.'''
-    metadata = c_property('metadata', pyobject, read_only = True)
-    '''Dictionary with metadata. Read only.'''
-    pdb_version = c_property('pdb_version', int32)
-    '''Dictionary with metadata. Read only.'''
-    ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32)
-    '''Ribbon tether thickness scale factor (1.0 = match displayed atom radius, 0=invisible).'''
-    ribbon_tether_shape = c_property('structure_ribbon_tether_shape', int32)
-    '''Ribbon tether shape. Integer value.'''
+    bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True,
+        doc = ":class:`.Bonds` collection containing all bonds of the structure.")
+    chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True,
+        doc = "Supported API. :class:`.Chains` collection containing all chains of the structure.")
+    coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True,
+        doc = "Supported API. Return array of ids of all coordinate sets.")
+    coordset_size = c_property('structure_coordset_size', int32, read_only = True,
+        doc = "Supported API. Return the size of the active coordinate set array.")
+    lower_case_chains = c_property('structure_lower_case_chains', npy_bool,
+        doc = "Supported API. Structure has lower case chain ids. Boolean")
+    num_atoms = c_property('structure_num_atoms', size_t, read_only = True,
+        doc = "Supported API. Number of atoms in structure. Read only.")
+    num_atoms_visible = c_property('structure_num_atoms_visible', size_t, read_only = True,
+        doc = "Number of visible atoms in structure. Read only.")
+    num_bonds = c_property('structure_num_bonds', size_t, read_only = True,
+        doc = "Supported API. Number of bonds in structure. Read only.")
+    num_bonds_visible = c_property('structure_num_bonds_visible', size_t, read_only = True,
+        doc = "Number of visible bonds in structure. Read only.")
+    num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True,
+        doc = "Supported API. Number of coordinate sets in structure. Read only.")
+    num_chains = c_property('structure_num_chains', size_t, read_only = True,
+        doc = "Supported API. Number of chains structure. Read only.")
+    num_residues = c_property('structure_num_residues', size_t, read_only = True,
+        doc = "Supported API. Number of residues structure. Read only.")
+    residues = c_property('structure_residues', cptr, 'num_residues', astype = _residues,
+        read_only = True, doc = "Supported API. :class:`.Residues` collection containing the"
+        " residues of this structure. Read only.")
+    pbg_map = c_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map,
+        read_only = True, doc = "Suported API. Dictionary mapping name to"
+        " :class:`.PseudobondGroup` for pseudobond groups belonging to this structure. Read only.")
+    metadata = c_property('metadata', pyobject, read_only = True,
+        doc = "Supported API. Dictionary with metadata. Read only.")
+    pdb_version = c_property('pdb_version', int32, doc = "If this structure came from a PDB file,"
+        " the major PDB version number of that file (2 or 3). Read only.")
+    ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32,
+        doc = "Ribbon tether thickness scale factor"
+        " (1.0 = match displayed atom radius, 0=invisible).")
+    ribbon_tether_shape = c_property('structure_ribbon_tether_shape', int32,
+        doc = "Ribbon tether shape. Integer value.")
     TETHER_CONE = 0
     '''Tether is cone with point at ribbon.'''
     TETHER_REVERSE_CONE = 1
     '''Tether is cone with point at atom.'''
     TETHER_CYLINDER = 2
     '''Tether is cylinder.'''
-    ribbon_show_spine = c_property('structure_ribbon_show_spine', npy_bool)
-    '''Display ribbon spine. Boolean.'''
-    ribbon_orientation = c_property('structure_ribbon_orientation', int32)
-    '''Ribbon orientation. Integer value.'''
+    ribbon_show_spine = c_property('structure_ribbon_show_spine', npy_bool,
+        doc = "Display ribbon spine. Boolean.")
+    ribbon_orientation = c_property('structure_ribbon_orientation', int32,
+        doc = "Ribbon orientation. Integer value.")
     RIBBON_ORIENT_GUIDES = 1
     '''Ribbon orientation from guide atoms.'''
     RIBBON_ORIENT_ATOMS = 2
@@ -1849,16 +1326,16 @@ class StructureData:
     '''Ribbon orientation perpendicular to ribbon curvature.'''
     RIBBON_ORIENT_PEPTIDE = 4
     '''Ribbon orientation perpendicular to peptide planes.'''
-    ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True)
-    '''Return number of residues with ribbon display set. Integer.'''
-    ribbon_tether_sides = c_property('structure_ribbon_tether_sides', int32)
-    '''Number of sides for ribbon tether. Integer value.'''
-    ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32)
-    '''Ribbon tether opacity scale factor (relative to the atom).'''
-    ribbon_mode_helix = c_property('structure_ribbon_mode_helix', int32)
-    '''Ribbon mode for helices. Integer value.'''
-    ribbon_mode_strand = c_property('structure_ribbon_mode_strand', int32)
-    '''Ribbon mode for strands. Integer value.'''
+    ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True,
+        doc = "Return number of residues with ribbon display set. Integer.")
+    ribbon_tether_sides = c_property('structure_ribbon_tether_sides', int32,
+        doc = "Number of sides for ribbon tether. Integer value.")
+    ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32,
+        doc = "Ribbon tether opacity scale factor (relative to the atom).")
+    ribbon_mode_helix = c_property('structure_ribbon_mode_helix', int32,
+        doc = "Ribbon mode for helices. Integer value.")
+    ribbon_mode_strand = c_property('structure_ribbon_mode_strand', int32,
+        doc = "Ribbon mode for strands. Integer value.")
     RIBBON_MODE_DEFAULT = 0
     '''Default ribbon mode showing secondary structure with ribbons.'''
     RIBBON_MODE_ARC = 1
@@ -1883,7 +1360,7 @@ class StructureData:
         return p
 
     def add_coordset(self, id, xyz):
-        '''Add a coordinate set with the given id.'''
+        '''Supported API. Add a coordinate set with the given id.'''
         if xyz.dtype != float64:
             raise ValueError('add_coordset(): array must be float64, got %s' % xyz.dtype.name)
         f = c_function('structure_add_coordset',
@@ -1906,8 +1383,13 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t))
         f(self._c_pointer, replace, pointer(xyzs), *xyzs.shape[:2])
 
+    def remove_coordsets(self):
+        '''Remove all coordinate sets.'''
+        f = c_function('structure_remove_coordsets', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
     def coordset(self, cs_id):
-        '''Return the CoordSet for the given coordset ID'''
+        '''Supported API. Return the CoordSet for the given coordset ID'''
         f = c_function('structure_py_obj_coordset', args = (ctypes.c_void_p, ctypes.c_int),
             ret = ctypes.py_object)
         return f(self._c_pointer, cs_id)
@@ -1932,38 +1414,9 @@ class StructureData:
         f = c_function('structure_delete_alt_locs', args = (ctypes.c_void_p,))(self._c_pointer)
 
     def delete_atom(self, atom):
-        '''Delete the specified Atom.'''
+        '''Supported API. Delete the specified Atom.'''
         f = c_function('structure_delete_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
-
-    # used by attribute registration to gather attributes for session saving...
-    @classmethod
-    def get_existing_instances(cls, session):
-        # find what type of structure class this is (or inherits from)
-        from . import AtomicStructure, Structure
-        atomic = structure = False
-        check_list = [cls]
-        while check_list:
-            check_cls = check_list.pop()
-            if check_cls is AtomicStructure:
-                atomic = True
-                break
-            elif check_cls is Structure:
-                structure = True
-                break
-            check_list.extend(check_cls.__bases__)
-        if atomic:
-            check_cls = AtomicStructure
-        elif structure:
-            check_cls = Structure
-        else:
-            raise ValueError("%s is neither a Structure nor AtomicStructure" % cls.__name__)
-        structures = []
-        for m in session.models:
-            if not isinstance(m, check_cls):
-                continue
-            structures.append(m)
-        return structures
 
     @property
     def molecules(self):
@@ -1976,9 +1429,10 @@ class StructureData:
         return tuple(Atoms(aa) for aa in atom_arrays)
 
     def new_atom(self, atom_name, element):
-        '''Create a new :class:`.Atom` object. It must be added to a :class:`.Residue` object
-        belonging to this structure before being used.  'element' can be a string (atomic symbol),
-        an integer (atomic number), or an Element instance'''
+        '''Supported API. Create a new :class:`.Atom` object. It must be added to a
+        :class:`.Residue` object belonging to this structure before being used.
+        'element' can be a string (atomic symbol), an integer (atomic number),
+        or an Element instance'''
         if not isinstance(element, Element):
             element = Element.get_element(element)
         f = c_function('structure_new_atom',
@@ -1987,16 +1441,16 @@ class StructureData:
         return f(self._c_pointer, atom_name.encode('utf-8'), element._c_pointer)
 
     def new_bond(self, atom1, atom2):
-        '''Create a new :class:`.Bond` joining two :class:`Atom` objects.'''
+        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.'''
         f = c_function('structure_new_bond',
                        args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
                        ret = ctypes.py_object)
         return f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
 
     def new_coordset(self, index=None, size=None):
-        '''Create a new empty coordset.  In almost all circumstances one would use the
-           add_coordset(s) method instead (to add fully populated coordsets), but in some
-           cases when building a Structure from scratch this method is needed.
+        '''Supported API. Create a new empty coordset.  In almost all circumstances one would
+            use the add_coordset(s) method instead (to add fully populated coordsets), but in
+            some cases when building a Structure from scratch this method is needed.
 
            'index' defaults to one more than highest existing index (or 1 if none existing);
            'size' is for efficiency when creating the first coordinate set of a new Structure,
@@ -2016,7 +1470,7 @@ class StructureData:
                 f(index, size)
 
     def new_residue(self, residue_name, chain_id, pos, insert=' '):
-        '''Create a new :class:`.Residue`.'''
+        '''Supported API. Create a new :class:`.Residue`.'''
         f = c_function('structure_new_residue',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
                        ret = ctypes.py_object)
@@ -2039,7 +1493,7 @@ class StructureData:
         return [(Residues(res_array), ptype) for res_array, ptype in polymers]
 
     def pseudobond_group(self, name, *, create_type = "normal"):
-        '''Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
+        '''Supported API. Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
         if isinstance(create_type, int):
             create_arg = create_type
         elif create_type is None:
@@ -2094,7 +1548,8 @@ class StructureData:
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
         f(self._c_pointer, data['version'], tuple(data['ints']), tuple(data['floats']), tuple(data['misc']))
-        session.triggers.add_handler("end restore session", self._ses_restore_teardown)
+        self._ses_end_handler = session.triggers.add_handler("end restore session",
+            self._ses_restore_teardown)
 
     def save_state(self, session, flags):
         '''Gather session info; return version number'''
@@ -2109,7 +1564,7 @@ class StructureData:
                 'misc': []}
         data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
         # data is all simple Python primitives, let session saving know that...
-        from ..state import FinalizedState
+        from chimerax.core.state import FinalizedState
         return FinalizedState(data)
 
     def session_atom_to_id(self, ptr):
@@ -2172,13 +1627,18 @@ class StructureData:
         f = c_function('structure_use_default_atom_radii', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
+    def _cpp_notify_position(self, pos):
+        f = c_function('structure_set_position', args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, pointer(pos.matrix))
+
     def _ses_call(self, func_qual):
         f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))
         f(self._c_pointer)
 
     def _ses_restore_teardown(self, *args):
         self._ses_call("restore_teardown")
-        from ..triggerset import DEREGISTER
+        self._ses_end_handler = None
+        from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
 
     def _start_change_tracking(self, change_tracker):
@@ -2224,27 +1684,26 @@ class CoordSet(State):
     structure = c_property('coordset_structure', pyobject, read_only=True,
         doc=":class:`.AtomicStructure` the coordset belongs to")
 
+    @property
+    def session(self):
+        "Session that this CoordSet is in"
+        return self.structure.session
+
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(CoordSet, self)
+
     def take_snapshot(self, session, flags):
-        data = {'structure': self.structure, 'cs_id': self.id}
+        data = {'structure': self.structure, 'cs_id': self.id,
+                'custom attrs': get_custom_attrs(CoordSet, self)}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return data['structure'].coordset(data['cs_id'])
-
-    # used by attribute registration to gather attributes for session saving...
-    @staticmethod
-    def get_existing_instances(session):
-        collections = []
-        for m in session.models:
-            if not isinstance(m, StructureData):
-                continue
-            collections.append(m.coordsets)
-        from .molarray import concatenate
-        if collections:
-            return [i for i in concatenate(collections).instances(instantiate=False)
-                if i is not None]
-        return []
+        cs = data['structure'].coordset(data['cs_id'])
+        set_custom_attrs(cs, data)
+        return cs
 
 # -----------------------------------------------------------------------------
 #
@@ -2365,6 +1824,8 @@ class ChangeTracker:
             return 7
         raise AssertionError("Unknown class for change tracking: %s" % inst.__class__.__name__)
 
+from .cymol import Element
+"""
 # -----------------------------------------------------------------------------
 #
 class Element:
@@ -2418,9 +1879,9 @@ class Element:
 
     @staticmethod
     def bond_length(e1, e2):
-        """Standard single-bond length between two elements
+        '''Standard single-bond length between two elements
 
-        Arguments can be element instances, atomic numbers, or element names"""
+        Arguments can be element instances, atomic numbers, or element names'''
         if not isinstance(e1, Element):
             e1 = Element.get_element(e1)
         if not isinstance(e2, Element):
@@ -2431,10 +1892,10 @@ class Element:
 
     @staticmethod
     def bond_radius(e):
-        """Standard single-bond 'radius'
+        '''Standard single-bond 'radius'
         (the amount this element would contribute to bond length)
 
-        Argument can be an element instance, atomic number, or element name"""
+        Argument can be an element instance, atomic number, or element name'''
         if not isinstance(e, Element):
             e = Element.get_element(e)
         f = c_function('element_bond_radius', args = (ctypes.c_void_p,), ret = ctypes.c_float)
@@ -2452,6 +1913,7 @@ class Element:
         else:
             raise ValueError("'get_element' arg must be string or int")
         return _element(f(f_arg))
+"""
 
 # -----------------------------------------------------------------------------
 #
@@ -2640,7 +2102,8 @@ class SeqMatchMap(State):
 # from C++ with just a pointer, and put functions in those classes for getting the instance
 # from the pointer (needed by Collections)
 from .pbgroup import PseudobondGroup
-for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
+#for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
+for class_obj in [Bond, CoordSet, PseudobondGroup, Pseudobond, Ring]:
     cname = class_obj.__name__.lower()
     func_name = "set_" + cname + "_pyclass"
     f = c_function(func_name, args = (ctypes.py_object,))

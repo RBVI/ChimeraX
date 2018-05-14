@@ -69,7 +69,9 @@ There may be several additional options, depending on the file type:
 </p><p>
 Files can also be saved with <b>File... Save</b> in the menu.
 See also: <a href="open.html"><b>open</b></a>,
-<a href="log.html"><b>log</b></a>
+<a href="log.html"><b>log</b></a>,
+<a href="../../devel/mmcif_writing.html"
+target="_blank">Writing mmCIF Files in ChimeraX</a>
 </p>
 
 <a name="formats"></a>
@@ -151,7 +153,9 @@ Sybyl Mol2<br>
 <td align="center">
 atomic coordinates,<br>
 mmCIF<br>
-<font color="brown">*experimental/incomplete*</font></td>
+(includes a subset of mmCIF data types, see
+<a href="../../devel/mmcif_writing.html"
+target="_blank">details</a>)</td>
 </tr><tr>
 <td align="center"><b>dcd</b></td>
 <td align="center">.dcd</td>
@@ -195,7 +199,7 @@ target="_blank">X3D</a></td>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#formats"><i>file-format</i></a>&nbsp;]
-[[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
+[[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp;|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
 [&nbsp;<b>supersample</b>&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>transparentBackground</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -209,7 +213,7 @@ See also: <a href="windowsize.html"><b>windowsize</b></a>,
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>
 <blockquote>
-[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>
+[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp;|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>
 <br>
 Image pixel dimensions can be specified directly with 
 <b>width</b> and <b>height</b>, or relative to the physical dimensions
@@ -227,7 +231,7 @@ With <a href="camera.html">perspective</a>, the pixel size varies with depth,
 but <b>pixelSize</b> sets the value at half-depth
 (the midpoint along the line of sight).
 For example, if at half-depth the graphics window encloses
-a 400-&Aring by 300-&Aring; rectangle,
+a 400-&Aring; by 300-&Aring; rectangle,
 <b>pixelSize 0.4</b> specifies image pixel dimensions of 1000 by 750.
 </blockquote>
 <blockquote>
@@ -406,6 +410,7 @@ because one Z-plane is written at a time.
 [&nbsp;<b>displayedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>allCoordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>pqr</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>serialNumbering</b>&nbsp;&nbsp;amber&nbsp;|&nbsp;<b>h36</b>&nbsp;]
 </blockquote>
 <p>
 Atomic coordinates can be saved in 
@@ -465,6 +470,23 @@ target="_blank">PQR format</a> instead of
 target="_blank">standard PDB</a>.
 In PQR format, atomic partial charge (Q) and radius (R) fields 
 follow the X,Y,Z atomic coordinates.
+</blockquote>
+<blockquote>
+<b>serialNumbering</b>&nbsp;&nbsp;amber&nbsp;|&nbsp;<b>h36</b>
+<br>
+How to accommodate structures so large that the 
+numbering fields in standard PDB format would overflow
+(output for smaller structures is not affected):
+<ul>
+<li><b>amber</b> handles atomic models
+with &gt; 99,999 atoms by &ldquo;stealing&rdquo; a column to the
+left of the atom numbering field in standard PDB format
+<li><b>h36</b> (default) handles atomic models
+with &gt; 99,999 atoms (up to 87,440,031)
+and/or &gt; 9999 residues in a chain (up to 2,436,111)
+by incorporating alphabetical characters
+(<a href="http://cci.lbl.gov/hybrid_36/" target="_blank">details...</a>)
+</ul>
 </blockquote>
 
 <a name="mol2"></a>
@@ -546,5 +568,5 @@ GAFF types are not yet computed, so this should be kept <b>false</b>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+April 2018</address>
 </body></html>

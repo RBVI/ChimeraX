@@ -39,7 +39,7 @@ maps for proteins.
 By default, the results are shown with coloring on the molecular surface
 ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to 
 <b>dark goldenrod</b> (most lipophilic). The calculation is based on 
-<a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</b></a>:
+<a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>:
 </p>
 <blockquote>
 Molecular structures: Perception, autocorrelation descriptor and SAR studies.
@@ -54,10 +54,11 @@ in proteins.</a>
 Laguerre M, Saux M, Dubost JP, Carpy A.
 <i>Pharm. Sci.</i> 1997;3(5-6):217-22.
 </blockquote>
+<p>
 Optimizations for speed, including a 
 distance cutoff, have been added in ChimeraX.
 See also: 
-<a href="color.html"><b>color</b></a>,
+<a href="color.html#map"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
@@ -66,7 +67,7 @@ target="_blank">ChimeraX MLP highlight</a>,
 some <a href="http://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/"
 target="_blank">comparisons</a> at the Chimera website
 </p><p>
-The <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</b></a>
+The <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>
 program includes values for nonhydrogen atoms in the 20 standard 
 amino acids plus HYP (hydroxyproline) and PCA (pyroglutamic acid). 
 Other atoms are ignored.
@@ -104,12 +105,18 @@ MLP value ranges for each surface are reported in the
 <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
 <a name="palette-options"></a>
-The <b><i>palette-options</i></b> are the same as
+The <b><i>palette-options</i></b> are as
 <a href="color.html#palette-options">described for <b>color</b></a>,
-except with defaults:
+except with defaults
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=darkcyan width="10px"></td>
+<td bgcolor=white width="10px"></td>
+<td bgcolor=darkgoldenrod width="10px"></td>
+</tr></table>:
 </p>
 <blockquote>
-<b>palette&nbsp;darkcyan:white:darkgoldenrod&nbsp;&nbsp;range&nbsp;-20,20</b>
+<b>palette lipophilicity range -20,20</b>
 </blockquote>
 <p>
 Different choices of <b>method</b> and/or <b>maxDistance</b> can give very 
@@ -126,11 +133,11 @@ Decreasing the spacing increases map size and calculation time.
 With <b>map true</b> (default <b>false</b>), MLP maps will be
 opened as volume models. This allows subsequently recoloring surfaces 
 by the map values (without having to recalculate them on the fly) 
-using <a href="color.html"><b>color</b></a>,
+using <a href="color.html#map"><b>color</b></a>,
 and/or <a href="save.html">saving</a> the maps to file.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2017</address>
+April 2018</address>
 </body></html>

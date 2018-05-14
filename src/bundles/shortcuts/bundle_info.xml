@@ -19,6 +19,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
@@ -29,8 +30,8 @@
     <ChimeraXClassifier>ChimeraX :: Tool :: Density Map Toolbar :: Toolbar :: button shortcuts for density maps</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: ks :: Toolbar :: keyboard shortcuts</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Selector :: selAtoms :: Selected atoms, or if none selected then all atoms.</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: selMaps :: Selected maps, or if none selected then displayed maps.</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: selModels :: Selected models, or if none selected then all models.</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: selMaps :: Selected maps, or if none selected then displayed maps. :: false</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: selModels :: Selected models, or if none selected then all models. :: false</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

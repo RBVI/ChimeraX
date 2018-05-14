@@ -37,8 +37,13 @@ endif
 
 all: $(PYOBJS) $(SHLIB)
 
-install: all dir
-	$(RSYNC) $(PYSRCS) $(SHLIB) $(PKG_DIR)
+cymol.$(PYMOD_EXT): cymol.pyx $(includedir)/atomstruct/Atom.h
+	LDFLAGS="-L." $(PYTHON_EXE) setup.py build_ext -i
+	mv chimerax/core/atomic/cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
+	rmdir -p chimerax/core/atomic
+
+install: all dir $(PYSRCS)
+	$(RSYNC) $(PYSRCS) $(SHLIB) cymol.$(PYMOD_EXT) $(PKG_DIR)
 ifdef WIN32
 	#$(RSYNC) $(LIBRARY) $(libdir)
 ifdef DEBUG
@@ -53,7 +58,7 @@ dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
 
 clean:
-	rm -rf __pycache__ $(OBJS) $(SHLIB)
+	rm -rf __pycache__ $(OBJS) $(SHLIB) cymol.$(PYMOD_EXT)
 ifdef WIN32
 	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
 endif
@@ -84,6 +89,8 @@ $(includedir)/atomstruct/Sequence.h: atomstruct_cpp.install
 $(includedir)/element/Element.h: element_cpp.install
 $(includedir)/pyinstance/PythonInstance.declare.h: pyinstance_cpp.install
 $(includedir)/pyinstance/PythonInstance.instantiate.h: pyinstance_cpp.install
+
+molobject.py: cymol.$(PYMOD_EXT)
 
 atomstruct_cpp.install: element_cpp.install pyinstance_cpp.install
 dssp_cpp.install: atomstruct_cpp.install

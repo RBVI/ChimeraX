@@ -329,8 +329,8 @@ def _file_output(file_name, output_info, naming_style):
             else:
                 don_coord = don.get_coordset_coord(cs_id)
                 acc_coord = acc.get_coordset_coord(cs_id)
-            labels[don] = don.__str__(style=naming_style)
-            labels[acc] = acc.__str__(style=naming_style)
+            labels[don] = don.string(style=naming_style)
+            labels[acc] = acc.string(style=naming_style)
             dwidth = max(dwidth, len(labels[don]))
             awidth = max(awidth, len(labels[acc]))
             da = distance(don_coord, acc_coord)
@@ -351,7 +351,7 @@ def _file_output(file_name, output_info, naming_style):
                 hyd_out = "no hydrogen"
             else:
                 dha_out = "%5.3f" % dha
-                hyd_out = hyd.__str__(style=naming_style)
+                hyd_out = hyd.string(style=naming_style)
             hwidth = max(hwidth, len(hyd_out))
             labels[(don, acc)] = (hyd_out, da, dha_out)
         for don, acc in hbonds:

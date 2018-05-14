@@ -48,7 +48,7 @@ UCSF ChimeraX User Guide
 <a href="http://www.rbvi.ucsf.edu/chimerax/"><b>UCSF ChimeraX</b></a> 
 is the successor program to 
 <a href="http://www.rbvi.ucsf.edu/chimera/"><b>UCSF Chimera</b></a>.
-In ChimeraX, menu: <b>Help...  User Guide</b></a> shows this page in the 
+In ChimeraX, menu: <b>Help...  User Guide</b> shows this page in the 
 <a href="tools/browser.html">ChimeraX browser</a>.
 </p>
 
@@ -68,7 +68,7 @@ and <a href="commands/save.html"><b>save</b></a></li>
 <li><a href="images.html">Making Images</a></li>
 <li><a href="movies.html">Making Movies</a></li>
 <li><a href="vr.html">Virtual Reality</a></li>
-<li><a href="preferences.html">Preferences</a></li>
+<li><a href="preferences.html">Preferences (Settings)</a></li>
 <li><a href="../credits.html">Citing ChimeraX</a></li>
 <li><a href="general.html">More...</a></li>
 </ul>
@@ -79,6 +79,7 @@ and <a href="commands/save.html"><b>save</b></a></li>
 src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <div id="tlist" class="expanded">
 <ul>
+<li><a href="tools/basicactions.html"><b>Basic Actions</b></a></li>
 <li><a href="tools/cli.html"><b>Command Line Interface</b></a></li>
 <li><a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 <img class="iconbar" src="density-icons.png"></li>
@@ -88,6 +89,7 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <li><a href="tools/browser.html"><b>Help Viewer</b></a></li>
 <li><a href="tools/log.html"><b>Log</b></a></li>
 <li><a href="tools/markerplacement.html"><b>Marker Placement</b></a></li>
+<li><a href="tools/modelpanel.html"><b>Model Panel</b></a></li>
 <li><a href="tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
 <img class="iconbar" src="molecule-icons.png"></li>
 <li><a href="tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
@@ -146,7 +148,7 @@ for presentation images and movies</li>
 - analyze crosslinks or other <a href="pseudobonds.html">pseudobonds</a>
 by length, <i>etc.</i></li>
 <li><a href="commands/delete.html"><b>delete</b></a>
-- delete atoms</li>
+- delete atoms, bonds, <a href="pseudobonds.html">pseudobonds</a></li>
 <li><a href="commands/device.html"><b>device</b>, <b>vr</b></a>
 - enable <a href="vr.html">virtual reality</a> or modes for other devices</li>
 <li><a href="commands/distance.html"><b>distance</b></a>
@@ -182,6 +184,9 @@ by length, <i>etc.</i></li>
 - report or adjust material properties for light reflection</li>
 <li><a href="commands/measure.html"><b>measure</b></a>
 - measure solvent-accessible surface area, surface convexity, path length</li>
+<li><a href="commands/meeting.html"><b>meeting</b></a>
+- connect separate instances of ChimeraX for shared 
+<a href="vr.html">virtual reality</a> or collaborative modeling</li>
 <li><a href="commands/mlp.html"><b>mlp</b></a>
 - calculate molecular lipophilicity potential (MLP) for proteins,
 color surfaces</li>
@@ -197,8 +202,12 @@ color surfaces</li>
 - record image frames and assemble them into a movie file</li>
 <li><a href="commands/mseries.html"><b>mseries</b></a>
 - display an ordered series of models</li>
+<li><a href="commands/name.html"><b>name</b></a>
+- assign a name to a <a href="selection">selection</a>
+or longer <a href="commands/atomspec.html">target 
+specification</a> for subsequent easy use</li>
 <li><a href="commands/nucleotides.html"><b>nucleotides</b></a>
-- show special representations of nucleic acids</b>
+- show special representations of nucleic acids</li>
 <li><a href="commands/open.html"><b>open</b></a>
 - read data from <a href="commands/open.html#local">local file</a>,
 <a href="commands/open.html#url">URL</a>, or 
@@ -211,8 +220,12 @@ sequentially or by map value</li>
 display frame</li>
 <li><a href="commands/pwd.html"><b>pwd</b></a>
 - report the working directory</li>
+<li><a href="commands/registration.html"><b>registration status</b></a>
+- report ChimeraX registration status or days of use</li>
 <li><a href="commands/rename.html"><b>rename</b></a>
 - change model name and/or ID number</li>
+<li><a href="commands/resfit.html"><b>resfit</b></a>
+- show density fit of successive residues along a chain</li>
 <li><a href="commands/roll.html"><b>roll</b></a>
 - rotate continuously</li>
 <li><a href="commands/rungs.html"><b>rungs</b></a>
@@ -284,13 +297,9 @@ to show a brief description in the <a href="tools/log.html"><b>Log</b></a>.
 <ul>
 <li><b>blastprotein</b>
 - BLAST search for similar protein sequences in PDB or NR</li>
-<!--
-<li><b>findclash</b>
-- find atomic clashes or contacts</li>
--->
 <li><b>toolshed</b>
 - manage ChimeraX tool bundles: install/update from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/">Toolshed</a> 
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a> 
 (web repository), <i>etc.</i></li>
 <li><b>ui</b>
 - set tool autostart status</li>

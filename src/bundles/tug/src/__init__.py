@@ -22,6 +22,8 @@ class _TugAPI(BundleAPI):
             return
         from . import tugatoms
         tugatoms.register_mousemode(session)
+        from . import minimize
+        minimize.register_mousemode(session)
 
     @staticmethod
     def finish(session, bundle_info):

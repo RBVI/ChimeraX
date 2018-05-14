@@ -48,9 +48,12 @@ class Camera:
         """Indicates whether a camera change has been made which requires
         the graphics to be redrawn."""
 
+    def delete(self):
+        pass
+
     name = 'unknown'
     '''Name indicating the type of camera, for example, "mono", "stereo", "orthographic".'''
-
+    
     def get_position(self, view_num=None):
         p = self._position if view_num is None else self.view(self._position, view_num)
         return p
@@ -427,6 +430,16 @@ class SplitStereoCamera(Camera):
         self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
         self.layout = layout			# Packing of left/right eye images: top-bottom or side-by-side
 
+    def delete(self):
+        for fb in self._framebuffer.values():
+            if fb:
+                fb.delete(make_current = True)
+        self._framebuffer = {}
+
+        for d in self._drawing.values():
+            d.delete()
+        self._drawing = {}
+
     def view(self, camera_position, view_num):
         '''
         Return the Place coordinate frame for a specific camera view number.
@@ -462,7 +475,7 @@ class SplitStereoCamera(Camera):
         if view_num > 0:
             render.pop_framebuffer()	        # Pop left eye framebuffer
         eye = 'left' if view_num == 0 else 'right'
-        fb = self._eye_framebuffer(eye, render.render_size())
+        fb = self._eye_framebuffer(eye, render)
         render.push_framebuffer(fb)		# Push eye framebuffer
 
     def combine_rendered_camera_views(self, render):
@@ -472,7 +485,8 @@ class SplitStereoCamera(Camera):
         from .drawing import draw_overlays
         draw_overlays(drawings, render)
 
-    def _eye_framebuffer(self, eye, window_size):
+    def _eye_framebuffer(self, eye, render):
+        window_size = render.render_size()
         fb = self._framebuffer[eye]
         w, h = window_size
         if self.layout == 'side-by-side':
@@ -483,7 +497,7 @@ class SplitStereoCamera(Camera):
             from .opengl import Texture, Framebuffer
             t = Texture()
             t.initialize_rgba((tw,th))
-            fb = Framebuffer(color_texture = t)
+            fb = Framebuffer(render.opengl_context, color_texture = t)
             self._framebuffer[eye] = fb
             d = self._drawing[eye]
             if d:
@@ -509,7 +523,7 @@ class SplitStereoCamera(Camera):
                 x = va[:,0]
                 x[:] += (-1 if eye == 'left' else 1)
                 x[:] /= 2
-            d.geometry = va, ta
+            d.set_geometry(va, None, ta)
             d.color = (255,255,255,255)
             d.use_lighting = False
             d.texture_coordinates = tc

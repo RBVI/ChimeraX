@@ -29,12 +29,18 @@ User documentation for the ChimeraX application is in the `User's Manual`_.
 .. toctree::
    :maxdepth: 1
 
+   tutorials/introduction.rst
+
+.. toctree::
+   :maxdepth: 1
+
    writing_bundles.rst
 
 .. toctree::
    :maxdepth: 1
 
    mmcif.rst
+   mmcif_writing.rst
 
 .. toctree::
    :maxdepth: 1
@@ -44,7 +50,7 @@ User documentation for the ChimeraX application is in the `User's Manual`_.
 .. toctree::
    :maxdepth: 1
 
-   core/commands/args.rst
+   core/commands/user_commands.rst
 
 .. toctree::
    :maxdepth: 2
@@ -58,8 +64,29 @@ User documentation for the ChimeraX application is in the `User's Manual`_.
 
    cpplibs.rst
 
+**********
+API Status
+**********
+
+.. _supported-api:
+
+Supported API
+=============
+
+Items marked as **Supported API** are guaranteed to continue to
+work in subsequent ChimeraX releases with the same major version number.
+
+.. _experimental-api:
+
+Experimental API
+================
+
+Items marked as **Experimental API** are likely to be added as
+**Supported API** in the future but the exact arguments, return
+values, and even functionality may still change.
+
 ******************
-Indices and tables
+Indices and Tables
 ******************
 
 * :ref:`genindex`

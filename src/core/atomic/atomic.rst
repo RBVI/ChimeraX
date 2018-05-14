@@ -36,9 +36,6 @@ Efficient collections of molecular objects and molecular surfaces are also avail
 .. toctree::
    :maxdepth: 1
 
-   molarray.rst
-   molsurf.rst
-
 Atomic data classes
 -------------------
 
@@ -50,6 +47,20 @@ Atomic data classes
     :members:
     :show-inheritance:
 
+.. automodule:: chimerax.core.atomic.cymol
+    :members:
+    :show-inheritance:
+
+.. automodule:: chimerax.core.atomic.molarray
+    :members:
+    :member-order: bysource
+    :special-members: __len__, __iter__, __getitem__, __or__, __and__, __sub__
+    :show-inheritance:
+
 .. automodule:: chimerax.core.atomic.pbgroup
+    :members:
+    :show-inheritance:
+
+.. automodule:: chimerax.core.atomic.molsurf
     :members:
     :show-inheritance:

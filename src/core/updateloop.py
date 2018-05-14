@@ -46,7 +46,7 @@ class UpdateLoop:
             t0 = time()
             atomic.check_for_changes(session)
             self.last_atomic_check_for_changes_time = time() - t0
-            from . import surface
+            from chimerax import surface
             t0 = time()
             surface.update_clip_caps(view)
             self.last_clip_time = time() - t0

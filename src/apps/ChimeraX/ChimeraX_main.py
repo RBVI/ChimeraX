@@ -16,7 +16,7 @@ app_author = "UCSF"
 localized_app_name = {
     'af': u'ChimeraX',          # Afrikaans
     'cs': u'PřízrakX',          # Czech
-    'da': u'ChiemraX',          # Danish
+    'da': u'ChimeraX',          # Danish
     'de': u'ChimäreX',          # German
     'el': u'ΧίμαιραX',          # Greek
     'en': u'ChimeraX',          # English
@@ -114,6 +114,7 @@ def parse_arguments(argv):
     opts.start_tools = []
     opts.status = True
     opts.stereo = False
+    opts.tinyarray = True
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
@@ -134,6 +135,7 @@ def parse_arguments(argv):
         "--start <tool name>",
         "--cmd <command>",
         "--script <python script and arguments>",
+        "--notinyarray",
         "--notools",
         "--stereo",
         "--uninstall",
@@ -237,6 +239,8 @@ def parse_arguments(argv):
             opts.commands.append(optarg)
         elif opt == "--script":
             opts.scripts.append(optarg)
+        elif opt in ("--tinyarray", "--notinyarray"):
+            opts.tinyarray = opt[2] == 't'
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -271,6 +275,53 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
+        # Setup SSL CA certificates file
+        import certifi
+        os.environ["SSL_CERT_FILE"] = certifi.where()
+
+    # for modules that moved out of core, allow the old imports to work for awhile...
+    from importlib.abc import MetaPathFinder, Loader
+    class CoreCompatFinder(MetaPathFinder):
+        def find_spec(self, full_name, path, target=None):
+            unmoved_modules = ["atomic"]
+            moved_modules = ["ui"]
+            for umod in unmoved_modules:
+                future_name = "chimerax." + umod
+                if full_name.startswith(future_name):
+                    current_name = "chimerax.core." + umod
+                    from importlib import util, import_module
+                    real_name = full_name.replace(future_name, current_name)
+                    # ensure real module has been imported...
+                    import_module(real_name)
+                    real_spec = util.find_spec(real_name)
+                    class FakeLoader(Loader):
+                        def create_module(self, spec, real_name=real_name):
+                            return sys.modules[real_name]
+                        def exec_module(self, module):
+                            pass
+                    from importlib.machinery import ModuleSpec
+                    fake_spec = ModuleSpec(full_name, FakeLoader(), origin=real_spec.origin)
+                    return fake_spec
+            for mmod in moved_modules:
+                old_name = "chimerax.core." + mmod
+                if full_name.startswith(old_name):
+                    new_name = "chimerax." + mmod
+                    from importlib import util, import_module
+                    real_name = full_name.replace(old_name, new_name)
+                    # ensure real module has been imported...
+                    import_module(real_name)
+                    real_spec = util.find_spec(real_name)
+                    class FakeLoader(Loader):
+                        def create_module(self, spec, real_name=real_name):
+                            return sys.modules[real_name]
+                        def exec_module(self, module):
+                            pass
+                    from importlib.machinery import ModuleSpec
+                    fake_spec = ModuleSpec(full_name, FakeLoader(), origin=real_spec.origin)
+                    return fake_spec
+            return None
+    sys.meta_path.append(CoreCompatFinder())
+
     from chimerax.core.utils import initialize_ssl_cert_dir
     initialize_ssl_cert_dir()
 
@@ -301,6 +352,9 @@ def init(argv, event_loop=True):
     if opts.use_defaults:
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
+
+    import chimerax
+    chimerax.use_tinyarray = opts.tinyarray
 
     from chimerax import core
     if not opts.gui and opts.offscreen:
@@ -401,6 +455,10 @@ def init(argv, event_loop=True):
                         ad.site_config_dir, ad.user_log_dir,
                         chimerax.app_data_dir, adu.user_cache_dir)
 
+    # create a global trigger set for toolshed and atomspec target registration
+    from chimerax.core import triggerset
+    chimerax.core.triggers = triggerset.TriggerSet()
+
     from chimerax.core import session
     sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
 
@@ -414,10 +472,10 @@ def init(argv, event_loop=True):
 
     # initialize the user interface
     if opts.gui:
-        from chimerax.core.ui import gui
+        from chimerax.ui import gui
         ui_class = gui.UI
     else:
-        from chimerax.core.ui import nogui
+        from chimerax.core import nogui
         ui_class = nogui.UI
         if opts.color is not None:
             nogui._color_output = opts.color
@@ -431,6 +489,14 @@ def init(argv, event_loop=True):
     sess.ui = ui_class(sess)
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
+
+    # Set current working directory to Desktop when launched from icon.
+    if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
+        (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
+        try:
+            os.chdir(os.path.expanduser('~/Desktop'))
+        except:
+            pass
 
     # splash screen
     if opts.gui:
@@ -468,6 +534,7 @@ def init(argv, event_loop=True):
         sess.tasks = tasks.Tasks(sess, first=True)
         from chimerax.core.atomic import attr_registration
         sess.attr_registration = attr_registration.RegAttrManager()
+        sess.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
         from chimerax.core import undo
         sess.undo = undo.Undo(sess, first=True)
 

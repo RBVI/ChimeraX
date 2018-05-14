@@ -20,8 +20,8 @@ Read and write little-endian STL binary format.
 
 from chimerax.core.state import State, CORE_STATE_VERSION
 
-from chimerax.core import generic3d
-class STLModel(generic3d.Generic3DModel):
+from chimerax.core.models import Surface
+class STLModel(Surface):
     clip_cap = True
 
     @property
@@ -100,9 +100,7 @@ def read_stl(session, filename, name):
 
     from ._stl import stl_unpack
     va, na, ta = stl_unpack(geom)    # vertices, normals, triangles
-    model.vertices = va
-    model.normals = na
-    model.triangles = ta
+    model.set_geometry(va, na, ta)
     cur_color = [0.7, 0.7, 0.7, 1.0]
     cur_color = (array(cur_color) * 255).astype(uint8)
     model.color = cur_color

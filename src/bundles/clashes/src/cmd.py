@@ -65,6 +65,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
     if color is not None and not isinstance(color, Color):
         color = Color(rgba=color)
     from chimerax.core.atomic import get_triggers
+    ongoing = False
     if continuous:
         if set_attrs or save_file != None or log:
             raise UserError("log/setAttrs/saveFile not allowed with continuous detection")
@@ -73,19 +74,25 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
             arg_names, fArgs, fKw, frame_dict = getargvalues(currentframe())
             call_data = [frame_dict[an] for an in arg_names]
             def changes_cb(trig_name, changes, session=session, call_data=call_data):
-                if 'position change' in changes.atomic_structure_reasons():
-                    if not call_data[0]:
+                s_reasons = changes.atomic_structure_reasons()
+                a_reasons = changes.atom_reasons()
+                if 'position changed' in s_reasons \
+                or 'active_coordset changed' in s_reasons \
+                or 'coord changed' in a_reasons \
+                or 'alt_loc changed' in a_reasons:
+                    if not call_data[1]:
                         # all atoms gone
                         delattr(session, _continuous_attr)
                         from chimerax.core.triggerset import DEREGISTER
                         return DEREGISTER
                     _cmd(*tuple(call_data))
-                    return _motionCB(myData)
             setattr(session, _continuous_attr, get_triggers(session).add_handler(
                         'changes', changes_cb))
+        else:
+            ongoing = True
     elif getattr(session, _continuous_attr, None) != None:
         get_triggers(session).remove_handler(getattr(session, _continuous_attr))
-        delattr(session, continous_attr)
+        delattr(session, _continuous_attr)
     from .clashes import find_clashes
     clashes = find_clashes(session, test_atoms, attr_name=attr_name,
         bond_separation=bond_separation, clash_threshold=overlap_cutoff,
@@ -117,9 +124,9 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
             total = 0
             for clash_list in clashes.values():
                 total += len(clash_list)
-            session.logger.status("%d %s" % (total/2, test_type), log=True)
+            session.logger.status("%d %s" % (total/2, test_type), log=not ongoing)
         else:
-            session.logger.status("No %s" % test_type, log=True)
+            session.logger.status("No %s" % test_type, log=not ongoing)
     if not (set_attrs or color_atoms or make_pseudobonds or reveal):
         _xcmd(session, name)
         return clashes
@@ -132,7 +139,6 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         else:
             attr_atoms = test_atoms.unique_structures.atoms
     else:
-        
         from chimerax.core.atomic import concatenate
         attr_atoms = concatenate([test_atoms, test], remove_duplicates=True)
     from chimerax.core.atomic import Atoms
@@ -147,7 +153,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
             clash_vals.sort()
             setattr(a, attr_name, clash_vals[-1])
     if color_atoms:
-        from chimerax.core.commands.scolor import color_surfaces_at_atoms
+        from chimerax.core.commands.color import color_surfaces_at_atoms
         if atom_color is not None:
             clash_atoms.colors = atom_color.uint8x4()
             color_surfaces_at_atoms(clash_atoms, atom_color)
@@ -225,7 +231,7 @@ def _file_output(file_name, info, naming_style):
                 out1, out2 = a, c
             else:
                 out1, out2 = c, a
-            l1, l2 = out1.__str__(style=naming_style), out2.__str__(style=naming_style)
+            l1, l2 = out1.string(style=naming_style), out2.string(style=naming_style)
             data.append((val, l1, l2, distance(out1.scene_coord, out2.scene_coord)))
     data.sort()
     data.reverse()

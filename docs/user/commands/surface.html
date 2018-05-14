@@ -50,8 +50,8 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The <b>surface</b> command creates and displays <b><i>molecular surfaces</i></b>,
-either atomically detailed solvent-excluded surfaces (SES, default) or
-lower-resolution Gaussian surfaces (GS).
+either atomically detailed solvent-excluded surfaces (default) or
+lower-resolution Gaussian surfaces.
 See also:
 <a href="#sop"><b>surface</b> operations</a>,
 <a href="show.html"><b>show</b></a>,
@@ -67,25 +67,39 @@ See also:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/surfhide.png"></a>
 </p>
+
+<table class="clRight">
+<tr><td><a href="surface-diagram.png">
+<img src="surface-diagram.png" width="450px" style="border:1px solid gray"
+alt="SES-SAS diagram" title="click to enlarge..."></a></td></tr>
+<tr><td align="right">
+<font size="-1">Image courtesy of Sebastian Daberdaku&nbsp;</font>
+</td></tr></table>
+
 <a name="surfdefs"></a>
 <ul>
-<li>A <b><i>solvent-excluded surface</i></b> is
+<li>A <b><i>solvent-excluded surface</i></b> (SES) is
 composed of the contact, toroidal, and reentrant surfaces of a probe sphere 
 rolled over the atomic <a href="../radii.html">VDW spheres</a>.
-Atomic patches in an SES can be controlled 
-(hidden, shown, <i>etc.</i>) independently by specifying the corresponding atoms,
+Atomic patches in an SES can be controlled (hidden, shown, <i>etc.</i>)
+independently by specifying the corresponding atoms,
 and their <a href="../selection.html">selection</a>
 is tied to that of the corresponding atoms.
 An SES can also be specified by its own model number to enable/disable display
 as a whole without changing the display of its atomic patches
 (see <a href="../hierarchy.html">hierarchy</a>). 
-<li>A <b><i>solvent-accessible surface</i></b> (not shown by ChimeraX)
+<br><br>
+<li>A <b><i>solvent-accessible surface</i></b> (SAS)
 is the surface traced out by the center of the probe sphere
 rolled over the atomic <a href="../radii.html">VDW spheres</a>.
-<li>A <b><i>Gaussian surface</i></b>
-is indicated with the <a href="#parameters"><b>resolution</b></a> option
-and will not retain atomic associations 
-unless <a href="#sharpBoundaries">sharp boundaries</a> are used.
+ChimeraX does not show this type of surface, but SAS areas can be 
+calculated with <a href="measure.html"><b>measure</b></a>.
+<br><br>
+<li>A <b><i>Gaussian surface</i></b> (GS) is an isosurface of
+pseudo-density in which atoms are represented by Gaussian distributions.
+This type of surface is indicated with the 
+<a href="#parameters"><b>resolution</b></a> option and will not retain atomic 
+associations unless <a href="#sharpBoundaries">sharp boundaries</a> are specified.
 A surface without atomic associations can only be controlled as a whole,
 by specifying its own model number or the atoms used in its calculation.
 <!-- can get GS patches by replacing SES with GS since sharp stays true -->
@@ -155,7 +169,6 @@ Options for surface creation can be categorized as:
 <li><a href="#parameters">Calculation Parameters</a>
 <li><a href="#appearance">Other Appearance Options</a>
 </ul>
-</p>
 
 <a name="grouping"></a>
 <h4><a href="#options" class="nounder"><b>&larr;</b></a>
@@ -355,8 +368,9 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 - show only surface parts within a cutoff distance of specified atoms
 </ul>
 
+<a name="cap"></a>
 <a href="#top" class="nounder">&bull;</a>
-  <a name="cap"><b>surface cap</b></a> &nbsp;true&nbsp;|&nbsp;false&nbsp;
+<b>surface cap</b> &nbsp;true&nbsp;|&nbsp;false&nbsp;
   [&nbsp;<b>offset</b>&nbsp;<i>d</i>&nbsp;]
 <blockquote>
 Adjust capping, in which planar caps are drawn to hide the interior of a
@@ -371,41 +385,57 @@ If <b><i>d</i></b> is large, however, the mismatch between the cap and the
 cut edge of the surface will be evident.
 </blockquote>
 
+<a name="dust"></a>
 <a href="#sop" class="nounder">&bull;</a>
-  <a name="dust"><b>surface dust</b></a>
+<b>surface dust</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
-  <b>size</b>&nbsp;<i>s</i>&nbsp;
-[&nbsp;<b>metric</b>&nbsp;&nbsp;<b>size</b>&nbsp;|&nbsp;area&nbsp;|&nbsp;volume&nbsp;|&nbsp;&lsquo;size&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;area&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;volume&nbsp;rank&rsquo;&nbsp;]
+[&nbsp;<b>size</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>metric</b>&nbsp;&nbsp;area&nbsp;|&nbsp;&lsquo;area&nbsp;rank&rsquo;&nbsp;|&nbsp;<b>size</b>&nbsp;|&nbsp;&lsquo;size&nbsp;rank&rsquo;&nbsp;|&nbsp;volume&nbsp;|&nbsp;&lsquo;volume&nbsp;rank&rsquo;&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<br>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface undust</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 <blockquote>
 Hide smaller blobs (disconnected parts) of a surface, 
 such as to simplify the display of noisy density.
-The cutoff <b>size</b> for hiding must be specified; blobs smaller
-than <i>s</i> will be hidden, where the units depend on the <b>metric</b>:
+Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>)
+will be hidden. The size units depend on the <b>metric</b>:
   <ul>
-  <li><b>size</b> (default) - bounding box dimension (largest of X, Y, Z)
   <li><b>area</b> - surface area
-  <li><b>volume</b> - enclosed volume
-  <li><b>size rank</b> - rank by largest <b>size</b> 
-  (a value of <i>N</i> indicates
-  showing the <i>N</i> largest blobs by the <b>size</b> criterion)
   <li><b>area rank</b> - rank by largest <b>area</b> 
+  (a value of <i>N</i> indicates showing the <i>N</i> largest blobs)
+  <li><b>size</b> (default) - bounding box dimension (largest of X, Y, Z)
+  <li><b>size rank</b> - rank by largest <b>size</b> 
+  <li><b>volume</b> - enclosed volume
   <li><b>volume rank</b> - rank by largest <b>volume</b> 
   </ul>
 Size measurements will include any blob parts that have been undisplayed
 or hidden by <a href="#zone">zoning</a> or <a href="clip.html">clipping</a>,
 and blobs at or above the cutoff size will be displayed completely
 (although possibly still clipped) even if they had been hidden beforehand.
+The <b>update</b> option (default <b>true</b>) indicates
+whether to update automatically when the shape of the surface changes.
+<p>
+The <b>surface undust</b> command turns off hiding smaller blobs,
+as does using <a href="#zone"><b>surface zone</b></a>.
 </blockquote>
 
+<a name="zone"></a>
 <a href="#sop" class="nounder">&bull;</a>
-<a name="zone"><b>surface zone</b></a>
+<b>surface zone</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
   <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-  [&nbsp;<b>range</b>&nbsp;<i>radius</i>&nbsp;]
+  [&nbsp;<b>distance</b>&nbsp;<i>cutoff</i>&nbsp;]
   [&nbsp;<b>maxComponents</b>&nbsp;<i>N</i>&nbsp;]
   [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<br>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface unzone</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 <blockquote>
-Show only parts of the surface(s) within <i>radius</i> 
+Show only parts of the surface(s) within <i>cutoff</i> 
 (default <b>2.0</b> &Aring;) of
 any atom in <a href="atomspec.html"><i>atom-spec</i></a>.
 If <b>bondPointSpacing</b> is specified, use points 
@@ -421,6 +451,12 @@ within the zone that are hidden by <a href="clip.html">clipping</a>.
 If <b>maxComponents</b> is not supplied, all patches within the zone
 will be shown. See also: <a href="select.html#zone"><b>select zone</b></a>,
 <a href="atomspec.html#zones">zone atom specification</a>
+The <b>update</b> option (default <b>true</b>)
+indicates whether to update automatically
+when the shape of the surface changes.
+<p>
+The <b>surface unzone</b> command turns off zoning,
+as does using <a href="#dust"><b>surface dust</b></a>.
 </blockquote>
 
 <a name="notes"></a>
@@ -453,5 +489,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2018</address>
+May 2018</address>
 </body></html>

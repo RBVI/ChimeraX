@@ -101,21 +101,7 @@ Atom::aniso_u() const
 }
 
 void
-Atom::_coordset_set_coord(const Point &coord)
-{
-    CoordSet *cs = structure()->active_coord_set();
-    if (cs == nullptr) {
-        if (structure()->coord_sets().size() > 0)
-            cs = structure()->coord_sets()[0];
-        else
-            cs = structure()->new_coord_set();
-        structure()->set_active_coord_set(cs);
-    }
-    set_coord(coord, cs);
-}
-
-void
-Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
+Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
 {
     if (structure()->active_coord_set() == nullptr)
         structure()->set_active_coord_set(cs);
@@ -135,10 +121,13 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
         graphics_changes()->set_gc_shape();
         graphics_changes()->set_gc_ribbon();
     } else {
-        cs->_coords[_coord_index] = coord;
-        graphics_changes()->set_gc_shape();
-        graphics_changes()->set_gc_ribbon();
-        change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
+        //cs->_coords[_coord_index] = coord;
+        cs->_coords[_coord_index].set_xyz(coord[0], coord[1], coord[2]);
+        if (track_change) {
+            graphics_changes()->set_gc_shape();
+            graphics_changes()->set_gc_ribbon();
+            change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
+        }
     }
 }
 
@@ -997,6 +986,40 @@ Atom::rings(bool cross_residues, int all_size_threshold,
     return _rings;
 }
 
+static inline double
+row_mul(const double row[4], const Coord& crd)
+{
+    return row[0] * crd[0] + row[1] * crd[1] + row[2] * crd[2] + row[3];
+}
+
+static Coord
+mat_mul(const Structure::PositionMatrix& pos, const Coord& crd)
+{
+    double x = row_mul(pos[0], crd);
+    double y = row_mul(pos[1], crd);
+    double z = row_mul(pos[2], crd);
+    return Coord(x, y, z);
+}
+
+Coord
+Atom::scene_coord() const
+{
+    return mat_mul(structure()->position(), coord());
+
+}
+
+Coord
+Atom::scene_coord(const CoordSet* cs) const
+{
+    return mat_mul(structure()->position(), coord(cs));
+}
+
+Coord
+Atom::scene_coord(char alt_loc) const
+{
+    return mat_mul(structure()->position(), coord(alt_loc));
+}
+
 int
 Atom::session_num_floats(int version) const
 {
@@ -1217,9 +1240,10 @@ Atom::set_color(const Rgba& rgba)
 }
 
 void
-Atom::set_coord(const Coord& coord, CoordSet* cs)
+Atom::set_coord(const Coord& coord, CoordSet* cs, bool track_change)
 {
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COORD);
+    if (track_change)
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COORD);
     if (cs == nullptr) {
         cs = structure()->active_coord_set();
         if (cs == nullptr) {
@@ -1237,7 +1261,7 @@ Atom::set_coord(const Coord& coord, CoordSet* cs)
         if (_coord_index == COORD_UNASSIGNED)
             _coord_index = _new_coord(coord);
     } else
-        _coordset_set_coord(coord, cs);
+        _coordset_set_coord(coord, cs, track_change);
 }
 
 void

@@ -88,12 +88,16 @@ class View:
     
     def initialize_rendering(self, opengl_context):
         r = self._render
-        if r:
+        if r is None:
+            from .opengl import Render
+            self._render = r = Render(opengl_context)
+            r.lighting = self._lighting
+            r.material = self._material
+        elif opengl_context is r.opengl_context:
+            # OpenGL context switched between stereo and mono mode
+            self._opengl_initialized = False
+        else:
             raise ValueError("OpenGL context is already set")
-        from .opengl import Render
-        self._render = r = Render(opengl_context)
-        r.lighting = self._lighting
-        r.material = self._material
 
     def _use_opengl(self):
         if self._render is None:
@@ -113,7 +117,6 @@ class View:
         r = self._render
         r.check_opengl_version()
         r.set_background_color(self.background_color)
-        r.enable_depth_test(True)
 
         w, h = self.window_size
         r.initialize_opengl(w, h)
@@ -171,7 +174,11 @@ class View:
         if drawings is None:
             any_selected = self.any_drawing_selected()
         else:
-            any_selected = True
+            any_selected = False
+            for d in drawings:
+                if d.any_part_selected():
+                    any_selected = True
+                    break
 
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
@@ -349,8 +356,9 @@ class View:
         w, h = self._window_size_matching_aspect(width, height)
 
         from .opengl import Framebuffer
-        fb = Framebuffer(w, h, alpha = transparent_background)
-        if not fb.valid():
+        fb = Framebuffer(self.render.opengl_context, w, h, alpha = transparent_background)
+        if not fb.activate():
+            fb.delete()
             return None         # Image size exceeds framebuffer limits
 
         r = self._render
@@ -723,6 +731,17 @@ class View:
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         if xyz1 is None or xyz2 is None:
             return None
+        p = self.first_intercept_on_segment(xyz1, xyz2, exclude=exclude, beyond=beyond)
+        return p
+
+    def first_intercept_on_segment(self, xyz1, xyz2, exclude=None, beyond = None):
+        '''
+        Return a Pick object for the first object along line segment from xyz1
+        to xyz2 in specified in scene coordinates. This Pick object will
+        have an attribute position giving the point where the intercept occurs.
+        Beyond is minimum distance as fraction (0-1) along the segment.
+        '''
+    
         if beyond is not None:
             fb = beyond + 1e-5
             xyz1 = (1-fb)*xyz1 + fb*xyz2

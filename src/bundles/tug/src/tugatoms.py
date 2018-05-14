@@ -34,7 +34,8 @@
 # probably avoid losing the mouse event.
 #
 # Tried fixing positions of some atoms by setting particle mass to 0.  Did not appear to speed up
-# simulation with villin with first half of particles with mass 0.  Had to remove hbond constraints too
+# simulation with villin with first half of particles with mass 0.  Had to remove bond length
+# constraints to hydrogens which allows longer time steps also
 # since error said constraints not allowed connecting to 0 mass particles.  Testing showed that it did
 # avoid passing molecule through fixed atoms, so their forces are considered.
 # Would need to make a fragment system to speed up calculation for larger systems.
@@ -45,7 +46,7 @@
 #
 write_logs = False
 
-from chimerax.core.ui import MouseMode
+from chimerax.ui import MouseMode
 class TugAtomsMode(MouseMode):
     name = 'tug'
     icon_file = 'tug.png'
@@ -58,21 +59,24 @@ class TugAtomsMode(MouseMode):
         self._tugging = False
         self._tug_handler = None
         self._last_frame_number = None
-        self._last_xy = None
+        self._puller = None
         self._arrow_model = None
 
         self._log = Logger('tug.log' if write_logs else None)
             
     def mouse_down(self, event):
         self._log('In mouse_down')
-        MouseMode.mouse_down(self, event)
         x,y = event.position()
         view = self.session.main_view
         pick = view.first_intercept(x,y)
+        self._pick_atom(pick)
+
+    def _pick_atom(self, pick):
         if hasattr(pick, 'atom'):
             a = pick.atom
             st = self._tugger
-            if st is None or st.structure is not a.structure:
+            s = a.structure
+            if st is None or not st.same_structure(s):
                 try:
                     self._tugger = st = StructureTugger(a.structure)
                 except ForceFieldError as e:
@@ -83,15 +87,12 @@ class TugAtomsMode(MouseMode):
 
     def mouse_drag(self, event):
         self._log('In mouse_drag')
-        self._last_xy = x,y = event.position()
-        self._tug(x, y)
-
-        if self._tug_handler is None:
-            self._tug_handler = self.session.triggers.add_handler('new frame', self._continue_tugging)
+        x,y = event.position()
+        self._puller = Puller2D(x,y)
+        self._continue_tugging()
         
-    def mouse_up(self, event):
+    def mouse_up(self, event = None):
         self._log('In mouse_up', close = True)
-        MouseMode.mouse_up(self, event)
         self._tugging = False
         self._last_frame_number = None
         th = self._tug_handler
@@ -102,39 +103,30 @@ class TugAtomsMode(MouseMode):
             if a and not a.deleted:
                 a.display = False
         
-    def _tug(self, x, y):
+    def _tug(self):
         self._log('In _tug')
         if not self._tugging:
             return
         v = self.session.main_view
         if v.frame_number == self._last_frame_number:
             return	# Make sure we draw a frame before doing another MD calculation
+        self._last_frame_number = v.frame_number
 
-        atom_xyz, offset = self._pull_direction(x, y)
+        a = self._tugger.atom
+        atom_xyz, offset = self._puller.pull_direction(a)
 
         from time import time
         t0 = time()
-        if self._tugger.tug_displacement(offset):
-            self._last_frame_number = v.frame_number
+        self._tugger.tug_displacement(offset)
         t1 = time()
-        atom_xyz, offset = self._pull_direction(x, y)
+        atom_xyz, offset = self._puller.pull_direction(a)
         self._draw_arrow(atom_xyz+offset, atom_xyz)
-
-    def _pull_direction(self, x, y):
-        self._log('In pull_direction')
-        v = self.session.main_view
-        x0,x1 = v.clip_plane_points(x, y)
-        axyz = self._tugger.atom.scene_coord
-        # Project atom onto view ray to get displacement.
-        dir = x1 - x0
-        da = axyz - x0
-        from chimerax.core.geometry import inner_product
-        offset = da - (inner_product(da, dir)/inner_product(dir,dir)) * dir
-        return axyz, -offset
 
     def _continue_tugging(self, *_):
         self._log('In continue_tugging')
-        self._tug(*self._last_xy)
+        if self._tug_handler is None:
+            self._tug_handler = self.session.triggers.add_handler('new frame', self._continue_tugging)
+        self._tug()
 
     def _draw_arrow(self, xyz1, xyz2, radius = 0.1):
         self._log('In draw_arrow')
@@ -143,24 +135,71 @@ class TugAtomsMode(MouseMode):
             from chimerax.core.models import Model
             s = self.session
             self._arrow_model = a = Model('Tug arrow', s)
-            from chimerax.core.surface import cone_geometry
-            a.vertices, a.normals, a.triangles  = cone_geometry(points_up = False)
+            from chimerax.surface import cone_geometry
+            v,n,t = cone_geometry(points_up = False)
+            a.set_geometry(v, n, t)
             a.color = (0,255,0,255)
             s.models.add([a])
         # Scale and rotate prototype cylinder.
         from chimerax.core.atomic import structure
         from numpy import array, float32
-        p = structure._bond_cylinder_placements(xyz1.reshape((1,3)),
-                                                xyz2.reshape((1,3)),
+        p = structure._bond_cylinder_placements(array(xyz1).reshape((1,3)),
+                                                array(xyz2).reshape((1,3)),
                                                 array([radius],float32))
         a.position = p[0]
         a.display = True
+
+    def laser_click(self, xyz1, xyz2):
+        from chimerax.ui.mousemodes import picked_object_on_segment
+        view = self.session.main_view
+        pick = picked_object_on_segment(xyz1, xyz2, view)
+        self._pick_atom(pick)
+        
+    def drag_3d(self, position, move, delta_z):
+        if position is None:
+            self.mouse_up()
+        elif move is not None:
+            self._puller = Puller3D(position.origin())
+            self._continue_tugging()
+
+class Puller2D:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        
+    def pull_direction(self, atom):
+        v = atom.structure.session.main_view
+        x0,x1 = v.clip_plane_points(self.x, self.y)
+        axyz = atom.scene_coord
+        # Project atom onto view ray to get displacement.
+        dir = x1 - x0
+        da = axyz - x0
+        from chimerax.core.geometry import inner_product
+        offset = da - (inner_product(da, dir)/inner_product(dir,dir)) * dir
+        return axyz, -offset
+
+class Puller3D:
+    def __init__(self, xyz):
+        self.xyz = xyz
+        
+    def pull_direction(self, atom):
+        axyz = atom.scene_coord
+        return axyz, self.xyz - axyz
 
 class StructureTugger:
     def __init__(self, structure):
         self._log = Logger('structuretugger.log' if write_logs else None)
         self.structure = structure
-        self.atoms = structure.atoms
+        self._minimized = False
+
+        # OpenMM requires the atoms to be sorted by residue number
+        self._structure_atoms = sa = structure.atoms
+        satoms = list(sa)
+        satoms.sort(key = lambda a: (a.residue.chain_id, a.residue.number))
+        from chimerax.core.atomic import Atoms
+        self.atoms = Atoms(satoms)
+
+        # Atom being tugged
         self.atom = None
 
         initialize_openmm()
@@ -175,6 +214,7 @@ class StructureTugger:
         
 
         # OpenMM simulation parameters
+        self._forcefields = ('amber99sbildn.xml', 'amber99_obc.xml')
         self._sim_steps = 50		# Simulation steps between mouse position updates
         self._force_constant = 10000
         from simtk import unit
@@ -195,9 +235,14 @@ class StructureTugger:
         self._particle_number = None		# Integer index of tugged atom
         self._particle_positions = None		# Numpy array, Angstroms
         self._particle_force_index = {}
+        self._particle_masses = None		# Original particle masses
 
         self._create_openmm_system()
-        
+
+    def same_structure(self, structure):
+        return (structure is self.structure and
+                structure.atoms == self._structure_atoms)
+    
     def tug_atom(self, atom):
         self._log('In tug_atom')
 
@@ -206,7 +251,7 @@ class StructureTugger:
         # the new atom to the existing force and set the force constant to zero
         # for the previous atom. Use the latter approach.
         self.atom = atom
-        p = self.structure.atoms.index(atom)
+        p = self.atoms.index(atom)
         pp = self._particle_number
         f = self._force
         pfi = self._particle_force_index
@@ -221,8 +266,11 @@ class StructureTugger:
 
         # If a particle is added to a force an existing simulation using
         # that force does not get updated. So we create a new simulation each
-        # time a new atoms is pulled. The integrator can only be associated with
+        # time a new atom is pulled. The integrator can only be associated with
         # one simulation so we also create a new integrator.
+        self._make_simulation()
+
+    def _make_simulation(self):
         from simtk import openmm as mm
         integrator = mm.VariableLangevinIntegrator(self._temperature, self._friction, self._integrator_tolerance)
         integrator.setConstraintTolerance(self._constraint_tolerance)
@@ -232,64 +280,113 @@ class StructureTugger:
         s = app.Simulation(self._topology, self._system, integrator, self._platform)
         self._simulation = s
         
-    def get_max_force (self, c):
-        import numpy
+    def _max_force (self):
+        c = self._simulation.context
         from simtk.unit import kilojoule_per_mole, nanometer
         self._sim_forces = c.getState(getForces = True).getForces(asNumpy = True)/(kilojoule_per_mole/nanometer)
         forcesx = self._sim_forces[:,0]
         forcesy = self._sim_forces[:,1]
         forcesz = self._sim_forces[:,2]
+        import numpy
         magnitudes =numpy.sqrt(forcesx*forcesx + forcesy*forcesy + forcesz*forcesz)
         return max(magnitudes)
 
         
     def tug_displacement(self, d):
         self._log('In tug_displacement')
+        self._set_tug_position(d)
+        if not self._minimized:
+            self._minimize()
+        self._simulate()
 
-        particle = self._particle_number
-        pos = self._particle_positions
-        pxyz = 0.1*pos[particle]	# Nanometers
+    def _set_tug_position(self, d):
+        pxyz = 0.1*self._particle_positions[self._particle_number]	# Nanometers
         txyz = pxyz + 0.1*d		# displacement d is in Angstroms, convert to nanometers
-        
-        simulation = self._simulation
-        c = simulation.context
+        c = self._simulation.context
         for p,v in zip(('x0','y0','z0'), txyz):
             c.setParameter(p,v)
-        c.setPositions(0.1*pos)	# Nanometers
-        c.setVelocitiesToTemperature(self._temperature)
 
+    def _simulate(self, steps = None):
 # Minimization generates "Exception. Particle coordinate is nan" errors rather frequently, 1 in 10 minimizations.
 #        simulation.minimizeEnergy(maxIterations = self._sim_steps)
 # Get same error in LangevinIntegrator_step().
+        simulation = self._simulation
+        self._set_simulation_coordinates()
+        sim_steps = self._sim_steps if steps is None else steps
         from time import time,sleep
         t0 = time()
         try:
-            simulation.step(self._sim_steps)
+            simulation.step(sim_steps)
             self._log('Did simulation step')
-            max_force = self.get_max_force(c)
+            max_force = self._max_force()
             if max_force > self._max_allowable_force:
                 raise Exception('Maximum force exceeded')
             self._log('Maximum force:')
         except:
-                max_force=self.get_max_force(c)
+                max_force=self._max_force()
                 self._log("FAIL!!!\n")
-                c.setPositions(0.1*pos)
+                self._set_simulation_coordinates()
                 while (max_force > self._max_allowable_force):
                     self._log('Maximum force exceeded, %g > %g! Minimizing...'
                               % (max_force, self._max_allowable_force))
-                    simulation.minimizeEnergy(maxIterations = self._sim_steps)
-                    max_force = self.get_max_force(c)
+                    simulation.minimizeEnergy(maxIterations = sim_steps)
+                    max_force = self._max_force()
         t1 = time()
         if write_logs:
             import sys
-            sys.__stderr__.write('%d steps in %.2f seconds\n' % (self._sim_steps, t1-t0))
+            sys.__stderr__.write('%d steps in %.2f seconds\n' % (sim_steps, t1-t0))
+        self._update_atom_coords()
+
+    def _minimize(self, steps = None):
+        self._set_simulation_coordinates()
+        min_steps = self._sim_steps if steps is None else steps
+        self._simulation.minimizeEnergy(maxIterations = min_steps)
+        self._update_atom_coords()
+        self._minimized = True
+
+    def mobile_atoms(self, atoms):
+        '''
+        Fix positions of some particles.  Must be called before creating OpenMM simulation otherwise
+        it has no effect.
+
+        This works by an OpenMM convention that zero mass particles do not move.
+        But the OpenMM docs says contraints to zero mass particles don't work.
+        This means bond length constraints cannot be used to allow longer integration
+        time steps. For reasons I do not understand, OpenMM
+        it will work.
+        '''
+        np = len(self.atoms)
+        m = self._particle_masses
+        system = self._system
+        if m is None:
+            self._particle_masses = m = [system.getParticleMass(i) for i in range(np)]
+        mi = set(self.atoms.indices(atoms))
+        freeze_mass = 0
+        for i in range(np):
+            mass = m[i] if i in mi else freeze_mass
+            system.setParticleMass(i, mass)
+
+    def _set_simulation_coordinates(self):
+        c = self._simulation.context
+        c.setPositions(0.1*self._particle_positions)	# Nanometers
+        c.setVelocitiesToTemperature(self._temperature)
+        
+    def _set_particle_positions(self):
+        self._particle_positions = self.atoms.coords
+        
+    def _simulation_atom_coordinates(self):
+        c = self._simulation.context
         state = c.getState(getPositions = True)
         from simtk import unit
         pos = state.getPositions().value_in_unit(unit.angstrom)
         from numpy import array, float64
-        self._particle_positions = xyz = array(pos, float64)
+        xyz = array(pos, float64)
+        return xyz
+
+    def _update_atom_coords(self):
+        xyz = self._simulation_atom_coordinates()
+        self._particle_positions = xyz
         self.atoms.coords = xyz
-        return True
         
     def _create_openmm_system(self):
         self._log('In create_openmm_system ')
@@ -298,28 +395,30 @@ class StructureTugger:
         from simtk import openmm as mm
         from simtk import unit
 
-        self._topology, self._particle_positions = openmm_topology_and_coordinates(self.structure)
+        s = self.structure
+        atoms = self.atoms
+        self._particle_positions = atoms.coords
+        self._topology = openmm_topology(atoms, s.bonds)
         
-        forcefield = app.ForceField('amber99sbildn.xml', 'amber99_obc.xml')
+        forcefield = app.ForceField(*self._forcefields)
 #        self._add_hydrogens(pdb, forcefield)
 
         try:
+            # constraints = HBonds means the length of covalent bonds involving
+            # hydrogen atoms are fixed to allow larger integration time steps.
+            # Constraints are not supported to atoms with particle mass = 0 which
+            # indicates a fixed atom position, and will generate errors.
             system = forcefield.createSystem(self._topology, 
                                              nonbondedMethod=app.CutoffNonPeriodic,
                                              nonbondedCutoff=1.0*unit.nanometers,
-                                             # Can't have hbond constraints with 0 mass fixed particles.
                                              constraints=app.HBonds,
-                                             rigidWater=True)
+                                             rigidWater=True,
+                                             ignoreExternalBonds=True)
         except ValueError as e:
             raise ForceFieldError('Missing atoms or parameterization needed by force field.\n' +
                                   'All heavy atoms and hydrogens with standard names are required.\n' +
                                   str(e))
         self._system = system
-
-        # Fix positions of some particles
-        # Test.
-#        for i in range(len(self._particle_positions)//2):
-#            system.setParticleMass(i, 0)
 
         platform = mm.Platform.getPlatformByName(self._platform_name)
         self._platform = platform
@@ -372,9 +471,9 @@ class Logger:
             f.close()
             self._log_file = None
 
-def openmm_topology_and_coordinates(mol):
-    '''Make OpenMM topology and positions from ChimeraX AtomicStructure.'''
-    a = mol.atoms
+def openmm_topology(atoms, bonds):
+    '''Make OpenMM topology from ChimeraX atoms and bonds.'''
+    a = atoms
     n = len(a)
     r = a.residues
     aname = a.names
@@ -396,12 +495,10 @@ def openmm_topology_and_coordinates(mol):
             rmap[rid] = top.addResidue(rname[i], cmap[cid])
         element = Element.getBySymbol(ename[i])
         atoms[i] = top.addAtom(aname[i], element, rmap[rid])
-    a1, a2 = mol.bonds.atoms
+    a1, a2 = bonds.atoms
     for i1, i2 in zip(a.indices(a1), a.indices(a2)):
         top.addBond(atoms[i1], atoms[i2])
-    from simtk.openmm import Vec3
-    pos = a.coords
-    return top, pos
+    return top
 
 _openmm_initialized = False
 def initialize_openmm():

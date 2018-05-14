@@ -25,16 +25,27 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: delete</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>delete</b> 
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+<br><b>delete</b>
+[&nbsp;<b>atoms</b>&nbsp;|&nbsp;bonds&nbsp;|&nbsp;pseudobonds&nbsp;]
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>pseudobond-model-name</i>&nbsp;]
 </h3>
 <p>
-The <b>delete</b> command deletes the specified atoms.
+The <b>delete</b> command deletes the specified <b>atoms</b> (default),
+<b>bonds</b>, or <a href="../pseudobonds.html"><b>pseudobonds</b></a>
+(synonym <b>pbonds</b>).  If the object-type keyword is given,
+the <a href="atomspec.html"><i>spec</i></a> is allowed to be blank.
+Bonds and pseudobonds can be specified by their flanking
+atoms, or as a <a href="../selections.html">selection</a> with <b>sel</b>.
+Pseudobonds can also be specified by model number, certain
+<a href="atomspec.html#builtin">built-in classifications</a>,
+or pseudobond model name as shown in the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
 See also: <a href="show.html"><b>hide</b></a>,
 <a href="close.html"><b>close</b></a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2015</address>
+April 2018</address>
 </body></html>

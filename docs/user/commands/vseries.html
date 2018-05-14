@@ -35,6 +35,7 @@ sets such as density maps or optical microscopy data.
 See also: 
 <a href="volume.html"><b>volume</b></a>,
 <a href="volume.html#morph"><b>volume morph</b></a>,
+<a href="resfit.html"><b>resfit</b></a>,
 <a href="mousemode.html"><b>mousemode</b></a>,
 <a href="mseries.html"><b>mseries</b></a>,
 <a href="../movies.html">making movies</a>
@@ -153,7 +154,8 @@ This is useful when the signal level in the data changes over time or
 between states.
 </blockquote>
 <blockquote>
-<a name="showMarkers"><b>showMarkers</b>&nbsp;&nbsp;<a href="atomspec.html"><i>marker-spec</i></a>&nbsp;&nbsp;[&nbsp;<b>precedingMarkerFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]&nbsp;[&nbsp;<b>followingMarkerFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+<a name="showMarkers"></a>
+<b>showMarkers</b>&nbsp;&nbsp;<a href="atomspec.html"><i>marker-spec</i></a>&nbsp;&nbsp;[&nbsp;<b>precedingMarkerFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]&nbsp;[&nbsp;<b>followingMarkerFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <br>
 Display the specified markers to trace spatial and temporal paths. 
 (A <a href="../markers.html">marker</a> is implemented as an atom and can be
@@ -344,8 +346,8 @@ Replace all values below the specified <i>mininum</i> with zero.
 Subtract the mean from each value so that the new mean will be zero.
 </blockquote>
 <blockquote>
-<a name="scaleFactor"><b>scaleFactor</b> &nbsp;<i>f</i></a>
-<br><a name="matchScale"><b>matchScale</b> &nbsp;<i>other-series</i>
+<b>scaleFactor</b> &nbsp;<i>f</i>
+<br><b>matchScale</b> &nbsp;<i>other-series</i>
 <br>
 Scale values by a multiplicative factor <i>f</i>, or (mutually exclusive option)
 to minimize the sum of squares of the differences with <i>other-series</i>
@@ -411,5 +413,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2017</address>
+May 2018</address>
 </body></html>

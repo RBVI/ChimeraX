@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 from io import StringIO
-from chimerax.core.ui import HtmlToolInstance
+from chimerax.ui import HtmlToolInstance
 
 
 class _BaseTool(HtmlToolInstance):
@@ -225,13 +225,9 @@ class _BaseTool(HtmlToolInstance):
 
     def take_snapshot(self, session, flags):
         data = {
+            "version": 2,
             "_super": super().take_snapshot(session, flags),
-            # XXX: When we have attribute registration, io.py should
-            # register "viewdockx_data" and then we would only need
-            # to save the list of structures here
-            "structures": [(s, s.viewdockx_data) for s in self.structures],
-            # XXX: end hack, next line is "correct" code
-            # "structures": self.structures,
+            "structures": self.structures,
         }
         self.add_webview_state(data)
         return data
@@ -239,14 +235,15 @@ class _BaseTool(HtmlToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data["_super"])
-        structures = data.get("structures", None)
-        # XXX: When we have attribute registration, "viewdockx_data"
-        # should be handled by the atomic session code and we would
-        # not need to set the attribute here
-        for s, vdx_data in structures:
-            s.viewdockx_data = vdx_data
-        structures = list([sd[0] for sd in structures])
-        # XXX: end hack
+        structures = data["structures"]
+        if data.get("version", 1) == 1:
+            classes = set()
+            for s, vdx_data in structures:
+                s.viewdockx_data = vdx_data
+                classes.add(s.__class__)
+            structures = list([sd[0] for sd in structures])
+            for c in classes:
+                c.register_attr(session, "viewdockx_data", "ViewDockX")
         inst.setup(structures, data.get(cls.html_state, None))
         return inst
 
@@ -385,7 +382,7 @@ class TableTool(_BaseTool):
         self._count_pb("clashes", "Clashes")
 
     def _cb_export(self, query):
-        from chimerax.core.ui.open_save import SaveDialog
+        from chimerax.ui.open_save import SaveDialog
         sd = SaveDialog(add_extension="mol2")
         if not sd.exec():
             return

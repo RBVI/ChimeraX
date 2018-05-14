@@ -297,10 +297,11 @@ private:
     void stylized_next_keyword(bool tag_okay=false);
     std::vector<int> find_column_offsets();
     struct CategoryInfo {
+        std::string name;
         ParseCategory func;
         StringVector dependencies;
-        CategoryInfo(ParseCategory f, const StringVector& d):
-                        func(f), dependencies(d) {}
+        CategoryInfo(const std::string &n, ParseCategory f, const StringVector& d):
+                        name(n), func(f), dependencies(d) {}
     };
     typedef std::unordered_map<std::string, CategoryInfo> Categories;
     Categories  categories;
@@ -315,7 +316,9 @@ private:
     const char* whole_file;
     std::string current_data_block;
     std::string current_category;
+    std::string current_category_cp;    // case-preserved category name
     StringVector    current_colnames;   // data tags without category name
+    StringVector    current_colnames_cp;   // case-preserved colnames
     StringVector    values;
     bool        in_loop;
     bool        first_row;
@@ -365,6 +368,8 @@ CIFFile::version() const
 inline const std::string&
 CIFFile::category() const
 {
+    if (!current_category_cp.empty())
+        return current_category_cp;
     return current_category;
 }
 
@@ -377,6 +382,8 @@ CIFFile::block_code() const
 inline const StringVector&
 CIFFile::colnames() const
 {
+    if (!current_colnames_cp.empty())
+        return current_colnames_cp;
     return current_colnames;
 }
 

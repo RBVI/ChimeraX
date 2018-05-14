@@ -25,26 +25,42 @@ class MouseModePanel(ToolInstance):
 
         self.mouse_modes = mm = session.ui.mouse_modes
         self.button_to_bind = 'right'
+        self._icon_size = 40
+        self._icons_per_row = 13
+        self.tool_window = None
+        
+        self.modes = [m for m in mm.modes if m.icon_file]
+        # there should be a generic ordering scheme, but for now move distance mode
+        # and bond-rotation mode up some
+        mode_names = [m.name for m in self.modes]
+        if "distance" in mode_names:
+            index = mode_names.index("distance")
+            if index > 8:
+                self.modes = self.modes[:9] + [self.modes[index]] + self.modes[9:index] \
+                    + self.modes[index+1:]
+                mode_names = mode_names[:9] + [mode_names[index]] + mode_names[9:index] \
+                    + mode_names[index+1:]
+        if "bond rotation" in mode_names:
+            index = mode_names.index("bond rotation")
+            if index > 12:
+                self.modes = self.modes[:12] + [self.modes[index]] + self.modes[12:index] \
+                    + self.modes[index+1:]
 
         parent = session.ui.main_window
-
-        self.modes = [m for m in mm.modes if m.icon_file]
-        initial_mode = [m for m in self.modes if m.name == 'zoom'][0]
-
-        self.buttons = self.create_buttons(self.modes, self.button_to_bind,
-                                           initial_mode, parent, session)
-
-    def create_buttons(self, modes, button_to_bind, initial_mode, parent, session):
+        self.buttons = self.create_toolbar(parent)
+        
+    def create_toolbar(self, parent):
         from PyQt5.QtWidgets import QAction, QToolBar, QActionGroup
         from PyQt5.QtGui import QIcon
         from PyQt5.QtCore import Qt, QSize
         tb = QToolBar(self.display_name, parent)
         tb.setStyleSheet('QToolBar{spacing:0px;}\n'
                          'QToolButton{padding:0px; margin:0px; border:none;}')
-        tb.setIconSize(QSize(40,40))
+        s = self._icon_size
+        tb.setIconSize(QSize(s,s))
         parent.add_tool_bar(self, Qt.LeftToolBarArea, tb)
         group = QActionGroup(tb)
-        for mode in modes:
+        for mode in self.modes:
             from os import path
             icon_dir = path.join(path.dirname(__file__), 'icons')
             action = QAction(QIcon(path.join(icon_dir, mode.icon_file)), mode.name, group)
@@ -54,41 +70,61 @@ class MouseModePanel(ToolInstance):
                 if ' ' in mname:
                     mname = '"%s"' % mname
                 from chimerax.core.commands import run
-                run(self.session, 'mousemode %s %s' % (button_to_bind, mname))
+                run(self.session, 'mousemode %s %s' % (self.button_to_bind, mname))
             action.triggered.connect(button_press_cb)
+            action.mouse_mode = mode
             group.addAction(action)
         tb.addActions(group.actions())
         tb.show()
         return tb
 
-    def resize_cb(self, event):
-        size = event.GetSize()
-        w, h = size.GetWidth(), size.GetHeight()
-        icon_size = min(self.max_icon_size, max(self.min_icon_size, w // len(self.buttons)))
-        if icon_size == self.icon_size:
-            return
+    def create_button_panel(self):
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self, close_destroys=False)
+        self.tool_window = tw
+        p = tw.ui_area
+        from PyQt5.QtWidgets import QVBoxLayout
+        layout = QVBoxLayout(p)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        b = self.create_panel_buttons(p)
+        p.setLayout(layout)
+        layout.addWidget(b)
+        tw.manage(placement="side")
 
-        n = len(self.buttons)
-        num_per_row = w//icon_size
-        rows = max(1, h//icon_size)
-        columns = (n + rows - 1) // rows
-        self.resize_buttons(columns, icon_size)
-
-        # TODO: Try resizing pane height
-        # self.tool_window.ui_area.SetSize((w,100))
-
-    def resize_buttons(self, columns, icon_size):
-        self.icon_size = icon_size
-        for i,b in enumerate(self.buttons):
-            b.SetBitmap(self.bitmap(self.modes[i].icon_file))
-            b.SetSize((icon_size,icon_size))
-            pos = ((i%columns)*icon_size,(i//columns)*icon_size)
-            b.SetPosition(pos)
-
-    def unset_other_buttons(self, button):
-        for b in self.buttons:
-            if b != button:
-                b.SetValue(False)
+    def create_panel_buttons(self, parent):
+        from PyQt5.QtWidgets import QAction, QFrame, QGridLayout, QToolButton, QActionGroup
+        from PyQt5.QtGui import QIcon
+        from PyQt5.QtCore import Qt, QSize
+        tb = QFrame(parent)
+        layout = QGridLayout(tb)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        tb.setStyleSheet('QFrame{spacing:0px;}\n'
+                         'QToolButton{padding:0px; margin:0px; border:none;}')
+        group = QActionGroup(tb)
+        s = self._icon_size
+        columns = self._icons_per_row
+        from os import path
+        icon_dir = path.join(path.dirname(__file__), 'icons')
+        for mnum,mode in enumerate(self.modes):
+            b = QToolButton(tb)
+            b.setIconSize(QSize(s,s))
+            action = QAction(QIcon(path.join(icon_dir, mode.icon_file)), mode.name, group)
+            b.setDefaultAction(action)
+            action.setCheckable(True)
+            def button_press_cb(event, mode=mode):
+                mname = mode.name
+                if ' ' in mname:
+                    mname = '"%s"' % mname
+                from chimerax.core.commands import run
+                run(self.session, 'mousemode %s %s' % (self.button_to_bind, mname))
+            action.triggered.connect(button_press_cb)
+            action.mouse_mode = mode
+            group.addAction(action)
+            row, column = mnum//columns, mnum%columns
+            layout.addWidget(b, row, column)
+        return tb
 
     def display(self, show):
         if show:
@@ -99,6 +135,15 @@ class MouseModePanel(ToolInstance):
 
     def displayed(self):
         return not self.buttons.isHidden()
+        
+    def display_panel(self, show):
+        tw = self.tool_window
+        if show:
+            if tw is None:
+                self.create_button_panel()
+            self.tool_window.shown = True
+        elif tw:
+            tw.shown = False
 
     @classmethod
     def get_singleton(cls, session):

@@ -149,6 +149,8 @@ class SeqCanvas:
         # So, I have no idea what that 39-wide character is, but I don't care -- just use
         # the width of 'W' as the maximum width instead.
         font_width, font_height = self.font_metrics.width('W'), self.font_metrics.height()
+        self.label_view.setMinimumHeight(font_height)
+        self.main_view.setMinimumHeight(font_height)
         # pad font a little...
         self.font_pixels = (font_width + 1, font_height + 1)
         self.show_numberings = [len(self.alignment.seqs) == 1, False]
@@ -168,7 +170,7 @@ class SeqCanvas:
         layout.setSpacing(0)
         layout.addWidget(self.label_view)
         #layout.addWidget(self._vdivider)
-        layout.addWidget(self.main_view, stretch=1)
+        layout.addWidget(self.main_view, stretch=1, alignment=Qt.AlignLeft)
         parent.setLayout(layout)
         parent.resizeEvent = self.resizeEvent
         self.label_view.hide()

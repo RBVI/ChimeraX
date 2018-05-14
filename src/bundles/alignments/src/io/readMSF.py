@@ -18,7 +18,7 @@ See Wisconsin Package (GCG) User's Guide, pp 2-28.
 
 from ..parse import FormatSyntaxError, make_readable
 
-def read(f):
+def read(session, f):
 	msf = MSF(f)
 	file_markups = {}
 	if msf.multalin:

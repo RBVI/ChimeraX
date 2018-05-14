@@ -310,7 +310,7 @@ class Logger(StatusLogger):
             if not hasattr(self.session, 'ui') or not self.session.ui.is_gui:
                 log_is_main_window = False
             else:
-                from .ui.gui import MainWindow
+                from chimerax.ui.gui import MainWindow
                 log_is_main_window = isinstance(log, MainWindow)
             if not log_is_main_window:
                 self._early_collation = None
@@ -649,7 +649,9 @@ class _EarlyCollator(CollatingLog):
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
-    from bs4 import BeautifulSoup
-    # return BeautifulSoup(html).get_text() -- loses line breaks
-    bs = BeautifulSoup(html, 'html.parser')
-    return bs.get_text('\n', strip=True) + '\n'
+    import html2text
+    h = html2text.HTML2Text()
+    h.unicode_snob = True
+    # h.pad_tables = True  # 2018.1.9 is confused by multiline data in td
+    # h.body_width = ?  # TODO: track terminal size changes
+    return h.handle(html)

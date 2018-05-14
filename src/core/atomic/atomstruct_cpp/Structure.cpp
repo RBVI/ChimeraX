@@ -36,22 +36,6 @@
 #include <pyinstance/PythonInstance.instantiate.h>
 template class pyinstance::PythonInstance<atomstruct::Structure>;
 
-namespace {
-
-class AcquireGIL {
-    // RAII for Python GIL
-    PyGILState_STATE gil_state;
-public:
-    AcquireGIL() {
-        gil_state = PyGILState_Ensure();
-    }
-    ~AcquireGIL() {
-        PyGILState_Release(gil_state);
-    }
-};
-
-}
-
 namespace atomstruct {
 
 const char*  Structure::PBG_METAL_COORDINATION = "metal coordination bonds";
@@ -65,8 +49,13 @@ Structure::Structure(PyObject* logger):
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
     _ss_assigned(false), _structure_cats_dirty(true),
     asterisks_translated(false), is_traj(false),
-    lower_case_chains(false), pdb_version(0)
+    lower_case_chains(false), pdb_version(0), ss_ids_normalized(false)
 {
+    for (int i=0; i<3; ++i) {
+        for (int j=0; j<4; ++j) {
+            _position[i][j] = (i == j ? 1.0 : 0.0);
+        }
+    }
     change_tracker()->add_created(this, this);
 }
 
@@ -79,11 +68,30 @@ Structure::~Structure() {
     for (auto a: _atoms)
         delete a;
     if (_chains != nullptr) {
-        for (auto ch: *_chains)
+        for (auto ch: *_chains) {
             ch->clear_residues();
-        // don't delete the actual chains -- they may be being
-        // used as Sequences and the Python layer will delete 
-        // them (as sequences) as appropriate
+            // since Python layer may be referencing Chain, only
+            // delete immediately if no Python-layer references,
+            // otherwise decref and let garbage collection work
+            // its magic (__del__ will destroy C++ side)
+            auto inst = ch->py_instance(false);
+
+            // py_instance() returns new reference, so ...
+            Py_DECREF(inst);
+
+            // If ref count is 1 afterward, _don't_ simply decref
+            // again.  That will cause the Python __del__ to 
+            // execute, which will see that the C++ side is not
+            // destroyed yet, and call the destructor -- which
+            // due to inheriting from PyInstance, will decref
+            // __again__. Instead, just destroy the chain to
+            // indirectly accomplish the second decref.
+            if (inst == Py_None || Py_REFCNT(inst) == 1)
+                delete ch;
+            else
+                // decref "C++ side" reference
+                Py_DECREF(inst);
+        }
         delete _chains;
     }
     for (auto r: _residues)
@@ -828,6 +836,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = _ribbon_tether_sides;
     *int_array++ = _ribbon_mode_helix;
     *int_array++ = _ribbon_mode_strand;
+    *int_array++ = ss_ids_normalized;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -837,6 +846,9 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *float_array++ = _ball_scale;
     *float_array++ = _ribbon_tether_scale;
     *float_array++ = _ribbon_tether_opacity;
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 4; ++j)
+            *float_array++ = _position[i][j];
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
 
@@ -1109,6 +1121,8 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         _ribbon_mode_helix = static_cast<RibbonMode>(*int_array++);
         _ribbon_mode_strand = static_cast<RibbonMode>(*int_array++);
     }
+    if (version >= 12)
+        ss_ids_normalized = *int_array++;
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 
@@ -1125,6 +1139,11 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     if (version >= 5) {
         _ribbon_tether_scale = *float_array++;
         _ribbon_tether_opacity = *float_array++;
+    }
+    if (version >= 12) {
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 4; ++j)
+                _position[i][j] = *float_array++;
     }
     // if more added, change the array dimension check above
 
@@ -1414,6 +1433,14 @@ Structure::set_color(const Rgba& rgba)
         b->set_color(rgba);
     for (auto r: _residues)
         r->set_ribbon_color(rgba);
+}
+
+void
+Structure::set_position_matrix(double* pos)
+{
+    double *_pos = &_position[0][0];
+    for (int i=0; i<12; ++i)
+        *_pos++ = *pos++;
 }
 
 void

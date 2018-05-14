@@ -1,0 +1,106 @@
+/*
+ * Content "full" is divided into "control" and "data"
+ * sections that fill 100% of the height.  "data" uses
+ * available space and is scrollable when needed.
+ */
+html, body, #full {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+#full {
+  display: flex;
+  flex-direction: column;
+}
+#control {
+  flex: none;
+}
+#data {
+  flex: 1;
+  overflow: auto;
+}
+
+/*
+ * Style tables
+ */
+table, th, td {
+  border: 1px solid grey;
+  border-collapse: collapse;
+}
+table {
+  /* 100% results in unwanted horizontal scroll bar */
+  width:99%;
+}
+th {
+  background-color: #BBB;
+  text-align: center;
+  font-family:arial;
+  background-position: right center;
+  background-repeat: no-repeat;
+  background-size: 1.2em;
+}
+td {
+  font-family:arial;
+}
+td:nth-child(1), td:nth-child(2) {
+  text-align: left;
+  max-width: 10em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+  text-align: center;
+  min-width: 4.4em;
+}
+
+/*
+ * Indicators on sorted column
+ */
+table thead tr .tablesorter-headerAsc {
+  background-image: url("lib/downarrow.png");
+  padding-right: 1.2em;
+}
+table thead tr .tablesorter-headerDesc {
+  background-image: url("lib/uparrow.png");
+  padding-right: 1.2em;
+}
+
+/*
+ * Action buttons per row
+ */
+td img {
+  width: 1.2em;
+  height: 1.2em;
+  margin: 0px;
+  padding: 0px;
+  vertical-align: middle;
+  /* background-color: transparent; */
+}
+td input {
+  width: 1.2em;
+  height: 1.5em;
+  margin: 0px;
+  padding: 0px 2px 0px 2px;
+  background-color: transparent;
+  vertical-align: middle;
+}
+.spacer {
+  display: inline-block;
+  width: 0.3em;
+}
+.color {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-image: url("lib/colorpicker.svg")
+}
+.colorinput {
+  height: 100%;
+  width: 100%;
+  opacity: 0;
+}

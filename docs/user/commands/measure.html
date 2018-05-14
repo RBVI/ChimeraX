@@ -40,6 +40,8 @@ area buried between two sets of atoms
 - calculate convexity at each surface vertex, color the surface accordingly
 <li><a href="#length"><b>length</b></a>
 - sum bond lengths
+<li><a href="#motion"><b>motion</b></a>
+- draw prickles to show changes in surface position
 <li><a href="#sasa"><b>sasa</b></a>
 - calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area
@@ -59,7 +61,6 @@ See also: <a href="interfaces.html"><b>interfaces</b></a>,
 [&nbsp;<b>cutoffArea</b>&nbsp;&nbsp;<i>area</i>&nbsp;] 
 [&nbsp;<b>select</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-</h3>
 <blockquote>
 Calculate the <a href="surface.html#surfdefs">solvent-accessible surface</a>
 (SAS) area buried between two sets of atoms, defined as:
@@ -80,7 +81,6 @@ The default <b>probeRadius</b> <i>rad</i> for calculating each SAS
 is <b>1.4</b> &Aring;, often used to approximate a water molecule.
 Residues with at least <b>cutoffArea</b> <i>area</i> buried
 (default <b>1.0</b> &Aring;<sup>2</sup>) can be:
-</p>
 <ul>
 <li>listed along with their buried areas
 in the <a href="../tools/log.html"><b>Log</b></a> 
@@ -108,14 +108,17 @@ buried between <a href="atomspec.html#builtin"><b>ligand</b></a> and
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="convexity"><b>measure convexity</b>
+<a name="convexity"></a>
+<b>measure convexity</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 [&nbsp;<b>smoothingIterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>writeSurfaceData</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<b>patches</b>&nbsp;&nbsp;<i>convexity-threshold</i>&nbsp;]
 &nbsp;<a href="color.html#palette-options"><i>palette-options</i></a>&nbsp;
 <blockquote>
-Color a surface by the convexity at each vertex, 
-calculated as 2&pi; minus the cone-angle spanned by the 
-triangles incident at the vertex, optionally smoothed by averaging with 
+Color a surface based on the convexity at each vertex, 
+calculated as 2&pi; minus the cone-angle spanned by the triangles incident 
+at the vertex. Convexity values are smoothed by averaging with 
 neighboring (edge-connected) vertices for a specified number of iterations
 (default <b>5</b>). Smoothing is generally recommended, given that this
 definition of convexity is nonstandard and the unsmoothed values 
@@ -124,16 +127,31 @@ vertices surrounded by large triangles on a smooth surface
 will have sharper cone angles than vertices surrounded by small triangles.
 (Normalizing by triangle areas does not help because the patch around
 a vertex is often irregular in shape.) 
-Unsmoothed values typically give mottled coloring.
-<a name="palette-options"></a>
-The <i>palette-options</i> for coloring are the same as
+The surface vertex positions, normals, convexity values, and triangles 
+can be saved to a text file with <b>writeSurfaceData</b>,
+where <i>filename</i> can be a pathname including the directory location.
+<p>
+The remaining options specify coloring.
+The <b>patches</b> option randomly assigns colors to contiguous patches
+of vertices with convexity values above the <i>convexity-threshold</i>. 
+Otherwise (<b>patches</b> not used),
+the surface will be colored by the convexity value per vertex,
+with <i>palette-options</i> as
 <a href="color.html#palette-options">described for <b>color</b></a>,
-except with defaults:
+except with defaults 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=#0f1bc7adcf5b width="10px"></td>
+<td bgcolor=#b333b333b333 width="10px"></td>
+<td bgcolor=#9eb820005eb8 width="10px"></td>
+</tr></table>:
 <blockquote>
 <b>palette&nbsp;cyan-gray-maroon&nbsp;&nbsp;range&nbsp;-1,1</b>
 </blockquote>
+Unsmoothed values typically give mottled coloring.
 See also: <a href="mlp.html"><b>mlp</b></a>, 
-<a href="color.html"><b>color</b></a>
+<a href="color.html"><b>color</b></a>,
+<a href="bumps.html"><b>bumps</b><?a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -146,17 +164,43 @@ primarily used to measure the length of traced paths of markers.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="motion"><b>measure motion</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+<b>toMap</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>steps</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>scale</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>pricklesModel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<blockquote>
+Draw &ldquo;prickles&rdquo; to show the change in position of a surface 
+relative to a <a href="../tools/volumeviewer.html">volume</a>
+(map) isosurface, for example, between time steps of a
+<a href="../trajectories.html#vseries">volume series</a>.
+Prickles are line segments drawn perpendicular to the surface.
+They are extended from the vertices of <i>surf-model</i>
+in increments of map grid units 
+(using the smallest spacing along the three axes, if they differ)
+until they intersect with the map isosurface or reach
+<b>steps</b> <i>M</i> grid units in length (default <b>10</b>).
+Prickles are shown in the specified <b>color</b> (default <b>green</b>) and
+can be amplified or shrunken in length by a <b>scale</b> factor <i>f</i>.
+If a model number is specified with <b>pricklesModel</b> <i>N</i>,
+the prickles will be added as a submodel of <i>N</i>.
+If a model number is not specified,
+the new model will be a submodel of <i>surf-model</i>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="sasa"><b>measure sasa</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
 [&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
 [&nbsp;<b>setAttribute</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>sum</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
-</h3>
 <blockquote>
-Calculate a <a href="surface.html#surfdefs">solvent-accessible surface</a>
+Calculate the area of a
+<a href="surface.html#surfdefs">solvent-accessible surface</a>
 (SAS) enclosing the atoms in &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
-and report the total surface area
-in the <a href="../tools/log.html"><b>Log</b></a>.
+and report the total value in the <a href="../tools/log.html"><b>Log</b></a>.
 The <b>setAttribute</b> option specifies whether to assign the values
 per atom and residue as <a href="../attributes.html">attributes</a>
 named <b>area</b> (default <b>true</b>).
@@ -171,7 +215,6 @@ that are not also in &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>.
 The default <b>probeRadius</b> <i>rad</i> for calculating the SAS
 is <b>1.4</b> &Aring;, often used to approximate a water molecule.
 Example:
-</p>
 <blockquote>
 <b>measure sasa #1/a & protein sum :phe,tyr,trp</b>
 <br>
@@ -184,5 +227,5 @@ phenylalanine, tyrosine, and tryptophan residues
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2018</address>
+May 2018</address>
 </body></html>

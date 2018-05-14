@@ -29,9 +29,8 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>turn</b>
 [&nbsp;<i>axis</i>&nbsp;[&nbsp;<i>angle</i>&nbsp; [&nbsp;<i>frames</i>&nbsp;]]]
 [&nbsp;<b>rock</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>center</b>&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
-[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model
--spec</i></a>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;|&nbsp;<b>atoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 &nbsp;]
 </h3>
@@ -73,6 +72,7 @@ for the <i>center</i> when they are given as coordinates
 (as opposed to an <a href="atomspec.html"><i>atom-spec</i></a>).
 </p><p>
 The <i>axis</i> can be:
+</p>
 <ul>
 <li><b>x</b> - X-axis 
 <li><b>y</b> - Y-axis
@@ -90,9 +90,10 @@ The first model in the axis <a href="atomspec.html"><i>atom-spec</i></a>
 will be used for reference frame pinning unless 
 a <b>center</b> <a href="atomspec.html"><i>atom-spec</i></a> 
 or a <b>coordinateSystem</b> is also given.  
-</p>
 </ul>
+<p>
 The <i>center</i> can be:
+</p>
 <ul>
 <li><i>x,y,z</i> 
 (three values separated by commas only) - an arbitrary point
@@ -102,6 +103,7 @@ The first model in <a href="atomspec.html"><i>atom-spec</i></a>
 will be used for reference frame pinning unless a <b>coordinateSystem</b> 
 is also given.
 </ul>
+<p>
 If no center is specified, the current center of rotation will be used.
 </p><p>
 Commands continue to be processed while the requested motion is in progress. 

@@ -89,7 +89,7 @@ for bundles written completely in Python.  The
 from the :doc:`tutorial_tool` example with changes highlighted.
 For explanations of the unhighlighted sections, please
 see :doc:`tutorial_hello`, :doc:`tutorial_command` and
-`tutorial_tool`.
+:doc:`tutorial_tool`.
 
 .. literalinclude:: ../../../src/examples/tutorials/tut_save/bundle_info.xml
     :language: xml
@@ -141,10 +141,11 @@ The **Save** classifier fields are:
 - descriptions for **save** command keywords accepted for this data format
   (**models:Models**).  The descriptions are a comma-separated list of
   colon-separated keyword-*datatype* pairs.  *datatype*
-  must match one of the type names from :py:class:`chimerax.core.commands`
+  must match one of the type names from :py:mod:`chimerax.core.commands`
   less a **Arg** suffix.  In this example, the **save** command will
   accept a **models** keyword when an XYZ file is saved; the syntax
-  for the **models** argument matches :py:class:`chimerax.core.commands.ModelsArg`
+  for the **models** argument matches
+  :py:class:`~chimerax.core.commands.cli.ModelsArg`
   (*i.e.*, **Models** + **Arg**).
 
 ``src``
@@ -226,8 +227,8 @@ What's Next
 
 - :doc:`tutorial_hello`
 - :doc:`tutorial_command`
-- :doc:`tutorial_tool` (previous topic)
-- :doc:`tutorial_read_format` (current topic)
-- :doc:`tutorial_save_format` (next topic)
-- :doc:`tutorial_fetch`
+- :doc:`tutorial_tool`
+- :doc:`tutorial_read_format` (previous topic)
+- :doc:`tutorial_save_format` (current topic)
+- :doc:`tutorial_fetch` (next topic)
 - :doc:`tutorial_selector`

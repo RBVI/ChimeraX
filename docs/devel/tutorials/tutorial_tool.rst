@@ -94,26 +94,33 @@ see :doc:`tutorial_hello` and :doc:`tutorial_command`.
 .. literalinclude:: ../../../src/examples/tutorials/tut_gui/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,17-25,35,38-41,48-50
+    :emphasize-lines: 8-10,19-24,35-36,40-43,51-52
 
 The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
-(lines 8-10 and 17-25).  Three other changes are needed
+(lines 8-10 and 19-24).  Three other changes are needed
 for this bundle to declare that:
 
-#. this bundle depends on the ``ChimeraX-Tutorial_Command`` bundle (line 35),
-#. non-Python files need to be included in the bundle (lines 38-41), and
-#. a single graphical interface tool is provided in this bundle (lines 48-50).
+#. this bundle depends on the ``ChimeraX-UI`` and
+   ``ChimeraX-Tutorial_Command`` bundles (line 35-36),
+#. non-Python files need to be included in the bundle (lines 39-42), and
+#. a single graphical interface tool is provided in this bundle (lines 49-51).
 
-The ``Dependency`` tag on line 35 informs ChimeraX that the
-``ChimeraX-Tutorial_Command`` bundle must be present when this bundle
-is installed.  If it is not, it is installed first.
+The ``Dependency`` tags on lines 35 and 36 inform ChimeraX that the
+``ChimeraX-UI`` and ``ChimeraX-Tutorial_Command`` bundles must be
+present when this bundle is installed.  If they are not, they are
+installed first.  The ``ChimeraX-UI`` bundle is needed to provide
+the :py:class:`chimerax.ui.htmltool.HtmlToolInstance` class used
+for building the user interface (see `gui.py`_ below) and the
+``ChimeraX-Tutorial_Command`` is needed to provide the ChimeraX
+commands that will be used for actually performing user actions.
 
-The ``DataFiles`` tag on lines 38-41 informs ChimeraX to include
+The ``DataFiles`` tag on lines 40-43 informs ChimeraX to include
 non-Python files as part of the bundle when building.  In this case,
-``gui.html`` (implicitly in the ``src`` folder) should be included.
+``gui.html`` (implicitly in the ``src`` folder) should be included,
+as well as all documentation files in ``helpdir``.
 
-The ``ChimeraXClassifier`` tag on lines 49-50 informs ChimeraX that
+The ``ChimeraXClassifier`` tag on lines 51-52 informs ChimeraX that
 there is one graphical interface *tool* named ``Tutorial GUI`` in
 the bundle.  The last two fields (separated by ``::``) are the tool
 category and the tool description.  ChimeraX will add a
@@ -175,79 +182,88 @@ menu item from the ``Tools`` menu.
     :language: python
     :linenos:
 
-:py:class:`chimerax.core.ui.HtmlToolInstance` is the base class for
+:py:class:`chimerax.ui.htmltool.HtmlToolInstance` is the base class for
 simplifying construction of tools with HTML-based graphical
-interface.  When an instance of a subclass of ``HtmlToolInstance``
-is created, its constructor must call the ``HtmlToolInstance``
+interface.  When an instance of a subclass of
+:py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
+is created, its constructor must call the
+:py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
 constructor to set up the graphical interface framework.
-The arguments to the ``HtmlToolInstance`` constructor is the
+The arguments to the
+:py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
+constructor is the
 session and the tool name.  An optional argument, ``size_hint``,
 may be supplied to guide the tool layout, but, as the name suggests,
 it is only a hint and may not be honored.
 The superclass constructor creates a ChimeraX tool which contains
 a single widget for displaying an HTML page.  The widget is
 accessible using the ``html_view`` attribute, an instance of
-:py:class:`chimerax.core.ui.widgets.HtmlView`.  In this example, the
+:py:class:`chimerax.ui.widgets.htmlview.HtmlView`.  In this example, the
 ``TutorialGUI`` constructor calls its superclass constructor
 and then its own ``_build_ui`` method, which simply constructs
 the URL to a static HTML file in the bundle Python package and
 displays it in the widget using ``self.html_view.setUrl``.
 
-The ``HtmlToolInstance`` class also helps manage threading
+The :py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
+class also helps manage threading
 issues that arise from the way HTML is displayed using `PyQt5`_.
 The underlying `Qt WebEngine`_ machinery uses a separate thread
 for rendering HTML, so developers need to make sure that code
 is run in the proper thread.  In particular, access to shared
 data must be synchronized between the Qt main and WebEngine
-threads.  ``HtmlToolInstance`` simplifies the issues by calling
+threads.
+:py:class:`~chimerax.ui.htmltool.HtmlToolInstance`
+simplifies the issues by calling
 subclass methods in the main thread when an interesting event
 occurs in the WebEngine thread.
 
-The ``HtmlToolInstance`` constructor checks the derived
-class for the presence of an attribute, ``CUSTOM_SCHEME`` and
-a method, ``handle_scheme``.  If both are defined, then 
-the base class will arrange for ``handle_scheme`` to be called
-(in the main thread) whenever a link matching ``CUSTOM_SCHEME``
-is followed.  In this example, the custom scheme is ``tutorial``
+The :py:class:`~chimerax.ui.htmltool.HtmlToolInstance` constructor
+checks the derived class for the presence of an attribute,
+:py:attr:`CUSTOM_SCHEME` and a method, :py:meth:`handle_scheme`.
+If both are defined, then the base class will arrange for
+py:meth:`handle_scheme` to be called (in the main thread) whenever
+a link matching :py:attr:`CUSTOM_SCHEME` is followed. 
+In this example, the custom scheme is ``tutorial``
 (line 31), so when the user clicks on links such as
 ``tutorial:cofm`` and ``tutorial:highlight`` (see ``gui.html``
-below), ``handle_scheme`` is called with the clicked URL as
+below), :py:meth:`handle_scheme` is called with the clicked URL as
 its lone argument.  Currently, the argument is an instance
-of ``PyQt5.QtCore.QUrl`` but that may change later to remove
-explicit dependency on PyQt.  ``handle_scheme`` is expected
+of :py:class:`PyQt5.QtCore.QUrl` but that may change later to remove
+explicit dependency on PyQt.  :py:meth:`handle_scheme` is expected
 to parse the URL and take appropriate action depending on
 the data.  In this example, the `URL`_ *path* is a command
 name and the *query* contains data for command arguments.
-Three command names are supported: ``update_models``, ``cofm``,
-and ``highlight``.  ``update_models`` is invoked when the page
+Three command names are supported: :py:meth:`update_models`, ``cofm``,
+and ``highlight``.  :py:meth:`update_models` is invoked when the page
 is loaded (see ``gui.html`` below) and is handled as special case
 (see below).
 For the other commands, known query fields are ``target``,
 ``model``, ``color``, ``count``, ``weighted`` and ``transformed``.
 The command names and query fields are combined to generate
 a ChimeraX command string, which is then executed using
-:py:func:`chimerax.core.commands.run`.  The main benefit of executing
+:py:func:`chimerax.core.commands.run.run`.  The main benefit of executing
 a command string is automatic display of command and replies
 in the ChimeraX log.
 
-The ``HtmlToolInstance`` class also helps monitoring the
-opening and closing of models.  If the derived class defines
-a method named ``update_models``, the method will be called
-whenever a new models is opened or an existing model is closed.
+The :py:class:`~chimerax.ui.htmltool.HtmlToolInstance` class also
+helps monitoring the opening and closing of models.
+If the derived class defines a method named :py:meth:`update_models`,
+the method will be called whenever a new models is opened or
+an existing model is closed.
 Note that this is *not* when a model instance is *created*
 or *deleted*, because transient models that are not shown to
-the user (opened) do not trigger calls to ``update_models``.
-``update_models`` is typically called with two arguments:
+the user (opened) do not trigger calls to :py:meth:`update_models`.
+:py:meth:`update_models` is typically called with two arguments:
 the name of the triggering event (either "add models" or
 "remove models") and the list of models added or removed.
-In this example, ``update_models`` is used for updating
+In this example, :py:meth:`update_models` is used for updating
 the HTML drop-down list of models, so only the currently
 opened models are important, and neither the trigger
 name nor the models added or removed is relevant.
 In fact, its arguments are given default values so that
-``update_models`` can be called with no arguments when
+:py:meth:`update_models` can be called with no arguments when
 the HTML page is first loaded.  Whether called in response
-to model addition/removal or HTML events, ``update_models``
+to model addition/removal or HTML events, :py:meth:`update_models`
 does the following:
 
 #. build a list of 2-tuples of (*display text*, *atom_specifier*),
@@ -259,10 +275,10 @@ does the following:
 #. combine the HTML text string and the boolean string with a
    JavaScript template to generate a JavaScript script.
 #. execute the JavaScript script in the HTML widget using
-   ``self.html_view.runJavaScript``.
+   :py:meth:`self.html_view.runJavaScript`.
 
 Note the conversion from Python string to JavaScript string is
-accomplished using ``json.dumps``, which properly handles special
+accomplished using :py:func:`json.dumps`, which properly handles special
 characters such as quotes.  The JavaScript template uses standard
 `JavaScript HTML DOM`_ functionality to manipulate the HTML page
 contents.  If executing JavaScript results in errors, the messages
