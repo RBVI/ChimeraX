@@ -416,7 +416,7 @@ cdef class CyAtom:
 
     @property
     def atomspec(self):
-        return self.residue.atomspec() + '@' + self.name
+        return self.string(style="command")
 
     def clear_hide_bits(self, bit_mask):
         '''Set the hide bits 'off' that are 'on' in "bitmask"'''
@@ -761,6 +761,10 @@ cdef class CyResidue:
         return Atoms(numpy.array([<ptr_type>a for a in atoms], dtype=numpy.uintp))
 
     @property
+    def atomspec(self):
+        return self.string(style="command")
+
+    @property
     def chain(self):
         "Supported API. :class:`.Chain` that this residue belongs to, if any. Read only."
         chain_ptr = self.cpp_res.chain()
@@ -946,11 +950,6 @@ cdef class CyResidue:
         An atom can only belong to one residue, and all atoms
         must belong to a residue.'''
         self.cpp_res.add_atom(<cydecl.Atom*>atom.cpp_atom)
-
-    def atomspec(self):
-        res_str = ":" + str(self.number) + self.insertion_code
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
-        return self.structure.atomspec() + chain_str + res_str
 
     def bonds_between(self, CyResidue other_res):
         "Supported API. Return the bonds between this residue and other_res as a Bonds collection."

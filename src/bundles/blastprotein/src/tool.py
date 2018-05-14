@@ -77,7 +77,7 @@ class ToolUI(ToolInstance):
         if n < 0:
             return
         chain = self.chain_combobox.itemData(n)
-        BlastProteinJob(self.session, chain.characters, chain.atomspec(),
+        BlastProteinJob(self.session, chain.characters, chain.atomspec,
                         finish_callback=self._blast_job_finished)
         self.results_view.setHtml(_InProgressPage)
 
@@ -174,9 +174,9 @@ class ToolUI(ToolInstance):
             run(self.session, "select clear")
         for m in models:
             if chain_id:
-                spec = m.atomspec() + '/' + chain_id
+                spec = m.atomspec + '/' + chain_id
             else:
-                spec = m.atomspec()
+                spec = m.atomspec
             if self.ref_atomspec:
                 run(self.session, "matchmaker %s to %s" % (spec,
                                                            self.ref_atomspec))

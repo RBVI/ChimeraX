@@ -265,7 +265,7 @@ class PickedAtomicShape(Pick):
                 ra.setdefault(a.residue, []).append(a)
             d = []
             for r in ra:
-                d.append("%s@%s" % (r.atomspec(), ','.join(a.name for a in ra[r])))
+                d.append("%s@%s" % (r, ','.join(a.name for a in ra[r])))
             return ','.join(d)
         return d
 

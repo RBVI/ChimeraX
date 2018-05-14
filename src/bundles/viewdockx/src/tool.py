@@ -168,7 +168,7 @@ class _BaseTool(HtmlToolInstance):
             structures = [s]
         else:
             structures = self.structures
-        return [(s.atomspec()[1:], True if s.display else False)
+        return [(s.atomspec[1:], True if s.display else False)
                 for s in structures]
 
     def setup_page(self, html_file):
@@ -294,7 +294,7 @@ class TableTool(_BaseTool):
     def _update_ratings(self, trigger=None, trigger_data=None):
         if trigger_data is None:
             trigger_data = self.structures
-        ratings = [(s.atomspec()[1:], s.viewdockx_data[self.category_rating])
+        ratings = [(s.atomspec[1:], s.viewdockx_data[self.category_rating])
                    for s in trigger_data]
         import json
         js = "%s.update_ratings(%s);" % (self.CUSTOM_SCHEME,
