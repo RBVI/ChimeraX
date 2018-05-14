@@ -118,8 +118,7 @@ class TutorialGUI(HtmlToolInstance):
         for m in self.session.models:
             if not isinstance(m, AtomicStructure):
                 continue
-            spec = m.atomspec()
-            options.append(("%s: %s" % (spec, m.name), spec))
+            options.append((m, m.atomspec))
 
         # Construct Javascript for updating <select> and submit buttons
         if not options:
