@@ -76,9 +76,15 @@ class Structure(Model, StructureData):
         self._make_drawing()
 
     def __str__(self):
-        from chimerax.core.core_settings import settings
+        return self.string()
+
+    def string(self, style=None):
+        if style is None:
+            from chimerax.core.core_settings import settings
+            style = settings.atomspec_contents
+
         id = '#' + self.id_string()
-        if settings.atomspec_contents == "command-line specifier" or not self.name:
+        if style == "command" or not self.name:
             return id
         return '%s %s' % (self.name, id)
 

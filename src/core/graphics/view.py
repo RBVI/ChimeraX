@@ -88,12 +88,16 @@ class View:
     
     def initialize_rendering(self, opengl_context):
         r = self._render
-        if r:
+        if r is None:
+            from .opengl import Render
+            self._render = r = Render(opengl_context)
+            r.lighting = self._lighting
+            r.material = self._material
+        elif opengl_context is r.opengl_context:
+            # OpenGL context switched between stereo and mono mode
+            self._opengl_initialized = False
+        else:
             raise ValueError("OpenGL context is already set")
-        from .opengl import Render
-        self._render = r = Render(opengl_context)
-        r.lighting = self._lighting
-        r.material = self._material
 
     def _use_opengl(self):
         if self._render is None:
@@ -113,7 +117,6 @@ class View:
         r = self._render
         r.check_opengl_version()
         r.set_background_color(self.background_color)
-        r.enable_depth_test(True)
 
         w, h = self.window_size
         r.initialize_opengl(w, h)
@@ -171,7 +174,11 @@ class View:
         if drawings is None:
             any_selected = self.any_drawing_selected()
         else:
-            any_selected = True
+            any_selected = False
+            for d in drawings:
+                if d.any_part_selected():
+                    any_selected = True
+                    break
 
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
@@ -349,8 +356,9 @@ class View:
         w, h = self._window_size_matching_aspect(width, height)
 
         from .opengl import Framebuffer
-        fb = Framebuffer(w, h, alpha = transparent_background)
-        if not fb.valid():
+        fb = Framebuffer(self.render.opengl_context, w, h, alpha = transparent_background)
+        if not fb.activate():
+            fb.delete()
             return None         # Image size exceeds framebuffer limits
 
         r = self._render

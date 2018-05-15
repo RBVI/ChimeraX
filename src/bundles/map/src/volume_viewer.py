@@ -35,7 +35,7 @@ class VolumeViewer(ToolInstance):
         parent = tw.ui_area
 
         from . import defaultsettings
-        self.default_settings = defaultsettings.VolumeViewerDefaultSettings()
+        self.default_settings = defaultsettings.VolumeDefaultSettings()
 
         self.make_panels(parent)
 
@@ -1755,7 +1755,6 @@ class Histogram_Pane:
     self.update_timer = None
 
     from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit, QSizePolicy
-    from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtCore import Qt, QSize
 
     self.frame = f = QFrame(parent)
@@ -1785,9 +1784,8 @@ class Histogram_Pane:
     sh.setCheckable(True)
     sh.setFlat(True)
     sh.setStyleSheet('QPushButton {background-color: transparent;}')
-    from os.path import join, dirname
-    shpix = QPixmap(join(dirname(__file__), 'shown.png'))
-    sh.setIcon(QIcon(shpix))
+    sh_icon = icon_from_file('shown.png')
+    sh.setIcon(sh_icon)
     sh.setIconSize(QSize(20,20))
     sh.clicked.connect(self.show_cb)
     layout.addWidget(sh)
@@ -1857,8 +1855,8 @@ class Histogram_Pane:
     cb.setMaximumSize(20,20)
     cb.setFlat(True)
     layout.addWidget(cb)
-    cbpix = QPixmap(join(dirname(__file__), 'close.png'))
-    cb.setIcon(QIcon(cbpix))
+    cb_icon = icon_from_file('close.png')
+    cb.setIcon(cb_icon)
     cb.setIconSize(QSize(20,20))
     cb.clicked.connect(self.close_map_cb)
     cb.setToolTip('Close data set')
@@ -2005,16 +2003,14 @@ class Histogram_Pane:
       
       # Close plane slider
       from PyQt5.QtWidgets import QPushButton
-      from PyQt5.QtGui import QPixmap, QIcon
       from PyQt5.QtCore import Qt, QSize
       cb = QPushButton(f)
       cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
       cb.setMaximumSize(20,20)
       cb.setFlat(True)
       layout.addWidget(cb)
-      from os.path import join, dirname
-      cbpix = QPixmap(join(dirname(__file__), 'x.png'))
-      cb.setIcon(QIcon(cbpix))
+      cb_icon = icon_from_file('x.png')
+      cb.setIcon(cb_icon)
       cb.setIconSize(QSize(20,20))
       cb.clicked.connect(lambda event, self=self: self.show_plane_slider(False))
       cb.setToolTip('Close plane slider')
@@ -2314,9 +2310,8 @@ class Histogram_Pane:
         return
     s.file_name = fname
     from os.path import join, dirname
-    from PyQt5.QtGui import QPixmap, QIcon
-    shpix = QPixmap(join(dirname(__file__), fname))
-    s.setIcon(QIcon(shpix))
+    sh_icon = icon_from_file(fname)
+    s.setIcon(sh_icon)
     s.setChecked(shown)
 
   def get_repr(self):
@@ -4697,6 +4692,16 @@ class Surface_Options_Panel(PopupPanel):
     ro.smoothing_factor = sf
     ro.square_mesh = self.square_mesh.get()
     ro.cap_faces = self.cap_faces.get()
+
+# -----------------------------------------------------------------------------
+#
+def icon_from_file(filename):
+    from os.path import join, dirname
+    path = join(dirname(__file__), 'icons', filename)
+    from PyQt5.QtGui import QPixmap, QIcon
+    pixmap = QPixmap(path)
+    icon = QIcon(pixmap)
+    return icon
 
 # -----------------------------------------------------------------------------
 #

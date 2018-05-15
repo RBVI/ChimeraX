@@ -49,38 +49,29 @@ def check_registration(logger=None):
     return _check_expiration(param, logger)
 
 
-def _get_registration(logger):
-    reg_file = _registration_file()
-    try:
-        param = {}
-        with open(reg_file) as f:
-            for line in f:
-                key, value = [s.strip() for s in line.split(':', 1)]
-                param[key] = value
-    except IOError:
-        return None
-    if "Name" not in param or "Email" not in param:
-        if logger:
-            logger.error("Registration file %r is invalid." % reg_file)
-        return None
-    return param
+def extend_registration(logger=None, extend_by=None):
+    """Extend registration by specified period.
 
+    If user is not registered, no action is taken.
 
-def _check_expiration(param, logger):
+    `extend_by` may be an instance of `datetime.datetime`.
+    If no `extend_by` value is given, registration is
+    extended to one year from current time.
+    """
+    param = _get_registration(logger)
+    if param is None:
+        return
+    if not _check_expiration(param, logger):
+        return
     from datetime import datetime, timedelta
-    try:
-        expires = datetime.strptime(param["Expires"], TimeFormat)
-    except KeyError:
-        try:
-            signed = param.get("Signed", None)
-        except KeyError:
-            return None
-        expires = datetime.strptime(signed, TimeFormat) + timedelta(year=1)
-    if datetime.now() > expires:
-        if logger:
-            logger.warning("Registration file %r has expired" % reg_file)
-        return None
-    return expires
+    if extend_by is None:
+        when = datetime.now() + timedelta(days=365)
+    elif isinstance(extend_by, datetime):
+        when = extend_by
+    else:
+        raise ValueError("invalid extension period")
+    param["Expires"] = datetime.strftime(when, TimeFormat)
+    _write_registration(logger, param)
 
 
 def report_status(logger, verbose):
@@ -115,6 +106,54 @@ def _registration_file():
     from chimerax import app_dirs_unversioned
     import os.path
     return os.path.join(app_dirs_unversioned.user_data_dir, RegistrationFile)
+
+
+def _get_registration(logger):
+    reg_file = _registration_file()
+    try:
+        param = {}
+        with open(reg_file) as f:
+            for line in f:
+                key, value = [s.strip() for s in line.split(':', 1)]
+                param[key] = value
+    except IOError:
+        return None
+    if "Name" not in param or "Email" not in param:
+        if logger:
+            logger.error("Registration file %r is invalid." % reg_file)
+        return None
+    return param
+
+
+def _check_expiration(param, logger):
+    from datetime import datetime, timedelta
+    try:
+        expires = datetime.strptime(param["Expires"], TimeFormat)
+    except KeyError:
+        try:
+            signed = param.get("Signed", None)
+        except KeyError:
+            return None
+        expires = datetime.strptime(signed, TimeFormat) + timedelta(year=1)
+    if datetime.now() > expires:
+        if logger:
+            logger.warning("Registration file %r has expired" % reg_file)
+        return None
+    return expires
+
+
+def _write_registration(logger, param):
+    if ("Name" not in param or "Email" not in param or
+        ("Expires" not in param and "Signed" not in param)):
+        raise ValueError("invalid registration data")
+    reg_file = _registration_file()
+    try:
+        with open(reg_file, "w") as f:
+            for key, value in param.items():
+                print("%s: %s" % (key, value), file=f)
+    except IOError as e:
+        if logger:
+            logger.error("%r: %s" % (reg_file, str(e)))
 
 
 def _usage_file():

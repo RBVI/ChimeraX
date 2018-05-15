@@ -85,7 +85,8 @@ class SequenceViewer(ToolInstance):
         self.seqs = seqs
         """
         self.alignment = alignment
-        alignment.attach_viewer(self)
+        from . import subcommand_name
+        alignment.attach_viewer(self, subcommand_name=subcommand_name)
         from . import settings
         self.settings = settings.init(session)
         """
@@ -458,6 +459,8 @@ class SequenceViewer(ToolInstance):
             self.region_browser._pre_remove_lines(note_data)
         elif note_name == "destroyed":
             self.delete()
+        elif note_name == "command":
+            print("TODO: parse this text as command: '%s'" % note_data)
 
     def delete(self):
         self.region_browser.destroy()

@@ -66,7 +66,7 @@ class Grid_Data:
     
     if name == '':
       name = self.name_from_path(path)
-    self.name = name
+    self.name = str(name)
     
     self.size = tuple(size)
 

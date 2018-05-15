@@ -156,8 +156,9 @@ class Bond(State):
     def __str__(self):
         return self.string()
 
+    @property
     def atomspec(self):
-        return a1.atomspec() + a2.atomspec()
+        return a1.atomspec + a2.atomspec
 
     atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True,
         doc = "Supported API. "
@@ -1168,9 +1169,9 @@ class Chain(StructureSeq):
     def __str__(self):
         return self.string()
 
+    @property
     def atomspec(self):
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
-        return self.structure.atomspec() + chain_str
+        return self.string(style="command")
 
     def extend(self, chars):
         # disallow extend
@@ -1186,16 +1187,13 @@ class Chain(StructureSeq):
         set_custom_attrs(chain, data)
         return chain
 
-    def string(self):
-        from chimerax.core.core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
+    def string(self, style=None):
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
-            struct_string = str(self.structure)
+            struct_string = self.structure.string(style=style)
         else:
             struct_string = ""
-        from chimerax.core.core_settings import settings
         return struct_string + chain_str
 
     def take_snapshot(self, session, flags):

@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-Help" version="0.9a1"
-	    package="chimerax.help_viewer"
-  	    minSessionVersion="1" maxSessionVersion="1">
+    package="chimerax.help_viewer"
+    minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
