@@ -533,7 +533,8 @@ class PseudobondManager(StateManager):
         f(self._c_pointer, pbg._c_pointer)
 
     def get_group(self, name, create = True):
-        '''Get an existing :class:`.PseudobondGroup` or create a new one with the given name.'''
+        "Supported API. Get an existing :class:`.PseudobondGroup`"
+        " or create a new one with the given name."
         f = c_function('pseudobond_global_manager_get_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
