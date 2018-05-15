@@ -48,6 +48,24 @@ class _AlignmentsBundleAPI(BundleAPI):
             alignment=alignment, ident=ident, auto_associate=auto_associate)
 
     @staticmethod
+    def save_file(session, path, format_name="FASTA", alignment=None):
+        if not alignment:
+            alignments = session.alignments.alignments
+            from chimerax.core.errors import UserError
+            if not alignments:
+                raise UserError("No alignments open!")
+            elif len(alignments) != 1:
+                raise UserError("More than one alignment open;"
+                    " use 'alignment' keyword to specify one")
+            alignment = alignments[0]
+        import importlib
+        mod = importlib.import_module(".io.save%s" % format_name)
+        from chimerax.core.io import open_filename
+        stream = open_filename(path, "w")
+        with stream:
+            mod.save(session, alignment, stream)
+
+    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
