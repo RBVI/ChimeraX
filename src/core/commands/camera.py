@@ -66,6 +66,10 @@ def camera(session, type=None, field_of_view=None,
         elif type == 'stereo':
             from ..graphics import StereoCamera
             camera = StereoCamera()
+            b = view.drawing_bounds()
+            if b:
+                camera.position = view.camera.position
+                camera.set_focus_depth(b.center(), view.window_size[0])
         elif type == 'sbs':
             from ..graphics import SplitStereoCamera
             camera = SplitStereoCamera()
@@ -91,6 +95,9 @@ def camera(session, type=None, field_of_view=None,
         has_arg = True
         cam.eye_separation_pixels = pixel_eye_separation
         cam.redraw_needed = True
+        b = view.drawing_bounds()
+        if b:
+            cam.set_focus_depth(b.center(), view.window_size[0])
 
     if not has_arg:
         lines = [

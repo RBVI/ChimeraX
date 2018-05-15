@@ -282,7 +282,7 @@ class Alignment(State):
         self.viewers.remove(viewer)
         sc = self.viewer_to_subcommand.get(viewer, None)
         if sc:
-            self.viewers_by_subcommand[subcommand_name].remove(viewer)
+            self.viewers_by_subcommand[sc].remove(viewer)
         if not self.viewers and self.auto_destroy and not self._in_destroy:
             self.session.alignments.destroy_alignment(self)
 
