@@ -19,23 +19,23 @@ LINELEN = 60
 
 def save(session, alignment, stream):
     nucleic = getattr(alignment.seqs[0], "nucleic", None)
-	if nucleic is None:
-		nucleic = True
-		for res in alignment.seqs[0]:
-			if res.isalpha() and res not in "ACGTUXacgtux":
-				nucleic = False
-				break
+    if nucleic is None:
+        nucleic = True
+        for res in alignment.seqs[0]:
+            if res.isalpha() and res not in "ACGTUXacgtux":
+                nucleic = False
+                break
 
-	for seq in alignment.seqs:
+    for seq in alignment.seqs:
         pir_type = getattr(seq, "pir_type", None)
-		if pir_type is None:
-			if nucleic:
-				pir_type = "DL"
-			else:
-				pir_type = "P1"
-		print(">%2s;%s" % (pirType, seq.name), file=stream)
+        if pir_type is None:
+            if nucleic:
+                pir_type = "DL"
+            else:
+                pir_type = "P1"
+        print(">%2s;%s" % (pir_type, seq.name), file=stream)
         descript = getattr(seq, "descript", seq.name)
-		print(descript, file=stream)
-		for i in range(0, len(seq), LINELEN):
-			print(seq[i:i+LINELEN], file=stream)
-		print("*", file=stream)
+        print(descript, file=stream)
+        for i in range(0, len(seq), LINELEN):
+            print(seq[i:i+LINELEN], file=stream)
+        print("*", file=stream)

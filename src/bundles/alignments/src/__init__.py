@@ -17,6 +17,9 @@ from chimerax.core.toolshed import BundleAPI
 
 class _AlignmentsBundleAPI(BundleAPI):
 
+    # so toolshed can find it...
+    AlignmentArg = AlignmentArg
+
     @staticmethod
     def get_class(class_name):
         if class_name == "AlignmentsManager":
@@ -50,7 +53,7 @@ class _AlignmentsBundleAPI(BundleAPI):
     @staticmethod
     def save_file(session, path, format_name="FASTA", alignment=None):
         if not alignment:
-            alignments = session.alignments.alignments
+            alignments = list(session.alignments.alignments.values())
             from chimerax.core.errors import UserError
             if not alignments:
                 raise UserError("No alignments open!")
@@ -59,7 +62,7 @@ class _AlignmentsBundleAPI(BundleAPI):
                     " use 'alignment' keyword to specify one")
             alignment = alignments[0]
         import importlib
-        mod = importlib.import_module(".io.save%s" % format_name)
+        mod = importlib.import_module(".io.save%s" % format_name.upper(), "chimerax.seqalign")
         from chimerax.core.io import open_filename
         stream = open_filename(path, "w")
         with stream:
