@@ -92,6 +92,10 @@ class BondRotationManager(StateManager):
         if not move_smaller_side:
             moving_side = bond.other_atom(moving_side)
 
+        if not self.bond_rotations:
+            from chimerax.core.atomic import get_triggers
+            self._handler_ID = get_triggers(self.session).add_handler('changes', self._changes_cb)
+
         if bond in self.bond_rotations:
             rotation = self.bond_rotations[bond]
         else:
@@ -99,9 +103,6 @@ class BondRotationManager(StateManager):
             rotation = BondRotation(self.session, bond)
         self.bond_rotations[bond] = rotation
 
-        if not self.bond_rotations:
-            from chimerax.core.atomic import get_triggers
-            self._handler_ID = get_triggers(self.session).add_handler('changes', self._changes_cb)
         rotater = rotation.new_rotater(ident, moving_side, one_shot)
         self.bond_rotaters[ident] = rotater
 
