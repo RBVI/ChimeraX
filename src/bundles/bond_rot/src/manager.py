@@ -34,7 +34,7 @@ class BondRotationManager(StateManager):
         rotation = rotater.rotation
         rotation.rotaters.remove(rotater)
         if not rotation.rotaters:
-            del self.bond_rotations[rotation]
+            del self.bond_rotations[rotation.bond]
             if not self.bond_rotations:
                 from chimerax.core.atomic import get_triggers
                 get_triggers(self.session).remove_handler(self._handler_ID)
@@ -120,7 +120,7 @@ class BondRotationManager(StateManager):
     def _changes_cb(self, trig_name, changes):
         if changes.num_deleted_bonds() > 0:
             for br in list(self.bond_rotations.values()):
-                if br.bond == bond:
+                if br.bond.deleted:
                     self._delete_rotation(br)
         new_bonds = changes.created_bonds(include_new_structures=False)
         if new_bonds:
