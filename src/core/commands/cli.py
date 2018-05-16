@@ -2105,8 +2105,6 @@ def _get_help_url(words):
         frag = '%20'.join(words)
     else:
         frag = '%20'.join(words[1:])
-    if frag:
-        frag = '#' + frag
     try:
         from chimerax.help_viewer import help_directories
     except ImportError:
