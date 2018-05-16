@@ -68,8 +68,8 @@ Atom.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h Pseudobond
 AtomicStructure.o: Atom.h AtomicStructure.h Bond.h CoordSet.h destruct.h Structure.h \
 	PBGroup.h Pseudobond.h Residue.h seq_assoc.h
 AtomTypes.o: AtomicStructure.h Bond.h Coord.h Residue.h tmpl/TAexcept.h
-Bond.o: Atom.h Bond.h Chain.h ChangeTracker.h Connection.h Structure.h Residue.h Sequence.h \
-	session.h ../pyinstance_cpp/PythonInstance.declare.h \
+Bond.o: Atom.h Bond.h Chain.h ChangeTracker.h Connection.h destruct.h Structure.h Residue.h \
+	Sequence.h session.h ../pyinstance_cpp/PythonInstance.declare.h \
 	../pyinstance_cpp/PythonInstance.instantiate.h
 Chain.o: Chain.h ChangeTracker.h StructureSeq.h ../pyinstance_cpp/PythonInstance.declare.h \
 	../pyinstance_cpp/PythonInstance.instantiate.h
