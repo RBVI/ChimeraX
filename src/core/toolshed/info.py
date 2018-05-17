@@ -26,6 +26,8 @@ class BundleInfo:
     ----------
     commands : list of :py:class:`CommandInfo`
         List of commands registered for this bundle.
+    tools : list of :py:class:`ToolInfo`
+        List of tools registered for this bundle.
     installed : boolean
         True if this bundle is installed locally; False otherwise.
     file_formats : list of :py:class:`DataInfo`
@@ -556,7 +558,7 @@ class BundleInfo:
         set of :py:class:`~chimerax.core.toolshed.BundleInfo` instances
             Dependent bundles.
         """
-        from . import Toolshed
+        from . import get_toolshed
         from distlib.database import DistributionPath
         keep = set()
         for d in DistributionPath().get_distributions():
@@ -564,7 +566,7 @@ class BundleInfo:
                 if req.split()[0] == self.name:
                     keep.add(d)
                     break
-        ts = Toolshed.get_toolshed()
+        ts = get_toolshed()
         deps = set()
         for d in keep:
             bi = ts.find_bundle(d.name, logger)

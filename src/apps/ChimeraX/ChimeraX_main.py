@@ -517,9 +517,9 @@ def init(argv, event_loop=True):
             print("Initializing core", flush=True)
 
     from chimerax.core import toolshed
-    # toolshed.init returns a singleton so it's safe to call multiple times
-    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug,
-                                  check_available=opts.get_available_bundles)
+    toolshed.init(sess.logger, debug=sess.debug,
+                  check_available=opts.get_available_bundles)
+    sess.toolshed = toolshed.get_toolshed()
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
         if not opts.silent:

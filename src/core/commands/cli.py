@@ -2096,6 +2096,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
 
 
 def _get_help_url(words):
+    # return help: URLs so links work in log as well as help viewer
     import os
     from urllib.parse import urlunparse
     from urllib.request import pathname2url
@@ -2111,7 +2112,7 @@ def _get_help_url(words):
     for hd in help_directories:
         cpath = os.path.join(hd, cmd_subpath)
         if os.path.exists(cpath):
-            return urlunparse(('file', '', pathname2url(cpath), '', '', frag))
+            return urlunparse(('help', '', "user/commands/%s.html" % cname, '', '', frag))
     return None
 
 
@@ -2597,7 +2598,8 @@ class Command:
                     if _available_commands is None:
                         from .. import toolshed
                         _available_commands = _WordInfo(self.registry)
-                        toolshed.init().register_available_commands(session.logger)
+                        ts = toolshed.get_toolshed()
+                        ts.register_available_commands(session.logger)
                     self._find_command_name(final, used_aliases=_used_aliases,
                                             parent_info=_available_commands)
                 if self._error:

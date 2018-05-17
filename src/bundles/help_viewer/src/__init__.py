@@ -40,7 +40,7 @@ class _MyAPI(toolshed.BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         global _new_bundle_handler
-        ts = toolshed.init()
+        ts = toolshed.get_toolshed()
         _new_bundle_handler = ts.triggers.add_handler(
             toolshed.TOOLSHED_BUNDLE_INSTALLED, _update_help_directories)
         # ? = ts.triggers.add_handler(
@@ -50,7 +50,7 @@ class _MyAPI(toolshed.BundleAPI):
     @staticmethod
     def finish(session, bundle_info):
         global _new_bundle_handler
-        ts = toolshed.init()
+        ts = toolshed.get_toolshed()
         if _new_bundle_handler is not None:
             ts.triggers.remove_handler(_new_bundle_handler)
             _new_bundle_handler = None
