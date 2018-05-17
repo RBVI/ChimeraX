@@ -19,9 +19,8 @@ help_url_paths = []     # help directories in URL path form
 
 
 def _update_help_directories(trigger_name=None, bundle_info=None):
-    import sys
-    help_directories.clear()
-    help_url_paths.clear()
+    global help_directories
+    global help_url_paths
 
     def cvt_path(path):
         from urllib.request import pathname2url
@@ -32,18 +31,8 @@ def _update_help_directories(trigger_name=None, bundle_info=None):
             help_path += '/'
         return help_path
 
-    import os
-    from chimerax import app_data_dir
-    base_dir = os.path.join(app_data_dir, 'docs')
-    help_directories.append(base_dir)
-    help_url_paths.append(cvt_path(base_dir))
-
-    ts = toolshed.init()
-    for b in ts.bundle_info(None):
-        docs = b.get_path('docs')
-        if docs is not None:
-            help_directories.append(docs)
-            help_url_paths.append(cvt_path(docs))
+    help_directories = toolshed.get_help_directories()
+    help_url_paths = [cvt_path(hd) for hd in help_directories]
 
 
 class _MyAPI(toolshed.BundleAPI):

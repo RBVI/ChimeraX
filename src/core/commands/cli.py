@@ -2105,11 +2105,8 @@ def _get_help_url(words):
         frag = '%20'.join(words)
     else:
         frag = '%20'.join(words[1:])
-    try:
-        from chimerax.help_viewer import help_directories
-    except ImportError:
-        import chimerax
-        help_directories = [os.path.join(chimerax.app_data_dir, 'docs')]
+    from .. import toolshed
+    help_directories = toolshed.get_help_directories()
     cmd_subpath = os.path.join('user', 'commands', '%s.html' % cname)
     for hd in help_directories:
         cpath = os.path.join(hd, cmd_subpath)

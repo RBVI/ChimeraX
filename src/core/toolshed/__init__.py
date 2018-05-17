@@ -1144,3 +1144,18 @@ def init(*args, debug=None, **kw):
     if _toolshed is None:
         _toolshed = Toolshed(*args, **kw)
     return _toolshed
+
+
+def get_help_directories():
+    global _default_help_dir
+    if _default_help_dir is None:
+        import os
+        from chimerax import app_data_dir
+        _default_help_dir = os.path.join(app_data_dir, 'docs')
+    hd = [_default_help_dir]
+    ts = Toolshed.get_toolshed()
+    if ts is not None:
+        hd.extend(ts._installed_bundle_info.help_directories)
+    return hd
+
+_default_help_dir = None
