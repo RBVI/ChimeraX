@@ -36,6 +36,16 @@ def camera(session, type=None, field_of_view=None,
     has_arg = False
     if type is not None:
         has_arg = True
+        if (type == 'stereo') != view.render.opengl_context.stereo:
+            # Need to switch stereo mode of OpenGL context.
+            if not session.ui.main_window.enable_stereo(type == 'stereo'):
+                from ..errors import UserError
+                raise UserError('Could not switch graphics mode.  '
+                                'Graphics driver did not create OpenGL context.')
+            # Close side view since it must be restarted to use new OpenGL context
+            for t in tuple(session.tools.list()):
+                if t.tool_name == 'Side View':
+                    t.delete()
         camera = None
         if type == 'mono':
             from ..graphics import MonoCamera
@@ -54,13 +64,12 @@ def camera(session, type=None, field_of_view=None,
             from ..graphics import Stereo360Camera
             camera = Stereo360Camera(layout = 'side-by-side')
         elif type == 'stereo':
-            if not getattr(session.ui, 'stereo', False):
-                from ..errors import UserError
-                raise UserError('Do not have stereo OpenGL context.' +
-                                ('\nUse --stereo command-line option'
-                                 if not session.ui.stereo else ''))
             from ..graphics import StereoCamera
             camera = StereoCamera()
+            b = view.drawing_bounds()
+            if b:
+                camera.position = view.camera.position
+                camera.set_focus_depth(b.center(), view.window_size[0])
         elif type == 'sbs':
             from ..graphics import SplitStereoCamera
             camera = SplitStereoCamera()
@@ -70,6 +79,7 @@ def camera(session, type=None, field_of_view=None,
 
         if camera is not None:
             camera.position = view.camera.position  # Preserve current camera position
+            view.camera.delete()
             view.camera = camera
 
     cam = session.main_view.camera
@@ -85,6 +95,9 @@ def camera(session, type=None, field_of_view=None,
         has_arg = True
         cam.eye_separation_pixels = pixel_eye_separation
         cam.redraw_needed = True
+        b = view.drawing_bounds()
+        if b:
+            cam.set_focus_depth(b.center(), view.window_size[0])
 
     if not has_arg:
         lines = [

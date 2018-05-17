@@ -44,13 +44,15 @@ endif
 ifeq ($(OS),Darwin)
 # On Darwin, -Wl,-rpath ends up in shared libraries in addition to executables,
 # which we don't want, so we add the rpath later, and set the DYLD_LIBRARY_PATH
-# to compensate while we're building
+# to compensate while we're building.  We also edit the Makefile so that the
+# _build_ Python executable, python.exe, gets the correct rpath but none of
+# the shared objects should get an explicit rpath (and hence should just use
+# the rpath from the ChimeraX/python executable).
 export DYLD_LIBRARY_PATH=$(libdir)
 ifndef USE_MAC_FRAMEWORKS
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 CONFIG_OPTIONS += --enable-shared
 else
-LDFLAGS += -Wl,-rpath,"$(libdir)"
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
 pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
@@ -287,6 +289,8 @@ ifdef USE_MAC_FRAMEWORKS
 	(echo ':/framework_dirs =/s:$$: "$(frameworkdir)",:'; echo ':wq') \
 	    | env TERM=dumb ex -s $(SOURCE)/setup.py
 	(echo ':/^BASECFLAGS/s:$$: -F$(frameworkdir):'; echo ':wq') \
+	    | env TERM=dumb ex -s $(SOURCE)/Makefile
+	(echo ':/$$@ Programs\/python.o/s::& -Wl,-rpath,$(libdir):'; echo ':wq') \
 	    | env TERM=dumb ex -s $(SOURCE)/Makefile
 endif
 endif

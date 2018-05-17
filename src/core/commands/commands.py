@@ -27,11 +27,12 @@ def register_core_commands(session):
         'coordset', 'crossfade',
         'delete', 'devel', 'distance', 'dssp', 'exit', 'graphics', 'hide',
         'lighting', 'material',
-        'measure_convexity', 'measure_buriedarea', 'measure_length', 'measure_sasa',
+        'measure_convexity', 'measure_buriedarea', 'measure_length',
+        'measure_sasa',
         'mousemode', 'move',
         'open', 'palette', 'pdbimages', 'perframe', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs', 'runscript',
-        'save', 'scolor', 'select', 'set', 'setattr', 'show', 'size', 'split',
+        'save', 'select', 'set', 'setattr', 'show', 'size', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'toolshed', 'transparency', 'turn', 'undo',
         'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'
@@ -39,14 +40,7 @@ def register_core_commands(session):
     for mod in modules:
         m = import_module(".%s" % mod, __package__)
         m.register_command(session)
-
-    from .. import map
-    map.register_volume_command(session.logger)
-    map.register_molmap_command(session.logger)
-    from ..map import fit
-    fit.register_fitmap_command(session.logger)
-    from ..map import series
-    series.register_vseries_command(session.logger)
+    
     session.triggers.add_trigger(ATOMSPEC_EVALUATED)
     from .. import triggers
     triggers.add_trigger(ATOMSPEC_TARGET_REGISTERED)

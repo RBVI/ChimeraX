@@ -187,7 +187,7 @@ def _get_builder(path, logger):
     except KeyError:
         pass
     try:
-        bb = BundleBuilder(path)
+        bb = BundleBuilder(logger, bundle_path=path)
     except IOError as e:
         logger.error(str(e))
         return None

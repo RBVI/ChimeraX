@@ -46,10 +46,16 @@ class MouseMode:
         self.view = session.main_view
 
         self.mouse_down_position = None
-        '''Pixel position (x,y) of mouse down, sometimes useful to detect on mouse up
+        '''Pixel position (x,y) of mouse-down, sometimes useful to detect on mouse-up
         whether any mouse motion occured. Set to None after mouse up.'''
         self.last_mouse_position = None
         '''Last mouse position during a mouse drag.'''
+        self.double_click = False
+        '''Whether the last mouse-down was actually a double_click.  Can be used in the mouse-up
+        event handler if different behavior needed after a double click.  There is a
+        mouse_double_click method for doing something on a double click (which happens on the
+        second mouse down), so this boolean is only for mouse-up handlers that behave differently
+        after single vs. double clicks.'''
 
     def enable(self):
         '''Override if mode wants to know that it has been bound to a mouse button.'''
@@ -59,11 +65,13 @@ class MouseMode:
         '''
         Override this method to handle mouse down events.
         Derived methods can call this base class method to
-        set mouse_down_position and last_mouse_position.
+        set mouse_down_position and last_mouse_position
+        and properly handle double clicks.
         '''
         pos = event.position()
         self.mouse_down_position = pos
         self.last_mouse_position = pos
+        self.double_click = False
 
     def mouse_up(self, event):
         '''
@@ -73,6 +81,17 @@ class MouseMode:
         '''
         self.mouse_down_position = None
         self.last_mouse_position = None
+
+    def mouse_double_click(self, event):
+        '''
+        Override this method to handle double clicks.
+        Keep in mind that you will also receive the mouse_down and
+        mouse_up events.  If your mouse_up handler needs to behave
+        differently depending on whether it is the second part of a
+        double click, have it check the self.double_click boolean,
+        and make sure to call this base method so that the boolean is set.
+        '''
+        self.double_click = True
 
     def mouse_motion(self, event):
         '''
@@ -354,6 +373,7 @@ class MouseModes:
         gw.mousePressEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_down")
         gw.mouseMoveEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_drag")
         gw.mouseReleaseEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_up")
+        gw.mouseDoubleClickEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_double_click")
         gw.wheelEvent = self._wheel_event
 
     def _wheel_event(self, event):
@@ -400,6 +420,8 @@ class SelectMouseMode(MouseMode):
     name = 'select'
     icon_file = 'select.png'
 
+    _menu_entry_info = []
+
     def __init__(self, session):
         MouseMode.__init__(self, session)
 
@@ -424,10 +446,62 @@ class SelectMouseMode(MouseMode):
         if self._is_drag(event):
             # Select objects in rectangle
             mouse_drag_select(self.mouse_down_position, event, self.mode, self.session, self.view)
-        else:
+        elif not self.double_click:
             # Select object under pointer
             mouse_select(event, self.mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
+
+    def mouse_double_click(self, event):
+        MouseMode.mouse_double_click(self, event)
+        entries = []
+        dangerous_entries = []
+        for label_info, criteria, callback, dangerous in SelectMouseMode._menu_entry_info:
+            if criteria(self.session):
+                if callable(label_info):
+                    label_text = label_info(self.session)
+                else:
+                    label_text = label_info
+                if dangerous:
+                    dangerous_entries.append((label_text, callback))
+                else:
+                    entries.append((label_text, callback))
+        entries.sort()
+        dangerous_entries.sort()
+        from PyQt5.QtWidgets import QMenu, QAction
+        menu = QMenu()
+        actions = []
+        all_entries = entries
+        if dangerous_entries:
+            all_entries = all_entries + [(None, None)] + dangerous_entries
+        if all_entries:
+            for label, callback in all_entries:
+                if label is None:
+                    menu.addSeparator()
+                    continue
+                action = QAction(label)
+                action.triggered.connect(lambda arg, cb=callback, sess=self.session: cb(sess))
+                menu.addAction(action)
+                actions.append(action) # keep reference
+        else:
+            menu.addAction("No applicable actions")
+        # this will prevent atom-spec balloons from showing up
+        menu.exec(event._event.globalPos())
+
+    @staticmethod
+    def register_menu_entry(label, criteria, callback, dangerous=False):
+        '''Register a context-menu entry.
+
+        'label' is the text of the menu entry.  It can be a callable that return the text of the
+            entry.  If it is, then it is called with the session as an argument.
+        'criteria' is a callable that is given the session as an argument.  It should return a
+            boolean that indicates whether the menu should include this entry (usually based on
+            the current contents of the selection).
+        'callback' is a callable that is given the session as an argument.  It should perform
+            the entry's corresponding action.
+        If a menu is hazardous to click accidentally, supply the 'dangerous' keyword as True.
+            Such entries will be organized at the bottom of the menu after a separator.
+        '''
+        SelectMouseMode._menu_entry_info.append((label, criteria, callback, dangerous))
 
     def _is_drag(self, event):
         dp = self.mouse_down_position
@@ -751,6 +825,11 @@ class ObjectIdMouseMode(MouseMode):
         from PyQt5.QtGui import QCursor
         if ui.topLevelAt(QCursor.pos()) != ui.main_window:
             return
+        # ensure there's no popup menu above the graphics
+        apw = ui.activePopupWidget()
+        from PyQt5.QtCore import QPoint
+        if apw and ui.topLevelAt(apw.mapToGlobal(QPoint())) == ui.main_window:
+            return
         x,y = position
         p = picked_object(x, y, self.view)
 
@@ -810,8 +889,8 @@ class LabelMode(MouseMode):
         objects = Objects()
         from chimerax.core import atomic
         if isinstance(pick, atomic.PickedAtom):
-            objects.add_atoms(atomic.Atoms([pick.atom]))
-            object_type = 'atoms'
+            objects.add_atoms(pick.atom.residue.atoms)
+            object_type = 'residues'
         elif isinstance(pick, atomic.PickedResidue):
             objects.add_atoms(pick.residue.atoms)
             object_type = 'residues'
@@ -1014,8 +1093,8 @@ class ClipRotateMouseMode(MouseMode):
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
     from chimerax import markers
-    from chimerax.core.map import mouselevel, moveplanes
-    from chimerax.core.map.series import play
+    from chimerax.map import ContourLevelMouseMode, PlanesMouseMode
+    from chimerax.map.series import PlaySeriesMouseMode
     mode_classes = [
         SelectMouseMode,
         SelectAddMouseMode,
@@ -1032,11 +1111,11 @@ def standard_mouse_mode_classes():
         ObjectIdMouseMode,
         LabelMode,
         AtomCenterOfRotationMode,
-        mouselevel.ContourLevelMouseMode,
-        moveplanes.PlanesMouseMode,
+        ContourLevelMouseMode,
+        PlanesMouseMode,
         markers.MarkerMouseMode,
         markers.ConnectMouseMode,
-        play.PlaySeriesMouseMode,
+        PlaySeriesMouseMode,
         NullMouseMode,
     ]
     return mode_classes
@@ -1067,3 +1146,73 @@ def mod_key_info(key_function):
         if sys.platform == "darwin":
             return Qt.ControlModifier, "control"
         return Qt.MetaModifier, command_name
+
+# generic additions to context selection menu...
+from chimerax.core.commands import run
+for cmd in ("hide", "delete"):
+    cap_cmd = cmd.capitalize()
+    cmd_fmt = "delete %s sel" if cmd == "delete" else "hide sel %s"
+    dangerous = cmd == "delete"
+    # avoid directly importing atomic module
+    def num_sel(ses):
+        from chimerax.atomic import selected_atoms
+        return len(selected_atoms(ses))
+
+    def atoms_label(ses, cap_cmd=cap_cmd, num_sel=num_sel):
+        return ("%s atom" if num_sel(ses) == 1 else "%s atoms") % cap_cmd
+
+    def atoms_criteria(ses, num_sel=num_sel):
+        return num_sel(ses) > 0
+
+    def atoms_callback(ses, cmd_fmt=cmd_fmt, num_sel=num_sel, dangerous=dangerous):
+        if dangerous:
+            from .ask import ask
+            if ask(ses, "Really delete %s atom(s)" % num_sel(ses),
+                    title="Deletion Request") == "no":
+                return
+        run(ses, cmd_fmt % "atoms")
+
+    SelectMouseMode.register_menu_entry(atoms_label, atoms_criteria, atoms_callback,
+        dangerous=dangerous)
+
+    def num_sel(ses):
+        from chimerax.atomic import selected_bonds
+        return len(selected_bonds(ses))
+
+    def bonds_label(ses, cap_cmd=cap_cmd, num_sel=num_sel):
+        return ("%s bond" if num_sel(ses) == 1 else "%s bonds") % cap_cmd
+
+    def bonds_criteria(ses, num_sel=num_sel):
+        return num_sel(ses) > 0
+
+    def bonds_callback(ses, cmd_fmt=cmd_fmt, dangerous=dangerous):
+        if dangerous:
+            from .ask import ask
+            if ask(ses, "Really delete %s bond(s)" % num_sel(ses),
+                    title="Deletion Request") == "no":
+                return
+        run(ses, cmd_fmt % "bonds")
+
+    SelectMouseMode.register_menu_entry(bonds_label, bonds_criteria, bonds_callback,
+        dangerous=dangerous)
+
+    def num_sel(ses):
+        from chimerax.atomic import selected_pseudobonds
+        return len(selected_pseudobonds(ses))
+
+    def pseudobonds_label(ses, cap_cmd=cap_cmd, num_sel=num_sel):
+        return ("%s pseudobond" if num_sel(ses) == 1 else "%s pseudobonds") % cap_cmd
+
+    def pseudobonds_criteria(ses, num_sel=num_sel):
+        return num_sel(ses) > 0
+
+    def pseudobonds_callback(ses, cmd_fmt=cmd_fmt, dangerous=dangerous):
+        if dangerous:
+            from .ask import ask
+            if ask(ses, "Really delete %s pseudobond(s)" % num_sel(ses),
+                    title="Deletion Request") == "no":
+                return
+        run(ses, cmd_fmt % "pseudobonds")
+
+    SelectMouseMode.register_menu_entry(pseudobonds_label, pseudobonds_criteria,
+        pseudobonds_callback, dangerous=dangerous)

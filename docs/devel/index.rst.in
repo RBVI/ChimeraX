@@ -40,6 +40,7 @@ User documentation for the ChimeraX application is in the `User's Manual`_.
    :maxdepth: 1
 
    mmcif.rst
+   mmcif_writing.rst
 
 .. toctree::
    :maxdepth: 1

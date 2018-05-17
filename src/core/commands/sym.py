@@ -240,14 +240,14 @@ def mmcif_assemblies(model):
 #
 def chain_id_changes(poly_seq_scheme, nonpoly_scheme):
     cmap = {}
-    if not poly_seq_scheme is None:
+    if poly_seq_scheme:
         # Note the pdb_seq_num (and not the auth_seq_num) in this table corresponds to
         # auth_seq_id in the atom_site table.  Example 3efz.
         pcnc = poly_seq_scheme.fields(('asym_id', 'pdb_seq_num', 'pdb_strand_id'))
         cmap = dict(((auth_cid, int(auth_resnum)), mmcif_cid)
                     for mmcif_cid, auth_resnum, auth_cid in pcnc
                     if mmcif_cid != auth_cid and auth_resnum != '?')
-    if not nonpoly_scheme is None:
+    if nonpoly_scheme:
         ncnc = nonpoly_scheme.fields(('asym_id', 'pdb_seq_num', 'pdb_strand_id'))
         ncmap = dict(((auth_cid, int(auth_resnum)), mmcif_cid)
                      for mmcif_cid, auth_resnum, auth_cid in ncnc

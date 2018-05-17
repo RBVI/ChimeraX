@@ -25,7 +25,7 @@ from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg
 from .cli import AxisArg, Axis, CenterArg, Center, CoordSysArg, PlaceArg, Bounded
 from .cli import ModelIdArg, AtomsArg, UniqueChainsArg, AtomicStructuresArg
-from .cli import StructureArg, StructuresArg, SurfacesArg
+from .cli import StructureArg, StructuresArg, SurfacesArg, SurfaceArg
 from .cli import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
 from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg
@@ -37,4 +37,5 @@ from .symarg import SymmetryArg
 
 from .atomspec import AtomSpecArg, all_objects
 from .atomspec import register_selector, deregister_selector
-from .atomspec import list_selectors, get_selector
+from .atomspec import list_selectors, get_selector, get_selector_description
+from .atomspec import is_selector_user_defined, is_selector_atomic

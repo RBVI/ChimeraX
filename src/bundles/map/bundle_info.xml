@@ -1,0 +1,58 @@
+<BundleInfo name="ChimeraX-Map" version="1.0"
+	    package="chimerax.map"
+	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Density maps</Synopsis>
+  <Description>Display and analyze 3d image data</Description>
+
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Volume Data"/>
+  </Categories>
+
+  <CModule name="_map">
+    <SourceFile>_map/colors.cpp</SourceFile>
+    <SourceFile>_map/contourpy.cpp</SourceFile>
+    <SourceFile>_map/fittingpy.cpp</SourceFile>
+    <SourceFile>_map/interpolatepy.cpp</SourceFile>
+    <SourceFile>_map/occupancy.cpp</SourceFile>
+    <SourceFile>_map/combine.cpp</SourceFile>
+    <SourceFile>_map/distgrid.cpp</SourceFile>
+    <SourceFile>_map/gaussian.cpp</SourceFile>
+    <SourceFile>_map/localcorr.cpp</SourceFile>
+    <SourceFile>_map/squaremesh.cpp</SourceFile>
+    <SourceFile>_map/extendmap.cpp</SourceFile>
+    <SourceFile>_map/histogram.cpp</SourceFile>
+    <SourceFile>_map/module.cpp</SourceFile>
+    <SourceFile>_map/transfer.cpp</SourceFile>
+    <SourceFile>_map/contourdata.cpp</SourceFile>
+    <SourceFile>_map/fitting.cpp</SourceFile>
+    <SourceFile>_map/interpolate.cpp</SourceFile>
+    <SourceFile>_map/moments.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: CCP4 density map :: ccp4 :: Volume data :: .map :: :: http://www.ccpem.ac.uk/mrc_format/mrc2014.php :: :: :: Microscopy density map</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: CCP4 density map :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: volume :: Volume data :: control volume data display</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: molmap :: Volume data :: create density map for molecule</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Volume Viewer :: Volume Data :: Show density maps info</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

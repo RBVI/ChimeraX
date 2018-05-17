@@ -359,6 +359,9 @@ Recognized Data Categories and Keywords
    |                            | comp_id |req|, atom_id_1 |req|,        |
    |                            | atom_id_2 |req|                        |
    +----------------------------+----------------------------------------+
+   | entity_poly                |                                        |
+   |                            | entity_id |req|, nstd_monomer, type    |
+   +----------------------------+----------------------------------------+
    | entity_poly_seq            |                                        |
    |                            | entity_id |req|, num |req|,            |
    |                            | mon_id |req|, hetero                   |
@@ -418,10 +421,10 @@ Recognized Data Categories and Keywords
    |                            | ptnr1_label_comp_id |req|,             |
    |                            | ptnr1_symmetry,                        |
    |                            | ptnr2_label_asym_id |req|,             |
-   |                            | pdbx_ptnr2 _PDB_ins_code,              |
+   |                            | pdbx_ptnr2_PDB_ins_code,               |
    |                            | ptnr2_label_seq_id |req|,              |
    |                            | ptnr2_auth_seq_id,                     |
-   |                            | pdbx_ptnr2 _label_alt_id,              |
+   |                            | pdbx_ptnr2_label_alt_id,               |
    |                            | ptnr2_label_atom_id |req|,             |
    |                            | ptnr2_label_comp_id |req|,             |
    |                            | ptnr2_symmetry, pdbx_dist_value        |
@@ -469,6 +472,10 @@ entity
   Contains details "about the molecular entities that are
   present in the crystallographic structure."
   Used to extract description of chains.
+
+entity_poly
+  Tell if entity has non-standard monomers in it and thus, potentially,
+  non-polymeric linkage.
 
 entity_poly_seq
   Contains the sequence of residues in a chain.

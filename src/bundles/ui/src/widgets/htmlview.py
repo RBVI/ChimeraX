@@ -164,7 +164,7 @@ class _LoggingPage(QWebEnginePage):
 
     Levels = {
         0: "info",
-        1: "warning", 
+        1: "warning",
         2: "error",
     }
 
@@ -221,22 +221,50 @@ class ChimeraXHtmlView(HtmlView):
         self._pending_downloads = []
 
     def link_clicked(self, request_info, *args):
+        import os
         qurl = request_info.requestUrl()
         scheme = qurl.scheme()
+        if scheme == 'file':
+            # Treat all directories with help documentation as equivalent
+            # to integrate bundle help with the main help.  That is, so
+            # relative hrefs will find files in other help directories.
+            import sys
+            path = os.path.normpath(qurl.path())
+            if sys.platform == "win32" and path[0] == os.path.sep:
+                path = path[1:]   # change \C:\ to C:\
+            if os.path.exists(path):
+                return
+            from chimerax.core import toolshed
+            help_directories = toolshed.get_help_directories()
+            for hd in help_directories:
+                if path.startswith(hd):
+                    break
+            else:
+                return   # not in a help directory
+            tail = path[len(hd) + 1:]
+            for hd in help_directories:
+                path = os.path.join(hd, tail)
+                if os.path.exists(path):
+                    break
+            else:
+                return  # not in another help directory
+            path = os.path.sep + path
+            if sys.platform == "win32":
+                path = path.replace(os.path.sep, '/')
+            qurl.setPath(path)
+            request_info.redirect(qurl)  # set requested url to good location
+            return
         if scheme in ('cxcmd', 'help'):
             # originating_url = request_info.firstPartyUrl()  # doesn't work
             originating_url = self.url()
             from_dir = None
             if originating_url.isLocalFile():
-                import os
                 from_dir = os.path.dirname(originating_url.toLocalFile())
 
             def defer(session, topic, from_dir):
-                from chimerax.help_viewer.cmd import help
                 prev_dir = None
                 try:
                     if from_dir:
-                        import os
                         prev_dir = os.getcwd()
                         try:
                             os.chdir(from_dir)
@@ -244,11 +272,15 @@ class ChimeraXHtmlView(HtmlView):
                             prev_dir = None
                             session.logger.warning(
                                 'Unable to change working directory: %s' % e)
-                    help(session, topic)
+                    if scheme == 'cxcmd':
+                        cxcmd(session, topic)
+                    elif scheme == 'help':
+                        from chimerax.help_viewer.cmd import help
+                        help(session, topic)
                 finally:
                     if prev_dir:
                         os.chdir(prev_dir)
-            self.session.ui.thread_safe(defer, self.session, qurl.url(), from_dir)
+            self.session.ui.thread_safe(defer, self.session, qurl.url(qurl.None_), from_dir)
             return
 
     def download_requested(self, item):
@@ -330,3 +362,18 @@ class ChimeraXHtmlView(HtmlView):
                                                  self.session.logger,
                                                  per_user=per_user,
                                                  session=self.session)
+
+
+def cxcmd(session, url):
+    from urllib.parse import unquote
+    cmd = url.split(':', 1)[1]  # skip cxcmd:
+    cmd = unquote(cmd)  # undo expected quoting
+    from chimerax.cmd_line.tool import CommandLine
+    ti = CommandLine.get_singleton(session, create=False)
+    if ti:
+        ti.cmd_replace(cmd)
+        ti.execute()
+    else:
+        # no command line?!?
+        from chimerax.core.commands import run
+        run(session, cmd)

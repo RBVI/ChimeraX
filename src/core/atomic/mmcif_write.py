@@ -64,6 +64,13 @@ _protein1to3 = {
     'Y': "TYR",
     'Z': "GLX",
 }
+_standard_residues = set()  # filled in once at runtime
+
+
+def _set_standard_residues():
+    _standard_residues.update(_rna1to3.values())
+    _standard_residues.update(_dna1to3.values())
+    _standard_residues.update(_protein1to3.values())
 
 
 def write_mmcif(session, path, models=None):
@@ -77,6 +84,9 @@ def write_mmcif(session, path, models=None):
         session.logger.info("no structures to save")
         return
 
+    if not _standard_residues:
+        _set_standard_residues()
+
     # Need to figure out which ChimeraX models should be grouped together
     # as mmCIF models.  For now assume all models with the same "parent"
     # id (other than blank) are actually a nmr ensemble.
@@ -87,6 +97,8 @@ def write_mmcif(session, path, models=None):
 
     used_data_names = set()
     with open(path, 'w') as f:
+        print("#\\#CIF_1.1", file=f)
+        print("# mmCIF", file=f)
         for g in grouped:
             models = grouped[g]
             # TODO: make sure ensembles are distinguished from IHM models
@@ -149,7 +161,7 @@ ChimeraX_authors = mmcif.MMCIFTable(
         'chimerax', 'Ferrin TE', '7',
     ]
 )
-_CHAIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+_CHAIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 system = platform.system()
 if system == 'Darwin':
@@ -181,14 +193,21 @@ del system
 
 
 def _mmcif_chain_id(i):
-    # TODO: want A..Z, AA..AZ getting A..Z, BA..BZ
+    # want A..9, AA..99
     assert i > 0
-    i = i - 1
+    i -= 1
+    num_chars = len(_CHAIN_CHARS)
+    max = num_chars
+    num_digits = 1
+    while i >= max:
+        i -= max
+        num_digits += 1
+        max = max * num_chars
     if i == 0:
-        return 'A'
+        return _CHAIN_CHARS[0] * num_digits
     output = []
     num_chars = len(_CHAIN_CHARS)
-    while i > 0:
+    for d in range(num_digits):
         output.append(_CHAIN_CHARS[i % num_chars])
         i //= num_chars
     output.reverse()
@@ -237,9 +256,7 @@ def save_structure(session, file, models, used_data_names):
     print('data_%s' % name, file=file)
     print('#', file=file)
 
-    # TODO? entry
-    # entry, = mmcif.get_mmcif_tables_from_metadata(best_m, ['entry'])
-    # entry.print(file)
+    _save_metadata(best_m, ['entry'], file)
 
     ChimeraX_audit_conform.print(file=file, fixed_width=True)
 
@@ -277,19 +294,21 @@ def save_structure(session, file, models, used_data_names):
         old_mmcif_chain_to_entity = {}
         old_entity_to_description = {}
 
-    entity_info = {}    # { entity_id: (type, pdbx_description) }
-    asym_info = {}      # { auth_chain_id: (entity_id, label_asym_id) }
-    het_asym_info = {}  # { mmcif_chain_id: (entity_id, label_asym_id) }
-    poly_info = []      # [(entity_id, type, one-letter-seq)]
-    poly_seq_info = []  # [(entity_id, num, mon_id)]
-    residue_info = {}   # { residue: (label_asym_id, label_seq_id) }
-    asym_id = 0
+    from collections import OrderedDict
+    entity_info = {}     # { entity_id: (type, pdbx_description) }
+    asym_info = {}       # { auth_chain_id: (entity_id, label_asym_id) }
+    het_asym_info = {}   # { mmcif_chain_id: (entity_id, label_asym_id) }
+    poly_info = []       # [(entity_id, type, one-letter-seq)]
+    poly_seq_info = []   # [(entity_id, num, mon_id)]
+    pdbx_poly_info = []  # [(entity_id, asym_id, mon_id, seq_id, pdb_strand_id, auth_seq_num, pdb_ins_code)]
+    residue_info = {}    # { residue: (label_asym_id, label_seq_id) }
 
-    seq_entities = {}   # { chain.characters : entity_id }
+    seq_entities = OrderedDict()   # { chain.characters : (entity_id, _1to3, [chains]) }
     for c in best_m.chains:
         chars = c.characters
         if chars in seq_entities:
-            eid = seq_entities[chars]
+            eid, _1to3, chains = seq_entities[chars]
+            chains.append(c)
         else:
             mcid = c.existing_residues[0].mmcif_chain_id
             try:
@@ -298,30 +317,73 @@ def save_structure(session, file, models, used_data_names):
                 descrip = '?'
             eid = len(entity_info) + 1
             entity_info[eid] = ('polymer', descrip)
-            seq_entities[chars] = eid
+            names = set(c.existing_residues.names)
+            nstd = 'yes' if names.difference(_standard_residues) else 'no'
             # _1to3 is reverse map to handle missing residues
             if c.polymer_type == Residue.PT_AMINO:
                 _1to3 = _protein1to3
-                poly_info.append((eid, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
+                poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
+            elif names.isdisjoint(set(_rna1to3)):
+                # must be DNA
+                _1to3 = _dna1to3
+                poly_info.append((eid, nstd, 'polyribonucleotide', chars))
             else:
-                # figure out if DNA
-                names = set(c.existing_residues.names)
-                if names.isdisjoint(set(_dna1to3)):
-                    _1to3 = _rna1to3
-                    poly_info.append((eid, 'polydeoxyribonucleotide', chars))
-                else:
-                    _1to3 = _dna1to3
-                    poly_info.append((eid, 'polyribonucleotide', chars))
-            for seq_id, ch, r in zip(range(1, sys.maxsize), chars, c.residues):
-                label_seq_id = str(seq_id)
-                if r:
+                # must be RNA
+                _1to3 = _rna1to3
+                poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
+            seq_entities[chars] = (eid, _1to3, [c])
+
+    # use all chains of the same entity to figure out what the sequence's residues are named
+    pdbx_poly_tmp = {}
+    for chars, (eid, _1to3, chains) in seq_entities.items():
+        pdbx_poly_tmp[eid] = []
+        for seq_id, ch, residues in zip(range(1, sys.maxsize), chars, zip(*(c.residues for c in chains))):
+            label_seq_id = str(seq_id)
+            for r in residues:
+                if r is not None:
                     name = r.name
-                else:
-                    name = _1to3.get(ch, 'UNK')
-                poly_seq_info.append((eid, label_seq_id, name))
+                    seq_num = r.number
+                    ins_code = r.insertion_code
+                    if not ins_code:
+                        ins_code = '.'
+                    break
+            else:
+                name = _1to3.get(ch, 'UNK')
+                seq_num = '?'
+                ins_code = '.'
+            poly_seq_info.append((eid, label_seq_id, name))
+            pdbx_poly_tmp[eid].append((name, label_seq_id, seq_num, ins_code))
+
+    # assign label_asym_id's to each chain
+    asym_id = 0
+    for c in best_m.chains:
         asym_id += 1
         label_asym_id = _mmcif_chain_id(asym_id)
-        asym_info[c.chain_id] = (label_asym_id, eid)
+        chars = c.characters
+        chain_id = c.chain_id
+        eid, _1to3, _ = seq_entities[chars]
+        asym_info[(chain_id, chars)] = (label_asym_id, eid)
+
+        tmp = pdbx_poly_tmp[eid]
+        for name, label_seq_id, seq_num, ins_code in tmp:
+            pdbx_poly_info.append((eid, label_asym_id, name, label_seq_id, chain_id, seq_num, ins_code))
+        """
+        # pdbx_poly_seq_scheme needs residues in each chain listed
+        for seq_id, ch, r in zip(range(1, sys.maxsize), chars, c.residues):
+            label_seq_id = str(seq_id)
+            if r:
+                name = r.name
+                seq_num = r.number
+                ins_code = r.insertion_code
+                if not ins_code:
+                    ins_code = '.'
+            else:
+                name = _1to3.get(ch, 'UNK')
+                seq_num = '?'
+                ins_code = '.'
+            pdbx_poly_info.append((eid, label_asym_id, name, label_seq_id, c.chain_id, seq_num, ins_code))
+        """
+    del pdbx_poly_tmp
 
     het_entities = {}   # { het_name: { 'entity': entity_id, chain: (label_entity_id, label_asym_id) } }
     residues = best_m.residues
@@ -352,7 +414,7 @@ def save_structure(session, file, models, used_data_names):
 
     entity = mmcif.MMCIFTable('entity', ['id', 'type', 'pdbx_description'], flattened(entity_info.items()))
     entity.print(file, fixed_width=True)
-    entity_poly = mmcif.MMCIFTable('entity_poly', ['entity_id', 'type', 'pdbx_seq_one_letter_code_can'], flattened(poly_info))
+    entity_poly = mmcif.MMCIFTable('entity_poly', ['entity_id', 'nstd_monomer', 'type', 'pdbx_seq_one_letter_code_can'], flattened(poly_info))
     entity_poly.print(file, fixed_width=True)
     entity_poly_seq = mmcif.MMCIFTable('entity_poly_seq', ['entity_id', 'num', 'mon_id'], flattened(poly_seq_info))
     entity_poly_seq.print(file, fixed_width=True)
@@ -361,7 +423,9 @@ def save_structure(session, file, models, used_data_names):
         'struct_asym', ['id', 'entity_id'],
         flattened(itertools.chain(asym_info.values(), het_asym_info.values())))
     struct_asym.print(file, fixed_width=True)
-    del entity, entity_poly_seq, struct_asym
+    pdbx_poly_seq = mmcif.MMCIFTable('pdbx_poly_seq_scheme', ['entity_id', 'asym_id', 'mon_id', 'seq_id', 'pdb_strand_id', 'pdb_seq_num', 'pdb_ins_code'], flattened(pdbx_poly_info))
+    pdbx_poly_seq.print(file, fixed_width=True)
+    del entity, entity_poly_seq, pdbx_poly_seq, struct_asym
 
     elements = list(set(best_m.atoms.elements))
     elements.sort(key=lambda e: e.number)
@@ -424,12 +488,13 @@ def save_structure(session, file, models, used_data_names):
         residues = m.residues
         het_residues = residues.filter(residues.polymer_types == Residue.PT_NONE)
         for c in m.chains:
+            chain_id = c.chain_id
+            chars = c.characters
+            asym_id, entity_id = asym_info[(chain_id, chars)]
             for seq_id, r in zip(range(1, sys.maxsize), c.residues):
                 if r is None:
                     continue
-                asym_id, entity_id = asym_info[r.chain_id]
                 atom_site_residue(r, 'ATOM', seq_id, asym_id, entity_id, model_num)
-            chain_id = c.chain_id
             chain_het = het_residues.filter(het_residues.chain_ids == chain_id)
             het_residues -= chain_het
             for r in chain_het:
@@ -549,8 +614,19 @@ def save_structure(session, file, models, used_data_names):
             continue
         if r0.chain is None or r0.chain != r1.chain:
             covalent.append((b, a0, a1))
-        elif rname3to1(r0.name) == 'X' or rname3to1(r1.name) == 'X':
+        elif r0.name not in _standard_residues or r1.name not in _standard_residues:
             covalent.append((b, a0, a1))
+        else:
+            # check for non-implicit bond
+            res_map = r0.chain.res_map
+            r0index = res_map[r0]
+            r1index = res_map[r1]
+            if abs(r1index - r0index) != 1:
+                # not adjacent (circular)
+                covalent.append((b, a0, a1))
+            elif b.polymeric_start_atom is None:
+                # non-polymeric bond
+                covalent.append((b, a0, a1))
     if has_disulf:
         struct_conn_type_data.append('disulf')
 

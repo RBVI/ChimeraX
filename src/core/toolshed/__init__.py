@@ -94,6 +94,11 @@ Bundles that provide selectors need:
     A short description of the selector.  It is here for uninstalled selectors,
     so that users can get more than just a name for deciding whether
     they want the selector or not.
+4: ``atomic`` : str
+    An optional boolean specifying whether the selector applies to
+    atoms and bonds.  Defaults to 'true' and should be set to
+    'false' if selector should not appear in Basic Actions tool,
+    e.g., showing/hiding selected items does nothing.
 
 Commands are lazily registered,
 so the argument specification isn't needed until the command is first used.
@@ -201,16 +206,21 @@ _TIMESTAMP = 'install-timestamp'
 _debug_toolshed = False
 
 
-def _debug(*args, **kw):
+def _debug(*args, file=None, flush=True, **kw):
     if _debug_toolshed:
-        import sys
-        print("Toolshed:", *args, file=sys.__stderr__, flush=True, **kw)
+        if file is None:
+            import sys
+            file = sys.__stderr__
+        print("Toolshed:", *args, file=file, flush=flush, **kw)
 
 
 # Package constants
 
 
 # Default URL of remote toolshed
+# If testing, use
+#_RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
+# But BE SURE TO CHANGE IT BACK BEFORE COMMITTING !!!
 _RemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _ToolshedFolder = "toolshed"
@@ -274,8 +284,7 @@ class Toolshed:
             rebuild it by scanning Python directories; False otherwise.
         check_remote : boolean
             True to check remote server for updated information;
-            False to ignore remote server;
-            None to use setting from user preferences.
+            False to ignore remote server
         remote_url : str
             URL of the remote toolshed server.
             If set to None, a default URL is used.
@@ -325,8 +334,31 @@ class Toolshed:
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
-            # so start a thread and do it asynchronously
-            self.async_reload_available(logger)
+            # so start a thread and do it asynchronously if necessary
+            from ..core_settings import settings
+            from datetime import datetime, timedelta
+            now = datetime.now()
+            interval = settings.toolshed_update_interval
+            last_check = settings.toolshed_last_check
+            if not last_check:
+                need_check = True
+            else:
+                last_check = datetime.strptime(settings.toolshed_last_check,
+                                               "%Y-%m-%dT%H:%M:%S.%f")
+                delta = now - last_check
+                max_delta = timedelta(days=1)
+                if interval == "week":
+                    max_delta = timedelta(days=7)
+                elif interval == "day":
+                    max_delta = timedelta(days=1)
+                elif interval == "month":
+                    max_delta = timedelta(days=30)
+                need_check = delta > max_delta
+            if need_check:
+                self.async_reload_available(logger)
+                settings.toolshed_last_check = now.isoformat()
+                _debug("Initiated toolshed check: %s" %
+                       settings.toolshed_last_check)
         _debug("finished loading bundles")
 
     def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
@@ -342,8 +374,7 @@ class Toolshed:
             rebuild it by scanning Python directories; False otherwise.
         check_remote : boolean
             True to check remote server for updated information;
-            False to ignore remote server;
-            None to use setting from user preferences.
+            False to ignore remote server
         """
 
         _debug("reload", rebuild_cache, check_remote)
@@ -575,7 +606,7 @@ class Toolshed:
         best_bi = None
         best_version = None
         for bi in container:
-            if lc_name not in bi.name.lower():
+            if lc_name != bi.name.lower():
                 continue
             #if bi.name != name and name not in bi.supercedes:
             #    continue
@@ -586,7 +617,7 @@ class Toolshed:
                     best_bi = bi
                     best_version = Version(bi.version)
                 elif best_bi.name != bi.name:
-                    logger("%r matches multiple bundles" % name)
+                    logger.warning("%r matches multiple bundles %s, %s" % (name, best_bi.name, bi.name))
                     return None
                 else:
                     v = Version(bi.version)
@@ -644,7 +675,7 @@ class Toolshed:
         (For symmetry, there should be a way to uninstall all bundles
         before a session is discarded, but we don't do that yet.)
         """
-        _debug(session.logger, "initialize_bundles")
+        _debug("initialize_bundles")
         failed = []
         for bi in self._installed_bundle_info:
             try:
@@ -937,6 +968,56 @@ class BundleAPI:
         """
         return None
 
+    @staticmethod
+    def include_dir(bundle_info):
+        """Returns path to directory of C++ header files.
+
+        Parameters
+        ----------
+        bundle_info : :py:class:`BundleInfo` instance.
+
+        Used to get directory path to C++ header files needed for
+        compiling against libraries provided by the bundle.
+
+        Returns
+        -------
+        :py:class:`str` or None
+        """
+        return None
+
+    @staticmethod
+    def library_dir(bundle_info):
+        """Returns path to directory of compiled libraries.
+
+        Parameters
+        ----------
+        bundle_info : :py:class:`BundleInfo` instance.
+
+        Used to get directory path to libraries (shared objects, DLLs)
+        for linking against libraries provided by the bundle.
+
+        Returns
+        -------
+        :py:class:`str` or None
+        """
+        return None
+
+    @staticmethod
+    def data_dir(bundle_info):
+        """Returns path to directory of bundle-specific data.
+
+        Parameters
+        ----------
+        bundle_info : :py:class:`BundleInfo` instance.
+
+        Used to get directory path to data included in the bundle.
+
+        Returns
+        -------
+        :py:class:`str` or None
+        """
+        return None
+
     @property
     def _api_caller(self):
         try:
@@ -982,12 +1063,24 @@ class _CallBundleAPIv0:
         return cls._get_func(api, "finish")(session, bi)
 
     @classmethod
-    def _get_func(cls, api, func_name):
+    def include_dir(cls, api, bi):
+        return cls._get_func(api, "include_dir", default_okay=True)(bi)
+
+    @classmethod
+    def library_dir(cls, api, bi):
+        return cls._get_func(api, "library_dir", default_okay=True)(bi)
+
+    @classmethod
+    def data_dir(cls, api, bi):
+        return cls._get_func(api, "data_dir", default_okay=True)(bi)
+
+    @classmethod
+    def _get_func(cls, api, func_name, default_okay=False):
         try:
             f = getattr(api, func_name)
         except AttributeError:
             raise ToolshedError("bundle has no %s method" % func_name)
-        if f is getattr(BundleAPI, func_name):
+        if not default_okay and f is getattr(BundleAPI, func_name):
             raise ToolshedError("bundle forgot to override %s method" % func_name)
         return f
 
@@ -1051,3 +1144,18 @@ def init(*args, debug=None, **kw):
     if _toolshed is None:
         _toolshed = Toolshed(*args, **kw)
     return _toolshed
+
+
+def get_help_directories():
+    global _default_help_dir
+    if _default_help_dir is None:
+        import os
+        from chimerax import app_data_dir
+        _default_help_dir = os.path.join(app_data_dir, 'docs')
+    hd = [_default_help_dir]
+    ts = Toolshed.get_toolshed()
+    if ts is not None:
+        hd.extend(ts._installed_bundle_info.help_directories)
+    return hd
+
+_default_help_dir = None

@@ -32,12 +32,14 @@ and "tutorial highlight" commands from a graphical interface.
   <!-- This example uses functionality from the Tutorial_Command bundle -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
     <Dependency name="ChimeraX-Tutorial_Command" version=">=0.1"/>
   </Dependencies>
 
   <!-- Non-Python files that are part of package -->
   <DataFiles>
     <DataFile>gui.html</DataFile>
+    <DataFile>docs/user/tools/Tutorial_GUI.html</DataFile>
   </DataFiles>
 
   <Classifiers>

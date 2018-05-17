@@ -67,6 +67,8 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
+        from chimerax.core.models import MODEL_POSITION_CHANGED
+        self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
         from chimerax.core import triggerset
         self.triggers = triggerset.TriggerSet()
         self.triggers.add_trigger("changes")
@@ -74,9 +76,15 @@ class Structure(Model, StructureData):
         self._make_drawing()
 
     def __str__(self):
-        from chimerax.core.core_settings import settings
+        return self.string()
+
+    def string(self, style=None):
+        if style is None:
+            from chimerax.core.core_settings import settings
+            style = settings.atomspec_contents
+
         id = '#' + self.id_string()
-        if settings.atomspec_contents == "command-line specifier" or not self.name:
+        if style == "command" or not self.name:
             return id
         return '%s %s' % (self.name, id)
 
@@ -89,9 +97,12 @@ class Structure(Model, StructureData):
         for handler in self._ses_handlers:
             t.remove_handler(handler)
         self._ses_handlers.clear()
+        ses = self.session
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
         if not self.deleted:
+            self.session = ses
             StructureData.delete(self)
+            delattr(self, 'session')
 
     deleted = StructureData.deleted
 
@@ -198,9 +209,21 @@ class Structure(Model, StructureData):
             cmd = Command(self.session)
             cmd.run("lighting " + lighting, log=False)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return has_custom_attrs(Structure, self)
+
     def take_snapshot(self, session, flags):
+        from .molobject import get_custom_attrs
         data = {'model state': Model.take_snapshot(self, session, flags),
-                'structure state': StructureData.save_state(self, session, flags)}
+                'structure state': StructureData.save_state(self, session, flags),
+                'custom attrs': get_custom_attrs(Structure, self),
+                # put in dependency on custom-attribute manager so that
+                # such attributes are registered with the classes before the
+                # instances become available to other part of the session
+                # restore, which may access attributes with default values
+                'attr-reg manager': session.attr_registration}
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
         from chimerax.core.state import CORE_STATE_VERSION
@@ -227,6 +250,9 @@ class Structure(Model, StructureData):
         # TODO: For some reason ribbon drawing does not update automatically.
         # TODO: Also marker atoms do not draw without this.
         self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
+
+        from .molobject import set_custom_attrs
+        set_custom_attrs(self, data)
 
     def _get_bond_radius(self):
         return self._bond_radius
@@ -437,6 +463,18 @@ class Structure(Model, StructureData):
         if ad:
             lod.set_atom_sphere_geometry(ad, total_atoms)
 
+    def _update_position(self, trig_name, updated_model):
+        need_update = False
+        check_model = self
+        while isinstance(check_model, Model):
+            if updated_model == check_model:
+                need_update = True
+                break
+            check_model = getattr(check_model, 'parent', None)
+        
+        if need_update:
+            self._cpp_notify_position(self.scene_position)
+
     def _add_r2t(self, r, tr):
         try:
             ranges = self._ribbon_r2t[r]
@@ -646,10 +684,9 @@ class Structure(Model, StructureData):
             if False:
                 # Debugging code to display line from control point to guide
                 cp = p.new_drawing(str(self) + " control points")
-                from chimerax.core import surface
+                from chimerax import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
-                cp.geometry = va, ta
-                cp.normals = na
+                cp.set_geometry(va, na, ta)
                 from numpy import empty, float32
                 cp_radii = empty(len(coords), float)
                 cp_radii.fill(0.1)
@@ -838,11 +875,12 @@ class Structure(Model, StructureData):
             # Create drawing from arrays
             if vertex_list:
                 rp.display = True
-                rp.vertices = concatenate(vertex_list)
-                rp.normals = concatenate(normal_list)
+                va = concatenate(vertex_list)
+                na = concatenate(normal_list)
                 from .ribbon import normalize_vector_array_inplace
-                normalize_vector_array_inplace(rp.normals)
-                rp.triangles = concatenate(triangle_list)
+                normalize_vector_array_inplace(na)
+                ta = concatenate(triangle_list)
+                rp.set_geometry(va, na, ta)
                 rp.vertex_colors = concatenate(color_list)
             else:
                 rp.display = False
@@ -856,6 +894,8 @@ class Structure(Model, StructureData):
             from .molarray import Atoms
             tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
             spline_coords = array(list(self._ribbon_spline_backbone.values()))
+            if len(spline_coords) == 0:
+                spline_coords = spline_coords.reshape((0,3))
             atom_coords = tether_atoms.coords
             offsets = array(atom_coords) - spline_coords
             tethered = norm(offsets, axis=1) > self.bond_radius
@@ -867,14 +907,13 @@ class Structure(Model, StructureData):
                 tp = p.new_drawing(str(self) + " ribbon_tethers")
                 tp.skip_bounds = True
                 nc = m.ribbon_tether_sides
-                from chimerax.core import surface
+                from chimerax import surface
                 if m.ribbon_tether_shape == self.TETHER_CYLINDER:
                     va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
                     # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
                     va, na, ta = surface.cone_geometry(nc=nc, caps=False, points_up=False)
-                tp.geometry = va, ta
-                tp.normals = na
+                tp.set_geometry(va, na, ta)
                 self._ribbon_tether.append((tether_atoms, tp,
                                             spline_coords[tethered],
                                             tether_atoms.filter(tethered),
@@ -886,10 +925,9 @@ class Structure(Model, StructureData):
             # Create spine if necessary
             if self.ribbon_show_spine:
                 sp = p.new_drawing(str(self) + " spine")
-                from chimerax.core import surface
+                from chimerax import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
-                sp.geometry = va, ta
-                sp.normals = na
+                sp.set_geometry(va, na, ta)
                 from numpy import empty, float32
                 spine_radii = empty(len(spine_colors), float32)
                 spine_radii.fill(0.3)
@@ -908,7 +946,7 @@ class Structure(Model, StructureData):
         except AttributeError:
             return
         sp = p.new_drawing(str(self) + " normal spline")
-        from chimerax.core import surface
+        from chimerax import surface
         from numpy import empty, array, float32, linspace
         from chimerax.core.geometry import Places
         num_pts = num_coords*self._level_of_detail.ribbon_divisions
@@ -931,8 +969,7 @@ class Structure(Model, StructureData):
         t = linspace(0.0, num_coords, num=num_pts, endpoint=False)
         xyz1 = array([spline(i) for i in t], dtype=float32)
         xyz2 = array([other_spline(i) for i in t], dtype=float32)
-        sp.geometry = va, ta
-        sp.normals = na
+        sp.set_geometry(va, na, ta)
         sp.positions = _tether_placements(xyz1, xyz2, radii, self.TETHER_CYLINDER)
         sp_colors = empty((len(xyz1), 4), dtype=float32)
         sp_colors[:] = (255, 0, 0, 255)
@@ -1271,8 +1308,7 @@ class Structure(Model, StructureData):
         name = "helix-%d" % ssids[start]
         ssp = RibbonDrawing(name)
         p.add_drawing(ssp)
-        ssp.geometry = va, ta
-        ssp.normals = na
+        ssp.set_geometry(va, na, ta)
         ssp.vertex_colors = ca
 
         # Finally, update selection data structures
@@ -1387,12 +1423,11 @@ class Structure(Model, StructureData):
         return axes, centroid, rel_coords
 
     def _ss_display(self, p, name, centers):
-        from chimerax.core import surface
+        from chimerax import surface
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
-        ssp.geometry = va, ta
-        ssp.normals = na
+        ssp.set_geometry(va, na, ta)
         ss_radii = empty(len(centers) - 1, float32)
         ss_radii.fill(0.2)
         ssp.positions = _tether_placements(centers[:-1], centers[1:], ss_radii, self.TETHER_CYLINDER)
@@ -1401,12 +1436,11 @@ class Structure(Model, StructureData):
         ssp.colors = ss_colors
 
     def _ss_guide_display(self, p, name, centers, guides):
-        from chimerax.core import surface
+        from chimerax import surface
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
-        ssp.geometry = va, ta
-        ssp.normals = na
+        ssp.set_geometry(va, na, ta)
         ss_radii = empty(len(centers), float32)
         ss_radii.fill(0.2)
         ssp.positions = _tether_placements(centers, guides, ss_radii, self.TETHER_CYLINDER)
@@ -2198,10 +2232,30 @@ class AtomicStructure(Structure):
                 self._report_chain_descriptions(session)
             self._report_assemblies(session)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        from .molobject import has_custom_attrs
+        return has_custom_attrs(Structure, self) or has_custom_attrs(AtomicStructure, self)
+
+    def take_snapshot(self, session, flags):
+        from .molobject import get_custom_attrs
+        data = {
+            'AtomicStructure version': 2,
+            'structure state': Structure.take_snapshot(self, session, flags),
+            'custom attrs': get_custom_attrs(AtomicStructure, self)
+        }
+        return data
+
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, auto_style = False, log_info = False)
-        Structure.set_state_from_snapshot(s, session, data)
+        if data.get('AtomicStructure version', 1) == 1:
+            Structure.set_state_from_snapshot(s, session, data)
+        else:
+            from .molobject import set_custom_attrs
+            Structure.set_state_from_snapshot(s, session, data['structure state'])
+            set_custom_attrs(s, data)
         return s
 
     def _determine_het_res_descriptions(self, session):
@@ -2517,9 +2571,7 @@ class LevelOfDetail(State):
             # Update instanced sphere triangulation
             w = len(ta) if ta is not None else 0
             va, na, ta = self.sphere_geometry(ntri)
-            drawing.vertices = va
-            drawing.normals = na
-            drawing.triangles = ta
+            drawing.set_geometry(va, na, ta)
 
     def sphere_geometry(self, ntri):
         # Cache sphere triangulations of different sizes.
@@ -2560,15 +2612,13 @@ class LevelOfDetail(State):
             # Update instanced sphere triangulation
             w = len(ta) if ta is not None else 0
             va, na, ta = self.cylinder_geometry(div = ntri//4)
-            drawing.vertices = va
-            drawing.normals = na
-            drawing.triangles = ta
+            drawing.set_geometry(va, na, ta)
 
     def cylinder_geometry(self, div):
         # Cache cylinder triangulations of different sizes.
         cg = self._cylinder_geometries
         if not div in cg:
-            from chimerax.core import surface
+            from chimerax import surface
             cg[div] = surface.cylinder_geometry(nc = div, caps = False, height = 0.5)
         return cg[div]
 

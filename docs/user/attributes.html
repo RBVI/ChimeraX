@@ -51,7 +51,14 @@ Selected attributes are listed <a href="#attrnames">below</a>.
 [<a href="#top">back to top: Attributes</a>]
 </p>
 <h3>Attribute Names</h3>
+
+<ul class="none">
+<li><a href="#atom"><b>Atom</b></a>
+<li><a href="#residue"><b>Residue</b></a>
+<li><a href="#model"><b>Atomic-Model</b></a>
+</ul>
 <p>
+See also: <a href="commands/info.html#bondattr"><b>info bondattr</b></a>
 </p>
 <!--
 <p>
@@ -83,9 +90,10 @@ Attributes defined in the Python layer will not be included, however.
 
 <a name="atom"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
-<tr><th colspan="2" style="background-color:#cccccc">
-<a href="#top" class="nounder">&larr;</a>
-Selected Atom Attributes</th></tr>
+<tr><td colspan="2" align="center" style="background-color:#cccccc">
+<a href="#attrnames" class="nounder">&larr;</a>
+<b>Selected Atom Attributes</b> (see also 
+<a href="commands/info.html#atomattr"><b>info atomattr</b></a>)</td></tr>
 <tr>
 <td align=center><b>area=</b><i>sasa</i></td>
 <td><i>sasa</i> is the solvent-accessible surface area of the atom 
@@ -126,9 +134,9 @@ of the atom in &Aring;</td>
 <a name="residue"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><td colspan="2" align="center" style="background-color:#cccccc">
-<a href="#top" class="nounder">&larr;</a>
-<b>Selected Residue Attributes</b>
-(see also <a href="commands/info.html#resattr"><b>info resattr</b></a>)</td></tr>
+<a href="#attrnames" class="nounder">&larr;</a>
+<b>Selected Residue Attributes</b> (see also
+<a href="commands/info.html#resattr"><b>info resattr</b></a>)</td></tr>
 <tr>
 <td align=center><b>area=</b><i>sasa</i></td>
 <td><i>sasa</i> is the solvent-accessible surface area of the residue 
@@ -181,7 +189,7 @@ that does not have any ribbon, such as water)</td>
 <td><i>N</i> indexes secondary structure elements from N&rarr;C in 
 a protein chain: 1 for residues in the first helix and first strand, 
 2 for those in the second helix and second strand, and so on;
-&ndash;1 for residues not in protein helix or strand</td>
+0 for residues not in protein helix or strand</td>
 <!--
 </tr><tr>
 <td align=center><b>uniprotIndex=</b><i>N</i></td>
@@ -197,9 +205,9 @@ structure PDB file using a web service provided by the
 <br>
 <a name="model"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
-<tr><th colspan="2" style="background-color:#cccccc">
-<a href="#top" class="nounder">&larr;</a>
-Selected Atomic-Model Attributes</th></tr>
+<tr><td colspan="2" align="center" style="background-color:#cccccc">
+<a href="#attrnames" class="nounder">&larr;</a>
+<b>Selected Atomic-Model Attributes</td></tr>
 <tr>
 <td align=center><b>ball_scale=</b><i>factor</i></td>
 <td><i>factor</i> is ball radius relative to <a href="radii.html">VDW radius</a>,
@@ -225,5 +233,5 @@ see <a href="hierarchy.html">display hierarchy</a></td>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2018</address>
+April 2018</address>
 </body></html>

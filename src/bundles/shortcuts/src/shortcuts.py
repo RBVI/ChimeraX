@@ -377,8 +377,8 @@ class Keyboard_Shortcuts:
 def register_selectors(logger):
     from chimerax.core.commands import register_selector
     register_selector("selAtoms", _sel_atoms_selector, logger)
-    register_selector("selMaps", _sel_maps_selector, logger)
-    register_selector("selModels", _sel_models_selector, logger)
+    register_selector("selMaps", _sel_maps_selector, logger, atomic=False)
+    register_selector("selModels", _sel_models_selector, logger, atomic=False)
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):
@@ -414,7 +414,7 @@ def shortcut_models(session, mclass = None, undisplayed = True, at_least = None)
     return mlist
 
 def shortcut_maps(session, undisplayed = True, at_least = None):
-    from chimerax.core.map import Volume
+    from chimerax.map import Volume
     return shortcut_models(session, Volume, undisplayed=undisplayed, at_least=at_least)
 
 def shortcut_molecules(session):
@@ -448,7 +448,7 @@ def shortcut_surfaces_and_maps(session):
     sel = session.selection
     models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
     # Avoid group nodes by only taking non-empty models.
-    from chimerax.core.map import Volume
+    from chimerax.map import Volume
     sm = [m for m in models if isinstance(m,Volume) or not m.empty_drawing()]
     return sm
 
@@ -507,12 +507,12 @@ def mark_map_surface_center(m):
 
 def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimerax.core.map import PlanesMouseMode
+    from chimerax.map import PlanesMouseMode
     m.bind_mouse_mode(button, PlanesMouseMode(m.session))
 
 def enable_contour_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimerax.core.map import ContourLevelMouseMode
+    from chimerax.map import ContourLevelMouseMode
     m.bind_mouse_mode(button, ContourLevelMouseMode(m.session))
 
 def enable_marker_mouse_mode(mouse_modes, button = 'right'):
@@ -527,7 +527,7 @@ def enable_mark_center_mouse_mode(mouse_modes, button = 'right'):
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimerax.core.map import series
+    from chimerax.map import series
     m.bind_mouse_mode(button, series.PlaySeriesMouseMode(m.session))
 
 def enable_move_selected_mouse_mode(mouse_modes):
@@ -586,19 +586,19 @@ def fit_molecule_in_map(session):
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
-    from chimerax.core.map import fit
+    from chimerax.map import fit
     move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.position = mol.position * move_tf
 
     msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
            % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
     log.status(msg)
-    from chimerax.core.map.fit import fitmap
+    from chimerax.map.fit import fitmap
     log.info(fitmap.atom_fit_message(mols, map, stats))
 
 def fit_subtract(session):
     models = session.models.list()
-    from chimerax.core.map import Volume
+    from chimerax.map import Volume
     maps = [m for m in models if isinstance(m, Volume) and m.any_part_selected()]
     if len(maps) == 0:
         maps = [m for m in models if isinstance(m, Volume) and m.display]
@@ -618,10 +618,10 @@ def fit_subtract(session):
 
     v = maps[0]
     res = 3*min(v.data.step)
-    from chimerax.core.map.fit.fitmap import simulated_map
+    from chimerax.map.fit.fitmap import simulated_map
     mfit = [simulated_map(m.atoms, res, session) for m in molfit]
     msub = [simulated_map(m.atoms, res, session) for m in molsub]
-    from chimerax.core.map.fit.fitcmd import fit_sequence
+    from chimerax.map.fit.fitcmd import fit_sequence
     fit_sequence(mfit, v, msub, resolution = res, sequence = len(mfit), log = log)
     print ('fit seq')
 
@@ -707,11 +707,14 @@ def hide_surface(session):
                 m.display_positions = logical_and(dp,logical_not(sp))
 
 def toggle_surface_transparency(session):
-    from chimerax.core.map import Volume
+    from chimerax.map import Volume
     from chimerax.core.graphics import Drawing
     for m in shortcut_surfaces_and_maps(session):
         if isinstance(m, Volume):
-            m.set_parameters(surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors))
+            for s in m.surfaces:
+                r,g,b,a = s.rgba
+                ta = (0.5 if a == 1 else 1)
+                s.rgba = (r,g,b,ta)
         else:
             for d in m.all_drawings():
                 c = d.colors
@@ -721,14 +724,16 @@ def toggle_surface_transparency(session):
                 d.colors = c
 
 def show_surface_transparent(session, alpha = 0.5):
-    from chimerax.core.map import Volume
+    from chimerax.map import Volume
     from chimerax.core.graphics import Drawing
     a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
         if not m.display:
             continue
         if isinstance(m, Volume):
-            m.set_parameters(surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors))
+            for s in m.surfaces:
+                r,g,b,a = s.rgba
+                s.rgba = (r,g,b,alpha)
         elif isinstance(m, Drawing):
             for d in m.all_drawings():
                 c = d.colors
@@ -1004,35 +1009,48 @@ def minimize_crosslinks(atoms, session):
     from chimerax.core.crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
-def save_image(session, basepath = '~/Desktop/image', suffix = '.png'):
-    from chimerax.core.commands import run
-    run(session, 'save %s supersample 3' % unused_file_name(basepath, suffix))
-
-def save_spin_movie(session, basepath = '~/Desktop/movie', suffix = '.mp4'):
-    cmd = 'movie record ; turn y 2 180 ; wait 180 ; movie encode %s' % unused_file_name(basepath, suffix)
+def save_image(session, directory = None, basename = 'image', suffix = '.png'):
+    cmd = 'save %s supersample 3' % unused_file_name(directory, basename, suffix)
     from chimerax.core.commands import run
     run(session, cmd)
-    
-def unused_file_name(basepath, suffix):
+
+def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp4'):
+    cmd = ('movie record ; turn y 2 180 ; wait 180 ; movie encode %s'
+           % unused_file_name(directory, basename, suffix))
+    from chimerax.core.commands import run
+    run(session, cmd)
+        
+def unused_file_name(directory, basename, suffix):
     '''
-    Return path which is basepath plus a positive integer plus the file suffix
-    such that the integer is greater than any other file that has this form.
+    Return path in the specified directory with file name basename plus
+    a positive integer plus the file suffix such that the integer is greater
+    than any other file that has this form.
     '''
-    from os.path import dirname, basename, expanduser
-    dir = expanduser(dirname(basepath))
+    if directory is None:
+        directory = default_save_directory()
+    from os import path, listdir
+    dir = path.expanduser(directory)
     from os import listdir
     files = listdir(dir)
-    bname = basename(basepath)
     nums = []
     for f in files:
-        if f.startswith(bname) and f.endswith(suffix):
+        if f.startswith(basename) and f.endswith(suffix):
             try:
-                nums.append(int(f[len(bname):len(f)-len(suffix)]))
+                nums.append(int(f[len(basename):len(f)-len(suffix)]))
             except:
                 pass
     n = max(nums, default = 0) + 1
-    path = '%s%d%s' % (basepath, n, suffix)
-    return path
+    filename = '%s%d%s' % (basename, n, suffix)
+    p = path.join(directory, filename)
+    return p
+
+def default_save_directory():
+    dir = '~/Desktop'
+    from os import path, getcwd
+    d = path.expanduser(dir)
+    if not path.isdir(d):
+        d = getcwd()
+    return d
     
 def keyboard_shortcuts(session):
     ks = getattr(session, 'keyboard_shortcuts', None)

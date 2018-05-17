@@ -238,10 +238,7 @@ def buffer_arrays(accessors, buffer_views, binc):
 # -----------------------------------------------------------------------------
 #
 def set_geometry(model, va, na, vc, ta):
-    model.vertices = va
-    model.triangles = ta
-    if na is not None:
-        model.normals = na
+    model.set_geometry(va, na, ta)
     if vc is not None:
         model.vertex_colors = colors_to_uint8(vc)
 

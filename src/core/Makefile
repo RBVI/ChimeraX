@@ -16,7 +16,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
 	   chutil_cpp commands \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
-	   map pysupport_cpp surface toolshed \
+	   pysupport_cpp toolshed \
 	   webservices
 
 ifeq ($(OS),Darwin)
@@ -32,7 +32,7 @@ CYTHON_EXE = $(bindir)/cython
 endif
 
 BUNDLE_NAME = ChimeraX-Core
-BUNDLE_VERSION = 0.5
+BUNDLE_VERSION = 0.7
 PKG_NAME = chimerax.core
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
@@ -111,5 +111,4 @@ atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install \
 	logger_cpp.install pysupport_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
-map.install: arrays_cpp.install
 surface.install: arrays_cpp.install

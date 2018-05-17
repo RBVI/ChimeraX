@@ -16,9 +16,9 @@ molsurf: Compute molecular surfaces
 ===================================
 """
 
-from ..models import Model
+from ..models import Surface
 
-class MolecularSurface(Model):
+class MolecularSurface(Surface):
     '''
     A molecular surface computed from a set of atoms.
     This can be a solvent excluded surface which is the
@@ -70,7 +70,7 @@ class MolecularSurface(Model):
     def __init__(self, session, enclose_atoms, show_atoms, probe_radius, grid_spacing,
                  resolution, level, name, color, visible_patches, sharp_boundaries):
         
-        Model.__init__(self, name, session)
+        Surface.__init__(self, name, session)
 
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
@@ -122,9 +122,7 @@ class MolecularSurface(Model):
             shape_change = True
 
         if shape_change:
-            self.vertices = None
-            self.normals = None
-            self.triangles = None
+            self.set_geometry(None, None, None)
             self.color = self._average_color()
             self.vertex_colors = None
             self._vertex_to_atom = None
@@ -149,7 +147,7 @@ class MolecularSurface(Model):
         atoms = self.atoms
         xyz = self.atom_coords()
         res = self.resolution
-        from .. import surface
+        from chimerax import surface
         if res is None:
             # Compute solvent excluded surface
             r = atoms.radii
@@ -166,14 +164,12 @@ class MolecularSurface(Model):
             kw = {'refinement_steps': self._refinement_steps}
             if self.resolution is None:
                 kw['atom_radii'] = atoms.radii
-            from ..surface import sharp_edge_patches
+            from chimerax.surface import sharp_edge_patches
             va, na, ta, tj, v2a = sharp_edge_patches(va, na, ta, v2a, xyz, **kw)
             self.joined_triangles = tj	# With non-duplicate vertices for clip cap calculation
             self._vertex_to_atom = v2a
 
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
+        self.set_geometry(va, na, ta)
         self.triangle_mask = self._calc_triangle_mask()
         self._show_atom_patch_colors()
         self.update_selection()
@@ -183,7 +179,7 @@ class MolecularSurface(Model):
         if self.visible_patches is None:
             return tmask
 
-        from .. import surface
+        from chimerax import surface
         if self.sharp_boundaries:
             # With sharp boundaries triangles are not connected.
             vmap = surface.unique_vertex_map(self.vertices)
@@ -421,7 +417,7 @@ class MolecularSurface(Model):
         init_attrs = ('atoms', 'show_atoms', 'probe_radius', 'grid_spacing', 'resolution', 'level',
                       'name', 'color', 'visible_patches', 'sharp_boundaries')
         data = {attr:getattr(self, attr) for attr in init_attrs}
-        data['model state'] = Model.take_snapshot(self, session, flags)
+        data['model state'] = Surface.take_snapshot(self, session, flags)
         data.update({attr:getattr(self,attr) for attr in self._save_attrs if hasattr(self,attr)})
         from ..state import CORE_STATE_VERSION
         data['version'] = CORE_STATE_VERSION
@@ -434,9 +430,11 @@ class MolecularSurface(Model):
                              d['probe_radius'], d['grid_spacing'], d['resolution'],
                              d['level'], d['name'], d['color'], d['visible_patches'],
                              d['sharp_boundaries'])
-        Model.set_state_from_snapshot(s, session, d['model state'])
+        Surface.set_state_from_snapshot(s, session, d['model state'])
+        geom_attrs = ('vertices', 'normals', 'triangles')
+        s.set_geometry(d['vertices'], d['normals'], d['triangles'])
         for attr in MolecularSurface._save_attrs:
-            if attr in d:
+            if attr in d and attr not in geom_attrs:
                 setattr(s, attr, d[attr])
 
 def remove_solvent_ligands_ions(atoms, keep = None):
@@ -534,7 +532,7 @@ def close_surfaces(atoms_or_surfs):
         models.close(surfs)
 
 def buried_area(a1, a2, probe_radius):
-    from ..surface import spheres_surface_area
+    from chimerax.surface import spheres_surface_area
     xyz1, r1 = atom_spheres(a1, probe_radius)
     a1a = spheres_surface_area(xyz1, r1)
     xyz2, r2 = atom_spheres(a2, probe_radius)

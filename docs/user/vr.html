@@ -28,17 +28,46 @@ class="clRight" title="User Guide Index"/></a>
 <a href="vive.jpg">
 <img class="outlineCR" width="250px" src="vive.jpg" 
 alt="using HTC Vive VR system" title="click to enlarge..."></a>
+
+
+<center>
+<table border=1 cellpadding=8 cellspacing=0 bgcolor="#f0f0f0"><tr><td width=600>
 <p>
-To use an HTC Vive or Oculus Rift virtual reality (VR) system with ChimeraX:
+<font color="red"><b>Warning</b></font>:
+  ChimeraX virtual reality (VR) capabilities have many shortcomings.  A few years of development
+  effort will be needed to make these features work well, and only a small fraction of that work
+  has been done.
+</p>
+</table>
+</center>
+
+<ul class="none">
+<li><a href="#starting"><b>Starting VR Mode</b></a>
+<li><a href="#mousemodes"><b>Hand Controller Modes</b></a>
+<li><a href="#handproblems"><b>Hand Controller Problems</b></a>
+<li><a href="#interactive"><b>Limitations of Interactive Viewing</b></a>
+<li><a href="#movies"><b>Recording Movies for Cellphone VR</b></a>
+<li><a href="#movie-details"><b>Movie Details</b></a>
+</ul>
+
+<a name="starting"></a>
+<p class="nav">
+[<a href="#top">back to top: Virtual Reality</a>]
+</p>
+<h3>Starting VR Mode</h3>
+
+<p>
+Any models displayed in ChimeraX can be shown in virtual reality headsets
+supported by <a href="http://steamvr.com">SteamVR</a>, such as HTC Vive, Oculus Rift
+and Samsung Odyssey headsets.
+
 <ol>
-<li>start ChimeraX and open some data; for example, the following command 
-opens a density map of the human nuclear pore:
-<blockquote>
-<b><a href="commands/open.html">open</a> 3103 from emdb</b> 
-</blockquote>
 <li>start <a href="http://store.steampowered.com/about/" 
 target="_blank">SteamVR</a> 
-(for Oculus headsets, start the Oculus runtime first)
+<li>start ChimeraX and open some data, for example, a PDB model:
+<blockquote>
+<b><a href="commands/open.html">open</a> 2gbp</b> 
+</blockquote>
 <li>enter the ChimeraX command: 
 <blockquote>
 <a href="commands/device.html#vr"><b>vr on</b></a>
@@ -53,21 +82,19 @@ moving or rotating either controller while squeezing its trigger
 <li>models can be scaled up or down (made larger or smaller) by squeezing the
 triggers of both controllers and moving them farther apart 
 or closer together, respectively
-<li>settings in the VR icon panel allow
-<a href="selection.html">selecting</a> and moving atoms within a model
-(may produce bad bond lengths and angles)
 <li>pressing the Vive 
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
 target="_blank">grip button</a> centers and rescales the model
 <li>pressing the Vive
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">system button</a> shows the desktop user interface in the 
-headset, allowing &ldquo;clicking&rdquo; icons in the ChimeraX toolbars:
+target="_blank">menu button</a> shows the desktop user interface in the 
+headset, allowing &ldquo;clicking&rdquo; normal desktop controls
+such as toolbar icons to control
 <a href="tools/moldisplay.html"><b>Molecule Display</b></a> and
-<a href="tools/densitymaps.html"><b>Density Maps</b></a> icons
-to change the display,
-<a href="tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
-icons to change the cursor function
+<a href="tools/densitymaps.html"><b>Density Maps</b></a>,
+and
+<a href="tools/mousemodes.html"><b>Mouse Modes</b></a>
+icons to assign the hand controller function
 </ul>
 <p>
 The physical room bounds are shown
@@ -81,14 +108,85 @@ desktop display, use the ChimeraX command:
 <blockquote>
 <a href="commands/device.html#vr"><b>vr off</b></a>
 </blockquote>
-<p>
-The following sections go into more detail:
+
+<a name="mousemodes"></a>
+<p class="nav">
+[<a href="#top">back to top: Virtual Reality</a>]
 </p>
-<ul class="none">
-<li><a href="#interactive"><b>Limitations of Interactive Viewing</b></a>
-<li><a href="#movies"><b>Recording Movies for VR</b></a>
-<li><a href="#movie-details"><b>Movie Details</b></a>
+<h3>Hand Controller Modes</h3>
+<p>
+Most of the ChimeraX <a href="commands/mousemode.html">mouse modes</a>
+can be used with the VR hand controllers.
+To assign a mouse mode to a hand controller button:
+</p>
+
+<ol>
+<li>press the Vive
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
+   target="_blank">menu button</a> to show the desktop user interface in the headset.
+   Holding the menu button allows moving the panel in the VR scene.
+<li>put the tip of a hand controller cone on a mouse mode icon and click with
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
+   target="_blank">trigger, trackpad, or grip</a> hand controller buttons to assign
+that mouse mode to the clicked button
+</ol>
+
+<p>
+  There are three assignable buttons on each controller,
+  so six modes can be assigned. Functions include:
+</p>
+
+<ul>
+  <li>Selection
+  <li>Rotation + translation (single mode)
+  <li>Zooming
+  <li>Rotate and translate selected model only
+  <li>Move clip planes
+  <li>Rotate clip planes
+  <li>Label atoms
+  <li>Change map contour level
+  <li>Crop map box
+  <li>Place markers, move, resize, delete, connnect markers
+  <li>Play 3D image time series
+  <li>Rotate bonds
+  <li>Tug on atoms with molecular dynamics
+  <li>Run molecular dynamics on residue and neighbors
+  <li>Swap an amino acid
 </ul>
+
+<p>
+  Modes that require clicking on an atom such as selection or labeling require pointing at the atom
+  with the hand controller cone.  This is easiest to do at close range, although it can work at a distance
+  but requires accurate pointing.  Modes that involve dragging on the desktop such as changing the contour
+  level of a map or zooming are operated by clicking and moving the hand controller vertically.  The bond
+  rotation mouse mode operates by dragging on the desktop, but in VR operates by rotating the hand controller.
+  Translation and rotation are separate mouse modes but are a single hand controller mode.
+</p>
+
+<a name="handproblems"></a>
+<p class="nav">
+[<a href="#top">back to top: Virtual Reality</a>]
+</p>
+<h3>Hand Controller Problems</h3>
+
+<p>
+  Several factors make it difficult to use the hand controllers.  These problems can be remedied but we
+  have not yet had time to fix them.
+</p>
+
+<p><b>No click feedback.</b> There is no visual indication when you click a mouse mode icon. The icons are
+  small and it is easy to miss. It helps to move the panel close by holding the menu button on the hand
+  controller.  The Log panel will show if the mode was changed.
+<p><b>No mode indicator.</b> There is no visual indication of what modes are currently assigned to the buttons.
+  It is easy to forget the six modes assigned to the two controllers.  In the future we plan to put the mode icon
+  on the cone at the location of each of the three assignable buttons.
+<p><b>Blackout.</b> Modes that perform calculations taking longer than 1/90th second cause the graphics not
+  to update, and the VR scene will gray out after a fraction of a second without graphics updates.  Changing
+  map contour level and running molecular dynamics are prone to this problem.  In the future these calculations
+  will be done in parallel so the graphics will not be slowed down.
+<p><b>Flickering labels.</b> Atom labels or residue labels crated by the swap amino acid mode can cause
+  scene flicker because the labels are slow to render.  Graphics optimization is needed.
+<p><b>Selection outlines.</b> Green selection outlines can slow rendering and cause flicker.
 
 <a name="interactive"></a>
 <p class="nav">
@@ -111,52 +209,48 @@ and will cause stuttering in the headset.
 Large density map surfaces also cause stuttering;
 a 200<sup>3</sup> map at full resolution should work, but larger sizes 
 may require <a href="tools/volumeviewer.html#step">subsampling</a> (step 2).
-Switching ChimeraX to simple lighting is another way to increase the rendering 
-speed (command <a href="commands/lighting.html"><b>light simple</b></a>).
 Current headsets render at 90 frames per second in two eyes,
 so the effective rendering speed needed to avoid flickering is about 
 200 frames per second. By comparison, a rendering speed of 10 frames
 per second is adequate on a conventional desktop display.
+</p>
+<p>
+<b>Simple lighting</b>.
+By default ChimeraX switches to simple lighting when VR is enabled -- other
+<a href="commands/lighting.html">lighting modes</a> render too slowly and cause stuttering.
 </p><p>
-<b>Desktop display stops rendering</b>.
-The ChimeraX graphics on your normal computer display will stop updating
-when the VR mode is turned on. Rendering to the conventional display
-(generally 60 frames per second) is disabled because it would slow 
-headset rendering.
-What the VR headset user sees can be shown on the conventional display
-using the SteamVR menu entry &ldquo;Mirror Display.&rdquo;
+<b>Desktop rendering</b>.
+The ChimeraX graphics on your normal computer display will show what the user
+sees in the VR headset. Rendering to the conventional display
+(generally 60 frames per second) can slow the VR rendering if ChimeraX is not
+able to switch to a mode where graphics is not synchronized to vertical refresh.
+To test if this is the cause of stuttering you can use the vr command option
+<b>mirror false</b> to prevent graphics from updating on the desktop display.
+An alternative mirroring can be done by the SteamVR runtime using
+SteamVR menu entry &ldquo;Mirror Display.&rdquo;
 </p><p>
 <b>Side View should be closed</b>.
 The ChimeraX <a href="tools/sideview.html"><b>Side View</b></a> tool 
 will slow headset rendering and cause stuttering, so it
 should be closed during VR viewing.
 </p><p>
-<b>Windows 10 only</b>. 
+<b>Operating systems</b>. 
 We have tested ChimeraX VR on Windows 10 with an Nvidia Geforce GTX 1080 
-graphics card and with an AMD Radeon RX 480 graphics card. As of
-December 2016, SteamVR is only available on Windows, not Mac OS or Linux.
+graphics card and with an AMD Radeon RX 480 graphics card.
+As of April 2018, SteamVR works well on Windows, has some support on macOS High Sierra,
+and is not usable on Linux.
 </p><p>
 <b>Difficult to change model display</b>.
-Changing molecule or map display is inconvenient in that it
-generally requires removing the headset and using the ChimeraX 
-interface in the conventional display with mouse and keyboard.
+Changing molecule or map display can be done by removing the headset and using
+the ChimeraX  interface in the conventional display with mouse and keyboard.
 Alternatively, the desktop can be displayed in the headset 
 using the Vive controller
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">system button</a>;
-a blue laser pointer will appear and can be used to &ldquo;click&rdquo; 
-icons in the ChimeraX
+target="_blank">menu button</a>.
+Then use the hand controllers to &ldquo;click&rdquo;  icons in the ChimeraX
 <a href="tools/moldisplay.html"><b>Molecule Display</b></a>
 and <a href="tools/densitymaps.html"><b>Density Maps</b></a> toolbars
-to change the display.  A Vive controller side button 
-(the
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">grip button</a>) brings up a virtual keyboard 
-that can be used with the laser pointer to type commands. However,
-as of November 2016, pressing the return key or backspace key 
-on the virtual keyboard does nothing, so it is not possible to
-enter ChimeraX commands.
-This SteamVR bug has been discussed at length online.
+to change the display.
 </p><p>
 <b>Clipping when models far away</b>.
 If models are scaled to a very large size, parts more than 
@@ -181,16 +275,23 @@ It may also help to change the scene at a slower pace,
 for example using 
 <a href="commands/vseries.html#play"><b>vseries play</b></a> with the 
 <a href="commands/vseries.html#maxFrameRate"><b>maxFrameRate</b></a> option.
-We have not yet tried showing molecular dynamics trajectories with
-the <a href="commands/coordset.html"><b>coordset</b></a> command,
-which lacks a caching option.
+A molecular dynamics trajectories can be played with the
+<a href="commands/coordset.html"><b>coordset</b></a> command.  Use the
+coordset <b>pauseFrames 9</b> option to slow the playback rate from the
+90 frames per second of the headset to 10 frames per second.
 </p>
 
 <a name="movies"></a>
 <p class="nav">
 [<a href="#top">back to top: Virtual Reality</a>]
 </p>
-<h3>Recording Movies for VR</h3>
+<h3>Recording Movies for Cellphone VR</h3>
+
+<p>
+In addition to interactive rendering of molecules, ChimeraX can record 360&deg; movies for
+playback in less powerful VR headsets, such as those powered by cellphones.
+</p>
+
 <p>
 ChimeraX can record 360&deg; immersive movies that can be played back on 
 virtual reality headsets. An advantage of movies is that they can be
@@ -349,5 +450,5 @@ that of the headset, 90 frames per second with current VR headsets.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2017</address>
+April 2018</address>
 </body></html> 

@@ -19,12 +19,16 @@ TODO
 """
 
 from chimerax.core.core_settings import settings as core_settings
-from .options import SymbolicEnumOption, ColorOption, BooleanOption
+from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, FloatOption
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
     values = ("command", "serial", "simple")
     labels = ("command line", "serial number", "simple")
+
+class UpdateIntervalOption(SymbolicEnumOption):
+    values = ("day", "week", "month")
+    labels = ("every day", "every week", "every month")
 
 class CoreSettingsPanel:
 
@@ -32,7 +36,7 @@ class CoreSettingsPanel:
     #
     # 1) Description to display in the gui
     # 2) Category (also for gui)
-    # 3) Option class to use
+    # 3) Option class to use, or (Option-class, {additional __init__ keywords}) tuple
     # 4) Updater to use when option changed.  One of:
     #     a) None, if no update necessary
     #     b) string, a command to run (and see next tuple component)
@@ -87,6 +91,57 @@ class CoreSettingsPanel:
             lambda ses: core_settings.clipping_surface_caps,
             'Whether to cap surface holes created by clipping',
             False),
+        'distance_color': (
+            "Color",
+            "Distances",
+            ColorOption,
+            "distance style color %s",
+            hex_color_name,
+            lambda ses, cb: ses.triggers.add_handler("distance color changed", cb),
+            lambda ses: core_settings.distance_color,
+            "Color of atomic distance monitors",
+            False),
+        'distance_dashes': (
+            "Number of dashes",
+            "Distances",
+            (IntOption, {'min': 0 }),
+            "distance style dashes %d",
+            None,
+            lambda ses, cb: ses.triggers.add_handler("distance dashes changed", cb),
+            lambda ses: core_settings.distance_dashes,
+            "How many dashes when drawing distance monitor.  Zero means solid line.  "
+            "Currently, even numbers act the same as the next odd number.",
+            False),
+        'distance_decimal_places': (
+            "Decimal places",
+            "Distances",
+            (IntOption, {'min': 0 }),
+            "distance style decimalPlaces %d",
+            None,
+            lambda ses, cb: ses.triggers.add_handler("distance decimal places changed", cb),
+            lambda ses: ses.pb_dist_monitor.decimal_places,
+            "How many digits after the decimal point to show for distances",
+            False),
+        'distance_radius': (
+            "Radius",
+            "Distances",
+            (FloatOption, {'min': 'positive', 'decimal_places': 3 }),
+            "distance style radius %g",
+            None,
+            lambda ses, cb: ses.triggers.add_handler("distance radius changed", cb),
+            lambda ses: core_settings.distance_radius,
+            "Radial line thickness of distance",
+            False),
+        'distance_show_units': (
+            'Show angstrom symbol (\N{ANGSTROM SIGN})',
+            'Distances',
+            BooleanOption,
+            'distance style symbol  %s',
+            None,
+            lambda ses, cb: ses.triggers.add_handler("distance show units changed", cb),
+            lambda ses: ses.pb_dist_monitor.show_units,
+            'Whether to show angstrom symbol after the distancee',
+            False),
         'resize_window_on_session_restore': (
             'Resize window on session restore',
             'Sessions',
@@ -96,6 +151,16 @@ class CoreSettingsPanel:
             None,
             None,
             'Whether to resize main window when restoring a session to the size it had when the session was saved.',
+            True),
+        'toolshed_update_interval': (
+            "Toolshed update interval",
+            "Toolshed",
+            UpdateIntervalOption,
+            None,
+            None,
+            None,
+            None,
+            'How frequently to check toolshed for new updates<br>',
             True),
     }
 
@@ -108,8 +173,12 @@ class CoreSettingsPanel:
         for setting, setting_info in self.settings_info.items():
             opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon, \
                 set_setting = setting_info
+            if isinstance(opt_class, tuple):
+                opt_class, kw = opt_class
+            else:
+                kw = {}
             opt = opt_class(opt_name, getattr(core_settings, setting), self._opt_cb,
-                attr_name=setting, balloon=balloon)
+                attr_name=setting, balloon=balloon, **kw)
             self.options_widget.add_option(category, opt)
             """
             self.options[setting] = opt

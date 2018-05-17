@@ -40,6 +40,8 @@ area buried between two sets of atoms
 - calculate convexity at each surface vertex, color the surface accordingly
 <li><a href="#length"><b>length</b></a>
 - sum bond lengths
+<li><a href="#motion"><b>motion</b></a>
+- show changes in surface position by drawing lines
 <li><a href="#sasa"><b>sasa</b></a>
 - calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area
@@ -134,9 +136,15 @@ The <b>patches</b> option randomly assigns colors to contiguous patches
 of vertices with convexity values above the <i>convexity-threshold</i>. 
 Otherwise (<b>patches</b> not used),
 the surface will be colored by the convexity value per vertex,
-with <i>palette-options</i> the same as
+with <i>palette-options</i> as
 <a href="color.html#palette-options">described for <b>color</b></a>,
-except with defaults:
+except with defaults 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=#0f1bc7adcf5b width="10px"></td>
+<td bgcolor=#b333b333b333 width="10px"></td>
+<td bgcolor=#9eb820005eb8 width="10px"></td>
+</tr></table>:
 <blockquote>
 <b>palette&nbsp;cyan-gray-maroon&nbsp;&nbsp;range&nbsp;-1,1</b>
 </blockquote>
@@ -153,6 +161,33 @@ See also: <a href="mlp.html"><b>mlp</b></a>,
 Sum the lengths of all bonds between specified atoms 
 (<a href="../markers.html">markers</a>);
 primarily used to measure the length of traced paths of markers.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="motion"><b>measure motion</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+<b>toMap</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>steps</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>scale</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>pricklesModel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<blockquote>
+Draw &ldquo;prickles&rdquo; to show the change in position of a surface 
+relative to a <a href="../tools/volumeviewer.html">volume</a>
+(map) isosurface, for example, between time steps of a
+<a href="../trajectories.html#vseries">volume series</a>.
+Prickles are line segments drawn perpendicular to the surface.
+They are extended from the vertices of <i>surf-model</i>
+in increments of map grid units 
+(using the smallest spacing along the three axes, if they differ)
+until they intersect with the map isosurface or reach
+<b>steps</b> <i>M</i> grid units in length (default <b>10</b>).
+Prickles are shown in the specified <b>color</b> (default <b>lime</b>) and
+can be amplified or shrunken in length by a <b>scale</b> factor <i>f</i>.
+If a model number is specified with <b>pricklesModel</b> <i>N</i>,
+the prickles will be added as a submodel of <i>N</i>.
+If a model number is not specified,
+the new model will be a submodel of <i>surf-model</i>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -192,5 +227,5 @@ phenylalanine, tyrosine, and tryptophan residues
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2018</address>
+May 2018</address>
 </body></html>

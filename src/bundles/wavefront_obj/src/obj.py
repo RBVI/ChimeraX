@@ -46,8 +46,8 @@ def read_obj(session, filename, name):
     else:
         input = open(filename, 'r')
 
-    model = WavefrontOBJ(name, session)
-
+    models = []
+    object_name = None
     vertices = []
     texcoords = []
     normals = []
@@ -66,28 +66,58 @@ def read_obj(session, filename, name):
                 raise OBJError('OBJ reader only handles x,y,z vertices, line %d: "%s"'
                                % (line_num, line))
             vertices.append(xyz)
-        if f0 == 'vt':
+        elif f0 == 'vt':
             # Texture coordinates
             uv = [float(u) for u in fa]
             if len(uv) != 2:
                 raise OBJError('OBJ reader only handles u,v texture coordinates, line %d: "%s"'
                                % (line_num, line))
             texcoords.append(uv)
-        if f0 == 'vn':
+        elif f0 == 'vn':
             # Vertex normal
             n = [float(x) for x in fa]
             if len(n) != 3:
                 raise OBJError('OBJ reader only handles x,y,z normals, line %d: "%s"'
                                % (line_num, line))
             normals.append(n)
-        if f0 == 'f':
+        elif f0 == 'f':
             # Polygonal face.
             t = parse_triangle(fa, line, line_num)
             triangles.append(t)
+        elif f0 == 'o':
+            # Object name
+            if vertices or object_name is not None:
+                oname = object_name if object_name else name
+                m = new_object(session, oname, vertices, normals, texcoords, triangles)
+                models.append(m)
+                vertices, normals, texcoords, triangles = [], [], [], []
+            object_name = line[2:].strip()
+
+    if vertices:
+        oname = object_name if object_name else name
+        m = new_object(session, oname, vertices, normals, texcoords, triangles)
+        models.append(m)
 
     if input != filename:
         input.close()
 
+    if len(models) == 1:
+        model = models[0]
+    elif len(models) > 1:
+        from chimerax.core.models import Model
+        model = Model(name, session)
+        model.add(models)
+    else:
+        raise OBJError('OBJ file has no objects')
+
+    return [model], ('Opened OBJ file containing %d objects, %d triangles'
+                     % (len(models), sum(len(m.triangles) for m in models)))
+
+# -----------------------------------------------------------------------------
+#
+def new_object(session, object_name, vertices, normals, texcoords, triangles):
+
+    model = WavefrontOBJ(object_name, session)
     if len(vertices) == 0:
         raise OBJError('OBJ file has no vertices')
     if len(normals) > 0 and len(normals) != len(vertices):
@@ -98,18 +128,15 @@ def read_obj(session, filename, name):
                        % (len(texcoords), len(vertices)))
 
     from numpy import array, float32, int32, uint8
-    model.vertices = array(vertices, float32)
     if texcoords:
         model.texture_coordinates = array(texcoords, float32)
-    if normals:
-        model.normals = array(normals, float32)
+    na = array(normals, float32) if normals else None
     ta = array(triangles, int32)
     ta -= 1	# OBJ first vertex index is 1 while model first vertex index is 0
-    model.triangles = ta
+    va = array(vertices, float32)
+    model.set_geometry(va, na, ta)
     model.color = array((170,170,170,255), uint8)
-
-    return [model], ('Opened OBJ file containing %d triangles'
-                     % len(model.triangles))
+    return model
 
 # -----------------------------------------------------------------------------
 #  Handle faces with vertex, normal and texture indices.
@@ -139,7 +166,7 @@ def parse_triangle(fields, line, line_num):
 
 # -----------------------------------------------------------------------------
 #
-def write_obj(session, filename, models, obj_to_unity = True):
+def write_obj(session, filename, models, obj_to_unity = True, single_object = False):
     if models is None:
         models = session.models.list()
 
@@ -157,8 +184,11 @@ def write_obj(session, filename, models, obj_to_unity = True):
         if va is not None and ta is not None and d.display and d.parents_displayed:
             pos = d.get_scene_positions(displayed_only = True)
             if len(pos) > 0:
-                geom.append((va, na, tca, ta, pos))
-    va, na, tca, ta = combine_geometry(geom)
+                geom.append((full_name(d), va, na, tca, ta, pos))
+
+    if single_object:
+        va, na, tca, ta = combine_geometry(geom)
+        geom = [(None, va, na, tca, ta, None)]
 
     # Write 80 character comment.
     from chimerax import app_dirs as ad
@@ -169,13 +199,38 @@ def write_obj(session, filename, models, obj_to_unity = True):
 
     # Write comment
     file.write(created_by)
+
+    for name, va, na, tca, ta, pos in geom:
+        write_object(file, name, va, na, tca, ta, pos, obj_to_unity)
+
+    file.close()
+
+# -----------------------------------------------------------------------------
+#
+def full_name(drawing):
+    return ' '.join(d.name for d in drawing.drawing_lineage[1:])
+
+# -----------------------------------------------------------------------------
+#
+def write_object(file, name, va, na, tca, ta, pos, obj_to_unity):
+
+    # Write object name
+    if name is not None:
+        file.write('o %s\n' % name)
+
+    if pos is not None and not pos.is_identity():
+        # Expand out positions including instancing.
+        va, na, tca, ta = combine_geometry([(name, va, na, tca, ta, pos)])
+
     # Write vertices
     file.write('\n'.join(('v %.5g %.5g %.5g' % tuple(xyz)) for xyz in va))
     file.write('\n')
+
     # Write texture coordinates
     if tca is not None:
         file.write('\n'.join(('vt %.5g %.5g' % tuple(uv)) for uv in tca))
         file.write('\n')
+
     # Write normals
     if na is not None:
         file.write('\n'.join(('vn %.5g %.5g %.5g' % tuple(xyz)) for xyz in na))
@@ -197,14 +252,12 @@ def write_obj(session, filename, models, obj_to_unity = True):
     file.write('\n'.join(tlines))
     file.write('\n')
 
-    file.close()
-
 # -----------------------------------------------------------------------------
 #
 def combine_geometry(geom):
     vc = tc = 0
     tex_coord = False
-    for va, na, tca, ta, pos in geom:
+    for name, va, na, tca, ta, pos in geom:
         n, nv, nt = len(pos), len(va), len(ta)
         vc += n*nv
         tc += n*nt
@@ -221,7 +274,7 @@ def combine_geometry(geom):
     tarray = empty((tc,3), int32)
 
     v = t = 0
-    for va, na, tca, ta, pos in geom:
+    for name, va, na, tca, ta, pos in geom:
         n, nv, nt = len(pos), len(va), len(ta)
         for p in pos:
             varray[v:v+nv,:] = va if p.is_identity() else p*va

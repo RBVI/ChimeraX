@@ -12,17 +12,18 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = addh align_algs alignments bild blastprotein bond_rot bumps \
+SUBDIRS = addh active_tools align_algs alignments basic_actions bild blastprotein bond_rot bumps \
 	  bundle_builder cage_builder cellpack chem_group clashes cmd_line \
-	  color_globe crosslinks dist_monitor exp_cmd file_history \
-	  gltf hbonds help_viewer ihm interfaces label list_info \
-	  log map_series_gui markers match_maker md_crds meeting mlp model_series \
+	  color_globe crosslinks crystal dist_monitor dist_ui exp_cmd file_history \
+	  gltf hbonds help_viewer ihm interfaces label list_info log \
+	  map map_data map_filter map_fit map_series \
+	  markers match_maker md_crds meeting mlp model_series \
 	  mmtf model_panel mol2 morph mouse_modes movie \
 	  nucleotides \
 	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
-	  smooth_lines spacenavigator stl storm struts swapaa target \
-	  test texture tug ui viewdockx vive volume_viewer vtk wavefront_obj
+	  smooth_lines spacenavigator stl storm struts surface swapaa \
+	  test texture tug ui viewdockx vive vtk wavefront_obj
 
 include $(TOP)/mk/subdir.make
 
@@ -41,10 +42,17 @@ endif
 clean:
 	rm -rf __pycache__
 
+active_tools.install: ui.install surface.install
 align_algs.install: alignments.install
+bild.install: surface.install
 bond_rot.install: ui.install
 bumps.install: markers.install
 crosslinks.install: interfaces.install
+ihm.install: map.install
+map.install: map_data.install
+map_filter.install: map.install
+map_fit.install: map.install
+map_series.install: map.install
 markers.install: ui.install
 match_maker.install: align_algs.install sim_matrices.install
 sim_matrices.install: alignments.install

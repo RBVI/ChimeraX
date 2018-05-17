@@ -18,7 +18,7 @@ preferences: manage preferences
 TODO
 """
 from . import commands
-from .colors import Color
+from .colors import Color, BuiltinColors
 from . import configfile
 from .settings import Settings
 
@@ -33,6 +33,15 @@ class _CoreSettings(Settings):
         'clipping_surface_caps': True,
         'clipping_cap_offset': 0.01,
         'resize_window_on_session_restore': False,
+    }
+    AUTO_SAVE = {
+        'distance_color': configfile.Value(BuiltinColors['gold'], commands.ColorArg, Color.hex_with_alpha),
+        'distance_dashes': 9,
+        'distance_decimal_places': 3,
+        'distance_radius': 0.1,
+        'distance_show_units': True,
+        'toolshed_update_interval': 'week',
+        'toolshed_last_check': '',
     }
 
 def init(session):

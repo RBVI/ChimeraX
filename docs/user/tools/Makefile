@@ -23,6 +23,8 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png
 MICONDIR = $(DOCDIR)/mouse-icons
 SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
 SICONDIR = $(DOCDIR)/shortcut-icons
+BASICICONS = $(TOP)/src/bundles/basic_actions/src/lib/*.svg
+BICONDIR = $(DOCDIR)/basic-icons
 
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
@@ -31,5 +33,7 @@ install:
 	$(RSYNC) $(MOUSEICONS) $(MICONDIR)
 	if [ ! -d "$(SICONDIR)" ]; then mkdir -p $(SICONDIR); fi
 	$(RSYNC) $(SHORTCUTICONS) $(SICONDIR)
+	if [ ! -d "$(BICONDIR)" ]; then mkdir -p $(SICONDIR); fi
+	$(RSYNC) $(BASICICONS) $(BICONDIR)
 
 clean:

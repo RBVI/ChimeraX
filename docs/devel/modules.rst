@@ -64,7 +64,7 @@ Python Modules
 
     core/settings.rst
 
-    core/surface/surface.rst
+    bundles/surface/src/surface.rst
 
     core/tasks.rst
 

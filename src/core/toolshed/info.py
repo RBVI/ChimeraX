@@ -352,7 +352,8 @@ class BundleInfo:
                     return sel(session, models, results)
                 else:
                     return sel
-            register_selector(si.name, selector_cb, logger)
+            register_selector(si.name, selector_cb, logger,
+                              desc=si.synopsis, atomic=si.atomic)
 
     def _deregister_selectors(self, logger):
         from ..commands import deregister_selector
@@ -397,6 +398,39 @@ class BundleInfo:
                 raise ToolshedError(
                     "finish() failed in bundle %s:\n%s" % (self.name, str(e)))
 
+    def include_dir(self):
+        """Deinitialize bundle by calling custom finish code if needed."""
+        try:
+            api = self._get_api()
+            return api._api_caller.include_dir(api, self)
+        except Exception as e:
+            import traceback, sys
+            traceback.print_exc(file=sys.stdout)
+            raise ToolshedError(
+                "include_dir() failed in bundle %s:\n%s" % (self.name, str(e)))
+
+    def library_dir(self):
+        """Deinitialize bundle by calling custom finish code if needed."""
+        try:
+            api = self._get_api()
+            return api._api_caller.library_dir(api, self)
+        except Exception as e:
+            import traceback, sys
+            traceback.print_exc(file=sys.stdout)
+            raise ToolshedError(
+                "library_dir() failed in bundle %s:\n%s" % (self.name, str(e)))
+
+    def data_dir(self):
+        """Deinitialize bundle by calling custom finish code if needed."""
+        try:
+            api = self._get_api()
+            return api._api_caller.data_dir(api, self)
+        except Exception as e:
+            import traceback, sys
+            traceback.print_exc(file=sys.stdout)
+            raise ToolshedError(
+                "data_dir() failed in bundle %s:\n%s" % (self.name, str(e)))
+
     def unload(self, logger):
         """Unload bundle modules (as best as we can)."""
         import sys
@@ -429,21 +463,24 @@ class BundleInfo:
             raise ToolshedError("Error importing bundle %s's module: %s" % (self.name, str(e)))
         return m
 
-    def _get_api(self, logger):
+    def _get_api(self, logger=None):
         """Return BundleAPI instance for this bundle."""
         m = self.get_module()
         try:
             bundle_api = getattr(m, 'bundle_api')
         except AttributeError:
             raise ToolshedError("missing bundle_api for bundle \"%s\"" % self.name)
-        _debug("_get_api", self._api_package_name, m, bundle_api)
+        # _debug("_get_api", self._api_package_name, m, bundle_api)
         return bundle_api
 
-    def find_icon_path(self, icon_name):
+    def get_path(self, subpath):
         import os
         m = self.get_module()
-        icon_dir = os.path.dirname(m.__file__)
-        return os.path.join(icon_dir, icon_name)
+        directory = os.path.dirname(m.__file__)
+        path = os.path.join(directory, subpath)
+        if os.path.exists(path):
+            return path
+        return None
 
     def start_tool(self, session, tool_name, *args, **kw):
         """Create and return a tool instance.
@@ -586,22 +623,25 @@ class SelectorInfo(ToolInfo):
        Tool name.
     synopsis : str
         One line description.
+    atomic : boolean
+        Whether selector applies to atoms and bonds.
     """
-    def __init__(self, name, synopsis=None):
+    def __init__(self, name, synopsis=None, atomic=True):
         self.name = name
         if synopsis:
             self.synopsis = synopsis
         else:
             self.synopsis = "No synopsis given"
+        self.atomic = atomic
 
     def __repr__(self):
         s = self.name
         if self.synopsis:
-            s += " [synopsis: %s]" % self.synopsis
+            s += " [atomic: %s, synopsis: %s]" % (self.atomic, self.synopsis)
         return s
 
     def cache_data(self):
-        return (self.name, self.synopsis)
+        return (self.name, self.synopsis, self.atomic)
 
     @classmethod
     def from_cache_data(cls, data):

@@ -23,19 +23,40 @@ class DistancesMonitor(StateManager):
         from chimerax.core.atomic import get_triggers
         triggers = get_triggers(session)
         triggers.add_handler("changes", self._changes_handler)
+        self._already_restored = set()
 
-    def add_group(self, group, update_callback=None):
+    def add_group(self, group, update_callback=None, session_restore=False):
         self.monitored_groups.add(group)
         if update_callback:
             self.update_callbacks[group] = update_callback
-        if group.num_pseudobonds > 0:
+        if group.num_pseudobonds > 0 and not session_restore:
             self._update_distances(group.pseudobonds)
+        if session_restore:
+            # there will be a "check for changes" after the session restore,
+            # so remember these so they can be skipped then
+            self._already_restored.update([pb for pb in group.pseudobonds])
+        else:
+            self._already_restored.clear()
+
+    def _get_decimal_places(self):
+        from chimerax.core.core_settings import settings
+        return settings.distance_decimal_places
+
+    def _set_decimal_places(self, places):
+        from chimerax.core.core_settings import settings
+        if places == settings.distance_decimal_places:
+            return
+        settings.distance_decimal_places = places
+        self._update_distances()
+        self.session.triggers.activate_trigger("distance decimal places changed", places)
+
+    decimal_places = property(_get_decimal_places, _set_decimal_places)
 
     @property
     def distance_format(self):
-        from .settings import settings
-        fmt = "%%.%df" % settings.precision
-        if settings.show_units:
+        from chimerax.core.core_settings import settings
+        fmt = "%%.%df" % settings.distance_decimal_places
+        if settings.distance_show_units:
             fmt += u'\u00C5'
         return fmt
 
@@ -55,24 +76,19 @@ class DistancesMonitor(StateManager):
         if group in self.update_callbacks:
             del self.update_callbacks[group]
 
-    def set_distance_format_params(self, *, decimal_places=None, show_units=None, save=False):
-        """Set the distance format parameters (and update all distances)
-        
-        'show_units' controls whether the angstrom symbol is displayed.  'save' indicates
-        whether the new settings should be saved as defaults.  Values of None for 'decimal_places'
-        and 'show_units' indicate that the current setting should not be changed.
-        """
-        from .settings import settings
-        save_attrs = []
-        if decimal_places is not None:
-            settings.precision = decimal_places
-            save_attrs.append('precision')
-        if show_units is not None:
-            settings.show_units = show_units
-            save_attrs.append('show_units')
-        if save:
-            settings.save(settings=save_attrs)
+    def _get_show_units(self):
+        from chimerax.core.core_settings import settings
+        return settings.distance_show_units
+
+    def _set_show_units(self, show):
+        from chimerax.core.core_settings import settings
+        if show == settings.distance_show_units:
+            return
+        settings.distance_show_units = show
         self._update_distances()
+        self.session.triggers.activate_trigger("distance show units changed", show)
+
+    show_units = property(_get_show_units, _set_show_units)
 
     def _changes_handler(self, _, changes):
         if changes.num_deleted_pseudobond_groups() > 0:
@@ -80,8 +96,11 @@ class DistancesMonitor(StateManager):
                 if mg.deleted:
                     self.remove_group(mg)
         for pb in changes.created_pseudobonds():
+            if pb in self._already_restored:
+                continue
             if pb.group in self.monitored_groups:
                 self._update_distances(pseudobonds=[pb])
+        self._already_restored.clear()
         if "position changed" in changes.structure_reasons() \
         or "active_coordset changed" in changes.structure_reasons() \
         or len(changes.modified_coordsets()) > 0:
@@ -109,7 +128,7 @@ class DistancesMonitor(StateManager):
                         settings=label_settings)
             else:
                 label_settings['text'] = ""
-                lm.add_labels(pbs, PseudobondLabel, self.session.main_view, None,
+                lm.add_labels(pbs, PseudobondLabel, self.session.main_view,
                     settings=label_settings)
             if grp in self.update_callbacks:
                 self.update_callbacks[group]()
@@ -128,15 +147,16 @@ class DistancesMonitor(StateManager):
 
     def take_snapshot(self, session, flags):
         return {
-            'version': 1,
+            'version': 3,
 
             'distances shown': self._distances_shown,
-            'monitored groups': self.monitored_groups
+            'monitored groups': self.monitored_groups,
         }
 
     def _ses_restore(self, data):
+        self._already_restored.clear()
         for grp in list(self.monitored_groups)[:]:
             self.remove_group(grp)
         self._distances_shown = data['distances shown']
         for grp in data['monitored groups']:
-            self.add_group(grp)
+            self.add_group(grp, session_restore=True)

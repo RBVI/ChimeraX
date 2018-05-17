@@ -52,8 +52,8 @@ def read_storm(session, filename, name):
     pad = 10*step
     cutoff_range = 5	# Standard deviations
     grid = None
-    from chimerax.core.map.molmap import bounding_grid, add_gaussians
-    from chimerax.core.map import volume_from_grid_data
+    from chimerax.map.molmap import bounding_grid, add_gaussians
+    from chimerax.map import volume_from_grid_data
     for channel in sorted(points.keys()):
         plist = points[channel]
         from numpy import array, float32, sqrt
@@ -83,6 +83,6 @@ def read_storm(session, filename, name):
 def matching_grid(grid):
     from numpy import zeros, float32
     matrix = zeros(grid.full_matrix().shape, float32)
-    from chimerax.core.map.data import Array_Grid_Data
+    from chimerax.map.data import Array_Grid_Data
     g = Array_Grid_Data(matrix, grid.origin, grid.step)
     return g

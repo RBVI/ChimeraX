@@ -1034,6 +1034,22 @@ extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_s
     }
 }
 
+extern "C" EXPORT void atom_scene_coord(void *atoms, size_t n, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto c = a[i]->scene_coord();
+            *xyz++ = c[0];
+            *xyz++ = c[1];
+            *xyz++ = c[2];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+
 // Apply per-structure transform to atom coordinates.
 extern "C" EXPORT void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
 {
@@ -1463,6 +1479,21 @@ extern "C" EXPORT PyObject *bond_smaller_side(void *bond)
     Bond *b = static_cast<Bond *>(bond);
     try {
         return b->smaller_side()->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject *bond_polymeric_start_atom(void *bond)
+{
+    Bond *b = static_cast<Bond *>(bond);
+    try {
+        Atom* a = b->polymeric_start_atom();
+        if (a == nullptr) {
+            Py_RETURN_NONE;
+        }
+        return a->py_instance(true);
     } catch (...) {
         molc_error();
         return nullptr;
@@ -2577,6 +2608,46 @@ extern "C" EXPORT void residue_secondary_structure_id(void *residues, size_t n, 
     }
 }
 
+extern "C" EXPORT PyObject *residue_standard_solvent_names()
+{
+    PyObject* name_set = PySet_New(nullptr);
+    if (name_set == nullptr)
+        return nullptr;
+    try {
+        for (auto name: Residue::std_solvent_names) {
+            PyObject* py_name = PyUnicode_FromString(name.c_str());
+            if (py_name == nullptr || PySet_Add(name_set, py_name) < 0) {
+                Py_DECREF(name_set);
+                return nullptr;
+            }
+        }
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+    return name_set;
+}
+
+extern "C" EXPORT PyObject *residue_standard_water_names()
+{
+    PyObject* name_set = PySet_New(nullptr);
+    if (name_set == nullptr)
+        return nullptr;
+    try {
+        for (auto name: Residue::std_water_names) {
+            PyObject* py_name = PyUnicode_FromString(name.c_str());
+            if (py_name == nullptr || PySet_Add(name_set, py_name) < 0) {
+                Py_DECREF(name_set);
+                return nullptr;
+            }
+        }
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+    return name_set;
+}
+
 extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, int *seq_ids)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -2901,8 +2972,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         return o;
     } catch (...) {
         molc_error();
-        Py_INCREF(Py_None);
-        return Py_None;
+        Py_RETURN_NONE;
     }
 }
 #else
@@ -3027,8 +3097,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
         }
     } catch (...) {
         molc_error();
-        Py_INCREF(Py_None);
-        return Py_None;
+        Py_RETURN_NONE;
     }
 }
 #endif
@@ -3722,8 +3791,7 @@ extern "C" EXPORT pyobject_t sequence_ungapped(void *seq)
         return unicode_from_string(std::string(ungapped.begin(), ungapped.end()));
     } catch (...) {
         molc_error();
-        Py_INCREF(Py_None);
-        return Py_None;
+        Py_RETURN_NONE;
     }
 }
 
@@ -4005,6 +4073,16 @@ extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz, size
     }
 }
 
+extern "C" EXPORT void structure_remove_coordsets(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->clear_coord_sets();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_add_coordsets(void *mol, bool replace, void *xyz, size_t n_sets, size_t n_coords)
 {
     Structure *m = static_cast<Structure *>(mol);
@@ -4277,8 +4355,7 @@ extern "C" EXPORT PyObject *structure_pseudobond_group(void *mol, const char *na
     try {
         Proxy_PBGroup *pbg = m->pb_mgr().get_group(name, create_type);
         if (pbg == nullptr) {
-            Py_INCREF(Py_None);
-            return Py_None;
+            Py_RETURN_NONE;
         }
         return pbg->py_instance(true);
     } catch (...) {
@@ -4461,6 +4538,16 @@ extern "C" EXPORT void structure_session_save_teardown(void *mol)
     Structure *m = static_cast<Structure *>(mol);
     try {
             m->session_save_teardown();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_set_position(void *mol, void *pos)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->set_position_matrix((double*)pos);
     } catch (...) {
         molc_error();
     }
@@ -4941,9 +5028,14 @@ private:
         if (j < s) {
             //std::cerr << "resizing array " << a << " from " << s << " to " << j << std::endl;
             *PyArray_DIMS(a) = j;        // TODO: This hack may break numpy.
+            // TODO: Resizing the array in place is not possible from Python numpy API,
+            // so this breaks assumptions about numpy.  Cause of subtle ChimeraX bug #1096.
             /*
-            // Numpy array can't be resized with weakref made by weakref.finalize().  Not sure why.
-            // Won't work anyways because array will reallocate while looping over old array of atoms being deleted.
+            // Numpy array can't be resized in place with PyArray_Resize() if references to
+            // the array (different views?) exist as described in PyArray_Resize() documentation.
+            // This is because PyArray_Resize() reallocates the array to the new size.
+            // Won't work anyways because array will reallocate while looping over old array
+            // of atoms being deleted.
             PyArray_Dims dims;
             dims.len = 1;
             dims.ptr = &j;
@@ -5801,6 +5893,24 @@ extern "C" EXPORT PyObject* structure_existing_py_inst(void* ptr)
     try {
         return s->py_instance(false);
     } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+#include <pyinstance/PythonInstance.declare.h>
+extern "C" EXPORT PyObject *all_python_instances()
+{
+    PyObject *obj_list = nullptr;
+    try {
+        obj_list = PyList_New(0);
+        for (auto ptr_obj: pyinstance::_pyinstance_object_map) {
+            if (PyList_Append(obj_list, ptr_obj.second) < 0)
+                return nullptr;
+        }
+        return obj_list;
+    } catch (...) {
+        Py_XDECREF(obj_list);
         molc_error();
         return nullptr;
     }

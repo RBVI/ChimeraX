@@ -45,6 +45,10 @@ def _hack_distlib(f):
 
 class InstalledBundleCache(list):
 
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.help_directories = []
+
     @_hack_distlib
     def load(self, logger, cache_file=None, rebuild_cache=False, write_cache=True):
         """Load list of installed bundles.
@@ -62,6 +66,7 @@ class InstalledBundleCache(list):
         if cache_file and not rebuild_cache:
             if self._read_cache(cache_file):
                 _debug("InstalledBundleCache.load: using cached data")
+                self._set_help_directories()
                 return
         #
         # Okay, no cache.  Go through all installed packages
@@ -127,6 +132,7 @@ class InstalledBundleCache(list):
         if cache_file and write_cache:
             _debug("InstalledBundleCache.load: write_cache")
             self._write_cache(cache_file, logger)
+        self._set_help_directories()
 
     def register_all(self, logger, session, package_map):
         """Register all installed bundles.
@@ -261,6 +267,14 @@ class InstalledBundleCache(list):
                     print(file=f)
                     json.dump([bi.cache_data() for bi in self], f,
                               ensure_ascii=False, check_circular=False)
+
+    def _set_help_directories(self):
+        hd = []
+        for bi in self:
+            help_dir = bi.get_path('docs')
+            if help_dir is not None:
+                hd.append(help_dir)
+        self.help_directories = hd
 
 
 #
@@ -410,12 +424,17 @@ def _make_bundle_info(d, installed, logger):
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None
-            if len(parts) != 4:
+            if len(parts) != 4 and len(parts) != 5:
                 logger.warning("Malformed ChimeraX :: Selector line in %s skipped." % name)
-                logger.warning("Expected 4 fields and got %d." % len(parts))
+                logger.warning("Expected 4 or 5 fields and got %d." % len(parts))
                 continue
-            name, synopsis = parts[2:]
-            si = SelectorInfo(name, synopsis)
+            name = parts[2]
+            synopsis = parts[3]
+            if len(parts) == 5:
+                atomic = parts[4].lower() != "false"
+            else:
+                atomic = True
+            si = SelectorInfo(name, synopsis, atomic)
             bi.selectors.append(si)
         elif parts[1] == 'DataFormat':
             # ChimeraX :: DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis :: encoding
@@ -440,7 +459,7 @@ def _make_bundle_info(d, installed, logger):
             # construct absolute path name of icon by looking
             # in package directory
             if icon:
-                icon = bi.find_icon_path(icon)
+                icon = bi.get_path(icon)
             fi = FormatInfo(name=name, nicknames=nicknames,
                             category=category, suffixes=suffixes,
                             mime_types=mime_types, url=url, icon=icon,

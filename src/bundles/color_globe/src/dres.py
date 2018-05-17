@@ -104,9 +104,7 @@ class ColorGlobe(Drawing):
                                           disc_radius, num_disc_points)
         vc = self.sphere_colors(values, colormap, num_disc_points)
 
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
+        self.set_geometry(va, na, ta)
         self.vertex_colors = vc
 
     def default_disc_radius(self, np, sphere_radius):
@@ -201,9 +199,7 @@ class ColorKey(Drawing):
             colormap = BuiltinColormaps['rainbow']
 
         va, na, vc, ta = self.rectangle_geometry(length, thickness, vertical, offset, colormap, divisions)
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
+        self.set_geometry(va, na, ta)
         self.vertex_colors = vc
 
     def rectangle_geometry(self, length, thickness, vertical, offset, colormap, div = 50):

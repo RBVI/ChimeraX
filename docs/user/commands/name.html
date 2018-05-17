@@ -1,0 +1,119 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: name</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: name</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>name</b> 
+&nbsp;<i>target-name</i> &nbsp;<a href="atomspec.html"><i>spec</i></a>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>name</b> &nbsp;<b>frozen</b>
+&nbsp;<i>target-name</i> &nbsp;<a href="atomspec.html"><i>spec</i></a>
+</h3>
+<!--
+Consider also the functionality in Chimera command rmfalias.
+--> 
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>name</b> &nbsp;<b>list</b>
+[&nbsp;<b>builtins</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>name</b> &nbsp;<b>delete</b>
+(&nbsp;<i>target-name</i>&nbsp;|&nbsp;<b>all</b>&nbsp;)
+</h3>
+<p>
+The <b>name</b> command defines a <i>target-name</i>
+to be used as a synonym for <a href="atomspec.html"><i>spec</i></a>
+in subsequent commands. The <i>target-name</i> will also be listed in
+<a href="../tools/basicactions.html"><b>Basic Actions</b></a>
+for easy showing/hiding/coloring without typing any commands.
+See also: <a href="alias.html"><b>alias</b></a>,
+<a href="rename.html"><b>rename</b></a>
+</p><p>
+Defining a name is useful
+to replace a long <a href="atomspec.html">target specification</a>
+string with something shorter and easier to type, 
+or to name the current <a href="../selection.html">selection</a> 
+for easy access to its contents later.
+Occurrences of <i>target-name</i>
+(space- and/or semicolon-delimited) in commands
+will be translated to the corresponding items.
+</p><p>
+A target can be defined as evaluate-now or evaluate-later:
+</p>
+<ul>
+<li>An evaluate-later target created with <b>name</b> 
+is simply expanded to the original 
+<a href="atomspec.html"><i>spec</i></a> string when it is used, for example:
+<blockquote><b>
+<!-- 1hxz rhodopsin -->
+<a href="name.html">name</a> tm1 /a:34-64
+<br><a href="color.html">color</a> tm1 medium blue
+</b>
+<br> &ndash; <i>is equivalent to</i> &ndash;
+<b>
+<br><a href="color.html">color</a> /a:34-64 medium blue
+</b></blockquote>
+<li>A evaluate-now target created with <b>name frozen</b> specifies
+only the contents of <a href="atomspec.html"><i>spec</i></a>
+at the time of creation. 
+For example, if all leucines in currently open structures
+are defined as a target with:
+<blockquote>
+<b>name frozen leus :leu</b>
+</blockquote>
+...the name <b>leus</b> will only refer to the leucines in that set of
+structures, and closing a model (even if it is reopened again)
+removes it from the set.
+<p>
+To create a named <a href="../selection.html">selection</a>,
+the <a href="atomspec.html"><i>spec</i></a> would be
+<a href="atomspec.html#builtin"><b>sel</b></a>.
+For example:
+<blockquote><b>
+<a href="select.html">select</a> ligand :<5.5
+<br><a href="select.html">~select</a> solvent
+<br>name frozen pocket sel 
+</b></blockquote>
+...the target <b>pocket</b> will not be affected by any subsequent changes 
+in what is selected, and will refer solely to what was selected at the
+time it was defined.
+</ul>
+<!-- nope as of Apr 9 2018
+User-defined target definitions are saved in sessions.
+-->
+<p>
+The command <b>name list</b> reports all user-defined targets 
+in the <a href="../tools/log.html"><b>Log</b></a>, 
+with brief summaries of their contents;
+using <b>builtins true</b> also lists the
+<a href="atomspec.html#builtin">built-in targets</a>.
+</p><p>
+The command <b>name delete</b> can be used to &ldquo;forget&rdquo; a specific
+user-defined target or <b>all</b> user-defined targets.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+April 2018</address>
+</body></html>

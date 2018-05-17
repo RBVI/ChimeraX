@@ -321,7 +321,11 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         self._stack = GraphicsArea(self)
         from .graphics import GraphicsWindow
-        self.graphics_window = g = GraphicsWindow(self._stack, ui)
+        stereo = getattr(ui, 'stereo', False)
+        if stereo:
+            from chimerax.core.graphics import StereoCamera
+            session.main_view.camera = StereoCamera()
+        self.graphics_window = g = GraphicsWindow(self._stack, ui, stereo)
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
         ra_bg_color = "#B8B8B8"
@@ -389,6 +393,34 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.setAcceptDrops(True)
 
         self.show()
+
+    def enable_stereo(self, stereo = True):
+        '''
+        Switching to a sequential stereo OpenGL context seems to require
+        replacing the graphics window with a stereo compatible window on 
+        Windows 10 with Qt 5.9.
+        '''
+        gw = self.graphics_window
+        oc = gw.opengl_context
+        if stereo == oc.stereo:
+            return True	# Already using requested mode
+
+        from .graphics import GraphicsWindow
+        try:
+            g = GraphicsWindow(self._stack, self.session.ui, stereo, oc)
+        except:
+            # Failed to create OpenGL context
+            return False
+
+        # Only destroy old graphics window after new one is made so clean-up
+        # of old OpenGL context can be done.
+        gw.destroy()
+
+        self.graphics_window = g
+        self._stack.addWidget(g.widget)
+        self._stack.setCurrentWidget(g.widget)
+
+        return True
     
     def dragEnterEvent(self, event):
         md = event.mimeData()
@@ -527,6 +559,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         if ht == True:
             icon = self._contract_icon
             self._hide_tools_shown_states = states = {}
+            settings_dw = self.settings_ui_widget
+            self._pref_dialog_state = not settings_dw.isHidden() and not settings_dw.isFloating()
+            if self._pref_dialog_state:
+                settings_dw.hide()
             for tool_windows in self.tool_instance_to_windows.values():
                 for tw in tool_windows:
                     if tw.title == "Command Line Interface":
@@ -544,6 +580,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                 if state:
                     tw.shown = True
             self._hide_tools_shown_states.clear()
+            if self._pref_dialog_state:
+                self.settings_ui_widget.show()
 
         self._global_hide_button.setIcon(icon)
 
@@ -880,7 +918,7 @@ def _open_dropped_file(session, path):
     if not path:
         return
     from chimerax.core.commands import run, quote_if_necessary
-    run(session, 'open %s' % quote_if_necessary(p))
+    run(session, 'open %s' % quote_if_necessary(path))
 
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):

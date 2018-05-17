@@ -134,7 +134,7 @@ def buried_areas(sphere_groups, probe_radius, min_area = 1):
     s.sort(key = lambda v: len(v[1]), reverse = True)   # Biggest first for threading.
     
     # Compute area of each atom set.
-    from chimerax.core.surface import spheres_surface_area
+    from chimerax.surface import spheres_surface_area
     from chimerax.core.threadq import apply_to_list
     def area(g, r):
         g.area = spheres_surface_area(g.centers,r).sum()
@@ -189,7 +189,7 @@ def optimized_buried_area(xyz1, r1, b1, xyz2, r2, b2, axes, probe_radius):
 
     # Compute areas for spheres near contact interface.
     xyz1, r1 = xyz1[i1], r1[i1]
-    from chimerax.core.surface import spheres_surface_area
+    from chimerax.surface import spheres_surface_area
     a1 = spheres_surface_area(xyz1, r1)
     xyz2, r2 = xyz2[i2], r2[i2]
     a2 = spheres_surface_area(xyz2, r2)
@@ -274,7 +274,7 @@ def buried_area(xyz1, r1, a1, xyz2, r2, a2):
 
     from numpy import concatenate
     xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
-    from chimerax.core.surface import spheres_surface_area
+    from chimerax.surface import spheres_surface_area
     a12 = spheres_surface_area(xyz12, r12).sum()
     ba = 0.5 * (a1 + a2 - a12)
     return ba

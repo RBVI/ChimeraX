@@ -13,7 +13,7 @@
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
 def vr(session, enable = None, room_position = None, mirror = True, icons = False,
-       show_controllers = True, multishadow_allowed = False):
+       show_controllers = True, multishadow_allowed = False, toolbar_panels = True):
     '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
     Parameters
@@ -45,6 +45,9 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
       changes to lighting mode are made.  Often rendering is not fast enough
       to support multishadow lighting so this option makes sure it is off so that stuttering
       does not occur.  Default False.
+    toolbar_panels : bool
+      Whether to hide mouse modes and shortcut toolbars and instead show them as tool panels.
+      This is useful for consolidating the controls in the VR gui panel.  Default true.
     '''
     
     if enable is None and room_position is None:
@@ -79,6 +82,15 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
         if icons is not None: 
             for hc in c.hand_controllers():
                 hc.enable_icon_panel(icons)
+
+    if toolbar_panels:
+        from chimerax.mouse_modes.tool import MouseModePanel
+        from chimerax.shortcuts.tool import ShortcutPanel
+        toolbar_classes = (MouseModePanel, ShortcutPanel)
+        for tb in session.tools.list():
+            if isinstance(tb, toolbar_classes):
+                tb.display(False)
+                tb.display_panel(True)
             
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
@@ -90,7 +102,10 @@ def register_vr_command(logger):
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
                               ('mirror', BoolArg),
                               ('icons', BoolArg),
-                              ('show_controllers', BoolArg),],
+                              ('show_controllers', BoolArg),
+                              ('multshadow_allowed', BoolArg),
+                              ('toolbar_panels', BoolArg),
+                   ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
     create_alias('vr', 'device vr $*', logger=logger)
@@ -256,9 +271,13 @@ class SteamVRCamera(Camera):
         self.room_to_scene = (translation(scene_center) *
                               scale(scene_size/room_scene_size) *
                               translation(-array(room_center, float32)))
-
+        self._reposition_user_interface()
+        
     def move_scene(self, move):
         self.room_to_scene = self.room_to_scene * move
+        self._reposition_user_interface()
+        
+    def _reposition_user_interface(self):
         ui = self.user_interface
         if ui.shown():
             ui.move()
@@ -309,6 +328,8 @@ class SteamVRCamera(Camera):
         H = hmd34_to_position(hmd_pose0.mDeviceToAbsoluteTracking)
 
         self.process_controller_events()
+
+        self.user_interface.update_if_needed()
         
         # Compute camera scene position from HMD position in room
         from chimerax.core.geometry import scale
@@ -403,7 +424,7 @@ class SteamVRCamera(Camera):
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
-        fb = self._texture_framebuffer()
+        fb = self._texture_framebuffer(render)
         if view_num == 0:
             render.push_framebuffer(fb)
         elif view_num == 1:
@@ -443,7 +464,7 @@ class SteamVRCamera(Camera):
         if self._close:
             self._delayed_close()
 
-    def _texture_framebuffer(self):
+    def _texture_framebuffer(self, render):
 
         tw,th = self._render_size
         fb = self._framebuffer
@@ -451,7 +472,7 @@ class SteamVRCamera(Camera):
             from chimerax.core.graphics import Texture, opengl
             t = Texture()
             t.initialize_rgba((tw,th))
-            self._framebuffer = fb = opengl.Framebuffer(color_texture = t)
+            self._framebuffer = fb = opengl.Framebuffer(render.opengl_context, color_texture = t)
             # OpenVR texture id object
             import openvr
             fb.openvr_texture = ovrt = openvr.Texture_t()
@@ -509,10 +530,13 @@ class UserInterface:
     def __init__(self, camera, session):
         self._camera = camera
         self._session = session
-        self._width = 1		# Billboard width in room coords, meters.
-        self._height = None	# Height in room coords determined by window aspect and width.
-        self._window_size = None # Window size in pixels
-        self._ui_click_range = 0.05 # Maximum distance of click from plane, room coords, meters.
+        self._width = 0.5		# Billboard width in room coords, meters.
+        self._height = None		# Height in room coords determined by window aspect and width.
+        self._panel_size = None 	# Panel size in pixels
+        self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle 
+        self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
+        self._update_later = 0		# Redraw panel after this many frames
+        self._update_delay = 10		# After click on panel, update after this number of frames
         self._ui_drawing = None
         self._start_ui_move_time = None
         self._last_ui_position = None
@@ -562,8 +586,9 @@ class UserInterface:
         hw, hh = 0.5*self._width, 0.5*self._height
         cr = self._ui_click_range
         on_panel = (x >= -hw and x <= hw and y >= -hh and y <= hh and z >= -cr and z <= cr)
-        sx, sy = self._window_size
-        px, py = sx * (x + hw) / (2*hw), sy * (hh - y) / (2*hh)
+        sx, sy = self._panel_size
+        ox, oy = self._panel_offset
+        px, py = ox + sx * (x + hw) / (2*hw), oy + sy * (hh - y) / (2*hh)
         return (px,py), on_panel
 
     def press(self, button, window_xy):
@@ -579,11 +604,17 @@ class UserInterface:
         
     def _click(self, pressed, window_xy):
         if self._post_mouse_event(pressed, window_xy):
-            # TODO: Delay ui update until user interface echoes command.
+            self._update_later = self._update_delay
             self._update_ui_image()
             return True
         return False
 
+    def update_if_needed(self):
+        if self.shown() and self._update_later:
+            self._update_later -= 1
+            if self._update_later == 0:
+                self._update_ui_image()
+                
     def clicked_mouse_mode(self, window_xy):
         w, pos = self._clicked_widget(window_xy)
         from PyQt5.QtWidgets import QToolButton
@@ -636,17 +667,28 @@ class UserInterface:
         return m
 
     def _update_ui_image(self):
-        ses = self._session
-        im = ses.ui.window_image()
-        from chimerax.core.graphics.drawing import rgba_drawing, qimage_to_numpy
-        rgba = qimage_to_numpy(im)
+        rgba = self._panel_image()
         h,w = rgba.shape[:2]
-        self._window_size = (w, h)
         aspect = h/w
         rw = self._width		# Billboard width in room coordinates
         self._height = rh = aspect * rw
-        ses.main_view.render.make_current()	# Required OpenGL context for replacing texture.
+        self._session.main_view.render.make_current()	# Required OpenGL context for replacing texture.
+        from chimerax.core.graphics.drawing import rgba_drawing
         rgba_drawing(self._ui_drawing, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
+
+    def _panel_image(self):
+        ui = self._session.ui
+        im = ui.window_image()
+        from chimerax.core.graphics.drawing import qimage_to_numpy
+        rgba = qimage_to_numpy(im)
+        gw = ui.main_window.graphics_window
+        self._panel_offset = (ox, oy) = (gw.x() + gw.width(), gw.y())
+        ph = gw.height()
+        wh,ww = rgba.shape[:2]
+        prgba = rgba[wh-(ph+oy):wh-oy,ox:,:]
+        h,w = prgba.shape[:2]
+        self._panel_size = (w, h)
+        return prgba
 
     def display_ui(self, button_pressed, hand_room_position):
         if button_pressed:
@@ -676,6 +718,13 @@ class UserInterface:
         rp = hand_room_position
         self.move(rp * luip.inverse())
         self._last_ui_position = rp
+
+    def scale_ui(self, scale_factor):
+        self._width *= scale_factor
+        self._height *= scale_factor
+        rw, rh = self._width, self._height
+        from chimerax.core.graphics.drawing import resize_rgba_drawing
+        resize_rgba_drawing(self._ui_drawing, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
         
 from chimerax.core.models import Model
 class HandControllerModel(Model):
@@ -711,7 +760,7 @@ class HandControllerModel(Model):
             session.models.add([self])
 
     def _create_model_geometry(self, size, aspect):
-        from chimerax.core.surface.shapes import cone_geometry
+        from chimerax.surface.shapes import cone_geometry
         va, na, ta = cone_geometry(nc = 50, points_up = False)
         va[:,:2] *= aspect
         va[:,2] += 0.5		# Move tip to 0,0,0 for picking
@@ -723,8 +772,7 @@ class HandControllerModel(Model):
         self._cone_vertices = va
         self._last_cone_scale = 1
         self._cone_length = size
-        self.geometry = va, ta
-        self.normals = na
+        self.set_geometry(va, na, ta)
         self.color = array(rgba8, uint8)
             
     def close(self):
@@ -751,7 +799,8 @@ class HandControllerModel(Model):
             s = camera.scene_scale
             self.position = camera.room_to_scene * rp * scale(s)
             if s < 0.999*self._last_cone_scale or s > 1.001*self._last_cone_scale:
-                self.vertices = (1/s) * self._cone_vertices
+                va = (1/s) * self._cone_vertices
+                self.set_geometry(va, self.normals, self.triangles)
                 self._last_cone_scale = s
 
     def tip_position(self):
@@ -874,7 +923,18 @@ class ShowUIMode(HandMode):
     def released(self, camera, hand_controller):
         camera.user_interface.display_ui(False, hand_controller.room_position)
     def drag(self, camera, hand_controller, previous_pose, pose):
-        camera.user_interface.move_ui(hand_controller.room_position)
+        oc = camera.other_controller(hand_controller)
+        if self._ui_zoom(oc):
+            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc._pose.origin())
+            if scale is not None:
+                camera.user_interface.scale_ui(scale)
+        else:
+            camera.user_interface.move_ui(hand_controller.room_position)
+    def _ui_zoom(self, oc):
+        for m in oc._active_drag_modes:
+            if isinstance(m, ShowUIMode):
+                return True
+        return False
 
 class MoveSceneMode(HandMode):
     name = 'move scene'
@@ -882,7 +942,9 @@ class MoveSceneMode(HandMode):
         oc = camera.other_controller(hand_controller)
         if self._other_controller_move(oc):
             # Both controllers trying to move scene -- zoom
-            self._pinch_zoom(camera, hand_controller, previous_pose.origin(), pose.origin(), oc._pose.origin())
+            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc._pose.origin())
+            if scale is not None:
+                self._pinch_zoom(camera, hand_controller, center, scale)
         else:
             move = previous_pose * pose.inverse()
             camera.move_scene(move)
@@ -892,17 +954,22 @@ class MoveSceneMode(HandMode):
             if isinstance(m, MoveSceneMode):
                 return True
         return False
-    def _pinch_zoom(self, camera, hand_controller, prev_pos, pos, other_pos):
+    def _pinch_zoom(self, camera, hand_controller, center, scale_factor):
         # Two controllers have trigger pressed, scale scene.
-        from chimerax.core.geometry import distance, translation, scale
-        d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
+        from chimerax.core.geometry import translation, scale
+        scale = translation(center) * scale(1/scale_factor) * translation(-center)
+        camera.move_scene(scale)
+        hand_controller._update_position(camera)
+
+def _pinch_scale(prev_pos, pos, other_pos):
+    from chimerax.core.geometry import distance
+    d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
+    if dp > 0:
+        s = d / dp
+        s = max(min(s, 10.0), 0.1)	# Limit scaling
         center = 0.5*(pos+other_pos)
-        if d > 0.5*dp and dp > 0:
-            s = dp / d
-            s = max(min(s, 10.0), 0.1)	# Limit scaling
-            scale = translation(center) * scale(s) * translation(-center)
-            camera.move_scene(scale)
-            hand_controller._update_position(camera)
+        return s, center
+    return None, None
 
 class ZoomMode(HandMode):
     name = 'zoom'
@@ -1146,7 +1213,8 @@ class IconPanel(HandMode):
         size = (2*s, 2*s*aspect)
         rgba_drawing(d, rgba, pos, size)
         from chimerax.core.geometry import rotation
-        d.vertices = rotation(axis = (1,0,0), angle = -90) * d.vertices
+        v = rotation(axis = (1,0,0), angle = -90) * d.vertices
+        d.set_geometry(v, d.normals, d.triangles)
         self.add_drawing(d)
         return d
 
@@ -1159,11 +1227,10 @@ class IconPanel(HandMode):
         self._icon_highlight_drawing = d = Drawing('VR icon highlight')
         d.casts_shadows = False
         s = self._cone_length
-        from chimerax.core.surface import sphere_geometry
+        from chimerax.surface import sphere_geometry
         va, na, ta = sphere_geometry(200)
         va *= 0.1*s
-        d.geometry = va,ta
-        d.normals = na
+        d.set_geometry(va, na, ta)
         d.color = (0,255,0,255)
         self.add_drawing(d)
         return d

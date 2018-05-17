@@ -79,8 +79,8 @@ class _StatusBarOpenGL:
     def _create_opengl_context(self):
         # Create opengl context
         w = self._window
-        from .graphics import OpenGLContext
-        self._opengl_context = c = OpenGLContext(w, self.session.ui)
+        from chimerax.core.graphics import OpenGLContext
+        self._opengl_context = c = OpenGLContext(w, self.session.ui.primaryScreen())
         # Create texture drawing to render status messages
         from chimerax.core.graphics import Drawing, Render
         self._drawing = Drawing('statusbar')
@@ -102,10 +102,8 @@ class _StatusBarOpenGL:
         # Need to preserve OpenGL context across processing events, otherwise
         # a status message during the graphics draw, causes an OpenGL error because
         # Qt changed the current context.
-        from PyQt5.QtGui import QOpenGLContext
-        opengl_context = QOpenGLContext.currentContext()
-        if opengl_context:
-            opengl_surface = opengl_context.surface()
+        from chimerax.core.graphics import remember_current_opengl_context, restore_current_opengl_context
+        cc = remember_current_opengl_context()
 
         if self._opengl_context is None:
             self._create_opengl_context()
@@ -118,8 +116,7 @@ class _StatusBarOpenGL:
         self._draw_text(msg, color, secondary)
         r.swap_buffers()
 
-        if opengl_context and QOpenGLContext.currentContext() != opengl_context:
-            opengl_context.makeCurrent(opengl_surface)
+        restore_current_opengl_context(cc)
 
     def _draw_text(self, msg, color, secondary):
         self._update_texture(msg, color, secondary)
@@ -218,10 +215,8 @@ class _StatusBarQt:
         # Need to preserve OpenGL context across processing events, otherwise
         # a status message during the graphics draw, causes an OpenGL error because
         # Qt changed the current context.
-        from PyQt5.QtGui import QOpenGLContext
-        opengl_context = QOpenGLContext.currentContext()
-        if opengl_context:
-            opengl_surface = opengl_context.surface()
+        from chimerax.core.graphics import remember_current_opengl_context, restore_current_opengl_context
+        cc = remember_current_opengl_context()
 
         s = self.session
         ul = s.update_loop
@@ -232,8 +227,7 @@ class _StatusBarQt:
         self._in_status_event_processing = False
         ul.unblock_redraw()
 
-        if opengl_context and QOpenGLContext.currentContext() != opengl_context:
-            opengl_context.makeCurrent(opengl_surface)
+        restore_current_opengl_context(cc)
             
         self._process_deferred_events()
 

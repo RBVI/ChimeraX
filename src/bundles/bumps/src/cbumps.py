@@ -21,7 +21,7 @@ def cbumps(session, surfaces, convexity_minimum = 0.3, area = None,
 
     Parameters
     ----------
-    surfaces : Model list
+    surfaces : Surface list
     convexity_minimum : float
       Instead of coloring by convexity value, color each connected patch with convexity
       above the specified value a unique color.
@@ -43,25 +43,21 @@ def cbumps(session, surfaces, convexity_minimum = 0.3, area = None,
     output : string
         File path to write output from signal_map option.
     '''
-    surf_drawings = []
     for s in surfaces:
-        if hasattr(s, 'surface_drawings_for_vertex_coloring'):
-            surf_drawings.extend(s.surface_drawings_for_vertex_coloring())
-    for s in surfaces + surf_drawings:
         if s.empty_drawing():
             continue
         va,ta = s.vertices, s.triangles
         if dust is not None:
-            from chimerax.core.surface.dust import Blob_Masker
+            from chimerax.surface.dust import Blob_Masker
             bmask = Blob_Masker(va, ta)
             ti = bmask.triangle_mask('area', dust)
             ta = ta[ti]
-        from chimerax.core.surface import vertex_convexity
+        from chimerax.surface import vertex_convexity
         c = vertex_convexity(va, ta, smoothing_iterations)
         vc = s.get_vertex_colors(create = True)
         patches = _patches(convexity_minimum, c, ta)
         if area is not None:
-            from chimerax.core.surface import surface_area
+            from chimerax.surface import surface_area
             patches = [(vi,ti) for vi,ti in patches
                        if surface_area(va, ta[ti]) >= area]
         c0 = None if center is None else s.position.inverse() * center.scene_coordinates()
@@ -93,7 +89,7 @@ def cbumps(session, surfaces, convexity_minimum = 0.3, area = None,
 
 def register_cbumps_command(logger):
     from chimerax.core.commands import CmdDesc, register, SurfacesArg, IntArg, FloatArg, CenterArg, SaveFileNameArg
-    from chimerax.core.map import MapArg
+    from chimerax.map import MapArg
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
         keyword = [('convexity_minimum', FloatArg),
@@ -116,7 +112,7 @@ def _patches(threshold, vertex_values, triangles):
     vset = set((vertex_values >= threshold).nonzero()[0])
     tabove = [v1 in vset and v2 in vset and v3 in vset for v1,v2,v3 in triangles]
     ta = triangles[tabove]
-    from chimerax.core.surface import connected_pieces
+    from chimerax.surface import connected_pieces
     patches = connected_pieces(ta)
     return patches
 
@@ -134,7 +130,7 @@ def _outward_facing_patches(patches, vertices, normals, center, outward_frac):
 def _report_patch_intensities(patches, va, ta, signal_map, surf_position):
     lines = ['# Area average intensities of map %s for %d patches' % (signal_map.name, len(patches)),
              '# pnum area intensity']
-    from chimerax.core.surface import surface_area, vertex_areas
+    from chimerax.surface import surface_area, vertex_areas
     from chimerax.core.geometry import inner_product
     varea = vertex_areas(va, ta)
     for i, (vi,ti) in enumerate(patches):

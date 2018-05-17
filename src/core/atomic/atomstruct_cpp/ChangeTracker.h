@@ -117,7 +117,8 @@ public:
         if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             s_changes.created.insert(ptr);
-        }
+        } else if (s == nullptr)
+            _global_type_changes[_ptr_to_type(ptr)].created.insert(ptr);
     }
 
     // this aggregate routine seemingly *slower* than calling the single-pointer version in a loop,
@@ -134,6 +135,11 @@ public:
             for (auto ptr: ptrs)
                 s_changes.created.insert(ptr);
             //s_changes.created.insert(ptrs.begin(), ptrs.end());
+        } else if (s == nullptr) {
+            auto& g_changes = _global_type_changes
+                [_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
+            for (auto ptr: ptrs)
+                g_changes.created.insert(ptr);
         }
     }
 
@@ -148,6 +154,10 @@ public:
                 s_changes.modified.insert(ptr);
                 s_changes.reasons.insert(reason);
             }
+        } else if (s == nullptr) {
+            auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
+            g_changes.modified.insert(ptr);
+            g_changes.reasons.insert(reason);
         }
     }
 
@@ -163,6 +173,11 @@ public:
                 s_changes.reasons.insert(reason);
                 s_changes.reasons.insert(reason2);
             }
+        } else if (s == nullptr) {
+            auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
+            g_changes.modified.insert(ptr);
+            g_changes.reasons.insert(reason);
+            g_changes.reasons.insert(reason2);
         }
     }
 
@@ -173,11 +188,17 @@ public:
         if (s == static_cast<void*>(ptr)) {
             _structure_type_changes.erase(s);
             _dead_structures.insert(s);
-        } else if (_structure_okay(s)) {
+        }
+        if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             ++s_changes.num_deleted;
             s_changes.created.erase(ptr);
             s_changes.modified.erase(ptr);
+        } else { // also put deletions for dead structures in global changes
+            auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
+            ++g_changes.num_deleted;
+            g_changes.created.erase(ptr);
+            g_changes.modified.erase(ptr);
         }
     }
 
@@ -200,6 +221,21 @@ public:
                     s_modified.insert(ptr);
             }
             s_changes.reasons.insert(reason);
+        } else if (s == nullptr) {
+            auto& g_changes = _global_type_changes[
+                _ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
+            auto& g_created = g_changes.created;
+            auto& g_modified = g_changes.modified;
+            if (g_created.size()) {
+                for (auto ptr: ptrs) {
+                    if (g_created.find(static_cast<const void*>(ptr)) == g_created.end())
+                        g_modified.insert(ptr);
+                }
+            } else {
+                for (auto ptr: ptrs)
+                    g_modified.insert(ptr);
+            }
+            g_changes.reasons.insert(reason);
         }
     }
 
@@ -210,15 +246,19 @@ public:
                 if (c.changed())
                     return true;
         }
+        for (auto& changes: _global_type_changes)
+            if (changes.changed())
+                return true;
         return false;
     }
     void  clear() {
+        for (auto& changes: _global_type_changes) changes.clear();
         _structure_type_changes.clear();
         _dead_structures.clear();
     }
     const ChangesArray&  get_global_changes() const {
-        for (auto& changes: _global_type_changes)
-            changes.clear();
+        // global type changes only initially holds the non-structure-associated changes
+        // (global pseudobonds and groups); supplement with structure changes
         for (auto& s_changes: _structure_type_changes) {
             auto &structure_changes = s_changes.second;
             for (int i = 0; i < _num_types; ++i) {

@@ -368,8 +368,9 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 - show only surface parts within a cutoff distance of specified atoms
 </ul>
 
+<a name="cap"></a>
 <a href="#top" class="nounder">&bull;</a>
-  <a name="cap"><b>surface cap</b></a> &nbsp;true&nbsp;|&nbsp;false&nbsp;
+<b>surface cap</b> &nbsp;true&nbsp;|&nbsp;false&nbsp;
   [&nbsp;<b>offset</b>&nbsp;<i>d</i>&nbsp;]
 <blockquote>
 Adjust capping, in which planar caps are drawn to hide the interior of a
@@ -384,41 +385,57 @@ If <b><i>d</i></b> is large, however, the mismatch between the cap and the
 cut edge of the surface will be evident.
 </blockquote>
 
+<a name="dust"></a>
 <a href="#sop" class="nounder">&bull;</a>
-  <a name="dust"><b>surface dust</b></a>
+<b>surface dust</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
-  <b>size</b>&nbsp;<i>s</i>&nbsp;
-[&nbsp;<b>metric</b>&nbsp;&nbsp;<b>size</b>&nbsp;|&nbsp;area&nbsp;|&nbsp;volume&nbsp;|&nbsp;&lsquo;size&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;area&nbsp;rank&rsquo;&nbsp;|&nbsp;&lsquo;volume&nbsp;rank&rsquo;&nbsp;]
+[&nbsp;<b>size</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>metric</b>&nbsp;&nbsp;area&nbsp;|&nbsp;&lsquo;area&nbsp;rank&rsquo;&nbsp;|&nbsp;<b>size</b>&nbsp;|&nbsp;&lsquo;size&nbsp;rank&rsquo;&nbsp;|&nbsp;volume&nbsp;|&nbsp;&lsquo;volume&nbsp;rank&rsquo;&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<br>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface undust</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 <blockquote>
 Hide smaller blobs (disconnected parts) of a surface, 
 such as to simplify the display of noisy density.
-The cutoff <b>size</b> for hiding must be specified; blobs smaller
-than <i>s</i> will be hidden, where the units depend on the <b>metric</b>:
+Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>)
+will be hidden. The size units depend on the <b>metric</b>:
   <ul>
-  <li><b>size</b> (default) - bounding box dimension (largest of X, Y, Z)
   <li><b>area</b> - surface area
-  <li><b>volume</b> - enclosed volume
-  <li><b>size rank</b> - rank by largest <b>size</b> 
-  (a value of <i>N</i> indicates
-  showing the <i>N</i> largest blobs by the <b>size</b> criterion)
   <li><b>area rank</b> - rank by largest <b>area</b> 
+  (a value of <i>N</i> indicates showing the <i>N</i> largest blobs)
+  <li><b>size</b> (default) - bounding box dimension (largest of X, Y, Z)
+  <li><b>size rank</b> - rank by largest <b>size</b> 
+  <li><b>volume</b> - enclosed volume
   <li><b>volume rank</b> - rank by largest <b>volume</b> 
   </ul>
 Size measurements will include any blob parts that have been undisplayed
 or hidden by <a href="#zone">zoning</a> or <a href="clip.html">clipping</a>,
 and blobs at or above the cutoff size will be displayed completely
 (although possibly still clipped) even if they had been hidden beforehand.
+The <b>update</b> option (default <b>true</b>) indicates
+whether to update automatically when the shape of the surface changes.
+<p>
+The <b>surface undust</b> command turns off hiding smaller blobs,
+as does using <a href="#zone"><b>surface zone</b></a>.
 </blockquote>
 
+<a name="zone"></a>
 <a href="#sop" class="nounder">&bull;</a>
-<a name="zone"><b>surface zone</b></a>
+<b>surface zone</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
   <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-  [&nbsp;<b>range</b>&nbsp;<i>radius</i>&nbsp;]
+  [&nbsp;<b>distance</b>&nbsp;<i>cutoff</i>&nbsp;]
   [&nbsp;<b>maxComponents</b>&nbsp;<i>N</i>&nbsp;]
   [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<br>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface unzone</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 <blockquote>
-Show only parts of the surface(s) within <i>radius</i> 
+Show only parts of the surface(s) within <i>cutoff</i> 
 (default <b>2.0</b> &Aring;) of
 any atom in <a href="atomspec.html"><i>atom-spec</i></a>.
 If <b>bondPointSpacing</b> is specified, use points 
@@ -434,6 +451,12 @@ within the zone that are hidden by <a href="clip.html">clipping</a>.
 If <b>maxComponents</b> is not supplied, all patches within the zone
 will be shown. See also: <a href="select.html#zone"><b>select zone</b></a>,
 <a href="atomspec.html#zones">zone atom specification</a>
+The <b>update</b> option (default <b>true</b>)
+indicates whether to update automatically
+when the shape of the surface changes.
+<p>
+The <b>surface unzone</b> command turns off zoning,
+as does using <a href="#dust"><b>surface dust</b></a>.
 </blockquote>
 
 <a name="notes"></a>
@@ -466,5 +489,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2018</address>
+May 2018</address>
 </body></html>

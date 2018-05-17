@@ -135,15 +135,16 @@ class TugAtomsMode(MouseMode):
             from chimerax.core.models import Model
             s = self.session
             self._arrow_model = a = Model('Tug arrow', s)
-            from chimerax.core.surface import cone_geometry
-            a.vertices, a.normals, a.triangles  = cone_geometry(points_up = False)
+            from chimerax.surface import cone_geometry
+            v,n,t = cone_geometry(points_up = False)
+            a.set_geometry(v, n, t)
             a.color = (0,255,0,255)
             s.models.add([a])
         # Scale and rotate prototype cylinder.
         from chimerax.core.atomic import structure
         from numpy import array, float32
-        p = structure._bond_cylinder_placements(xyz1.reshape((1,3)),
-                                                xyz2.reshape((1,3)),
+        p = structure._bond_cylinder_placements(array(xyz1).reshape((1,3)),
+                                                array(xyz2).reshape((1,3)),
                                                 array([radius],float32))
         a.position = p[0]
         a.display = True
@@ -213,6 +214,7 @@ class StructureTugger:
         
 
         # OpenMM simulation parameters
+        self._forcefields = ('amber99sbildn.xml', 'amber99_obc.xml')
         self._sim_steps = 50		# Simulation steps between mouse position updates
         self._force_constant = 10000
         from simtk import unit
@@ -398,7 +400,7 @@ class StructureTugger:
         self._particle_positions = atoms.coords
         self._topology = openmm_topology(atoms, s.bonds)
         
-        forcefield = app.ForceField('amber99sbildn.xml', 'amber99_obc.xml')
+        forcefield = app.ForceField(*self._forcefields)
 #        self._add_hydrogens(pdb, forcefield)
 
         try:

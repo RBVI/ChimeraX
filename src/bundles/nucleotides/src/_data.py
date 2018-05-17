@@ -21,7 +21,7 @@ import re
 import weakref
 import numpy
 from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
-from chimerax.core.surface import box_geometry, sphere_geometry2, cylinder_geometry
+from chimerax.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.state import State, StateManager, RestoreError
 from chimerax.core.atomic import Residues, Atoms, Sequence, Pseudobonds
 nucleic3to1 = Sequence.nucleic3to1
@@ -842,7 +842,7 @@ def draw_slab(nd, residue, name, params):
     else:
         raise RuntimeError('unknown base shape')
 
-    description = '%s %s' % (residue.atomspec(), tag)
+    description = '%s %s' % (residue, tag)
     xf2.move(va)
     xf2.update_normals(na, pure=pure_rotation)
     nd.add_shape(va, na, ta, color, atoms, description)
@@ -969,7 +969,7 @@ def draw_tube(nd, residue, name, params):
     c1p = residue.find_atom("C1'")
     color = c1p.color
 
-    description = '%s ribose' % residue.atomspec()
+    description = '%s ribose' % residue
 
     va, na, ta = get_cylinder(radius, ep0, ep1, bottom=False)
     nd.add_shape(va, na, ta, color, None, description)
@@ -1208,9 +1208,9 @@ def make_ladder(nd, residues, params):
             mid = 1.0 - purine_pyrimidine_ratio
         midpt = c3p0[1] + mid * (c3p1[1] - c3p0[1])
         va, na, ta = get_cylinder(radius, c3p0[1], midpt, top=False)
-        nd.add_shape(va, na, ta, r0color, r0.atoms, r0.atomspec())
+        nd.add_shape(va, na, ta, r0color, r0.atoms, r0)
         va, na, ta = get_cylinder(radius, c3p1[1], midpt, top=False)
-        nd.add_shape(va, na, ta, r1color, r1.atoms, r1.atomspec())
+        nd.add_shape(va, na, ta, r1color, r1.atoms, r1)
         if not non_base[0]:
             matched_residues.add(r0)
         if not non_base[1]:
@@ -1249,7 +1249,7 @@ def make_ladder(nd, residues, params):
                     dist_atom = (dist, a)
             ep1 = dist_atom[1].coord
         va, na, ta = get_cylinder(params.rung_radius, ep0, ep1)
-        nd.add_shape(va, na, ta, color, r.atoms, r.atomspec())
+        nd.add_shape(va, na, ta, color, r.atoms, r)
         matched_residues.add(r)
     if params.hide:
         return matched_residues

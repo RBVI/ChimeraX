@@ -225,7 +225,7 @@ class UserColormaps(SortedDict, StateManager):
         self.clear()
 
 
-class Colormap:
+class Colormap(State):
     """Basic colormap support.
 
     Colormaps keep track of two parallel arrays: values and colors.
@@ -252,6 +252,7 @@ class Colormap:
     color_no_value : default color when no value is defined
         instance of Color.
     """
+    STATE_VERSION = 1
     def __init__(self, data_values, colors,
                  color_above_value_range=None,
                  color_below_value_range=None,
@@ -298,7 +299,7 @@ class Colormap:
         ------------
         numpy array of rgba (Nx4 where N is the length of "values".)
         """
-        from . import map
+        from chimerax import map
         colors = map.interpolate_colormap(values, self.data_values, self.colors,
                                           self.color_above_value_range,
                                           self.color_below_value_range)
@@ -334,6 +335,32 @@ class Colormap:
                         self.color_below_value_range,
                         self.color_no_value)
         return cmap
+
+    # -------------------------------------------------------------------------
+    #
+    def take_snapshot(self, session, flags):
+        data = {
+            'name': self.name,
+            'values_specified': self.values_specified,
+            'data_values': self.data_values,
+            'colors': self.colors,
+            'color_above_value_range': self.color_above_value_range,
+            'color_below_value_range': self.color_below_value_range,
+            'color_no_value': self.color_no_value,
+        }
+        return data
+
+    # -------------------------------------------------------------------------
+    #
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        c = Colormap(data['data_values'], data['colors'],
+                     color_above_value_range = data['color_above_value_range'],
+                     color_below_value_range = data['color_below_value_range'],
+                     color_no_value = data['color_no_value'],
+                     name = data['name'])
+        c.values_specified = data['values_specified']
+        return c
 
 
 # Initialize built-in colormaps

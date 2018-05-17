@@ -267,14 +267,14 @@ class SideViewCanvas(QWindow):
                 v[11] = (loc.far, loc.far_bottom, 0)
             ps = self.view.render.pixel_scale()
             v *= ps
-            self.applique.vertices = v
-            self.applique.triangles = array([
+            t = array([
                 [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
                 [4, 5],    # near plane
                 [6, 7],    # far plane
                 [8, 10],   # left plane
                 [9, 11],   # right plane
             ], dtype=int32)
+            self.applique.set_geometry(v, None, t)
             self.view.draw()
             # if has_string_marker:
             #     text = b"End SideView"

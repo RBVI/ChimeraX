@@ -26,7 +26,8 @@ The plan is to support all of the existing bild format.
 from chimerax.core.errors import UserError
 from numpy import array, empty, float32, int32, uint8
 from chimerax.core.geometry import identity, translation, rotation, scale, distance, z_align
-from chimerax.core import surface, atomic
+from chimerax.core import atomic
+from chimerax import surface
 
 
 def _interp(t, a, b):

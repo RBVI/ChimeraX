@@ -47,11 +47,8 @@ def get_targets(targets, what, default_targets=DEFAULT_TARGETS):
     return targets, False
 
 
-def color(session, objects, color=None, what=None,
-          target=None, transparency=None,
-          sequential=None, palette=None, halfbond=None,
-          map=None, range=None, offset=0, zone=None, distance=2,
-          undo_name="color"):
+def color(session, objects, color=None, what=None, target=None,
+          transparency=None, halfbond=None, undo_name="color"):
     """Color atoms, ribbons, surfaces, ....
 
     Parameters
@@ -69,23 +66,9 @@ def color(session, objects, color=None, what=None,
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
-    sequential : "residues", "chains", "polymers", "structures"
-      Assigns each object a color from a color map.
-    palette : :class:`.Colormap`
-      Color map to use with sequential coloring.
     halfbond : bool
       Whether to color each half of a bond to match the connected atoms.
       If halfbond is false the bond is given the single color assigned to the bond.
-    map : Volume
-      Color specified surfaces by sampling from this density map using palette, range, and offset options.
-    range : 2 comma-separated floats or "full"
-      Specifies the range of map values used for sampling from a palette.
-    offset : float
-      Displacement distance along surface normals for sampling map when using map option.  Default 0.
-    zone : Atoms
-      Color surfaces to match closest atom within specified zone distance.
-    distance : float
-      Zone distance used with zone option.
     """
     if objects is None:
         from . import all_objects
@@ -117,35 +100,7 @@ def color(session, objects, color=None, what=None,
                 undo_state.add(pbonds, "halfbonds", pbonds.halfbonds, halfbond)
                 pbonds.halfbonds = halfbond
 
-    if sequential is not None:
-        try:
-            f = _SequentialColor[sequential]
-        except KeyError:
-            from ..errors import UserError
-            raise UserError("sequential \"%s\" not implemented yet"
-                            % sequential)
-        else:
-            f(session, objects, palette, opacity, target, undo_state)
-            session.undo.register(undo_state)
-            return
-
-    if zone is not None:
-        from ..atomic import MolecularSurface, Structure
-        slist = [m for m in objects.models
-                 if not m.empty_drawing() and not isinstance(m, (Structure, MolecularSurface))]
-        for m in objects.models:
-            if hasattr(m, 'surface_drawings_for_vertex_coloring'):
-                slist.extend(m.surface_drawings_for_vertex_coloring())
-        bonds = None
-        auto_update = False
-        from ..surface.colorzone import points_and_colors, color_zone
-        for s in slist:
-            points, colors = points_and_colors(zone, bonds)
-            # TODO: save undo data
-            s.scene_position.inverse().move(points)	# Transform points to surface coordinates
-            color_zone(s, points, colors, distance, auto_update)
-
-    what = []
+    items = []
 
     bgcolor = session.main_view.background_color
 
@@ -153,13 +108,13 @@ def color(session, objects, color=None, what=None,
         # atoms/bonds
         if atoms is not None and color is not None:
             _set_atom_colors(atoms, color, opacity, bgcolor, undo_state)
-            what.append('%d atoms' % len(atoms))
+            items.append('%d atoms' % len(atoms))
 
     if 'l' in target:
         if not is_default_target:
             session.logger.warning('Label colors not supported yet')
 
-    if 's' in target and (color is not None or map is not None):
+    if 's' in target and color is not None:
         # TODO: save undo data
         from ..atomic import MolecularSurface, concatenate, Structure, PseudobondGroup
         msatoms = [m.atoms for m in objects.models
@@ -168,19 +123,19 @@ def color(session, objects, color=None, what=None,
         if color == "byhetero":
             satoms = satoms.filter(satoms.element_numbers != 6)
         ns = _set_surface_colors(session, satoms, color, opacity, bgcolor,
-                                 map, palette, range, offset, undo_state=undo_state)
+                                 undo_state=undo_state)
         # Handle non-molecular surfaces like density maps
         if color not in _SpecialColors:
             mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface, PseudobondGroup))]
             for m in mlist:
-                _set_model_colors(session, m, color, map, opacity, palette, range, offset)
+                _set_model_colors(session, m, color, opacity)
             ns += len(mlist)
-        what.append('%d surfaces' % ns)
+        items.append('%d surfaces' % ns)
 
     if 'c' in target and color is not None:
         residues = atoms.unique_residues
         _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state)
-        what.append('%d residues' % len(residues))
+        items.append('%d residues' % len(residues))
 
     if 'b' in target:
         if color not in _SpecialColors and color is not None:
@@ -190,7 +145,7 @@ def color(session, objects, color=None, what=None,
                     color_array = color.uint8x4()
                     undo_state.add(bonds, "colors", bonds.colors, color_array)
                     bonds.colors = color_array
-                    what.append('%d bonds' % len(bonds))
+                    items.append('%d bonds' % len(bonds))
 
     if 'p' in target:
         if color not in _SpecialColors and color is not None:
@@ -199,17 +154,17 @@ def color(session, objects, color=None, what=None,
                 color_array = color.uint8x4()
                 undo_state.add(pbonds, "colors", pbonds.colors, color_array)
                 pbonds.colors = color_array
-                what.append('%d pseudobonds' % len(pbonds))
+                items.append('%d pseudobonds' % len(pbonds))
 
     if 'd' in target:
         if not is_default_target:
             session.logger.warning('Distances colors not supported yet')
 
-    if not what:
-        what.append('nothing')
+    if not items:
+        items.append('nothing')
 
     from . import cli
-    session.logger.status('Colored %s' % cli.commas(what, ' and'))
+    session.logger.status('Colored %s' % cli.commas(items, ' and'))
     session.undo.register(undo_state)
 
 
@@ -316,10 +271,8 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
         residues.ribbon_colors = c
 
 
-def _set_surface_colors(session, atoms, color, opacity, bgcolor=None,
-                        map=None, palette=None, range=None, offset=0, undo_state=None):
+def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state=None):
     # TODO: save undo data
-    from .scolor import color_surfaces_at_atoms, color_surfaces_by_map_value
     if color in _SpecialColors:
         if color == 'fromatoms':
             ns = color_surfaces_at_atoms(atoms, opacity=opacity)
@@ -328,32 +281,17 @@ def _set_surface_colors(session, atoms, color, opacity, bgcolor=None,
             c = _computed_atom_colors(atoms, color, opacity, bgcolor)
             ns = color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors=c)
             
-    elif map:
-        ns = color_surfaces_by_map_value(atoms, opacity=opacity, map=map, palette=palette,
-                                        range=range, offset=offset)
     else:
         ns = color_surfaces_at_atoms(atoms, color, opacity=opacity)
     return ns
 
-def _set_model_colors(session, m, color, map, opacity, palette, range, offset):
-    if map is None:
-        c = color.uint8x4()
-        if not opacity is None:
-            c[3] = opacity
-        elif not m.single_color is None:
-            c[3] = m.single_color[3]
-        m.single_color = c
-    else:
-        if hasattr(m, 'surface_drawings_for_vertex_coloring'):
-            surfs = m.surface_drawings_for_vertex_coloring()
-        elif not m.empty_drawing():
-            surfs = [m]
-        else:
-            surfs = []
-        from .scolor import color_surface_by_map_value
-        for s in surfs:
-            color_surface_by_map_value(s, map, palette=palette, range=range,
-                                       offset=offset, opacity=opacity)
+def _set_model_colors(session, m, color, opacity):
+    c = color.uint8x4()
+    if not opacity is None:
+        c[3] = opacity
+    elif not m.single_color is None:
+        c[3] = m.single_color[3]
+    m.single_color = c
 
 # -----------------------------------------------------------------------------
 # Chain ids in each structure are colored from color map ordered alphabetically.
@@ -439,7 +377,7 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state
             if chain.chain_id not in cids:
                 continue
             residues = chain.existing_residues
-            colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(residues)))
+            colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
             for color, r in zip(colors, residues):
                 c = Color(color)
                 if target is None or 'a' in target:
@@ -450,6 +388,9 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state
                         rgba[3] = opacity
                     undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
                     r.ribbon_color = rgba
+            if 's' in target:
+                # TODO: save surface undo data
+                color_surfaces_at_residues(residues, colors, opacity)
 
 # -----------------------------------------------------------------------------
 #
@@ -477,7 +418,6 @@ def _set_sequential_structures(session, selected, cmap, opacity, target, undo_st
             _set_ribbon_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
             # TODO: save surface undo data
-            from .scolor import color_surfaces_at_atoms
             color_surfaces_at_atoms(m.atoms, c)
 
 # -----------------------------------------------------------------------------
@@ -590,7 +530,7 @@ def _set_surface_color_func(atoms, objects, session, func, undo_state=None):
     # TODO:
     # # Handle surface models specified without specifying atoms
     # from ..atomic import MolecularSurface, Structure
-    # from ..map import Volume
+    # from chimerax.map import Volume
     # osurfs = []
     # for s in objects.models:
     #     if isinstance(s, MolecularSurface):
@@ -928,31 +868,195 @@ def color_modify(session, objects, adjuster, op, number=None, what=None, target=
     else:
         raise UserError("Color \"%s\" not implemented yet" % adjuster)
 
+def color_sequential(session, objects, level='residues', what=None, target=None,
+                     palette=None, transparency=None, undo_name="color"):
+    '''
+    Color a sequence of atomic objects using a color palette.
+
+    objects : Objects
+      Which objects to color.
+    level : "residues", "chains", "polymers", "structures"
+      Assigns each object a color from a palette.  Default "residues".
+    what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
+      What to color. Everything is colored if option is not specified.
+    target : string
+      Alternative to the "what" option for specifying what to color.
+      Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
+      l = labels, b = bonds, p = pseudobonds, d = distances.
+      Everything is colored if no target is specified.
+    palette : :class:`.Colormap`
+      Color map to use with sequential coloring.
+    transparency : float
+      Percent transparency to use.  If not specified current transparency is preserved.
+    '''
+    if objects is None:
+        from . import all_objects
+        objects = all_objects(session)
+    
+    try:
+        f = _SequentialColor[level]
+    except KeyError:
+        from ..errors import UserError
+        raise UserError('sequential "%s" not implemented yet' % level)
+
+    target, is_default_target = get_targets(target, what)
+
+    from ..undo import UndoState
+    undo_state = UndoState(undo_name)
+
+    opacity = None
+    if transparency is not None:
+        opacity = min(255, max(0, int(2.56 * (100 - transparency))))
+
+    f(session, objects, palette, opacity, target, undo_state)
+
+    session.undo.register(undo_state)
+
+def color_bfactor(session, atoms=None, what=None, target=None, average=None,
+                  palette=None, range='full',
+                  transparency=None, undo_name="color bfactor"):
+    '''
+    Color atoms by bfactor using a color palette.
+
+    atoms : Atoms
+    what : list of 'atoms', 'cartoons', 'ribbons', 'surface'
+      What to color.  Cartoon and ribbon use average bfactor for each residue.
+      Default is to color all depictions.
+    target : string
+      Alternate way to specify what to color allows specifying more than one of atoms (a),
+      cartoon (c), ribbon (r), surface (s).
+    average : 'residues' or None
+      Whether to average b-factors over residues.
+    palette : :class:`.Colormap`
+      Color map to use with sequential coloring.
+    range : 2 comma-separated floats or "full"
+      Specifies the range of map values used for sampling from a palette.
+    transparency : float
+      Percent transparency to use.  If not specified current transparency is preserved.
+    '''
+
+    if atoms is None:
+        from ..atomic import all_atoms
+        atoms = all_atoms(session)
+        
+    target, is_default_target = get_targets(target, what)
+
+    from ..undo import UndoState
+    undo_state = UndoState(undo_name)
+        
+    opacity = None
+    if transparency is not None:
+        opacity = min(255, max(0, int(2.56 * (100 - transparency))))
+
+    if average == 'residues':
+        rbf = {r:r.atoms.bfactors.mean() for r in atoms.unique_residues}
+        abf = [rbf[r] for r in atoms.residues]
+    else:
+        abf = atoms.bfactors
+    acolors = _value_colors(palette, range, abf)
+    acolors[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
+    
+    msg = []
+    if 'a' in target:
+        undo_state.add(atoms, "colors", atoms.colors, acolors)
+        atoms.colors = acolors
+        msg.append('%d atoms' % len(atoms))
+
+    if 'c' in target:
+        residues = atoms.unique_residues
+        rbf = [r.atoms.bfactors.mean() for r in residues]
+        rcolors = _value_colors(palette, range, rbf)
+        rcolors[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
+        undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, rcolors)
+        residues.ribbon_colors = rcolors
+        msg.append('%d residues' % len(residues))
+
+    if 's' in target:
+        ns = color_surfaces_at_atoms(atoms, per_atom_colors = acolors)
+        if ns > 0:
+            msg.append('%d surfaces' % ns)
+
+    session.undo.register(undo_state)
+    if msg:
+        r = 'bfactor range' if average is None else 'residue average bfactor range'
+        m = ', '.join(msg) + ', %s %.3g to %.3g' % (r, min(abf), max(abf))
+        session.logger.status(m, log=True)
+
+# -----------------------------------------------------------------------------
+#
+def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom_colors = None):
+    from .. import atomic
+    surfs = atomic.surfaces_with_atoms(atoms)
+    for s in surfs:
+        s.color_atom_patches(atoms, color, opacity, per_atom_colors)
+    return len(surfs)
+
+# -----------------------------------------------------------------------------
+#
+def color_surfaces_at_residues(residues, colors, opacity = None):
+    atoms, acolors = _residue_atoms_and_colors(residues, colors)
+    color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors = acolors)
+
+# -----------------------------------------------------------------------------
+#
+def _residue_atoms_and_colors(residues, colors):
+    atoms = residues.atoms
+    from numpy import repeat
+    acolors = repeat(colors, residues.num_atoms, axis=0)
+    return atoms, acolors
+
+def _value_colors(palette, range, values):
+    from chimerax.surface.colorvol import _use_full_range, _colormap_with_range
+    r = (min(values), max(values)) if _use_full_range(range, palette) else range
+    cmap = _colormap_with_range(palette, r, default = 'blue-white-red')
+    colors = cmap.interpolated_rgba8(values)
+    return colors
+        
+def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update = True):
+    '''
+    Color surfaces to match nearby atom colors.
+
+    surfaces : list of models
+      Surfaces to color.
+    near : Atoms
+      Color surfaces to match closest atom within specified zone distance.
+    distance : float
+      Zone distance used with zone option.
+    sharp_edges : bool
+      If true change the surface to add cut lines exactly at color zone the boundaries. This makes sharp
+      color transitions at the boundaries between different color patches.  If false, or zone option is not
+      used then the surface is not changed.
+    update : bool
+      Whether to update surface color when surface shape changes.  Default true.
+    '''
+    atoms = near
+    surfs = [s for s in surfaces if s.vertices is not None]
+    bonds = None
+    from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
+    points, colors = points_and_colors(atoms, bonds)
+    for s in surfs:
+        # TODO: save undo data
+        spoints = s.scene_position.inverse() * points	# Transform points to surface coordinates
+        color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges, auto_update = update)
 
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg, ObjectsArg, create_alias
-    from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg
-    from ..map import MapArg
+    from . import EmptyArg, Or, EnumOf, StringArg, ListOf, FloatArg, BoolArg, AtomsArg, SurfacesArg
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),
                              ('what', what_arg)],
                    keyword=[('target', StringArg),
                             ('transparency', FloatArg),
-                            ('sequential', EnumOf(_SequentialLevels)),
                             ('halfbond', BoolArg),
-                            ('map', MapArg),
-                            ('palette', ColormapArg),
-                            ('range', ColormapRangeArg),
-                            ('offset', FloatArg),
-                            ('zone', AtomsArg),
-                            ('distance', FloatArg),
                    ],
                    synopsis="color objects")
     register('color', desc, color, logger=session.logger)
     create_alias('colour', 'color $*', logger=session.logger)
+
+    # color modify
     adjust_arg = EnumOf(ADJUST_TYPES)
     op_arg = EnumOf(OP_TYPES)
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
@@ -963,3 +1067,36 @@ def register_command(session):
                    keyword=[('target', StringArg)],
                    synopsis="saturate color")
     register('color modify', desc, color_modify, logger=session.logger)
+
+    # color a sequence of atomic objects
+    desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
+                   optional=[('level', EnumOf(_SequentialLevels))],
+                   keyword=[('target', StringArg),
+                            ('what', what_arg),
+                            ('palette', ColormapArg),
+                            ('transparency', FloatArg),
+                       ],
+                   synopsis="color a sequence of atomic objects using a palette")
+    register('color sequential', desc, color_sequential, logger=session.logger)
+
+    # color atoms by bfactor
+    desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
+                   optional=[('what', ListOf(EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces'))))],
+                   keyword=[('target', StringArg),
+                            ('average', EnumOf(('residues',))),
+                            ('palette', ColormapArg),
+                            ('range', ColormapRangeArg),
+                            ('transparency', FloatArg)],
+                   synopsis="color atoms by bfactor")
+    register('color bfactor', desc, color_bfactor, logger=session.logger)
+
+    # color by nearby atoms
+    desc = CmdDesc(required=[('surfaces', SurfacesArg)],
+                   keyword=[('near', AtomsArg),
+                            ('distance', FloatArg),
+                            ('sharp_edges', BoolArg),
+                            ('update', BoolArg),
+                       ],
+                   required_arguments = ['near'],
+                   synopsis="color surfaces to match nearby atoms")
+    register('color zone', desc, color_zone, logger=session.logger)

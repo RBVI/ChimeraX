@@ -88,7 +88,7 @@ AtomicStructure::_compute_structure_cats() const
             continue;
 
         // potential solvent
-        solvents[static_cast<const char*>(root->residue()->name())].push_back(root);
+        solvents[root->residue()->name().c_str()].push_back(root);
     }
     std::string best_solvent_name;
     size_t best_solvent_size = 10;
@@ -238,6 +238,47 @@ AtomicStructure::_compute_structure_cats() const
         }
     }
     _structure_cats_dirty = false;
+}
+
+void
+AtomicStructure::normalize_ss_ids()
+{
+    for (auto& chain: chains()) {
+        int h_id = 0, s_id = 0;
+        Residue::SSType cur_type = Residue::SS_COIL;
+        int raw_id;
+        for (auto r: chain->residues()) {
+            if (r == nullptr)
+                continue;
+            if (r->ss_type() != cur_type) {
+                cur_type = r->ss_type();
+                if (cur_type == Residue::SS_HELIX) {
+                    raw_id = r->_ss_id;
+                    r->_ss_id = ++h_id;
+                } else if (cur_type == Residue::SS_STRAND) {
+                    raw_id = r->_ss_id;
+                    r->_ss_id = ++s_id;
+                } else {
+                    r->_ss_id = 0;
+                }
+            } else if (r->ss_type() == Residue::SS_COIL) {
+                r->_ss_id = 0;
+            } else if (r->_ss_id != raw_id) {
+                if (cur_type == Residue::SS_HELIX) {
+                    raw_id = r->_ss_id;
+                    r->_ss_id = ++h_id;
+                } else if (cur_type == Residue::SS_STRAND) {
+                    raw_id = r->_ss_id;
+                    r->_ss_id = ++s_id;
+                }
+            } else if (r->ss_type() == Residue::SS_HELIX) {
+                r->_ss_id = h_id;
+            } else {
+                r->_ss_id = s_id;
+            }
+        }
+    }
+    ss_ids_normalized = true;
 }
 
 void

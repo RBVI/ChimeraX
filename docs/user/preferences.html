@@ -34,8 +34,10 @@ and contains sections:
 <blockquote><b>
 <a href="#background">Background</a>
 <br><a href="#clipping">Clipping</a>
+<br><a href="#distances">Distances</a>
 <br><a href="#labels">Labels</a>
 <br><a href="#sessions">Sessions</a>
+<br><a href="#toolshed">Toolshed</a>
 </b></blockquote>
 <p>
 <b>Save</b> saves the current settings, <b>Reset</b> replaces the 
@@ -96,6 +98,37 @@ Clipping</h3>
 See also: <a href="commands/surface.html#cap"><b>surface cap</b></a>
 </ul>
 
+<a name="distances"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Distances</h3>
+<p>
+Settings for distance-monitor 
+<a href="pseudobonds.html">pseudobonds</a> are saved instantly 
+(without clicking <b>Save</b>).
+See also: <a href="commands/distance.html"><b>distance</b></a>,
+<a href="commands/mousemode.html"><b>mousemode</b></a>,
+<a href="selection.html#context">selection context menus</a>
+<ul>
+<li><b>Color</b> - 
+a color well that can be clicked
+to choose the color interactively (initial default
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="gold" width="10px"></td> </tr></table>)
+<li><b>Decimal places</b> 
+- distance-label places after the decimal (initial default <b>3</b>)
+<li><b>Number of dashes</b> (initial default <b>9</b>)
+<li><b>Radius</b> (initial default <b>0.1</b> &Aring;)
+<li><b>Show angstrom symbol (&Aring;)</b> 
+- whether to include the &Aring; symbol in the distance label
+(initial default <b>true</b>)
+</ul>
+
 <a name="labels"></a>
 <!--
 <p class="nav">
@@ -138,6 +171,28 @@ when a session is restored.
 See also: <a href="commands/windowsize.html"><b>windowsize</b></a>
 </ul>
 
+<a name="toolshed"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Toolshed</h3>
+<p>
+The
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a>
+is the web repository of ChimeraX bundles.
+</p>
+<ul>
+<li><b>Toolshed update interval</b> - how often to check for updates
+  <ul>
+  <li><b>every day</b>
+  <li><b>every week</b> (default)
+  <li><b>every month</b>
+  </ul>
+</ul>
+
 <a name="other"></a>
 <!--
 <p class="nav">
@@ -154,11 +209,9 @@ but can be adjusted and saved by other means:
 whether to autostart, whether windows are dockable, and other
 settings accessible through <a href="window.html#panels">context menus</a>
 <!-- (see also <b>ui</b>) -->
-<li>Distance-label formatting,
-see <a href="commands/distance.html#format"><b>distance format</b></a>
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2018</address>
+May 2018</address>
 </body></html> 

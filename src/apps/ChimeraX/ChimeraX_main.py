@@ -275,11 +275,15 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
+        # Setup SSL CA certificates file
+        import certifi
+        os.environ["SSL_CERT_FILE"] = certifi.where()
+
     # for modules that moved out of core, allow the old imports to work for awhile...
     from importlib.abc import MetaPathFinder, Loader
     class CoreCompatFinder(MetaPathFinder):
         def find_spec(self, full_name, path, target=None):
-            unmoved_modules = ["atomic", "map", "surface"]
+            unmoved_modules = ["atomic"]
             moved_modules = ["ui"]
             for umod in unmoved_modules:
                 future_name = "chimerax." + umod
@@ -530,6 +534,7 @@ def init(argv, event_loop=True):
         sess.tasks = tasks.Tasks(sess, first=True)
         from chimerax.core.atomic import attr_registration
         sess.attr_registration = attr_registration.RegAttrManager()
+        sess.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
         from chimerax.core import undo
         sess.undo = undo.Undo(sess, first=True)
 

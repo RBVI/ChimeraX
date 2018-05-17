@@ -126,6 +126,8 @@ public:
     int  ss_id() const {
         if (!structure()->ss_assigned())
             structure()->compute_secondary_structure();
+        if (!structure()->ss_ids_normalized)
+            structure()->normalize_ss_ids();
         return _ss_id;
     }
     SSType  ss_type() const {
@@ -149,7 +151,8 @@ public:
     static const std::set<AtomName>  na_ribbon_backbone_names;
     static const std::set<AtomName>  na_side_connector_names;
     static const std::set<AtomName>  ribose_names;
-    static const std::set<ResName>  std_solvent_names;
+    static std::set<ResName>  std_solvent_names;
+    static std::set<ResName>  std_water_names;
     const std::set<AtomName>*  backbone_atom_names(BackboneExtent bbe) const;
     const std::set<AtomName>*  ribose_atom_names() const;
     const std::set<AtomName>*  side_connector_atom_names() const;
@@ -165,6 +168,9 @@ public:
     bool  ribbon_selected() const { return _ribbon_selected; }
     void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
+    void  set_ribbon_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
+        set_ribbon_color(Rgba({r, g, b, a}));
+    }
     void  set_ribbon_display(bool d);
     void  set_ribbon_hide_backbone(bool d);
     void  set_ribbon_selected(bool s);

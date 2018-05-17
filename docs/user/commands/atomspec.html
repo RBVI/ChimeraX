@@ -51,8 +51,8 @@ can be specified using:
   - <b>sel</b> (current <a href="../selection.html">selection</a>),
   <b>protein</b>, <b>helix</b>, <b>strand</b>, <b>ligand</b>, <b>hbonds</b>,
   element symbols, functional groups, <i>etc.</i>
-  <li><a href="#user">user-defined targets</a>
-  <font color="brown">(not yet implemented)</font> 
+  <li><a href="#user">user-defined targets</a> - named selections 
+  or other targets defined with <a href="name.html"><b>name</b></a>
   <li><a href="#attributes">attribute</a> names and values
   <font color="brown">(partially implemented)</font>
   <li><a href="#zones">zones</a> - by distance from other items
@@ -357,7 +357,7 @@ and their subparts:
 <a href="../atomtypes.html">atom type</a>, but element &ldquo;wins&rdquo;)
 <li>functional groups: 
 <b>amide</b>, <b>disulfide</b>, <b>hydroxyl</b>, <b>phosphate</b>,
-and many others (as listed in Chimera's <b>Select... Chemistry</b> menu)
+and many others
 <li><b>sel</b> - the current <a href="../selection.html">selection</a>
 <li><b>selAtoms</b> - the current atomic
 <a href="../selection.html">selection</a>,
@@ -372,6 +372,9 @@ and their endpoint atoms
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
+A full list can be shown in the <a href="../tools/basicactions.html"><b>Basic
+Actions</b></a> tool or with the command:
+<a href="name.html"><b>name list builtins true</b></a>
 </p>
 <a name="surfcats"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
@@ -463,19 +466,22 @@ see <a href="#combinations">combinations</a>)
 <p class="nav">
 [<a href="#top">back to top: Target Specification</a>]
 </p>
-<h3>User-Defined Targets
-<font color="brown">(not yet implemented)</font></h3>
-<!--
+<h3>User-Defined Targets</h3>
 <p>
-User-defined targets include:
-  <ul>
-  <li>target names defined with <b>namespec</b>
-  <li>custom entries in the sections of the
-  <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/menu.html#menuselect"><b>Select</b> menu</a>
-  mentioned <a href="#builtin">above</a> 
-</ul>
+With the <a href="name.html"><b>name</b></a> command,
+users can assign a name to a <a href="../selection.html">selection</a>
+or to a target specification string for easy use in later commands.
+For example:
+<blockquote><b>
+<!-- 1hxz rhodopsin -->
+<a href="name.html">name</a> tm1 /a:34-64
+<br><a href="name.html">name</a> tm2 /a:70-101
+<br><a href="color.html#simple">color</a> tm1 medium blue
+<br><a href="color.html#simple">color</a> tm2 deep sky blue
+</b></blockquote>
+<p>
+Built-in classifications cannot be redefined by the user.
 </p>
--->
 
 <hr>
 <a name="attributes"></a>
@@ -707,5 +713,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2018</address>
+April 2018</address>
 </body></html> 

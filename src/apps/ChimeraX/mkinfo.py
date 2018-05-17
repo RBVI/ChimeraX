@@ -106,7 +106,7 @@ def dump_format(f):
 
 
 # Initialize ChimeraX to get all registered file types
-init([app_name, "--nogui"], event_loop=False)
+init([app_name, "--nogui", "--exit"])
 
 chimera_types = [f.name for f in io.formats() if f.name.startswith('Chimera')]
 
