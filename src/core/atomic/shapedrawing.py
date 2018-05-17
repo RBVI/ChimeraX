@@ -196,7 +196,10 @@ class AtomicShapeDrawing(Drawing):
         self.set_geometry(asarray(concat((self.vertices, vertices)), dtype=numpy.float32),
                           asarray(concat((self.normals, normals)), dtype=numpy.float32),
                           asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32))
-        self.vertex_colors = concat((self.vertex_colors, colors))
+        if self.vertex_colors is None:
+            self.vertex_colors = colors
+        else:
+            self.vertex_colors = concat((self.vertex_colors, colors))
         s = _AtomicShape(range(start, self.triangles.shape[0]), description, atoms)
         self._shapes.append(s)
 
