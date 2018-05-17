@@ -2598,7 +2598,8 @@ class Command:
                     if _available_commands is None:
                         from .. import toolshed
                         _available_commands = _WordInfo(self.registry)
-                        toolshed.init().register_available_commands(session.logger)
+                        ts = toolshed.get_toolshed()
+                        ts.register_available_commands(session.logger)
                     self._find_command_name(final, used_aliases=_used_aliases,
                                             parent_info=_available_commands)
                 if self._error:
