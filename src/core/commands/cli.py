@@ -2275,8 +2275,6 @@ class Command:
         self.word_info = None  # filled in when partial command is matched
         if parent_info is None:
             parent_info = self.registry.commands
-        else:
-            parent_info = parent_info.commands
         cmd_name = None
         self.start = self.amount_parsed
         start = self.start
@@ -2590,19 +2588,19 @@ class Command:
         while 1:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
-                if self.registry == self._command_info:
+                if self.registry == _command_info:
                     # See if this command is available in the toolshed
                     save_error = self._error
                     self._error = ""
                     global _available_commands
                     if _available_commands is None:
                         from .. import toolshed
-                        _available_commands = _WordInfo(self.registry)
+                        _available_commands = RegisteredCommandInfo()
                         ts = toolshed.get_toolshed()
                         ts.register_available_commands(session.logger)
                     self._find_command_name(final, used_aliases=_used_aliases,
-                                            parent_info=_available_commands)
-                if self._error:
+                                            parent_info=_available_commands.commands)
+                if self._error or not self._ci:
                     # Nope, give the original error message
                     self._error = save_error
                     if log:
