@@ -576,7 +576,8 @@ class ImageBlendManager:
       for d in bi.drawings:
         dbi[d] = None
       bis.discard(bi)
-
+      bi.delete()
+      
     # Created blend images for new groups
     for g in groups:
       if len(g) >= 2:
