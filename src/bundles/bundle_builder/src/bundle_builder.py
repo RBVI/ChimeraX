@@ -494,7 +494,7 @@ class _CompiledCode:
         ir = InstallRequirement.from_line(dep)
         if not ir.check_if_exists():
             raise RuntimeError("unsatisfied dependency: %s" % dep)
-        ts = toolshed.init()
+        ts = toolshed.get_toolshed()
         bundle = ts.find_bundle(ir.name, logger)
         if not bundle:
             raise RuntimeError("bundle not found: %s" % ir.name)

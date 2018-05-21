@@ -54,6 +54,7 @@
 	<ChimeraXClassifier>ChimeraX :: Open :: Pfam :: selex :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: RSF :: rsf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Open :: Stockholm :: stockholm :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Save :: PIR :: pir :: true :: alignment:Alignment</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: sequence :: Sequence alignment :: control/open sequence alignments</ChimeraXClassifier>
 ]
   </Classifiers>

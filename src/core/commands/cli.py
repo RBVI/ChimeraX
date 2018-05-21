@@ -1926,7 +1926,7 @@ def delay_registration(name, proxy_function, logger=None):
     register(name, None, _Defer(proxy_function), logger=logger)
 
 
-# _commands is a map of command words to command information.  Except when
+# _command_info.commands is a map of command words to command information.  Except when
 # it is a multiword command name, then the preliminary words map to
 # dictionaries that map to the command information.
 # An OrderedDict is used so for autocompletion, the prefix of the first
@@ -1936,7 +1936,8 @@ def delay_registration(name, proxy_function, logger=None):
 class _WordInfo:
     # Internal information about a word in a command
 
-    def __init__(self, cmd_desc=None):
+    def __init__(self, registry, cmd_desc=None):
+        self.registry = registry
         self.cmd_desc = cmd_desc
         self.subcommands = OrderedDict()   # { 'word': _WordInfo() }
         self.parent = None
@@ -1984,7 +1985,7 @@ class _WordInfo:
             if logger is not None:
                 logger.warning("alias %s hides existing command" % dq_repr(name))
         if word not in self.subcommands:
-            w = self.subcommands[word] = _WordInfo(cmd_desc)
+            w = self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
             w.parent = self
             return
         # command word previously registered
@@ -1999,17 +2000,17 @@ class _WordInfo:
                 word_info.cmd_desc = cmd_desc
             else:
                 # only save/restore "system" version of command
-                _aliased_commands[name] = word_info
-                self.subcommands[word] = _WordInfo(cmd_desc)
+                self.registry.aliased_commands[name] = word_info
+                self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
                 if logger is not None:
                     logger.info("FYI: alias is hiding existing command" %
                                 dq_repr(name))
         elif word_info.is_user_alias():
             # command is aliased, but new one isn't, so replaced saved version
-            if name in _aliased_commands:
-                _aliased_commands[name].cmd_desc = cmd_desc
+            if name in self.registry.aliased_commands:
+                self.registry.aliased_commands[name].cmd_desc = cmd_desc
             else:
-                _aliased_commands[name] = _WordInfo(cmd_desc)
+                self.registry.aliased_commands[name] = _WordInfo(self.registry, cmd_desc)
         else:
             if logger is not None:
                 logger.info("FYI: command is replacing existing command" %
@@ -2017,15 +2018,18 @@ class _WordInfo:
             word_info.cmd_desc = cmd_desc
 
 
-# keep track of commands
-_commands = _WordInfo()
-# keep track of commands that have been overridden by an alias
-_aliased_commands = {}  # { name: _WordInfo instance }
+class RegisteredCommandInfo:
+    def __init__(self):
+        # keep track of commands
+        self.commands = _WordInfo(self)
+        # keep track of commands that have been overridden by an alias
+        self.aliased_commands = {}  # { name: _WordInfo instance }
+_command_info = RegisteredCommandInfo()
 # keep track of available commands
 _available_commands = None
 
 
-def register(name, cmd_desc=(), function=None, *, logger=None, _parent_info=None):
+def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -2038,13 +2042,17 @@ def register(name, cmd_desc=(), function=None, *, logger=None, _parent_info=None
     If the function is None, then it assumed that :py:func:`register`
     is being used as a decorator.
 
+    registry is a RegisteredCommandInfo instance and is only used if you want
+    your own separate registry of commands, to be parsed/executed on text you provide.
+    One usage scenario is a set of "subcommands" organized under an "umbrella" command, e.g.:
+
+    sequence viewer <viewer-id> command-to-viewer
+
+    The 'command-to-viewer' commands could have their own separate registry.
+
+
     To delay introspecting the function until it is actually used,
     register using the :py:func:`delay_registration` function.
-
-    For autocompletion, the first command registered with a
-    given prefix wins.  Registering a command that is a prefix
-    of an existing command is an error since it breaks backwards
-    compatibility.
     """
     if function is None:
         # act as a decorator
@@ -2061,8 +2069,10 @@ def register(name, cmd_desc=(), function=None, *, logger=None, _parent_info=None
         url = _get_help_url(words)
         if url is not None:
             cmd_desc.url = url
-    if _parent_info is None:
-        _parent_info = _commands
+    if registry is None:
+        _parent_info = _command_info.commands
+    else:
+        _parent_info = registry.commands
     for word in words[:-1]:
         if not _parent_info.has_subcommands():
             word_info = _parent_info.add_subcommand(word)
@@ -2086,6 +2096,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, _parent_info=None
 
 
 def _get_help_url(words):
+    # return help: URLs so links work in log as well as help viewer
     import os
     from urllib.parse import urlunparse
     from urllib.request import pathname2url
@@ -2095,22 +2106,17 @@ def _get_help_url(words):
         frag = '%20'.join(words)
     else:
         frag = '%20'.join(words[1:])
-    if frag:
-        frag = '#' + frag
-    try:
-        from chimerax.help_viewer import help_directories
-    except ImportError:
-        import chimerax
-        help_directories = [os.path.join(chimerax.app_data_dir, 'docs')]
+    from .. import toolshed
+    help_directories = toolshed.get_help_directories()
     cmd_subpath = os.path.join('user', 'commands', '%s.html' % cname)
     for hd in help_directories:
         cpath = os.path.join(hd, cmd_subpath)
         if os.path.exists(cpath):
-            return urlunparse(('file', '', pathname2url(cpath), '', '', frag))
+            return urlunparse(('help', '', "user/commands/%s.html" % cname, '', '', frag))
     return None
 
 
-def deregister(name, *, is_user_alias=False, _parent_info=None):
+def deregister(name, *, is_user_alias=False, registry=None):
     """Remove existing command and subcommands
 
     :param name: the name of the command
@@ -2119,8 +2125,9 @@ def deregister(name, *, is_user_alias=False, _parent_info=None):
     # none of the exceptions below should happen
     words = name.split()
     name = ' '.join(words)  # canonicalize
-    if _parent_info is None:
-        _parent_info = _commands
+    if registry is None:
+        registry = _command_info
+    _parent_info = registry.commands
     for word in words:
         word_info = _parent_info.subcommands.get(word, None)
         if word_info is None:
@@ -2133,13 +2140,13 @@ def deregister(name, *, is_user_alias=False, _parent_info=None):
 
     if word_info.has_subcommands():
         for subword in list(word_info.subcommands.keys()):
-            deregister("%s %s" % (name, subword))
+            deregister("%s %s" % (name, subword), registry=registry)
 
-    hidden_word = _aliased_commands.get(name, None)
+    hidden_word = registry.aliased_commands.get(name, None)
     if hidden_word:
         _parent_info = hidden_word.parent
         _parent_info.subcommands[word] = hidden_word
-        del _aliased_commands[name]
+        del registry.aliased_commands[name]
     else:
         # allow command to be reregistered with same cmd_desc
         if word_info.cmd_desc and not word_info.is_deferred():
@@ -2152,7 +2159,7 @@ def deregister(name, *, is_user_alias=False, _parent_info=None):
 
 
 def register_available(*args, **kw):
-    return register(*args, _parent_info=_available_commands, **kw)
+    return register(*args, registry=_available_commands, **kw)
 
 
 def clear_available():
@@ -2160,7 +2167,7 @@ def clear_available():
     _available_commands = None
 
 
-def add_keyword_arguments(name, kw_info):
+def add_keyword_arguments(name, kw_info, *, registry=None):
     """Make known additional keyword argument(s) for a command
 
     :param name: the name of the command (must not be an alias)
@@ -2168,7 +2175,7 @@ def add_keyword_arguments(name, kw_info):
     """
     if not isinstance(kw_info, dict):
         raise ValueError("kw_info must be a dictionary")
-    cmd = Command(None)
+    cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
@@ -2220,12 +2227,13 @@ class Command:
     """
     # nested = 0  # DEBUG nested aliases
 
-    def __init__(self, session):
+    def __init__(self, session, *, registry=None):
         import weakref
         if session is None:
             session = _FakeSession()
         self._session = weakref.ref(session)
         self._reset()
+        self.registry = _command_info if registry is None else registry
 
     def _reset(self):
         self.current_text = ""
@@ -2266,7 +2274,7 @@ class Command:
         self._error = "Missing command"
         self.word_info = None  # filled in when partial command is matched
         if parent_info is None:
-            parent_info = _commands
+            parent_info = self.registry.commands
         cmd_name = None
         self.start = self.amount_parsed
         start = self.start
@@ -2332,20 +2340,20 @@ class Command:
             if what.cmd_desc is not None:
                 if no_aliases:
                     if what.is_alias():
-                        if cmd_name not in _aliased_commands:
+                        if cmd_name not in self.registry.aliased_commands:
                             self._error = 'Alias did not hide a command'
                             return
-                        what = _aliased_commands[cmd_name]
+                        what = self.registry.aliased_commands[cmd_name]
                         if what.cmd_desc is None:
                             parent_info = what
                             continue
                 elif (used_aliases is not None and
                         what.is_alias() and
                         cmd_name in used_aliases):
-                    if cmd_name not in _aliased_commands:
+                    if cmd_name not in self.registry.aliased_commands:
                         self._error = "Aliasing loop detected"
                         return
-                    what = _aliased_commands[cmd_name]
+                    what = self.registry.aliased_commands[cmd_name]
                     if what.cmd_desc is None:
                         parent_info = what
                         continue
@@ -2580,17 +2588,19 @@ class Command:
         while 1:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
-                # See if this command is available in the toolshed
-                save_error = self._error
-                self._error = ""
-                global _available_commands
-                if _available_commands is None:
-                    from .. import toolshed
-                    _available_commands = _WordInfo()
-                    toolshed.init().register_available_commands(session.logger)
-                self._find_command_name(final, used_aliases=_used_aliases,
-                                        parent_info=_available_commands)
-                if self._error:
+                if self.registry == _command_info:
+                    # See if this command is available in the toolshed
+                    save_error = self._error
+                    self._error = ""
+                    global _available_commands
+                    if _available_commands is None:
+                        from .. import toolshed
+                        _available_commands = RegisteredCommandInfo()
+                        ts = toolshed.get_toolshed()
+                        ts.register_available_commands(session.logger)
+                    self._find_command_name(final, used_aliases=_used_aliases,
+                                            parent_info=_available_commands.commands)
+                if self._error or not self._ci:
                     # Nope, give the original error message
                     self._error = save_error
                     if log:
@@ -2748,14 +2758,14 @@ class Command:
             session.logger.info(msg, is_html=True)
 
 
-def command_function(name, no_aliases=False):
+def command_function(name, no_aliases=False, *, registry=None):
     """Return callable for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
     :returns: the callable that implements the command
     """
-    cmd = Command(None)
+    cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
@@ -2763,14 +2773,14 @@ def command_function(name, no_aliases=False):
     return cmd._ci.function
 
 
-def command_url(name, no_aliases=False):
+def command_url(name, no_aliases=False, *, registry=None):
     """Return help URL for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
     :returns: the URL registered with the command
     """
-    cmd = Command(None)
+    cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
@@ -2782,7 +2792,7 @@ def command_url(name, no_aliases=False):
 
 
 def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-          show_hidden=False):
+          show_hidden=False, *, registry=None):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -2792,7 +2802,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     :returns: a usage string for the command
     """
     name = name.strip()
-    cmd = Command(None)
+    cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
@@ -2879,7 +2889,7 @@ def can_be_empty_arg(arg):
 
 
 def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-               show_hidden=False):
+               show_hidden=False, *, registry=None):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
@@ -2888,7 +2898,7 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     :param show_hidden: True if hidden keywords should be shown.
     :returns: a HTML usage string for the command
     """
-    cmd = Command(None)
+    cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
@@ -2987,7 +2997,7 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             syntax += 'Subcommands are:\n<ul>'
             for word in sub_cmds:
                 subcmd = '%s %s' % (name, word)
-                cmd = Command(None)
+                cmd = Command(None, registry=registry)
                 cmd.current_text = subcmd
                 cmd._find_command_name(no_aliases=no_aliases)
                 if cmd.amount_parsed != len(cmd.current_text):
@@ -3057,13 +3067,14 @@ class Alias:
     of the line, and $$ for a single $.
     """
 
-    def __init__(self, text, *, user=False):
+    def __init__(self, text, *, user=False, registry=None):
         text = text.lstrip()
         self.original_text = text
         self.user_generated = user
         self.num_args = 0
         self.parts = []  # list of strings and integer argument numbers
         self.optional_rest_of_line = False
+        self.registry = registry
         not_dollar = re.compile(r"[^$]*")
         number = re.compile(r"\d*")
 
@@ -3140,7 +3151,7 @@ class Alias:
         if echo_tag is not None:
             session.logger.info('%s%s' % (echo_tag, text))
         # save Command object so error reporting can give underlying error
-        self.cmd = Command(session)
+        self.cmd = Command(session, registry=self.registry)
         return self.cmd.run(text, _used_aliases=_used_aliases, log=log)
 
 
@@ -3175,12 +3186,12 @@ def list_aliases(all=False, logger=None):
     return list(find_aliases('', _commands))
 
 
-def expand_alias(name):
+def expand_alias(name, *, registry=None):
     """Return text of named alias
 
     :param name: name of the alias
     """
-    cmd = Command(None)
+    cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=False)
     if cmd.amount_parsed != len(cmd.current_text):
@@ -3190,7 +3201,7 @@ def expand_alias(name):
     return cmd.word_info.alias().original_text
 
 
-def create_alias(name, text, *, user=False, logger=None, url=None):
+def create_alias(name, text, *, user=False, logger=None, url=None, registry=None):
     """Create command alias
 
     :param name: name of the alias
@@ -3199,15 +3210,15 @@ def create_alias(name, text, *, user=False, logger=None, url=None):
     :param logger: optional logger
     """
     name = ' '.join(name.split())   # canonicalize
-    alias = Alias(text, user=user)
+    alias = Alias(text, user=user, registry=registry)
     try:
         register(name, alias.cmd_desc(synopsis='alias of "%s"' % text, url=url),
-                 alias, logger=logger)
+                 alias, logger=logger, registry=registry)
     except:
         raise
 
 
-def remove_alias(name=None, user=False, logger=None):
+def remove_alias(name=None, user=False, logger=None, *, registry=None):
     """Remove command alias
 
     :param name: name of the alias
@@ -3217,10 +3228,10 @@ def remove_alias(name=None, user=False, logger=None):
     """
     if name is None:
         for name in list_aliases(logger=logger):
-            deregister(name, is_user_alias=True)
+            deregister(name, is_user_alias=True, registry=registry)
         return
 
-    deregister(name, is_user_alias=user)
+    deregister(name, is_user_alias=user, registry=registry)
 
 
 if __name__ == '__main__':

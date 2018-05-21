@@ -267,10 +267,6 @@ class Toolshed:
         Where to register handlers for toolshed triggers
     """
 
-    @classmethod
-    def get_toolshed(cls):
-        return _toolshed
-
     def __init__(self, logger, rebuild_cache=False, check_remote=False,
                  remote_url=None, check_available=True):
         """Initialize Toolshed instance.
@@ -1115,6 +1111,8 @@ from .info import BundleInfo, CommandInfo, ToolInfo, SelectorInfo, FormatInfo
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.
 _toolshed = None
 
+_default_help_dir = None
+
 
 def init(*args, debug=None, **kw):
     """Initialize toolshed.
@@ -1131,11 +1129,6 @@ def init(*args, debug=None, **kw):
         Default value is false.
     other arguments : any
         All other arguments are passed to the `Toolshed` initializer.
-
-    Returns
-    -------
-    :py:class:`Toolshed` instance
-        The toolshed singleton.
     """
     if debug is not None:
         global _debug_toolshed
@@ -1143,4 +1136,28 @@ def init(*args, debug=None, **kw):
     global _toolshed
     if _toolshed is None:
         _toolshed = Toolshed(*args, **kw)
+
+
+def get_toolshed():
+    """Return current toolshed.
+
+    Returns
+    -------
+    :py:class:`Toolshed` instance
+        The toolshed singleton.
+
+    The toolshed singleton will be None if py:func:`init` hasn't been called yet.
+    """
     return _toolshed
+
+
+def get_help_directories():
+    global _default_help_dir
+    if _default_help_dir is None:
+        import os
+        from chimerax import app_data_dir
+        _default_help_dir = os.path.join(app_data_dir, 'docs')
+    hd = [_default_help_dir]
+    if _toolshed is not None:
+        hd.extend(_toolshed._installed_bundle_info.help_directories)
+    return hd

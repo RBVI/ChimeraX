@@ -156,8 +156,9 @@ class Bond(State):
     def __str__(self):
         return self.string()
 
+    @property
     def atomspec(self):
-        return a1.atomspec() + a2.atomspec()
+        return a1.atomspec + a2.atomspec
 
     atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True,
         doc = "Supported API. "
@@ -532,7 +533,8 @@ class PseudobondManager(StateManager):
         f(self._c_pointer, pbg._c_pointer)
 
     def get_group(self, name, create = True):
-        '''Get an existing :class:`.PseudobondGroup` or create a new one with the given name.'''
+        "Supported API. Get an existing :class:`.PseudobondGroup`"
+        " or create a new one with the given name."
         f = c_function('pseudobond_global_manager_get_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
@@ -681,19 +683,19 @@ class Ring:
         return not hasattr(self, '_c_pointer')
 
     aromatic = c_property('ring_aromatic', npy_bool, read_only=True,
-        doc="Whether the ring is aromatic. Boolean value.")
+        doc="Supported API. Whether the ring is aromatic. Boolean value.")
     atoms = c_property('ring_atoms', cptr, 'size', astype = _atoms, read_only = True,
-        doc=":class:`.Atoms` collection containing the atoms of the ring, "
+        doc="Supported API. :class:`.Atoms` collection containing the atoms of the ring, "
         "in no particular order (see :meth:`.Ring.ordered_atoms`).")
     bonds = c_property('ring_bonds', cptr, 'size', astype = _bonds, read_only = True,
-        doc=":class:`.Bonds` collection containing the bonds of the ring, "
+        doc="Supported API. :class:`.Bonds` collection containing the bonds of the ring, "
         "in no particular order (see :meth:`.Ring.ordered_bonds`).")
     ordered_atoms = c_property('ring_ordered_atoms', cptr, 'size', astype=_atoms, read_only=True,
         doc=":class:`.Atoms` collection containing the atoms of the ring, in ring order.")
     ordered_bonds = c_property('ring_ordered_bonds', cptr, 'size', astype=_bonds, read_only=True,
         doc=":class:`.Bonds` collection containing the bonds of the ring, in ring order.")
     size = c_property('ring_size', size_t, read_only=True,
-        doc="Number of atoms (and bonds) in the ring. Read only.")
+        doc="Supported API. Number of atoms (and bonds) in the ring. Read only.")
 
     def __eq__(self, r):
         if not isinstance(r, Ring):
@@ -1168,9 +1170,9 @@ class Chain(StructureSeq):
     def __str__(self):
         return self.string()
 
+    @property
     def atomspec(self):
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
-        return self.structure.atomspec() + chain_str
+        return self.string(style="command")
 
     def extend(self, chars):
         # disallow extend
@@ -1186,16 +1188,13 @@ class Chain(StructureSeq):
         set_custom_attrs(chain, data)
         return chain
 
-    def string(self):
-        from chimerax.core.core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
+    def string(self, style=None):
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
-            struct_string = str(self.structure)
+            struct_string = self.structure.string(style=style)
         else:
             struct_string = ""
-        from chimerax.core.core_settings import settings
         return struct_string + chain_str
 
     def take_snapshot(self, session, flags):

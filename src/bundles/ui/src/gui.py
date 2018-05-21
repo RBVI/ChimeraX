@@ -843,8 +843,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cat_menu.addAction(tool_action)
         def _show_toolshed(arg):
             from chimerax.help_viewer import show_url
-            from chimerax.core.toolshed import Toolshed
-            show_url(session, Toolshed.get_toolshed().remote_url)
+            from chimerax.core import toolshed
+            show_url(session, toolshed.get_toolshed().remote_url)
         more_tools = QAction("More Tools...", self)
         more_tools.setToolTip("Open ChimeraX Toolshed in Help Viewer")
         more_tools.triggered.connect(_show_toolshed)

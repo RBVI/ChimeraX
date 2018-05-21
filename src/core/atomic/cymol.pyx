@@ -416,7 +416,7 @@ cdef class CyAtom:
 
     @property
     def atomspec(self):
-        return self.residue.atomspec() + '@' + self.name
+        return self.string(style="command")
 
     def clear_hide_bits(self, bit_mask):
         '''Set the hide bits 'off' that are 'on' in "bitmask"'''
@@ -490,7 +490,7 @@ cdef class CyAtom:
         '''
         # work around non-const-correct code by using temporary...
         ring_ptrs = self.cpp_atom.rings(cross_residues, all_size_threshold)
-        from chimerax.atomic.molarray import Rings
+        from chimerax.core.atomic.molarray import Rings
         import numpy
         return Rings(numpy.array([<ptr_type>r for r in ring_ptrs], dtype=numpy.uintp))
 
@@ -761,11 +761,19 @@ cdef class CyResidue:
         return Atoms(numpy.array([<ptr_type>a for a in atoms], dtype=numpy.uintp))
 
     @property
+    def atomspec(self):
+        return self.string(style="command")
+
+    @property
     def chain(self):
         "Supported API. :class:`.Chain` that this residue belongs to, if any. Read only."
         chain_ptr = self.cpp_res.chain()
         if chain_ptr:
-            return chain_ptr.py_instance(True)
+            from chimerax.core.atomic import Chain
+            chain = Chain.c_ptr_to_existing_py_inst(<ptr_type>chain_ptr)
+            if chain:
+                return chain
+            return Chain(<ptr_type>chain_ptr)
         return None
 
     @property
@@ -946,11 +954,6 @@ cdef class CyResidue:
         An atom can only belong to one residue, and all atoms
         must belong to a residue.'''
         self.cpp_res.add_atom(<cydecl.Atom*>atom.cpp_atom)
-
-    def atomspec(self):
-        res_str = ":" + str(self.number) + self.insertion_code
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
-        return self.structure.atomspec() + chain_str + res_str
 
     def bonds_between(self, CyResidue other_res):
         "Supported API. Return the bonds between this residue and other_res as a Bonds collection."

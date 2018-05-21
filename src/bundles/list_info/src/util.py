@@ -47,7 +47,7 @@ def attr_string(obj, attr):
 
 def spec(o):
     try:
-        return o.atomspec()
+        return o.atomspec
     except AttributeError:
         try:
             return '#' + o.id_string()

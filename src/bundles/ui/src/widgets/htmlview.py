@@ -234,7 +234,8 @@ class ChimeraXHtmlView(HtmlView):
                 path = path[1:]   # change \C:\ to C:\
             if os.path.exists(path):
                 return
-            from chimerax.help_viewer import help_directories
+            from chimerax.core import toolshed
+            help_directories = toolshed.get_help_directories()
             for hd in help_directories:
                 if path.startswith(hd):
                     break

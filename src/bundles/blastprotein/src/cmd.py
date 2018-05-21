@@ -32,7 +32,7 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
         from chimerax.core.errors import UserError
         raise UserError("please choose exactly one chain (%d were specified)" %
                         len(chains))
-    BlastProteinJob(session, chains[0].characters, chains[0].atomspec(),
+    BlastProteinJob(session, chains[0].characters, chains[0].atomspec,
                     database, cutoff, matrix, max_hits, log)
 blastprotein_desc = CmdDesc(required=[("atoms", AtomSpecArg),],
                         keyword=[("database", EnumOf(DBs)),

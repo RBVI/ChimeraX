@@ -91,10 +91,10 @@ class BasicActionsTool(HtmlToolInstance):
         for m in sorted(model_components.keys()):
             chains = model_components[m]
             if len(chains) == 0:
-                data.append({"type":"Model", "atomspec":m.atomspec()})
+                data.append({"type":"Model", "atomspec":m.atomspec})
             else:
                 for c in chains:
-                    data.append({"type":"Chain", "atomspec":c.atomspec()})
+                    data.append({"type":"Chain", "atomspec":c.atomspec})
         import json
         model_data = json.dumps(data)
         js = "%s.update_components(%s);" % (self.CUSTOM_SCHEME, model_data)
