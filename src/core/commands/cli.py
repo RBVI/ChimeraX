@@ -2159,7 +2159,7 @@ def deregister(name, *, is_user_alias=False, registry=None):
 
 
 def register_available(*args, **kw):
-    return register(*args, _parent_info=_available_commands, **kw)
+    return register(*args, registry=_available_commands, **kw)
 
 
 def clear_available():
