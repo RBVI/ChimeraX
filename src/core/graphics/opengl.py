@@ -1463,7 +1463,7 @@ class Framebuffer:
             GL.glDeleteFramebuffers(1, (fbo,))
             self._color_rb = self._depth_rb = None
             self._fbo = None
-            self._opengl_context._framebuffers.remove(self)
+            self._opengl_context._framebuffers.discard(self)
 
     def valid_size(self, width, height):
 
@@ -1703,7 +1703,7 @@ class Bindings:
         if self._vao_id is not None:
             GL.glDeleteVertexArrays(1, (self._vao_id,))
             self._vao_id = None
-            self._opengl_context._bindings.remove(self)
+            self._opengl_context._bindings.discard(self)
 
     def activate(self):
         'Activate the bindings by binding the OpenGL vertex array object.'
