@@ -1018,6 +1018,7 @@ class Drawing:
         '''
         Delete drawing and all child drawings.
         '''
+        self.was_deleted = True
         c = self._opengl_context
         if c:
             c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
@@ -1058,8 +1059,6 @@ class Drawing:
 
         self._opengl_context = None
         
-        self.was_deleted = True
-
     def _create_vertex_buffers(self):
         from . import opengl
         vbufs = (
