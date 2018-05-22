@@ -3,8 +3,8 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # Using nightly OpenMM Mac and Linux builds from https://anaconda.org/omnia/openmm/files
-PYVER = py36
-VERSION = 7.1.1
+PYVER = py36_1
+VERSION = 7.2.2
 ifeq ($(OS),Darwin)
 PLATFORM = mac
 endif
@@ -24,7 +24,7 @@ OPENMM_LIB_INSTALL = $(libdir)/openmm
 # Python file on all 3 platforms.  Also the Windows Python has /r/n DOS
 # line endings and patches expecting /n line endings will fail.
 # Probably easiest to make a separate Windows patch.
-PATCHES	= $(wildcard OpenMM-$(VERSION)-$(OS)-*.patch)
+PATCHES	= $(wildcard OpenMM-$(OS)-*.patch)
 
 ifeq ($(OS),Windows)
 

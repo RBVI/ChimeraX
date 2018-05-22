@@ -1,7 +1,7 @@
 Build notes for OpenMM
 ----------------------
 
-On Mac, Linux and Windowsusing the OpenMM 7.1.1 build from https://anaconda.org/omnia/openmm/files.
+On Mac, Linux and Windows using the OpenMM 7.1.1 build from https://anaconda.org/omnia/openmm/files.
 
 Details of older builds follow:
 
