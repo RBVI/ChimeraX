@@ -88,6 +88,7 @@ class Structure(Model, StructureData):
             return id
         return '%s %s' % (self.name, id)
 
+    @property
     def atomspec(self):
         return '#' + self.id_string()
 
