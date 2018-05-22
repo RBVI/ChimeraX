@@ -337,7 +337,6 @@ class Volume(Model):
   def _get_single_color(self):
     rep = self.representation
     from chimerax.core.colors import rgba_to_rgba8
-    from numpy import argmin
     if rep in ('surface', 'mesh'):
       surfs = self.surfaces
       if surfs:
@@ -345,7 +344,9 @@ class Volume(Model):
     elif rep == 'solid':
       lev = self.solid_levels
       if lev:
-        return rgba_to_rgba8(self.solid_colors[argmin(lev)])
+        from numpy import argmin
+        i = argmin([v for v,b in lev])
+        return rgba_to_rgba8(self.solid_colors[i])
     drgba = self.data.rgba
     if drgba:
       return rgba_to_rgba8(drgba)

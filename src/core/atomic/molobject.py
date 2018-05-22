@@ -533,7 +533,8 @@ class PseudobondManager(StateManager):
         f(self._c_pointer, pbg._c_pointer)
 
     def get_group(self, name, create = True):
-        '''Get an existing :class:`.PseudobondGroup` or create a new one with the given name.'''
+        "Supported API. Get an existing :class:`.PseudobondGroup`"
+        " or create a new one with the given name."
         f = c_function('pseudobond_global_manager_get_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
@@ -682,19 +683,19 @@ class Ring:
         return not hasattr(self, '_c_pointer')
 
     aromatic = c_property('ring_aromatic', npy_bool, read_only=True,
-        doc="Whether the ring is aromatic. Boolean value.")
+        doc="Supported API. Whether the ring is aromatic. Boolean value.")
     atoms = c_property('ring_atoms', cptr, 'size', astype = _atoms, read_only = True,
-        doc=":class:`.Atoms` collection containing the atoms of the ring, "
+        doc="Supported API. :class:`.Atoms` collection containing the atoms of the ring, "
         "in no particular order (see :meth:`.Ring.ordered_atoms`).")
     bonds = c_property('ring_bonds', cptr, 'size', astype = _bonds, read_only = True,
-        doc=":class:`.Bonds` collection containing the bonds of the ring, "
+        doc="Supported API. :class:`.Bonds` collection containing the bonds of the ring, "
         "in no particular order (see :meth:`.Ring.ordered_bonds`).")
     ordered_atoms = c_property('ring_ordered_atoms', cptr, 'size', astype=_atoms, read_only=True,
         doc=":class:`.Atoms` collection containing the atoms of the ring, in ring order.")
     ordered_bonds = c_property('ring_ordered_bonds', cptr, 'size', astype=_bonds, read_only=True,
         doc=":class:`.Bonds` collection containing the bonds of the ring, in ring order.")
     size = c_property('ring_size', size_t, read_only=True,
-        doc="Number of atoms (and bonds) in the ring. Read only.")
+        doc="Supported API. Number of atoms (and bonds) in the ring. Read only.")
 
     def __eq__(self, r):
         if not isinstance(r, Ring):

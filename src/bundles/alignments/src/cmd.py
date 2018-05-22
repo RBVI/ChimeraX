@@ -25,6 +25,17 @@ class SeqArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        align_seq, text, rest = AlignSeqPairArg.parse(text, session)
+        return align_seq[-1], text, rest
+
+class AlignSeqPairArg(Annotation):
+    '''Same as SeqArg, but the return value is (alignment, seq)'''
+
+    name = "[alignment-id]:sequence-name-or-number"
+    _html_name = "[<i>alignment-id</i>]:<i>sequence-name-or-number</i>"
+
+    @staticmethod
+    def parse(text, session):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
             raise AnnotationError("Expected %s" % SeqArg.name)
@@ -34,7 +45,7 @@ class SeqArg(Annotation):
         align_id, seq_id = token.split(':', 1)
         alignment = get_alignment_by_id(session, align_id)
         seq = get_alignment_sequence(alignment, seq_id)
-        return seq, text, rest
+        return (alignment, seq), text, rest
 
 class AlignmentArg(Annotation):
     '''A sequence alignment'''
@@ -79,7 +90,7 @@ def get_alignment_by_id(session, align_id, *, multiple_okay=False):
             raise AnnotationError("No alignments open!")
         elif len(session.alignments.alignments) > 1:
             if multiple_okay:
-                return session.alignments.alignments[:]
+                return list(session.alignments.alignments.values())
             raise AnnotationError("More than one sequence alignment open;"
                 " need to specify an alignment ID")
         alignment = list(session.alignments.alignments.values())[0]

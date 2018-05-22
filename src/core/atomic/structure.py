@@ -88,6 +88,7 @@ class Structure(Model, StructureData):
             return id
         return '%s %s' % (self.name, id)
 
+    @property
     def atomspec(self):
         return '#' + self.id_string()
 
@@ -176,6 +177,16 @@ class Structure(Model, StructureData):
                 pas = ribbonable.existing_principal_atoms
                 nucleic = pas.residues.filter(pas.names != "CA")
                 display |= nucleic
+                if nucleic:
+                    from chimerax.nucleotides.cmd import nucleotides
+                    if len(nucleic) < 5:
+                        pass
+                    elif len(nucleic) < 50:
+                        nucleotides(self.session, 'fill/slab', objects=nucleic)
+                    elif len(nucleic) < 250:
+                        nucleotides(self.session, 'tube/slab', objects=nucleic)
+                    else:
+                        nucleotides(self.session, 'ladder', objects=nucleic)
                 if ligand:
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords

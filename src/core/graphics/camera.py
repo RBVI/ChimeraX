@@ -387,9 +387,9 @@ class StereoCamera(Camera):
         '''
         self.position = perspective_view_all(bounds, self.position, self.field_of_view, window_size, pad)
         if window_size is not None:
-            self._set_eye_separation(bounds.center(), window_size[0])
+            self.set_focus_depth(bounds.center(), window_size[0])
 
-    def _set_eye_separation(self, point_on_screen, window_width):
+    def set_focus_depth(self, point_on_screen, window_width):
         from ..geometry import inner_product
         z = inner_product(self.view_direction(), point_on_screen - self.position.origin())
         if z <= 0:

@@ -2096,6 +2096,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
 
 
 def _get_help_url(words):
+    # return help: URLs so links work in log as well as help viewer
     import os
     from urllib.parse import urlunparse
     from urllib.request import pathname2url
@@ -2105,18 +2106,13 @@ def _get_help_url(words):
         frag = '%20'.join(words)
     else:
         frag = '%20'.join(words[1:])
-    if frag:
-        frag = '#' + frag
-    try:
-        from chimerax.help_viewer import help_directories
-    except ImportError:
-        import chimerax
-        help_directories = [os.path.join(chimerax.app_data_dir, 'docs')]
+    from .. import toolshed
+    help_directories = toolshed.get_help_directories()
     cmd_subpath = os.path.join('user', 'commands', '%s.html' % cname)
     for hd in help_directories:
         cpath = os.path.join(hd, cmd_subpath)
         if os.path.exists(cpath):
-            return urlunparse(('file', '', pathname2url(cpath), '', '', frag))
+            return urlunparse(('help', '', "user/commands/%s.html" % cname, '', '', frag))
     return None
 
 
@@ -2163,7 +2159,7 @@ def deregister(name, *, is_user_alias=False, registry=None):
 
 
 def register_available(*args, **kw):
-    return register(*args, _parent_info=_available_commands, **kw)
+    return register(*args, registry=_available_commands, **kw)
 
 
 def clear_available():
@@ -2279,8 +2275,6 @@ class Command:
         self.word_info = None  # filled in when partial command is matched
         if parent_info is None:
             parent_info = self.registry.commands
-        else:
-            parent_info = parent_info.commands
         cmd_name = None
         self.start = self.amount_parsed
         start = self.start
@@ -2594,18 +2588,19 @@ class Command:
         while 1:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
-                if self.registry == self._command_info:
+                if self.registry == _command_info:
                     # See if this command is available in the toolshed
                     save_error = self._error
                     self._error = ""
                     global _available_commands
                     if _available_commands is None:
                         from .. import toolshed
-                        _available_commands = _WordInfo(self.registry)
-                        toolshed.init().register_available_commands(session.logger)
+                        _available_commands = RegisteredCommandInfo()
+                        ts = toolshed.get_toolshed()
+                        ts.register_available_commands(session.logger)
                     self._find_command_name(final, used_aliases=_used_aliases,
-                                            parent_info=_available_commands)
-                if self._error:
+                                            parent_info=_available_commands.commands)
+                if self._error or not self._ci:
                     # Nope, give the original error message
                     self._error = save_error
                     if log:

@@ -282,7 +282,7 @@ class Alignment(State):
         self.viewers.remove(viewer)
         sc = self.viewer_to_subcommand.get(viewer, None)
         if sc:
-            self.viewers_by_subcommand[subcommand_name].remove(viewer)
+            self.viewers_by_subcommand[sc].remove(viewer)
         if not self.viewers and self.auto_destroy and not self._in_destroy:
             self.session.alignments.destroy_alignment(self)
 
@@ -480,6 +480,9 @@ class Alignment(State):
                 match_map.del_handler = chain.triggers.add_handler('delete',
                     lambda _1, sseq, aln=aln: aln.disassociate(sseq))
         return aln
+
+    def __str__(self):
+        return self.ident
 
     SESSION_SAVE = True
     

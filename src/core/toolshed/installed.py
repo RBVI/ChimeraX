@@ -45,6 +45,10 @@ def _hack_distlib(f):
 
 class InstalledBundleCache(list):
 
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.help_directories = []
+
     @_hack_distlib
     def load(self, logger, cache_file=None, rebuild_cache=False, write_cache=True):
         """Load list of installed bundles.
@@ -62,6 +66,7 @@ class InstalledBundleCache(list):
         if cache_file and not rebuild_cache:
             if self._read_cache(cache_file):
                 _debug("InstalledBundleCache.load: using cached data")
+                self._set_help_directories()
                 return
         #
         # Okay, no cache.  Go through all installed packages
@@ -127,6 +132,7 @@ class InstalledBundleCache(list):
         if cache_file and write_cache:
             _debug("InstalledBundleCache.load: write_cache")
             self._write_cache(cache_file, logger)
+        self._set_help_directories()
 
     def register_all(self, logger, session, package_map):
         """Register all installed bundles.
@@ -261,6 +267,14 @@ class InstalledBundleCache(list):
                     print(file=f)
                     json.dump([bi.cache_data() for bi in self], f,
                               ensure_ascii=False, check_circular=False)
+
+    def _set_help_directories(self):
+        hd = []
+        for bi in self:
+            help_dir = bi.get_path('docs')
+            if help_dir is not None:
+                hd.append(help_dir)
+        self.help_directories = hd
 
 
 #

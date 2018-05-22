@@ -17,9 +17,6 @@ def cmd_torsion_create(session, ident, bond, move="small"):
     """Wrapper called by command line."""
 
     mgr = session.bond_rotations
-    br = mgr.rotation_for_bond(bond, create=False)
-    if br:
-        raise UserError("Bond rotation already active for that bond (ident: %d)" % br.ident)
     from .manager import BondRotationError
     try:
         mgr.new_rotation(bond, ident=ident, move_smaller_side=(move == "small"), one_shot=False)
