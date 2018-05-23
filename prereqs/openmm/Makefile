@@ -54,6 +54,11 @@ ifneq (,$(PATCHES))
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
 	done
 endif
+ifeq ($(OS),Windows)
+	cd $(SOURCE)/Lib ; \
+	  chmod a+x *dll *.lib plugins/*.dll plugins/*.lib ; \
+	  chmod a+x site-packages/simtk/openmm/_openmm*.pyd
+endif
 
 clean:
 	rm -rf $(SOURCE)
