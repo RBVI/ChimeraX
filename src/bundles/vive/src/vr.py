@@ -541,7 +541,7 @@ class UserInterface:
         self._start_ui_move_time = None
         self._last_ui_position = None
         self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
-        self._button_down = {}		# Whether hand controller button is pressed and not yet released.
+        self._buttons_down = set()	# Hand controller buttons that are pressed and not yet released.
 
         # Buttons that can be pressed on user interface.
         import openvr
@@ -592,18 +592,24 @@ class UserInterface:
         return (px,py), on_panel
 
     def press(self, button, window_xy):
-        self._button_down[button] = True
-        return self._click(True, window_xy)
+        self._buttons_down.add(button)
+        return self._click('press', window_xy)
+
+    def move(self, button, window_xy):
+        return self._click('move', window_xy)
 
     def release(self, button, window_xy):
-        self._button_down[button] = False
-        return self._click(False, window_xy)
+        self._buttons_down.discard(button)
+        return self._click('release', window_xy)
 
-    def button_down(self, button):
-        self._button_down.get(button)
+    def is_button_down(self, button = None):
+        if button is None:
+            return len(self._buttons_down) > 0
+        return button in self._buttons_down
         
-    def _click(self, pressed, window_xy):
-        if self._post_mouse_event(pressed, window_xy):
+    def _click(self, type, window_xy):
+        '''Type can be "press" or "release".'''
+        if self._post_mouse_event(type, window_xy) and type != 'move':
             self._update_later = self._update_delay
             self._update_ui_image()
             return True
@@ -636,15 +642,23 @@ class UserInterface:
             m = None
         return m
     
-    def _post_mouse_event(self, pressed, window_xy):
+    def _post_mouse_event(self, type, window_xy):
+        '''Type is "press", "release" or "move".'''
         w, pos = self._clicked_widget(window_xy)
         if w is None or pos is None:
             return False
         from PyQt5.QtGui import QMouseEvent
         from PyQt5.QtCore import Qt, QEvent
-        type = QEvent.MouseButtonPress if pressed else QEvent.MouseButtonRelease
-        buttons = Qt.LeftButton if pressed else Qt.NoButton
-        me = QMouseEvent(type, pos, Qt.LeftButton, buttons, Qt.NoModifier)
+        if type == 'press':
+            et = QEvent.MouseButtonPress
+            buttons = Qt.LeftButton
+        elif type == 'release':
+            et = QEvent.MouseButtonRelease
+            buttons =  Qt.NoButton
+        elif type == 'move':
+            et = QEvent.MouseMove
+            buttons =  Qt.NoButton
+        me = QMouseEvent(et, pos, Qt.LeftButton, buttons, Qt.NoModifier)
         self._session.ui.postEvent(w, me)
         return True
         
@@ -851,7 +865,7 @@ class HandControllerModel(Model):
             return False
         
         window_xy, on_panel = ui.click_position(self.room_position.origin())
-        if released and ui.button_down(b) and window_xy:
+        if released and ui.is_button_down(b) and window_xy:
             # Always release mouse button even if off panel.
             ui.release(b, window_xy)
         elif on_panel:
@@ -896,6 +910,13 @@ class HandControllerModel(Model):
                 self.show_icons(highlight_position = xy)
         
     def process_motion(self, camera):
+        # Generate mouse move event on ui panel.
+        ui = camera.user_interface
+        if ui.is_button_down():
+            window_xy, on_panel = ui.click_position(self.room_position.origin())
+            ui.move(window_xy)
+            return
+
         # Handle motion events when controller buttons pressed
         previous_pose = self._pose
         self._update_position(camera)
