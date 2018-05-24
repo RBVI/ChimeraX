@@ -327,7 +327,10 @@ class Toolshed:
 
         # Reload the bundle info list
         _debug("loading bundles")
-        self.init_available_from_cache(logger)
+        try:
+            self.init_available_from_cache(logger)
+        except Exception:
+            logger.report_exception("Error preloading available bundles")
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
