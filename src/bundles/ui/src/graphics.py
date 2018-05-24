@@ -38,11 +38,14 @@ class GraphicsWindow(QWindow):
         if opengl_context is None:
             from chimerax.core.graphics import OpenGLContext
             oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
-        elif opengl_context.enable_stereo(stereo, window = self):
-            oc = opengl_context
         else:
-            from chimerax.core.errors import UserError
-            raise UserError('Failed to switch OpenGL stereo mode')
+            from chimerax.core.graphics import OpenGLError
+            try:
+                opengl_context.enable_stereo(stereo, window = self)
+            except OpenGLError as e:
+                from chimerax.core.errors import UserError
+                raise UserError(str(e))
+            oc = opengl_context
 
         self.opengl_context = oc
         self.view.initialize_rendering(oc)

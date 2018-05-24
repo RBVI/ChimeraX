@@ -124,6 +124,7 @@ class OpenGLContext:
         return True
     
     def _initialize_context(self, mode = None, window = None):
+        '''Can raise OpenGLError, or OpenGLVersion error.'''
         if mode is None:
             mode = self._mode
 
@@ -146,12 +147,19 @@ class OpenGLContext:
         # Validate context
         if not qc.create():
             self._contexts[mode] = False
-            raise OpenGLError("Could not create OpenGL context")
+            raise OpenGLError("Could not create OpenGL context" % st)
+
+        # Check if stereo obtained.
+        got_fmt = qc.format()
+        if fmt.stereo() and not got_fmt.stereo():
+            raise OpenGLError("Could not create stereo OpenGL context")
+
+        # Check if opengl version is adequate.
         try:
             self._check_context_version(qc.format())
         except:
             self._contexts[mode] = False
-            raise
+            raise	# OpenGLVersionError
 
         if window:
             self.window = window
@@ -237,17 +245,11 @@ class OpenGLContext:
         # Replace current context with stereo context sharing state.
         qc = self._contexts.get(mode)
         if not qc:
-            try:
-                qc = self._initialize_context(mode, window)
-            except OpenGLError:
-                return False
-            if not qc:
-                return False
+            # This can raise OpenGLError
+            qc = self._initialize_context(mode, window)
 
         self._mode = mode
         self.window = window
-
-        return True
 
 def remember_current_opengl_context():
     '''
