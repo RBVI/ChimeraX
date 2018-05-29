@@ -329,6 +329,10 @@ class Toolshed:
 
         # Reload the bundle info list
         _debug("loading bundles")
+        try:
+            self.init_available_from_cache(logger)
+        except Exception:
+            logger.report_exception("Error preloading available bundles")
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
@@ -409,7 +413,7 @@ class Toolshed:
     def reload_available(self, logger):
         from urllib.error import URLError
         from .available import AvailableBundleCache
-        abc = AvailableBundleCache()
+        abc = AvailableBundleCache(self._cache_dir)
         try:
             abc.load(logger, self.remote_url)
         except URLError as e:
@@ -428,6 +432,16 @@ class Toolshed:
                 self._abc_updating = False
                 from ..commands import cli
                 cli.clear_available()
+
+    def init_available_from_cache(self, logger):
+        from .available import AvailableBundleCache
+        abc = AvailableBundleCache(self._cache_dir)
+        try:
+            abc.load_from_cache()
+        except FileNotFoundError:
+            logger.info("available bundle cache has not been initialized yet")
+        else:
+            self._available_bundle_info = abc
 
     def register_available_commands(self, logger):
         for bi in self._get_available_bundles(logger):
@@ -692,12 +706,12 @@ class Toolshed:
     def _get_available_bundles(self, logger):
         with self._abc_lock:
             if self._available_bundle_info is None:
-                from .available import AvailableBundleCache
                 if self._abc_updating:
                     logger.warning("still retrieving bundle list from toolshed")
                 else:
                     logger.warning("could not retrieve bundle list from toolshed")
-                self._available_bundle_info = AvailableBundleCache()
+                from .available import AvailableBundleCache
+                self._available_bundle_info = AvailableBundleCache(self._cache_dir)
             elif self._abc_updating:
                 logger.warning("still updating bundle list from toolshed")
             return self._available_bundle_info

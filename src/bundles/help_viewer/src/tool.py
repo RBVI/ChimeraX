@@ -222,7 +222,7 @@ class HelpUI(ToolInstance):
             w = self.tabs.currentWidget()
         from PyQt5.QtCore import QUrl
         if html:
-            w.setHtml(html, url)
+            w.setHtml(html, QUrl(url))
         else:
             w.setUrl(QUrl(url))
         self.display(True)
