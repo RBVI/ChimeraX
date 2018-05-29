@@ -70,7 +70,7 @@ class MouseModePanel(ToolInstance):
                 if ' ' in mname:
                     mname = '"%s"' % mname
                 from chimerax.core.commands import run
-                run(self.session, 'mousemode %s %s' % (self.button_to_bind, mname))
+                run(self.session, 'ui mousemode %s %s' % (self.button_to_bind, mname))
             action.triggered.connect(button_press_cb)
             action.mouse_mode = mode
             group.addAction(action)
@@ -118,7 +118,7 @@ class MouseModePanel(ToolInstance):
                 if ' ' in mname:
                     mname = '"%s"' % mname
                 from chimerax.core.commands import run
-                run(self.session, 'mousemode %s %s' % (self.button_to_bind, mname))
+                run(self.session, 'ui mousemode %s %s' % (self.button_to_bind, mname))
             action.triggered.connect(button_press_cb)
             action.mouse_mode = mode
             group.addAction(action)

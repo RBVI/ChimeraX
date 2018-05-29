@@ -319,6 +319,8 @@ class Toolshed:
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_UNINSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_RELOADED)
+        self.triggers.add_trigger("selector registered")
+        self.triggers.add_trigger("selector deregistered")
 
         # Variables for updating list of available bundles
         from threading import RLock

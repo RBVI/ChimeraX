@@ -1,0 +1,60 @@
+<BundleInfo name="ChimeraX-ChemGroup" version="1.0"
+	    package="chimerax.chem_group"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Detect chemically functional groups</Synopsis>
+  <Description>This bundle provides the ability for detection of functional groups in a structure.</Description>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <CModule name="_chem_group">
+    <SourceFile>_cg/cg.cpp</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>pyinstance</Library>
+    <Library>arrays</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: sel :: selected atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: all :: everything</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: ions :: ions</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: ligand :: ligands</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: main :: main structure</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: solvent :: solvent</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: strand :: beta sheet strands</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: helix :: protein helices</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: coil :: protein coils</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: protein :: proteins</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: nucleic :: nucleic acids</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: nucleic-acid :: nucleic acids</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: pbonds :: pseudobonds</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: hbonds :: hydrogen bonds</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: hbondatoms :: hydrogen bond atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: backbone :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: mainchain :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: sidechain :: side-chain atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: sideonly :: side-chain atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: ribose :: ribose</ChimeraXClassifier>
+    ELEMENT_AND_IDATM_SELECTOR_CLASSIFIERS
+	<ChimeraXClassifier>ChimeraX :: Command :: alias :: General Controls :: create shorthand version of command</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: alias list :: General Controls :: list command aliases</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: alias delete :: General Controls :: remove command alias</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~alias :: General Controls :: remove command alias</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: align :: Structure Comparison :: superimpose specific parts of structures</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: camera :: Viewing Controls :: change "camera" parametrs of main viewing window</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

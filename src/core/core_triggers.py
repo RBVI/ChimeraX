@@ -24,6 +24,7 @@ trigger_info = {
     "background color changed": True,
     "begin restore session": False,
     "begin save session": False,
+    "clipping caps changed": False,
     "distance color changed": False,
     "distance dashes changed": False,
     "distance decimal places changed": False,

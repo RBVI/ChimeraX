@@ -933,10 +933,6 @@ def common_startup(sess):
     from .atomic import PseudobondManager
     sess.pb_manager = PseudobondManager(sess)
 
-    from . import commands
-    commands.register_core_commands(sess)
-    commands.register_core_selectors(sess)
-
     register(
         'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
