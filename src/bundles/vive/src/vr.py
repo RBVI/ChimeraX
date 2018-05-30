@@ -215,6 +215,7 @@ class SteamVRCamera(Camera):
         self.fit_scene_to_room()
         
         # Update camera position every frame.
+        self._frame_started = False
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self._poses = poses_t()
         h = session.triggers.add_handler('new frame', self.next_frame)
@@ -315,12 +316,20 @@ class SteamVRCamera(Camera):
         '''Name of camera.'''
         return 'vr'
 
+    def _start_frame(self):
+        import openvr
+        c = self.compositor
+        if c is None or self._close:
+            return
+        c.waitGetPoses(self._poses, openvr.k_unMaxTrackedDeviceCount, None, 0)
+        self._frame_started = True
+
     def next_frame(self, *_):
         c = self.compositor
         if c is None or self._close:
             return
+        self._start_frame()
         import openvr
-        c.waitGetPoses(self._poses, openvr.k_unMaxTrackedDeviceCount, None, 0)
         hmd_pose0 = self._poses[openvr.k_unTrackedDeviceIndex_Hmd]
         if not hmd_pose0.bPoseIsValid:
             return
@@ -424,6 +433,8 @@ class SteamVRCamera(Camera):
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        if not self._frame_started:
+            self._start_frame()	# Window resize causes draw without new frame trigger.
         fb = self._texture_framebuffer(render)
         if view_num == 0:
             render.push_framebuffer(fb)
@@ -463,6 +474,8 @@ class SteamVRCamera(Camera):
 
         if self._close:
             self._delayed_close()
+
+        self._frame_started = False
 
     def _texture_framebuffer(self, render):
 
