@@ -718,7 +718,7 @@ class UserInterface:
         self._panel_size = (w, h)
         return prgba
 
-    def display_ui(self, button_pressed, hand_room_position):
+    def display_ui(self, button_pressed, hand_room_position, camera_position):
         if button_pressed:
             rp = hand_room_position
             self._last_ui_position = rp
@@ -727,9 +727,10 @@ class UserInterface:
                 self._start_ui_move_time = time()
             else:
                 # Orient horizontally and perpendicular to floor
-                fx,fy,fz = rp.z_axis()
-                from chimerax.core.geometry import orthonormal_frame
-                p = orthonormal_frame((fx,0,fz), (0,1,0), origin = rp.origin())
+                view_axis = camera_position.origin() - rp.origin()
+                from chimerax.core.geometry import orthonormal_frame, translation
+                p = orthonormal_frame(view_axis, (0,1,0), origin = rp.origin())
+                p = translation(0.5 * self._width * p.axes()[1]) * p
                 self.show(p)
         else:
             # End UI move, or hide.
@@ -963,9 +964,9 @@ class HandMode:
 
 class ShowUIMode(HandMode):
     def pressed(self, camera, hand_controller):
-        camera.user_interface.display_ui(True, hand_controller.room_position)
+        camera.user_interface.display_ui(True, hand_controller.room_position, camera.room_position)
     def released(self, camera, hand_controller):
-        camera.user_interface.display_ui(False, hand_controller.room_position)
+        camera.user_interface.display_ui(False, hand_controller.room_position, camera.room_position)
     def drag(self, camera, hand_controller, previous_pose, pose):
         oc = camera.other_controller(hand_controller)
         if self._ui_zoom(oc):
