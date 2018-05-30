@@ -27,7 +27,7 @@ class SwapAAMouseMode(MouseMode):
                                         'GLN', 'GLU', 'GLY', 'HIS', 'ILE',
                                         'LEU', 'LYS', 'MET', 'PHE', 'PRO',
                                         'SER', 'THR', 'TRP', 'TYR', 'VAL']
-        self._template_pdb_id = '5NLD'		# Source of atom coordinates for each residue.
+        self._template_pdb_id = '5D8V'		# Source of atom coordinates for each residue.
         self._label_atom_name = 'CA'		# Which atom to show residue label on.
         
     def enable(self):
