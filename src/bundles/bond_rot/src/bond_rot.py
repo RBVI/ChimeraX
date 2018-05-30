@@ -98,6 +98,10 @@ class BondRotater(State):
         axis = normalize_vector(moving - fixed)
         return axis
 
+    @property
+    def bond(self):
+        return self.rotation.bond
+
     # session methods
     def reset_state(self, session):
         # manager will nuke everything

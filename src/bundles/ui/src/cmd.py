@@ -16,7 +16,7 @@
 #
 def register_ui_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, make_alias
+    from chimerax.core.commands import CmdDesc, register, create_alias
     from chimerax.core.commands import BoolArg, StringArg, NoArg
 
     ui_autostart_desc = CmdDesc(
