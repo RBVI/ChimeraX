@@ -83,13 +83,12 @@ class _HelpWebView(ChimeraXHtmlView):
         # check for help:user and generate the index page if need be
         qurl = request_info.requestUrl()
         scheme = qurl.scheme()
-        if scheme == 'file' and qurl.path().endswith(('/user', '/user/index.html')):
+        if scheme == 'file' and qurl.path().endswith(('/docs/user', '/docs/user/index.html')):
             import os, sys
-            url_path = qurl.path()
             path = qurl.toLocalFile()
             from chimerax import app_dirs
             cached_index = os.path.join(app_dirs.user_cache_dir, 'docs', 'user', 'index.html')
-            if not os.path.exists(cached_index) or not os.path.samefile(path, cached_index):
+            if not os.path.exists(cached_index):
                 from .cmd import _generate_index
                 from chimerax import app_data_dir
                 path = os.path.join(app_data_dir, 'docs', 'user', 'index.html')
