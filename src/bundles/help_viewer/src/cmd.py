@@ -13,6 +13,7 @@
 
 from chimerax.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, run, cli
 from collections import OrderedDict
+import os
 
 
 def help(session, topic=None, *, option=None):
@@ -25,13 +26,12 @@ def help(session, topic=None, *, option=None):
         specified then the overview is shown.  Topics that are command names
         can be abbreviated.
     '''
-    from . import help_directories
+    from chimerax.core import toolshed
     url = None
     html = None
     if topic is None:
         topic = 'help:index.html'
     if topic.startswith('help:'):
-        import os
         import sys
         from urllib.parse import urlparse, urlunparse, quote
         from urllib.request import url2pathname, pathname2url
@@ -44,7 +44,9 @@ def help(session, topic=None, *, option=None):
                 help_path = os.path.relpath(help_path, os.path.splitdrive(help_path)[0])
             else:
                 help_path = os.path.relpath(help_path, '/')
-        for hd in help_directories:
+        if not os.path.splitext(help_path)[1]:
+            help_path = os.path.join(help_path, 'index.html')
+        for hd in toolshed.get_help_directories():
             path = os.path.join(hd, help_path)
             if os.path.exists(path):
                 break
@@ -52,11 +54,11 @@ def help(session, topic=None, *, option=None):
             # TODO? handle missing doc -- redirect to web server
             session.logger.error("No help found for '%s'" % topic)
             return
-        if os.path.isdir(path):
-            path += '/index.html'
-        if help_path in ('user', 'user/index.html'):
+        if url_path in ('user', 'user/index.html'):
             with open(path) as f:
-                html = _generate_index(f)
+                new_path = _generate_index(f)
+                if new_path is not None:
+                    path = new_path
         url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
     else:
         cmd_name = topic
@@ -103,6 +105,13 @@ def _generate_index(source):
     # Take contents of source, look for lists of tools and commands,
     # and insert tools and commands from bundles that come with
     # documentation
+    from chimerax import app_dirs
+    user_dir = os.path.join(app_dirs.user_cache_dir, 'docs', 'user')
+    path = os.path.join(user_dir, 'index.html')
+    if os.path.exists(path):
+        return path
+    os.makedirs(user_dir, exist_ok=True)
+
     from chimerax.core import toolshed
     ts = toolshed.get_toolshed()
     if ts is None:
@@ -116,7 +125,11 @@ def _generate_index(source):
             _update_list(ts, node, 'commands', _update_commands)
         elif ident == "tlist":
             _update_list(ts, node, 'tools', _update_tools)
-    return lxml.html.tostring(html).decode(errors='replace')
+    data = lxml.html.tostring(html)
+    os.makedirs(user_dir, exist_ok=True)
+    with open(path, 'wb') as f:
+        f.write(data)
+    return path
 
 
 def _update_list(toolshed, node, what, callback):
@@ -173,7 +186,7 @@ def _update_list(toolshed, node, what, callback):
 
 
 def _update_commands(toolshed, doc_ul, doc):
-    import lxml.etree as ET
+    from lxml.html import builder as E
     missing = OrderedDict()
     for bi in toolshed.bundle_info(None):
         for cmd in bi.commands:
@@ -185,9 +198,9 @@ def _update_commands(toolshed, doc_ul, doc):
             if len(words) > 1:
                 # synopsis not appropriate for multiword commands
                 synopsis = bi.synopsis
-            href = bi.get_path("docs/user/commands/%s.html" % name)
+            href = bi.get_path(os.path.join("docs", "user", "commands", "%s.html" % name))
             if href:
-                missing[name] = ("help:user/commands/%s.html" % name, synopsis)
+                missing[name] = ("commands/%s.html" % name, synopsis)
     names = list(doc)
     missing_names = list(missing)
     all_names = names + missing_names
@@ -198,21 +211,21 @@ def _update_commands(toolshed, doc_ul, doc):
         if synopsis:
             synopsis = " - " + synopsis
         doc_ul.insert(
-            i, ET.HTML('<li><a href="%s"><b>%s</b></a>%s</li>' % (
-                href, name, synopsis)))
+            i, E.LI(E.A(E.B(name), href=href), synopsis))
 
 
 def _update_tools(toolshed, doc_ul, doc):
-    import lxml.etree as ET
+    from lxml.html import builder as E
     missing = OrderedDict()
     for bi in toolshed.bundle_info(None):
         for t in bi.tools:
             name = t.name
             if name in doc:
                 continue
-            href = bi.get_path("docs/user/tools/%s.html" % name.replace(' ', '_'))
+            pname = name.replace(' ', '_')
+            href = bi.get_path(os.path.join("docs", "user", "tools", "%s.html" % pname))
             if href:
-                missing[name] = (href, t.synopsis)
+                missing[name] = ("tools/%s.html" % pname, t.synopsis)
     names = list(doc)
     missing_names = list(missing)
     all_names = names + missing_names
@@ -223,5 +236,4 @@ def _update_tools(toolshed, doc_ul, doc):
         if synopsis:
             synopsis = " - " + synopsis
         doc_ul.insert(
-            i, ET.HTML('<li><a href="%s"><b>%s</b></a>%s</li>' % (
-                href, name, synopsis)))
+            i, E.LI(E.A(E.B(name), href=href), synopsis))

@@ -3018,7 +3018,7 @@ def registered_commands(multiword=False, _start=None):
     if _start:
         parent_info = _start
     else:
-        parent_info = _commands
+        parent_info = _command_info.commands
 
     if not multiword:
         words = list(parent_info.subcommands.keys())
@@ -3179,7 +3179,7 @@ def list_aliases(all=False, logger=None):
                 yield partial_name
         elif parent_info.is_user_alias():
             yield partial_name
-    return list(find_aliases('', _commands))
+    return list(find_aliases('', _command_info.commands))
 
 
 def expand_alias(name, *, registry=None):
