@@ -13,6 +13,7 @@
 
 from chimerax.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, run, cli
 from collections import OrderedDict
+import os
 
 
 def help(session, topic=None, *, option=None):
@@ -31,7 +32,6 @@ def help(session, topic=None, *, option=None):
     if topic is None:
         topic = 'help:index.html'
     if topic.startswith('help:'):
-        import os
         import sys
         from urllib.parse import urlparse, urlunparse, quote
         from urllib.request import url2pathname, pathname2url
@@ -185,7 +185,7 @@ def _update_commands(toolshed, doc_ul, doc):
             if len(words) > 1:
                 # synopsis not appropriate for multiword commands
                 synopsis = bi.synopsis
-            href = bi.get_path("docs/user/commands/%s.html" % name)
+            href = bi.get_path(os.path.join("docs", "user", "commands", "%s.html" % name))
             if href:
                 missing[name] = ("help:user/commands/%s.html" % name, synopsis)
     names = list(doc)
@@ -210,9 +210,10 @@ def _update_tools(toolshed, doc_ul, doc):
             name = t.name
             if name in doc:
                 continue
-            href = bi.get_path("docs/user/tools/%s.html" % name.replace(' ', '_'))
+            pname = name.replace(' ', '_')
+            href = bi.get_path(os.path.join("docs", "user", "tools", "%s.html" % pname))
             if href:
-                missing[name] = (href, t.synopsis)
+                missing[name] = ("help:user/tools/%s.html" % pname, t.synopsis)
     names = list(doc)
     missing_names = list(missing)
     all_names = names + missing_names
