@@ -79,6 +79,31 @@ class _HelpWebView(ChimeraXHtmlView):
         #    menu.addAction(page.action(QWebEnginePage.SavePage))
         menu.popup(event.globalPos())
 
+    def link_clicked(self, request_info, *args):
+        # check for help:user and generate the index page if need be
+        qurl = request_info.requestUrl()
+        scheme = qurl.scheme()
+        if scheme == 'file' and qurl.path().endswith(('/user', '/user/index.html')):
+            import os, sys
+            url_path = qurl.path()
+            path = qurl.toLocalFile()
+            from chimerax import app_dirs
+            cached_index = os.path.join(app_dirs.user_cache_dir, 'docs', 'user', 'index.html')
+            if not os.path.exists(cached_index) or not os.path.samefile(path, cached_index):
+                from .cmd import _generate_index
+                from chimerax import app_data_dir
+                path = os.path.join(app_data_dir, 'docs', 'user', 'index.html')
+                new_path = _generate_index(path)
+                if new_path is not None:
+                    if sys.platform == 'win32':
+                        new_path = new_path.replace(os.path.sep, '/')
+                        if os.path.isabs(new_path):
+                            new_path = '/' + new_path
+                    qurl.setPath(new_path)
+                    request_info.redirect(qurl)
+                    return
+        super().link_clicked(request_info, *args)
+
 
 class HelpUI(ToolInstance):
 
