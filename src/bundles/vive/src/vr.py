@@ -621,10 +621,13 @@ class UserInterface:
     def _click(self, type, window_xy):
         '''Type can be "press" or "release".'''
         if self._post_mouse_event(type, window_xy) and type != 'move':
-            self._update_later = self._update_delay
-            self._update_ui_image()
+            self.redraw_ui()
             return True
         return False
+
+    def redraw_ui(self):
+        self._update_later = self._update_delay
+        self._update_ui_image()
 
     def update_if_needed(self):
         if self.shown() and self._update_later:
@@ -647,10 +650,8 @@ class UserInterface:
             m = ZoomMode()
         elif name in ('rotate', 'translate'):
             m = MoveSceneMode()
-        elif hasattr(mouse_mode, 'laser_click') or hasattr(mouse_mode, 'drag_3d'):
-            m = MouseMode(mouse_mode)
         else:
-            m = None
+            m = MouseMode(mouse_mode)
         return m
     
     def _post_mouse_event(self, type, window_xy):
@@ -717,7 +718,7 @@ class UserInterface:
         self._panel_size = (w, h)
         return prgba
 
-    def display_ui(self, button_pressed, hand_room_position):
+    def display_ui(self, button_pressed, hand_room_position, camera_position):
         if button_pressed:
             rp = hand_room_position
             self._last_ui_position = rp
@@ -726,9 +727,10 @@ class UserInterface:
                 self._start_ui_move_time = time()
             else:
                 # Orient horizontally and perpendicular to floor
-                fx,fy,fz = rp.z_axis()
-                from chimerax.core.geometry import orthonormal_frame
-                p = orthonormal_frame((fx,0,fz), (0,1,0), origin = rp.origin())
+                view_axis = camera_position.origin() - rp.origin()
+                from chimerax.core.geometry import orthonormal_frame, translation
+                p = orthonormal_frame(view_axis, (0,1,0), origin = rp.origin())
+                p = translation(0.5 * self._width * p.axes()[1]) * p
                 self.show(p)
         else:
             # End UI move, or hide.
@@ -886,9 +888,13 @@ class HandControllerModel(Model):
             if pressed and ui.button_down is None:
                 hand_mode = ui.clicked_mouse_mode(window_xy)
                 if hand_mode:
-                    self._modes[b] = hand_mode
-                    msg = 'VR mode %s' % hand_mode.name
+                    if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
+                        msg = 'No VR support for mouse mode %s' % hand_mode.name
+                    else:
+                        self._modes[b] = hand_mode
+                        msg = 'VR mode %s' % hand_mode.name
                     self.session.logger.status(msg, log = True)
+                    ui.redraw_ui()	# Show log message
                 else:
                     ui.press(window_xy)
                     ui.button_down = (self, b)
@@ -958,9 +964,9 @@ class HandMode:
 
 class ShowUIMode(HandMode):
     def pressed(self, camera, hand_controller):
-        camera.user_interface.display_ui(True, hand_controller.room_position)
+        camera.user_interface.display_ui(True, hand_controller.room_position, camera.room_position)
     def released(self, camera, hand_controller):
-        camera.user_interface.display_ui(False, hand_controller.room_position)
+        camera.user_interface.display_ui(False, hand_controller.room_position, camera.room_position)
     def drag(self, camera, hand_controller, previous_pose, pose):
         oc = camera.other_controller(hand_controller)
         if self._ui_zoom(oc):
@@ -1044,6 +1050,11 @@ class MouseMode(HandMode):
         self._last_drag_room_position = None # Hand controller position at last drag_3d call
         self._laser_range = 5		# Range for mouse mode laser clicks
 
+    @property
+    def has_vr_support(self):
+        m = self._mouse_mode
+        return hasattr(m, 'laser_click') or hasattr(m, 'drag_3d')
+    
     def pressed(self, camera, hand_controller):
         self._click(camera, hand_controller, True)
 

@@ -32,6 +32,9 @@ class DistMouseMode(MouseMode):
         x,y = event.position()
         from chimerax.ui.mousemodes import picked_object
         pick = picked_object(x, y, self.session.main_view)
+        self._picked_object(pick)
+
+    def _picked_object(self, pick):
         warning = lambda txt: self.session.logger.status(
             "Distance mouse mode: %s" % txt, color = "red")
         message = self.session.logger.status
@@ -66,3 +69,8 @@ class DistMouseMode(MouseMode):
                 warning("not a distance")
         else:
             warning("no atom/distance picked by mouse click")
+
+    def laser_click(self, xyz1, xyz2):
+        from chimerax.ui.mousemodes import picked_object_on_segment
+        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        self._picked_object(pick)
