@@ -1125,7 +1125,7 @@ from .info import BundleInfo, CommandInfo, ToolInfo, SelectorInfo, FormatInfo
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.
 _toolshed = None
 
-_default_help_dir = None
+_default_help_dirs = None
 
 
 def init(*args, debug=None, **kw):
@@ -1166,12 +1166,15 @@ def get_toolshed():
 
 
 def get_help_directories():
-    global _default_help_dir
-    if _default_help_dir is None:
+    global _default_help_dirs
+    if _default_help_dirs is None:
         import os
-        from chimerax import app_data_dir
-        _default_help_dir = os.path.join(app_data_dir, 'docs')
-    hd = [_default_help_dir]
+        from chimerax import app_data_dir, app_dirs
+        _default_help_dirs = [
+            os.path.join(app_dirs.user_cache_dir, 'docs'),  # for generated files
+            os.path.join(app_data_dir, 'docs')              # for builtin files
+        ]
+    hd = _default_help_dirs[:]
     if _toolshed is not None:
         hd.extend(_toolshed._installed_bundle_info.help_directories)
     return hd
