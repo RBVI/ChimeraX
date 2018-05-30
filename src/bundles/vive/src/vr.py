@@ -888,11 +888,11 @@ class HandControllerModel(Model):
             if pressed and ui.button_down is None:
                 hand_mode = ui.clicked_mouse_mode(window_xy)
                 if hand_mode:
-                    if hand_mode.has_vr_support:
+                    if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
+                        msg = 'No VR support for mouse mode %s' % hand_mode.name
+                    else:
                         self._modes[b] = hand_mode
                         msg = 'VR mode %s' % hand_mode.name
-                    else:
-                        msg = 'No VR support for mouse mode %s' % hand_mode.name
                     self.session.logger.status(msg, log = True)
                     ui.redraw_ui()	# Show log message
                 else:
