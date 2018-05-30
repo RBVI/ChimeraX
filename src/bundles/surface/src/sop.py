@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -84,9 +86,9 @@ def register_surface_subcommands(logger):
     """
 
     from chimerax.core.commands import CmdDesc, register, SurfacesArg, AtomsArg, FloatArg, \
-		IntArg, BoolArg, EnumOf
+        IntArg, BoolArg, EnumOf
 
-	from .dust import metrics
+    from .dust import metrics
     dust_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('metric', EnumOf(metrics)),
                                    ('size', FloatArg),

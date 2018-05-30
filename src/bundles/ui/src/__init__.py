@@ -18,7 +18,6 @@ ui: ChimeraX user interface
 
 from .mousemodes import MouseMode, SelectMouseMode, RotateMouseMode, TranslateMouseMode, \
                 RotateSelectedMouseMode, TranslateSelectedMouseMode, ZoomMouseMode, mod_key_info
-from .ui_cmd import register_ui_command
 from .htmltool import HtmlToolInstance
 from .font import shrink_font
 from .gui import MainToolWindow
@@ -30,7 +29,7 @@ class _UIBundleAPI(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command is lazily called when command is referenced
-        from .ui_cmd import register_ui_command
+        from .cmd import register_ui_command
         register_ui_command(logger)
 
 bundle_api = _UIBundleAPI()

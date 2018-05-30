@@ -860,7 +860,7 @@ class _Selector:
         return value
 
 
-def register_selector(name, value, session, *,
+def register_selector(name, value, logger, *,
                       user=False, desc=None, atomic=True):
     """Register a (name, value) pair as an atom specifier selector.
 
@@ -876,8 +876,8 @@ def register_selector(name, value, session, *,
         is expected to add selected items to 'results'.
         If an Objects instance, items in value are merged
         with already selected items.
-    session : instance of chimerax.core.session.Session
-        Current session.
+    logger : instance of chimerax.core.logger.Logger
+        Current logger.
     user : boolean
         Boolean value indicating whether name is considered
         user-defined or not.
@@ -889,11 +889,11 @@ def register_selector(name, value, session, *,
         Non-atomic selectors will not appear in Basic Actions tool.
     """
     if not name[0].isalpha():
-        session.logger.warning("registering illegal selector name \"%s\"" % name)
+        logger.warning("registering illegal selector name \"%s\"" % name)
         return
     for c in name[1:]:
         if not c.isalnum() and c not in "-+":
-            session.logger.warning("registering illegal selector name \"%s\"" % name)
+            logger.warning("registering illegal selector name \"%s\"" % name)
             return
     _selectors[name] = _Selector(name, value, user, desc, atomic)
     from ..toolshed import get_toolshed
@@ -902,15 +902,15 @@ def register_selector(name, value, session, *,
         ts.triggers.activate_trigger("selector registered", name)
 
 
-def deregister_selector(name, session):
+def deregister_selector(name, logger):
     """Deregister a name as an atom specifier selector.
 
     Parameters
     ----------
     name : str
         Previously registered selector name.
-    session : instance of chimerax.core.session.Session
-        Current session.
+    logger : instance of chimerax.core.logger.Logger
+        Current logger.
 
     Raises
     ------
@@ -920,7 +920,7 @@ def deregister_selector(name, session):
     try:
         del _selectors[name]
     except KeyError:
-        session.logger.warning("deregistering unregistered selector \"%s\"" % name)
+        logger.warning("deregistering unregistered selector \"%s\"" % name)
     else:
         from ..toolshed import get_toolshed
         ts = get_toolshed()

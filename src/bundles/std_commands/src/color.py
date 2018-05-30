@@ -163,7 +163,7 @@ def color(session, objects, color=None, what=None, target=None,
     if not items:
         items.append('nothing')
 
-    from chimerax.core.command import commas
+    from chimerax.core.commands import commas
     session.logger.status('Colored %s' % commas(items, ' and'))
     session.undo.register(undo_state)
 
@@ -1045,6 +1045,7 @@ def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg
     from chimerax.core.commands import ObjectsArg, create_alias, EmptyArg, Or, EnumOf, StringArg
     from chimerax.core.commands import ListOf, FloatArg, BoolArg, AtomsArg, SurfacesArg
+    from chimerax.core.commands import create_alias
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),

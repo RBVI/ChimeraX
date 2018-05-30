@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimera.core.commands import cli
+from chimerax.core.commands import cli
 
 
 def alias(session, name, text=''):
@@ -22,7 +24,7 @@ def alias(session, name, text=''):
     shown.  If alias text is not given, the text of the named alias
     is shown.  If both arguments are given, then a new alias is made.
     """
-	logger = session.logger
+    logger = session.logger
     if not text:
         text = cli.expand_alias(name)
         if text is None:
@@ -35,7 +37,7 @@ def alias(session, name, text=''):
 
 def list_aliases(session, internal=False):
     # list aliases
-	logger = session.logger
+    logger = session.logger
     aliases = cli.list_aliases(all=internal, logger=logger)
     aliases.sort(key=lambda x: x[x[0] == '~':])
     names = cli.commas(aliases, ' and')
@@ -53,7 +55,7 @@ def unalias(session, name):
     :param name: optional name of the alias
         If not given, then remove all aliases.
     """
-	logger = session.logger
+    logger = session.logger
     if name == 'all':
         cli.remove_alias(user=True, logger=logger)
     else:

@@ -18,7 +18,7 @@ from chimerax.atomic import Element, Atom
 # put the types in first so that the elements 'win'
 for idatm, info in Atom.idatm_info_map.items():
     sel_info[idatm] = info.description
-for i in range(1,Element.NUM_SUPPORTED_ELEMENTS+1):
+for i in range(1,Element.NUM_SUPPORTED_ELEMENTS):
     name = Element.get_element(i).name
     sel_info[name] = "%s (element)" % name
 

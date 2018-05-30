@@ -2074,12 +2074,8 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
     else:
         _parent_info = registry.commands
     for word in words[:-1]:
-        if not _parent_info.has_subcommands():
-            word_info = _parent_info.add_subcommand(word)
-        else:
-            _parent_info.add_subcommand(word, name)
-            word_info = _parent_info.subcommands[word]
-        _parent_info = word_info
+        _parent_info.add_subcommand(word, name)
+        _parent_info = _parent_info.subcommands[word]
 
     if isinstance(function, _Defer):
         cmd_desc = function

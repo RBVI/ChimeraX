@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .motion import CallForNFrames
+from chimerax.core.commands.motion import CallForNFrames
 
 from chimerax.core.commands import Axis
 

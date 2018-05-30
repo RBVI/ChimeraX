@@ -132,7 +132,7 @@ def format_from_name(name, open=True, save=False):
 
 
 def show_citations(session, models):
-    from chimerax.atomic.mmcif import citations
+    from chimerax.core.atomic.mmcif import citations
     c_tmp = []
     for m in models:
         c = citations(m, only='primary')

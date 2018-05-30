@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-ChemGroup" version="1.0"
-	    package="chimerax.chem_group"
+<BundleInfo name="ChimeraX-Std_Commands" version="1.0"
+	    package="chimerax.std_commands"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -12,14 +12,6 @@
   <Categories>
     <Category name="Structure Analysis"/>
   </Categories>
-
-  <CModule name="_chem_group">
-    <SourceFile>_cg/cg.cpp</SourceFile>
-    <Library>atomstruct</Library>
-    <Library>element</Library>
-    <Library>pyinstance</Library>
-    <Library>arrays</Library>
-  </CModule>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
@@ -55,6 +47,73 @@
 	<ChimeraXClassifier>ChimeraX :: Command :: ~alias :: General Controls :: remove command alias</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: align :: Structure Comparison :: superimpose specific parts of structures</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: camera :: Viewing Controls :: change "camera" parametrs of main viewing window</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: cartoon :: Depiction :: show stylized representation of structure</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~cartoon :: Depiction :: stop show stylized representation of structure</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: cd :: General Controls :: change ChimeraX's current working directory</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: clip :: Viewing Controls :: control clipping of models</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~clip :: Viewing Controls :: stop clipping of models</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: close :: General Controls :: close models</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: cofr :: General Controls :: set center of rotation</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~cofr :: General Controls :: revert to default center of rotation</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: color :: Depiction :: change model colors</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: colour :: Depiction :: change model colors</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: colorname :: General Controls :: define custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: colourname :: General Controls :: define custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: colordef :: General Controls :: define custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~colordef :: General Controls :: remove custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: colourdef :: General Controls :: define custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~colourdef :: General Controls :: remove custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: coordset :: General Controls :: show specific coordinate set (a.k.a. frame or conformer)</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: crossfade :: Movie Making :: fade from one view to another</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: delete :: Structure Editing :: delete parts of a structure</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: dssp :: Structure Editing :: compute/assign secondary structure</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: exit :: General Controls :: quit ChimeraX</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: quit :: General Controls :: quit ChimeraX</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: graphics :: General Controls :: control 3D graphics parameters</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: hide :: Viewing Controls :: stop displaying (parts of) a model</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~show :: Viewing Controls :: stop displaying (parts of) a model</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~display :: Viewing Controls :: stop displaying (parts of) a model</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: lighting :: Viewing Controls :: change lighting</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: material :: Depiction :: change visual surface properties of 3D objects</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: measure buriedarea :: Surface/Binding Analysis :: measure surface area buried by contacting structures</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: measure convexity :: Surface/Binding Analysis :: color surface based on local convexity</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: measure length :: Volume :: measure path length of connected markers</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: move :: General Controls :: move (parts of) a model relative to others</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: palette :: General Controls :: list available color palettes</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: pdbimages :: Input/Output :: batch processing of mmCIF files into images</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: perframe :: General Controls :: execute commands every frame</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~perframe :: General Controls :: stop execution of commands every frame</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: pwd :: Utilities :: report current working directory</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: rainbow :: Depiction :: "rainbow" color (parts of) structures</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: rename :: General Controls :: change name or ID of model</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: roll :: General Controls :: continuously turn model(s) about an axis</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: run :: Utilities :: execute arguments as a command</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: rungs :: Depiction :: depict nucleotides as ladder rungs</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~rungs :: Depiction :: stop depicting nucleotides as ladder rungs</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: runscript :: General Controls :: run a Python script with arguments</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: select :: General Controls :: select models or parts thereof</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: ~select :: General Controls :: unselect models or parts thereof</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: set :: General Controls :: set various global parameters</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: setattr :: General Controls :: set Python attribute values for structure elements</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: show :: Viewing Controls :: display (parts of) a model</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: display :: Viewing Controls :: display (parts of) a model</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: size :: Depiction :: change display size of structural elements</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: split :: General Controls :: split a model into multiple models</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: stop :: General Controls :: stop an ongoing motion</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: style :: Depiction :: change style of depiction for strcutural elements</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: sym :: Higher-Order Structure :: generate symmetry mates</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: time :: Utilities :: time execution and redisplay of commands</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: transparency :: Depiction :: change transparency of (parts of) models</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: turn :: General Controls :: rotate a model about an axis</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: undo :: General Controls :: undo a command</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: redo :: General Controls :: redo an undone command</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: usage :: Utilities :: show the required syntax for a command</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: version :: Utilities :: report ChimeraX version number</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: view :: Viewing Controls :: change/save/restore 3D view</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: wait :: Movie Making :: wait a given amount of frames before executing the next command</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: windowsize :: General Controls :: set the size of the 3D window</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: zonesel :: General Controls :: select (parts of) models within a 3D zone</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: zoom :: Viewing Controls :: zoom in/out</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
