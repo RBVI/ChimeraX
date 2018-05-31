@@ -127,6 +127,9 @@ class SwapAAMouseMode(MouseMode):
         # Create new atoms
         s = r.structure
         akept = set(r.atoms.names)
+        # Set new atom b-factors to average of previous residue backbone atom b-factors.
+        bbf = [a.bfactor for a in r.atoms]
+        bfactor = sum(bbf)/len(bbf) if bbf else 0
         from chimerax.core.atomic.colors import element_color
         for a in new_r.atoms:
             if a.name not in akept:
@@ -136,9 +139,10 @@ class SwapAAMouseMode(MouseMode):
                     # TODO: Color by element, but use model carbon color.
                     na.color = carbon_color if a.element.name == 'C' else element_color(a.element.number)
                     na.draw_mode = na.STICK_STYLE
+                    na.bfactor = bfactor
                     r.add_atom(na)
                     amap[a] = na
-
+        
         # Create new bonds
         for b in new_r.atoms.intra_bonds:
             a1,a2 = b.atoms
