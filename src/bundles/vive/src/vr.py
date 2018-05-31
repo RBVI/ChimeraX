@@ -13,8 +13,10 @@
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
 def vr(session, enable = None, room_position = None, mirror = True, icons = False,
-       show_controllers = True, multishadow_allowed = False, toolbar_panels = True):
-    '''Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
+       show_controllers = True, multishadow_allowed = False, simplify_graphics = True,
+       toolbar_panels = True):
+    '''
+    Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
     Parameters
     ----------
@@ -45,6 +47,10 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
       changes to lighting mode are made.  Often rendering is not fast enough
       to support multishadow lighting so this option makes sure it is off so that stuttering
       does not occur.  Default False.
+    simplify_graphics : bool
+      Adjust level-of-detail total number of triangles for atoms and bonds to a reduced value
+      when VR is enabled, and restore to default value when VR disabled.  This helps maintain
+      full rendering speed in VR.  Default true.
     toolbar_panels : bool
       Whether to hide mouse modes and shortcut toolbars and instead show them as tool panels.
       This is useful for consolidating the controls in the VR gui panel.  Default true.
@@ -55,9 +61,9 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
 
     if enable is not None:
         if enable:
-            start_vr(session, multishadow_allowed)
+            start_vr(session, multishadow_allowed, simplify_graphics)
         else:
-            stop_vr(session)
+            stop_vr(session, simplify_graphics)
 
     v = session.main_view
     c = v.camera
@@ -104,6 +110,7 @@ def register_vr_command(logger):
                               ('icons', BoolArg),
                               ('show_controllers', BoolArg),
                               ('multshadow_allowed', BoolArg),
+                              ('simplify_graphics', BoolArg),
                               ('toolbar_panels', BoolArg),
                    ],
                    synopsis = 'Start SteamVR virtual reality rendering')
@@ -112,12 +119,16 @@ def register_vr_command(logger):
 
 # -----------------------------------------------------------------------------
 #
-def start_vr(session, multishadow_allowed = False):
+def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
 
     v = session.main_view
     if not multishadow_allowed and v.lighting.multishadow > 0:
         from chimerax.core.commands import run
         run(session, 'lighting simple')
+
+    if simplify_graphics:
+        from chimerax.std_commands.graphics import graphics
+        graphics(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
     if isinstance(v.camera, SteamVRCamera):
         return
@@ -139,7 +150,7 @@ def start_vr(session, multishadow_allowed = False):
 
 # -----------------------------------------------------------------------------
 #
-def stop_vr(session):
+def stop_vr(session, simplify_graphics = True):
 
     c = session.main_view.camera
     if isinstance(c, SteamVRCamera):
@@ -150,7 +161,11 @@ def stop_vr(session):
             v = s.main_view
             v.camera = MonoCamera()
             s.ui.main_window.graphics_window.set_redraw_interval(10)
+            if simplify_graphics:
+                from chimerax.std_commands.graphics import graphics
+                graphics(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
             v.view_all()
+
         c.close(replace_camera)
         wait_for_vsync(session, True)
 
