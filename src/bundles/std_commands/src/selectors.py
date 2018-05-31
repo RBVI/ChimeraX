@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def register_core_selectors(logger):
+def register_selectors(logger):
     # Selectors
     #
     # NOTE: also need to be listed in bundle_info.xml.in
