@@ -24,9 +24,9 @@ def run(session, text, *, log=True, downgrade_errors=False):
         True if errors in the command should be logged as informational.
     """
 
-    from . import cli
-    from ..errors import UserError
-    command = cli.Command(session)
+    from chimerax.core.commands import Command
+    from chimerax.core.errors import UserError
+    command = Command(session)
     try:
         results = command.run(text, log=log)
     except UserError as err:
@@ -36,15 +36,6 @@ def run(session, text, *, log=True, downgrade_errors=False):
             session.logger.error(str(err))
         results = []
     return results[0] if len(results) == 1 else results
-
-def register_command(session):
-    from . import CmdDesc, register, StringArg, BoolArg
-    desc = CmdDesc(required=[('text', StringArg)],
-                   optional=[('log', BoolArg),
-                             ('downgrade_errors', BoolArg),
-                         ],
-                   synopsis='indirectly run a command')
-    register('run', desc, run, logger=session.logger)
 
 def concise_model_spec(session, models):
     model_ids = _form_id_dict(models)

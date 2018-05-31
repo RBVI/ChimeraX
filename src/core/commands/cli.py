@@ -2074,12 +2074,8 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
     else:
         _parent_info = registry.commands
     for word in words[:-1]:
-        if not _parent_info.has_subcommands():
-            word_info = _parent_info.add_subcommand(word)
-        else:
-            _parent_info.add_subcommand(word, name)
-            word_info = _parent_info.subcommands[word]
-        _parent_info = word_info
+        _parent_info.add_subcommand(word, name)
+        _parent_info = _parent_info.subcommands[word]
 
     if isinstance(function, _Defer):
         cmd_desc = function
@@ -3022,7 +3018,7 @@ def registered_commands(multiword=False, _start=None):
     if _start:
         parent_info = _start
     else:
-        parent_info = _commands
+        parent_info = _command_info.commands
 
     if not multiword:
         words = list(parent_info.subcommands.keys())
@@ -3183,7 +3179,7 @@ def list_aliases(all=False, logger=None):
                 yield partial_name
         elif parent_info.is_user_alias():
             yield partial_name
-    return list(find_aliases('', _commands))
+    return list(find_aliases('', _command_info.commands))
 
 
 def expand_alias(name, *, registry=None):

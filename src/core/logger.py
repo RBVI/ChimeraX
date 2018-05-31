@@ -655,3 +655,9 @@ def html_to_plain(html):
     # h.pad_tables = True  # 2018.1.9 is confused by multiline data in td
     # h.body_width = ?  # TODO: track terminal size changes
     return h.handle(html)
+
+def log_version(logger):
+    '''Show version information.'''
+    from chimerax.core import buildinfo
+    from chimerax import app_dirs as ad
+    logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, ad.version, buildinfo.date.split()[0]))

@@ -794,9 +794,6 @@ class AtomSpec:
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
         add_implied_bonds(results)
-        if kw.get("top", True):
-            from . import ATOMSPEC_EVALUATED
-            session.triggers.activate_trigger(ATOMSPEC_EVALUATED, self)
         return results
 
     def find_matches(self, session, models, results):
@@ -880,7 +877,7 @@ def register_selector(name, value, logger, *,
         If an Objects instance, items in value are merged
         with already selected items.
     logger : instance of chimerax.core.logger.Logger
-        Logger used to report warnings.
+        Current logger.
     user : boolean
         Boolean value indicating whether name is considered
         user-defined or not.
@@ -899,9 +896,10 @@ def register_selector(name, value, logger, *,
             logger.warning("registering illegal selector name \"%s\"" % name)
             return
     _selectors[name] = _Selector(name, value, user, desc, atomic)
-    from .. import triggers
-    from .commands import ATOMSPEC_TARGET_REGISTERED
-    triggers.activate_trigger(ATOMSPEC_TARGET_REGISTERED, name)
+    from ..toolshed import get_toolshed
+    ts = get_toolshed()
+    if ts:
+        ts.triggers.activate_trigger("selector registered", name)
 
 
 def deregister_selector(name, logger):
@@ -912,7 +910,7 @@ def deregister_selector(name, logger):
     name : str
         Previously registered selector name.
     logger : instance of chimerax.core.logger.Logger
-        Logger used to report warnings.
+        Current logger.
 
     Raises
     ------
@@ -924,9 +922,10 @@ def deregister_selector(name, logger):
     except KeyError:
         logger.warning("deregistering unregistered selector \"%s\"" % name)
     else:
-        from .. import triggers
-        from .commands import ATOMSPEC_TARGET_DEREGISTERED
-        triggers.activate_trigger(ATOMSPEC_TARGET_DEREGISTERED, name)
+        from ..toolshed import get_toolshed
+        ts = get_toolshed()
+        if ts:
+            ts.triggers.activate_trigger("selector deregistered", name)
 
 
 def list_selectors():

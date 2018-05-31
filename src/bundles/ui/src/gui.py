@@ -60,6 +60,12 @@ if mac:
         else:
             os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
 
+# Fix text and button sizes on high DPI displays in Windows 10
+win = (sys.platform == 'win32')
+if win:
+    from PyQt5.QtCore import QCoreApplication, Qt
+    QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+
 from PyQt5.QtWidgets import QApplication
 class UI(QApplication):
     """Main ChimeraX user interface

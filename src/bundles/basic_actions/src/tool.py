@@ -37,13 +37,10 @@ class BasicActionsTool(HtmlToolInstance):
         # Register for updates of name register/deregister events
         #
         session = self.session
-        from chimerax.core import triggers
-        from chimerax.core.commands import (ATOMSPEC_TARGET_REGISTERED,
-                                            ATOMSPEC_TARGET_DEREGISTERED)
-        t1 = triggers.add_handler(ATOMSPEC_TARGET_REGISTERED,
-                                  self.update_names)
-        t2 = triggers.add_handler(ATOMSPEC_TARGET_DEREGISTERED,
-                                  self.update_names)
+        from chimerax.core.toolshed import get_toolshed
+        ts = get_toolshed()
+        t1 = ts.triggers.add_handler("selector registered", self.update_names)
+        t2 = ts.triggers.add_handler("selector deregistered", self.update_names)
         self._handlers = (t1, t2)
 
     def setup_page(self, html_file):
@@ -69,9 +66,11 @@ class BasicActionsTool(HtmlToolInstance):
 
     def delete(self):
         if self._handlers:
-            from chimerax.core import triggers
-            for h in self._handlers:
-                triggers.remove_handler(h)
+            from chimerax.core.toolshed import get_toolshed
+            ts = get_toolshed()
+            if ts:
+                for h in self._handlers:
+                    ts.triggers.remove_handler(h)
             self._handlers = None
         super().delete()
 

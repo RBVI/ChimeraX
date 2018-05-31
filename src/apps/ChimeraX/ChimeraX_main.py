@@ -455,10 +455,6 @@ def init(argv, event_loop=True):
                         ad.site_config_dir, ad.user_log_dir,
                         chimerax.app_data_dir, adu.user_cache_dir)
 
-    # create a global trigger set for toolshed and atomspec target registration
-    from chimerax.core import triggerset
-    chimerax.core.triggers = triggerset.TriggerSet()
-
     from chimerax.core import session
     sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
 
@@ -608,8 +604,8 @@ def init(argv, event_loop=True):
         sess.ui.close_splash()
 
     if not opts.silent:
-        import chimerax.core.commands.version as vercmd
-        vercmd.version(sess)  # report version in log
+        from chimerax.core.logger import log_version
+        log_version(sess.logger)  # report version in log
 
     if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render

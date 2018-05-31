@@ -874,17 +874,23 @@ def save_x3d(session, path, transparent_background=False):
 
 
 def register_session_format(session):
+    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg, add_keyword_arguments
+    from .commands.toolshed import register_command
+    register_command(session.logger)
+    from .commands.devel import register_command
+    register_command(session.logger)
+    from .commands.open import register_command
+    register_command(session.logger)
     from . import io, toolshed
     io.register_format(
         "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
         mime="application/x-chimerax-session",
         reference="help:user/commands/save.html",
         open_func=open, export_func=save)
-    from .commands import add_keyword_arguments, BoolArg
     add_keyword_arguments('open', {'resize_window': BoolArg})
 
-
-    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
+    from .commands.save import register_command
+    register_command(session.logger)
     desc = CmdDesc(
         required=[('filename', SaveFileNameArg)],
         keyword=[('version', IntArg), ('uncompressed', BoolArg)],
@@ -932,10 +938,6 @@ def common_startup(sess):
     # can be created
     from .atomic import PseudobondManager
     sess.pb_manager = PseudobondManager(sess)
-
-    from . import commands
-    commands.register_core_commands(sess)
-    commands.register_core_selectors(sess)
 
     register(
         'debug sdump',

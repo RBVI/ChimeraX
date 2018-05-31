@@ -523,7 +523,7 @@ class Ribbon:
         return array([dot(st, coeffs[0]), dot(st, coeffs[1]), dot(st, coeffs[2])])
 
 
-from ..state import State
+from chimerax.core.state import State
 
 class XSectionManager(State):
     """XSectionManager keeps track of ribbon cross sections used in an AtomicStructure instance.

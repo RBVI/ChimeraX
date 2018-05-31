@@ -32,4 +32,10 @@ class _DistMonitorBundleAPI(BundleAPI):
         """De-install distance monitor from existing session"""
         del session.pb_dist_monitor
 
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when the command is referenced
+        from . import cmd
+        cmd.register_command(logger)
+
 bundle_api = _DistMonitorBundleAPI()

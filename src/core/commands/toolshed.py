@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import CmdDesc, EnumOf, StringArg, NoArg, BoolArg, plural_form, commas
+from chimerax.core.commands import CmdDesc, EnumOf, StringArg, NoArg, BoolArg, plural_form, commas
 
 _bundle_types = EnumOf(["all", "installed", "user", "available"])
 _reload_types = EnumOf(["all", "cache", "installed", "available"])
@@ -313,7 +313,7 @@ def toolshed_show(session, tool_name, _show=True):
         from chimerax.core.errors import UserError
         raise UserError("Need a GUI to show or hide tools")
     ts = session.toolshed
-    all_tools = session.tools.list() 
+    all_tools = session.tools.list()
     # First look for tool instance whose display name
     # matches tool_name
     tinst = [t for t in all_tools if t.display_name == tool_name]
@@ -358,22 +358,14 @@ toolshed_hide_desc = CmdDesc(required=[('tool_name', StringArg)],
                        synopsis="Hide tool from view")
 
 
-def register_command(session):
-    from . import register
+def register_command(logger):
+    from chimerax.core.commands import register
 
-    register("toolshed list", toolshed_list_desc, toolshed_list,
-             logger=session.logger)
-    register("toolshed reload", toolshed_reload_desc, toolshed_reload,
-             logger=session.logger)
-    register("toolshed install", toolshed_install_desc, toolshed_install,
-             logger=session.logger)
-    register("toolshed uninstall", toolshed_uninstall_desc, toolshed_uninstall,
-             logger=session.logger)
-    register("toolshed url", toolshed_url_desc, toolshed_url,
-             logger=session.logger)
-    register("toolshed cache", toolshed_cache_desc, toolshed_cache,
-             logger=session.logger)
-    register("toolshed show", toolshed_show_desc, toolshed_show,
-             logger=session.logger)
-    register("toolshed hide", toolshed_hide_desc, toolshed_hide,
-             logger=session.logger)
+    register("toolshed list", toolshed_list_desc, toolshed_list, logger=logger)
+    register("toolshed reload", toolshed_reload_desc, toolshed_reload, logger=logger)
+    register("toolshed install", toolshed_install_desc, toolshed_install, logger=logger)
+    register("toolshed uninstall", toolshed_uninstall_desc, toolshed_uninstall, logger=logger)
+    register("toolshed url", toolshed_url_desc, toolshed_url, logger=logger)
+    register("toolshed cache", toolshed_cache_desc, toolshed_cache, logger=logger)
+    register("toolshed show", toolshed_show_desc, toolshed_show, logger=logger)
+    register("toolshed hide", toolshed_hide_desc, toolshed_hide, logger=logger)

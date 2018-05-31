@@ -154,7 +154,7 @@ def register_pdb_format():
     from ..commands import add_keyword_arguments, BoolArg, ModelsArg, ModelArg, IntArg, \
         EnumOf
     add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg,
-        'atomic': BoolArg, 'max_models':IntArg})
+                                   'atomic': BoolArg, 'max_models':IntArg, 'log_info':BoolArg})
     add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,
         'displayed_only':BoolArg, 'all_coordsets':BoolArg, 'pqr':BoolArg,
         'rel_model':ModelArg, 'serial_numbering': EnumOf(("amber", "h36"))})
