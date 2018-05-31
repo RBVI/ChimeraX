@@ -49,7 +49,8 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
     _mmcif.set_Python_locate_function(
         lambda name, session=session: _get_template(session, name))
     categories = _additional_categories + tuple(extra_categories)
-    pointers = _mmcif.parse_mmCIF_file(path, categories, session.logger, coordsets, atomic)
+    log = session.logger if log_info else None
+    pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic)
 
     if file_name is None:
         from os.path import basename
