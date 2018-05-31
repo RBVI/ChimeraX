@@ -38,7 +38,7 @@ class SwapAAMouseMode(MouseMode):
         if tres:
             return
         from chimerax.core.atomic.mmcif import fetch_mmcif
-        models, status = fetch_mmcif(self.session, self._template_pdb_id)
+        models, status = fetch_mmcif(self.session, self._template_pdb_id, log_info = False)
         m = models[0]
         found = {}
         tnames = self._template_residue_names
