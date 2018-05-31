@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def graphics(session, atom_triangles = None, bond_triangles = None,
+             total_atom_triangles = None, total_bond_triangles = None,
              ribbon_divisions = None, ribbon_sides = None, max_frame_rate = None,
              frame_rate = None, wait_for_vsync = None):
     '''
@@ -25,6 +26,12 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
     bond_triangles : integer
         Number of triangles for drawing an atom sphere, minimum 12.
         If 0, then automatically compute number of triangles.
+    total_atom_triangles : integer
+        Target number of triangles for all shown atoms when automatically
+        triangles per atom.
+    total_bond_triangles : integer
+        Target number of triangles for all shown bonds when automatically
+        triangles per bond.
     ribbon_divisions : integer
         Number of segments to use for one residue of a ribbon, minimum 2 (default 20).
     ribbon_sides : integer
@@ -52,6 +59,12 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         if bond_triangles != 0 and bond_triangles < 12:
             raise UserError('Minimum number of bond triangles is 12')
         lod.bond_fixed_triangles = bond_triangles if bond_triangles > 0 else None
+        change = True
+    if total_atom_triangles is not None:
+        lod.total_atom_triangles = total_atom_triangles
+        change = True
+    if total_bond_triangles is not None:
+        lod.total_bond_triangles = total_bond_triangles
         change = True
     if ribbon_divisions is not None:
         if ribbon_divisions < 2:
@@ -100,10 +113,12 @@ def graphics_restart(session):
     session.update_loop.unblock_redraw()
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, TopModelsArg
     desc = CmdDesc(
         keyword=[('atom_triangles', IntArg),
                  ('bond_triangles', IntArg),
+                 ('total_atom_triangles', IntArg),
+                 ('total_bond_triangles', IntArg),
                  ('ribbon_divisions', IntArg),
                  ('ribbon_sides', IntArg),
                  ('max_frame_rate', FloatArg),
@@ -113,11 +128,45 @@ def register_command(logger):
         synopsis='Set graphics rendering parameters'
     )
     register('graphics', desc, graphics, logger=logger)
-    desc = CmdDesc(
-        synopsis='restart graphics drawing after an error'
-    )
+
+    desc = CmdDesc(synopsis='Restart graphics drawing after an error')
     register('graphics restart', desc, graphics_restart, logger=logger)
 
+    desc = CmdDesc(optional=[('models', TopModelsArg)],
+                   synopsis='Report triangles in graphics scene')
+    register('graphics triangles', desc, graphics_triangles, logger=logger)
+    
+def graphics_triangles(session, models = None):
+    '''
+    Report shown triangles in graphics scene.  This is for analyzing graphics performance.
+    '''
+    if models is None:
+        models = [m for m in session.models.list() if len(m.id) == 1 and m.display]
+
+    lines = []
+    tri = _drawing_triangles(models, lines)
+
+    tot = '%d total triangles in %d models and %d drawings' % (tri, len(models), len(lines))
+    session.logger.status(tot)
+    lines.insert(0, tot)
+    msg = '<pre>\n%s\n</pre>' % '\n'.join(lines)
+    session.logger.info(msg, is_html = True)
+
+def _drawing_triangles(drawings, lines, indent = ''):
+    tri = 0
+    from chimerax.core.models import Model
+    for d in drawings:
+        dtri = d.number_of_triangles(displayed_only = True)
+        tri += dtri
+        ninst = d.number_of_positions(displayed_only = True)
+        name = '#%s %s' % (d.id_string(), d.name) if isinstance(d, Model) else d.name
+        line = '%s%s %d' % (indent, name, dtri)
+        if ninst > 1:
+            line += ' in %d instances, %d each' % (ninst, dtri//ninst)
+        lines.append(line)
+        _drawing_triangles(d.child_drawings(), lines, indent + '  ')
+    return tri
+    
 def show_frame_rate(session, show):
     frr = getattr(session, '_frame_rate_reporter', None)
     if show:
