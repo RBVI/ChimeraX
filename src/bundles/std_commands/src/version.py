@@ -18,11 +18,12 @@ def version(session, format=None):
     ----------
     format : one of 'verbose', ''bundles', or 'packages'
     '''
+    if format is None:
+        from chimerax.core.logger import log_version
+        log_version(session.logger)
+        return
     from chimerax.core import buildinfo
     from chimerax import app_dirs as ad
-    if format is None:
-        session.logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, ad.version, buildinfo.date.split()[0]))
-        return
     session.logger.info("%s %s version: %s" % (ad.appauthor, ad.appname, ad.version))
     session.logger.info("date: %s" % buildinfo.date)
     session.logger.info("branch: %s" % buildinfo.branch)

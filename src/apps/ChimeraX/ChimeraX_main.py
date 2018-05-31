@@ -604,8 +604,8 @@ def init(argv, event_loop=True):
         sess.ui.close_splash()
 
     if not opts.silent:
-        import chimerax.core.commands.version as vercmd
-        vercmd.version(sess)  # report version in log
+        from chimerax.core.logger import log_version
+        log_version(sess.logger)  # report version in log
 
     if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render
