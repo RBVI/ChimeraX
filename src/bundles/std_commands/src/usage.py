@@ -22,7 +22,7 @@ def usage(session, command_name=None, option=None):
         given then a synopsis for each command is shown.  The command name can
         be abbreviated.
     '''
-    from chimera.core.commands import cli
+    from chimerax.core.commands import cli
     info = session.logger.info
     show_hidden = option == 'allOptions'
     if command_name is None:

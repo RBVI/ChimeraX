@@ -15,7 +15,7 @@ def register_core_selectors(logger):
     # Selectors
     #
     # NOTE: also need to be listed in bundle_info.xml.in
-    from chimera.core.commands import register_selector as reg
+    from chimerax.core.commands import register_selector as reg
     reg("sel", _sel_selector, logger, desc="selected atoms")
     reg("all", _all_selector, logger, desc="everything")
     reg("ions", lambda s, m, r: _structure_category_selector("ions", m, r), logger, desc="ions")
@@ -36,7 +36,7 @@ def register_core_selectors(logger):
     reg("sidechain", _sidechain_selector, logger, desc="side-chain atoms")
     reg("sideonly", _sideonly_selector, logger, desc="side-chain atoms")
     reg("ribose", _ribose_selector, logger, desc="ribose")
-    from chimera.atomic import Element, Atom
+    from chimerax.atomic import Element, Atom
     # Since IDATM has types in conflict with element symbols (e.g. 'H'), register
     # the types first so that they get overriden by the symbols
     for idatm, info in Atom.idatm_info_map.items():
