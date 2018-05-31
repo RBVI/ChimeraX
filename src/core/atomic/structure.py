@@ -2567,6 +2567,18 @@ class LevelOfDetail(State):
         return {'quality': self.quality,
                 'version': 1}
 
+    def _get_total_atom_triangles(self):
+        return self._atom_max_total_triangles
+    def _set_total_atom_triangles(self, ntri):
+        self._atom_max_total_triangles = ntri
+    total_atom_triangles = property(_get_total_atom_triangles, _set_total_atom_triangles)
+
+    def _get_total_bond_triangles(self):
+        return self._bond_max_total_triangles
+    def _set_total_bond_triangles(self, ntri):
+        self._bond_max_total_triangles = ntri
+    total_bond_triangles = property(_get_total_bond_triangles, _set_total_bond_triangles)
+    
     @staticmethod
     def restore_snapshot(session, data):
         lod = LevelOfDetail()
