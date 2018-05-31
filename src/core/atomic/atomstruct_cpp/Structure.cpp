@@ -63,6 +63,8 @@ Structure::~Structure() {
     // assign to variable so that it lives to end of destructor
     auto du = DestructionUser(this);
     change_tracker()->add_deleted(this, this);
+    // delete bonds before atoms since bond destructor uses info
+    // from its atoms
     for (auto b: _bonds)
         delete b;
     for (auto a: _atoms)
@@ -418,6 +420,7 @@ Structure::_delete_atom(Atom* a)
         typename Bonds::iterator bi = std::find_if(_bonds.begin(), _bonds.end(),
             [&b](Bond* ub) { return ub == b; });
         _bonds.erase(bi);
+        delete b;
     }
     a->residue()->remove_atom(a);
     typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
@@ -500,6 +503,21 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
             });
         _residues.erase(new_end, _residues.end());
     }
+    // since the Bond destructor uses info (namely structure()) from its Atoms,
+    // delete the bonds first (not willing to add a Structure pointer [and its
+    // memory use] to Bond at this point)
+    std::set<Bond*> del_bonds;
+    for (auto a: atoms) {
+        for (auto b: a->bonds()) {
+            del_bonds.insert(b);
+            auto oa = b->other_atom(a);
+            if (atoms.find(oa) == atoms.end())
+                oa->remove_bond(b);
+        }
+    }
+    for (auto b: del_bonds)
+        delete b;
+
     // remove_if doesn't swap the removed items into the end of the vector,
     // so can't just go through the tail of the vector and delete things,
     // need to delete them as part of the lambda
@@ -511,22 +529,9 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         });
     _atoms.erase(new_a_end, _atoms.end());
 
-    for (auto a: _atoms) {
-        std::vector<Bond*> removals;
-        for (auto b: a->bonds()) {
-            if (atoms.find(b->other_atom(a)) != atoms.end())
-                removals.push_back(b);
-        }
-        for (auto b: removals)
-            a->remove_bond(b);
-    }
-
     auto new_b_end = std::remove_if(_bonds.begin(), _bonds.end(),
-        [&atoms](Bond* b) {
-            bool rm = atoms.find(b->atoms()[0]) != atoms.end()
-            || atoms.find(b->atoms()[1]) != atoms.end();
-            if (rm) delete b;
-            return rm;
+        [&del_bonds](Bond* b) {
+            return del_bonds.find(b) != del_bonds.end();
         });
     _bonds.erase(new_b_end, _bonds.end());
     set_gc_shape();
