@@ -471,6 +471,23 @@ class OptionalRGBAPairOption(OptionalRGBA8PairOption):
         rgba8s = super().get()
         return tuple(None if i is None else [c/255.0 for c in i] for i in rgba8s)
 
+class StringOption(Option):
+    """Option for text strings"""
+
+    def get(self):
+        return self.widget.text()
+
+    def set(self, value):
+        self.widget.setText(value)
+
+    def set_multiple(self):
+        self.widget.setText("<multiple values>")
+
+    def _make_widget(self, **kw):
+        from PyQt5.QWidgets import QLineEdit
+        self.widget = QLineEdit()
+        self.widget.returnPressed.connect(lambda s=self: s.make_callback())
+
 class SymbolicEnumOption(EnumOption):
     """Option for enumerated values with symbolic names"""
     values = ()
