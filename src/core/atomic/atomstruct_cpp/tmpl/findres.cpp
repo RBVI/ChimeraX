@@ -66,9 +66,10 @@ find_template_residue(const ResName& name, bool start, bool end)
     if (start_mol == NULL)
         restmpl_init();
 
-    // assume that most users will want HID (who knows?)
+    // since which HIS template to use is guesswork anyway, use HIP
+    // since that provides the connectivity of both hydrogens
     if (mapped_name == "HIS")
-        mapped_name = "HID";
+        mapped_name = "HIP";
 
     ResInitMap::iterator i = resmap.find(mapped_name);
     ResInit *ri = (i == resmap.end()) ? NULL : &i->second;

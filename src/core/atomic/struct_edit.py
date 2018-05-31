@@ -21,7 +21,7 @@ TODO
 from math import pi, cos, sin
 
 def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
-                            occupancy=None, info_from=None, alt_loc=None):
+                        occupancy=None, info_from=None, alt_loc=None, bfactor=None):
     """Add an atom at the Point 'loc'
 
        'element' can be a string (atomic symbol), integer (atomic number),
@@ -43,8 +43,11 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
        from the 'bonded_to' atom will be obtained from the 'info_from'
        atom instead. Typically used when there is no 'bonded_to' atom.
 
-       If 'occupancy' is not None or the 'bonded_to' atom has an
-       occupancy, the new atom will be given the corresponding occupancy.
+       If 'occupancy' is not None or the 'bonded_to' atom is not None,
+       the new atom will be given the corresponding occupancy.
+
+       If 'bfactor' is not None or the 'bonded_to' atom is not None,
+       the new atom will be given the corresponding bfactor.
 
        If 'alt_loc' is specified (must be a single-character string), then
        the new atom will be given that alt loc, otherwise the alt loc will be ' '.
@@ -77,6 +80,8 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
     new_atom.serial_number = serial_number
     if occupancy is not None or info_from and hasattr(info_from, 'occupancy'):
         new_atom.occupancy = getattr(info_from, 'occupancy', occupancy)
+    if bfactor is not None or info_from and hasattr(info_from, 'bfactor'):
+        new_atom.bfactor = getattr(info_from, 'bfactor', bfactor)
     if info_from:
         new_atom.display = info_from.display
         new_atom.draw_mode = info_from.draw_mode
