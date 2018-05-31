@@ -12,8 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def save(session, filename, models=None, format=None, **kw):
-    '''Save data, sessions, images.  Specific formats have additional keyword arguments using
-    commands.add_keyword_arguments().  These are listed with command "usage save".
+    '''Save data, sessions, images.
 
     Parameters
     ----------

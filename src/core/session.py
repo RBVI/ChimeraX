@@ -874,7 +874,8 @@ def save_x3d(session, path, transparent_background=False):
 
 
 def register_session_format(session):
-    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg, add_keyword_arguments
+    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
+    from .commands.cli import add_keyword_arguments
     from .commands.toolshed import register_command
     register_command(session.logger)
     from .commands.devel import register_command

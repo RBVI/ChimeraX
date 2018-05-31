@@ -346,7 +346,8 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, **kw):
 # -----------------------------------------------------------------------------
 #
 def register_web_fetch():
-    from .commands import add_keyword_arguments, BoolArg
+    from .commands import BoolArg
+    from .commands.cli import add_keyword_arguments
     add_keyword_arguments("open", {'new_tab': BoolArg})
 
     def fetch_http(session, scheme_specific_part, **kw):
