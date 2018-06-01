@@ -70,8 +70,11 @@ def set(session, bg_color=None,
     if not had_arg:
         from chimerax import atomic
         lod = atomic.level_of_detail(session)
-        msec = session.ui.main_window.graphics_window.redraw_interval
-        rate = 1000.0 / msec if msec > 0 else 1000.0
+        if session.ui.is_gui:
+            msec = session.ui.main_window.graphics_window.redraw_interval
+            rate = 1000.0 / msec if msec > 0 else 1000.0
+        else:
+            rate = 0
         msg = '\n'.join(('Current settings:',
                          '  Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3]),
                          '  Silhouettes: ' + str(view.silhouettes),

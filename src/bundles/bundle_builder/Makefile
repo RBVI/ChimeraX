@@ -45,7 +45,7 @@ install app-install: $(WHEEL)
 	$(PYTHON_EXE) -m pip install --upgrade --force-reinstall $(WHEEL)
 
 test:
-	$(CHIMERAX_EXE)
+	$(CHIMERAX_EXE) --exit --nogui $(wildcard test.cxc)
 
 debug:
 	$(CHIMERAX_EXE) --debug
