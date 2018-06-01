@@ -1109,13 +1109,14 @@ def make_tube(nd, residues, rds):
     return hidden_ribose, shown_gly
 
 
-def set_ladder(residues, *, rung_radius=FROM_CMD, show_stubs=FROM_CMD, skip_nonbase_Hbonds=FROM_CMD, hide=FROM_CMD):
+def set_ladder(residues, *, rung_radius=FROM_CMD, show_stubs=FROM_CMD, skip_nonbase_Hbonds=FROM_CMD, hide=FROM_CMD, stubs_only=FROM_CMD):
     molecules = residues.unique_structures
     nuc = _nucleotides(molecules[0].session)
     nuc.need_rebuild.update(molecules)
     ladder_params = Params(
         rung_radius=rung_radius, show_stubs=show_stubs,
-        skip_nonbase_Hbonds=skip_nonbase_Hbonds, hide=hide
+        skip_nonbase_Hbonds=skip_nonbase_Hbonds, hide=hide,
+        stubs_only=stubs_only,
     )
     rds = {}
     for mol in molecules:
@@ -1190,31 +1191,32 @@ def make_ladder(nd, residues, params):
         depict_bonds[key] = (c3p0, c3p1, radius, non_base)
 
     matched_residues = set()
-    for (r0, r1), (c3p0, c3p1, radius, non_base) in depict_bonds.items():
-        r0color = r0.ribbon_color
-        r1color = r1.ribbon_color
-        # choose mid-point to make purine larger
-        try:
-            is_purine0 = standard_bases[nucleic3to1(r0.name)]['tag'] == PURINE
-            is_purine1 = standard_bases[nucleic3to1(r1.name)]['tag'] == PURINE
-        except KeyError:
-            is_purine0 = False
-            is_purine1 = False
-        if any(non_base) or is_purine0 == is_purine1:
-            mid = 0.5
-        elif is_purine0:
-            mid = purine_pyrimidine_ratio
-        else:
-            mid = 1.0 - purine_pyrimidine_ratio
-        midpt = c3p0[1] + mid * (c3p1[1] - c3p0[1])
-        va, na, ta = get_cylinder(radius, c3p0[1], midpt, top=False)
-        nd.add_shape(va, na, ta, r0color, r0.atoms, r0)
-        va, na, ta = get_cylinder(radius, c3p1[1], midpt, top=False)
-        nd.add_shape(va, na, ta, r1color, r1.atoms, r1)
-        if not non_base[0]:
-            matched_residues.add(r0)
-        if not non_base[1]:
-            matched_residues.add(r1)
+    if not params.stubs_only:
+        for (r0, r1), (c3p0, c3p1, radius, non_base) in depict_bonds.items():
+            r0color = r0.ribbon_color
+            r1color = r1.ribbon_color
+            # choose mid-point to make purine larger
+            try:
+                is_purine0 = standard_bases[nucleic3to1(r0.name)]['tag'] == PURINE
+                is_purine1 = standard_bases[nucleic3to1(r1.name)]['tag'] == PURINE
+            except KeyError:
+                is_purine0 = False
+                is_purine1 = False
+            if any(non_base) or is_purine0 == is_purine1:
+                mid = 0.5
+            elif is_purine0:
+                mid = purine_pyrimidine_ratio
+            else:
+                mid = 1.0 - purine_pyrimidine_ratio
+            midpt = c3p0[1] + mid * (c3p1[1] - c3p0[1])
+            va, na, ta = get_cylinder(radius, c3p0[1], midpt, top=False)
+            nd.add_shape(va, na, ta, r0color, r0.atoms, r0)
+            va, na, ta = get_cylinder(radius, c3p1[1], midpt, top=False)
+            nd.add_shape(va, na, ta, r1color, r1.atoms, r1)
+            if not non_base[0]:
+                matched_residues.add(r0)
+            if not non_base[1]:
+                matched_residues.add(r1)
 
     if not params.show_stubs:
         if params.hide:
