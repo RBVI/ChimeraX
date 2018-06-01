@@ -50,9 +50,9 @@ class NoGuiLog(PlainTextLog):
 
         if _color_output:
             print("%s%s%s" % (
-                _colors[level_name], msg, _colors["normal"]), end='')
+                _colors[level_name], msg, _colors["normal"]), end='', flush=True)
         else:
-            print("%s:\n%s" % (level_name.upper(), msg), end='')
+            print("%s:\n%s" % (level_name.upper(), msg), end='', flush=True)
         return True
 
     def status(self, msg, color, secondary):
@@ -60,9 +60,9 @@ class NoGuiLog(PlainTextLog):
             return False
         if msg:
             if _color_output:
-                print("%s%s%s" % (_colors["status"], msg, _colors["normal"]))
+                print("%s%s%s" % (_colors["status"], msg, _colors["normal"]), flush=True)
             else:
-                print("STATUS:\n%s" % msg)
+                print("STATUS:\n%s" % msg, flush=True)
         return True
 
 
