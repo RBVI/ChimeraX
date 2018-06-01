@@ -59,7 +59,7 @@ wheel:	bundle_info.xml $(SRCS) generated_files
 	$(RUN) "devel build . exit true"
 
 test:
-	$(CHIMERAX_EXE)
+	$(CHIMERAX_EXE) --exit --nogui $(wildcard test.cxc)
 
 debug:
 	$(CHIMERAX_EXE) --debug

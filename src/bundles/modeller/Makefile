@@ -34,7 +34,7 @@ install app-install:	$(WHEEL)
 	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
 
 test:
-	$(CHIMERAX_EXE)
+	$(CHIMERAX_EXE) --exit --nogui $(wildcard test.cxc)
 
 debug:
 	$(CHIMERAX_EXE) --debug

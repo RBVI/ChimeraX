@@ -12,6 +12,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
+NO_SUBDIR_TEST=1
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
 	   chutil_cpp commands \
 	   geometry graphics \

@@ -43,7 +43,7 @@ install app-install: bundle_info.xml $(SRCS) $(HEADERS)
 	$(RUN) "devel install . user false exit true"
 
 test:
-	$(CHIMERAX_EXE)
+	$(CHIMERAX_EXE) --exit --nogui $(wildcard test.cxc)
 
 debug:
 	$(CHIMERAX_EXE) --debug
