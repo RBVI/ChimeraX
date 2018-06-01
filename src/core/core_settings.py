@@ -40,6 +40,7 @@ class _CoreSettings(Settings):
         'distance_decimal_places': 3,
         'distance_radius': 0.1,
         'distance_show_units': True,
+        'http_proxy': ("", 80)
         'toolshed_update_interval': 'week',
         'toolshed_last_check': '',
     }

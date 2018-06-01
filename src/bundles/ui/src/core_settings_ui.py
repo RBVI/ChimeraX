@@ -20,6 +20,7 @@ TODO
 
 from chimerax.core.core_settings import settings as core_settings
 from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, FloatOption
+from .options import StringOption, StringIntOption
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
