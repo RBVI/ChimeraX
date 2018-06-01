@@ -486,7 +486,7 @@ class StringOption(Option):
     def _make_widget(self, **kw):
         from PyQt5.QtWidgets import QLineEdit
         self.widget = QLineEdit(**kw)
-        self.widget.returnPressed.connect(lambda s=self: s.make_callback())
+        self.widget.editingFinished.connect(lambda s=self: s.make_callback())
 
 class StringIntOption(Option):
     """Option for a string and an int (as a 2-tuple), for something such as host and port"""
@@ -514,7 +514,7 @@ class StringIntOption(Option):
            value, (e.g. '10em' or '7ch') or None"""
         from PyQt5.QtWidgets import QLineEdit
         self._line_edit = QLineEdit()
-        self._line_edit.returnPressed.connect(lambda s=self: s.make_callback())
+        self._line_edit.editingFinished.connect(lambda s=self: s.make_callback())
         if initial_text_width:
             self._line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
         from PyQt5.QtWidgets import QSpinBox, QWidget, QHBoxLayout, QLabel
