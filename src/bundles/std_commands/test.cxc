@@ -1,5 +1,5 @@
 # try every command in bundle
-open 2tpk
+open 2tpk autostyle false
 alias foo bar
 alias list
 alias delete foo
@@ -13,7 +13,7 @@ cartoon :4-34 smooth .4 suppressBackboneDisplay false
 cartoon hide
 cd
 clip
-clip axis 0
+clip axis x
 clip list
 ~clip
 cofr
@@ -81,6 +81,8 @@ size
 size :12 stickradius .15
 stop
 style sphere
+style ball
+style stick
 sym #1
 sym #1 assembly 1
 sym clear
