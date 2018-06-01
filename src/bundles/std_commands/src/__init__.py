@@ -28,7 +28,8 @@ class StdCommandsAPI(BundleAPI):
             'color name': 'colorname',
             'color show': 'colorname',
             'quit': 'exit',
-            'redo': 'undo'
+            'redo': 'undo',
+            'select zone': 'zonesel'
         }
         if tilde:
             name_remapping['show'] = name_remapping['display'] = 'hide'
