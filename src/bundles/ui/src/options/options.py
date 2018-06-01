@@ -484,8 +484,8 @@ class StringOption(Option):
         self.widget.setText(self.multiple_value)
 
     def _make_widget(self, **kw):
-        from PyQt5.QWidgets import QLineEdit
-        self.widget = QLineEdit()
+        from PyQt5.QtWidgets import QLineEdit
+        self.widget = QLineEdit(**kw)
         self.widget.returnPressed.connect(lambda s=self: s.make_callback())
 
 class StringIntOption(Option):
@@ -508,10 +508,15 @@ class StringIntOption(Option):
         self._spin_box.setSpecialValueText(self.multiple_value)
         self._spin_box.setValue(self._spin_box.minimum())
 
-    def _make_widget(self, min=None, max=None, string_label=None, int_label=None, **kw):
-        from PyQt5.QWidgets import QLineEdit
+    def _make_widget(self, min=None, max=None, string_label=None, int_label=None,
+            initial_text_width="10em", **kw):
+        """initial_text_width should be a string hold a "stylesheet-friendly"
+           value, (e.g. '10em' or '7ch') or None"""
+        from PyQt5.QtWidgets import QLineEdit
         self._line_edit = QLineEdit()
         self._line_edit.returnPressed.connect(lambda s=self: s.make_callback())
+        if initial_text_width:
+            self._line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
         from PyQt5.QtWidgets import QSpinBox, QWidget, QHBoxLayout, QLabel
         self._spin_box = QSpinBox(**kw)
         self._spin_box.setMinimum(self.default_minimum if min is None else min)
@@ -534,7 +539,7 @@ class StringIntOption(Option):
 class HostPortOption(StringIntOption):
     """Option for a host name or address and a TCP port number (as a 2-tuple)"""
     def _make_widget(self, **kw):
-        StringIntOption._make_widget(self, min=0, max=65535, string_label="host", int_label="port")
+        StringIntOption._make_widget(self, min=0, max=65535, string_label="host", int_label="port",             **kw)
 
 
 class SymbolicEnumOption(EnumOption):

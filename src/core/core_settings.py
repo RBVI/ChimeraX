@@ -32,6 +32,8 @@ class _CoreSettings(Settings):
         'bg_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
         'clipping_surface_caps': True,
         'clipping_cap_offset': 0.01,
+        'http_proxy': ("", 80),
+        'https_proxy': ("", 443),
         'resize_window_on_session_restore': False,
     }
     AUTO_SAVE = {
@@ -40,7 +42,6 @@ class _CoreSettings(Settings):
         'distance_decimal_places': 3,
         'distance_radius': 0.1,
         'distance_show_units': True,
-        'http_proxy': ("", 80)
         'toolshed_update_interval': 'week',
         'toolshed_last_check': '',
     }
@@ -48,3 +49,15 @@ class _CoreSettings(Settings):
 def init(session):
     global settings
     settings = _CoreSettings(session, "chimerax.core")
+    set_proxies(initializing=True)
+
+def set_proxies(*, initializing=False):
+    import os
+    for proxy_type in ("http", "https"):
+        host, port = getattr(settings, proxy_type + "_proxy")
+        environ_var = proxy_type + "_proxy"
+        if host:
+            os.environ[environ_var] = "%s://%s:%d" % (proxy_type, host, port)
+        elif environ_var in os.environ and not initializing:
+            del os.environ[environ_var]
+
