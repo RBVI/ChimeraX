@@ -71,6 +71,7 @@ class UI:
     def __init__(self, session):
         global _color_output
         self.is_gui = False
+        self.has_graphics = False
         session.logger.add_log(NoGuiLog())
 
         import weakref
@@ -107,9 +108,11 @@ class UI:
 
         from chimerax import core
         requested_offscreen = hasattr(core, 'offscreen_rendering')
-        if requested_offscreen and not self.initialize_offscreen_rendering(session.main_view) and not session.silent:
-            session.logger.info('Offscreen rendering is not available.')
-            session.logger.info('Need OSMesa library from Mesa version 12.0 or newer for offscreen rendering.')
+        if requested_offscreen:
+            self.has_graphics = self.initialize_offscreen_rendering(session.main_view)
+            if not self.has_graphics and not session.silent:
+                session.logger.info('Offscreen rendering is not available.')
+                session.logger.info('Need OSMesa library from Mesa version 12.0 or newer for offscreen rendering.')
 
     def initialize_offscreen_rendering(self, view):
         from . import graphics

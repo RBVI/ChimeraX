@@ -82,6 +82,7 @@ class UI(QApplication):
 
     def __init__(self, session):
         self.is_gui = True
+        self.has_graphics = True
         self.already_quit = False
         self.session = session
 
