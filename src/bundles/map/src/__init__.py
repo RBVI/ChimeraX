@@ -54,7 +54,7 @@ from .eds_fetch import register_eds_fetch
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
 from .molmap import register_molmap_command
-from .mapargs import MapArg
+from .mapargs import MapArg, MapsArg
 
 # -----------------------------------------------------------------------------
 #

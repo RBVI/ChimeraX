@@ -36,6 +36,7 @@ def fetch_ihm(session, id, ignore_cache=False, **kw):
   filename = fetch_file(session, url, 'IHM %s' % full_id, name, 'PDBDev',
                         ignore_cache=ignore_cache)
 
+  log.status('Opening %s' % name)
   from chimerax.core import io
   models, status = io.open_data(session, filename, format = 'ihm', name = name, **kw)
     
