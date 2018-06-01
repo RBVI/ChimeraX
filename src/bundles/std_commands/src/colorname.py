@@ -15,68 +15,6 @@ import re
 ColorNames = re.compile(r'[a-z][-_a-z0-9 ]*')
 
 
-def _find_named_color(color_dict, name):
-    # handle color names with spaces
-    # returns key, value, part of name that was unused
-    num_colors = len(color_dict)
-    # extract up to 10 words from name
-    from chimerax.core.commands import cli
-    first = True
-    text = name
-    words = []
-    while len(words) < 10:
-        m = cli._whitespace.match(text)
-        text = text[m.end():]
-        if not text:
-            break
-        word, _, rest = cli.next_token(text, no_raise=True)
-        if not word or word == ';':
-            break
-        if first and ' ' in word:
-            words = [(w, rest) for w in word.split()]
-            break
-        words.append((word, rest))
-        text = rest
-        first = False
-    real_name = None
-    last_real_name = None
-    w = 0
-    choices = []
-    cur_name = ""
-    while w < len(words):
-        if cur_name:
-            cur_name += ' '
-        cur_name += words[w][0]
-        i = color_dict.bisect_left(cur_name)
-        if i >= num_colors:
-            break
-        choices = []
-        for i in range(i, num_colors):
-            color_name = color_dict.iloc[i]
-            if not color_name.startswith(cur_name):
-                break
-            choices.append(color_name)
-        if len(choices) == 0:
-            break
-        multiword_choices = [(c.split()[w], c) for c in choices if ' ' in c]
-        if len(multiword_choices) == 0:
-            last_real_name = None
-            real_name = choices[0]
-            break
-        choices.sort(key=len)
-        last_real_name = choices[0]
-        cur_name = cur_name[:-len(words[w][0])] + multiword_choices[0][0]
-        w += 1
-    if last_real_name:
-        w -= 1
-        real_name = last_real_name
-    if first and w + 1 != len(words):
-        return None, None, name
-    if real_name:
-        return real_name, color_dict[real_name], words[w][1]
-    return None, None, name
-
-
 def html_color_swatch(color):
     return (
         '&nbsp;<div style="width:1em; height:.6em; display:inline-block;'
@@ -103,13 +41,14 @@ def show_color(session, name):
 
     name = ' '.join(name.split())   # canonicalize
 
+    from chimerax.core.commands.colorarg import find_named_color
     if session is not None:
-        real_name, color, rest = _find_named_color(session.user_colors, name)
+        real_name, color, rest = find_named_color(session.user_colors, name)
         if rest:
             color = None
     else:
         from chimerax.core.colors import BuiltinColors
-        real_name, color, rest = _find_named_color(BuiltinColors, name)
+        real_name, color, rest = find_named_color(BuiltinColors, name)
         if rest:
             color = None
     if color is None:
