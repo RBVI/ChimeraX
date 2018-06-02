@@ -518,7 +518,7 @@ class Toolshed:
         try:
             if bundle.installed:
                 if not reinstall:
-                    raise ToolshedInstalledError("bundle \"%s\" already installed" % bundle.name)
+                    raise ToolshedInstalledError("bundle %r already installed" % bundle.name)
                 if bundle in self._installed_bundle_info:
                     bundle.deregister(logger)
                     bundle.unload(logger)
@@ -580,7 +580,7 @@ class Toolshed:
         _debug("uninstall_bundle", bundle)
         try:
             if not bundle.installed:
-                raise ToolshedInstalledError("bundle \"%s\" not installed" % bundle.name)
+                raise ToolshedInstalledError("bundle %r not installed" % bundle.name)
             bundle.deregister(logger)
             bundle.unload(logger)
             bundle = bundle.name
@@ -601,6 +601,8 @@ class Toolshed:
         ----------
         name : str
             Name (internal or display name) of the bundle of interest.
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Logging object where warning and error messages are sent.
         installed : boolean
             True to check only for installed bundles; False otherwise.
         version : str
@@ -697,6 +699,93 @@ class Toolshed:
         for bi in failed:
             self._installed_bundle_info.remove(bi)
             # TODO: update _installed_packages
+
+    def import_bundle(self, bundle_name, logger, install="ask"):
+        """Return the module for the bundle with the given name.
+
+        Parameters
+        ----------
+        bundle_name : str
+            Name (internal or display name) of the bundle of interest.
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Logging object where warning and error messages are sent.
+        install: str
+            Action to take if bundle is uninstalled but available.
+            "ask" (default) means to ask user;
+            "never" means not to install; and
+            "always" means always install.
+        session : :py:class:`chimerax.core.session.Session` instance.
+            Session that is requesting the module.  Must not be
+            `None` if `install` is "ask".
+
+        Raises
+        ------
+        ImportError
+            Raised if a module for the bundle cannot be found.
+        """
+        # If the bundle is installed, return its module.
+        bundle = self.find_bundle(bundle_name, logger, installed=True)
+        if bundle is not None:
+            module = bundle.get_module()
+            if module is None:
+                raise ImportError("bundle %r has no module" % bundle_name)
+            return module
+        bundle = self.find_bundle(bundle_name, logger, installed=False)
+        if bundle is None:
+            raise ImportError("bundle %r not found" % bundle_name)
+        return _install_module(bundle, logger, install, session)
+
+
+    def import_package(self, package_name, logger, install=None):
+        """Return package of given name if it is associated with a bundle.
+
+        Parameters
+        ----------
+        module_name : str
+            Name of the module of interest.
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Logging object where warning and error messages are sent.
+        install: str
+            Action to take if bundle is uninstalled but available.
+            "ask" (default) means to ask user;
+            "never" means not to install; and
+            "always" means always install.
+        session : :py:class:`chimerax.core.session.Session` instance.
+            Session that is requesting the module.  Must not be
+            `None` if `install` is "ask".
+
+        Raises
+        ------
+        ImportError
+            Raised if a module for the bundle cannot be found.
+        """
+        for bi in self._installed_bundle_info:
+            if bi.package_name == package_name:
+                module = bi.get_module()
+                if module is None:
+                    raise ImportError("bundle %r has no module" % bundle_name)
+                return module
+        # No installed bundle matches
+        from distlib.version import NormalizedVersion as Version
+        lc_name = name.lower().replace('_', '-')
+        best_bi = None
+        best_version = None
+        for bi in self._get_available_bundles(logger):
+            if bi.package_name != package_name:
+                continue
+            if best_bi is None:
+                best_bi = bi
+                best_version = Version(bi.version)
+            elif best_bi.name != bi.name:
+                raise ImportError("%r matches multiple bundles %s, %s" % (package_name, best_bi.name, bi.name))
+            else:
+                v = Version(bi.version)
+                if v > best_version:
+                    best_bi = bi
+                    best_version = v
+        if best_bi is None:
+            raise ImportError("bundle %r not found" % bundle_name)
+        return _install_module(best_bi, logger, install, session)
 
     #
     # End public API
@@ -800,6 +889,34 @@ class Toolshed:
                         continue
                 #print('removing (pip installed)', path)
                 os.remove(path)
+
+    def _install_module(self, bundle_name, bundle, logger, install, session):
+        # Given a bundle name and *uninstalled* bundle, install it
+        # and return the module from the *installed* bundle
+        if install == "never":
+            raise ImportError("bundle %r is not installed" % bundle_name)
+        if install == "ask":
+            from ui.ask import ask
+            answer = ask(session, "Install bundle %r?" % bundle_name,
+                         buttons = ["just me", "all users", "cancel"])
+            if answer == "cancel":
+                raise ImportError("user canceled installation of bundle %r" % bundle_name)
+            elif answer == "just me":
+                per_user = True
+            elif answer == "all users":
+                per_user = False
+            else:
+                raise ImportError("installation of bundle %r canceled" % bundle_name)
+        # We need to install the bundle.
+        self.install_bundle(bundle_name, logger, per_user=per_user)
+        # Now find the *installed* bundle.
+        bundle = self.find_bundle(bundle_name, logger, installed=True)
+        if bundle is None:
+            raise ImportError("could not install bundle %r" % bundle_name)
+        module = bundle.get_module()
+        if module is None:
+            raise ImportError("bundle %r has no module" % bundle_name)
+        return module
 
 
 class BundleAPI:
