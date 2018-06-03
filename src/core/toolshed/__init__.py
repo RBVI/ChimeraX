@@ -700,7 +700,8 @@ class Toolshed:
             self._installed_bundle_info.remove(bi)
             # TODO: update _installed_packages
 
-    def import_bundle(self, bundle_name, logger, install="ask"):
+    def import_bundle(self, bundle_name, logger,
+                      install="ask", session=None):
         """Return the module for the bundle with the given name.
 
         Parameters
@@ -711,12 +712,11 @@ class Toolshed:
             Logging object where warning and error messages are sent.
         install: str
             Action to take if bundle is uninstalled but available.
-            "ask" (default) means to ask user;
+            "ask" (default) means to ask user, if `session` is not `None`;
             "never" means not to install; and
             "always" means always install.
         session : :py:class:`chimerax.core.session.Session` instance.
-            Session that is requesting the module.  Must not be
-            `None` if `install` is "ask".
+            Session that is requesting the module.  Defaults to `None`.
 
         Raises
         ------
@@ -733,10 +733,11 @@ class Toolshed:
         bundle = self.find_bundle(bundle_name, logger, installed=False)
         if bundle is None:
             raise ImportError("bundle %r not found" % bundle_name)
-        return _install_module(bundle, logger, install, session)
+        return self._install_module(bundle, logger, install, session)
 
 
-    def import_package(self, package_name, logger, install=None):
+    def import_package(self, package_name, logger,
+                       install=None, session=None):
         """Return package of given name if it is associated with a bundle.
 
         Parameters
@@ -747,12 +748,11 @@ class Toolshed:
             Logging object where warning and error messages are sent.
         install: str
             Action to take if bundle is uninstalled but available.
-            "ask" (default) means to ask user;
+            "ask" (default) means to ask user, if `session` is not `None`;
             "never" means not to install; and
             "always" means always install.
         session : :py:class:`chimerax.core.session.Session` instance.
-            Session that is requesting the module.  Must not be
-            `None` if `install` is "ask".
+            Session that is requesting the module.  Defaults to `None`.
 
         Raises
         ------
@@ -785,7 +785,7 @@ class Toolshed:
                     best_version = v
         if best_bi is None:
             raise ImportError("bundle %r not found" % bundle_name)
-        return _install_module(best_bi, logger, install, session)
+        return self._install_module(best_bi, logger, install, session)
 
     #
     # End public API
@@ -890,32 +890,34 @@ class Toolshed:
                 #print('removing (pip installed)', path)
                 os.remove(path)
 
-    def _install_module(self, bundle_name, bundle, logger, install, session):
+    def _install_module(self, bundle, logger, install, session):
         # Given a bundle name and *uninstalled* bundle, install it
         # and return the module from the *installed* bundle
         if install == "never":
-            raise ImportError("bundle %r is not installed" % bundle_name)
+            raise ImportError("bundle %r is not installed" % bundle.name)
         if install == "ask":
-            from ui.ask import ask
-            answer = ask(session, "Install bundle %r?" % bundle_name,
+            if session is None:
+                raise ImportError("bundle %r is not installed" % bundle.name)
+            from chimerax.ui.ask import ask
+            answer = ask(session, "Install bundle %r?" % bundle.name,
                          buttons = ["just me", "all users", "cancel"])
             if answer == "cancel":
-                raise ImportError("user canceled installation of bundle %r" % bundle_name)
+                raise ImportError("user canceled installation of bundle %r" % bundle.name)
             elif answer == "just me":
                 per_user = True
             elif answer == "all users":
                 per_user = False
             else:
-                raise ImportError("installation of bundle %r canceled" % bundle_name)
+                raise ImportError("installation of bundle %r canceled" % bundle.name)
         # We need to install the bundle.
-        self.install_bundle(bundle_name, logger, per_user=per_user)
+        self.install_bundle(bundle.name, logger, per_user=per_user)
         # Now find the *installed* bundle.
-        bundle = self.find_bundle(bundle_name, logger, installed=True)
+        bundle = self.find_bundle(bundle.name, logger, installed=True)
         if bundle is None:
-            raise ImportError("could not install bundle %r" % bundle_name)
+            raise ImportError("could not install bundle %r" % bundle.name)
         module = bundle.get_module()
         if module is None:
-            raise ImportError("bundle %r has no module" % bundle_name)
+            raise ImportError("bundle %r has no module" % bundle.name)
         return module
 
 
