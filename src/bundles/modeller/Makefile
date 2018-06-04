@@ -34,7 +34,9 @@ install app-install:	$(WHEEL)
 	$(CHIMERAX_EXE) --nogui --cmd "devel install . user false; exit"
 
 test:
-	$(CHIMERAX_EXE) --exit --nogui $(wildcard test.cxc)
+	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
+		do $(CHIMERAX_EXE) --exit --nogui $$t;\
+	done
 
 debug:
 	$(CHIMERAX_EXE) --debug
