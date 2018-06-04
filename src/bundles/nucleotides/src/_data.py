@@ -1210,9 +1210,9 @@ def make_ladder(nd, residues, params):
                 mid = 1.0 - purine_pyrimidine_ratio
             midpt = c3p0[1] + mid * (c3p1[1] - c3p0[1])
             va, na, ta = get_cylinder(radius, c3p0[1], midpt, top=False)
-            nd.add_shape(va, na, ta, r0color, r0.atoms, r0)
+            nd.add_shape(va, na, ta, r0color, r0.atoms, str(r0))
             va, na, ta = get_cylinder(radius, c3p1[1], midpt, top=False)
-            nd.add_shape(va, na, ta, r1color, r1.atoms, r1)
+            nd.add_shape(va, na, ta, r1color, r1.atoms, str(r1))
             if not non_base[0]:
                 matched_residues.add(r0)
             if not non_base[1]:
@@ -1251,7 +1251,7 @@ def make_ladder(nd, residues, params):
                     dist_atom = (dist, a)
             ep1 = dist_atom[1].coord
         va, na, ta = get_cylinder(params.rung_radius, ep0, ep1)
-        nd.add_shape(va, na, ta, color, r.atoms, r)
+        nd.add_shape(va, na, ta, color, r.atoms, str(r))
         matched_residues.add(r)
     if params.hide:
         return matched_residues
