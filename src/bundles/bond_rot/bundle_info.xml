@@ -41,6 +41,7 @@
 ]
 	<ChimeraXClassifier>ChimeraX :: Command :: torsion create :: Activate bond for rotation :: activate bond for rotation</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: torsion delete :: Delete active torsion :: deactivate bond for rotation</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: torsion reset :: Reset active torsion to starting position :: reset torsion to starting position</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: torsion :: Adjust active torsion :: adjust bond rotation</ChimeraXClassifier>
 ]
   </Classifiers>

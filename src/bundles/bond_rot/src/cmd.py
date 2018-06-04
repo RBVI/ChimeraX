@@ -23,6 +23,18 @@ def cmd_torsion_create(session, ident, bond, move="small"):
     except BondRotationError as e:
         raise UserError(str(e))
 
+def cmd_torsion_reset(session, ident):
+    mgr = session.bond_rotations
+    if ident is None:
+        rotations = mgr.rotaters.values()
+    else:
+        try:
+            rotations = [mgr.rotation_for_ident(ident)]
+        except BondRotationError as e:
+            raise UserError(str(e))
+    for rot in rotations:
+        rot.angle = 0
+
 def cmd_xtorsion(session, ident):
     mgr = session.bond_rotations
     if ident is None:
@@ -47,6 +59,10 @@ def register_command(command_name, logger):
         #TODO
         # syntax for torsion adjustment command will be: torsion ident angle [frames]
         pass
+    elif command_name == "torsion reset":
+        desc = CmdDesc(required = [('ident', Or(IntArg,EmptyArg))],
+            synopsis = 'Reset bond rotation(s) to starting position(s)')
+        register('torsion reset', desc, cmd_torsion_reset, logger=logger)
     else:
         desc = CmdDesc(required = [('ident', Or(IntArg,EmptyArg))],
             synopsis = 'Deactivate bond rotation(s)')
