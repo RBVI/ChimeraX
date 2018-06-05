@@ -15,32 +15,15 @@
 #
 def surface_zone(surface, points, distance, auto_update = False, max_components = None):
 
-    v, t = surface.vertices, surface.triangles
-    if t is None:
-        return
-
-    from chimerax.core.geometry import find_close_points
-    i1, i2 = find_close_points(v, points, distance)
-
-    nv = len(v)
-    from numpy import zeros, bool, put, logical_and
-    mask = zeros((nv,), bool)
-    put(mask, i1, 1)
-    tmask = logical_and(mask[t[:,0]], mask[t[:,1]])
-    logical_and(tmask, mask[t[:,2]], tmask)
-    surface.triangle_mask = tmask
-
-    if not max_components is None:
-        from . import dust
-        dust.show_only_largest_blobs(surface, True, max_components)
+    zm = ZoneMask(surface, points, distance, max_components)
+    zm.set_surface_mask()
 
     if auto_update:
-        remask = ZoneRemask(surface, points, distance, max_components)
         from .updaters import add_updater_for_session_saving
-        add_updater_for_session_saving(surface.session, remask)
+        add_updater_for_session_saving(surface.session, zm)
     else:
-        remask = None
-    surface.auto_remask_triangles = remask
+        zm = None
+    surface.auto_remask_triangles = zm
 
 # -----------------------------------------------------------------------------
 #
@@ -59,7 +42,7 @@ def path_points(atoms, bonds, bond_point_spacing = None):
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.state import State
-class ZoneRemask(State):
+class ZoneMask(State):
     def __init__(self, surface, points, distance, max_components):
         self.surface = surface
         self.points = points
@@ -70,10 +53,27 @@ class ZoneRemask(State):
         self.set_surface_mask()
 
     def set_surface_mask(self):
-        surf = self.surface
-        surface_zone(surf, self.points, self.distance,
-                     max_components = self.max_components, auto_update = False)
-        surf.auto_remask_triangles = self
+        surface = self.surface
+        v, t = surface.vertices, surface.triangles
+        if t is None:
+            return
+
+        from chimerax.core.geometry import find_close_points
+        i1, i2 = find_close_points(v, self.points, self.distance)
+
+        nv = len(v)
+        from numpy import zeros, bool, put, logical_and
+        mask = zeros((nv,), bool)
+        put(mask, i1, 1)
+        tmask = logical_and(mask[t[:,0]], mask[t[:,1]])
+        logical_and(tmask, mask[t[:,2]], tmask)
+        surface.triangle_mask = tmask
+
+        if not self.max_components is None:
+            from . import dust
+            dust.show_only_largest_blobs(surface, True, self.max_components)
+
+        surface.auto_remask_triangles = self
 
     # -------------------------------------------------------------------------
     #
@@ -95,6 +95,7 @@ class ZoneRemask(State):
         if surf is None:
             return None		# Surface to mask is gone.
         c = cls(surf, data['points'], data['distance'], data['max_components'])
+        surf.auto_remask_triangles = c
         c.set_surface_mask()
         return c
 
