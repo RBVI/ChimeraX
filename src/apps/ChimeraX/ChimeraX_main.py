@@ -466,6 +466,11 @@ def init(argv, event_loop=True):
     if opts.uninstall:
         return uninstall(sess)
 
+    # initialize qt
+    if opts.gui:
+        from chimerax.ui import initialize_qt
+        initialize_qt()
+
     # initialize the user interface
     if opts.gui:
         from chimerax.ui import gui
