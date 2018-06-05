@@ -737,12 +737,14 @@ class IHMModel(Model):
             'model_id',
             'model_group_id',
             'model_group_name',]
-        ml = mlt.fields(ml_fields)
+        ml = mlt.fields(ml_fields, allow_missing_fields = True)
         gm = {}
         for mid, gid, gname in ml:
             gm.setdefault((gid, gname), []).append(mid)
         gmodels = []
         for (gid, gname), mid_list in gm.items():
+            if not gname:
+                gname = 'Group ' + gid
             g = Model(gname, self.session)
             g.ihm_group_id = gid
             g.ihm_model_ids = mid_list
