@@ -42,6 +42,8 @@ nucleic acids, with choices for <i>mode</i>:
 <li><a href="#ladder"><b>ladder</b></a>
 - continuous or broken rungs depending on 
 <a href="hbonds.html#related">hydrogen bond pseudobonds</a>
+<li><a href="#stubs"><b>stubs</b></a>
+- broken rungs 
 <li><a href="#tube"><b>tube/slab</b></a> - tube representation of ribose,
 slab representation of bases (box, muffler, or ellipsoid shape)
 <li><a href="#slab"><b>slab</b></a> - atomic representation of ribose, 
@@ -53,7 +55,6 @@ See also:
 <a href="color.html#bynucleotide"><b>color bynucleotide</b></a>,
 <a href="cartoon.html"><b>cartoon</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
-<a href="rungs.html"><b>rungs</b></a>,
 <a href="struts.html"><b>struts</b></a>
 </p>
 
@@ -74,7 +75,7 @@ Remove special representations to reveal atoms and bonds.
 <b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 <b>ladder</b>
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>stubs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>showStubs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>baseOnly</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
@@ -82,7 +83,7 @@ Show nucleic-acid residue pairs connected by
 <a href="hbonds.html#related">hydrogen bond pseudobonds</a> as rods 
 or ladder rungs of the specified <b>radius</b> (default <b>0.45</b> &Aring;). 
 Nucleic acid residues without such connections will be shown as half-rungs if
-<b>stubs</b> is <b>true</b> (default),
+<b>showStubs</b> is <b>true</b> (default),
 otherwise omitted from the ladder representation.
 The rungs attach to cartoon at the C3' 
 <a href="cartoon.html#tether">tether</a> position,
@@ -95,11 +96,24 @@ Each half-rung is colored to match the cartoon of the corresponding residue.
 The <b>hideAtoms</b> option indicates whether to hide atoms/bonds
 for nucleotides shown as rungs (default <b>true</b>).
 <p>
-Although the ladder represention can be limited to specified residues,
-the ladder settings are per-model (<i>e.g.</i>,
-different residues in the same model cannot have a different rung radius).
-See also: <a href="rungs.html"><b>rungs</b></a>
+Although ladder/stub representions can be limited to specified residues,
+the associated parameters are per-model: <i>e.g.</i>,
+different residues in the same model cannot have a different rung radius.
 </p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="stubs"></a>
+<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>stubs</b>
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Show nucleotide sidechains as half-rungs of the specified 
+<b>radius</b> (default <b>0.45</b> &Aring;),
+each colored to match the cartoon of the corresponding residue.
+The <b>hideAtoms</b> option indicates whether to hide the
+corresponding atoms/bonds (default <b>true</b>).
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -195,5 +209,5 @@ The <b>hideAtoms</b> option indicates whether to hide base atoms/bonds
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2017</address>
+June 2018</address>
 </body></html>

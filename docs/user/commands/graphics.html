@@ -26,24 +26,41 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: graphics</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>graphics</b> 
-[&nbsp;<b>atomTriangle</b>s&nbsp;&nbsp;<i>N<sub>a</sub></i>&nbsp;]
-[&nbsp;<b>bondTriangle</b>s&nbsp;&nbsp;<i>N<sub>b</sub></i>&nbsp;]
-[&nbsp;<b>ribbonDivision</b>s&nbsp;&nbsp;<i>N<sub>d</sub></i>&nbsp;]
-[&nbsp;<b>ribbonSide</b>s&nbsp;&nbsp;<i>N<sub>s</sub></i>&nbsp;]
-[&nbsp;<b>maxFrameRate</b>&nbsp;&nbsp;<i>N<sub>f</sub></i>&nbsp;]
+[&nbsp;<b>atomTriangles</b>&nbsp;&nbsp;<i>N<sub>a</sub></i>&nbsp;]
+[&nbsp;<b>bondTriangles</b>&nbsp;&nbsp;<i>N<sub>b</sub></i>&nbsp;]
+[&nbsp;<b>totalAtomTriangles</b>&nbsp;&nbsp;<i>max<sub>a</sub></i>&nbsp;]
+[&nbsp;<b>totalBondTriangles</b>&nbsp;&nbsp;<i>max<sub>b</sub></i>&nbsp;]
+[&nbsp;<b>ribbonDivisions</b>&nbsp;&nbsp;<i>divisions</i>&nbsp;]
+[&nbsp;<b>ribbonSides</b>&nbsp;&nbsp;<i>sides</i>&nbsp;]
+[&nbsp;<b>maxFrameRate</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>frameRate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>waitForVsync</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>graphics</b> &nbsp;<b>triangles</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>graphics</b> &nbsp;<b>restart</b> 
 </h3>
 <p>
+The <b>graphics</b> command sets graphical rendering parameters
+and allows detailed control over object triangulation.
 Normally, the fineness of atom and bond triangulation is adjusted automatically 
 depending on the display contents (<i>e.g.</i>, the number of atoms displayed),
-within the ranges of 10-2000 triangles per atom and 24-160 per bond.
+within the ranges of 10-2000 triangles per atom and 24-160 per bond,
+up to maximum totals for atoms and bonds set with
+<b>totalAtomTriangles</b> and <b>totalBondTriangles</b>, respectively
+(initial default five million each, <b>5000000</b>).
 Automatic adjustment can be tuned in either direction with
-<a href="set.html#subdivision"><b>set subdivision</b></a>.
+<a href="set.html#subdivision"><b>set subdivision</b></a>,
+and by default, <a href="device.html#vr"><b>vr</b></a>
+temporarily lowers the limits on total triangles for faster rendering. 
 See also: <a href="cartoon.html#style"><b>cartoon style</b></a>
 </p><p>
-The <b>graphics</b> command specifies using fixed numbers of triangles instead:
+As an alternative to automatic adjustment,
+the <b>graphics</b> command allows using fixed numbers of triangles
+per atom and bond:
 </p>
 <ul>
 <li><b>atomTriangles</b> <i>N<sub>a</sub></i> - triangles per atom
@@ -63,7 +80,19 @@ to <i>N<sub>f</sub></i>&nbsp; frames per second (initial default <b>60</b>).
 The actual redraw rate may be lower than the target, depending on the 
 rendering speed of the computer and the complexity of the scene.
 </p><p>
-Without options, <b>graphics</b> reports the current triangles per atom and bonds, 
+The <b>frameRate</b> option indicates whether to report the average frame
+rate each second in the <a href="../window.html">status line</a>
+(initial default <b>false</b>).
+</p><p>
+The <b>waitForVsync</b> option, supported only on Windows,
+indicates whether to synchronize drawing to the display vertical 
+refresh rate, typically 60 Hz (initial default usually <b>true</b>, 
+but depends on the graphics driver settings). If the option is <b>false</b>,
+the frame rate can exceed the vertical refresh rate and the display can
+exhibit image tearing.
+</p><p>
+Given without options, <b>graphics</b> reports the 
+current triangles per atom and bonds, 
 ribbon divisions per residue, and maximum frame rate
 in the <a href="../tools/log.html"><b>Log</b></a>.
 The number of ribbon sides and divisions can be reported (or changed) with
@@ -71,10 +100,13 @@ The number of ribbon sides and divisions can be reported (or changed) with
 the maximum frame rate can also be reported/changed with 
 <a href="set.html"><b>set</b></a>.
 </p><p>
+The command <b>graphics triangles</b> reports the current total number of
+triangles, with breakdowns per model and per representation type within a model.
+</p><p>
 The command <b>graphics restart</b> reinitiates graphics drawing after an error.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+June 2018</address>
 </body></html>
