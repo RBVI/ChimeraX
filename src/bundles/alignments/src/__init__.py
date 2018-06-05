@@ -51,7 +51,7 @@ class _AlignmentsBundleAPI(BundleAPI):
             alignment=alignment, ident=ident, auto_associate=auto_associate)
 
     @staticmethod
-    def save_file(session, path, format_name="FASTA", alignment=None):
+    def save_file(session, path, format_name="fasta", alignment=None):
         if not alignment:
             alignments = list(session.alignments.alignments.values())
             from chimerax.core.errors import UserError
@@ -61,12 +61,7 @@ class _AlignmentsBundleAPI(BundleAPI):
                 raise UserError("More than one alignment open;"
                     " use 'alignment' keyword to specify one")
             alignment = alignments[0]
-        import importlib
-        mod = importlib.import_module(".io.save%s" % format_name.upper(), "chimerax.seqalign")
-        from chimerax.core.io import open_filename
-        stream = open_filename(path, "w")
-        with stream:
-            mod.save(session, alignment, stream)
+        alignment.save(path, format_name=format_name)
 
     @staticmethod
     def register_command(command_name, logger):

@@ -433,6 +433,14 @@ class Alignment(State):
                 self._notify_viewers(cur_note, cur_data, viewer_criteria=viewer_criteria)
             self._vn_suspended_data = []
 
+    def save(self, path_or_stream, format_name="fasta"):
+        import importlib
+        mod = importlib.import_module(".io.save%s" % format_name.upper(), "chimerax.seqalign")
+        from chimerax.core.io import open_filename
+        stream = open_filename(path_or_stream, "w")
+        with stream:
+            mod.save(self.session, self, stream)
+
     def suspend_notify_viewers(self):
         self._viewer_notification_suspended += 1
 

@@ -516,7 +516,7 @@ def open_filename(filename, *args, **kw):
 
     Takes the same arguments as built-in open and returns a file-like
     object.  However, `filename` can also be a file-like object itself,
-    in which case it is simple returned.  Also, if `filename` is a string
+    in which case it is simply returned.  Also, if `filename` is a string
     that begins with "http:", then it is interpreted as an URL.
 
     If the file is opened for input, compression is checked for and

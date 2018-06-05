@@ -2178,7 +2178,26 @@ def add_keyword_arguments(name, kw_info, *, registry=None):
         raise ValueError("'%s' is not a command name" % name)
     # check compatibility with already-registered keywords
     for kw, arg_type in kw_info.items():
-        if kw in cmd._ci._keyword and cmd._ci._keyword[kw] != arg_type:
+        if kw not in cmd._ci._keyword:
+            continue
+        # since de-registration currently may not undo the arg
+        # registration, direct comparison of the registration
+        # types may compare as unequal when they are in fact
+        # the same class because it's a second instance of the
+        # same module
+        #
+        # also what's registered can be a class or an instance,
+        # but will be the same kind for both
+        reg_type = cmd._ci._keyword[kw]
+        if isinstance(arg_type, type):
+            # classes
+            reg_class = reg_type
+            arg_class = arg_type
+        else:
+            reg_class = reg_type.__class__
+            arg_class = arg_type.__class__
+        if ( reg_class.__module__ != arg_class.__module__
+        or reg_class.__name__ != arg_class.__name__):
             raise ValueError(
                 "%s-command keyword '%s' being registered with different type (%s)"
                 " than previous registration (%s)" % (
