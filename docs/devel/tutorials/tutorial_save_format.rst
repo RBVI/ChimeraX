@@ -154,8 +154,8 @@ The **Save** classifier fields are:
 .. include:: src.rst
 
 
-``__init__.py``
----------------
+``src/__init__.py``
+-------------------
 
 As described in :doc:`tutorial_hello`, ``__init__.py`` contains
 the initialization code that defines the ``bundle_api`` object
@@ -188,8 +188,8 @@ All three arguments are passed through to ``io.save_xyz`` to
 actually save the models to the output file in XYZ format.
 
 
-``io.py``
-----------
+``src/io.py``
+--------------
 
 .. literalinclude:: ../../../src/examples/tutorials/tut_save/src/io.py
     :language: python
