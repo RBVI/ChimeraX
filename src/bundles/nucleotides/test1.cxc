@@ -1,0 +1,5 @@
+# This sequence used to cause a traceback
+open 2tpk
+hide
+select :12
+show
