@@ -169,10 +169,9 @@ def model(session, targets, combined_templates=False, custom_script=None,
     pir_target.characters = '/'.join(target_strings)
     from tempfile import NamedTemporaryFile
     tf = NamedTemporaryFile(mode="w", suffix=".pir", delete=False)
-    aln = session.alignments.new_alignment(pir_seqs, None, align_viewer=False, auto_associate=False)
+    aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False)
     aln.save(tf, format_name="pir")
     session.alignments.destroy_alignment(aln)
-    print("temp PIR saved to:", tf.name)
     #TODO: save structure files
     #TODO: ...
     #TODO: delete temp PIR file
