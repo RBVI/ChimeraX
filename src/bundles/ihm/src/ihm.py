@@ -1192,19 +1192,22 @@ class FileInfo:
     # -----------------------------------------------------------------------------
     #
     def path(self, session):
-        if self.file_path:
+        r = self.ref
+        if (r is None or r.ref_type == 'Supplementary Files') and self.file_path:
             from os.path import join, isfile
             path = join(self.ihm_dir, self.file_path)
             if isfile(path):
                 return path
             
-        r = self.ref
         if r and r.ref_type == 'DOI':
-            if r.content == 'Archive':
+            if r.content == 'Archive' and self.file_path:
                 from .doi_fetch import unzip_archive
-                unzip_archive(session, r.ref, r.url, self.ihm_dir)
+                dir = unzip_archive(session, r.ref, r.url)
+                from os.path import join, isfile
+                path = join(dir, self.file_path)
                 if not isfile(path):
-                    session.logger.warning('Failed to find map file in zip archive DOI "%s", url "%s", path "%s"'
+                    session.logger.warning('Failed to find map file in zip archive'
+                                           'DOI "%s", url "%s", path "%s"'
                                            % (r.ref, r.url, path))
                     path = None
             elif r.content == 'File':
