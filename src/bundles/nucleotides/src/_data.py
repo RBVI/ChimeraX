@@ -495,28 +495,6 @@ def _nucleotides(session):
     return session.nucleotides
 
 
-def ndb_color(residues):
-    # color residues by their NDB color
-    from chimerax.core.colors import BuiltinColors
-    color_names = set(std['NDB color'] for std in standard_bases.values())
-    convert = {}
-    for n in color_names:
-        convert[n] = BuiltinColors[n].uint8x4()
-    other_color = BuiltinColors['tan'].uint8x4()
-    colors = []
-    for r in residues:
-        try:
-            info = standard_bases[nucleic3to1(r.name)]
-        except KeyError:
-            color = other_color
-        else:
-            color = convert[info['NDB color']]
-        colors.append(color)
-    for r, c in zip(residues, colors):
-        r.atoms.colors = c
-        r.ribbon_color = c
-
-
 def hydrogen_bonds(residues, bases_only=False):
     # Return tuple of hydrogen bonds between the given residues, and
     # other hydrogen bonds connected to the residues.
