@@ -64,6 +64,8 @@ The files in the ``tut_cmd`` folder are:
     - ``src`` - source code to Python package for bundle
         - ``__init__.py`` - package initializer and interface to ChimeraX
         - ``cmd.py`` - source code to implement two ``tutorial`` commands
+        - ``docs/users/commands/tutorial.html`` - help file for the
+          ``tutorial`` commands
 
 The file contents are shown below.
 
@@ -112,8 +114,8 @@ around ``::`` are ignored.
 .. include:: src.rst
 
 
-``__init__.py``
----------------
+``src/__init__.py``
+-------------------
 
 The command registration code is essentially the same as
 :doc:`tutorial_hello`, except that the command
@@ -127,8 +129,8 @@ from the ``cmd`` module.
     :linenos:
 
 
-``cmd.py``
-----------
+``src/cmd.py``
+--------------
 
 ``cmd.py`` contains the functions that implement the bundle commands.
 For example, the ``cofm`` function is called when the user issues a
@@ -261,6 +263,42 @@ Fetching the same attribute, e.g., coordinates, from a collection
 of molecular data, e.g., atoms, usually results in a NumPy array.
 Although code involving NumPy arrays are sometimes opaque, they are
 typically much more efficient than using Python loops.
+
+
+``src/docs/user/commands/tutorial.html``
+----------------------------------------
+
+The documentation for the ``tutorial`` command should be written
+in `HTML 5`_ and saved in a file whose name matches the command
+name and has suffix ``.html``, i.e., ``tutorial.html``.
+The directory structure is chosen to allow for multiple types
+of documentation for a bundle.
+For example, developer documentation such as
+the bundle API are saved in a ``devel`` directory instead of
+``user``; documentation for graphical tools are saved in
+``user/tools`` instead of ``user/commands``.
+
+.. literalinclude:: ../../../src/examples/tutorials/tut_cmd/src/docs/user/commands/tutorial.html
+    :language: html
+    :linenos:
+
+While the only requirement for documentation is that it be written
+as HTML, it is recommended that developers write command help files
+following the above template, with:
+
+- a banner linking to the documentation index,
+- a usage section with a summary of the command syntax,
+- text describing each command in the bundle, and
+- an address for contacting the bundle author.
+
+Note that the target links used in the HTML file are all relative
+to ``..``.
+Even though the command documentation HTML file is stored with the
+bundle, ChimeraX treats the links as if the file were located in
+the ``commands`` directory in the developer documentation tree.
+This creates a virtual HTML documentation tree where command HTML
+files can reference each other without having to be collected
+together.
 
 
 .. include:: build_test_distribute.rst
