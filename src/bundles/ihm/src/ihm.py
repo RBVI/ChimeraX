@@ -172,7 +172,8 @@ class IHMModel(Model):
         anames = self.asym_entity_names()
         ea = {}
         for asym_id, edesc in anames.items():
-            ea.setdefault(edesc,[]).append(asym_id)
+            if asym_id not in ('.', '?'):
+                ea.setdefault(edesc,[]).append(asym_id)
 
         # Create html table of entities with chains for each entity.
         rid = self.results_model.id_string()
