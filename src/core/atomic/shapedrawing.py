@@ -96,7 +96,10 @@ class AtomicShapeDrawing(Drawing):
         self._selected_shapes = set(s for s in self._shapes if s.atoms and all(s.atoms.selected))
         tmask = self.selected_triangles_mask
         if tmask is None:
-            tmask = numpy.zeros(len(self.triangles), bool)
+            tris = self.triangles
+            if tris is None:
+                return
+            tmask = numpy.zeros(len(tris), bool)
         else:
             tmask[:] = False
         for s in self._selected_shapes:

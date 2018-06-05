@@ -57,8 +57,10 @@
 	<ChimeraXClassifier>ChimeraX :: Command :: ~cofr :: General Controls :: revert to default center of rotation</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: color :: Depiction :: change model colors</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: colour :: Depiction :: change model colors</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: colorname :: General Controls :: define custom color names</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: colourname :: General Controls :: define custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: color delete :: General Controls :: delete custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: color list :: General Controls :: list custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: color name :: General Controls :: define custom color names</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: color show :: General Controls :: show definition of custom color names</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: colordef :: General Controls :: define custom color names</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: ~colordef :: General Controls :: remove custom color names</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: colourdef :: General Controls :: define custom color names</ChimeraXClassifier>
@@ -112,7 +114,7 @@
 	<ChimeraXClassifier>ChimeraX :: Command :: view :: Viewing Controls :: change/save/restore 3D view</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: wait :: Movie Making :: wait a given amount of frames before executing the next command</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: windowsize :: General Controls :: set the size of the 3D window</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: zonesel :: General Controls :: select (parts of) models within a 3D zone</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: select zone :: General Controls :: select (parts of) models within a 3D zone</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: zoom :: Viewing Controls :: zoom in/out</ChimeraXClassifier>
   </Classifiers>
 

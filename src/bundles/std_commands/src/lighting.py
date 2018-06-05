@@ -107,9 +107,12 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
               % ((lp.depth_cue, lp.depth_cue_start, lp.depth_cue_end) + tuple(100*r for r in lp.depth_cue_color)),
             'Shadow: %s (depth map size %d, depth bias %.5g)'
               % (lp.shadows, lp.shadow_map_size, lp.shadow_depth_bias),
-            'Multishadows: %d (max %d, depth map size %d, depth bias %.5g)'
-              % (lp.multishadow, v.max_multishadow(), lp.multishadow_map_size, lp.multishadow_depth_bias),
         )
+        if session.ui.has_graphics:
+            lines += (
+                'Multishadows: %d (max %d, depth map size %d, depth bias %.5g)'
+                  % (lp.multishadow, v.max_multishadow(), lp.multishadow_map_size, lp.multishadow_depth_bias),
+            )
         msg = '\n'.join(lines)
         session.logger.info(msg)
         return

@@ -3281,7 +3281,8 @@ def register_map_file_formats(session):
                          open_func=open_map_format, batch=True, export_func=save_func)
 
     # Add keywords to open command for maps
-    from chimerax.core.commands import add_keyword_arguments, BoolArg, IntArg
+    from chimerax.core.commands import BoolArg, IntArg
+    from chimerax.core.commands.cli import add_keyword_arguments
     add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg})
 
     # Add keywords to save command for maps

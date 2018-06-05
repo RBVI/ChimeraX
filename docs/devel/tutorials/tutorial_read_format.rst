@@ -127,8 +127,8 @@ The **Open** classifier fields are:
 .. include:: src.rst
 
 
-``__init__.py``
----------------
+``src/__init__.py``
+-------------------
 
 As described in :doc:`tutorial_hello`, ``__init__.py`` contains
 the initialization code that defines the ``bundle_api`` object
@@ -172,8 +172,8 @@ In this example, only one format is supported, so
 ``io.open_xyz`` is called directly.
 
 
-``io.py``
-----------
+``src/io.py``
+-------------
 
 .. literalinclude:: ../../../src/examples/tutorials/tut_read/src/io.py
     :language: python

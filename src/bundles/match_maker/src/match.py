@@ -54,7 +54,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                     KSDSSP_ENERGY, KSDSSP_HELIX_LENGTH, \
                     KSDSSP_STRAND_LENGTH
             """
-            from chimerax.core.commands import dssp
+            from chimerax.std_commands import dssp
             dssp.compute_ss(session, need_compute)
     if algorithm == "nw":
         from chimerax.seqalign.align_algs import NeedlemanWunsch
@@ -492,7 +492,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             logger.error("Fewer than 3 residues aligned; cannot match %s with %s"
                 % (s1.name, s2.name))
             continue
-        from chimerax.core.commands import align
+        from chimerax.std_commands import align
         from chimerax.core.atomic import Atoms
         try:
             ret_vals.append(align.align(session, Atoms(match_atoms), Atoms(ref_atoms),

@@ -12,8 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False, **kw):
-    '''Open a file.  Specific formats have additional keyword arguments using
-    commands.add_keyword_arguments().  These are listed with command "usage open".
+    '''Open a file.
 
     Parameters
     ----------

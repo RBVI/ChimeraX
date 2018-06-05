@@ -129,22 +129,34 @@ def fetch_doi_archive_file(session, doi, url, archive_path, mode = 'r', ignore_c
 
 # -----------------------------------------------------------------------------
 #
-def unzip_archive(session, doi, url, directory, ignore_cache = False):
+def unzip_archive(session, doi, url, directory = None, ignore_cache = False):
     zip_path = fetch_doi(session, doi, url, ignore_cache = ignore_cache)
     from zipfile import ZipFile
     zf = ZipFile(zip_path, 'r')
-    # Check if zip file already extracted.
-    # TODO: Should protect against absolute and relative paths in zip archive.
-    extracted = False
-    nl = zf.namelist()
-    from os.path import exists, join
-    for f in nl:
-        if exists(join(directory, f)):
+
+    if directory is None:
+        directory = zip_path[:-4] if zip_path.endswith('.zip') else (zip_path + '_extracted')
+        from os.path import isdir
+        if isdir(directory):
             extracted = True
-            break
+        else:
+            extracted = False
+            from os import mkdir
+            mkdir(directory)
+    else:
+        # Check if zip file already extracted in specified directory
+        # TODO: Should protect against absolute and relative paths in zip archive.
+        extracted = False
+        nl = zf.namelist()
+        from os.path import exists, join
+        for f in nl:
+            if exists(join(directory, f)):
+                extracted = True
+                break
     try:
         if not extracted:
             zf.extractall(path = directory)
     finally:
         zf.close()
-    return extracted
+
+    return directory

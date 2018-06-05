@@ -109,7 +109,7 @@ def register_vr_command(logger):
                               ('mirror', BoolArg),
                               ('icons', BoolArg),
                               ('show_controllers', BoolArg),
-                              ('multshadow_allowed', BoolArg),
+                              ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                               ('toolbar_panels', BoolArg),
                    ],

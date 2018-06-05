@@ -13,6 +13,7 @@ TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
 NO_SUBDIR_ALL=1
 NO_SUBDIR_INSTALL=1
+NO_SUBDIR_TEST=1
 SUBDIRS = prereqs src
 
 include $(TOP)/mk/config.make
@@ -34,6 +35,9 @@ endif
 	$(MAKE) -C src install
 	$(MAKE) -C docs install
 	@echo 'Finished install at' `date`
+
+test src.test:
+	$(MAKE) -C src test
 
 ifdef WIN32
 vsdefined:

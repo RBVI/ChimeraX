@@ -69,8 +69,8 @@ def nucleotides_dimensions_delete(session, name):
 
 ShapeArg = EnumOf(('box', 'muffler', 'ellipsoid'))
 DimensionsArg = DynamicEnum(NA.list_dimensions)
-# ReprArg = EnumOf(('atoms', 'fill/fill', 'fill/slab', 'tube/slab', 'ladder'))
-ReprArg = EnumOf(('atoms', 'slab', 'tube/slab', 'ladder'))
+# ReprArg = EnumOf(('atoms', 'fill/fill', 'fill/slab', 'tube/slab', 'ladder', 'stubs'))
+ReprArg = EnumOf(('atoms', 'slab', 'tube/slab', 'ladder', 'stubs'))
 
 
 nucleotides_desc = CmdDesc(
@@ -86,7 +86,7 @@ nucleotides_desc = CmdDesc(
         ("hide_atoms", BoolArg),
         ("glycosidic", BoolArg),
         ("base_only", BoolArg),
-        ("stubs", BoolArg),
+        ("show_stubs", BoolArg),
         ("radius", FloatArg),
     ],
     synopsis="Manipulate nucleotide representations")
@@ -96,8 +96,8 @@ def nucleotides(session, representation, *,
                 glycosidic=default.GLYCOSIDIC, show_orientation=default.ORIENT,
                 thickness=default.THICKNESS, hide_atoms=default.HIDE,
                 shape=default.SHAPE, dimensions=default.DIMENSIONS, radius=None,
-                stubs=default.STUBS, base_only=default.BASE_ONLY,
-                objects=None):
+                show_stubs=default.SHOW_STUBS, base_only=default.BASE_ONLY,
+                stubs_only=default.STUBS_ONLY, objects=None):
 
     if objects is None:
         objects = all_objects(session)
@@ -138,24 +138,9 @@ def nucleotides(session, representation, *,
                     thickness=thickness, orient=show_orientation,
                     shape=shape, show_gly=show_gly, hide=hide_atoms,
                     tube_radius=radius)
-    elif representation == 'ladder':
+    elif representation in ('ladder', 'stubs'):
         if radius is None:
             radius = default.RUNG_RADIUS
-        NA.set_ladder(residues, rung_radius=radius,
-                      show_stubs=stubs, skip_nonbase_Hbonds=base_only, hide=hide_atoms)
-
-
-nucleotides_ndbcolor_desc = CmdDesc(
-    required=[
-        ("objects", Or(ObjectsArg, EmptyArg)),
-    ],
-    synopsis="Color residues according to Nucleic Acid Database conventions")
-
-
-def nucleotides_ndbcolor(session, objects=None):
-    if objects is None:
-        objects = all_objects(session)
-    residues = objects.atoms.unique_residues
-    from chimerax.core.atomic import Residue
-    residues = residues.filter(residues.polymer_types == Residue.PT_NUCLEIC)
-    NA.ndb_color(residues)
+        stubs_only = representation == 'stubs'
+        NA.set_ladder(residues, rung_radius=radius, stubs_only=stubs_only,
+                      show_stubs=show_stubs, skip_nonbase_Hbonds=base_only, hide=hide_atoms)

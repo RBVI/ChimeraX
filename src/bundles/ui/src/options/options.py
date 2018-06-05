@@ -292,24 +292,24 @@ class IntOption(Option):
     default_maximum = 2^31 - 1
 
     def get(self):
-        return self.spinbox.value()
+        return self._spin_box.value()
 
     def set(self, value):
-        self.spinbox.setSpecialValueText("")
-        self.spinbox.setValue(value)
+        self._spin_box.setSpecialValueText("")
+        self._spin_box.setValue(value)
 
     def set_multiple(self):
-        self.spinbox.setSpecialValueText(self.multiple_value)
-        self.spinbox.setValue(self.spinbox.minimum())
+        self._spin_box.setSpecialValueText(self.multiple_value)
+        self._spin_box.setValue(self._spin_box.minimum())
 
     def _make_widget(self, min=None, max=None, preceding_text=None, trailing_text=None, **kw):
         from PyQt5.QtWidgets import QSpinBox, QWidget, QHBoxLayout, QLabel
-        self.spinbox = QSpinBox(**kw)
-        self.spinbox.setMinimum(self.default_minimum if min is None else min)
-        self.spinbox.setMaximum(self.default_maximum if max is None else max)
-        self.spinbox.valueChanged.connect(lambda val, s=self: s.make_callback())
+        self._spin_box = QSpinBox(**kw)
+        self._spin_box.setMinimum(self.default_minimum if min is None else min)
+        self._spin_box.setMaximum(self.default_maximum if max is None else max)
+        self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
         if not preceding_text and not trailing_text:
-            self.widget = self.spinbox
+            self.widget = self._spin_box
             return
         self.widget = QWidget()
         layout = QHBoxLayout()
@@ -318,7 +318,7 @@ class IntOption(Option):
         if preceding_text:
             layout.addWidget(QLabel(preceding_text))
             l = 0
-        layout.addWidget(self.spinbox)
+        layout.addWidget(self._spin_box)
         if trailing_text:
             layout.addWidget(QLabel(trailing_text))
             r = 0
@@ -470,6 +470,77 @@ class OptionalRGBAPairOption(OptionalRGBA8PairOption):
     def get(self):
         rgba8s = super().get()
         return tuple(None if i is None else [c/255.0 for c in i] for i in rgba8s)
+
+class StringOption(Option):
+    """Option for text strings"""
+
+    def get(self):
+        return self.widget.text()
+
+    def set(self, value):
+        self.widget.setText(value)
+
+    def set_multiple(self):
+        self.widget.setText(self.multiple_value)
+
+    def _make_widget(self, **kw):
+        from PyQt5.QtWidgets import QLineEdit
+        self.widget = QLineEdit(**kw)
+        self.widget.editingFinished.connect(lambda s=self: s.make_callback())
+
+class StringIntOption(Option):
+    """Option for a string and an int (as a 2-tuple), for something such as host and port"""
+
+    default_minimum = IntOption.default_minimum
+    default_maximum = IntOption.default_maximum
+
+    def get(self):
+        return (self._line_edit.text(), self._spin_box.value())
+
+    def set(self, value):
+        text, integer = value
+        self._line_edit.setText(text)
+        self._spin_box.setSpecialValueText("")
+        self._spin_box.setValue(integer)
+
+    def set_multiple(self):
+        self._line_edit.setText(self.multiple_value)
+        self._spin_box.setSpecialValueText(self.multiple_value)
+        self._spin_box.setValue(self._spin_box.minimum())
+
+    def _make_widget(self, min=None, max=None, string_label=None, int_label=None,
+            initial_text_width="10em", **kw):
+        """initial_text_width should be a string hold a "stylesheet-friendly"
+           value, (e.g. '10em' or '7ch') or None"""
+        from PyQt5.QtWidgets import QLineEdit
+        self._line_edit = QLineEdit()
+        self._line_edit.editingFinished.connect(lambda s=self: s.make_callback())
+        if initial_text_width:
+            self._line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
+        from PyQt5.QtWidgets import QSpinBox, QWidget, QHBoxLayout, QLabel
+        self._spin_box = QSpinBox(**kw)
+        self._spin_box.setMinimum(self.default_minimum if min is None else min)
+        self._spin_box.setMaximum(self.default_maximum if max is None else max)
+        self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
+        if string_label:
+            layout.addWidget(QLabel(string_label))
+            l = 0
+        layout.addWidget(self._line_edit)
+        if int_label:
+            layout.addWidget(QLabel(int_label))
+            r = 0
+        layout.addWidget(self._spin_box)
+        self.widget.setLayout(layout)
+
+class HostPortOption(StringIntOption):
+    """Option for a host name or address and a TCP port number (as a 2-tuple)"""
+    def _make_widget(self, **kw):
+        StringIntOption._make_widget(self, min=0, max=65535, string_label="host", int_label="port",             **kw)
+
 
 class SymbolicEnumOption(EnumOption):
     """Option for enumerated values with symbolic names"""

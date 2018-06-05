@@ -11,6 +11,7 @@ Comments = {
     "mccabe": "required by flake8",
     "numpydoc": "required for Sphinx",
     "pep8-naming": "required by flake8",
+    "prompt-toolkit": "required < 2.0.0 by IPython",
     "pycodestyle": "required < 2.4.0 by flake8 3.5.0",
     "pyflakes": "required by flake8",
     "Pygments": "required by Sphinx",

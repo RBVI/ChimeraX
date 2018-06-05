@@ -95,8 +95,11 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         gu.update_level_of_detail()
     else:
         na = gu.num_atoms_shown
-        msec = session.ui.main_window.graphics_window.redraw_interval
-        rate = 1000.0 / msec if msec > 0 else 1000.0
+        if session.ui.is_gui:
+            msec = session.ui.main_window.graphics_window.redraw_interval
+            rate = 1000.0 / msec if msec > 0 else 1000.0
+        else:
+            rate = 0
         msg = ('Atom triangles %d, bond triangles %d, ribbon divisions %d, max framerate %.3g' %
                (lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions,
                 rate))

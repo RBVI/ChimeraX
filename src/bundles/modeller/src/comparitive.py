@@ -147,9 +147,9 @@ def model(session, targets, combined_templates=False, custom_script=None,
     from chimerax.core.atomic import Sequence
     structures_to_save = set()
     for i, tmpl_strs in enumerate(templates_strings):
-        for tmpl_str in tmpl_strs:
-            chain = template_info[i][1][1]
-            pir_template = Sequence(chain_save_name(chain))
+        for j, tmpl_str in enumerate(tmpl_strs):
+            chain = template_info[i][1][j][1]
+            pir_template = Sequence(name=chain_save_name(chain))
             pir_seqs.append(pir_template)
             pir_template.description = "structure:%s:FIRST:%s:+%d:%s::::" % (
                 structure_save_name(chain.structure),
@@ -163,12 +163,18 @@ def model(session, targets, combined_templates=False, custom_script=None,
             if suffix:
                 full_line = full_line + '/' + suffix
             pir_template.characters = full_line
-    pir_target = Sequence(template_info[0][0].name)
+    pir_target = Sequence(name=template_info[0][0].name)
     pir_seqs.append(pir_target)
     pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
     pir_target.characters = '/'.join(target_strings)
-    #TODO: save PIR
+    from tempfile import NamedTemporaryFile
+    tf = NamedTemporaryFile(mode="w", suffix=".pir", delete=False)
+    aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False)
+    aln.save(tf, format_name="pir")
+    session.alignments.destroy_alignment(aln)
     #TODO: save structure files
+    #TODO: ...
+    #TODO: delete temp PIR file
 
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]

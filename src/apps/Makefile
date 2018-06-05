@@ -17,6 +17,7 @@ ifneq (,$(wildcard /usr/bin/valgrind))
 SUBDIRS += valgrind
 endif
 
+NO_SUBDIR_TEST=1
 include $(TOP)/mk/subdir.make
 
 all:

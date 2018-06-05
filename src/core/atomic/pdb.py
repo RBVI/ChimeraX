@@ -151,8 +151,8 @@ def register_pdb_format():
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
         open_func=open_pdb, export_func=save_pdb)
-    from ..commands import add_keyword_arguments, BoolArg, ModelsArg, ModelArg, IntArg, \
-        EnumOf
+    from chimerax.core.commands import BoolArg, ModelsArg, ModelArg, IntArg, EnumOf
+    from chimerax.core.commands.cli import add_keyword_arguments
     add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg,
                                    'atomic': BoolArg, 'max_models':IntArg, 'log_info':BoolArg})
     add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,

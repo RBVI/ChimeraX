@@ -1,7 +1,7 @@
 # The "make" targets are:
 #    wheel: build a Python wheel in "dist" directory
 #    install: build wheel and install
-#    test: run ChimeraX
+#    test: run ChimeraX with test commands
 #    debug: run ChimeraX with debugging flag set
 #    clean: remove files used in building wheel
 
@@ -59,7 +59,9 @@ wheel:	bundle_info.xml $(SRCS) generated_files
 	$(RUN) "devel build . exit true"
 
 test:
-	$(CHIMERAX_EXE)
+	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
+		do $(CHIMERAX_EXE) --exit --nogui $$t;\
+	done
 
 debug:
 	$(CHIMERAX_EXE) --debug

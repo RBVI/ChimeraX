@@ -93,11 +93,11 @@ class BundleInfo:
         self.fetches = []
         self.description = description
         self.supercedes = supercedes
+        self.package_name = api_package_name
 
         # Private attributes
         self._name = name
         self._version = version
-        self._api_package_name = api_package_name
         self._synopsis = synopsis
 
     @property
@@ -120,7 +120,7 @@ class BundleInfo:
         else:
             s += " (available)"
         s += " [version: %s]" % self._version
-        s += " [api package: %s]" % self._api_package_name
+        s += " [api package: %s]" % self.package_name
         if self.categories:
             s += " [category: %s]" % ', '.join(self.categories)
         for t in self.tools:
@@ -148,7 +148,7 @@ class BundleInfo:
                                  self.session_versions.stop),
             "custom_init": self.custom_init,
             "version": self._version,
-            "api_package_name": self._api_package_name,
+            "api_package_name": self.package_name,
             "packages": self.packages,
             "description": self.description,
             "supercedes": self.supercedes,
@@ -456,11 +456,11 @@ class BundleInfo:
 
     def get_module(self):
         """Return module that has bundle's code"""
-        if not self._api_package_name:
+        if not self.package_name:
             raise ToolshedError("Bundle %s has no module" % self.name)
         import importlib
         try:
-            m = importlib.import_module(self._api_package_name)
+            m = importlib.import_module(self.package_name)
         except Exception as e:
             raise ToolshedError("Error importing bundle %s's module: %s" % (self.name, str(e)))
         return m
@@ -472,7 +472,7 @@ class BundleInfo:
             bundle_api = getattr(m, 'bundle_api')
         except AttributeError:
             raise ToolshedError("missing bundle_api for bundle \"%s\"" % self.name)
-        # _debug("_get_api", self._api_package_name, m, bundle_api)
+        # _debug("_get_api", self.package_name, m, bundle_api)
         return bundle_api
 
     def get_path(self, subpath):

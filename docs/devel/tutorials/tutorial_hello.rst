@@ -157,8 +157,8 @@ specifically ChimeraX classifiers, is in :doc:`bundle_info`.
 .. include:: src.rst
 
 
-``__init__.py``
----------------
+``src/__init__.py``
+-------------------
 
 .. literalinclude:: ../../../src/examples/tutorials/hello_world/src/__init__.py
     :language: python
@@ -250,8 +250,8 @@ other data.  If necessary, data can be stored as attributes of ``bundle_api``
 and the static methods can refer to the instance explicitly.
 
 
-``cmd.py``
-----------
+``src/cmd.py``
+--------------
 
 .. literalinclude:: ../../../src/examples/tutorials/hello_world/src/cmd.py
     :language: python

@@ -172,7 +172,8 @@ class IHMModel(Model):
         anames = self.asym_entity_names()
         ea = {}
         for asym_id, edesc in anames.items():
-            ea.setdefault(edesc,[]).append(asym_id)
+            if asym_id not in ('.', '?'):
+                ea.setdefault(edesc,[]).append(asym_id)
 
         # Create html table of entities with chains for each entity.
         rid = self.results_model.id_string()
@@ -737,12 +738,14 @@ class IHMModel(Model):
             'model_id',
             'model_group_id',
             'model_group_name',]
-        ml = mlt.fields(ml_fields)
+        ml = mlt.fields(ml_fields, allow_missing_fields = True)
         gm = {}
         for mid, gid, gname in ml:
             gm.setdefault((gid, gname), []).append(mid)
         gmodels = []
         for (gid, gname), mid_list in gm.items():
+            if not gname:
+                gname = 'Group ' + gid
             g = Model(gname, self.session)
             g.ihm_group_id = gid
             g.ihm_model_ids = mid_list
@@ -1189,19 +1192,22 @@ class FileInfo:
     # -----------------------------------------------------------------------------
     #
     def path(self, session):
-        if self.file_path:
+        r = self.ref
+        if (r is None or r.ref_type == 'Supplementary Files') and self.file_path:
             from os.path import join, isfile
             path = join(self.ihm_dir, self.file_path)
             if isfile(path):
                 return path
             
-        r = self.ref
         if r and r.ref_type == 'DOI':
-            if r.content == 'Archive':
+            if r.content == 'Archive' and self.file_path:
                 from .doi_fetch import unzip_archive
-                unzip_archive(session, r.ref, r.url, self.ihm_dir)
+                dir = unzip_archive(session, r.ref, r.url)
+                from os.path import join, isfile
+                path = join(dir, self.file_path)
                 if not isfile(path):
-                    session.logger.warning('Failed to find map file in zip archive DOI "%s", url "%s", path "%s"'
+                    session.logger.warning('Failed to find map file in zip archive'
+                                           'DOI "%s", url "%s", path "%s"'
                                            % (r.ref, r.url, path))
                     path = None
             elif r.content == 'File':
