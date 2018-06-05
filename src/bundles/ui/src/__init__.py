@@ -20,7 +20,7 @@ from .mousemodes import MouseMode, SelectMouseMode, RotateMouseMode, TranslateMo
                 RotateSelectedMouseMode, TranslateSelectedMouseMode, ZoomMouseMode, mod_key_info
 from .htmltool import HtmlToolInstance
 from .font import shrink_font
-from .gui import MainToolWindow
+from .gui import MainToolWindow, initialize_qt
 
 from chimerax.core.toolshed import BundleAPI
 
