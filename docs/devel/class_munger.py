@@ -23,7 +23,7 @@ Replacements = [
     # TODO: what about mousemodes?
     (r"\.ui\.gui\b", ".ui"),
     (r"\.ui\.htmltool\b", ".ui"),
-    (r"\.ui\.ui_cmd\b", ".ui"),
+    (r"\.ui\.cmd\b", ".ui"),
     (r"\.ui\.font\b", ".ui"),
     (r"\.ui\.mousemodes\b", ".ui"),
     (r"\.ui\.widgets.htmlview\b", ".ui.widgets"),
