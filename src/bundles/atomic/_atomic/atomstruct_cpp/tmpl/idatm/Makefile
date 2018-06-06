@@ -9,10 +9,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP= ../../../../../..
+TOP= ../../../../../../..
 include $(TOP)/mk/config.make
 
-RESDIR = $(datadir)/idatm
+RESDIR = ../../../data/idatm
 
 install:
 	-mkdir -p $(RESDIR)/templates

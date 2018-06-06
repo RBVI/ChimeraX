@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP= ../../../..
+TOP= ../../../../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	= tmpl
@@ -21,7 +21,7 @@ DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I../include
 ifeq ($(OS),Darwin)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
@@ -36,23 +36,14 @@ $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
 	$(SHLIB_LINK)
 
 install: $(SHLIB)
-	$(RSYNC) $(SHLIB) $(shlibdir)
+	$(RSYNC) $(SHLIB) ../lib
 ifdef WIN32
-	$(RSYNC) $(LIBRARY) $(libdir)
+	$(RSYNC) $(LIBRARY) ../lib
 ifdef DEBUG
-	$(RSYNC) lib$(LIBNAME).pdb $(shlibdir)
+	$(RSYNC) lib$(LIBNAME).pdb ../lib
 endif
 endif
-	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)/
-	if [ -d "$(app_includedir)" ]; then \
-		$(RSYNC) imex.h $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
-	fi
-ifdef WIN32
-	if [ -d "$(app_libdir)" ]; then \
-		$(RSYNC) $(LIBRARY) $(app_libdir); \
-	fi
-endif
-	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
+	$(RSYNC) imex.h $(wildcard *.h) ../include/$(DIRNAME)/
 
 clean:
 	rm -f $(OBJS) $(SHLIB) imex.h

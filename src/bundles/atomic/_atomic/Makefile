@@ -9,56 +9,50 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP = ../../..
+TOP = ../../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= atomstruct_cpp dssp_cpp element_cpp mmcif_cpp pdb_cpp pdbio pyinstance_cpp readcif_cpp
+SUBDIRS	+= atomstruct_cpp element_cpp pyinstance_cpp
 
 include $(TOP)/mk/subdir.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/core/atomic
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
-
-PYSRCS = __init__.py attr_registration.py bond_geom.py changes.py colors.py ctypes_support.py \
-	idatm.py mmcif.py mmcif_write.py molc.py molarray.py molobject.py molsurf.py \
-	path.py pbgroup.py pdb.py pdbmatrices.py readpbonds.py ribbon.py \
-	search.py shapedrawing.py struct_edit.py sse.py structure.py triggers.py
 LIBNAME = molc
 
 SRCS	= molc.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 HDRS 	= 
-INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -Iinclude
 ifeq ($(WIN32),msvc)
 LIBS	+= libatomstruct.lib libelement.lib libpyinstance.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
 else
 LIBS	+= -latomstruct -lelement -lpyinstance -larrays -llogger -lappdirs $(PYTHON_LIB)
 endif
 
-all: $(PYOBJS) $(SHLIB)
+all: lib include data
+	make install
 
-cymol.$(PYMOD_EXT): cymol.pyx $(includedir)/atomstruct/Atom.h
+lib:
+	mkdir lib
+
+include:
+	mkdir include
+
+data:
+	mkdir data
+
+cymol.$(PYMOD_EXT): cymol.pyx include/atomstruct/Atom.h
 	LDFLAGS="-L." $(PYTHON_EXE) setup.py build_ext -i
 	mv chimerax/core/atomic/cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
 	rmdir -p chimerax/core/atomic
 
-install: all dir $(PYSRCS)
-	$(RSYNC) $(PYSRCS) $(SHLIB) cymol.$(PYMOD_EXT) $(PKG_DIR)
-ifdef WIN32
-	#$(RSYNC) $(LIBRARY) $(libdir)
-ifdef DEBUG
-	$(RSYNC) lib$(LIBNAME).pdb $(PKG_DIR)
-endif
-endif
+install: $(SHLIB) cymol.$(PYMOD_EXT)
+	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) lib
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)
 
-dir:
-	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
-
 clean:
-	rm -rf __pycache__ $(OBJS) $(SHLIB) cymol.$(PYMOD_EXT)
+	rm -rf __pycache__ $(OBJS) $(SHLIB) cymol.$(PYMOD_EXT) lib include data
 ifdef WIN32
 	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
 endif
@@ -66,29 +60,30 @@ endif
 pylint:
 	$(PYLINT) $(PYSRCS)
 
-molc.$(OBJ_EXT): $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/AtomicStructure.h \
-	$(includedir)/atomstruct/Bond.h $(includedir)/atomstruct/Chain.h \
-	$(includedir)/atomstruct/ChangeTracker.h $(includedir)/atomstruct/destruct.h \
-	$(includedir)/atomstruct/PBGroup.h $(includedir)/atomstruct/PBManager.h \
-	$(includedir)/atomstruct/Pseudobond.h $(includedir)/atomstruct/Residue.h \
-	$(includedir)/atomstruct/RibbonXSection.h $(includedir)/atomstruct/Sequence.h \
-	$(includedir)/element/Element.h $(includedir)/pyinstance/PythonInstance.declare.h \
-	$(includedir)/pyinstance/PythonInstance.instantiate.h
+molc.$(OBJ_EXT): include/atomstruct/Atom.h include/atomstruct/AtomicStructure.h \
+	include/atomstruct/Bond.h include/atomstruct/Chain.h \
+	include/atomstruct/ChangeTracker.h include/atomstruct/destruct.h \
+	include/atomstruct/PBGroup.h include/atomstruct/PBManager.h \
+	include/atomstruct/Pseudobond.h include/atomstruct/Residue.h \
+	include/atomstruct/RibbonXSection.h include/atomstruct/Sequence.h \
+	include/element/Element.h include/pyinstance/PythonInstance.declare.h \
+	include/pyinstance/PythonInstance.instantiate.h
 
-$(includedir)/atomstruct/Atom.h: atomstruct_cpp.install
-$(includedir)/atomstruct/AtomicStructure.h: atomstruct_cpp.install
-$(includedir)/atomstruct/Bond.h: atomstruct_cpp.install
-$(includedir)/atomstruct/Chain.h: atomstruct_cpp.install
-$(includedir)/atomstruct/ChangeTracker.h: atomstruct_cpp.install
-$(includedir)/atomstruct/destruct.h: atomstruct_cpp.install
-$(includedir)/atomstruct/PBGroup.h: atomstruct_cpp.install
-$(includedir)/atomstruct/Pseudobond.h: atomstruct_cpp.install
-$(includedir)/atomstruct/Residue.h: atomstruct_cpp.install
-$(includedir)/atomstruct/RibbonXSection.h: atomstruct_cpp.install
-$(includedir)/atomstruct/Sequence.h: atomstruct_cpp.install
-$(includedir)/element/Element.h: element_cpp.install
-$(includedir)/pyinstance/PythonInstance.declare.h: pyinstance_cpp.install
-$(includedir)/pyinstance/PythonInstance.instantiate.h: pyinstance_cpp.install
+include/atomstruct/Atom.h: atomstruct_cpp.install
+include/atomstruct/AtomicStructure.h: atomstruct_cpp.install
+include/atomstruct/Bond.h: atomstruct_cpp.install
+include/atomstruct/Chain.h: atomstruct_cpp.install
+include/atomstruct/ChangeTracker.h: atomstruct_cpp.install
+include/atomstruct/destruct.h: atomstruct_cpp.install
+include/atomstruct/PBGroup.h: atomstruct_cpp.install
+include/atomstruct/PBManager.h: atomstruct_cpp.install
+include/atomstruct/Pseudobond.h: atomstruct_cpp.install
+include/atomstruct/Residue.h: atomstruct_cpp.install
+include/atomstruct/RibbonXSection.h: atomstruct_cpp.install
+include/atomstruct/Sequence.h: atomstruct_cpp.install
+include/element/Element.h: element_cpp.install
+include/pyinstance/PythonInstance.declare.h: pyinstance_cpp.install
+include/pyinstance/PythonInstance.instantiate.h: pyinstance_cpp.install
 
 molobject.py: cymol.$(PYMOD_EXT)
 

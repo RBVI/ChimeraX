@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP= ../../../../..
+TOP= ../../../../../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	= idatm
@@ -21,22 +21,13 @@ DIRNAME := atomstruct/$(DIRNAME:_cpp=)
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
-INCS += $(PYTHON_INCLUDE_DIRS) -I$(includedir)
-#ifeq ($(WIN32),msvc)
-#LIBS += libelement.lib libioutil.lib libchutil.lib libappdirs.lib
-#else
-#LIBS += -lelement -lioutil -lchutil -lappdirs
-#endif
+INCS += $(PYTHON_INCLUDE_DIRS) -I$(includedir) -I../../include
 
 all: $(OBJS)
 
 install: all
-	-mkdir -p $(includedir)/$(DIRNAME)
-	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
-	if [ -d "$(app_includedir)" ]; then \
-		mkdir -p $(app_includedir)/$(DIRNAME); \
-		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME); \
-	fi
+	-mkdir -p ../../include/$(DIRNAME)
+	$(RSYNC) $(wildcard *.h) ../../include/$(DIRNAME)
 
 templates:
 	cd leap-templates ; \
