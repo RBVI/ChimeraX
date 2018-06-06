@@ -12,7 +12,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = addh active_tools align_algs alignments basic_actions bild blastprotein bond_rot bumps \
+SUBDIRS = addh active_tools align_algs alignments atomic \
+	  basic_actions bild blastprotein bond_rot bumps \
 	  bundle_builder cage_builder cellpack chem_group clashes cmd_line \
 	  color_globe crosslinks crystal dist_monitor dist_ui exp_cmd file_history \
 	  gltf hbonds help_viewer ihm interfaces label list_info log \
@@ -47,6 +48,7 @@ align_algs.install: alignments.install
 bild.install: surface.install
 bond_rot.install: ui.install
 bumps.install: markers.install
+chem_group.install: atomic.install
 crosslinks.install: interfaces.install
 ihm.install: map.install
 map.install: map_data.install
