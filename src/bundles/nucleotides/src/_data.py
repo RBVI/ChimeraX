@@ -1230,6 +1230,9 @@ def make_ladder(nd, residues, params):
             ep1 = dist_atom[1].coord
         va, na, ta = get_cylinder(params.rung_radius, ep0, ep1)
         nd.add_shape(va, na, ta, color, r.atoms, str(r))
+        # make exposed end rounded (TODO: use a hemisphere)
+        va, na, ta = get_sphere(params.rung_radius, ep1)
+        nd.add_shape(va, na, ta, color, r.atoms, str(r))
         matched_residues.add(r)
     if params.hide:
         return matched_residues
