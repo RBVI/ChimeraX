@@ -58,3 +58,4 @@ map_series.install: map.install
 markers.install: ui.install
 match_maker.install: align_algs.install sim_matrices.install
 sim_matrices.install: alignments.install
+std_commands.install: atomic.install
