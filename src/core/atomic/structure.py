@@ -282,13 +282,15 @@ class Structure(Model, StructureData):
     def _structure_set_position(self, pos):
         if pos != self.position:
             Model.position.fset(self, pos)
-            self.session.change_tracker.add_modified(self, "position changed")
+            if self.is_tracking_changes:
+                self.session.change_tracker.add_modified(self, "position changed")
     position = property(Model.position.fget, _structure_set_position)
 
     def _structure_set_positions(self, positions):
         if positions != self.positions:
             Model.positions.fset(self, positions)
-            self.session.change_tracker.add_modified(self, "position changed")
+            if self.is_tracking_changes:
+                self.session.change_tracker.add_modified(self, "position changed")
     positions = property(Model.positions.fget, _structure_set_positions)
 
     def initial_color(self, bg_color):

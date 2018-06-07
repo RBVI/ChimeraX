@@ -1226,6 +1226,8 @@ class StructureData:
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
         doc = "Supported API. Return the size of the active coordinate set array.")
+    is_tracking_changes = c_property('structure_is_tracking_changes', npy_bool, read_only = True,
+        doc = "Whether this structure is participating in change tracking.")
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool,
         doc = "Supported API. Structure has lower case chain ids. Boolean")
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True,
