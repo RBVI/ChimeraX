@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Atomic" version="1.0"
-	    package="chimerax.atomic"
+	    package="chimerax.atomic" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
