@@ -20,9 +20,10 @@ class StdCommandsAPI(BundleAPI):
         # 'register_command' is lazily called when the command is referenced
         tilde = command_name[0] == '~'
         check_name = command_name[1:] if tilde else command_name
+        if check_name.startswith("colour"):
+            check_name = "color" + check_name[6:]
         name_remapping = {
             'colordef': 'colorname',
-            'colourdef': 'colorname',
             'color delete': 'colorname',
             'color list': 'colorname',
             'color name': 'colorname',
@@ -44,8 +45,6 @@ class StdCommandsAPI(BundleAPI):
                 mod_name, remainder = check_name.split(None, 1)
             else:
                 mod_name = check_name
-            if mod_name.startswith("colour"):
-                mod_name = "color" + mod_name[6:]
         from importlib import import_module
         mod = import_module(".%s" % mod_name, __package__)
         mod.register_command(logger)
