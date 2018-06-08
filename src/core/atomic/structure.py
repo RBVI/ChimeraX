@@ -90,6 +90,7 @@ class Structure(Model, StructureData):
 
     @property
     def atomspec(self):
+        """Return the atom specifier string for this structure."""
         return '#' + self.id_string()
 
     def delete(self):
