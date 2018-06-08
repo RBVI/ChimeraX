@@ -79,6 +79,7 @@ class Structure(Model, StructureData):
         return self.string()
 
     def string(self, style=None):
+        '''Return a human-readable string for this structure.'''
         if style is None:
             from chimerax.core.core_settings import settings
             style = settings.atomspec_contents
@@ -90,7 +91,7 @@ class Structure(Model, StructureData):
 
     @property
     def atomspec(self):
-        """Return the atom specifier string for this structure."""
+        '''Return the atom specifier string for this structure.'''
         return '#' + self.id_string()
 
     def delete(self):
