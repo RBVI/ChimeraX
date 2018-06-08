@@ -47,8 +47,6 @@ _class_class_init = {
     'Models': '.models',
     'MolecularSurface': '.atomic',
     'MonoCamera': '.graphics',
-    'NamedView': '.commands.view',
-    'NamedViews': '.commands.view',
     '_NoDefault': '.atomic.attr_registration',
     'OrthographicCamera': '.graphics',
     'Place': '.geometry',
