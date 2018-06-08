@@ -276,6 +276,13 @@ Residue::set_alt_loc(char alt_loc)
     }
 }
 
+void
+Residue::set_templates_dir(const std::string& templates_dir)
+{
+    using tmpl::TemplateCache;
+    TemplateCache::set_bundle_dir(templates_dir);
+}
+
 std::string
 Residue::str() const
 {

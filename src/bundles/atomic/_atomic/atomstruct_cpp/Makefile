@@ -21,7 +21,8 @@ DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I../include
+EXPANDED_INCS := $(INCS)
+INCS	= -I../include $(EXPANDED_INCS) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 ifeq ($(OS),Darwin)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
@@ -31,6 +32,8 @@ LIBS	+= libelement.lib libpyinstance.lib libioutil.lib libchutil.lib libappdirs.
 else
 LIBS	+= -lelement -lpyinstance -lioutil -lchutil -lappdirs -llogger -larrays $(PYTHON_LIB)
 endif
+EXPANDED_LIBS := $(LIBS)
+LIBS = -L../lib $(EXPANDED_LIBS)
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
 	$(SHLIB_LINK)

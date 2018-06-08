@@ -52,11 +52,13 @@ public:
         // res name -> AtomMap
     AtomMap *res_template(ResName res_name, const char *app,
             const char *template_dir, const char *extension);
+    static void set_bundle_dir(const std::string& bundle_dir) { _bundle_dir = bundle_dir; }
     virtual ~TemplateCache();
     static TemplateCache *template_cache();
 protected:
     TemplateCache() {};
 private:
+    static std::string _bundle_dir;
     std::map<std::string, ResMap> cache;
         // searchpath/extension -> resMap
     void cache_template_type(std::string &key, const char *app,

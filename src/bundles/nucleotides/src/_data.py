@@ -69,10 +69,13 @@ PSEUDO_PYRIMIDINE = 'pseudo-pyrimidine'
 # 229-237.  A preliminary version is available for free at
 # <http://ndbserver.rutgers.edu/ndbmodule/archives/reports/tsukuba/tsukuba.pdf>.
 # DOI: 10.1006/jmbi.2001.4987
+_purine_C2_index = _full_purine.index("C2")
+_pyrimidine_C2_index = _pyrimidine.index("C2")
 standard_bases = {
     'A': {
         "tag": PURINE,
         "ring atom names": _full_purine,
+        "color atom": _purine_C2_index,
         "NDB color": "red",
         "atoms": {
             "C1'": numpy.array((-2.479, 5.346, 0.000)),
@@ -93,6 +96,7 @@ standard_bases = {
         "tag": PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "yellow",
+        "color atom": _pyrimidine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.477, 5.402, 0.000)),
             "N1": numpy.array((-1.285, 4.542, 0.000)),
@@ -110,6 +114,7 @@ standard_bases = {
         "tag": PURINE,
         "ring atom names": _full_purine,
         "NDB color": "green",
+        "color atom": _purine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.477, 5.399, 0.000)),
             "N9": numpy.array((-1.289, 4.551, 0.000)),
@@ -132,6 +137,7 @@ standard_bases = {
         "tag": PURINE,
         "ring atom names": _full_purine,
         "NDB color": "dark green",
+        "color atom": _purine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.477, 5.399, 0.000)),
             "N9": numpy.array((-1.289, 4.551, 0.000)),
@@ -154,6 +160,7 @@ standard_bases = {
         "tag": PSEUDO_PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "light gray",
+        "color atom": _pyrimidine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.506, 5.371, 0.000)),
             "N1": numpy.array((1.087, 4.295, 0.000)),
@@ -171,6 +178,7 @@ standard_bases = {
         "tag": PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "blue",
+        "color atom": _pyrimidine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.481, 5.354, 0.000)),
             "N1": numpy.array((-1.284, 4.500, 0.000)),
@@ -190,6 +198,7 @@ standard_bases = {
         "tag": PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "cyan",
+        "color atom": _pyrimidine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.481, 5.354, 0.000)),
             "N1": numpy.array((-1.284, 4.500, 0.000)),
@@ -787,7 +796,7 @@ def draw_slab(nd, residue, name, params):
     )
     xf = xf * standard["correction factor"]
 
-    color = atoms[0].color
+    color = atoms[standard["color atom"]].color
     half_thickness = params.thickness / 2
 
     llx, lly = slab_corners[0]
@@ -862,7 +871,7 @@ def bonds_between(atoms):
     return bonds
 
 
-def orient_planar_ring(nd, atoms, ring_indices=[]):
+def orient_planar_ring(nd, atoms, ring_indices, color_atom):
     r = atoms[0].residue
     # TODO:
     # if not r.fill_display or r.fill_mode != r.Thick:
@@ -879,25 +888,25 @@ def orient_planar_ring(nd, atoms, ring_indices=[]):
         # can't show orientation of thin ring
         return []
 
-    color = atoms[0].color
+    color = atoms[color_atom].color
     # non-zero radius
     planeEq = Plane(pts)
     offset = planeEq.normal * radius
     for r in ring_indices:
         center = numpy.average([pts[i] for i in r], axis=0) + offset
         va, na, ta = get_sphere(radius, center)
-        nd.add_shape(va, na, ta, color, atoms)
+        nd.add_shape(va, na, ta, color, str(atoms))
 
 
 def draw_orientation(nd, residue):
     ring = get_ring(residue, _full_purine)
     if ring:
         indices = [_full_purine_1, _full_purine_2]
-        orient_planar_ring(nd, ring, indices)
+        orient_planar_ring(nd, ring, indices, _purine_C2_index)
     ring = get_ring(residue, _pyrimidine)
     if ring:
         indices = [_pyrimidine_1]
-        orient_planar_ring(nd, ring, indices)
+        orient_planar_ring(nd, ring, indices, _pyrimidine_C2_index)
 
 
 def draw_tube(nd, residue, name, params):
@@ -1171,8 +1180,10 @@ def make_ladder(nd, residues, params):
     matched_residues = set()
     if not params.stubs_only:
         for (r0, r1), (c3p0, c3p1, radius, non_base) in depict_bonds.items():
-            r0color = r0.ribbon_color
-            r1color = r1.ribbon_color
+            a0 = r0.find_atom("C2")
+            a1 = r1.find_atom("C2")
+            r0color = a0.color if a0 else r0.ribbon_color
+            r1color = a1.color if a1 else r1.ribbon_color
             # choose mid-point to make purine larger
             try:
                 is_purine0 = standard_bases[nucleic3to1(r0.name)]['tag'] == PURINE
@@ -1208,7 +1219,8 @@ def make_ladder(nd, residues, params):
         if not c3p:
             continue
         ep0 = c3p[1]
-        color = r.ribbon_color
+        a = r.find_atom("C2")
+        color = a.color if a else r.ribbon_color
         ep1 = None
         is_purine = standard_bases[nucleic3to1(r.name)]['tag'] == PURINE
         if is_purine:

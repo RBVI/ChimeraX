@@ -39,9 +39,9 @@ lib_path = os.path.join(build_dir, "lib")
 # would like to use multiple source files, but you get multiple inits in the shared library,
 # corresponding to the various source files and none corresponding to the library itself
 ext = Extension("chimerax.core.atomic.cymol", ["cymol.pyx"],
-    include_dirs=[include_path, numpy.get_include()],
+    include_dirs=["include", include_path, numpy.get_include()],
     extra_compile_args=extra_compile_args,
     libraries=libraries,
-    library_dirs=[lib_path]
+    library_dirs=["lib", lib_path]
 )
 setup(ext_modules = cythonize([ext], language="c++"))

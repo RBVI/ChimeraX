@@ -18,7 +18,8 @@ DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-INCS	+= $(PYTHON_INCLUDE_DIRS) -I../include
+EXPANDED_INCS := $(INCS)
+INCS	= -I../include $(EXPANDED_INCS) $(PYTHON_INCLUDE_DIRS)
 ifneq ($(OS),Windows)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
@@ -28,6 +29,8 @@ LIBS += libpyinstance.lib $(PYTHON_LIB)
 else
 LIBS += -lpyinstance $(PYTHON_LIB)
 endif
+EXPANDED_LIBS := $(LIBS)
+LIBS = -L../lib $(EXPANDED_LIBS)
 
 $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
@@ -40,7 +43,7 @@ ifdef DEBUG
 	$(RSYNC) lib$(LIBNAME).pdb ../lib
 endif
 endif
-	$(RSYNC) $(wildcard *.h) ../include/$(DIRNAME)/
+	$(RSYNC) imex.h $(wildcard *.h) ../include/$(DIRNAME)/
 
 clean:
 	rm -f $(OBJS) $(SHLIB) imex.h

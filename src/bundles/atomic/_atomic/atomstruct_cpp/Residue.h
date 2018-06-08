@@ -123,6 +123,7 @@ public:
     void  set_is_strand(bool is);
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
+    static void  set_templates_dir(const std::string&);
     int  ss_id() const {
         if (!structure()->ss_assigned())
             structure()->compute_secondary_structure();

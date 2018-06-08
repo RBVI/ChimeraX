@@ -27,6 +27,8 @@ LIBS	+= libatomstruct.lib libelement.lib libpyinstance.lib libarrays.lib liblogg
 else
 LIBS	+= -latomstruct -lelement -lpyinstance -larrays -llogger -lappdirs $(PYTHON_LIB)
 endif
+EXPANDED_LIBS := $(LIBS)
+LIBS = -Llib $(EXPANDED_LIBS)
 
 all: lib include data
 	make install
@@ -46,7 +48,7 @@ cymol.$(PYMOD_EXT): cymol.pyx include/atomstruct/Atom.h
 	rmdir -p chimerax/core/atomic
 
 install: $(SHLIB) cymol.$(PYMOD_EXT)
-	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) lib
+	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) ../src
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)

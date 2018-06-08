@@ -41,6 +41,7 @@ using atomstruct::ResName;
 using namespace ioutil;
 
 TemplateCache *TemplateCache::_instance = nullptr;
+std::string TemplateCache::_bundle_dir;
 
 TemplateCache *
 TemplateCache::template_cache()
@@ -83,8 +84,7 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
     cache[key] = res_map;
     auto ap = appdirs::AppDirs::get();
 
-    std::vector<std::string> search_dirs = { ap.user_data_dir, ap.site_data_dir,
-        ap.app_data_dir };
+    std::vector<std::string> search_dirs = { ap.user_data_dir, _bundle_dir };
     for (auto search_dir: search_dirs) {
         std::string t_dir = ap.form_path({ search_dir, app, template_dir });
         DIR *tmpls = opendir(t_dir.c_str());

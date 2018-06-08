@@ -1030,3 +1030,7 @@ cdef class CyResidue:
     def set_py_class(klass):
         cydecl.Residue.set_py_class(klass)
 
+    @staticmethod
+    def set_templates_dir(tmpl_dir):
+        cydecl.Residue.set_templates_dir(tmpl_dir)
+
