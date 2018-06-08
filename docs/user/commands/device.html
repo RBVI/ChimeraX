@@ -77,6 +77,8 @@ See also: <a href="mousemode.html"><b>mousemode</b></a>
 [&nbsp;<b>mirror</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>icons</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>showControllers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>toolbarPanels</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>simplifyGraphics</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>multishadowAllowed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 <p>
@@ -124,6 +126,21 @@ shows representations of the hand controllers in the scene.
 Not showing the representations may be useful to avoid time-consuming
 calculations of the shadows they cast. 
 </p><p>
+The <b>toolbarPanels</b> option (default <b>true</b>)
+indicates whether to hide icon toolbars
+(<a href="../tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>,
+<a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>, 
+<i>etc.</i>) and instead show them as tool panels.
+This is useful for consolidating the controls in VR.
+</p><p>
+The <b>simplifyGraphics</b> option (default <b>true</b>)
+reduces the maximum level of detail in VR by limiting the 
+total atom and bond triangles to one million each.
+This helps to maintain full rendering speed. The previous total-triangle 
+limits are restored when the VR mode is turned off. Normally,
+the maximum atom and bond triangles are set to five million each.
+See also: <a href="graphics.html"><b>graphics</b></a>
+</p><p>
 Ambient shadowing or &ldquo;ambient occlusion&rdquo;
 requires calculating shadows from multiple directions,
 which may make rendering too slow for VR and cause stuttering in the headset.
@@ -138,5 +155,5 @@ the lighting mode is left unchanged.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2017</address>
+June 2018</address>
 </body></html>

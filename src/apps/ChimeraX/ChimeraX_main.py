@@ -283,7 +283,7 @@ def init(argv, event_loop=True):
     from importlib.abc import MetaPathFinder, Loader
     class CoreCompatFinder(MetaPathFinder):
         def find_spec(self, full_name, path, target=None):
-            unmoved_modules = ["atomic", "map", "surface"]
+            unmoved_modules = ["atomic"]
             moved_modules = ["ui"]
             for umod in unmoved_modules:
                 future_name = "chimerax." + umod
@@ -455,10 +455,6 @@ def init(argv, event_loop=True):
                         ad.site_config_dir, ad.user_log_dir,
                         chimerax.app_data_dir, adu.user_cache_dir)
 
-    # create a global trigger set for toolshed and atomspec target registration
-    from chimerax.core import triggerset
-    chimerax.core.triggers = triggerset.TriggerSet()
-
     from chimerax.core import session
     sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
 
@@ -469,6 +465,11 @@ def init(argv, event_loop=True):
 
     if opts.uninstall:
         return uninstall(sess)
+
+    # initialize qt
+    if opts.gui:
+        from chimerax.ui import initialize_qt
+        initialize_qt()
 
     # initialize the user interface
     if opts.gui:
@@ -517,9 +518,9 @@ def init(argv, event_loop=True):
             print("Initializing core", flush=True)
 
     from chimerax.core import toolshed
-    # toolshed.init returns a singleton so it's safe to call multiple times
-    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug,
-                                  check_available=opts.get_available_bundles)
+    toolshed.init(sess.logger, debug=sess.debug,
+                  check_available=opts.get_available_bundles)
+    sess.toolshed = toolshed.get_toolshed()
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
         if not opts.silent:
@@ -608,8 +609,8 @@ def init(argv, event_loop=True):
         sess.ui.close_splash()
 
     if not opts.silent:
-        import chimerax.core.commands.version as vercmd
-        vercmd.version(sess)  # report version in log
+        from chimerax.core.logger import log_version
+        log_version(sess.logger)  # report version in log
 
     if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render

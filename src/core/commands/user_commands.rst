@@ -13,8 +13,8 @@
 Functions for User Commands
 ***************************
 
-The *chimerax.core.commands* module contains Python functions for the core commands
-available from the ChimeraX command-line.  Tools define additional commands noted with a (*)
+The *chimerax.std_commands* and *chimerax.core.commands* modules contain Python functions for the
+standard commands available from the ChimeraX command-line.  Tools define additional commands noted with a (*)
 and their code location is described with the function descriptions.
 
 | `2dlabels`_ * - Show text labels with graphics
@@ -33,10 +33,13 @@ and their code location is described with the function descriptions.
 | `crossfade`_ - Fade between scenes for movie making
 | `crosslinks`_ * - Move atomic structures to minimize crosslinks
 | `delete`_ - Delete models
+| `devel`_ - For developers to package tools
 | `device`_ * - Enable devices such virtual reality headsets and space navigator
+| `distance`_ * - Show distances between atoms
 | `echo`_ - Write message to log
 | `exit`_ - Quit
 | `fitmap`_ - fit atomic structures in density maps
+| `graphics`_ - set graphics rendering parameters
 | `help`_ - Show documentation
 | `hide`_ - Hide atoms, ribbons, models
 | `info`_ * - Report model info
@@ -50,7 +53,6 @@ and their code location is described with the function descriptions.
 | `mlp`_ * - Color surfaces by molecular lipophilicity
 | `molmap`_ - Calculate a density map from atoms
 | `morph`_ * - Morph between atomic models
-| `mousemode`_ - Set mouse modes
 | `move`_ - Move camera
 | `movie`_ * - Record videos
 | `mseries`_ * - Display a series of models
@@ -65,7 +67,6 @@ and their code location is described with the function descriptions.
 | `run`_ - Run a user command string
 | `rungs`_ - Display nucleotides as cylinders
 | `save`_ - Save sessions, images, density maps...
-| `scolor`_ - Color surfaces
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
@@ -82,6 +83,7 @@ and their code location is described with the function descriptions.
 | `toolshed`_ * - Control the Tool Shed user interface
 | `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
+| `ui`_ * - Control tool windows and set mouse modes
 | `view`_ - Move camera to view specified objects
 | `volume`_ - Change density map settings and filter maps
 | `vseries`_ - Play density map time series
@@ -99,11 +101,11 @@ Function found in *chimerax.label.label2d*
 
 alias
 =====
-.. autofunction:: chimerax.core.commands.alias.alias
+.. autofunction:: chimerax.std_commands.alias.alias
 
 align
 =====
-.. autofunction:: chimerax.core.commands.align.align
+.. autofunction:: chimerax.std_commands.align.align
 
 bumps
 =====
@@ -115,40 +117,47 @@ cage
 
 camera
 ======
-.. autofunction:: chimerax.core.commands.camera.camera
+.. autofunction:: chimerax.std_commands.camera.camera
 
 cartoon
 =======
-.. autofunction:: chimerax.core.commands.cartoon.cartoon
-.. autofunction:: chimerax.core.commands.cartoon.uncartoon
+.. autofunction:: chimerax.std_commands.cartoon.cartoon
+.. autofunction:: chimerax.std_commands.cartoon.uncartoon
 
 cd
 ==
-.. autofunction:: chimerax.core.commands.cd.cd
+.. autofunction:: chimerax.std_commands.cd.cd
 
 clip
 =====
-.. autofunction:: chimerax.core.commands.clip.clip
+.. autofunction:: chimerax.std_commands.clip.clip
 
 close
 =====
-.. autofunction:: chimerax.core.commands.close.close
+.. autofunction:: chimerax.std_commands.close.close
 
 cofr
 ====
-.. autofunction:: chimerax.core.commands.cofr.cofr
+.. autofunction:: chimerax.std_commands.cofr.cofr
 
 color
 =====
-.. autofunction:: chimerax.core.commands.color.color
-
+.. autofunction:: chimerax.std_commands.color.color
+.. autofunction:: chimerax.surface.colorvol.color_electrostatic
+.. autofunction:: chimerax.surface.colorvol.color_sample
+.. autofunction:: chimerax.surface.colorvol.color_gradient
+.. autofunction:: chimerax.surface.colorgeom.color_radial
+.. autofunction:: chimerax.surface.colorgeom.color_cylindrical
+.. autofunction:: chimerax.surface.colorgeom.color_height
+.. autofunction:: chimerax.surface.colorzone.color_zone
+		  
 coordset
 ========
-.. autofunction:: chimerax.core.commands.coordset.coordset
+.. autofunction:: chimerax.std_commands.coordset.coordset
 
 crossfade
 =========
-.. autofunction:: chimerax.core.commands.crossfade.crossfade
+.. autofunction:: chimerax.std_commands.crossfade.crossfade
 
 crosslinks
 ==========
@@ -161,12 +170,25 @@ Function found in *chimerax.crosslinks.crosslinks*
 
 delete
 ======
-.. autofunction:: chimerax.core.commands.delete.delete
+.. autofunction:: chimerax.std_commands.delete.delete
 
+devel
+======
+.. autofunction:: chimerax.core.commands.devel.devel_build
+.. autofunction:: chimerax.core.commands.devel.devel_install
+.. autofunction:: chimerax.core.commands.devel.devel_alias
+.. autofunction:: chimerax.core.commands.devel.devel_unalias
+.. autofunction:: chimerax.core.commands.devel.devel_clean
+.. autofunction:: chimerax.core.commands.devel.devel_dump
+		  
 device
 ======
 .. autofunction:: chimerax.spacenavigator.snav.device_snav
 .. autofunction:: chimerax.vive.vr.vr
+		  
+distance
+========
+.. autofunction:: chimerax.dist_monitor.cmd.distance
 
 echo
 ====
@@ -174,11 +196,15 @@ Equivalent to the "log text" command.
 
 exit
 ====
-.. autofunction:: chimerax.core.commands.exit.exit
+.. autofunction:: chimerax.std_commands.exit.exit
 
 fitmap
 ======
-.. autofunction:: chimerax.core.map.fit.fitcmd.fitmap
+.. autofunction:: chimerax.map.fit.fitcmd.fitmap
+
+graphics
+========
+.. autofunction:: chimerax.std_commands.graphics.graphics
 
 help
 ====
@@ -186,7 +212,7 @@ help
 
 hide
 ====
-.. autofunction:: chimerax.core.commands.hide.hide
+.. autofunction:: chimerax.std_commands.hide.hide
 
 info
 ====
@@ -213,7 +239,7 @@ Function found in *chimerax.label.label3d*
 
 lighting
 ========
-.. autofunction:: chimerax.core.commands.lighting.lighting
+.. autofunction:: chimerax.std_commands.lighting.lighting
 
 log
 ===
@@ -223,14 +249,14 @@ Function found in *chimerax.log.cmd*
 
 material
 ========
-.. autofunction:: chimerax.core.commands.material.material
+.. autofunction:: chimerax.std_commands.material.material
 
 measure
 =======
-.. autofunction:: chimerax.core.commands.measure_buriedarea.measure_buriedarea
-.. autofunction:: chimerax.core.commands.measure_convexity.measure_convexity
-.. autofunction:: chimerax.core.commands.measure_length.measure_length
-.. autofunction:: chimerax.core.commands.measure_sasa.measure_sasa
+.. autofunction:: chimerax.std_commands.measure_buriedarea.measure_buriedarea
+.. autofunction:: chimerax.std_commands.measure_convexity.measure_convexity
+.. autofunction:: chimerax.std_commands.measure_length.measure_length
+.. autofunction:: chimerax.surface.measure_sasacmd.measure_sasa
 
 mlp
 ===
@@ -240,7 +266,7 @@ Function found in *chimerax.mlp.mlp*
 
 molmap
 ======
-.. autofunction:: chimerax.core.map.molmap.molmap
+.. autofunction:: chimerax.map.molmap.molmap
 
 morph
 =====
@@ -248,13 +274,9 @@ Function defined in *chimerax.morph.morph*
 
 .. autofunction:: chimerax.morph.morph.morph
 
-mousemode
-=========
-.. autofunction:: chimerax.core.commands.mousemode.mousemode
-
 move
 ====
-.. autofunction:: chimerax.core.commands.move.move
+.. autofunction:: chimerax.std_commands.move.move
 
 movie
 =====
@@ -276,23 +298,23 @@ open
 
 pdbimages
 =========
-.. autofunction:: chimerax.core.commands.pdbimages.pdbimages
+.. autofunction:: chimerax.std_commands.pdbimages.pdbimages
 
 perframe
 ========
-.. autofunction:: chimerax.core.commands.perframe.perframe
+.. autofunction:: chimerax.std_commands.perframe.perframe
 
 pwd
 ===
-.. autofunction:: chimerax.core.commands.pwd.pwd
+.. autofunction:: chimerax.std_commands.pwd.pwd
 
 rainbow
 =======
-.. autofunction:: chimerax.core.commands.rainbow.rainbow
+.. autofunction:: chimerax.std_commands.rainbow.rainbow
 
 rename
 ======
-.. autofunction:: chimerax.core.commands.rename.rename
+.. autofunction:: chimerax.std_commands.rename.rename
 
 resfit
 ======
@@ -300,7 +322,7 @@ resfit
 
 roll
 ====
-.. autofunction:: chimerax.core.commands.roll.roll
+.. autofunction:: chimerax.std_commands.roll.roll
 
 run
 ===
@@ -309,31 +331,27 @@ run
 
 rungs
 =====
-.. autofunction:: chimerax.core.commands.rungs.rungs
+.. autofunction:: chimerax.std_commands.rungs.rungs
 
 save
 ====
 .. autofunction:: chimerax.core.commands.save.save
 
-scolor
-======
-.. autofunction:: chimerax.core.commands.scolor.scolor
-
 select
 ======
-.. autofunction:: chimerax.core.commands.select.select
+.. autofunction:: chimerax.std_commands.select.select
 
 set
 ===
-.. autofunction:: chimerax.core.commands.set.set
+.. autofunction:: chimerax.std_commands.set.set
 
 show
 ====
-.. autofunction:: chimerax.core.commands.show.show
+.. autofunction:: chimerax.std_commands.show.show
 
 size
 =====
-.. autofunction:: chimerax.core.commands.size.size
+.. autofunction:: chimerax.std_commands.size.size
 
 smoothlines
 ===========
@@ -341,11 +359,11 @@ smoothlines
 
 split
 =====
-.. autofunction:: chimerax.core.commands.split.split
+.. autofunction:: chimerax.std_commands.split.split
 
 stop
 ====
-.. autofunction:: chimerax.core.commands.stop.stop
+.. autofunction:: chimerax.std_commands.stop.stop
 
 struts
 ======
@@ -354,24 +372,28 @@ struts
 
 style
 =====
-.. autofunction:: chimerax.core.commands.style.style
+.. autofunction:: chimerax.std_commands.style.style
 
 surface
 =======
-.. autofunction:: chimerax.core.commands.surface.surface
-.. autofunction:: chimerax.core.commands.surface.surface_close
-.. autofunction:: chimerax.core.commands.sop.surface_dust
-.. autofunction:: chimerax.core.commands.surface.surface_hide
-.. autofunction:: chimerax.core.commands.surface.surface_show
-.. autofunction:: chimerax.core.commands.sop.surface_zone
+.. autofunction:: chimerax.surface.surfacecmds.surface
+.. autofunction:: chimerax.surface.surfacecmds.surface_close
+.. autofunction:: chimerax.surface.surfacecmds.surface_hide
+.. autofunction:: chimerax.surface.surfacecmds.surface_show
+.. autofunction:: chimerax.surface.surfacecmds.surface_style
+.. autofunction:: chimerax.surface.surfacecmds.surface_cap
+.. autofunction:: chimerax.surface.sop.surface_dust
+.. autofunction:: chimerax.surface.sop.surface_undust
+.. autofunction:: chimerax.surface.sop.surface_zone
+.. autofunction:: chimerax.surface.sop.surface_unzone
 
 sym
 ===
-.. autofunction:: chimerax.core.commands.sym.sym
+.. autofunction:: chimerax.std_commands.sym.sym
 
 time
 ====
-.. autofunction:: chimerax.core.commands.time.time
+.. autofunction:: chimerax.std_commands.time.time
 
 toolshed
 ========
@@ -385,67 +407,74 @@ toolshed
 
 transparency
 ============
-.. autofunction:: chimerax.core.commands.transparency.transparency
+.. autofunction:: chimerax.std_commands.transparency.transparency
 
 turn
 ====
-.. autofunction:: chimerax.core.commands.turn.turn
+.. autofunction:: chimerax.std_commands.turn.turn
+
+ui
+==
+.. autofunction:: chimerax.ui.cmd.ui_autostart
+.. autofunction:: chimerax.ui.cmd.ui_dockable
+.. autofunction:: chimerax.ui.cmd.ui_mousemode
+
 
 view
 ====
-.. autofunction:: chimerax.core.commands.view.view
-.. autofunction:: chimerax.core.commands.view.view_delete
-.. autofunction:: chimerax.core.commands.view.view_initial
-.. autofunction:: chimerax.core.commands.view.view_list
-.. autofunction:: chimerax.core.commands.view.view_matrix
-.. autofunction:: chimerax.core.commands.view.view_name
+.. autofunction:: chimerax.std_commands.view.view
+.. autofunction:: chimerax.std_commands.view.view_delete
+.. autofunction:: chimerax.std_commands.view.view_initial
+.. autofunction:: chimerax.std_commands.view.view_list
+.. autofunction:: chimerax.std_commands.view.view_matrix
+.. autofunction:: chimerax.std_commands.view.view_name
 
 volume
 ======
-.. autofunction:: chimerax.core.map.volumecommand.volume
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_add
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_bin
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_boxes
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_cover
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_falloff
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_flatten
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_flip
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_fourier
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_gaussian
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_laplacian
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_local_correlation
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_maximum
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_median
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_minimum
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_morph
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_multiply
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_octant
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_permute_axes
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_resample
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_ridges
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_scale
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_subtract
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_threshold
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_tile
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_unbend
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_unroll
-.. autofunction:: chimerax.core.map.filter.vopcommand.volume_zone
+.. autofunction:: chimerax.map.volumecommand.volume
+.. autofunction:: chimerax.map.filter.vopcommand.volume_add
+.. autofunction:: chimerax.map.filter.vopcommand.volume_bin
+.. autofunction:: chimerax.map.filter.vopcommand.volume_boxes
+.. autofunction:: chimerax.map.filter.vopcommand.volume_cover
+.. autofunction:: chimerax.map.filter.vopcommand.volume_falloff
+.. autofunction:: chimerax.map.filter.vopcommand.volume_flatten
+.. autofunction:: chimerax.map.filter.vopcommand.volume_flip
+.. autofunction:: chimerax.map.filter.vopcommand.volume_fourier
+.. autofunction:: chimerax.map.filter.vopcommand.volume_gaussian
+.. autofunction:: chimerax.map.filter.vopcommand.volume_laplacian
+.. autofunction:: chimerax.map.filter.vopcommand.volume_local_correlation
+.. autofunction:: chimerax.map.filter.vopcommand.volume_maximum
+.. autofunction:: chimerax.map.filter.vopcommand.volume_median
+.. autofunction:: chimerax.map.filter.vopcommand.volume_minimum
+.. autofunction:: chimerax.map.filter.vopcommand.volume_morph
+.. autofunction:: chimerax.map.filter.vopcommand.volume_multiply
+.. autofunction:: chimerax.map.filter.vopcommand.volume_octant
+.. autofunction:: chimerax.map.filter.vopcommand.volume_permute_axes
+.. autofunction:: chimerax.map.filter.vopcommand.volume_resample
+.. autofunction:: chimerax.map.filter.vopcommand.volume_ridges
+.. autofunction:: chimerax.map.filter.vopcommand.volume_scale
+.. autofunction:: chimerax.map.filter.vopcommand.volume_subtract
+.. autofunction:: chimerax.map.filter.vopcommand.volume_threshold
+.. autofunction:: chimerax.map.filter.vopcommand.volume_tile
+.. autofunction:: chimerax.map.filter.vopcommand.volume_unbend
+.. autofunction:: chimerax.map.filter.vopcommand.volume_unroll
+.. autofunction:: chimerax.map.filter.vopcommand.volume_zone
 
 vseries
 =======
-.. automodule:: chimerax.core.map.series.vseries_command
+.. automodule:: chimerax.map.series.vseries_command
   :members:
   :show-inheritance:
 
 wait
 ====
-.. autofunction:: chimerax.core.commands.wait.wait
+.. autofunction:: chimerax.std_commands.wait.wait
 
 windowsize
 ==========
-.. autofunction:: chimerax.core.commands.windowsize.window_size
+.. autofunction:: chimerax.std_commands.windowsize.window_size
 
 zoom
 ====
-.. autofunction:: chimerax.core.commands.zoom.zoom
+.. autofunction:: chimerax.std_commands.zoom.zoom
 

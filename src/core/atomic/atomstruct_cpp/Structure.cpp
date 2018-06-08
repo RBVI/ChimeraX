@@ -36,22 +36,6 @@
 #include <pyinstance/PythonInstance.instantiate.h>
 template class pyinstance::PythonInstance<atomstruct::Structure>;
 
-namespace {
-
-class AcquireGIL {
-    // RAII for Python GIL
-    PyGILState_STATE gil_state;
-public:
-    AcquireGIL() {
-        gil_state = PyGILState_Ensure();
-    }
-    ~AcquireGIL() {
-        PyGILState_Release(gil_state);
-    }
-};
-
-}
-
 namespace atomstruct {
 
 const char*  Structure::PBG_METAL_COORDINATION = "metal coordination bonds";
@@ -79,6 +63,8 @@ Structure::~Structure() {
     // assign to variable so that it lives to end of destructor
     auto du = DestructionUser(this);
     change_tracker()->add_deleted(this, this);
+    // delete bonds before atoms since bond destructor uses info
+    // from its atoms
     for (auto b: _bonds)
         delete b;
     for (auto a: _atoms)
@@ -87,16 +73,25 @@ Structure::~Structure() {
         for (auto ch: *_chains) {
             ch->clear_residues();
             // since Python layer may be referencing Chain, only
-            // delete immediately if not in object map;
+            // delete immediately if no Python-layer references,
             // otherwise decref and let garbage collection work
             // its magic (__del__ will destroy C++ side)
             auto inst = ch->py_instance(false);
+
             // py_instance() returns new reference, so ...
             Py_DECREF(inst);
-            if (inst == Py_None)
+
+            // If ref count is 1 afterward, _don't_ simply decref
+            // again.  That will cause the Python __del__ to 
+            // execute, which will see that the C++ side is not
+            // destroyed yet, and call the destructor -- which
+            // due to inheriting from PyInstance, will decref
+            // __again__. Instead, just destroy the chain to
+            // indirectly accomplish the second decref.
+            if (inst == Py_None || Py_REFCNT(inst) == 1)
                 delete ch;
             else
-                // decref C++ object-map reference
+                // decref "C++ side" reference
                 Py_DECREF(inst);
         }
         delete _chains;
@@ -425,6 +420,7 @@ Structure::_delete_atom(Atom* a)
         typename Bonds::iterator bi = std::find_if(_bonds.begin(), _bonds.end(),
             [&b](Bond* ub) { return ub == b; });
         _bonds.erase(bi);
+        delete b;
     }
     a->residue()->remove_atom(a);
     typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
@@ -507,6 +503,21 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
             });
         _residues.erase(new_end, _residues.end());
     }
+    // since the Bond destructor uses info (namely structure()) from its Atoms,
+    // delete the bonds first (not willing to add a Structure pointer [and its
+    // memory use] to Bond at this point)
+    std::set<Bond*> del_bonds;
+    for (auto a: atoms) {
+        for (auto b: a->bonds()) {
+            del_bonds.insert(b);
+            auto oa = b->other_atom(a);
+            if (atoms.find(oa) == atoms.end())
+                oa->remove_bond(b);
+        }
+    }
+    for (auto b: del_bonds)
+        delete b;
+
     // remove_if doesn't swap the removed items into the end of the vector,
     // so can't just go through the tail of the vector and delete things,
     // need to delete them as part of the lambda
@@ -518,22 +529,9 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         });
     _atoms.erase(new_a_end, _atoms.end());
 
-    for (auto a: _atoms) {
-        std::vector<Bond*> removals;
-        for (auto b: a->bonds()) {
-            if (atoms.find(b->other_atom(a)) != atoms.end())
-                removals.push_back(b);
-        }
-        for (auto b: removals)
-            a->remove_bond(b);
-    }
-
     auto new_b_end = std::remove_if(_bonds.begin(), _bonds.end(),
-        [&atoms](Bond* b) {
-            bool rm = atoms.find(b->atoms()[0]) != atoms.end()
-            || atoms.find(b->atoms()[1]) != atoms.end();
-            if (rm) delete b;
-            return rm;
+        [&del_bonds](Bond* b) {
+            return del_bonds.find(b) != del_bonds.end();
         });
     _bonds.erase(new_b_end, _bonds.end());
     set_gc_shape();

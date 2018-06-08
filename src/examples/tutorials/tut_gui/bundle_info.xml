@@ -39,7 +39,7 @@ and "tutorial highlight" commands from a graphical interface.
   <!-- Non-Python files that are part of package -->
   <DataFiles>
     <DataFile>gui.html</DataFile>
-    <DataFile>helpdir/*</DataFile>
+    <DataFile>docs/user/tools/Tutorial_GUI.html</DataFile>
   </DataFiles>
 
   <Classifiers>

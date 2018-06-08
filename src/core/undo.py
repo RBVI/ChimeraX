@@ -135,7 +135,7 @@ class Undo(StateManager):
 
     def undo(self, silent=True):
         """Execute top undo action.  Normally, if no undo action is
-        available, nothing happens.  If "silent" is True, an IndexError
+        available, nothing happens.  If "silent" is False, an IndexError
         is raised for accessing invalid stack location.
         """
         try:
@@ -145,8 +145,11 @@ class Undo(StateManager):
                 raise
             else:
                 return
+        from .errors import UserError
         try:
             inst.undo()
+        except UserError:
+            raise
         except Exception as e:
             self.session.logger.report_exception("undo failed: %s" % str(e))
             self.redo_stack.clear()
@@ -159,7 +162,7 @@ class Undo(StateManager):
 
     def redo(self, silent=True):
         """Execute top redo action.  Normally, if no redo action is
-        available, nothing happens.  If "silent" is True, an IndexError
+        available, nothing happens.  If "silent" is False, an IndexError
         is raised for accessing invalid stack location.
         """
         try:
@@ -169,8 +172,11 @@ class Undo(StateManager):
                 raise
             else:
                 return
+        from .errors import UserError
         try:
             inst.redo()
+        except UserError:
+            raise
         except Exception as e:
             self.session.logger.report_exception("redo failed: %s" % str(e))
         else:
@@ -364,9 +370,9 @@ class UndoState(UndoAction):
                 except TypeError:
                     value_length = 1
                 if value_length != owner_length:
-                    raise ValueError("undo action with different number "
-                                     "of owners and old values: %d != %d" %
-                                     (owner_length, value_length))
+                    from .errors import UserError
+                    raise UserError("Undo failed, probably because "
+                                     "structures have been modified.")
 
     def _update_owner(self, owner, attribute, value, option):
         if option == "A":

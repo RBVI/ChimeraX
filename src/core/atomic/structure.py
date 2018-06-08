@@ -76,13 +76,22 @@ class Structure(Model, StructureData):
         self._make_drawing()
 
     def __str__(self):
-        from chimerax.core.core_settings import settings
+        return self.string()
+
+    def string(self, style=None):
+        '''Return a human-readable string for this structure.'''
+        if style is None:
+            from chimerax.core.core_settings import settings
+            style = settings.atomspec_contents
+
         id = '#' + self.id_string()
-        if settings.atomspec_contents == "command-line specifier" or not self.name:
+        if style == "command" or not self.name:
             return id
         return '%s %s' % (self.name, id)
 
+    @property
     def atomspec(self):
+        '''Return the atom specifier string for this structure.'''
         return '#' + self.id_string()
 
     def delete(self):
@@ -170,6 +179,16 @@ class Structure(Model, StructureData):
                 pas = ribbonable.existing_principal_atoms
                 nucleic = pas.residues.filter(pas.names != "CA")
                 display |= nucleic
+                if nucleic:
+                    from chimerax.nucleotides.cmd import nucleotides
+                    if len(nucleic) < 5:
+                        pass
+                    elif len(nucleic) < 50:
+                        nucleotides(self.session, 'fill/slab', objects=nucleic)
+                    elif len(nucleic) < 250:
+                        nucleotides(self.session, 'tube/slab', objects=nucleic)
+                    else:
+                        nucleotides(self.session, 'ladder', objects=nucleic)
                 if ligand:
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords
@@ -265,13 +284,15 @@ class Structure(Model, StructureData):
     def _structure_set_position(self, pos):
         if pos != self.position:
             Model.position.fset(self, pos)
-            self.session.change_tracker.add_modified(self, "position changed")
+            if self.is_tracking_changes:
+                self.session.change_tracker.add_modified(self, "position changed")
     position = property(Model.position.fget, _structure_set_position)
 
     def _structure_set_positions(self, positions):
         if positions != self.positions:
             Model.positions.fset(self, positions)
-            self.session.change_tracker.add_modified(self, "position changed")
+            if self.is_tracking_changes:
+                self.session.change_tracker.add_modified(self, "position changed")
     positions = property(Model.positions.fget, _structure_set_positions)
 
     def initial_color(self, bg_color):
@@ -678,7 +699,7 @@ class Structure(Model, StructureData):
             if False:
                 # Debugging code to display line from control point to guide
                 cp = p.new_drawing(str(self) + " control points")
-                from chimerax.core import surface
+                from chimerax import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
                 cp.set_geometry(va, na, ta)
                 from numpy import empty, float32
@@ -901,7 +922,7 @@ class Structure(Model, StructureData):
                 tp = p.new_drawing(str(self) + " ribbon_tethers")
                 tp.skip_bounds = True
                 nc = m.ribbon_tether_sides
-                from chimerax.core import surface
+                from chimerax import surface
                 if m.ribbon_tether_shape == self.TETHER_CYLINDER:
                     va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
@@ -919,7 +940,7 @@ class Structure(Model, StructureData):
             # Create spine if necessary
             if self.ribbon_show_spine:
                 sp = p.new_drawing(str(self) + " spine")
-                from chimerax.core import surface
+                from chimerax import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
                 sp.set_geometry(va, na, ta)
                 from numpy import empty, float32
@@ -940,7 +961,7 @@ class Structure(Model, StructureData):
         except AttributeError:
             return
         sp = p.new_drawing(str(self) + " normal spline")
-        from chimerax.core import surface
+        from chimerax import surface
         from numpy import empty, array, float32, linspace
         from chimerax.core.geometry import Places
         num_pts = num_coords*self._level_of_detail.ribbon_divisions
@@ -1417,7 +1438,7 @@ class Structure(Model, StructureData):
         return axes, centroid, rel_coords
 
     def _ss_display(self, p, name, centers):
-        from chimerax.core import surface
+        from chimerax import surface
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
@@ -1430,7 +1451,7 @@ class Structure(Model, StructureData):
         ssp.colors = ss_colors
 
     def _ss_guide_display(self, p, name, centers, guides):
-        from chimerax.core import surface
+        from chimerax import surface
         from numpy import empty, float32
         ssp = p.new_drawing(name)
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
@@ -2415,10 +2436,38 @@ class AtomicStructure(Structure):
     def _report_assemblies(self, session):
         if getattr(self, 'ignore_assemblies', False):
             return
-        from chimerax.core.commands import sym
-        html = sym.assembly_html_table(self)
+        html = assembly_html_table(self)
         if html:
             session.logger.info(html, is_html=True)
+
+def assembly_html_table(mol):
+    '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''
+    from chimerax.atomic import mmcif 
+    sat = mmcif.get_mmcif_tables_from_metadata(mol, ['pdbx_struct_assembly'])[0]
+    sagt = mmcif.get_mmcif_tables_from_metadata(mol, ['pdbx_struct_assembly_gen'])[0]
+    if not sat or not sagt:
+        return None
+
+    try:
+        sa = sat.fields(('id', 'details'))
+        sag = sagt.mapping('assembly_id', 'oper_expression')
+    except ValueError:
+        return	None # Tables do not have required fields
+
+    if len(sa) == 1 and sag.get(sa[0][0]) == '1':
+        # Probably just have the identity assembly, so don't show table.
+        # Should check that it is the identity operator and all
+        # chains are transformed. Requires reading more tables.
+        return
+
+    lines = ['<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">',
+             '<tr><th colspan=2>%s mmCIF Assemblies' % mol.name]
+    for id, details in sa:
+        lines.append('<tr><td><a title="Generate assembly" href="cxcmd:sym #%s assembly %s ; view">%s</a><td>%s'
+                     % (mol.id_string(), id, id, details))
+    lines.append('</table>')
+    html = '\n'.join(lines)
+    return html
 
 
 # -----------------------------------------------------------------------------
@@ -2550,6 +2599,18 @@ class LevelOfDetail(State):
         return {'quality': self.quality,
                 'version': 1}
 
+    def _get_total_atom_triangles(self):
+        return self._atom_max_total_triangles
+    def _set_total_atom_triangles(self, ntri):
+        self._atom_max_total_triangles = ntri
+    total_atom_triangles = property(_get_total_atom_triangles, _set_total_atom_triangles)
+
+    def _get_total_bond_triangles(self):
+        return self._bond_max_total_triangles
+    def _set_total_bond_triangles(self, ntri):
+        self._bond_max_total_triangles = ntri
+    total_bond_triangles = property(_get_total_bond_triangles, _set_total_bond_triangles)
+    
     @staticmethod
     def restore_snapshot(session, data):
         lod = LevelOfDetail()
@@ -2612,7 +2673,7 @@ class LevelOfDetail(State):
         # Cache cylinder triangulations of different sizes.
         cg = self._cylinder_geometries
         if not div in cg:
-            from chimerax.core import surface
+            from chimerax import surface
             cg[div] = surface.cylinder_geometry(nc = div, caps = False, height = 0.5)
         return cg[div]
 

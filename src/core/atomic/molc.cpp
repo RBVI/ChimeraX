@@ -2608,6 +2608,46 @@ extern "C" EXPORT void residue_secondary_structure_id(void *residues, size_t n, 
     }
 }
 
+extern "C" EXPORT PyObject *residue_standard_solvent_names()
+{
+    PyObject* name_set = PySet_New(nullptr);
+    if (name_set == nullptr)
+        return nullptr;
+    try {
+        for (auto name: Residue::std_solvent_names) {
+            PyObject* py_name = PyUnicode_FromString(name.c_str());
+            if (py_name == nullptr || PySet_Add(name_set, py_name) < 0) {
+                Py_DECREF(name_set);
+                return nullptr;
+            }
+        }
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+    return name_set;
+}
+
+extern "C" EXPORT PyObject *residue_standard_water_names()
+{
+    PyObject* name_set = PySet_New(nullptr);
+    if (name_set == nullptr)
+        return nullptr;
+    try {
+        for (auto name: Residue::std_water_names) {
+            PyObject* py_name = PyUnicode_FromString(name.c_str());
+            if (py_name == nullptr || PySet_Add(name_set, py_name) < 0) {
+                Py_DECREF(name_set);
+                return nullptr;
+            }
+        }
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+    return name_set;
+}
+
 extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, int *seq_ids)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -4033,6 +4073,16 @@ extern "C" EXPORT void structure_add_coordset(void *mol, int id, void *xyz, size
     }
 }
 
+extern "C" EXPORT void structure_remove_coordsets(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->clear_coord_sets();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_add_coordsets(void *mol, bool replace, void *xyz, size_t n_sets, size_t n_coords)
 {
     Structure *m = static_cast<Structure *>(mol);
@@ -4498,6 +4548,16 @@ extern "C" EXPORT void structure_set_position(void *mol, void *pos)
     Structure *m = static_cast<Structure *>(mol);
     try {
         m->set_position_matrix((double*)pos);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT bool structure_is_tracking_changes(void *structure)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    try {
+        return s->change_tracker() != DiscardingChangeTracker::discarding_change_tracker();
     } catch (...) {
         molc_error();
     }

@@ -30,12 +30,3 @@ def runscript(session, text, *, log=True, downgrade_errors=False):
     argv = shlex.split(text)
     open_python_script(session, open(argv[0], 'rb'), argv[0], argv=argv)
     return []
-
-def register_command(session):
-    from . import CmdDesc, register, StringArg, BoolArg
-    desc = CmdDesc(required=[('text', StringArg)],
-                   optional=[('log', BoolArg),
-                             ('downgrade_errors', BoolArg),
-                         ],
-                   synopsis='run a Python script with arguments')
-    register('runscript', desc, runscript, logger=session.logger)

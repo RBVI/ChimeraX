@@ -82,7 +82,7 @@ class MarkerMouseMode(MouseMode):
         _mouse_place_marker(s, c, link_to_selected = self.link_new)
             
     def place_on_maximum(self, event):
-        from chimerax.core.map import Volume
+        from chimerax.map import Volume
         vlist = self.session.models.list(type = Volume)
         xyz1, xyz2 = self._view_line(event)
         sxyz, v = first_volume_maxima(xyz1, xyz2, vlist)
@@ -100,7 +100,7 @@ class MarkerMouseMode(MouseMode):
         ms['link radius'] = 0.5*r
 
     def place_on_plane(self, event):
-        from chimerax.core.map import Volume
+        from chimerax.map import Volume
         vlist = self.session.models.list(type = Volume)
         xyz1, xyz2 = self._view_line(event)
         sxyz, v = volume_plane_intercept(xyz1, xyz2, vlist)
@@ -274,7 +274,7 @@ def connected_center(triangle_pick):
 # -----------------------------------------------------------------------------
 #
 def mark_map_center(volume):
-    for s in volume.surface_drawings:
+    for s in volume.surfaces:
         va, ta = s.vertices, s.triangles
         from chimerax.core import surface
         varea = surface.vertex_areas(va, ta)
@@ -295,10 +295,9 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
         v_xyz_in, v_xyz_out = data_slice(v, line)
         if v_xyz_in is None:
             continue
-        slevels = v.surface_levels
-        if len(slevels) == 0:
+        threshold = v.minimum_surface_level
+        if threshold is None:
             return
-        threshold = min(slevels)
         f = first_maximum_along_ray(v, v_xyz_in, v_xyz_out, threshold)
         if f is None:
             continue
@@ -349,7 +348,7 @@ def data_slice(v, line):
   if not v.shown():
     return None, None
 
-  from chimerax.core.map import slice
+  from chimerax.map import slice
   if v.showing_orthoplanes() or v.showing_box_faces():
     xyz_in = xyz_out = slice.face_intercept_point(v, line)
   else:
@@ -365,7 +364,7 @@ def data_slice(v, line):
 #
 def first_maximum_along_ray(volume, xyz_in, xyz_out, threshold):
 
-  from chimerax.core.map.slice import slice_data_values
+  from chimerax.map.slice import slice_data_values
   trace = slice_data_values(volume, xyz_in, xyz_out)
   trace = tuple(trace)
   n = len(trace)

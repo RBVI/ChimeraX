@@ -13,7 +13,7 @@
 # before including this file.  The convolutions below
 # enable parallel makes across subdirectories.
 #
-# The targets are all, install, and clean.
+# The targets are all, install, clean, and test.
 
 ifdef NO_SUBDIR_INSTALL
 install:
@@ -33,4 +33,14 @@ SUBDIR_CLEAN = $(SUBDIRS:=.clean)
 clean: $(SUBDIR_CLEAN)
 $(SUBDIR_CLEAN):
 	$(MAKE) -C $(subst .clean,,$@) clean
+endif
+
+ifdef NO_SUBDIR_TEST
+test:
+else
+SUBDIR_TEST = $(SUBDIRS:=.test)
+.PHONY: $(SUBDIR_TEST)
+test: $(SUBDIR_TEST)
+$(SUBDIR_TEST):
+	$(MAKE) -C $(subst .test,,$@) test
 endif

@@ -59,7 +59,9 @@ wheel:	bundle_info.xml $(SRCS) generated_files
 	$(RUN) "devel build . exit true test false"
 
 test:
-	$(CHIMERAX_EXE)
+	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
+		do $(CHIMERAX_EXE) --exit --nogui $$t;\
+	done
 
 debug:
 	$(CHIMERAX_EXE) --debug

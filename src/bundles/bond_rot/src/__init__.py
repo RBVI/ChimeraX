@@ -23,6 +23,9 @@ class _BondRotBundleAPI(BundleAPI):
         elif class_name == "BondRotation":
             from . import bond_rot
             return bond_rot.BondRotation
+        elif class_name == "BondRotater":
+            from . import bond_rot
+            return bond_rot.BondRotater
 
     @staticmethod
     def initialize(session, bundle_info):

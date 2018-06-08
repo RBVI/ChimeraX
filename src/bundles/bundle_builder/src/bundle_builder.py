@@ -20,8 +20,9 @@ def distlib_hack(_func):
 
 class BundleBuilder:
 
-    def __init__(self, bundle_path=None):
+    def __init__(self, logger, bundle_path=None):
         import os, os.path
+        self.logger = logger
         if bundle_path is None:
             bundle_path = os.getcwd()
         self.path = bundle_path
@@ -45,7 +46,7 @@ class BundleBuilder:
             pass
         import os.path
         for lib in self.c_libraries:
-            lib.compile(debug=debug)
+            lib.compile(self.logger, self.dependencies, debug=debug)
         setup_args = ["--no-user-cfg", "build"]
         if debug:
             setup_args.append("--debug")
@@ -274,7 +275,8 @@ class BundleBuilder:
         # We cannot call find_packages unless we are already
         # in the right directory, and that will not happen
         # until run_setup.  So we do the package stuff there.
-        ext_mods = [em for em in [cm.ext_mod(self.package)
+        ext_mods = [em for em in [cm.ext_mod(self.logger, self.package,
+                                             self.dependencies)
                                   for cm in self.c_modules]
                     if em is not None]
         if not self._is_pure_python():
@@ -433,7 +435,7 @@ class _CompiledCode:
     def add_framework_dir(self, d):
         self.framework_dirs.append(d)
 
-    def _compile_options(self):
+    def _compile_options(self, logger, dependencies):
         import sys, os.path
         for req in self.requires:
             if not os.path.exists(req):
@@ -458,7 +460,13 @@ class _CompiledCode:
             for fw in self.frameworks:
                 extra_link_args.extend(["-framework", fw])
         elif sys.platform == "win32":
-            libraries = ["lib" + lib for lib in self.libraries]
+            libraries = []
+            for lib in self.libraries:
+                if lib.lower().endswith(".lib"):
+                    # Strip the .lib since suffixes are handled automatically
+                    libraries.append(lib[:-4])
+                else:
+                    libraries.append("lib" + lib)
             cpp_flags = []
             extra_link_args = []
         else:
@@ -470,8 +478,29 @@ class _CompiledCode:
                 return None
         inc_dirs.extend(self.include_dirs)
         lib_dirs.extend(self.library_dirs)
+        for dep in dependencies:
+            d_inc, d_lib = self._get_bundle_dirs(logger, dep)
+            if d_inc:
+                inc_dirs.append(d_inc)
+            if d_lib:
+                lib_dirs.append(d_lib)
         extra_link_args.extend(self.link_arguments)
         return inc_dirs, lib_dirs, extra_link_args, libraries, cpp_flags
+
+    def _get_bundle_dirs(self, logger, dep):
+        from chimerax.core import toolshed
+        # It's either pulling unsupported class from pip or roll our own.
+        from pip.req.req_install import InstallRequirement
+        ir = InstallRequirement.from_line(dep)
+        if not ir.check_if_exists():
+            raise RuntimeError("unsatisfied dependency: %s" % dep)
+        ts = toolshed.get_toolshed()
+        bundle = ts.find_bundle(ir.name, logger)
+        if not bundle:
+            raise RuntimeError("bundle not found: %s" % ir.name)
+        inc = bundle.include_dir()
+        lib = bundle.library_dir()
+        return inc, lib
 
 
 class _CModule(_CompiledCode):
@@ -481,11 +510,11 @@ class _CModule(_CompiledCode):
         self.major = major
         self.minor = minor
 
-    def ext_mod(self, package):
+    def ext_mod(self, logger, package, dependencies):
         from setuptools import Extension
         try:
             (inc_dirs, lib_dirs, extra_link_args,
-             libraries, cpp_flags) = self._compile_options()
+             libraries, cpp_flags) = self._compile_options(logger, dependencies)
         except ValueError:
             return None
         import sys
@@ -508,11 +537,11 @@ class _CLibrary(_CompiledCode):
         super().__init__(name, uses_numpy)
         self.static = static
 
-    def compile(self, debug=False):
+    def compile(self, logger, dependencies, debug=False):
         import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
         try:
             (inc_dirs, lib_dirs, extra_link_args,
-             libraries, cpp_flags) = self._compile_options()
+             libraries, cpp_flags) = self._compile_options(logger, dependencies)
         except ValueError:
             return None
         output_dir = "src"

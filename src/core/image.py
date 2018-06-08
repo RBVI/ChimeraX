@@ -160,7 +160,8 @@ def register_image_save(session):
                         export_func=save_image)
 
     # Register save command keywords for images
-    from .commands import PositiveIntArg, FloatArg, BoolArg, Bounded, IntArg, add_keyword_arguments
+    from .commands import PositiveIntArg, FloatArg, BoolArg, Bounded, IntArg
+    from .commands.cli import add_keyword_arguments
     save_image_args = [
         ('width', PositiveIntArg),
         ('height', PositiveIntArg),

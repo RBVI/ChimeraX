@@ -96,7 +96,10 @@ class AtomicShapeDrawing(Drawing):
         self._selected_shapes = set(s for s in self._shapes if s.atoms and all(s.atoms.selected))
         tmask = self.selected_triangles_mask
         if tmask is None:
-            tmask = numpy.zeros(len(self.triangles), bool)
+            tris = self.triangles
+            if tris is None:
+                return
+            tmask = numpy.zeros(len(tris), bool)
         else:
             tmask[:] = False
         for s in self._selected_shapes:
@@ -167,7 +170,7 @@ class AtomicShapeDrawing(Drawing):
         description : a string describing the shape
 
         The vertices, normals, and triangles can be custom or the results
-        from one of the :py:mod:`~chimerax.core.surface`'s geometry functions.
+        from one of the :py:mod:`~chimerax.surface`'s geometry functions.
         If the description is not given, it defaults to a list of the atoms.
         """
         # extend drawing's vertices, normals, vertex_colors, and triangles
@@ -193,10 +196,11 @@ class AtomicShapeDrawing(Drawing):
             return
         offset = self.vertices.shape[0]
         start = self.triangles.shape[0]
+        new_vertex_colors = concat((self.vertex_colors, colors))
         self.set_geometry(asarray(concat((self.vertices, vertices)), dtype=numpy.float32),
                           asarray(concat((self.normals, normals)), dtype=numpy.float32),
                           asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32))
-        self.vertex_colors = concat((self.vertex_colors, colors))
+        self.vertex_colors = new_vertex_colors
         s = _AtomicShape(range(start, self.triangles.shape[0]), description, atoms)
         self._shapes.append(s)
 
@@ -265,7 +269,7 @@ class PickedAtomicShape(Pick):
                 ra.setdefault(a.residue, []).append(a)
             d = []
             for r in ra:
-                d.append("%s@%s" % (r.atomspec(), ','.join(a.name for a in ra[r])))
+                d.append("%s@%s" % (r, ','.join(a.name for a in ra[r])))
             return ','.join(d)
         return d
 

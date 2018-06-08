@@ -19,7 +19,7 @@ include $(TOP)/mk/subdir.make
 PKG_DIR = $(PYSITEDIR)/chimerax/core/atomic
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
 
-PYSRCS = __init__.py attr_registration.py bond_geom.py changes.py colors.py \
+PYSRCS = __init__.py attr_registration.py bond_geom.py changes.py colors.py ctypes_support.py \
 	idatm.py mmcif.py mmcif_write.py molc.py molarray.py molobject.py molsurf.py \
 	path.py pbgroup.py pdb.py pdbmatrices.py readpbonds.py ribbon.py \
 	search.py shapedrawing.py struct_edit.py sse.py structure.py triggers.py

@@ -12,8 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def save(session, filename, models=None, format=None, **kw):
-    '''Save data, sessions, images.  Specific formats have additional keyword arguments using
-    commands.add_keyword_arguments().  These are listed with command "usage save".
+    '''Save data, sessions, images.
 
     Parameters
     ----------
@@ -28,10 +27,9 @@ def save(session, filename, models=None, format=None, **kw):
         Recognized formats are session, or for saving images png, jpeg, tiff, gif, ppm, bmp.
         If not specified, then the filename suffix is used to identify the format.
     '''
-    from .. import io
+    from chimerax.core import io
 
     if format is None:
-        from .. import io
         fmt, fname, compress = io.deduce_format(filename, open = False, save = True)
     else:
         format = format.casefold()
@@ -39,11 +37,11 @@ def save(session, filename, models=None, format=None, **kw):
         fmt = format_from_name(format, save=True, open=False)
         if fmt is None:
             fnames = sum([tuple(f.nicknames) for f in io.formats(open=False)], ())
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError("Unrecognized format '%s', must be one of %s" %
                             (format, ', '.join(fnames)))
         if fmt.export_func is None:
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError("Format '%s' cannot be saved." % format)
     
     from os.path import splitext
@@ -64,14 +62,14 @@ def save(session, filename, models=None, format=None, **kw):
     except TypeError as e:
         # Keywords incompatible with export function
         if 'unexpected keyword' in str(e):
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError(str(e))
         raise
 
     from os.path import isfile
     if fmt.open_func and not fmt.name.endswith('image') and isfile(filename):
         # Remember in file history
-        from ..filehistory import remember_file
+        from chimerax.core.filehistory import remember_file
         remember_file(session, filename, fmt.nicknames[0], models or 'all models', file_saved = True)
 
 
@@ -81,8 +79,8 @@ def save_formats(session):
         lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
     else:
         session.logger.info('File format, Short name(s), Suffixes:')
-    from .. import io
-    from . import commas
+    from chimerax.core import io
+    from chimerax.core.commands import commas
     formats = list(f for f in io.formats() if f.export_func)
     formats.sort(key = lambda f: f.name)
     for f in formats:
@@ -102,28 +100,28 @@ def save_formats(session):
         msg = '\n'.join(lines)
         session.logger.info(msg, is_html=True)
 
-from . import DynamicEnum
+from chimerax.core.commands import DynamicEnum
 class SaveFileFormatsArg(DynamicEnum):
     def __init__(self, category = None):
         DynamicEnum.__init__(self, self.formats)
         self.category = category
     def formats(self):
         cat = self.category
-        from .. import io
+        from chimerax.core import io
         names = sum((tuple(f.nicknames) for f in io.formats()
                      if f.export_func and (cat is None or f.category == cat)),
                     ())
         return names
         
-def register_command(session):
-    from . import CmdDesc, register, SaveFileNameArg, ModelsArg
+def register_command(logger):
+    from chimerax.core.commands import CmdDesc, register, SaveFileNameArg, ModelsArg
     desc = CmdDesc(
         required=[('filename', SaveFileNameArg)],
         optional=[('models', ModelsArg)],
         keyword=[('format', SaveFileFormatsArg())],
         synopsis='save data to various file formats'
     )
-    register('save', desc, save, logger=session.logger)
+    register('save', desc, save, logger=logger)
 
     sf_desc = CmdDesc(synopsis='report formats that can be saved')
-    register('save formats', sf_desc, save_formats, logger=session.logger)
+    register('save formats', sf_desc, save_formats, logger=logger)

@@ -26,6 +26,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: ui :: User interface :: control user interface behavior</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: mousemode :: User interface :: set/list mouse modes</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

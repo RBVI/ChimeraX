@@ -12,11 +12,12 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
+NO_SUBDIR_TEST=1
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
 	   chutil_cpp commands \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
-	   map pysupport_cpp surface toolshed \
+	   pysupport_cpp toolshed \
 	   webservices
 
 ifeq ($(OS),Darwin)
@@ -111,5 +112,4 @@ atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install \
 	logger_cpp.install pysupport_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
-map.install: arrays_cpp.install
 surface.install: arrays_cpp.install

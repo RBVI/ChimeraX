@@ -28,37 +28,50 @@ in a thread-safe manner.  The UI instance is accessed as session.ui.
 
 from chimerax.core.logger import PlainTextLog
 
-# remove the build tree plugin path, and add install tree plugin path
-import sys
-mac = (sys.platform == 'darwin')
-if mac:
-    # The "plugins" directory can be in one of two places on Mac:
-    # - if we built Qt and PyQt from source: Contents/lib/plugins
-    # - if we used a wheel built using standard Qt: C/l/python3.5/site-packages/PyQt5/Qt/plugins
-    # If the former, we need to set some environment variables so
-    # that Qt can find itself.  If the latter, it "just works",
-    # though if there is a comma in the app name, the magic gets
-    # screwed up, so explicitly set the path in that case too
-    import os.path
-    from chimerax import app_lib_dir
-    plugins = os.path.join(os.path.dirname(app_lib_dir), "plugins")
-    if not os.path.exists(plugins) and "," in app_lib_dir:
-        # The comma character screws up the magic Qt plugin-finding code;
-        # supply an explicit path in this case
-        # To find site-packages look above __file__...
-        dn = os.path.dirname
-        plugins = os.path.join(dn(dn(dn(dn(__file__)))), "PyQt5/Qt/plugins")
-    if os.path.exists(plugins):
-        from PyQt5.QtCore import QCoreApplication
-        qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
-        qlib_paths.append(plugins)
-        QCoreApplication.setLibraryPaths(qlib_paths)
-        import os
-        fw_path = os.environ.get("DYLD_FRAMEWORK_PATH", None)
-        if fw_path:
-            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
-        else:
-            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
+def initialize_qt():
+    initialize_qt_plugins_location()
+    initialize_qt_high_dpi_display_support()
+
+def initialize_qt_plugins_location():
+    # remove the build tree plugin path, and add install tree plugin path
+    import sys
+    mac = (sys.platform == 'darwin')
+    if mac:
+        # The "plugins" directory can be in one of two places on Mac:
+        # - if we built Qt and PyQt from source: Contents/lib/plugins
+        # - if we used a wheel built using standard Qt: C/l/python3.5/site-packages/PyQt5/Qt/plugins
+        # If the former, we need to set some environment variables so
+        # that Qt can find itself.  If the latter, it "just works",
+        # though if there is a comma in the app name, the magic gets
+        # screwed up, so explicitly set the path in that case too
+        import os.path
+        from chimerax import app_lib_dir
+        plugins = os.path.join(os.path.dirname(app_lib_dir), "plugins")
+        if not os.path.exists(plugins) and "," in app_lib_dir:
+            # The comma character screws up the magic Qt plugin-finding code;
+            # supply an explicit path in this case
+            # To find site-packages look above __file__...
+            dn = os.path.dirname
+            plugins = os.path.join(dn(dn(dn(dn(__file__)))), "PyQt5/Qt/plugins")
+        if os.path.exists(plugins):
+            from PyQt5.QtCore import QCoreApplication
+            qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
+            qlib_paths.append(plugins)
+            QCoreApplication.setLibraryPaths(qlib_paths)
+            import os
+            fw_path = os.environ.get("DYLD_FRAMEWORK_PATH", None)
+            if fw_path:
+                os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
+            else:
+                os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
+
+def initialize_qt_high_dpi_display_support():
+    import sys
+    # Fix text and button sizes on high DPI displays in Windows 10
+    win = (sys.platform == 'win32')
+    if win:
+        from PyQt5.QtCore import QCoreApplication, Qt
+        QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
 from PyQt5.QtWidgets import QApplication
 class UI(QApplication):
@@ -76,6 +89,7 @@ class UI(QApplication):
 
     def __init__(self, session):
         self.is_gui = True
+        self.has_graphics = True
         self.already_quit = False
         self.session = session
 
@@ -321,7 +335,11 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         self._stack = GraphicsArea(self)
         from .graphics import GraphicsWindow
-        self.graphics_window = g = GraphicsWindow(self._stack, ui)
+        stereo = getattr(ui, 'stereo', False)
+        if stereo:
+            from chimerax.core.graphics import StereoCamera
+            session.main_view.camera = StereoCamera()
+        self.graphics_window = g = GraphicsWindow(self._stack, ui, stereo)
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
         ra_bg_color = "#B8B8B8"
@@ -389,6 +407,34 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.setAcceptDrops(True)
 
         self.show()
+
+    def enable_stereo(self, stereo = True):
+        '''
+        Switching to a sequential stereo OpenGL context seems to require
+        replacing the graphics window with a stereo compatible window on 
+        Windows 10 with Qt 5.9.
+        '''
+        gw = self.graphics_window
+        oc = gw.opengl_context
+        if stereo == oc.stereo:
+            return True	# Already using requested mode
+
+        from .graphics import GraphicsWindow
+        try:
+            g = GraphicsWindow(self._stack, self.session.ui, stereo, oc)
+        except:
+            # Failed to create OpenGL context
+            return False
+
+        # Only destroy old graphics window after new one is made so clean-up
+        # of old OpenGL context can be done.
+        gw.destroy()
+
+        self.graphics_window = g
+        self._stack.addWidget(g.widget)
+        self._stack.setCurrentWidget(g.widget)
+
+        return True
     
     def dragEnterEvent(self, event):
         md = event.mimeData()
@@ -811,8 +857,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cat_menu.addAction(tool_action)
         def _show_toolshed(arg):
             from chimerax.help_viewer import show_url
-            from chimerax.core.toolshed import Toolshed
-            show_url(session, Toolshed.get_toolshed().remote_url)
+            from chimerax.core import toolshed
+            show_url(session, toolshed.get_toolshed().remote_url)
         more_tools = QAction("More Tools...", self)
         more_tools.setToolTip("Open ChimeraX Toolshed in Help Viewer")
         more_tools.triggered.connect(_show_toolshed)

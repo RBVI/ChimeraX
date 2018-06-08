@@ -11,10 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-ATOMSPEC_EVALUATED = "atomspec evaluated"
-ATOMSPEC_TARGET_REGISTERED = "atomspec target registered"
-ATOMSPEC_TARGET_DEREGISTERED = "atomspec target deregistered"
-
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
@@ -28,7 +24,7 @@ def register_core_commands(session):
         'delete', 'devel', 'distance', 'dssp', 'exit', 'graphics', 'hide',
         'lighting', 'material',
         'measure_convexity', 'measure_buriedarea', 'measure_length',
-        'measure_motion', 'measure_sasa',
+        'measure_sasa',
         'mousemode', 'move',
         'open', 'palette', 'pdbimages', 'perframe', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs', 'runscript',
@@ -40,15 +36,3 @@ def register_core_commands(session):
     for mod in modules:
         m = import_module(".%s" % mod, __package__)
         m.register_command(session)
-
-    from .. import map
-    map.register_volume_command(session.logger)
-    map.register_molmap_command(session.logger)
-    from ..map import fit
-    fit.register_fitmap_command(session.logger)
-    from ..map import series
-    series.register_vseries_command(session.logger)
-    session.triggers.add_trigger(ATOMSPEC_EVALUATED)
-    from .. import triggers
-    triggers.add_trigger(ATOMSPEC_TARGET_REGISTERED)
-    triggers.add_trigger(ATOMSPEC_TARGET_DEREGISTERED)

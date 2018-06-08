@@ -12,16 +12,58 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.state import State
-#class BondRotation(State):
-class BondRotation:
-    """A bond rotation,
+class BondRotation(State):
+    """A bond rotation, which can have multiple BondRotaters associated.
+    If any BondRotaters rotate the bond, BondRotation will update the others.
     
-    Should only be created through new_rotation method of the bond-rotation manager
+    Should only be created by the bond-rotation manager
     """
 
-    def __init__(self, session, bond, ident, moving_side, one_shot):
+    def __init__(self, session, bond):
         self.session = session
         self.bond = bond
+        self.rotaters = []
+
+    def delete_rotater(self, rotater):
+        self.rotaters.remove(rotater)
+
+    def new_rotater(self, ident, moving_side, one_shot):
+        rotater = BondRotater(self.session, self, ident, moving_side, one_shot)
+        self.rotaters.append(rotater)
+        return rotater
+
+    def _rotater_update(self, initiator, delta):
+        for r in self.rotaters:
+            if r == initiator:
+                continue
+            if r.moving_side == initiator.moving_side:
+                r._angle += delta
+            else:
+                r._angle -= delta
+
+    # session methods
+    def reset_state(self, session):
+        # manager will nuke everything
+        pass
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return BondRotation(session, data['bond'])
+
+    def take_snapshot(self, session, flags):
+        # to avoid circularity, don't save rotaters
+        # they will add themselves to self.rotaters
+        return {
+            'version': 1,
+
+            'bond': self.bond,
+        }
+
+class BondRotater(State):
+    # instances given to API users; works in conjunction with BondRotation
+    def __init__(self, session, rotation, ident, moving_side, one_shot):
+        self.session = session
+        self.rotation = rotation
         self.ident = ident
         self.moving_side = moving_side
         self.one_shot = one_shot
@@ -44,7 +86,7 @@ class BondRotation:
         # avoid a copy...
         update.move(coords)
         side_atoms.coords = coords
-        mgr = self.session.bond_rotations
+        self.rotation._rotater_update(self, delta)
         # manager listening on changes will fire 'modified' trigger...
 
     angle = property(get_angle, set_angle)
@@ -55,4 +97,33 @@ class BondRotation:
         from chimerax.core.geometry import normalize_vector
         axis = normalize_vector(moving - fixed)
         return axis
+
+    @property
+    def bond(self):
+        return self.rotation.bond
+
+    # session methods
+    def reset_state(self, session):
+        # manager will nuke everything
+        pass
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        rotater = BondRotater(session, data['rotation'], data['ident'],
+            data['moving_side'], data['one_shot'])
+        # to avoid circularity, BondRotation doesn't save the rotaters,
+        # so add the rotater to BondRotation...
+        data['rotation'].rotaters.append(rotater)
+        return rotater
+
+    def take_snapshot(self, session, flags):
+        return {
+            'version': 1,
+
+            'rotation': self.rotation,
+            'ident': self.ident,
+            'moving_side': self.moving_side,
+            'one_shot': self.one_shot,
+            'angle': self._angle,
+        }
 

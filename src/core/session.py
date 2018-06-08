@@ -136,7 +136,9 @@ class _UniqueName:
             # double check that class will be able to be restored
             if obj_cls != bundle_info.get_class(obj_cls.__name__, session.logger):
                 raise RuntimeError(
-                    'Unable to restore objects of %s class in %s bundle' %
+                    'Unable to restore objects of %s class in %s bundle'
+                    ' because the class name is not listed in the name to class table'
+                    ' for session restore' %
                     (obj_cls.__name__, bundle_info.name))
 
         if not known_class and bundle_info != 'builtin':
@@ -872,17 +874,24 @@ def save_x3d(session, path, transparent_background=False):
 
 
 def register_session_format(session):
+    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
+    from .commands.cli import add_keyword_arguments
+    from .commands.toolshed import register_command
+    register_command(session.logger)
+    from .commands.devel import register_command
+    register_command(session.logger)
+    from .commands.open import register_command
+    register_command(session.logger)
     from . import io, toolshed
     io.register_format(
         "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
         mime="application/x-chimerax-session",
         reference="help:user/commands/save.html",
         open_func=open, export_func=save)
-    from .commands import add_keyword_arguments, BoolArg
     add_keyword_arguments('open', {'resize_window': BoolArg})
 
-
-    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
+    from .commands.save import register_command
+    register_command(session.logger)
     desc = CmdDesc(
         required=[('filename', SaveFileNameArg)],
         keyword=[('version', IntArg), ('uncompressed', BoolArg)],
@@ -931,10 +940,6 @@ def common_startup(sess):
     from .atomic import PseudobondManager
     sess.pb_manager = PseudobondManager(sess)
 
-    from . import commands
-    commands.register_core_commands(sess)
-    commands.register_core_selectors(sess)
-
     register(
         'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
@@ -966,12 +971,8 @@ def _register_core_file_formats(session):
     mmcif.register_mmcif_format()
     from . import scripting
     scripting.register()
-    from . import map
-    map.register_map_file_formats(session)
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
-    from .surface import collada
-    collada.register_collada_format()
     from . import image
     image.register_image_save(session)
     register_x3d_format()
@@ -982,8 +983,5 @@ def _register_core_database_fetch():
     pdb.register_pdb_fetch()
     from .atomic import mmcif
     mmcif.register_mmcif_fetch()
-    from . import map
-    map.register_eds_fetch()
-    map.register_emdb_fetch()
     from . import fetch
     fetch.register_web_fetch()

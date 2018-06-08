@@ -11,11 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .cmd import SeqArg
+from .cmd import get_alignment_sequence, SeqArg, AlignmentArg, AlignSeqPairArg
 
 from chimerax.core.toolshed import BundleAPI
 
 class _AlignmentsBundleAPI(BundleAPI):
+
+    # so toolshed can find it...
+    AlignmentArg = AlignmentArg
 
     @staticmethod
     def get_class(class_name):
@@ -46,6 +49,19 @@ class _AlignmentsBundleAPI(BundleAPI):
         from .parse import open_file
         return open_file(session, stream, file_name, format_name=format_name.upper(),
             alignment=alignment, ident=ident, auto_associate=auto_associate)
+
+    @staticmethod
+    def save_file(session, path, format_name="fasta", alignment=None):
+        if not alignment:
+            alignments = list(session.alignments.alignments.values())
+            from chimerax.core.errors import UserError
+            if not alignments:
+                raise UserError("No alignments open!")
+            elif len(alignments) != 1:
+                raise UserError("More than one alignment open;"
+                    " use 'alignment' keyword to specify one")
+            alignment = alignments[0]
+        alignment.save(path, format_name=format_name)
 
     @staticmethod
     def register_command(command_name, logger):

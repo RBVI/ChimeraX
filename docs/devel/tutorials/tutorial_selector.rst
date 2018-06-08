@@ -102,8 +102,8 @@ of a ChimeraX command, the bundle function associated with
 .. include:: src.rst
 
 
-``__init__.py``
----------------
+``src/__init__.py``
+-------------------
 
 As described in :doc:`tutorial_hello`, ``__init__.py`` contains
 the initialization code that defines the ``bundle_api`` object
@@ -134,8 +134,8 @@ selectors are session-independent; that is, once registered, a selector
 may be used in any session.
 
 
-``selector.py``
----------------
+``src/selector.py``
+-------------------
 
 ``selector.py`` defines both the callback function, ``_select_endres``,
 that is invoked when ``endres`` is encountered in a target specification,

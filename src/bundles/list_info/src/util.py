@@ -47,7 +47,7 @@ def attr_string(obj, attr):
 
 def spec(o):
     try:
-        return o.atomspec()
+        return o.atomspec
     except AttributeError:
         try:
             return '#' + o.id_string()
@@ -165,7 +165,7 @@ def pseudobond_group_info(m):
 
 def volume_info(m):
 
-    from chimerax.core.map import Volume
+    from chimerax.map import Volume
     if not isinstance(m, Volume):
         return ''
 
@@ -175,7 +175,7 @@ def volume_info(m):
     sx,sy,sz = m.data.step
     vsize = ('voxel size %.5g' % sx) if sx == sy and sy == sz else ('voxel size %.5g,%.5g,%.5g' % (sx,sy,sz))
     if m.representation == 'surface':
-        level = 'level ' + ', '.join(('%.4g' % l for l in m.surface_levels))
+        level = 'level ' + ', '.join(('%.4g' % s.level for s in m.surfaces))
     else:
         level = 'level/intensity ' + ', '.join(('%.4g (%.2f)' % tuple(l) for l in m.solid_levels))
     line = ' %s, %s, %s, %s' % (size, step, vsize, level)

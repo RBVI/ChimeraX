@@ -188,12 +188,13 @@ public:
         if (s == static_cast<void*>(ptr)) {
             _structure_type_changes.erase(s);
             _dead_structures.insert(s);
-        } else if (_structure_okay(s)) {
+        }
+        if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
             ++s_changes.num_deleted;
             s_changes.created.erase(ptr);
             s_changes.modified.erase(ptr);
-        } else if (s == nullptr) {
+        } else { // also put deletions for dead structures in global changes
             auto& g_changes = _global_type_changes[_ptr_to_type(ptr)];
             ++g_changes.num_deleted;
             g_changes.created.erase(ptr);

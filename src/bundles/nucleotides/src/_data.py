@@ -21,7 +21,7 @@ import re
 import weakref
 import numpy
 from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
-from chimerax.core.surface import box_geometry, sphere_geometry2, cylinder_geometry
+from chimerax.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.state import State, StateManager, RestoreError
 from chimerax.core.atomic import Residues, Atoms, Sequence, Pseudobonds
 nucleic3to1 = Sequence.nucleic3to1
@@ -69,10 +69,13 @@ PSEUDO_PYRIMIDINE = 'pseudo-pyrimidine'
 # 229-237.  A preliminary version is available for free at
 # <http://ndbserver.rutgers.edu/ndbmodule/archives/reports/tsukuba/tsukuba.pdf>.
 # DOI: 10.1006/jmbi.2001.4987
+_purine_C2_index = _full_purine.index("C2")
+_pyrimidine_C2_index = _pyrimidine.index("C2")
 standard_bases = {
     'A': {
         "tag": PURINE,
         "ring atom names": _full_purine,
+        "color atom": _purine_C2_index,
         "NDB color": "red",
         "atoms": {
             "C1'": numpy.array((-2.479, 5.346, 0.000)),
@@ -93,6 +96,7 @@ standard_bases = {
         "tag": PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "yellow",
+        "color atom": _pyrimidine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.477, 5.402, 0.000)),
             "N1": numpy.array((-1.285, 4.542, 0.000)),
@@ -110,6 +114,7 @@ standard_bases = {
         "tag": PURINE,
         "ring atom names": _full_purine,
         "NDB color": "green",
+        "color atom": _purine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.477, 5.399, 0.000)),
             "N9": numpy.array((-1.289, 4.551, 0.000)),
@@ -132,6 +137,7 @@ standard_bases = {
         "tag": PURINE,
         "ring atom names": _full_purine,
         "NDB color": "dark green",
+        "color atom": _purine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.477, 5.399, 0.000)),
             "N9": numpy.array((-1.289, 4.551, 0.000)),
@@ -154,6 +160,7 @@ standard_bases = {
         "tag": PSEUDO_PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "light gray",
+        "color atom": _pyrimidine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.506, 5.371, 0.000)),
             "N1": numpy.array((1.087, 4.295, 0.000)),
@@ -171,6 +178,7 @@ standard_bases = {
         "tag": PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "blue",
+        "color atom": _pyrimidine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.481, 5.354, 0.000)),
             "N1": numpy.array((-1.284, 4.500, 0.000)),
@@ -190,6 +198,7 @@ standard_bases = {
         "tag": PYRIMIDINE,
         "ring atom names": _pyrimidine,
         "NDB color": "cyan",
+        "color atom": _pyrimidine_C2_index,
         "atoms": {
             "C1'": numpy.array((-2.481, 5.354, 0.000)),
             "N1": numpy.array((-1.284, 4.500, 0.000)),
@@ -495,28 +504,6 @@ def _nucleotides(session):
     return session.nucleotides
 
 
-def ndb_color(residues):
-    # color residues by their NDB color
-    from chimerax.core.colors import BuiltinColors
-    color_names = set(std['NDB color'] for std in standard_bases.values())
-    convert = {}
-    for n in color_names:
-        convert[n] = BuiltinColors[n].uint8x4()
-    other_color = BuiltinColors['tan'].uint8x4()
-    colors = []
-    for r in residues:
-        try:
-            info = standard_bases[nucleic3to1(r.name)]
-        except KeyError:
-            color = other_color
-        else:
-            color = convert[info['NDB color']]
-        colors.append(color)
-    for r, c in zip(residues, colors):
-        r.atoms.colors = c
-        r.ribbon_color = c
-
-
 def hydrogen_bonds(residues, bases_only=False):
     # Return tuple of hydrogen bonds between the given residues, and
     # other hydrogen bonds connected to the residues.
@@ -809,7 +796,7 @@ def draw_slab(nd, residue, name, params):
     )
     xf = xf * standard["correction factor"]
 
-    color = atoms[0].color
+    color = atoms[standard["color atom"]].color
     half_thickness = params.thickness / 2
 
     llx, lly = slab_corners[0]
@@ -842,7 +829,7 @@ def draw_slab(nd, residue, name, params):
     else:
         raise RuntimeError('unknown base shape')
 
-    description = '%s %s' % (residue.atomspec(), tag)
+    description = '%s %s' % (residue, tag)
     xf2.move(va)
     xf2.update_normals(na, pure=pure_rotation)
     nd.add_shape(va, na, ta, color, atoms, description)
@@ -884,7 +871,7 @@ def bonds_between(atoms):
     return bonds
 
 
-def orient_planar_ring(nd, atoms, ring_indices=[]):
+def orient_planar_ring(nd, atoms, ring_indices, color_atom):
     r = atoms[0].residue
     # TODO:
     # if not r.fill_display or r.fill_mode != r.Thick:
@@ -901,25 +888,25 @@ def orient_planar_ring(nd, atoms, ring_indices=[]):
         # can't show orientation of thin ring
         return []
 
-    color = atoms[0].color
+    color = atoms[color_atom].color
     # non-zero radius
     planeEq = Plane(pts)
     offset = planeEq.normal * radius
     for r in ring_indices:
         center = numpy.average([pts[i] for i in r], axis=0) + offset
         va, na, ta = get_sphere(radius, center)
-        nd.add_shape(va, na, ta, color, atoms)
+        nd.add_shape(va, na, ta, color, str(atoms))
 
 
 def draw_orientation(nd, residue):
     ring = get_ring(residue, _full_purine)
     if ring:
         indices = [_full_purine_1, _full_purine_2]
-        orient_planar_ring(nd, ring, indices)
+        orient_planar_ring(nd, ring, indices, _purine_C2_index)
     ring = get_ring(residue, _pyrimidine)
     if ring:
         indices = [_pyrimidine_1]
-        orient_planar_ring(nd, ring, indices)
+        orient_planar_ring(nd, ring, indices, _pyrimidine_C2_index)
 
 
 def draw_tube(nd, residue, name, params):
@@ -969,7 +956,7 @@ def draw_tube(nd, residue, name, params):
     c1p = residue.find_atom("C1'")
     color = c1p.color
 
-    description = '%s ribose' % residue.atomspec()
+    description = '%s ribose' % residue
 
     va, na, ta = get_cylinder(radius, ep0, ep1, bottom=False)
     nd.add_shape(va, na, ta, color, None, description)
@@ -1109,13 +1096,14 @@ def make_tube(nd, residues, rds):
     return hidden_ribose, shown_gly
 
 
-def set_ladder(residues, *, rung_radius=FROM_CMD, show_stubs=FROM_CMD, skip_nonbase_Hbonds=FROM_CMD, hide=FROM_CMD):
+def set_ladder(residues, *, rung_radius=FROM_CMD, show_stubs=FROM_CMD, skip_nonbase_Hbonds=FROM_CMD, hide=FROM_CMD, stubs_only=FROM_CMD):
     molecules = residues.unique_structures
     nuc = _nucleotides(molecules[0].session)
     nuc.need_rebuild.update(molecules)
     ladder_params = Params(
         rung_radius=rung_radius, show_stubs=show_stubs,
-        skip_nonbase_Hbonds=skip_nonbase_Hbonds, hide=hide
+        skip_nonbase_Hbonds=skip_nonbase_Hbonds, hide=hide,
+        stubs_only=stubs_only,
     )
     rds = {}
     for mol in molecules:
@@ -1190,31 +1178,34 @@ def make_ladder(nd, residues, params):
         depict_bonds[key] = (c3p0, c3p1, radius, non_base)
 
     matched_residues = set()
-    for (r0, r1), (c3p0, c3p1, radius, non_base) in depict_bonds.items():
-        r0color = r0.ribbon_color
-        r1color = r1.ribbon_color
-        # choose mid-point to make purine larger
-        try:
-            is_purine0 = standard_bases[nucleic3to1(r0.name)]['tag'] == PURINE
-            is_purine1 = standard_bases[nucleic3to1(r1.name)]['tag'] == PURINE
-        except KeyError:
-            is_purine0 = False
-            is_purine1 = False
-        if any(non_base) or is_purine0 == is_purine1:
-            mid = 0.5
-        elif is_purine0:
-            mid = purine_pyrimidine_ratio
-        else:
-            mid = 1.0 - purine_pyrimidine_ratio
-        midpt = c3p0[1] + mid * (c3p1[1] - c3p0[1])
-        va, na, ta = get_cylinder(radius, c3p0[1], midpt, top=False)
-        nd.add_shape(va, na, ta, r0color, r0.atoms, r0.atomspec())
-        va, na, ta = get_cylinder(radius, c3p1[1], midpt, top=False)
-        nd.add_shape(va, na, ta, r1color, r1.atoms, r1.atomspec())
-        if not non_base[0]:
-            matched_residues.add(r0)
-        if not non_base[1]:
-            matched_residues.add(r1)
+    if not params.stubs_only:
+        for (r0, r1), (c3p0, c3p1, radius, non_base) in depict_bonds.items():
+            a0 = r0.find_atom("C2")
+            a1 = r1.find_atom("C2")
+            r0color = a0.color if a0 else r0.ribbon_color
+            r1color = a1.color if a1 else r1.ribbon_color
+            # choose mid-point to make purine larger
+            try:
+                is_purine0 = standard_bases[nucleic3to1(r0.name)]['tag'] == PURINE
+                is_purine1 = standard_bases[nucleic3to1(r1.name)]['tag'] == PURINE
+            except KeyError:
+                is_purine0 = False
+                is_purine1 = False
+            if any(non_base) or is_purine0 == is_purine1:
+                mid = 0.5
+            elif is_purine0:
+                mid = purine_pyrimidine_ratio
+            else:
+                mid = 1.0 - purine_pyrimidine_ratio
+            midpt = c3p0[1] + mid * (c3p1[1] - c3p0[1])
+            va, na, ta = get_cylinder(radius, c3p0[1], midpt, top=False)
+            nd.add_shape(va, na, ta, r0color, r0.atoms, str(r0))
+            va, na, ta = get_cylinder(radius, c3p1[1], midpt, top=False)
+            nd.add_shape(va, na, ta, r1color, r1.atoms, str(r1))
+            if not non_base[0]:
+                matched_residues.add(r0)
+            if not non_base[1]:
+                matched_residues.add(r1)
 
     if not params.show_stubs:
         if params.hide:
@@ -1228,7 +1219,8 @@ def make_ladder(nd, residues, params):
         if not c3p:
             continue
         ep0 = c3p[1]
-        color = r.ribbon_color
+        a = r.find_atom("C2")
+        color = a.color if a else r.ribbon_color
         ep1 = None
         is_purine = standard_bases[nucleic3to1(r.name)]['tag'] == PURINE
         if is_purine:
@@ -1249,7 +1241,10 @@ def make_ladder(nd, residues, params):
                     dist_atom = (dist, a)
             ep1 = dist_atom[1].coord
         va, na, ta = get_cylinder(params.rung_radius, ep0, ep1)
-        nd.add_shape(va, na, ta, color, r.atoms, r.atomspec())
+        nd.add_shape(va, na, ta, color, r.atoms, str(r))
+        # make exposed end rounded (TODO: use a hemisphere)
+        va, na, ta = get_sphere(params.rung_radius, ep1)
+        nd.add_shape(va, na, ta, color, r.atoms, str(r))
         matched_residues.add(r)
     if params.hide:
         return matched_residues

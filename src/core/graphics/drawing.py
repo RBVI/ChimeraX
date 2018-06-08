@@ -406,10 +406,10 @@ class Drawing:
             for d in self.child_drawings():
                 d.clear_selection()
 
-    def get_position(self):
+    def _drawing_get_position(self):
         return self._positions[0]
 
-    def set_position(self, pos):
+    def _drawing_set_position(self, pos):
         from ..geometry import Places
         self._positions = Places([pos])
         if (not self._displayed_positions is None
@@ -417,7 +417,7 @@ class Drawing:
             self._displayed_positions = None
         self.redraw_needed(shape_changed=True)
 
-    position = property(get_position, set_position)
+    position = property(_drawing_get_position, _drawing_set_position)
     '''Position and orientation of the surface in space.'''
 
     def _get_scene_position(self):
@@ -682,7 +682,7 @@ class Drawing:
         self._update_buffers()
 
         ds = self._draw_selection if selected_only else self._draw_shape
-        ds.activate_bindings()
+        ds.activate_bindings(renderer)
 
         sopt = self._shader_options(transparent_only, opaque_only)
         r = renderer
@@ -1018,6 +1018,7 @@ class Drawing:
         '''
         Delete drawing and all child drawings.
         '''
+        self.was_deleted = True
         c = self._opengl_context
         if c:
             c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
@@ -1058,8 +1059,6 @@ class Drawing:
 
         self._opengl_context = None
         
-        self.was_deleted = True
-
     def _create_vertex_buffers(self):
         from . import opengl
         vbufs = (
@@ -1667,11 +1666,11 @@ class _DrawShape:
             bi.bind_shader_variable(b)
         bu.clear()
 
-    def activate_bindings(self):
+    def activate_bindings(self, renderer):
         bi = self.bindings
         if bi is None:
             from . import opengl
-            self.bindings = bi = opengl.Bindings()
+            self.bindings = bi = opengl.Bindings(renderer.opengl_context)
 
         bi.activate()
         self.update_buffers()

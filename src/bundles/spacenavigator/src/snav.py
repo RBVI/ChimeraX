@@ -147,7 +147,7 @@ class Space_Navigator:
         cm = self.collision_map
         if cm is None:
             return False
-        clev = max(cm.surface_levels)
+        clev = cm.maximum_surface_level
         return (cm.interpolated_values([xyz], cm.position) >= clev)
 
     def toggle_dominant_mode(self):

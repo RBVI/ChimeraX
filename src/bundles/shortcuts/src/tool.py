@@ -125,16 +125,16 @@ class MoleculeDisplayPanel(ShortcutPanel):
     shortcuts = (
         ('da', 'atomshow.png', 'Show atoms'),
         ('ha', 'atomhide.png', 'Hide atoms'),
-        ('rb', 'ribshow.png', 'Show molecule ribbons'),
-        ('hr', 'ribhide.png', 'Hide molecule ribbons'),
+        ('rb', 'ribshow.png', 'Show cartoon'),
+        ('hr', 'ribhide.png', 'Hide cartoon'),
         ('ms', 'surfshow.png', 'Show molecular surface'),
         ('hs', 'surfhide.png', 'Hide molecular surface'),
-        ('st', 'stick.png', 'Show molecule in stick style'),
-        ('sp', 'sphere.png', 'Show molecule in sphere style'),
-        ('bs', 'ball.png', 'Show molecule in ball and stick style'),
+        ('st', 'stick.png', 'Use stick style'),
+        ('sp', 'sphere.png', 'Use sphere style'),
+        ('bs', 'ball.png', 'Use ball-and-stick style'),
         ('ce', 'colorbyelement.png', 'Color atoms by element'),
         ('cc', 'colorbychain.png', 'Color atoms by chain'),
-        ('hb', 'hbonds.png', 'Show hydrogen bonds'),
+        ('hb', 'hbonds.png', 'Find hydrogen bonds'),
     )
     help = "help:user/tools/moldisplay.html"
 

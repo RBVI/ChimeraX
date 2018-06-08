@@ -11,10 +11,55 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.toolshed import BundleAPI
+from chimerax.core import toolshed
+_new_bundle_handler = None
+
+help_url_paths = []     # help directories in URL path form
 
 
-class _MyAPI(BundleAPI):
+def _update_cache(trigger_name=None, bundle_info=None):
+    global help_url_paths
+
+    import os
+    from chimerax import app_dirs
+    cached_index = os.path.join(app_dirs.user_cache_dir, 'docs', 'user', 'index.html')
+    try:
+        os.remove(cached_index)
+    except OSError:
+        pass
+
+    def cvt_path(path):
+        from urllib.request import pathname2url
+        help_path = pathname2url(path)
+        if help_path.startswith('///'):
+            help_path = help_path[2:]
+        if not help_path.endswith('/'):
+            help_path += '/'
+        return help_path
+
+    help_directories = toolshed.get_help_directories()
+    help_url_paths = [cvt_path(hd) for hd in help_directories]
+
+
+class _MyAPI(toolshed.BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        global _new_bundle_handler
+        ts = toolshed.get_toolshed()
+        _new_bundle_handler = ts.triggers.add_handler(
+            toolshed.TOOLSHED_BUNDLE_INSTALLED, _update_cache)
+        # ? = ts.triggers.add_handler(
+        #    toolshed.TOOLSHED_BUNDLE_UNINSTALLED, _update_cache)
+        _update_cache()
+
+    @staticmethod
+    def finish(session, bundle_info):
+        global _new_bundle_handler
+        ts = toolshed.get_toolshed()
+        if _new_bundle_handler is not None:
+            ts.triggers.remove_handler(_new_bundle_handler)
+            _new_bundle_handler = None
 
     @staticmethod
     def register_command(command_name, logger):
@@ -43,11 +88,11 @@ class _MyAPI(BundleAPI):
         return None
 
 
-def show_url(session, url, *, new_tab=False, confirm=False):
+def show_url(session, url, *, new_tab=False, html=None):
     if session.ui.is_gui:
         from .tool import HelpUI
         help_viewer = HelpUI.get_viewer(session)
-        help_viewer.show(url, new_tab=new_tab, confirm=confirm)
+        help_viewer.show(url, new_tab=new_tab, html=html)
     else:
         import webbrowser
         if new_tab:

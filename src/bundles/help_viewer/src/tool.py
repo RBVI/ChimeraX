@@ -21,31 +21,22 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.widgets import ChimeraXHtmlView
 
 _singleton = None
-_help_path = None
 
 
 def _qurl2text(qurl):
     # recreate help: version
-    global _help_path
-    if _help_path is None:
-        from chimerax import app_data_dir
-        import os
-        from urllib.request import pathname2url
-        _help_path = pathname2url(os.path.join(app_data_dir, 'docs'))
-        if _help_path.startswith('///'):
-            _help_path = _help_path[2:]
-        if not _help_path.endswith('/'):
-            _help_path += '/'
+    from . import help_url_paths
     if qurl.scheme() == 'file':
         path = qurl.path()
         frag = qurl.fragment()
         if frag:
             frag = '#%s' % frag
-        if path.startswith(_help_path):
-            path = path[len(_help_path):]
-            if path.endswith("/index.html"):
-                path = path[:-11]
-            return "help:%s%s" % (path, frag)
+        for hp in help_url_paths:
+            if path.startswith(hp):
+                path = path[len(hp):]
+                if path.endswith("/index.html"):
+                    path = path[:-11]
+                return "help:%s%s" % (path, frag)
     return qurl.toString()
 
 
@@ -88,6 +79,30 @@ class _HelpWebView(ChimeraXHtmlView):
         #    menu.addAction(page.action(QWebEnginePage.SavePage))
         menu.popup(event.globalPos())
 
+    def link_clicked(self, request_info, *args):
+        # check for help:user and generate the index page if need be
+        qurl = request_info.requestUrl()
+        scheme = qurl.scheme()
+        if scheme == 'file' and qurl.path().endswith(('/docs/user', '/docs/user/index.html')):
+            import os, sys
+            path = qurl.toLocalFile()
+            from chimerax import app_dirs
+            cached_index = os.path.join(app_dirs.user_cache_dir, 'docs', 'user', 'index.html')
+            if not os.path.exists(cached_index):
+                from .cmd import _generate_index
+                from chimerax import app_data_dir
+                path = os.path.join(app_data_dir, 'docs', 'user', 'index.html')
+                new_path = _generate_index(path)
+                if new_path is not None:
+                    if sys.platform == 'win32':
+                        new_path = new_path.replace(os.path.sep, '/')
+                        if os.path.isabs(new_path):
+                            new_path = '/' + new_path
+                    qurl.setPath(new_path)
+                    request_info.redirect(qurl)
+                    return
+        super().link_clicked(request_info, *args)
+
 
 class HelpUI(ToolInstance):
 
@@ -101,7 +116,6 @@ class HelpUI(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
-        self._confirm = set()
         parent = self.tool_window.ui_area
 
         # UI content code
@@ -180,7 +194,7 @@ class HelpUI(ToolInstance):
 
         self.search_terms = QLineEdit()
         self.search_terms.setClearButtonEnabled(True)
-        self.search_terms.setPlaceholderText("search terms")
+        self.search_terms.setPlaceholderText("search in page")
         self.search_terms.setMaximumWidth(200)
         self.search_terms.returnPressed.connect(self.page_search)
         tb.addWidget(self.search_terms)
@@ -219,7 +233,7 @@ class HelpUI(ToolInstance):
         p.linkHovered.connect(self.link_hovered)
         return w
 
-    def show(self, url, *, new_tab=False, confirm=False):
+    def show(self, url, *, new_tab=False, html=None):
         from urllib.parse import urlparse, urlunparse
         parts = urlparse(url)
         if not parts.scheme:
@@ -231,10 +245,11 @@ class HelpUI(ToolInstance):
         else:
             w = self.tabs.currentWidget()
         from PyQt5.QtCore import QUrl
-        w.setUrl(QUrl(url))
+        if html:
+            w.setHtml(html, QUrl(url))
+        else:
+            w.setUrl(QUrl(url))
         self.display(True)
-        # if confirm and w not in self._confirm:
-        #     pass
 
     def go_to(self):
         self.show(self.url.text())
@@ -316,7 +331,7 @@ class HelpUI(ToolInstance):
         from PyQt5.QtCore import QUrl
         try:
             self.status(_qurl2text(QUrl(url)))
-        except:
+        except Exception:
             self.status(url)
 
     def tab_changed(self, i):

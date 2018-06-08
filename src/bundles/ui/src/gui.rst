@@ -30,7 +30,7 @@
     :show-inheritance:
     :members:
 
-.. automodule:: chimerax.ui.ui_cmd
+.. automodule:: chimerax.ui.cmd
     :show-inheritance:
     :members:
 

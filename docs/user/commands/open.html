@@ -507,11 +507,11 @@ target="_blank">IHM (Integrative Hybrid Model)</a>
 </td>
 <td align="center"><b>ihm</b></td>
 <td align="center">.ihm</td>
-<td align="center">integrative hybrid model, potentially including
-atomic and coarse-grained representations, crosslinks, <i>etc.</i>
-(examples can be downloaded from the
-<a href="https://pdb-dev.wwpdb.org/" target="_blank">archive</a>);
-may create <a href="../attributes.html#residue">residue attributes</a></td>
+<td align="center">integrative hybrid model,
+examples available from <a href="https://pdb-dev.wwpdb.org/"
+target="_blank">PDB-Dev</a> (see <a href="#fetch">database fetch</a>);
+may create <a href="../attributes.html#residue">residue attributes</a>
+</td>
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="miscellaneous"></a>
@@ -749,8 +749,8 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>: <b>open</b> 
-[&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
-[[&nbsp;<a href="#fetch-table"><i>prefix2</i></a>:]<i>identifier2</i>...&nbsp;]
+[&nbsp;<a href="#fetch-table"><i>source1</i></a>:]<i>identifier</i>&nbsp;
+[[&nbsp;<a href="#fetch-table"><i>source2</i></a>:]<i>identifier2</i>...&nbsp;]
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
@@ -791,14 +791,12 @@ If a data file specified for opening is not found in this local cache or
 </center>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center" style="background-color:#cccccc"><b>database</b></td>
-<td align="center" style="background-color:#cccccc"><b><i>prefix</i></b></td>
 <td align="center" style="background-color:#cccccc"><b><i>source</i></b></td>
 <td align="center" style="background-color:#cccccc"><b>description</b></td>
 <td align="center" style="background-color:#cccccc"><b><i>format-name</i></b></td>
 </tr><tr>
 <td align="center"><a href="http://www.rcsb.org/"
 target="_blank">RCSB Protein Data Bank</a></td>
-<td align="center"><b>pdb:</b></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b> (default) or <b>pdb</b>
@@ -808,17 +806,15 @@ target="_blank">wwPDB formats</a>)
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
 target="_blank">Protein Data Bank <br>in Europe (PDBe)</a></td>
-<td align="center"><b>pdbe:</b></td>
 <td align="center"><b>pdbe</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b> (default) or <b>pdb</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
 target="_blank">PDBe</a></td>
-<td align="center"><b>pdbe_updated:</b></td>
-<td align="center"><b>pdbe_updated</b></td>
-<td align="center">atomic coordinates and associated annotations,
-&nbsp;&nbsp;updated to include small-molecule connectivity 
+<td align="center" class="text"><b>pdbe_updated</b></td>
+<td align="center" class="text">atomic coordinates and associated annotations,
+&nbsp;updated to include small-molecule connectivity 
 and binding-site information as described in 
 <a href="http://nar.oxfordjournals.org/content/44/D1/D385.long"
 target="_blank">Velankar <i>et al.</i></a>,
@@ -828,7 +824,6 @@ target="_blank">Velankar <i>et al.</i></a>,
 </tr><tr>
 <td align="center"><a href="http://pdbj.org/" target="_blank">Protein 
 Data Bank Japan (PDBj)</a></td>
-<td align="center"><b>pdbj:</b></td>
 <td align="center"><b>pdbj</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b></td>
@@ -836,19 +831,17 @@ Data Bank Japan (PDBj)</a></td>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/eds/"
 target="_blank">PDBe Electron Density Server (EDS)</a>
 </td>
-<td align="center"><b>eds:</b></td>
 <td align="center"><b>eds</b></td>
 <td align="center">(2Fo-Fc) electron density map for a PDB entry;
-not available for all PDB entries</td>
+<br>not available for all PDB entries</td>
 <td align="center"><b>ccp4</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/eds/"
 target="_blank">PDBe EDS</a>
 </td>
-<td align="center"><b>edsdiff:</b></td>
 <td align="center"><b>edsdiff</b></td>
 <td align="center">(Fo-Fc) electron density difference map for a PDB entry;
-not available for all PDB entries</td>
+<br>not available for all PDB entries</td>
 <td align="center"><b>ccp4</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
@@ -858,16 +851,26 @@ target="_blank">Electron Microscopy Data Bank</a>
 target="_blank">ftp</a> from wwpdb.org to .edu/.gov hosts,
 Chinese mirror site to .cn hosts, otherwise from ebi.ac.uk)&nbsp;
 </td>
-<td align="center"><b>emdb:</b></td>
 <td align="center"><b>emdb</b></td>
 <td align="center">electron density map</td>
 <td align="center"><b>ccp4</b></td>
 </tr><tr>
+<td align="center"><a href="https://pdb-dev.wwpdb.org/"
+target="_blank">PDB-Dev</a></td>
+<td align="center"><b>pdbdev</b></td>
+<td align="center" class="text">integrative hybrid model;
+<br>
+leading zeroes can be omitted from the identifier, for example, 
+accession code PDBDEV_00000010 can be opened with command:
+<br><b>open pdbdev:10</b>
+</td>
+<td align="center"><b>ihm</b></td>
+</tr><tr>
 <td align="center"><a href="http://www.cellpack.org"
 target="_blank">cellPACK</a></td>
-<td align="center"><b>cellpack:</b></td>
 <td align="center"><b>cellpack</b></td>
 <td align="center">hierarchical model;
+<br>
 see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
 Chimera instructions</a> for available identifiers</td>
 <td align="center"><b>cellpack</b></td>

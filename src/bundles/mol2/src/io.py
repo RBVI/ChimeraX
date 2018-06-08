@@ -342,7 +342,7 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
             elif atom in amide_Ns:
                 atom_type = "N.am"
             elif atom.structure_category == "solvent" \
-            and atom.residue.name in Residue.water_res_names:
+            and atom.residue.name in Residue.standard_water_names:
                 if atom.element.name == "O":
                     atom_type = "O.t3p"
                 else:

@@ -172,7 +172,8 @@ class IHMModel(Model):
         anames = self.asym_entity_names()
         ea = {}
         for asym_id, edesc in anames.items():
-            ea.setdefault(edesc,[]).append(asym_id)
+            if asym_id not in ('.', '?'):
+                ea.setdefault(edesc,[]).append(asym_id)
 
         # Create html table of entities with chains for each entity.
         rid = self.results_model.id_string()
@@ -737,12 +738,14 @@ class IHMModel(Model):
             'model_id',
             'model_group_id',
             'model_group_name',]
-        ml = mlt.fields(ml_fields)
+        ml = mlt.fields(ml_fields, allow_missing_fields = True)
         gm = {}
         for mid, gid, gname in ml:
             gm.setdefault((gid, gname), []).append(mid)
         gmodels = []
         for (gid, gname), mid_list in gm.items():
+            if not gname:
+                gname = 'Group ' + gid
             g = Model(gname, self.session)
             g.ihm_group_id = gid
             g.ihm_model_ids = mid_list
@@ -992,7 +995,7 @@ class IHMModel(Model):
 
         pmods = []
         asym_colors = self.asym_colors()
-        from chimerax.core.map.volume import open_map
+        from chimerax.map.volume import open_map
         from os.path import join
         for ensemble_id in sorted(ens.keys()):
             asym_loc = ens[ensemble_id]
@@ -1071,7 +1074,7 @@ class IHMModel(Model):
         # Compute probability volume models
         pmods = []
         asym_colors = self.asym_colors()
-        from chimerax.core.map import volume_from_grid_data
+        from chimerax.map import volume_from_grid_data
 
         for ensemble_id in sorted(cov.keys()):
             asym_gaussians = cov[ensemble_id]
@@ -1189,19 +1192,22 @@ class FileInfo:
     # -----------------------------------------------------------------------------
     #
     def path(self, session):
-        if self.file_path:
+        r = self.ref
+        if (r is None or r.ref_type == 'Supplementary Files') and self.file_path:
             from os.path import join, isfile
             path = join(self.ihm_dir, self.file_path)
             if isfile(path):
                 return path
             
-        r = self.ref
         if r and r.ref_type == 'DOI':
-            if r.content == 'Archive':
+            if r.content == 'Archive' and self.file_path:
                 from .doi_fetch import unzip_archive
-                unzip_archive(session, r.ref, r.url, self.ihm_dir)
+                dir = unzip_archive(session, r.ref, r.url)
+                from os.path import join, isfile
+                path = join(dir, self.file_path)
                 if not isfile(path):
-                    session.logger.warning('Failed to find map file in zip archive DOI "%s", url "%s", path "%s"'
+                    session.logger.warning('Failed to find map file in zip archive'
+                                           'DOI "%s", url "%s", path "%s"'
                                            % (r.ref, r.url, path))
                     path = None
             elif r.content == 'File':
@@ -1261,8 +1267,8 @@ class FileDataSet(DataSet):
         filename = finfo.file_name
         image_path = finfo.path(session)
         if image_path:
-            from chimerax.core.map.volume import open_map
-            from chimerax.core.map.data import Unknown_File_Type
+            from chimerax.map.volume import open_map
+            from chimerax.map.data import Unknown_File_Type
             try:
                 maps,msg = open_map(session, image_path)
             except Unknown_File_Type:
@@ -1289,7 +1295,7 @@ class DatabaseDataSet(DataSet):
         dbc = self.db_code
         if self.db_name == 'EMDB' and dbc != '?':
             dbc = dbc[4:] if dbc.startswith('EMD-') else dbc
-            from chimerax.core.map.emdb_fetch import fetch_emdb
+            from chimerax.map.emdb_fetch import fetch_emdb
             models, status = fetch_emdb(session, dbc)
             return models[0]
         return None
@@ -1447,7 +1453,7 @@ def probability_grid(wcc, voxel_size = 5, cutoff_sigmas = 3):
         cov *= 1/(voxel_size*voxel_size)
         add_gaussian(weight, acenter, cov, a)
 
-    from chimerax.core.map.data import Array_Grid_Data
+    from chimerax.map.data import Array_Grid_Data
     g = Array_Grid_Data(a, origin = xyz0, step = vsize)
     return g
 
@@ -1475,7 +1481,7 @@ def covariance_sum(cinv, center, s, array):
                 v = (i-i0, j-j0, k-k0)
                 array[k,j,i] += s*exp(-0.5*dot(v, dot(cinv, v)))
 
-from chimerax.core.map import covariance_sum
+from chimerax.map import covariance_sum
         
 # -----------------------------------------------------------------------------
 #

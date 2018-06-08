@@ -9,9 +9,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .commands import register_core_commands, ATOMSPEC_EVALUATED
-from .commands import ATOMSPEC_TARGET_REGISTERED, ATOMSPEC_TARGET_DEREGISTERED
-from .selectors import register_core_selectors
 from .run import run, concise_model_spec
 from .runscript import runscript
 
@@ -30,7 +27,6 @@ from .cli import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
 from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg
 from .cli import AttrNameArg
-from .cli import add_keyword_arguments
 
 from .colorarg import ColorArg, Color8Arg, ColormapArg, ColormapRangeArg
 from .symarg import SymmetryArg

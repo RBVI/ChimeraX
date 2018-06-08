@@ -58,11 +58,12 @@ cdef extern from "<atomstruct/Structure.h>" namespace "atomstruct":
 
     cdef cppclass Structure:
         void delete_atom(Atom*)
+        void delete_atoms(vector[Atom*])
         CoordSet* find_coord_set(int)
         object py_instance(bool)
 
-cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
-    cdef cppclass Residue:
+cdef extern from "<atomstruct/Chain.h>" namespace "atomstruct":
+    cdef cppclass Chain:
         object py_instance(bool)
 
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
@@ -82,6 +83,52 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
 
     ctypedef enum BackboneExtent:
         BBE_MIN, BBE_RIBBON, BBE_MAX
+
+cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
+    ctypedef enum PolymerType:
+        PT_NONE, PT_AMINO, PT_NUCLEIC
+
+    cdef cppclass Residue:
+        ctypedef enum SSType:
+            SS_COIL, SS_HELIX, SS_STRAND
+
+        void add_atom(Atom*)
+        const vector[Atom*]& atoms()
+        vector[Bond*] bonds_between(Residue*)
+        Chain* chain()
+        string chain_id()
+        bool connects_to(Residue*)
+        Atom* find_atom(const char*)
+        char insertion_code()
+        bool is_helix()
+        bool is_strand()
+        string mmcif_chain_id()
+        string name()
+        int number()
+        PolymerType polymer_type()
+        Atom* principal_atom()
+        object py_instance(bool)
+        float ribbon_adjust()
+        const Rgba& ribbon_color()
+        bool ribbon_display()
+        bool ribbon_hide_backbone()
+        void set_alt_loc(char)
+        void set_insertion_code(char)
+        void set_is_helix(bool)
+        void set_is_strand(bool)
+        void set_name(const char*)
+        void set_ribbon_adjust(float)
+        void set_ribbon_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
+        void set_ribbon_display(bool)
+        void set_ribbon_hide_backbone(bool)
+        void set_ss_id(int)
+        void set_ss_type(SSType)
+        int ss_id()
+        SSType ss_type()
+        Structure* structure()
+
+        @staticmethod
+        void set_py_class(object)
 
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct::Atom":
     ctypedef enum IdatmGeometry:

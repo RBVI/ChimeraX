@@ -498,7 +498,7 @@ class MousePointerModel(Model):
     
     def __init__(self, session, name, radius = 1, height = 3, color = (0,255,0,255)):
         Model.__init__(self, name, session)
-        from chimerax.core.surface import cone_geometry
+        from chimerax.surface import cone_geometry
         va, na, ta = cone_geometry(radius = radius, height = height)
         va[:,2] -= 0.5*height	# Place tip of cone at origin
         self.set_geometry(va, na, ta)
@@ -680,7 +680,7 @@ class VRHandModel(Model):
         Model.__init__(self, name, session)
         self.room_position = None
         
-        from chimerax.core.surface import cone_geometry
+        from chimerax.surface import cone_geometry
         va, na, ta = cone_geometry(radius = radius, height = height, points_up = False)
         va[:,2] += 0.5*height	# Place tip of cone at origin
         self.set_geometry(va, na, ta)
@@ -695,7 +695,7 @@ class VRHeadModel(Model):
         self.room_position = None
         
         r = size / 2
-        from chimerax.core.surface import box_geometry
+        from chimerax.surface import box_geometry
         va, na, ta = box_geometry((-r,-r,-0.1*r), (r,r,0.1*r))
 
         if image_file is None:

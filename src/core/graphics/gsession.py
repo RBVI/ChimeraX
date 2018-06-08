@@ -71,7 +71,7 @@ class ViewState:
             if maximized:
                 resize = False
         if resize:
-            from ..commands.windowsize import window_size
+            from .windowsize import window_size
             width, height = data['window_size']
             window_size(session, width, height)
 
