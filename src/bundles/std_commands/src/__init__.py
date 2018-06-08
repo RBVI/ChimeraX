@@ -16,6 +16,12 @@ from chimerax.core.toolshed import BundleAPI
 class StdCommandsAPI(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        if class_name in ['NamedView', 'NamedViews']:
+            from . import view
+            return getattr(view, class_name)
+
+    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         tilde = command_name[0] == '~'
