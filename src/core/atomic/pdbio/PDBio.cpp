@@ -106,6 +106,85 @@ canonicalize_res_name(ResName& rname)
     }
 }
 
+static void
+push_helix(std::vector<Residue*>& cur_helix, std::vector<std::string>& helices, int helix_num)
+{
+    Residue* start = cur_helix[0];
+    Residue* end = cur_helix[cur_helix.size()-1];
+
+    PDB hrec(PDB::HELIX);
+
+    hrec.helix.ser_num = helix_num;
+    sprintf(hrec.helix.helix_id, "%3d", helix_num);
+    strncpy(hrec.helix.init.name, start->name().c_str(), 3);
+    hrec.helix.init.chain_id = start->chain_id().c_str()[0];
+    hrec.helix.init.seq_num = start->number();
+    hrec.helix.init.i_code = start->insertion_code();
+    strncpy(hrec.helix.end.name, end->name().c_str(), 3);
+    hrec.helix.end.chain_id = end->chain_id().c_str()[0];
+    hrec.helix.end.seq_num = end->number();
+    hrec.helix.end.i_code = end->insertion_code();
+    hrec.helix.helix_class = 1;
+    helices.push_back(hrec.c_str());
+    cur_helix.clear();
+}
+
+static void
+push_sheet(std::vector<Residue*>& cur_sheet, std::vector<std::string>& sheets, int sheet_num)
+{
+    Residue* start = cur_sheet[0];
+    Residue* end = cur_sheet[cur_sheet.size()-1];
+
+    PDB srec(PDB::SHEET);
+
+    srec.sheet.strand = sheet_num;
+    sprintf(srec.sheet.sheet_id, "%3d", sheet_num);
+    srec.sheet.num_strands = 1;
+    strncpy(srec.sheet.init.name, start->name().c_str(), 3);
+    srec.sheet.init.chain_id = start->chain_id().c_str()[0];
+    srec.sheet.init.seq_num = start->number();
+    srec.sheet.init.i_code = start->insertion_code();
+    strncpy(srec.sheet.end.name, end->name().c_str(), 3);
+    srec.sheet.end.chain_id = end->chain_id().c_str()[0];
+    srec.sheet.end.seq_num = end->number();
+    srec.sheet.end.i_code = end->insertion_code();
+    srec.sheet.sense = 0;
+    sheets.push_back(srec.c_str());
+    cur_sheet.clear();
+}
+
+static void
+compile_helices_sheets(const Structure* s, std::vector<std::string>& helices,
+    std::vector<std::string>& sheets)
+{
+    Residue* prev_res = nullptr;
+    int helix_num = 1, sheet_num = 1;
+    std::vector<Residue*> cur_helix, cur_sheet;
+    for (auto r: s->residues()) {
+        if (prev_res && prev_res->connects_to(r)) {
+            if (cur_helix.size() > 0 && (!r->is_helix() || prev_res->ss_id() != r->ss_id()))
+                push_helix(cur_helix, helices, helix_num++);
+            if (cur_sheet.size() > 0 && (!r->is_strand() || prev_res->ss_id() != r->ss_id()))
+                push_sheet(cur_sheet, sheets, sheet_num++);
+        } else {
+            if (cur_helix.size() > 0)
+                push_helix(cur_helix, helices, helix_num++);
+            if (cur_sheet.size() > 0)
+                push_sheet(cur_sheet, sheets, sheet_num++);
+        }
+        if (r->is_helix())
+            cur_helix.push_back(r);
+        if (r->is_strand())
+            cur_sheet.push_back(r);
+
+        prev_res = r;
+    }
+    if (cur_helix.size() > 0)
+        push_helix(cur_helix, helices, helix_num);
+    if (cur_sheet.size() > 0)
+        push_sheet(cur_sheet, sheets, sheet_num);
+}
+
 #ifdef CLOCK_PROFILING
 #include <ctime>
 static clock_t cum_preloop_t, cum_loop_preswitch_t, cum_loop_switch_t, cum_loop_postswitch_t, cum_postloop_t;
@@ -1544,14 +1623,21 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
     // was written so we know which CONECT records to output
     std::set<const Atom*> written;
     int out_model_num = 0;
+    std::string Helix("HELIX"), Sheet("SHEET");
     for (std::vector<const Structure*>::size_type i = 0; i < structures.size(); ++i) {
         auto s = structures[i];
         auto xform = xforms[i];
         bool multi_model = (s->coord_sets().size() > 1) && all_coordsets;
         // Output headers only before first MODEL
         if (s == structures[0]) {
+            // generate HELIX/SHEET records relevant to current structure
+            std::vector<std::string> helices, sheets;
+            compile_helices_sheets(s, helices, sheets);
+            // since we need to munge the headers, make a copy instead of using a const reference
+            auto headers = s->metadata;
+            headers[Helix] = helices;
+            headers[Sheet] = sheets;
             // write out known headers first
-            auto& headers = s->metadata;
             for (auto& record_type: record_order) {
                 if (record_type == "MODEL")
                     // end of headers

@@ -4553,6 +4553,16 @@ extern "C" EXPORT void structure_set_position(void *mol, void *pos)
     }
 }
 
+extern "C" EXPORT bool structure_is_tracking_changes(void *structure)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    try {
+        return s->change_tracker() != DiscardingChangeTracker::discarding_change_tracker();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_ss_assigned(void *structures, size_t n, npy_bool *ss_assigned)
 {
     Structure **s = static_cast<Structure **>(structures);

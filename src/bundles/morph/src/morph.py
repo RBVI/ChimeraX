@@ -77,7 +77,7 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
             m.display = False
 
     if slider and session.ui.is_gui:
-        from chimerax.core.commands.coordset import coordset_slider
+        from chimerax.std_commands.coordset import coordset_slider
         coordset_slider(session, [traj])
 
     if play:

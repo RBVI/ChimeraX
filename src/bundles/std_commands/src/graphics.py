@@ -152,7 +152,7 @@ def graphics_triangles(session, models = None):
     tot = '%d total triangles in %d models and %d drawings' % (tri, len(models), len(lines))
     session.logger.status(tot)
     lines.insert(0, tot)
-    msg = '<pre>\n%s\n</pre>' % '\n'.join(lines)
+    msg = '<pre style="font-family: serif">\n%s\n</pre>' % '\n'.join(lines)
     session.logger.info(msg, is_html = True)
 
 def _drawing_triangles(drawings, lines, indent = ''):
