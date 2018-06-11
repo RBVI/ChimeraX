@@ -493,7 +493,8 @@ class NucleotideState(StateManager):
         if not self.need_rebuild:
             return
         for mol in list(self.need_rebuild):
-            _rebuild_molecule('internal', mol)
+            if not mol.deleted:
+                _rebuild_molecule('internal', mol)
         # assert len(_need_rebuild) == 0
         self.need_rebuild.clear()
 

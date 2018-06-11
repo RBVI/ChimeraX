@@ -476,11 +476,24 @@ class SequenceViewer(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        from PyQt5.QtWidgets import QAction
-        # avoid having the action destroyed when this routine returns
+        # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
+        from PyQt5.QtWidgets import QAction
+        save_as_menu = menu.addMenu("Save As")
+        save_as_menu.kludge_refs = []
+        from chimerax.core import io
+        from chimerax.core.commands import run, quote_if_necessary
+        for fmt in io.formats(open=False):
+            if fmt.category == "Sequence alignment":
+                action = QAction(fmt.name)
+                save_as_menu.kludge_refs.append(action)
+                action.triggered.connect(lambda arg, fmt=fmt:
+                    run(self.session, "save browse format %s alignment %s"
+                    % (fmt.name, quote_if_necessary(self.alignment.ident))))
+                save_as_menu.addAction(action)
+
         menu.kludge_ref = settings_action = QAction("Settings...")
-        settings_action.triggered.connect(lambda arg, s=self: s.show_settings())
+        settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
 
     def new_region(self, **kw):
