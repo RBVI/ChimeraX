@@ -10,8 +10,9 @@
   <Description>Python and C++ support for handling atomic structures</Description>
 
   <DataFiles>
-    <DataFile>matrices/*.matrix</DataFile>
-    <DataFile>matrices/*.dnamatrix</DataFile>
+    <DataFile>include/*/*</DataFile>
+    <DataFile>include/*/*/*</DataFile>
+    <DataFile>lib/*</DataFile>
   </DataFiles>
 
   <Categories>
@@ -20,7 +21,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.6"/>
+    <Dependency name="ChimeraX-Core" version=">=0.7"/>
   </Dependencies>
 
   <Classifiers>

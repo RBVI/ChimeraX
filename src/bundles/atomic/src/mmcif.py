@@ -18,7 +18,7 @@ mmcif: mmCIF format support
 Read mmCIF files.
 """
 
-from ..errors import UserError
+from chimerax.core.errors import UserError
 
 _builtin_open = open
 _initialized = False

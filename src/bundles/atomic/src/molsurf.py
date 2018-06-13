@@ -16,7 +16,7 @@ molsurf: Compute molecular surfaces
 ===================================
 """
 
-from ..models import Surface
+from chimerax.core.models import Surface
 
 class MolecularSurface(Surface):
     '''

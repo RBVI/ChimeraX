@@ -50,6 +50,7 @@ bond_rot.install: ui.install
 bumps.install: markers.install
 chem_group.install: atomic.install
 crosslinks.install: interfaces.install
+dist_monitor.install: atomic.install
 ihm.install: map.install
 map.install: map_data.install
 map_filter.install: map.install
