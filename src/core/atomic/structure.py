@@ -181,14 +181,15 @@ class Structure(Model, StructureData):
                 display |= nucleic
                 if nucleic:
                     from chimerax.nucleotides.cmd import nucleotides
-                    if len(nucleic) < 5:
-                        pass
-                    elif len(nucleic) < 50:
-                        nucleotides(self.session, 'fill/slab', objects=nucleic)
-                    elif len(nucleic) < 250:
-                        nucleotides(self.session, 'tube/slab', objects=nucleic)
-                    else:
-                        nucleotides(self.session, 'ladder', objects=nucleic)
+                    if len(nucleic) >= 5:
+                        if len(nucleic) < 50:
+                            nucleotides(self.session, 'tube/slab', objects=nucleic)
+                        else:
+                            nucleotides(self.session, 'ladder', objects=nucleic)
+                        nucleic_atoms = nucleic.atoms
+                        nucleic_atoms = nucleic_atoms.filter(nucleic_atoms.element_numbers == 6)
+                        from .colors import nucleotide_colors
+                        nucleic_atoms.colors = nucleotide_colors(nucleic_atoms.residues)[0]
                 if ligand:
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords

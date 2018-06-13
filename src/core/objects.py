@@ -99,7 +99,11 @@ class Objects:
             elif isinstance(m, PseudobondGroup):
                 mpbonds.append(m.pseudobonds)
             elif m not in self._models:
-                imodels.add(m)
+                for sm in m.selection_coupled:
+                    if sm in self._models:
+                        break
+                else:
+                    imodels.add(m)
         iatoms = concatenate(matoms, Atoms, remove_duplicates=True) - self.atoms
         ibonds = concatenate(mbonds, Bonds, remove_duplicates=True) - self.bonds
         ipbonds = concatenate(mpbonds, Pseudobonds, remove_duplicates=True) - self.pseudobonds
