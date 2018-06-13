@@ -290,7 +290,6 @@ def concatenate(collections, object_class = None, remove_duplicates = False):
     ----------
     collections : sequence of :class:`.Collection` objects
     '''
-    cl = collections[0]._objects_class if object_class is None else object_class
     if len(collections) == 0:
         c = object_class()
     else:
@@ -298,6 +297,7 @@ def concatenate(collections, object_class = None, remove_duplicates = False):
         p = numpy.concatenate([a._pointers for a in collections])
         if remove_duplicates:
             p = unique_ordered(p)    # Preserve order when duplicates are removed.
+        cl = collections[0]._objects_class if object_class is None else object_class
         c = cl(p)
     return c
 

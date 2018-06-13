@@ -62,6 +62,8 @@ class Model(State, Drawing):
         self._id = None
         self._added_to_session = False
         self._deleted = False
+        from chimerax.core.atomic import AtomicStructures
+        self._selection_coupled = AtomicStructures(None)
         # TODO: track.created(Model, [self])
 
     def delete(self):
@@ -69,6 +71,14 @@ class Model(State, Drawing):
         self._deleted = True
         Drawing.delete(self)
         delattr(self, "session")
+
+    @property
+    def selection_coupled(self):
+        return self._selection_coupled
+
+    @selection_coupled.setter
+    def selection_coupled(self, value):
+        self._selection_coupled = value
 
     @property
     def deleted(self):
