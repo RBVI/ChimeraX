@@ -71,6 +71,7 @@ class MolecularSurface(Surface):
                  resolution, level, name, color, visible_patches, sharp_boundaries):
         
         Surface.__init__(self, name, session)
+        self.selection_coupled = enclose_atoms.unique_structures
 
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
