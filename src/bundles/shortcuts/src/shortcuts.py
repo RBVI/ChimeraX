@@ -418,19 +418,19 @@ def shortcut_maps(session, undisplayed = True, at_least = None):
     return shortcut_models(session, Volume, undisplayed=undisplayed, at_least=at_least)
 
 def shortcut_molecules(session):
-    from chimerax.core.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure
     return shortcut_models(session, AtomicStructure, undisplayed = False)
 
 def shortcut_atoms(session):
     matoms = []
     sel = session.selection
     atoms_list = sel.items('atoms')
-    from chimerax.core.atomic import concatenate, Atoms
+    from chimerax.atomic import concatenate, Atoms
     if atoms_list:
         atoms = concatenate(atoms_list)
     elif sel.empty():
         # Nothing selected, so operate on all atoms
-        from chimerax.core.atomic import all_atoms
+        from chimerax.atomic import all_atoms
         atoms = all_atoms(session)
     else:
         atoms = Atoms()
@@ -604,7 +604,7 @@ def fit_subtract(session):
         maps = [m for m in models if isinstance(m, Volume) and m.display]
     molfit = [m for m in shortcut_molecules(session) if m.display]
     mfitset = set(molfit)
-    from chimerax.core.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure
     molsub = [m for m in models
               if isinstance(m, AtomicStructure) and m.display and not m in mfitset]
     print ('fs', len(maps), len(molfit), len(molsub))
@@ -665,7 +665,7 @@ def smooth_map(session):
 def show_biological_unit(m, session):
 
     if hasattr(m, 'pdb_text'):
-        from chimerax.core.atomic import biomt
+        from chimerax.atomic import biomt
         places = biomt.pdb_biomt_matrices(m.pdb_text)
         print (m.path, 'biomt', len(places))
         if places:
@@ -797,7 +797,7 @@ def show_ligands(m):
     m.show_ligand_atoms()
 def molecule_bonds(m, session):
     if m.bonds is None:
-        from chimerax.core.atomic import connect
+        from chimerax.atomic import connect
         m.bonds, missing = connect.molecule_bonds(m, session)
         msg = 'Created %d bonds for %s using templates' % (len(m.bonds), m.name)
         log = session.logger
@@ -881,7 +881,7 @@ def show_framerate(session):
 
 def show_triangle_count(session):
     models = session.models.list()
-    from chimerax.core.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure
     mols = [m for m in models if isinstance(m, AtomicStructure)]
 
     na = nt = 0

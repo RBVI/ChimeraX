@@ -1115,7 +1115,7 @@ class MoveAtomsMode(HandMode):
         move = pose * previous_pose.inverse()  # Room to room coords
         rts = camera.room_to_scene
         smove = rts * move * rts.inverse()	# Scene to scene coords.
-        from chimerax.core.atomic import selected_atoms
+        from chimerax.atomic import selected_atoms
         atoms = selected_atoms(camera._session)
         atoms.scene_coords = smove * atoms.scene_coords
 
@@ -1216,7 +1216,7 @@ class IconPanel(HandMode):
         return a
         
     def displayed_atoms(self):
-        from chimerax.core.atomic import Structure, concatenate, Atoms
+        from chimerax.atomic import Structure, concatenate, Atoms
         mlist = self.session.models.list(type = Structure)
         matoms = []
         for m in mlist:

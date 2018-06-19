@@ -50,7 +50,7 @@ class BondRotationMouseMode(MouseMode):
         return pick
 
     def _bond_rotation(self, pick):
-        from chimerax.core.atomic import PickedBond
+        from chimerax.atomic import PickedBond
         if isinstance(pick, PickedBond):
             from .manager import BondRotationError
             try:

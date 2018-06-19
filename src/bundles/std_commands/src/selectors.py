@@ -41,7 +41,7 @@ def register_selectors(logger):
     # the types first so that they get overriden by the symbols
     for idatm, info in Atom.idatm_info_map.items():
         reg(idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results), logger, desc=info.description)
-    for i in range(1, Element.NUM_SUPPORTED_ELEMENTS+1):
+    for i in range(1, Element.NUM_SUPPORTED_ELEMENTS):
         e = Element.get_element(i)
         reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results), logger, desc="%s (element)" % e.name)
 

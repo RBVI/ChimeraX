@@ -122,8 +122,9 @@ def sym_clear(session, structures = None):
             s.positions = Places([s.position])
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, AtomicStructuresArg, StringArg, FloatArg
-    from chimerax.core.commands import CenterArg, AxisArg, SymmetryArg, CoordSysArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, FloatArg
+    from chimerax.core.commands import CenterArg, AxisArg, CoordSysArg, BoolArg
+    from chimerax.atomic import SymmetryArg, AtomicStructuresArg
     desc = CmdDesc(
         required = [('structures', AtomicStructuresArg)],
         optional = [('symmetry', SymmetryArg)],
@@ -205,7 +206,7 @@ def mmcif_assemblies(model):
                    'pdbx_struct_oper_list',
                    'pdbx_poly_seq_scheme',
                    'pdbx_nonpoly_scheme')
-    from chimerax.atomic import mmcif
+    from chimerax import mmcif
     assem, assem_gen, oper, cremap1, cremap2 = mmcif.get_mmcif_tables(model.filename, table_names)
     if not assem or not assem_gen or not oper:
         return []

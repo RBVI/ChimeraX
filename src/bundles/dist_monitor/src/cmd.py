@@ -141,9 +141,10 @@ def xdistance(session, pbonds=None):
         pbg.delete_pseudobond(pb)
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, AtomsArg, AnnotationError, \
+    from chimerax.core.commands import CmdDesc, register, AnnotationError, \
         PseudobondsArg, Or, EmptyArg, ColorArg, NonNegativeIntArg, FloatArg, BoolArg, \
         SaveFileNameArg
+    from chimerax.atomic import AtomsArg
     # eventually this will handle more than just atoms, but for now...
     class AtomPairArg(AtomsArg):
         name = "an atom-pair specifier"

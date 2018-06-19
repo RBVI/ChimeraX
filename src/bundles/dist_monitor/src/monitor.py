@@ -20,7 +20,7 @@ class DistancesMonitor(StateManager):
         self.monitored_groups = set()
         self.update_callbacks = {}
         self._distances_shown = True
-        from chimerax.core.atomic import get_triggers
+        from chimerax.atomic import get_triggers
         triggers = get_triggers(session)
         triggers.add_handler("changes", self._changes_handler)
         self._already_restored = set()

@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-Atomic" version="1.0"
 	    package="chimerax.atomic" purePython="false"
-  	    minSessionVersion="1" maxSessionVersion="1">
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
@@ -13,6 +13,8 @@
     <DataFile>include/*/*</DataFile>
     <DataFile>include/*/*/*</DataFile>
     <DataFile>lib/*</DataFile>
+    <DataFile>cymol.*</DataFile>
+    <DataFile>libmolc.*</DataFile>
   </DataFiles>
 
   <Categories>

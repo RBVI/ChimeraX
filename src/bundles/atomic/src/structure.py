@@ -2294,7 +2294,7 @@ class AtomicStructure(Structure):
         for het, alt in alternatives.items():
             if len(alt) < len(hnd[het]):
                 hnd[het] = alt
-        from .pdb import process_chem_name
+        from chimerax.pdbio import process_chem_name
         for k, v in hnd.items():
             hnd[k] = process_chem_name(v)
 
@@ -2362,7 +2362,7 @@ class AtomicStructure(Structure):
                 for chain_id in compnd_chain_ids:
                     chain_to_desc[chain_id] = (description, synonym)
         if chain_to_desc:
-            from .pdb import process_chem_name
+            from chimerax.pdbio import process_chem_name
             for k, v in chain_to_desc.items():
                 description, synonym = v
                 chain_to_desc[k] = process_chem_name(description, probable_abbrs=synonym)

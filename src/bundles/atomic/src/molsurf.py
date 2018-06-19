@@ -205,7 +205,7 @@ class MolecularSurface(Surface):
             xyz2 = self.atom_coords()
             radii = {'scale2':self.atoms.radii} if self.resolution is None else {}
             max_dist = self._maximum_atom_to_surface_distance()
-            from .. import geometry
+            from chimerax.core import geometry
             i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist, **radii)
             if len(i1) < len(xyz1):
                 # TODO: For Gaussian surface should increase max_dist and try again.
@@ -295,7 +295,7 @@ class MolecularSurface(Surface):
 
     def _get_single_color(self):
         vc = self.vertex_colors
-        from ..colors import most_common_color
+        from chimerax.core.colors import most_common_color
         return self.color if vc is None else most_common_color(vc)
     def _set_single_color(self, color):
         self.color = color
@@ -363,7 +363,7 @@ class MolecularSurface(Surface):
     def _surface_vertex_colors_from_atoms(self, vmask, atoms, per_atom_colors):
         v2a = self.vertex_to_atom_map()
         if v2a is None:
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError('Surface #%s does not have atom patches, cannot color by atom'
                             % self.id_string())
         if per_atom_colors is None:
@@ -384,7 +384,7 @@ class MolecularSurface(Surface):
 
     def first_intercept(self, mxyz1, mxyz2, exclude = None):
         # Pick atom associated with surface patch
-        from ..graphics import Drawing
+        from chimerax.core.graphics import Drawing
         p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
         if p is None:
             return None
@@ -420,7 +420,7 @@ class MolecularSurface(Surface):
         data = {attr:getattr(self, attr) for attr in init_attrs}
         data['model state'] = Surface.take_snapshot(self, session, flags)
         data.update({attr:getattr(self,attr) for attr in self._save_attrs if hasattr(self,attr)})
-        from ..state import CORE_STATE_VERSION
+        from chimerax.core.state import CORE_STATE_VERSION
         data['version'] = CORE_STATE_VERSION
         return data
 

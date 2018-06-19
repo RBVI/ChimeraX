@@ -14,7 +14,7 @@
 """
 Write mmCIF files that ChimeraX would like to read.
 """
-from chimerax.core.atomic import mmcif
+from chimerax.atomic import mmcif
 from chimerax.core.utils import flattened
 import platform
 from chimerax import app_dirs
@@ -74,7 +74,7 @@ def _set_standard_residues():
 
 
 def write_mmcif(session, path, models=None):
-    from . import Structure
+    from chimerax.atomic import Structure
     if models is None:
         models = session.models.list(type=Structure)
     else:
@@ -283,7 +283,7 @@ def save_structure(session, file, models, used_data_names):
 
     save_components(best_m, file)
 
-    from chimerax.core.atomic import Residue
+    from chimerax.atomic import Residue
     old_entity, old_asym = mmcif.get_mmcif_tables_from_metadata(best_m, ['entity', 'struct_asym'])
     try:
         if not old_entity or not old_asym:
@@ -595,7 +595,7 @@ def save_structure(session, file, models, used_data_names):
             a1.set_alt_loc(original_alt_loc1, False)
 
     # disulfide bonds
-    from chimerax.core.atomic import Sequence
+    from chimerax.atomic import Sequence
     rname3to1 = Sequence.rname3to1
     count = 0
     atoms = best_m.atoms

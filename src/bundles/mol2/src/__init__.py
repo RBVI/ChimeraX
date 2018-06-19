@@ -15,8 +15,10 @@ from chimerax.core.toolshed import BundleAPI
 
 class _Mol2BundleAPI(BundleAPI):
 
+    from chimerax.atomic import AtomsArg
+
     @staticmethod
-    def save_file(session, path, models=None, atoms=None, anchor=None, rel_model=None,
+    def save_file(session, path, *, models=None, atoms=None, anchor=None, rel_model=None,
             sybyl_hyd_naming=True, combine_models=False, skip_atoms=None, res_num=False,
             gaff_type=False):
         from .io import write_mol2

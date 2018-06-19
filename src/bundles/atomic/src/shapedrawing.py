@@ -73,7 +73,7 @@ class AtomicShapeDrawing(Drawing):
 
     def selected_items(self, itype):
         if itype in ('atoms', 'bonds'):
-            from chimerax.core.atomic import Atoms
+            from chimerax.atomic import Atoms
             atoms = Atoms(None)
             for s in self._selected_shapes:
                 a = s.atoms
@@ -149,7 +149,7 @@ class AtomicShapeDrawing(Drawing):
     def _add_handler_if_needed(self):
         if self._selection_handler is not None:
             return
-        from chimerax.core.atomic import Structure
+        from chimerax.atomic import Structure
         if hasattr(self, 'parent') and isinstance(self.parent, Structure):
             return
         from chimerax.core.selection import SELECTION_CHANGED
@@ -165,8 +165,8 @@ class AtomicShapeDrawing(Drawing):
         triangles : :py:class:`numpy.array` of vertex indices, multiple of 3
         color : either a single 4 element uint8 :py:class:`numpy.array`;
             or an array of those values, one per vertex
-        atoms : a sequence of :py:class:`~chimerax.core.atomic.Atom`s
-            or an :py:class:`~chimerax.core.atomic.Atoms` collection.
+        atoms : a sequence of :py:class:`~chimerax.atomic.Atom`s
+            or an :py:class:`~chimerax.atomic.Atoms` collection.
         description : a string describing the shape
 
         The vertices, normals, and triangles can be custom or the results
@@ -247,7 +247,7 @@ class _AtomicShape:
         # of the triangles for that shape in the vertex array
         self.triangle_range = triangle_range
         self.description = description
-        from chimerax.core.atomic import Atoms
+        from chimerax.atomic import Atoms
         if atoms is not None and not isinstance(atoms, Atoms):
             atoms = Atoms(atoms)
         self.atoms = atoms

@@ -1,8 +1,8 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimerax.core.atomic.idatm import type_info, tetrahedral, planar
-from chimerax.core.atomic import Element
-from chimerax.core.atomic.bond_geom import bond_positions
+from chimerax.atomic.idatm import type_info, tetrahedral, planar
+from chimerax.atomic import Element
+from chimerax.atomic.bond_geom import bond_positions
 
 def hyd_positions(heavy, include_lone_pairs=False):
     """Return list of positions for hydrogens attached to this atom.

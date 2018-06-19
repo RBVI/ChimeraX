@@ -233,7 +233,7 @@ def find_pt(n1, n2, n3, dist, angle, dihed):
     x = normalize(cross(v13, v12))
     y = normalize(cross(v12, x))
 
-    from ..geometry import Place
+    from chimerax.core.geometry import Place
     xform = Place([(x[i], y[i], v12[i], n1[i]) for i in range(3)])
 
     rad_angle = pi * angle / 180.0

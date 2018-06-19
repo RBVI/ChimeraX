@@ -46,6 +46,35 @@ _class_class_init = {
     'UserColormaps': '.colors',
     'View': '.graphics',
     '_Input': '.nogui',
+    # atomic classes moved to a separate bundle; listed here
+    # for backwards compatibility
+    # (perhaps remove at 1.0?)
+    "Atom": 'chimerax.atomic',
+    "AtomicStructure": 'chimerax.atomic',
+    "AtomicStructures": 'chimerax.atomic',
+    "Atoms": 'chimerax.atomic',
+    "Bond": 'chimerax.atomic',
+    "Bonds": 'chimerax.atomic',
+    "Chain": 'chimerax.atomic',
+    "Chains": 'chimerax.atomic',
+    "CoordSet": 'chimerax.atomic',
+    "LevelOfDetail": 'chimerax.atomic',
+    "MolecularSurface": 'chimerax.atomic',
+    "PseudobondGroup": 'chimerax.atomic',
+    "PseudobondManager": 'chimerax.atomic',
+    "Pseudobond": 'chimerax.atomic',
+    "Pseudobonds": 'chimerax.atomic',
+    "Residue": 'chimerax.atomic',
+    "Residues": 'chimerax.atomic',
+    "SeqMatchMap": 'chimerax.atomic',
+    "Sequence": 'chimerax.atomic',
+    "Structure": 'chimerax.atomic',
+    "StructureSeq": 'chimerax.atomic',
+    "AttrRegistration": 'chimerax.atomic.attr_registration',
+    "CustomizedInstanceManager": 'chimerax.atomic.attr_registration',
+    "_NoDefault": 'chimerax.atomic.attr_registration',
+    "RegAttrManager": 'chimerax.atomic.attr_registration',
+     "XSectionManager": 'chimerax.atomic.ribbon',
 }
 
 

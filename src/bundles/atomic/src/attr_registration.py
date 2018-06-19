@@ -141,7 +141,7 @@ class RegAttrManager(StateManager):
     @staticmethod
     def restore_snapshot(session, data):
         inst = RegAttrManager()
-        from .. import bundle_api
+        from . import bundle_api
         for class_name, registration in data['registrations'].items():
             bundle_api.get_class(class_name)._attr_registration.restore_session_data(
                 session, registration)

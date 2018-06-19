@@ -42,6 +42,16 @@ else
 LIBS += -latomstruct -lelement -lpyinstance -lreadcif -lwrappy3 -llogger -larrays -lappdirs $(PYTHON_LIB)
 endif
 
+lib:
+	mkdir lib
+
+include:
+	mkdir include
+
+source: lib include
+	cd readcif_cpp; make install
+	make wrappy
+
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 
@@ -54,6 +64,7 @@ endif
 endif
 
 clean:
+	cd readcif_cpp; make clean
 	rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej
 ifeq ($(WIN32),msvc)
 	rm -f $(PYMOD).manifest $(PYMOD_NAME).{lib,exp,ilk,pdb} vc*.pdb

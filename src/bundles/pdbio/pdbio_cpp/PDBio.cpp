@@ -1878,7 +1878,7 @@ static struct PyModuleDef pdbio_def =
     nullptr
 };
 
-PyMODINIT_FUNC PyInit_pdbio()
+PyMODINIT_FUNC PyInit__pdbio()
 {
     return PyModule_Create(&pdbio_def);
 }

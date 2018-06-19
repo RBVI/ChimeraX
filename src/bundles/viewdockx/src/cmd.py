@@ -1,7 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimerax.core.commands import CmdDesc, AtomicStructuresArg
-from chimerax.core.atomic import AtomicStructure
+from chimerax.core.commands import CmdDesc
+from chimerax.atomic import AtomicStructure, AtomicStructuresArg
 
 
 def viewdock(session, structures=None):

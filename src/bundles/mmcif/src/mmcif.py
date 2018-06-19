@@ -56,9 +56,9 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         from os.path import basename
         file_name = basename(path)
     if atomic:
-        from .structure import AtomicStructure as StructureClass
+        from chimerax.atomic.structure import AtomicStructure as StructureClass
     else:
-        from .structure import Structure as StructureClass
+        from chimerax.atomic.structure import Structure as StructureClass
     models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
               for p in pointers]
 
@@ -82,7 +82,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         if session.ui.is_gui:
             mc = [m for m in models if m.num_coordsets > 1]
             if mc:
-                from ..commands.coordset import coordset_slider
+                from chimerax.core.commands.coordset import coordset_slider
                 coordset_slider(session, mc)
     return models, info
 
@@ -116,7 +116,7 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
             raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
         url = base_url % pdb_id
         pdb_name = "%s.cif" % pdb_id
-        from ..fetch import fetch_file
+        from chimerax.core.fetch import fetch_file
         filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
                               ignore_cache=ignore_cache)
         # double check that a mmCIF file was downloaded instead of an
@@ -130,7 +130,7 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
                 raise UserError("Invalid mmCIF identifier")
 
     session.logger.status("Opening mmCIF %s" % (pdb_id,))
-    from .. import io
+    from chimerax.core import io
     models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
     return models, status
 
@@ -149,7 +149,7 @@ def fetch_mmcif_pdbj(session, pdb_id, **kw):
 
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
-    from ..fetch import fetch_file
+    from chimerax.core.fetch import fetch_file
     filename = '%s.cif' % name
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
@@ -160,40 +160,6 @@ def _get_template(session, name):
             "Unable to fetch template for '%s': might be missing bonds"
             % name)
         return None
-
-
-def register_mmcif_format():
-    global _initialized
-    if _initialized:
-        return
-
-    from .. import io
-    from . import structure
-
-    # mmCIF uses same file suffix as CIF
-    # PDB uses chemical/x-cif when serving CCD files
-    # io.register_format(
-    #     "CIF", structure.CATEGORY, (), ("cif",),
-    #     mime=("chemical/x-cif"),
-    #    reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
-    from .mmcif_write import write_mmcif
-    io.register_format(
-        "mmCIF", structure.CATEGORY, (".cif", ".mmcif"), ("mmcif",),
-        mime=("chemical/x-mmcif",),
-        reference="http://mmcif.wwpdb.org/",
-        open_func=open_mmcif, export_func=write_mmcif)
-
-
-def register_mmcif_fetch():
-    from .. import fetch
-    fetch.register_fetch('pdb', fetch_mmcif, 'mmcif',
-                         prefixes=['pdb'], is_default_format=True)
-    fetch.register_fetch('pdbe', fetch_mmcif_pdbe, 'mmcif',
-                         prefixes=['pdbe'], is_default_format=True)
-    fetch.register_fetch('pdbe_updated', fetch_mmcif_pdbe_updated, 'mmcif',
-                         prefixes=['pdbe_updated'], is_default_format=True)
-    fetch.register_fetch('pdbj', fetch_mmcif_pdbj, 'mmcif',
-                         prefixes=['pdbj'], is_default_format=True)
 
 
 def quote(s):
@@ -233,12 +199,12 @@ def citations(model, only=None):
 
     Parameters
     ----------
-    model : instance of a :py:class:`~chimerax.core.atomic.AtomicStructure`
+    model : instance of a :py:class:`~chimerax.atomic.AtomicStructure`
         The model.
     """
     if only is not None:
         only = only.casefold()
-    from .structure import Structure
+    from chimerax.atomic.structure import Structure
     if not isinstance(model, Structure):
         return ""
     citation, citation_author = get_mmcif_tables_from_metadata(model, [
@@ -332,7 +298,7 @@ def get_mmcif_tables_from_metadata(model, table_names):
 
     Parameters
     ----------
-    model : instance of a :py:class:`~chimerax.core.atomic.AtomicStructure`
+    model : instance of a :py:class:`~chimerax.atomic.AtomicStructure`
         The model.
     table_names : list of str
         A list of mmCIF category names.

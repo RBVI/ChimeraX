@@ -44,8 +44,8 @@ data:
 
 cymol.$(PYMOD_EXT): cymol.pyx include/atomstruct/Atom.h
 	LDFLAGS="-L." $(PYTHON_EXE) setup.py build_ext -i
-	mv chimerax/core/atomic/cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
-	rmdir -p chimerax/core/atomic
+	mv chimerax/atomic/cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
+	rmdir -p chimerax/atomic
 
 install: $(SHLIB) cymol.$(PYMOD_EXT)
 	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) include lib ../src

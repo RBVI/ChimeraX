@@ -16,8 +16,8 @@ def check_for_changes(session):
 
     This is called once per frame, and whenever otherwise needed.
     """
-    ct = session.change_tracker
-    if not ct.changed:
+    ct = getattr(session, 'change_tracker', None)
+    if not ct or not ct.changed:
         return
     ul = session.update_loop
     ul.block_redraw()
@@ -156,7 +156,7 @@ class Changes:
         in_existing = self._changes[class_name].created
         if not include_new_structures:
             return in_existing
-        from .molarray import concatenate
+        from . import concatenate
         attr_name = class_name.lower() + 's'
         new = concatenate([getattr(s, attr_name) for s in self._changes["Structure"].created],
             in_existing.objects_class)

@@ -23,7 +23,6 @@ from numpy.linalg import norm
 normalize = lambda v: v/norm(v)
 sqlength = lambda v: numpy.sum(v*v)
 
-#from chimera import Vector, Xform
 from math import pi, sin, cos
 
 geometry_name = ['ion', 'single', 'linear', 'trigonal', 'tetrahedral']

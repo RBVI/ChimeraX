@@ -17,7 +17,8 @@
 def register_volume_command(logger):
 
     from chimerax.core.commands import CmdDesc, register
-    from chimerax.core.commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, SymmetryArg, RepeatOf
+    from chimerax.core.commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, RepeatOf
+    from chimerax.atomic import SymmetryArg
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
 
     from .volume import Rendering_Options

@@ -13,14 +13,127 @@
 
 # -----------------------------------------------------------------------------
 #
-from . import Annotation
+from chimerax.core.commands import Annotation, AtomSpecArg, ObjectsArg, ModelArg
+
+class AtomsArg(AtomSpecArg):
+    """Parse command atoms specifier"""
+    name = "an atoms specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        atoms = aspec.evaluate(session).atoms
+        atoms.spec = str(aspec)
+        return atoms, text, rest
+
+
+class UniqueChainsArg(AtomSpecArg):
+    """Parse command atoms specifier"""
+    name = "an atoms specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        chains = aspec.evaluate(session).atoms.residues.unique_chains
+        chains.spec = str(aspec)
+        return chains, text, rest
+
+
+class StructuresArg(AtomSpecArg):
+    """Parse command structures specifier"""
+    name = "a structures specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from . import Structure
+        mols = [m for m in models if isinstance(m, Structure)]
+        return mols, text, rest
+
+
+class AtomicStructuresArg(AtomSpecArg):
+    """Parse command atomic structures specifier"""
+    name = "an atomic structures specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from . import AtomicStructure, AtomicStructures
+        mols = [m for m in models if isinstance(m, AtomicStructure)]
+        return AtomicStructures(mols), text, rest
+
+
+class PseudobondGroupsArg(AtomSpecArg):
+    """Parse command atom specifier for pseudobond groups"""
+    name = 'a pseudobond groups specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        value, used, rest = super().parse(text, session)
+        models = value.evaluate(session).models
+        from . import PseudobondGroup
+        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
+        return pbgs, used, rest
+
+
+class PseudobondsArg(ObjectsArg):
+    """Parse command specifier for pseudobonds"""
+    name = 'a pseudobonds specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        objects, used, rest = super().parse(text, session)
+        from . import interatom_pseudobonds, Pseudobonds, concatenate
+        apb = interatom_pseudobonds(objects.atoms)
+        opb = objects.pseudobonds
+        pbonds = concatenate([apb, opb], Pseudobonds, remove_duplicates=True)
+        return pbonds, used, rest
+
+
+class BondsArg(ObjectsArg):
+    """Parse command specifier for bonds"""
+    name = 'a bonds specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        objects, used, rest = super().parse(text, session)
+        bonds = objects.bonds
+        return bonds, used, rest
+
+
+class BondArg(BondsArg):
+    """Parse command specifier for a bond"""
+    name = 'a bond specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        bonds, used, rest = super().parse(text, session)
+        if len(bonds) != 1:
+            raise AnnotationError("Must specify exactly one bond (specified %d)" % len(bonds))
+        return bonds[0], used, rest
+
+class StructureArg(ModelArg):
+    """Parse command structure specifier"""
+    name = "a structure specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        m, text, rest = super().parse(text, session)
+        from . import Structure
+        if not isinstance(m, Structure):
+            raise AnnotationError('Specified model is not a Structure')
+        return m, text, rest
+
+
 class SymmetryArg(Annotation):
     '''Symmetry specification, e.g. C3 or D7'''
     name = 'symmetry'
 
     @staticmethod
     def parse(text, session):
-        from . import next_token
+        from chimerac.core.commmands import next_token
         group, atext, rest = next_token(text)
         return Symmetry(group, session), atext, rest
 
@@ -60,14 +173,14 @@ def parse_symmetry(session, group, center = None, axis = None, molecule = None):
 
     # Handle products of symmetry groups.
     groups = group.split('*')
-    from ..geometry import Places
+    from chimerax.core.geometry import Places
     ops = Places()
     for g in groups:
         ops = ops * group_symmetries(session, g, molecule)
 
     # Apply center and axis transformation.
     if center is not None or axis is not None:
-        from ..geometry import Place, vector_rotation, translation
+        from chimerax.core.geometry import Place, vector_rotation, translation
         tf = Place()
         if center is not None and tuple(center) != (0,0,0):
             tf = translation([-c for c in center])
@@ -81,8 +194,8 @@ def parse_symmetry(session, group, center = None, axis = None, molecule = None):
 #
 def group_symmetries(session, group, molecule):
 
-    from .. import geometry
-    from ..errors import UserError
+    from chimerax.core import geometry
+    from chimerax.core.errors import UserError
 
     g0 = group[:1].lower()
     gfields = group.split(',')
@@ -143,7 +256,7 @@ def group_symmetries(session, group, molecule):
             param.append(0.0)
         rise, angle, n, offset = param
         n = int(n)
-        from ..geometry import Places
+        from chimerax.core.geometry import Places
         tflist = Places([geometry.helical_symmetry_matrix(rise, angle, n = i+offset)
                          for i in range(n)])
     elif gfields[0].lower() == 'shift' or (g0 == 't' and nf >= 3):
@@ -165,7 +278,7 @@ def group_symmetries(session, group, molecule):
         tflist = geometry.translation_symmetry_matrices(n, delta)
     elif group.lower() == 'biomt':
         # Biological unit
-        from ..atomic import biological_unit_matrices
+        from . import biological_unit_matrices
         tflist = biological_unit_matrices(molecule)
         if len(tflist) == 0:
             raise UserError('Molecule %s has no biological unit info' % molecule.name)
@@ -175,7 +288,7 @@ def group_symmetries(session, group, molecule):
         tflist = tflist.transform_coordinates(molecule.position.inverse())
         recenter = False
     elif g0 == '#':
-        from . import ModelsArg
+        from chimerax.core.commands import ModelsArg
         if nf == 1:
             models = ModelsArg.parse(group, session)[0]
             mslist = [model_symmetry(m) for m in models]
@@ -214,11 +327,11 @@ def group_symmetries(session, group, molecule):
 def model_symmetry(model):
 
     from chimerax.map import Volume
-    from ..atomic import Structure
+    from . import Structure
     if isinstance(model, Volume):
         tflist = model.data.symmetries
     elif isinstance(model, Structure):
-        from ..atomic import biological_unit_matrices
+        from . import biological_unit_matrices
         tflist = biological_unit_matrices(model)
     else:
         tflist = []
@@ -241,6 +354,6 @@ def make_closest_placement_identity(tflist, center):
     i = d2.argmin()
     tfinv = tflist[i].inverse()
     rtflist = [tf*tfinv for tf in tflist]
-    from ..geometry import Place, Places
+    from chimerax.core.geometry import Place, Places
     rtflist[i] = Place()
     return Places(rtflist)

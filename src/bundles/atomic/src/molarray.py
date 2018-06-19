@@ -72,7 +72,6 @@ def _elements(p):
 def _residues(p):
     return Residues(p)
 def _non_null_residues(p):
-    from .molarray import Residues
     return Residues(p[p!=0])
 def _chains(p):
     return Chains(p)
@@ -390,7 +389,7 @@ class AtomicStructures(StructureDatas):
     Collection of Python atomic structure objects.
     '''
     def __init__(self, mol_pointers):
-        from .structure import AtomicStructure
+        from . import AtomicStructure
         Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
 
     @classmethod
@@ -533,7 +532,7 @@ class Atoms(Collection):
     def display_radii(self, ball_scale, bond_radius):
         r = self.radii.copy()
         dm = self.draw_modes
-        from .molobject import Atom
+        from . import Atom
         r[dm == Atom.BALL_STYLE] *= ball_scale
         smask = (dm == Atom.STICK_STYLE)
         if smask.any():
@@ -597,7 +596,7 @@ class Atoms(Collection):
         Subset of Atoms including atoms that are displayed or have ribbon displayed
         and have displayed structure and displayed parent models.
         '''
-        from .molobject import Atom
+        from . import Atom
         da = self.filter(self.displays | self.residues.ribbon_displays)
         datoms = concatenate([a for m, a in da.by_structure
                               if m.display and m.parents_displayed], Atoms)

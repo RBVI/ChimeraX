@@ -33,5 +33,5 @@ def atom_search_tree(atoms, data=None, sep_val=5.0, scene_coords=True):
     coords = atoms.scene_coords if scene_coords else atoms.coords
     if data is None:
         data = atoms
-    from ..geometry import AdaptiveTree
+    from chimerax.core.geometry import AdaptiveTree
     return AdaptiveTree(coords, data, sep_val)

@@ -933,13 +933,6 @@ def common_startup(sess):
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop()
 
-    from .atomic import ChangeTracker
-    sess.change_tracker = ChangeTracker()
-    # change_tracker needs to exist before global pseudobond manager
-    # can be created
-    from .atomic import PseudobondManager
-    sess.pb_manager = PseudobondManager(sess)
-
     register(
         'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
@@ -965,23 +958,29 @@ def _gen_exception(session):
 
 def _register_core_file_formats(session):
     register_session_format(session)
+    """
     from .atomic import pdb
     pdb.register_pdb_format()
     from .atomic import mmcif
     mmcif.register_mmcif_format()
+    """
     from . import scripting
     scripting.register()
+    """
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
+    """
     from . import image
     image.register_image_save(session)
     register_x3d_format()
 
 
 def _register_core_database_fetch():
+    """
     from .atomic import pdb
     pdb.register_pdb_fetch()
     from .atomic import mmcif
     mmcif.register_mmcif_fetch()
+    """
     from . import fetch
     fetch.register_web_fetch()

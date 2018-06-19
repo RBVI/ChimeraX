@@ -322,7 +322,7 @@ atomic_color_names = ["tan", "sky blue", "plum", "light green",
                       "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
 
 def structure_color(id, bg_color):
-    from ..colors import BuiltinColors, distinguish_from, Color
+    from chimerax.core.colors import BuiltinColors, distinguish_from, Color
     try:
         cname = atomic_color_names[id[0]-1]
         model_color = BuiltinColors[cname]

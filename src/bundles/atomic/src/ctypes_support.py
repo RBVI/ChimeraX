@@ -16,50 +16,50 @@
 # the object properties.
 #
 def atoms(p):
-    from .molarray import Atoms
+    from . import Atoms
     return Atoms(p)
 def atom_pair(p):
-    from .molobject import Atom
+    from . import Atom
     return (Atom.c_ptr_to_py_inst(p[0]), Atom.c_ptr_to_py_inst(p[1]))
 def atom_or_none(p):
-    from .molobject import Atom
+    from . import Atom
     return Atom.c_ptr_to_py_inst(p) if p else None
 def bonds(p):
-    from .molarray import Bonds
+    from . import Bonds
     return Bonds(p)
 def chain(p):
     if not p:
         return None
-    from .molobject import Chain
+    from . import Chain
     return Chain.c_ptr_to_py_inst(p)
 def coordset(p):
-    from .molobject import CoordSet
+    from . import CoordSet
     return CoordSet.c_ptr_to_py_inst(p)
 def element(p):
-    from .molobject import Element
+    from . import Element
     return Element.c_ptr_to_py_inst(p)
 def pseudobonds(p):
-    from .molarray import Pseudobonds
+    from . import Pseudobonds
     return Pseudobonds(p)
 def residue(p):
-    from .molobject import Residue
+    from . import Residue
     return Residue.c_ptr_to_py_inst(p)
 def residues(p):
-    from .molarray import Residues
+    from . import Residues
     return Residues(p)
 def rings(p):
     from .molarray import Rings
     return Rings(p)
 def non_null_residues(p):
-    from .molarray import Residues
+    from . import Residues
     return Residues(p[p!=0])
 def residue_or_none(p):
-    from .molobject import Residue
+    from . import Residue
     return Residue.c_ptr_to_py_inst(p) if p else None
 def residues_or_nones(p):
     return [residue_or_none(rptr) for rptr in p]
 def chains(p):
-    from .molarray import Chains
+    from . import Chains
     return Chains(p)
 def atomic_structure(p):
     from .molobject import StructureData

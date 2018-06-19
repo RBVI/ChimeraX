@@ -274,7 +274,8 @@ def atom_bonds(atoms):
 #
 def register_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, StructuresArg, NoArg, AtomsArg, RepeatOf
+    from chimerax.core.commands import CmdDesc, register, NoArg, RepeatOf
+    from chimerax.atomic import AtomsArg, StructuresArg
     desc = CmdDesc(
         optional = [('structures', StructuresArg)],
         keyword = [('chains', NoArg),

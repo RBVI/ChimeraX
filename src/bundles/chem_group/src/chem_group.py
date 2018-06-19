@@ -15,12 +15,12 @@
 
 """Find chemical groups in a structure"""
 
-from chimerax.core.atomic.idatm import type_info, tetrahedral, planar, linear, single
+from chimerax.atomic.idatm import type_info, tetrahedral, planar, linear, single
 
 # R is a shorthand for alkyl group
 # X is a shorthand for 'any halide'
 # None matches anything (and nothing)
-from chimerax.core.atomic import Element
+from chimerax.atomic import Element
 N = Element.get_element('N').number
 C = Element.get_element('C').number
 O = Element.get_element('O').number

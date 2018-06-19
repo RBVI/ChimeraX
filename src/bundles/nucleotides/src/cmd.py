@@ -102,7 +102,7 @@ def nucleotides(session, representation, *,
     if objects is None:
         objects = all_objects(session)
     residues = objects.atoms.unique_residues
-    from chimerax.core.atomic import Residue
+    from chimerax.atomic import Residue
     residues = residues.filter(residues.polymer_types == Residue.PT_NUCLEIC)
     if len(residues) == 0:
         return

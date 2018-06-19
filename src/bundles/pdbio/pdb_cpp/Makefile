@@ -22,20 +22,26 @@ OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 $(LIBRARY): $(OBJS)
 	$(LIB_LINK)
 
-install: $(LIBRARY)
-	$(RSYNC) $(LIBRARY) $(libdir)
-	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)/
-	if [ -d "$(app_includedir)" ]; then \
-		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
-	fi
+include:
+	mkdir include
+
+lib:
+	mkdir lib
+
+install: $(LIBRARY) include lib
+	$(RSYNC) $(LIBRARY) lib
+	$(RSYNC) $(wildcard *.h) include/$(DIRNAME)/
+	#if [ -d "$(app_includedir)" ]; then \
+	#	$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
+	#fi
 ifdef WIN32
-	if [ -d "$(app_libdir)" ]; then \
-		$(RSYNC) $(LIBRARY) $(app_libdir); \
-	fi
+	#if [ -d "$(app_libdir)" ]; then \
+	#	$(RSYNC) $(LIBRARY) $(app_libdir); \
+	#fi
 endif
 
 clean:
-	rm -f $(LIBRARY) $(OBJS)
+	rm -f $(LIBRARY) $(OBJS) lib include
 ifdef WIN32
 	rm -f lib$(LIBNAME).pdb vc*.pdb
 endif

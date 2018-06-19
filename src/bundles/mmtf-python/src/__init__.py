@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import BundleAPI
-from chimerax.core.atomic import AtomicStructure
+from chimerax.atomic import AtomicStructure
 import mmtf
 
 HELIX = 'helix'

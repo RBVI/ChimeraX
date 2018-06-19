@@ -398,7 +398,7 @@ class HelixCylinder:
             ignore, vals, vecs = svd(rel_coords)
             axis = vecs[argmax(vals)]
         else:
-            from ..geometry import align_points
+            from chimerax.core.geometry import align_points
             num_pts = len(self.coords)
             tf, rmsd = align_points(self.IDEAL_COORDS[:num_pts], self.coords)
             centroid = tf * self.IDEAL_PARAMS[0]

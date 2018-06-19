@@ -18,19 +18,19 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomic=True,
+def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, atomic=True,
              max_models=None, log_info=True):
 
     path = stream.name if hasattr(stream, 'name') else None
 
-    from . import pdbio
-    pointers = pdbio.read_pdb_file(stream, log=session.logger, explode=not coordsets, atomic=atomic)
+    from . import _pdbio
+    pointers = _pdbio.read_pdb_file(stream, log=session.logger, explode=not coordsets, atomic=atomic)
     stream.close()
 
     if atomic:
-        from .structure import AtomicStructure as StructureClass
+        from chimerax.atomic.structure import AtomicStructure as StructureClass
     else:
-        from .structure import Structure as StructureClass
+        from chimerax.atomic.structure import Structure as StructureClass
     models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
         for p in pointers]
 
@@ -55,18 +55,18 @@ def open_pdb(session, stream, file_name, auto_style=True, coordsets=False, atomi
         if session.ui.is_gui:
             mc = [m for m in models if m.num_coordsets > 1]
             if mc:
-                from ..commands.coordset import coordset_slider
+                from chimerax.core.commands.coordset import coordset_slider
                 coordset_slider(session, mc)
 
     return models, info
 
 
-def save_pdb(session, path, models=None, selected_only=False, displayed_only=False,
+def save_pdb(session, path, *, models=None, selected_only=False, displayed_only=False,
         all_coordsets=False, pqr=False, rel_model=None, serial_numbering="h36"):
-    from ..errors import UserError
+    from chimerax.core.errors import UserError
     if models is None:
         models = session.models
-    from . import Structure
+    from chimerax.atomic import Structure
     models = [m for m in models if isinstance(m, Structure)]
     if not models:
         raise UserError("No structures to save")
@@ -85,16 +85,16 @@ def save_pdb(session, path, models=None, selected_only=False, displayed_only=Fal
                 else:
                     xforms.append((s.scene_position * inv).matrix)
 
-    from . import pdbio
+    from . import _pdbio
     file_per_model = "[NAME]" in path or "[ID]" in path
     if file_per_model:
         for m, xform in zip(models, xforms):
             file_name = path.replace("[ID]", m.id_string()).replace("[NAME]", m.name)
-            pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only=selected_only,
+            _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only=selected_only,
                 displayed_only=displayed_only, xforms=[xform],
                 all_coordsets=all_coordsets, pqr=pqr, h36=(serial_numbering == "h36"))
     else:
-        pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only=selected_only,
+        _pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only=selected_only,
             displayed_only=displayed_only, xforms=xforms, all_coordsets=all_coordsets, pqr=pqr,
             h36=(serial_numbering == "h36"))
 
@@ -107,9 +107,9 @@ _pdb_sources = {
 }
 
 
-def fetch_pdb(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
+def fetch_pdb(session, pdb_id, *, fetch_source="rcsb", ignore_cache=False, **kw):
     if len(pdb_id) != 4:
-        from ..errors import UserError
+        from chimerax.core.errors import UserError
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     import os
     pdb_id = pdb_id.lower()
@@ -124,12 +124,12 @@ def fetch_pdb(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
             raise UserError('unrecognized PDB source "%s"' % fetch_source)
         url = base_url % pdb_id
         pdb_name = "%s.pdb" % pdb_id
-        from ..fetch import fetch_file
+        from chimerax.core.fetch import fetch_file
         filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
                               ignore_cache=ignore_cache)
 
     session.logger.status("Opening PDB %s" % (pdb_id,))
-    from .. import io
+    from chimerax.core import io
     models, status = io.open_data(session, filename, format='pdb', name=pdb_id, **kw)
     return models, status
 
@@ -144,8 +144,8 @@ def fetch_pdb_pdbj(session, pdb_id, **kw):
 
 
 def register_pdb_format():
-    from .. import io
-    from . import structure
+    from chimerax.core import io
+    from chimerax.atomic import structure
     io.register_format(
         "PDB", structure.CATEGORY, (".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
@@ -161,7 +161,7 @@ def register_pdb_format():
 
 
 def register_pdb_fetch():
-    from .. import fetch
+    from chimerax.core import fetch
     fetch.register_fetch('pdb', fetch_pdb, 'pdb', prefixes = [])
     fetch.register_fetch('pdbe', fetch_pdb_pdbe, 'pdb', prefixes = [])
     # PDBj is unreliable for PDB format, mmCIF seemed okay - CH 2dec16
@@ -233,7 +233,7 @@ greek_letters = {
 def _process_chem_word(word, use_greek, probable_abbrs):
     if len(word) == 1:
         return word.upper()
-    from . import Element
+    from chimerax.atomic import Element
     if len(word) == 2 and word.capitalize() in Element.names:
         return word.capitalize()
     if set(list(word)) <= set(["i", "v", "x"]):

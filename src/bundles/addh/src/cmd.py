@@ -12,17 +12,17 @@
 # === UCSF ChimeraX Copyright ===
 
 from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas
-from chimerax.core.atomic import Element
-from chimerax.core.atomic.struct_edit import add_atom
-from chimerax.core.atomic.colors import element_colors
+from chimerax.atomic import Element
+from chimerax.atomic.struct_edit import add_atom
+from chimerax.atomic.colors import element_colors
 
 def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=True,
     use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
 
     if structures is None:
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         structures = [m for m in session.models if isinstance(m, AtomicStructure)]
-        from chimerax.core.atomic import AtomicStructures
+        from chimerax.atomic import AtomicStructures
         struct_collection = AtomicStructures(structures)
     else:
         struct_collection = structures
@@ -49,7 +49,7 @@ def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=Tr
     num_pre_hs = len(atoms.filter(atoms.elements.numbers == 1))
     # at this time, Atom.scene_coord is *so* much slower then .coord (50x),
     # that we use this hack to use .coord if possible
-    from chimerax.core.atomic import Atom
+    from chimerax.atomic import Atom
     Atom._addh_coord = Atom.coord if in_isolation else Atom.scene_coord
     try:
         add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
@@ -136,7 +136,7 @@ class IdatmTypeInfo:
     def __init__(self, geometry, substituents):
         self.geometry = geometry
         self.substituents = substituents
-from chimerax.core.atomic import idatm
+from chimerax.atomic import idatm
 type_info = {}
 for element_num in range(1, Element.NUM_SUPPORTED_ELEMENTS):
     e = Element.get_element(element_num)
@@ -185,7 +185,7 @@ def post_add(session, fake_n, fake_c):
                 from chimerax.core.geometry import dihedral
                 dihed = dihedral(pc.coord, pca.coord, pn.coord, ph.coord)
             session.logger.info("Adding 'H' to %s" % str(fn))
-            from chimerax.core.atomic.struct_edit import add_dihedral_atom
+            from chimerax.atomic.struct_edit import add_dihedral_atom
             h = add_dihedral_atom("H", "H", n, ca, c, 1.01, 120.0, dihed, bonded=True)
             h.color = determine_h_color(n)
         # also need to set N's IDATM type, because if we leave it as
@@ -318,7 +318,7 @@ def _make_shared_data(session, protonation_models, in_isolation):
     if in_isolation:
         models = pm_set
     else:
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         om_set = set([m for m in session.models if isinstance(m, AtomicStructure)])
         models = om_set | pm_set
     # consider only one copy of identically-positioned models...
@@ -438,7 +438,7 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
         naming_schemas.update(determine_naming_schemas(struct, type_info_for_atom))
 
     if need_all:
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         for struct in [m for m in session.models if isinstance(m, AtomicStructure)]:
             if struct in structures:
                 continue
@@ -617,7 +617,7 @@ def find_nearest(pos, atom, exclude, check_dist, avoid_metal_info=None):
                 near_atom = nbb
     return near_pos, n, near_atom
 
-from chimerax.core.atomic.bond_geom import cos705 as cos70_5
+from chimerax.atomic.bond_geom import cos705 as cos70_5
 from math import sqrt
 sin70_5 = sqrt(1.0 - cos70_5 * cos70_5)
 def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
@@ -863,7 +863,8 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
     return h_name
 
 def register_command(command_name, logger):
-    from chimerax.core.commands import CmdDesc, register, AtomicStructuresArg, BoolArg, Or, EmptyArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg
+    from chimerax.atomic import AtomicStructuresArg
     desc = CmdDesc(
         required=[('structures', Or(AtomicStructuresArg,EmptyArg))],
         keyword = [('hbond', BoolArg),

@@ -1032,5 +1032,5 @@ cdef class CyResidue:
 
     @staticmethod
     def set_templates_dir(tmpl_dir):
-        cydecl.Residue.set_templates_dir(tmpl_dir)
+        cydecl.Residue.set_templates_dir(tmpl_dir.encode())
 

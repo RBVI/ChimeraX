@@ -19,8 +19,8 @@ from .common_geom import ConnectivityError, AtomTypeError
 from chimerax.chem_group import find_group
 from chimerax.core.geometry import distance_squared
 from .hydpos import hyd_positions
-from chimerax.core.atomic.idatm import type_info, tetrahedral, planar, linear, single
-from chimerax.core.atomic import Element, atom_search_tree
+from chimerax.atomic.idatm import type_info, tetrahedral, planar, linear, single
+from chimerax.atomic import Element, atom_search_tree
 from chimerax.core.errors import UserError
 import copy
 
@@ -311,7 +311,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
         crystal survey", J. Computer-Aided Molecular Design, 10 (1996),
         607-622
 
-        If donors and/or acceptors are specified (as :py:class:`~chimerax.core.atomic.Atoms` collections
+        If donors and/or acceptors are specified (as :py:class:`~chimerax.atomic.Atoms` collections
         or anything an Atoms collection can be constructued from), then H-bond donors/acceptors
         are restricted to being from those atoms.
 
@@ -329,7 +329,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
     """
 
     # hack to speed up coordinate lookup...
-    from chimerax.core.atomic import Atoms, Atom
+    from chimerax.atomic import Atoms, Atom
     if len(structures) == 1 or not inter_model or (
             len(set([m.id[0] for m in structures])) == 1 and not inter_submodel):
         Atom._hb_coord = Atom.coord

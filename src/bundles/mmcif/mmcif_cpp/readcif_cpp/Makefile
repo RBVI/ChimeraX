@@ -1,4 +1,4 @@
-TOP	= ../../../..
+TOP	= ../../../../..
 include $(TOP)/mk/config.make
 
 NO_SUBDIR_INSTALL = 1
@@ -21,16 +21,16 @@ all: $(LIBRARY)
 #all: $(SHLIB)
 
 install: all
-	$(RSYNC) readcif.h $(includedir)
-	$(RSYNC) $(LIBRARY) $(libdir)
+	$(RSYNC) readcif.h ../include
+	$(RSYNC) $(LIBRARY) ../lib
 	#cp $(SHLIB) $(shlibdir)
-	if [ -d "$(app_includedir)" ]; then \
-		$(RSYNC) readcif.h $(app_includedir); \
-	fi
+	#if [ -d "$(app_includedir)" ]; then \
+	#	$(RSYNC) readcif.h $(app_includedir); \
+	#fi
 ifdef WIN32
-	if [ -d "$(app_libdir)" ]; then \
-		$(RSYNC) $(LIBRARY) $(app_libdir); \
-	fi
+	#if [ -d "$(app_libdir)" ]; then \
+	#	$(RSYNC) $(LIBRARY) $(app_libdir); \
+	#fi
 endif
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 

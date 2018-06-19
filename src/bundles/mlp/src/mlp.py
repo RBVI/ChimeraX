@@ -38,7 +38,7 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
         Whether to open a volume model of lipophilicity values
     '''
     if atoms is None:
-        from chimerax.core.atomic import all_atoms
+        from chimerax.atomic import all_atoms
         atoms = all_atoms(session)
         
     if palette is None:
@@ -66,7 +66,8 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
             
 
 def register_mlp_command(logger):
-    from chimerax.core.commands import register, CmdDesc, AtomsArg, SaveFileNameArg, FloatArg, EnumOf, BoolArg, ColormapArg, ColormapRangeArg
+    from chimerax.core.commands import register, CmdDesc, SaveFileNameArg, FloatArg, EnumOf, BoolArg, ColormapArg, ColormapRangeArg
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(optional=[('atoms', AtomsArg)],
                    keyword=[('spacing', FloatArg),
                             ('max_distance', FloatArg),

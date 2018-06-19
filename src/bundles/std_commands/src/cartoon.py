@@ -580,8 +580,9 @@ class EvenIntArg(Annotation):
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import register, Or, CmdDesc, AtomSpecArg, AtomicStructuresArg
+    from chimerax.core.commands import register, Or, CmdDesc, AtomSpecArg
     from chimerax.core.commands import Bounded, FloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
+    from chimerax.atomic import AtomicStructuresArg
     desc = CmdDesc(optional=[("atoms", AtomSpecArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
                                           EnumOf(["default"]))),

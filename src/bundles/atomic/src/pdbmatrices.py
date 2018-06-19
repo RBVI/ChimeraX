@@ -22,7 +22,7 @@ def biological_unit_matrices(molecule):
 #    elif hasattr(molecule, 'mmCIFHeaders'):
 #        s = PDBmatrices.mmcif_biounit_matrices(molecule.mmCIFHeaders)
     else:
-      from ..geometry import Places
+      from chimerax.core.geometry import Places
       s = Places([])
     return s
 
@@ -73,7 +73,7 @@ def pdb_remark_matrices(pdb_headers, remark_number, tag_name):
   # Order matrices by matrix number.
   msorted = [nm[1] for nm in sorted(mtable.items())]
   matrices = [mrows for mrows in msorted if mrows.count(None) == 0]
-  from ..geometry import Place, Places
+  from chimerax.core.geometry import Place, Places
   ops = Places([Place(m) for m in matrices])
 
   return ops
@@ -91,7 +91,7 @@ def pdb_mtrix_matrices(pdb_headers, add_identity = True, given = False):
                  'MTRIX3' in h)
   if not have_matrix:
     if add_identity:
-      from ..geometry import identity
+      from chimerax.core.geometry import identity
       return [identity()]
     else:
       return []
@@ -101,7 +101,7 @@ def pdb_mtrix_matrices(pdb_headers, add_identity = True, given = False):
   row3_list = h['MTRIX3']
   if len(row1_list) != len(row2_list) or len(row2_list) != len(row3_list):
     if add_identity:
-      from ..geometry import identity
+      from chimerax.core.geometry import identity
       return [identity()]
     else:
       return []
@@ -109,7 +109,7 @@ def pdb_mtrix_matrices(pdb_headers, add_identity = True, given = False):
   row_triples = zip(row1_list, row2_list, row3_list)
   
   mlist = []
-  from ..geometry import Place
+  from chimerax.core.geometry import Place
   for row_triple in row_triples:
     matrix = []
     for line in row_triple:
@@ -126,7 +126,7 @@ def pdb_mtrix_matrices(pdb_headers, add_identity = True, given = False):
   if add_identity:
     if len([m for m in mlist if m.is_identity()]) == 0:
       # Often there is no MTRIX identity entry
-      from ..geometry import identity
+      from chimerax.core.geometry import identity
       mlist.append(identity())
 
   return Places(mlist)

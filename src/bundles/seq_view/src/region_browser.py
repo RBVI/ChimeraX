@@ -548,7 +548,7 @@ class RegionBrowser:
                             self._seqRenamedHandlerID)
         """
         if self._sel_change_handler:
-            from chimerax.core import atomic
+            from chimerax import atomic
             atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
         """
         if self._scf_dialog:
@@ -1130,7 +1130,7 @@ class RegionBrowser:
             fill=sv.settings.sel_region_interior, outline=sv.settings.sel_region_border)
         sel_region.clear()
 
-        from chimerax.core.atomic import selected_atoms
+        from chimerax.atomic import selected_atoms
         sel_residues = set(selected_atoms(self.tool_window.session).residues)
         blocks = []
         for aseq in self.seq_canvas.alignment.seqs:
@@ -1216,7 +1216,7 @@ class RegionBrowser:
 
     def show_ss(self, show):
         """show actual secondary structure"""
-        from chimerax.core.atomic import Sequence
+        from chimerax.atomic import Sequence
         helix_reg = self.get_region(self.ACTUAL_HELICES_REG_NAME, create=show,
                 fill=Sequence.default_helix_fill_color,
                 outline=Sequence.default_helix_outline_color)
@@ -1716,7 +1716,7 @@ class RegionBrowser:
         # highlight on chimerax structures
         self._sel_change_from_self = True
         self.tool_window.session.selection.clear()
-        from chimerax.core.atomic import Residues
+        from chimerax.atomic import Residues
         Residues(self.region_residues(region)).atoms.selected = True
         self._sel_change_from_self = False
 
@@ -1746,7 +1746,7 @@ class RegionBrowser:
 
     def _show_sel_cb(self):
         # also called from settings dialog
-        from chimerax.core import atomic
+        from chimerax import atomic
         if self.seq_canvas.sv.settings.show_sel:
             self.show_chimerax_selection()
             self._sel_change_handler = atomic.get_triggers(self.tool_window.session).add_handler(

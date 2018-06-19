@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -106,7 +108,8 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 # -----------------------------------------------------------------------------------------
 #
 def register_morph_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StructuresArg, IntArg, EnumOf, BoolArg, FloatArg, ColorArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, EnumOf, BoolArg, FloatArg, ColorArg
+    from chimerax.atomic import StructuresArg
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
         keyword = [('frames', IntArg),

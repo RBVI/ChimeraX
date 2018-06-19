@@ -78,7 +78,7 @@ class BasicActionsTool(HtmlToolInstance):
         self._nonmatching = {}
         models = []
         from chimerax.core.models import Model
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         model_components = {}
         composite_models = {}
         for m in self.session.models.list():

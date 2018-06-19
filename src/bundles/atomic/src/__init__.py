@@ -31,6 +31,9 @@ from .mmcif import open_mmcif
 from .pdb import open_pdb
 from .search import atom_search_tree
 from .shapedrawing import AtomicShapeDrawing
+from .args import SymmetryArg, AtomsArg, UniqueChainsArg, AtomicStructuresArg
+from .args import StructureArg, StructuresArg
+from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
 
 
 from chimerax.core.toolshed import BundleAPI
@@ -63,9 +66,23 @@ class _AtomicBundleAPI(BundleAPI):
     def initialize(session, bundle_info):
         """Install alignments manager into existing session"""
 
-        #TODO: set data path; generate presets menu
+        #TODO: generate presets menu if in gui mode
         from os.path import dirname, join
         Residue.set_templates_dir(join(dirname(__file__), "data"))
+
+        session.change_tracker = ChangeTracker()
+        session.pb_manager = PseudobondManager(session)
+
+        from . import attr_registration
+        session.attr_registration = attr_registration.RegAttrManager()
+        session.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
+
+        session._atomic_command_handler = session.triggers.add_handler("command finished",
+            lambda *args: check_for_changes(session))
+
+    @staticmethod
+    def finish(session, bundle_info):
+        session.triggers.remove_handler(session._atomic_command_handler)
 
     @staticmethod
     def library_dir(bundle_info):
