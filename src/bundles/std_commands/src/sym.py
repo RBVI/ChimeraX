@@ -206,7 +206,7 @@ def mmcif_assemblies(model):
                    'pdbx_struct_oper_list',
                    'pdbx_poly_seq_scheme',
                    'pdbx_nonpoly_scheme')
-    from chimerax import mmcif
+    from chimerax.atomic import mmcif
     assem, assem_gen, oper, cremap1, cremap2 = mmcif.get_mmcif_tables(model.filename, table_names)
     if not assem or not assem_gen or not oper:
         return []

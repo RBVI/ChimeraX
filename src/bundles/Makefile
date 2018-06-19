@@ -20,7 +20,7 @@ SUBDIRS = addh active_tools align_algs alignments atomic \
 	  map map_data map_filter map_fit map_series \
 	  markers match_maker md_crds meeting mlp model_series \
 	  mmcif mmtf model_panel mol2 morph mouse_modes movie \
-	  nucleotides pdbio read_pbonds \
+	  nucleotides pdb read_pbonds \
 	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
 	  smooth_lines spacenavigator std_commands stl storm struts surface swapaa \

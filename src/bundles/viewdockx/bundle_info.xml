@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ViewDockX" version="0.1" package="chimerax.viewdockx"
+<BundleInfo name="ChimeraX-ViewDockX" version="0.1" package="chimerax.atomic.viewdockx"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

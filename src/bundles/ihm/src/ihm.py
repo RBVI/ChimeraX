@@ -598,7 +598,7 @@ class IHMModel(Model):
                     continue  # Don't have exactly one sphere model for this group id
                 sm = gsm[0].copy(name = mname)
                 dcd_path = finfo.path(self.session)
-                from chimerax.md_crds.read_coords import read_coords
+                from chimerax.atomic.md_crds.read_coords import read_coords
                 read_coords(self.session, dcd_path, sm, format_name = 'dcd', replace=True)
                 sm.active_coordset_id = 1
             elif fname.endswith('.pdb') or fname.endswith('.pdb.gz'):
@@ -664,7 +664,7 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def read_atomic_models(self, path, mgroup):
-        from chimerax.atomic import open_mmcif
+        from chimerax.atomic.mmcif import open_mmcif
         models, msg = open_mmcif(self.session, path, auto_style = False)
 
         # Assign IHM model ids.

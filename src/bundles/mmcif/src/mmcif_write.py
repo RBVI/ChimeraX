@@ -14,7 +14,7 @@
 """
 Write mmCIF files that ChimeraX would like to read.
 """
-from chimerax.atomic import mmcif
+from . import mmcif
 from chimerax.core.utils import flattened
 import platform
 from chimerax import app_dirs

@@ -17,7 +17,7 @@
 def compute_ss(session, structures=None, *,
         min_helix_len=3, min_strand_len=3, energy_cutoff=-0.5, report=False):
     from chimerax.atomic import Structure
-    from chimerax.dssp import compute_ss
+    from chimerax.atomic.dssp import compute_ss
     if structures is None:
         structures = [m for m in session.models.list() if isinstance(m, Structure)]
     elif isinstance(structures, Structure):

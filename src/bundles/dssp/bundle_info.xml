@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Dssp" version="1.0"
-	    package="chimerax.dssp"
+	    package="chimerax.atomic.dssp"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

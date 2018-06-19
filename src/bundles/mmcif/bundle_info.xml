@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-mmCIF" version="1.0"
-	    package="chimerax.mmcif" purePython="false"
+	    package="chimerax.atomic.mmcif" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

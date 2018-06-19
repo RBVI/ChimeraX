@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-PDBio" version="1.0"
-	    package="chimerax.pdbio" purePython="false"
+<BundleInfo name="ChimeraX-PDB" version="1.0"
+	    package="chimerax.atomic.pdb" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
