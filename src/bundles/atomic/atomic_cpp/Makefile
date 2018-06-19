@@ -52,9 +52,11 @@ install: $(SHLIB) cymol.$(PYMOD_EXT)
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)
+ifeq ($(OS),Darwin)
 	install_name_tool -change @rpath/libatomstruct.dylib @loader_path/lib/libatomstruct.dylib $(SHLIB)
 	install_name_tool -change @rpath/libelement.dylib @loader_path/lib/libelement.dylib $(SHLIB)
 	install_name_tool -change @rpath/libpyinstance.dylib @loader_path/lib/libpyinstance.dylib $(SHLIB)
+endif
 
 clean:
 	rm -rf __pycache__ $(OBJS) $(SHLIB) cymol.$(PYMOD_EXT) lib include data
