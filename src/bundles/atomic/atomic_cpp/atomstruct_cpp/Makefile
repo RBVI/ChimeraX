@@ -28,12 +28,10 @@ CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= tmpl/*.$(OBJ_EXT)
 ifeq ($(WIN32),msvc)
-LIBS	+= libelement.lib libpyinstance.lib libioutil.lib libchutil.lib libappdirs.lib liblogger.lib libarrays.lib $(PYTHON_LIB)
+LIBS	+= /LIBPATH:../lib libelement.lib libpyinstance.lib libioutil.lib libchutil.lib libappdirs.lib liblogger.lib libarrays.lib $(PYTHON_LIB)
 else
-LIBS	+= -lelement -lpyinstance -lioutil -lchutil -lappdirs -llogger -larrays $(PYTHON_LIB)
+LIBS	+= -L../lib -lelement -lpyinstance -lioutil -lchutil -lappdirs -llogger -larrays $(PYTHON_LIB)
 endif
-EXPANDED_LIBS := $(LIBS)
-LIBS = -L../lib $(EXPANDED_LIBS)
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
 	$(SHLIB_LINK)

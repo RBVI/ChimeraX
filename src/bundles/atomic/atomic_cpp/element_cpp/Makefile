@@ -25,12 +25,10 @@ CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= $(PYTHON_LIB)
 ifeq ($(WIN32),msvc)
-LIBS += libpyinstance.lib $(PYTHON_LIB)
+LIBS += /LIBPATH:../lib libpyinstance.lib $(PYTHON_LIB)
 else
-LIBS += -lpyinstance $(PYTHON_LIB)
+LIBS += -L../lib -lpyinstance $(PYTHON_LIB)
 endif
-EXPANDED_LIBS := $(LIBS)
-LIBS = -L../lib $(EXPANDED_LIBS)
 
 $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
