@@ -78,6 +78,10 @@ class _AtomicBundleAPI(BundleAPI):
         session._atomic_command_handler = session.triggers.add_handler("command finished",
             lambda *args: check_for_changes(session))
 
+        if session.ui.is_gui:
+           session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+               _AtomicBundleAPI._add_presets_menu(ses))
+
     @staticmethod
     def finish(session, bundle_info):
         session.triggers.remove_handler(session._atomic_command_handler)
@@ -86,5 +90,31 @@ class _AtomicBundleAPI(BundleAPI):
     def library_dir(bundle_info):
         from os.path import dirname, join
         return join(dirname(__file__), "lib")
+
+    @staticmethod
+    def _add_presets_menu(session):
+        name_mapping = {
+            'Stick': 'non-polymer',
+            'Ribbon': 'small polymer',
+            'Space filling (per-chain colors)': 'medium polymer',
+            'Space filling (single color)': 'large polymer'
+        }
+        def callback(name, session=session):
+            structures = [m for m in session.models if isinstance(m, Structure)]
+            kw = {'set_lighting': len(structures) < 2}
+            print("'name' arg is:", name)
+            if name in name_mapping:
+                kw['style'] = name_mapping[name]
+            from .nucleotides.cmd import nucleotides
+            nucleotides(session, 'atoms')
+            for s in structures:
+                atoms = s.atoms
+                atoms.displays = True
+                atoms.draw_modes = Atom.SPHERE_STYLE
+                s.residues.ribbon_displays = False
+                s.apply_auto_styling(**kw)
+        for label in ['Original look'] + sorted(list(name_mapping.keys())):
+            session.ui.main_window.add_custom_menu_entry('Presets', label,
+                lambda name=label: callback(name))
 
 bundle_api = _AtomicBundleAPI()

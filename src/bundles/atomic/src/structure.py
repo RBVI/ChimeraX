@@ -144,19 +144,29 @@ class Structure(Model, StructureData):
                 return False
         return True
 
-    def apply_auto_styling(self, set_lighting = False):
+    def apply_auto_styling(self, set_lighting = False, style=None):
+        if style is None:
+            if self.num_chains == 0:
+                style = "non-polymer"
+            elif self.num_chains < 5:
+                style = "small polymer"
+            elif self.num_chains < 250:
+                style = "medium polymer"
+            else:
+                style = "large polymer"
+
         color = self.initial_color(self.session.main_view.background_color)
         self.set_color(color)
 
         atoms = self.atoms
-        if self.num_chains == 0:
+        if style == "non-polymer":
             lighting = "default"
             from .molobject import Atom, Bond
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
             het_atoms.colors = element_colors(het_atoms.element_numbers)
-        elif self.num_chains < 5:
+        elif style == "small polymer":
             lighting = "default"
             from .molobject import Atom, Bond
             atoms.draw_modes = Atom.STICK_STYLE
@@ -202,7 +212,7 @@ class Structure(Model, StructureData):
                     display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
                 display_atoms.displays = True
                 ribbonable.ribbon_displays = True
-        elif self.num_chains < 250:
+        elif style == "medium polymer":
             lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
             from .colors import chain_colors, element_colors
             residues = self.residues
