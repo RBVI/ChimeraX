@@ -23,7 +23,7 @@ OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 HDRS 	= 
 INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -Iinclude
 ifeq ($(WIN32),msvc)
-LIBS	+= /LIBPATH:../lib libatomstruct.lib libelement.lib libpyinstance.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
+LIBS	+= /LIBPATH:lib libatomstruct.lib libelement.lib libpyinstance.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
 else
 LIBS	+= -Llib -latomstruct -lelement -lpyinstance -larrays -llogger -lappdirs $(PYTHON_LIB)
 endif
