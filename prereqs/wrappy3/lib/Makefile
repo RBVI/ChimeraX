@@ -32,6 +32,7 @@ endif
 
 install: $(SHLIB)
 	cp -fp *.h $(includedir)
+	cp -fp *.h $(app_includedir)
 	cp -fp $(SHLIB) $(shlibdir)
 ifdef WIN32
 	cp -fp $(SHLIB:.dll=.$(LIB_EXT)) $(libdir)
