@@ -32,12 +32,9 @@ endif
 
 install: $(SHLIB)
 	cp -fp *.h $(includedir)
-	cp -fp *.h $(app_includedir)
 	cp -fp $(SHLIB) $(shlibdir)
-	cp -fp $(SHLIB) $(app_shlibdir)
 ifdef WIN32
 	cp -fp $(SHLIB:.dll=.$(LIB_EXT)) $(libdir)
-	cp -fp $(SHLIB:.dll=.$(LIB_EXT)) $(app_libdir)
 ifdef DEBUG
 	cp -fp $(SHLIB:.dll=.pdb) $(libdir)
 endif
