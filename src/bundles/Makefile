@@ -54,7 +54,7 @@ clashes.install: atomic.install
 crosslinks.install: interfaces.install
 dist_monitor.install: atomic.install
 dssp.install: atomic.install
-hbonds.install: atomic.install
+hbonds.install: atomic.install chem_group.install
 ihm.install: atomic.install map.install
 map.install: map_data.install
 map_filter.install: map.install
