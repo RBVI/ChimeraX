@@ -37,6 +37,7 @@ install: $(SHLIB)
 	cp -fp $(SHLIB) $(app_shlibdir)
 ifdef WIN32
 	cp -fp $(SHLIB:.dll=.$(LIB_EXT)) $(libdir)
+	cp -fp $(SHLIB:.dll=.$(LIB_EXT)) $(app_libdir)
 ifdef DEBUG
 	cp -fp $(SHLIB:.dll=.pdb) $(libdir)
 endif
