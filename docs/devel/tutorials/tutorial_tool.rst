@@ -330,6 +330,9 @@ in `HTML 5`_ and saved in a file whose name matches the command
 name and has suffix ``.html``.  For our example, we named
 the tool ``Tutorial_GUI`` (see `bundle_info.xml` above), so
 the file name is ``Tutorial_GUI.html``.
+When help files are included in bundles, documentation for
+the tools may be displayed using the **help** command,
+the same as built-in ChimeraX tools.
 The directory structure is chosen to allow for multiple types
 of documentation for a bundle.
 For example, developer documentation such as
