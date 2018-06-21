@@ -14,7 +14,7 @@
     <DataFile>include/*/*/*</DataFile>
     <DataFile>lib/*</DataFile>
     <DataFile>cymol.*</DataFile>
-    <DataFile>libmolc.*</DataFile>
+    <DataFile>lib*.*</DataFile>
   </DataFiles>
 
   <Categories>
