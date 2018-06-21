@@ -46,7 +46,11 @@ cymol.$(PYMOD_EXT): cymol.pyx include/atomstruct/Atom.h
 	rmdir -p chimerax/atomic
 
 install: $(SHLIB) cymol.$(PYMOD_EXT)
+ifeq ($(WIN32),msvc)
+	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) include lib/* ../src
+else
 	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) include lib ../src
+endif
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)
