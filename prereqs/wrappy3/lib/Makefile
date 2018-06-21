@@ -34,6 +34,7 @@ install: $(SHLIB)
 	cp -fp *.h $(includedir)
 	cp -fp *.h $(app_includedir)
 	cp -fp $(SHLIB) $(shlibdir)
+	cp -fp $(SHLIB) $(app_shlibdir)
 ifdef WIN32
 	cp -fp $(SHLIB:.dll=.$(LIB_EXT)) $(libdir)
 ifdef DEBUG
