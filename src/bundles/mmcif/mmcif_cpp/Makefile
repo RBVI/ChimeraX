@@ -51,6 +51,9 @@ include:
 source: lib include
 	cd readcif_cpp; make install
 	make wrappy
+ifdef WIN32
+	cp $(includedir)/WrapPy3.h $(app_includedir)
+	cp $(libdir)/libwrappy3.lib $(app_libdir)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
