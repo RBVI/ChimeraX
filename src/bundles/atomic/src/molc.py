@@ -248,7 +248,8 @@ def ctypes_open(lib_name):
         exts = ['.so']
     else: # Windows
         exts = ['.pyd', '.dll']
-        os.environ['PATH'] = os.environ['PATH'] + ';.'
+        os.environ['PATH'] = os.environ['PATH'] \
+            + ';' + os.path.join(os.path.dirname(__file__), 'lib')
     for ext in exts:
         if os.path.isabs(lib_name):
             lib_path = lib_name

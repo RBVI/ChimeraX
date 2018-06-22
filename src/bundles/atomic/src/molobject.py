@@ -20,17 +20,7 @@ from . import ctypes_support as convert
 # -------------------------------------------------------------------------------
 # Access functions from libmolc C library.
 #
-import sys, os
-if sys.platform.startswith('win'):
-    # let Windows find 'sibling' shared libs by cd'ing to the folder
-    orig_dir = os.getcwd()
-    os.chdir(os.path.dirname(__file__))
-    try:
-        _atomic_c_functions = CFunctions('libmolc')
-    finally:
-        os.chdir(orig_dir)
-else:
-    _atomic_c_functions = CFunctions('libmolc')
+_atomic_c_functions = CFunctions('libmolc')
 c_property = _atomic_c_functions.c_property
 cvec_property = _atomic_c_functions.cvec_property
 c_function = _atomic_c_functions.c_function
