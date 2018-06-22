@@ -26,6 +26,9 @@ ifeq ($(WIN32),msvc)
 LIBS	+= /LIBPATH:lib libatomstruct.lib libelement.lib libpyinstance.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
 else
 LIBS	+= -Llib -latomstruct -lelement -lpyinstance -larrays -llogger -lappdirs $(PYTHON_LIB)
+ifeq ($(OS),Linux)
+LDFLAGS += -Wl,-rpath,\$${ORIGIN}/lib
+endif
 endif
 
 all: lib include data
