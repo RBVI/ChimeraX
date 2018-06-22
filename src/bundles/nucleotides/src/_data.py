@@ -493,7 +493,8 @@ class NucleotideState(StateManager):
         if not self.need_rebuild:
             return
         for mol in list(self.need_rebuild):
-            _rebuild_molecule('internal', mol)
+            if not mol.deleted:
+                _rebuild_molecule('internal', mol)
         # assert len(_need_rebuild) == 0
         self.need_rebuild.clear()
 
@@ -1222,7 +1223,10 @@ def make_ladder(nd, residues, params):
         a = r.find_atom("C2")
         color = a.color if a else r.ribbon_color
         ep1 = None
-        is_purine = standard_bases[nucleic3to1(r.name)]['tag'] == PURINE
+        name = nucleic3to1(r.name)
+        if name == 'X':
+            continue
+        is_purine = standard_bases[name]['tag'] == PURINE
         if is_purine:
             a = r.find_atom('N1')
             if a:

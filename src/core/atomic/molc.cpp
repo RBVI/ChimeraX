@@ -2780,7 +2780,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         };
         std::vector<Atom *> centers;
         std::vector<Atom *> guides;
-        std::vector<PeptidePlane> peptide_planes;
+        std::unordered_map<int, PeptidePlane> peptide_planes;
         bool has_guides = want_guides;
         Atom *prev_c = NULL;
         Atom *prev_o = NULL;
@@ -2818,7 +2818,12 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                         // NB: do not bother normalizing now since we will
                         // use them in a cross product later and will
                         // have to normalize that result
-                        peptide_planes.push_back(peptide);
+                        peptide_planes[i] = peptide;
+                        // std::cerr << "peptide_plane " << i << ' '
+                        //           << r->str() << ' '
+                        //           << peptide.normal[0] << ' '
+                        //           << peptide.normal[1] << ' '
+                        //           << peptide.normal[2] << '\n';
                     }
                     prev_c = c;
                     prev_o = o;
@@ -2905,7 +2910,14 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                         guide[2] += center[2];
                         continue;
                     }
-                    std::cerr << "normalization error\n";
+                    std::cerr << "normalization error " << i
+                              << ' ' << r->str() << '\n';
+                    std::cerr << "prev: " << prev_pp[0] << ' '
+                              << prev_pp[1] << ' ' << prev_pp[2] << '\n';
+                    std::cerr << "this: " << this_pp[0] << ' '
+                              << this_pp[1] << ' ' << this_pp[2] << '\n';
+                    std::cerr << "guide: " << guide[0] << ' '
+                              << guide[1] << ' ' << guide[2] << '\n';
                 }
                 // Either peptide calculation failed or we want guides
                 const Coord &c = guides[i]->coord();
