@@ -41,7 +41,7 @@ ifdef WIN32
 endif
 
 clean:
-	rm -f $(LIBRARY) $(OBJS) lib include
+	rm -rf $(LIBRARY) $(OBJS) lib include
 ifdef WIN32
 	rm -f lib$(LIBNAME).pdb vc*.pdb
 endif
