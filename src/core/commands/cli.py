@@ -958,7 +958,8 @@ def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
                 raise AnnotationError("No %s selected by browsing" % item_kind)
             path = paths[0]
         else:
-            raise AnnotationError("%s browsing cancelled" % item_kind.capitalize())
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
         text = path
     return path, text, rest
 
