@@ -492,9 +492,19 @@ class SequenceViewer(ToolInstance):
                     % (fmt.name, quote_if_necessary(self.alignment.ident))))
                 save_as_menu.addAction(action)
 
-        menu.kludge_ref = settings_action = QAction("Settings...")
+        menu.kludge_refs = []
+        settings_action = QAction("Settings...")
+        menu.kludge_refs.append(settings_action)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
+        scf_action = QAction("Load Sequence Coloring File...")
+        menu.kludge_refs.append(scf_action)
+        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
+        menu.addAction(scf_action)
+
+    def load_scf_file(self, path, color_structures=None):
+        """color_structures=None means use user's preference setting"""
+        self.region_browser.load_scf_file(path, color_structures)
 
     def new_region(self, **kw):
         if 'blocks' in kw:

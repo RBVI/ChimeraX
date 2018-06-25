@@ -65,7 +65,10 @@ from  chimerax.core.settings import Settings
 from copy import deepcopy
 
 class _SVSettings(Settings):
-	EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
+    EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
+    AUTO_SAVE = {
+        "scf_colors_structures": True,
+    }
 
 def init(session):
     # each SV instance has its own settings instance

@@ -81,7 +81,7 @@ class OpenDialogWithMessage(QFileDialog):
 # those situations where you do need to add widgets.
 class OpenDialog(QFileDialog):
     def __init__(self, parent = None, caption = 'Open File', starting_directory = None,
-            widget_alignment = Qt.AlignLeft):
+            widget_alignment = Qt.AlignCenter):
         if starting_directory is None:
             import os
             starting_directory = os.getcwd()
