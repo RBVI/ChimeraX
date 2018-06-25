@@ -18,7 +18,7 @@ errors: define ChimeraX-specific errors
 """
 
 class CancelOperation(Exception):
-    """User-requested cancellation of a long-running task"""
+    """User-requested cancellation of a task"""
     pass
 
 class NotABug(Exception):
