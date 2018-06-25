@@ -460,7 +460,8 @@ class SequenceViewer(ToolInstance):
         elif note_name == "destroyed":
             self.delete()
         elif note_name == "command":
-            print("TODO: parse this text as command: '%s'" % note_data)
+            from .cmd import run
+            run(self.session, self, note_data)
 
     def delete(self):
         self.region_browser.destroy()
