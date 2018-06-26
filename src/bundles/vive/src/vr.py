@@ -984,7 +984,7 @@ class ShowUIMode(HandMode):
         camera.user_interface.display_ui(False, hand_controller.room_position, camera.room_position)
     def drag(self, camera, hand_controller, previous_pose, pose):
         oc = camera.other_controller(hand_controller)
-        if self._ui_zoom(oc):
+        if oc and self._ui_zoom(oc):
             scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc._pose.origin())
             if scale is not None:
                 camera.user_interface.scale_ui(scale)
@@ -1000,7 +1000,7 @@ class MoveSceneMode(HandMode):
     name = 'move scene'
     def drag(self, camera, hand_controller, previous_pose, pose):
         oc = camera.other_controller(hand_controller)
-        if self._other_controller_move(oc):
+        if oc and self._other_controller_move(oc):
             # Both controllers trying to move scene -- zoom
             scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc._pose.origin())
             if scale is not None:
