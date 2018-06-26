@@ -99,7 +99,7 @@ class MSF:
 			self.file_attrs['MSF header'] = ''
 
 	def _read_sequences(self, f):
-		from chimerax.core.atomic import Sequence
+		from chimerax.atomic import Sequence
 		self.sequence_list = []
 		while 1:
 			line = f.readline()

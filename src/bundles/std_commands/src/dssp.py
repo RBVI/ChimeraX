@@ -16,7 +16,8 @@
 #
 def compute_ss(session, structures=None, *,
         min_helix_len=3, min_strand_len=3, energy_cutoff=-0.5, report=False):
-    from chimerax.atomic import Structure, _dssp
+    from chimerax.atomic import Structure
+    from chimerax.atomic.dssp import compute_ss
     if structures is None:
         structures = [m for m in session.models.list() if isinstance(m, Structure)]
     elif isinstance(structures, Structure):
@@ -27,10 +28,11 @@ def compute_ss(session, structures=None, *,
         raise UserError('No structures specified')
 
     for struct in structures:
-        _dssp.compute_ss(struct._c_pointer.value, energy_cutoff, min_helix_len, min_strand_len, report)
+        compute_ss(struct._c_pointer.value, energy_cutoff, min_helix_len, min_strand_len, report)
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StructuresArg, FloatArg, BoolArg, IntArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, IntArg
+    from chimerax.atomic import StructuresArg
 
     desc = CmdDesc(
         optional=[('structures', StructuresArg)],

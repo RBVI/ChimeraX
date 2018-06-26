@@ -3,8 +3,8 @@
 """acceptor geometry testing functions"""
 
 from chimerax.core.geometry import look_at, angle, distance_squared, distance
-from chimerax.core.atomic.bond_geom import bond_positions
-from chimerax.core.atomic.idatm import tetrahedral
+from chimerax.atomic.bond_geom import bond_positions
+from chimerax.atomic.idatm import tetrahedral
 from . import hbond
 from .common_geom import test_phi, test_theta, sulphur_compensate, get_phi_plane_params
 from math import sqrt

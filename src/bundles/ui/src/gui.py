@@ -111,6 +111,10 @@ class UI(QApplication):
         self._keystroke_sinks = []
         self._files_to_open = []
 
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('ready')
+
     def redirect_qt_messages(self):
         
         # redirect Qt log messages to our logger
@@ -181,6 +185,8 @@ class UI(QApplication):
         triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
         if self.autostart_tools:
             self.session.tools.start_tools(self.settings.autostart)
+
+        self.triggers.activate_trigger('ready', None)
 
     def event(self, event):
         from PyQt5.QtCore import QEvent
@@ -889,7 +895,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             menu.setObjectName(menu_name)	# Need for findChild() above to work.
         
         action = QAction(entry_name, self)
-        action.triggered.connect(lambda arg, cb = callback: callback())
+        action.triggered.connect(lambda arg, cb = callback: cb())
         menu.addAction(action)
         if add:
             # Add menu after adding entry otherwise it is not shown on Mac.

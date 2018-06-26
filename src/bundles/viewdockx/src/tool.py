@@ -42,7 +42,7 @@ class _BaseTool(HtmlToolInstance):
         session = self.session
         if structures is None:
             # Include structures only if they have viewdock data
-            from chimerax.core.atomic import AtomicStructure
+            from chimerax.atomic import AtomicStructure
             structures = [s for s in session.models.list(type=AtomicStructure)
                           if hasattr(s, "viewdockx_data") and s.viewdockx_data]
         else:
@@ -194,7 +194,7 @@ class _BaseTool(HtmlToolInstance):
 
     def get_structures(self, model_id):
         if model_id:
-            from chimerax.core.commands.cli import StructuresArg
+            from chimerax.atomic import StructuresArg
             atomspec = ''.join(['#' + mid for mid in model_id.split(',')])
             return StructuresArg.parse(atomspec, self.session)[0]
         else:

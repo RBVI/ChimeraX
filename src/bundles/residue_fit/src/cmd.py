@@ -52,7 +52,8 @@ def residues_with_backbone(residues):
     return residues.filter(rb)
 
 def register_resfit_command(logger):
-    from chimerax.core.commands import CmdDesc, register, AtomsArg, IntArg, Int2Arg
+    from chimerax.core.commands import CmdDesc, register, IntArg, Int2Arg
+    from chimerax.atomic import AtomsArg
     from chimerax.map import MapArg
     desc = CmdDesc(required = [('atoms', AtomsArg)],
                    keyword = [('map', MapArg),

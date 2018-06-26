@@ -82,7 +82,7 @@ class ToolUI(ToolInstance):
         self.results_view.setHtml(_InProgressPage)
 
     def _update_chains(self, trigger=None, trigger_data=None):
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         n = self.chain_combobox.currentIndex()
         selected_chain = None if n == -1 else self.chain_combobox.itemData(n)
         all_chains = []
@@ -160,7 +160,7 @@ class ToolUI(ToolInstance):
 
     def _load_pdb(self, code):
         from chimerax.core.commands import run
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         parts = code.split("_", 1)
         if len(parts) == 1:
             pdb_id = parts[0]

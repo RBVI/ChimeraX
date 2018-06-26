@@ -114,8 +114,9 @@ def rungs_for_atoms(session, atoms, create = True):
     return rungs
 
 def register_command(logger):
-    from chimerax.core.commands import register, CmdDesc, AtomsArg, EmptyArg, ColorArg, \
+    from chimerax.core.commands import register, CmdDesc, EmptyArg, ColorArg, \
         Or, FloatArg, BoolArg, create_alias
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
                    keyword = [('color', ColorArg),
                                ('radius', FloatArg),

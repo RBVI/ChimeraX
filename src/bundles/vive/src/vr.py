@@ -984,7 +984,7 @@ class ShowUIMode(HandMode):
         camera.user_interface.display_ui(False, hand_controller.room_position, camera.room_position)
     def drag(self, camera, hand_controller, previous_pose, pose):
         oc = camera.other_controller(hand_controller)
-        if self._ui_zoom(oc):
+        if oc and self._ui_zoom(oc):
             scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc._pose.origin())
             if scale is not None:
                 camera.user_interface.scale_ui(scale)
@@ -1000,7 +1000,7 @@ class MoveSceneMode(HandMode):
     name = 'move scene'
     def drag(self, camera, hand_controller, previous_pose, pose):
         oc = camera.other_controller(hand_controller)
-        if self._other_controller_move(oc):
+        if oc and self._other_controller_move(oc):
             # Both controllers trying to move scene -- zoom
             scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc._pose.origin())
             if scale is not None:
@@ -1115,7 +1115,7 @@ class MoveAtomsMode(HandMode):
         move = pose * previous_pose.inverse()  # Room to room coords
         rts = camera.room_to_scene
         smove = rts * move * rts.inverse()	# Scene to scene coords.
-        from chimerax.core.atomic import selected_atoms
+        from chimerax.atomic import selected_atoms
         atoms = selected_atoms(camera._session)
         atoms.scene_coords = smove * atoms.scene_coords
 
@@ -1216,7 +1216,7 @@ class IconPanel(HandMode):
         return a
         
     def displayed_atoms(self):
-        from chimerax.core.atomic import Structure, concatenate, Atoms
+        from chimerax.atomic import Structure, concatenate, Atoms
         mlist = self.session.models.list(type = Structure)
         matoms = []
         for m in mlist:

@@ -23,7 +23,7 @@ import numpy
 from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.state import State, StateManager, RestoreError
-from chimerax.core.atomic import Residues, Atoms, Sequence, Pseudobonds
+from chimerax.atomic import Residues, Atoms, Sequence, Pseudobonds
 nucleic3to1 = Sequence.nucleic3to1
 
 _SQRT2 = math.sqrt(2)
@@ -559,7 +559,7 @@ def _make_nuc_drawing(nuc, mol, create=True, recreate=False):
     #   creates mol._nucleotide_info for per-residue information
     #   creates mol._ladder_params for ladder parameters
     #   creates mol._nucleotides_drawing for the drawing
-    from chimerax.core.atomic import AtomicShapeDrawing
+    from chimerax.atomic import AtomicShapeDrawing
     try:
         # expect this to succeed most of the time
         if recreate:
@@ -707,7 +707,7 @@ def _rebuild_molecule(trigger_name, mol):
 
 def set_hide_atoms(AtomsRE, residues):
     # Hide that atoms match AtomsRE and associated hydrogens.
-    from chimerax.core.atomic import Element
+    from chimerax.atomic import Element
     H = Element.get_element(1)
     atoms = []
     for r in residues:

@@ -61,8 +61,8 @@ def surface(session, atoms = None, enclose = None, include = None,
       Whether to replace an existing surface for the same atoms or make a copy.
     '''
 
-    from chimerax.core.atomic.molsurf import MolecularSurface, remove_solvent_ligands_ions
-    from chimerax.core.atomic.molsurf import surface_rgba, update_color, surfaces_overlapping_atoms
+    from chimerax.atomic.molsurf import MolecularSurface, remove_solvent_ligands_ions
+    from chimerax.atomic.molsurf import surface_rgba, update_color, surfaces_overlapping_atoms
 
     if replace:
         all_surfs = dict((s.atoms.hash(), s) for s in session.models.list(type = MolecularSurface))
@@ -176,7 +176,7 @@ def surface_show(session, objects = None):
     objects : Objects
       Show atom patches for existing specified molecular surfaces or for specified atoms.
     '''
-    from chimerax.core.atomic import all_atoms, molsurf
+    from chimerax.atomic import all_atoms, molsurf
     atoms = objects.atoms if objects else all_atoms(session)
     sma = molsurf.show_surface_atom_patches(atoms)
     sm = _molecular_surfaces(session, objects)
@@ -196,7 +196,7 @@ def surface_hide(session, objects = None):
     objects : Objects
       Hide atom patches for specified molecular surfaces or for specified atoms.
     '''
-    from chimerax.core.atomic import molsurf
+    from chimerax.atomic import molsurf
     sma = molsurf.hide_surface_atom_patches(objects.atoms) if objects else []
     sm = _molecular_surfaces(session, objects)
     for s in sm:
@@ -216,7 +216,7 @@ def surface_close(session, objects = None):
       Close specified molecular surfaces and surfaces for specified atoms.
     '''
     surfs = _molecular_surfaces(session, objects)
-    from chimerax.core.atomic.molsurf import close_surfaces
+    from chimerax.atomic.molsurf import close_surfaces
     close_surfaces(surfs)
     if objects:
         close_surfaces(objects.atoms)
@@ -224,7 +224,7 @@ def surface_close(session, objects = None):
 # -------------------------------------------------------------------------------------
 #
 def _molecular_surfaces(session, objects):
-    from chimerax.core.atomic.molsurf import MolecularSurface
+    from chimerax.atomic.molsurf import MolecularSurface
     if objects is None:
         surfs = session.models.list(type = MolecularSurface)
     else:
@@ -297,9 +297,10 @@ def surface_cap(session, enable = None, offset = None):
 # -------------------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, ObjectsArg, AtomsArg
+    from chimerax.core.commands import CmdDesc, register, ObjectsArg
     from chimerax.core.commands import FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
     from chimerax.core.commands import SurfacesArg, EmptyArg, EnumOf, Or
+    from chimerax.atomic import AtomsArg
     surface_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('enclose', AtomsArg),

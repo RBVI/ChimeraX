@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -73,7 +75,8 @@ def struts(session, atoms, length = 7.0, loop = 30.0, radius = 0.6, color = None
 def register_struts_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, create_alias
-    from chimerax.core.commands import AtomsArg, FloatArg, ColorArg, BoolArg, StringArg, ModelIdArg
+    from chimerax.core.commands import FloatArg, ColorArg, BoolArg, StringArg, ModelIdArg
+    from chimerax.atomic import AtomsArg
 
     desc = CmdDesc(
         required = [('atoms', AtomsArg)],
@@ -199,7 +202,7 @@ def short_connection(i1, i2, dmax, strut_connections):
 
 def pseudobond_connections(structures):
     pcon = {}
-    from chimerax.core.atomic import concatenate, Atoms, interatom_pseudobonds
+    from chimerax.atomic import concatenate, Atoms, interatom_pseudobonds
     from chimerax.core.geometry import distance
     satoms = concatenate([s.atoms for s in structures], Atoms)
     for pb in interatom_pseudobonds(satoms):
@@ -253,7 +256,7 @@ def struts_delete(session, atoms = None):
             session.models.close(sclose)
 
 def strut_models(session, model_id = None):
-    from chimerax.core import atomic 
+    from chimerax import atomic 
     pbglist = atomic.all_pseudobond_groups(session)
     slist = [s for s in pbglist if hasattr(s, 'strut_atoms')]
     if not model_id is None:
@@ -281,7 +284,7 @@ def strut_model(session, atoms, replace, name, model_id):
 
 def unique_struts_name(session):
     # PseudobondGroup name must be unique.
-    from chimerax.core import atomic 
+    from chimerax import atomic 
     pbglist = atomic.all_pseudobond_groups(session)
     cats = set(pbg.name for pbg in pbglist)
     for i in range(len(cats)+1):

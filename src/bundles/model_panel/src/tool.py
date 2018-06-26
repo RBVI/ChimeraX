@@ -69,7 +69,7 @@ class ModelPanel(ToolInstance):
         self.session.triggers.add_handler(MODEL_ID_CHANGED,
             lambda *args: self._fill_tree(*args, always_rebuild=True))
         self.session.triggers.add_handler(MODEL_NAME_CHANGED, self._fill_tree)
-        from chimerax.core import atomic
+        from chimerax import atomic
         atomic.get_triggers(self.session).add_handler("changes", self._changes_cb)
         self._frame_drawn_handler = None
         tw.manage(placement="side")
@@ -216,7 +216,7 @@ class ModelPanel(ToolInstance):
         models = self.session.models.list()
         tree_models = []
         sorted_models = sorted(models, key=lambda m: m.id)
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         final_models = []
         for model in sorted_models:
             final_models.append(model)

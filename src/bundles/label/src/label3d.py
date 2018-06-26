@@ -234,7 +234,7 @@ class ObjectLabels(Model):
         self._update_graphics_handler = t.add_handler('graphics update', self._update_graphics_if_needed)
         self._background_color_handler = t.add_handler('background color changed', self._background_changed_cb)
 
-        from chimerax.core.atomic import get_triggers
+        from chimerax.atomic import get_triggers
         ta = get_triggers(session)
         self._structure_change_handler = ta.add_handler('changes', self._structure_changed)
         
@@ -253,7 +253,7 @@ class ObjectLabels(Model):
             
         h = self._structure_change_handler
         if h is not None:
-            from chimerax.core.atomic import get_triggers
+            from chimerax.atomic import get_triggers
             get_triggers(self.session).remove_handler(h)
             self._structure_change_handler = None
         
@@ -395,7 +395,7 @@ class ObjectLabels(Model):
 # -----------------------------------------------------------------------------
 #
 def label_class(object):
-    from chimerax.core.atomic import Atom, Residue, Pseudobond, Bond
+    from chimerax.atomic import Atom, Residue, Pseudobond, Bond
     if isinstance(object, Atom):
         return AtomLabel
     elif isinstance(object, Residue):

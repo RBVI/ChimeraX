@@ -79,7 +79,8 @@ def measure_buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
             log.info('%d contacting residues\n%s' % (len(res1) + len(res2), '\n'.join(lines)))
             
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, AtomsArg, FloatArg, BoolArg, ColorArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, ColorArg
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required = [('atoms1', AtomsArg)],
         keyword = [('with_atoms2', AtomsArg),

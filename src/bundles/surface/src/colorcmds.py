@@ -2,7 +2,7 @@
 #
 def register_color_subcommand(command_name, logger):
     from chimerax.core.commands import register, CmdDesc, ColormapArg, ColormapRangeArg
-    from chimerax.core.commands import FloatArg, BoolArg, AtomsArg
+    from chimerax.core.commands import FloatArg, BoolArg
     from chimerax.core.commands import SurfacesArg, CenterArg, AxisArg, CoordSysArg
     from chimerax.map import MapArg
 

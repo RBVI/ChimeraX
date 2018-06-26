@@ -38,7 +38,7 @@ class DistMouseMode(MouseMode):
         warning = lambda txt: self.session.logger.status(
             "Distance mouse mode: %s" % txt, color = "red")
         message = self.session.logger.status
-        from chimerax.core.atomic import PickedAtom, PickedPseudobond
+        from chimerax.atomic import PickedAtom, PickedPseudobond
         from chimerax.core.commands import run
         if isinstance(pick, PickedAtom):
             if self._first_atom and self._first_atom.deleted:

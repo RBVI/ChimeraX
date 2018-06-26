@@ -446,7 +446,6 @@ class RegionBrowser:
         self.regions = []
         self.associated_regions = {}
         self.rename_dialogs = {}
-        self._scf_dialog = None
         self._mod_assoc_handler_id = self._motion_stop_handler_id = None
         self.sequence_regions = { None: set() }
         self._cur_region = None
@@ -548,12 +547,9 @@ class RegionBrowser:
                             self._seqRenamedHandlerID)
         """
         if self._sel_change_handler:
-            from chimerax.core import atomic
+            from chimerax import atomic
             atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
         """
-        if self._scf_dialog:
-            self._scf_dialog.destroy()
-            self._scf_dialog = None
         for rd in self.rename_dialogs.values():
             rd.destroy()
         self.rename_dialogs.clear()
@@ -705,6 +701,7 @@ class RegionBrowser:
                 self._select_on_structures(region)
         self._highlighted_region = region
 
+    """
     def infoRegion(self, region):
         if not region:
             self.seq_canvas.sv.status("No active region",
@@ -799,52 +796,59 @@ class RegionBrowser:
 
     def lastDrag(self):
         return self._prev_drag
+    """
 
-    def loadScfCB(self, okayed, dialog):
-        if not okayed:
-            return
-        self.seq_canvas.sv.prefs[SCF_COLOR_STRUCTURES] = \
-                        dialog.colorStructureVar.get()
-
-        for path in dialog.getPaths():
-            self.loadScfFile(path,
-                self.seq_canvas.sv.prefs[SCF_COLOR_STRUCTURES])
-        
-    def loadScfFile(self, path, colorStructures=True):
+    def load_scf_file(self, path, color_structures=None):
         if path is None:
-            if not self._scf_dialog:
-                self._scf_dialog = ScfDialog(
-                        self.seq_canvas.sv.prefs[
-                        SCF_COLOR_STRUCTURES],
-                        command=self.loadScfCB)
-            self._scf_dialog.enter()
+            from chimerax.ui.open_save import OpenDialog
+            dlg = OpenDialog(self.tool_window.ui_area, caption="Load Sequence Coloring File")
+            dlg.setNameFilter("SCF files (*.scf *.seqsel)")
+            from PyQt5.QtWidgets import QCheckBox
+            cbox = QCheckBox("Also color associated structures")
+            sv = self.seq_canvas.sv
+            settings = sv.settings
+            cbox.setChecked(settings.scf_colors_structures)
+            from PyQt5.QtWidgets import QHBoxLayout
+            layout = QHBoxLayout()
+            layout.addWidget(cbox)
+            dlg.custom_area.setLayout(layout)
+            path = dlg.get_path()
+            if path is None:
+                return
+            settings.scf_colors_structures = cbox.isChecked()
+            from chimerax.core.commands import quote_if_necessary as q_if, run
+            from . import subcommand_name
+            run(self.tool_window.session, "sequence %s %s scfLoad %s color %s"
+                % (subcommand_name, q_if(sv.alignment.ident),
+                q_if(path), settings.scf_colors_structures))
             return
 
-        seqs = self.seq_canvas.seqs
-        from OpenSave import osOpen
-        scfFile = osOpen(path)
-        lineNum = 0
-        regionInfo = {}
-        for line in scfFile.readlines():
-            lineNum += 1
+        if color_structures is None:
+            color_structures = self.settings.scf_colors_structures
+
+        seqs = self.seq_canvas.alignment.seqs
+        from chimerax.core import io
+        scf_file = io.open_filename(path)
+        line_num = 0
+        region_info = {}
+        from chimerax.core.errors import UserError
+        for line in scf_file.readlines():
+            line_num += 1
             line.strip()
-            if not line or line[0] == '#' \
-            or line.startswith('//'):
+            if not line or line[0] == '#' or line.startswith('//'):
                 continue
-            for commentIntro in ['//', '#']:
-                commentPos = line.find(commentIntro)
-                if commentPos >= 0:
+            for comment_intro in ['//', '#']:
+                comment_pos = line.find(comment_intro)
+                if comment_pos >= 0:
                     break
-            if commentPos >= 0:
-                comment = line[commentPos
-                    + len(commentIntro):].strip()
-                line = line[:commentPos].strip()
+            if comment_pos >= 0:
+                comment = line[comment_pos + len(comment_intro):].strip()
+                line = line[:comment_pos].strip()
             else:
                 comment = None
 
             try:
-                pos1, pos2, seq1, seq2, r, g, b = map(
-                        int, line.split())
+                pos1, pos2, seq1, seq2, r, g, b = [int(x) for x in line.split()]
                 if seq1 == -1:
                     # internal to jevtrace/webmol
                     continue
@@ -855,47 +859,41 @@ class RegionBrowser:
                     seq2 -= 1
             except:
                 try:
-                    pos, seq, r, g, b = map(int,
-                            line.split())
+                    pos, seq, r, g, b = [int(x) for x in line.split()]
                     pos1 = pos2 = pos
                 except:
-                    replyobj.error("Bad format for line %d of %s [not 5 or 7 integers]\n" % (lineNum, path))
-                    scfFile.close()
-                    return
+                    scf_file.close()
+                    raise UserError("Bad format for line %d of %s [not 5 or 7 integers]"
+                        % (line_num, path))
                 if seq == 0:
                     seq1 = 0
                     seq2 = -1
                 else:
                     seq1 = seq2 = seq - 1
             key = ((r, g, b), comment)
-            if key in regionInfo:
-                regionInfo[key].append((seqs[seq1],
+            if key in region_info:
+                region_info[key].append((seqs[seq1],
                     seqs[seq2], pos1, pos2))
             else:
-                regionInfo[key] = [(seqs[seq1],
-                    seqs[seq2], pos1, pos2)]
-        scfFile.close()
+                region_info[key] = [(seqs[seq1], seqs[seq2], pos1, pos2)]
+        scf_file.close()
 
-        if not regionInfo:
-            replyobj.error("No annotations found in %s\n"
-                % path)
-            return
-        for rgbComment, blocks in regionInfo.items():
-            rgb, comment = rgbComment
-            rgb = map(lambda v: v/255.0, rgb)
+        if not region_info:
+            raise UserError("No annotations found in %s" % path)
+        for rbg_comment, blocks in region_info.items():
+            rgb, comment = rbg_comment
             region = self.new_region(name_prefix="Seqsel: ",
-                blocks=blocks, name=comment, fill=rgb,
-                cover_gaps=True)
-            if not colorStructures:
+                blocks=blocks, name=comment, fill=[c/255.0 for c in rgb], cover_gaps=True)
+            if not color_structures:
                 continue
-            c = chimera.MaterialColor(*rgb)
+            rgba = list(rgb) + [255]
             for res in self.region_residues(region):
-                res.ribbonColor = c
+                res.ribbon_color = rgba
                 for a in res.atoms:
-                    a.color = c
-        self.seq_canvas.sv.status("%d scf regions created"
-                        % len(regionInfo))
-        
+                    a.color = rgba
+        self.seq_canvas.sv.status("%d scf regions created" % len(region_info))
+
+    """
     def lowerRegion(self, region, rebuild_table=True):
         if not region:
             self.seq_canvas.sv.status("No active region",
@@ -940,6 +938,7 @@ class RegionBrowser:
                         p2 += offset
                 newBlocks.append([l1, l2, p1, p2])
             region.add_blocks(newBlocks, make_cb=False)
+    """
 
     def new_region(self, name=None, blocks=[], fill=None, outline=None,
             name_prefix="", select=False, assoc_with=None, shown=True,
@@ -1032,6 +1031,7 @@ class RegionBrowser:
             sel_residues.extend(self._residues_in_block(block))
         return sel_residues
 
+    """TODO
     def renameRegion(self, region, name=None):
         if not region:
             self.seq_canvas.sv.status("No active region",
@@ -1060,6 +1060,7 @@ class RegionBrowser:
         if region not in self.rename_dialogs:
             self.rename_dialogs[region] = RenameDialog(self, region)
         self.rename_dialogs[region].enter()
+    """
 
     def restore_state(self, state):
         self.clear_regions()
@@ -1130,7 +1131,7 @@ class RegionBrowser:
             fill=sv.settings.sel_region_interior, outline=sv.settings.sel_region_border)
         sel_region.clear()
 
-        from chimerax.core.atomic import selected_atoms
+        from chimerax.atomic import selected_atoms
         sel_residues = set(selected_atoms(self.tool_window.session).residues)
         blocks = []
         for aseq in self.seq_canvas.alignment.seqs:
@@ -1216,7 +1217,7 @@ class RegionBrowser:
 
     def show_ss(self, show):
         """show actual secondary structure"""
-        from chimerax.core.atomic import Sequence
+        from chimerax.atomic import Sequence
         helix_reg = self.get_region(self.ACTUAL_HELICES_REG_NAME, create=show,
                 fill=Sequence.default_helix_fill_color,
                 outline=Sequence.default_helix_outline_color)
@@ -1716,7 +1717,7 @@ class RegionBrowser:
         # highlight on chimerax structures
         self._sel_change_from_self = True
         self.tool_window.session.selection.clear()
-        from chimerax.core.atomic import Residues
+        from chimerax.atomic import Residues
         Residues(self.region_residues(region)).atoms.selected = True
         self._sel_change_from_self = False
 
@@ -1746,7 +1747,7 @@ class RegionBrowser:
 
     def _show_sel_cb(self):
         # also called from settings dialog
-        from chimerax.core import atomic
+        from chimerax import atomic
         if self.seq_canvas.sv.settings.show_sel:
             self.show_chimerax_selection()
             self._sel_change_handler = atomic.get_triggers(self.tool_window.session).add_handler(

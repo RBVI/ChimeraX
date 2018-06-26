@@ -142,9 +142,9 @@ class Mol2Parser:
             if self._molecule is None:
                 return
             if self.atomic:
-                from chimerax.core.atomic import AtomicStructure as SC
+                from chimerax.atomic import AtomicStructure as SC
             else:
-                from chimerax.core.atomic import Structure as SC
+                from chimerax.atomic import Structure as SC
             # Create structure
             s = SC(self.session, auto_style=self.auto_style)
             s.name = self._molecule.mol_name
