@@ -54,6 +54,7 @@ source: lib include
 ifdef WIN32
 	cp $(includedir)/WrapPy3.h $(app_includedir)
 	cp $(libdir)/libwrappy3.lib $(app_libdir)
+endif
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
