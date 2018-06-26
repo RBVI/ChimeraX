@@ -42,8 +42,8 @@
     <ChimeraXClassifier>ChimeraX :: Fetch :: pdbe :: mmCIF :: pdbe:: 1a0m :: false</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Fetch :: pdbe_updated :: mmCIF :: pdbe_updated :: 1a0m :: false</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Fetch :: pdbj :: mmCIF :: pdbj :: 1a0m :: false</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: mmCIF :: :: coordSets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Save :: mmCIF :: :: models:Models</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: mmCIF :: mmcif :: true :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Save :: mmCIF :: mmcif :: true :: models:Models</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
