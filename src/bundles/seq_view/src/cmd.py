@@ -19,17 +19,20 @@ registry = RegisteredCommandInfo()
 # all the commands use the trick that the run() function
 # temporarily puts a copy of the seq_view instance into
 # the global namespace as '_sv'
-def scf_shim(file_name, color_structures=True):
+def scf_shim(session, file_name, color_structures=True):
     _sv.load_scf_file(file_name, color_structures=color_structures)
 from chimerax.core.commands import CmdDesc
 from chimerax.core.commands import OpenFileNameArg, BoolArg
 
+class OpenScfFileNameArg(OpenFileNameArg):
+    name_filter = "SCF files (*.scf *.seqsel)"
+
 register("scfLoad",
     CmdDesc(
-        required=[('file_name', OpenFileNameArg)],
-        keyword=[('color_structures', OpenFileNameArg)],
+        required=[('file_name', OpenScfFileNameArg)],
+        keyword=[('color_structures', BoolArg)],
         synopsis='Load SCF file'),
-    scf_shim)
+    scf_shim, registry=registry)
 
 def run(session, sv, text):
     from chimerax.core.commands import Command
@@ -37,6 +40,6 @@ def run(session, sv, text):
     global _sv
     _sv = sv
     try:
-        cmd.run(text)
+        cmd.run(text, log=False)
     finally:
         _sv = None
