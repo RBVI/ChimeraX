@@ -1354,8 +1354,8 @@ def _any_transparent_drawings(drawings):
 def draw_depth(renderer, cvinv, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
-    r.disable_shader_capabilities(r.SHADER_LIGHTING |
-                                  r.SHADER_TEXTURE_2D)
+    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
+                                  r.SHADER_DEPTH_CUE | r.SHADER_VERTEX_COLORS | r.SHADER_TEXTURE_2D)
     draw_drawings(r, cvinv, drawings, opaque_only)
     r.disable_shader_capabilities(0)
 
