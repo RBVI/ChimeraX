@@ -887,7 +887,7 @@ class LabelMode(MouseMode):
             return
         from chimerax.core.objects import Objects
         objects = Objects()
-        from chimerax.core import atomic
+        from chimerax import atomic
         if isinstance(pick, atomic.PickedAtom):
             objects.add_atoms(pick.atom.residue.atoms)
             object_type = 'residues'

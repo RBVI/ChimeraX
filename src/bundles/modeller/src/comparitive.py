@@ -144,7 +144,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
     """
     # form the sequences to be written out as a PIR
     pir_seqs = []
-    from chimerax.core.atomic import Sequence
+    from chimerax.atomic import Sequence
     structures_to_save = set()
     for i, tmpl_strs in enumerate(templates_strings):
         for j, tmpl_str in enumerate(tmpl_strs):
@@ -182,7 +182,7 @@ def regularized_seq(aseq, chain):
     rseq = modeller_copy(aseq)
     rseq.descript = "structure:" + chain_save_name(chain)
     seq_chars = list(rseq.characters)
-    from chimerax.core.atomic import Sequence
+    from chimerax.atomic import Sequence
     for ungapped in range(len(aseq.ungapped())):
         gapped = aseq.ungapped_to_gapped(ungapped)
         if ungapped not in mmap:

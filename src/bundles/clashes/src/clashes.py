@@ -64,7 +64,7 @@ def find_clashes(session, test_atoms,
        dictionaries keyed on clashing atom with value being the clash value.
     """
 
-    from chimerax.core.atomic import Structure
+    from chimerax.atomic import Structure
     use_scene_coords = inter_model and len(
         [m for m in session.models if isinstance(m, Structure)]) > 1
     # use the fast _closepoints module to cut down candidate atoms if we
@@ -72,10 +72,10 @@ def find_clashes(session, test_atoms,
     # useful as it might otherwise be)
     if test == "others":
         if inter_model:
-            from chimerax.core.atomic import all_atoms
+            from chimerax.atomic import all_atoms
             universe_atoms = all_atoms(session)
         else:
-            from chimerax.core.atomic import structure_atoms
+            from chimerax.atomic import structure_atoms
             universe_atoms = structure_atoms(test_atoms.unique_structures)
         other_atoms = universe_atoms.subtract(test_atoms)
         if len(other_atoms) == 0:
@@ -102,7 +102,7 @@ def find_clashes(session, test_atoms,
     else:
         search_atoms = test_atoms
 
-    from chimerax.core.atomic import atom_search_tree
+    from chimerax.atomic import atom_search_tree
     tree = atom_search_tree(search_atoms, scene_coords=inter_model)
     clashes = {}
     from chimerax.core.geometry import distance
@@ -167,10 +167,10 @@ def find_clashes(session, test_atoms,
             clashes.setdefault(nb, {})[a] = clash
     return clashes
 
-from chimerax.core.atomic import Element
+from chimerax.atomic import Element
 hyd = Element.get_element(1)
 negative = set([Element.get_element(sym) for sym in ["N", "O", "S"]])
-from chimerax.core.atomic.idatm import type_info
+from chimerax.atomic.idatm import type_info
 def _donor(a):
     if a.element == hyd:
         if a.num_bonds > 0 and a.neighbors[0].element.name in negative:

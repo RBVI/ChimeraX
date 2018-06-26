@@ -61,7 +61,8 @@ def set_area_attributes(atoms, areas):
         a.residue.area += area
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, AtomsArg, FloatArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg
+    from chimerax.atomic import AtomsArg
     _sasa_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('probe_radius', FloatArg),

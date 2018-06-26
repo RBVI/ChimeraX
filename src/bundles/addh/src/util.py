@@ -12,9 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 def complete_terminal_carboxylate(session, cter):
-    from chimerax.core.atomic.bond_geom import bond_positions
-    from chimerax.core.atomic.struct_edit import add_atom
-    from chimerax.core.atomic import Element
+    from chimerax.atomic.bond_geom import bond_positions
+    from chimerax.atomic.struct_edit import add_atom
+    from chimerax.atomic import Element
     if cter.find_atom("OXT"):
         return
     c = cter.find_atom("C")
@@ -48,7 +48,7 @@ def determine_termini(session, structs):
             fake_C.extend(fc)
         if sr_res:
             # Look for peptide termini not in SEQRES records
-            from chimerax.core.atomic import Sequence
+            from chimerax.atomic import Sequence
             protein3to1 = Sequence.protein3to1
             for r in s.residues:
                 if r in sr_res:

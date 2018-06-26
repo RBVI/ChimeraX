@@ -200,7 +200,7 @@ class interpolate_position:
 
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, ColorArg, FloatArg, IntArg
-    from chimerax.core.commands import PseudobondsArg, StructureArg, StructuresArg
+    from chimerax.atomic import StructureArg, StructuresArg, PseudobondsArg
     desc = CmdDesc(required = [('pbonds', PseudobondsArg)],
                    keyword = [('color', ColorArg),
                               ('radius', FloatArg),

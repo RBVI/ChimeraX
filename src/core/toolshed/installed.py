@@ -297,6 +297,7 @@ def _extract_extra_keywords(kwds):
         if len(temp) == 2:
             result[temp[0]] = ('no description', temp[1])
         else:
+            print(temp)
             result[temp[0]] = (temp[1], temp[2])
     return result
 

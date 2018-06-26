@@ -20,7 +20,8 @@ players = set()         # Active players.
 
 def register_vseries_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf, IntArg, StringArg, FloatArg, AtomsArg, ColorArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf, IntArg, StringArg, FloatArg, ColorArg
+    from chimerax.atomic import AtomsArg
     from ..mapargs import MapArg, MapStepArg, MapRegionArg, ValueTypeArg, IntRangeArg
 
     sarg = [('series', SeriesArg)]
@@ -361,7 +362,7 @@ def create_centroid_path(xyz, radius, color):
     # TODO: This is obsolete Hydra code.
     n = len(xyz)
     from numpy import zeros, array, float32, arange, empty
-    from chimerax.core.atomic import atom_dtype, Structure
+    from chimerax.atomic import atom_dtype, Structure
     atoms = zeros((n,), atom_dtype)
     atoms['atom_name'] = b's'
     atoms['element_number'] = 1

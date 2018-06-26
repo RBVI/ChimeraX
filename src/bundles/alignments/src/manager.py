@@ -46,7 +46,7 @@ class AlignmentsManager(StateManager):
 
         Parameters
         ----------
-        seqs : list of :py:class:`~chimerax.core.atomic.Sequence` instances
+        seqs : list of :py:class:`~chimerax.atomic.Sequence` instances
             Contents of alignment
         identify_as : a text string (or None or False) used to identify the alignment in commands.
             If the string is already in use by another alignment, that alignment will be destroyed
@@ -122,7 +122,7 @@ class AlignmentsManager(StateManager):
             self.destroy_alignment(self.alignments[identify_as])
 
         if name is None:
-            from chimerax.core.atomic import StructureSeq
+            from chimerax.atomic import StructureSeq
             if len(seqs) == 1 and isinstance(seqs[0], StructureSeq):
                 sseq = seqs[0]
                 if sseq.description:

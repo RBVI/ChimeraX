@@ -13,7 +13,7 @@
 
 from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds, find_coordset_hbonds
 
-from chimerax.core.atomic import AtomicStructure, Atoms
+from chimerax.atomic import AtomicStructure, Atoms
 from chimerax.core.colors import BuiltinColors
 
 def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
@@ -31,7 +31,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     """
 
     if atoms is None:
-        from chimerax.core.atomic import concatenate
+        from chimerax.atomic import concatenate
         structures_atoms = [m.atoms for m in session.models if isinstance(m, AtomicStructure)]
         if structures_atoms:
             atoms = concatenate(structures_atoms)
@@ -436,8 +436,9 @@ def salt_preprocess(hbonds):
 
 def register_command(command_name, logger):
     from chimerax.core.commands \
-        import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, AtomsArg, \
-            StructuresArg, SaveFileNameArg, NonNegativeIntArg, StringArg, EmptyArg
+        import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, \
+            SaveFileNameArg, NonNegativeIntArg, StringArg, EmptyArg
+    from chimerax.atomic import StructuresArg, AtomsArg
     if command_name == "hbonds":
         desc = CmdDesc(required=[('atoms', Or(AtomsArg,EmptyArg))],
             keyword = [('make_pseudobonds', BoolArg), ('radius', FloatArg), ('color', ColorArg),

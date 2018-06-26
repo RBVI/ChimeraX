@@ -46,7 +46,8 @@ def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
 
         
 def register_interfaces(logger):
-    from chimerax.core.commands import register, CmdDesc, AtomsArg, FloatArg
+    from chimerax.core.commands import register, CmdDesc, FloatArg
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         optional = [('atoms', AtomsArg),],
         keyword = [('probe_radius', FloatArg),
@@ -113,7 +114,7 @@ class SphereGroup(Node):
 
 def chain_spheres(atoms, session):
     if atoms is None:
-        from chimerax.core.atomic import all_atoms
+        from chimerax.atomic import all_atoms
         atoms = all_atoms(session)
     if len(atoms) == 0:
         from chimerax.core.errors import UserError

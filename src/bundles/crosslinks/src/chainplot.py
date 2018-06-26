@@ -108,7 +108,7 @@ def chains_and_edges(pseudobonds):
 
     # Create chain crosslinks
     xlinks = []
-    from chimerax.core.atomic import Pseudobonds
+    from chimerax.atomic import Pseudobonds
     for (c1,c2), pbonds in chain_xlinks.items():
         cn1, cn2 = cnodes[c1], cnodes[c2]
         if cn1 is cn2:

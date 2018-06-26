@@ -21,15 +21,12 @@ from .cli import NoArg, NoneArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEn
 from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg
 from .cli import AxisArg, Axis, CenterArg, Center, CoordSysArg, PlaceArg, Bounded
-from .cli import ModelIdArg, AtomsArg, UniqueChainsArg, AtomicStructuresArg
-from .cli import StructureArg, StructuresArg, SurfacesArg, SurfaceArg
-from .cli import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
-from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
+from .cli import SurfacesArg, SurfaceArg
+from .cli import ModelIdArg, ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
 from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg
 from .cli import AttrNameArg
 
 from .colorarg import ColorArg, Color8Arg, ColormapArg, ColormapRangeArg
-from .symarg import SymmetryArg
 
 from .atomspec import AtomSpecArg, all_objects
 from .atomspec import register_selector, deregister_selector

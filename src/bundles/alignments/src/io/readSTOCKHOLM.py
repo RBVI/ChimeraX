@@ -15,7 +15,7 @@
 reads a Stockholm file
 """
 
-from chimerax.core.atomic import Sequence
+from chimerax.atomic import Sequence
 from ..parse import FormatSyntaxError, make_readable
 
 # what format-specific features can be used generically; also used by saving code...

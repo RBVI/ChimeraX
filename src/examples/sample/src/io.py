@@ -29,7 +29,7 @@ def _read_block(session, stream):
     except ValueError:
         # XXX: Should emit an error message
         return None
-    from chimerax.core.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure
     s = AtomicStructure(session)
 
     # Next line is a comment line

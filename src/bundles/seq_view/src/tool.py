@@ -322,7 +322,7 @@ class SequenceViewer(ToolInstance):
             lambda a1, a2, a3, s=self:
             s.showSS(show=None, ssType="predicted"), None)
         """
-        from chimerax.core.atomic import get_triggers
+        from chimerax.atomic import get_triggers
         self._atomic_changes_handler = get_triggers(self.session).add_handler(
             "changes", self._atomic_changes_cb)
 
@@ -472,7 +472,7 @@ class SequenceViewer(ToolInstance):
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
-        from chimerax.core.atomic import get_triggers
+        from chimerax.atomic import get_triggers
         get_triggers(self.session).remove_handler(self._atomic_changes_handler)
         ToolInstance.delete(self)
 
@@ -583,7 +583,7 @@ class SequenceViewer(ToolInstance):
         a_ref_seq = getattr(aseq, 'residue_sequence', aseq.ungapped())
         errors = [0] * len(a_ref_seq)
         gaps = [0] * len(a_ref_seq)
-        from chimerax.core.atomic import Sequence
+        from chimerax.atomic import Sequence
         for chain, match_map in aseq.match_maps.items():
             for i, char in enumerate(a_ref_seq):
                 try:

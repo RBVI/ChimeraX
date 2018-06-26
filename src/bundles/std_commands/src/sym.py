@@ -122,8 +122,9 @@ def sym_clear(session, structures = None):
             s.positions = Places([s.position])
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, AtomicStructuresArg, StringArg, FloatArg
-    from chimerax.core.commands import CenterArg, AxisArg, SymmetryArg, CoordSysArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, FloatArg
+    from chimerax.core.commands import CenterArg, AxisArg, CoordSysArg, BoolArg
+    from chimerax.atomic import SymmetryArg, AtomicStructuresArg
     desc = CmdDesc(
         required = [('structures', AtomicStructuresArg)],
         optional = [('symmetry', SymmetryArg)],

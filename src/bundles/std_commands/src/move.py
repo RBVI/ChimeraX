@@ -59,7 +59,8 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None,
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from chimerax.core.commands import CoordSysArg, TopModelsArg, AtomsArg
+    from chimerax.core.commands import CoordSysArg, TopModelsArg
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required = [('axis', AxisArg)],
         optional = [('distance', FloatArg),

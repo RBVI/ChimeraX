@@ -27,7 +27,7 @@ class ResiduePlot(Graph):
         min_area = interface_residue_area_cutoff
         self.residues1 = r1 = c.contact_residues(g1, min_area)
         self.residues2 = r2 = c.contact_residues(g2, min_area)
-        from chimerax.core.atomic import concatenate
+        from chimerax.atomic import concatenate
         self.residues = res = concatenate((r1, r2))
 
         # Non-interface residues
