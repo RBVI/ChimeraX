@@ -70,4 +70,4 @@ nucleotides.install: atomic.install
 pdbio.install: atomic.install
 sim_matrices.install: alignments.install
 std_commands.install: atomic.install
-viewdockx.install: atomic.install
+viewdockx.install: atomic.install mol2.install
