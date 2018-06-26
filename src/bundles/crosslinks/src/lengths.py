@@ -63,7 +63,7 @@ class LengthsPlot(Plot):
         ipb = {}
         for i,pb in zip(pbi, self.pbonds):
             ipb.setdefault(i, []).append(pb)
-        from chimerax.core.atomic import Pseudobonds
+        from chimerax.atomic import Pseudobonds
         self._bin_pbonds = {i:Pseudobonds(pbs) for i,pbs in ipb.items()}
             
     def _mouse_move(self, event):

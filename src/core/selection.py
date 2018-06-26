@@ -66,7 +66,7 @@ class Selection:
         session.undo.register(undo_state)
 
     def undo_add_selected(self, undo_state, new_state, old_state=None):
-        from .atomic import Atoms, Bonds, Pseudobonds
+        from chimerax.atomic import Atoms, Bonds, Pseudobonds
         for oname, otype in (('atoms', Atoms), ('bonds', Bonds), ('pseudobonds', Pseudobonds)):
             items = self.items(oname)
             if items:

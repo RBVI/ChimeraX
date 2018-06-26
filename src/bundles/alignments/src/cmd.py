@@ -131,7 +131,7 @@ def seqalign_chain(session, chains):
             name = "%d chains" % len(chains)
         else:
             name = "chains %s" % ",".join(sorted(list(chain_ids)))
-        from chimerax.core.atomic import Sequence
+        from chimerax.atomic import Sequence
         seq = Sequence(name=name, characters=chars)
         def get_numbering_start(chain):
             for i, r in enumerate(chain.residues):
@@ -151,7 +151,8 @@ def seqalign_chain(session, chains):
         alignment.resume_notify_viewers()
 
 def register_seqalign_command(logger):
-    from chimerax.core.commands import CmdDesc, register, UniqueChainsArg
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.atomic import UniqueChainsArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
         synopsis = 'show structure chain sequence'

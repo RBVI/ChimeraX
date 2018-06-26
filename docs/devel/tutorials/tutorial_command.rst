@@ -271,6 +271,9 @@ typically much more efficient than using Python loops.
 The documentation for the ``tutorial`` command should be written
 in `HTML 5`_ and saved in a file whose name matches the command
 name and has suffix ``.html``, i.e., ``tutorial.html``.
+When help files are included in bundles, documentation for
+the commands may be displayed using the **help** command,
+the same as built-in ChimeraX commands.
 The directory structure is chosen to allow for multiple types
 of documentation for a bundle.
 For example, developer documentation such as

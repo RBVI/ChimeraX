@@ -111,7 +111,7 @@ class IHMModel(Model):
             self.create_starting_model_crosslinks(xlinks, stmodels, xlmodels)
 
         # Show only spheres and atoms that have crosslink restraints
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         hidden_asyms = set(m.asym_id for m in stmodels
                            if isinstance(m, AtomicStructure) and hasattr(m, 'asym_id'))
         self.set_initial_atom_display(smodels, amodels, hidden_asyms)
@@ -149,7 +149,7 @@ class IHMModel(Model):
                        'ihm_2dem_class_average_fitting', # 2D EM orientation relative to model
                        'ihm_3dem_restraint',		# 3d electron microscopy
                        ]
-        from chimerax.core.atomic import mmcif
+        from chimerax.atomic import mmcif
         table_list = mmcif.get_mmcif_tables(filename, table_names)
         tables = dict(zip(table_names, table_list))
         return tables
@@ -235,7 +235,7 @@ class IHMModel(Model):
             easyms.setdefault(ename,[]).append(asym_id)
 
         self._asym_colors = asym_colors = {}
-        from chimerax.core.atomic.colors import chain_rgba
+        from chimerax.atomic.colors import chain_rgba
         for asym_ids in easyms.values():
             color = chain_rgba(asym_ids[0])
             for asym_id in asym_ids:
@@ -598,14 +598,14 @@ class IHMModel(Model):
                     continue  # Don't have exactly one sphere model for this group id
                 sm = gsm[0].copy(name = mname)
                 dcd_path = finfo.path(self.session)
-                from chimerax.md_crds.read_coords import read_coords
+                from chimerax.atomic.md_crds.read_coords import read_coords
                 read_coords(self.session, dcd_path, sm, format_name = 'dcd', replace=True)
                 sm.active_coordset_id = 1
             elif fname.endswith('.pdb') or fname.endswith('.pdb.gz'):
                 fstream = finfo.stream(self.session, uncompress = True)
                 if fstream is None:
                     continue
-                from chimerax.core.atomic.pdb import open_pdb
+                from chimerax.atomic.pdb import open_pdb
                 mlist,msg = open_pdb(self.session, fstream, mname,
                                      auto_style = False, coordsets = True)
                 sm = mlist[0]
@@ -614,7 +614,7 @@ class IHMModel(Model):
             sm.name += ' %d models' % sm.num_coordsets
             sm.ss_assigned = True	# Don't assign secondary structure to sphere model
             atoms = sm.atoms
-            from chimerax.core.atomic.colors import chain_colors
+            from chimerax.atomic.colors import chain_colors
             atoms.colors = chain_colors(atoms.residues.chain_ids)
             emodels.append(sm)
             
@@ -664,7 +664,7 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def read_atomic_models(self, path, mgroup):
-        from chimerax.core.atomic import open_mmcif
+        from chimerax.atomic.mmcif import open_mmcif
         models, msg = open_mmcif(self.session, path, auto_style = False)
 
         # Assign IHM model ids.
@@ -844,7 +844,7 @@ class IHMModel(Model):
                     satoms.filter(satoms.residues.names != '1').displays = True
 
         # Show crosslink end-point atoms and spheres
-        from chimerax.core.atomic import PseudobondGroup
+        from chimerax.atomic import PseudobondGroup
         pbgs = sum([[pbg for pbg in m.child_models()
                      if isinstance(pbg, PseudobondGroup) and pbg.name != 'missing structure']
                     for m in smodels[:1] + amodels], [])
@@ -1286,7 +1286,7 @@ class DatabaseDataSet(DataSet):
         self.db_code = db_code
     def models(self, session):
         if self.db_name == 'PDB' and self.db_code != '?':
-            from chimerax.core.atomic.mmcif import fetch_mmcif
+            from chimerax.atomic.mmcif import fetch_mmcif
             models, msg = fetch_mmcif(session, self.db_code, auto_style = False, log_info = False)
         else:
             models = []
@@ -1597,7 +1597,7 @@ class SequenceAlignmentModel(Model):
             a = self.show_alignment()
             if a is None:
                 return
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         tmap = {tm.sequence_alignment_name : tm for tm in models if isinstance(tm, AtomicStructure)}
         if tmap:
             for seq in a.seqs:
@@ -1627,10 +1627,10 @@ class SequenceAlignmentModel(Model):
 #
 def atomic_model_reader(filename):
     if filename.endswith('.cif'):
-        from chimerax.core.atomic.mmcif import open_mmcif
+        from chimerax.atomic.mmcif import open_mmcif
         return open_mmcif
     elif filename.endswith('.pdb'):
-        from chimerax.core.atomic.pdb import open_pdb
+        from chimerax.atomic.pdb import open_pdb
         return open_pdb
     return None
                 
@@ -1768,7 +1768,7 @@ def ensemble_sphere_lookup(emodel, smodel):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.atomic import Structure
+from chimerax.atomic import Structure
 class SphereModel(Structure):
     def __init__(self, session, name, ihm_model_id,
                  sphere_list = None, entity_names = {}, asym_detail_text = {}, asym_colors = {},
@@ -1798,7 +1798,7 @@ class SphereModel(Structure):
             spheres.sort(key = lambda bexr: bexr[0])
 
         # Create sphere atoms, residues and connecting pseudobonds
-        from chimerax.core.atomic import colors, Residues
+        from chimerax.atomic import colors, Residues
         polymers = []
         pbg = self.pseudobond_group('missing structure')
         sa = self._sphere_atom
@@ -1837,13 +1837,13 @@ class SphereModel(Structure):
     def copy(self, name = None):
         if name is None:
             name = self.name
-        from chimerax.core.atomic.molobject import StructureData
+        from chimerax.atomic.molobject import StructureData
         m = SphereModel(self.session, name, self.ihm_model_ids[0],
                         c_pointer = StructureData._copy(self))
         m.positions = self.positions
         if self._polymers:
             rmap = dict(zip(self.residues, m.residues))
-            from chimerax.core.atomic import Residues
+            from chimerax.atomic import Residues
             m._polymers = [Residues([rmap[r] for r in p]) for p in self._polymers]
         return m
     
@@ -1862,6 +1862,6 @@ class SphereModel(Structure):
                  consider_chains_ids = True):
         # This allows ribbons rendering for a Structure.
         # Usually only AtomicStructure supports ribbon rendering.
-        from chimerax.core.atomic import Residue
+        from chimerax.atomic import Residue
         polymer_type = Residue.PT_NONE
         return [(res, polymer_type) for res in self._polymers]

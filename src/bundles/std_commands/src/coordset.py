@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -96,8 +98,9 @@ def coordset_slider(session, structures, hold_steady = None,
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StructuresArg, ListOf
-    from chimerax.core.commands import IntArg, AtomsArg, BoolArg, Or, EmptyArg
+    from chimerax.core.commands import CmdDesc, register, ListOf
+    from chimerax.core.commands import IntArg, BoolArg, Or, EmptyArg
+    from chimerax.atomic import AtomsArg, StructuresArg
     desc = CmdDesc(
         required = [('structures', StructuresArg),
                     ('index_range', Or(IndexRangeArg,EmptyArg))],
@@ -186,6 +189,9 @@ class CoordinateSetPlayer:
                compute_ss = False):
 
     self.structure = structure
+    # structure deletes its 'session' attr when the structure is deleted,
+    # and we need it after deletion, so remember it separately
+    self.session = structure.session
     self.istart = istart
     self.iend = iend
     self.istep = istep
@@ -211,10 +217,11 @@ class CoordinateSetPlayer:
 
     if self._handler is None:
       return
-    t = self.structure.session.triggers
+    t = self.session.triggers
     t.remove_handler(self._handler)
     self._handler = None
     self.inext = None
+    delattr(self, 'session')
 
   def frame_cb(self, tname, tdata):
 

@@ -18,7 +18,7 @@ def call_c_plus_plus(cpp_func, structures, return_collection, *args):
     import os
     num_cpus = os.cpu_count() if not None else 1
 
-    from chimerax.core.atomic import Atom, Atoms, AtomicStructure
+    from chimerax.atomic import Atom, Atoms, AtomicStructure
     groups = []
     for structure in structures:
         if not isinstance(structure, AtomicStructure):
@@ -40,7 +40,7 @@ def call_c_plus_plus(cpp_func, structures, return_collection, *args):
 
 def collate_results(results, return_collection):
     if return_collection:
-        from chimerax.core.atomic.molarray import concatenate
+        from chimerax.atomic import concatenate
         return concatenate(results)
     ret_val = []
     for result in results:

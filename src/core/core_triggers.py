@@ -25,6 +25,7 @@ trigger_info = {
     "begin restore session": False,
     "begin save session": False,
     "clipping caps changed": False,
+    "command finished": False,
     "distance color changed": False,
     "distance dashes changed": False,
     "distance decimal places changed": False,

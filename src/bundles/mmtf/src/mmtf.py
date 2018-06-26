@@ -50,7 +50,7 @@ def open_mmtf(session, filename, name, auto_style=True, coordsets=False):
     from . import _mmtf
     pointers = _mmtf.parse_MMTF_file(filename, session.logger, coordsets)
 
-    from chimerax.core.atomic.structure import AtomicStructure
+    from chimerax.atomic.structure import AtomicStructure
     models = [AtomicStructure(session, name=name, c_pointer=p, auto_style=auto_style) for p in pointers]
     for m in models:
         m.filename = filename

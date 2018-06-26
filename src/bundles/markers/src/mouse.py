@@ -110,7 +110,7 @@ class MarkerMouseMode(MouseMode):
 
     def link_consecutive(self, event):
         s = self.session
-        from chimerax.core.atomic import selected_atoms
+        from chimerax.atomic import selected_atoms
         atoms1 = selected_atoms(s)
 
         a2 = self.picked_marker(event, select = True)
@@ -139,7 +139,7 @@ class MarkerMouseMode(MouseMode):
         from chimerax.ui.mousemodes import picked_object_on_segment, select_pick
         pick = picked_object_on_segment(xyz1, xyz2, self.session.main_view)
         m = l = None
-        from chimerax.core.atomic import PickedAtom, PickedBond
+        from chimerax.atomic import PickedAtom, PickedBond
         from .markers import MarkerSet
         if isinstance(pick, PickedAtom) and isinstance(pick.atom.structure, MarkerSet):
             m = pick.atom
@@ -197,7 +197,7 @@ class MarkerMouseMode(MouseMode):
         r = m.radius * scale
         m.radius = r
         s = _mouse_marker_settings(self.session)
-        from chimerax.core.atomic import Atom
+        from chimerax.atomic import Atom
         if isinstance(m, Atom):
             s['marker radius'] = r
         else:
@@ -415,7 +415,7 @@ def _mouse_place_marker(session, center, link_to_selected = False, select = True
     ms['next_marker_num'] += 1
     session.logger.status('Placed marker')
     if link_to_selected:
-        from chimerax.core.atomic import selected_atoms
+        from chimerax.atomic import selected_atoms
         atoms = selected_atoms(session)
         if len(atoms) == 1:
             al = atoms[0]

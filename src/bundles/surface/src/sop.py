@@ -85,8 +85,9 @@ def register_surface_subcommands(logger):
         }
     """
 
-    from chimerax.core.commands import CmdDesc, register, SurfacesArg, AtomsArg, FloatArg, \
+    from chimerax.core.commands import CmdDesc, register, SurfacesArg, FloatArg, \
         IntArg, BoolArg, EnumOf
+    from chimerax.atomic import AtomsArg
 
     from .dust import metrics
     dust_desc = CmdDesc(required = [('surfaces', SurfacesArg)],

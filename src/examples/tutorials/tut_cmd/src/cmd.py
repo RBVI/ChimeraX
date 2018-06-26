@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 from chimerax.core.commands import CmdDesc      # Command description
-from chimerax.core.commands import AtomsArg     # Collection of atoms argument
+from chimerax.atomic import AtomsArg            # Collection of atoms argument
 from chimerax.core.commands import BoolArg      # Boolean argument
 from chimerax.core.commands import ColorArg     # Color argument
 from chimerax.core.commands import IntArg       # Integer argument

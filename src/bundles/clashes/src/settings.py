@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.atomic import AtomicStructure
+from chimerax.atomic import AtomicStructure
 
 defaults = {
     "action_attr": False,

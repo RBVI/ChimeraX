@@ -114,7 +114,7 @@ class MolecularMotion:
                 global ht
                 ht += t1-t0
                 segments, atomMap = results
-                from chimerax.core.atomic import Residues, Atoms
+                from chimerax.atomic import Residues, Atoms
                 res_groups = [Residues(r0) for r0,r1 in segments]
                 if len(atomMap) < sm.num_atoms:
                         paired_atoms = Atoms(tuple(atomMap.keys()))

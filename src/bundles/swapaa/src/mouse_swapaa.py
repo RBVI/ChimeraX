@@ -37,7 +37,7 @@ class SwapAAMouseMode(MouseMode):
         tres = self._template_residues
         if tres:
             return
-        from chimerax.core.atomic.mmcif import fetch_mmcif
+        from chimerax.atomic.mmcif import fetch_mmcif
         models, status = fetch_mmcif(self.session, self._template_pdb_id, log_info = False)
         m = models[0]
         found = {}
@@ -85,7 +85,7 @@ class SwapAAMouseMode(MouseMode):
         return self._residue_from_pick(pick)
 
     def _residue_from_pick(self, pick):
-        from chimerax.core.atomic import PickedAtom, PickedBond, PickedResidue
+        from chimerax.atomic import PickedAtom, PickedBond, PickedResidue
         if isinstance(pick, PickedAtom):
             r = pick.atom.residue
         elif isinstance(pick, PickedBond):
@@ -120,7 +120,7 @@ class SwapAAMouseMode(MouseMode):
 
         # Delete atoms.  Backbone atom HA is deleted if new residues is GLY.
         akeep = set(self._keep_atom_names).intersection(new_r.atoms.names)
-        from chimerax.core.atomic import Atoms
+        from chimerax.atomic import Atoms
         adel = Atoms([a for a in r.atoms if a.name not in akeep])
         adel.delete()
 
@@ -130,7 +130,7 @@ class SwapAAMouseMode(MouseMode):
         # Set new atom b-factors to average of previous residue backbone atom b-factors.
         bbf = [a.bfactor for a in r.atoms]
         bfactor = sum(bbf)/len(bbf) if bbf else 0
-        from chimerax.core.atomic.colors import element_color
+        from chimerax.atomic.colors import element_color
         for a in new_r.atoms:
             if a.name not in akept:
                 if a.element.name != 'H' or add_hydrogens:
@@ -166,7 +166,7 @@ class SwapAAMouseMode(MouseMode):
         for a in r.atoms:
             if a.element.name == 'C':
                 return a.color
-        from chimerax.core.atomic.colors import element_color
+        from chimerax.atomic.colors import element_color
         return element_color(6)
     
     def _has_alignment_atoms(self, r):
@@ -210,7 +210,7 @@ class SwapAAMouseMode(MouseMode):
         la = [a for a in r.atoms if a.name == self._label_atom_name]
         from chimerax.core.objects import Objects
         if len(la) == 1:
-            from chimerax.core.atomic import Atoms
+            from chimerax.atomic import Atoms
             objects = Objects(atoms = Atoms(la))
             otype = 'atoms'
         else:

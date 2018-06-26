@@ -118,9 +118,6 @@ as much as possible:
 + list of :py:class:`int`       | ``IntsArg``                           |
 +-------------------------------+---------------------------------------+
 
-.. MoleculeArg(s):
-.. MoleculesArg(s, min = 0):
-.. AtomsArg(s):
 .. ModelArg(s):
 .. ModelsArg(s):
 .. SpecifierArg(s):
@@ -958,7 +955,8 @@ def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
                 raise AnnotationError("No %s selected by browsing" % item_kind)
             path = paths[0]
         else:
-            raise AnnotationError("%s browsing cancelled" % item_kind.capitalize())
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
         text = path
     return path, text, rest
 
@@ -1060,105 +1058,6 @@ class ObjectsArg(AtomSpecArg):
         return objects, text, rest
 
 
-class AtomsArg(AtomSpecArg):
-    """Parse command atoms specifier"""
-    name = "an atoms specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        atoms = aspec.evaluate(session).atoms
-        atoms.spec = str(aspec)
-        return atoms, text, rest
-
-
-class UniqueChainsArg(AtomSpecArg):
-    """Parse command atoms specifier"""
-    name = "an atoms specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        chains = aspec.evaluate(session).atoms.residues.unique_chains
-        chains.spec = str(aspec)
-        return chains, text, rest
-
-
-class StructuresArg(AtomSpecArg):
-    """Parse command structures specifier"""
-    name = "a structures specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import Structure
-        mols = [m for m in models if isinstance(m, Structure)]
-        return mols, text, rest
-
-
-class AtomicStructuresArg(AtomSpecArg):
-    """Parse command atomic structures specifier"""
-    name = "an atomic structures specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import AtomicStructure, AtomicStructures
-        mols = [m for m in models if isinstance(m, AtomicStructure)]
-        return AtomicStructures(mols), text, rest
-
-
-class PseudobondGroupsArg(AtomSpecArg):
-    """Parse command atom specifier for pseudobond groups"""
-    name = 'a pseudobond groups specifier'
-
-    @classmethod
-    def parse(cls, text, session):
-        value, used, rest = super().parse(text, session)
-        models = value.evaluate(session).models
-        from ..atomic import PseudobondGroup
-        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
-        return pbgs, used, rest
-
-
-class PseudobondsArg(ObjectsArg):
-    """Parse command specifier for pseudobonds"""
-    name = 'a pseudobonds specifier'
-
-    @classmethod
-    def parse(cls, text, session):
-        objects, used, rest = super().parse(text, session)
-        from ..atomic import interatom_pseudobonds, Pseudobonds, concatenate
-        apb = interatom_pseudobonds(objects.atoms)
-        opb = objects.pseudobonds
-        pbonds = concatenate([apb, opb], Pseudobonds, remove_duplicates=True)
-        return pbonds, used, rest
-
-
-class BondsArg(ObjectsArg):
-    """Parse command specifier for bonds"""
-    name = 'a bonds specifier'
-
-    @classmethod
-    def parse(cls, text, session):
-        objects, used, rest = super().parse(text, session)
-        bonds = objects.bonds
-        return bonds, used, rest
-
-
-class BondArg(BondsArg):
-    """Parse command specifier for a bond"""
-    name = 'a bond specifier'
-
-    @classmethod
-    def parse(cls, text, session):
-        bonds, used, rest = super().parse(text, session)
-        if len(bonds) != 1:
-            raise AnnotationError("Must specify exactly one bond (specified %d)" % len(bonds))
-        return bonds[0], used, rest
-
 
 class ModelArg(AtomSpecArg):
     """Parse command model specifier"""
@@ -1171,19 +1070,6 @@ class ModelArg(AtomSpecArg):
         if len(models) != 1:
             raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
         return tuple(models)[0], text, rest
-
-
-class StructureArg(ModelArg):
-    """Parse command structure specifier"""
-    name = "a structure specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        m, text, rest = super().parse(text, session)
-        from ..atomic import Structure
-        if not isinstance(m, Structure):
-            raise AnnotationError('Specified model is not a Structure')
-        return m, text, rest
 
 
 class SurfacesArg(ModelsArg):
@@ -1248,6 +1134,7 @@ class AxisArg(Annotation):
         # Two atoms or a bond.
         if axis is None:
             try:
+                from chimerax.atomic import AtomsArg
                 atoms, atext, rest = AtomsArg.parse(text, session)
             except:
                 pass
@@ -2685,8 +2572,7 @@ class Command:
                 results.append(ci.function(session, *args, optional=optional,
                                _used_aliases=used_aliases, log=log))
             if session is not None:
-                from .. import atomic
-                atomic.check_for_changes(session)
+                session.triggers.activate_trigger("command finished", text)
 
             self.command_name = None
             self._ci = None

@@ -85,7 +85,8 @@ def _rock_step(frame, rock):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg, AtomsArg
+    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         optional= [('axis', AxisArg),
                    ('angle', FloatArg),

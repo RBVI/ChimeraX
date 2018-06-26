@@ -572,7 +572,7 @@ def polygons(mset):
 #
 def selected_edges(session):
 
-    from chimerax.core.atomic import selected_bonds
+    from chimerax.atomic import selected_bonds
     bonds = selected_bonds(session)
     from numpy import array, bool
     cbonds = bonds.filter(array([hasattr(b, 'polygon') for b in bonds], bool))
@@ -582,7 +582,7 @@ def selected_edges(session):
 #
 def selected_vertices(session):
 
-    from chimerax.core.atomic import selected_atoms
+    from chimerax.atomic import selected_atoms
     atoms = selected_atoms(session)
     from numpy import array, bool
     catoms = atoms.filter(array([hasattr(a, 'polygon') for a in atoms], bool))
@@ -619,7 +619,7 @@ def selected_cages():
 # -----------------------------------------------------------------------------
 #
 def new_marker_set(session, name):
-    from chimerax.core.atomic import Structure
+    from chimerax.atomic import Structure
     m = Structure(session, name = name)
     m.ball_scale = 1.0
     session.models.add([m])
@@ -656,7 +656,7 @@ def add_link(a1, a2, color, radius):
 # -----------------------------------------------------------------------------
 #
 def cage_marker_sets(session):
-    from chimerax.core.atomic import Structure
+    from chimerax.atomic import Structure
     return [m for m in session.models.list(type = Structure) if m.name == 'Cage']
     
 # -----------------------------------------------------------------------------

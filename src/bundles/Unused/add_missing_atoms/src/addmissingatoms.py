@@ -94,7 +94,8 @@ def minimize(pf, steps = 500, platform_name = 'CPU'):
     pf.positions = state.getPositions()
     
 def register_addmissingatoms_command(logger):
-    from chimerax.core.commands import CmdDesc, register, AtomicStructuresArg, BoolArg, IntArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg
+	from chimerax.atomic import AtomicStructuresArg
     desc = CmdDesc(
         required = [('structures', AtomicStructuresArg)],
         keyword = [('minimization_steps', IntArg),

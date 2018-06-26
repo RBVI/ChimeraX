@@ -24,7 +24,7 @@ def findclash(session, spec=None, make_pseudobonds=False, log=True,
               hbond_allowance=0.4, bond_separation=4, test="other",
               intra_residue=False):
     from chimerax.core.errors import LimitationError
-    from chimerax.core.atomic import Atoms
+    from chimerax.atomic import Atoms
     from chimerax.core.commands import atomspec
     from chimerax.core.core_settings import settings
     if test != "self":
@@ -97,7 +97,7 @@ findclash_desc = CmdDesc(required=[("spec", AtomSpecArg)],
 def _find_neighbors(atoms, separation):
     # Find neighboring atoms within "separation" bonds
     # Return as a dictionary of Atoms
-    from chimerax.core.atomic import Atoms
+    from chimerax.atomic import Atoms
     m = {}
     for a in atoms:
         neighbors = set()

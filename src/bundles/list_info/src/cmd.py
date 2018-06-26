@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, StructuresArg, ModelsArg, ListOf
+from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, ModelsArg, ListOf
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_attr, report_distmat
 
@@ -108,7 +108,7 @@ def info_polymers(session, atoms=None):
     results = atoms.evaluate(session)
     polymers = []
     residues = results.atoms.unique_residues
-    from chimerax.core.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure
     for m in results.atoms.unique_structures:
         try:
             for p, ptype in m.polymers(AtomicStructure.PMS_TRACE_CONNECTS, False):
@@ -152,14 +152,14 @@ def info_selection(session, level=None, attribute=None):
             attribute = "idatm_type"
         atoms = session.selection.items("atoms")
         if atoms:
-            from chimerax.core.atomic.molarray import concatenate
+            from chimerax.atomic import concatenate
             report_atoms(session.logger, concatenate(atoms), attribute)
     elif level == "residue":
         if attribute is None:
             attribute = "name"
         atoms = session.selection.items("atoms")
         if atoms:
-            from chimerax.core.atomic.molarray import concatenate
+            from chimerax.atomic import concatenate
             residues = concatenate([a.unique_residues for a in atoms])
             report_residues(session.logger, residues, attribute)
     elif level == "chain":
@@ -167,7 +167,7 @@ def info_selection(session, level=None, attribute=None):
             attribute = "chain_id"
         atoms = session.selection.items("atoms")
         if atoms:
-            from chimerax.core.atomic.molarray import concatenate
+            from chimerax.atomic import concatenate
             chains = concatenate([a.unique_chains for a in atoms])
             report_chains(session.logger, chains, attribute)
     elif level == "structure":
@@ -175,7 +175,7 @@ def info_selection(session, level=None, attribute=None):
             attribute = "name"
         atoms = session.selection.items("atoms")
         if atoms:
-            from chimerax.core.atomic.molarray import concatenate
+            from chimerax.atomic import concatenate
             mols = concatenate([a.unique_structures for a in atoms])
             report_models(session.logger, mols, attribute)
     elif level == "model":
@@ -200,19 +200,19 @@ def _type_attrs(t):
     return attrs
 
 def info_atomattr(session):
-    from chimerax.core.atomic import Atom
+    from chimerax.atomic import Atom
     for a in _type_attrs(Atom):
         report_attr(session.logger, "atom", a)
 info_atomattr_desc = CmdDesc(synopsis="Report atom attribute information")
 
 def info_bondattr(session):
-    from chimerax.core.atomic import Bond
+    from chimerax.atomic import Bond
     for a in _type_attrs(Bond):
         report_attr(session.logger, "bond", a)
 info_bondattr_desc = CmdDesc(synopsis="Report bond attribute information")
 
 def info_resattr(session):
-    from chimerax.core.atomic import Residue
+    from chimerax.atomic import Residue
     for a in _type_attrs(Residue):
         report_attr(session.logger, "res", a)
 info_resattr_desc = CmdDesc(synopsis="Report residue attribute information")

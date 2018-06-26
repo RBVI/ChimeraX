@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-MD-crds" version="1.0"
-	    package="chimerax.md_crds"
+	    package="chimerax.atomic.md_crds"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

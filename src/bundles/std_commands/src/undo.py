@@ -16,9 +16,10 @@ def undo(session):
     '''Undo last undoable action.
     '''
     try:
-        session.undo.undo()
+        session.undo.undo(silent=False)
     except IndexError:
-        session.logger.error("No undo action is available")
+        from chimerax.core.errors import UserError
+        raise UserError("No undo action is available")
 
 
 def undo_list(session):
@@ -62,9 +63,10 @@ def redo(session):
     '''Redo last undone action.
     '''
     try:
-        session.undo.redo()
+        session.undo.redo(silent=False)
     except IndexError:
-        session.logger.error("No redo action is available")
+        from chimerax.core.errors import UserError
+        raise UserError("No redo action is available")
 
 
 def register_command(logger):

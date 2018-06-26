@@ -157,7 +157,7 @@ class Fit_List:
         # TODO: Want to be able to update clash value when contour level
         #   changed.  Currently it is cached in Fit object.
         mname = fit.models[0].name if fit.models else 'deleted'
-        from chimerax.core.atomic import Structure
+        from chimerax.atomic import Structure
         if len([m for m in fit.models if isinstance(m,Structure)]) > 1:
             mname += '...'
 
