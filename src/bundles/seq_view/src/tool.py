@@ -480,7 +480,7 @@ class SequenceViewer(ToolInstance):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
-        save_as_menu = menu.addMenu("Save as...")
+        save_as_menu = menu.addMenu("Save as")
         save_as_menu.kludge_refs = []
         from chimerax.core import io
         from chimerax.core.commands import run, quote_if_necessary
