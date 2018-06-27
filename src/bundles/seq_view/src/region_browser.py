@@ -841,11 +841,12 @@ class RegionBrowser:
                 comment_pos = line.find(comment_intro)
                 if comment_pos >= 0:
                     break
+            comment = None
             if comment_pos >= 0:
                 comment = line[comment_pos + len(comment_intro):].strip()
                 line = line[:comment_pos].strip()
-            else:
-                comment = None
+            if not comment:
+                comment = "SCF region"
 
             try:
                 pos1, pos2, seq1, seq2, r, g, b = [int(x) for x in line.split()]
@@ -880,9 +881,14 @@ class RegionBrowser:
 
         if not region_info:
             raise UserError("No annotations found in %s" % path)
+        if isinstance(path, str):
+            import os.path
+            source = os.path.basename(path)
+        else:
+            source = "SCF data"
         for rbg_comment, blocks in region_info.items():
             rgb, comment = rbg_comment
-            region = self.new_region(name_prefix="Seqsel: ",
+            region = self.new_region(source=source,
                 blocks=blocks, name=comment, fill=[c/255.0 for c in rgb], cover_gaps=True)
             if not color_structures:
                 continue
