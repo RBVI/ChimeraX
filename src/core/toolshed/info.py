@@ -478,7 +478,10 @@ class BundleInfo:
     def get_path(self, subpath):
         import os
         m = self.get_module()
-        directory = os.path.dirname(m.__file__)
+        try:
+            directory = os.path.dirname(m.__file__)
+        except AttributeError:
+            return None
         path = os.path.join(directory, subpath)
         if os.path.exists(path):
             return path

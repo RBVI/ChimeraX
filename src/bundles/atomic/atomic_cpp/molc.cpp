@@ -2899,10 +2899,10 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 && r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
                     // "peptide_planes" are relative to the previous
                     // residue, so the i'th element is the peptide
-                    // plane between centers[i] and centers[i+1].
+                    // plane between centers[i-1] and centers[i].
                     // We want to average (i-1,i) and (i,i+1).
-                    const float* prev_pp = peptide_planes[i-1].normal;
-                    const float* this_pp = peptide_planes[i].normal;
+                    const float* prev_pp = peptide_planes[i].normal;
+                    const float* this_pp = peptide_planes[i+1].normal;
                     cross(prev_pp, this_pp, guide);
                     if (normalize(guide)) {
                         guide[0] += center[0];
