@@ -102,7 +102,6 @@ class _AtomicBundleAPI(BundleAPI):
         def callback(name, session=session):
             structures = [m for m in session.models if isinstance(m, Structure)]
             kw = {'set_lighting': len(structures) < 2}
-            print("'name' arg is:", name)
             if name in name_mapping:
                 kw['style'] = name_mapping[name]
             from .nucleotides.cmd import nucleotides
