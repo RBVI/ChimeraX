@@ -18,6 +18,9 @@ from chimerax.core.toolshed import BundleAPI
 
 class _PDBioAPI(BundleAPI):
 
+    from chimerax.core.commands import EnumOf
+    SerialNumberingArg = EnumOf(("amber","h36"))
+
     @staticmethod
     def fetch_from_database(session, identifier, ignore_cache=False, database_name=None,
             format_name=None, **kw):

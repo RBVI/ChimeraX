@@ -811,6 +811,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
+        help_menu.setObjectName("Help") # so custom-menu insertion can find it
 
     def update_favorites_menu(self, session):
         from PyQt5.QtWidgets import QAction
@@ -893,13 +894,13 @@ class MainWindow(QMainWindow, PlainTextLog):
             menu = QMenu(menu_name, mb)
             menu.setToolTipsVisible(True)
             menu.setObjectName(menu_name)	# Need for findChild() above to work.
-        
+
         action = QAction(entry_name, self)
         action.triggered.connect(lambda arg, cb = callback: cb())
         menu.addAction(action)
         if add:
-            # Add menu after adding entry otherwise it is not shown on Mac.
-            mb.addMenu(menu)
+            # Insert menu after adding entry otherwise it is not shown on Mac.
+            mb.insertMenu(mb.findChild(QMenu, "Help").menuAction(), menu)
 
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance

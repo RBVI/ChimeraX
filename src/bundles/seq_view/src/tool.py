@@ -460,7 +460,8 @@ class SequenceViewer(ToolInstance):
         elif note_name == "destroyed":
             self.delete()
         elif note_name == "command":
-            print("TODO: parse this text as command: '%s'" % note_data)
+            from .cmd import run
+            run(self.session, self, note_data)
 
     def delete(self):
         self.region_browser.destroy()
@@ -479,7 +480,7 @@ class SequenceViewer(ToolInstance):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
-        save_as_menu = menu.addMenu("Save As")
+        save_as_menu = menu.addMenu("Save as")
         save_as_menu.kludge_refs = []
         from chimerax.core import io
         from chimerax.core.commands import run, quote_if_necessary
@@ -497,7 +498,7 @@ class SequenceViewer(ToolInstance):
         menu.kludge_refs.append(settings_action)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
-        scf_action = QAction("Load Sequence Coloring File...")
+        scf_action = QAction("Load sequence coloring file...")
         menu.kludge_refs.append(scf_action)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
         menu.addAction(scf_action)

@@ -545,7 +545,7 @@ class Toolshed:
         except PermissionError as e:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
-                         (bundle.name, who))
+                         (bundle, who))
             return
         installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
         if installed:

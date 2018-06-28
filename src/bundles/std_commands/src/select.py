@@ -206,6 +206,7 @@ def _atoms_bonds_models(objects, full_residues = False):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ObjectsArg, NoArg, create_alias, BoolArg
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
                    keyword=[('residues', BoolArg),
                             ('polymer', AtomsArg)],

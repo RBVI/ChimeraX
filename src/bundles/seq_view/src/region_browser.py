@@ -805,7 +805,8 @@ class RegionBrowser:
             dlg.setNameFilter("SCF files (*.scf *.seqsel)")
             from PyQt5.QtWidgets import QCheckBox
             cbox = QCheckBox("Also color associated structures")
-            settings = self.seq_canvas.sv.settings
+            sv = self.seq_canvas.sv
+            settings = sv.settings
             cbox.setChecked(settings.scf_colors_structures)
             from PyQt5.QtWidgets import QHBoxLayout
             layout = QHBoxLayout()
@@ -815,7 +816,11 @@ class RegionBrowser:
             if path is None:
                 return
             settings.scf_colors_structures = cbox.isChecked()
-            self.load_scf_file(path, color_structures=settings.scf_colors_structures)
+            from chimerax.core.commands import quote_if_necessary as q_if, run
+            from . import subcommand_name
+            run(self.tool_window.session, "sequence %s %s scfLoad %s color %s"
+                % (subcommand_name, q_if(sv.alignment.ident),
+                q_if(path), settings.scf_colors_structures))
             return
 
         if color_structures is None:
@@ -836,11 +841,12 @@ class RegionBrowser:
                 comment_pos = line.find(comment_intro)
                 if comment_pos >= 0:
                     break
+            comment = None
             if comment_pos >= 0:
                 comment = line[comment_pos + len(comment_intro):].strip()
                 line = line[:comment_pos].strip()
-            else:
-                comment = None
+            if not comment:
+                comment = "SCF region"
 
             try:
                 pos1, pos2, seq1, seq2, r, g, b = [int(x) for x in line.split()]
@@ -875,16 +881,22 @@ class RegionBrowser:
 
         if not region_info:
             raise UserError("No annotations found in %s" % path)
+        if isinstance(path, str):
+            import os.path
+            source = os.path.basename(path)
+        else:
+            source = "SCF data"
         for rbg_comment, blocks in region_info.items():
             rgb, comment = rbg_comment
-            region = self.new_region(name_prefix="Seqsel: ",
+            region = self.new_region(source=source,
                 blocks=blocks, name=comment, fill=[c/255.0 for c in rgb], cover_gaps=True)
             if not color_structures:
                 continue
+            rgba = list(rgb) + [255]
             for res in self.region_residues(region):
-                res.ribbonColor = rgb
+                res.ribbon_color = rgba
                 for a in res.atoms:
-                    a.color = rgb
+                    a.color = rgba
         self.seq_canvas.sv.status("%d scf regions created" % len(region_info))
 
     """

@@ -926,9 +926,12 @@ class AttrNameArg(StringArg):
 class FileNameArg(Annotation):
     """Base class for Open/SaveFileNameArg"""
     name = "a file name"
+    # name_filter should be a string compatible with QFileDialog.setNameFilter(),
+    # or None (which means all ChimeraX-openable types)
+    name_filter = None
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         token, text, rest = StringArg.parse(text, session)
         import os.path
         return os.path.expanduser(token), text, rest
@@ -937,7 +940,7 @@ class FileNameArg(Annotation):
 _browse_string = "browse"
 
 
-def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
+def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode):
     path, text, rest = FileNameArg.parse(text, session)
     if path == _browse_string:
         if not session.ui.is_gui:
@@ -945,7 +948,9 @@ def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
         from PyQt5.QtWidgets import QFileDialog
         dlg = QFileDialog()
         dlg.setAcceptMode(accept_mode)
-        if accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
+        if name_filter is not None:
+            dlg.setNameFilter(name_filter)
+        elif accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
             from chimerax.ui.open_save import open_file_filter
             dlg.setNameFilter(open_file_filter(all=True))
         dlg.setFileMode(dialog_mode)
@@ -965,58 +970,56 @@ class OpenFileNameArg(FileNameArg):
     """Annotation for a file to open"""
     name = "name of a file to open/read"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         if session.ui.is_gui:
             from PyQt5.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
 
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
     name = "name of a file to save/write"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         if session.ui.is_gui:
             from PyQt5.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
 
 
 class OpenFolderNameArg(FileNameArg):
     """Annotation for a folder to open from"""
     name = "name of a folder to open/read"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         if session.ui.is_gui:
             from PyQt5.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(
-            text, session, "folder", accept_mode, dialog_mode)
+        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
 
 
 class SaveFolderNameArg(FileNameArg):
     """Annotation for a folder to save to"""
     name = "name of a folder to save/write"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         if session.ui.is_gui:
             from PyQt5.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(
-            text, session, "folder", accept_mode, dialog_mode)
+        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
 
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here
