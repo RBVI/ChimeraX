@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .mmcif import get_mmcif_tables, get_mmcif_tables_from_metadata
-from .mmcif import fetch_mmcif
+from .mmcif import open_mmcif, fetch_mmcif
 
 from chimerax.core.toolshed import BundleAPI
 

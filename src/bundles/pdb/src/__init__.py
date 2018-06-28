@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .pdb import open_pdb
 from .pdb import process_chem_name
 
 from chimerax.core.toolshed import BundleAPI
