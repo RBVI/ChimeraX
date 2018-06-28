@@ -149,8 +149,8 @@ class IHMModel(Model):
                        'ihm_2dem_class_average_fitting', # 2D EM orientation relative to model
                        'ihm_3dem_restraint',		# 3d electron microscopy
                        ]
-        from chimerax.atomic.mmcif import mmcif
-        table_list = mmcif.get_mmcif_tables(filename, table_names)
+        from chimerax.atomic.mmcif import get_mmcif_tables
+        table_list = get_mmcif_tables(filename, table_names)
         tables = dict(zip(table_names, table_list))
         return tables
 
@@ -605,7 +605,7 @@ class IHMModel(Model):
                 fstream = finfo.stream(self.session, uncompress = True)
                 if fstream is None:
                     continue
-                from chimerax.atomic.pdb.pdb import open_pdb
+                from chimerax.atomic.pdb import open_pdb
                 mlist,msg = open_pdb(self.session, fstream, mname,
                                      auto_style = False, coordsets = True)
                 sm = mlist[0]
@@ -664,7 +664,7 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def read_atomic_models(self, path, mgroup):
-        from chimerax.atomic.mmcif.mmcif import open_mmcif
+        from chimerax.atomic.mmcif import open_mmcif
         models, msg = open_mmcif(self.session, path, auto_style = False)
 
         # Assign IHM model ids.
@@ -1286,7 +1286,7 @@ class DatabaseDataSet(DataSet):
         self.db_code = db_code
     def models(self, session):
         if self.db_name == 'PDB' and self.db_code != '?':
-            from chimerax.atomic.mmcif.mmcif import fetch_mmcif
+            from chimerax.atomic.mmcif import fetch_mmcif
             models, msg = fetch_mmcif(session, self.db_code, auto_style = False, log_info = False)
         else:
             models = []
@@ -1627,10 +1627,10 @@ class SequenceAlignmentModel(Model):
 #
 def atomic_model_reader(filename):
     if filename.endswith('.cif'):
-        from chimerax.atomic.mmcif.mmcif import open_mmcif
+        from chimerax.atomic.mmcif import open_mmcif
         return open_mmcif
     elif filename.endswith('.pdb'):
-        from chimerax.atomic.pdb.pdb import open_pdb
+        from chimerax.atomic.pdb import open_pdb
         return open_pdb
     return None
                 
