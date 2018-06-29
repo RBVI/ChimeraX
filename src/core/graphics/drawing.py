@@ -143,7 +143,7 @@ class Drawing:
         """Transformation mapping vertex coordinates to ambient_texture
         coordinates, a geometry.Place object."""
 
-        self.opaque_texture = False
+        self.opaque_texture = True
         "Whether the texture for surface coloring is opaque or transparent."
 
         self.use_lighting = True
@@ -1842,7 +1842,7 @@ class PickedInstance(Pick):
         d.selected_positions = pmask
 
 
-def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2)):
+def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True):
     '''
     Make a drawing that is a single rectangle with a texture to show an
     RGBA image on it.
@@ -1850,6 +1850,7 @@ def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2)):
     from . import opengl
     t = opengl.Texture(rgba)
     d = _texture_drawing(t, pos, size, drawing)
+    d.opaque_texture = opaque
     return d
 
 def position_rgba_drawing(drawing, pos, size):
