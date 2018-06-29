@@ -727,12 +727,11 @@ class EnumOf(Annotation):
         folded = token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
-            if self.allow_truncated:
+            if ident.casefold() == folded:
+                return self.values[i], ident, rest
+            elif self.allow_truncated:
                 if ident.casefold().startswith(folded):
                     matches.append((i, ident))
-            else:
-                if ident.casefold() == folded:
-                    return self.values[i], ident, rest
         if len(matches) == 1:
             i, ident = matches[0]
             return self.values[i], ident, rest
