@@ -141,7 +141,7 @@ class Volume(Model):
   #
   def added_to_session(self, session):
     if len(session.models.list()) == 1:
-      from chimerax.core.commands.lighting import lighting
+      from chimerax.std_commands.lighting import lighting
       lighting(session, 'full')	# Use full lighting for initial map display
 
   # ---------------------------------------------------------------------------
