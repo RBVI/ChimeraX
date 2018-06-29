@@ -13,7 +13,7 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 NO_SUBDIR_TEST=1
-SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
+SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp \
 	   chutil_cpp commands \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
@@ -108,8 +108,6 @@ _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx
 
 _appdirs.install: appdirs_cpp.install
-atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install \
-	logger_cpp.install pysupport_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
 surface.install: arrays_cpp.install

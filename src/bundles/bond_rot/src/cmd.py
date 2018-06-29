@@ -48,7 +48,8 @@ def cmd_xtorsion(session, ident):
 
 def register_command(command_name, logger):
     from chimerax.core.commands \
-        import CmdDesc, register, BondArg, IntArg, Or, EmptyArg, EnumOf, create_alias
+        import CmdDesc, register, IntArg, Or, EmptyArg, EnumOf, create_alias
+    from chimerax.atomic import BondArg
     if command_name == "torsion create":
         desc = CmdDesc(required=[('ident', Or(IntArg,EmptyArg)), ('bond', BondArg)],
             keyword = [('move', EnumOf(("large","small")))],

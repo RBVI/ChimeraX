@@ -134,7 +134,7 @@ class MouseMode:
         '''
         v = self.view
         psize = v.pixel_size(center)
-        b = v.drawing_bounds()
+        b = v.drawing_bounds(cached_only = True)
         if not b is None:
             w = b.width()
             psize = max(psize, w*min_scene_frac)
@@ -887,7 +887,7 @@ class LabelMode(MouseMode):
             return
         from chimerax.core.objects import Objects
         objects = Objects()
-        from chimerax.core import atomic
+        from chimerax import atomic
         if isinstance(pick, atomic.PickedAtom):
             objects.add_atoms(pick.atom.residue.atoms)
             object_type = 'residues'

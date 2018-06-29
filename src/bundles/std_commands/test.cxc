@@ -90,6 +90,7 @@ split #1 atoms :1-18 atoms :19-36
 time echo hi
 transparency 50 atoms
 turn x 30
+color red
 undo
 redo
 usage usage

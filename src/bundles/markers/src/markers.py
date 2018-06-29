@@ -11,11 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.atomic import Structure
+from chimerax.atomic import Structure
 class MarkerSet(Structure):
 
     def __init__(self, session, name = 'markers'):
-        from chimerax.core.atomic import Structure
         Structure.__init__(self, session, name = name, auto_style = False)
         self.ball_scale = 1.0
 

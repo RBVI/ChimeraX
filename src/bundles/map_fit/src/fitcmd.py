@@ -191,13 +191,13 @@ def atoms_and_map(atoms_or_map, resolution, move_whole_molecules,
                 else:
                     raise UserError('Fit sequence requires 2 or more maps to place')
         else:
-            from chimerax.core.atomic import Structure
+            from chimerax.atomic import Structure
             mlist = [m for m in atoms_or_map.models if isinstance(m, Structure)]
             if len(mlist) == 0:
                 raise UserError('No molecules specified for fitting')
             from . import fitmap as F
             vlist = [F.simulated_map(m.atoms, resolution, session) for m in mlist]
-        from chimerax.core.atomic import Atoms
+        from chimerax.atomic import Atoms
         return [(Atoms(), vlist)]
 
     atoms = atoms_or_map.atoms
@@ -531,7 +531,7 @@ def report_status(log):
 #
 def register_fitmap_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, AtomsArg, ObjectsArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, ObjectsArg
     from ..mapargs import MapArg
 
     fitmap_desc = CmdDesc(

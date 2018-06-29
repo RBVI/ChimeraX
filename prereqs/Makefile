@@ -125,7 +125,7 @@ endif
 SUBDIRS	+= imex msgpack numexpr numpy openmm \
 	   pcre pips \
 	   PyOpenGL PyQt Python \
-	   scipy setuptools wrappy3
+	   scipy wrappy3
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -175,9 +175,6 @@ app-install: $(SUBDIR_APP_INSTALL)
 $(SUBDIR_APP_INSTALL):
 	$(MAKE) -C $(subst .app-install,,$@) app-install
 $(SUBDIR_APP_INSTALL): build-app-dirs
-# do Python first
-#$(subst setuptools.app-install,,$(subst Python.app-install,,$(SUBDIR_APP_INSTALL))): setuptools.app-install
-setuptools.app-install: Python.app-install
 
 # Whole platform dependencies
 ifdef WIN32
@@ -194,39 +191,37 @@ endif
 ffmpeg.install: p7zip.install pkgconfig.install libtool.install
 hdf5.app-install: zlib.app-install chrpath.app-install
 hdf5.install: zlib.install chrpath.install
-leapmotion.app-install: setuptools.app-install
-leapmotion.install: setuptools.install
+leapmotion.app-install: Python.app-install
+leapmotion.install: Python.install
 llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
-msgpack.app-install: setuptools.app-install
-msgpack.install: setuptools.install
-numexpr.app-install: setuptools.app-install numpy.app-install pips.app-install
-numexpr.install: setuptools.install numpy.install pips.install
+msgpack.app-install: Python.app-install
+msgpack.install: Python.install
+numexpr.app-install: Python.app-install numpy.app-install pips.app-install
+numexpr.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
 openmm.install: Python.install numpy.install pips.install
 openssl.app-install: chrpath.app-install
 openssl.install: chrpath.install
 pcre.app-install: zlib.app-install chrpath.app-install
 pcre.install: zlib.install chrpath.install
-pillow.app-install: setuptools.app-install zlib.app-install
-pillow.install: setuptools.install zlib.install
-pips.app-install: setuptools.app-install
-pips.install: setuptools.install
-PyOpenGL.app-install: setuptools.app-install pips.app-install
-PyOpenGL.install: setuptools.install pips.install
-PyQt.app-install: setuptools.app-install openssl.app-install zlib.app-install
-PyQt.install: setuptools.install openssl.install zlib.install
-pythomnic3k.app-install: setuptools.app-install
-pythomnic3k.install: setuptools.install
+pillow.app-install: Python.app-install zlib.app-install
+pillow.install: Python.install zlib.install
+pips.app-install: Python.app-install
+pips.install: Python.install
+PyOpenGL.app-install: Python.app-install pips.app-install
+PyOpenGL.install: Python.install pips.install
+PyQt.app-install: Python.app-install openssl.app-install zlib.app-install
+PyQt.install: Python.install openssl.install zlib.install
+pythomnic3k.app-install: Python.app-install
+pythomnic3k.install: Python.install
 Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
 Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
-scipy.app-install: setuptools.app-install numpy.app-install
-scipy.install: setuptools.install numpy.install
-setuptools.app-install: Python.app-install
-setuptools.install: Python.install
-wrappy3.app-install: pcre.app-install setuptools.app-install
-wrappy3.install: pcre.install setuptools.install
-xml2.app-install: setuptools.app-install zlib.app-install
-xml2.install: setuptools.install zlib.install
+scipy.app-install: Python.app-install numpy.app-install
+scipy.install: Python.install numpy.install
+wrappy3.app-install: pcre.app-install Python.app-install
+wrappy3.install: pcre.install Python.install
+xml2.app-install: Python.app-install zlib.app-install
+xml2.install: Python.install zlib.install
 xslt.app-install: xml2.app-install
 xslt.install: xml2.install

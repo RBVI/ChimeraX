@@ -36,7 +36,7 @@ class Alignment(State):
         self._viewer_notification_suspended = 0
         self._vn_suspended_data = []
         self.associations = {}
-        from chimerax.core.atomic import Chain
+        from chimerax.atomic import Chain
         self.intrinsic = intrinsic
         self._in_destroy = False
         for i, seq in enumerate(seqs):
@@ -48,7 +48,7 @@ class Alignment(State):
             self.associate(None, keep_intrinsic=True)
             self.auto_associate = False
         elif self.auto_associate:
-            from chimerax.core.atomic import AtomicStructure
+            from chimerax.atomic import AtomicStructure
             if self.auto_associate == "session":
                 self.auto_associate = True
             else:
@@ -82,7 +82,7 @@ class Alignment(State):
 
         if not keep_intrinsic:
             self.intrinsic = False
-        from chimerax.core.atomic import Sequence, Chain, StructureSeq, AtomicStructure, \
+        from chimerax.atomic import Sequence, Chain, StructureSeq, AtomicStructure, \
             SeqMatchMap, estimate_assoc_params, StructAssocError, try_assoc
         from .settings import settings
         status = self.session.logger.status
@@ -302,7 +302,7 @@ class Alignment(State):
         def _delay_disassoc(_, __, match_map=match_map, reassoc=reassoc, sseq=sseq, aseq=aseq):
             self._notify_viewers("remove association", [match_map])
             # if the structure seq hasn't been demoted/destroyed, log the disassociation
-            from chimerax.core.atomic import StructureSeq
+            from chimerax.atomic import StructureSeq
             if not reassoc and isinstance(sseq, StructureSeq) and not sseq.structure.deleted:
                 struct = sseq.structure
                 struct_name = struct.name
@@ -313,7 +313,7 @@ class Alignment(State):
                     % (struct_name, sseq.name, aseq.name))
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
-        from chimerax.core import atomic
+        from chimerax import atomic
         atomic.get_triggers(self.session).add_handler('changes', _delay_disassoc)
 
     def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
@@ -384,7 +384,7 @@ class Alignment(State):
                 ref_atoms.append(rres.principal_atom)
                 match_atoms.append(mres.principal_atom)
             from chimerax.core.commands import align
-            from chimerax.core.atomic import Atoms
+            from chimerax.atomic import Atoms
             try:
                 return_vals.append(align.align(self.session, Atoms(match_atoms), Atoms(ref_atoms),
                     cutoff_distance=iterate))
@@ -432,6 +432,14 @@ class Alignment(State):
             if cur_note is not None:
                 self._notify_viewers(cur_note, cur_data, viewer_criteria=viewer_criteria)
             self._vn_suspended_data = []
+
+    def save(self, path_or_stream, format_name="fasta"):
+        import importlib
+        mod = importlib.import_module(".io.save%s" % format_name.upper(), "chimerax.seqalign")
+        from chimerax.core.io import open_filename
+        stream = open_filename(path_or_stream, "w")
+        with stream:
+            mod.save(self.session, self, stream)
 
     def suspend_notify_viewers(self):
         self._viewer_notification_suspended += 1
@@ -499,7 +507,7 @@ def nw_assoc(session, align_seq, struct_seq):
     '''Wrapper around Needleman-Wunsch matching, to make it return the same kinds of values
        that try_assoc returns'''
 
-    from chimerax.core.atomic import Sequence, SeqMatchMap
+    from chimerax.atomic import Sequence, SeqMatchMap
     sseq = struct_seq
     aseq = Sequence(name=align_seq.name, characters=align_seq.ungapped())
     aseq.circular = align_seq.circular

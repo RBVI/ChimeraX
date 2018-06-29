@@ -1030,11 +1030,10 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
       Whether to update surface color when surface shape changes.  Default true.
     '''
     atoms = near
-    surfs = [s for s in surfaces if s.vertices is not None]
     bonds = None
     from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
     points, colors = points_and_colors(atoms, bonds)
-    for s in surfs:
+    for s in surfaces:
         # TODO: save undo data
         spoints = s.scene_position.inverse() * points	# Transform points to surface coordinates
         color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges, auto_update = update)
@@ -1044,8 +1043,9 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg
     from chimerax.core.commands import ObjectsArg, create_alias, EmptyArg, Or, EnumOf, StringArg
-    from chimerax.core.commands import ListOf, FloatArg, BoolArg, AtomsArg, SurfacesArg
+    from chimerax.core.commands import ListOf, FloatArg, BoolArg, SurfacesArg
     from chimerax.core.commands import create_alias
+    from chimerax.atomic import AtomsArg
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),

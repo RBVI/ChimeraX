@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -46,8 +48,9 @@ from chimerax.core.errors import UserError as CommandError
 def register_volume_filtering_subcommands(logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg, EnumOf, IntArg, Int3Arg
-    from chimerax.core.commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
+    from chimerax.core.commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg
     from chimerax.core.commands import AxisArg, CenterArg, CoordSysArg
+    from chimerax.atomic import AtomsArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
 
@@ -966,7 +969,7 @@ def zone_operation(v, atoms, radius, bond_point_spacing = None,
     points = atoms.scene_coords
     if bond_point_spacing is not None:
         bonds = atoms.intra_bonds
-        from chimerax.core.atomic.path import bond_points
+        from chimerax.atomic.path import bond_points
         bpoints = bond_points(bonds, bond_point_spacing)
         from numpy import concatenate
         points = concatenate((points, bpoints))

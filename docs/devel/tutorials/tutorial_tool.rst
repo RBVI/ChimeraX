@@ -75,6 +75,8 @@ The files in the ``tut_gui`` folder are:
     - ``src`` - source code to Python package for bundle
         - ``__init__.py`` - package initializer and interface to ChimeraX
         - ``gui.py`` - source code to implement ``Tutorial GUI`` tool
+        - ``docs/users/commands/Tutorial_GUI.html`` - help file describing
+          the graphical tool
 
 The file contents are shown below.
 
@@ -135,8 +137,8 @@ it will be created.
 .. include:: src.rst
 
 
-``__init__.py``
----------------
+``src/__init__.py``
+-------------------
 
 As described in :doc:`tutorial_hello`, ``__init__.py`` contains
 the initialization code that defines the ``bundle_api`` object
@@ -170,8 +172,8 @@ called; if not, an exception is thrown, which ChimeraX will turn
 into an error message displayed to the user.
 
 
-``gui.py``
-----------
+``src/gui.py``
+--------------
 
 ``gui.py`` defines the ``TutorialGUI`` class that is invoked
 by ChimeraX (via the ``start_tool`` method of ``bundle_api``
@@ -285,8 +287,8 @@ contents.  If executing JavaScript results in errors, the messages
 should appear in the ChimeraX log.
 
 
-``gui.html``
-------------
+``src/gui.html``
+----------------
 
 ``gui.html`` is an `HTML 5`_ file containing the skeleton of
 the graphical user interface, consisting of a form with multiple
@@ -318,6 +320,46 @@ The two ``submit`` buttons are tagged with class name ``submit``
 so that they can be found using ``getElementsByClassName``.
 The buttons are enabled or disabled in the same JavaScript
 script that updates the drop-down list of models.
+
+
+``src/docs/user/commands/Tutorial_GUI.html``
+----------------------------------------
+
+The documentation for the graphical tool should be written
+in `HTML 5`_ and saved in a file whose name matches the command
+name and has suffix ``.html``.  For our example, we named
+the tool ``Tutorial_GUI`` (see `bundle_info.xml` above), so
+the file name is ``Tutorial_GUI.html``.
+When help files are included in bundles, documentation for
+the tools may be displayed using the **help** command,
+the same as built-in ChimeraX tools.
+The directory structure is chosen to allow for multiple types
+of documentation for a bundle.
+For example, developer documentation such as
+the bundle API are saved in a ``devel`` directory instead of
+``user``; documentation for typed commands are saved in
+``user/commands`` instead of ``user/tools``.
+
+.. literalinclude:: ../../../src/examples/tutorials/tut_gui/src/docs/user/tools/Tutorial_GUI.html
+    :language: html
+    :linenos:
+
+While the only requirement for documentation is that it be written
+as HTML, it is recommended that developers write command help files
+following the above template, with:
+
+- a banner linking to the documentation index,
+- text describing each command in the bundle, and
+- an address for contacting the bundle author.
+
+Note that the target links used in the HTML file are all relative
+to ``..``.
+Even though the tool documentation HTML file is stored with the
+bundle, ChimeraX treats the links as if the file were located in
+the ``tools`` directory in the developer documentation tree.
+This creates a virtual HTML documentation tree where tool HTML
+files can reference each other without having to be collected
+together.
 
 
 .. include:: build_test_distribute.rst

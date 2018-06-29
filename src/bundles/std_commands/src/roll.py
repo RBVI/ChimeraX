@@ -48,7 +48,8 @@ def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite, r
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg, AtomsArg
+    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         optional= [('axis', AxisArg),
                    ('angle', FloatArg),

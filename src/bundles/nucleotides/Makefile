@@ -53,13 +53,15 @@ SRCS = $(PYSRCS) $(CSRCS)
 # By default, we install for just the current user.
 
 install:	bundle_info.xml $(SRCS) generated_files
-	$(RUN) "devel install . user false exit true test false"
+	$(RUN) "devel install . user false exit true"
 
 wheel:	bundle_info.xml $(SRCS) generated_files
-	$(RUN) "devel build . exit true test false"
+	$(RUN) "devel build . exit true"
 
 test:
-	$(CHIMERAX_EXE) --exit --nogui $(wildcard test.cxc)
+	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
+		do $(CHIMERAX_EXE) --exit --nogui $$t;\
+	done
 
 debug:
 	$(CHIMERAX_EXE) --debug

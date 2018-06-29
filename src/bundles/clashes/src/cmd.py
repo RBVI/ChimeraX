@@ -64,7 +64,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         other_atom_color = Color(rgba=other_atom_color)
     if color is not None and not isinstance(color, Color):
         color = Color(rgba=color)
-    from chimerax.core.atomic import get_triggers
+    from chimerax.atomic import get_triggers
     ongoing = False
     if continuous:
         if set_attrs or save_file != None or log:
@@ -130,7 +130,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
     if not (set_attrs or color_atoms or make_pseudobonds or reveal):
         _xcmd(session, name)
         return clashes
-    from chimerax.core.atomic import all_atoms
+    from chimerax.atomic import all_atoms
     if test == "self":
         attr_atoms = test_atoms
     elif test == "others":
@@ -139,9 +139,9 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         else:
             attr_atoms = test_atoms.unique_structures.atoms
     else:
-        from chimerax.core.atomic import concatenate
+        from chimerax.atomic import concatenate
         attr_atoms = concatenate([test_atoms, test], remove_duplicates=True)
-    from chimerax.core.atomic import Atoms
+    from chimerax.atomic import Atoms
     clash_atoms = Atoms([a for a in attr_atoms if a in clashes])
     if set_attrs:
         # delete the attribute in _all_ atoms...
@@ -260,7 +260,7 @@ def _xcmd(session, group_name):
         delattr(session, continous_attr)
     pbg = session.pb_manager.get_group(group_name, create=False)
     pbgs = [pbg] if pbg else []
-    from chimerax.core.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure
     for s in [m for m in session.models if isinstance(m, AtomicStructure)]:
         pbg = s.pseudobond_group(group_name, create_type=None)
         if pbg:
@@ -270,8 +270,9 @@ def _xcmd(session, group_name):
 
 def register_command(command_name, logger):
     from chimerax.core.commands \
-        import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, AtomsArg, NoneArg, \
+        import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, NoneArg, \
             SaveFileNameArg, NonNegativeIntArg, StringArg, AttrNameArg, PositiveIntArg
+    from chimerax.atomic import AtomsArg
     if command_name in ["clashes", "contacts"]:
         kw = { 'required': [('test_atoms', AtomsArg)],
             'keyword': [('name', StringArg), ('hbond_allowance', FloatArg),

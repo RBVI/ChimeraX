@@ -1,0 +1,108 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Sequence-Coloring Format</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>Sequence Coloring Format</h3>
+<p>
+Sequence coloring format (SCF) is a simple, plain-text file format used to
+color sequences and structures to match.  Opening an SCF file using the
+<a href="../tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
+context menu</a>
+adds colored <a href="../tools/sequenceviewer.html#regions">regions</a>
+to the sequence window and colors the corresponding residues of any 
+<a href="../tools/sequenceviewer.html#association">associated</a> structures.
+</p><p>
+SCF files were first written by the program
+<a href="http://compbio.berkeley.edu/people/marcin/jevtrace/"
+target="_blank">JEvTrace</a>: 
+<blockquote>
+<a href="https://link.springer.com/article/10.1186/gb-2002-3-12-research0077"
+target="_blank">
+JEvTrace:  refinement and variations of the evolutionary trace in JAVA.</a>
+Joachimiak MP, Cohen FE. <i>Genome Biol.</i> 2002;3(12):RESEARCH0077.
+</blockquote>
+... and subsequently by the
+<a href="http://consurf.tau.ac.il/" target="_blank">ConSurf Server</a>
+for display in Chimera (and now ChimeraX).
+They can also be generated &ldquo;by hand&rdquo; in a text editor
+or programmatically.
+</p><p>
+The <a href="../tools/sequenceviewer.html#regions">regions</a> may contain 
+any subset of residues in any subset of the sequences shown in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
+Only the positions to be colored are encoded in an SCF file. 
+In the file, columns are space-separated and need not be aligned.
+Comments starting with &ldquo;<b>//</b>&rdquo; or &ldquo;<b>#</b>&rdquo;
+at the end of a line are optional. If a comment is present, it is used as the 
+region name, and lines with both the same comment and the same color
+are used to define a single region.
+</p><p>
+Two variants of the format can be read:
+</p><p>
+In the <b><i>older format</i></b>,
+each line refers to a single position in the alignment.
+A line includes five integer fields: the alignment <b>position minus one</b>,
+the <b>sequence index number</b> (0 to indicate all sequences),
+and the <b>red, green, and blue components of the color</b>,
+each on a scale from 0 to 255.
+Example:
+</p>
+<blockquote><pre>
+337    0      0     0   255  # column 338
+340    1      0   255   255 
+338    9    255   255     0
+</pre></blockquote>
+<p>
+The first line creates a blue region at position 338
+in all of the sequences named &ldquo;column 338.&rdquo;
+The second line creates a cyan region at position 341 
+in the first (top) sequence.
+The third line creates a yellow region at position 339
+in the ninth sequence.
+</p><p>
+The <b><i>newer format</i></b> is similar,
+but contains additional columns for easier specification 
+of residue and sequence ranges.  Example:
+<blockquote><pre>
+8   28    -1     -1    0   255   255      
+8   28    9     9    255   175   175    // pinkish
+8   28    10     10    255   175   175   // pinkish
+</pre></blockquote>
+The first two fields in each line indicate a range of positions
+in the alignment, <b>starting position minus one</b> and <b>ending
+position minus one</b>.
+The next two fields indicate a range of sequences in the alignment,
+<b>starting sequence</b> and <b>ending sequence</b> 
+(zeroes indicate all sequences, whereas values of -1 
+indicate the line should be ignored by ChimeraX).
+The next three fields specify
+the <b>red, green, and blue components of the color</b>,
+each on a scale from 0 to 255.
+The example creates a region named &ldquo;pinkish&rdquo; 
+spanning positions 9-29 in the ninth and tenth sequences.
+</p>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+June 2018</address>
+</body></html>

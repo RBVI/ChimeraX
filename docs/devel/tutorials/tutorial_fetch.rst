@@ -107,8 +107,8 @@ format parser.  The fields after **Fetch** are:
 .. include:: src.rst
 
 
-``__init__.py``
----------------
+``src/__init__.py``
+-------------------
 
 As described in :doc:`tutorial_hello`, ``__init__.py`` contains
 the initialization code that defines the ``bundle_api`` object
@@ -139,8 +139,8 @@ All arguments are passed through to ``fetch.fetch_homologene``
 to actually retrieve and process the data.
 
 
-``fetch.py``
-------------
+``src/fetch.py``
+----------------
 
 .. literalinclude:: ../../../src/examples/tutorials/tut_fetch/src/fetch.py
     :language: python

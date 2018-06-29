@@ -102,7 +102,7 @@ def nucleotides(session, representation, *,
     if objects is None:
         objects = all_objects(session)
     residues = objects.atoms.unique_residues
-    from chimerax.core.atomic import Residue
+    from chimerax.atomic import Residue
     residues = residues.filter(residues.polymer_types == Residue.PT_NUCLEIC)
     if len(residues) == 0:
         return
@@ -144,19 +144,3 @@ def nucleotides(session, representation, *,
         stubs_only = representation == 'stubs'
         NA.set_ladder(residues, rung_radius=radius, stubs_only=stubs_only,
                       show_stubs=show_stubs, skip_nonbase_Hbonds=base_only, hide=hide_atoms)
-
-
-nucleotides_ndbcolor_desc = CmdDesc(
-    required=[
-        ("objects", Or(ObjectsArg, EmptyArg)),
-    ],
-    synopsis="Color residues according to Nucleic Acid Database conventions")
-
-
-def nucleotides_ndbcolor(session, objects=None):
-    if objects is None:
-        objects = all_objects(session)
-    residues = objects.atoms.unique_residues
-    from chimerax.core.atomic import Residue
-    residues = residues.filter(residues.polymer_types == Residue.PT_NUCLEIC)
-    NA.ndb_color(residues)

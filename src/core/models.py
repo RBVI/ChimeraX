@@ -62,15 +62,34 @@ class Model(State, Drawing):
         self._id = None
         self._added_to_session = False
         self._deleted = False
+        self._selection_coupled = None
         # TODO: track.created(Model, [self])
 
     def delete(self):
+        '''Delete this model.'''
         self._deleted = True
         Drawing.delete(self)
         delattr(self, "session")
 
     @property
+    def selection_coupled(self):
+        if self._selection_coupled is None:
+            from chimerax.atomic import AtomicStructures
+            self._selection_coupled = AtomicStructures(None)
+        return self._selection_coupled
+
+    @selection_coupled.setter
+    def selection_coupled(self, value):
+        self._selection_coupled = value
+
+    @property
     def deleted(self):
+        '''Return whether this model has already been deleted.
+
+        Returns:
+           Returns boolean value.  True if model has been deleted;
+           False otherwise.
+        '''
         # may be overriden in subclass, e.g. Structure
         return self._deleted
 
@@ -87,6 +106,17 @@ class Model(State, Drawing):
     id = property(_get_id, _set_id)
 
     def id_string(self):
+        '''Return the dot-separated identifier for this model.
+        A top-level model (one that is not a child of another model)
+        will have no dots in its identifier.  A child model identifier
+        consists of its parent model identifier, followed by a dot
+        (period), followed by its (undotted) identifier within
+        the parent model.
+
+        Returns:
+           A string.  If the model has not been assigned an identifier,
+           an empty string is returned.
+        '''
         if self.id is None:
             return ''
         return '.'.join(str(i) for i in self.id)
@@ -130,6 +160,7 @@ class Model(State, Drawing):
     '''
 
     def add(self, models):
+        '''Add child models to this model.'''
         om = self.session.models
         if om.have_id(self.id):
             # Parent already open.
@@ -156,7 +187,7 @@ class Model(State, Drawing):
             p = getattr(self, 'parent', None)
             return p is None or p.visible
         return False
- 
+
     def __lt__(self, other):
         # for sorting (objects of the same type)
         if self.id is None:
@@ -365,7 +396,7 @@ class Models(StateManager):
 
     def have_id(self, id):
         return id in self._models
-    
+
     def __getitem__(self, i):
         '''index into models using square brackets (e.g. session.models[i])'''
         return list(self._models.values())[i]

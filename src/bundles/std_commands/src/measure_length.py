@@ -26,7 +26,8 @@ def measure_length(session, bonds):
     session.logger.status(msg, log = True)
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BondsArg
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.atomic import BondsArg
     desc = CmdDesc(
         required = [('bonds', BondsArg)],
         synopsis = 'compute sum of lengths of bonds')

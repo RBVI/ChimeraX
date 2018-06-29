@@ -43,6 +43,8 @@ sequence region.
 The <b>Sequence Viewer</b> displays individual sequences and sequence alignments
 of amino acids and nucleotides, with crosstalk to any
 <a href="#association">associated</a> structures.
+See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+</p><p>
 A <a href="../commands/open.html#sequence">sequence file</a> can be opened 
 with the command <a href="../commands/open.html"><b>open</b></a>,
 and the sequence of a structure chain can be shown
@@ -57,12 +59,24 @@ or by using the command:
 <p>
 Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
-(<a href="../window.html#panels">more...</a>). Wrapping and other
-behaviors can be controlled in the <a href="#settings"><b>Sequence
-Viewer</b> settings</a>. The sequence contents of a window can be saved to a 
-file with <a href="../commands/save.html#sequence"><b>save</b></a>.
-See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+(<a href="../window.html#panels">more...</a>).
+</p><p>
+<a name="context"></a>
+Each <b>Sequence Viewer</b> window has a 
+<a href="../window.html#panels">context menu</a> 
+with choices including:
 <p>
+<ul>
+<li><b>Save as</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+[various <a href="../commands/save.html#seqformats">sequence file formats</a>]
+- save to file; see also <a href="../commands/save.html#sequence"><b>save</b></a>
+<li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
+preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
+<li><b>Load sequence coloring file...</b> open a
+<a href="../formats/scf.html">sequence coloring file</a>
+to create <a href="#regions">regions</a> and color 
+<a href="#association">associated</a> structure to match
+</ul>
 
 <a name="regions"></a>
 <p class="nav">
@@ -324,5 +338,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2018</address>
+June 2018</address>
 </body></html>

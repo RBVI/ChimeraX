@@ -57,8 +57,8 @@ class _SurfaceBundle(BundleAPI):
         from .colorgeom import CylinderColor, HeightColor, RadialColor
         from .colorvol import GradientColor, VolumeColor
         from .dust import Redust
-        from .zone import ZoneRemask
-        from .colorzone import ZoneRecolor
+        from .zone import ZoneMask
+        from .colorzone import ZoneColor
         from .updaters import SurfaceUpdaters
         ct = {
             'CylinderColor': CylinderColor,
@@ -68,8 +68,8 @@ class _SurfaceBundle(BundleAPI):
             'Redust': Redust,
             'SurfaceUpdaters': SurfaceUpdaters,
             'VolumeColor': VolumeColor,
-            'ZoneRecolor': ZoneRecolor,
-            'ZoneRemask': ZoneRemask,
+            'ZoneColor': ZoneColor,
+            'ZoneMask': ZoneMask,
         }
         return ct.get(class_name)
 

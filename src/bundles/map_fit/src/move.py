@@ -98,7 +98,7 @@ def move_models_and_atoms(tf, models, atoms, move_whole_molecules, base_model):
 
     if move_whole_molecules:
         models = list(models) + list(atoms.unique_structures)
-        from chimerax.core.atomic import Atoms
+        from chimerax.atomic import Atoms
         atoms = Atoms()
     global position_history
     position_history.record_position(models, atoms, base_model)

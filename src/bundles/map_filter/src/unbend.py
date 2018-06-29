@@ -115,7 +115,7 @@ def path_tangents(points):
 #
 def atom_path(atoms):
   
-  from chimerax.core.atomic.path import atom_chains
+  from chimerax.atomic.path import atom_chains
   chains = atom_chains(atoms)
   if len(chains) != 1:
     from chimerax.core.errors import UserError

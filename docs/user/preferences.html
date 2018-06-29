@@ -40,15 +40,15 @@ and contains sections:
 <br><a href="#toolshed">Toolshed</a>
 </b></blockquote>
 <p>
+Several <a href="#other">other preferences</a> do not appear in this 
+dialog, but in separate interfaces.
+</p><p>
 <b>Save</b> saves the current settings, <b>Reset</b> replaces the 
 current settings with the initial (&ldquo;factory&rdquo;) defaults,
 and <b>Restore</b> restores values that were saved previously.
 The <b>Buttons below...</b> option indicates 
 whether these buttons should apply only to the currently shown section
 or to all sections of the <b>Preferences</b> dialog.
-</p><p>
-Several <a href="#other">other preferences</a> do not appear in this 
-dialog, but in separate, tool-specific interfaces.
 </p><p>
 ChimeraX preferences are stored as multiple files
 in a standard platform-dependent location (for example, under
@@ -111,7 +111,7 @@ Settings for distance-monitor
 <a href="pseudobonds.html">pseudobonds</a> are saved instantly 
 (without clicking <b>Save</b>).
 See also: <a href="commands/distance.html"><b>distance</b></a>,
-<a href="commands/mousemode.html"><b>mousemode</b></a>,
+<a href="commands/ui.html#mousemode"><b>mousemode</b></a>,
 <a href="selection.html#context">selection context menus</a>
 <ul>
 <li><b>Color</b> - 
@@ -141,7 +141,7 @@ Labels</h3>
 <li><b>Atomspec display style</b>
 - format/type of identifying information shown by pausing the cursor over 
 an object in the <a href="window.html">main window</a> (see the 
-<a href="commands/mousemode.html#identify"><b>identify object</b></a> mouse mode)
+<a href="commands/ui.html#identify"><b>identify object</b></a> mouse mode)
   <ul>
   <li><b>command line</b>
   - <a href="commands/atomspec.html#hierarchy">command-line specifier</a>
@@ -194,24 +194,25 @@ is the web repository of ChimeraX bundles.
 </ul>
 
 <a name="other"></a>
-<!--
 <p class="nav">
 [<a href="#top">back to top: ChimeraX Preferences</a>]
 </p>
--->
 <h3>Other Preferences</h3>
 <p>
 Some preferences do not appear in the main <b>ChimeraX Settings</b> dialog, 
-but can be adjusted and saved by other means:
+but can be accessed through <a href="window.html#panels">context menus</a>
+and other dialogs:
 </p>
 <ul>
-<li>Individual <a href="window.html#toolprefs">tool preferences</a>: 
-whether to autostart, whether windows are dockable, and other
-settings accessible through <a href="window.html#panels">context menus</a>
-<!-- (see also <b>ui</b>) -->
+<li>Generic <a href="window.html#toolprefs">tool-interface preferences</a>:
+autostart, panel dockability (see also <a href="commands/ui.html"><b>ui</b></a>)
+<li>Tool-specific preferences:
+  <ul>
+  <li><a href="tools/sequenceviewer.html#settings"><b>Sequence Viewer</b></a>
+  </ul>
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2018</address>
+June 2018</address>
 </body></html> 

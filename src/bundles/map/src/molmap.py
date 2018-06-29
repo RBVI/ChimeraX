@@ -18,8 +18,9 @@
 #
 def register_molmap_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, AtomsArg, BoolArg, FloatArg
-    from chimerax.core.commands import CenterArg, AxisArg, SymmetryArg, CoordSysArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg
+    from chimerax.core.commands import CenterArg, AxisArg, CoordSysArg
+    from chimerax.atomic import SymmetryArg, AtomsArg
     from . import MapArg
     molmap_desc = CmdDesc(
         required = [

@@ -114,7 +114,6 @@ def parse_arguments(argv):
     opts.start_tools = []
     opts.status = True
     opts.stereo = False
-    opts.tinyarray = True
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
@@ -135,7 +134,6 @@ def parse_arguments(argv):
         "--start <tool name>",
         "--cmd <command>",
         "--script <python script and arguments>",
-        "--notinyarray",
         "--notools",
         "--stereo",
         "--uninstall",
@@ -239,8 +237,6 @@ def parse_arguments(argv):
             opts.commands.append(optarg)
         elif opt == "--script":
             opts.scripts.append(optarg)
-        elif opt in ("--tinyarray", "--notinyarray"):
-            opts.tinyarray = opt[2] == 't'
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -283,8 +279,8 @@ def init(argv, event_loop=True):
     from importlib.abc import MetaPathFinder, Loader
     class CoreCompatFinder(MetaPathFinder):
         def find_spec(self, full_name, path, target=None):
-            unmoved_modules = ["atomic"]
-            moved_modules = ["ui"]
+            unmoved_modules = []
+            moved_modules = ["ui", "atomic"]
             for umod in unmoved_modules:
                 future_name = "chimerax." + umod
                 if full_name.startswith(future_name):
@@ -352,9 +348,6 @@ def init(argv, event_loop=True):
     if opts.use_defaults:
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
-
-    import chimerax
-    chimerax.use_tinyarray = opts.tinyarray
 
     from chimerax import core
     if not opts.gui and opts.offscreen:
@@ -466,6 +459,11 @@ def init(argv, event_loop=True):
     if opts.uninstall:
         return uninstall(sess)
 
+    # initialize qt
+    if opts.gui:
+        from chimerax.ui import initialize_qt
+        initialize_qt()
+
     # initialize the user interface
     if opts.gui:
         from chimerax.ui import gui
@@ -528,9 +526,6 @@ def init(argv, event_loop=True):
         sess.tools = tools.Tools(sess, first=True)
         from chimerax.core import tasks
         sess.tasks = tasks.Tasks(sess, first=True)
-        from chimerax.core.atomic import attr_registration
-        sess.attr_registration = attr_registration.RegAttrManager()
-        sess.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
         from chimerax.core import undo
         sess.undo = undo.Undo(sess, first=True)
 

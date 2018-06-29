@@ -143,7 +143,7 @@ class Drawing:
         """Transformation mapping vertex coordinates to ambient_texture
         coordinates, a geometry.Place object."""
 
-        self.opaque_texture = False
+        self.opaque_texture = True
         "Whether the texture for surface coloring is opaque or transparent."
 
         self.use_lighting = True
@@ -196,7 +196,8 @@ class Drawing:
         rn = self._redraw_needed
         return rn.shape_changed if rn else False
     def _set_shape_changed(self, changed):
-        self.redraw_needed(shape_changed = True)
+        if changed:
+            self.redraw_needed(shape_changed = True)
     shape_changed = property(_get_shape_changed, _set_shape_changed)
     '''Did this drawing or any drawing in the same tree change shape since the last redraw.'''
     
@@ -1354,8 +1355,8 @@ def _any_transparent_drawings(drawings):
 def draw_depth(renderer, cvinv, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
-    r.disable_shader_capabilities(r.SHADER_LIGHTING |
-                                  r.SHADER_TEXTURE_2D)
+    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
+                                  r.SHADER_DEPTH_CUE | r.SHADER_VERTEX_COLORS | r.SHADER_TEXTURE_2D)
     draw_drawings(r, cvinv, drawings, opaque_only)
     r.disable_shader_capabilities(0)
 
@@ -1842,7 +1843,7 @@ class PickedInstance(Pick):
         d.selected_positions = pmask
 
 
-def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2)):
+def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True):
     '''
     Make a drawing that is a single rectangle with a texture to show an
     RGBA image on it.
@@ -1850,6 +1851,7 @@ def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2)):
     from . import opengl
     t = opengl.Texture(rgba)
     d = _texture_drawing(t, pos, size, drawing)
+    d.opaque_texture = opaque
     return d
 
 def position_rgba_drawing(drawing, pos, size):

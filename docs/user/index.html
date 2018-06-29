@@ -63,7 +63,8 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>General</b></li>
 <li><a href="window.html">ChimeraX Window</a></li>
 <li>Data Formats: see <a href="commands/open.html"><b>open</b></a>
 and <a href="commands/save.html"><b>save</b></a></li>
-<li>Manipulation: see <a href="commands/mousemode.html"><b>mousemode</b></a></li>
+<li>Manipulation: see 
+<a href="commands/ui.html#mousemode"><b>mousemode</b></a></li>
 <li><a href="selection.html">Selection</a></li>
 <li><a href="images.html">Making Images</a></li>
 <li><a href="movies.html">Making Movies</a></li>
@@ -163,7 +164,8 @@ by length, <i>etc.</i></li>
 <li><a href="commands/getcrd.html"><b>getcrd</b></a>
 &ndash; report atomic coordinates</li>
 <li><a href="commands/graphics.html"><b>graphics</b></a>
-&ndash; adjust triangulation or restart graphics</li>
+&ndash; set rendering parameters (maximum frame rate, 
+numbers of triangles, <i>etc.</i>)</li>
 <li><a href="commands/hbonds.html"><b>hbonds</b></a>
 &ndash; identify hydrogen bonds</li>
 <li><a href="commands/help.html"><b>help</b></a>
@@ -195,8 +197,6 @@ color surfaces</li>
 &ndash; create a density map from atomic coordinates</li>
 <li><a href="commands/morph.html"><b>morph</b></a>
 &ndash; morph (interpolate) between atomic structures; create a morph trajectory</li>
-<li><a href="commands/mousemode.html"><b>mousemode</b></a>
-&ndash; report or adjust mouse button assignments</li>
 <li><a href="commands/move.html"><b>move</b></a>
 &ndash; translate</li>
 <li><a href="commands/movie.html"><b>movie</b></a>
@@ -229,8 +229,6 @@ display frame</li>
 &ndash; show density fit of successive residues along a chain</li>
 <li><a href="commands/roll.html"><b>roll</b></a>
 &ndash; rotate continuously</li>
-<li><a href="commands/rungs.html"><b>rungs</b></a>
-&ndash; show a simple broken-ladder representation of nucleic acids</li>
 <li><a href="commands/save.html"><b>save</b></a>
 &ndash; save image, session, map, coordinates, sequences, or other data to a file</li>
 <li><a href="commands/select.html"><b>select</b></a>
@@ -266,6 +264,9 @@ and <a href="pseudobonds.html">pseudobonds</a></li>
 &ndash; adjust transparency of atoms/bonds, cartoons, surfaces</li>
 <li><a href="commands/turn.html"><b>turn</b></a>
 &ndash; rotate</li>
+<li><a href="commands/ui.html"><b>ui</b>, <b>mousemode</b></a>
+&ndash; set generic <a href="../preferences.html">tool preferences</a>,
+report or adjust mouse button assignments</li>
 <li><a href="commands/undo.html"><b>undo</b>, <b>redo</b></a>
 &ndash; undo and redo a limited set of actions/commands</li>
 <li><a href="commands/usage.html"><b>usage</b></a>
@@ -302,8 +303,6 @@ to show a brief description in the <a href="tools/log.html"><b>Log</b></a>.
 &ndash; manage ChimeraX tool bundles: install/update from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a> 
 (web repository), <i>etc.</i></li>
-<li><b>ui</b>
-&ndash; set tool autostart status</li>
 <li><b>remotecontrol</b>
 &ndash; connect using REST or XML-RPC</li>
 <li><b>texture</b> &ndash; map image onto surface</li>

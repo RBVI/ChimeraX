@@ -75,10 +75,12 @@ class BasicActionsTool(HtmlToolInstance):
         super().delete()
 
     def update_models(self, trigger=None, trigger_data=None, force=False):
+        if not self._loaded_page:
+            return
         self._nonmatching = {}
         models = []
         from chimerax.core.models import Model
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         model_components = {}
         composite_models = {}
         for m in self.session.models.list():
@@ -101,6 +103,8 @@ class BasicActionsTool(HtmlToolInstance):
         self.update_names()
 
     def update_names(self, trigger=None, trigger_data=None):
+        if not self._loaded_page:
+            return
         if trigger is not None and self._updating_names:
             # We are in the middle of an update of specifier names,
             # so this must be called when the first time a

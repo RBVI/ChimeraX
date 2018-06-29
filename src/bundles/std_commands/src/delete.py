@@ -66,8 +66,8 @@ def delete_pbonds(session, pbonds, name=None):
     pbonds.delete()
 
 def register_command(logger):
-    from chimerax.core.commands import create_alias, CmdDesc, register, AtomsArg, Or, EmptyArg
-    from chimerax.core.commands import BondsArg, PseudobondsArg, StringArg
+    from chimerax.core.commands import create_alias, CmdDesc, register, Or, EmptyArg, StringArg
+    from chimerax.atomic import AtomsArg, BondsArg, PseudobondsArg
     desc = CmdDesc(required=[('atoms', AtomsArg)],
                        synopsis='delete atoms')
     register('delete', desc, delete, logger=logger)

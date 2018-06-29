@@ -27,7 +27,8 @@ class AlignmentsManager(StateManager):
         self.tool_to_subcommand = {}
 
     def destroy_alignment(self, alignment):
-        del self.alignments[alignment.ident]
+        if alignment.ident is not False:
+            del self.alignments[alignment.ident]
         alignment._destroy()
 
     def deregister_viewer(self, tool_name, *, sequence_viewer=True, alignment_viewer=True):
@@ -45,13 +46,16 @@ class AlignmentsManager(StateManager):
 
         Parameters
         ----------
-        seqs : list of :py:class:`~chimerax.core.atomic.Sequence` instances
+        seqs : list of :py:class:`~chimerax.atomic.Sequence` instances
             Contents of alignment
-        identify_as : a text string (or None) used to identify the alignment in commands.  If the
-            string is already in use by another alignment, that alignment will be destroyed and
-            replaced.  If identify_as is None, then a unique identifer will be generated and used.
-            The string cannot contain the ':' character, since that is used to indicate sequences
-            within the alignment to commands.  Any such characters will be replaced with '/'.
+        identify_as : a text string (or None or False) used to identify the alignment in commands.
+            If the string is already in use by another alignment, that alignment will be destroyed
+            and replaced.  If identify_as is None, then a unique identifer will be generated and
+            used.  The string cannot contain the ':' character, since that is used to indicate
+            sequences within the alignment to commands.  Any such characters will be replaced
+            with '/'.
+            If False, then a "private" alignment will be returned that will not be shown in
+            a viewer not affected by any commands.
         auto_destroy : boolean or None
             Whether to automatically destroy the alignment when the last viewer for it
             is closed.  If None, then treated as False if the value of the 'viewer' keyword
@@ -74,7 +78,7 @@ class AlignmentsManager(StateManager):
 
         Returns the created Alignment
         """
-        if self.session.ui.is_gui:
+        if self.session.ui.is_gui and identify_as is not False:
             if len(seqs) > 1:
                 viewer = align_viewer
                 attr = 'align_viewer'
@@ -108,7 +112,7 @@ class AlignmentsManager(StateManager):
             while str(i) in self.alignments:
                 i += 1
             identify_as = str(i)
-        elif ':' in identify_as:
+        elif identify_as is not False and ':' in identify_as:
             self.session.logger.info(
                 "Illegal ':' character in alignment identifier replaced with '/'")
             identify_as = identify_as.replace(':', '/')
@@ -118,7 +122,7 @@ class AlignmentsManager(StateManager):
             self.destroy_alignment(self.alignments[identify_as])
 
         if name is None:
-            from chimerax.core.atomic import StructureSeq
+            from chimerax.atomic import StructureSeq
             if len(seqs) == 1 and isinstance(seqs[0], StructureSeq):
                 sseq = seqs[0]
                 if sseq.description:
@@ -127,12 +131,16 @@ class AlignmentsManager(StateManager):
                     description = sseq.full_name
             else:
                 description = identify_as
+        elif identify_as is False:
+            description = "private"
         else:
             description = name
-        self.session.logger.info("Alignment identifier is %s" % identify_as)
+        if identify_as:
+            self.session.logger.info("Alignment identifier is %s" % identify_as)
         alignment = Alignment(self.session, seqs, identify_as, attrs, markups, auto_destroy,
             auto_associate, description, intrinsic)
-        self.alignments[identify_as] = alignment
+        if identify_as:
+            self.alignments[identify_as] = alignment
         if viewer:
             viewer_startup_cb(self.session, tool_name, alignment)
         return alignment

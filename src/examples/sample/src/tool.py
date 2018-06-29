@@ -18,12 +18,12 @@ class SampleTool(HtmlToolInstance):
 
     def update_models(self, trigger=None, trigger_data=None):
         # Called to update page with current list of models
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         html = ["<h2>Sample Tool</h2>", "<ul>"]
         from urllib.parse import quote
         for m in self.session.models.list(type=AtomicStructure):
             html.append("<li><a href=\"%s:%s\">%s - %s</a></li>" %
-                        (self.CUSTOM_SCHEME, quote(m.atomspec()),
+                        (self.CUSTOM_SCHEME, quote(m.atomspec),
                          m.id_string(), m.name))
         html.extend(["</ul>",
                      "<h3>Output:</h3>",

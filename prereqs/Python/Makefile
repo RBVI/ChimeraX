@@ -9,6 +9,7 @@ SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
 PIP_VERSION = 9.0.3
 WHEEL_VERSION = 0.30.0
+SETUPTOOLS_VERSION = 39.0.1
 
 ifdef WIN32
 DYNLOAD_DIR = $(bindir)/DLLs
@@ -215,6 +216,7 @@ endif
 	# Windows will work.  Wheel is needed so bdist_wheel will work.
 	$(PYTHON_EXE) -m ensurepip --upgrade
 	$(PYTHON_EXE) -m pip install --upgrade pip
+	$(PYTHON_EXE) -m pip install --upgrade setuptools==$(SETUPTOOLS_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
 
 	# double check that _ssl was successfully made
@@ -253,7 +255,8 @@ endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
 		pip==$(PIP_VERSION) \
-		wheel==$(WHEEL_VERSION)
+		wheel==$(WHEEL_VERSION) \
+		setuptools==$(SETUPTOOLS_VERSION)
 
 $(SOURCE):
 ifneq ($(OS),Windows)

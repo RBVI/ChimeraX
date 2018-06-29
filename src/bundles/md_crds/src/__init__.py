@@ -14,6 +14,8 @@
 from chimerax.core.toolshed import BundleAPI
 
 class _MDCrdsBundleAPI(BundleAPI):
+    
+    from chimerax.atomic import StructureArg
 
     @staticmethod
     def open_file(session, path, format_name, structure_model=None, replace=True):
@@ -29,7 +31,7 @@ class _MDCrdsBundleAPI(BundleAPI):
 
     @staticmethod
     def save_file(session, path, format_name, models=None):
-        from chimerax.core import atomic
+        from chimerax import atomic
         if models is None:
             models = atomic.all_structures(session)
         else:

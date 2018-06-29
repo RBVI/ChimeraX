@@ -33,7 +33,9 @@ install app-install:	bundle_info.xml $(SRCS) xdrfile_lib
 	$(RUN) "devel install . user false exit true"
 
 test:
-	$(CHIMERAX_EXE) --exit --nogui $(wildcard test.cxc)
+	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
+		do $(CHIMERAX_EXE) --exit --nogui $$t;\
+	done
 
 debug:
 	$(CHIMERAX_EXE) --debug

@@ -42,7 +42,7 @@ class UpdateLoop:
             t0 = time()
             session.triggers.activate_trigger('new frame', self)
             self.last_new_frame_time = time() - t0
-            from . import atomic
+            from chimerax import atomic
             t0 = time()
             atomic.check_for_changes(session)
             self.last_atomic_check_for_changes_time = time() - t0

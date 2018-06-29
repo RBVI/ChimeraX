@@ -120,7 +120,7 @@ class ResidueInterpolator:
                 t1 = time()
                 global rsit
                 rsit += t1-t0
-                from chimerax.core.atomic import Atoms
+                from chimerax.atomic import Atoms
                 self.cartesian_atom_indices = Atoms(cartesian_atoms).coord_indices
                 self.dihedral_atom_indices = Atoms(dihedral_atoms).coord_indices
                 
@@ -138,7 +138,7 @@ class SegmentInterpolator:
                 self.motion_transforms = motion_transforms = []
                 from .util import segment_alignment_atoms
                 from chimerax.core.geometry import align_points
-                from chimerax.core.atomic import Atoms
+                from chimerax.atomic import Atoms
                 for rList in residue_groups:
                         raindices = Atoms(segment_alignment_atoms(rList)).coord_indices
                         cList0 = coordset0[raindices]
