@@ -196,7 +196,8 @@ class Drawing:
         rn = self._redraw_needed
         return rn.shape_changed if rn else False
     def _set_shape_changed(self, changed):
-        self.redraw_needed(shape_changed = True)
+        if changed:
+            self.redraw_needed(shape_changed = True)
     shape_changed = property(_get_shape_changed, _set_shape_changed)
     '''Did this drawing or any drawing in the same tree change shape since the last redraw.'''
     
