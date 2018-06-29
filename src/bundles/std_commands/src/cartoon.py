@@ -156,7 +156,6 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
                   mode_helix=None, mode_strand=None, radius=None,
-                  wiggle=None,
                   divisions=None, spline_normals=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
@@ -194,8 +193,6 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         "tube" uses a tube along an arc so that the alpha carbons are on the surface of the tube.
     mode_strand : string
         Same argument values are mode_helix.
-    wiggle : boolean
-        Whether to adjust guide atom when smoothing strands
     radius: floating point number
         Radius of helices as cylinders
     '''
@@ -235,7 +232,6 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   "arrow scale=%.2g" % (mgr.scale_helix_arrow[0][0] / mgr.scale_helix[0]))
             print(indent, "strand",
                   "mode=%s" % _ModeStrandInverseMap[m.ribbon_mode_strand],
-                  "wiggle=%s" % m._ribbon_strand_wiggle,
                   "xsection=%s" % _XSectionInverseMap[mgr.style_sheet],
                   "width=%.2g" % (mgr.scale_sheet[0] * 2),
                   "height=%.2g" % (mgr.scale_sheet[1] * 2),
@@ -540,12 +536,6 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         for m in structures:
             undo_state.add(m, "ribbon_mode_strand", m.ribbon_mode_strand, mode)
             m.ribbon_mode_strand = mode
-    if wiggle is not None:
-        for m in structures:
-            undo_state.add(m, "_ribbon_strand_wiggle", m._ribbon_strand_wiggle,
-                           wiggle)
-            m._ribbon_strand_wiggle = wiggle
-            m._graphics_changed |= m._RIBBON_CHANGE
     # process radius
     if radius is not None:
         if radius == "auto":
@@ -637,11 +627,10 @@ def register_command(logger):
                             ("ss_ends", EnumOf(["default", "short", "long"])),
                             ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
-                            ("wiggle", BoolArg),
                             ("radius", Or(FloatArg, EnumOf(["auto"]))),
                             ("spline_normals", BoolArg),
                             ],
-                   hidden=["ss_ends", "mode_strand", "spline_normals", "wiggle"],
+                   hidden=["ss_ends", "mode_strand", "spline_normals"],
                    synopsis='set cartoon style for secondary structures in specified models')
     register("cartoon style", desc, cartoon_style, logger=logger)
     desc = CmdDesc(optional=[("atoms", AtomSpecArg)],
