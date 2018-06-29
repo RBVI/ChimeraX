@@ -13,6 +13,22 @@
 
 from chimerax.core.errors import UserError
 
+def cmd_torsion_change(session, ident, angle, frames=None):
+    """Wrapper called by command line."""
+    if frames is not None:
+        def torsion_step(session, frame):
+            cmd_torsion_change(session, ident=ident, angle=angle, frames=None)
+        from chimerax.core.commands import motion
+        motion.CallForNFrames(torsion_step, frames, session)
+        return
+    from .manager import BondRotationError
+    mgr = session.bond_rotations
+    try:
+        br = mgr.rotation_for_ident(ident)
+    except BondRotationError as e:
+        raise UserError(str(e))
+    br.angle += angle
+
 def cmd_torsion_create(session, ident, bond, move="small"):
     """Wrapper called by command line."""
 
@@ -24,9 +40,10 @@ def cmd_torsion_create(session, ident, bond, move="small"):
         raise UserError(str(e))
 
 def cmd_torsion_reset(session, ident):
+    """Wrapper called by command line."""
     mgr = session.bond_rotations
     if ident is None:
-        rotations = mgr.rotaters.values()
+        rotations = mgr.bond_rotaters.values()
     else:
         try:
             rotations = [mgr.rotation_for_ident(ident)]
@@ -36,6 +53,7 @@ def cmd_torsion_reset(session, ident):
         rot.angle = 0
 
 def cmd_xtorsion(session, ident):
+    """Wrapper called by command line."""
     mgr = session.bond_rotations
     if ident is None:
         mgr.delete_all_rotations()
@@ -47,8 +65,8 @@ def cmd_xtorsion(session, ident):
     mgr.delete_rotation(br)
 
 def register_command(command_name, logger):
-    from chimerax.core.commands \
-        import CmdDesc, register, IntArg, Or, EmptyArg, EnumOf, create_alias
+    from chimerax.core.commands import CmdDesc, register, create_alias
+    from chimerax.core.commands import IntArg, FloatArg, Or, EmptyArg, EnumOf, PositiveIntArg
     from chimerax.atomic import BondArg
     if command_name == "torsion create":
         desc = CmdDesc(required=[('ident', Or(IntArg,EmptyArg)), ('bond', BondArg)],
@@ -57,9 +75,11 @@ def register_command(command_name, logger):
         )
         register('torsion create', desc, cmd_torsion_create, logger=logger)
     elif command_name == "torsion":
-        #TODO
-        # syntax for torsion adjustment command will be: torsion ident angle [frames]
-        pass
+        desc = CmdDesc(required=[('ident', IntArg), ('angle', FloatArg)],
+            keyword = [('frames', PositiveIntArg)],
+            synopsis = 'Change bond torsion'
+        )
+        register('torsion', desc, cmd_torsion_change, logger=logger)
     elif command_name == "torsion reset":
         desc = CmdDesc(required = [('ident', Or(IntArg,EmptyArg))],
             synopsis = 'Reset bond rotation(s) to starting position(s)')
