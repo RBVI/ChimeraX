@@ -16,11 +16,7 @@
 
 cimport cydecl
 import collections
-from chimerax import use_tinyarray
-if use_tinyarray:
-    from tinyarray import array, zeros
-else:
-    from numpy import array, zeros
+from tinyarray import array, zeros
 from cython.operator import dereference
 from ctypes import c_void_p, byref
 cimport cython

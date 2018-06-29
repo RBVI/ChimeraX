@@ -114,7 +114,6 @@ def parse_arguments(argv):
     opts.start_tools = []
     opts.status = True
     opts.stereo = False
-    opts.tinyarray = True
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
@@ -135,7 +134,6 @@ def parse_arguments(argv):
         "--start <tool name>",
         "--cmd <command>",
         "--script <python script and arguments>",
-        "--notinyarray",
         "--notools",
         "--stereo",
         "--uninstall",
@@ -239,8 +237,6 @@ def parse_arguments(argv):
             opts.commands.append(optarg)
         elif opt == "--script":
             opts.scripts.append(optarg)
-        elif opt in ("--tinyarray", "--notinyarray"):
-            opts.tinyarray = opt[2] == 't'
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -352,9 +348,6 @@ def init(argv, event_loop=True):
     if opts.use_defaults:
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
-
-    import chimerax
-    chimerax.use_tinyarray = opts.tinyarray
 
     from chimerax import core
     if not opts.gui and opts.offscreen:
