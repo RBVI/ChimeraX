@@ -774,6 +774,7 @@ from chimerax.core.models import Model
 class HandControllerModel(Model):
     casts_shadows = False
     pickable = False
+    skip_bounds = True
     _controller_colors = ((200,200,0,255), (0,200,200,255))
     SESSION_SAVE = False
 

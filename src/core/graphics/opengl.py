@@ -2287,9 +2287,11 @@ class Texture:
         iformat = {1: GL.GL_RED, 2: GL.GL_RG,
                    3: GL.GL_RGB8, 4: GL.GL_RGBA8}[ncomp]
         dtype = data.dtype
-        from numpy import uint8, float32
+        from numpy import uint8, uint16, float32
         if dtype == uint8:
             tdtype = GL.GL_UNSIGNED_BYTE
+        elif dtype == uint16:
+            tdtype = GL.GL_UNSIGNED_SHORT
         elif dtype == float32:
             tdtype = GL.GL_FLOAT
         else:

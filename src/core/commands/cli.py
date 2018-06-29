@@ -725,13 +725,19 @@ class EnumOf(Annotation):
             raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text)
         folded = token.casefold()
+        matches = []
         for i, ident in enumerate(self.ids):
-            if self.allow_truncated:
+            if ident.casefold() == folded:
+                return self.values[i], ident, rest
+            elif self.allow_truncated:
                 if ident.casefold().startswith(folded):
-                    return self.values[i], ident, rest
-            else:
-                if ident.casefold() == folded:
-                    return self.values[i], ident, rest
+                    matches.append((i, ident))
+        if len(matches) == 1:
+            i, ident = matches[0]
+            return self.values[i], ident, rest
+        elif len(matches) > 1:
+            ms = ', '.join(self.values[i] for i,ident in matches)
+            raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
         raise AnnotationError("Should be %s" % self.name)
 
 
