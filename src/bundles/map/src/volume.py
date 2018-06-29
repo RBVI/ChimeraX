@@ -1778,6 +1778,8 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def showing_transparent(self):
+    if not self.display:
+      return False
     if self.representation == 'solid' and self.solid:
       return 'a' in self.solid.color_mode
     from chimerax.core.graphics import Drawing
