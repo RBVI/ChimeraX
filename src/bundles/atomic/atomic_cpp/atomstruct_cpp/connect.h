@@ -29,7 +29,7 @@
 
 namespace atomstruct {
 
-ATOMSTRUCT_IMEX bool  standard_residue(const ResName& name);
+ATOMSTRUCT_IMEX bool  is_standard_residue(const ResName& name);
 ATOMSTRUCT_IMEX void  add_standard_residue(const ResName& name);
 ATOMSTRUCT_IMEX void  remove_standard_residue(const ResName& name);
 
