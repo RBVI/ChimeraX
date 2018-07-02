@@ -94,7 +94,7 @@ def _read_block(session, stream, line_number):
         residue.add_atom(atom)
 
     # Use AtomicStructure method to add bonds based on interatomic distances
-    s.connect_structure([residue], [residue], [], [])
+    s.connect_structure()
 
     # Return AtomicStructure instance and current line number
     return s, line_number

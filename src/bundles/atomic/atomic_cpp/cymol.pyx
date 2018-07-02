@@ -816,15 +816,6 @@ cdef class CyResidue:
         self.cpp_res.set_is_helix(val)
 
     @property
-    def is_het(self):
-        "Whether PDB/mmCIF considers this residue to be HET"
-        return self.cpp_res.is_het()
-
-    @is_het.setter
-    def is_het(self, val):
-        self.cpp_res.set_is_het(val)
-
-    @property
     def is_strand(self):
         "Supported API. Whether this residue belongs to a protein beta sheet. Boolean value. "
         return self.cpp_res.is_strand()

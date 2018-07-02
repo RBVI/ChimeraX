@@ -37,8 +37,9 @@ namespace atomstruct {
 // standard_residues contains the names of residues that should use
 // PDB ATOM records.
 static std::set<ResName> standard_residues = {
-    "A", "ALA", "ARG", "ASN", "ASP", "ASX", "C", "CYS", "DA", "DC", "DG", "DT",
-    "G", "GLN", "GLU", "GLX", "GLY", "HIS", "I", "ILE", "LEU", "LYS", "MET",
+// "N" and "DN", are basically "UNK" for nucleic acids
+    "A", "ALA", "ARG", "ASN", "ASP", "ASX", "C", "CYS", "DA", "DC", "DG", "DN", "DT",
+    "G", "GLN", "GLU", "GLX", "GLY", "HIS", "I", "ILE", "LEU", "LYS", "MET", "N",
     "PHE", "PRO", "SER", "T", "THR", "TRP", "TYR", "U", "UNK", "VAL"
 };
 
