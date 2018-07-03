@@ -157,7 +157,7 @@ class _StatusBarOpenGL:
         y = -1 + 2*yp/lh
 
         from chimerax.core.graphics.drawing import rgba_drawing, draw_overlays
-        rgba_drawing(d, rgba, (x, y), (uw, uh))
+        rgba_drawing(d, rgba, (x, y), (uw, uh), opaque = False)
             
 #
 # Status bar drawing that partially restricts Qt event processing.  Allows event related

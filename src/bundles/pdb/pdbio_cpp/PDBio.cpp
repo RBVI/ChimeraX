@@ -1520,7 +1520,7 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
     }
 
     for (auto r: s->residues()) {
-        bool standard = atomstruct::standard_residue(r->name());
+        bool standard = atomstruct::is_standard_residue(r->name());
         // verify that the "standard" residue in fact has standard connectivity...
         if (standard) {
             auto index = res_order[r];
@@ -1579,7 +1579,7 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
                     continue;
                 auto oar = oa->residue();
                 if (skip_conect && oar != r) {
-                    if (!atomstruct::standard_residue(oar->name())
+                    if (!atomstruct::is_standard_residue(oar->name())
                     || !chief_or_link(a)
                     || oar->chain_id() != r->chain_id()
                     || std::abs(res_order[r] - res_order[oar]) > 1)

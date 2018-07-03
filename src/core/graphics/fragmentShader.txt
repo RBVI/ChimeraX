@@ -170,8 +170,8 @@ void main (void)
         vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
       #else
         vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+//        vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
       #endif
-//      vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
       vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
       float diffuse = max(-dot(N1,light_direction),0.0);
 //      float diffuse = max(-dot(nscene,light_direction),0.0);

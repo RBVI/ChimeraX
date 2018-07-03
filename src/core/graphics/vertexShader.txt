@@ -26,7 +26,15 @@ void main(void)
 
 #else
 
-uniform mat4 model_view_matrix;
+#if defined(USE_CLIP_PLANES) || defined(USE_STEREO_360)
+uniform mat4 model_matrix;	// Map model coordinates to scene coordinates
+#endif
+
+#if defined(USE_STEREO_360)
+uniform mat4 view_matrix;	// Map scene coordinates to camera coordinates
+#endif
+
+uniform mat4 model_view_matrix;	// Map model coordinates to camera coordinates
 uniform mat4 projection_matrix;
 
 layout(location = 0) in vec3 position;
@@ -42,7 +50,6 @@ out vec3 shadow_tex_coord;
 #endif
 
 #ifdef USE_MULTISHADOW
-//uniform mat4 model_matrix;
 //out vec3 vscene;
 //out vec3 nscene;
 #endif
@@ -82,17 +89,12 @@ uniform float frame_number;
 #endif
 
 #ifdef USE_STEREO_360
-uniform mat4 model_matrix;	// Map model coordinates to scene coordinates
-uniform mat4 view_matrix;	// Map scene coordinates to camera coordinates
 out vec3 vshadow;
 uniform vec4 camera_origin_and_shift;
 uniform vec4 camera_vertical;
 #endif
 
 #ifdef USE_CLIP_PLANES
-#ifndef USE_STEREO_360
-uniform mat4 model_matrix;	// Map model coordinates to scene coordinates
-#endif
 uniform int num_clip_planes;
 uniform vec4 clip_planes[8];	// Normal in scene coordinates and offset
 out float gl_ClipDistance[8];
@@ -111,22 +113,19 @@ void main(void)
 #endif
 
 #ifdef USE_CLIP_PLANES
-  vec4 vscene = model_matrix * vi;
+  vec4 vscene_c = model_matrix * vi;
   for (int i = 0 ; i < num_clip_planes ; ++i)
-    gl_ClipDistance[i] = dot(vscene, clip_planes[i]);
+    gl_ClipDistance[i] = dot(vscene_c, clip_planes[i]);
 #endif
 
 #ifdef USE_STEREO_360
-// TODO: This is wrong if model matrix is not identity.  Need to subtract vertex scene position
-// from camera scene origin, but this code subtracts vertex model position.  Will need separate
-// model and view matrices to do this correctly.
-#ifndef USE_CLIP_PLANES
-  vec4 vscene = model_matrix * vi;
-#endif
-  vec3 eye_axis = normalize(cross((vscene.xyz - camera_origin_and_shift.xyz), camera_vertical.xyz));
-  vec4 vsoffset = vec4(vscene.xyz - camera_origin_and_shift.w * eye_axis, 1);
+  vec4 vscene_s = model_matrix * vi;
+  vec3 eye_axis = normalize(cross((vscene_s.xyz - camera_origin_and_shift.xyz),
+                                  camera_vertical.xyz));
+  vec4 vsoffset = vec4(vscene_s.xyz - camera_origin_and_shift.w * eye_axis, 1);
   vec4 veye = view_matrix * vsoffset;
   vshadow = (model_view_matrix * vi).xyz;
+  // vshadow = (model_matrix * vi).xyz;
 #else
   vec4 veye = model_view_matrix * vi;
 #endif
@@ -141,7 +140,7 @@ void main(void)
   N = normalize((model_view_matrix * vec4(ni,0)).xyz);
   #ifdef USE_SHADOWS
     #ifdef USE_STEREO_360
-      shadow_tex_coord = (shadow_transform * vec4(vshadow,1)).stp;
+      shadow_tex_coord = (shadow_transform * (view_matrix * vec4(vshadow,1))).stp;
     #else
       shadow_tex_coord = (shadow_transform * veye).stp;
     #endif

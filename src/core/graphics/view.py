@@ -590,10 +590,13 @@ class View:
 #        r.set_multishadow_transforms(mstf, None, msd)
         return mstf, msd      # Scene to shadow map texture coordinates
 
-    def drawing_bounds(self, clip=False):
+    def drawing_bounds(self, clip=False, cached_only=False):
         '''Return bounds of drawing, displayed part only.'''
-        self.check_for_drawing_change()
         dm = self._drawing_manager
+        if cached_only:
+            return dm.cached_drawing_bounds
+        # Cause graphics update so bounds include changes in models.
+        self.check_for_drawing_change()
         b = dm.cached_drawing_bounds
         if b is None:
             dm.cached_drawing_bounds = b = self.drawing.bounds()
@@ -1075,7 +1078,8 @@ class _RedrawNeeded:
         if shape_changed:
             self.shape_changed = True
             self.shape_changed_drawings.add(drawing)
-            self.cached_drawing_bounds = None
+            if not getattr(drawing, 'skip_bounds', False):
+                self.cached_drawing_bounds = None
         if transparency_changed:
             self.transparency_changed = True
         if selection_changed:

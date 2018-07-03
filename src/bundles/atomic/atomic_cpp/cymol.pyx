@@ -16,11 +16,7 @@
 
 cimport cydecl
 import collections
-from chimerax import use_tinyarray
-if use_tinyarray:
-    from tinyarray import array, zeros
-else:
-    from numpy import array, zeros
+from tinyarray import array, zeros
 from cython.operator import dereference
 from ctypes import c_void_p, byref
 cimport cython
@@ -1019,12 +1015,24 @@ cdef class CyResidue:
     # static methods...
 
     @staticmethod
+    def add_standard_residue(res_name):
+        cydecl.add_standard_residue(res_name)
+
+    @staticmethod
     def c_ptr_to_existing_py_inst(ptr_type ptr_val):
         return (<cydecl.Residue *>ptr_val).py_instance(False)
 
     @staticmethod
     def c_ptr_to_py_inst(ptr_type ptr_val):
         return (<cydecl.Residue *>ptr_val).py_instance(True)
+
+    @staticmethod
+    def is_standard_residue(res_name):
+        return cydecl.is_standard_residue(res_name)
+
+    @staticmethod
+    def remove_standard_residue(res_name):
+        cydecl.remove_standard_residue(res_name)
 
     @staticmethod
     def set_py_class(klass):

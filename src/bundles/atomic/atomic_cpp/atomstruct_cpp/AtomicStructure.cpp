@@ -37,6 +37,7 @@
 #include "Python.h"
 #include <stdexcept>
 #include <set>
+#include <type_traits> // for std::remove_reference
 
 namespace atomstruct {
 
@@ -293,32 +294,60 @@ AtomicStructure::make_chains() const
     _chains = new Chains();
     auto polys = polymers();
 
-    // for chain IDs associated with a single polymer, we can try to
-    // form a Chain using SEQRES record.  Otherwise, form a Chain based
-    // on structure only
-    std::map<ChainID, bool> unique_chain_id;
-    if (!_input_seq_info.empty()) {
-        for (auto polymer_type: polys) {
-            auto& polymer = polymer_type.first;
-            auto chain_id = polymer[0]->chain_id();
-            if (unique_chain_id.find(chain_id) == unique_chain_id.end()) {
-                unique_chain_id[chain_id] = true;
-            } else {
-                unique_chain_id[chain_id] = false;
-            }
-        }
-    }
+    // In an ideal world there would be a one-to-one correspondence between
+    // polymers and chains.  In the real world, we need to form chains
+    // based on chain ID, regardless of how many polymers are involved.
+    // For instance, chain A in 2duf is two polyers connected by a non-polymeric
+    // residue (the chromaphore).
+    typedef std::pair<ChainID,PolymerType> PolyKey;
+    std::map<PolyKey,std::vector<Chain::Residues>> id_to_polys;
     for (auto polymer_type: polys) {
         auto& polymer = polymer_type.first;
-        auto pt_type = polymer_type.second;
-        const ChainID& chain_id = polymer[0]->chain_id();
+        id_to_polys[PolyKey(polymer[0]->chain_id(),polymer_type.second)].push_back(polymer);
+    }
+
+    std::map<Residue*, int> res_to_index; // fill in on demand
+    for (auto key_polys: id_to_polys) {
+        auto id_type = key_polys.first;
+        auto chain_id = id_type.first;
+        auto pt_type = id_type.second;
+        auto& chain_polys = key_polys.second;
+        std::vector<Residue*> res_list;
+        for (std::remove_reference<decltype(chain_polys)>::type::size_type i = 0;
+        i < chain_polys.size(); ++i) {
+            auto& polymer = chain_polys[i];
+            res_list.insert(res_list.end(), polymer.begin(), polymer.end());
+            if (chain_polys.size() > i+1) {
+                // possibly add in the residues between the polymers
+                if (res_to_index.size() == 0) {
+                    // fill in res_to_index
+                    auto ri = residues().begin();
+                    int index = 0;
+                    auto end = residues().end();
+                    while (ri != end)
+                        res_to_index[*ri++] = index++;
+                }
+                auto last_res = polymer.back();
+                auto start_next_poly = chain_polys[i+1].front();
+                auto next_res_i = res_to_index[last_res] + 1;
+                auto next_res = residues()[next_res_i];
+                while (next_res != start_next_poly) {
+                    if (last_res->connects_to(next_res) && next_res->chain_id() == chain_id)
+                        res_list.push_back(next_res);
+                    else
+                        break;
+                    last_res = next_res;
+                    next_res = residues()[next_res_i++];
+                }
+            }
+        }
         auto chain = _new_chain(chain_id, pt_type);
 
         // first, create chain directly from structure
-        chain->bulk_set(polymer, nullptr);
+        chain->bulk_set(res_list, nullptr);
 
         auto three_let_i = _input_seq_info.find(chain_id);
-        if (three_let_i != _input_seq_info.end() && unique_chain_id[chain_id]) {
+        if (three_let_i != _input_seq_info.end()) {
             // try to adjust chain based on SEQRES
             auto& three_let_seq = three_let_i->second;
             auto seqres_size = three_let_seq.size();
@@ -436,6 +465,7 @@ AtomicStructure::make_chains() const
             chain->bulk_set(new_residues, &sr_seq.contents());
         }
     }
+
 
     // now look through missing-structure pseudobonds for "chain trace"
     // pseudobonds and set their shown_when_atoms_hidden to false, so 

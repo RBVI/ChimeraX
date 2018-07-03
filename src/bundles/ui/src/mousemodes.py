@@ -134,7 +134,7 @@ class MouseMode:
         '''
         v = self.view
         psize = v.pixel_size(center)
-        b = v.drawing_bounds()
+        b = v.drawing_bounds(cached_only = True)
         if not b is None:
             w = b.width()
             psize = max(psize, w*min_scene_frac)
