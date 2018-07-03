@@ -90,8 +90,6 @@
 	<ChimeraXClassifier>ChimeraX :: Command :: rename :: General Controls :: change name or ID of model</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: roll :: General Controls :: continuously turn model(s) about an axis</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: run :: Utilities :: execute arguments as a command</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: rungs :: Depiction :: depict nucleotides as ladder rungs</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: ~rungs :: Depiction :: stop depicting nucleotides as ladder rungs</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: runscript :: General Controls :: run a Python script with arguments</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: select :: General Controls :: select models or parts thereof</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: ~select :: General Controls :: unselect models or parts thereof</ChimeraXClassifier>

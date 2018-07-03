@@ -62,9 +62,6 @@ rename #1 snafu
 roll
 roll z rock 100
 run "echo hi"
-# --rungs confuses things
-# rungs
-# ~rungs
 # runscript
 select :12
 select up
