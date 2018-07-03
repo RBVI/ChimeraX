@@ -1345,20 +1345,12 @@ class StructureData:
             ret = ctypes.py_object)
         return f(self._c_pointer, cs_id)
 
-    def connect_structure(self, chain_starters, chain_enders, conect_atoms, mod_res):
-        '''Generate connectivity.  See connect_structure in connectivity.rst for more details.
-        
-        chain_starters and chain_enders are lists of residues.
-        conect_atoms is a list of atoms.
-        mod_res is a list of residues (not MolResId's).'''
+    def connect_structure(self):
+        '''Generate connectivity.  See connect_structure in connectivity.rst for more details.'''
         f = c_function('structure_connect',
-                       args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object, ctypes.py_object, ctypes.py_object),
+                       args = (ctypes.c_void_p,),
                        ret = ctypes.c_int)
-        starters = list([r._c_pointer.value for r in chain_starters])
-        enders = list([r._c_pointer.value for r in chain_enders])
-        conect = list([a._c_pointer.value for a in conect_atoms])
-        mod = list([r._c_pointer.value for r in mod_res])
-        return f(self._c_pointer, starters, enders, conect, mod)
+        return f(self._c_pointer)
 
     def delete_alt_locs(self):
         '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''

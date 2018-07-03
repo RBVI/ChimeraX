@@ -530,6 +530,7 @@ class ObjectLabel(Drawing):
         from chimerax.core.graphics import opengl
         t = opengl.Texture(rgba)
         self.texture = t
+        self.opaque_texture = False
         Drawing.set_color(self, self.color)
         h,w,c = rgba.shape
         ps = (s*w/h, s)

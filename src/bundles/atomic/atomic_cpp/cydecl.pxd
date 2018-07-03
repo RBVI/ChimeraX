@@ -18,6 +18,11 @@ from libcpp.set cimport set
 from libcpp.vector cimport vector
 from libcpp cimport bool
 
+cdef extern from "<atomstruct/connect.h>" namespace "atomstruct":
+    bool is_standard_residue(string)
+    void add_standard_residue(string)
+    void remove_standard_residue(string)
+
 cdef extern from "<element/Element.h>" namespace "element::Element":
     ctypedef enum AS:
         NUM_SUPPORTED_ELEMENTS

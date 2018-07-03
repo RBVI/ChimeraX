@@ -141,7 +141,7 @@ class Volume(Model):
   #
   def added_to_session(self, session):
     if len(session.models.list()) == 1:
-      from chimerax.core.commands.lighting import lighting
+      from chimerax.std_commands.lighting import lighting
       lighting(session, 'full')	# Use full lighting for initial map display
 
   # ---------------------------------------------------------------------------
@@ -1778,6 +1778,8 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def showing_transparent(self):
+    if not self.display:
+      return False
     if self.representation == 'solid' and self.solid:
       return 'a' in self.solid.color_mode
     from chimerax.core.graphics import Drawing

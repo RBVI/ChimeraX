@@ -46,28 +46,52 @@ clean:
 active_tools.install: ui.install surface.install
 addh.install: atomic.install
 align_algs.install: alignments.install
+alignments.install: atomic.install
 bild.install: atomic.install surface.install
+basic_actions.install: ui.install
+blastprotein.install: ui.install
 bond_rot.install: ui.install
 bumps.install: markers.install
+cage_builder.install: ui.install
 chem_group.install: atomic.install
 clashes.install: atomic.install
+cmd_line.install: ui.install
 crosslinks.install: interfaces.install
 dist_monitor.install: atomic.install
+dist_ui.install: ui.install
 dssp.install: atomic.install
+file_history.install: ui.install
+help_viewer.install: ui.install
 hbonds.install: atomic.install chem_group.install
 ihm.install: atomic.install map.install
-map.install: map_data.install
+interfaces.install: ui.install
+log.install: ui.install
+map.install: map_data.install ui.install
 map_filter.install: map.install
 map_fit.install: map.install
-map_series.install: map.install
+map_series.install: map.install ui.install
 markers.install: atomic.install ui.install
 match_maker.install: align_algs.install sim_matrices.install
 md_crds.install: atomic.install
 mmcif.install: atomic.install
 mmtf-python.install: atomic.install
+model_panel.install: ui.install
+model_series.install: ui.install
+modeller.install: alignments.install
 mol2.install: atomic.install
-nucleotides.install: atomic.install
+mouse_modes.install: ui.install
+nucleotides.install: atomic.install ui.install
 pdbio.install: atomic.install
+read_pbonds.install: atomic.install
+registration.install: ui.install
+residue_fit.install: ui.install
+seq_view.install: alignments.install ui.install
+shell.install: ui.install
+shortcuts.install: ui.install
+sideview.install: ui.install
+signal_viewer.install: ui.install
 sim_matrices.install: alignments.install
 std_commands.install: atomic.install
-viewdockx.install: atomic.install mol2.install
+swapaa.install: ui.install
+tug.install: ui.install
+viewdockx.install: atomic.install mol2.install ui.install

@@ -40,7 +40,6 @@ class Structure(Model, StructureData):
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
             '_use_spline_normals': False,
-            '_ribbon_strand_wiggle': True,
             'ribbon_xs_mgr': XSectionManager(),
             'filename': None,
         }
@@ -1398,7 +1397,7 @@ class Structure(Model, StructureData):
             offsets = adjusts * (ideal - ss_coords)
             new_coords = ss_coords + offsets
             # Update both control point and guide coordinates
-            if guides is not None and self._ribbon_strand_wiggle:
+            if guides is not None:
                 # Compute guide atom position relative to control point atom
                 delta_guides = guides[start:end] - ss_coords
                 guides[start:end] = new_coords + delta_guides

@@ -116,7 +116,3 @@ def profile(func):
         p.strip_dirs().sort_stats("cumulative", "time").print_callers(40)
         return v
     return wrapper
-
-import chimerax
-if not hasattr(chimerax, "use_tinyarray"):
-    chimerax.use_tinyarray = True

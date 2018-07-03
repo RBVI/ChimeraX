@@ -37,14 +37,15 @@ namespace atomstruct {
 // standard_residues contains the names of residues that should use
 // PDB ATOM records.
 static std::set<ResName> standard_residues = {
-    "A", "ALA", "ARG", "ASN", "ASP", "ASX", "C", "CYS", "DA", "DC", "DG", "DT",
-    "G", "GLN", "GLU", "GLX", "GLY", "HIS", "I", "ILE", "LEU", "LYS", "MET",
+// "N" and "DN", are basically "UNK" for nucleic acids
+    "A", "ALA", "ARG", "ASN", "ASP", "ASX", "C", "CYS", "DA", "DC", "DG", "DN", "DT",
+    "G", "GLN", "GLU", "GLX", "GLY", "HIS", "I", "ILE", "LEU", "LYS", "MET", "N",
     "PHE", "PRO", "SER", "T", "THR", "TRP", "TYR", "U", "UNK", "VAL"
 };
 
 //TODO: these 3 funcs need to be wrapped also
 bool
-standard_residue(const ResName& name)
+is_standard_residue(const ResName& name)
 {
     return standard_residues.find(name) != standard_residues.end();
 }
@@ -600,7 +601,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
         for (Structure::Residues::const_iterator ri=as->residues().begin()
         ; ri != as->residues().end(); ++ri) {
             Residue *r = *ri;
-            if (standard_residue(r->name()) || r->name() == "UNK")
+            if (is_standard_residue(r->name()) || r->name() == "UNK")
                 continue;
             if (!r->is_het()) {
                 break_long = true;
@@ -619,7 +620,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             Residue *r2 = atoms[1]->residue();
             if (r1 == r2)
                 continue;
-            if (standard_residue(r1->name()) && standard_residue(r2->name()))
+            if (is_standard_residue(r1->name()) && is_standard_residue(r2->name()))
                 continue;
             // break if non-physical
             float criteria = 1.5 * Element::bond_length(atoms[0]->element(),

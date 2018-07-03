@@ -183,12 +183,22 @@ def regularized_seq(aseq, chain):
     rseq.descript = "structure:" + chain_save_name(chain)
     seq_chars = list(rseq.characters)
     from chimerax.atomic import Sequence
+    in_seq_hets = []
     for ungapped in range(len(aseq.ungapped())):
         gapped = aseq.ungapped_to_gapped(ungapped)
         if ungapped not in mmap:
             seq_chars[gapped] = '-'
         else:
-            seq_chars[gapped] = Sequence.rname3to1(mmap[ungapped].name)
+            r = mmap[ungapped]
+            if r.is_het: # or not PDBio.standard_residue(r.name)
+                in_seq_hets.append(r)
+                seq_chars[gapped] = '.'
+            else:
+                seq_chars[gapped] = Sequence.rname3to1(mmap[ungapped].name)
+    s = chain.structure
+    het_set = getattr(s, 'in_seq_hets', set())
+    het_set.add(in_seq_hets)
+    s.in_seq_hets = het_set
     rseq.characters = "".join(seq_chars)
     return rseq
 

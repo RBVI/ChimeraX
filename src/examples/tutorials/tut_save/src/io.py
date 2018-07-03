@@ -94,7 +94,7 @@ def _read_block(session, stream, line_number):
         residue.add_atom(atom)
 
     # Use AtomicStructure method to add bonds based on interatomic distances
-    s.connect_structure([residue], [residue], [], [])
+    s.connect_structure()
 
     # Updating state such as atom types while adding atoms iteratively
     # is unnecessary (and generally incorrect for partial structures).

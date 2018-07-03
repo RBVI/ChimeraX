@@ -572,6 +572,7 @@ class Render:
             not p.capabilities & self.SHADER_TEXTURE_MASK and
             not p.capabilities & self.SHADER_DEPTH_OUTLINE):
             p.set_matrix('model_view_matrix', mv4)
+#            if (self.SHADER_CLIP_PLANES | self.SHADER_MULTISHADOW) & p.capabilities:
             if self.SHADER_CLIP_PLANES & p.capabilities:
                 cmm = self.current_model_matrix
                 if cmm:
@@ -583,9 +584,6 @@ class Render:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
                 if cvm:
                     p.set_matrix('view_matrix', cvm.opengl_matrix())
-#            if p.capabilities & self.SHADER_MULTISHADOW:
-#                m4 = self.current_model_matrix.opengl_matrix()
-#                p.set_matrix('model_matrix', m4)
             if not self.lighting.move_lights_with_camera:
                 self.set_shader_lighting_parameters()
 
@@ -739,10 +737,11 @@ class Render:
     def set_multishadow_transforms(self, stf, ctf, shadow_depth):
         # Transform from camera coordinates to shadow map texture coordinates.
         from numpy import array, float32
-        self._multishadow_transforms = array([(tf * ctf).opengl_matrix()
-                                              for tf in stf], float32)
-#        self._multishadow_transforms = array([tf.opengl_matrix()
-#                                                  for tf in stf], float32)
+        if ctf is None:
+            mt = array([tf.opengl_matrix() for tf in stf], float32)
+        else:
+            mt = array([(tf * ctf).opengl_matrix() for tf in stf], float32)
+        self._multishadow_transforms = mt
         self._multishadow_transforms_changed = True
         self._multishadow_depth = shadow_depth
         p = self.current_shader_program
@@ -2292,9 +2291,11 @@ class Texture:
         iformat = {1: GL.GL_RED, 2: GL.GL_RG,
                    3: GL.GL_RGB8, 4: GL.GL_RGBA8}[ncomp]
         dtype = data.dtype
-        from numpy import uint8, float32
+        from numpy import uint8, uint16, float32
         if dtype == uint8:
             tdtype = GL.GL_UNSIGNED_BYTE
+        elif dtype == uint16:
+            tdtype = GL.GL_UNSIGNED_SHORT
         elif dtype == float32:
             tdtype = GL.GL_FLOAT
         else:
