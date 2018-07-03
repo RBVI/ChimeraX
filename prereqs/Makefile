@@ -133,11 +133,11 @@ include $(TOP)/mk/subdir.make
 $(SUBDIR_INSTALL): build-dirs
 
 build-dirs:
-	make -C $(TOP) build-dirs
+	$(MAKE) -C $(TOP) build-dirs
 	-mkdir $(tmpdir)
 
 build-app-dirs:
-	make -C $(TOP) build-app-dirs
+	$(MAKE) -C $(TOP) build-app-dirs
 
 ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)
