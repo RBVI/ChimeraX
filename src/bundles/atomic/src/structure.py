@@ -145,92 +145,11 @@ class Structure(Model, StructureData):
         return True
 
     def apply_auto_styling(self, set_lighting = False, style=None):
-        if style is None:
-            if self.num_chains == 0:
-                style = "non-polymer"
-            elif self.num_chains < 5:
-                style = "small polymer"
-            elif self.num_chains < 250:
-                style = "medium polymer"
-            else:
-                style = "large polymer"
-
-        color = self.initial_color(self.session.main_view.background_color)
-        self.set_color(color)
-
-        atoms = self.atoms
-        if style == "non-polymer":
-            lighting = "default"
-            from .molobject import Atom, Bond
-            atoms.draw_modes = Atom.STICK_STYLE
-            from .colors import element_colors
-            het_atoms = atoms.filter(atoms.element_numbers != 6)
-            het_atoms.colors = element_colors(het_atoms.element_numbers)
-        elif style == "small polymer":
-            lighting = "default"
-            from .molobject import Atom, Bond
-            atoms.draw_modes = Atom.STICK_STYLE
-            from .colors import element_colors
-            het_atoms = atoms.filter(atoms.element_numbers != 6)
-            het_atoms.colors = element_colors(het_atoms.element_numbers)
-            ribbonable = self.chains.existing_residues
-            # 10 residues or less is basically a trivial depiction if ribboned
-            if len(ribbonable) > 10:
-                atoms.displays = False
-                ligand = atoms.filter(atoms.structure_categories == "ligand").residues
-                ribbonable -= ligand
-                metal_atoms = atoms.filter(atoms.elements.is_metal)
-                metal_atoms.draw_modes = Atom.SPHERE_STYLE
-                ions = atoms.filter(atoms.structure_categories == "ions")
-                lone_ions = ions.filter(ions.residues.num_atoms == 1)
-                lone_ions.draw_modes = Atom.SPHERE_STYLE
-                ligand |= metal_atoms.residues
-                display = ligand
-                pas = ribbonable.existing_principal_atoms
-                nucleic = pas.residues.filter(pas.names != "CA")
-                display |= nucleic
-                if nucleic:
-                    from .nucleotides.cmd import nucleotides
-                    if len(nucleic) >= 5:
-                        if len(nucleic) < 50:
-                            nucleotides(self.session, 'tube/slab', objects=nucleic)
-                        else:
-                            nucleotides(self.session, 'ladder', objects=nucleic)
-                        nucleic_atoms = nucleic.atoms
-                        nucleic_atoms = nucleic_atoms.filter(nucleic_atoms.element_numbers == 6)
-                        from .colors import nucleotide_colors
-                        nucleic_atoms.colors = nucleotide_colors(nucleic_atoms.residues)[0]
-                if ligand:
-                    # show residues interacting with ligand
-                    lig_points = ligand.atoms.coords
-                    mol_points = atoms.coords
-                    from chimerax.core.geometry import find_closest_points
-                    close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
-                    display |= atoms.filter(close_indices).residues
-                display_atoms = display.atoms
-                if self.num_residues > 1:
-                    display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
-                display_atoms.displays = True
-                ribbonable.ribbon_displays = True
-        elif style == "medium polymer":
-            lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
-            from .colors import chain_colors, element_colors
-            residues = self.residues
-            residues.ribbon_colors = chain_colors(residues.chain_ids)
-            atoms.colors = chain_colors(atoms.residues.chain_ids)
-            from .molobject import Atom
-            ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
-            ligand_atoms.draw_modes = Atom.STICK_STYLE
-            ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
-            solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
-            solvent_atoms.draw_modes = Atom.BALL_STYLE
-            solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
-        else:
-            lighting = "soft multiShadow 16"
-
+        # most auto-styling only makes sense for atomic structures
         if set_lighting:
             from chimerax.core.commands import Command
             cmd = Command(self.session)
+            lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
             cmd.run("lighting " + lighting, log=False)
 
     # used by custom-attr registration code
@@ -2257,6 +2176,95 @@ class AtomicStructure(Structure):
             else:
                 self._report_chain_descriptions(session)
             self._report_assemblies(session)
+
+    def apply_auto_styling(self, set_lighting = False, style=None):
+        if style is None:
+            if self.num_chains == 0:
+                style = "non-polymer"
+            elif self.num_chains < 5:
+                style = "small polymer"
+            elif self.num_chains < 250:
+                style = "medium polymer"
+            else:
+                style = "large polymer"
+
+        color = self.initial_color(self.session.main_view.background_color)
+        self.set_color(color)
+
+        atoms = self.atoms
+        if style == "non-polymer":
+            lighting = "default"
+            from .molobject import Atom, Bond
+            atoms.draw_modes = Atom.STICK_STYLE
+            from .colors import element_colors
+            het_atoms = atoms.filter(atoms.element_numbers != 6)
+            het_atoms.colors = element_colors(het_atoms.element_numbers)
+        elif style == "small polymer":
+            lighting = "default"
+            from .molobject import Atom, Bond
+            atoms.draw_modes = Atom.STICK_STYLE
+            from .colors import element_colors
+            het_atoms = atoms.filter(atoms.element_numbers != 6)
+            het_atoms.colors = element_colors(het_atoms.element_numbers)
+            ribbonable = self.chains.existing_residues
+            # 10 residues or less is basically a trivial depiction if ribboned
+            if len(ribbonable) > 10:
+                atoms.displays = False
+                ligand = atoms.filter(atoms.structure_categories == "ligand").residues
+                ribbonable -= ligand
+                metal_atoms = atoms.filter(atoms.elements.is_metal)
+                metal_atoms.draw_modes = Atom.SPHERE_STYLE
+                ions = atoms.filter(atoms.structure_categories == "ions")
+                lone_ions = ions.filter(ions.residues.num_atoms == 1)
+                lone_ions.draw_modes = Atom.SPHERE_STYLE
+                ligand |= metal_atoms.residues
+                display = ligand
+                pas = ribbonable.existing_principal_atoms
+                nucleic = pas.residues.filter(pas.names != "CA")
+                display |= nucleic
+                if nucleic:
+                    from .nucleotides.cmd import nucleotides
+                    if len(nucleic) >= 5:
+                        if len(nucleic) < 50:
+                            nucleotides(self.session, 'tube/slab', objects=nucleic)
+                        else:
+                            nucleotides(self.session, 'ladder', objects=nucleic)
+                        nucleic_atoms = nucleic.atoms
+                        nucleic_atoms = nucleic_atoms.filter(nucleic_atoms.element_numbers == 6)
+                        from .colors import nucleotide_colors
+                        nucleic_atoms.colors = nucleotide_colors(nucleic_atoms.residues)[0]
+                if ligand:
+                    # show residues interacting with ligand
+                    lig_points = ligand.atoms.coords
+                    mol_points = atoms.coords
+                    from chimerax.core.geometry import find_closest_points
+                    close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
+                    display |= atoms.filter(close_indices).residues
+                display_atoms = display.atoms
+                if self.num_residues > 1:
+                    display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
+                display_atoms.displays = True
+                ribbonable.ribbon_displays = True
+        elif style == "medium polymer":
+            lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
+            from .colors import chain_colors, element_colors
+            residues = self.residues
+            residues.ribbon_colors = chain_colors(residues.chain_ids)
+            atoms.colors = chain_colors(atoms.residues.chain_ids)
+            from .molobject import Atom
+            ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
+            ligand_atoms.draw_modes = Atom.STICK_STYLE
+            ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
+            solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
+            solvent_atoms.draw_modes = Atom.BALL_STYLE
+            solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
+        else:
+            lighting = "soft multiShadow 16"
+
+        if set_lighting:
+            from chimerax.core.commands import Command
+            cmd = Command(self.session)
+            cmd.run("lighting " + lighting, log=False)
 
     # used by custom-attr registration code
     @property
