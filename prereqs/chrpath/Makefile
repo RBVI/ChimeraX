@@ -18,8 +18,7 @@ all: $(PROG)
 install: $(PROG)
 	$(MAKE) -C $(SOURCE) install
 
-app-install:
-	$(RSYNC) $(bindir)/chrpath$(PROG_EXT) $(app_bindir)
+app-install:;
 
 clean:
 	rm -rf $(SOURCE)
