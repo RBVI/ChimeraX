@@ -100,7 +100,7 @@ class _AtomicBundleAPI(BundleAPI):
             'Space-Filling (single color)': 'large polymer'
         }
         def callback(name, session=session):
-            structures = [m for m in session.models if isinstance(m, Structure)]
+            structures = [m for m in session.models if isinstance(m, AtomicStructure)]
             kw = {'set_lighting': len(structures) < 2}
             if name in name_mapping:
                 kw['style'] = name_mapping[name]
