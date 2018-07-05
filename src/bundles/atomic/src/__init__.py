@@ -95,9 +95,9 @@ class _AtomicBundleAPI(BundleAPI):
     def _add_presets_menu(session):
         name_mapping = {
             'Stick': 'non-polymer',
-            'Ribbon': 'small polymer',
-            'Space filling (per-chain colors)': 'medium polymer',
-            'Space filling (single color)': 'large polymer'
+            'Cartoon': 'small polymer',
+            'Space-Filling (chain colors)': 'medium polymer',
+            'Space-Filling (single color)': 'large polymer'
         }
         def callback(name, session=session):
             structures = [m for m in session.models if isinstance(m, Structure)]
@@ -112,7 +112,7 @@ class _AtomicBundleAPI(BundleAPI):
                 atoms.draw_modes = Atom.SPHERE_STYLE
                 s.residues.ribbon_displays = False
                 s.apply_auto_styling(**kw)
-        for label in ['Original look'] + sorted(list(name_mapping.keys())):
+        for label in ['Original Look'] + sorted(list(name_mapping.keys())):
             session.ui.main_window.add_custom_menu_entry('Presets', label,
                 lambda name=label: callback(name))
 
