@@ -250,7 +250,7 @@ ExtractTemplate::parse_chem_comp()
             old_code = Sequence::nucleic3to1(modres);
         if (old_code != 'X' && old_code != code)
             std::cerr << "Not changing " << modres <<
-                " sequence abbrevation (old: " << old_code << ", new: " <<
+                " sequence abbreviation (old: " << old_code << ", new: " <<
                 code << ")\n";
         else
             Sequence::assign_rname3to1(name, code, is_peptide);

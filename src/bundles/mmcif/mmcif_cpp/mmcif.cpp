@@ -413,7 +413,7 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
             c = tolower(c);
 #endif
         if (std::find(std::begin(builtin_categories), std::end(builtin_categories), category_ci) != std::end(builtin_categories)) {
-            logger::warning(_logger, "Can not overriden builtin parsing for "
+            logger::warning(_logger, "Can not override builtin parsing for "
                             "category: ", c);
             continue;
         }

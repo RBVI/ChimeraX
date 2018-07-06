@@ -314,7 +314,7 @@ cdef class CyAtom:
 
     @property
     def neighbors(self):
-        "Supported API. :class:`.Atom`\\ s connnected to this atom directly by one bond."
+        "Supported API. :class:`.Atom`\\ s connected to this atom directly by one bond."
         " Read only."
         # work around Cython not always generating const-correct code
         tmp = <cydecl.vector[cydecl.Atom*]>self.cpp_atom.neighbors()
@@ -978,7 +978,7 @@ cdef class CyResidue:
         return None
 
     def set_alt_loc(self, loc):
-        "Set the appropiate atoms in the residue to the given (existing) alt loc"
+        "Set the appropriate atoms in the residue to the given (existing) alt loc"
         if not loc:
             loc = ' '
         self.cpp_res.set_alt_loc(ord(loc[0]))
