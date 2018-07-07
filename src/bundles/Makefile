@@ -12,7 +12,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = addh active_tools align_algs alignments atomic \
+SUBDIRS = addh active_tools align_algs alignments atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bumps \
 	  bundle_builder cage_builder cellpack chem_group clashes cmd_line \
 	  color_globe crosslinks crystal dist_monitor dist_ui dssp exp_cmd file_history \
