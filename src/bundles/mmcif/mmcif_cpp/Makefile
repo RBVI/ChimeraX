@@ -15,31 +15,17 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/chimerax/core/atomic
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
 
-PATCHES = $(wildcard *.patch)
-WRAPPY = $(bindir)/wrappy3
-ifeq (64,$(patsubst %64,64,$(OSARCH)))
-WRAPPY	+= -L
-ifeq ($(OSARCH),Windows64)
-# size_t is unsigned long long on Windows64 
-WRAPPY	+= -L
-endif
-endif
-
-PATCHES = $(wildcard *.patch)
-
-HDRS = mmcif.h
-SRCS = mmcif.cpp template.cpp
-GENSRCS += _mmcif.cpp
-GENHDRS += $(GENSRCS:.cpp=.h)
-OBJS = $(SRCS:.cpp=.$(OBJ_EXT)) $(GENSRCS:.cpp=.$(OBJ_EXT))
+HDRS = mmcif.h _mmcif.h
+SRCS = mmcif.cpp template.cpp _mmcif.cpp
+OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _mmcif
 
 DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS)
 ifeq ($(WIN32),msvc)
-LIBS += /LIBPATH:../lib libatomstruct.lib libelement.lib libpyinstance.lib libreadcif.lib libwrappy3.lib liblogger.lib libarrays.lib libappdirs.lib $(PYTHON_LIB)
+LIBS += /LIBPATH:../lib libatomstruct.lib libelement.lib libpyinstance.lib libreadcif.lib liblogger.lib libarrays.lib libappdirs.lib $(PYTHON_LIB)
 else
-LIBS += -Llib -latomstruct -lelement -lpyinstance -lreadcif -lwrappy3 -llogger -larrays -lappdirs $(PYTHON_LIB)
+LIBS += -Llib -latomstruct -lelement -lpyinstance -lreadcif -llogger -larrays -lappdirs $(PYTHON_LIB)
 endif
 
 lib:
@@ -50,11 +36,6 @@ include:
 
 source: lib include
 	cd readcif_cpp; make install
-	make wrappy
-ifdef WIN32
-	cp $(includedir)/WrapPy3.h $(app_includedir)
-	cp $(libdir)/libwrappy3.lib $(app_libdir)
-endif
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
@@ -69,21 +50,10 @@ endif
 
 clean:
 	cd readcif_cpp; make clean
-	rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej
+	rm -f $(PYMOD) $(OBJS)
 ifeq ($(WIN32),msvc)
 	rm -f $(PYMOD).manifest $(PYMOD_NAME).{lib,exp,ilk,pdb} vc*.pdb
 endif
-
-$(GENSRCS) $(OBJS): wrappy
-
-wrappy: $(HDRS)
-	$(WRAPPY) -d -N mmcif -m _mmcif $(HDRS)
-ifneq (,$(PATCHES))
-	for i in $(PATCHES) ; do \
-		patch -b < $$i ; \
-	done
-endif
-	touch wrappy
 
 mmcif.o: $(includedir)/atomstruct/Atom.h \
 	$(includedir)/atomstruct/AtomicStructure.h $(includedir)/atomstruct/Bond.h \
