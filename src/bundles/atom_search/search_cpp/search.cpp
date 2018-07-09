@@ -45,7 +45,7 @@ AtomSearchTree::destructors_done(const std::set<void*>& destroyed)
 }
 
 std::vector<Atom*>
-AtomSearchTree::seach_tree(Atom* a, double window)
+AtomSearchTree::search_tree(Atom* a, double window)
 {
     if (_transformed)
         return search_tree(a->scene_coord(), window);
@@ -53,7 +53,7 @@ AtomSearchTree::seach_tree(Atom* a, double window)
 }
 
 std::vector<Atom*>
-AtomSearchTree::seach_tree(const Coord &target, double window)
+AtomSearchTree::search_tree(const Coord &target, double window)
 {
     // Search tree for all leaves within 'window' of target.
     //
@@ -66,7 +66,7 @@ AtomSearchTree::seach_tree(const Coord &target, double window)
     if (root == nullptr)
         return std::vector<Atom*>();
     double diffs_sq[3] = { 0.0, 0.0, 0.0 };
-    return root.search(target, window * window, diffs_sq);
+    return root->search(target, window * window, diffs_sq);
 }
 
 void
@@ -78,7 +78,7 @@ AtomSearchTree::init_root()
         root = nullptr;
 }
 
-_Node::_Node(const std::vector<Atom*>& atoms, bool transformed, sep_val)
+_Node::_Node(const std::vector<Atom*>& atoms, bool transformed, double sep_val)
 {
     if (atoms.size() < 2) {
         // leaf node
@@ -91,13 +91,13 @@ _Node::_Node(const std::vector<Atom*>& atoms, bool transformed, sep_val)
         ad.reserve(atoms.size());
     if (transformed) {
         for (auto a: atoms) {
-            auto& crd = a->scene_coord();
+            auto crd = a->scene_coord();
             for (int i = 0; i < 3; ++i)
                 axes_data[i].push_back(crd[i]);
         }
     } else {
         for (auto a: atoms) {
-            auto& crd = a->coord();
+            auto crd = a->coord();
             for (int i = 0; i < 3; ++i)
                 axes_data[i].push_back(crd[i]);
         }
@@ -114,9 +114,9 @@ _Node::_Node(const std::vector<Atom*>& atoms, bool transformed, sep_val)
         atom_axis_data.reserve(atoms.size());
         for (auto a: atoms) {
             if (transformed)
-                atom_axis_data.push_back(std::make_pair(a->scene_coord()[i], a));
+                atom_axis_data.push_back(std::make_pair(a->scene_coord()[axis], a));
             else
-                atom_axis_data.push_back(std::make_pair(a->coord()[i], a));
+                atom_axis_data.push_back(std::make_pair(a->coord()[axis], a));
         }
         std::sort(atom_axis_data.begin(), atom_axis_data.end());
         std::vector<double> axis_data;
@@ -152,7 +152,7 @@ _Node::_Node(const std::vector<Atom*>& atoms, bool transformed, sep_val)
             } else if (axis_data.back() == median) {
                 for (int i = last_index; i >= 0; --i) {
                     if (axis_data[i] < median) {
-                        median = (median + ad) / 2.0;
+                        median = (median + axis_data[i]) / 2.0;
                         break;
                     }
                 }
@@ -175,7 +175,6 @@ _Node::_Node(const std::vector<Atom*>& atoms, bool transformed, sep_val)
 
     // less than median goes into the left node,
     // greater-than-or-equal-to goes into the right node
-    auto& axis_data = axes_data[axis];  // should still be sorted
     int left_index = 0;
     for (int index = last_index/2; index >= 0; --index) {
         if (max_axis_data[index] < median) {
@@ -186,10 +185,10 @@ _Node::_Node(const std::vector<Atom*>& atoms, bool transformed, sep_val)
     std::vector<Atom*> left_atoms, right_atoms;
     for (int i = 0; i < left_index; ++i)
         left_atoms.push_back(max_atom_axis_data[i].second);
-    left = new Node(left_atoms, transformed, sep_val);
-    for (int i = left_index; i < atoms.size(); ++i)
+    left = new _Node(left_atoms, transformed, sep_val);
+    for (int i = left_index; i <= last_index; ++i)
         right_atoms.push_back(max_atom_axis_data[i].second);
-    right = new Node(right_atoms, transformed, sep_val);
+    right = new _Node(right_atoms, transformed, sep_val);
 }
 
 _Node::~_Node()
@@ -200,6 +199,7 @@ _Node::~_Node()
     }
 }
 
+void
 _Node::_make_leaf(const std::vector<Atom*>& atoms, bool transformed)
 {
     type = Leaf;
@@ -209,9 +209,9 @@ _Node::_make_leaf(const std::vector<Atom*>& atoms, bool transformed)
         axis_data.reserve(atoms.size());
         for (auto a: atoms) {
             if (transformed)
-                axis_data.push_back(a->scene_coord());
+                axis_data.push_back(a->scene_coord()[axis]);
             else
-                axis_data.push_back(a->coord());
+                axis_data.push_back(a->coord()[axis]);
         }
         bbox[axis][0] = *std::min_element(axis_data.begin(), axis_data.end());
         bbox[axis][1] = *std::max_element(axis_data.begin(), axis_data.end());
@@ -220,7 +220,7 @@ _Node::_make_leaf(const std::vector<Atom*>& atoms, bool transformed)
 }
 
 std::vector<Atom*>
-_Node::search(const Coord& target, double window_sq, double[3]& diffs_sq)
+_Node::search(const Coord& target, double window_sq, double* diffs_sq)
 {
     if (type == Leaf) {
         double diff_sq_sum = 0.0;
@@ -230,12 +230,12 @@ _Node::search(const Coord& target, double window_sq, double[3]& diffs_sq)
             double target_val = target[axis];
             if (target_val < min) {
                 double diff = min - target_val;
-                diff_sq_num += diff * diff;
+                diff_sq_sum += diff * diff;
             } else if (target_val > max) {
                 double diff = target_val - max;
-                diff_sq_num += diff * diff;
+                diff_sq_sum += diff * diff;
             }
-            if (diff_sq_num > window_sq)
+            if (diff_sq_sum > window_sq)
                 return std::vector<Atom*>();
         }
         return leaf_atoms;
@@ -248,23 +248,23 @@ _Node::search(const Coord& target, double window_sq, double[3]& diffs_sq)
 
     std::vector<Atom*> leaves;
     if (target_val < median) {
-        leaves = left.search(target, window_sq, diffs_sq);
+        leaves = left->search(target, window_sq, diffs_sq);
         double diff = median - target_val;
         double diff_sq = diff * diff;
         if (diff_sq <= remaining_window_sq) {
             double prev_diff_sq = diffs_sq[axis];
-            auto new_leaves = right.search(target, window_sq, diffs_sq);
-            leaves.insert(new_leaves.begin(), new_leaves.end());
+            auto new_leaves = right->search(target, window_sq, diffs_sq);
+            leaves.insert(leaves.end(), new_leaves.begin(), new_leaves.end());
             diffs_sq[axis] = prev_diff_sq;
         }
     } else {
-        leaves = right.search(target, window_sq, diffs_sq);
+        leaves = right->search(target, window_sq, diffs_sq);
         double diff = target_val - median;
         double diff_sq = diff * diff;
         if (diff_sq <= remaining_window_sq) {
             double prev_diff_sq = diffs_sq[axis];
-            auto new_leaves = left.search(target, window_sq, diffs_sq);
-            leaves.insert(new_leaves.begin(), new_leaves.end());
+            auto new_leaves = left->search(target, window_sq, diffs_sq);
+            leaves.insert(leaves.end(), new_leaves.begin(), new_leaves.end());
             diffs_sq[axis] = prev_diff_sq;
         }
     }

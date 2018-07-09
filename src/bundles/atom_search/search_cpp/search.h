@@ -21,6 +21,10 @@
 #include "atomstruct/Atom.h"
 #include "atomstruct/destruct.h"
 
+using atomstruct::Atom;
+using atomstruct::Coord;
+using atomstruct::Real;
+
 class _Node {
 private:
     void  _make_leaf(const std::vector<Atom*>&, bool);
@@ -36,11 +40,11 @@ public:
     _Node*  left;
     double  median;
     _Node*  right;
-    std::vector<Atom*>  search(const Coord&, double, double[3]&);
+    std::vector<Atom*>  search(const Coord&, double, double*);
     NodeType  type;
 };
 
-class AtomSearchTree: public DestructionObserver {
+class AtomSearchTree: public atomstruct::DestructionObserver {
     // AtomSearchTree is a specialization of an 'adaptive k-d tree'
     // as per "The Design and Analysis of Spatial Data Structures" pp. 70-71.
     // Basically, given a set of k-dimensional points (each dimension referred
