@@ -123,9 +123,9 @@ endif
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= imex msgpack numexpr numpy openmm \
-	   pcre pips \
+	   pips \
 	   PyOpenGL PyQt Python \
-	   scipy wrappy3
+	   scipy
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -203,8 +203,6 @@ openmm.app-install: Python.app-install numpy.app-install pips.app-install
 openmm.install: Python.install numpy.install pips.install
 openssl.app-install: chrpath.app-install
 openssl.install: chrpath.install
-pcre.app-install: zlib.app-install chrpath.app-install
-pcre.install: zlib.install chrpath.install
 pillow.app-install: Python.app-install zlib.app-install
 pillow.install: Python.install zlib.install
 pips.app-install: Python.app-install
@@ -219,8 +217,6 @@ Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpa
 Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
 scipy.app-install: Python.app-install numpy.app-install
 scipy.install: Python.install numpy.install
-wrappy3.app-install: pcre.app-install Python.app-install
-wrappy3.install: pcre.install Python.install
 xml2.app-install: Python.app-install zlib.app-install
 xml2.install: Python.install zlib.install
 xslt.app-install: xml2.app-install
