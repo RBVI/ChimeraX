@@ -64,7 +64,6 @@ class _AtomicBundleAPI(BundleAPI):
     def initialize(session, bundle_info):
         """Install alignments manager into existing session"""
 
-        #TODO: generate presets menu if in gui mode
         from os.path import dirname, join
         Residue.set_templates_dir(join(dirname(__file__), "data"))
 
