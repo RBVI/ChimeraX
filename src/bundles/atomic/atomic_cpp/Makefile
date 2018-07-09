@@ -39,6 +39,8 @@ lib:
 
 include:
 	mkdir include
+	mkdir include/atomic
+	cp ctypes_pyinst.h include/atomic
 
 data:
 	mkdir data
