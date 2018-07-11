@@ -1846,6 +1846,19 @@ extern "C" EXPORT void pseudobond_group_change_category(void* ptr, const char* c
         molc_error();
     }
 }
+
+extern "C" EXPORT void pseudobond_group_change_tracker(void *grps, size_t n, pyobject_t *trackers)
+{
+    Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(grps);
+    try {
+        for (size_t i = 0; i < n; ++i) {
+            trackers[i] = pbg[i]->manager()->change_tracker()->py_instance(true);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void pseudobond_group_group_type(void *pbgroups, size_t n, uint8_t *group_types)
 {
     Proxy_PBGroup **g = static_cast<Proxy_PBGroup **>(pbgroups);
@@ -4181,6 +4194,18 @@ extern "C" EXPORT void structure_chains(void *mols, size_t n, pyobject_t *chains
     }
 }
 
+extern "C" EXPORT void structure_change_tracker(void *mols, size_t n, pyobject_t *trackers)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i) {
+            trackers[i] = m[i]->change_tracker()->py_instance(true);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -4560,16 +4585,6 @@ extern "C" EXPORT void structure_set_position(void *mol, void *pos)
     Structure *m = static_cast<Structure *>(mol);
     try {
         m->set_position_matrix((double*)pos);
-    } catch (...) {
-        molc_error();
-    }
-}
-
-extern "C" EXPORT bool structure_is_tracking_changes(void *structure)
-{
-    Structure *s = static_cast<Structure *>(structure);
-    try {
-        return s->change_tracker() != DiscardingChangeTracker::discarding_change_tracker();
     } catch (...) {
         molc_error();
     }
@@ -5510,6 +5525,7 @@ extern "C" EXPORT void pointer_intersects_each(void *pointer_arrays, size_t na, 
 #include <atomic/ctypes_pyinst.h>
 SET_PYTHON_CLASS(atom, Atom)
 SET_PYTHON_CLASS(bond, Bond)
+SET_PYTHON_CLASS(changetracker, ChangeTracker)
 SET_PYTHON_CLASS(coordset, CoordSet)
 SET_PYTHON_CLASS(element, Element)
 SET_PYTHON_CLASS(pseudobond, Pseudobond)
@@ -5517,13 +5533,15 @@ SET_PYTHON_CLASS(pseudobondgroup, PBGroup)
 SET_PYTHON_CLASS(residue, Residue)
 SET_PYTHON_CLASS(ring, Ring)
 
+SET_PYTHON_INSTANCE(changetracker, ChangeTracker)
+SET_PYTHON_INSTANCE(pseudobondgroup, Proxy_PBGroup)
 SET_PYTHON_INSTANCE(sequence, Sequence)
 SET_PYTHON_INSTANCE(structure, Structure)
-SET_PYTHON_INSTANCE(pseudobondgroup, Proxy_PBGroup)
 
 GET_PYTHON_INSTANCES(atom, Atom)
 GET_PYTHON_INSTANCES(bond, Bond)
 GET_PYTHON_INSTANCES(chain, Chain)
+GET_PYTHON_INSTANCES(changetracker, ChangeTracker)
 GET_PYTHON_INSTANCES(coordset, CoordSet)
 GET_PYTHON_INSTANCES(element, Element)
 GET_PYTHON_INSTANCES(pseudobond, Pseudobond)
