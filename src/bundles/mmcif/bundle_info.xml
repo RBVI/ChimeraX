@@ -23,7 +23,6 @@
     <Library>element</Library>
     <Library>pyinstance</Library>
     <Library>readcif</Library>
-    <Library>wrappy3</Library>
     <Library>logger</Library>
     <Library>arrays</Library>
     <Library>appdirs</Library>
