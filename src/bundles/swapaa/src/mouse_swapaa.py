@@ -27,7 +27,7 @@ class SwapAAMouseMode(MouseMode):
                                         'GLN', 'GLU', 'GLY', 'HIS', 'ILE',
                                         'LEU', 'LYS', 'MET', 'PHE', 'PRO',
                                         'SER', 'THR', 'TRP', 'TYR', 'VAL']
-        self._template_pdb_id = '5D8V'		# Source of atom coordinates for each residue.
+        self._template_file = 'templates.cif'	# Atom coordinates for each residue.
         self._label_atom_name = 'CA'		# Which atom to show residue label on.
         
     def enable(self):
@@ -37,13 +37,15 @@ class SwapAAMouseMode(MouseMode):
         tres = self._template_residues
         if tres:
             return
-        from chimerax.atomic.mmcif import fetch_mmcif
-        models, status = fetch_mmcif(self.session, self._template_pdb_id, log_info = False)
+        from chimerax.atomic.mmcif import open_mmcif
+        from os.path import join, dirname
+        path = join(dirname(__file__), self._template_file)
+        models, status = open_mmcif(self.session, path, log_info = False)
+        
         m = models[0]
         found = {}
         tnames = self._template_residue_names
-        # TODO: Exclude residues with terminal groups.
-        for r in m.residues[1:-1]:
+        for r in m.residues:
             if r.name not in found and r.name in tnames:
                 found[r.name] = r
         tres.extend(found[name] for name in tnames if name in found)
