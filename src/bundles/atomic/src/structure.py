@@ -1597,10 +1597,10 @@ class Structure(Model, StructureData):
         self._update_graphics_if_needed()       # Ribbon drawing lazily computed
         super().write_x3d(*args, **kw)
 
-    def set_selected(self, sel):
+    def set_selected(self, sel, *, fire_trigger=True):
         self.atoms.selected = sel
         self.bonds.selected = sel
-        Model.set_selected(self, sel)
+        Model.set_selected(self, sel, fire_trigger=fire_trigger)
     selected = property(Model.get_selected, set_selected)
 
     def set_selected_positions(self, spos):
