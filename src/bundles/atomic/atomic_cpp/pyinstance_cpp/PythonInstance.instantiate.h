@@ -71,6 +71,8 @@ void PythonInstance<C>::set_py_instance(PyObject* py_obj)
 
 template <class C>
 PythonInstance<C>::~PythonInstance() {
+    if (!Py_IsInitialized())
+        return;
     auto derived = static_cast<const C*>(this);
     auto i = _pyinstance_object_map.find(static_cast<const void*>(derived));
     if (i == _pyinstance_object_map.end())
