@@ -39,6 +39,8 @@ lib:
 
 include:
 	mkdir include
+	mkdir include/atomic
+	cp ctypes_pyinst.h include/atomic
 
 data:
 	mkdir data
@@ -49,7 +51,7 @@ cymol.$(PYMOD_EXT): cymol.pyx include/atomstruct/Atom.h
 	rmdir -p chimerax/atomic
 
 install: $(SHLIB) cymol.$(PYMOD_EXT)
-	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) include lib ../src
+	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) data include lib ../src
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)

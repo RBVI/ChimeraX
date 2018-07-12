@@ -10,6 +10,7 @@
   <Description>Python and C++ support for handling atomic structures</Description>
 
   <DataFiles>
+    <DataFile>data/*/*/*</DataFile>
     <DataFile>include/*/*</DataFile>
     <DataFile>include/*/*/*</DataFile>
     <DataFile>lib/*</DataFile>

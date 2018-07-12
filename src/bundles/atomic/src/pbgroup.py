@@ -136,7 +136,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self._pbond_drawing = None
             self._graphics_changed |= self._SHAPE_CHANGE
             self.redraw_needed(shape_changed = True)
-        self.session.change_tracker.add_modified(self, "dashes changed")
+        self.change_tracker.add_modified(self, "dashes changed")
 
     dashes = property(_get_dashes, _set_dashes,
         doc="How many dashes pseudobonds will be drawn with")

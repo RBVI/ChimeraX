@@ -373,6 +373,8 @@ class PseudobondGroupData:
     # Model class uses _name, so...
     _category = c_property('pseudobond_group_category', string, read_only = True,
         doc = "Name of the pseudobond group.  Read only string.")
+    change_tracker = c_property('pseudobond_group_change_tracker', pyobject, read_only = True,
+        doc = "The :class:`.ChangeTracker` currently in use by this pseudobond group. Read only.")
     color = c_property('pseudobond_group_color', uint8, 4,
         doc="Supported API. Sets the color attribute of current pseudobonds and new pseudobonds")
     group_type = c_property('pseudobond_group_group_type', uint8, read_only = True, doc=
@@ -1222,12 +1224,12 @@ class StructureData:
         doc = ":class:`.Bonds` collection containing all bonds of the structure.")
     chains = c_property('structure_chains', cptr, 'num_chains', astype = convert.chains, read_only = True,
         doc = "Supported API. :class:`.Chains` collection containing all chains of the structure.")
+    change_tracker = c_property('structure_change_tracker', pyobject, read_only = True,
+        doc = "The :class:`.ChangeTracker` currently in use by this structure. Read only.")
     coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True,
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
         doc = "Supported API. Return the size of the active coordinate set array.")
-    is_tracking_changes = c_property('structure_is_tracking_changes', npy_bool, read_only = True,
-        doc = "Whether this structure is participating in change tracking.")
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool,
         doc = "Supported API. Structure has lower case chain ids. Boolean")
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True,
@@ -1654,9 +1656,15 @@ class ChangeTracker:
     '''Per-session singleton change tracker keeps track of all
     atomic data changes'''
 
-    def __init__(self):
-        f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
-        set_c_pointer(self, f())
+    def __init__(self, ct_pointer=None):
+        if ct_pointer is None:
+            f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
+            set_c_pointer(self, f())
+        else:
+            set_c_pointer(self, ct_pointer)
+        f = c_function('set_changetracker_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
+        f(self._c_pointer, self)
+
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -2046,7 +2054,7 @@ class SeqMatchMap(State):
 # from the pointer (needed by Collections)
 from .pbgroup import PseudobondGroup
 #for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
-for class_obj in [Bond, CoordSet, PseudobondGroup, Pseudobond, Ring]:
+for class_obj in [Bond, ChangeTracker, CoordSet, PseudobondGroup, Pseudobond, Ring]:
     cname = class_obj.__name__.lower()
     func_name = "set_" + cname + "_pyclass"
     f = c_function(func_name, args = (ctypes.py_object,))

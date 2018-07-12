@@ -546,10 +546,6 @@ def init(argv, event_loop=True):
         # TODO: show compression suffixes?
         raise SystemExit(0)
 
-    if opts.gui and sys.platform.startswith('linux'):
-        from chimerax.core import _xdg
-        _xdg.install_if_needed(sess, localized_app_name)
-
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
         if not opts.silent:

@@ -32,7 +32,6 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <sstream>
-#include <WrapPy3.h>
 
 #undef LEAVING_ATOMS
 
@@ -250,7 +249,7 @@ ExtractTemplate::parse_chem_comp()
             old_code = Sequence::nucleic3to1(modres);
         if (old_code != 'X' && old_code != code)
             std::cerr << "Not changing " << modres <<
-                " sequence abbrevation (old: " << old_code << ", new: " <<
+                " sequence abbreviation (old: " << old_code << ", new: " <<
                 code << ")\n";
         else
             Sequence::assign_rname3to1(name, code, is_peptide);
@@ -427,11 +426,11 @@ set_Python_locate_function(PyObject* function)
     save_reference_to_function = function;
 
     locate_func = [function] (const ResName& name) -> std::string {
-      PyObject* name_arg = wrappy::pyObject(name.c_str());
+      PyObject* name_arg = PyUnicode_DecodeUTF8(name.data(), name.size(), "replace");
         PyObject* result = PyObject_CallFunction(function, "O", name_arg);
         Py_XDECREF(name_arg);
         if (result == nullptr)
-            throw wrappy::PythonError();
+            throw std::runtime_error("Python Error");
         if (result == Py_None) {
             Py_DECREF(result);
             return std::string();
@@ -440,7 +439,9 @@ set_Python_locate_function(PyObject* function)
             Py_DECREF(result);
             throw std::logic_error("locate function should return a string");
         }
-        string cpp_result = wrappy::PythonUnicode_AsCppString(result);
+        Py_ssize_t size;
+        const char *data = PyUnicode_AsUTF8AndSize(result, &size);
+        string cpp_result(data, size);
         Py_DECREF(result);
         return cpp_result;
     };

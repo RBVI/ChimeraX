@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 # vim: set expandtab shiftwidth=4 softtabstop=4 fileencoding=utf-8:
 
 # === UCSF ChimeraX Copyright ===
@@ -75,6 +75,7 @@ def str_quote(text):
         else:
             result += ch
     return result
+
 
 # From Desktop Entry Specification 1.0:
 #
@@ -248,13 +249,13 @@ def make_mime_file(name):
                         mi.glob(e)
 
 
-def install_icons(info, data_dir):
+def install_icons(info):
     if verbose:
         print("installing icons")
 
     # install application icon
-    # image_dir = "%s/images" % data_dir
-    image_dir = data_dir
+    # image_dir = "%s/images" % info.icon_dir
+    image_dir = info.icon_dir
     sizes = (16, 32, 64, 128)
     for size in sizes:
         path = '%s/%s-icon%d.png' % (image_dir, info.app_name, size)
@@ -264,7 +265,7 @@ def install_icons(info, data_dir):
             'xdg-icon-resource', 'install',
             '--context', 'apps',
             '--size', str(size),
-            '--mode', 'user',
+            '--mode', 'system' if info.system else 'user',
             path, info.name
         ]
         if size != sizes[-1]:
@@ -276,13 +277,16 @@ def install_icons(info, data_dir):
     # scalable application icon
     if os.path.exists('/usr/share/icons/hicolor/scalable'):
         path = '%s/%s-icon.svg' % (image_dir, info.app_name)
-        p2 = os.path.expanduser("~/.local/share/icons/hicolor/scalable/apps")
-        os.makedirs(p2, exist_ok=True)
+        if info.system:
+            p2 = '/usr/share/icons/hicolor/scalable'
+        else:
+            p2 = os.path.expanduser("~/.local/share/icons/hicolor/scalable/apps")
+            os.makedirs(p2, exist_ok=True)
         import shutil
         shutil.copyfile(path, os.path.join(p2, '%s.svg' % info.name))
         cmd = [
             'xdg-icon-resource', 'forceupdate',
-            '--mode', 'user',
+            '--mode', 'system' if info.system else 'user'
         ]
         try:
             subprocess.call(cmd)
@@ -314,7 +318,7 @@ def install_icons(info, data_dir):
                 'xdg-icon-resource', 'install',
                 '--context', 'mimetypes',
                 '--size', '%d' % im.width,
-                '--mode', 'user',
+                '--mode', 'system' if info.system else 'user',
                 icon, mt
             ]
             try:
@@ -323,17 +327,38 @@ def install_icons(info, data_dir):
                 print("Unable to install %s icon: %s" % (f.name, e), file=sys.stderr)
 
 
-def install_desktop_menu(desktop):
+def install_desktop_menu(desktop, system):
     if verbose:
         print("installing desktop menu")
-    cmd = ['xdg-desktop-menu', 'install', desktop]
+    cmd = [
+        'xdg-desktop-menu',
+        'install',
+        '--mode', 'system' if system else 'user',
+        desktop
+    ]
     try:
         subprocess.call(cmd)
     except OSError as e:
         print("Unable to install desktop menu: %s" % e, file=sys.stderr)
 
 
+def uninstall_desktop_menu(desktop, system):
+    if verbose:
+        print("uninstalling desktop menu")
+    cmd = [
+        'xdg-desktop-menu',
+        'uninstall',
+        '--mode', 'system' if system else 'user',
+        desktop
+    ]
+    try:
+        subprocess.call(cmd)
+    except OSError as e:
+        print("Unable to uninstall desktop menu: %s" % e, file=sys.stderr)
+
+
 def install_desktop_icon(desktop):
+    # only works for current user
     if verbose:
         print("installing desktop icon")
     cmd = ['xdg-desktop-icon', 'install', desktop]
@@ -343,17 +368,8 @@ def install_desktop_icon(desktop):
         print("Unable to install desktop icon: %s" % e, file=sys.stderr)
 
 
-def uninstall_desktop_menu(desktop):
-    if verbose:
-        print("uninstalling desktop menu")
-    cmd = ['xdg-desktop-menu', 'uninstall', desktop]
-    try:
-        subprocess.call(cmd)
-    except OSError as e:
-        print("Unable to uninstall desktop menu: %s" % e, file=sys.stderr)
-
-
 def uninstall_desktop_icon(desktop):
+    # only works for current user
     if verbose:
         print("uninstalling desktop icon")
     cmd = ['xdg-desktop-icon', 'uninstall', desktop]
@@ -363,67 +379,66 @@ def uninstall_desktop_icon(desktop):
         print("Unable to uninstall desktop icon: %s" % e, file=sys.stderr)
 
 
-def install_mime_file(mimetypes):
+def install_mime_file(mimetypes, system):
     if verbose:
         print("installing MIME info")
-    cmd = ['xdg-mime', 'install', mimetypes]
+    cmd = [
+        'xdg-mime',
+        'install',
+        '--mode', 'system' if system else 'user',
+        mimetypes
+    ]
     try:
         subprocess.call(cmd)
     except OSError as e:
         print("Unable to install mime types: %s" % e, file=sys.stderr)
 
 
-def uninstall_mime_file(mimetypes):
+def uninstall_mime_file(mimetypes, system):
     if verbose:
         print("uninstalling MIME info")
-    cmd = ['xdg-mime', 'uninstall', mimetypes]
+    cmd = [
+        'xdg-mime',
+        'uninstall',
+        '--mode', 'system' if system else 'user',
+        mimetypes
+    ]
     try:
         subprocess.call(cmd)
     except OSError as e:
         print("Unable to uninstall mime types: %s" % e, file=sys.stderr)
 
 
-def generate(session, localized_app_name):
-    info = get_info(session)
-    if info.already_generated:
-        if verbose:
-            print("already generated")
-    else:
-        make_desktop(info, localized_app_name)
-        make_mime_file(info.mime_file)
+def generate(session, info=None, system=False):
+    if not info:
+        info = get_info(session, system)
+    from __main__ import localized_app_name
+    make_desktop(info, localized_app_name)
+    make_mime_file(info.mime_file)
 
 
-def install(session, localized_app_name, reinstall=False, info=None):
-    if info is None:
-        info = get_info(session)
-    if not info.already_generated or reinstall:
-        make_desktop(info, localized_app_name)
-        make_mime_file(info.mime_file)
-    from chimerax import app_data_dir
-    if not info.already_generated or reinstall:
-        install_mime_file(info.mime_file)
-        install_icons(info, app_data_dir)
-        install_desktop_menu(info.desktop)
+def install(session, system=False, verbose=False):
+    info = get_info(session, system)
+    generate(session, info, system)
+    install_mime_file(info.mime_file)
+    install_icons(info)
+    install_desktop_menu(info.desktop, info.system)
+    if not system:
         install_desktop_icon(info.desktop)
 
 
-def uninstall(session):
-    info = get_info(session)
-    if info.already_generated:
-        uninstall_desktop_icon(info.desktop)
-        uninstall_desktop_menu(info.desktop)
-        uninstall_mime_file(info.mime_file)
+def uninstall(session, system=False, verbose=False):
+    info = get_info(session, system)
+    if os.path.exists(info.desktop):
+        if not system:
+            uninstall_desktop_icon(info.desktop)
+        uninstall_desktop_menu(info.desktop, info.system)
         os.remove(info.desktop)
+    # Don't uninstall icons because they might be
+    # shared with other packages
+    if os.path.exists(info.mime_file):
+        uninstall_mime_file(info.mime_file)
         os.remove(info.mime_file)
-
-
-def install_if_needed(session, localized_app_name={}, reinstall=False):
-    info = get_info(session)
-    reinstall = False
-    if info.already_generated and not reinstall:
-        # TODO: check if we should reinstall
-        return
-    install(session, localized_app_name, reinstall=reinstall, info=info)
 
 
 def get_mime_types():
@@ -439,11 +454,17 @@ def get_mime_types():
     return mime_types
 
 
-def get_info(session, command=None):
+def get_info(session, system, create=False):
     class Info:
         pass
     info = Info()
-    from chimerax import app_dirs
+    info.system = system
+    from chimerax import app_dirs, app_data_dir
+    if not system:
+        info.save_dir = app_dirs.user_config_dir
+    else:
+        info.save_dir = app_data_dir
+    info.icon_dir = app_data_dir
     info.app_name = app_dirs.appname
     info.app_author = app_dirs.appauthor
     info.name = '%s-%s' % (info.app_author, info.app_name)
@@ -459,9 +480,7 @@ def get_info(session, command=None):
         version = 'unknown'
     info.version = version
     info.desktop = '%s/%s-%s.desktop' % (
-        app_dirs.user_config_dir, info.name, info.version)
+        info.save_dir, info.name, info.version)
     info.mime_file = '%s/%s-%s.mime.types' % (
-        app_dirs.user_config_dir, info.name, info.version)
-    info.already_generated = (os.path.exists(info.desktop) and
-                              os.path.exists(info.mime_file))
+        info.save_dir, info.name, info.version)
     return info

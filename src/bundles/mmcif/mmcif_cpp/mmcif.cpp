@@ -413,7 +413,7 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
             c = tolower(c);
 #endif
         if (std::find(std::begin(builtin_categories), std::end(builtin_categories), category_ci) != std::end(builtin_categories)) {
-            logger::warning(_logger, "Can not overriden builtin parsing for "
+            logger::warning(_logger, "Can not override builtin parsing for "
                             "category: ", c);
             continue;
         }
@@ -2463,12 +2463,15 @@ ExtractTables::parse_category()
 
     PyObject* fields = PyTuple_New(num_colnames);
     if (!fields)
-        throw wrappy::PythonError();
+        throw std::runtime_error("Python Error");
     for (size_t i = 0; i < num_colnames; ++i) {
-        PyObject* o = wrappy::pyObject(colnames[i]);
+        PyObject* o = PyUnicode_DecodeUTF8(colnames[i].data(), colnames[i].size(), "replace");
         if (!o) {
+            PyObject *type, *value, *traceback;
+            PyErr_Fetch(&type, &value, &traceback);
             Py_DECREF(fields);
-            throw wrappy::PythonError();
+            PyErr_Restore(type, value, traceback);
+            throw std::runtime_error("Python Error");
         }
         PyTuple_SET_ITEM(fields, i, o);
     }
@@ -2478,30 +2481,42 @@ ExtractTables::parse_category()
         [&] (const char* start, const char* end) {
             PyObject* o = PyUnicode_DecodeUTF8(start, end - start, "replace");
             if (!o || PyList_Append(items, o) < 0) {
+                PyObject *type, *value, *traceback;
+                PyErr_Fetch(&type, &value, &traceback);
                 Py_XDECREF(o);
                 Py_DECREF(fields);
                 Py_DECREF(items);
-                throw wrappy::PythonError();
+                PyErr_Restore(type, value, traceback);
+                throw std::runtime_error("Python Error");
             }
         });
 
     PyObject* field_items = PyTuple_New(2);
     if (!field_items) {
+        PyObject *type, *value, *traceback;
+        PyErr_Fetch(&type, &value, &traceback);
         Py_DECREF(fields);
         Py_DECREF(items);
-        throw wrappy::PythonError();
+        PyErr_Restore(type, value, traceback);
+        throw std::runtime_error("Python Error");
     }
     PyTuple_SET_ITEM(field_items, 0, fields);
     PyTuple_SET_ITEM(field_items, 1, items);
 
-    PyObject* o = wrappy::pyObject(category);
+    PyObject* o = PyUnicode_DecodeUTF8(category.data(), category.size(), "replace");
     if (!o) {
+        PyObject *type, *value, *traceback;
+        PyErr_Fetch(&type, &value, &traceback);
         Py_DECREF(field_items);
-        throw wrappy::PythonError();
+        PyErr_Restore(type, value, traceback);
+        throw std::runtime_error("Python Error");
     }
     if (PyDict_SetItem(data, o, field_items) < 0) {
+        PyObject *type, *value, *traceback;
+        PyErr_Fetch(&type, &value, &traceback);
         Py_DECREF(field_items);
-        throw wrappy::PythonError();
+        PyErr_Restore(type, value, traceback);
+        throw std::runtime_error("Python Error");
     }
 }
 
