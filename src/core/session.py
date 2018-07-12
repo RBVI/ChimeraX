@@ -905,6 +905,11 @@ def register_session_format(session):
         save(session, filename, **kw)
     register('save session', desc, save_session, logger=session.logger)
 
+    import sys
+    if sys.platform.startswith('linux'):
+        from .commands.linux import register_command
+        register_command(session.logger)
+
 
 def register_x3d_format():
     from . import io, toolshed
