@@ -304,7 +304,7 @@ def install_icons(info):
             continue
         try:
             im = Image.open(icon)
-        except IOError as e:
+        except IOError:
             # logger.warning('unable to load icon: %s' % icon)
             continue
         if im.width != im.height:
@@ -420,7 +420,7 @@ def generate(session, info=None, system=False):
 def install(session, system=False, verbose=False):
     info = get_info(session, system)
     generate(session, info, system)
-    install_mime_file(info.mime_file)
+    install_mime_file(info.mime_file, system)
     install_icons(info)
     install_desktop_menu(info.desktop, info.system)
     if not system:
@@ -437,7 +437,7 @@ def uninstall(session, system=False, verbose=False):
     # Don't uninstall icons because they might be
     # shared with other packages
     if os.path.exists(info.mime_file):
-        uninstall_mime_file(info.mime_file)
+        uninstall_mime_file(info.mime_file, system)
         os.remove(info.mime_file)
 
 

@@ -11,6 +11,10 @@
   <Synopsis>Swap amino acid</Synopsis>
   <Description>Swap amino acid</Description>
 
+  <DataFiles>
+    <DataFile>templates.cif</DataFile>
+  </DataFiles>
+
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="Structure Editing"/>
