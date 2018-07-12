@@ -411,6 +411,9 @@ class Logger(StatusLogger):
                     num_spaces = len(line) - len(text)
                     tmp.append('&nbsp;' * num_spaces + escape(text))
                 tb_msg = "<br>\n".join(tmp)
+            if self.session.silent:
+                self.error(tb_msg, is_html=True)
+                return
             self.info(tb_msg, is_html=True)
 
             err = "".join(format_exception_only(ei[0], ei[1]))
