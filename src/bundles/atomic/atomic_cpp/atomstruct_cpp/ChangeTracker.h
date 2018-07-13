@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <array>
 #include <map>
+#include <pyinstance/PythonInstance.declare.h>
 #include <set>
 #include <string>
 #include <vector>
@@ -53,7 +54,7 @@ public:
     void  clear() { created.clear(); modified.clear(); reasons.clear(); num_deleted=0; }
 };
 
-class ATOMSTRUCT_IMEX ChangeTracker {
+class ATOMSTRUCT_IMEX ChangeTracker: public pyinstance::PythonInstance<ChangeTracker> {
 protected:
     static const int  _num_types = 8;
 
@@ -74,7 +75,8 @@ protected:
     }
 
 public:
-    ChangeTracker() : _discarding(false) {};
+    ChangeTracker() : _discarding(false) {}
+    virtual ~ChangeTracker() {}
 
     static const std::string  REASON_ACTIVE_COORD_SET;
     static const std::string  REASON_ALT_LOC;

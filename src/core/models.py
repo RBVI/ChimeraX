@@ -131,7 +131,15 @@ class Model(State, Drawing):
         if self._id != None:  # model actually open
             self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
     name = property(_get_name, _set_name)
+    
+    def set_selected(self, sel, *, fire_trigger=True):
+        Drawing.set_selected(self, sel)
+        if fire_trigger:
+            from chimerax.core.selection import SELECTION_CHANGED
+            self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
 
+    selected = property(Drawing.get_selected, set_selected)
+    
     def _model_set_position(self, pos):
         if pos != self.position:
             Drawing.position.fset(self, pos)

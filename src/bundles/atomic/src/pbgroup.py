@@ -92,10 +92,10 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def atomspec_pseudobonds(self):
         return self.pseudobonds
 
-    def _set_selected(self, sel):
+    def set_selected(self, sel, *, fire_trigger=True):
         self.pseudobonds.selected = sel
-        Model.set_selected(self, sel)
-    selected = property(Model.get_selected, _set_selected)
+        Model.set_selected(self, sel, fire_trigger=fire_trigger)
+    selected = property(Model.get_selected, set_selected)
 
     def selected_items(self, itype):
         if itype == 'pseudobonds':
@@ -136,7 +136,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self._pbond_drawing = None
             self._graphics_changed |= self._SHAPE_CHANGE
             self.redraw_needed(shape_changed = True)
-        self.session.change_tracker.add_modified(self, "dashes changed")
+        self.change_tracker.add_modified(self, "dashes changed")
 
     dashes = property(_get_dashes, _set_dashes,
         doc="How many dashes pseudobonds will be drawn with")

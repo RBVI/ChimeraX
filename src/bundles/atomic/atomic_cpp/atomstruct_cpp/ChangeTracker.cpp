@@ -16,6 +16,9 @@
 #define ATOMSTRUCT_EXPORT
 #define PYINSTANCE_EXPORT
 #include "ChangeTracker.h"
+#include <pyinstance/PythonInstance.instantiate.h>
+
+template class pyinstance::PythonInstance<atomstruct::ChangeTracker>;
 
 namespace atomstruct {
 

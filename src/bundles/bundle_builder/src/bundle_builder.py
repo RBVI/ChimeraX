@@ -519,7 +519,7 @@ class _CModule(_CompiledCode):
             return None
         import sys
         if sys.platform == "linux":
-            extra_link_args.append("-Wl,-rpath,\\$ORIGIN")
+            extra_link_args.append("-Wl,-rpath,$ORIGIN")
         return Extension(package + '.' + self.name,
                          define_macros=[("MAJOR_VERSION", self.major),
                                         ("MINOR_VERSION", self.minor)],

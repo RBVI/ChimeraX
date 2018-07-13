@@ -400,13 +400,19 @@ class MolecularSurface(Surface):
             pa = PickedAtom(atom, p.distance)
         return pa
 
-    def update_selection(self):
+    def set_selected(self, sel, *, fire_trigger=True):
+        self.atoms.selected = sel
+        self.update_selection(fire_trigger=fire_trigger)
+    selected = property(Surface.get_selected, set_selected)
+
+    def update_selection(self, *, fire_trigger=True):
         asel = self.atoms.selected
         tmask = self._atom_triangle_mask(asel)
         if tmask is None:
-            self.selected = False
+            sel_val = False
         else:
-            self.selected = (tmask.sum() > 0)
+            sel_val = (tmask.sum() > 0)
+        Surface.set_selected(self, sel_val, fire_trigger=fire_trigger)
         self.selected_triangles_mask = tmask
 
     # State save/restore in ChimeraX
