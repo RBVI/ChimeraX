@@ -34,18 +34,23 @@ PATCHES += $(wildcard Python-$(PYTHON_PATCH_LEVEL)_debug.patch)
 endif
 
 ifeq ($(OS),Linux)
-LDFLAGS += -Wl,-rpath,a-value-that-is-replaced
-export LD_LIBRARY_PATH=$(libdir)
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
+# -Wl,-rpath ends up in shared libraries in addition to executables,
+# which we do not want, so only add the rpath when linking the executable
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)' LINKCC="gcc '-Wl,-rpath,\$$\$$ORIGIN/../lib'"
+ifdef HARDENING
+ENV_CONFIGURE += CFLAGS='-D_FORTIFY=2 -fstack-protector-strong'
+endif
+EXTRA_CFLAGS = '-fdebug-prefix-map=$(build_prefix)=.'
 CONFIG_OPTIONS += --enable-shared
+export LD_LIBRARY_PATH=$(libdir)
 # --enable-optimizations causes singularity build to fail (and causes long build times)
 # Try reneabling with newer versions of Python after benchmarking it is worth it.
 # CONFIG_OPTIONS += --enable-optimizations
 endif
 ifeq ($(OS),Darwin)
-# On Darwin, -Wl,-rpath ends up in shared libraries in addition to executables,
-# which we don't want, so we add the rpath later, and set the DYLD_LIBRARY_PATH
-# to compensate while we're building.  We also edit the Makefile so that the
+# -Wl,-rpath ends up in shared libraries in addition to executables,
+# which we do not want, so we add the rpath later, and set the DYLD_LIBRARY_PATH
+# to compensate while we are building.  We also edit the Makefile so that the
 # _build_ Python executable, python.exe, gets the correct rpath but none of
 # the shared objects should get an explicit rpath (and hence should just use
 # the rpath from the ChimeraX/python executable).
@@ -123,7 +128,7 @@ ifeq ($(OS),Windows)
 
 else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
-	cd $(SOURCE) && $(MAKE) && $(MAKE) -j1 install
+	cd $(SOURCE) && $(MAKE) EXTRA_CFLAGS=$(EXTRA_CFLAGS) && $(MAKE) -j1 EXTRA_CFLAGS=$(EXTRA_CFLAGS) install
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
 
 	# copy bin, include, lib, and share to common location and leave symbolic links
@@ -159,9 +164,6 @@ else ifdef USE_MAC_FRAMEWORKS
 		ln -s $(shell python -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 
-	# remove unused libraries
-	rm -rf $(PYTHON_LIBRARY_DIR)/config-*/*.{a,dylib}
-
 	# replace python executable with version that doesn't invoke Python.app
 	cp $(SOURCE)/python.exe $(PYTHON_EXE)
 	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_EXE)
@@ -192,7 +194,6 @@ else
 	# Linux or Mac OS X without framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
-	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 	-for lib in $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so; do \
 		chrpath -d $$lib; \
 	done
@@ -212,6 +213,9 @@ endif
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
 endif
+	# remove unused libraries
+	rm -rf $(PYTHON_LIBRARY_DIR)/config-*/*.{a,dylib}
+
 	# Since pip comes with Python 3.5, update it now so installs on
 	# Windows will work.  Wheel is needed so bdist_wheel will work.
 	$(PYTHON_EXE) -m ensurepip --upgrade
