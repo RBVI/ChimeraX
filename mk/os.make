@@ -20,18 +20,29 @@ ifeq ($(OS),Linux)
 	LIB_LINK = ar rc $(LIBRARY) $(OBJS)
 	RANLIB = ranlib
 	SHLIB_EXT = so
-	SHLIB_LINK = $(LOADER) -fuse-ld=gold -Wl,--no-allow-shlib-undefined $(LDFLAGS) -shared -o $(SHLIB) $(OBJS) $(LIBS)
+	SHLIB_LINK = $(LOADER) -fuse-ld=gold -Wl,--no-allow-shlib-undefined,--as-needed $(LDFLAGS) -shared -o $(SHLIB) $(OBJS) $(LIBS)
 	PROG_EXT =
-	PROG_LINK = $(LOADER) -Wl,--no-undefined $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
+	PROG_LINK = $(LOADER) -Wl,--no-undefined,--as-needed $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
 
+	# Add Debian's dpkg-buildflags additions for hardening code to
+	# CFLAGS, CXXFLAGS, CPPFLAGS (OPT), and LDFLAGS.
+	HARDENING = 1
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
 else
 	OPT = -O3 -Wall -Wextra
+ifdef HARDENING
+	OPT += -D_FORTIFY=2
+endif
 endif
 	GCC_VER	= $(shell $(CC) -dumpversion)
-	CC = gcc -pipe -fPIC -std=gnu99
-	CXX = g++ -pipe -fPIC
+	CC = gcc -pipe -fPIC -std=gnu99 -fdebug-prefix-map=$(build_prefix)=.
+	CXX = g++ -pipe -fPIC -fdebug-prefix-map=$(build_prefix)=.
+ifdef HARDENING
+	CC += -fstack-protector-strong
+	CXX += -fstack-protector-strong
+	LDFLAGS = -Wl,-Bsymbolic-functions -Wl,-z,relro
+endif
 ifneq (,$(shell echo $(GCC_VER) | sed -e 's/^[1-3]\..*//' -e 's/^4\.[0-6]\..*//'))
 	# gcc 4.7 or newer
 	CXX += -std=c++11
