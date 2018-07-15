@@ -299,10 +299,14 @@ class Toolshed:
         # Compute base directories
         import os
         from chimerax import app_dirs
-        self._cache_dir = os.path.join(app_dirs.user_cache_dir, _ToolshedFolder)
+        if os.path.exists(app_dirs.user_cache_dir):
+            self._cache_dir = os.path.join(app_dirs.user_cache_dir, _ToolshedFolder)
+        else:
+            self._cache_dir = None
         _debug("cache dir: %s" % self._cache_dir)
-        self._data_dir = os.path.join(app_dirs.user_data_dir, _ToolshedFolder)
-        _debug("data dir: %s" % self._data_dir)
+        # TODO: unused so far
+        # self._data_dir = os.path.join(app_dirs.user_data_dir, _ToolshedFolder)
+        # _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path
         import site
@@ -387,7 +391,7 @@ class Toolshed:
             cache_file = self._bundle_cache(False, logger)
             self._installed_bundle_info.load(logger, cache_file=cache_file,
                                              rebuild_cache=rebuild_cache,
-                                             write_cache=True)
+                                             write_cache=cache_file is not None)
             if report:
                 if save is None:
                     logger.info("Initial installed bundles.")
@@ -806,8 +810,10 @@ class Toolshed:
             return self._available_bundle_info
 
     def _bundle_cache(self, must_exist, logger):
-        """Return path to bundle cache file."""
+        """Return path to bundle cache file.  None if not available."""
         _debug("_bundle_cache", must_exist)
+        if self._cache_dir is None:
+            return None
         if must_exist:
             import os
             os.makedirs(self._cache_dir, exist_ok=True)
