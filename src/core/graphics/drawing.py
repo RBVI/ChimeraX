@@ -1384,10 +1384,9 @@ def draw_overlays(drawings, renderer):
     r.disable_shader_capabilities(0)
 
 
-def draw_selection_outline(renderer, cvinv, drawings):
+def draw_selection_outline(renderer, drawings):
     '''Draw the outlines of selected parts of the specified drawings.'''
     r = renderer
-    r.set_view_matrix(cvinv)
     r.start_rendering_outline()
     from ..geometry import Place
     p = Place()

@@ -218,7 +218,7 @@ class View:
                                             self.silhouette_depth_jump,
                                             perspective_near_far_ratio)
             if any_selected:
-                draw_selection_outline(r, cpinv, mdraw)
+                draw_selection_outline(r, mdraw)
 
         camera.combine_rendered_camera_views(r)
 
