@@ -147,42 +147,24 @@ class View:
         if camera is None:
             camera = self.camera
 
+        self._draw_scene(camera, drawings)
+
+        if swap_buffers:
+            r = self.render
+            if camera.do_swap_buffers():
+                r.swap_buffers()
+            self.redraw_needed = False
+            r.done_current()
+
+    def _draw_scene(self, camera, drawings):
         mdraw = [self.drawing] if drawings is None else drawings
 
         r = self._render
         self.clip_planes.enable_clip_planes(r, camera.position)
-
-        lp = r.lighting
-        shadows = lp.shadows
-        if shadows:
-            # Light direction in camera coords
-            kl = lp.key_light_direction
-            # Light direction in scene coords.
-            lightdir = camera.position.apply_without_translation(kl)
-            stf = self._use_shadow_map(lightdir, drawings)
-        multishadows = lp.multishadow
-        if multishadows > 0:
-            mstf, msdepth \
-                = self._use_multishadow_map(self._multishadow_directions(), drawings)
-
-        r.set_background_color(self.background_color)
-
-        if self.update_lighting:
-            self.update_lighting = False
-            r.set_lighting_shader_capabilities()
-            r.update_lighting_parameters()
-
-        if drawings is None:
-            any_selected = self.any_drawing_selected()
-        else:
-            any_selected = False
-            for d in drawings:
-                if d.any_part_selected():
-                    any_selected = True
-                    break
-
+        stf, mstf, msdepth = self._setup_lighting(drawings, camera)
+        any_selected = self.any_drawing_selected(drawings)
         r.set_frame_number(self.frame_number)
-        perspective_near_far_ratio = 2
+
         from .drawing import (draw_depth, draw_opaque, draw_transparent,
                               draw_selection_outline, draw_overlays)
         for vnum in range(camera.number_of_views()):
@@ -195,9 +177,9 @@ class View:
             self._update_projection(camera, vnum)
             cp = camera.get_position(vnum)
             r.set_view_matrix(cp.inverse())
-            if shadows and stf is not None:
+            if stf is not None:
                 r.set_shadow_transform(stf * cp)
-            if multishadows > 0 and mstf is not None:
+            if mstf is not None:
                 r.set_multishadow_transforms(mstf, cp, msdepth)
                 # Initial depth pass optimization to avoid lighting
                 # calculation on hidden geometry
@@ -209,7 +191,7 @@ class View:
                 r.set_outline_depth()       # copy depth to outline framebuffer
             draw_transparent(r, mdraw)    
             self._finish_timing()
-            if multishadows > 0:
+            if mstf is not None:
                 r.allow_equal_depth(False)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness,
@@ -223,12 +205,6 @@ class View:
 
         if self._overlays:
             draw_overlays(self._overlays, r)
-
-        if swap_buffers:
-            if self.camera.do_swap_buffers():
-                self._render.swap_buffers()
-            self.redraw_needed = False
-            self.render.done_current()
 
     def check_for_drawing_change(self):
         trig = self.triggers
@@ -499,6 +475,36 @@ class View:
             self._multishadow_dir = directions = sphere.sphere_points(n)
         return directions
 
+    def _setup_lighting(self, drawings, camera):
+
+        r = self._render
+        lp = r.lighting
+        shadows = lp.shadows
+        if shadows:
+            # Light direction in camera coords
+            kl = lp.key_light_direction
+            # Light direction in scene coords.
+            lightdir = camera.position.apply_without_translation(kl)
+            stf = self._use_shadow_map(lightdir, drawings)
+        else:
+            stf = None
+
+        multishadows = lp.multishadow
+        if multishadows > 0:
+            mstf, msdepth \
+                = self._use_multishadow_map(self._multishadow_directions(), drawings)
+        else:
+            mstf = msdepth = None
+
+        r.set_background_color(self.background_color)
+
+        if self.update_lighting:
+            self.update_lighting = False
+            r.set_lighting_shader_capabilities()
+            r.update_lighting_parameters()
+
+        return stf, mstf, msdepth
+    
     def _use_shadow_map(self, light_direction, drawings):
 
         # Compute drawing bounds so shadow map can cover all drawings.
@@ -611,13 +617,19 @@ class View:
                 b = clip_bounds(b, [(p.plane_point, p.normal) for p in planes])
         return b
 
-    def any_drawing_selected(self):
+    def any_drawing_selected(self, drawings=None):
         '''Is anything selected.'''
-        dm = self._drawing_manager
-        s = dm.cached_any_part_selected
-        if s is None:
-            dm.cached_any_part_selected = s = self.drawing.any_part_selected()
-        return s
+        if drawings is None:
+            dm = self._drawing_manager
+            s = dm.cached_any_part_selected
+            if s is None:
+                dm.cached_any_part_selected = s = self.drawing.any_part_selected()
+            return s
+        else:
+            for d in drawings:
+                if d.any_part_selected():
+                    return True
+            return False
 
     def initial_camera_view(self, pad = 0.05):
         '''Set the camera position to show all displayed drawings,
