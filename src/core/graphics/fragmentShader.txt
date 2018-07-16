@@ -47,15 +47,17 @@ void main (void)
 #else
 
 #ifdef USE_LIGHTING
-uniform vec3 key_light_direction;
-uniform vec3 key_light_diffuse_color;
-uniform vec3 key_light_specular_color;
-uniform float key_light_specular_exponent;
 
-uniform vec3 fill_light_direction;
-uniform vec3 fill_light_diffuse_color;
-
-uniform vec3 ambient_color;
+layout(std140) uniform lighting_block 
+{
+  vec3 key_light_direction;
+  vec3 key_light_diffuse_color;
+  vec3 key_light_specular_color;
+  float key_light_specular_exponent;
+  vec3 fill_light_direction;
+  vec3 fill_light_diffuse_color;
+  vec3 ambient_color;
+};
 
 in vec3 N;
 in vec3 v;
@@ -79,7 +81,7 @@ uniform sampler2DShadow shadow_map;
 // in vec3 vscene;
 // in vec3 nscene;
 uniform sampler2DShadow multishadow_map;
-uniform shadow_matrix_block 
+layout(std140) uniform shadow_matrix_block 
 {
   mat4 shadow_transforms[MAX_SHADOWS];
 };

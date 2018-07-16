@@ -688,7 +688,6 @@ class Drawing:
         sopt = self._shader_options(transparent_only, opaque_only)
         r = renderer
         shader = r.shader(sopt)
-        r.use_shader(shader)
 
         # Set color
         if self.vertex_colors is None and len(self._colors) == 1:

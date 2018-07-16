@@ -92,10 +92,10 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def atomspec_pseudobonds(self):
         return self.pseudobonds
 
-    def _set_selected(self, sel):
+    def set_selected(self, sel, *, fire_trigger=True):
         self.pseudobonds.selected = sel
-        Model.set_selected(self, sel)
-    selected = property(Model.get_selected, _set_selected)
+        Model.set_selected(self, sel, fire_trigger=fire_trigger)
+    selected = property(Model.get_selected, set_selected)
 
     def selected_items(self, itype):
         if itype == 'pseudobonds':

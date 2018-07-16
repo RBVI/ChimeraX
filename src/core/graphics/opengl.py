@@ -298,6 +298,15 @@ class Render:
         self._num_enabled_clip_planes = 0
 
         self.lighting = Lighting()
+        self._lighting_buffer = None		# Uniform buffer for lighting parameters
+        self._lighting_block = 1		# Uniform block binding point
+        self._lighting_buffer_parameters = (	# Shader parameter name and float offset
+            ("key_light_direction",0), ("key_light_diffuse_color",4),
+            ("key_light_specular_color",8),  ("key_light_specular_exponent",11),
+            ("fill_light_direction",12), ("fill_light_diffuse_color",16),
+            ("ambient_color",20))
+        self._lighting_buffer_floats = 24
+
         self.material = Material()              # Currently a global material
 
         self._default_framebuffer = None
@@ -319,12 +328,11 @@ class Render:
         self.multishadow_texture_unit = 2
         self._max_multishadows = None
         self._multishadow_transforms = None
-        self._multishadow_transforms_changed = False	# Does uniform buffer need updating
         # near to far clip depth for shadow map:
         self._multishadow_depth = None
         # Uniform buffer object for shadow matrices:
-        self._multishadow_matrix_buffer = None
-        self._multishadow_uniform_block = 0     # Uniform block number
+        self._multishadow_matrix_buffer_id = None
+        self._multishadow_uniform_block = 2     # Uniform block number
 
         self.single_color = (1, 1, 1, 1)
         self.frame_number = 0
@@ -345,10 +353,15 @@ class Render:
                 fb.delete()
             setattr(self, fbattr, None)
 
-        mmb = self._multishadow_matrix_buffer
+        lb = self._light_buffer
+        if lb is not None:
+            GL.glDeleteBuffers(1, [lb])
+            self._light_buffer = None
+
+        mmb = self._multishadow_matrix_buffer_id
         if mmb is not None:
             GL.glDeleteBuffers(1, [mmb])
-            self._multishadow_matrix_buffer = None
+            self._multishadow_matrix_buffer_id = None
 
     @property
     def opengl_context(self):
@@ -434,6 +447,7 @@ class Render:
     def shader(self, options):
         '''
         Return a shader that supports the specified capabilities.
+        Also activate the shader with glUseProgram().
         The capabilities are specified as at bit field of values from
         SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_CUBEMAP,
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
@@ -447,7 +461,7 @@ class Render:
         p = self.opengl_shader(options)
         return p
 
-    def use_shader(self, shader):
+    def _use_shader(self, shader):
         '''
         Set the current shader.
         '''
@@ -459,11 +473,10 @@ class Render:
         c = shader.capabilities
         GL.glUseProgram(shader.program_id)
         if self.SHADER_LIGHTING & c:
-            self.set_shader_lighting_parameters()
             if self.SHADER_TEXTURE_3D_AMBIENT & c:
                 shader.set_integer('tex3d', 0)    # Tex unit 0.
             if self.SHADER_MULTISHADOW & c:
-                self.set_multishadow_shader_variables(shader)
+                self._set_multishadow_shader_variables(shader)
             if self.SHADER_SHADOWS & c:
                 shader.set_integer("shadow_map", self.shadow_texture_unit)
                 if self._shadow_transform is not None:
@@ -509,7 +522,7 @@ class Render:
         return len(self.framebuffer_stack) == 1
 
     def opengl_shader(self, capabilities):
-        'Private.  OpenGL shader program id.'
+        'Private.  Return OpenGL shader program id, creating shader if needed.'
 
         sp = self._opengl_context.shader_programs
         if capabilities in sp:
@@ -517,7 +530,12 @@ class Render:
         else:
             p = Shader(capabilities, self.max_multishadows())
             sp[capabilities] = p
-
+            if capabilities & self.SHADER_LIGHTING:
+                self._bind_lighting_parameter_buffer(p)
+            if capabilities & self.SHADER_MULTISHADOW:
+                GL.glUseProgram(p.program_id)
+                self._set_multishadow_shader_constants(p)
+        self._use_shader(p)
         return p
 
     def set_projection_matrix(self, pm=None):
@@ -585,7 +603,7 @@ class Render:
                 if cvm:
                     p.set_matrix('view_matrix', cvm.opengl_matrix())
             if not self.lighting.move_lights_with_camera:
-                self.set_shader_lighting_parameters()
+                self.update_lighting_parameters()
 
     def set_near_far_clip(self, near, far):
         '''Set the near and far clip plane distances from eye.  Used for depth cuing.'''
@@ -646,50 +664,90 @@ class Render:
         else:
             self.enable_capabilities &= ~self.SHADER_MULTISHADOW
 
-    def set_shader_lighting_parameters(self):
-        '''Private. Sets shader lighting variables using the lighting
-        parameters object given in the contructor.'''
+    def _bind_lighting_parameter_buffer(self, shader):
+        pid = shader.program_id
+        bi = GL.glGetUniformBlockIndex(pid, b'lighting_block')
+        GL.glUniformBlockBinding(pid, bi, self._lighting_block)
 
-        p = self.current_shader_program
-        if p is None:
-            return
-        if not p.capabilities & self.SHADER_LIGHTING:
-            return
+    def _lighting_parameter_buffer(self):
+        b = self._lighting_buffer
+        if b is not None:
+            return b
 
+        # Create uniform buffer for lighting parameters, shared by all shaders.
+        self._lighting_buffer = b = GL.glGenBuffers(1)
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
+        nbytes = 4*self._lighting_buffer_floats
+        GL.glBufferData(GL.GL_UNIFORM_BUFFER, nbytes, pyopengl_null(), GL.GL_DYNAMIC_DRAW)
+        GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._lighting_block, b)
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
+
+        return b
+
+    def update_lighting_parameters(self):
+        self._fill_lighting_parameter_buffer()
+
+    def _fill_lighting_parameter_buffer(self):
+        b = self._lighting_parameter_buffer()
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
+        offset = 0
+        data = self._lighting_parameter_array()
+        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, offset, data.nbytes, data)
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
+
+    def _lighting_parameter_array(self):
+        lparam = self._light_shader_parameter_values()
+        size = self._lighting_buffer_floats
+        from numpy import zeros, float32
+        data = zeros((size,), float32)
+        for name, offset in self._lighting_buffer_parameters:
+            value = lparam[name]
+            from numpy import ndarray
+            if isinstance(value, (tuple, list, ndarray)):
+                data[offset:offset+len(value)] = value
+            else:
+                data[offset] = value
+        return data
+
+    def _light_shader_parameter_values(self):
         lp = self.lighting
         mp = self.material
 
         move = None if lp.move_lights_with_camera else self.current_view_matrix
+
+        params = {}
 
         # Key light
         from ..geometry import normalize_vector
         kld = normalize_vector(lp.key_light_direction)
         if move:
             kld = move.apply_without_translation(kld)
-        p.set_vector("key_light_direction", kld)
+        params["key_light_direction"] = kld
         ds = mp.diffuse_reflectivity * lp.key_light_intensity
         kdc = tuple(ds * c for c in lp.key_light_color)
-        p.set_vector("key_light_diffuse_color", kdc)
+        params["key_light_diffuse_color"] = kdc
 
         # Key light specular
         ss = mp.specular_reflectivity * lp.key_light_intensity
         ksc = tuple(ss * c for c in lp.key_light_color)
-        p.set_vector("key_light_specular_color", ksc)
-        p.set_float("key_light_specular_exponent", mp.specular_exponent)
+        params["key_light_specular_color"] = ksc
+        params["key_light_specular_exponent"] = mp.specular_exponent
 
         # Fill light
         fld = normalize_vector(lp.fill_light_direction)
         if move:
             fld = move.apply_without_translation(fld)
-        p.set_vector("fill_light_direction", fld)
+        params["fill_light_direction"] = fld
         ds = mp.diffuse_reflectivity * lp.fill_light_intensity
         fdc = tuple(ds * c for c in lp.fill_light_color)
-        p.set_vector("fill_light_diffuse_color", fdc)
+        params["fill_light_diffuse_color"] = fdc
 
         # Ambient light
         ams = mp.ambient_reflectivity * lp.ambient_light_intensity
         ac = tuple(ams * c for c in lp.ambient_light_color)
-        p.set_vector("ambient_color", ac)
+        params["ambient_color"] = ac
+
+        return params
 
     def set_depth_cue_parameters(self):
         '''Private. Sets shader depth variables using the lighting
@@ -742,39 +800,49 @@ class Render:
         else:
             mt = array([(tf * ctf).opengl_matrix() for tf in stf], float32)
         self._multishadow_transforms = mt
-        self._multishadow_transforms_changed = True
         self._multishadow_depth = shadow_depth
+
+        # TODO: Issue warning if maximum number of shadows exceeded.
+        maxs = self.max_multishadows()
+        mm = mt[:maxs, :, :]
+        offset = 0
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._multishadow_matrix_buffer())
+        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, offset, mm.nbytes, mm)
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
+
         p = self.current_shader_program
         if p is not None:
             c = p.capabilities
             if self.SHADER_MULTISHADOW & c and self.SHADER_LIGHTING & c:
-                self.set_multishadow_shader_variables(p)
+                self._set_multishadow_shader_variables(p)
 
-    def set_multishadow_shader_variables(self, shader):
+    def _set_multishadow_shader_constants(self, shader):
+        # Set the multishadow texture unit and the matrix uniform block unit for the shader.
         shader.set_integer("multishadow_map", self.multishadow_texture_unit)
+        pid = shader.program_id
+        bi = GL.glGetUniformBlockIndex(pid, b'shadow_matrix_block')
+        bslot = self._multishadow_uniform_block
+        GL.glUniformBlockBinding(pid, bi, bslot)
+
+    def _multishadow_matrix_buffer(self):
+        b = self._multishadow_matrix_buffer_id
+        if b is None:
+            # Create uniform buffer object for shadow matrices.
+            self._multishadow_matrix_buffer_id = b = GL.glGenBuffers(1)
+            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
+            nbytes = 64 * self.max_multishadows()
+            GL.glBufferData(GL.GL_UNIFORM_BUFFER, nbytes, pyopengl_null(), GL.GL_DYNAMIC_DRAW)
+            bslot = self._multishadow_uniform_block
+            GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, bslot, b)
+            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
+        return b
+
+    def _set_multishadow_shader_variables(self, shader):
         m = self._multishadow_transforms
         if m is None:
             return
 
-        # Setup uniform buffer object for shadow matrices.
-        # It can have larger size than an array of uniforms.
-        b = self._multishadow_matrix_buffer
-        maxs = self.max_multishadows()
-        if b is None:
-            self._multishadow_matrix_buffer = b = GL.glGenBuffers(1)
-            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
-            GL.glBufferData(GL.GL_UNIFORM_BUFFER, maxs * 64,
-                            pyopengl_null(), GL.GL_DYNAMIC_DRAW)
-            bi = GL.glGetUniformBlockIndex(shader.program_id, b'shadow_matrix_block')
-            GL.glUniformBlockBinding(shader.program_id, bi, self._multishadow_uniform_block)
-        GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._multishadow_uniform_block, b)
-
-        if self._multishadow_transforms_changed:
-            # TODO: Issue warning if maximum number of shadows exceeded.
-            mm = m[:maxs, :, :]
-            GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, 0, len(mm) * 64, mm)
-            self._multishadow_transforms_changed = False
-            
+        maxs = self.max_multishadows()            
         shader.set_integer("shadow_count", min(maxs, len(m)))
         shader.set_float("shadow_depth", self._multishadow_depth)
 
@@ -1966,6 +2034,10 @@ class Shader:
         self.uniform_ids = {}
         self._validated = False	# Don't validate program until uniforms set.
 
+    def __str__(self):
+        caps = ', '.join(shader_capability_names(self.capabilities))
+        return 'shader %d, capabilities %s' % (self.program_id, caps)
+
     def set_integer(self, name, value):
         GL.glUniform1i(self.uniform_id(name), value)
 
@@ -2312,7 +2384,6 @@ class TextureWindow:
         vao.activate()
 
         p = render.opengl_shader(shader_options)
-        render.use_shader(p)
         vao.shader = p
 
         self.vertex_buf = vb = Buffer(VERTEX_BUFFER)
@@ -2377,6 +2448,15 @@ def print_debug_log(tag, count=None):
     print(tag, buf.decode('utf-8', 'replace'))
     return num_messages
 
+def pyopengl_string_list(strings):
+    import ctypes
+    bufs = [ctypes.create_string_buffer(name.encode()) for name in strings]
+    from numpy import array
+    bpointers = array([ctypes.addressof(b) for b in bufs])
+    bpa = bpointers.ctypes.data_as(ctypes.POINTER(ctypes.POINTER(ctypes.c_char)))
+    bpa._string_buffers = bufs     # Keep string buffers from being released
+    bpa._pointer_array = bpointers # Keep numpy array from being released
+    return bpa
 
 def pyopengl_null():
     import ctypes

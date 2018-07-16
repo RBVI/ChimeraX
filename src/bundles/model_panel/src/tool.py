@@ -42,8 +42,14 @@ class ModelPanel(ToolInstance):
         layout.addWidget(self.tree)
         layout.setStretchFactor(self.tree, 1)
         parent.setLayout(layout)
-        title = "S" if short_titles else "Shown"
-        self.tree.setHeaderLabels(["Name", "ID", " ", title])
+        shown_title = "" if short_titles else "Shown"
+        sel_title = "" if short_titles else "Select"
+        self.tree.setHeaderLabels(["Name", "ID", " ", shown_title, sel_title])
+        from chimerax.map import volume_viewer
+        self.tree.headerItem().setIcon(3, volume_viewer.icon_from_file("shown.png"))
+        self.tree.headerItem().setToolTip(3, "Shown")
+        self.tree.headerItem().setIcon(4, volume_viewer.icon_from_file("select.png"))
+        self.tree.headerItem().setToolTip(4, "Selected")
         self.tree.setColumnWidth(self.NAME_COLUMN, 200)
         self.tree.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -64,6 +70,8 @@ class ModelPanel(ToolInstance):
         session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._initiate_fill_tree)
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
             MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.session.triggers.add_handler(SELECTION_CHANGED, self._fill_tree)
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(MODEL_ID_CHANGED,
@@ -79,6 +87,7 @@ class ModelPanel(ToolInstance):
     ID_COLUMN = 1
     COLOR_COLUMN = 2
     SHOWN_COLUMN = 3
+    SELECT_COLUMN = 4
     
     def _shown_changed(self, shown):
         if shown:
@@ -127,7 +136,7 @@ class ModelPanel(ToolInstance):
         from PyQt5.QtGui import QColor
         item_stack = [self.tree.invisibleRootItem()]
         for model in self.models:
-            model_id, model_id_string, bg_color, display, name = self._get_info(model)
+            model_id, model_id_string, bg_color, display, name, selected, part_selected = self._get_info(model)
             len_id = len(model_id)
             if update:
                 if len_id == len(item_stack):
@@ -154,6 +163,9 @@ class ModelPanel(ToolInstance):
                     but.color_changed.connect(set_single_color)
                     but.set_color(bg_color)
                     self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
+                
+                    
+                
             item.setText(self.ID_COLUMN, model_id_string)
             bg = item.background(self.ID_COLUMN)
             if bg_color is False:
@@ -165,6 +177,12 @@ class ModelPanel(ToolInstance):
             item.setBackground(self.COLOR_COLUMN, bg)
             if display is not None:
                 item.setCheckState(self.SHOWN_COLUMN, Qt.Checked if display else Qt.Unchecked)
+            if selected:
+                item.setCheckState(self.SELECT_COLUMN, Qt.Checked)
+            elif part_selected:
+                item.setCheckState(self.SELECT_COLUMN, Qt.PartiallyChecked)
+            else:
+                item.setCheckState(self.SELECT_COLUMN, Qt.Unchecked)
             item.setText(self.NAME_COLUMN, name)
             if not update:
                 # Expand new top-level displayed models, or if previously expanded
@@ -186,7 +204,9 @@ class ModelPanel(ToolInstance):
         bg_color = self._model_color(obj)
         display = obj.display
         name = getattr(obj, "name", "(unnamed)")
-        return model_id, model_id_string, bg_color, display, name
+        selected = obj.selected
+        part_selected = obj.any_part_selected()
+        return model_id, model_id_string, bg_color, display, name, selected, part_selected
 
     def _header_click_cb(self, index):
         if index == 0:
@@ -194,12 +214,6 @@ class ModelPanel(ToolInstance):
             # Toggle sort order.
             self._sort_breadth_first = not self._sort_breadth_first
             self._fill_tree()
-
-    def _left_click(self, event):
-        if event.Col == self.SHOWN_COLUMN:
-            model = self.models[event.Row]
-            model.display = not model.display
-        event.Skip()
 
     def _label_click(self, event):
         if event.Col == self.ID_COLUMN:
@@ -225,11 +239,18 @@ class ModelPanel(ToolInstance):
         return update
 
     def _tree_change_cb(self, item, column):
-        if column != self.SHOWN_COLUMN:
-            # not the shown check box
-            return
         from PyQt5.QtCore import Qt
-        self.models[self._items.index(item)].display = item.checkState(self.SHOWN_COLUMN) == Qt.Checked
+        if column == self.SHOWN_COLUMN:
+            self.models[self._items.index(item)].display = item.checkState(self.SHOWN_COLUMN) == Qt.Checked
+        elif column == self.SELECT_COLUMN:
+            model = self.models[self._items.index(item)]
+            sel_val = item.checkState(self.SELECT_COLUMN) == Qt.Checked
+            # prevent a zillion firings of the trigger by firing it once ourselves
+            for m in model.all_models():
+                m.set_selected(sel_val, fire_trigger=False)
+            from chimerax.core.selection import SELECTION_CHANGED
+            self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
+
 
 from chimerax.core.settings import Settings
 class ModelPanelSettings(Settings):

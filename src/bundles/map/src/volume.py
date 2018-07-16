@@ -1160,8 +1160,8 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _set_selected(self, sel):
-    Model.set_selected(self, sel)
+  def _set_selected(self, sel, *, fire_trigger=True):
+    Model.set_selected(self, sel, fire_trigger=fire_trigger)
     for s in self.surfaces:
       s.set_selected(sel)
   selected = property(Model.get_selected, _set_selected)
