@@ -56,6 +56,7 @@ class View:
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0, 0, 0, 1)    # black
         self.silhouette_depth_jump = 0.03       # fraction of scene depth
+        self._perspective_near_far_ratio = 1	# Needed for handling depth buffer scaling
 
         # Graphics overlays, used for example for crossfade
         self._overlays = []
@@ -191,13 +192,11 @@ class View:
             r.draw_background()
             if len(mdraw) == 0:
                 continue
-            perspective_near_far_ratio \
-                = self._update_projection(vnum, camera=camera)
+            self._update_projection(camera, vnum)
             cp = camera.get_position(vnum)
-            cpinv = cp.inverse()
+            r.set_view_matrix(cp.inverse())
             if shadows and stf is not None:
                 r.set_shadow_transform(stf * cp)
-            r.set_view_matrix(cpinv)
             if multishadows > 0 and mstf is not None:
                 r.set_multishadow_transforms(mstf, cp, msdepth)
                 # Initial depth pass optimization to avoid lighting
@@ -216,7 +215,7 @@ class View:
                 r.finish_silhouette_drawing(self.silhouette_thickness,
                                             self.silhouette_color,
                                             self.silhouette_depth_jump,
-                                            perspective_near_far_ratio)
+                                            self._perspective_near_far_ratio)
             if any_selected:
                 draw_selection_outline(r, mdraw)
 
@@ -780,23 +779,21 @@ class View:
         picks = self.drawing.planes_pick(planes, exclude=exclude)
         return picks
 
-    def _update_projection(self, view_num=None, camera=None):
+    def _update_projection(self, camera, view_num):
 
         r = self._render
         ww, wh = r.render_size()
         if ww == 0 or wh == 0:
             return
 
-        c = self.camera if camera is None else camera
-        near, far = self.near_far_distances(c, view_num)
+        near, far = self.near_far_distances(camera, view_num)
         # TODO: Different camera views need to use same near/far if they are part of
         # a cube map, otherwise depth cue dimming is not continuous across cube faces.
-        pm = c.projection_matrix((near, far), view_num, (ww, wh))
+        pm = camera.projection_matrix((near, far), view_num, (ww, wh))
         r.set_projection_matrix(pm)
         r.set_near_far_clip(near, far)	# Used by depth cue
-        pnf = 1 if c.name == 'orthographic' else (near / far)
-
-        return pnf
+        pnf = 1 if camera.name == 'orthographic' else (near / far)
+        self._perspective_near_far_ratio = pnf
 
     def near_far_distances(self, camera, view_num, include_clipping = True):
         '''Near and far scene bounds as distances from camera.'''
