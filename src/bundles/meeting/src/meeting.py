@@ -517,7 +517,7 @@ class MousePointerModel(Model):
             self.position = p
 
 class VRTracking(PointerModels):
-    def __init__(self, session, meeting, sync_coords = True, update_interval = 9):
+    def __init__(self, session, meeting, sync_coords = True, update_interval = 1):
         PointerModels.__init__(self, session)
         self._meeting = meeting		# MeetingServer instance
         self._sync_coords = sync_coords
