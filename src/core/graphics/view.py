@@ -147,22 +147,8 @@ class View:
         if camera is None:
             camera = self.camera
 
-        self._draw_scene(camera, drawings)
-
-        if swap_buffers:
-            r = self.render
-            if camera.do_swap_buffers():
-                r.swap_buffers()
-            self.redraw_needed = False
-            r.done_current()
-
-    def _draw_scene(self, camera, drawings):
-        mdraw = [self.drawing] if drawings is None else drawings
-
         r = self._render
-        self.clip_planes.enable_clip_planes(r, camera.position)
-        stf, mstf, msdepth = self._compute_shadowmaps(drawings, camera)
-
+        r.set_frame_number(self.frame_number)
         r.set_background_color(self.background_color)
 
         if self.update_lighting:
@@ -170,11 +156,29 @@ class View:
             r.set_lighting_shader_capabilities()
             r.update_lighting_parameters()
 
-        r.set_frame_number(self.frame_number)
+        self._draw_scene(camera, drawings)
 
+        camera.combine_rendered_camera_views(r)
+
+        if self._overlays:
+            from .drawing import draw_overlays
+            draw_overlays(self._overlays, r)
+
+        if swap_buffers:
+            if camera.do_swap_buffers():
+                r.swap_buffers()
+            self.redraw_needed = False
+            r.done_current()
+
+    def _draw_scene(self, camera, drawings):
+
+        r = self._render
+        self.clip_planes.enable_clip_planes(r, camera.position)
+        stf, mstf, msdepth = self._compute_shadowmaps(drawings, camera)
+        mdraw = [self.drawing] if drawings is None else drawings
         any_selected = self.any_drawing_selected(drawings)
-        from .drawing import (draw_depth, draw_opaque, draw_transparent,
-                              draw_selection_outline, draw_overlays)
+        
+        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_selection_outline
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
@@ -208,11 +212,6 @@ class View:
                                             self._perspective_near_far_ratio)
             if any_selected:
                 draw_selection_outline(r, mdraw)
-
-        camera.combine_rendered_camera_views(r)
-
-        if self._overlays:
-            draw_overlays(self._overlays, r)
 
     def check_for_drawing_change(self):
         trig = self.triggers
