@@ -19,7 +19,9 @@ all:
 # Set your various NEEDs above.
 #
 
+ifndef UBUNTU_DIST
 NEED_FFMPEG=1
+endif
 
 ifdef WIN32
 SUBDIRS += win32
@@ -37,11 +39,13 @@ endif
 
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
+NEED_P7ZIP=1
+ifndef UBUNTU_DIST
 NEED_EXPAT=1
 NEED_HDF5=1
 NEED_OPENSSL=1
-NEED_P7ZIP=1
 NEED_ZLIB=1
+endif
 endif
 
 ifdef NEED_CHRPATH
@@ -151,7 +155,9 @@ PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).tar.bz2
 endif
 
 prebuilt:
+ifndef UBUNTU_DIST
 	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp -cjf $$prebuilt .
+endif
 
 install-prebuilt:
 	@echo 'Started prereq install at' `date` on `hostname`
