@@ -57,6 +57,7 @@ layout(std140) uniform lighting_block
   vec3 fill_light_direction;
   vec3 fill_light_diffuse_color;
   vec3 ambient_color;
+  vec3 depth_cue_color;
 };
 
 in vec3 N;
@@ -68,7 +69,6 @@ in vec3 vshadow;
 
 #ifdef USE_DEPTH_CUE
 uniform vec2 depth_cue_range;	// start and end camera z values
-uniform vec3 depth_cue_color;
 #endif
 
 #ifdef USE_SHADOWS

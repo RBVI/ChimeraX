@@ -304,8 +304,9 @@ class Render:
             ("key_light_direction",0), ("key_light_diffuse_color",4),
             ("key_light_specular_color",8),  ("key_light_specular_exponent",11),
             ("fill_light_direction",12), ("fill_light_diffuse_color",16),
-            ("ambient_color",20))
-        self._lighting_buffer_floats = 24
+            ("ambient_color",20),
+            ("depth_cue_color",24))
+        self._lighting_buffer_floats = 28
 
         self.material = Material()              # Currently a global material
 
@@ -747,6 +748,9 @@ class Render:
         ac = tuple(ams * c for c in lp.ambient_light_color)
         params["ambient_color"] = ac
 
+        # Depth cue color
+        params['depth_cue_color'] = lp.depth_cue_color
+        
         return params
 
     def set_depth_cue_parameters(self):
@@ -763,7 +767,6 @@ class Render:
             s = n + (f-n)*lp.depth_cue_start
             e = n + (f-n)*lp.depth_cue_end
             p.set_vector2('depth_cue_range', (s,e))
-            p.set_vector('depth_cue_color', lp.depth_cue_color)
 
     def set_single_color(self, color=None):
         '''
