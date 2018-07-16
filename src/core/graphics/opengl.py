@@ -762,8 +762,7 @@ class Render:
             n,f = self._near_far_clip
             s = n + (f-n)*lp.depth_cue_start
             e = n + (f-n)*lp.depth_cue_end
-            p.set_float('depth_cue_start', s)
-            p.set_float('depth_cue_end', e)
+            p.set_vector2('depth_cue_range', (s,e))
             p.set_vector('depth_cue_color', lp.depth_cue_color)
 
     def set_single_color(self, color=None):
@@ -2046,6 +2045,9 @@ class Shader:
 
     def set_vector(self, name, vector):
         GL.glUniform3f(self.uniform_id(name), *tuple(vector))
+
+    def set_vector2(self, name, vector):
+        GL.glUniform2f(self.uniform_id(name), *tuple(vector))
 
     def set_rgba(self, name, color):
         GL.glUniform4fv(self.uniform_id(name), 1, color)
