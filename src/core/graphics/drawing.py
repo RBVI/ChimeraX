@@ -1309,13 +1309,11 @@ def opaque_count(rgba):
     from . import _graphics
     return _graphics.count_value(rgba[:,3], 255)
 
-def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
+def _draw_drawings(renderer, drawings, opaque_only = False):
     '''
-    Render opaque and transparent draw passes for a given set of drawings,
-    and given camera view (inverse camera transform).
+    Render opaque and transparent draw passes for a given set of drawings.
     '''
     r = renderer
-    r.set_view_matrix(cvinv)
     from ..geometry import Place
     p = Place()
     _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
@@ -1351,12 +1349,12 @@ def _any_transparent_drawings(drawings):
     return False
 
 
-def draw_depth(renderer, cvinv, drawings, opaque_only = True):
+def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
                                   r.SHADER_DEPTH_CUE | r.SHADER_VERTEX_COLORS | r.SHADER_TEXTURE_2D)
-    draw_drawings(r, cvinv, drawings, opaque_only)
+    _draw_drawings(r, drawings, opaque_only)
     r.disable_shader_capabilities(0)
 
 

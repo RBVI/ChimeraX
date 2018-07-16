@@ -197,14 +197,14 @@ class View:
             cpinv = cp.inverse()
             if shadows and stf is not None:
                 r.set_shadow_transform(stf * cp)
+            r.set_view_matrix(cpinv)
             if multishadows > 0 and mstf is not None:
                 r.set_multishadow_transforms(mstf, cp, msdepth)
                 # Initial depth pass optimization to avoid lighting
                 # calculation on hidden geometry
-                draw_depth(r, cpinv, mdraw)
+                draw_depth(r, mdraw)
                 r.allow_equal_depth(True)
             self._start_timing()
-            r.set_view_matrix(cpinv)
             draw_opaque(r, mdraw)
             if any_selected:
                 r.set_outline_depth()       # copy depth to outline framebuffer
@@ -518,8 +518,9 @@ class View:
         # Compute light view and scene to shadow map transforms
         bias = lp.shadow_depth_bias
         lvinv, stf = r.shadow_transforms(light_direction, center, radius, bias)
+        r.set_view_matrix(lvinv)
         from .drawing import draw_depth
-        draw_depth(r, lvinv, bdrawings,
+        draw_depth(r, bdrawings,
                    opaque_only = not r.material.transparent_cast_shadows)
 
         shadow_map = r.finish_rendering_shadowmap()     # Depth texture
@@ -575,8 +576,9 @@ class View:
             x, y = (l % d), (l // d)
             r.set_viewport(x * s, y * s, s, s)
             lvinv, tf = r.shadow_transforms(light_directions[l], center, radius, bias)
+            r.set_view_matrix(lvinv)
             mstf.append(tf)
-            draw_depth(r, lvinv, bdrawings, opaque_only = not mat.transparent_cast_shadows)
+            draw_depth(r, bdrawings, opaque_only = not mat.transparent_cast_shadows)
 
         shadow_map = r.finish_rendering_multishadowmap()     # Depth texture
 
