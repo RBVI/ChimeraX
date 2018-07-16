@@ -533,9 +533,9 @@ class Render:
             sp[capabilities] = p
             if capabilities & self.SHADER_LIGHTING:
                 self._bind_lighting_parameter_buffer(p)
-            if capabilities & self.SHADER_MULTISHADOW:
-                GL.glUseProgram(p.program_id)
-                self._set_multishadow_shader_constants(p)
+                if capabilities & self.SHADER_MULTISHADOW:
+                    GL.glUseProgram(p.program_id)
+                    self._set_multishadow_shader_constants(p)
         self._use_shader(p)
         return p
 
