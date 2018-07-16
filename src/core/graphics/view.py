@@ -161,10 +161,18 @@ class View:
 
         r = self._render
         self.clip_planes.enable_clip_planes(r, camera.position)
-        stf, mstf, msdepth = self._setup_lighting(drawings, camera)
-        any_selected = self.any_drawing_selected(drawings)
+        stf, mstf, msdepth = self._compute_shadowmaps(drawings, camera)
+
+        r.set_background_color(self.background_color)
+
+        if self.update_lighting:
+            self.update_lighting = False
+            r.set_lighting_shader_capabilities()
+            r.update_lighting_parameters()
+
         r.set_frame_number(self.frame_number)
 
+        any_selected = self.any_drawing_selected(drawings)
         from .drawing import (draw_depth, draw_opaque, draw_transparent,
                               draw_selection_outline, draw_overlays)
         for vnum in range(camera.number_of_views()):
@@ -475,7 +483,7 @@ class View:
             self._multishadow_dir = directions = sphere.sphere_points(n)
         return directions
 
-    def _setup_lighting(self, drawings, camera):
+    def _compute_shadowmaps(self, drawings, camera):
 
         r = self._render
         lp = r.lighting
@@ -495,13 +503,6 @@ class View:
                 = self._use_multishadow_map(self._multishadow_directions(), drawings)
         else:
             mstf = msdepth = None
-
-        r.set_background_color(self.background_color)
-
-        if self.update_lighting:
-            self.update_lighting = False
-            r.set_lighting_shader_capabilities()
-            r.update_lighting_parameters()
 
         return stf, mstf, msdepth
     
