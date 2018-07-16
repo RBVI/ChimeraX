@@ -1059,31 +1059,22 @@ class Render:
         if rgba is None:
             from numpy import empty, uint8
             rgba = empty((h, w, 4), uint8)
-        if front_buffer:
-            GL.glReadBuffer(GL.GL_FRONT)
+
+        if self.rendering_to_screen():
+            b = GL.GL_FRONT if front_buffer else GL.GL_BACK
+        else:
+            b = GL.GL_COLOR_ATTACHMENT0
+        GL.glReadBuffer(b)
         GL.glReadPixels(0, 0, w, h, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, rgba)
-        if front_buffer:
-            GL.glReadBuffer(GL.GL_BACK)
+
         return rgba
 
     def set_stereo_buffer(self, eye_num):
-        '''Set the draw and read buffers for the left eye (0) or right
-        eye (1).'''
+        '''Set the draw read buffer for the left eye (0) or right eye (1).'''
         self.full_viewport()
-        if not self.rendering_to_screen():
-            return
-        b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
-        GL.glDrawBuffer(b)
-        GL.glReadBuffer(b)
-
-    def set_mono_buffer(self):
-        '''Set the draw and read buffers for mono rendering.'''
-        self.full_viewport()
-        if not self.rendering_to_screen():
-            return
-        b = GL.GL_BACK
-        GL.glDrawBuffer(b)
-        GL.glReadBuffer(b)
+        if self.rendering_to_screen():
+            b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
+            GL.glDrawBuffer(b)
 
     def start_rendering_shadowmap(self, center, radius, size=1024):
 
@@ -1445,11 +1436,13 @@ class Framebuffer:
 
         self._color_rb = None
         self._depth_rb = None
+        self._draw_buffer = GL.GL_COLOR_ATTACHMENT0
         self._deleted = False
 
         self._fbo = None
         if w is None:
             self._fbo = 0	# Default framebuffer
+            self._draw_buffer = GL.GL_BACK
 
         self._opengl_context = opengl_context
         
@@ -1484,8 +1477,10 @@ class Framebuffer:
                                          GL.GL_COLOR_ATTACHMENT0,
                                          GL.GL_RENDERBUFFER, color_buf)
         else:
+            # Need this or glCheckFramebufferStatus() fails with no color buffer.
             GL.glDrawBuffer(GL.GL_NONE)
             GL.glReadBuffer(GL.GL_NONE)
+            self._draw_buffer = GL.GL_NONE
 
         if isinstance(depth_buf, Texture):
             level = 0
@@ -1589,6 +1584,7 @@ class Framebuffer:
         if fbo is None:
             return False
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, fbo)
+        GL.glDrawBuffer(self._draw_buffer)
         return True
 
     def copy_from_framebuffer(self, framebuffer, color=True, depth=True):

@@ -169,8 +169,11 @@ class Camera:
         pass
 
     def set_render_target(self, view_num, render):
-        '''Set the OpenGL drawing buffer and viewport to render the scene.'''
-        render.set_mono_buffer()
+        '''
+        Set the OpenGL drawing buffer render the given view number.
+        For quad-buffered stereo this code would switch between left and right eye buffers.
+        '''
+        pass
 
     def combine_rendered_camera_views(self, render):
         '''Combine camera views into a single image.'''
