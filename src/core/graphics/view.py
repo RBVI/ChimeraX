@@ -338,7 +338,7 @@ class View:
         w, h = self._window_size_matching_aspect(width, height)
 
         from .opengl import Framebuffer
-        fb = Framebuffer(self.render.opengl_context, w, h, alpha = transparent_background)
+        fb = Framebuffer('image capture', self.render.opengl_context, w, h, alpha = transparent_background)
         if not fb.activate():
             fb.delete()
             return None         # Image size exceeds framebuffer limits

@@ -500,7 +500,7 @@ class SplitStereoCamera(Camera):
             from .opengl import Texture, Framebuffer
             t = Texture()
             t.initialize_rgba((tw,th))
-            fb = Framebuffer(render.opengl_context, color_texture = t)
+            fb = Framebuffer('stereo camera', render.opengl_context, color_texture = t)
             self._framebuffer[eye] = fb
             d = self._drawing[eye]
             if d:

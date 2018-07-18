@@ -415,7 +415,7 @@ class Render:
 
     def default_framebuffer(self):
         if self._default_framebuffer is None:
-            self._default_framebuffer = Framebuffer(self.opengl_context, color=False, depth=False)
+            self._default_framebuffer = Framebuffer('default', self.opengl_context, color=False, depth=False)
         return self._default_framebuffer
 
     def set_default_framebuffer_size(self, width, height):
@@ -1105,7 +1105,7 @@ class Render:
                 fb.delete()
             dt = Texture()
             dt.initialize_depth((size, size))
-            fb = Framebuffer(self.opengl_context, depth_texture=dt, color=False)
+            fb = Framebuffer('shadowmap', self.opengl_context, depth_texture=dt, color=False)
             if not fb.activate():
                 fb.delete()
                 return None           # Requested size exceeds framebuffer limits
@@ -1210,7 +1210,7 @@ class Render:
             mfb.delete()
         t = Texture()
         t.initialize_8_bit(size)
-        self.mask_framebuffer = mfb = Framebuffer(self.opengl_context, color_texture=t)
+        self.mask_framebuffer = mfb = Framebuffer('mask', self.opengl_context, color_texture=t)
         return mfb
 
     def make_outline_framebuffer(self, size):
@@ -1222,7 +1222,7 @@ class Render:
             ofb.delete()
         t = Texture()
         t.initialize_8_bit(size)
-        self.outline_framebuffer = ofb = Framebuffer(self.opengl_context, color_texture=t,
+        self.outline_framebuffer = ofb = Framebuffer('outline', self.opengl_context, color_texture=t,
                                                      depth=False)
         return ofb
 
@@ -1308,7 +1308,8 @@ class Render:
         if sfb is None:
             dt = Texture()
             dt.initialize_depth(size, depth_compare_mode=False)
-            self._silhouette_framebuffer = sfb = Framebuffer(self.opengl_context, depth_texture=dt, alpha=alpha)
+            sfb = Framebuffer('silhouette', self.opengl_context, depth_texture=dt, alpha=alpha)
+            self._silhouette_framebuffer = sfb
         return sfb
 
     def draw_depth_outline(self, depth_texture, thickness=1,
@@ -1410,11 +1411,13 @@ class Framebuffer:
     OpenGL framebuffer for off-screen rendering.  Allows rendering colors
     and/or depth to a texture.
     '''
-    def __init__(self, opengl_context,
+    def __init__(self, name, opengl_context,
                  width=None, height=None,
                  color=True, color_texture=None,
                  depth=True, depth_texture=None,
                  alpha=False):
+
+        self.name = name	# For debugging
 
         if width is not None and height is not None:
             w, h = width, height
