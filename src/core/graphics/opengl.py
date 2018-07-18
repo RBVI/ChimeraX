@@ -1759,7 +1759,8 @@ class Bindings:
     attribute_id = {'position': 0, 'tex_coord': 1, 'normal': 2, 'vcolor': 3,
                     'instance_shift_and_scale': 4, 'instance_placement': 5}
 
-    def __init__(self, opengl_context):
+    def __init__(self, name, opengl_context):
+        self._name = name		# Used for debugging
         self._vao_id = None
         self._bound_attr_ids = {}        # Maps buffer to list of ids
         self._bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
@@ -2384,7 +2385,7 @@ class TextureWindow:
     def __init__(self, render, shader_options):
 
         # Must have vao bound before compiling shader.
-        self.vao = vao = Bindings(render.opengl_context)
+        self.vao = vao = Bindings('texture window', render.opengl_context)
         vao.activate()
 
         p = render.opengl_shader(shader_options)
