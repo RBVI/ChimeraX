@@ -45,19 +45,18 @@ def fetch_doi(session, doi, url, ignore_cache = False):
     else:
         zip_file_url = url
     zip_filename = basename(zip_file_url)
-    filename = fetch_file(session, zip_file_url, 'zip %s %s' % (doi, zip_filename), zip_filename,
-                          save_dir = None, uncompress = False, ignore_cache=True)
-    
     if dirs:
         from os import makedirs, link
         d = join(dirs[0], 'DOI', doi)
         makedirs(d, exist_ok = True)
-        cfile = join(d, zip_filename)
-        link(filename, cfile)
+        save_dir = d
     else:
-        cfile = filename
+        save_dir = None
 
-    return cfile
+    filename = fetch_file(session, zip_file_url, 'zip %s %s' % (doi, zip_filename), zip_filename,
+                          save_dir = save_dir, uncompress = False, ignore_cache=True)
+
+    return filename
 
 # -----------------------------------------------------------------------------
 # HTML scraping to find zip file URL used with Zenodo file sharing site.
