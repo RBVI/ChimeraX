@@ -2033,7 +2033,7 @@ class Shader:
         self._validated = False	# Don't validate program until uniforms set.
 
     def __str__(self):
-        caps = ', '.join(shader_capability_names(self.capabilities))
+        caps = ', '.join(n[7:] for n in shader_capability_names(self.capabilities))
         return 'shader %d, capabilities %s' % (self.program_id, caps)
 
     def set_integer(self, name, value):
