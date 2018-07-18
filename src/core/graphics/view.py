@@ -488,11 +488,7 @@ class View:
         lp = r.lighting
         shadows = lp.shadows
         if shadows:
-            # Light direction in camera coords
-            kl = lp.key_light_direction
-            # Light direction in scene coords.
-            lightdir = camera.position.apply_without_translation(kl)
-            stf = self._use_shadow_map(lightdir, drawings)
+            stf = self._use_shadow_map(camera, drawings)
         else:
             stf = None
 
@@ -505,7 +501,14 @@ class View:
 
         return stf, mstf, msdepth
     
-    def _use_shadow_map(self, light_direction, drawings):
+    def _use_shadow_map(self, camera, drawings):
+
+        r = self._render
+        lp = r.lighting
+
+        # Compute light direction in scene coords.
+        kl = lp.key_light_direction
+        light_direction = camera.position.apply_without_translation(kl)
 
         # Compute drawing bounds so shadow map can cover all drawings.
         sdrawings = None if drawings is None else [d for d in drawings if getattr(d, 'casts_shadows', True)]
@@ -514,8 +517,6 @@ class View:
             return None
 
         # Compute shadow map depth texture
-        r = self._render
-        lp = r.lighting
         size = lp.shadow_map_size
         r.start_rendering_shadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
@@ -525,8 +526,7 @@ class View:
         lvinv, stf = r.shadow_transforms(light_direction, center, radius, bias)
         r.set_view_matrix(lvinv)
         from .drawing import draw_depth
-        draw_depth(r, bdrawings,
-                   opaque_only = not r.material.transparent_cast_shadows)
+        draw_depth(r, bdrawings, opaque_only = not r.material.transparent_cast_shadows)
 
         shadow_map = r.finish_rendering_shadowmap()     # Depth texture
 
