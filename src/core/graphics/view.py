@@ -570,7 +570,7 @@ class View:
         r.start_rendering_multishadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
-        mstf = []
+        mstf_list = []
         nl = len(light_directions)
         from .drawing import draw_depth
         from math import ceil, sqrt
@@ -582,8 +582,10 @@ class View:
             r.set_viewport(x * s, y * s, s, s)
             lvinv, tf = r.shadow_transforms(light_directions[l], center, radius, bias)
             r.set_view_matrix(lvinv)
-            mstf.append(tf)
+            mstf_list.append(tf)
             draw_depth(r, bdrawings, opaque_only = not mat.transparent_cast_shadows)
+        from ..geometry import Places
+        mstf = Places(mstf_list)
 
         shadow_map = r.finish_rendering_multishadowmap()     # Depth texture
 

@@ -805,11 +805,10 @@ class Render:
 
     def set_multishadow_transforms(self, stf, ctf, shadow_depth):
         # Transform from camera coordinates to shadow map texture coordinates.
-        from numpy import array, float32
         if ctf is None:
-            mt = array([tf.opengl_matrix() for tf in stf], float32)
+            mt = stf.opengl_matrices()
         else:
-            mt = array([(tf * ctf).opengl_matrix() for tf in stf], float32)
+            mt = (stf * ctf).opengl_matrices()
         self._multishadow_transforms = mt
         self._multishadow_depth = shadow_depth
 
