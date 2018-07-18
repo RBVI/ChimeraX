@@ -2002,12 +2002,8 @@ class Buffer:
         '''
         Draw primitives using this buffer as the element buffer.
         All the required buffers are assumed to be already bound using a
-        vertex array object.
+        vertex array object including the element buffer.
         '''
-        # Don't bind element buffer since it is bound by VAO.
-        # TODO: Need to bind it because change to element buffer by update_buffer_data()
-        # erases the current binding and I don't have reliable code to restore that binding.
-        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.opengl_buffer)
         ne = self.buffered_array.size if count is None else count
         if offset is None:
             eo = None
