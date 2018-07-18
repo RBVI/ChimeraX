@@ -40,7 +40,7 @@ def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False,
     '''
     v = session.main_view
     if orient:
-        v.initial_camera_view()
+        v.initial_camera_view(set_pivot = cofr)
 
     if objects is None:
         v.view_all(pad = pad)
