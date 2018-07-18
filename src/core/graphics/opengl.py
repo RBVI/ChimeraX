@@ -772,10 +772,10 @@ class Render:
             p.set_vector2('depth_cue_range', r)
 
     def _depth_cue_range(self, near_far):
-       lp = self.lighting
-       n,f = near_far
-       return (n + (f-n)*lp.depth_cue_start,
-               n + (f-n)*lp.depth_cue_end)
+        lp = self.lighting
+        n,f = near_far
+        return (n + (f-n)*lp.depth_cue_start,
+                n + (f-n)*lp.depth_cue_end)
 
     def set_single_color(self, color=None):
         '''
