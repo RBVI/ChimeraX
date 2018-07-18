@@ -612,9 +612,9 @@ class Render:
             if not self.lighting.move_lights_with_camera:
                 self.update_lighting_parameters()
 
-    def set_near_far_clip(self, near, far):
+    def set_near_far_clip(self, near_far):
         '''Set the near and far clip plane distances from eye.  Used for depth cuing.'''
-        self._near_far_clip = (near, far)
+        self._near_far_clip = near_far
 
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_DEPTH_CUE:
@@ -768,11 +768,14 @@ class Render:
             return
 
         if self.SHADER_DEPTH_CUE & p.capabilities and self.SHADER_LIGHTING & p.capabilities:
-            lp = self.lighting
-            n,f = self._near_far_clip
-            s = n + (f-n)*lp.depth_cue_start
-            e = n + (f-n)*lp.depth_cue_end
-            p.set_vector2('depth_cue_range', (s,e))
+            r = self._depth_cue_range(self._near_far_clip)
+            p.set_vector2('depth_cue_range', r)
+
+    def _depth_cue_range(self, near_far):
+       lp = self.lighting
+       n,f = near_far
+       return (n + (f-n)*lp.depth_cue_start,
+               n + (f-n)*lp.depth_cue_end)
 
     def set_single_color(self, color=None):
         '''

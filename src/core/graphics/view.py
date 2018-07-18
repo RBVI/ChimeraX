@@ -798,13 +798,13 @@ class View:
         if ww == 0 or wh == 0:
             return
 
-        near, far = self.near_far_distances(camera, view_num)
+        near_far = self.near_far_distances(camera, view_num)
         # TODO: Different camera views need to use same near/far if they are part of
         # a cube map, otherwise depth cue dimming is not continuous across cube faces.
-        pm = camera.projection_matrix((near, far), view_num, (ww, wh))
+        pm = camera.projection_matrix(near_far, view_num, (ww, wh))
         r.set_projection_matrix(pm)
-        r.set_near_far_clip(near, far)	# Used by depth cue
-        pnf = 1 if camera.name == 'orthographic' else (near / far)
+        r.set_near_far_clip(near_far)	# Used by depth cue
+        pnf = 1 if camera.name == 'orthographic' else (near_far[0] / near_far[1])
         self._perspective_near_far_ratio = pnf
 
     def near_far_distances(self, camera, view_num, include_clipping = True):
