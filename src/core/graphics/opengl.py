@@ -1233,14 +1233,14 @@ class Render:
         return ofb
 
     def _texture_window(self, texture, shader_options, shifts=()):
-       tw = self._texture_win
-       if tw is None:
-           self._texture_win = tw = TextureWindow(self, shifts=shifts)
-       tw.activate()
-       tw.update_shifts(shifts)
-       texture.bind_texture()
-       self.opengl_shader(shader_options)
-       return tw
+        tw = self._texture_win
+        if tw is None:
+            self._texture_win = tw = TextureWindow(self, shifts=shifts)
+        tw.activate()
+        tw.update_shifts(shifts)
+        texture.bind_texture()
+        self.opengl_shader(shader_options)
+        return tw
 
     def draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1)):
 
