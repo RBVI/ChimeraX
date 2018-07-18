@@ -133,7 +133,7 @@ class SymmetryArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        from chimerac.core.commmands import next_token
+        from chimerax.core.commands import next_token
         group, atext, rest = next_token(text)
         return Symmetry(group, session), atext, rest
 
