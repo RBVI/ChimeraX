@@ -916,8 +916,6 @@ class View:
             for d in drawings:
                 d.position = tf * d.position
 
-        self.redraw_needed = True
-
     def pixel_size(self, p=None):
         "Return the pixel size in scene length units at point p in the scene."
         if p is None:
