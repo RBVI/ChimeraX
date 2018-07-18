@@ -2043,10 +2043,10 @@ class Shader:
         GL.glUniform1f(self.uniform_id(name), value)
 
     def set_vector(self, name, vector):
-        GL.glUniform3f(self.uniform_id(name), *tuple(vector))
+        GL.glUniform3fv(self.uniform_id(name), 1, vector)
 
     def set_vector2(self, name, vector):
-        GL.glUniform2f(self.uniform_id(name), *tuple(vector))
+        GL.glUniform2fv(self.uniform_id(name), 1, vector)
 
     def set_rgba(self, name, color):
         GL.glUniform4fv(self.uniform_id(name), 1, color)
