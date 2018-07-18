@@ -315,6 +315,7 @@ class Render:
         self.mask_framebuffer = None
         self.outline_framebuffer = None
         self._silhouette_framebuffer = None
+        self._texture_win = None
 
         # 3D ambient texture transform from model coordinates to texture
         # coordinates:
@@ -363,6 +364,11 @@ class Render:
         if mmb is not None:
             GL.glDeleteBuffers(1, [mmb])
             self._multishadow_matrix_buffer_id = None
+
+        tw = self._texture_win
+        if tw is not None:
+            tw.delete()
+            self._texture_win = None
 
     @property
     def opengl_context(self):
@@ -1226,6 +1232,16 @@ class Render:
                                                      depth=False)
         return ofb
 
+    def _texture_window(self, texture, shader_options, shifts=()):
+       tw = self._texture_win
+       if tw is None:
+           self._texture_win = tw = TextureWindow(self, shifts=shifts)
+       tw.activate()
+       tw.update_shifts(shifts)
+       texture.bind_texture()
+       self.opengl_shader(shader_options)
+       return tw
+
     def draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1)):
 
         # Draw to a new texture 4 shifted copies of texture and erase an
@@ -1239,17 +1255,17 @@ class Render:
         # then subtract unshifted copy to leave outline.  The depth
         # buffer is not used.  (Depth buffer was used to handle occlusion
         # in the mask texture passed to this routine.)
-        tc = TextureWindow(self, self.SHADER_TEXTURE_MASK)
-        texture.bind_texture()
-
-        # Draw 4 shifted copies of mask
         w, h = texture.size
         dx, dy = 1.0 / w, 1.0 / h
+        shifts = ((-dx, -dy), (dx, -dy), (dx, dy), (-dx, dy))
+        tc = self._texture_window(texture, self.SHADER_TEXTURE_MASK, shifts=shifts)
+
+        # Draw 4 shifted copies of mask
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA)
         self.set_texture_mask_color((1, 1, 1, 1))
-        for xs, ys in ((-dx, -dy), (dx, -dy), (dx, dy), (-dx, dy)):
-            tc.draw(xshift=xs, yshift=ys)
+        tc.draw_start()
+        tc.draw(shifted=True)
 
         # Erase unshifted copy of mask
         GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
@@ -1264,9 +1280,7 @@ class Render:
         outline.bind_texture()
         self.set_texture_mask_color(color)
         tc.draw()
-
-        # TODO: Probably should cache texture window.
-        tc.delete()
+        tc.draw_end()
 
     def set_texture_mask_color(self, color):
 
@@ -1317,22 +1331,20 @@ class Render:
                            perspective_near_far_ratio=1):
         # Render pixels with depth in depth_texture less than neighbor pixel
         # by at least depth_jump. The depth buffer is not used.
-        tc = TextureWindow(self, self.SHADER_DEPTH_OUTLINE)
-        depth_texture.bind_texture()
+        tc = self._texture_window(depth_texture, self.SHADER_DEPTH_OUTLINE)
 
         # Draw 4 shifted copies of mask
         w, h = depth_texture.size
         dx, dy = 1.0 / w, 1.0 / h
         self.enable_blending(True)
         self.set_depth_outline_color(color)
+        tc.draw_start()
         for xs, ys in disk_grid(thickness):
             self.set_depth_outline_shift_and_jump(xs * dx, ys * dy, depth_jump,
                                                   perspective_near_far_ratio)
             tc.draw()
+        tc.draw_end()
         self.enable_blending(False)
-
-        # TODO: Probably should cache texture window.
-        tc.delete()
 
     def set_depth_outline_color(self, color):
 
@@ -2377,29 +2389,24 @@ class Texture:
 
 
 class TextureWindow:
-    '''Draw a texture on a full window rectangle. Don't test or write depth buffer.'''
-    def __init__(self, render, shader_options):
+    '''
+    Draw a texture on a full window rectangle. Don't test or write depth buffer.
+    Can optionally draw shifted texture using several x,y texture coordinate shifts.
+    '''
+    def __init__(self, render, shifts = ()):
 
+        self._shifts = shifts
+        
         # Must have vao bound before compiling shader.
         self.vao = vao = Bindings('texture window', render.opengl_context)
         vao.activate()
 
-        p = render.opengl_shader(shader_options)
-        vao.shader = p
-
         self.vertex_buf = vb = Buffer(VERTEX_BUFFER)
-        from numpy import array, float32, int32
-        vb.update_buffer_data(array(((-1, -1, 0), (1, -1, 0), (1, 1, 0),
-                                    (-1, 1, 0)), float32))
-        vao.bind_shader_variable(vb)
         self.tex_coord_buf = tcb = Buffer(TEXTURE_COORDS_BUFFER)
-        tcb.update_buffer_data(array(((0, 0), (1, 0), (1, 1), (0, 1)),
-                                     float32))
-        vao.bind_shader_variable(tcb)
         self.element_buf = eb = Buffer(ELEMENT_BUFFER)
-        eb.update_buffer_data(array(((0, 1, 2), (0, 2, 3)), int32))
-        vao.bind_shader_variable(eb)    # Binds element buffer for rendering
 
+        self.update_shifts(shifts, initialize=True)
+            
     def __del__(self):
         if self.vao is not None:
             raise RuntimeError('core.graphics.TextureWindow delete() not called')
@@ -2413,19 +2420,50 @@ class TextureWindow:
             b.delete_buffer()
         self.vertex_buf = self.tex_coord_buf = self.element_buf = None
 
-    def draw(self, xshift=0, yshift=0):
-        xs, ys = xshift, yshift
-        tcb = self.tex_coord_buf
-        from numpy import array, float32
-        tcb.update_buffer_data(array(((xs, ys), (1 + xs, ys), (1 + xs, 1 + ys),
-                                     (xs, 1 + ys)), float32))
+    def update_shifts(self, shifts, initialize=False):
+        if not initialize and shifts == self._shifts:
+            return
+
+        va = [(-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0)]
+        tc = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        ta = [(0, 1, 2), (0, 2, 3)]
+        o = 4
+        for xs,ys in shifts:
+            va.extend(va[:4])
+            tc.extend([(xs, ys), (1 + xs, ys), (1 + xs, 1 + ys), (xs, 1 + ys)])
+            ta.extend([(o,o+1,o+2), (o,o+2,o+3)])
+            o += 4
+        from numpy import array, float32, int32
+        self.vertex_buf.update_buffer_data(array(va, float32))
+        self.tex_coord_buf.update_buffer_data(array(tc, float32))
+        self.element_buf.update_buffer_data(array(ta, int32))
+        self._bind_shader_variables()	# Rebind changed buffers
+
+        self._shifts = shifts
+
+    def _bind_shader_variables(self):
+        vao = self.vao
+        for b in (self.vertex_buf, self.tex_coord_buf, self.element_buf):
+            vao.bind_shader_variable(b)
+
+    def activate(self):
+        self.vao.activate()
+
+    def draw_start(self):
         GL.glDepthMask(False)   # Don't overwrite depth buffer
         GL.glDisable(GL.GL_DEPTH_TEST)	# Don't test depth buffer.
-        eb = self.element_buf
-        eb.draw_elements(eb.triangles)
+
+    def draw_end(self):
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthMask(True)
 
+    def draw(self, shifted=False):
+        if shifted:
+            offset, count = 6, 6*len(self._shifts)
+        else:
+            offset, count = 0, 6
+        eb = self.element_buf
+        eb.draw_elements(eb.triangles, offset = offset, count = count)
 
 def print_debug_log(tag, count=None):
     # GLuint glGetDebugMessageLog(GLuint count, GLsizei bufSize,
