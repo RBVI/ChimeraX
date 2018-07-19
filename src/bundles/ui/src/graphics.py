@@ -80,7 +80,7 @@ class GraphicsWindow(QWindow):
         v = self.view
         v.resize(w, h)
         v.redraw_needed = True
-        if self.isExposed():
+        if self.is_drawable:
             # Avoid flickering when resizing by drawing immediately.
             from chimerax.core.graphics import OpenGLVersionError
             try:
@@ -89,6 +89,14 @@ class GraphicsWindow(QWindow):
                 # Inadequate OpenGL version
                 self.session.logger.error(str(e))
 
+    @property
+    def is_drawable(self):
+        '''
+        Whether graphics window can be drawn to using OpenGL.
+        False until window has been created by the native window toolkit.
+        '''
+        return self.isExposed()
+        
     def exposeEvent(self, event):
         self.view.redraw_needed = True
         
