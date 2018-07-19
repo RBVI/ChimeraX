@@ -173,7 +173,8 @@ class Camera:
         Set the OpenGL drawing buffer render the given view number.
         For quad-buffered stereo this code would switch between left and right eye buffers.
         '''
-        pass
+        # TODO:  Find a better place to update the OpenGL viewport when window resized.
+        render.full_viewport()
 
     def combine_rendered_camera_views(self, render):
         '''Combine camera views into a single image.'''
