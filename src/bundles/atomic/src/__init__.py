@@ -27,7 +27,6 @@ from .molsurf import buried_area, MolecularSurface, surfaces_with_atoms
 from .changes import check_for_changes
 from .pdbmatrices import biological_unit_matrices
 from .triggers import get_triggers
-from .search import atom_search_tree
 from .shapedrawing import AtomicShapeDrawing
 from .args import SymmetryArg, AtomsArg, UniqueChainsArg, AtomicStructuresArg
 from .args import StructureArg, StructuresArg

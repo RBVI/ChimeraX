@@ -47,6 +47,7 @@ active_tools.install: ui.install surface.install
 addh.install: atomic.install
 align_algs.install: alignments.install
 alignments.install: atomic.install
+atom_search.install: atomic.install
 bild.install: atomic.install surface.install
 basic_actions.install: ui.install
 blastprotein.install: ui.install

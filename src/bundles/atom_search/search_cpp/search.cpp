@@ -45,15 +45,15 @@ AtomSearchTree::destructors_done(const std::set<void*>& destroyed)
 }
 
 std::vector<Atom*>
-AtomSearchTree::search_tree(Atom* a, double window)
+AtomSearchTree::search(Atom* a, double window)
 {
     if (_transformed)
-        return search_tree(a->scene_coord(), window);
-    return search_tree(a->coord(), window);
+        return search(a->scene_coord(), window);
+    return search(a->coord(), window);
 }
 
 std::vector<Atom*>
-AtomSearchTree::search_tree(const Coord &target, double window)
+AtomSearchTree::search(const Coord &target, double window)
 {
     // Search tree for all leaves within 'window' of target.
     //
@@ -129,7 +129,7 @@ _Node::_Node(const std::vector<Atom*>& atoms, bool transformed, double sep_val)
 
         // want axis that caries most from the median rather
         // than the one that varies most from end to end
-        double median = (axis_data[last_index/2] + axis_data[(last_index+1)/2]) / 2.0;
+        double median = (axis_data[last_index/2] + axis_data[1+(last_index/2)]) / 2.0;
         double var1 = median - axis_data.front();
         double var2 = axis_data.back() - median;
         if (var1 > var2)

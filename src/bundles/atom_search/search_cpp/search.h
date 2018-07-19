@@ -18,6 +18,8 @@
 
 #include <vector>
 
+#include "Python.h"
+
 #include "atomstruct/Atom.h"
 #include "atomstruct/destruct.h"
 
@@ -71,8 +73,8 @@ public:
     AtomSearchTree(const std::vector<Atom*>& atoms, bool transformed, double sep_val);
     virtual ~AtomSearchTree();
     virtual void  destructors_done(const std::set<void*>& destroyed);
-    std::vector<Atom*>  search_tree(Atom*, double);
-    std::vector<Atom*>  search_tree(const Coord&, double);
+    std::vector<Atom*>  search(Atom*, double);
+    std::vector<Atom*>  search(const Coord&, double);
     _Node  *root;
 };
 
