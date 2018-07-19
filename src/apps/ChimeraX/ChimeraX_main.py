@@ -165,12 +165,16 @@ def parse_arguments(argv):
         # treat like Python's -m argument
         opts.gui = False
         opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
         opts.module = sys.argv[2]
         return opts, sys.argv[2:]
     if len(sys.argv) > 2 and sys.argv[1] == '-c':
         # treat like Python's -c argument
         opts.gui = False
         opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
         opts.cmd = sys.argv[2]
         return opts, sys.argv[2:]
     if len(sys.argv) > 2 and sys.argv[1:3] == ['-u', '-c']:
@@ -182,6 +186,8 @@ def parse_arguments(argv):
                                       write_through=True)
         opts.gui = False
         opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
         opts.cmd = sys.argv[3]
         return opts, sys.argv[3:]
     try:
@@ -358,6 +364,7 @@ def init(argv, event_loop=True):
         # only load tools if we have a GUI
         opts.load_tools = False
 
+    is_root = False  # On Linux, don't create user directories if root (the installer uid)
     # figure out the user/system directories for application
     # invoked with -m ChimeraX_main, so argv[0] is full path to ChimeraX_main
     # Windows:
@@ -374,6 +381,10 @@ def init(argv, event_loop=True):
         rootdir = dn(dn(dn(dn(dn(rootdir)))))
     if sys.platform.startswith('linux'):
         os.environ['XDG_CONFIG_DIRS'] = rootdir
+        is_root = os.getuid() == 0
+        if is_root:
+            # ensure toolshed cache is not written
+            os.environ['HOME'] = "/non/existent/directory"
 
     if sys.platform.startswith('win'):
         if 'HOME' in os.environ:
@@ -412,7 +423,8 @@ def init(argv, event_loop=True):
             ('user_cache_dir', "user's cache")):
         dir = getattr(ad, var)
         try:
-            os.makedirs(dir, exist_ok=True)
+            if not is_root:
+                os.makedirs(dir, exist_ok=True)
         except OSError as e:
             print("Unable to make %s directory: %s: %s" % (
                 name, e.strerror, e.filename), file=sys.stderr)
@@ -428,8 +440,12 @@ def init(argv, event_loop=True):
     # this must happen before pip is imported so that "--user" installs
     # will go in the right place.
     import site
-    site.USER_BASE = adu.user_data_dir
-    site.USER_SITE = os.path.join(ad.user_data_dir, "site-packages")
+    if not is_root:
+        site.USER_BASE = adu.user_data_dir
+        site.USER_SITE = os.path.join(ad.user_data_dir, "site-packages")
+    else:
+        from distutils import sysconfig
+        site.USER_SITE = sysconfig.get_python_lib()
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that

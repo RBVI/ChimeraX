@@ -234,7 +234,7 @@ def _cube_map_framebuffer(opengl_context, size):
     from . import Texture, opengl
     t = Texture(cube_map = True)
     t.initialize_rgba((size,size))
-    fb = opengl.Framebuffer(opengl_context, color_texture = t)
+    fb = opengl.Framebuffer('cubemap', opengl_context, color_texture = t)
     return fb
 
 # Project cubemap to longitude/lattitude rectangle
@@ -262,7 +262,7 @@ def _adjust_light_directions(render, rotation = None):
         rinv = rotation.inverse()
         l.key_light_direction = rinv * l._original_key_light_direction
         l.fill_light_direction = rinv * l._original_fill_light_direction
-    render.set_shader_lighting_parameters()
+    render.update_lighting_parameters()
 
 def _equirectangular_projection_drawing(size):
     w,h = size

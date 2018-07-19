@@ -56,6 +56,7 @@ class View:
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0, 0, 0, 1)    # black
         self.silhouette_depth_jump = 0.03       # fraction of scene depth
+        self._perspective_near_far_ratio = 1	# Needed for handling depth buffer scaling
 
         # Graphics overlays, used for example for crossfade
         self._overlays = []
@@ -140,50 +141,53 @@ class View:
         if not self._use_opengl():
             return	# OpenGL not available
 
+        # OpenGL call list code is experimental study for running opengl in separate thread.
+        use_calllist = False
+        from . import gllist
+        if use_calllist and gllist.replay_opengl(self, drawings, camera, swap_buffers):
+            return
+        
         if check_for_changes:
             self.check_for_drawing_change()
 
         if camera is None:
             camera = self.camera
 
-        mdraw = [self.drawing] if drawings is None else drawings
-
         r = self._render
-        self.clip_planes.enable_clip_planes(r, camera.position)
-
-        lp = r.lighting
-        shadows = lp.shadows
-        if shadows:
-            # Light direction in camera coords
-            kl = lp.key_light_direction
-            # Light direction in scene coords.
-            lightdir = camera.position.apply_without_translation(kl)
-            stf = self._use_shadow_map(lightdir, drawings)
-        multishadows = lp.multishadow
-        if multishadows > 0:
-            mstf, msdepth \
-                = self._use_multishadow_map(self._multishadow_directions(), drawings)
-
+        r.set_frame_number(self.frame_number)
         r.set_background_color(self.background_color)
 
         if self.update_lighting:
             self.update_lighting = False
             r.set_lighting_shader_capabilities()
-            r.set_shader_lighting_parameters()
+            r.update_lighting_parameters()
 
-        if drawings is None:
-            any_selected = self.any_drawing_selected()
-        else:
-            any_selected = False
-            for d in drawings:
-                if d.any_part_selected():
-                    any_selected = True
-                    break
+        self._draw_scene(camera, drawings)
 
-        r.set_frame_number(self.frame_number)
-        perspective_near_far_ratio = 2
-        from .drawing import (draw_depth, draw_opaque, draw_transparent,
-                              draw_selection_outline, draw_overlays)
+        camera.combine_rendered_camera_views(r)
+
+        if self._overlays:
+            from .drawing import draw_overlays
+            draw_overlays(self._overlays, r)
+
+        if use_calllist:
+            gllist.call_opengl_list(self, trace=True)
+        
+        if swap_buffers:
+            if camera.do_swap_buffers():
+                r.swap_buffers()
+            self.redraw_needed = False
+            r.done_current()
+
+    def _draw_scene(self, camera, drawings):
+
+        r = self._render
+        self.clip_planes.enable_clip_planes(r, camera.position)
+        stf, mstf, msdepth = self._compute_shadowmaps(drawings, camera)
+        mdraw = [self.drawing] if drawings is None else drawings
+        any_selected = self.any_drawing_selected(drawings)
+        
+        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_selection_outline
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
@@ -191,45 +195,36 @@ class View:
             r.draw_background()
             if len(mdraw) == 0:
                 continue
-            perspective_near_far_ratio \
-                = self._update_projection(vnum, camera=camera)
-            cp = camera.get_position(vnum)
-            cpinv = cp.inverse()
-            if shadows and stf is not None:
+            self._update_projection(camera, vnum)
+            if r.recording_opengl:
+                from . import gllist
+                cp = gllist.ViewMatrixFunc(self, vnum)
+            else:
+                cp = camera.get_position(vnum)
+            r.set_view_matrix(cp.inverse())
+            if stf is not None:
                 r.set_shadow_transform(stf * cp)
-            if multishadows > 0 and mstf is not None:
+            if mstf is not None:
                 r.set_multishadow_transforms(mstf, cp, msdepth)
                 # Initial depth pass optimization to avoid lighting
                 # calculation on hidden geometry
-                draw_depth(r, cpinv, mdraw)
+                draw_depth(r, mdraw)
                 r.allow_equal_depth(True)
             self._start_timing()
-            r.set_view_matrix(cpinv)
             draw_opaque(r, mdraw)
             if any_selected:
                 r.set_outline_depth()       # copy depth to outline framebuffer
             draw_transparent(r, mdraw)    
             self._finish_timing()
-            if multishadows > 0:
+            if mstf is not None:
                 r.allow_equal_depth(False)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness,
                                             self.silhouette_color,
                                             self.silhouette_depth_jump,
-                                            perspective_near_far_ratio)
+                                            self._perspective_near_far_ratio)
             if any_selected:
-                draw_selection_outline(r, cpinv, mdraw)
-
-        camera.combine_rendered_camera_views(r)
-
-        if self._overlays:
-            draw_overlays(self._overlays, r)
-
-        if swap_buffers:
-            if self.camera.do_swap_buffers():
-                self._render.swap_buffers()
-            self.redraw_needed = False
-            self.render.done_current()
+                draw_selection_outline(r, mdraw)
 
     def check_for_drawing_change(self):
         trig = self.triggers
@@ -240,6 +235,7 @@ class View:
         cp = self.clip_planes
         dm = self._drawing_manager
         draw = self.redraw_needed or c.redraw_needed or cp.changed or dm.redraw_needed
+        self._cam_only_change = c.redraw_needed and not (self.redraw_needed or cp.changed or dm.redraw_needed or self.update_lighting)
         if not draw:
             return False
 
@@ -356,7 +352,7 @@ class View:
         w, h = self._window_size_matching_aspect(width, height)
 
         from .opengl import Framebuffer
-        fb = Framebuffer(self.render.opengl_context, w, h, alpha = transparent_background)
+        fb = Framebuffer('image capture', self.render.opengl_context, w, h, alpha = transparent_background)
         if not fb.activate():
             fb.delete()
             return None         # Image size exceeds framebuffer limits
@@ -500,7 +496,36 @@ class View:
             self._multishadow_dir = directions = sphere.sphere_points(n)
         return directions
 
-    def _use_shadow_map(self, light_direction, drawings):
+    def _compute_shadowmaps(self, drawings, camera):
+
+        r = self._render
+        lp = r.lighting
+        shadows = lp.shadows
+        if shadows:
+            stf = self._use_shadow_map(camera, drawings)
+        else:
+            stf = None
+
+        multishadows = lp.multishadow
+        if multishadows > 0:
+            mstf, msdepth \
+                = self._use_multishadow_map(self._multishadow_directions(), drawings)
+        else:
+            mstf = msdepth = None
+
+        return stf, mstf, msdepth
+    
+    def _use_shadow_map(self, camera, drawings):
+
+        r = self._render
+        lp = r.lighting
+
+        # Compute light direction in scene coords.
+        kl = lp.key_light_direction
+        if r.recording_opengl:
+            light_direction = lambda c=camera, kl=kl: c.position.apply_without_translation(kl)
+        else:
+            light_direction = camera.position.apply_without_translation(kl)
 
         # Compute drawing bounds so shadow map can cover all drawings.
         sdrawings = None if drawings is None else [d for d in drawings if getattr(d, 'casts_shadows', True)]
@@ -509,8 +534,6 @@ class View:
             return None
 
         # Compute shadow map depth texture
-        r = self._render
-        lp = r.lighting
         size = lp.shadow_map_size
         r.start_rendering_shadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
@@ -518,9 +541,9 @@ class View:
         # Compute light view and scene to shadow map transforms
         bias = lp.shadow_depth_bias
         lvinv, stf = r.shadow_transforms(light_direction, center, radius, bias)
+        r.set_view_matrix(lvinv)
         from .drawing import draw_depth
-        draw_depth(r, lvinv, bdrawings,
-                   opaque_only = not r.material.transparent_cast_shadows)
+        draw_depth(r, bdrawings, opaque_only = not r.material.transparent_cast_shadows)
 
         shadow_map = r.finish_rendering_shadowmap()     # Depth texture
 
@@ -564,7 +587,7 @@ class View:
         r.start_rendering_multishadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
-        mstf = []
+        mstf_list = []
         nl = len(light_directions)
         from .drawing import draw_depth
         from math import ceil, sqrt
@@ -575,8 +598,11 @@ class View:
             x, y = (l % d), (l // d)
             r.set_viewport(x * s, y * s, s, s)
             lvinv, tf = r.shadow_transforms(light_directions[l], center, radius, bias)
-            mstf.append(tf)
-            draw_depth(r, lvinv, bdrawings, opaque_only = not mat.transparent_cast_shadows)
+            r.set_view_matrix(lvinv)
+            mstf_list.append(tf)
+            draw_depth(r, bdrawings, opaque_only = not mat.transparent_cast_shadows)
+        from ..geometry import Places
+        mstf = Places(mstf_list)
 
         shadow_map = r.finish_rendering_multishadowmap()     # Depth texture
 
@@ -610,15 +636,21 @@ class View:
                 b = clip_bounds(b, [(p.plane_point, p.normal) for p in planes])
         return b
 
-    def any_drawing_selected(self):
+    def any_drawing_selected(self, drawings=None):
         '''Is anything selected.'''
-        dm = self._drawing_manager
-        s = dm.cached_any_part_selected
-        if s is None:
-            dm.cached_any_part_selected = s = self.drawing.any_part_selected()
-        return s
+        if drawings is None:
+            dm = self._drawing_manager
+            s = dm.cached_any_part_selected
+            if s is None:
+                dm.cached_any_part_selected = s = self.drawing.any_part_selected()
+            return s
+        else:
+            for d in drawings:
+                if d.any_part_selected():
+                    return True
+            return False
 
-    def initial_camera_view(self, pad = 0.05):
+    def initial_camera_view(self, pad = 0.05, set_pivot = True):
         '''Set the camera position to show all displayed drawings,
         looking down the z axis.'''
         b = self.drawing_bounds()
@@ -628,8 +660,9 @@ class View:
         from ..geometry import identity
         c.position = identity()
         c.view_all(b, window_size = self.window_size, pad = pad)
-        self._center_of_rotation = cr = b.center()
-        self._update_center_of_rotation = True
+        if set_pivot:
+            self._center_of_rotation = cr = b.center()
+            self._update_center_of_rotation = True
 
     def view_all(self, bounds = None, pad = 0):
         '''Adjust the camera to show all displayed drawings using the
@@ -778,23 +811,30 @@ class View:
         picks = self.drawing.planes_pick(planes, exclude=exclude)
         return picks
 
-    def _update_projection(self, view_num=None, camera=None):
+    def _update_projection(self, camera, view_num):
 
         r = self._render
         ww, wh = r.render_size()
         if ww == 0 or wh == 0:
             return
 
-        c = self.camera if camera is None else camera
-        near, far = self.near_far_distances(c, view_num)
-        # TODO: Different camera views need to use same near/far if they are part of
-        # a cube map, otherwise depth cue dimming is not continuous across cube faces.
-        pm = c.projection_matrix((near, far), view_num, (ww, wh))
-        r.set_projection_matrix(pm)
-        r.set_near_far_clip(near, far)	# Used by depth cue
-        pnf = 1 if c.name == 'orthographic' else (near / far)
+        if r.recording_opengl:
+            from .gllist import ProjectionCalc
+            nfp = ProjectionCalc(self, view_num, (ww,wh))
+            near_far, pm = nfp.near_far, nfp.projection_matrix
+            n,f = near_far()
+            pnf = 1 if camera.name == 'orthographic' else (n / f)
+        else:
+            near_far = self.near_far_distances(camera, view_num)
+            # TODO: Different camera views need to use same near/far if they are part of
+            # a cube map, otherwise depth cue dimming is not continuous across cube faces.
+            pm = camera.projection_matrix(near_far, view_num, (ww, wh))
+            pnf = 1 if camera.name == 'orthographic' else (near_far[0] / near_far[1])
 
-        return pnf
+        self._perspective_near_far_ratio = pnf
+
+        r.set_projection_matrix(pm)
+        r.set_near_far_clip(near_far)	# Used by depth cue
 
     def near_far_distances(self, camera, view_num, include_clipping = True):
         '''Near and far scene bounds as distances from camera.'''
@@ -904,8 +944,6 @@ class View:
         else:
             for d in drawings:
                 d.position = tf * d.position
-
-        self.redraw_needed = True
 
     def pixel_size(self, p=None):
         "Return the pixel size in scene length units at point p in the scene."

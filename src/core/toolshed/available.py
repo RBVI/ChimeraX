@@ -51,6 +51,8 @@ class AvailableBundleCache(list):
                 self.append(b)
 
     def load_from_cache(self):
+        if self.cache_dir is None:
+            return FileNotFoundError("no cache")
         import os
         with open(os.path.join(self.cache_dir, 'available.json')) as f:
             import json

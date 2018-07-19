@@ -36,7 +36,7 @@ class ffmpeg_encoder:
         self.image_count = image_count
         self.status = status
         self.verbose = verbose
-        import os.path
+        import os
         self.output_file = os.path.expanduser(output_file)
         if ffmpeg_cmd is None:
             import sys
@@ -44,10 +44,19 @@ class ffmpeg_encoder:
                 ffmpeg_cmd = 'ffmpeg.exe'
             else:
                 ffmpeg_cmd = 'ffmpeg'
-        import os
         if not os.path.isabs(ffmpeg_cmd):
             from chimerax import app_bin_dir
-            ffmpeg_cmd = os.path.join(app_bin_dir, ffmpeg_cmd)
+            path_dirs = os.environ.get('PATH', None)
+            if path_dirs is None:
+                path_dirs = []
+            else:
+                path_dirs = path_dirs.split(os.pathsep)
+            path_dirs.insert(0, app_bin_dir)
+            for pd in path_dirs:
+                path = os.path.join(pd, ffmpeg_cmd)
+                if os.path.exists(path):
+                    ffmpeg_cmd = path
+                    break
         self.ffmpeg_cmd = ffmpeg_cmd
 
         self.arg_list = self._buildArgList(output_file, output_format, output_size, video_codec, pixel_format,

@@ -169,8 +169,12 @@ class Camera:
         pass
 
     def set_render_target(self, view_num, render):
-        '''Set the OpenGL drawing buffer and viewport to render the scene.'''
-        render.set_mono_buffer()
+        '''
+        Set the OpenGL drawing buffer render the given view number.
+        For quad-buffered stereo this code would switch between left and right eye buffers.
+        '''
+        # TODO:  Find a better place to update the OpenGL viewport when window resized.
+        render.full_viewport()
 
     def combine_rendered_camera_views(self, render):
         '''Combine camera views into a single image.'''
@@ -497,7 +501,7 @@ class SplitStereoCamera(Camera):
             from .opengl import Texture, Framebuffer
             t = Texture()
             t.initialize_rgba((tw,th))
-            fb = Framebuffer(render.opengl_context, color_texture = t)
+            fb = Framebuffer('stereo camera', render.opengl_context, color_texture = t)
             self._framebuffer[eye] = fb
             d = self._drawing[eye]
             if d:

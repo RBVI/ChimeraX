@@ -103,6 +103,7 @@ def show_cofr_indicator(session, show = True, axis_length = 2.0, axis_radius = 0
 
 from chimerax.core.graphics import Drawing
 class PivotIndicator(Drawing):
+    skip_bounds = True
     def __init__(self, session, axis_length = 2.0, axis_radius = 0.05,
                  axis_colors = [(255,0,0,255),(0,255,0,255),(0,0,255,255)]):
         self._session = session

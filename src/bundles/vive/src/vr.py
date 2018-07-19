@@ -500,7 +500,7 @@ class SteamVRCamera(Camera):
             from chimerax.core.graphics import Texture, opengl
             t = Texture()
             t.initialize_rgba((tw,th))
-            self._framebuffer = fb = opengl.Framebuffer(render.opengl_context, color_texture = t)
+            self._framebuffer = fb = opengl.Framebuffer('VR', render.opengl_context, color_texture = t)
             # OpenVR texture id object
             import openvr
             fb.openvr_texture = ovrt = openvr.Texture_t()
