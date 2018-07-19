@@ -633,7 +633,7 @@ class View:
                     return True
             return False
 
-    def initial_camera_view(self, pad = 0.05):
+    def initial_camera_view(self, pad = 0.05, set_pivot = True):
         '''Set the camera position to show all displayed drawings,
         looking down the z axis.'''
         b = self.drawing_bounds()
@@ -643,8 +643,9 @@ class View:
         from ..geometry import identity
         c.position = identity()
         c.view_all(b, window_size = self.window_size, pad = pad)
-        self._center_of_rotation = cr = b.center()
-        self._update_center_of_rotation = True
+        if set_pivot:
+            self._center_of_rotation = cr = b.center()
+            self._update_center_of_rotation = True
 
     def view_all(self, bounds = None, pad = 0):
         '''Adjust the camera to show all displayed drawings using the
