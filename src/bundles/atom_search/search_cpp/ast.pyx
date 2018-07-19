@@ -62,10 +62,9 @@ cdef class CyAtomSearchTree:
         The cumulative difference of all three coordinates from target must
         be less than 'window'.
 
-        Note that this search only identifies leaf nodes that could
-        satisfy the window criteria and returns all leaf data in
-        those nodes.  Each individual leaf data may not satisfy the
-        window criteria.
+        Note that unlike chimera.core.geometry.AdaptiveTree, only items that are
+        within 'window' are returned, rather than all items in leaf nodes that are
+        within 'window' (so some individual items might not be within 'window').
         """
         from chimerax.atomic import Atom
         if isinstance(target, Atom):

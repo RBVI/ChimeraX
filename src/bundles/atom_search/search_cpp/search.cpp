@@ -59,14 +59,25 @@ AtomSearchTree::search(const Coord &target, double window)
     //
     // The cumulative distance along all axes must be less than 'window'.
     //
-    // Note that this search only identifies leaf nodes that could satisfy
-    // the window criteria and returns all atoms in those nodes.  Each 
-    // individual atom may not satisfy the window criteria.
+    // Note that unlike the Python AdaptiveTree implementation,
+    // the leaf atoms are pruned down to just those that
+    // satisfy the 'window' criteria.
     
-    if (root == nullptr)
-        return std::vector<Atom*>();
-    double diffs_sq[3] = { 0.0, 0.0, 0.0 };
-    return root->search(target, window * window, diffs_sq);
+    std::vector<Atom*> ret_val;
+    if (root != nullptr) {
+        double window_sq = window * window;
+        double diffs_sq[3] = { 0.0, 0.0, 0.0 };
+        for (auto a: root->search(target, window_sq, diffs_sq)) {
+            if (_transformed) {
+                if (a->scene_coord().sqdistance(target) <= window_sq)
+                    ret_val.push_back(a);
+            } else {
+                if (a->coord().sqdistance(target) <= window_sq)
+                    ret_val.push_back(a);
+            }
+        }
+    }
+    return ret_val;
 }
 
 void
