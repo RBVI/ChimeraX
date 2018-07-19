@@ -278,6 +278,7 @@ class Render:
     def __init__(self, opengl_context):
 
         self._opengl_context = oc = opengl_context
+        self._recording_calls = None
 
         if not hasattr(oc, 'shader_programs'):
             oc.shader_programs = {}
@@ -408,6 +409,21 @@ class Render:
         self.make_current()
         self.set_viewport(0,0,width,height)
         return prev_win
+
+    @property
+    def recording_opengl(self):
+        return self._recording_calls is not None
+
+    def record_opengl_calls(self, record = True):
+        if record:
+            from . import gllist
+            self._recording_calls = rc = gllist.start_gl_call_list()
+            globals()['GL'] = gllist
+            return rc
+        else:
+            from OpenGL import GL
+            globals()['GL'] = GL
+            self._recording_calls = None
 
     @property
     def current_shader_program(self):
@@ -768,7 +784,10 @@ class Render:
             return
 
         if self.SHADER_DEPTH_CUE & p.capabilities and self.SHADER_LIGHTING & p.capabilities:
-            r = self._depth_cue_range(self._near_far_clip)
+            if self.recording_opengl:
+                r = lambda: self._depth_cue_range(self._near_far_clip())
+            else:
+                r = self._depth_cue_range(self._near_far_clip)
             p.set_vector2('depth_cue_range', r)
 
     def _depth_cue_range(self, near_far):
@@ -807,6 +826,9 @@ class Render:
         # Transform from camera coordinates to shadow map texture coordinates.
         if ctf is None:
             mt = stf.opengl_matrices()
+        elif self.recording_opengl:
+            from .gllist import Mat44Func
+            mt = Mat44Func('multishadow matrices', lambda: (stf * ctf()).opengl_matrices(), len(stf))
         else:
             mt = (stf * ctf).opengl_matrices()
         self._multishadow_transforms = mt
@@ -814,7 +836,11 @@ class Render:
 
         # TODO: Issue warning if maximum number of shadows exceeded.
         maxs = self.max_multishadows()
-        mm = mt[:maxs, :, :]
+
+        if self.recording_opengl:
+            mm = mt
+        else:
+            mm = mt[:maxs, :, :]
         offset = 0
         GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._multishadow_matrix_buffer())
         GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, offset, mm.nbytes, mm)
@@ -1145,6 +1171,11 @@ class Render:
 
     def shadow_transforms(self, light_direction, center, radius,
                           depth_bias=0.005):
+
+        if self.recording_opengl:
+            from . import gllist
+            s = gllist.ShadowMatrixFunc(self, light_direction, center, radius, depth_bias)
+            return (s.lvinv, s.stf)
 
         # Projection matrix, orthographic along z
         from ..geometry import translation, scale, orthonormal_frame

@@ -141,6 +141,12 @@ class View:
         if not self._use_opengl():
             return	# OpenGL not available
 
+        # OpenGL call list code is experimental study for running opengl in separate thread.
+        use_calllist = False
+        from . import gllist
+        if use_calllist and gllist.replay_opengl(self, drawings, camera, swap_buffers):
+            return
+        
         if check_for_changes:
             self.check_for_drawing_change()
 
@@ -164,6 +170,9 @@ class View:
             from .drawing import draw_overlays
             draw_overlays(self._overlays, r)
 
+        if use_calllist:
+            gllist.call_opengl_list(self, trace=True)
+        
         if swap_buffers:
             if camera.do_swap_buffers():
                 r.swap_buffers()
@@ -187,7 +196,11 @@ class View:
             if len(mdraw) == 0:
                 continue
             self._update_projection(camera, vnum)
-            cp = camera.get_position(vnum)
+            if r.recording_opengl:
+                from . import gllist
+                cp = gllist.ViewMatrixFunc(self, vnum)
+            else:
+                cp = camera.get_position(vnum)
             r.set_view_matrix(cp.inverse())
             if stf is not None:
                 r.set_shadow_transform(stf * cp)
@@ -222,6 +235,7 @@ class View:
         cp = self.clip_planes
         dm = self._drawing_manager
         draw = self.redraw_needed or c.redraw_needed or cp.changed or dm.redraw_needed
+        self._cam_only_change = c.redraw_needed and not (self.redraw_needed or cp.changed or dm.redraw_needed or self.update_lighting)
         if not draw:
             return False
 
@@ -508,7 +522,10 @@ class View:
 
         # Compute light direction in scene coords.
         kl = lp.key_light_direction
-        light_direction = camera.position.apply_without_translation(kl)
+        if r.recording_opengl:
+            light_direction = lambda c=camera, kl=kl: c.position.apply_without_translation(kl)
+        else:
+            light_direction = camera.position.apply_without_translation(kl)
 
         # Compute drawing bounds so shadow map can cover all drawings.
         sdrawings = None if drawings is None else [d for d in drawings if getattr(d, 'casts_shadows', True)]
@@ -801,14 +818,23 @@ class View:
         if ww == 0 or wh == 0:
             return
 
-        near_far = self.near_far_distances(camera, view_num)
-        # TODO: Different camera views need to use same near/far if they are part of
-        # a cube map, otherwise depth cue dimming is not continuous across cube faces.
-        pm = camera.projection_matrix(near_far, view_num, (ww, wh))
+        if r.recording_opengl:
+            from .gllist import ProjectionCalc
+            nfp = ProjectionCalc(self, view_num, (ww,wh))
+            near_far, pm = nfp.near_far, nfp.projection_matrix
+            n,f = near_far()
+            pnf = 1 if camera.name == 'orthographic' else (n / f)
+        else:
+            near_far = self.near_far_distances(camera, view_num)
+            # TODO: Different camera views need to use same near/far if they are part of
+            # a cube map, otherwise depth cue dimming is not continuous across cube faces.
+            pm = camera.projection_matrix(near_far, view_num, (ww, wh))
+            pnf = 1 if camera.name == 'orthographic' else (near_far[0] / near_far[1])
+
+        self._perspective_near_far_ratio = pnf
+
         r.set_projection_matrix(pm)
         r.set_near_far_clip(near_far)	# Used by depth cue
-        pnf = 1 if camera.name == 'orthographic' else (near_far[0] / near_far[1])
-        self._perspective_near_far_ratio = pnf
 
     def near_far_distances(self, camera, view_num, include_clipping = True):
         '''Near and far scene bounds as distances from camera.'''
