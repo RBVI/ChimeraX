@@ -81,7 +81,7 @@ def matrix_files(session):
 
 def matrix_compatible(session, chain, mat_name):
 	protein_matrix = len(matrix(session, mat_name)) >= 400
-	from chimerax.core.atomic import Residue
+	from chimerax.atomic import Residue
 	return protein_matrix == (chain.polymer_type == Residue.PT_AMINO)
 
 def _init(session):

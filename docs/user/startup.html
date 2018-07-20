@@ -1,0 +1,114 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<title>Startup and Input</title>
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>Startup</h3>
+<p>
+At graphical startup, a ChimeraX splash screen appears, to be replaced in a 
+few seconds by the <a href="window.html">ChimeraX window</a>.
+</p>
+On <b>Windows</b>,
+<blockquote>
+ChimeraX can be started by clicking its icon.
+To specify <a href="options.html">options</a> (stereo, nogui mode, <i>etc.</i>)
+or <a href="#inputfiles">input files</a> at startup, create a new shortcut:
+<ol>
+<li>drag the ChimeraX icon with the right mouse button
+and select <b>Copy Here</b> from the menu to create another shortcut icon
+<li>right-click the new icon, select <b>Properties</b> from the menu that appears
+<li>in the resulting panel, click the <b>Shortcut</b> tab and then
+append the desired <a href="options.html">option(s)</a> and
+<a href="#inputfiles">input(s)</a>
+to the command in the <b>Target</b> field.
+The path to the ChimeraX executable, arguments of options, and
+input file pathnames should be enclosed in quotation marks if
+they contain any spaces, for example:
+<pre>
+<b>"C:\Program Files\ChimeraX\bin\chimerax.exe" <a href="options.html#stereo">--stereo</a> <a href="options.html#start">--start</a> "Side View"</b>
+</pre>
+<li>click the new icon to start ChimeraX with the specified options
+</ol>
+</blockquote>
+
+<a name="unixstart">
+On <b>Linux</b></a>,
+<blockquote>
+ChimeraX can be started from the system command line:
+<br><pre>
+&dollar; <b>chimerax [<a href="options.html"><i>options</i></a>] [<a href="#inputfiles"><i>input1</i> <i>input2</i></a> ...]</b>
+</pre>
+... using the symbolic link to the executable created by the installer. 
+(The executable is in the bin subdirectory of the ChimeraX installation.)
+</blockquote>
+
+On <b>Mac OS X</b>,
+<blockquote>
+ChimeraX can be started by clicking its icon or by drag-and-drop
+of <a href="commands/open.html#formats">known file types</a> onto the icon.
+It can also be started from the Terminal command line: 
+<br><pre>
+<b>&dollar; <i>chimerax_install_dir</i>/Contents/MacOS/ChimeraX [<a href="options.html"><i>options</i></a>] [<a href="#inputfiles"><i>input1</i> <i>input2</i></a> ...]</b>
+</pre>
+The <b><i>chimera_install_dir</i></b> is typically
+<b>/Applications/ChimeraX.app</b>. 
+Starting from Terminal is one way to run multiple instances 
+of the same ChimeraX installation on Mac.
+</blockquote>
+
+<a name="inputfiles">
+<p class="nav">
+[<a href="#top">back to top: Startup</a>]
+</p>
+<h3>System Command-Line Input</h3>
+</a><p>
+Input files may contain data to be displayed or commands or code to be executed.
+If ChimeraX is started in <a href="options.html#nogui">nogui mode</a> 
+without command/script file input,
+a prompt will be supplied in the system shell for entering
+<a href="index.html#commands">ChimeraX commands</a> on standard input.
+</p><p>
+Any of the <a href="commands/open.html#formats">known file types</a>
+can be opened from the system command line at the time of
+<a href="#top">startup</a>.
+The formats of files specified by local pathname or URL are indicated by
+<a href="commands/open.html#file-table">filename suffixes</a>.
+Files that are gzipped, as indicated by their additional .gz suffix,
+can also be read. Fetches from online databases are indicated by
+a <a href="commands/open.html#fetch-table">source prefix</a>
+followed by a colon, for example: <b>emdb:1024</b><br>
+The default source prefix <b>pdb:</b> can be omitted if a valid 
+4-character identifier is supplied.
+</p>
+
+<h3>Exit from ChimeraX</h3>
+<p>
+ChimeraX can be exited by clicking to dismiss the window,
+using the ChimeraX menu to <b>Quit</b>, or by entering
+<a href="commands/exit.html"><b>exit</b> or <b>quit</b></a> in the
+<a href="tools/cli.html"><b>Command Line</b></a>.
+</p>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+July 2018</address>
+</body></html>

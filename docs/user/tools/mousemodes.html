@@ -32,7 +32,7 @@ Like other tools, this interface can be opened from the <b>Tools</b> menu
 (<a href="../window.html#panels">more...</a>).
 </p><p>
 With the related
-<a href="../commands/mousemode.html"><b>mousemode</b></a> command,
+<a href="../commands/ui.html#mousemode"><b>mousemode</b></a> command,
 functions can be assigned to all mouse buttons (not just the right) 
 and to scrolling, alone and in combination with modifier keys.
 In the case of a touchpad or single-button mouse, 
@@ -48,7 +48,7 @@ See also:
 <table border cellpadding="4" cellspacing="0">
 <tr>
 <td align="center"><b>Mouse Modes icon</b></td>
-<td align="center"><b><a href="../commands/mousemode.html">mousemode</a>
+<td align="center"><b><a href="../commands/ui.html#mousemode">mousemode</a>
 <i>function</i></b><br>(default assignment, if any)</td>
 <td align="center"><b>description</b></td>
 </tr><tr>
@@ -57,7 +57,7 @@ See also:
 <td align="center" class="text"><a href="../selection.html">select</a>
 items for subsequent operations;
 see also <a href="../commands/select.html"><b>select</b></a>
-<br>(<a href="../commands/mousemode.html">default</a>
+<br>(<a href="../commands/ui.html#mousemode">default</a>
 to toggle selection is shift control left)</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/rotate.png" width="35px"></td>
@@ -159,6 +159,14 @@ original position not retained</td>
 <a href="../trajectories.html#vseries">volume series</a>;
 see also <a href="../commands/vseries.html"><b>vseries</b></a></td>
 </tr><tr>
+<td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
+<td align="center"><b>swapaa</b></td>
+<td align="center" class="text">&ldquo;mutate&rdquo;
+and <a href="../commands/label.html">label</a> the amino acid residue
+under the mouseclick,
+with vertical drag cycling through the 20 standard types
+in arbitrary conformations; original sidechain not retained</td>
+</tr><tr>
 <td align="center"><img src="mouse-icons/tug.png" width="35px"></td>
 <td align="center"><b>tug</b></td>
 <td align="center" class="text">drag atoms and apply OpenMM dynamics
@@ -171,14 +179,6 @@ original coordinates not retained</td>
 jiggle residue and its neighbors with OpenMM dynamics
 while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained</td>
-</tr><tr>
-<td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
-<td align="center"><b>swapaa</b></td>
-<td align="center" class="text">&ldquo;mutate&rdquo;
-and <a href="../commands/label.html">label</a> the amino acid residue
-under the mouseclick,
-with vertical drag cycling through the 20 standard types
-in arbitrary conformations; original sidechain not retained</td>
 </tr>
 </table>
 
@@ -210,5 +210,5 @@ that is, only intra-model forces apply. No nonbonded cutoff is used.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2018</address>
+May 2018</address>
 </body></html>

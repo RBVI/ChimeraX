@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-MMTF" version="1.0"
-	    package="chimerax.mmtf"
+	    package="chimerax.atomic.mmtf"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -26,6 +26,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>

@@ -54,7 +54,7 @@ def color_gradient(session, surfaces, map, palette = None, range = None,
 #
 def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
                                 palette = None, range = None, offset = 0):
-    from chimerax.core import atomic
+    from chimerax import atomic
     surfs = atomic.surfaces_with_atoms(atoms)
     for s in surfs:
         v, all_atoms = s.vertices_for_atoms(atoms)

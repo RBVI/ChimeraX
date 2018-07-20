@@ -17,7 +17,8 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/graphics
 
 SUBDIRS	= _graphics
 
-PYSRCS = __init__.py camera.py camera360.py crossfade.py drawing.py gsession.py opengl.py view.py linetype.py
+PYSRCS = __init__.py camera.py camera360.py crossfade.py drawing.py \
+	gllist.py gsession.py opengl.py view.py linetype.py windowsize.py
 
 OPENGL_SHADERS = fragmentShader.txt vertexShader.txt
 

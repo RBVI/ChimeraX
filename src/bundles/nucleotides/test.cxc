@@ -1,0 +1,11 @@
+# try every command in bundle
+open 2tpk
+nucleotides atoms
+nucleotides slab
+nucleotides slab shape ellipsoid show_orientation true
+nucleotides tube/slab
+nucleotides tube/slab shape muffler glycosidic true
+nucleotides ladder
+nucleotides ladder show_stubs false
+nucleotides stubs base_only true
+~nucleotides

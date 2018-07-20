@@ -37,13 +37,10 @@ class BasicActionsTool(HtmlToolInstance):
         # Register for updates of name register/deregister events
         #
         session = self.session
-        from chimerax.core import triggers
-        from chimerax.core.commands import (ATOMSPEC_TARGET_REGISTERED,
-                                            ATOMSPEC_TARGET_DEREGISTERED)
-        t1 = triggers.add_handler(ATOMSPEC_TARGET_REGISTERED,
-                                  self.update_names)
-        t2 = triggers.add_handler(ATOMSPEC_TARGET_DEREGISTERED,
-                                  self.update_names)
+        from chimerax.core.toolshed import get_toolshed
+        ts = get_toolshed()
+        t1 = ts.triggers.add_handler("selector registered", self.update_names)
+        t2 = ts.triggers.add_handler("selector deregistered", self.update_names)
         self._handlers = (t1, t2)
 
     def setup_page(self, html_file):
@@ -69,17 +66,21 @@ class BasicActionsTool(HtmlToolInstance):
 
     def delete(self):
         if self._handlers:
-            from chimerax.core import triggers
-            for h in self._handlers:
-                triggers.remove_handler(h)
+            from chimerax.core.toolshed import get_toolshed
+            ts = get_toolshed()
+            if ts:
+                for h in self._handlers:
+                    ts.triggers.remove_handler(h)
             self._handlers = None
         super().delete()
 
     def update_models(self, trigger=None, trigger_data=None, force=False):
+        if not self._loaded_page:
+            return
         self._nonmatching = {}
         models = []
         from chimerax.core.models import Model
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         model_components = {}
         composite_models = {}
         for m in self.session.models.list():
@@ -102,6 +103,8 @@ class BasicActionsTool(HtmlToolInstance):
         self.update_names()
 
     def update_names(self, trigger=None, trigger_data=None):
+        if not self._loaded_page:
+            return
         if trigger is not None and self._updating_names:
             # We are in the middle of an update of specifier names,
             # so this must be called when the first time a

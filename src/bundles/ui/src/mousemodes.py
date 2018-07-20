@@ -134,7 +134,7 @@ class MouseMode:
         '''
         v = self.view
         psize = v.pixel_size(center)
-        b = v.drawing_bounds()
+        b = v.drawing_bounds(cached_only = True)
         if not b is None:
             w = b.width()
             psize = max(psize, w*min_scene_frac)
@@ -867,7 +867,7 @@ class AtomCenterOfRotationMode(MouseMode):
         view = self.session.main_view
         pick = picked_object(x, y, view)
         if hasattr(pick, 'atom'):
-            from chimerax.core.commands import cofr
+            from chimerax.std_commands import cofr
             xyz = pick.atom.scene_coord
             cofr.cofr(self.session,pivot=xyz)
 
@@ -887,7 +887,7 @@ class LabelMode(MouseMode):
             return
         from chimerax.core.objects import Objects
         objects = Objects()
-        from chimerax.core import atomic
+        from chimerax import atomic
         if isinstance(pick, atomic.PickedAtom):
             objects.add_atoms(pick.atom.residue.atoms)
             object_type = 'residues'
@@ -981,7 +981,7 @@ class ClipMouseMode(MouseMode):
                           else ('near','far'))
         
         pf, pb = p.find_plane(pfname), p.find_plane(pbname)
-        from chimerax.core.commands.clip import adjust_plane
+        from chimerax.std_commands.clip import adjust_plane
         c = v.camera
         cfn, cbn = ((0,0,-1), (0,0,1)) if pfname == 'near' else (None, None)
 
@@ -1067,7 +1067,7 @@ class ClipRotateMouseMode(MouseMode):
         cp = v.clip_planes
         rplanes = [p for p in cp.planes() if p.camera_normal is None]
         if len(rplanes) == 0:
-            from chimerax.core.commands.clip import adjust_plane
+            from chimerax.std_commands.clip import adjust_plane
             pn, pf = cp.find_plane('near'), cp.find_plane('far')
             if pn is None and pf is None:
                 # Create clip plane since none are enabled.

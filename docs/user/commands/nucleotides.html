@@ -42,6 +42,8 @@ nucleic acids, with choices for <i>mode</i>:
 <li><a href="#ladder"><b>ladder</b></a>
 - continuous or broken rungs depending on 
 <a href="hbonds.html#related">hydrogen bond pseudobonds</a>
+<li><a href="#stubs"><b>stubs</b></a>
+- broken rungs 
 <li><a href="#tube"><b>tube/slab</b></a> - tube representation of ribose,
 slab representation of bases (box, muffler, or ellipsoid shape)
 <li><a href="#slab"><b>slab</b></a> - atomic representation of ribose, 
@@ -53,7 +55,6 @@ See also:
 <a href="color.html#bynucleotide"><b>color bynucleotide</b></a>,
 <a href="cartoon.html"><b>cartoon</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
-<a href="rungs.html"><b>rungs</b></a>,
 <a href="struts.html"><b>struts</b></a>
 </p>
 
@@ -74,32 +75,57 @@ Remove special representations to reveal atoms and bonds.
 <b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 <b>ladder</b>
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>stubs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>showStubs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>baseOnly</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
+<table class="clRight" cellpadding="0px" cellspacing="0px">
+<tr><td><img class="outline" src="ladder.png" width="100px"
+alt="ladder" title="ladder"></td>
+</table>
 Show nucleic-acid residue pairs connected by
 <a href="hbonds.html#related">hydrogen bond pseudobonds</a> as rods 
 or ladder rungs of the specified <b>radius</b> (default <b>0.45</b> &Aring;). 
-Nucleic acid residues without such connections will be shown as half-rungs if
-<b>stubs</b> is <b>true</b> (default),
+Nucleic acid residues without H-bonds to others will be shown as
+disconnected half-rungs if <b>showStubs</b> is <b>true</b> (default),
 otherwise omitted from the ladder representation.
-The rungs attach to cartoon at the C3' 
-<a href="cartoon.html#tether">tether</a> position,
-and stubs end at the nucleic acid base N1 (if purine) or N3 (if pyrimidine).  
 If <b>baseOnly</b> is <b>true</b> (default),
 connecting rungs will only be drawn for H-bonds between base atoms; 
 if <b>false</b>, thinner connecting rungs (radius <b>0.2</b> &Aring;)
 will also be drawn for H-bonds involving non-base atoms.
-Each half-rung is colored to match the cartoon of the corresponding residue.
+Each half-rung (whether connected or not)
+is colored to match the C2 atom of the corresponding residue.
+The rungs attach to cartoon at the C3' 
+<a href="cartoon.html#tether">tether</a> position, and disconnected half-rungs
+(stubs) end at the nucleic acid base N1 (if purine) or N3 (if pyrimidine).  
 The <b>hideAtoms</b> option indicates whether to hide atoms/bonds
 for nucleotides shown as rungs (default <b>true</b>).
 <p>
-Although the ladder represention can be limited to specified residues,
-the ladder settings are per-model (<i>e.g.</i>,
-different residues in the same model cannot have a different rung radius).
-See also: <a href="rungs.html"><b>rungs</b></a>
+Although ladder/stub representions can be limited to specified residues,
+the associated parameters are per-model: <i>e.g.</i>,
+different residues in the same model cannot have a different rung radius.
 </p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="stubs"></a>
+<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>stubs</b>
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+<table class="clRight" cellpadding="0px" cellspacing="0px">
+<tr><td><img class="outline" src="stubs.png" width="100px"
+alt="stubs" title="stubs"></td>
+</table>
+Show nucleotide sidechains as disconnected half-rungs of the specified 
+<b>radius</b> (default <b>0.45</b> &Aring;),
+each colored to match the C2 atom of the corresponding residue.
+The rungs attach to cartoon at the C3'
+<a href="cartoon.html#tether">tether</a> position, and the stubs 
+end at the nucleic acid base N1 (if purine) or N3 (if pyrimidine).  
+The <b>hideAtoms</b> option indicates whether to hide the
+corresponding atoms/bonds (default <b>true</b>).
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -143,8 +169,8 @@ The choices for <b>dimensions</b> also specify the location of the slab:
 <li><b>big</b>  - anchored at the ribose end of the glycosidic bond (C1')
 <li><b>fat</b> - anchored at the ribose end of the glycosidic bond
 </ul>
-Each slab is colored to match the nitrogen at one end of the glycosidic bond,
-and each tube to match the ribose carbon (C1') at the other end.
+Each slab is colored to match the base C2 atom
+and each tube to match the ribose C1' atom.
 The <b>hideAtoms</b> option indicates whether to hide nucleotide atoms/bonds
 (default <b>true</b>).
 The <b>glycosidic</b> option applies only to base-anchored slabs
@@ -185,15 +211,20 @@ Different residues can have different slab parameters.
 [&nbsp;<b>hideAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>showOrientation</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
-Represent bases as slabs of the specified <b>shape</b>,
+<table class="clRight" cellpadding="0px" cellspacing="0px">
+<tr><td><img class="outline" src="slab.png" width="140px"
+alt="slab" title="slab"></td></tr>
+</table>
+Show ribose atoms, but
+represent bases as slabs of the specified <b>shape</b>,
 <b>dimensions</b>, and <b>thickness</b> (default <b>0.5</b> &Aring;),
 optionally with <b>showOrientation</b> bumps,
-as described above for <a href="#slab"><b>nucleotides slab</b></a>.
-Each slab is colored to match the base nitrogen involved in the glycosidic bond.
+as described above for <a href="#tube"><b>tube/slab</b></a> display.
+Each slab is colored to match the base C2 atom.
 The <b>hideAtoms</b> option indicates whether to hide base atoms/bonds
 (default <b>true</b>).
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2017</address>
+July 2018</address>
 </body></html>

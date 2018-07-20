@@ -141,7 +141,7 @@ class TugAtomsMode(MouseMode):
             a.color = (0,255,0,255)
             s.models.add([a])
         # Scale and rotate prototype cylinder.
-        from chimerax.core.atomic import structure
+        from chimerax.atomic import structure
         from numpy import array, float32
         p = structure._bond_cylinder_placements(array(xyz1).reshape((1,3)),
                                                 array(xyz2).reshape((1,3)),
@@ -196,7 +196,7 @@ class StructureTugger:
         self._structure_atoms = sa = structure.atoms
         satoms = list(sa)
         satoms.sort(key = lambda a: (a.residue.chain_id, a.residue.number))
-        from chimerax.core.atomic import Atoms
+        from chimerax.atomic import Atoms
         self.atoms = Atoms(satoms)
 
         # Atom being tugged

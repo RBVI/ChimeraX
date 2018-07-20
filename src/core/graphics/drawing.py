@@ -143,7 +143,7 @@ class Drawing:
         """Transformation mapping vertex coordinates to ambient_texture
         coordinates, a geometry.Place object."""
 
-        self.opaque_texture = False
+        self.opaque_texture = True
         "Whether the texture for surface coloring is opaque or transparent."
 
         self.use_lighting = True
@@ -196,7 +196,8 @@ class Drawing:
         rn = self._redraw_needed
         return rn.shape_changed if rn else False
     def _set_shape_changed(self, changed):
-        self.redraw_needed(shape_changed = True)
+        if changed:
+            self.redraw_needed(shape_changed = True)
     shape_changed = property(_get_shape_changed, _set_shape_changed)
     '''Did this drawing or any drawing in the same tree change shape since the last redraw.'''
     
@@ -687,7 +688,6 @@ class Drawing:
         sopt = self._shader_options(transparent_only, opaque_only)
         r = renderer
         shader = r.shader(sopt)
-        r.use_shader(shader)
 
         # Set color
         if self.vertex_colors is None and len(self._colors) == 1:
@@ -1018,6 +1018,7 @@ class Drawing:
         '''
         Delete drawing and all child drawings.
         '''
+        self.was_deleted = True
         c = self._opengl_context
         if c:
             c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
@@ -1058,8 +1059,6 @@ class Drawing:
 
         self._opengl_context = None
         
-        self.was_deleted = True
-
     def _create_vertex_buffers(self):
         from . import opengl
         vbufs = (
@@ -1075,8 +1074,8 @@ class Drawing:
             b.buffer_attribute_name = a
             vb.append(b)
 
-        self._draw_shape = _DrawShape(vb)
-        self._draw_selection = _DrawShape(vb)
+        self._draw_shape = _DrawShape(self.name, vb)
+        self._draw_selection = _DrawShape(self.name + ' selection', vb)
 
     _effects_buffers = set(
         ('_vertices', '_normals', '_vertex_colors', 'texture_coordinates',
@@ -1310,13 +1309,11 @@ def opaque_count(rgba):
     from . import _graphics
     return _graphics.count_value(rgba[:,3], 255)
 
-def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
+def _draw_drawings(renderer, drawings, opaque_only = False):
     '''
-    Render opaque and transparent draw passes for a given set of drawings,
-    and given camera view (inverse camera transform).
+    Render opaque and transparent draw passes for a given set of drawings.
     '''
     r = renderer
-    r.set_view_matrix(cvinv)
     from ..geometry import Place
     p = Place()
     _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
@@ -1352,12 +1349,12 @@ def _any_transparent_drawings(drawings):
     return False
 
 
-def draw_depth(renderer, cvinv, drawings, opaque_only = True):
+def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
-    r.disable_shader_capabilities(r.SHADER_LIGHTING |
-                                  r.SHADER_TEXTURE_2D)
-    draw_drawings(r, cvinv, drawings, opaque_only)
+    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
+                                  r.SHADER_DEPTH_CUE | r.SHADER_VERTEX_COLORS | r.SHADER_TEXTURE_2D)
+    _draw_drawings(r, drawings, opaque_only)
     r.disable_shader_capabilities(0)
 
 
@@ -1387,10 +1384,9 @@ def draw_overlays(drawings, renderer):
     r.disable_shader_capabilities(0)
 
 
-def draw_selection_outline(renderer, cvinv, drawings):
+def draw_selection_outline(renderer, drawings):
     '''Draw the outlines of selected parts of the specified drawings.'''
     r = renderer
-    r.set_view_matrix(cvinv)
     r.start_rendering_outline()
     from ..geometry import Place
     p = Place()
@@ -1458,8 +1454,10 @@ def _element_type(display_style):
 
 class _DrawShape:
 
-    def __init__(self, vertex_buffers):
+    def __init__(self, name, vertex_buffers):
 
+        self._name = name			# Use for debbugging
+        
         # Arrays derived from positions, colors and geometry
         self.instance_shift_and_scale = None   # N by 4 array, (x, y, z, scale)
         self.instance_matrices = None	    # matrices for displayed instances
@@ -1671,7 +1669,7 @@ class _DrawShape:
         bi = self.bindings
         if bi is None:
             from . import opengl
-            self.bindings = bi = opengl.Bindings(renderer.opengl_context)
+            self.bindings = bi = opengl.Bindings(self._name, renderer.opengl_context)
 
         bi.activate()
         self.update_buffers()
@@ -1843,7 +1841,7 @@ class PickedInstance(Pick):
         d.selected_positions = pmask
 
 
-def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2)):
+def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True):
     '''
     Make a drawing that is a single rectangle with a texture to show an
     RGBA image on it.
@@ -1851,6 +1849,7 @@ def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2)):
     from . import opengl
     t = opengl.Texture(rgba)
     d = _texture_drawing(t, pos, size, drawing)
+    d.opaque_texture = opaque
     return d
 
 def position_rgba_drawing(drawing, pos, size):

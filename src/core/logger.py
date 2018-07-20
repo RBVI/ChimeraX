@@ -411,6 +411,9 @@ class Logger(StatusLogger):
                     num_spaces = len(line) - len(text)
                     tmp.append('&nbsp;' * num_spaces + escape(text))
                 tb_msg = "<br>\n".join(tmp)
+            if self.session.silent:
+                self.error(tb_msg, is_html=True)
+                return
             self.info(tb_msg, is_html=True)
 
             err = "".join(format_exception_only(ei[0], ei[1]))
@@ -655,3 +658,9 @@ def html_to_plain(html):
     # h.pad_tables = True  # 2018.1.9 is confused by multiline data in td
     # h.body_width = ?  # TODO: track terminal size changes
     return h.handle(html)
+
+def log_version(logger):
+    '''Show version information.'''
+    from chimerax.core import buildinfo
+    from chimerax import app_dirs as ad
+    logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, ad.version, buildinfo.date.split()[0]))

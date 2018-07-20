@@ -18,8 +18,9 @@ core_settings_ui: GUI to control core settings
 TODO
 """
 
-from chimerax.core.core_settings import settings as core_settings
+from chimerax.core.core_settings import set_proxies, settings as core_settings
 from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, FloatOption
+from .options import StringOption, HostPortOption
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
@@ -44,8 +45,8 @@ class CoreSettingsPanel:
     # 5) Converter to use with updater.  Either None (don't provide arg to updater), or
     #     a function to convert the option's value to a form usable with the updater.
     #     If the updater is a command, then the converted value will be as the right
-    #     side of the '%' string-formatting operator; otherwise it will be the only arg
-    #     provided to the function call.
+    #     side of the '%' string-formatting operator; otherwise it will be the second arg
+    #     provided to the function call (session will be the first).
     # 6) Change notifier.  Function that accepts a session and a trigger-handler-style callback
     #     as a arg and calls it when the setting changes. Can be None if not relevant.
     # 7) Function that fetches the setting value in a form that can be used to set the option.
@@ -142,6 +143,26 @@ class CoreSettingsPanel:
             lambda ses: ses.pb_dist_monitor.show_units,
             'Whether to show angstrom symbol after the distancee',
             False),
+        'http_proxy': (
+            'HTTP proxy',
+            'Web Access',
+            HostPortOption,
+            lambda ses, val: set_proxies(),
+            None,
+            None,
+            None,
+            'HTTP proxy for ChimeraX to use when trying to reach web sites',
+            True),
+        'https_proxy': (
+            'HTTPS proxy',
+            'Web Access',
+            HostPortOption,
+            lambda ses, val: set_proxies(),
+            None,
+            None,
+            None,
+            'HTTPS proxy for ChimeraX to use when trying to reach web sites',
+            True),
         'resize_window_on_session_restore': (
             'Resize window on session restore',
             'Sessions',

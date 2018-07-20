@@ -15,7 +15,7 @@
 reads a GCG9 RSF file
 """
 
-from chimerax.core.atomic import Sequence
+from chimerax.atomic import Sequence
 from ..parse import FormatSyntaxError, make_readable
 
 def read(session, f):

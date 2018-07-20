@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Nucleotides" version="0.1"
-	package="chimerax.nucleotides"
+	package="chimerax.atomic.nucleotides"
   	minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

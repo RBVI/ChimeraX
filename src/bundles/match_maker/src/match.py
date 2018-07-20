@@ -54,7 +54,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                     KSDSSP_ENERGY, KSDSSP_HELIX_LENGTH, \
                     KSDSSP_STRAND_LENGTH
             """
-            from chimerax.core.commands import dssp
+            from chimerax.std_commands import dssp
             dssp.compute_ss(session, need_compute)
     if algorithm == "nw":
         from chimerax.seqalign.align_algs import NeedlemanWunsch
@@ -93,7 +93,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             gap_open_other=float(gap_open_other),
             ss1="".join([ss_let(r) for r in ref.residues]),
             ss2="".join([ss_let(r) for r in match.residues]))
-        from chimerax.core.atomic import StructureSeq, Sequence
+        from chimerax.atomic import StructureSeq, Sequence
         gapped_ref = StructureSeq(structure=ref.structure, chain_id=ref.chain_id)
         gapped_ref.name = ref.structure.name
         gapped_match = StructureSeq(structure=match.structure, chain_id=match.chain_id)
@@ -492,8 +492,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             logger.error("Fewer than 3 residues aligned; cannot match %s with %s"
                 % (s1.name, s2.name))
             continue
-        from chimerax.core.commands import align
-        from chimerax.core.atomic import Atoms
+        from chimerax.std_commands import align
+        from chimerax.atomic import Atoms
         try:
             ret_vals.append(align.align(session, Atoms(match_atoms), Atoms(ref_atoms),
                 cutoff_distance=cutoff_distance))
@@ -635,7 +635,7 @@ def check_domain_matching(chains, sel_residues):
     if not chain_residues.issubset(sel_residues):
         # domain matching
         new_chains = []
-        from chimerax.core.atomic import StructureSeq
+        from chimerax.atomic import StructureSeq
         for chain in chains:
             this_chain = set([r for r in chain.residues if r])
             if this_chain.issubset(sel_residues):
@@ -666,8 +666,9 @@ def register_command(logger):
         # registration can be called for both main command and alias, so only do once...
         return
     _registered = True
-    from chimerax.core.commands import CmdDesc, register, AtomsArg, FloatArg, StringArg, \
+    from chimerax.core.commands import CmdDesc, register, FloatArg, StringArg, \
         BoolArg, NoneArg, TopModelsArg, create_alias, Or
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required = [('match_atoms', AtomsArg)],
         required_arguments = ['to'],

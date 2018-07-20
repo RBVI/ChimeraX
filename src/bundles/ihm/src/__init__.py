@@ -30,4 +30,10 @@ class _IHMAPI(BundleAPI):
         from . import savecoords
         return savecoords.save_binary_coordinates(session, name, models)
 
+    @staticmethod
+    def fetch_from_database(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
+        # 'fetch_from_database' is called by session code to fetch data with give identifier
+        from .fetch_ihm import fetch_ihm
+        return fetch_ihm(session, identifier, ignore_cache=ignore_cache)
+
 bundle_api = _IHMAPI()

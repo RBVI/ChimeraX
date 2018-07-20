@@ -139,7 +139,7 @@ def bounds_description(bounds):
     return bdesc
 
 def structure_info(m):
-    from chimerax.core.atomic import Structure
+    from chimerax.atomic import Structure
     if not isinstance(m, Structure):
         return ''
 
@@ -156,7 +156,7 @@ def structure_info(m):
     return line
 
 def pseudobond_group_info(m):
-    from chimerax.core.atomic import PseudobondGroup
+    from chimerax.atomic import PseudobondGroup
     if isinstance(m, PseudobondGroup):
         line = ', %d pseudobonds' % m.num_pseudobonds
     else:

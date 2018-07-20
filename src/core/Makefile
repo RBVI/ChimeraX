@@ -12,7 +12,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
+NO_SUBDIR_TEST=1
+SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp \
 	   chutil_cpp commands \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
@@ -24,12 +25,6 @@ SUBDIRS += mac_util_cpp
 endif
 
 include $(TOP)/mk/subdir.make
-
-ifdef WIN32
-CYTHON_EXE = $(bindir)/Scripts/cython.exe
-else
-CYTHON_EXE = $(bindir)/cython
-endif
 
 BUNDLE_NAME = ChimeraX-Core
 BUNDLE_VERSION = 0.7
@@ -107,8 +102,6 @@ _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx
 
 _appdirs.install: appdirs_cpp.install
-atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install \
-	logger_cpp.install pysupport_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
 surface.install: arrays_cpp.install

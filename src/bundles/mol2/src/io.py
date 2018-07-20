@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.atomic import Atom, Atoms
+from chimerax.atomic import Atom, Atoms
 idatm_info = Atom.idatm_info_map
 
 MOLECULE_HEADER = "@<TRIPOS>MOLECULE"
@@ -92,7 +92,7 @@ def write_mol2_sort_key(a, res_indices=None):
         ri = res_indices[a.residue] = a.structure.residues.index(a.residue)
     return (ri, a.coord_index)
 
-def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=None,
+def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anchor=None,
         rel_model=None, sybyl_hyd_naming=True, combine_models=False,
         skip_atoms=None, res_num=False, gaff_type=False, gaff_fail_error=None):
     """Write a Mol2 file.
@@ -103,18 +103,18 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
     file_name : str, or file object open for writing
         Output file.
 
-    models : a list/tuple/set of models (:py:class:`~chimerax.core.atomic.Structure`s)
-        or a single :py:class:`~chimerax.core.atomic.Structure`
+    models : a list/tuple/set of models (:py:class:`~chimerax.atomic.Structure`s)
+        or a single :py:class:`~chimerax.atomic.Structure`
         The structure(s) to write out. If None (and 'atoms' is also None) then
         write out all structures.
 
-    atoms : an :py:class:`~chimerax.core.atomic.Atoms` collection or None.  If not None,
+    atoms : an :py:class:`~chimerax.atomic.Atoms` collection or None.  If not None,
         then 'models' must be None.
 
     status : function or None
         If not None, a function that takes a string -- used to report the progress of the write.
 
-    anchor : :py:class:`~chimerax.core.atomic.Atoms` collection
+    anchor : :py:class:`~chimerax.atomic.Atoms` collection
         Atoms (and their implied internal bonds) that should be written out to the
         @SET section of the file as the rigid framework for flexible ligand docking.
 
@@ -128,7 +128,7 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
         Controls whether multiple structures will be combined into a single @MOLECULE
         section (value: True) or each given its own section (value: False).
 
-    skip_atoms : list/set of :py:class:`~chimerax.core.atomic.Atom`s or an :py:class:`~chimerax.core.atomic.Atoms` collection or None
+    skip_atoms : list/set of :py:class:`~chimerax.atomic.Atom`s or an :py:class:`~chimerax.atomic.Atoms` collection or None
        Atoms to not output
 
     res_num : bool
@@ -149,7 +149,7 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
 
     sort_key_func = serial_sort_key = lambda a, ri={}: write_mol2_sort_key(a, res_indices=ri)
 
-    from chimerax.core.atomic import Structure, Atoms, Residue
+    from chimerax.atomic import Structure, Atoms, Residue
     class JPBGroup:
         def __init__(self, atoms):
             atom_set = set(atoms)
@@ -203,7 +203,7 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
     # need to find amide moieties since Sybyl has an explicit amide type
     if status:
         status("Finding amides")
-    from chimerax.chem_group import find_group
+    from chimerax.atomic.chem_group import find_group
     amides = find_group("amide", structures)
     amide_Ns = set([amide[2] for amide in amides])
     amide_CNs = set([amide[0] for amide in amides])
@@ -216,7 +216,7 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
         class Jumbo:
             def __init__(self, structures):
                 self.name = structures[0].name + " (combined)"
-                from chimerax.core.atomic import concatenate
+                from chimerax.atomic import concatenate
                 self.atoms = concatenate([s.atoms for s in structures])
                 self.bonds = concatenate([s.bonds for s in structures])
                 self.residues = concatenate([s.residues for s in structures])
@@ -282,7 +282,7 @@ def write_mol2(session, file_name, models=None, atoms=None, status=None, anchor=
             mtype = struct.mol2_type
         else:
             mtype = "SMALL"
-            from chimerax.core.atomic import Sequence
+            from chimerax.atomic import Sequence
             for r in struct.residues:
                 if Sequence.protein3to1(r.name) != 'X':
                     mtype = "PROTEIN"

@@ -517,7 +517,7 @@ class MousePointerModel(Model):
             self.position = p
 
 class VRTracking(PointerModels):
-    def __init__(self, session, meeting, sync_coords = True, update_interval = 9):
+    def __init__(self, session, meeting, sync_coords = True, update_interval = 1):
         PointerModels.__init__(self, session)
         self._meeting = meeting		# MeetingServer instance
         self._sync_coords = sync_coords
@@ -622,6 +622,9 @@ class VRTracking(PointerModels):
             
 from chimerax.core.models import Model
 class VRPointerModel(Model):
+    casts_shadows = False
+    pickable = False
+    skip_bounds = True
     SESSION_SAVE = False
     
     def __init__(self, session, name, room_to_scene, color = (0,255,0,255)):
@@ -674,6 +677,9 @@ class VRPointerModel(Model):
 
 class VRHandModel(Model):
     '''Radius and height in meters.'''
+    casts_shadows = False
+    pickable = False
+    skip_bounds = True
     SESSION_SAVE = False
     
     def __init__(self, session, name, radius = 0.04, height = 0.2, color = (0,255,0,255)):
@@ -688,6 +694,9 @@ class VRHandModel(Model):
 
 class VRHeadModel(Model):
     '''Size in meters.'''
+    casts_shadows = False
+    pickable = False
+    skip_bounds = True
     SESSION_SAVE = False
     default_face_file = 'face.png'
     def __init__(self, session, name = 'head', size = 0.3, image_file = None):

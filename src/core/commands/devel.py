@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import CmdDesc, StringArg, OpenFolderNameArg, BoolArg
+from chimerax.core.commands import CmdDesc, StringArg, OpenFolderNameArg, BoolArg
 
 _aliases = {}
 
@@ -90,7 +90,7 @@ def devel_build(session, path, test=True, debug=False, exit=False):
     test : bool
       Whether to run test after building wheel
     '''
-    from ...bundle_builder import BundleBuilder
+    from chimerax.bundle_builder import BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_wheel, test=test, debug=debug)
 
 
@@ -111,7 +111,7 @@ def devel_install(session, path, test=True, user=None, debug=False, exit=False):
     test : bool
       Whether to run test after building wheel
     '''
-    from ...bundle_builder import BundleBuilder
+    from chimerax.bundle_builder import BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_install,
          session, test=test, debug=debug, user=user)
 
@@ -132,7 +132,7 @@ def devel_clean(session, path, exit=False):
     path : string
       Path to folder containing bundle source code or bundle alias.
     '''
-    from ...bundle_builder import BundleBuilder
+    from chimerax.bundle_builder import BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_clean)
 
 
@@ -142,7 +142,7 @@ devel_clean_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
 
 
 def _run(path, logger, exit, unbound_method, *args, **kw):
-    from ..logger import StringPlainTextLog
+    from chimerax.core.logger import StringPlainTextLog
     bb = _get_builder(path, logger)
     exit_status = 0
     if bb is not None:
@@ -181,7 +181,7 @@ devel_dump_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
 
 def _get_builder(path, logger):
     """Return BundleBuilder instance or None."""
-    from ...bundle_builder import BundleBuilder
+    from chimerax.bundle_builder import BundleBuilder
     try:
         path = _aliases[path]
     except KeyError:
@@ -198,18 +198,18 @@ def _get_builder(path, logger):
         return bb
 
 
-def register_command(session):
-    from . import register
+def register_command(logger):
+    from chimerax.core.commands import register
 
     register("devel alias", devel_alias_desc, devel_alias,
-             logger=session.logger)
+             logger=logger)
     register("devel unalias", devel_unalias_desc, devel_unalias,
-             logger=session.logger)
+             logger=logger)
     register("devel build", devel_build_desc, devel_build,
-             logger=session.logger)
+             logger=logger)
     register("devel install", devel_install_desc, devel_install,
-             logger=session.logger)
+             logger=logger)
     register("devel clean", devel_clean_desc, devel_clean,
-             logger=session.logger)
+             logger=logger)
     register("devel dump", devel_dump_desc, devel_dump,
-             logger=session.logger)
+             logger=logger)

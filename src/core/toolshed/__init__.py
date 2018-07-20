@@ -299,10 +299,14 @@ class Toolshed:
         # Compute base directories
         import os
         from chimerax import app_dirs
-        self._cache_dir = os.path.join(app_dirs.user_cache_dir, _ToolshedFolder)
+        if os.path.exists(app_dirs.user_cache_dir):
+            self._cache_dir = os.path.join(app_dirs.user_cache_dir, _ToolshedFolder)
+        else:
+            self._cache_dir = None
         _debug("cache dir: %s" % self._cache_dir)
-        self._data_dir = os.path.join(app_dirs.user_data_dir, _ToolshedFolder)
-        _debug("data dir: %s" % self._data_dir)
+        # TODO: unused so far
+        # self._data_dir = os.path.join(app_dirs.user_data_dir, _ToolshedFolder)
+        # _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path
         import site
@@ -319,6 +323,8 @@ class Toolshed:
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_UNINSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_RELOADED)
+        self.triggers.add_trigger("selector registered")
+        self.triggers.add_trigger("selector deregistered")
 
         # Variables for updating list of available bundles
         from threading import RLock
@@ -327,6 +333,10 @@ class Toolshed:
 
         # Reload the bundle info list
         _debug("loading bundles")
+        try:
+            self.init_available_from_cache(logger)
+        except Exception:
+            logger.report_exception("Error preloading available bundles")
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
@@ -381,7 +391,7 @@ class Toolshed:
             cache_file = self._bundle_cache(False, logger)
             self._installed_bundle_info.load(logger, cache_file=cache_file,
                                              rebuild_cache=rebuild_cache,
-                                             write_cache=True)
+                                             write_cache=cache_file is not None)
             if report:
                 if save is None:
                     logger.info("Initial installed bundles.")
@@ -407,7 +417,7 @@ class Toolshed:
     def reload_available(self, logger):
         from urllib.error import URLError
         from .available import AvailableBundleCache
-        abc = AvailableBundleCache()
+        abc = AvailableBundleCache(self._cache_dir)
         try:
             abc.load(logger, self.remote_url)
         except URLError as e:
@@ -426,6 +436,16 @@ class Toolshed:
                 self._abc_updating = False
                 from ..commands import cli
                 cli.clear_available()
+
+    def init_available_from_cache(self, logger):
+        from .available import AvailableBundleCache
+        abc = AvailableBundleCache(self._cache_dir)
+        try:
+            abc.load_from_cache()
+        except FileNotFoundError:
+            logger.info("available bundle cache has not been initialized yet")
+        else:
+            self._available_bundle_info = abc
 
     def register_available_commands(self, logger):
         for bi in self._get_available_bundles(logger):
@@ -502,7 +522,7 @@ class Toolshed:
         try:
             if bundle.installed:
                 if not reinstall:
-                    raise ToolshedInstalledError("bundle \"%s\" already installed" % bundle.name)
+                    raise ToolshedInstalledError("bundle %r already installed" % bundle.name)
                 if bundle in self._installed_bundle_info:
                     bundle.deregister(logger)
                     bundle.unload(logger)
@@ -529,7 +549,7 @@ class Toolshed:
         except PermissionError as e:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
-                         (bundle.name, who))
+                         (bundle, who))
             return
         installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
         if installed:
@@ -564,7 +584,7 @@ class Toolshed:
         _debug("uninstall_bundle", bundle)
         try:
             if not bundle.installed:
-                raise ToolshedInstalledError("bundle \"%s\" not installed" % bundle.name)
+                raise ToolshedInstalledError("bundle %r not installed" % bundle.name)
             bundle.deregister(logger)
             bundle.unload(logger)
             bundle = bundle.name
@@ -585,6 +605,8 @@ class Toolshed:
         ----------
         name : str
             Name (internal or display name) of the bundle of interest.
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Logging object where warning and error messages are sent.
         installed : boolean
             True to check only for installed bundles; False otherwise.
         version : str
@@ -682,6 +704,93 @@ class Toolshed:
             self._installed_bundle_info.remove(bi)
             # TODO: update _installed_packages
 
+    def import_bundle(self, bundle_name, logger,
+                      install="ask", session=None):
+        """Return the module for the bundle with the given name.
+
+        Parameters
+        ----------
+        bundle_name : str
+            Name (internal or display name) of the bundle of interest.
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Logging object where warning and error messages are sent.
+        install: str
+            Action to take if bundle is uninstalled but available.
+            "ask" (default) means to ask user, if `session` is not `None`;
+            "never" means not to install; and
+            "always" means always install.
+        session : :py:class:`chimerax.core.session.Session` instance.
+            Session that is requesting the module.  Defaults to `None`.
+
+        Raises
+        ------
+        ImportError
+            Raised if a module for the bundle cannot be found.
+        """
+        # If the bundle is installed, return its module.
+        bundle = self.find_bundle(bundle_name, logger, installed=True)
+        if bundle is not None:
+            module = bundle.get_module()
+            if module is None:
+                raise ImportError("bundle %r has no module" % bundle_name)
+            return module
+        bundle = self.find_bundle(bundle_name, logger, installed=False)
+        if bundle is None:
+            raise ImportError("bundle %r not found" % bundle_name)
+        return self._install_module(bundle, logger, install, session)
+
+
+    def import_package(self, package_name, logger,
+                       install=None, session=None):
+        """Return package of given name if it is associated with a bundle.
+
+        Parameters
+        ----------
+        module_name : str
+            Name of the module of interest.
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
+            Logging object where warning and error messages are sent.
+        install: str
+            Action to take if bundle is uninstalled but available.
+            "ask" (default) means to ask user, if `session` is not `None`;
+            "never" means not to install; and
+            "always" means always install.
+        session : :py:class:`chimerax.core.session.Session` instance.
+            Session that is requesting the module.  Defaults to `None`.
+
+        Raises
+        ------
+        ImportError
+            Raised if a module for the bundle cannot be found.
+        """
+        for bi in self._installed_bundle_info:
+            if bi.package_name == package_name:
+                module = bi.get_module()
+                if module is None:
+                    raise ImportError("bundle %r has no module" % bundle_name)
+                return module
+        # No installed bundle matches
+        from distlib.version import NormalizedVersion as Version
+        lc_name = name.lower().replace('_', '-')
+        best_bi = None
+        best_version = None
+        for bi in self._get_available_bundles(logger):
+            if bi.package_name != package_name:
+                continue
+            if best_bi is None:
+                best_bi = bi
+                best_version = Version(bi.version)
+            elif best_bi.name != bi.name:
+                raise ImportError("%r matches multiple bundles %s, %s" % (package_name, best_bi.name, bi.name))
+            else:
+                v = Version(bi.version)
+                if v > best_version:
+                    best_bi = bi
+                    best_version = v
+        if best_bi is None:
+            raise ImportError("bundle %r not found" % bundle_name)
+        return self._install_module(best_bi, logger, install, session)
+
     #
     # End public API
     # All methods below are private
@@ -690,19 +799,21 @@ class Toolshed:
     def _get_available_bundles(self, logger):
         with self._abc_lock:
             if self._available_bundle_info is None:
-                from .available import AvailableBundleCache
                 if self._abc_updating:
                     logger.warning("still retrieving bundle list from toolshed")
                 else:
                     logger.warning("could not retrieve bundle list from toolshed")
-                self._available_bundle_info = AvailableBundleCache()
+                from .available import AvailableBundleCache
+                self._available_bundle_info = AvailableBundleCache(self._cache_dir)
             elif self._abc_updating:
                 logger.warning("still updating bundle list from toolshed")
             return self._available_bundle_info
 
     def _bundle_cache(self, must_exist, logger):
-        """Return path to bundle cache file."""
+        """Return path to bundle cache file.  None if not available."""
         _debug("_bundle_cache", must_exist)
+        if self._cache_dir is None:
+            return None
         if must_exist:
             import os
             os.makedirs(self._cache_dir, exist_ok=True)
@@ -784,6 +895,36 @@ class Toolshed:
                         continue
                 #print('removing (pip installed)', path)
                 os.remove(path)
+
+    def _install_module(self, bundle, logger, install, session):
+        # Given a bundle name and *uninstalled* bundle, install it
+        # and return the module from the *installed* bundle
+        if install == "never":
+            raise ImportError("bundle %r is not installed" % bundle.name)
+        if install == "ask":
+            if session is None:
+                raise ImportError("bundle %r is not installed" % bundle.name)
+            from chimerax.ui.ask import ask
+            answer = ask(session, "Install bundle %r?" % bundle.name,
+                         buttons = ["just me", "all users", "cancel"])
+            if answer == "cancel":
+                raise ImportError("user canceled installation of bundle %r" % bundle.name)
+            elif answer == "just me":
+                per_user = True
+            elif answer == "all users":
+                per_user = False
+            else:
+                raise ImportError("installation of bundle %r canceled" % bundle.name)
+        # We need to install the bundle.
+        self.install_bundle(bundle.name, logger, per_user=per_user)
+        # Now find the *installed* bundle.
+        bundle = self.find_bundle(bundle.name, logger, installed=True)
+        if bundle is None:
+            raise ImportError("could not install bundle %r" % bundle.name)
+        module = bundle.get_module()
+        if module is None:
+            raise ImportError("bundle %r has no module" % bundle.name)
+        return module
 
 
 class BundleAPI:
@@ -1111,7 +1252,7 @@ from .info import BundleInfo, CommandInfo, ToolInfo, SelectorInfo, FormatInfo
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.
 _toolshed = None
 
-_default_help_dir = None
+_default_help_dirs = None
 
 
 def init(*args, debug=None, **kw):
@@ -1152,12 +1293,15 @@ def get_toolshed():
 
 
 def get_help_directories():
-    global _default_help_dir
-    if _default_help_dir is None:
+    global _default_help_dirs
+    if _default_help_dirs is None:
         import os
-        from chimerax import app_data_dir
-        _default_help_dir = os.path.join(app_data_dir, 'docs')
-    hd = [_default_help_dir]
+        from chimerax import app_data_dir, app_dirs
+        _default_help_dirs = [
+            os.path.join(app_dirs.user_cache_dir, 'docs'),  # for generated files
+            os.path.join(app_data_dir, 'docs')              # for builtin files
+        ]
+    hd = _default_help_dirs[:]
     if _toolshed is not None:
         hd.extend(_toolshed._installed_bundle_info.help_directories)
     return hd

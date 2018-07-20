@@ -54,6 +54,14 @@ ifdef DEBUG
 	fi
 endif
 endif
+ifndef WIN32
+	mkdir -p $(datadir)/man/man1
+	$(RSYNC) $(APP_NAME).1 $(datadir)/man/man1
+	-if [ -d "$(app_prefix)" ]; then \
+		mkdir -p $(app_datadir)/man/man1; \
+		$(RSYNC) $(APP_NAME).1 $(app_datadir)/man/man1; \
+	fi
+endif
 ifeq ($(OS),Darwin)
 	# Must use hard link for code signing to work
 	-if [ -d "$(app_prefix)" ]; then \

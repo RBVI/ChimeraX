@@ -12,8 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False, **kw):
-    '''Open a file.  Specific formats have additional keyword arguments using
-    commands.add_keyword_arguments().  These are listed with command "usage open".
+    '''Open a file.
 
     Parameters
     ----------
@@ -43,7 +42,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         return models
     if ':' in filename:
         prefix, fname = filename.split(':', maxsplit=1)
-        from .. import fetch
+        from chimerax.core import fetch
         from_database, default_format = fetch.fetch_from_prefix(prefix)
         if from_database is not None:
             if format is None:
@@ -63,17 +62,17 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             return f(*args, **kw)
         except TypeError as e:
             if 'unexpected keyword' in str(e):
-                from ..errors import UserError
+                from chimerax.core.errors import UserError
                 raise UserError(str(e))
             raise
-    from ..filehistory import remember_file
+    from chimerax.core.filehistory import remember_file
     if from_database is not None:
-        from .. import fetch
+        from chimerax.core import fetch
         if format is not None:
             db_formats = fetch.database_formats(from_database)
             if format not in db_formats:
-                from ..errors import UserError
-                from . import commas, plural_form
+                from chimerax.core.errors import UserError
+                from chimerax.core.commands import commas, plural_form
                 raise UserError(
                     'Only %s %s can be fetched from %s database'
                     % (commas(['"%s"' % f for f in db_formats], ' and '),
@@ -94,7 +93,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         if fmt:
             format = fmt.name
         else:
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError('Unknown format "%s", or no support for opening this format.' % format)
 
     from os.path import exists
@@ -105,13 +104,13 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         paths = glob(filename)
         paths.sort()	# python glob does not sort. Keep series in order.
         if len(paths) == 0:
-            from ..errors import UserError
+            from chimerax.core.errors import UserError
             raise UserError('File not found: %s' % filename)
 
     try:
         models = handle_unknown_kw(session.models.open, paths, format=format, name=name, **kw)
     except OSError as e:
-        from ..errors import UserError
+        from chimerax.core.errors import UserError
         raise UserError(e)
     show_citations(session, models)
     
@@ -122,7 +121,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     return models
 
 def format_from_name(name, open=True, save=False):
-    from .. import io
+    from chimerax.core import io
     formats = [f for f in io.formats()
                if (name in f.nicknames or name == f.name) and
                ((open and f.open_func) or (save and f.export_func))]
@@ -132,7 +131,8 @@ def format_from_name(name, open=True, save=False):
 
 
 def show_citations(session, models):
-    from ..atomic.mmcif import citations
+    return
+    from chimerax.atomic.mmcif import citations
     c_tmp = []
     for m in models:
         c = citations(m, only='primary')
@@ -156,8 +156,8 @@ def open_formats(session):
         lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
     else:
         session.logger.info('File format, Short name(s), Suffixes:')
-    from .. import io
-    from . import commas
+    from chimerax.core import io
+    from chimerax.core.commands import commas
     formats = list(f for f in io.formats() if f.open_func is not None)
     formats.sort(key = lambda f: f.name.lower())
     for f in formats:
@@ -180,7 +180,7 @@ def open_formats(session):
         lines.extend(['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>Database<th>Formats'])
     else:
         session.logger.info('\nDatabase, Formats:')
-    from ..fetch import fetch_databases
+    from chimerax.core.fetch import fetch_databases
     databases = list(fetch_databases().values())
     databases.sort(key=lambda k: k.database_name)
     for db in databases:
@@ -205,11 +205,12 @@ def open_formats(session):
         session.logger.info(msg, is_html=True)
 
 
-def register_command(session):
-    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg, RepeatOf
+def register_command(logger):
+    from chimerax.core.commands import CmdDesc, register, DynamicEnum, StringArg, BoolArg, \
+        OpenFileNameArg, RepeatOf
 
     def formats():
-        from .. import io, fetch
+        from chimerax.core import io, fetch
         names = set()
         for f in io.formats():
             names.update(f.nicknames)
@@ -220,7 +221,7 @@ def register_command(session):
         return names
 
     def db_formats():
-        from .. import fetch
+        from chimerax.core import fetch
         return [f.database_name for f in fetch.fetch_databases().values()]
     desc = CmdDesc(
         required=[('filename', RepeatOf(OpenFileNameArg))],
@@ -232,6 +233,6 @@ def register_command(session):
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')
-    register('open', desc, open, logger=session.logger)
+    register('open', desc, open, logger=logger)
     of_desc = CmdDesc(synopsis='report formats that can be opened')
-    register('open formats', of_desc, open_formats, logger=session.logger)
+    register('open formats', of_desc, open_formats, logger=logger)

@@ -2049,7 +2049,7 @@ class SeqBlock:
         return self.font
 
     def _label_tip(self, line):
-        from chimerax.core.atomic import Sequence
+        from chimerax.atomic import Sequence
         if not isinstance(line, Sequence):
             return ""
         basic_text = "%s (#%d of %d; %d non-gap residues)" % (line.name,

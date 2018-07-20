@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SwapAA" version="1.0" package="chimerax.swapaa"
+<BundleInfo name="ChimeraX-SwapAA" version="1.0" package="chimerax.atomic.swapaa"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -10,6 +10,10 @@
        Description is a full multi-line description -->
   <Synopsis>Swap amino acid</Synopsis>
   <Description>Swap amino acid</Description>
+
+  <DataFiles>
+    <DataFile>templates.cif</DataFile>
+  </DataFiles>
 
   <!-- Categories is a list where this bundle should appear -->
   <Categories>

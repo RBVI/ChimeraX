@@ -141,7 +141,7 @@ class Volume(Model):
   #
   def added_to_session(self, session):
     if len(session.models.list()) == 1:
-      from chimerax.core.commands.lighting import lighting
+      from chimerax.std_commands.lighting import lighting
       lighting(session, 'full')	# Use full lighting for initial map display
 
   # ---------------------------------------------------------------------------
@@ -337,7 +337,6 @@ class Volume(Model):
   def _get_single_color(self):
     rep = self.representation
     from chimerax.core.colors import rgba_to_rgba8
-    from numpy import argmin
     if rep in ('surface', 'mesh'):
       surfs = self.surfaces
       if surfs:
@@ -345,7 +344,9 @@ class Volume(Model):
     elif rep == 'solid':
       lev = self.solid_levels
       if lev:
-        return rgba_to_rgba8(self.solid_colors[argmin(lev)])
+        from numpy import argmin
+        i = argmin([v for v,b in lev])
+        return rgba_to_rgba8(self.solid_colors[i])
     drgba = self.data.rgba
     if drgba:
       return rgba_to_rgba8(drgba)
@@ -1159,8 +1160,8 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _set_selected(self, sel):
-    Model.set_selected(self, sel)
+  def _set_selected(self, sel, *, fire_trigger=True):
+    Model.set_selected(self, sel, fire_trigger=fire_trigger)
     for s in self.surfaces:
       s.set_selected(sel)
   selected = property(Model.get_selected, _set_selected)
@@ -1777,6 +1778,8 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def showing_transparent(self):
+    if not self.display:
+      return False
     if self.representation == 'solid' and self.solid:
       return 'a' in self.solid.color_mode
     from chimerax.core.graphics import Drawing
@@ -3280,7 +3283,8 @@ def register_map_file_formats(session):
                          open_func=open_map_format, batch=True, export_func=save_func)
 
     # Add keywords to open command for maps
-    from chimerax.core.commands import add_keyword_arguments, BoolArg, IntArg
+    from chimerax.core.commands import BoolArg, IntArg
+    from chimerax.core.commands.cli import add_keyword_arguments
     add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg})
 
     # Add keywords to save command for maps

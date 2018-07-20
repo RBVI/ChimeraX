@@ -10,18 +10,15 @@
 def color_zone(surface, points, point_colors, distance,
                sharp_edges = False, auto_update = True):
 
-    color_surface(surface, points, point_colors, distance)
-
-    if sharp_edges:
-        color_zone_sharp_edges(surface, points, point_colors, distance, replace = True)
-
+    zc = ZoneColor(surface, points, point_colors, distance, sharp_edges)
+    zc.set_vertex_colors()
+    
     if auto_update:
-        recolor = ZoneRecolor(surface, points, point_colors, distance, sharp_edges)
         from .updaters import add_updater_for_session_saving
-        add_updater_for_session_saving(surface.session, recolor)
+        add_updater_for_session_saving(surface.session, zc)
     else:
-        recolor = None
-    surface.auto_recolor_vertices = recolor
+        zc = None
+    surface.auto_recolor_vertices = zc
 
 # -----------------------------------------------------------------------------
 #
@@ -67,7 +64,7 @@ def uncolor_zone(model):
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.state import State
-class ZoneRecolor(State):
+class ZoneColor(State):
     def __init__(self, surface, points, point_colors, distance, sharp_edges):
         self.surface = surface
         self.points = points
@@ -81,8 +78,10 @@ class ZoneRecolor(State):
     def set_vertex_colors(self):
         surf = self.surface
         if surf.vertices is not None:
-            color_zone(surf, self.points, self.point_colors, self.distance,
-                       sharp_edges = self.sharp_edges, auto_update = False)
+            color_surface(surf, self.points, self.point_colors, self.distance)
+            if self.sharp_edges:
+                color_zone_sharp_edges(surf, self.points, self.point_colors, self.distance,
+                                       replace = True)
         surf.auto_recolor_vertices = self
 
     # -------------------------------------------------------------------------

@@ -14,6 +14,7 @@
 
 from . import _debug
 from . import _TIMESTAMP
+from . import ToolshedError
 
 
 def _hack_distlib(f):
@@ -271,7 +272,11 @@ class InstalledBundleCache(list):
     def _set_help_directories(self):
         hd = []
         for bi in self:
-            help_dir = bi.get_path('docs')
+            try:
+                help_dir = bi.get_path('docs')
+            except ToolshedError:
+                # ignore bundles that disappeared
+                continue
             if help_dir is not None:
                 hd.append(help_dir)
         self.help_directories = hd
@@ -292,6 +297,7 @@ def _extract_extra_keywords(kwds):
         if len(temp) == 2:
             result[temp[0]] = ('no description', temp[1])
         else:
+            print(temp)
             result[temp[0]] = (temp[1], temp[2])
     return result
 
@@ -543,7 +549,6 @@ def _make_bundle_info(d, installed, logger):
     # If the bundle does not implement BundleAPI interface,
     # act as if it were not a bundle
     #
-    from . import ToolshedError
     try:
         bi._get_api(logger)
     except ToolshedError as e:

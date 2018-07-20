@@ -1,7 +1,5 @@
 .. vim: set expandtab shiftwidth=4 softtabstop=4:
 
-:orphan:
-
 .. license:
 
 UCSF ChimeraX Non-Commercial Software License Agreement

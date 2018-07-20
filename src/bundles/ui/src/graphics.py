@@ -38,11 +38,14 @@ class GraphicsWindow(QWindow):
         if opengl_context is None:
             from chimerax.core.graphics import OpenGLContext
             oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
-        elif opengl_context.enable_stereo(stereo, window = self):
-            oc = opengl_context
         else:
-            from chimerax.core.errors import UserError
-            raise UserError('Failed to switch OpenGL stereo mode')
+            from chimerax.core.graphics import OpenGLError
+            try:
+                opengl_context.enable_stereo(stereo, window = self)
+            except OpenGLError as e:
+                from chimerax.core.errors import UserError
+                raise UserError(str(e))
+            oc = opengl_context
 
         self.opengl_context = oc
         self.view.initialize_rendering(oc)
@@ -77,7 +80,7 @@ class GraphicsWindow(QWindow):
         v = self.view
         v.resize(w, h)
         v.redraw_needed = True
-        if self.isExposed():
+        if self.is_drawable:
             # Avoid flickering when resizing by drawing immediately.
             from chimerax.core.graphics import OpenGLVersionError
             try:
@@ -86,6 +89,14 @@ class GraphicsWindow(QWindow):
                 # Inadequate OpenGL version
                 self.session.logger.error(str(e))
 
+    @property
+    def is_drawable(self):
+        '''
+        Whether graphics window can be drawn to using OpenGL.
+        False until window has been created by the native window toolkit.
+        '''
+        return self.isExposed()
+        
     def exposeEvent(self, event):
         self.view.redraw_needed = True
         

@@ -251,6 +251,8 @@ class ChimeraXHtmlView(HtmlView):
             path = os.path.sep + path
             if sys.platform == "win32":
                 path = path.replace(os.path.sep, '/')
+                if os.path.isabs(path):
+                    path = '/' + path
             qurl.setPath(path)
             request_info.redirect(qurl)  # set requested url to good location
             return

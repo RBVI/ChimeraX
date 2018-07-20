@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AddH" version="1.0" package="chimerax.add_h"
+<BundleInfo name="ChimeraX-AddH" version="1.0" package="chimerax.atomic.addh"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

@@ -29,7 +29,7 @@ def _read_block(session, stream):
     except ValueError:
         # XXX: Should emit an error message
         return None
-    from chimerax.core.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure
     s = AtomicStructure(session)
 
     # Next line is a comment line
@@ -62,6 +62,6 @@ def _read_block(session, stream):
         atom = s.new_atom(name, element)
         atom.coord = array(xyz, dtype=float64)
         residue.add_atom(atom)
-    s.connect_structure([residue], [residue], [], [])
+    s.connect_structure()
     s.new_atoms()   # tell structure it needs to update
     return s

@@ -86,7 +86,7 @@ class Objects:
         self.add_pseudobonds(other.pseudobonds)
 
     def invert(self, session, models):
-        from .atomic import Structure, PseudobondGroup, Atoms, Bonds, Pseudobonds, concatenate
+        from chimerax.atomic import Structure, PseudobondGroup, Atoms, Bonds, Pseudobonds, concatenate
         matoms = []
         mbonds = []
         mpbonds = []
@@ -99,7 +99,11 @@ class Objects:
             elif isinstance(m, PseudobondGroup):
                 mpbonds.append(m.pseudobonds)
             elif m not in self._models:
-                imodels.add(m)
+                for sm in m.selection_coupled:
+                    if sm in self._models:
+                        break
+                else:
+                    imodels.add(m)
         iatoms = concatenate(matoms, Atoms, remove_duplicates=True) - self.atoms
         ibonds = concatenate(mbonds, Bonds, remove_duplicates=True) - self.bonds
         ipbonds = concatenate(mpbonds, Pseudobonds, remove_duplicates=True) - self.pseudobonds
@@ -125,7 +129,7 @@ class Objects:
     def atoms(self):
         ca = self._cached_atoms
         if ca is None:
-            from . import atomic
+            from chimerax import atomic
             ca = atomic.concatenate(self._atoms, atomic.Atoms, remove_duplicates = True)
             self._cached_atoms = ca
         return ca
@@ -136,7 +140,7 @@ class Objects:
 
     @property
     def bonds(self):
-        from . import atomic
+        from chimerax import atomic
         return atomic.concatenate(self._bonds, atomic.Bonds, remove_duplicates = True)
 
     @property
@@ -145,7 +149,7 @@ class Objects:
 
     @property
     def pseudobonds(self):
-        from . import atomic
+        from chimerax import atomic
         return atomic.concatenate(self._pseudobonds, atomic.Pseudobonds, remove_duplicates = True)
 
     @property
@@ -193,7 +197,7 @@ class Objects:
         return d
 
     def bounds(self):
-        from .atomic import Structure, PseudobondGroup
+        from chimerax.atomic import Structure, PseudobondGroup
         bm = [m.bounds() for m in self.models if not isinstance(m, (Structure, PseudobondGroup))]
         from .geometry import union_bounds, copies_bounding_box
         for m, minst in self.model_instances.items():
@@ -207,7 +211,7 @@ class Objects:
         Returns True if something changed during refresh; False otherwise."""
 
         from .orderedset import OrderedSet
-        from .atomic import AtomicStructures, AtomicStructure
+        from chimerax.atomic import AtomicStructures, AtomicStructure
         all_models = set(session.models.list())
         models = [m for m in self._models if m in all_models]
         if len(models) == len(self._models):

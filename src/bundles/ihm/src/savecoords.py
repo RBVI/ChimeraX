@@ -13,7 +13,7 @@ def save_binary_coordinates(session, filename, models):
     if models is None:
         from chimerax.core.errors import UserError
         raise UserError('Must specify models to save coordinates')
-    from chimerax.core.atomic import Structure
+    from chimerax.atomic import Structure
     mlist = [m for m in models if isinstance(m, Structure)]
     if len(mlist) == 0:
         from chimerax.core.errors import UserError

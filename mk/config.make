@@ -106,6 +106,7 @@ APP_PYTHON_LIBRARY_DIR = $(app_bindir)/Lib
 PYTHON_EXE = $(bindir)/python.exe
 APP_PYTHON_EXE = $(app_bindir)/python.exe
 APP_EXE = $(app_bindir)/$(APP_NAME).exe
+CYTHON_EXE = $(bindir)/Scripts/cython.exe
 else ifdef USE_MAC_FRAMEWORKS
 PYTHON_INCLUDE_DIRS = $(shell $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)-config --includes)
 PYTHON_FRAMEWORK = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
@@ -115,6 +116,7 @@ APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
 PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
 APP_PYTHON_EXE = $(app_bindir)/python$(PYTHON_VERSION)
 APP_EXE = $(app_bindir)/$(APP_NAME)
+CYTHON_EXE = $(bindir)/cython
 else
 PYTHON_INCLUDE_DIRS = -I$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
@@ -122,6 +124,7 @@ APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
 PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
 APP_PYTHON_EXE = $(app_bindir)/python$(PYTHON_VERSION)
 APP_EXE = $(app_bindir)/$(APP_NAME)
+CYTHON_EXE = $(bindir)/cython
 endif
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
 APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages

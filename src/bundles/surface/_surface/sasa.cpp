@@ -146,7 +146,7 @@ public:
   }
   ~Region_Count()
   {
-    delete c;
+    delete [] c;
     c = NULL;
   }
   void join(int i, int j)

@@ -322,7 +322,7 @@ class SequenceViewer(ToolInstance):
             lambda a1, a2, a3, s=self:
             s.showSS(show=None, ssType="predicted"), None)
         """
-        from chimerax.core.atomic import get_triggers
+        from chimerax.atomic import get_triggers
         self._atomic_changes_handler = get_triggers(self.session).add_handler(
             "changes", self._atomic_changes_cb)
 
@@ -460,7 +460,8 @@ class SequenceViewer(ToolInstance):
         elif note_name == "destroyed":
             self.delete()
         elif note_name == "command":
-            print("TODO: parse this text as command: '%s'" % note_data)
+            from .cmd import run
+            run(self.session, self, note_data)
 
     def delete(self):
         self.region_browser.destroy()
@@ -471,17 +472,40 @@ class SequenceViewer(ToolInstance):
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
-        from chimerax.core.atomic import get_triggers
+        from chimerax.atomic import get_triggers
         get_triggers(self.session).remove_handler(self._atomic_changes_handler)
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        from PyQt5.QtWidgets import QAction
-        # avoid having the action destroyed when this routine returns
+        # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        menu.kludge_ref = settings_action = QAction("Settings...")
-        settings_action.triggered.connect(lambda arg, s=self: s.show_settings())
+        from PyQt5.QtWidgets import QAction
+        save_as_menu = menu.addMenu("Save as")
+        save_as_menu.kludge_refs = []
+        from chimerax.core import io
+        from chimerax.core.commands import run, quote_if_necessary
+        for fmt in io.formats(open=False):
+            if fmt.category == "Sequence alignment":
+                action = QAction(fmt.name)
+                save_as_menu.kludge_refs.append(action)
+                action.triggered.connect(lambda arg, fmt=fmt:
+                    run(self.session, "save browse format %s alignment %s"
+                    % (fmt.name, quote_if_necessary(self.alignment.ident))))
+                save_as_menu.addAction(action)
+
+        menu.kludge_refs = []
+        settings_action = QAction("Settings...")
+        menu.kludge_refs.append(settings_action)
+        settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
+        scf_action = QAction("Load sequence coloring file...")
+        menu.kludge_refs.append(scf_action)
+        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
+        menu.addAction(scf_action)
+
+    def load_scf_file(self, path, color_structures=None):
+        """color_structures=None means use user's preference setting"""
+        self.region_browser.load_scf_file(path, color_structures)
 
     def new_region(self, **kw):
         if 'blocks' in kw:
@@ -559,7 +583,7 @@ class SequenceViewer(ToolInstance):
         a_ref_seq = getattr(aseq, 'residue_sequence', aseq.ungapped())
         errors = [0] * len(a_ref_seq)
         gaps = [0] * len(a_ref_seq)
-        from chimerax.core.atomic import Sequence
+        from chimerax.atomic import Sequence
         for chain, match_map in aseq.match_maps.items():
             for i, char in enumerate(a_ref_seq):
                 try:

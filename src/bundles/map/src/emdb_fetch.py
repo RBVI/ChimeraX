@@ -20,8 +20,8 @@
 #
 def fetch_emdb(session, emdb_id, ignore_cache=False, **kw):
     from chimerax.core.errors import UserError
-    if len(emdb_id) != 4:
-        raise UserError("EMDB identifiers are 4 characters long")
+    if len(emdb_id) < 4:
+        raise UserError("EMDB identifiers are at least 4 characters long")
 
     import socket
     hname = socket.gethostname()

@@ -28,37 +28,50 @@ in a thread-safe manner.  The UI instance is accessed as session.ui.
 
 from chimerax.core.logger import PlainTextLog
 
-# remove the build tree plugin path, and add install tree plugin path
-import sys
-mac = (sys.platform == 'darwin')
-if mac:
-    # The "plugins" directory can be in one of two places on Mac:
-    # - if we built Qt and PyQt from source: Contents/lib/plugins
-    # - if we used a wheel built using standard Qt: C/l/python3.5/site-packages/PyQt5/Qt/plugins
-    # If the former, we need to set some environment variables so
-    # that Qt can find itself.  If the latter, it "just works",
-    # though if there is a comma in the app name, the magic gets
-    # screwed up, so explicitly set the path in that case too
-    import os.path
-    from chimerax import app_lib_dir
-    plugins = os.path.join(os.path.dirname(app_lib_dir), "plugins")
-    if not os.path.exists(plugins) and "," in app_lib_dir:
-        # The comma character screws up the magic Qt plugin-finding code;
-        # supply an explicit path in this case
-        # To find site-packages look above __file__...
-        dn = os.path.dirname
-        plugins = os.path.join(dn(dn(dn(dn(__file__)))), "PyQt5/Qt/plugins")
-    if os.path.exists(plugins):
-        from PyQt5.QtCore import QCoreApplication
-        qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
-        qlib_paths.append(plugins)
-        QCoreApplication.setLibraryPaths(qlib_paths)
-        import os
-        fw_path = os.environ.get("DYLD_FRAMEWORK_PATH", None)
-        if fw_path:
-            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
-        else:
-            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
+def initialize_qt():
+    initialize_qt_plugins_location()
+    initialize_qt_high_dpi_display_support()
+
+def initialize_qt_plugins_location():
+    # remove the build tree plugin path, and add install tree plugin path
+    import sys
+    mac = (sys.platform == 'darwin')
+    if mac:
+        # The "plugins" directory can be in one of two places on Mac:
+        # - if we built Qt and PyQt from source: Contents/lib/plugins
+        # - if we used a wheel built using standard Qt: C/l/python3.5/site-packages/PyQt5/Qt/plugins
+        # If the former, we need to set some environment variables so
+        # that Qt can find itself.  If the latter, it "just works",
+        # though if there is a comma in the app name, the magic gets
+        # screwed up, so explicitly set the path in that case too
+        import os.path
+        from chimerax import app_lib_dir
+        plugins = os.path.join(os.path.dirname(app_lib_dir), "plugins")
+        if not os.path.exists(plugins) and "," in app_lib_dir:
+            # The comma character screws up the magic Qt plugin-finding code;
+            # supply an explicit path in this case
+            # To find site-packages look above __file__...
+            dn = os.path.dirname
+            plugins = os.path.join(dn(dn(dn(dn(__file__)))), "PyQt5/Qt/plugins")
+        if os.path.exists(plugins):
+            from PyQt5.QtCore import QCoreApplication
+            qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
+            qlib_paths.append(plugins)
+            QCoreApplication.setLibraryPaths(qlib_paths)
+            import os
+            fw_path = os.environ.get("DYLD_FRAMEWORK_PATH", None)
+            if fw_path:
+                os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
+            else:
+                os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
+
+def initialize_qt_high_dpi_display_support():
+    import sys
+    # Fix text and button sizes on high DPI displays in Windows 10
+    win = (sys.platform == 'win32')
+    if win:
+        from PyQt5.QtCore import QCoreApplication, Qt
+        QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
 from PyQt5.QtWidgets import QApplication
 class UI(QApplication):
@@ -76,6 +89,7 @@ class UI(QApplication):
 
     def __init__(self, session):
         self.is_gui = True
+        self.has_graphics = True
         self.already_quit = False
         self.session = session
 
@@ -96,6 +110,10 @@ class UI(QApplication):
 
         self._keystroke_sinks = []
         self._files_to_open = []
+
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('ready')
 
     def redirect_qt_messages(self):
         
@@ -167,6 +185,8 @@ class UI(QApplication):
         triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
         if self.autostart_tools:
             self.session.tools.start_tools(self.settings.autostart)
+
+        self.triggers.activate_trigger('ready', None)
 
     def event(self, event):
         from PyQt5.QtCore import QEvent
@@ -366,7 +386,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
-        self._rapid_access_shown_once = False # kludge to work around early OpenGL errors
 
         from .save_dialog import MainSaveDialog, ImageSaver
         self.save_dialog = MainSaveDialog(self)
@@ -615,15 +634,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         from PyQt5.QtCore import QEventLoop
         if show:
             icon = self._ra_shown_icon
-            if not self._rapid_access_shown_once:
-                ses.update_loop.block_redraw()
             self._stack.setCurrentWidget(self.rapid_access)
         else:
             icon = self._ra_hidden_icon
             self._stack.setCurrentWidget(self.graphics_window.widget)
-            if not self._rapid_access_shown_once:
-                ses.update_loop.unblock_redraw()
-                self._rapid_access_shown_once = True
         ses.update_loop.block_redraw()
         ses.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
         ses.update_loop.unblock_redraw()
@@ -791,6 +805,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
+        help_menu.setObjectName("Help") # so custom-menu insertion can find it
 
     def update_favorites_menu(self, session):
         from PyQt5.QtWidgets import QAction
@@ -873,13 +888,13 @@ class MainWindow(QMainWindow, PlainTextLog):
             menu = QMenu(menu_name, mb)
             menu.setToolTipsVisible(True)
             menu.setObjectName(menu_name)	# Need for findChild() above to work.
-        
+
         action = QAction(entry_name, self)
-        action.triggered.connect(lambda arg, cb = callback: callback())
+        action.triggered.connect(lambda arg, cb = callback: cb())
         menu.addAction(action)
         if add:
-            # Add menu after adding entry otherwise it is not shown on Mac.
-            mb.addMenu(menu)
+            # Insert menu after adding entry otherwise it is not shown on Mac.
+            mb.insertMenu(mb.findChild(QMenu, "Help").menuAction(), menu)
 
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance

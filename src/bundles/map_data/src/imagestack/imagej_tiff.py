@@ -12,10 +12,13 @@
 def imagej_grids(path):
 
     pi = imagej_pixels(path)
-    if pi.nchannels == 1:
+    nc = pi.nchannels * pi.ncolors
+    if nc == 1 and pi.ntimes == 1:
         grids = [ImageJ_Grid(pi)]
+    elif pi.ntimes == 1:
+        grids = [ImageJ_Grid(pi, c) for c in range(nc)]
     else:
-        grids = [ImageJ_Grid(pi, c) for c in range(pi.nchannels)]
+        grids = [ImageJ_Grid(pi, c, t) for c in range(nc) for t in range(pi.ntimes)]
     return grids
 
 # -----------------------------------------------------------------------------
@@ -23,7 +26,7 @@ def imagej_grids(path):
 from .. import Grid_Data
 class ImageJ_Grid(Grid_Data):
 
-  def __init__(self, imagej_pixels, channel = None):
+  def __init__(self, imagej_pixels, channel = None, time = None):
 
     self.imagej_pixels = d = imagej_pixels
     self.initial_style = 'solid'
@@ -37,7 +40,8 @@ class ImageJ_Grid(Grid_Data):
                        origin, d.grid_spacing,
                        name = name, path = d.path,
                        file_type = 'imagestack',
-                       channel = channel)
+                       channel = channel,
+                       time = time)
         
   # ---------------------------------------------------------------------------
   #
@@ -53,11 +57,16 @@ class ImageJ_Grid(Grid_Data):
     ia = zeros((dsize[1],dsize[0]), self.value_type)
     ia_1d = ia.ravel()
     c = self.channel
+    if c is None:
+        c = 0
     pi = self.imagej_pixels
+    nc = pi.ncolors
+    ch, cc = c // nc, c % nc
+    t = self.time
     for k in range(k0, k0+ksz, kstep):
       if progress:
         progress.plane((k-k0)//kstep)
-      pi.plane_data(c, k, ia_1d)
+      pi.plane_data(k, cc, ch, t, ia_1d)
       array[(k-k0)//kstep,:,:] = ia[j0:j0+jsz:jstep,i0:i0+isz:istep]
     return array
 
@@ -68,6 +77,7 @@ class ImageJ_Grid(Grid_Data):
 #  images=70
 #  channels=2
 #  slices=35
+#  frames=100
 #  hyperstack=true
 #  mode=composite
 #  unit=micron
@@ -76,6 +86,8 @@ class ImageJ_Grid(Grid_Data):
 #  min=0.0
 #  max=12441.318359375
 # "
+#
+# 2D images in XYCZT order.  slices = z size, channels = c size, frames = t size
 #
 def imagej_pixels(path):
 
@@ -128,31 +140,43 @@ def imagej_pixels(path):
     zspacing = float(h['spacing']) if 'spacing' in h else 1
     grid_spacing = (pixel_width, pixel_height, zspacing)
     nc = int(h['channels']) if 'channels' in h else 1
+    nt = int(h['frames']) if 'frames' in h else 1
     from . import imagestack_format
-    value_type = imagestack_format. pillow_numpy_value_type(i.mode)
+    value_type = imagestack_format.pillow_numpy_value_type(i.mode)
+    ncolors = 3 if i.mode == 'RGB' else 1
 
-    pi = ImageJ_Pixels(path, name, value_type, grid_size, grid_spacing, nc)
+    pi = ImageJ_Pixels(path, name, value_type, grid_size, grid_spacing, ncolors, nc, nt)
     return pi
 
 # -----------------------------------------------------------------------------
 #
 class ImageJ_Pixels:
-    def __init__(self, path, name, value_type, grid_size, grid_spacing, nchannels):
+    def __init__(self, path, name, value_type, grid_size, grid_spacing, ncolors, nchannels, ntimes):
         self.path = path
         self.name = name
         self.value_type = value_type	# Numpy dtype
         self.grid_size = grid_size
         self.grid_spacing = grid_spacing
+        self.ncolors = ncolors		# 3 for RGB images, 1 for grayscale images
         self.nchannels = nchannels
+        self.ntimes = ntimes
         self.image = None
         self._last_plane = 0
 
-    def plane_data(self, channel, k, pixel_values):
+    def plane_data(self, k, color_component, channel, time, pixel_values):
         nc = self.nchannels
-        plane = nc*k + channel if nc > 1 else k
+        plane = nc*k if nc > 1 else k
+        if channel is not None:
+            plane += channel
+        if time is not None:
+            nz = self.grid_size[2]
+            plane += nz*nc*time
         im = self.image_plane(plane)
         from numpy import array
-        pixel_values[:] = array(im).ravel()
+        a = array(im)
+        if len(a.shape) == 3:
+            a = a[:,:,color_component]
+        pixel_values[:] = a.ravel()
 
     def image_plane(self, plane):
         im = self.image

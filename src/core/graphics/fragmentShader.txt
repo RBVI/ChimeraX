@@ -47,15 +47,18 @@ void main (void)
 #else
 
 #ifdef USE_LIGHTING
-uniform vec3 key_light_direction;
-uniform vec3 key_light_diffuse_color;
-uniform vec3 key_light_specular_color;
-uniform float key_light_specular_exponent;
 
-uniform vec3 fill_light_direction;
-uniform vec3 fill_light_diffuse_color;
-
-uniform vec3 ambient_color;
+layout(std140) uniform lighting_block 
+{
+  vec3 key_light_direction;
+  vec3 key_light_diffuse_color;
+  vec3 key_light_specular_color;
+  float key_light_specular_exponent;
+  vec3 fill_light_direction;
+  vec3 fill_light_diffuse_color;
+  vec3 ambient_color;
+  vec3 depth_cue_color;
+};
 
 in vec3 N;
 in vec3 v;
@@ -65,9 +68,7 @@ in vec3 vshadow;
 #endif
 
 #ifdef USE_DEPTH_CUE
-uniform float depth_cue_start;
-uniform float depth_cue_end;
-uniform vec3 depth_cue_color;
+uniform vec2 depth_cue_range;	// start and end camera z values
 #endif
 
 #ifdef USE_SHADOWS
@@ -79,7 +80,7 @@ uniform sampler2DShadow shadow_map;
 // in vec3 vscene;
 // in vec3 nscene;
 uniform sampler2DShadow multishadow_map;
-uniform shadow_matrix_block 
+layout(std140) uniform shadow_matrix_block 
 {
   mat4 shadow_transforms[MAX_SHADOWS];
 };
@@ -170,8 +171,8 @@ void main (void)
         vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
       #else
         vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+//        vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
       #endif
-//      vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
       vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
       float diffuse = max(-dot(N1,light_direction),0.0);
 //      float diffuse = max(-dot(nscene,light_direction),0.0);
@@ -194,10 +195,12 @@ void main (void)
   Ifrag *= texture(tex3d, ambient_tex_coord).r;
 #endif
 
+#ifdef USE_LIGHTING
 #ifdef USE_DEPTH_CUE
   float d = -v.z;	// Distance from eye to fragment.
-  float dim = (depth_cue_end - d) / (depth_cue_end - depth_cue_start);
+  float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
   Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
+#endif
 #endif
 
 #else

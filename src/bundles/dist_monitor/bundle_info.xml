@@ -37,8 +37,8 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-]
-]
+    <ChimeraXClassifier>ChimeraX :: Command :: distance :: Structure Analysis :: determine distance </ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ~distance :: Structure Analysis :: remove distance monitors </ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

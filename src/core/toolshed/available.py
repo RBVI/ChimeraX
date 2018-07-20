@@ -17,6 +17,9 @@ from . import _debug
 
 class AvailableBundleCache(list):
 
+    def __init__(self, cache_dir):
+        self.cache_dir = cache_dir
+
     def load(self, logger, toolshed_url):
         #
         # Load bundle info from ChimeraX toolshed using
@@ -31,6 +34,10 @@ class AvailableBundleCache(list):
         with urlopen(url) as f:
             import json
             data = json.loads(f.read())
+        import os
+        with open(os.path.join(self.cache_dir, 'available.json'), 'w') as f:
+            import json
+            json.dump(data, f, indent=0)
         try:
             from chimerax.registration import nag
         except ImportError:
@@ -38,6 +45,18 @@ class AvailableBundleCache(list):
         else:
             _debug("extend registration")
             nag.extend_registration(logger)
+        for d in data:
+            b = _build_bundle(d)
+            if b:
+                self.append(b)
+
+    def load_from_cache(self):
+        if self.cache_dir is None:
+            return FileNotFoundError("no cache")
+        import os
+        with open(os.path.join(self.cache_dir, 'available.json')) as f:
+            import json
+            data = json.load(f)
         for d in data:
             b = _build_bundle(d)
             if b:

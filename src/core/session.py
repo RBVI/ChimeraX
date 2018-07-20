@@ -874,17 +874,24 @@ def save_x3d(session, path, transparent_background=False):
 
 
 def register_session_format(session):
+    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
+    from .commands.cli import add_keyword_arguments
+    from .commands.toolshed import register_command
+    register_command(session.logger)
+    from .commands.devel import register_command
+    register_command(session.logger)
+    from .commands.open import register_command
+    register_command(session.logger)
     from . import io, toolshed
     io.register_format(
         "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
         mime="application/x-chimerax-session",
         reference="help:user/commands/save.html",
         open_func=open, export_func=save)
-    from .commands import add_keyword_arguments, BoolArg
     add_keyword_arguments('open', {'resize_window': BoolArg})
 
-
-    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
+    from .commands.save import register_command
+    register_command(session.logger)
     desc = CmdDesc(
         required=[('filename', SaveFileNameArg)],
         keyword=[('version', IntArg), ('uncompressed', BoolArg)],
@@ -897,6 +904,11 @@ def register_session_format(session):
         from .commands.save import save
         save(session, filename, **kw)
     register('save session', desc, save_session, logger=session.logger)
+
+    import sys
+    if sys.platform.startswith('linux'):
+        from .commands.linux import register_command
+        register_command(session.logger)
 
 
 def register_x3d_format():
@@ -926,17 +938,6 @@ def common_startup(sess):
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop()
 
-    from .atomic import ChangeTracker
-    sess.change_tracker = ChangeTracker()
-    # change_tracker needs to exist before global pseudobond manager
-    # can be created
-    from .atomic import PseudobondManager
-    sess.pb_manager = PseudobondManager(sess)
-
-    from . import commands
-    commands.register_core_commands(sess)
-    commands.register_core_selectors(sess)
-
     register(
         'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
@@ -962,23 +963,29 @@ def _gen_exception(session):
 
 def _register_core_file_formats(session):
     register_session_format(session)
+    """
     from .atomic import pdb
     pdb.register_pdb_format()
     from .atomic import mmcif
     mmcif.register_mmcif_format()
+    """
     from . import scripting
     scripting.register()
+    """
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
+    """
     from . import image
     image.register_image_save(session)
     register_x3d_format()
 
 
 def _register_core_database_fetch():
+    """
     from .atomic import pdb
     pdb.register_pdb_fetch()
     from .atomic import mmcif
     mmcif.register_mmcif_fetch()
+    """
     from . import fetch
     fetch.register_web_fetch()

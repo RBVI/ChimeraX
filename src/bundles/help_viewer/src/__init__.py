@@ -14,13 +14,19 @@
 from chimerax.core import toolshed
 _new_bundle_handler = None
 
-help_directories = []   # list directories that have help in them
 help_url_paths = []     # help directories in URL path form
 
 
-def _update_help_directories(trigger_name=None, bundle_info=None):
-    global help_directories
+def _update_cache(trigger_name=None, bundle_info=None):
     global help_url_paths
+
+    import os
+    from chimerax import app_dirs
+    cached_index = os.path.join(app_dirs.user_cache_dir, 'docs', 'user', 'index.html')
+    try:
+        os.remove(cached_index)
+    except OSError:
+        pass
 
     def cvt_path(path):
         from urllib.request import pathname2url
@@ -42,10 +48,10 @@ class _MyAPI(toolshed.BundleAPI):
         global _new_bundle_handler
         ts = toolshed.get_toolshed()
         _new_bundle_handler = ts.triggers.add_handler(
-            toolshed.TOOLSHED_BUNDLE_INSTALLED, _update_help_directories)
+            toolshed.TOOLSHED_BUNDLE_INSTALLED, _update_cache)
         # ? = ts.triggers.add_handler(
-        #    toolshed.TOOLSHED_BUNDLE_UNINSTALLED, _update_help_directories)
-        _update_help_directories()
+        #    toolshed.TOOLSHED_BUNDLE_UNINSTALLED, _update_cache)
+        _update_cache()
 
     @staticmethod
     def finish(session, bundle_info):

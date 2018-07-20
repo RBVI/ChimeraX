@@ -16,7 +16,7 @@ reads an aligned FASTA file
 """
 
 def read(session, f):
-    from chimerax.core.atomic import Sequence
+    from chimerax.atomic import Sequence
     from ..parse import FormatSyntaxError, make_readable
     in_sequence = False
     sequences = []

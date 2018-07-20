@@ -39,11 +39,11 @@ class ContactPlot(Graph):
         self.draw_graph()
 
         # When group is undisplayed update its node color.
-        from chimerax.core import atomic
+        from chimerax import atomic
         self._handler = atomic.get_triggers(session).add_handler('changes', self._atom_display_change)
         
     def delete(self):
-        from chimerax.core import atomic
+        from chimerax import atomic
         atomic.get_triggers(self._session()).remove_handler(self._handler)
         self._handler = None
         Graph.delete(self)
@@ -205,7 +205,7 @@ class ContactPlot(Graph):
             else:
                 h.atoms.displays = (h is g)
         # Color non-contact atoms gray.
-        from chimerax.core.atomic import concatenate, Atoms
+        from chimerax.atomic import concatenate, Atoms
         g.color_atoms(g.atoms - concatenate(gca,Atoms), color)
 
     def _show_interface_residues(self, c, g, color = (180,180,180,255)):

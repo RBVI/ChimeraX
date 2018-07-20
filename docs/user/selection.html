@@ -32,18 +32,23 @@ chosen by the user that:
 <li>marks the items for subsequent operations:
   <ul>
   <li>can be <a href="commands/atomspec.html#builtin">specified</a> 
-  as <b>sel</b>, <b>selAtoms</b>, <b>selMaps</b> in many commands, for example: 
+  as <b>sel</b> in <a href="index.html#commands">commands</a>, for example:
   <b><a href="commands/style.html">style</a> sel stick</b>
-  <li>indicates scope of action of
-  <a href="tools/moldisplay.html"><b>Molecule Display</b></a> icons
-  and <a href="tools/densitymaps.html"><b>Density Maps</b></a> icons
-  <li>can be named for convenient later use with
-  <a href="commands/name.html"><b>name frozen</b></a>
+  <li>indicates scope of action of toolbar icons:
+     <ul>
+     <li><a href="tools/moldisplay.html"><b>Molecule Display</b></a>:&nbsp;
+     <img class="iconbar" src="molecule-icons.png">
+     <li><a href="tools/densitymaps.html"><b>Density Maps</b></a>:&nbsp;
+     <img class="iconbar" src="density-icons.png">
+     </ul>
+  <li>can be named with <a href="commands/name.html"><b>name frozen</b></a>
+  for later use in <a href="index.html#commands">commands</a>
+  and <a href="tools/basicactions.html"><b>Basic Actions</b></a>
   </ul>
 <li>can be created:
   <ul>
   <li>with the mouse in the graphics window
-  (see <a href="commands/mousemode.html"><b>mousemode</b></a>), by default:
+  (see <a href="commands/ui.html#mousemode"><b>mousemode</b></a>), by default:
     <ul>
     <li>Ctrl-click to start selection (replace)
     <li>Shift-Ctrl-click to add/subtract (toggle)
@@ -82,7 +87,7 @@ Typically all of the atoms in a biopolymer chain are used
 to define a surface, but other sets of atoms can be specified with the
 <a href="commands/surface.html"><b>surface</b></a> command.
 If a surface patch is selected 
-<a href="commands/mousemode.html">with the mouse</a>,
+<a href="commands/ui.html#mousemode">with the mouse</a>,
 only the atom(s) directly contributing to that patch are selected.
 Conversely, selecting an atom selects its surface patch(es).
 </p><p>
@@ -102,12 +107,18 @@ selectable object, however, the surface model will be selected.
 <h3>Selection Context Menus</h3>
 <p>
 Doubleclick-selecting an item in the main window
-(see <a href="commands/mousemode.html"><b>mousemode</b></a>)
+(see <a href="commands/ui.html#mousemode"><b>mousemode</b></a>)
 shows a context menu, typically including options to
-<a href="commands/show.html">show</a>, 
-<a href="commands/show.html">hide</a>, and 
-<a href="commands/delete.html">delete</a>.
-If two atoms are selected, there is also an option to add a
+<a href="commands/show.html">hide</a> or
+<a href="commands/delete.html">delete</a> the selected atoms, bonds,
+and/or <a href="../pseudobonds.html">pseudobonds</a>.
+(Hidden selected atoms can be reshown using the 
+<a href="tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="tools/shortcut-icons/atomshow.png"></a> icon
+in the <a href="tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>,
+and all types of hidden items shown with the
+<a href="commands/show.html"><b>show</b></a> command.)
+If two atoms are selected, the context menu also includes an option to add a
 <a href="commands/distance.html">distance monitor</a> between them.
 See also:
 <a href="window.html#context-menu">context menus</a>,
@@ -131,5 +142,5 @@ such as defining the scope of action when an icon is clicked.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2018</address>
+July 2018</address>
 </body></html>

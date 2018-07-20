@@ -114,7 +114,6 @@ def parse_arguments(argv):
     opts.start_tools = []
     opts.status = True
     opts.stereo = False
-    opts.tinyarray = True
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
@@ -135,7 +134,6 @@ def parse_arguments(argv):
         "--start <tool name>",
         "--cmd <command>",
         "--script <python script and arguments>",
-        "--notinyarray",
         "--notools",
         "--stereo",
         "--uninstall",
@@ -167,12 +165,16 @@ def parse_arguments(argv):
         # treat like Python's -m argument
         opts.gui = False
         opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
         opts.module = sys.argv[2]
         return opts, sys.argv[2:]
     if len(sys.argv) > 2 and sys.argv[1] == '-c':
         # treat like Python's -c argument
         opts.gui = False
         opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
         opts.cmd = sys.argv[2]
         return opts, sys.argv[2:]
     if len(sys.argv) > 2 and sys.argv[1:3] == ['-u', '-c']:
@@ -184,6 +186,8 @@ def parse_arguments(argv):
                                       write_through=True)
         opts.gui = False
         opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
         opts.cmd = sys.argv[3]
         return opts, sys.argv[3:]
     try:
@@ -239,8 +243,6 @@ def parse_arguments(argv):
             opts.commands.append(optarg)
         elif opt == "--script":
             opts.scripts.append(optarg)
-        elif opt in ("--tinyarray", "--notinyarray"):
-            opts.tinyarray = opt[2] == 't'
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -283,8 +285,8 @@ def init(argv, event_loop=True):
     from importlib.abc import MetaPathFinder, Loader
     class CoreCompatFinder(MetaPathFinder):
         def find_spec(self, full_name, path, target=None):
-            unmoved_modules = ["atomic"]
-            moved_modules = ["ui"]
+            unmoved_modules = []
+            moved_modules = ["ui", "atomic"]
             for umod in unmoved_modules:
                 future_name = "chimerax." + umod
                 if full_name.startswith(future_name):
@@ -353,9 +355,6 @@ def init(argv, event_loop=True):
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
 
-    import chimerax
-    chimerax.use_tinyarray = opts.tinyarray
-
     from chimerax import core
     if not opts.gui and opts.offscreen:
         # Flag to configure off-screen rendering before PyOpenGL imported
@@ -365,6 +364,7 @@ def init(argv, event_loop=True):
         # only load tools if we have a GUI
         opts.load_tools = False
 
+    is_root = False  # On Linux, don't create user directories if root (the installer uid)
     # figure out the user/system directories for application
     # invoked with -m ChimeraX_main, so argv[0] is full path to ChimeraX_main
     # Windows:
@@ -381,6 +381,10 @@ def init(argv, event_loop=True):
         rootdir = dn(dn(dn(dn(dn(rootdir)))))
     if sys.platform.startswith('linux'):
         os.environ['XDG_CONFIG_DIRS'] = rootdir
+        is_root = os.getuid() == 0
+        if is_root:
+            # ensure toolshed cache is not written
+            os.environ['HOME'] = "/non/existent/directory"
 
     if sys.platform.startswith('win'):
         if 'HOME' in os.environ:
@@ -419,7 +423,8 @@ def init(argv, event_loop=True):
             ('user_cache_dir', "user's cache")):
         dir = getattr(ad, var)
         try:
-            os.makedirs(dir, exist_ok=True)
+            if not is_root:
+                os.makedirs(dir, exist_ok=True)
         except OSError as e:
             print("Unable to make %s directory: %s: %s" % (
                 name, e.strerror, e.filename), file=sys.stderr)
@@ -435,8 +440,12 @@ def init(argv, event_loop=True):
     # this must happen before pip is imported so that "--user" installs
     # will go in the right place.
     import site
-    site.USER_BASE = adu.user_data_dir
-    site.USER_SITE = os.path.join(ad.user_data_dir, "site-packages")
+    if not is_root:
+        site.USER_BASE = adu.user_data_dir
+        site.USER_SITE = os.path.join(ad.user_data_dir, "site-packages")
+    else:
+        from distutils import sysconfig
+        site.USER_SITE = sysconfig.get_python_lib()
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
@@ -455,10 +464,6 @@ def init(argv, event_loop=True):
                         ad.site_config_dir, ad.user_log_dir,
                         chimerax.app_data_dir, adu.user_cache_dir)
 
-    # create a global trigger set for toolshed and atomspec target registration
-    from chimerax.core import triggerset
-    chimerax.core.triggers = triggerset.TriggerSet()
-
     from chimerax.core import session
     sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
 
@@ -469,6 +474,11 @@ def init(argv, event_loop=True):
 
     if opts.uninstall:
         return uninstall(sess)
+
+    # initialize qt
+    if opts.gui:
+        from chimerax.ui import initialize_qt
+        initialize_qt()
 
     # initialize the user interface
     if opts.gui:
@@ -532,9 +542,6 @@ def init(argv, event_loop=True):
         sess.tools = tools.Tools(sess, first=True)
         from chimerax.core import tasks
         sess.tasks = tasks.Tasks(sess, first=True)
-        from chimerax.core.atomic import attr_registration
-        sess.attr_registration = attr_registration.RegAttrManager()
-        sess.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
         from chimerax.core import undo
         sess.undo = undo.Undo(sess, first=True)
 
@@ -554,10 +561,6 @@ def init(argv, event_loop=True):
         # TODO: show mime types?
         # TODO: show compression suffixes?
         raise SystemExit(0)
-
-    if opts.gui and sys.platform.startswith('linux'):
-        from chimerax.core import _xdg
-        _xdg.install_if_needed(sess, localized_app_name)
 
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
@@ -608,8 +611,8 @@ def init(argv, event_loop=True):
         sess.ui.close_splash()
 
     if not opts.silent:
-        import chimerax.core.commands.version as vercmd
-        vercmd.version(sess)  # report version in log
+        from chimerax.core.logger import log_version
+        log_version(sess.logger)  # report version in log
 
     if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render

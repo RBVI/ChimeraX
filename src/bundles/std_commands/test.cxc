@@ -1,0 +1,107 @@
+# try every command in bundle
+open 2tpk autostyle false
+alias foo bar
+alias list
+alias delete foo
+~alias foo
+align #1 to #1
+camera
+#camera mono
+cartoon
+~cartoon
+cartoon :4-34 smooth .4 suppressBackboneDisplay false
+cartoon hide
+cd
+clip
+clip axis x
+clip list
+~clip
+cofr
+~cofr
+color
+colour
+color green
+color #1 pale green atoms trans .5 half true
+color name tpurple 60,0,80,50
+color name tgreen rgba(0%, 80%, 40%, 0.5)
+color list custom
+color list builtin
+color show blue
+colordef xyzzy 50,50,50,50
+~colordef xyzzy
+colourdef xyzzy 50,50,50,50
+~colourdef xyzzy
+coordset #1 0
+# crossfade throws LimitationError if can't render images
+#crossfade
+delete :3
+dssp
+graphics
+graphics restart
+graphics triangles
+hide
+~show
+~display
+lighting
+material
+material ref .8 spec .8 exp 50 amb .2 trans true
+measure buriedarea #1 with #1
+surface
+measure convexity #1
+measure length #1
+move x 10
+palette list
+# pdbimages is a specialized command
+perframe "turn y 10; save '~/Desktop/$1.png'" frames 9 format %3d
+~perframe
+perframe stop
+pwd
+rainbow
+rainbow residues palette RdBu-10
+rename #1 snafu
+roll
+roll z rock 100
+run "echo hi"
+# runscript
+select :12
+select up
+select down
+select zone :13 10 extend t
+select intersect :12 residues true
+~select
+set
+set bgcolor white
+setattr /a res ribbon_color orange
+show
+display
+size
+size :12 stickradius .15
+stop
+style sphere
+style ball
+style stick
+sym #1
+sym #1 assembly 1
+sym clear
+split #1 atoms :1-18 atoms :19-36
+time echo hi
+transparency 50 atoms
+turn x 30
+color red
+undo
+redo
+usage usage
+usage
+version
+version verbose
+version bundles
+version packages
+view
+view initial
+wait
+windowsize
+windowsize 512 256
+zoom
+close
+exit
+# quit

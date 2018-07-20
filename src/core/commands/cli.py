@@ -118,9 +118,6 @@ as much as possible:
 + list of :py:class:`int`       | ``IntsArg``                           |
 +-------------------------------+---------------------------------------+
 
-.. MoleculeArg(s):
-.. MoleculesArg(s, min = 0):
-.. AtomsArg(s):
 .. ModelArg(s):
 .. ModelsArg(s):
 .. SpecifierArg(s):
@@ -728,13 +725,19 @@ class EnumOf(Annotation):
             raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text)
         folded = token.casefold()
+        matches = []
         for i, ident in enumerate(self.ids):
-            if self.allow_truncated:
+            if ident.casefold() == folded:
+                return self.values[i], ident, rest
+            elif self.allow_truncated:
                 if ident.casefold().startswith(folded):
-                    return self.values[i], ident, rest
-            else:
-                if ident.casefold() == folded:
-                    return self.values[i], ident, rest
+                    matches.append((i, ident))
+        if len(matches) == 1:
+            i, ident = matches[0]
+            return self.values[i], ident, rest
+        elif len(matches) > 1:
+            ms = ', '.join(self.values[i] for i,ident in matches)
+            raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
         raise AnnotationError("Should be %s" % self.name)
 
 
@@ -929,9 +932,12 @@ class AttrNameArg(StringArg):
 class FileNameArg(Annotation):
     """Base class for Open/SaveFileNameArg"""
     name = "a file name"
+    # name_filter should be a string compatible with QFileDialog.setNameFilter(),
+    # or None (which means all ChimeraX-openable types)
+    name_filter = None
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         token, text, rest = StringArg.parse(text, session)
         import os.path
         return os.path.expanduser(token), text, rest
@@ -940,7 +946,7 @@ class FileNameArg(Annotation):
 _browse_string = "browse"
 
 
-def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
+def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode):
     path, text, rest = FileNameArg.parse(text, session)
     if path == _browse_string:
         if not session.ui.is_gui:
@@ -948,7 +954,9 @@ def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
         from PyQt5.QtWidgets import QFileDialog
         dlg = QFileDialog()
         dlg.setAcceptMode(accept_mode)
-        if accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
+        if name_filter is not None:
+            dlg.setNameFilter(name_filter)
+        elif accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
             from chimerax.ui.open_save import open_file_filter
             dlg.setNameFilter(open_file_filter(all=True))
         dlg.setFileMode(dialog_mode)
@@ -958,7 +966,8 @@ def _browse_parse(text, session, item_kind, accept_mode, dialog_mode):
                 raise AnnotationError("No %s selected by browsing" % item_kind)
             path = paths[0]
         else:
-            raise AnnotationError("%s browsing cancelled" % item_kind.capitalize())
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
         text = path
     return path, text, rest
 
@@ -967,58 +976,56 @@ class OpenFileNameArg(FileNameArg):
     """Annotation for a file to open"""
     name = "name of a file to open/read"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         if session.ui.is_gui:
             from PyQt5.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
 
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
     name = "name of a file to save/write"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         if session.ui.is_gui:
             from PyQt5.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "file", accept_mode, dialog_mode)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
 
 
 class OpenFolderNameArg(FileNameArg):
     """Annotation for a folder to open from"""
     name = "name of a folder to open/read"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         if session.ui.is_gui:
             from PyQt5.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(
-            text, session, "folder", accept_mode, dialog_mode)
+        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
 
 
 class SaveFolderNameArg(FileNameArg):
     """Annotation for a folder to save to"""
     name = "name of a folder to save/write"
 
-    @staticmethod
-    def parse(text, session):
+    @classmethod
+    def parse(cls, text, session):
         if session.ui.is_gui:
             from PyQt5.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(
-            text, session, "folder", accept_mode, dialog_mode)
+        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
 
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here
@@ -1060,105 +1067,6 @@ class ObjectsArg(AtomSpecArg):
         return objects, text, rest
 
 
-class AtomsArg(AtomSpecArg):
-    """Parse command atoms specifier"""
-    name = "an atoms specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        atoms = aspec.evaluate(session).atoms
-        atoms.spec = str(aspec)
-        return atoms, text, rest
-
-
-class UniqueChainsArg(AtomSpecArg):
-    """Parse command atoms specifier"""
-    name = "an atoms specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        chains = aspec.evaluate(session).atoms.residues.unique_chains
-        chains.spec = str(aspec)
-        return chains, text, rest
-
-
-class StructuresArg(AtomSpecArg):
-    """Parse command structures specifier"""
-    name = "a structures specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import Structure
-        mols = [m for m in models if isinstance(m, Structure)]
-        return mols, text, rest
-
-
-class AtomicStructuresArg(AtomSpecArg):
-    """Parse command atomic structures specifier"""
-    name = "an atomic structures specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        models = aspec.evaluate(session).models
-        from ..atomic import AtomicStructure, AtomicStructures
-        mols = [m for m in models if isinstance(m, AtomicStructure)]
-        return AtomicStructures(mols), text, rest
-
-
-class PseudobondGroupsArg(AtomSpecArg):
-    """Parse command atom specifier for pseudobond groups"""
-    name = 'a pseudobond groups specifier'
-
-    @classmethod
-    def parse(cls, text, session):
-        value, used, rest = super().parse(text, session)
-        models = value.evaluate(session).models
-        from ..atomic import PseudobondGroup
-        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
-        return pbgs, used, rest
-
-
-class PseudobondsArg(ObjectsArg):
-    """Parse command specifier for pseudobonds"""
-    name = 'a pseudobonds specifier'
-
-    @classmethod
-    def parse(cls, text, session):
-        objects, used, rest = super().parse(text, session)
-        from ..atomic import interatom_pseudobonds, Pseudobonds, concatenate
-        apb = interatom_pseudobonds(objects.atoms)
-        opb = objects.pseudobonds
-        pbonds = concatenate([apb, opb], Pseudobonds, remove_duplicates=True)
-        return pbonds, used, rest
-
-
-class BondsArg(ObjectsArg):
-    """Parse command specifier for bonds"""
-    name = 'a bonds specifier'
-
-    @classmethod
-    def parse(cls, text, session):
-        objects, used, rest = super().parse(text, session)
-        bonds = objects.bonds
-        return bonds, used, rest
-
-
-class BondArg(BondsArg):
-    """Parse command specifier for a bond"""
-    name = 'a bond specifier'
-
-    @classmethod
-    def parse(cls, text, session):
-        bonds, used, rest = super().parse(text, session)
-        if len(bonds) != 1:
-            raise AnnotationError("Must specify exactly one bond (specified %d)" % len(bonds))
-        return bonds[0], used, rest
-
 
 class ModelArg(AtomSpecArg):
     """Parse command model specifier"""
@@ -1171,19 +1079,6 @@ class ModelArg(AtomSpecArg):
         if len(models) != 1:
             raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
         return tuple(models)[0], text, rest
-
-
-class StructureArg(ModelArg):
-    """Parse command structure specifier"""
-    name = "a structure specifier"
-
-    @classmethod
-    def parse(cls, text, session):
-        m, text, rest = super().parse(text, session)
-        from ..atomic import Structure
-        if not isinstance(m, Structure):
-            raise AnnotationError('Specified model is not a Structure')
-        return m, text, rest
 
 
 class SurfacesArg(ModelsArg):
@@ -1248,6 +1143,7 @@ class AxisArg(Annotation):
         # Two atoms or a bond.
         if axis is None:
             try:
+                from chimerax.atomic import AtomsArg
                 atoms, atext, rest = AtomsArg.parse(text, session)
             except:
                 pass
@@ -2074,12 +1970,8 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
     else:
         _parent_info = registry.commands
     for word in words[:-1]:
-        if not _parent_info.has_subcommands():
-            word_info = _parent_info.add_subcommand(word)
-        else:
-            _parent_info.add_subcommand(word, name)
-            word_info = _parent_info.subcommands[word]
-        _parent_info = word_info
+        _parent_info.add_subcommand(word, name)
+        _parent_info = _parent_info.subcommands[word]
 
     if isinstance(function, _Defer):
         cmd_desc = function
@@ -2159,7 +2051,7 @@ def deregister(name, *, is_user_alias=False, registry=None):
 
 
 def register_available(*args, **kw):
-    return register(*args, _parent_info=_available_commands, **kw)
+    return register(*args, registry=_available_commands, **kw)
 
 
 def clear_available():
@@ -2182,7 +2074,26 @@ def add_keyword_arguments(name, kw_info, *, registry=None):
         raise ValueError("'%s' is not a command name" % name)
     # check compatibility with already-registered keywords
     for kw, arg_type in kw_info.items():
-        if kw in cmd._ci._keyword and cmd._ci._keyword[kw] != arg_type:
+        if kw not in cmd._ci._keyword:
+            continue
+        # since de-registration currently may not undo the arg
+        # registration, direct comparison of the registration
+        # types may compare as unequal when they are in fact
+        # the same class because it's a second instance of the
+        # same module
+        #
+        # also what's registered can be a class or an instance,
+        # but will be the same kind for both
+        reg_type = cmd._ci._keyword[kw]
+        if isinstance(arg_type, type):
+            # classes
+            reg_class = reg_type
+            arg_class = arg_type
+        else:
+            reg_class = reg_type.__class__
+            arg_class = arg_type.__class__
+        if ( reg_class.__module__ != arg_class.__module__
+        or reg_class.__name__ != arg_class.__name__):
             raise ValueError(
                 "%s-command keyword '%s' being registered with different type (%s)"
                 " than previous registration (%s)" % (
@@ -2275,8 +2186,6 @@ class Command:
         self.word_info = None  # filled in when partial command is matched
         if parent_info is None:
             parent_info = self.registry.commands
-        else:
-            parent_info = parent_info.commands
         cmd_name = None
         self.start = self.amount_parsed
         start = self.start
@@ -2590,19 +2499,19 @@ class Command:
         while 1:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
-                if self.registry == self._command_info:
+                if self.registry == _command_info:
                     # See if this command is available in the toolshed
                     save_error = self._error
                     self._error = ""
                     global _available_commands
                     if _available_commands is None:
                         from .. import toolshed
-                        _available_commands = _WordInfo(self.registry)
+                        _available_commands = RegisteredCommandInfo()
                         ts = toolshed.get_toolshed()
                         ts.register_available_commands(session.logger)
                     self._find_command_name(final, used_aliases=_used_aliases,
-                                            parent_info=_available_commands)
-                if self._error:
+                                            parent_info=_available_commands.commands)
+                if self._error or not self._ci:
                     # Nope, give the original error message
                     self._error = save_error
                     if log:
@@ -2672,8 +2581,7 @@ class Command:
                 results.append(ci.function(session, *args, optional=optional,
                                _used_aliases=used_aliases, log=log))
             if session is not None:
-                from .. import atomic
-                atomic.check_for_changes(session)
+                session.triggers.activate_trigger("command finished", text)
 
             self.command_name = None
             self._ci = None
@@ -3024,7 +2932,7 @@ def registered_commands(multiword=False, _start=None):
     if _start:
         parent_info = _start
     else:
-        parent_info = _commands
+        parent_info = _command_info.commands
 
     if not multiword:
         words = list(parent_info.subcommands.keys())
@@ -3185,7 +3093,7 @@ def list_aliases(all=False, logger=None):
                 yield partial_name
         elif parent_info.is_user_alias():
             yield partial_name
-    return list(find_aliases('', _commands))
+    return list(find_aliases('', _command_info.commands))
 
 
 def expand_alias(name, *, registry=None):

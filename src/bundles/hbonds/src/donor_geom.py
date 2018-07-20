@@ -2,9 +2,9 @@
 
 """donor geometry testing functions"""
 
-from chimerax.core.atomic.idatm import type_info, planar, tetrahedral
+from chimerax.atomic.idatm import type_info, planar, tetrahedral
 from chimerax.core.geometry import angle, distance_squared, normalize_vector
-from chimerax.core.atomic.bond_geom import bond_positions
+from chimerax.atomic.bond_geom import bond_positions
 from . import hbond
 from .common_geom import AtomTypeError, get_phi_plane_params, \
         test_phi, project, test_theta, sulphur_compensate

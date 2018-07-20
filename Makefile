@@ -13,6 +13,7 @@ TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
 NO_SUBDIR_ALL=1
 NO_SUBDIR_INSTALL=1
+NO_SUBDIR_TEST=1
 SUBDIRS = prereqs src
 
 include $(TOP)/mk/config.make
@@ -34,6 +35,9 @@ endif
 	$(MAKE) -C src install
 	$(MAKE) -C docs install
 	@echo 'Finished install at' `date`
+
+test src.test:
+	$(MAKE) -C src test
 
 ifdef WIN32
 vsdefined:
@@ -88,3 +92,25 @@ gltrace:
 
 dumptrace:
 	@apitrace dump $(APP_NAME).trace
+
+SNAPSHOT_TAG = develop
+
+# create a source snapshot
+snapshot:
+ifeq (,$(SNAPSHOT_DIR))
+	$(error set SNAPSHOT_DIR on command line)
+endif
+	mkdir $(SNAPSHOT_DIR)
+	echo "branch: $(SNAPSHOT_TAG)" > $(SNAPSHOT_DIR)/last-commit
+	git show --summary --date=iso $(SNAPSHOT_TAG) >> $(SNAPSHOT_DIR)/last-commit
+	git archive $(SNAPSHOT_TAG) | tar -C $(SNAPSHOT_DIR) -xf -
+	make -C $(SNAPSHOT_DIR) prefetch
+
+# should be run in directory with source snapshot
+ubuntu-package:
+	singularity exec ubuntu-$(UBUNTU).simg make UBUNTU_DIST=1 install test
+	$(PYTHON_EXE) mkubuntu.py $(UBUNTU)
+
+# look for possible bugs in debian package
+lintian:
+	lintian --suppress-tags python-script-but-no-python-dep,shlib-with-executable-bit,unstripped-binary-or-object,embedded-library,duplicate-font-file,embedded-javascript-library,executable-not-elf-or-script ubuntu-$(UBUNTU)/*.deb
