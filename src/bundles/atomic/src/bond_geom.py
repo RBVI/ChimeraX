@@ -18,7 +18,7 @@ bond_geom: bond geometry utilities and info relevant to bond geometry
 TODO
 """
 
-import numpy
+import tinyarray, numpy
 from numpy.linalg import norm
 normalize = lambda v: v/norm(v)
 sqlength = lambda v: numpy.sum(v*v)
@@ -35,11 +35,11 @@ cos705 = cos(pi * 70.5 / 180.0)
 
 def bond_positions(bondee, geom, bond_len, bonded, coplanar=None,
             toward=None, away=None, toward2=None, away2=None):
-    """Return a numpy array of possible bond partner positions for 'bondee' that
+    """Returns a list of possible bond partner positions for 'bondee' that
        satisfy geometry 'geom' and are of length 'bond_len'.  'bonded' are
        positions of already-bonded substituents to 'bondee'.
 
-       'bondee' is a "point" (numpy array of 3 64-bit floats) and 'bonded'
+       'bondee' is a "point" (array of 3 64-bit floats) and 'bonded'
        is a list of points.  The return value is also a list points.
 
        For planar geometries, 'coplanar' can be a list of one or two
@@ -60,7 +60,7 @@ def bond_positions(bondee, geom, bond_len, bonded, coplanar=None,
     if geom == single:
         if len(bonded) > 0:
             return []
-        return numpy.array([single_pos(bondee, bond_len, toward, away)])
+        return [single_pos(bondee, bond_len, toward, away)]
 
     if geom == linear:
         if len(bonded) > 1:
@@ -87,7 +87,7 @@ def single_pos(bondee, bond_len, toward=None, away=None):
     elif away is not None:
         v = bondee - away
         return bondee + normalize(v) * bond_len
-    return bondee + numpy.array([bond_len, 0.0, 0.0])
+    return bondee + tinyarray.array([bond_len, 0.0, 0.0])
 
 def linear_pos(bondee, bonded, bond_len, toward=None, away=None):
     new_bonded = []
@@ -106,7 +106,7 @@ def linear_pos(bondee, bonded, bond_len, toward=None, away=None):
     if len(cur_bonded) == 1:
         bondVec = normalize(bondee - cur_bonded[0]) * bond_len
         new_bonded.append(bondee + bondVec)
-    return numpy.array(new_bonded)
+    return new_bonded
 
 def planar_pos(bondee, bonded, bond_len, coplanar=None, toward=None, away=None,
                         toward2=None, away2=None):
@@ -134,9 +134,9 @@ def planar_pos(bondee, bonded, bond_len, coplanar=None, toward=None, away=None,
         # position along anti-bisector of current bonds
         v1 = normalize(cur_bonded[0] - bondee)
         v2 = normalize(cur_bonded[1] - bondee)
-        anti_bi = normalize(numpy.negative(v1 + v2)) * bond_len
+        anti_bi = normalize(tinyarray.negative(v1 + v2)) * bond_len
         new_bonded.append(bondee + anti_bi)
-    return numpy.array(new_bonded)
+    return new_bonded
 
 def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, away2=None):
     new_bonded = []
@@ -148,24 +148,25 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
         new_bonded.append(pos)
         cur_bonded.append(pos)
 
-    # The next line necessitated due to numpy's retarded handling of boolean tests.
-    # Also, needs to be here instead of earlier since the above 'if' replaces toward/away
-    toward_or_away = toward if toward is not None else (None if away is None else away)
     if len(cur_bonded) == 1:
         # add at 109.5 degree angle
         #
         # stupid numpy and boolean testing of arrays...
-        coplanar = [toward_or_away] if toward_or_away is not None else None
+        coplanar = toward or away
+        if coplanar:
+            coplanar = [coplanar]
+        else:
+            coplanar = None
         pos = angle_pos(bondee, cur_bonded[0], bond_len, 109.5, coplanar=coplanar)
-        if toward_or_away is not None:
+        if toward or away:
             # find the other 109.5 position in the toward/away
             # plane and the closer/farther position as appropriate
             old = normalize(bondee - cur_bonded[0])
             new = pos - bondee
             midpoint = bondee + old * norm(new) * cos705
             other_pos = pos + (midpoint - pos) * 2
-            d1 = sqlength(pos - toward_or_away)
-            d2 = sqlength(other_pos - toward_or_away)
+            d1 = sqlength(pos - (toward or away))
+            d2 = sqlength(other_pos - (toward or away))
             if toward is not None:
                 if d2 < d1:
                     pos = other_pos
@@ -180,7 +181,7 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
         # 54.75 degrees from plane of those bonds (half of 109.5)
         v1 = normalize(cur_bonded[0] - bondee)
         v2 = normalize(cur_bonded[1] - bondee)
-        anti_bi = normalize(numpy.negative(v1 + v2))
+        anti_bi = normalize(tinyarray.negative(v1 + v2))
         # in order to stabilize the third and fourth tetrahedral
         # positions, cross the longer vector by the shorter
         if sqlength(v1) > sqlength(v2):
@@ -192,10 +193,10 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
         cross_v = cross_v * sin5475 * bond_len
 
         pos = bondee + anti_bi + cross_v
-        if toward_or_away is not None:
+        if toward or away:
             other_pos = bondee + anti_bi - cross_v
-            d1 = sqlength(pos - toward_or_away)
-            d2 = sqlength(other_pos - toward_or_away)
+            d1 = sqlength(pos - (toward or away))
+            d2 = sqlength(other_pos - (toward or away))
             if toward is not None:
                 if d2 < d1:
                     pos = other_pos
@@ -218,9 +219,9 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
         # (positive == same side)
         d = pl.distance(bondee)
         if d < 0.0:
-            normal = numpy.negative(normal)
+            normal = tinyarray.negative(normal)
         new_bonded.append(bondee + normal * bond_len)
-    return numpy.array(new_bonded)
+    return new_bonded
 
         
 def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
@@ -234,7 +235,7 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
         for cpos in coplanar:
             up = cpos - atom_pos
             if xforms:
-                up = numpy.negative(up)
+                up = tinyarray.negative(up)
             from chimerax.core.geometry import look_at, rotation
             # lookAt puts ref point opposite that of zAlign, so 
             # also rotate 180 degrees around y axis
@@ -247,7 +248,7 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
     points = []
     for xform in xforms:
         radians = pi * degrees / 180.0
-        angle = numpy.array([0.0, bond_length * sin(radians), bond_length * cos(radians)])
+        angle = tinyarray.array([0.0, bond_length * sin(radians), bond_length * cos(radians)])
         points.append(xform.inverse() * angle)
     
     if len(points) > 1:
@@ -260,5 +261,5 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
 
 def right_angle(orig):
     if orig[0] == 0.0:
-        return numpy.array([0.0, 0 - orig[2], orig[1]])
-    return numpy.array([0.0 - orig[1], orig[0], 0.0])
+        return tinyarray.array([0.0, 0 - orig[2], orig[1]])
+    return tinyarray.array([0.0 - orig[1], orig[0], 0.0])

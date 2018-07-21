@@ -19,6 +19,8 @@
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
+    <Dependency name="ChimeraX-Atom_Search" version=">=1.0"/>
   </Dependencies>
 
   <!-- Python and ChimeraX-specific classifiers

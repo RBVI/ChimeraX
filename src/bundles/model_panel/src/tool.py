@@ -71,7 +71,7 @@ class ModelPanel(ToolInstance):
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
             MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         from chimerax.core.selection import SELECTION_CHANGED
-        self.session.triggers.add_handler(SELECTION_CHANGED, self._fill_tree)
+        self.session.triggers.add_handler(SELECTION_CHANGED, self._initiate_fill_tree)
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(MODEL_ID_CHANGED,

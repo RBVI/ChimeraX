@@ -136,7 +136,8 @@ class Model(State, Drawing):
         Drawing.set_selected(self, sel)
         if fire_trigger:
             from chimerax.core.selection import SELECTION_CHANGED
-            self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
+            self.session.ui.thread_safe(self.session.triggers.activate_trigger,
+                SELECTION_CHANGED, None)
 
     selected = property(Drawing.get_selected, set_selected)
     

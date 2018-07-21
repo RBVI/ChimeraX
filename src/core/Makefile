@@ -26,12 +26,6 @@ endif
 
 include $(TOP)/mk/subdir.make
 
-ifdef WIN32
-CYTHON_EXE = $(bindir)/Scripts/cython.exe
-else
-CYTHON_EXE = $(bindir)/cython
-endif
-
 BUNDLE_NAME = ChimeraX-Core
 BUNDLE_VERSION = 0.7
 PKG_NAME = chimerax.core

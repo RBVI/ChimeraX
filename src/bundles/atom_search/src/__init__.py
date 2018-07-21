@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,17 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .ast import AtomSearchTree
+
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _AtomSearchAPI(BundleAPI):
+    pass
 
-    @staticmethod
-    def register_command(command_name, logger):
-        # 'register_command' is lazily called when the command is referenced
-        from . import test
-        from chimerax.core.commands import register, CmdDesc, BoolArg
-        desc = CmdDesc(synopsis = 'Run through test sequence of commands to check for errors',
-			keyword = [('stderr', BoolArg)])
-        register(command_name, desc, test.run_commands, logger=logger)
-
-bundle_api = _MyAPI()
+bundle_api = _AtomSearchAPI()

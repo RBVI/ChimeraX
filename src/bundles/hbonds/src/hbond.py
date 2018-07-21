@@ -20,7 +20,7 @@ from chimerax.atomic.chem_group import find_group
 from chimerax.core.geometry import distance_squared
 from .hydpos import hyd_positions
 from chimerax.atomic.idatm import type_info, tetrahedral, planar, linear, single
-from chimerax.atomic import Element, atom_search_tree
+from chimerax.atomic import Element
 from chimerax.core.errors import UserError
 import copy
 
@@ -462,6 +462,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
             'S': gen_don_S_params
         }
 
+        from chimerax.atomic.search import AtomSearchTree
         acc_trees = {}
         hbonds = []
         has_sulfur = {}
@@ -493,8 +494,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                 if acc_atom.element == Element.get_element('S'):
                     has_sulfur[structure] = True
             session.logger.status("Building search tree of acceptor atoms", blank_after=0)
-            #acc_trees[structure] = AdaptiveTree(xyz, acc_data, 3.0)
-            acc_trees[structure] = atom_search_tree(acc_atoms, data=acc_data, sep_val=3.0,
+            acc_trees[structure] = AtomSearchTree(acc_atoms, data=acc_data, sep_val=3.0,
                 scene_coords=(Atom._hb_coord == Atom.scene_coord))
 
         if process_key not in processed_donor_params:
@@ -570,7 +570,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                         td = test_dist + SULFUR_COMP
                     else:
                         td = test_dist
-                    accs = acc_trees[acc_structure].search_tree(coord, td)
+                    accs = acc_trees[acc_structure].search(coord, td)
                     if verbose:
                         session.logger.info("Found %d possible acceptors for donor %s:"
                             % (len(accs), donor_atom))

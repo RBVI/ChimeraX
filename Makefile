@@ -108,7 +108,7 @@ endif
 
 # should be run in directory with source snapshot
 ubuntu-package:
-	singularity exec ubuntu-$(UBUNTU).simg make UBUNTU_DIST=1 install test
+	# singularity exec ubuntu-$(UBUNTU).img make UBUNTU_DIST=1 install test
 	$(PYTHON_EXE) mkubuntu.py $(UBUNTU)
 
 # look for possible bugs in debian package
