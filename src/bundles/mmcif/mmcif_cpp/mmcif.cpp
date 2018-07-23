@@ -67,6 +67,8 @@ using atomstruct::CoordSet;
 using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Coord;
+using atomstruct::Real;
+using atomstruct::PolymerType;
 
 using atomstruct::AtomName;
 using atomstruct::ChainID;
@@ -80,7 +82,7 @@ static const bool Required = true;  // column is required
 inline void
 canonicalize_atom_name(AtomName* aname, bool* asterisks_translated)
 {
-    for (int i = aname->length(); i > 0; ) {
+    for (size_t i = aname->length(); i > 0; ) {
         --i;
         // use prime instead of asterisk
         if ((*aname)[i] == '*') {
@@ -148,8 +150,8 @@ public:
 
 bool reasonable_bond_length(Atom* a1, Atom* a2, float distance = std::numeric_limits<float>::quiet_NaN())
 {
-    float idealBL = Element::bond_length(a1->element(), a2->element());
-    float sqlength;
+    Real idealBL = Element::bond_length(a1->element(), a2->element());
+    Real sqlength;
     if (!std::isnan(distance))
         sqlength = distance * distance;
     else
@@ -303,7 +305,8 @@ struct ExtractMolecule: public readcif::CIFFile
     struct EntityPoly {
         multiset<PolySeq> seq;
         bool nstd;
-        EntityPoly(bool nstd): nstd(nstd) {}
+        PolymerType ptype;
+        EntityPoly(bool nstd, PolymerType pt = PolymerType::PT_NONE): nstd(nstd), ptype(pt) {}
     };
     map<string /* entity_id */, EntityPoly> poly;
     int first_model_num;
@@ -712,6 +715,8 @@ ExtractMolecule::finished_parse()
         const string& entity_id = ri->first.entity_id;
         if (poly.find(entity_id) == poly.end())
             continue;
+        vector<ResName> seqres;
+        vector<Residue *> residues;
         const PolySeq* lastp = nullptr;
         bool gap = false;
         vector<Residue*> previous, current;
@@ -721,6 +726,12 @@ ExtractMolecule::finished_parse()
         for (auto& p: entity_poly.seq) {
             auto ri = residue_map.find(ResidueKey(entity_id, p.seq_id, p.mon_id));
             if (ri == residue_map.end()) {
+                if (!lastp || lastp->seq_id != p.seq_id) {
+                    // ignore duplicates and microheterogeneity
+                    seqres.push_back(p.mon_id);
+                    residues.push_back(nullptr);
+                }
+                lastp = &p;
                 if (current.empty())
                     continue;
                 if (!previous.empty())
@@ -731,8 +742,11 @@ ExtractMolecule::finished_parse()
                 continue;
             }
             Residue* r = ri->second;
-            if (auth_chain_id.empty())
+            if (auth_chain_id.empty()) {
                 auth_chain_id = r->chain_id();
+                seqres.reserve(entity_poly.seq.size());
+                residues.reserve(entity_poly.seq.size());
+            }
             if (lastp && lastp->seq_id == p.seq_id) {
                 string c_id;
                 if (auth_chain_id == " ")
@@ -748,6 +762,8 @@ ExtractMolecule::finished_parse()
                 residue_map.erase(ri);
                 mol->delete_residue(r);
             } else {
+                seqres.push_back(p.mon_id);
+                residues.push_back(r);
                 if (!previous.empty() && !current.empty()) {
                     connect_polymer_pair(previous, current, gap, nstd);
                     gap = false;
@@ -762,21 +778,10 @@ ExtractMolecule::finished_parse()
         }
         if (!previous.empty())
             connect_polymer_pair(previous, current, gap, nstd);
-        if (auth_chain_id.empty())
-            continue;
-        auto& input_seq_info = mol->input_seq_info();
-        if (input_seq_info.find(auth_chain_id) != input_seq_info.end())
-            continue;
-        vector<ResName> seqres;
-        seqres.reserve(entity_poly.seq.size());
-        lastp = nullptr;
-        for (auto& p: entity_poly.seq) {
-            if (lastp && lastp->seq_id == p.seq_id)
-                continue;  // ignore duplicates and microheterogeneity
-            seqres.push_back(p.mon_id);
-            lastp = &p;
-        }
-        mol->set_input_seq_info(auth_chain_id, seqres);
+        if (entity_poly.ptype == PolymerType::PT_NONE)
+            mol->set_input_seq_info(auth_chain_id, seqres);
+        else
+            mol->set_input_seq_info(auth_chain_id, seqres, &residues, entity_poly.ptype);
         if (mol->input_seq_source.empty())
             mol->input_seq_source = "mmCIF entity_poly_seq table";
     }
@@ -1267,7 +1272,7 @@ ExtractMolecule::parse_atom_site()
                     mol->set_active_coord_set(cs);
                 } else {
                     // make additional CoordSets same size as others
-                    int cs_size = mol->active_coord_set()->coords().size();
+                    size_t cs_size = mol->active_coord_set()->coords().size();
                     if (cur_model_num > mol->active_coord_set()->id() + 1) {
                         // fill in coord sets for Monte-Carlo trajectories
                         const CoordSet *acs = mol->active_coord_set();
@@ -1681,7 +1686,7 @@ ExtractMolecule::parse_struct_conn()
         }
         try {
             mol->new_bond(a1, a2);
-        } catch (std::invalid_argument& e) {
+        } catch (std::invalid_argument&) {
             // already bonded
         }
     }
@@ -2301,9 +2306,22 @@ ExtractMolecule::parse_entity_poly()
         return;
     }
 
+    static const string peptide("polypeptide");
+    static const string dna("polydeoxyribonucleotide");
+    static const string rna("polyribonucleotide");
+
     while (parse_row(pv)) {
+        // convert type to lowercase
+        for (auto& c: type)
+            c = tolower(c);
+        PolymerType pt = PolymerType::PT_NONE;
+        if (type.compare(0, peptide.size(), peptide) == 0)
+            pt = PolymerType::PT_AMINO;
+        else if (type.compare(0, dna.size(), dna) == 0
+        || type.compare(0, rna.size(), rna) == 0)
+            pt = PolymerType::PT_NUCLEIC;
         if (poly.find(entity_id) == poly.end())
-            poly.emplace(entity_id, nstd_monomer);
+            poly.emplace(entity_id, EntityPoly(nstd_monomer, pt));
         else
             logger::warning(_logger, "Duplicate polymer '", entity_id,
                             "' near line ", line_number());

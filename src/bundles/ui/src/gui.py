@@ -386,7 +386,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
-        self._rapid_access_shown_once = False # kludge to work around early OpenGL errors
 
         from .save_dialog import MainSaveDialog, ImageSaver
         self.save_dialog = MainSaveDialog(self)
@@ -635,15 +634,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         from PyQt5.QtCore import QEventLoop
         if show:
             icon = self._ra_shown_icon
-            if not self._rapid_access_shown_once:
-                ses.update_loop.block_redraw()
             self._stack.setCurrentWidget(self.rapid_access)
         else:
             icon = self._ra_hidden_icon
             self._stack.setCurrentWidget(self.graphics_window.widget)
-            if not self._rapid_access_shown_once:
-                ses.update_loop.unblock_redraw()
-                self._rapid_access_shown_once = True
         ses.update_loop.block_redraw()
         ses.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
         ses.update_loop.unblock_redraw()

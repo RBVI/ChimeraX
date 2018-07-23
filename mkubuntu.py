@@ -332,9 +332,8 @@ def make_prerm(debian_dir, pkg_name, bin_name):
             set -e
             echo "Deregister desktop menu and associated mime types"
             {bin_name} --exit --nogui --silent --cmd 'linux xdg-uninstall system true'
-            # TODO: why do we not need to remove cache files?
-            #echo "Remove Python cache files"
-            #find /{INST_DIR}/{pkg_name} -name __pycache__ -exec rm -rf {{}} \;
+            echo "Remove Python cache files"
+            find /{INST_DIR}/{pkg_name} -name __pycache__ -print0 | xargs -0 /bin/rm -rf
             """), file=f)
         os.fchmod(f.fileno(), 0o755)
 

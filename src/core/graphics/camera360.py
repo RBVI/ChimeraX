@@ -234,7 +234,7 @@ def _cube_map_framebuffer(opengl_context, size):
     from . import Texture, opengl
     t = Texture(cube_map = True)
     t.initialize_rgba((size,size))
-    fb = opengl.Framebuffer(opengl_context, color_texture = t)
+    fb = opengl.Framebuffer('cubemap', opengl_context, color_texture = t)
     return fb
 
 # Project cubemap to longitude/lattitude rectangle

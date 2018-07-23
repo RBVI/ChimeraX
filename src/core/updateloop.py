@@ -56,7 +56,7 @@ class UpdateLoop:
             if changed:
                 from .graphics import OpenGLError, OpenGLVersionError
                 try:
-                    if session.ui.is_gui:
+                    if session.ui.is_gui and session.ui.main_window.graphics_window.is_drawable:
                         t0 = time()
                         view.draw(check_for_changes = False)
                         self.last_draw_time = time() - t0

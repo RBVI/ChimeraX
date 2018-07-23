@@ -32,6 +32,7 @@ commands = [
     'wait 20',
     'close',
     'open 1a0m',
+    'addh hb f',
     '~display /b',
     'style stick',
     'ribbon /b',
@@ -124,9 +125,12 @@ commands = [
     'view',
     'echo finished test',
 ]
-def run_commands(session, commands = commands):
+def run_commands(session, commands = commands, stderr = False):
     log = session.logger
     from chimerax.core.commands import run
     for c in commands:
+        if stderr:
+            import sys
+            print(c, file=sys.__stderr__)
         log.info('> ' + c)
         run(session, c)

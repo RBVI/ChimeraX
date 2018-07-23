@@ -102,8 +102,8 @@ def find_clashes(session, test_atoms,
     else:
         search_atoms = test_atoms
 
-    from chimerax.atomic import atom_search_tree
-    tree = atom_search_tree(search_atoms, scene_coords=inter_model)
+    from chimerax.atomic.search import AtomSearchTree
+    tree = AtomSearchTree(search_atoms, scene_coords=inter_model)
     clashes = {}
     from chimerax.core.geometry import distance
     for a in test_atoms:
@@ -112,7 +112,7 @@ def find_clashes(session, test_atoms,
         else:
             cutoff = a.radius + assumed_max_vdw - clash_threshold
         crd = a.scene_coord if use_scene_coords else a.coord
-        nearby = tree.search_tree(crd, cutoff)
+        nearby = tree.search(crd, cutoff)
         if not nearby:
             continue
         need_expansion = [a]

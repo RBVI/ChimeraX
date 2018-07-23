@@ -1441,6 +1441,30 @@ Structure::set_color(const Rgba& rgba)
 }
 
 void
+Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
+        const std::vector<Residue*>* correspondences, PolymerType pt)
+{
+    _input_seq_info[chain_id] = res_names;
+    if (correspondences != nullptr) {
+        if (correspondences->size() != res_names.size())
+            throw std::invalid_argument(
+                "Sequence length differs from number of corresponding residues");
+        if (pt == PT_NONE)
+            throw std::invalid_argument("Polymer type of input sequence not specified");
+        if (_chains == nullptr)
+            _chains = new Chains();
+        auto chain = _new_chain(chain_id, pt);
+        auto res_chars = new Sequence::Contents(res_names.size());
+        auto chars_ptr = res_chars->begin();
+        for (auto rni = res_names.begin(); rni != res_names.end(); ++rni, ++chars_ptr) {
+            (*chars_ptr) = Sequence::rname3to1(*rni);
+        }
+        chain->bulk_set(*correspondences, res_chars);
+        delete res_chars;
+    }
+}
+
+void
 Structure::set_position_matrix(double* pos)
 {
     double *_pos = &_position[0][0];

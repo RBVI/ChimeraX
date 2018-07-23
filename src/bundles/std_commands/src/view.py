@@ -40,11 +40,12 @@ def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False,
     '''
     v = session.main_view
     if orient:
-        v.initial_camera_view()
+        v.initial_camera_view(set_pivot = cofr)
 
     if objects is None:
         v.view_all(pad = pad)
-        v.center_of_rotation_method = 'front center'
+        if cofr:
+            v.center_of_rotation_method = 'front center'
         cp = v.clip_planes
         cp.remove_plane('near')
         cp.remove_plane('far')

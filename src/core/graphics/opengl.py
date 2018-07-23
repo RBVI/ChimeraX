@@ -278,6 +278,7 @@ class Render:
     def __init__(self, opengl_context):
 
         self._opengl_context = oc = opengl_context
+        self._recording_calls = None
 
         if not hasattr(oc, 'shader_programs'):
             oc.shader_programs = {}
@@ -304,8 +305,9 @@ class Render:
             ("key_light_direction",0), ("key_light_diffuse_color",4),
             ("key_light_specular_color",8),  ("key_light_specular_exponent",11),
             ("fill_light_direction",12), ("fill_light_diffuse_color",16),
-            ("ambient_color",20))
-        self._lighting_buffer_floats = 24
+            ("ambient_color",20),
+            ("depth_cue_color",24))
+        self._lighting_buffer_floats = 28
 
         self.material = Material()              # Currently a global material
 
@@ -314,6 +316,7 @@ class Render:
         self.mask_framebuffer = None
         self.outline_framebuffer = None
         self._silhouette_framebuffer = None
+        self._texture_win = None
 
         # 3D ambient texture transform from model coordinates to texture
         # coordinates:
@@ -363,6 +366,11 @@ class Render:
             GL.glDeleteBuffers(1, [mmb])
             self._multishadow_matrix_buffer_id = None
 
+        tw = self._texture_win
+        if tw is not None:
+            tw.delete()
+            self._texture_win = None
+
     @property
     def opengl_context(self):
         return self._opengl_context
@@ -403,6 +411,21 @@ class Render:
         return prev_win
 
     @property
+    def recording_opengl(self):
+        return self._recording_calls is not None
+
+    def record_opengl_calls(self, record = True):
+        if record:
+            from . import gllist
+            self._recording_calls = rc = gllist.start_gl_call_list()
+            globals()['GL'] = gllist
+            return rc
+        else:
+            from OpenGL import GL
+            globals()['GL'] = GL
+            self._recording_calls = None
+
+    @property
     def current_shader_program(self):
         return self._opengl_context.current_shader_program
 
@@ -414,7 +437,7 @@ class Render:
 
     def default_framebuffer(self):
         if self._default_framebuffer is None:
-            self._default_framebuffer = Framebuffer(self.opengl_context, color=False, depth=False)
+            self._default_framebuffer = Framebuffer('default', self.opengl_context, color=False, depth=False)
         return self._default_framebuffer
 
     def set_default_framebuffer_size(self, width, height):
@@ -532,9 +555,9 @@ class Render:
             sp[capabilities] = p
             if capabilities & self.SHADER_LIGHTING:
                 self._bind_lighting_parameter_buffer(p)
-            if capabilities & self.SHADER_MULTISHADOW:
-                GL.glUseProgram(p.program_id)
-                self._set_multishadow_shader_constants(p)
+                if capabilities & self.SHADER_MULTISHADOW:
+                    GL.glUseProgram(p.program_id)
+                    self._set_multishadow_shader_constants(p)
         self._use_shader(p)
         return p
 
@@ -605,9 +628,9 @@ class Render:
             if not self.lighting.move_lights_with_camera:
                 self.update_lighting_parameters()
 
-    def set_near_far_clip(self, near, far):
+    def set_near_far_clip(self, near_far):
         '''Set the near and far clip plane distances from eye.  Used for depth cuing.'''
-        self._near_far_clip = (near, far)
+        self._near_far_clip = near_far
 
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_DEPTH_CUE:
@@ -747,6 +770,9 @@ class Render:
         ac = tuple(ams * c for c in lp.ambient_light_color)
         params["ambient_color"] = ac
 
+        # Depth cue color
+        params['depth_cue_color'] = lp.depth_cue_color
+        
         return params
 
     def set_depth_cue_parameters(self):
@@ -758,13 +784,17 @@ class Render:
             return
 
         if self.SHADER_DEPTH_CUE & p.capabilities and self.SHADER_LIGHTING & p.capabilities:
-            lp = self.lighting
-            n,f = self._near_far_clip
-            s = n + (f-n)*lp.depth_cue_start
-            e = n + (f-n)*lp.depth_cue_end
-            p.set_float('depth_cue_start', s)
-            p.set_float('depth_cue_end', e)
-            p.set_vector('depth_cue_color', lp.depth_cue_color)
+            if self.recording_opengl:
+                r = lambda: self._depth_cue_range(self._near_far_clip())
+            else:
+                r = self._depth_cue_range(self._near_far_clip)
+            p.set_vector2('depth_cue_range', r)
+
+    def _depth_cue_range(self, near_far):
+        lp = self.lighting
+        n,f = near_far
+        return (n + (f-n)*lp.depth_cue_start,
+                n + (f-n)*lp.depth_cue_end)
 
     def set_single_color(self, color=None):
         '''
@@ -794,17 +824,23 @@ class Render:
 
     def set_multishadow_transforms(self, stf, ctf, shadow_depth):
         # Transform from camera coordinates to shadow map texture coordinates.
-        from numpy import array, float32
         if ctf is None:
-            mt = array([tf.opengl_matrix() for tf in stf], float32)
+            mt = stf.opengl_matrices()
+        elif self.recording_opengl:
+            from .gllist import Mat44Func
+            mt = Mat44Func('multishadow matrices', lambda: (stf * ctf()).opengl_matrices(), len(stf))
         else:
-            mt = array([(tf * ctf).opengl_matrix() for tf in stf], float32)
+            mt = (stf * ctf).opengl_matrices()
         self._multishadow_transforms = mt
         self._multishadow_depth = shadow_depth
 
         # TODO: Issue warning if maximum number of shadows exceeded.
         maxs = self.max_multishadows()
-        mm = mt[:maxs, :, :]
+
+        if self.recording_opengl:
+            mm = mt
+        else:
+            mm = mt[:maxs, :, :]
         offset = 0
         GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._multishadow_matrix_buffer())
         GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, offset, mm.nbytes, mm)
@@ -1057,31 +1093,22 @@ class Render:
         if rgba is None:
             from numpy import empty, uint8
             rgba = empty((h, w, 4), uint8)
-        if front_buffer:
-            GL.glReadBuffer(GL.GL_FRONT)
+
+        if self.rendering_to_screen():
+            b = GL.GL_FRONT if front_buffer else GL.GL_BACK
+        else:
+            b = GL.GL_COLOR_ATTACHMENT0
+        GL.glReadBuffer(b)
         GL.glReadPixels(0, 0, w, h, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, rgba)
-        if front_buffer:
-            GL.glReadBuffer(GL.GL_BACK)
+
         return rgba
 
     def set_stereo_buffer(self, eye_num):
-        '''Set the draw and read buffers for the left eye (0) or right
-        eye (1).'''
+        '''Set the draw read buffer for the left eye (0) or right eye (1).'''
         self.full_viewport()
-        if not self.rendering_to_screen():
-            return
-        b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
-        GL.glDrawBuffer(b)
-        GL.glReadBuffer(b)
-
-    def set_mono_buffer(self):
-        '''Set the draw and read buffers for mono rendering.'''
-        self.full_viewport()
-        if not self.rendering_to_screen():
-            return
-        b = GL.GL_BACK
-        GL.glDrawBuffer(b)
-        GL.glReadBuffer(b)
+        if self.rendering_to_screen():
+            b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
+            GL.glDrawBuffer(b)
 
     def start_rendering_shadowmap(self, center, radius, size=1024):
 
@@ -1112,7 +1139,7 @@ class Render:
                 fb.delete()
             dt = Texture()
             dt.initialize_depth((size, size))
-            fb = Framebuffer(self.opengl_context, depth_texture=dt, color=False)
+            fb = Framebuffer('shadowmap', self.opengl_context, depth_texture=dt, color=False)
             if not fb.activate():
                 fb.delete()
                 return None           # Requested size exceeds framebuffer limits
@@ -1144,6 +1171,11 @@ class Render:
 
     def shadow_transforms(self, light_direction, center, radius,
                           depth_bias=0.005):
+
+        if self.recording_opengl:
+            from . import gllist
+            s = gllist.ShadowMatrixFunc(self, light_direction, center, radius, depth_bias)
+            return (s.lvinv, s.stf)
 
         # Projection matrix, orthographic along z
         from ..geometry import translation, scale, orthonormal_frame
@@ -1217,7 +1249,7 @@ class Render:
             mfb.delete()
         t = Texture()
         t.initialize_8_bit(size)
-        self.mask_framebuffer = mfb = Framebuffer(self.opengl_context, color_texture=t)
+        self.mask_framebuffer = mfb = Framebuffer('mask', self.opengl_context, color_texture=t)
         return mfb
 
     def make_outline_framebuffer(self, size):
@@ -1229,9 +1261,19 @@ class Render:
             ofb.delete()
         t = Texture()
         t.initialize_8_bit(size)
-        self.outline_framebuffer = ofb = Framebuffer(self.opengl_context, color_texture=t,
+        self.outline_framebuffer = ofb = Framebuffer('outline', self.opengl_context, color_texture=t,
                                                      depth=False)
         return ofb
+
+    def _texture_window(self, texture, shader_options, shifts=()):
+        tw = self._texture_win
+        if tw is None:
+            self._texture_win = tw = TextureWindow(self, shifts=shifts)
+        tw.activate()
+        tw.update_shifts(shifts)
+        texture.bind_texture()
+        self.opengl_shader(shader_options)
+        return tw
 
     def draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1)):
 
@@ -1246,17 +1288,17 @@ class Render:
         # then subtract unshifted copy to leave outline.  The depth
         # buffer is not used.  (Depth buffer was used to handle occlusion
         # in the mask texture passed to this routine.)
-        tc = TextureWindow(self, self.SHADER_TEXTURE_MASK)
-        texture.bind_texture()
-
-        # Draw 4 shifted copies of mask
         w, h = texture.size
         dx, dy = 1.0 / w, 1.0 / h
+        shifts = ((-dx, -dy), (dx, -dy), (dx, dy), (-dx, dy))
+        tc = self._texture_window(texture, self.SHADER_TEXTURE_MASK, shifts=shifts)
+
+        # Draw 4 shifted copies of mask
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA)
         self.set_texture_mask_color((1, 1, 1, 1))
-        for xs, ys in ((-dx, -dy), (dx, -dy), (dx, dy), (-dx, dy)):
-            tc.draw(xshift=xs, yshift=ys)
+        tc.draw_start()
+        tc.draw(shifted=True)
 
         # Erase unshifted copy of mask
         GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
@@ -1271,9 +1313,7 @@ class Render:
         outline.bind_texture()
         self.set_texture_mask_color(color)
         tc.draw()
-
-        # TODO: Probably should cache texture window.
-        tc.delete()
+        tc.draw_end()
 
     def set_texture_mask_color(self, color):
 
@@ -1315,7 +1355,8 @@ class Render:
         if sfb is None:
             dt = Texture()
             dt.initialize_depth(size, depth_compare_mode=False)
-            self._silhouette_framebuffer = sfb = Framebuffer(self.opengl_context, depth_texture=dt, alpha=alpha)
+            sfb = Framebuffer('silhouette', self.opengl_context, depth_texture=dt, alpha=alpha)
+            self._silhouette_framebuffer = sfb
         return sfb
 
     def draw_depth_outline(self, depth_texture, thickness=1,
@@ -1323,22 +1364,20 @@ class Render:
                            perspective_near_far_ratio=1):
         # Render pixels with depth in depth_texture less than neighbor pixel
         # by at least depth_jump. The depth buffer is not used.
-        tc = TextureWindow(self, self.SHADER_DEPTH_OUTLINE)
-        depth_texture.bind_texture()
+        tc = self._texture_window(depth_texture, self.SHADER_DEPTH_OUTLINE)
 
         # Draw 4 shifted copies of mask
         w, h = depth_texture.size
         dx, dy = 1.0 / w, 1.0 / h
         self.enable_blending(True)
         self.set_depth_outline_color(color)
+        tc.draw_start()
         for xs, ys in disk_grid(thickness):
             self.set_depth_outline_shift_and_jump(xs * dx, ys * dy, depth_jump,
                                                   perspective_near_far_ratio)
             tc.draw()
+        tc.draw_end()
         self.enable_blending(False)
-
-        # TODO: Probably should cache texture window.
-        tc.delete()
 
     def set_depth_outline_color(self, color):
 
@@ -1417,11 +1456,13 @@ class Framebuffer:
     OpenGL framebuffer for off-screen rendering.  Allows rendering colors
     and/or depth to a texture.
     '''
-    def __init__(self, opengl_context,
+    def __init__(self, name, opengl_context,
                  width=None, height=None,
                  color=True, color_texture=None,
                  depth=True, depth_texture=None,
                  alpha=False):
+
+        self.name = name	# For debugging
 
         if width is not None and height is not None:
             w, h = width, height
@@ -1443,11 +1484,13 @@ class Framebuffer:
 
         self._color_rb = None
         self._depth_rb = None
+        self._draw_buffer = GL.GL_COLOR_ATTACHMENT0
         self._deleted = False
 
         self._fbo = None
         if w is None:
             self._fbo = 0	# Default framebuffer
+            self._draw_buffer = GL.GL_BACK
 
         self._opengl_context = opengl_context
         
@@ -1482,8 +1525,10 @@ class Framebuffer:
                                          GL.GL_COLOR_ATTACHMENT0,
                                          GL.GL_RENDERBUFFER, color_buf)
         else:
+            # Need this or glCheckFramebufferStatus() fails with no color buffer.
             GL.glDrawBuffer(GL.GL_NONE)
             GL.glReadBuffer(GL.GL_NONE)
+            self._draw_buffer = GL.GL_NONE
 
         if isinstance(depth_buf, Texture):
             level = 0
@@ -1587,6 +1632,7 @@ class Framebuffer:
         if fbo is None:
             return False
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, fbo)
+        GL.glDrawBuffer(self._draw_buffer)
         return True
 
     def copy_from_framebuffer(self, framebuffer, color=True, depth=True):
@@ -1758,7 +1804,8 @@ class Bindings:
     attribute_id = {'position': 0, 'tex_coord': 1, 'normal': 2, 'vcolor': 3,
                     'instance_shift_and_scale': 4, 'instance_placement': 5}
 
-    def __init__(self, opengl_context):
+    def __init__(self, name, opengl_context):
+        self._name = name		# Used for debugging
         self._vao_id = None
         self._bound_attr_ids = {}        # Maps buffer to list of ids
         self._bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
@@ -2000,12 +2047,8 @@ class Buffer:
         '''
         Draw primitives using this buffer as the element buffer.
         All the required buffers are assumed to be already bound using a
-        vertex array object.
+        vertex array object including the element buffer.
         '''
-        # Don't bind element buffer since it is bound by VAO.
-        # TODO: Need to bind it because change to element buffer by update_buffer_data()
-        # erases the current binding and I don't have reliable code to restore that binding.
-        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.opengl_buffer)
         ne = self.buffered_array.size if count is None else count
         if offset is None:
             eo = None
@@ -2035,7 +2078,7 @@ class Shader:
         self._validated = False	# Don't validate program until uniforms set.
 
     def __str__(self):
-        caps = ', '.join(shader_capability_names(self.capabilities))
+        caps = ', '.join(n[7:] for n in shader_capability_names(self.capabilities))
         return 'shader %d, capabilities %s' % (self.program_id, caps)
 
     def set_integer(self, name, value):
@@ -2045,7 +2088,10 @@ class Shader:
         GL.glUniform1f(self.uniform_id(name), value)
 
     def set_vector(self, name, vector):
-        GL.glUniform3f(self.uniform_id(name), *tuple(vector))
+        GL.glUniform3fv(self.uniform_id(name), 1, vector)
+
+    def set_vector2(self, name, vector):
+        GL.glUniform2fv(self.uniform_id(name), 1, vector)
 
     def set_rgba(self, name, color):
         GL.glUniform4fv(self.uniform_id(name), 1, color)
@@ -2376,29 +2422,24 @@ class Texture:
 
 
 class TextureWindow:
-    '''Draw a texture on a full window rectangle. Don't test or write depth buffer.'''
-    def __init__(self, render, shader_options):
+    '''
+    Draw a texture on a full window rectangle. Don't test or write depth buffer.
+    Can optionally draw shifted texture using several x,y texture coordinate shifts.
+    '''
+    def __init__(self, render, shifts = ()):
 
+        self._shifts = shifts
+        
         # Must have vao bound before compiling shader.
-        self.vao = vao = Bindings(render.opengl_context)
+        self.vao = vao = Bindings('texture window', render.opengl_context)
         vao.activate()
 
-        p = render.opengl_shader(shader_options)
-        vao.shader = p
-
         self.vertex_buf = vb = Buffer(VERTEX_BUFFER)
-        from numpy import array, float32, int32
-        vb.update_buffer_data(array(((-1, -1, 0), (1, -1, 0), (1, 1, 0),
-                                    (-1, 1, 0)), float32))
-        vao.bind_shader_variable(vb)
         self.tex_coord_buf = tcb = Buffer(TEXTURE_COORDS_BUFFER)
-        tcb.update_buffer_data(array(((0, 0), (1, 0), (1, 1), (0, 1)),
-                                     float32))
-        vao.bind_shader_variable(tcb)
         self.element_buf = eb = Buffer(ELEMENT_BUFFER)
-        eb.update_buffer_data(array(((0, 1, 2), (0, 2, 3)), int32))
-        vao.bind_shader_variable(eb)    # Binds element buffer for rendering
 
+        self.update_shifts(shifts, initialize=True)
+            
     def __del__(self):
         if self.vao is not None:
             raise RuntimeError('core.graphics.TextureWindow delete() not called')
@@ -2412,19 +2453,50 @@ class TextureWindow:
             b.delete_buffer()
         self.vertex_buf = self.tex_coord_buf = self.element_buf = None
 
-    def draw(self, xshift=0, yshift=0):
-        xs, ys = xshift, yshift
-        tcb = self.tex_coord_buf
-        from numpy import array, float32
-        tcb.update_buffer_data(array(((xs, ys), (1 + xs, ys), (1 + xs, 1 + ys),
-                                     (xs, 1 + ys)), float32))
+    def update_shifts(self, shifts, initialize=False):
+        if not initialize and shifts == self._shifts:
+            return
+
+        va = [(-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0)]
+        tc = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        ta = [(0, 1, 2), (0, 2, 3)]
+        o = 4
+        for xs,ys in shifts:
+            va.extend(va[:4])
+            tc.extend([(xs, ys), (1 + xs, ys), (1 + xs, 1 + ys), (xs, 1 + ys)])
+            ta.extend([(o,o+1,o+2), (o,o+2,o+3)])
+            o += 4
+        from numpy import array, float32, int32
+        self.vertex_buf.update_buffer_data(array(va, float32))
+        self.tex_coord_buf.update_buffer_data(array(tc, float32))
+        self.element_buf.update_buffer_data(array(ta, int32))
+        self._bind_shader_variables()	# Rebind changed buffers
+
+        self._shifts = shifts
+
+    def _bind_shader_variables(self):
+        vao = self.vao
+        for b in (self.vertex_buf, self.tex_coord_buf, self.element_buf):
+            vao.bind_shader_variable(b)
+
+    def activate(self):
+        self.vao.activate()
+
+    def draw_start(self):
         GL.glDepthMask(False)   # Don't overwrite depth buffer
         GL.glDisable(GL.GL_DEPTH_TEST)	# Don't test depth buffer.
-        eb = self.element_buf
-        eb.draw_elements(eb.triangles)
+
+    def draw_end(self):
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthMask(True)
 
+    def draw(self, shifted=False):
+        if shifted:
+            offset, count = 6, 6*len(self._shifts)
+        else:
+            offset, count = 0, 6
+        eb = self.element_buf
+        eb.draw_elements(eb.triangles, offset = offset, count = count)
 
 def print_debug_log(tag, count=None):
     # GLuint glGetDebugMessageLog(GLuint count, GLsizei bufSize,

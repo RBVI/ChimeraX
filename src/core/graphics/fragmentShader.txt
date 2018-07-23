@@ -57,6 +57,7 @@ layout(std140) uniform lighting_block
   vec3 fill_light_direction;
   vec3 fill_light_diffuse_color;
   vec3 ambient_color;
+  vec3 depth_cue_color;
 };
 
 in vec3 N;
@@ -67,9 +68,7 @@ in vec3 vshadow;
 #endif
 
 #ifdef USE_DEPTH_CUE
-uniform float depth_cue_start;
-uniform float depth_cue_end;
-uniform vec3 depth_cue_color;
+uniform vec2 depth_cue_range;	// start and end camera z values
 #endif
 
 #ifdef USE_SHADOWS
@@ -196,10 +195,12 @@ void main (void)
   Ifrag *= texture(tex3d, ambient_tex_coord).r;
 #endif
 
+#ifdef USE_LIGHTING
 #ifdef USE_DEPTH_CUE
   float d = -v.z;	// Distance from eye to fragment.
-  float dim = (depth_cue_end - d) / (depth_cue_end - depth_cue_start);
+  float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
   Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
+#endif
 #endif
 
 #else

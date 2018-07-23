@@ -1074,8 +1074,8 @@ class Drawing:
             b.buffer_attribute_name = a
             vb.append(b)
 
-        self._draw_shape = _DrawShape(vb)
-        self._draw_selection = _DrawShape(vb)
+        self._draw_shape = _DrawShape(self.name, vb)
+        self._draw_selection = _DrawShape(self.name + ' selection', vb)
 
     _effects_buffers = set(
         ('_vertices', '_normals', '_vertex_colors', 'texture_coordinates',
@@ -1309,13 +1309,11 @@ def opaque_count(rgba):
     from . import _graphics
     return _graphics.count_value(rgba[:,3], 255)
 
-def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
+def _draw_drawings(renderer, drawings, opaque_only = False):
     '''
-    Render opaque and transparent draw passes for a given set of drawings,
-    and given camera view (inverse camera transform).
+    Render opaque and transparent draw passes for a given set of drawings.
     '''
     r = renderer
-    r.set_view_matrix(cvinv)
     from ..geometry import Place
     p = Place()
     _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
@@ -1351,12 +1349,12 @@ def _any_transparent_drawings(drawings):
     return False
 
 
-def draw_depth(renderer, cvinv, drawings, opaque_only = True):
+def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
                                   r.SHADER_DEPTH_CUE | r.SHADER_VERTEX_COLORS | r.SHADER_TEXTURE_2D)
-    draw_drawings(r, cvinv, drawings, opaque_only)
+    _draw_drawings(r, drawings, opaque_only)
     r.disable_shader_capabilities(0)
 
 
@@ -1386,10 +1384,9 @@ def draw_overlays(drawings, renderer):
     r.disable_shader_capabilities(0)
 
 
-def draw_selection_outline(renderer, cvinv, drawings):
+def draw_selection_outline(renderer, drawings):
     '''Draw the outlines of selected parts of the specified drawings.'''
     r = renderer
-    r.set_view_matrix(cvinv)
     r.start_rendering_outline()
     from ..geometry import Place
     p = Place()
@@ -1457,8 +1454,10 @@ def _element_type(display_style):
 
 class _DrawShape:
 
-    def __init__(self, vertex_buffers):
+    def __init__(self, name, vertex_buffers):
 
+        self._name = name			# Use for debbugging
+        
         # Arrays derived from positions, colors and geometry
         self.instance_shift_and_scale = None   # N by 4 array, (x, y, z, scale)
         self.instance_matrices = None	    # matrices for displayed instances
@@ -1670,7 +1669,7 @@ class _DrawShape:
         bi = self.bindings
         if bi is None:
             from . import opengl
-            self.bindings = bi = opengl.Bindings(renderer.opengl_context)
+            self.bindings = bi = opengl.Bindings(self._name, renderer.opengl_context)
 
         bi.activate()
         self.update_buffers()
