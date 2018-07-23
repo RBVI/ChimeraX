@@ -715,14 +715,16 @@ ExtractMolecule::finished_parse()
         const string& entity_id = ri->first.entity_id;
         if (poly.find(entity_id) == poly.end())
             continue;
-        vector<ResName> seqres;
-        vector<Residue *> residues;
         const PolySeq* lastp = nullptr;
         bool gap = false;
         vector<Residue*> previous, current;
         ChainID auth_chain_id;
         auto& entity_poly = poly.at(entity_id);
         bool nstd = entity_poly.nstd;
+        vector<ResName> seqres;
+        vector<Residue *> residues;
+        seqres.reserve(entity_poly.seq.size());
+        residues.reserve(entity_poly.seq.size());
         for (auto& p: entity_poly.seq) {
             auto ri = residue_map.find(ResidueKey(entity_id, p.seq_id, p.mon_id));
             if (ri == residue_map.end()) {
@@ -731,22 +733,22 @@ ExtractMolecule::finished_parse()
                     seqres.push_back(p.mon_id);
                     residues.push_back(nullptr);
                 }
-                lastp = &p;
                 if (current.empty())
                     continue;
                 if (!previous.empty())
                     connect_polymer_pair(previous, current, gap, nstd);
                 previous = std::move(current);
                 current.clear();
-                gap = true;
+                if (!lastp || lastp->seq_id != p.seq_id) {
+                    // microheterogenetity doesn't introduce gaps
+                    gap = true;
+                }
+                lastp = &p;
                 continue;
             }
             Residue* r = ri->second;
-            if (auth_chain_id.empty()) {
+            if (auth_chain_id.empty())
                 auth_chain_id = r->chain_id();
-                seqres.reserve(entity_poly.seq.size());
-                residues.reserve(entity_poly.seq.size());
-            }
             if (lastp && lastp->seq_id == p.seq_id) {
                 string c_id;
                 if (auth_chain_id == " ")
