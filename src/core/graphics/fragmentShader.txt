@@ -40,16 +40,24 @@ void main (void)
 in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
 uniform vec4 color;
-uniform vec4 depth_shift_and_jump;
+uniform vec2 jump;	// depth jump and near/far ratio.
+uniform vec3 step;	// dx,dy,thickness
 out vec4 frag_color;
 
 void main (void)
 {
   float d0 = texture(tex2d, tex_coord_2d).r;
-  float ds = texture(tex2d, vec2(tex_coord_2d.s+depth_shift_and_jump.s, tex_coord_2d.t+depth_shift_and_jump.t)).r;
-  float nf = depth_shift_and_jump.q;	// Correct depth compression based on perspective near/far ratio.
+  float ds = d0;
+  float thickness = step.p;
+  int r = int(thickness);
+  float r2 = thickness*thickness;
+  for (int i = -r ; i <= r ; ++i)
+    for (int j = -r ; j <= r ; ++j)
+      if (i*i + j*j <= r2 && !(i == 0 && j == 0))
+        ds = min(ds, texture(tex2d, vec2(tex_coord_2d.s+i*step.s, tex_coord_2d.t+j*step.t)).r);
+  float nf = jump.t;	// Correct depth compression based on perspective near/far ratio.
   float nf1 = 1-nf;
-  if (nf*(d0-ds) < depth_shift_and_jump.p * (1-nf1*ds) * (1-nf1*d0))
+  if (nf*(d0-ds) < jump.s * (1-nf1*ds) * (1-nf1*d0))
      discard;
   frag_color = color;
 }

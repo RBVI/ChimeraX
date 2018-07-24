@@ -1273,10 +1273,7 @@ class Render:
         p = self.current_shader_program
         p.set_vector2('step', (dx, dy))
         p.set_rgba('color', color)
-
-        tc.draw_start()
         tc.draw()
-        tc.draw_end()
 
     def set_texture_mask_color(self, color):
         p = self.current_shader_program
@@ -1316,6 +1313,7 @@ class Render:
             sfb = None
         if sfb is None:
             dt = Texture()
+            dt.linear_interpolation = False
             dt.initialize_depth(size, depth_compare_mode=False)
             sfb = Framebuffer('silhouette', self.opengl_context, depth_texture=dt, alpha=alpha)
             self._silhouette_framebuffer = sfb
@@ -1328,32 +1326,13 @@ class Render:
         # by at least depth_jump. The depth buffer is not used.
         tc = self._texture_window(depth_texture, self.SHADER_DEPTH_OUTLINE)
 
-        # Draw 4 shifted copies of mask
+        p = self.current_shader_program
+        p.set_rgba("color", color)
+        p.set_vector2("jump", (depth_jump, perspective_near_far_ratio))
         w, h = depth_texture.size
         dx, dy = 1.0 / w, 1.0 / h
-        self.enable_blending(True)
-        self.set_depth_outline_color(color)
-        tc.draw_start()
-        for xs, ys in disk_grid(thickness):
-            self.set_depth_outline_shift_and_jump(xs * dx, ys * dy, depth_jump,
-                                                  perspective_near_far_ratio)
-            tc.draw()
-        tc.draw_end()
-        self.enable_blending(False)
-
-    def set_depth_outline_color(self, color):
-
-        p = self.current_shader_program
-        if p is not None:
-            p.set_rgba("color", color)
-
-    def set_depth_outline_shift_and_jump(self, xs, ys, depth_jump,
-                                         perspective_near_far_ratio):
-
-        p = self.current_shader_program
-        if p is not None:
-            v = (xs, ys, depth_jump, perspective_near_far_ratio)
-            p.set_float4("depth_shift_and_jump", v)
+        p.set_vector3("step", (dx, dy, thickness))
+        tc.draw(blend = True)
 
     def finish_rendering(self):
         GL.glFinish()
@@ -1372,17 +1351,6 @@ class Render:
         if p is not None and p.capabilities & self.SHADER_STEREO_360:
             p.set_float4("camera_origin_and_shift", tuple(camera_origin) + (x_shift,))
             p.set_float4("camera_vertical", tuple(camera_y) + (0,))
-
-def disk_grid(radius, exclude_origin=True):
-    r = int(radius)
-    r2 = radius * radius
-    ij = []
-    for i in range(-r, r + 1):
-        for j in range(-r, r + 1):
-            if (i * i + j * j <= r2
-                    and (not exclude_origin or i != 0 or j != 0)):
-                ij.append((i, j))
-    return ij
 
 # Options used with Render.shader()
 shader_options = (
@@ -2054,6 +2022,9 @@ class Shader:
     def set_vector2(self, name, vector):
         GL.glUniform2fv(self.uniform_id(name), 1, vector)
 
+    def set_vector3(self, name, vector):
+        GL.glUniform3fv(self.uniform_id(name), 1, vector)
+
     def set_rgba(self, name, color):
         GL.glUniform4fv(self.uniform_id(name), 1, color)
 
@@ -2428,21 +2399,23 @@ class TextureWindow:
     def activate(self):
         self.vao.activate()
 
-    def draw_start(self):
+    def draw(self, blend = False):
+        if blend:
+            GL.glEnable(GL.GL_BLEND)
+            GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+
         GL.glDepthMask(False)   # Don't overwrite depth buffer
         GL.glDisable(GL.GL_DEPTH_TEST)	# Don't test depth buffer.
 
-    def draw_end(self):
+        offset, count = 0, 6
+        eb = self.element_buf
+        eb.draw_elements(eb.triangles, offset = offset, count = count)
+
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthMask(True)
 
-    def draw(self, shifted=False):
-        if shifted:
-            offset, count = 6, 6*len(self._shifts)
-        else:
-            offset, count = 0, 6
-        eb = self.element_buf
-        eb.draw_elements(eb.triangles, offset = offset, count = count)
+        if blend:
+            GL.glDisable(GL.GL_BLEND)
 
 def print_debug_log(tag, count=None):
     # GLuint glGetDebugMessageLog(GLuint count, GLsizei bufSize,
