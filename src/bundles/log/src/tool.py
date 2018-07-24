@@ -199,6 +199,7 @@ class Log(ToolInstance, HtmlLog):
                 from PyQt5.QtCore import QSize
                 return QSize(600, 300)
         self.error_dialog = BiggerErrorDialog(parent)
+        self._add_report_bug_button()
         layout = QGridLayout(parent)
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(self.log_window, 0, 0)
@@ -212,6 +213,42 @@ class Log(ToolInstance, HtmlLog):
             lw.history().clear()
         lw.loadFinished.connect(clear_history)
         self.show_page_source()
+
+    def _add_report_bug_button(self):
+        '''
+        Add "Report a Bug" button to the error dialog.
+        Unfortunately the QErrorMessage dialog being used has no API to add a button.
+        So this code uses that implementation details of QErrorMessage to add the button.
+        We could instead emulate QErrorMessage with a QMessageBox but it would require
+        adding the queueing and "Show this message again" checkbox.
+        '''
+        ed = self.error_dialog
+        el = ed.layout()
+        from PyQt5.QtWidgets import QGridLayout, QPushButton, QHBoxLayout
+        if isinstance(el, QGridLayout):
+            i = 0
+            while True:
+                item = el.itemAt(i)
+                if item is None or isinstance(item.widget(), QPushButton):
+                    break
+                i += 1
+            if item is not None:
+                row, col, rowspan, colspan = el.getItemPosition(i)
+                w = item.widget()
+                el.removeWidget(w)
+                brow = QHBoxLayout()
+                brow.addStretch(1)
+                brow.addWidget(w)
+                rb = QPushButton('Report Bug')
+                rb.clicked.connect(self._report_a_bug)
+                brow.addWidget(rb)
+                el.addLayout(brow, row, col, rowspan, colspan)
+
+    def _report_a_bug(self):
+        '''Show the bug report tool.'''
+        from chimerax.core.commands.toolshed import toolshed_show
+        toolshed_show(self.session, 'Bug Reporter')
+        self.error_dialog.done(0)
 
     #
     # Implement logging
