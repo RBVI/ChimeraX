@@ -35,7 +35,9 @@ Bond::Bond(Structure* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
     if (a1->structure() != as || a2->structure() != as)
         throw std::invalid_argument("Cannot bond atoms in different molecules");
 
-    if (a1->structure()->_chains != nullptr) { // chains have been computed
+    // if make_chains() has not been called and we're not still constructing the
+    // structure (no Python instance yet), then a new Bond may form new chains...
+    if (a1->structure()->_chains != nullptr && a1->structure()->py_instance(false) != Py_None) {
         auto start_a = polymeric_start_atom();
         if (start_a != nullptr) {
             auto other_a = other_atom(start_a);

@@ -51,6 +51,7 @@ using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Coord;
 using atomstruct::Sequence;
+using atomstruct::PolymerType;
 
 using atomstruct::AtomName;
 using atomstruct::ChainID;
@@ -88,15 +89,15 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
     // https://github.com/rcsb/mmtf/blob/v1.0/spec.md#traversal
 
     // detect optional data
-    bool has_bond_atom_list = data.bondAtomList.size() > 0;
-    bool has_bond_order_list = data.bondOrderList.size() > 0;
-    bool has_b_factor_list = data.bFactorList.size() > 0;
-    bool has_occupancy_list = data.occupancyList.size() > 0;
-    bool has_alt_loc_list = data.altLocList.size() > 0;
-    bool has_sec_struct_list = data.secStructList.size() > 0;
-    bool has_ins_code_list = data.insCodeList.size() > 0;
-    bool has_sequence_index_list = data.sequenceIndexList.size() > 0;
-    bool has_chain_name = data.chainNameList.size() > 0;
+    bool has_bond_atom_list = !mmtf::isDefaultValue(data.bondAtomList);
+    bool has_bond_order_list = !mmtf::isDefaultValue(data.bondOrderList);
+    bool has_b_factor_list = !mmtf::isDefaultValue(data.bFactorList);
+    bool has_occupancy_list = !mmtf::isDefaultValue(data.occupancyList);
+    bool has_alt_loc_list = !mmtf::isDefaultValue(data.altLocList);
+    bool has_sec_struct_list = !mmtf::isDefaultValue(data.secStructList);
+    bool has_ins_code_list = !mmtf::isDefaultValue(data.insCodeList);
+    bool has_sequence_index_list = !mmtf::isDefaultValue(data.sequenceIndexList);
+    bool has_chain_name = !mmtf::isDefaultValue(data.chainNameList);
 
     int32_t chain_index = -1;
     int32_t group_index = -1;
@@ -107,12 +108,16 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
     models.reserve(16);  // reduce memory use
 
     // Add single letter codes for non-standard residues
-    for (size_t i = 0; i < data.groupList.size(); ++i) {
+    // TODO: speed up by using map of known chemCompTypes
+    const auto group_count = data.groupList.size();
+    for (size_t i = 0; i < group_count; ++i) {
         auto& g = data.groupList[i];
         auto& type = g.chemCompType;
         bool is_peptide = type.find("PEPTIDE") != string::npos;
         bool is_nucleotide = type.find("DNA ") == string::npos
             || type.find("RNA ") == string::npos;
+        if (!is_peptide && !is_nucleotide)
+            continue;
         ResName name = ResName(g.groupName.c_str());
         char code = g.singleLetterCode;
         if (code) {
@@ -128,18 +133,20 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
 
     // compute which entity corresponds to a chain
     vector<int> per_chain_entity_index(data.numChains);
-    for (size_t i = 0; i < data.entityList.size(); ++i) {
+    const auto entity_count = data.entityList.size();
+    for (size_t i = 0; i < entity_count; ++i) {
         for (auto j: data.entityList[i].chainIndexList) {
             per_chain_entity_index[j] = i;
         }
     }
 
     // Traverse data and contruct structures
-    for (size_t model_index = 0; model_index < data.numModels; ++model_index) {
+    const auto model_count = data.numModels;
+    for (size_t model_index = 0; model_index < model_count; ++model_index) {
         auto m = new AtomicStructure(_logger);
         models.push_back(m);
-        size_t model_chain_count = data.chainsPerModel[model_index];
         // traverse chains
+        const size_t model_chain_count = data.chainsPerModel[model_index];
         for (size_t _model_chain = 0; _model_chain < model_chain_count; ++_model_chain) {
             chain_index += 1;
             string chain_id = data.chainIdList[chain_index];
@@ -148,19 +155,11 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 chain_name = data.chainNameList[chain_index];
             else
                 chain_name = chain_id;
-            int32_t chain_group_count = data.groupsPerChain[chain_index];
             auto& entity = data.entityList[per_chain_entity_index[chain_index]];
-
-            if (entity.type == "polymer") {
-                // Sequence code has been extended to accept single-letter
-                // residue names
-                vector<ResName> seqres;
-                seqres.reserve(entity.sequence.size());
-                for (auto c: entity.sequence)
-                    seqres.emplace_back(string(1, c).c_str());
-                m->set_input_seq_info(chain_name.c_str(), seqres);
-                m->input_seq_source = "MMTF sequence";
-            }
+            bool is_polymer = entity.type == "polymer";
+            vector<Residue*> residues;
+            if (is_polymer && has_sequence_index_list)
+                residues.reserve(entity.sequence.size());
 
             // traverse groups
             const char* last_ss = nullptr;
@@ -169,8 +168,8 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
             int last_sequence_index = -1;
             Residue* last_residue = nullptr;
             bool gap = false;
-
             vector<std::pair<Residue*, Residue*>> gaps;
+            const auto chain_group_count = data.groupsPerChain[chain_index];
             for (auto _chain_group = 0; _chain_group < chain_group_count; ++_chain_group) {
                 group_index += 1;
                 auto group_id = data.groupIdList[group_index];  // ordinal
@@ -180,9 +179,9 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                         ins_code = ' ';
                 }
 
-                group_id = data.groupIdList[group_index];
                 auto group_type = data.groupTypeList[group_index];
                 auto& group = data.groupList[group_type];
+                const auto& atom_name_list = group.atomNameList;
 
                 int8_t sec_struct;
                 int sequence_index;
@@ -190,15 +189,25 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                     sec_struct = data.secStructList[group_index];
                 if (has_sequence_index_list) {
                     sequence_index = data.sequenceIndexList[group_index];
-                    if (entity.type == "polymer")
-                        gap = sequence_index != last_sequence_index + 1;
-                    else
+                    if ((is_polymer && sequence_index == -1) || (sequence_index == last_sequence_index)) {
+                        // ignore missing residue or microheterogeneity
+                        atom_index += atom_name_list.size();
+                        continue;
+                    }
+                    if (!is_polymer)
                         gap = false;
+                    else {
+                        const int gap_size = sequence_index - (last_sequence_index + 1);
+                        gap = gap_size > 0;
+                        if (gap) {
+                            for (int i = 0; i < gap_size; ++i)
+                                residues.push_back(nullptr);
+                        }
+                    }
                     last_sequence_index = sequence_index;
                 }
 
                 const string& group_name = group.groupName;
-                const auto& atom_name_list = group.atomNameList;
                 const auto& element_list = group.elementList;
                 const auto& bond_atom_list = group.bondAtomList;
                 // formal_charge_list = group.formalChargeList;  // TODO
@@ -208,6 +217,8 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 if (gap && last_residue)
                     gaps.emplace_back(last_residue, r);
                 last_residue = r;
+                if (is_polymer && has_sequence_index_list)
+                    residues.push_back(r);
                 if (has_sec_struct_list) {
                     // Code    Name
                     //   0   pi helix
@@ -233,12 +244,12 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                         last_ss = STRAND;
                     } else
                         last_ss = nullptr;
-
                 }
+
                 // traverse atoms
                 auto start_atom = atom_index + 1;
                 map<string, Atom*> group_alt_atoms;
-                auto group_atom_count = atom_name_list.size();
+                const auto group_atom_count = atom_name_list.size();
                 for (size_t i = 0; i < group_atom_count; ++i) {
                     atom_index += 1;
 
@@ -280,7 +291,8 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 }
 
                 // connect bonds in residue
-                for (size_t i = 0; i < bond_atom_list.size(); i += 2) {
+                const auto bond_count = bond_atom_list.size();
+                for (size_t i = 0; i < bond_count; i += 2) {
                     // bond_order = bond_order_list[i / 2];  // TODO
                     auto a0 = atoms[start_atom + bond_atom_list[i]];
                     auto a1 = atoms[start_atom + bond_atom_list[i + 1]];
@@ -299,15 +311,32 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 if (missing_pbg == nullptr)
                     missing_pbg = m->pb_mgr().get_group(
                         m->PBG_MISSING_STRUCTURE, atomstruct::AS_PBManager::GRP_NORMAL);
-                for (auto& residues : gaps) {
-                    Residue* r0 = residues.first;
-                    Residue* r1 = residues.second;
+                for (auto& g : gaps) {
+                    Residue* r0 = g.first;
+                    Residue* r1 = g.second;
                     Atom* a0 = nullptr;
                     Atom* a1 = nullptr;
                     find_nearest_pair(r0, r1, &a0, &a1);
                     if (a1 != nullptr)
                         missing_pbg->new_pseudobond(a0, a1);
                 }
+            }
+
+            if (is_polymer) {
+                // Sequence code has been extended to accept single-letter
+                // residue names
+                const int end_gap_size = entity.sequence.size() - last_sequence_index - 1;
+                for (int i = 0; i < end_gap_size; ++i)
+                    residues.push_back(nullptr);
+                vector<ResName> seqres;
+                seqres.reserve(entity.sequence.size());
+                for (auto c: entity.sequence)
+                    seqres.emplace_back(string(1, c).c_str());
+                if (has_sequence_index_list)
+                    m->set_input_seq_info(chain_name.c_str(), seqres, &residues);
+                else
+                    m->set_input_seq_info(chain_name.c_str(), seqres);
+                m->input_seq_source = "MMTF sequence";
             }
         }
     }
@@ -320,6 +349,8 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
             // bond_order = data.bondOrderList[i / 2];    // TODO
             auto a0 = atoms[bond_atom_list[i]];
             auto a1 = atoms[bond_atom_list[i + 1]];
+            if (a0 == nullptr || a1 == nullptr)
+                continue;
             // TODO:
             //    can bonds connect two models?
             //    if so, create pseudobond
@@ -334,8 +365,10 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
         }
     }
 
-    for (auto m : models)
+    for (auto m : models) {
         find_and_add_metal_coordination_bonds(m);
+        m->use_best_alt_locs();
+    }
 
     return models;
 }

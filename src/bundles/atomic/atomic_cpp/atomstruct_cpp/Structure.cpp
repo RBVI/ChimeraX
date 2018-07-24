@@ -1449,8 +1449,15 @@ Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName
         if (correspondences->size() != res_names.size())
             throw std::invalid_argument(
                 "Sequence length differs from number of corresponding residues");
-        if (pt == PT_NONE)
-            throw std::invalid_argument("Polymer type of input sequence not specified");
+        if (pt == PT_NONE) {
+            for (auto rn: res_names) {
+                pt = Sequence::rname_polymer_type(rn);
+                if (pt != PT_NONE)
+                    break;
+            }
+            if (pt == PT_NONE)
+                throw std::invalid_argument("Cannot determine polymer type of input sequence");
+        }
         if (_chains == nullptr)
             _chains = new Chains();
         auto chain = _new_chain(chain_id, pt);
