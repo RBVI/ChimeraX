@@ -13,16 +13,26 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#ifdef USE_TEXTURE_MASK
+#ifdef USE_TEXTURE_OUTLINE
 
 in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
 uniform vec4 color;
+uniform vec2 step;
 out vec4 frag_color;
+
 void main (void)
 {
-  float f = ceil(texture(tex2d, tex_coord_2d).r);
-  frag_color = color * f;
+  float m0 = texture(tex2d, tex_coord_2d).r;
+  if (m0 != 0)
+    discard;
+  float mn = texture(tex2d, vec2(tex_coord_2d.s+step.s, tex_coord_2d.t)).r;
+  mn = max(mn, texture(tex2d, vec2(tex_coord_2d.s-step.s, tex_coord_2d.t)).r);
+  mn = max(mn, texture(tex2d, vec2(tex_coord_2d.s, tex_coord_2d.t+step.t)).r);
+  mn = max(mn, texture(tex2d, vec2(tex_coord_2d.s, tex_coord_2d.t-step.t)).r);
+  if (mn == 0)
+    discard;
+  frag_color = color;
 }
 
 #elif defined(USE_DEPTH_OUTLINE)
