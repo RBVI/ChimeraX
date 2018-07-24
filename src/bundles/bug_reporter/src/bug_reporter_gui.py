@@ -52,18 +52,16 @@ class BugReporter(ToolInstance):
         row = 1
         
         intro = '''
-        <center><h1>Submit a Bug</h1></center>
+        <center><h1>Report a Bug</h1></center>
         <p>Thank you for using our feedback system.
 	  Feedback is greatly appreciated and plays a crucial role
 	  in the development of ChimeraX.</p>
-	  <p><b>Note</b>:  We do not automatically collect any personal
-	  information or the data you were working with in ChimeraX when
-	  the problem occurred.
-	  Providing your e-mail address is optional,
-	  but will allow us to contact you if more information is needed
-	  and/or notify you when the bug has been fixed.
-	  Any personal information you wish to provide should be
-	  provided separately, and will be kept strictly confidential.</p>
+	  <p><b>Note</b>:
+          We do not automatically collect any personal information or the data
+          you were working with when the problem occurred.  Providing your e-mail address is optional,
+          but will allow us to inform you of a fix or to ask questions, if needed.
+          Attaching data may also be helpful.  However, any information or data
+          you wish to keep confidential should be sent separately (not using this form).</p>
         '''
         il = QLabel(intro)
         il.setWordWrap(True)
