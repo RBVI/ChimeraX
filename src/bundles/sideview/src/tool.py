@@ -42,9 +42,6 @@ class OrthoCamera(Camera):
     def number_of_views(self):
         return 1
 
-    def set_render_target(self, view_num, render):
-        render.set_mono_buffer()
-
     def combine_rendered_camera_views(self, render):
         return
 
