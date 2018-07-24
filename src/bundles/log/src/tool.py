@@ -246,8 +246,8 @@ class Log(ToolInstance, HtmlLog):
 
     def _report_a_bug(self):
         '''Show the bug report tool.'''
-        from chimerax.core.commands.toolshed import toolshed_show
-        toolshed_show(self.session, 'Bug Reporter')
+        from chimerax.bug_reporter import show_bug_reporter
+        show_bug_reporter(self.session)
         self.error_dialog.done(0)
 
     #
