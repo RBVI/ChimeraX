@@ -30,6 +30,9 @@ class BugReporter(ToolInstance):
         
         ToolInstance.__init__(self, session, tool_name)
 
+        from .settings import BugReporterSettings
+        self.settings = BugReporterSettings(session, 'Bug Reporter')
+
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
         self.tool_window = tw
@@ -70,14 +73,14 @@ class BugReporter(ToolInstance):
         cnl = QLabel('Contact Name:')
         cnl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
         layout.addWidget(cnl, row, 1)
-        self.contact_name = cn = QLineEdit('')
+        self.contact_name = cn = QLineEdit(self.settings.contact_name)
         layout.addWidget(cn, row, 2)
         row += 1
 
         eml = QLabel('Email Address:')
         eml.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
         layout.addWidget(eml, row, 1)
-        self.email_address = em = QLineEdit('')
+        self.email_address = em = QLineEdit(self.settings.email_address)
         layout.addWidget(em, row, 2)
         row += 1
 
@@ -98,7 +101,7 @@ class BugReporter(ToolInstance):
         dl = QLabel('Description:')
         dl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
         layout.addWidget(dl, row, 1)
-        self.description = d = TextEdit('', 2)
+        self.description = d = TextEdit('', 3)
         d.setText('<font color=blue>(Describe the actions that caused this problem to occur here)</font>')
         layout.addWidget(d, row, 2)
         row += 1
@@ -189,6 +192,9 @@ class BugReporter(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
+    def set_description(self, text):
+        self.description.setText(text)
+
     def submit(self):
 
         entry_values = self.entry_values()
@@ -231,6 +237,9 @@ class BugReporter(ToolInstance):
             self.report_success()
             self.cancel_button.setText("Close")
             self.submit_button.deleteLater()	# Prevent second submission
+            s = self.settings
+            s.contact_name = self.contact_name.text()
+            s.email_address = self.email_address.text()
         else:
             self.report_failure()
 
