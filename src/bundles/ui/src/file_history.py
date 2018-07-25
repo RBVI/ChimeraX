@@ -25,7 +25,7 @@ class FileHistory:
 
         self.file_history_window = fhw = HistoryWindow(session, parent, **kw)
 
-        from PyQt5.QtWidgets import QGridLayout, QErrorMessage
+        from PyQt5.QtWidgets import QGridLayout
         layout = QGridLayout(parent)
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(self.file_history_window, 0, 0)

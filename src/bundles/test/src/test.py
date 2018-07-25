@@ -32,6 +32,7 @@ commands = [
     'wait 20',
     'close',
     'open 1a0m',
+    'addh hb f',
     '~display /b',
     'style stick',
     'ribbon /b',

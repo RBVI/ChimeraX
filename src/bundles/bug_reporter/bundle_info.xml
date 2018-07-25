@@ -1,0 +1,29 @@
+<BundleInfo name="ChimeraX-Bug-Reporter" version="1.0"
+	    package="chimerax.bug_reporter"
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Report bugs when an error occurs</Synopsis>
+  <Description>
+    Tool to allow sending a ChimeraX bug report when an error occurs.
+  </Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Bug Reporter :: General :: Report bugs</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

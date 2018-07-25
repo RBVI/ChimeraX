@@ -332,16 +332,15 @@ _tree_dist = 3.25
 _metal_dist = 3.6
 h_rad = 1.0
 def _make_shared_data(session, protonation_models, in_isolation):
-    from chimerax.core.geometry import AdaptiveTree, distance_squared
+    from chimerax.core.geometry import distance_squared
+    from chimerax.atomic.search import AtomSearchTree
     # since adaptive search tree is static, it will not include
     # hydrogens added after this; they will have to be found by
     # looking off their heavy atoms
     global search_tree, _radii, _metals, ident_pos_models, _h_coloring, _solvent_atoms
     _radii = {}
-    xyzs = []
-    vals = []
-    metal_xyzs = []
-    metal_vals = []
+    search_atoms = []
+    metal_atoms = []
     # if we're adding hydrogens to unopen models, add those models to open models...
     pm_set = set(protonation_models)
     if in_isolation:
@@ -368,14 +367,14 @@ def _make_shared_data(session, protonation_models, in_isolation):
         if m not in ident_pos_models:
             ident_pos_models[m] = set()
         for a in m.atoms:
-            xyzs.append(a._addh_coord)
-            vals.append(a)
+            search_atoms.append(a)
             _radii[a] = a.radius
             if a.element.is_metal:
-                metal_xyzs.append(a.coord)
-                metal_vals.append(a)
-    search_tree = AdaptiveTree(xyzs, vals, _tree_dist)
-    _metals = AdaptiveTree(metal_xyzs, metal_vals, _metal_dist)
+                metal_atoms.append(a)
+    from chimerax.atomic import Atom
+    use_scene_coords = Atom._addh_coord == Atom.scene_coord
+    search_tree = AtomSearchTree(search_atoms, sep_val=_tree_dist, scene_coords=use_scene_coords)
+    _metals = AtomSearchTree(metal_atoms, sep_val=_metal_dist, scene_coords=use_scene_coords)
     from weakref import WeakKeyDictionary
     _h_coloring = WeakKeyDictionary()
     _solvent_atoms = WeakKeyDictionary()
@@ -606,7 +605,7 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
             hydrogen_totals, his_Ns, coordinations, fake_N, fake_C
 
 def find_nearest(pos, atom, exclude, check_dist, avoid_metal_info=None):
-    nearby = search_tree.search_tree(pos, check_dist)
+    nearby = search_tree.search(pos, check_dist)
     near_pos = n = near_atom = None
     exclude_pos = set([tuple(ex._addh_coord) for ex in exclude])
     exclude_pos.add(tuple(atom._addh_coord))
@@ -666,7 +665,7 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
     radius = sin70_5 * bond_len
     check_dist += radius
 
-    nearby = search_tree.search_tree(center, check_dist)
+    nearby = search_tree.search(center, check_dist)
     near_pos = n = near_atom = None
     for nb in nearby:
         # using numpy.allclose() is *very* slow, so...
@@ -805,7 +804,7 @@ def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogen
 def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info,
         alt_loc):
     global _serial, _metals
-    nearby_metals = _metals.search_tree(pos, _metal_dist)
+    nearby_metals = _metals.search(pos, _metal_dist)
     for metal in nearby_metals:
         if metal.structure != parent_atom.structure:
             continue
