@@ -42,7 +42,7 @@ class Log:
     excludes_other_logs = False
 
     def status(self, msg, color, secondary):
-        """Show a status message.
+        """Supported API. Show a status message.
 
         Parameters
         ----------
@@ -72,7 +72,7 @@ class Log:
         return False
 
     def log(self, level, msg):
-        """Log a message.
+        """Supported API. Log a message.
 
         Must be overriden by subclass.
 
@@ -88,13 +88,13 @@ class Log:
 
 
 # note: HtmlLog and PlainTextLog were originally abstract classes, but
-# multiply inheriting from C++ wrapped classes (like Wx) is _very_
+# multiply inheriting from C++ wrapped classes (like Qt) is _very_
 # problematic with metaclasses
 class HtmlLog(Log):
     """Base class for logs that support HTML output"""
 
     def log(self, level, msg, image_info, is_html):
-        """Log a message.
+        """Supported API. Log a message.
 
         Parameters
         ----------
@@ -121,7 +121,7 @@ class PlainTextLog(Log):
     """Base class for logs that support only plain text output"""
 
     def log(self, level, msg):
-        """Log a message.
+        """Supported API. Log a message.
 
         Parameters
         ----------
@@ -186,7 +186,7 @@ class StatusLogger:
 
     def status(self, msg, color="black", log=False, secondary=False,
                blank_after=None, follow_with="", follow_time=20, follow_log=None):
-        """Show status."""
+        """Supported API. Show status."""
         if log:
             self.session.logger.info(msg)
 
@@ -299,7 +299,7 @@ class Logger(StatusLogger):
         self.add_log(_EarlyCollator())
 
     def add_log(self, log):
-        """Add a logger"""
+        """Supported API. Add a logger"""
         if not isinstance(log, (HtmlLog, PlainTextLog)):
             raise ValueError("Cannot add log that is not instance of"
                              " HtmlLog or PlainTextLog")
@@ -328,12 +328,12 @@ class Logger(StatusLogger):
             early_collator.log_summary(self)
 
     def clear(self):
-        """clear all loggers"""
+        """Supported API. Clear all loggers"""
         StatusLogger.clear(self)
         self.logs.clear()
 
     def error(self, msg, add_newline=True, image=None, is_html=False):
-        """Log an error message
+        """Supported API. Log an error message
 
         Parameters
         ----------
@@ -354,7 +354,7 @@ class Logger(StatusLogger):
                   last_resort=sys.__stderr__)
 
     def info(self, msg, add_newline=True, image=None, is_html=False):
-        """Log an info message
+        """Supported API. Log an info message
 
         The parameters are the same as for the :py:meth:`error` method.
         """
@@ -365,12 +365,12 @@ class Logger(StatusLogger):
                   last_resort=sys.__stdout__)
 
     def remove_log(self, log):
-        """remove a logger"""
+        """Supported API. Remove a logger"""
         self.logs.discard(log)
 
     def report_exception(self, preface=None, error_description=None,
                          exc_info=None):
-        """Report the current exception (without changing execution context)
+        """Supported API. Report the current exception (without changing execution context)
 
         Parameters
         ----------
@@ -424,13 +424,13 @@ class Logger(StatusLogger):
             self.error(err_msg.replace("\n", "<br>"), is_html=True)
 
     def status(self, msg, **kw):
-        """Show status."""
+        """Supported API. Show status."""
         if self.session.silent:
             return
         StatusLogger.status(self, msg, **kw)
 
     def warning(self, msg, add_newline=True, image=None, is_html=False):
-        """Log a warning message
+        """Supported API. Log a warning message
 
         The parameters are the same as for the :py:meth:`error` method.
         """
