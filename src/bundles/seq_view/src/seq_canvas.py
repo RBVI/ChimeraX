@@ -1009,6 +1009,10 @@ class SeqCanvas:
         """
         self.sv.status("Alignment reformatted")
 
+    def refresh_headers(self, header_class=None):
+        for hdr in self.headers:
+            if header_class is None or isinstance(hdr, header_class):
+                hdr.refresh()
     """TODO
     def refresh(self, seq, left=0, right=None, updateAttrs=True):
         if seq in self.display_header and not self.display_header[seq]:
