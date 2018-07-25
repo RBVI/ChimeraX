@@ -566,15 +566,18 @@ class SequenceViewer(ToolInstance):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(session, data['alignment'])
         inst.region_browser.restore_state(data['region browser'])
+        if 'seq canvas' in data:
+            inst.seq_canvas.restore_state(session, data['seq canvas'])
         return inst
 
     SESSION_SAVE = True
-    
+
     def take_snapshot(self, session, flags):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'alignment': self.alignment,
-            'region browser': self.region_browser.save_state()
+            'region browser': self.region_browser.save_state(),
+            'seq canvas': self.seq_canvas.save_state()
         }
         return data
 

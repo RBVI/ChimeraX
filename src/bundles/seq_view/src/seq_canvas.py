@@ -1063,7 +1063,27 @@ class SeqCanvas:
                         scrollregion=(ll, top, lr, bottom))
         self.mainCanvas.configure(scrollregion=
                         (left, top, right, bottom))
+    """
 
+    def restore_state(self, session, state):
+        from chimerax.core.toolshed import get_toolshed
+        ts = get_toolshed()
+        headers = []
+        for bundle_name, class_name, header_state in state['headers']:
+            bundle = ts.find_bundle(bundle_name, session.logger, installed=True)
+            if not bundle:
+                bundle = ts.find_bundle(bundle_name, session.logger, installed=False)
+                if bundle:
+                    session.logger.error("You need to install bundle %s in order to restore"
+                        " alignment header of type %s" % (bundle_name, class_name))
+                else:
+                    session.logger.error("Cannot restore alignment header of type %s due to"
+                        " being unable to find any bundle named %s" % (class_name, bundle_name))
+                continue
+            header_class = bundle.get_class(class_name)
+            headers.append(header_class.session_restore(session, self.sv, header_state))
+
+    """TODO
     def saveEPS(self, fileName, colorMode, rotate, extent, hideNodes):
         if self.tree:
             savedNodeDisplay = self.nodesShown
@@ -1111,7 +1131,19 @@ class SeqCanvas:
         if self.tree:
             self.showNodes(savedNodeDisplay)
         self.sv.status(msg)
+    """
 
+    def save_state(self):
+        state = {}
+        from chimerax.core.toolshed import get_toolshed
+        ts = get_toolshed()
+        state['headers'] = [
+            (ts.find_bundle_for_class(hdr.__class__).name,
+            hdr.__class__.__name__, hdr.get_state())
+                for hdr in self.headers]
+        return state
+
+    """TODO
     def seeBlocks(self, blocks):
         '''scroll canvas to show given blocks'''
         minx, miny, maxx, maxy = self.bbox_list(cover_gaps=True,
