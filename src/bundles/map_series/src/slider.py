@@ -132,7 +132,7 @@ class MapSeriesSlider(ToolInstance):
                 s.copy_display_parameters(lt, t)
             s.show_time(t)
         # Make sure this time is shown before we draw the next time.
-        self.session.ui.update_graphics_now()
+        self.session.update_loop.update_graphics_now()
         self._block_time_update -= 1
 
     def play_cb(self, event):

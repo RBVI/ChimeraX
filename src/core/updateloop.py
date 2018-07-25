@@ -13,15 +13,24 @@
 
 class UpdateLoop:
 
-    def __init__(self):
+    def __init__(self, session):
+        self.session = session
         self._block_redraw_count = 0
         self.last_draw_time = 0
         self.last_new_frame_time = 0
         self.last_atomic_check_for_changes_time = 0
         self.last_drawing_change_time = 0
         self.last_clip_time = 0
+
+        # TODO: perhaps redraw interval should be 10 to reduce frame drops at 60 frames/sec
+        self.redraw_interval = 16.667  # milliseconds, 60 frames per second
+
+        self._minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
+                                                   # of time since start of last drawing
+        self._last_redraw_start_time = self._last_redraw_finish_time = 0
+        self._timer = None
         
-    def draw_new_frame(self, session):
+    def draw_new_frame(self):
         '''
         Draw the scene if it has changed or camera or rendering options have changed.
         Before checking if the scene has changed fire the "new frame" trigger
@@ -35,6 +44,7 @@ class UpdateLoop:
 
         # TODO: Would be nice to somehow minimize all the ugly timing.
         # TODO: Maybe timing is slowing things down a little, if so make it optional.
+        session = self.session
         view = session.main_view
         self.block_redraw()
         from time import time
@@ -89,3 +99,40 @@ class UpdateLoop:
 
     def blocked(self):
         return self._block_redraw_count > 0
+        
+    def set_redraw_interval(self, msec):
+        self.redraw_interval = msec  # milliseconds
+        t = self._timer
+        if t is not None:
+            t.start(self.redraw_interval)
+
+    def start_redraw_timer(self):
+        if self._timer is not None:
+            return
+        from PyQt5.QtCore import QTimer, Qt
+        self._timer = t = QTimer()
+        t.timerType = Qt.PreciseTimer
+        t.timeout.connect(self._redraw_timer_callback)
+        t.start(self.redraw_interval)
+
+    def _redraw_timer_callback(self):
+        import time
+        t = time.perf_counter()
+        dur = t - self._last_redraw_start_time
+        if t >= self._last_redraw_finish_time + self._minimum_event_processing_ratio * dur:
+            # Redraw only if enough time has elapsed since last frame to process some events.
+            # This keeps the user interface responsive even during slow rendering
+            self._last_redraw_start_time = t
+            s = self.session
+            if not self.draw_new_frame():
+                s.ui.mouse_modes.mouse_pause_tracking()
+            self._last_redraw_finish_time = time.perf_counter()
+
+    def update_graphics_now(self):
+        '''
+        Redraw graphics now if there are any changes.  This is typically only used by
+        mouse drag code that wants to update the graphics as responsively as possible,
+        particularly when a mouse step may take significant computation, such as contour
+        surface level change.  After each mouse event this is called to force a redraw.
+        '''
+        self.draw_new_frame()

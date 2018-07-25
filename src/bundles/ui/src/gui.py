@@ -309,15 +309,6 @@ class UI(QApplication):
     def cancel_timer(self, timer):
         timer.stop()
 
-    def update_graphics_now(self):
-        '''
-        Redraw graphics now if there are any changes.  This is typically only used by
-        mouse drag code that wants to update the graphics as responsively as possible,
-        particularly when a mouse step may take significant computation, such as contour
-        surface level change.  After each mouse event this is called to force a redraw.
-        '''
-        self.main_window.graphics_window.update_graphics_now()
-
     def update_undo(self, undo_manager):
         self.main_window.update_undo(undo_manager)
         

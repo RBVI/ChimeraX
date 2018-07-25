@@ -41,8 +41,7 @@ def draw_frame(session, limit_frame_rate = True):
 
     if limit_frame_rate and session.ui.is_gui:
         dt = time() - t0
-        gw = session.ui.main_window.graphics_window
-        frame_time= gw.redraw_interval / 1000.0	# seconds
+        frame_time= session.update_loop.redraw_interval / 1000.0	# seconds
         if dt < frame_time:
             sleep(frame_time - dt)
 

@@ -936,7 +936,7 @@ def common_startup(sess):
         pass
 
     from .updateloop import UpdateLoop
-    sess.update_loop = UpdateLoop()
+    sess.update_loop = UpdateLoop(sess)
 
     register(
         'debug sdump',
