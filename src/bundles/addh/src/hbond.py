@@ -67,13 +67,12 @@ def add_hydrogens(session, atom_list, *args):
     unsaturated = []
     saturated = []
     finished = {}
+    # the early donor/acceptor version of hbond_info is not keyed by alt loc (for personal
+    # sanity, treat hbonds as applicable for all altlocs), but later H-position version
+    # is a list with current alt loc last
     hbond_info = {}
     for a, crds in coordinations.items():
-        hbond_info[a] = hbi = {}
-        # _alt_locs() arranges current alt_loc last
-        for alt_loc in _alt_locs(a):
-            a.alt_loc = alt_loc
-            hbi[alt_loc] = [(True, crd) for crd in crds]
+        hbond_info[a] = [(True, crd) for crd in crds]
     for atom in atom_list:
         bonding_info = type_info_for_atom[atom]
         num_bonds = atom.num_bonds
@@ -310,8 +309,6 @@ def add_hydrogens(session, atom_list, *args):
                 processed.add(hbond)
                 continue
 
-            #TODO: this "ported" needs to be updated to account for hbond_info now
-            # having an altloc component
             if (a, d) in hbonds \
             and a not in finished \
             and d not in finished \
@@ -331,7 +328,7 @@ def add_hydrogens(session, atom_list, *args):
                     for n in ns:
                         if n not in finished:
                             break
-                        protons, lps = hbond_info[n]
+                        alt_loc, protons, lps = hbond_info[n][-1]
                         if protons:
                             break
                     else:
@@ -350,7 +347,7 @@ def add_hydrogens(session, atom_list, *args):
                     for n in ns:
                         if n not in finished:
                             break
-                        protons, lps = hbond_info[n]
+                        alt_loc, protons, lps = hbond_info[n][-1]
                         if protons:
                             break
                     else:
@@ -409,6 +406,7 @@ def add_hydrogens(session, atom_list, *args):
                         break
                 if not tet_okay:
                     continue
+            #TODO
             """
             if a in finished:
                 # can d still donate to a?
