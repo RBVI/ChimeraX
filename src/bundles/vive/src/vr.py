@@ -112,11 +112,12 @@ def register_vr_command(logger):
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
                               ('mirror', BoolArg),
-                              ('icons', BoolArg),
+                              ('desktop_view', BoolArg),
                               ('show_controllers', BoolArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                               ('toolbar_panels', BoolArg),
+                              ('icons', BoolArg),
                    ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
