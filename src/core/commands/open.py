@@ -131,7 +131,6 @@ def format_from_name(name, open=True, save=False):
 
 
 def show_citations(session, models):
-    return
     from chimerax.atomic.mmcif import citations
     c_tmp = []
     for m in models:
