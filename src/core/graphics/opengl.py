@@ -354,10 +354,10 @@ class Render:
                 fb.delete()
             setattr(self, fbattr, None)
 
-        lb = self._light_buffer
+        lb = self._lighting_buffer
         if lb is not None:
             GL.glDeleteBuffers(1, [lb])
-            self._light_buffer = None
+            self._lighting_buffer = None
 
         mmb = self._multishadow_matrix_buffer_id
         if mmb is not None:
