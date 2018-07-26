@@ -345,7 +345,7 @@ class Render:
     def delete(self):
         self.make_current()
         for fbattr in ('_default_framebuffer',
-                       'mask_framebuffer',
+                       '_mask_framebuffer',
                        '_silhouette_framebuffer',
                        'shadow_map_framebuffer',
                        'multishadow_map_framebuffer'):
