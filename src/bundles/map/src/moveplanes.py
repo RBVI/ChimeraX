@@ -80,7 +80,7 @@ class PlanesMouseMode(MouseMode):
             if v.showing_orthoplanes() and m.showing_orthoplanes():
                 m.set_parameters(orthoplane_positions = v.rendering_options.orthoplane_positions)
         # Make sure new plane is shown before another mouse event shows another plane.
-        self.session.ui.update_graphics_now()
+        self.session.update_loop.update_graphics_now()
 
     def wheel(self, event):
         self.mouse_down(event)

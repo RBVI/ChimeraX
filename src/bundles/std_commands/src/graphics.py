@@ -79,7 +79,7 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         change = True
     if max_frame_rate is not None:
         msec = 1000.0 / max_frame_rate
-        session.ui.main_window.graphics_window.set_redraw_interval(msec)
+        session.update_loop.set_redraw_interval(msec)
         change = True
     if frame_rate is not None:
         show_frame_rate(session, frame_rate)
@@ -96,7 +96,7 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
     else:
         na = gu.num_atoms_shown
         if session.ui.is_gui:
-            msec = session.ui.main_window.graphics_window.redraw_interval
+            msec = session.update_loop.redraw_interval
             rate = 1000.0 / msec if msec > 0 else 1000.0
         else:
             rate = 0

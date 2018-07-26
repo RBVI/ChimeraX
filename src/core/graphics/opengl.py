@@ -345,7 +345,7 @@ class Render:
     def delete(self):
         self.make_current()
         for fbattr in ('_default_framebuffer',
-                       'mask_framebuffer',
+                       '_mask_framebuffer',
                        '_silhouette_framebuffer',
                        'shadow_map_framebuffer',
                        'multishadow_map_framebuffer'):
@@ -354,10 +354,10 @@ class Render:
                 fb.delete()
             setattr(self, fbattr, None)
 
-        lb = self._light_buffer
+        lb = self._lighting_buffer
         if lb is not None:
             GL.glDeleteBuffers(1, [lb])
-            self._light_buffer = None
+            self._lighting_buffer = None
 
         mmb = self._multishadow_matrix_buffer_id
         if mmb is not None:
