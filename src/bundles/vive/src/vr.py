@@ -112,11 +112,12 @@ def register_vr_command(logger):
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
                               ('mirror', BoolArg),
-                              ('icons', BoolArg),
+                              ('desktop_view', BoolArg),
                               ('show_controllers', BoolArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                               ('toolbar_panels', BoolArg),
+                              ('icons', BoolArg),
                    ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
@@ -165,6 +166,7 @@ def _create_vr_view(session, main_camera):
     if main_camera:
         vrv = mv
     else:
+        from chimerax.core.graphics import View
         vrv = View(mv.drawing)
         vrv.lighting = mv.lighting
         vrv.material = mv.material
@@ -172,7 +174,7 @@ def _create_vr_view(session, main_camera):
     session._vr_view = vrv
     vrv.camera = SteamVRCamera(session)
     if not main_camera:
-        h = session.triggers.add_handler('frame drawn', lambda: vrv.draw(check_for_changes = False))
+        h = session.triggers.add_handler('frame drawn', lambda *unused: vrv.draw(check_for_changes = False))
         vrv._draw_handler = h
         
 # -----------------------------------------------------------------------------
@@ -180,7 +182,7 @@ def _create_vr_view(session, main_camera):
 def _remove_vr_view(session):
     vrv = getattr(session, '_vr_view', None)
     if vrv and vrv is not session.main_view:
-        delattr(session, _vr_view)
+        delattr(session, '_vr_view')
         session.triggers.remove_handler(vrv._draw_handler)
         vrv.delete()
         
@@ -190,7 +192,7 @@ def vr_camera(session):
     vrv = getattr(session, '_vr_view', None)
     if vrv:
         c = vrv.camera
-        if instance(c, SteamVRCamera):
+        if isinstance(c, SteamVRCamera):
             return c
     return None
 
@@ -250,7 +252,7 @@ class SteamVRCamera(Camera):
 
         from chimerax.core.geometry import Place
         self.room_position = Place()	# Camera position in room coordinates
-        self._room_to_scene = Place()	# Maps room coordinates to scene coordinates
+        self._room_to_scene = None	# Maps room coordinates to scene coordinates
 
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
@@ -301,14 +303,28 @@ class SteamVRCamera(Camera):
     def _get_room_to_scene(self):
         return self._room_to_scene
     def _set_room_to_scene(self, p):
-        mc = self._session.main_view.camera
-        update_main = (self is not mc)
-        if update_main:
-            # Main camera stays at same position in room.
-            mc.position = p * self._room_to_scene.inverse() * mc.position
+        self._update_desktop_camera(p)
         self._room_to_scene = p
         self._reposition_user_interface()
     room_to_scene = property(_get_room_to_scene, _set_room_to_scene)
+
+    def _update_desktop_camera(self, new_rts):
+        mc = self._session.main_view.camera
+        if self is mc:
+            return  # VR and desktop cameras are the same
+
+        # Main camera stays at same position in room.
+        rts = self._room_to_scene
+        if rts is None:
+            return   # VR room to scene not yet set.  Leave desktop camera unchanged.
+        tf = new_rts * rts.inverse()
+        mpos = tf * mc.position
+        # Need to remove scale factor.
+        x,y,z = tf.matrix[:,0]
+        from math import sqrt
+        s = 1/sqrt(x*x + y*y + z*z)
+        mpos.matrix[:3,:3] *= s
+        mc.position = mpos
     
     def _move_camera_in_room(self, position):
         '''Move camera to given scene position without changing scene position in room.'''
@@ -336,7 +352,7 @@ class SteamVRCamera(Camera):
             hcd = [hc.display for hc in cm]
             for hc in cm:
                 hc.display = False
-            b = self.view.drawing_bounds()
+            b = self.vr_view.drawing_bounds()
             for hc, disp in zip(cm, hcd):
                 hc.display = disp
         if b:
@@ -362,7 +378,7 @@ class SteamVRCamera(Camera):
     def close(self, close_cb = None):
         self._close = True
         self._close_cb = close_cb
-        self.view.redraw_needed = True
+        self._session.main_view.redraw_needed = True
         
     def _delayed_close(self):
         # Apparently OpenVR doesn't make its OpenGL context current
@@ -393,12 +409,12 @@ class SteamVRCamera(Camera):
         return 'vr'
 
     @property
-    def view(self):
-        return self._session.main_view
+    def vr_view(self):
+        return self._session._vr_view
 
     @property
     def render(self):
-        return self._session.main_view.render
+        return self._session._vr_view.render
     
     def _start_frame(self):
         import openvr
@@ -784,7 +800,7 @@ class UserInterface:
         aspect = h/w
         rw = self._width		# Billboard width in room coordinates
         self._height = rh = aspect * rw
-        self.render.make_current()	# Required OpenGL context for replacing texture.
+        self._session._vr_view.render.make_current()	# Required OpenGL context for replacing texture.
         from chimerax.core.graphics.drawing import rgba_drawing
         rgba_drawing(self._ui_drawing, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
 
