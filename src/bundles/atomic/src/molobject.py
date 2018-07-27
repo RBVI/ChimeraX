@@ -1729,6 +1729,11 @@ class ChangeTracker:
         f = c_function('change_tracker_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
 
+    # used by custom-attr registration code
+    @property
+    def has_custom_attrs(self):
+        return False
+
     def _class_to_int(self, klass):
         # has to tightly coordinate wih change_track_add_modified
         #
