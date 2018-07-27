@@ -82,7 +82,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         if session.ui.is_gui:
             mc = [m for m in models if m.num_coordsets > 1]
             if mc:
-                from chimerax.core.commands.coordset import coordset_slider
+                from chimerax.std_commands.coordset import coordset_slider
                 coordset_slider(session, mc)
     return models, info
 
@@ -221,7 +221,7 @@ def citations(model, only=None):
         return ""   # missing fields
     cf2 = citation.fields([
         'page_first', 'page_last',
-        'journal_issue', 'pdbx_database_id_pubmed', 'pdbx_database_id_doi'],
+        'journal_issue', 'pdbx_database_id_PubMed', 'pdbx_database_id_DOI'],
         allow_missing_fields=True)
     try:
         caf = citation_author.fields(['citation_id', 'name', 'ordinal'])
@@ -377,15 +377,18 @@ class MMCIFTable:
             foreach_names = [foreach_names]
         elif foreach_names is None:
             foreach_names = []
-        t = self._tags
+        t = self._folded_tags
         n = len(t)
         for name in chain(key_names, value_names, foreach_names):
-            if name not in t:
+            if name.casefold() not in t:
+                from chimerax.core.commands.cli import commas, plural_form
+                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have_noun = plural_form(self._tags, 'field')
                 raise ValueError(
-                    'Field "%s" not in table "%s", have fields %s'
-                    % (name, self.table_name, ', '.join(t)))
-        key_columns = [self._data[t.index(k)::n] for k in key_names]
-        value_columns = [self._data[t.index(v)::n] for v in value_names]
+                    'Field "%s" not in table "%s", have %s %s'
+                    % (name, self.table_name, have_noun, have))
+        key_columns = [self._data[t.index(k.casefold())::n] for k in key_names]
+        value_columns = [self._data[t.index(v.casefold())::n] for v in value_names]
         if single_key:
             keys = key_columns[0]
         else:
@@ -397,7 +400,7 @@ class MMCIFTable:
         if not foreach_names:
             return dict(zip(keys, values))
 
-        foreach_columns = [self._data[t.index(f)::n] for f in foreach_names]
+        foreach_columns = [self._data[t.index(f.casefold())::n] for f in foreach_names]
         if single_foreach:
             foreachs = foreach_columns[0]
         else:
@@ -421,27 +424,32 @@ class MMCIFTable:
         missing fields are allowed, then the corresponding items are the
         missing_value object.
         """
-        t = self._tags
-        n = len(self._tags)
+        t = self._folded_tags
+        n = len(self._folded_tags)
         if allow_missing_fields:
             from itertools import zip_longest
-            fi = [(t.index(f) if f in t else -1) for f in field_names]
+            fi = []
+            for f in field_names:
+                try:
+                    fi.append(t.index(f.casefold()))
+                except ValueError:
+                    fi.append(-1)
             ftable = list(zip_longest(
                 *(self._data[i::n] if i >= 0 else [] for i in fi),
                 fillvalue=missing_value))
         else:
-            missing = [n for n in field_names if n not in t]
+            missing = [n for n in field_names if n.casefold() not in t]
             if missing:
                 from chimerax.core.commands.cli import commas, plural_form
-                missed = commas(missing, ' and')
+                missed = commas(['"%s"' % m for m in missing], ' and')
                 missed_noun = plural_form(missing, 'Field')
                 missed_verb = plural_form(missing, 'is', 'are')
-                have = commas(t, ' and')
-                have_noun = plural_form(t, 'field')
+                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have_noun = plural_form(self._tags, 'field')
                 raise ValueError('%s %s %s not in table "%s", have %s %s' % (
                     missed_noun, missed, missed_verb, self.table_name, have_noun,
                     have))
-            fi = tuple(t.index(f) for f in field_names)
+            fi = tuple(t.index(f.casefold()) for f in field_names)
             ftable = list(zip(*(self._data[i::n] for i in fi)))
         return ftable
 
