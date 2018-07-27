@@ -15,7 +15,7 @@ from chimerax.atomic.bond_geom import tetrahedral, planar, linear, single, bond_
 from chimerax.atomic import Atom, idatm
 from .cmd import new_hydrogen, find_nearest, roomiest, _tree_dist, vdw_radius, \
                 bond_with_H_length, N_H, find_rotamer_nearest, h_rad, add_altloc_hyds
-from chimerax.core.geometry import distance_squared, angle, dihedral
+from chimerax.core.geometry import distance_squared, angle, dihedral, distance
 
 c_rad = 1.7
 _near_dist = _room_dist = _tree_dist + h_rad + c_rad
@@ -161,10 +161,6 @@ def add_hydrogens(session, atom_list, *args):
         print(len(multi_N_rings), "aromatic multi-nitrogen rings")
         print(len(unsaturated), "unsaturated")
         print(len(saturated), "saturated rotamers")
-
-    logger.status("Building search tree of atom positions", blank_after=0, secondary=True)
-    # since adaptive search tree is static, it will not include hydrogens added after
-    # this; they will have to be found by looking off their heavy atoms
 
     for need_coplanar in [False, True]:
         if need_coplanar:
@@ -406,33 +402,27 @@ def add_hydrogens(session, atom_list, *args):
                         break
                 if not tet_okay:
                     continue
-            #TODO
-            """
             if a in finished:
                 # can d still donate to a?
-                if not _can_accept(d, a, *hbond_info[a]):
+                if not _can_accept(d, a, *hbond_info[a][-1][1:]):
                     # can't
                     continue
                 hbond_info.setdefault(d, []).append((False, a))
             elif d in finished:
                 # can d still donate to a?
-                noProtonsOK = d in aro_Ns and d.num_bonds == 2
-                if not _canDonate(d, a, noProtonsOK,
-                                *hbond_info[d]):
+                no_protons_ok = d in aro_Ns and d.num_bonds == 2
+                if not _can_donate(d, a, no_protons_ok, *hbond_info[d][-1][1:]):
                     # nope
                     continue
                 hbond_info.setdefault(a, []).append((True, d))
             else:
-                addAtoD, addDtoA = _angle_check(d, a,
-                                hbond_info)
-                if not addAtoD and not addDtoA:
+                add_a_to_d, add_d_to_a = _angle_check(d, a, hbond_info)
+                if not add_a_to_d and not add_d_to_a:
                     continue
-                if addAtoD:
-                    hbond_info.setdefault(d, []).append(
-                                (False, a))
-                if addDtoA:
-                    hbond_info.setdefault(a, []).append(
-                                (True, d))
+                if add_a_to_d:
+                    hbond_info.setdefault(d, []).append((False, a))
+                if add_d_to_a:
+                    hbond_info.setdefault(a, []).append((True, d))
             if (a, d) in hbonds:
                 processed.add((a, d))
             processed_one = True
@@ -447,23 +437,24 @@ def add_hydrogens(session, atom_list, *args):
                 if end not in hbond_info:
                     # steric clash from other end
                     if debug:
-                        print "no hbonds left for", end.oslIdent()
+                        print("no hbonds left for", end)
                     continue
                 if debug:
-                    print "try to finish", end.oslIdent(),
+                    print("try to finish", end, end="")
                     for is_acc, da in hbond_info[end]:
                         if is_acc:
-                            print " accepting from", da.oslIdent(),
+                            print(" accepting from", da, end="")
                         else:
-                            print " donating to", da.oslIdent(),
-                    print
-                didFinish = _tryFinish(end, hbond_info, finished,
-                        aro_amines, pruned_by, processed)
-                if not didFinish:
+                            print(" donating to", da, end="")
+                    print()
+                did_finish = _try_finish(end, hbond_info, finished, aro_amines, pruned_by, processed)
+                if not did_finish:
                     continue
                 if debug:
-                    print "finished", end.oslIdent()
+                    print("finished", end)
 
+            #TODO
+            """
                 # if this atom is in candidates 
                 # then actually add any hydrogens
                 if end in candidates and hbond_info[end][0]:
@@ -529,8 +520,7 @@ def add_hydrogens(session, atom_list, *args):
             if debug:
                 print "possible donate to", other.oslIdent()
             # find nearest lone pair position on acceptor
-            target = _findTarget(a, atPos, other, not is_acc,
-                            hbond_info, finished)
+            target = _find_target(a, atPos, other, not is_acc, hbond_info, finished)
             # make sure this proton doesn't form
             # an angle < 90 degrees with any other bonds
             # and, if trigonal planar, no angle > 150
@@ -841,61 +831,55 @@ def _alt_locs(atom):
     locs.append(cur_loc)
     return locs
 
-'''
-def _findTarget(fromAtom, atPos, toAtom, asDonor, hbond_info, finished):
-    if toAtom in coordinations.get(fromAtom, []):
-        return toAtom._hb_coord
-    if toAtom in finished:
-        toInfo = hbond_info[toAtom]
+def _find_target(from_atom, at_pos, to_atom, as_donor, hbond_info, finished):
+    if to_atom in coordinations.get(from_atom, []):
+        return to_atom._hb_coord
+    if to_atom in finished:
         # known positioning already
-        protons, lonePairs = toInfo
-        if asDonor:
-            positions = lonePairs
+        protons, lone_pairs = hbond_info[to_atom][-1]
+        if as_donor:
+            positions = lone_pairs
         else:
             positions = protons
         nearest = None
         for pos in positions:
-            dsq = (pos - atPos).sqlength()
+            dsq = distance_squared(pos, at_pos)
             if not nearest or dsq < nsq:
                 nearest = pos
                 nsq = dsq
         return nearest
-    toHPos = []
-    toBonded = []
-    toCoplanar = []
-    toGeom = _type_info(toAtom).geometry
-    for tb in toAtom.primaryNeighbors():
-        toBonded.append(tb._hb_coord)
+    to_h_pos = []
+    to_bonded = []
+    to_coplanar = []
+    to_geom = _type_info(to_atom).geometry
+    for tb in to_atom.neighbors:
+        to_bonded.append(tb._hb_coord)
         if tb.element.number == 1:
-            toHPos.append(tb._hb_coord)
-        if toGeom == planar:
-            toAtomLocs = toAtom.allLocations()
-            for btb in tb.primaryNeighbors():
-                if btb in toAtomLocs:
+            to_h_pos.append(tb._hb_coord)
+        if to_geom == planar:
+            for btb in tb.neighbors:
+                if btb == to_atom:
                     continue
-                toCoplanar.append(btb._hb_coord)
-    if asDonor:
+                to_coplanar.append(btb._hb_coord)
+    if as_donor:
         # point towards nearest lone pair
-        targets = bond_positions(toAtom._hb_coord, toGeom,
-                    vdw_radius(toAtom), toBonded,
-                    coPlanar=toCoplanar, toward=atPos)
+        targets = bond_positions(to_atom._hb_coord, to_geom, vdw_radius(to_atom), to_bonded,
+                    coplanar=to_coplanar, toward=at_pos)
     else:
         # point to nearest hydrogen
-        if _type_info(toAtom).substituents <= toAtom.num_bonds:
-            targets = toHPos
+        if _type_info(to_atom).substituents <= to_atom.num_bonds:
+            targets = to_h_pos
         else:
-            targets = toHPos + bond_positions(
-                toAtom._hb_coord, toGeom,
-                bond_with_H_length(toAtom, toGeom),
-                toBonded, coPlanar=toCoplanar, toward=atPos)
+            targets = to_h_pos + bond_positions(to_atom._hb_coord, to_geom,
+                bond_with_H_length(to_atom, to_geom),
+                to_bonded, coplanar=to_coplanar, toward=at_pos)
     nearest = None
     for target in targets:
-        dsq = (target - atPos).sqlength()
+        dsq = distance_squared(target, at_pos)
         if not nearest or dsq < nsq:
             nearest = target
             nsq = dsq
     return nearest
-'''
 
 def _attach_hydrogens(atom, altloc_hpos_info, bonding_info):
     total_hydrogens = hydrogen_totals[atom]
@@ -931,37 +915,31 @@ def _can_accept(donor, acceptor, protons, lone_pairs):
                 _test_angles[type_info_for_atom[acceptor].geometry]))
     return lp_dist < h_dist and angle(lp, acceptor._hb_coord, don_pos) < _test_angles[type_info_for_atom[acceptor].geometry]
 
-'''
-def _canDonate(donor, acceptor, noProtonsOK, protons, lonePairs):
+def _can_donate(donor, acceptor, no_protons_ok, protons, lone_pairs):
     # donor is fixed; can it donate to acceptor?
-    if not lonePairs:
+    if not lone_pairs:
         return True
     if not protons:
-        if noProtonsOK:
+        if no_protons_ok:
             if debug:
-                print "can't still donate; no protons"
+                print("can't still donate; no protons")
             return False
-        raise ValueError, "No protons for %s to accept from" % (
-                            acceptor.oslIdent())
-    accPos = acceptor._hb_coord
-    hDist, h = min(map(lambda xyz: ((xyz - accPos).sqlength(), xyz),
-                                protons))
-    lpDist = min(map(lambda xyz: (xyz - accPos).sqlength(), lonePairs))
-    # besides a proton being closest, it must be sufficiently pointed
-    # towards the acceptor
-    if hDist >= lpDist:
-        from math import sqrt
+        raise ValueError("No protons for %s to accept from" % acceptor)
+    acc_pos = acceptor._hb_coord
+    h_dist, h = min([(distance_squared(xyz, acc_pos), xyz) for xyz in protons])
+    lp_dist = min([distance_squared(xyz, acc_pos) for xyz in lone_pairs])
+    # besides a proton being closest, it must be sufficiently pointed towards the acceptor
+    if h_dist >= lp_dist:
         if debug:
-            print "can't still donate; h dist (%g) >= lp dist (%g)" % ( sqrt(hDist), sqrt(lpDist))
-    elif chimera.angle(h, donor._hb_coord, accPos) >= _test_angles[
-            type_info_for_atom[donor].geometry]:
+            from math import sqrt
+            print("can't still donate; h dist (%g) >= lp dist (%g)" % (sqrt(h_dist), sqrt(lp_dist)))
+    elif angle(h, donor._hb_coord, acc_pos) >= _test_angles[type_info_for_atom[donor].geometry]:
         if debug:
-            print "can't still donate; angle (%g) >= test angle (%g)" % ( chimera.angle(h, donor._hb_coord, accPos), _test_angles[ type_info_for_atom[donor].geometry])
-    return hDist < lpDist and chimera.angle(h,
-            donor._hb_coord, accPos) < _test_angles[
+            print("can't still donate; angle (%g) >= test angle (%g)" % (angle(h, donor._hb_coord, acc_pos), _test_angles[ type_info_for_atom[donor].geometry]))
+    return h_dist < lp_dist and angle(h, donor._hb_coord, acc_pos) < _test_angles[
             type_info_for_atom[donor].geometry]
 
-def _tryFinish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
+def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
     # do we have enough info to establish all H/LP positions for atom?
 
     bonding_info = _type_info(atom)
@@ -970,7 +948,7 @@ def _tryFinish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
     # from number of donors/acceptors, determine
     # if we can position Hs/lone pairs
     num_bonds = atom.num_bonds
-    hydsToPosition = bonding_info.substituents - num_bonds
+    hyds_to_position = bonding_info.substituents - num_bonds
     openings = geom - num_bonds
 
     donors = []
@@ -983,32 +961,29 @@ def _tryFinish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
         else:
             acceptors.append(other)
     if len(all) < openings \
-    and len(donors) < openings - hydsToPosition \
-    and len(acceptors) < hydsToPosition:
+    and len(donors) < openings - hyds_to_position \
+    and len(acceptors) < hyds_to_position:
         if debug:
-            print "not enough info (all/donors/acceptors):", len(all), len(donors), len(acceptors)
+            print("not enough info (all/donors/acceptors):", len(all), len(donors), len(acceptors))
         return False
 
-    # if so, find their positions and
-    # record in hbond_info; mark as finished
-    atPos = atom._hb_coord
+    # if so, find their positions and record in hbond_info; mark as finished
+    at_pos = atom._hb_coord
     targets = []
     for is_acc, other in hbond_info[atom][:2]:
-        targets.append(_findTarget(atom, atPos, other, not is_acc,
-                            hbond_info, finished))
+        targets.append(_find_target(atom, at_pos, other, not is_acc, hbond_info, finished))
 
-    # for purposes of this intermediate measurement, use hydrogen
-    # distances instead of lone pair distances; determine true
-    # lone pair positions once hydrogens are found
-    bondedPos = []
-    testPositions = []
+    # for purposes of this intermediate measurement, use hydrogen distances instead
+    # of lone pair distances; determine true lone pair positions once hydrogens are found
+    bonded_pos = []
+    test_positions = []
     coplanar = []
-    for bonded in atom.primaryNeighbors():
-        bondedPos.append(bonded._hb_coord)
+    for bonded in atom.neighbors:
+        bonded_pos.append(bonded._hb_coord)
         if bonded.element.number == 1:
-            testPositions.append(bonded._hb_coord)
+            test_positions.append((True, bonded._hb_coord))
         if geom == planar:
-            for btb in bonded.primaryNeighbors():
+            for btb in bonded.neighbors:
                 if btb == atom:
                     continue
                 coplanar.append(btb._hb_coord)
@@ -1017,145 +992,150 @@ def _tryFinish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
         toward2 = targets[1]
     else:
         toward2 = None
-    Hlen = bond_with_H_length(atom, geom)
-    LPlen = vdw_radius(atom)
+    h_len = bond_with_H_length(atom, geom)
+    lp_len = vdw_radius(atom)
     if debug:
-        print atom.oslIdent(), "co-planar:", coplanar
-        print atom.oslIdent(), "toward:", toward
-        print atom.oslIdent(), "toward2:", toward2
-    normals = bond_positions(atPos, geom, 1.0, bondedPos,
-            coPlanar=coplanar, toward=toward, toward2=toward2)
+        print(atom, "co-planar:", coplanar)
+        print(atom, "toward:", toward)
+        print(atom, "toward2:", toward2)
+    normals = bond_positions(at_pos, geom, 1.0, bonded_pos,
+            coplanar=coplanar, toward=toward, toward2=toward2)
     if debug:
-        print atom.oslIdent(), "bond_positions:", [str(x) for x in normals]
+        print(atom, "bond_positions:", [str(x) for x in normals])
     # use vectors so we can switch between lone-pair length and H-length
     for normal in normals:
-        testPositions.append(normal - atPos)
+        test_positions.append((False, normal - at_pos))
 
     # try to hook up positions with acceptors/donors
     if atom in aro_amines:
         if debug:
-            print "delay finishing aromatic amine"
+            print("delay finishing aromatic amine")
         return False
     all = {}
     protons = {}
-    lonePairs = {}
+    lone_pairs = {}
     conflicting = []
     for is_acc, other in hbond_info[atom]:
         if debug:
-            print "other:", other.oslIdent()
+            print("other:", other)
         if is_acc:
             key = (other, atom)
         else:
             key = (atom, other)
-        conflictAllowable = key not in processed
+        conflict_allowable = key not in processed
         nearest = None
         if other in finished:
-            oprotons, olps = hbond_info[other]
+            oprotons, olps = hbond_info[other][-1][1:]
             if is_acc:
                 # proton may have been stripped if donor near metal...
                 if not oprotons:
                     continue
                 opositions = oprotons
-                mul = LPlen
+                mul = lp_len
             else:
                 opositions = olps
-                mul = Hlen
+                mul = h_len
             for opos in opositions:
-                for check in testPositions:
-                    if isinstance(check, chimera.Vector):
-                        pos = atPos + check * mul
-                    else:
+                for is_h, check in test_positions:
+                    if is_h:
                         pos = check
-                    dsq = (opos - pos).sqlength()
+                    else:
+                        pos = at_pos + check * mul
+                    dsq = distance_squared(opos, pos)
                     if nearest is None or dsq < nsq:
                         nearest = check
+                        nearest_is_h = is_h
                         nsq = dsq
         else:
-            otherPos = other._hb_coord
+            other_pos = other._hb_coord
             if is_acc:
-                mul = LPlen
+                mul = lp_len
             else:
-                mul = Hlen
-            for check in testPositions:
-                if isinstance(check, chimera.Vector):
-                    pos = atPos + check * mul
-                else:
+                mul = h_len
+            for is_h, check in test_positions:
+                if is_h:
                     pos = check
-                dsq = (pos - otherPos).sqlength()
+                else:
+                    pos = at_pos + check * mul
+                dsq = distance_squared(pos - other_pos)
                 if debug:
-                    print "dist from other to",
-                    if isinstance(check, chimera.Point):
-                        print "pre-existing proton:",
-                    elif check in all:
-                        if check in protons:
-                            print "new proton:",
+                    print("dist from other to", end=" ")
+                    if is_h:
+                        if check in all:
+                            if check in protons:
+                                print("new proton:", end=" ")
+                            else:
+                                print("new lone pair:", end=" ")
                         else:
-                            print "new lone pair:",
+                            print("unfilled position:", end=" ")
                     else:
-                        print "unfilled position:",
+                        print("pre-existing proton:", end=" ")
                     import math
-                    print math.sqrt(dsq)
+                    print(math.sqrt(dsq))
                 if nearest is None or dsq < nsq:
                     nearest = check
+                    nearest_is_h = is_h
                     nsq = dsq
-        if isinstance(nearest, chimera.Point):
+        if nearest and nearest_is_h:
             # closest to known hydrogen; no help in positioning...
-            if is_acc and conflictAllowable:
-                # other is trying to donate and is nearest
-                # to one of our hydrogens
+            if is_acc and conflict_allowable:
+                # other is trying to donate and is nearest to one of our hydrogens
                 conflicting.append((is_acc, other))
             continue
         if nearest in all:
             if is_acc:
-                if nearest in protons and conflictAllowable:
+                if nearest in protons and conflict_allowable:
                     conflicting.append((is_acc, other))
-            elif nearest in lonePairs and conflictAllowable:
+            elif nearest in lone_pairs and conflict_allowable:
                 conflicting.append((is_acc, other))
             continue
         # check for steric conflict (frequent with metal coordination)
         if is_acc:
-            pos = atPos + nearest * LPlen
-            atBump = 0.0
+            pos = at_pos + nearest * lp_len
+            at_bump = 0.0
         else:
-            pos = atPos + nearest * Hlen
-            atBump = h_rad
-        checkDist = 2.19 + atBump
-        # since searchTree is a module variable that changes,
-        # need to access via the module...
-        nearby = AddH.searchTree.searchTree(pos.data(), checkDist)
-        stericClash = False
+            pos = at_pos + nearest * h_len
+            at_bump = h_rad
+        check_dist = 2.19 + at_bump
+        # since searchTree is a module variable that changes need to access via the module...
+        from .cmd import search_tree
+        nearby = search_tree.search(pos, check_dist)
+        steric_clash = False
         okay = set([atom, other])
-        okay.update(atom.primaryNeighbors())
+        okay.update(atom.neighbors)
         for nb in nearby:
             if nb in okay:
                 continue
-            if nb.structure != atom.structure \
-            and nb.structure.id == atom.structure.id:
-                # ignore clashes with sibling submodels
+            if nb.structure != atom.structure and (
+                    atom.structure.id is None or (
+                        len(nb.structure.id) > 1
+                        and (nb.structure.id[:-1] == atom.structure.id[:-1]))):
+                # ignore clashes with sibling submodels or if our model isn't open
                 continue
-            dChk = vdw_radius(nb) + atBump - 0.4
-            if dChk*dChk >= distance_squared(nb._hb_coord, pos):
-                stericClash = True
+            d_chk = vdw_radius(nb) + at_bump - 0.4
+            if d_chk * d_chk >= distance_squared(nb._hb_coord, pos):
+                steric_clash = True
                 if debug:
-                    print "steric clash with", nb.oslIdent(), "(%.3f < %.3f)" % (pos.distance(nb._hb_coord), dChk)
+                    print("steric clash with", nb, "(%.3f < %.3f)"
+                        % (distance(pos, nb._hb_coord), d_chk))
                 break
-        if stericClash and conflictAllowable:
+        if steric_clash and conflict_allowable:
             conflicting.append((is_acc, other))
             continue
 
         all[nearest] = 1
         if is_acc:
             if debug:
-                print "determined lone pair"
-            lonePairs[nearest] = 1
+                print("determined lone pair")
+            lone_pairs[nearest] = 1
         else:
             if debug:
-                print "determined proton"
+                print("determined proton")
             protons[nearest] = 1
 
     for is_acc, other in conflicting:
         if debug:
-            print "Removing hbond to %s due to conflict" % other.oslIdent()
+            print("Removing hbond to %s due to conflict" % other)
         hbond_info[atom].remove((is_acc, other))
         if not hbond_info[atom]:
             del hbond_info[atom]
@@ -1167,9 +1147,8 @@ def _tryFinish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
                 del hbond_info[other]
         except ValueError:
             pass
-    # since any conflicting hbonds may have been used to determine
-    # positions, determine the positions again with the remaining
-    # hbonds
+    # since any conflicting hbonds may have been used to determine positions,
+    # determine the positions again with the remaining hbonds
     if conflicting:
         # restore hbonds pruned by the conflicting hbonds
         for is_acc, other in conflicting:
@@ -1182,48 +1161,53 @@ def _tryFinish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
                     if phb[0] in finished or phb[1] in finished:
                         continue
                     if debug:
-                        print "restoring %s/%s hbond pruned by hbond to %s" % (phb[0].oslIdent(), phb[1].oslIdent(), other.oslIdent())
+                        print("restoring %s/%s hbond pruned by hbond to %s"
+                            % (phb[0], phb[1], other))
                     processed.remove(phb)
                     hbond_info.setdefault(phb[0], []).append((False, phb[1]))
                     hbond_info.setdefault(phb[1], []).append((True, phb[0]))
                 del pruned_by[key]
         if atom not in hbond_info:
             if debug:
-                print "No non-conflicting hbonds left!"
+                print("No non-conflicting hbonds left!")
             return False
         if debug:
-            print "calling _tryFinish with non-conflicting hbonds"
-        return _tryFinish(atom, hbond_info, finished, aro_amines,
-                            pruned_by, processed)
+            print("calling _try_finish with non-conflicting hbonds")
+        return _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed)
     # did we determine enough positions?
-    if len(all) < openings \
-    and len(protons) < hydsToPosition \
-    and len(lonePairs) < openings - hydsToPosition:
+    if len(all) < openings and len(protons) < hyds_to_position \
+    and len(lone_pairs) < openings - hyds_to_position:
         if debug:
-            print "not enough hookups (all/protons/lps):", len(all), len(protons), len(lonePairs)
+            print("not enough hookups (all/protons/lps):", len(all), len(protons), len(lone_pairs))
         return False
 
-    if len(protons) < hydsToPosition:
-        for pos in testPositions:
-            if isinstance(pos, chimera.Point):
+    if len(protons) < hyds_to_position:
+        for is_h, pos in test_positions:
+            if is_h:
                 continue
             if pos not in all:
                 protons[pos] = 1
-    Hlocs = []
-    for Hvec in protons.keys():
-        Hlocs.append(atPos + Hvec * Hlen)
+    hbond_info[atom] = altloc_info = []
+    for alt_loc in _alt_locs(atom):
+        atom.alt_loc = alt_loc
+        at_pos = atom._hb_coord
 
-    LPlocs = []
-    for vec in testPositions:
-        if isinstance(vec, chimera.Point):
-            continue
-        if vec not in protons:
-            LPlocs.append(atPos + vec * LPlen)
+        h_locs = []
+        for h_vec in protons.keys():
+            h_locs.append(at_pos + h_vec * h_len)
 
-    hbond_info[atom] = (Hlocs, LPlocs)
+        lp_locs = []
+        for is_h, vec in test_positions:
+            if is_h:
+                continue
+            if vec not in protons:
+                lp_locs.append(at_pos + vec * lp_len)
+
+        altloc_info.append((alt_loc, h_locs, lp_locs))
     finished[atom] = True
     return True
 
+'''
 def addAltlocHyds(atom, geom, bond_length, need_coplanar, problem_atoms):
     altLocs = set()
     for n in atom.neighbors:
