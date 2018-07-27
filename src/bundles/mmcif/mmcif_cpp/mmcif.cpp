@@ -344,7 +344,7 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
 
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
-    missing_poly_seq(false), has_pdbx(false), coordsets(coordsets), atomic(atomic)
+    missing_poly_seq(true), has_pdbx(false), coordsets(coordsets), atomic(atomic)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
@@ -459,6 +459,7 @@ ExtractMolecule::reset_parse()
         delete my_templates;
         my_templates = nullptr;
     }
+    missing_poly_seq = true;
     has_pdbx = false;
 }
 
@@ -1108,7 +1109,6 @@ ExtractMolecule::parse_atom_site()
     double b_factor = DBL_MAX;    // B_iso_or_equiv
     int model_num = 0;            // pdbx_PDB_model_num
 
-    missing_poly_seq = poly.empty();  // assume if entity_poly present, sequence info is present
     if (missing_poly_seq)
         logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity.");
 
@@ -2373,6 +2373,7 @@ ExtractMolecule::parse_entity_poly_seq()
         }
         poly.at(entity_id).seq.emplace(seq_id, mon_id, hetero);
     }
+    missing_poly_seq = false;
 }
 
 static PyObject*
