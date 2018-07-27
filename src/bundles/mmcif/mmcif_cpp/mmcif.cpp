@@ -76,6 +76,19 @@ using atomstruct::ResName;
 
 namespace {
 
+set<ResName> standard_residues {
+    "ALA", "ASX", "CYS", "ASP", "GLU", "PHE", "GLY", "HIS", "ILE", "LYS",
+    "LEU", "MET", "ASN", "PRO", "GLN", "ARG", "SER", "THR", "VAL", "TRP",
+    "UNK", "TYR", "GLX",
+    "A", "G", "C", "U", "I", "N",  // RNA
+    "DA", "DG", "DC", "DT", "DI", "DN", // DNA
+};
+
+bool is_standard_residue(const ResName& name)
+{
+    return standard_residues.find(name) != standard_residues.end();
+}
+
 // Symbolic names for readcif arguments
 static const bool Required = true;  // column is required
 
@@ -174,7 +187,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
-    void connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap, bool nstd_okay);
+    void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay);
     void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
     const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
@@ -475,84 +488,94 @@ ExtractMolecule::find_template_residue(const ResName& name)
 }
 
 void
-ExtractMolecule::connect_polymer_pair(vector<Residue*> a, vector<Residue*> b, bool gap, bool nstd_okay)
+ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay)
 {
     // Connect adjacent residues that have the same type
     // and have link & chief atoms (i.e., peptides and nucleotides)
-    for (auto&& r0: a) {
-        auto tr0 = find_template_residue(r0->name());
-        for (auto&& r1: b) {
-            Atom* a0 = nullptr;
-            Atom* a1 = nullptr;
-            auto tr1 = find_template_residue(r1->name());
-            bool same_type = tr0 && tr1 && !tr0->description().empty()
-                             && (tr1->description() == tr0->description());
-            const char* conn_type;
-            if (same_type) {
-                // peptide or nucletide
-                auto ta0 = tr0 ? tr0->link() : nullptr;
-                if (ta0)
-                    a0 = r0->find_atom(ta0->name());
-                auto ta1 = tr1 ? tr1->chief() : nullptr;
-                if (ta1)
-                    a1 = r1->find_atom(ta1->name());
-                if (a0 == nullptr && a1 != nullptr) {
-                    std::swap(a0, a1);
-                    std::swap(r0, r1);
-                }
-                conn_type = "linking atoms for ";
-            } else {
-                // double check that there is a bond connecting the residues
-                if (r0->connects_to(r1))
-                    continue;
-                conn_type = "connection between ";
-            }
-            if (a0 == nullptr) {
-                find_nearest_pair(r0, r1, &a0, &a1);
-                if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
-                    // suppress warning for CA traces and when missing templates
-                    if (!gap && tr0 && tr1)
-                        logger::warning(_logger, "Expected gap or ", conn_type,
-                                        residue_str(r0, r1), " and ", residue_str(r1));
-                }
-            } else if (a1 == nullptr) {
-                a1 = find_closest(a0, r1, nullptr, true);
-                if (a1 == nullptr || a1->element() != Element::C || a1->name() != "CA") {
-                    // suppress warning for CA traces and when missing templates
-                    if (!gap && tr0 && tr1)
-                        logger::warning(_logger,
-                                        "Expected gap or linking atom in ",
-                                        residue_str(r1, r0), " for ", residue_str(r0));
-                }
-            }
-            if (a1 == nullptr) {
-                logger::warning(_logger, "Unable to connect ", residue_str(r0, r1),
-                                " and ", residue_str(r1));
-                continue;
-            }
-#if 0
-            if (gap && reasonable_bond_length(a0, a1)) {
-                logger::warning(_logger, "Eliding gap between ", residue_str(r0, r1), " and ", residue_str(r1));
-                gap = false;    // bad data
-            }
-#endif
-            if (same_type && !gap && !reasonable_bond_length(a0, a1) && r0->connects_to(r1)) {
-                if (!nstd_okay)
-                    logger::warning(_logger,
-                        "Apparent non-polymeric linkage between ",
-                        residue_str(r0, r1), " and ", residue_str(r1));
-                continue;
-            }
-            if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
-                // gap or CA trace
-                auto as = r0->structure();
-                auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
-                    atomstruct::AS_PBManager::GRP_NORMAL);
-                pbg->new_pseudobond(a0, a1);
-            } else if (!a0->connects_to(a1))
-                (void) a0->structure()->new_bond(a0, a1);
+    const auto& r0name = r0->name();
+    bool r0std = is_standard_residue(r0name);
+    const auto& r1name = r1->name();
+    bool r1std = is_standard_residue(r1name);
+    if (!r0std || !r1std) {
+        // One of the residues is non-standard, so there should be an explicit bond
+        if (r0->connects_to(r1))
+            return;
+        // TODO: warning: missing expected bond
+    }
+
+    auto tr0 = find_template_residue(r0name);
+    auto tr1 = find_template_residue(r1name);
+    bool same_type = tr0 && tr1 && !tr0->description().empty()
+                     && (tr1->description() == tr0->description());
+    if (r0std && r1std && !same_type) {
+        // standard residues, but of different types, so there should be an explicit bond
+        if (r0->connects_to(r1))
+            return;
+        // TODO: warning: missing expected bond
+    }
+    Atom* a0 = nullptr;
+    Atom* a1 = nullptr;
+    const char* conn_type;
+    if (!same_type) {
+        conn_type = "connection between ";
+    } else {
+        // peptide or nucletide
+        auto ta0 = tr0 ? tr0->link() : nullptr;
+        if (ta0)
+            a0 = r0->find_atom(ta0->name());
+        auto ta1 = tr1 ? tr1->chief() : nullptr;
+        if (ta1)
+            a1 = r1->find_atom(ta1->name());
+        if (a0 == nullptr && a1 != nullptr) {
+            std::swap(a0, a1);
+            std::swap(r0, r1);
+        }
+        conn_type = "linking atoms for ";
+    }
+    if (a0 == nullptr) {
+        find_nearest_pair(r0, r1, &a0, &a1);
+        if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
+            // suppress warning for CA traces and when missing templates
+            if (!gap && tr0 && tr1)
+                logger::warning(_logger, "Expected gap or ", conn_type,
+                                residue_str(r0, r1), " and ", residue_str(r1));
+        }
+    } else if (a1 == nullptr) {
+        a1 = find_closest(a0, r1, nullptr, true);
+        if (a1 == nullptr || a1->element() != Element::C || a1->name() != "CA") {
+            // suppress warning for CA traces and when missing templates
+            if (!gap && tr0 && tr1)
+                logger::warning(_logger,
+                                "Expected gap or linking atom in ",
+                                residue_str(r1, r0), " for ", residue_str(r0));
         }
     }
+    if (a1 == nullptr) {
+        logger::warning(_logger, "Unable to connect ", residue_str(r0, r1),
+                        " and ", residue_str(r1));
+        return;
+    }
+#if 0
+    if (gap && reasonable_bond_length(a0, a1)) {
+        logger::warning(_logger, "Eliding gap between ", residue_str(r0, r1), " and ", residue_str(r1));
+        gap = false;    // bad data
+    }
+#endif
+    if (same_type && !gap && !reasonable_bond_length(a0, a1) && r0->connects_to(r1)) {
+        if (!nstd_okay)
+            logger::warning(_logger,
+                "Apparent non-polymeric linkage between ",
+                residue_str(r0, r1), " and ", residue_str(r1));
+        return;
+    }
+    if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
+        // gap or CA trace
+        auto as = r0->structure();
+        auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
+            atomstruct::AS_PBManager::GRP_NORMAL);
+        pbg->new_pseudobond(a0, a1);
+    } else if (!a0->connects_to(a1))
+        (void) a0->structure()->new_bond(a0, a1);
 }
 
 // connect_residue_by_template:
@@ -737,7 +760,7 @@ ExtractMolecule::finished_parse()
                 if (current.empty())
                     continue;
                 if (!previous.empty())
-                    connect_polymer_pair(previous, current, gap, nstd);
+                    connect_polymer_pair(previous[0], current[0], gap, nstd);
                 previous = std::move(current);
                 current.clear();
                 if (!lastp || lastp->seq_id != p.seq_id) {
@@ -768,7 +791,7 @@ ExtractMolecule::finished_parse()
                 seqres.push_back(p.mon_id);
                 residues.push_back(r);
                 if (!previous.empty() && !current.empty()) {
-                    connect_polymer_pair(previous, current, gap, nstd);
+                    connect_polymer_pair(previous[0], current[0], gap, nstd);
                     gap = false;
                 }
                 if (!current.empty()) {
@@ -779,8 +802,8 @@ ExtractMolecule::finished_parse()
             }
             lastp = &p;
         }
-        if (!previous.empty())
-            connect_polymer_pair(previous, current, gap, nstd);
+        if (!previous.empty() && !current.empty())
+            connect_polymer_pair(previous[0], current[0], gap, nstd);
         if (entity_poly.ptype == PolymerType::PT_NONE)
             mol->set_input_seq_info(auth_chain_id, seqres);
         else
@@ -1346,7 +1369,7 @@ ExtractMolecule::parse_atom_site()
                     // only save polymer residues
                     if (position == 0) {
                         logger::warning(_logger, "Unable to infer polymer connectivity due to "
-                                        "unspecified label_seq_id for standard residue \"",
+                                        "unspecified label_seq_id for residue \"",
                                         residue_name, "\" near line ", line_number());
                         // Bad data, don't try to reconstruct entity_poly_seq information
                         missing_poly_seq = false;
