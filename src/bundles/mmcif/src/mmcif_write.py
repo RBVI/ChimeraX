@@ -20,7 +20,7 @@ import platform
 from chimerax import app_dirs
 import sys
 
-WRITER_VERSION = 'v7'
+WRITER_VERSION = 'v8'  # TODO: update after any change
 
 # chains only keep the single letter for missing residues, but entity_poly_seq
 # wants the multiletter version, so fake the names for the missing residues
@@ -61,6 +61,7 @@ _protein1to3 = {
     'T': "THR",
     'V': "VAL",
     'W': "TRP",
+    'X': "UNK",
     'Y': "TYR",
     'Z': "GLX",
 }
@@ -450,21 +451,25 @@ def save_structure(session, file, models, used_data_names):
     ], atom_site_anisotrop_data)
     serial_num = 0
 
-    def atom_site_residue(residue, group, seq_id, asym_id, entity_id, model_num):
+    def atom_site_residue(residue, seq_id, asym_id, entity_id, model_num):
         nonlocal serial_num, atom_site_data, residue_info
         residue_info[residue] = (asym_id, seq_id)
         atoms = residue.atoms
+        rname = residue.name
+        cid = residue.chain_id
+        if cid == ' ':
+            cid = '.'
+        rnum = residue.number
+        rins = residue.insertion_code
+        if not rins:
+            rins = '?'
+        if rname in _standard_residues:
+            group = 'ATOM'
+        else:
+            group = 'HETATM'
         for atom in atoms:
             elem = atom.element.name
             aname = atom.name
-            rname = residue.name
-            cid = residue.chain_id
-            if cid == ' ':
-                cid = '.'
-            rnum = residue.number
-            rins = residue.insertion_code
-            if not rins:
-                rins = '?'
             original_alt_loc = atom.alt_loc
             for alt_loc in atom.alt_locs or '.':
                 if alt_loc is not '.':
@@ -494,15 +499,15 @@ def save_structure(session, file, models, used_data_names):
             for seq_id, r in zip(range(1, sys.maxsize), c.residues):
                 if r is None:
                     continue
-                atom_site_residue(r, 'ATOM', seq_id, asym_id, entity_id, model_num)
+                atom_site_residue(r, seq_id, asym_id, entity_id, model_num)
             chain_het = het_residues.filter(het_residues.chain_ids == chain_id)
             het_residues -= chain_het
             for r in chain_het:
                 asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
-                atom_site_residue(r, 'HETATM', '.', asym_id, entity_id, model_num)
+                atom_site_residue(r, '.', asym_id, entity_id, model_num)
         for r in het_residues:
             asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
-            atom_site_residue(r, 'HETATM', '.', asym_id, entity_id, model_num)
+            atom_site_residue(r, '.', asym_id, entity_id, model_num)
 
     atom_site_data[:] = flattened(atom_site_data)
     atom_site.print(file, fixed_width=True)
@@ -595,8 +600,6 @@ def save_structure(session, file, models, used_data_names):
             a1.set_alt_loc(original_alt_loc1, False)
 
     # disulfide bonds
-    from chimerax.atomic import Sequence
-    rname3to1 = Sequence.rname3to1
     count = 0
     atoms = best_m.atoms
     bonds = best_m.bonds
