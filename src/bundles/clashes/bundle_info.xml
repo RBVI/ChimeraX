@@ -11,6 +11,10 @@
   <Synopsis>Find clashes/contacts in structures</Synopsis>
   <Description>Find atomic clashes/contacts in structures</Description>
 
+  <DataFiles>
+    <DataFile>*.so</DataFile>
+  </DataFiles>
+
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="Structure Analysis"/>
