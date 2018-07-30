@@ -254,7 +254,10 @@ def save_structure(session, file, models, used_data_names):
         name = n
     used_data_names.add(name)
 
-    print('data_%s' % name, file=file)
+    def nonblank_chars(name):
+        return ''.join(ch for ch in name if not ch.isspace())
+
+    print('data_%s' % nonblank_chars(name), file=file)
     print('#', file=file)
 
     _save_metadata(best_m, ['entry'], file)
