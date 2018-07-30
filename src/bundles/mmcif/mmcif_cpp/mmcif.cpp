@@ -568,7 +568,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
                 residue_str(r0, r1), " and ", residue_str(r1));
         return;
     }
-    if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
+    if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
         // gap or CA trace
         auto as = r0->structure();
         auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
