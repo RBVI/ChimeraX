@@ -83,7 +83,7 @@ def vr(session, enable = None, room_position = None, display = None,
             session.logger.info(p)
         else:
             c.room_to_scene = room_position
-            c._last_position = c.position
+            c._last_hmd_position = c._hmd_position
 
     if c:
         if display is not None:
@@ -92,7 +92,7 @@ def vr(session, enable = None, room_position = None, display = None,
             if display != c.desktop_display:
                 c.desktop_display = display
                 if display == 'independent':
-                    c.desktop_camera_position = cam_position
+                    c.position = cam_position
         if show_controllers is not None:
             for hc in c.hand_controllers(show_controllers):
                 hc.show_in_scene(show_controllers)
@@ -212,7 +212,10 @@ class SteamVRCamera(Camera):
         self._session = session
         self._framebuffer = None	# For rendering each eye view to a texture
         self._texture_drawing = None	# For desktop graphics display
-        self._last_position = None
+        from chimerax.core.geometry import Place
+
+        self._hmd_position = Place()
+        self._last_hmd_position = None
         self._last_h = None
         self._close = False
         self._controller_models = []	# List of HandControllerModel
@@ -222,7 +225,6 @@ class SteamVRCamera(Camera):
         self.desktop_camera_position = None	#  Used only for desktop_display = "independent" mode.
         self.desktop_field_of_view = 90		# Degrees. Used only for desktop_display = "independent" mode.
 
-        from chimerax.core.geometry import Place
         self.room_position = Place()	# Camera position in room coordinates
         self._room_to_scene = None	# Maps room coordinates to scene coordinates
 
@@ -262,14 +264,18 @@ class SteamVRCamera(Camera):
         self._new_frame_handler = h
 
     def _get_position(self):
+        # In independent desktop camera mode this is the desktop camera position,
+        # otherwise it is the VR head mounted display position.
         return Camera.get_position(self)
     def _set_position(self, position):
         '''Move camera in scene while keeping camera in a fixed position in room.'''
         if self.desktop_display == 'independent':
             self.desktop_camera_position = position
+            Camera.set_position(self, position)
         else:
             self.room_to_scene =  position * self.position.inverse() * self.room_to_scene
             Camera.set_position(self, position)
+            self._hmd_position = position
             ui = self.user_interface
             if ui.shown():
                 ui.move()
@@ -284,26 +290,27 @@ class SteamVRCamera(Camera):
     room_to_scene = property(_get_room_to_scene, _set_room_to_scene)
 
     def _update_desktop_camera(self, new_rts):
-        mc = self._session.main_view.camera
-        if self is mc:
-            return  # VR and desktop cameras are the same
-
+        if self.desktop_display != 'independent':
+            return
         # Main camera stays at same position in room.
         rts = self._room_to_scene
         if rts is None:
             return   # VR room to scene not yet set.  Leave desktop camera unchanged.
         tf = new_rts * rts.inverse()
-        mpos = tf * mc.position
+        mpos = tf * self.desktop_camera_position
         # Need to remove scale factor.
         x,y,z = tf.matrix[:,0]
         from math import sqrt
         s = 1/sqrt(x*x + y*y + z*z)
         mpos.matrix[:3,:3] *= s
-        mc.position = mpos
+        self.desktop_camera_position = mpos
+        Camera.set_position(self, mpos)
     
     def _move_camera_in_room(self, position):
         '''Move camera to given scene position without changing scene position in room.'''
-        Camera.set_position(self, position)
+        if self.desktop_display != 'independent':
+            Camera.set_position(self, position)
+        self._hmd_position = position
         
     def fit_scene_to_room(self,
                           scene_bounds = None,
@@ -418,14 +425,14 @@ class SteamVRCamera(Camera):
         # Compute camera scene position from HMD position in room
         from chimerax.core.geometry import scale
         S = scale(self.scene_scale)
-        C, last_C = self.position, self._last_position
+        C, last_C = self._hmd_position, self._last_hmd_position
         if last_C is not None and C is not last_C:
             # Camera moved by mouse or command.
             hs = self._last_h * S
             self.room_to_scene = C * hs.inverse()
         self.room_position = rp = H * S
         Cnew = self.room_to_scene * rp
-        self._last_position = Cnew
+        self._last_hmd_position = Cnew
         self._move_camera_in_room(Cnew)
         self._last_h = H
 
@@ -477,7 +484,7 @@ class SteamVRCamera(Camera):
             # Stereo eyes view in same direction with position shifted along x.
             es = self.eye_shift_left if view_num == 0 else self.eye_shift_right
             t = es.scale_translation(1/self.scene_scale)
-            v = camera_position * t
+            v = self._hmd_position * t
         return v
 
     def number_of_views(self):
@@ -494,7 +501,7 @@ class SteamVRCamera(Camera):
         from chimerax.core.graphics.camera import perspective_view_all
         p = perspective_view_all(bounds, self.position, fov, window_size, pad)
         self._move_camera_in_room(p)
-        self._last_position = None
+        self._last_hmd_position = None
         self._last_h = None
         self.fit_scene_to_room(bounds)
 
