@@ -45,10 +45,10 @@ class ModelPanel(ToolInstance):
         shown_title = "" if short_titles else "Shown"
         sel_title = "" if short_titles else "Select"
         self.tree.setHeaderLabels(["Name", "ID", " ", shown_title, sel_title])
-        from chimerax.map import volume_viewer
-        self.tree.headerItem().setIcon(3, volume_viewer.icon_from_file("shown.png"))
+        from chimerax.ui.icons import get_qt_icon
+        self.tree.headerItem().setIcon(3, get_qt_icon("shown"))
         self.tree.headerItem().setToolTip(3, "Shown")
-        self.tree.headerItem().setIcon(4, volume_viewer.icon_from_file("select.png"))
+        self.tree.headerItem().setIcon(4, get_qt_icon("select"))
         self.tree.headerItem().setToolTip(4, "Selected")
         self.tree.setColumnWidth(self.NAME_COLUMN, 200)
         self.tree.setSelectionBehavior(QAbstractItemView.SelectRows)

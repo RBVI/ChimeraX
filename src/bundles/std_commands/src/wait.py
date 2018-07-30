@@ -37,7 +37,7 @@ def draw_frame(session, limit_frame_rate = True):
     v = session.main_view
     v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
     ul = session.update_loop
-    ul.draw_new_frame(session)
+    ul.draw_new_frame()
 
     if limit_frame_rate and session.ui.is_gui:
         dt = time() - t0

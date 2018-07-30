@@ -1467,6 +1467,7 @@ Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName
             (*chars_ptr) = Sequence::rname3to1(*rni);
         }
         chain->bulk_set(*correspondences, res_chars);
+        chain->set_from_seqres(true);
         delete res_chars;
     }
 }

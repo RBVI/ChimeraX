@@ -61,9 +61,8 @@ class MapSeriesSlider(ToolInstance):
         layout.addWidget(pb)
         self.subsample_button = x2 = QPushButton()
         x2.setCheckable(True)
-        x2icon = join(dirname(__file__), 'icons', 'half.png')
-        x2pix = QPixmap(x2icon)
-        x2i = QIcon(x2pix)
+        from chimerax.ui.icons import get_qt_icon
+        x2i = get_qt_icon('half')
         x2.setIcon(x2i)
         x2.clicked.connect(self.subsample_cb)
         layout.addWidget(x2)
@@ -173,12 +172,9 @@ class MapSeriesSlider(ToolInstance):
         self.set_play_button_icon(play=True)
 
     def set_play_button_icon(self, play):
-        from os.path import dirname, join
-        bitmap_path = join(dirname(__file__), 'icons', ('play.png' if play else 'pause.png'))
+        from chimerax.ui.icons import get_qt_icon
+        pi = get_qt_icon('play' if play else 'pause')
         pb = self.play_button
-        from PyQt5.QtGui import QPixmap, QIcon
-        ppix = QPixmap(bitmap_path)
-        pi = QIcon(ppix)
         pb.setIcon(pi)
 
     def subsample_cb(self, event):
