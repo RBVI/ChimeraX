@@ -1888,6 +1888,24 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     d.texture = texture
     return d
 
+def match_aspect_ration(texture_drawing, window_size):
+    if hasattr(texture_drawing, '_td_window_size') and texture_drawing._td_window_size == window_size:
+        return
+    texture_drawing._td_window_size = window_size
+    wx, wy = window_size
+    tx, ty = texture_drawing.texture.size
+    if wx == 0 or wy == 0 or tx == 0 or ty == 0:
+        xtrim, ytrim = 0, 0
+    elif wx/wy > tx/ty:
+        f = (tx*wy)/(ty*wx)
+        xtrim, ytrim = 0, 0.5*(1-f)
+    else:
+        f = (ty*wx)/(tx*wy)
+        xtrim, ytrim = 0.5*(1-f), 0
+    from numpy import array, float32
+    tc = array(((xtrim, ytrim), (1-xtrim, ytrim), (1-xtrim, 1-ytrim), (xtrim, 1-ytrim)), float32)
+    d.texture_coordinates = tc
+    
 def resize_rgba_drawing(drawing, pos = (-1,-1), size = (2,2)):
     x, y = pos
     sx, sy = size
