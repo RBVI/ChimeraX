@@ -34,10 +34,10 @@ def vr(session, enable = None, room_position = None, display = None,
     display : "mirror", "independent", or "blank"
       Controls what is shown on the desktop display.  The default "mirror" shows the right
       eye view seen in the VR headset.  With "independent" the desktop display shows a
-      separate camera view fixed in the VR room coordinates which does not match the viewpoint
-      of the VR headset.  The independent camera can be moved with the mouse.  The "blank"
-      value displays no graphics on the desktop display which allows all graphics computing
-      resources to be dedicate to the VR headset rendering.
+      separate camera view fixed in the VR room coordinates set to match the viewpoint of
+      the VR headset when the command is issued. The value "blank" displays no graphics on
+      the desktop display which allows all graphics computing resources to be dedicated to
+      the VR headset rendering.
     show_controllers : bool
       Whether to show the hand controllers in the scene. Default true.
     multishadow_allowed : bool
@@ -62,10 +62,6 @@ def vr(session, enable = None, room_position = None, display = None,
     
     if enable is None and room_position is None:
         enable = True
-
-    if display == 'independent':
-        # Remember current camera view point to use as desktop view camera.
-        cam_position = session.main_view.camera.position
     
     if enable is not None:
         if enable:
@@ -83,16 +79,15 @@ def vr(session, enable = None, room_position = None, display = None,
             session.logger.info(p)
         else:
             c.room_to_scene = room_position
-            c._last_hmd_position = c._hmd_position
+            c._last_hmd_position = c.position
 
     if c:
         if display is not None:
             if display in ('mirror', 'independent'):
                 wait_for_vsync(session, False)
-            if display != c.desktop_display:
-                c.desktop_display = display
-                if display == 'independent':
-                    c.position = cam_position
+            c.desktop_display = display
+            if display == 'independent':
+                c.desktop_camera_position = c.position
         if show_controllers is not None:
             for hc in c.hand_controllers(show_controllers):
                 hc.show_in_scene(show_controllers)
@@ -214,7 +209,6 @@ class SteamVRCamera(Camera):
         self._texture_drawing = None	# For desktop graphics display
         from chimerax.core.geometry import Place
 
-        self._hmd_position = Place()
         self._last_hmd_position = None
         self._last_h = None
         self._close = False
@@ -269,16 +263,11 @@ class SteamVRCamera(Camera):
         return Camera.get_position(self)
     def _set_position(self, position):
         '''Move camera in scene while keeping camera in a fixed position in room.'''
-        if self.desktop_display == 'independent':
-            self.desktop_camera_position = position
-            Camera.set_position(self, position)
-        else:
-            self.room_to_scene =  position * self.position.inverse() * self.room_to_scene
-            Camera.set_position(self, position)
-            self._hmd_position = position
-            ui = self.user_interface
-            if ui.shown():
-                ui.move()
+        self.room_to_scene = position * self.position.inverse() * self.room_to_scene
+        Camera.set_position(self, position)
+        ui = self.user_interface
+        if ui.shown():
+            ui.move()
     position = property(_get_position, _set_position)
 
     def _get_room_to_scene(self):
@@ -304,13 +293,10 @@ class SteamVRCamera(Camera):
         s = 1/sqrt(x*x + y*y + z*z)
         mpos.matrix[:3,:3] *= s
         self.desktop_camera_position = mpos
-        Camera.set_position(self, mpos)
     
     def _move_camera_in_room(self, position):
         '''Move camera to given scene position without changing scene position in room.'''
-        if self.desktop_display != 'independent':
-            Camera.set_position(self, position)
-        self._hmd_position = position
+        Camera.set_position(self, position)
         
     def fit_scene_to_room(self,
                           scene_bounds = None,
@@ -425,7 +411,7 @@ class SteamVRCamera(Camera):
         # Compute camera scene position from HMD position in room
         from chimerax.core.geometry import scale
         S = scale(self.scene_scale)
-        C, last_C = self._hmd_position, self._last_hmd_position
+        C, last_C = self.position, self._last_hmd_position
         if last_C is not None and C is not last_C:
             # Camera moved by mouse or command.
             hs = self._last_h * S
@@ -484,7 +470,7 @@ class SteamVRCamera(Camera):
             # Stereo eyes view in same direction with position shifted along x.
             es = self.eye_shift_left if view_num == 0 else self.eye_shift_right
             t = es.scale_translation(1/self.scene_scale)
-            v = self._hmd_position * t
+            v = camera_position * t
         return v
 
     def number_of_views(self):
