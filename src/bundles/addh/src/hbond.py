@@ -12,10 +12,10 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic.bond_geom import tetrahedral, planar, linear, single, bond_positions
-from chimerax.atomic import Atom, idatm
+from chimerax.atomic import Atom, idatm, Ring
 from .cmd import new_hydrogen, find_nearest, roomiest, _tree_dist, vdw_radius, \
                 bond_with_H_length, N_H, find_rotamer_nearest, h_rad, add_altloc_hyds
-from chimerax.core.geometry import distance_squared, angle, dihedral, distance
+from chimerax.core.geometry import distance_squared, angle, dihedral, distance, normalize_vector
 
 c_rad = 1.7
 _near_dist = _room_dist = _tree_dist + h_rad + c_rad
@@ -453,26 +453,25 @@ def add_hydrogens(session, atom_list, *args):
                 if debug:
                     print("finished", end)
 
-            #TODO
-            """
-                # if this atom is in candidates 
-                # then actually add any hydrogens
-                if end in candidates and hbond_info[end][0]:
-                    _attach_hydrogens(end, hbond_info[end][0])
+                # if this atom is in candidates then actually add any hydrogens
+                if end in candidates and hbond_info[end][-1][1]:
+                    altloc_hpos_info = []
+                    for alt_loc, h_positions, lone_pairs in hbond_info[end]:
+                        altloc_hpos_info.append((alt_loc, end.occupancy, h_positions))
+                    _attach_hydrogens(end, altloc_hpos_info, _type_info(end))
                     if debug:
-                        print "protonated", end.oslIdent()
-                    # if ring nitrogen, eliminate
-                    # any hbonds where it is an acceptor
-                    if isinstance(donors[end],chimera.Ring):
+                        print("protonated", end)
+                    # if ring nitrogen, eliminate any hbonds where it is an acceptor
+                    if isinstance(donors[end], Ring):
                         for rb in rel_bond[end]:
                             if rb[1] != end:
                                 continue
                             processed.add(rb)
-                                
+
             if a in seen_ambiguous or d in seen_ambiguous:
                 # revisit previously ambiguous
                 if debug:
-                    print "revisiting previous ambiguous"
+                    print("revisiting previous ambiguous")
                 for da in hbond:
                     for rel in rel_bond[da]:
                         if rel in processed:
@@ -484,117 +483,108 @@ def add_hydrogens(session, atom_list, *args):
         if break_ambiguous and not processed_one:
             break_N_ring = True
         break_ambiguous = not processed_one
-    numFinished = 0
+    num_finished = 0
     for a in candidates.keys():
         if a in finished:
-            numFinished += 1
+            num_finished += 1
     if debug:
-        print "finished", numFinished, "of", len(candidates), "atoms"
+        print("finished", num_finished, "of", len(candidates), "atoms")
 
-    logger.status("Adding hydrogens to primary aromatic amines",
-                                blank_after=0, secondary=True)
+    logger.status("Adding hydrogens to primary aromatic amines", blank_after=0, secondary=True)
     if debug:
-        print "primary aromatic amines"
+        print("primary aromatic amines")
     for a in aro_amines:
         if a in finished:
             continue
         if a not in candidates:
             continue
         if debug:
-            print "amine", a.oslIdent()
+            print("amine", a)
         finished[a] = True
-        numFinished += 1
-        
+        num_finished += 1
+
         # point protons right toward acceptors;
         # if also accepting, finish as tet, otherwise as planar
-        acceptFrom = None
+        accept_from = None
         targets = []
-        atPos = a._hb_coord
+        at_pos = a._hb_coord
         for is_acc, other in hbond_info.get(a, []):
             if is_acc:
-                if not acceptFrom:
+                if not accept_from:
                     if debug:
-                        print "accept from", other.oslIdent()
-                    acceptFrom = other._hb_coord
+                        print("accept from", other)
+                    accept_from = other._hb_coord
                 continue
             if debug:
-                print "possible donate to", other.oslIdent()
+                print("possible donate to", other)
             # find nearest lone pair position on acceptor
-            target = _find_target(a, atPos, other, not is_acc, hbond_info, finished)
-            # make sure this proton doesn't form
-            # an angle < 90 degrees with any other bonds
-            # and, if trigonal planar, no angle > 150
-            badAngle = False
-            checkPlanar = type_info_for_atom[a].geometry == planar
-            for bonded in a.primaryNeighbors():
-                ang = chimera.angle(bonded._hb_coord, atPos, target)
+            target = _find_target(a, at_pos, other, not is_acc, hbond_info, finished)
+            # make sure this proton doesn't form # an angle < 90 degrees
+            # with any other bonds and, if trigonal planar, no angle > 150
+            bad_angle = False
+            chack_planar = type_info_for_atom[a].geometry == planar
+            for bonded in a.neighbors:
+                ang = angle(bonded._hb_coord, at_pos, target)
                 if ang < 90.0:
-                    badAngle = True
+                    bad_angle = True
                     break
-                if checkPlanar and ang > 150.0:
-                    badAngle = True
+                if chack_planar and ang > 150.0:
+                    bad_angle = True
                     break
-            if badAngle:
+            if bad_angle:
                 if debug:
-                    print "bad angle"
+                    print("bad angle")
                 continue
-            if targets and chimera.angle(targets[0], atPos,
-                                target) < 90.0:
+            if targets and angle(targets[0], at_pos, target) < 90.0:
                 if debug:
-                    print "bad angle"
+                    print("bad angle")
                 continue
             targets.append(target)
             if len(targets) > 1:
                 break
 
-        positions = []
-        for target in targets:
-            vec = target - atPos
-            vec.normalize()
-            positions.append(atPos +
-                    vec * bond_with_H_length(a, _type_info(a).geometry))
+        hbond_info[a] = altloc_hbond_info = []
+        altloc_hpos_info = []
+        bonding_info = _type_info(a)
+        for alt_loc in _alt_locs(a):
+            a.alt_loc = alt_loc
+            alt_pos = a._hb_coord
+            positions = []
+            for target in targets:
+                vec = normalize_vector(target - alt_pos)
+                positions.append(alt_pos + vec * bond_with_H_length(a, bonding_info.geometry))
 
-        if len(positions) < 2:
-            if acceptFrom:
-                geom = 4
-                knowns = positions + [acceptFrom]
-                coPlanar = None
+            if len(positions) < 2:
+                if accept_from:
+                    geom = 4
+                    knowns = positions + [accept_from]
+                    coplanar = None
+                else:
+                    geom = 3
+                    knowns = positions
+                    coplanar = []
+                    for bonded in a.neighbors:
+                        for b2 in bonded.neighbors:
+                            if a == b2:
+                                continue
+                            coplanar.append(b2._hb_coord)
+
+                new_pos = bond_positions(alt_pos, geom, bond_with_H_length(a, geom),
+                    [nb._hb_coord for nb in a.primaryNeighbors()] + knowns,
+                    coplanar=coplanar)
+                positions.extend(new_pos)
+            if accept_from:
+                acc_vec = accept_from - at_pos
+                acc_vec.length = vdw_radius(a)
+                accs = [at_pos + acc_vec]
             else:
-                geom = 3
-                knowns = positions
-                coPlanar = []
-                for bonded in a.primaryNeighbors():
-                    for b2 in bonded.primaryNeighbors():
-                        if a == b2:
-                            continue
-                        coPlanar.append(b2._hb_coord)
-            sumVec = chimera.Vector()
-            for x in a.primaryNeighbors():
-                vec = x._hb_coord - atPos
-                vec.normalize()
-                sumVec += vec
-            for k in knowns:
-                vec = k - atPos
-                vec.normalize()
-                sumVec += vec
-            sumVec.negate()
-            sumVec.normalize()
-
-            newPos = bond_positions(atPos, geom, bond_with_H_length(a, geom),
-                [nb._hb_coord for nb in a.primaryNeighbors()] + knowns,
-                coPlanar=coPlanar)
-            positions.extend(newPos)
-        _attach_hydrogens(a, positions)
-        if acceptFrom:
-            accVec = acceptFrom - atPos
-            accVec.length = vdw_radius(a)
-            accs = [atPos + accVec]
-        else:
-            accs = []
-        hbond_info[a] = (positions, accs)
+                accs = []
+            altloc_hbond_info.append((alt_loc, positions, accs))
+            altloc_hpos_info.append((alt_loc, a.occupancy, positions))
+        _attach_hydrogens(a, altloc_hpos_info, bonding_info)
 
     if debug:
-        print "finished", numFinished, "of", len(candidates), "atoms"
+        print("finished", num_finished, "of", len(candidates), "atoms")
 
     logger.status("Using steric criteria to resolve partial h-bonders",
                                 blank_after=0, secondary=True)
@@ -604,52 +594,53 @@ def add_hydrogens(session, atom_list, *args):
         if a not in hbond_info:
             continue
         finished[a] = True
-        numFinished += 1
+        num_finished += 1
 
         bonding_info = _type_info(a)
         geom = bonding_info.geometry
 
         num_bonds = a.num_bonds
-        hydsToPosition = bonding_info.substituents - num_bonds
+        hyds_to_position = bonding_info.substituents - num_bonds
         openings = geom - num_bonds
 
-        hbInfo = hbond_info[a]
-        towardAtom = hbInfo[0][1]
+    #TODO: most of the below may need to be in an altloc loop
+    """
+        hb_info = hbond_info[a]
+        toward_atom = hb_info[0][1]
         if debug:
-            print a.oslIdent(), "toward", towardAtom.oslIdent(),
-        towardPos = towardAtom._hb_coord
+            print(a, "toward", toward_atom, end=" ")
+        toward_pos = toward_atom._hb_coord
         toward2 = away2 = None
-        atPos = a._hb_coord
-        if len(hbInfo) > 1:
-            toward2 = hbInfo[1][1]._hb_coord
+        at_pos = a._hb_coord
+        if len(hb_info) > 1:
+            toward2 = hb_info[1][1]._hb_coord
             if debug:
-                print "and toward", hbInfo[1][1].oslIdent()
+                print("and toward", hb_info[1][1])
         elif openings > 3:
-            # okay, we need an "away from" atom just to position
-            # the rotamer
-            away2, dist, nearA = find_nearest(atPos, a, [towardAtom], _near_dist)
+            # okay, we need an "away from" atom just to position the rotamer
+            away2, dist, near_a = find_nearest(at_pos, a, [toward_atom], _near_dist)
             if debug:
-                print "and away from nearest other",
+                print("and away from nearest other", end=" ")
                 if away2:
-                    print nearA.oslIdent(), "[%.2f]" % dist
+                    print(near_a, "[%.2f]" % dist)
                 else:
-                    print "(none)"
+                    print("(none)")
         else:
             if debug:
-                print "with no other positioning determinant"
-        bondedPos = []
-        for bonded in a.primaryNeighbors():
-            bondedPos.append(bonded._hb_coord)
-        positions = bond_positions(atPos, geom,
-            bond_with_H_length(a, geom), bondedPos,
-            toward=towardPos, toward2=toward2, away2=away2)
-        if len(positions) == hydsToPosition:
+                print("with no other positioning determinant")
+        bonded_pos = []
+        for bonded in a.neighbors:
+            bonded_pos.append(bonded._hb_coord)
+        positions = bond_positions(at_pos, geom,
+            bond_with_H_length(a, geom), bonded_pos,
+            toward=toward_pos, toward2=toward2, away2=away2)
+        if len(positions) == hyds_to_position:
             # easy, do them all...
             _attach_hydrogens(a, positions)
             continue
 
         used = {}
-        for is_acc, other in hbInfo:
+        for is_acc, other in hb_info:
             nearest = None
             otherPos = other._hb_coord
             for pos in positions:
@@ -673,14 +664,14 @@ def add_hydrogens(session, atom_list, *args):
                 protonate.append(pos)
         # ... and the "roomiest" remaining positions.
         rooms = roomiest(remaining, a, _room_dist, _type_info(a))
-        needed = hydsToPosition - len(protonate)
+        needed = hyds_to_position - len(protonate)
         protonate.extend(rooms[:needed])
         # then the least sterically challenged...
         _attach_hydrogens(a, protonate)
         hbond_info[a] = (protonate, rooms[needed:])
 
     if debug:
-        print "finished", numFinished, "of", len(candidates), "atoms"
+        print "finished", num_finished, "of", len(candidates), "atoms"
 
     logger.status("Adding hydrogens to non-h-bonding atoms", blank_after=0, secondary=True)
     for a in candidates.keys():
@@ -689,20 +680,20 @@ def add_hydrogens(session, atom_list, *args):
         if a in aro_Ns:
             continue
         finished[a] = True
-        numFinished += 1
+        num_finished += 1
 
         bonding_info = _type_info(a)
         geom = bonding_info.geometry
 
         primaryNeighbors = a.primaryNeighbors()
         num_bonds = len(primaryNeighbors)
-        hydsToPosition = bonding_info.substituents - num_bonds
+        hyds_to_position = bonding_info.substituents - num_bonds
         openings = geom - num_bonds
 
         away = None
         away2 = None
         toward = None
-        atPos = a._hb_coord
+        at_pos = a._hb_coord
         if debug:
             print "position", a.oslIdent(),
         if openings > 2:
@@ -713,11 +704,11 @@ def add_hydrogens(session, atom_list, *args):
             # center of the circle as the test position rather 
             # than the atom position itself
             if geom == 4 and openings == 3:
-                away, dist, awayAtom = find_rotamer_nearest(atPos,
+                away, dist, awayAtom = find_rotamer_nearest(at_pos,
                         idatm_type[a], a,
                         primaryNeighbors[0], 3.5)
             else:
-                away, dist, awayAtom = find_nearest(atPos, a, [], _near_dist)
+                away, dist, awayAtom = find_nearest(at_pos, a, [], _near_dist)
 
             # actually, if the nearest atom is a metal and we have
             # a free lone pair, we want to position (the lone
@@ -737,32 +728,32 @@ def add_hydrogens(session, atom_list, *args):
                         print "(none)",
         if openings > 3 and away is not None:
             # need another away from
-            away2, dist, nearA = find_nearest(atPos, a, [awayAtom], _near_dist)
+            away2, dist, near_a = find_nearest(at_pos, a, [awayAtom], _near_dist)
             if debug:
                 print "and away from",
-                if nearA:
-                    print nearA.oslIdent(), "[%.2f]" % dist,
+                if near_a:
+                    print near_a.oslIdent(), "[%.2f]" % dist,
                 else:
                     print "(none)",
         if debug:
             print
-        bondedPos = []
+        bonded_pos = []
         for bonded in primaryNeighbors:
-            bondedPos.append(bonded._hb_coord)
-        positions = bond_positions(atPos, geom,
+            bonded_pos.append(bonded._hb_coord)
+        positions = bond_positions(at_pos, geom,
             bond_with_H_length(a, geom),
-            bondedPos, toward=toward, away=away, away2=away2)
-        if len(positions) == hydsToPosition:
+            bonded_pos, toward=toward, away=away, away2=away2)
+        if len(positions) == hyds_to_position:
             # easy, do them all...
             _attach_hydrogens(a, positions)
             continue
 
         # protonate "roomiest" positions
         _attach_hydrogens(a, roomiest(positions, a, _room_dist, _type_info(a))[
-                    :hydsToPosition])
+                    :hyds_to_position])
 
     if debug:
-        print "finished", numFinished, "of", len(candidates), "atoms"
+        print "finished", num_finished, "of", len(candidates), "atoms"
 
     logger.status("Deciding aromatic nitrogen protonation",
                                 blank_after=0, secondary=True)
@@ -788,11 +779,11 @@ def add_hydrogens(session, atom_list, *args):
 
         positions = []
         for n in Npls:
-            bondedPos = []
+            bonded_pos = []
             for bonded in n.primaryNeighbors():
-                bondedPos.append(bonded._hb_coord)
+                bonded_pos.append(bonded._hb_coord)
             positions.append(bond_positions(n._hb_coord, planar,
-                bond_with_H_length(n, planar), bondedPos)[0])
+                bond_with_H_length(n, planar), bonded_pos)[0])
         if len(positions) == 1:
             if debug:
                 print "protonate precise ring", Npls[0].oslIdent()
