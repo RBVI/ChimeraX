@@ -40,11 +40,13 @@ endif
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
-if !defined(UBUNTU_DIST) && !defined(CENTOS_DIST)
+ifndef UBUNTU_DIST
+ifndef CENTOS_DIST
 NEED_EXPAT=1
 NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_ZLIB=1
+endif
 endif
 endif
 
@@ -155,8 +157,10 @@ PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).tar.bz2
 endif
 
 prebuilt:
-if !defined(UBUNTU_DIST) && !defined(CENTOS_DIST)
+ifndef UBUNTU_DIST
+ifndef CENTOS_DIST
 	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp -cjf $$prebuilt .
+endif
 endif
 
 install-prebuilt:
