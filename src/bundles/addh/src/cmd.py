@@ -640,7 +640,11 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
     near_pos = n = near_atom = None
     for nb in nearby:
         # using numpy.allclose() is *very* slow, so...
-        nb_sc = list(nb._addh_coord)
+        try:
+            nb_sc = list(nb._addh_coord)
+        except AttributeError:
+            print(nb.__class__, nb.__class__.__module__)
+            raise
         if nb_sc == list(at_pos) or nb_sc == list(n_pos):
             # exclude atoms from identical-copy structure also...
             continue
