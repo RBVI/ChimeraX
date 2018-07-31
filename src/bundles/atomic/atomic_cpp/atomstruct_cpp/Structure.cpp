@@ -1444,7 +1444,6 @@ void
 Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
         const std::vector<Residue*>* correspondences, PolymerType pt)
 {
-std::cerr << "set input seq info for chain " << chain_id << "\n";
     _input_seq_info[chain_id] = res_names;
     if (correspondences != nullptr) {
         if (correspondences->size() != res_names.size())
