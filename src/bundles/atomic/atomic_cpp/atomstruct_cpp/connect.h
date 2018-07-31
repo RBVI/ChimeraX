@@ -33,6 +33,7 @@ ATOMSTRUCT_IMEX bool  is_standard_residue(const ResName& name);
 ATOMSTRUCT_IMEX void  add_standard_residue(const ResName& name);
 ATOMSTRUCT_IMEX void  remove_standard_residue(const ResName& name);
 
+ATOMSTRUCT_IMEX void  connect_structure_by_distance(Structure* as);
 ATOMSTRUCT_IMEX void  connect_structure(Structure* as,
         std::vector<Residue *>* chain_starters,
         std::vector<Residue *>* chain_enders,

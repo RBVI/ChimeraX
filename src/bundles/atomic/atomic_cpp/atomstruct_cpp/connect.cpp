@@ -641,4 +641,10 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
     }
 }
 
+void
+connect_structure_by_distance(Structure* as)
+{
+    
+}
+
 }  // namespace atomstruct
