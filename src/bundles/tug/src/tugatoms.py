@@ -214,7 +214,7 @@ class StructureTugger:
         
 
         # OpenMM simulation parameters
-        self._forcefields = ('amber14-all.xml', 'tip3p.xml')
+        self._forcefields = ('amber14-all.xml', 'amber14/tip3p.xml')
         self._sim_steps = 50		# Simulation steps between mouse position updates
         self._force_constant = 10000
         from simtk import unit
