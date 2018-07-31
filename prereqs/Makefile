@@ -40,7 +40,7 @@ endif
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
-ifndef UBUNTU_DIST
+if !defined(UBUNTU_DIST) && !defined(CENTOS_DIST)
 NEED_EXPAT=1
 NEED_HDF5=1
 NEED_OPENSSL=1
@@ -155,7 +155,7 @@ PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).tar.bz2
 endif
 
 prebuilt:
-ifndef UBUNTU_DIST
+if !defined(UBUNTU_DIST) && !defined(CENTOS_DIST)
 	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp -cjf $$prebuilt .
 endif
 
@@ -201,8 +201,8 @@ leapmotion.app-install: Python.app-install
 leapmotion.install: Python.install
 llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
-msgpack.app-install: Python.app-install
-msgpack.install: Python.install
+msgpack.app-install: Python.app-install pips.app-install
+msgpack.install: Python.install pips.install
 numexpr.app-install: Python.app-install numpy.app-install pips.app-install
 numexpr.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
