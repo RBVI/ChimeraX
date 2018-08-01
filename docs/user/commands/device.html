@@ -94,18 +94,20 @@ See also: <a href="camera.html"><b>camera</b></a>,
 <a href="view.html"><b>view</b></a>,
 <a href="../movies.html">making movies</a>
 <p>
-The <b>display</b> option (default <b>mirror</b>)
-indicates what to display in the ChimeraX graphics window.
-The default "mirror" shows the right eye view seen in the VR headset.
-With "independent" the desktop display shows a separate camera view
-fixed in the VR room coordinates set to match the viewpoint of
-the VR headset when the command is issued. The value "blank" displays
-no graphics on the desktop display which allows all graphics computing
-resources to be dedicated to the VR headset rendering.
+The <b>display</b> option indicates what to show in the ChimeraX graphics
+window on the desktop:
+<ul>
+<li><b>mirror</b> (default) - the right-eye view seen in the VR headset
+<li><b>independent</b> - a separate camera view
+fixed in the VR room coordinates, set to match the viewpoint of
+the VR headset when the command is issued
+<li><b>blank</b> - no graphics, allowing all graphics computing
+resources to be dedicated to VR headset rendering
+</ul>
 Updating the graphics window can cause flicker in the VR headset
 because refreshing the computer display (nominally 60 times per second)
-slows rendering to headset.  ChimeraX turns off syncing to
-vertical refresh if possible.  Another method to mirror is to use
+slows rendering to headset. ChimeraX turns off syncing to
+vertical refresh if possible. Another way to mirror is to use
 SteamVR's menu entry to display mirror window.
 </p><p>
 The <b>showControllers</b> option (default <b>true</b>)
@@ -162,5 +164,5 @@ menu button which shows the standard ChimeraX user interface in VR.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2018</address>
+August 2018</address>
 </body></html>
