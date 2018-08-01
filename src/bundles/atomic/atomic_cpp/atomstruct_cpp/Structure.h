@@ -260,6 +260,7 @@ public:
             return std::vector<std::pair<Chain::Residues,PolymerType>>();
         }
     const PositionMatrix&  position() const { return _position; }
+    void  ready_idatm_types() { if (!_idatm_valid) _compute_idatm_types(); }
     void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,

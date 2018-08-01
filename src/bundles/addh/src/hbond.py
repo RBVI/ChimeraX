@@ -567,12 +567,11 @@ def add_hydrogens(session, atom_list, *args):
                             coplanar.append(b2._addh_coord)
 
                 new_pos = bond_positions(alt_pos, geom, bond_with_H_length(a, geom),
-                    [nb._addh_coord for nb in a.primaryNeighbors()] + knowns,
+                    [nb._addh_coord for nb in a.neighbors] + knowns,
                     coplanar=coplanar)
                 positions.extend(new_pos)
             if accept_from:
-                acc_vec = accept_from - at_pos
-                acc_vec.length = vdw_radius(a)
+                acc_vec = normalize_vector(accept_from - at_pos) * vdw_radius(a)
                 accs = [at_pos + acc_vec]
             else:
                 accs = []
@@ -814,9 +813,8 @@ def add_hydrogens(session, atom_list, *args):
 
     logger.status("", secondary=True)
     if problem_atoms:
-        logger.error("Problems adding hydrogens to %d atom(s); see Reply Log for details"
+        logger.error("Problems adding hydrogens to %d atom(s); see Log for details"
             % len(problem_atoms))
-        from chimera.misc import chimeraLabel
         logger.info("Did not protonate the following atoms:\n%s"
             % ", ".join([str(pa) for pa in problem_atoms]))
     type_info_for_atom = naming_schemas = hydrogen_totals = idatm_type \
@@ -838,7 +836,7 @@ def _find_target(from_atom, at_pos, to_atom, as_donor, hbond_info, finished):
         return to_atom._addh_coord
     if to_atom in finished:
         # known positioning already
-        protons, lone_pairs = hbond_info[to_atom][-1]
+        altloc, protons, lone_pairs = hbond_info[to_atom][-1]
         if as_donor:
             positions = lone_pairs
         else:
@@ -903,13 +901,13 @@ def _can_accept(donor, acceptor, protons, lone_pairs):
         raise ValueError("No lone pairs on %s for %s to donate to" % (acceptor, donor))
     don_pos = donor._addh_coord
     h_dist = min([distance_squared(p, don_pos) for p in protons])
-    lp_dist, lp = min([distance_squared(lp, don_pos) for lp in lone_pairs])
+    lp_dist, lp = min([(distance_squared(lp, don_pos), lp) for lp in lone_pairs])
     # besides a lone pair being closest, it must be sufficiently pointed towards the donor
     if lp_dist >= h_dist:
         if debug:
             from math import sqrt
             print("can't still accept; lp dist (%g) >= h dist (%g)" % (sqrt(lp_dist), sqrt(h_dist)))
-    elif chimera.angle(lp, acceptor._addh_coord, don_pos) >= _test_angles[
+    elif angle(lp, acceptor._addh_coord, don_pos) >= _test_angles[
             type_info_for_atom[acceptor].geometry]:
         if debug:
             print("can't still accept; angle (%g) >= test angle (%g)"
@@ -1059,7 +1057,7 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
                     pos = check
                 else:
                     pos = at_pos + check * mul
-                dsq = distance_squared(pos - other_pos)
+                dsq = distance_squared(pos, other_pos)
                 if debug:
                     print("dist from other to", end=" ")
                     if is_h:
@@ -1215,8 +1213,7 @@ def _angle_check(d, a, hbond_info):
     if d in hbond_info:
         geom = _type_info(d).geometry
         for is_acc, da in hbond_info[d]:
-            ang = chimera.angle(da._addh_coord,
-                        d._addh_coord, a._addh_coord)
+            ang = angle(da._addh_coord, d._addh_coord, a._addh_coord)
             if ang > _test_angles[geom]:
                 continue
             if is_acc:

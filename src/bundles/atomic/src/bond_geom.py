@@ -20,7 +20,7 @@ TODO
 
 import tinyarray, numpy
 from numpy.linalg import norm
-normalize = lambda v: v/norm(v)
+normalize = lambda v: tinyarray.array(v/norm(v))
 sqlength = lambda v: numpy.sum(v*v)
 
 from math import pi, sin, cos
@@ -150,8 +150,6 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
 
     if len(cur_bonded) == 1:
         # add at 109.5 degree angle
-        #
-        # stupid numpy and boolean testing of arrays...
         coplanar = toward or away
         if coplanar:
             coplanar = [coplanar]
@@ -163,7 +161,7 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
             # plane and the closer/farther position as appropriate
             old = normalize(bondee - cur_bonded[0])
             new = pos - bondee
-            midpoint = bondee + old * norm(new) * cos705
+            midpoint = tinyarray.array(bondee + old * norm(new) * cos705)
             other_pos = pos + (midpoint - pos) * 2
             d1 = sqlength(pos - (toward or away))
             d2 = sqlength(other_pos - (toward or away))
@@ -257,7 +255,7 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
         v = v * bond_length / norm(v)
         return atom_pos + v
 
-    return points[0]
+    return tinyarray.array(points[0])
 
 def right_angle(orig):
     if orig[0] == 0.0:

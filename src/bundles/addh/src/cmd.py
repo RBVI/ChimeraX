@@ -795,6 +795,8 @@ def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogen
     # creating alt locs doesn't change any other atom's altloc settings, so...
     for alt_loc, occupany, positions in altloc_hpos_info:
         for added in added_hs:
+            if added is None:
+                continue
             added.alt_loc = alt_loc
             added.bfactor = atom.bfactor
     return added_hs
@@ -817,7 +819,6 @@ def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent
     _serial = new_h.serial_number + 1
     new_h.color = h_color
     new_h.hide = parent_atom.hide
-    import sys
     return new_h
 
 def determine_h_color(parent_atom):
