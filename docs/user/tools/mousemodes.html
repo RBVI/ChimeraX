@@ -190,9 +190,12 @@ original coordinates not retained</td>
 <p>
 To work with the <b>tug</b> or <b>minimize</b> mouse modes,
 the entire atomic model must be parametrized in OpenMM.
-<!-- defined by amber99sbildn.xml and amber99_obc.xml -->
+<!-- 
+uses the following from 
+https://github.com/pandegroup/openmm/tree/master/wrappers/python/simtk/openmm/app/data/amber14 : protein.ff14SB.xml DNA.OL15.xml RNA.OL3.xml lipid17.xml tip3p.xml
+-->
 Currently, this requires a fully protonated structure
-containing nothing but standard amino acid residues.
+containing only standard residues and/or water.
 Protons can be added beforehand with the command
 <a href="../commands/addh.html"><b>addh</b></a>.
 </p><p>
@@ -210,5 +213,5 @@ that is, only intra-model forces apply. No nonbonded cutoff is used.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2018</address>
+August 2018</address>
 </body></html>
