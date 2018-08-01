@@ -153,7 +153,12 @@ def parse_triangle(fields, line, line_num):
     for f in fields:
         vi = None
         for s in f.split('/'):
-            i = int(s)
+            if s == '':
+                continue
+            try:
+                i = int(s)
+            except:
+                raise OBJError('OBJ reader could not parse face, non-integer field "%s"' % line)
             if vi is None:
                 vi = i
             elif i != vi:
@@ -216,7 +221,8 @@ def write_object(file, name, va, na, tca, ta, pos, obj_to_unity):
 
     # Write object name
     if name is not None:
-        file.write('o %s\n' % name)
+        ascii_name = name.encode('ascii', 'replace').decode('ascii')  # Replace non-ascii characters with ?
+        file.write('o %s\n' % ascii_name)
 
     if pos is not None and not pos.is_identity():
         # Expand out positions including instancing.
