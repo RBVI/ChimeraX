@@ -309,15 +309,6 @@ class UI(QApplication):
     def cancel_timer(self, timer):
         timer.stop()
 
-    def update_graphics_now(self):
-        '''
-        Redraw graphics now if there are any changes.  This is typically only used by
-        mouse drag code that wants to update the graphics as responsively as possible,
-        particularly when a mouse step may take significant computation, such as contour
-        surface level change.  After each mouse event this is called to force a redraw.
-        '''
-        self.main_window.graphics_window.update_graphics_now()
-
     def update_undo(self, undo_manager):
         self.main_window.update_undo(undo_manager)
         
@@ -680,13 +671,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
         self._rapid_access_button = rab = QToolButton(sb)
-        from PyQt5.QtGui import QIcon
-        import os.path
-        cur_dir = os.path.dirname(__file__)
-        self._expand_icon = QIcon(os.path.join(cur_dir, "icons", "expand1.png"))
-        self._contract_icon = QIcon(os.path.join(cur_dir, "icons", "contract1.png"))
-        self._ra_shown_icon = QIcon(os.path.join(cur_dir, "icons", "lightning_day.png"))
-        self._ra_hidden_icon = QIcon(os.path.join(cur_dir, "icons", "lightning_night.png"))
+        from .icons import get_qt_icon
+        self._expand_icon = get_qt_icon("expand1")
+        self._contract_icon = get_qt_icon("contract1")
+        self._ra_shown_icon = get_qt_icon("lightning_day")
+        self._ra_hidden_icon = get_qt_icon("lightning_night")
         ghb.setIcon(self._expand_icon)
         rab.setIcon(self._ra_shown_icon)
         ghb.setCheckable(True)

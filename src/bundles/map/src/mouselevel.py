@@ -27,7 +27,7 @@ class ContourLevelMouseMode(MouseMode):
             adjust_threshold_level(m, f)
 
         # Make sure new level is shown before another mouse event causes another level change.
-        self.session.ui.update_graphics_now()
+        self.session.update_loop.update_graphics_now()
     
     def wheel(self, event):
         d = event.wheel_value()
@@ -36,7 +36,7 @@ class ContourLevelMouseMode(MouseMode):
             adjust_threshold_level(m, f)
 
         # Make sure new level is shown before another mouse event causes another level change.
-        self.session.ui.update_graphics_now()
+        self.session.update_loop.update_graphics_now()
 
     def drag_3d(self, position, move, delta_z):
         if delta_z is not None:

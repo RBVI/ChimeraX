@@ -30,6 +30,9 @@ class BugReporter(ToolInstance):
         
         ToolInstance.__init__(self, session, tool_name)
 
+        from .settings import BugReporterSettings
+        self.settings = BugReporterSettings(session, 'Bug Reporter')
+
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
         self.tool_window = tw
@@ -49,18 +52,16 @@ class BugReporter(ToolInstance):
         row = 1
         
         intro = '''
-        <center><h1>Submit a Bug</h1></center>
+        <center><h1>Report a Bug</h1></center>
         <p>Thank you for using our feedback system.
 	  Feedback is greatly appreciated and plays a crucial role
 	  in the development of ChimeraX.</p>
-	  <p><b>Note</b>:  We do not automatically collect any personal
-	  information or the data you were working with in ChimeraX when
-	  the problem occurred.
-	  Providing your e-mail address is optional,
-	  but will allow us to contact you if more information is needed
-	  and/or notify you when the bug has been fixed.
-	  Any personal information you wish to provide should be
-	  provided separately, and will be kept strictly confidential.</p>
+	  <p><b>Note</b>:
+          We do not automatically collect any personal information or the data
+          you were working with when the problem occurred.  Providing your e-mail address is optional,
+          but will allow us to inform you of a fix or to ask questions, if needed.
+          Attaching data may also be helpful.  However, any information or data
+          you wish to keep confidential should be sent separately (not using this form).</p>
         '''
         il = QLabel(intro)
         il.setWordWrap(True)
@@ -70,14 +71,14 @@ class BugReporter(ToolInstance):
         cnl = QLabel('Contact Name:')
         cnl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
         layout.addWidget(cnl, row, 1)
-        self.contact_name = cn = QLineEdit('')
+        self.contact_name = cn = QLineEdit(self.settings.contact_name)
         layout.addWidget(cn, row, 2)
         row += 1
 
         eml = QLabel('Email Address:')
         eml.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
         layout.addWidget(eml, row, 1)
-        self.email_address = em = QLineEdit('')
+        self.email_address = em = QLineEdit(self.settings.email_address)
         layout.addWidget(em, row, 2)
         row += 1
 
@@ -98,7 +99,7 @@ class BugReporter(ToolInstance):
         dl = QLabel('Description:')
         dl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
         layout.addWidget(dl, row, 1)
-        self.description = d = TextEdit('', 2)
+        self.description = d = TextEdit('', 3)
         d.setText('<font color=blue>(Describe the actions that caused this problem to occur here)</font>')
         layout.addWidget(d, row, 2)
         row += 1
@@ -189,6 +190,9 @@ class BugReporter(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
+    def set_description(self, text):
+        self.description.setText(text)
+
     def submit(self):
 
         entry_values = self.entry_values()
@@ -231,6 +235,9 @@ class BugReporter(ToolInstance):
             self.report_success()
             self.cancel_button.setText("Close")
             self.submit_button.deleteLater()	# Prevent second submission
+            s = self.settings
+            s.contact_name = self.contact_name.text()
+            s.email_address = self.email_address.text()
         else:
             self.report_failure()
 
@@ -291,11 +298,15 @@ class BugReporter(ToolInstance):
 
     def opengl_info(self):
         r = self._ses.main_view.render
-        r.make_current()
-        lines = ['OpenGL version: ' + r.opengl_version(),
-                 'OpenGL renderer: ' + r.opengl_renderer(),
-                 'OpenGL vendor: ' + r.opengl_vendor()]
-        r.done_current()
+        try:
+            r.make_current()
+            lines = ['OpenGL version: ' + r.opengl_version(),
+                     'OpenGL renderer: ' + r.opengl_renderer(),
+                     'OpenGL vendor: ' + r.opengl_vendor()]
+            r.done_current()
+        except:
+            lines = ['OpenGL version: unknown',
+                     'Could not make opengl context current']
         return '\n'.join(lines)
 
     def chimerax_version(self):

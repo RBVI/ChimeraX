@@ -12,8 +12,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = addh active_tools align_algs alignments atom_search atomic \
-	  basic_actions bild blastprotein bond_rot bumps \
+SUBDIRS = addh align_algs alignments atom_search atomic \
+	  basic_actions bild blastprotein bond_rot bug_reporter bumps \
 	  bundle_builder cage_builder cellpack chem_group clashes cmd_line \
 	  color_globe crosslinks crystal dist_monitor dist_ui dssp exp_cmd file_history \
 	  gltf hbonds help_viewer ihm interfaces label list_info log \
@@ -43,7 +43,6 @@ endif
 clean:
 	rm -rf __pycache__
 
-active_tools.install: ui.install surface.install
 addh.install: atomic.install
 align_algs.install: alignments.install
 alignments.install: atomic.install

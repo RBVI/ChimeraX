@@ -512,7 +512,7 @@ def _compressed_open(filename, compression, *args, **kw):
 
 
 def open_filename(filename, *args, **kw):
-    """Open a file/URL with or without compression
+    """Supported API. Open a file/URL with or without compression
 
     Takes the same arguments as built-in open and returns a file-like
     object.  However, `filename` can also be a file-like object itself,

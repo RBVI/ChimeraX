@@ -21,4 +21,16 @@ class _BugReporterAPI(BundleAPI):
         tool = BugReporter(session, tool_name)
         return tool
 
+    @staticmethod
+    def initialize(session, bundle_info):
+        '''Check if for Mac crash logs after startup.'''
+        from . import mac_crash_report
+        mac_crash_report.register_mac_crash_checker(session)
+
 bundle_api = _BugReporterAPI()
+
+def show_bug_reporter(session):
+    ts = session.toolshed
+    bi, tool_name = ts.find_bundle_for_tool('Bug Reporter')
+    tool = bi.start_tool(session, tool_name)
+    return tool

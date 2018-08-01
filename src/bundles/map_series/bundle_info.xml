@@ -9,10 +9,6 @@
   <Synopsis>Volume series</Synopsis>
   <Description>Display and analyze 3d image time series.</Description>
 
-  <DataFiles>
-    <DataFile>icons/*.png</DataFile>
-  </DataFiles>
-
   <Categories>
     <Category name="Volume Data"/>
   </Categories>

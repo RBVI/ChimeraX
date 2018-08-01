@@ -12,9 +12,9 @@
 # -----------------------------------------------------------------------------
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
-def vr(session, enable = None, room_position = None, mirror = True, icons = False,
+def vr(session, enable = None, room_position = None, display = None,
        show_controllers = True, multishadow_allowed = False, simplify_graphics = True,
-       toolbar_panels = True):
+       toolbar_panels = True, icons = False):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
@@ -31,14 +31,13 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
     room_position : Place or "report"
       Maps physical room coordinates to molecular scene coordinates.
       Room coordinates have origin at center of room and units are meters.
-    mirror : bool
-      Whether to update the ChimeraX graphics window.  This also turns off waiting
-      for display vertical sync on the computer monitor so that the 60 Hz refresh rate
-      does not slow down the 90 Hz rendering to the VR headset.
-    icons : bool
-      Whether to show a panel of icons when controller trackpad is touched.
-      For demonstrations the icons can be too complex and it is better not to have icons.
-      Default false.
+    display : "mirror", "independent", or "blank"
+      Controls what is shown on the desktop display.  The default "mirror" shows the right
+      eye view seen in the VR headset.  With "independent" the desktop display shows a
+      separate camera view fixed in the VR room coordinates set to match the viewpoint of
+      the VR headset when the command is issued. The value "blank" displays no graphics on
+      the desktop display which allows all graphics computing resources to be dedicated to
+      the VR headset rendering.
     show_controllers : bool
       Whether to show the hand controllers in the scene. Default true.
     multishadow_allowed : bool
@@ -54,21 +53,25 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
     toolbar_panels : bool
       Whether to hide mouse modes and shortcut toolbars and instead show them as tool panels.
       This is useful for consolidating the controls in the VR gui panel.  Default true.
+    icons : bool
+      Experimental.  Superceded by embedded gui panel.
+      Whether to show a panel of icons when controller trackpad is touched.
+      For demonstrations the icons can be too complex and it is better not to have icons.
+      Default false.
     '''
     
     if enable is None and room_position is None:
         enable = True
-
+    
     if enable is not None:
         if enable:
             start_vr(session, multishadow_allowed, simplify_graphics)
         else:
             stop_vr(session, simplify_graphics)
 
-    v = session.main_view
-    c = v.camera
+    c = vr_camera(session)
     if room_position is not None:
-        if not isinstance(c, SteamVRCamera):
+        if c is None:
             from chimerax.core.errors import UserError
             raise UserError('Cannot use vr roomPosition unless vr enabled.')
         if isinstance(room_position, str) and room_position == 'report':
@@ -76,12 +79,15 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
             session.logger.info(p)
         else:
             c.room_to_scene = room_position
-            c._last_position = c.position
+            c._last_hmd_position = c.position
 
-    if isinstance(c, SteamVRCamera):
-        if mirror is not None:
-            c.mirror_display = mirror
-            wait_for_vsync(session, mirror)
+    if c:
+        if display is not None:
+            if display in ('mirror', 'independent'):
+                wait_for_vsync(session, False)
+            c.desktop_display = display
+            if display == 'independent':
+                c.desktop_camera_position = c.position
         if show_controllers is not None:
             for hc in c.hand_controllers(show_controllers):
                 hc.show_in_scene(show_controllers)
@@ -97,7 +103,7 @@ def vr(session, enable = None, room_position = None, mirror = True, icons = Fals
             if isinstance(tb, toolbar_classes):
                 tb.display(False)
                 tb.display_panel(True)
-            
+
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
@@ -106,12 +112,12 @@ def register_vr_command(logger):
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
-                              ('mirror', BoolArg),
-                              ('icons', BoolArg),
+                              ('display', EnumOf(('mirror', 'independent', 'blank'))),
                               ('show_controllers', BoolArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                               ('toolbar_panels', BoolArg),
+                              ('icons', BoolArg),
                    ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
@@ -130,7 +136,7 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
         from chimerax.std_commands.graphics import graphics
         graphics(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
-    if isinstance(v.camera, SteamVRCamera):
+    if vr_camera(session) is not None:
         return
 
     try:
@@ -138,46 +144,56 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
     except Exception as e:
         from chimerax.core.errors import UserError
         raise UserError('Failed to import OpenVR module: %s' % str(e))
+
+    mv = session.main_view
+    mv.camera = SteamVRCamera(session)
     
-    v.camera = SteamVRCamera(session)
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
-    session.ui.main_window.graphics_window.set_redraw_interval(0)
+    session.update_loop.set_redraw_interval(0)
 
     msg = 'started SteamVR rendering'
     log = session.logger
     log.status(msg)
     log.info(msg)
+        
+# -----------------------------------------------------------------------------
+#
+def vr_camera(session):
+    c = session.main_view.camera
+    return c if isinstance(c, SteamVRCamera) else None
 
 # -----------------------------------------------------------------------------
 #
 def stop_vr(session, simplify_graphics = True):
 
-    c = session.main_view.camera
-    if isinstance(c, SteamVRCamera):
-        # Have to delay shutdown of SteamVR connection until draw callback
-        # otherwise it clobbers the Qt OpenGL context making entire gui black.
-        def replace_camera(s = session):
-            from chimerax.core.graphics import MonoCamera
-            v = s.main_view
-            v.camera = MonoCamera()
-            s.ui.main_window.graphics_window.set_redraw_interval(10)
-            if simplify_graphics:
-                from chimerax.std_commands.graphics import graphics
-                graphics(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
-            v.view_all()
+    c = vr_camera(session)
+    if c is None:
+        return
+    
+    # Have to delay shutdown of SteamVR connection until draw callback
+    # otherwise it clobbers the Qt OpenGL context making entire gui black.
+    def replace_camera(s = session):
+        from chimerax.core.graphics import MonoCamera
+        v = s.main_view
+        v.camera = MonoCamera()
+        s.update_loop.set_redraw_interval(10)
+        if simplify_graphics:
+            from chimerax.std_commands.graphics import graphics
+            graphics(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+        v.view_all()
 
-        c.close(replace_camera)
-        wait_for_vsync(session, True)
+    c.close(replace_camera)
+    wait_for_vsync(session, True)
 
 # -----------------------------------------------------------------------------
 #
-def wait_for_vsync(session, mirror):
+def wait_for_vsync(session, wait):
     r = session.main_view.render
     r.make_current()
-    if not r.wait_for_vsync(not mirror):
-        if mirror:
-            session.logger.warning('Mirror may cause VR stutter.'
-                                   '  Could not turn off wating for vsync on main display.')
+    if not r.wait_for_vsync(wait):
+        if not wait:
+            session.logger.warning('Could not turn off waiting for vsync on main display.'
+                                   '  May cause flicker in VR headset.')
 
 # -----------------------------------------------------------------------------
 #
@@ -190,16 +206,21 @@ class SteamVRCamera(Camera):
 
         self._session = session
         self._framebuffer = None	# For rendering each eye view to a texture
-        self._texture_drawing = None	# For mirror display
-        self._last_position = None
+        self._texture_drawing = None	# For desktop graphics display
+        from chimerax.core.geometry import Place
+
+        self._last_hmd_position = None
         self._last_h = None
         self._close = False
         self._controller_models = []	# List of HandControllerModel
         self.user_interface = UserInterface(self, session)
-        self.mirror_display = False	# Mirror right eye in ChimeraX window
-        				# This causes stuttering in the Vive.
 
-        self.room_position = None	# Camera position in room coordinates
+        self.desktop_display = 'mirror'	# What to show in desktop graphics window, 'mirror', 'independent' or 'blank'.
+        self.desktop_camera_position = None	#  Used only for desktop_display = "independent" mode.
+        self.desktop_field_of_view = 90		# Degrees. Used only for desktop_display = "independent" mode.
+
+        self.room_position = Place()	# Camera position in room coordinates
+        self._room_to_scene = None	# Maps room coordinates to scene coordinates
 
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
@@ -237,16 +258,42 @@ class SteamVRCamera(Camera):
         self._new_frame_handler = h
 
     def _get_position(self):
+        # In independent desktop camera mode this is the desktop camera position,
+        # otherwise it is the VR head mounted display position.
         return Camera.get_position(self)
     def _set_position(self, position):
         '''Move camera in scene while keeping camera in a fixed position in room.'''
-        self.room_to_scene =  position * self.position.inverse() * self.room_to_scene
+        self.room_to_scene = position * self.position.inverse() * self.room_to_scene
         Camera.set_position(self, position)
         ui = self.user_interface
         if ui.shown():
             ui.move()
     position = property(_get_position, _set_position)
 
+    def _get_room_to_scene(self):
+        return self._room_to_scene
+    def _set_room_to_scene(self, p):
+        self._update_desktop_camera(p)
+        self._room_to_scene = p
+        self._reposition_user_interface()
+    room_to_scene = property(_get_room_to_scene, _set_room_to_scene)
+
+    def _update_desktop_camera(self, new_rts):
+        if self.desktop_display != 'independent':
+            return
+        # Main camera stays at same position in room.
+        rts = self._room_to_scene
+        if rts is None:
+            return   # VR room to scene not yet set.  Leave desktop camera unchanged.
+        tf = new_rts * rts.inverse()
+        mpos = tf * self.desktop_camera_position
+        # Need to remove scale factor.
+        x,y,z = tf.matrix[:,0]
+        from math import sqrt
+        s = 1/sqrt(x*x + y*y + z*z)
+        mpos.matrix[:3,:3] *= s
+        self.desktop_camera_position = mpos
+    
     def _move_camera_in_room(self, position):
         '''Move camera to given scene position without changing scene position in room.'''
         Camera.set_position(self, position)
@@ -273,7 +320,7 @@ class SteamVRCamera(Camera):
             hcd = [hc.display for hc in cm]
             for hc in cm:
                 hc.display = False
-            b = self._session.main_view.drawing_bounds()
+            b = self.vr_view.drawing_bounds()
             for hc, disp in zip(cm, hcd):
                 hc.display = disp
         if b:
@@ -287,11 +334,9 @@ class SteamVRCamera(Camera):
         self.room_to_scene = (translation(scene_center) *
                               scale(scene_size/room_scene_size) *
                               translation(-array(room_center, float32)))
-        self._reposition_user_interface()
         
     def move_scene(self, move):
         self.room_to_scene = self.room_to_scene * move
-        self._reposition_user_interface()
         
     def _reposition_user_interface(self):
         ui = self.user_interface
@@ -320,7 +365,7 @@ class SteamVRCamera(Camera):
         self.compositor = None
         fb = self._framebuffer
         if fb is not None:
-            self._session.main_view.render.make_current()
+            self.render.make_current()
             fb.delete()
             self._framebuffer = None
         if self._close_cb:
@@ -331,6 +376,14 @@ class SteamVRCamera(Camera):
         '''Name of camera.'''
         return 'vr'
 
+    @property
+    def vr_view(self):
+        return self._session.main_view
+
+    @property
+    def render(self):
+        return self._session.main_view.render
+    
     def _start_frame(self):
         import openvr
         c = self.compositor
@@ -358,14 +411,14 @@ class SteamVRCamera(Camera):
         # Compute camera scene position from HMD position in room
         from chimerax.core.geometry import scale
         S = scale(self.scene_scale)
-        C, last_C = self.position, self._last_position
+        C, last_C = self.position, self._last_hmd_position
         if last_C is not None and C is not last_C:
             # Camera moved by mouse or command.
             hs = self._last_h * S
             self.room_to_scene = C * hs.inverse()
         self.room_position = rp = H * S
         Cnew = self.room_to_scene * rp
-        self._last_position = Cnew
+        self._last_hmd_position = Cnew
         self._move_camera_in_room(Cnew)
         self._last_h = H
 
@@ -411,6 +464,8 @@ class SteamVRCamera(Camera):
         '''
         if view_num is None:
             v = camera_position
+        elif view_num == 2:
+            v = self.desktop_camera_position
         else:
             # Stereo eyes view in same direction with position shifted along x.
             es = self.eye_shift_left if view_num == 0 else self.eye_shift_right
@@ -420,7 +475,7 @@ class SteamVRCamera(Camera):
 
     def number_of_views(self):
         '''Number of views rendered by camera.'''
-        return 2
+        return 3 if self.desktop_display == 'independent' else 2
 
     def view_width(self, point):
         fov = 100	# Effective field of view, degrees
@@ -432,13 +487,18 @@ class SteamVRCamera(Camera):
         from chimerax.core.graphics.camera import perspective_view_all
         p = perspective_view_all(bounds, self.position, fov, window_size, pad)
         self._move_camera_in_room(p)
-        self._last_position = None
+        self._last_hmd_position = None
         self._last_h = None
         self.fit_scene_to_room(bounds)
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
-        if view_num == 0:
+        if view_num == 2:
+            pixel_shift = (0,0)
+            fov = self.desktop_field_of_view
+            from chimerax.core.graphics.camera import perspective_projection_matrix
+            return perspective_projection_matrix(fov, window_size, near_far_clip, pixel_shift)
+        elif view_num == 0:
             p = self.projection_left
         elif view_num == 1:
             p = self.projection_right
@@ -459,6 +519,12 @@ class SteamVRCamera(Camera):
                 import openvr
                 result = self.compositor.submit(openvr.Eye_Left, fb.openvr_texture)
                 self._check_for_compositor_error('left', result, render)
+        elif view_num == 2:
+            if not self._close:
+                # Submit right eye texture (view 1) before rendering desktop (view 2)
+                import openvr
+                result = self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
+                self._check_for_compositor_error('right', result, render)
 
     def _check_for_compositor_error(self, eye, result, render):
         import openvr
@@ -477,15 +543,15 @@ class SteamVRCamera(Camera):
         '''
         fb = render.pop_framebuffer()
 
-        if not self._close:
+        if self.number_of_views() == 2 and not self._close:
             import openvr
             result = self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
             self._check_for_compositor_error('right', result, render)
 
-        if self.mirror_display:
+        if self.desktop_display in ('mirror', 'independent'):
             # Render right eye to ChimeraX window.
             from chimerax.core.graphics.drawing import draw_overlays
-            draw_overlays([self._mirror_drawing()], render)
+            draw_overlays([self._desktop_drawing(render.render_size())], render)
 
         if self._close:
             self._delayed_close()
@@ -510,8 +576,8 @@ class SteamVRCamera(Camera):
             ovrt.eColorSpace = openvr.ColorSpace_Gamma
         return fb
 
-    def _mirror_drawing(self):
-        '''Only used for mirror headset view to ChimeraX graphics window.'''
+    def _desktop_drawing(self, window_size):
+        '''Used  to render ChimeraX desktop graphics window.'''
         td = self._texture_drawing
         if td is None:
             # Drawing object for rendering to ChimeraX window
@@ -519,10 +585,12 @@ class SteamVRCamera(Camera):
             t = self._framebuffer.color_texture
             self._texture_drawing = td = _texture_drawing(t)
             td.opaque_texture = True
+        from chimerax.core.graphics.drawing import match_aspect_ratio
+        match_aspect_ratio(td, window_size)
         return td
 
     def do_swap_buffers(self):
-        return self.mirror_display
+        return self.desktop_display != 'blank'
 
     def hand_controllers(self, show = True):
         cm = self._controller_models

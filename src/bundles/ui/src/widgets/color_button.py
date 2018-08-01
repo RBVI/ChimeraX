@@ -110,17 +110,16 @@ class MultiColorButton(ColorButton):
     def set_color(self, color):
         """Like ColorButton.set_color, but None means multiple colors"""
         if color is None:
-            import os
-            this_dir, fname = os.path.split(__file__)
-            icon_file = "multi.png"
+            from chimerax.ui.icons import get_icon_path
+            icon_file = get_icon_path("multi")
             max_size = self.maximumSize()
             if max_size.width() == max_size.height():
-                test_icon = "multi%d.png" % max_size.width()
-                if os.path.exists(os.path.join(this_dir, "icons", test_icon)):
+                test_icon = get_icon_path("multi%d" % max_size.width())
+                import os
+                if os.path.exists(test_icon):
                     icon_file = test_icon
             from urllib.request import pathname2url
-            self.setStyleSheet("background-image: url(%s);"
-                % pathname2url(os.path.join(this_dir, "icons", icon_file)))
+            self.setStyleSheet("background-image: url(%s);" % pathname2url(icon_file))
         else:
             ColorButton.set_color(self, color)
 

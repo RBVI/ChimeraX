@@ -24,16 +24,8 @@ class GraphicsWindow(QWindow):
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
         self.setSurfaceType(QSurface.OpenGLSurface)
-        self.timer = None
         self.session = ui.session
         self.view = ui.session.main_view
-
-        self.redraw_interval = 16.667  # milliseconds
-        #   perhaps redraw interval should be 10 to reduce
-        #   frame drops at 60 frames/sec
-        self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
-        # of time since start of last drawing
-        self.last_redraw_start_time = self.last_redraw_finish_time = 0
 
         if opengl_context is None:
             from chimerax.core.graphics import OpenGLContext
@@ -99,44 +91,6 @@ class GraphicsWindow(QWindow):
         
     def exposeEvent(self, event):
         self.view.redraw_needed = True
-        
-    def set_redraw_interval(self, msec):
-        self.redraw_interval = msec  # milliseconds
-        t = self.timer
-        if t is not None:
-            t.start(self.redraw_interval)
-
-    def start_redraw_timer(self):
-        if self.timer is not None:
-            return
-        from PyQt5.QtCore import QTimer, Qt
-        self.timer = t = QTimer(self)
-        t.timerType = Qt.PreciseTimer
-        t.timeout.connect(self._redraw_timer_callback)
-        t.start(self.redraw_interval)
-
-    def _redraw_timer_callback(self):
-        import time
-        t = time.perf_counter()
-        dur = t - self.last_redraw_start_time
-        if t >= self.last_redraw_finish_time + self.minimum_event_processing_ratio * dur:
-            # Redraw only if enough time has elapsed since last frame to process some events.
-            # This keeps the user interface responsive even during slow rendering
-            self.last_redraw_start_time = t
-            s = self.session
-            if not s.update_loop.draw_new_frame(s):
-                s.ui.mouse_modes.mouse_pause_tracking()
-            self.last_redraw_finish_time = time.perf_counter()
-
-    def update_graphics_now(self):
-        '''
-        Redraw graphics now if there are any changes.  This is typically only used by
-        mouse drag code that wants to update the graphics as responsively as possible,
-        particularly when a mouse step may take significant computation, such as contour
-        surface level change.  After each mouse event this is called to force a redraw.
-        '''
-        s = self.session
-        s.update_loop.draw_new_frame(s)
             
 from PyQt5.QtWidgets import QLabel
 class Popup(QLabel):

@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-Bug-Reporter" version="1.0"
 	    package="chimerax.bug_reporter"
-  	    minSessionVersion="1" maxSessionVersion="1">
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>

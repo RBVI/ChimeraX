@@ -633,7 +633,7 @@ def init(argv, event_loop=True):
             info('OpenGL version: ' + r.opengl_version())
             info('OpenGL renderer: ' + r.opengl_renderer())
             info('OpenGL vendor: ' + r.opengl_vendor())
-            sess.ui.main_window.graphics_window.start_redraw_timer()
+            sess.update_loop.start_redraw_timer()
             info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
                 is_html=True)
 

@@ -65,13 +65,13 @@ def set(session, bg_color=None,
     if max_frame_rate is not None:
         had_arg = True
         msec = 1000.0 / max_frame_rate
-        session.ui.main_window.graphics_window.set_redraw_interval(msec)
+        session.update_loop.set_redraw_interval(msec)
 
     if not had_arg:
         from chimerax import atomic
         lod = atomic.level_of_detail(session)
         if session.ui.is_gui:
-            msec = session.ui.main_window.graphics_window.redraw_interval
+            msec = session.update_loop.redraw_interval
             rate = 1000.0 / msec if msec > 0 else 1000.0
         else:
             rate = 0

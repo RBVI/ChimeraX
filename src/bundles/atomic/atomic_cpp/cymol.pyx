@@ -486,7 +486,7 @@ cdef class CyAtom:
         '''
         # work around non-const-correct code by using temporary...
         ring_ptrs = self.cpp_atom.rings(cross_residues, all_size_threshold)
-        from chimerax.core.atomic.molarray import Rings
+        from chimerax.atomic.molarray import Rings
         import numpy
         return Rings(numpy.array([<ptr_type>r for r in ring_ptrs], dtype=numpy.uintp))
 
@@ -765,7 +765,7 @@ cdef class CyResidue:
         "Supported API. :class:`.Chain` that this residue belongs to, if any. Read only."
         chain_ptr = self.cpp_res.chain()
         if chain_ptr:
-            from chimerax.core.atomic import Chain
+            from chimerax.atomic import Chain
             chain = Chain.c_ptr_to_existing_py_inst(<ptr_type>chain_ptr)
             if chain:
                 return chain

@@ -214,7 +214,7 @@ class StructureTugger:
         
 
         # OpenMM simulation parameters
-        self._forcefields = ('amber99sbildn.xml', 'amber99_obc.xml')
+        self._forcefields = ('amber14-all.xml', 'amber14/tip3p.xml')
         self._sim_steps = 50		# Simulation steps between mouse position updates
         self._force_constant = 10000
         from simtk import unit
@@ -393,7 +393,6 @@ class StructureTugger:
         
         from simtk.openmm import app
         from simtk import openmm as mm
-        from simtk import unit
 
         s = self.structure
         atoms = self.atoms
@@ -403,22 +402,7 @@ class StructureTugger:
         forcefield = app.ForceField(*self._forcefields)
 #        self._add_hydrogens(pdb, forcefield)
 
-        try:
-            # constraints = HBonds means the length of covalent bonds involving
-            # hydrogen atoms are fixed to allow larger integration time steps.
-            # Constraints are not supported to atoms with particle mass = 0 which
-            # indicates a fixed atom position, and will generate errors.
-            system = forcefield.createSystem(self._topology, 
-                                             nonbondedMethod=app.CutoffNonPeriodic,
-                                             nonbondedCutoff=1.0*unit.nanometers,
-                                             constraints=app.HBonds,
-                                             rigidWater=True,
-                                             ignoreExternalBonds=True)
-        except ValueError as e:
-            raise ForceFieldError('Missing atoms or parameterization needed by force field.\n' +
-                                  'All heavy atoms and hydrogens with standard names are required.\n' +
-                                  str(e))
-        self._system = system
+        self._system = system = self._create_system(forcefield)
 
         platform = mm.Platform.getPlatformByName(self._platform_name)
         self._platform = platform
@@ -430,6 +414,51 @@ class StructureTugger:
         for p in ('x0', 'y0', 'z0'):
             force.addGlobalParameter(p, 0.0)
         system.addForce(force)
+
+    def _create_system(self, forcefield):
+        # We first try with ignoreExternalBonds = False.  This will fail any amino acid chain
+        # ends do not have proper end-capping atoms, a common situation when there are missing
+        # segments.  The addh command does not add termination atoms for missing segments.
+        #
+        # Then we try creating the system with ignoreExternalBonds = True.  This fails if
+        # disulfides between cysteines are present with amber14 forcefield this giving a multiple
+        # matching templates for CYS (CYM, CYX) error probably because the cysteine sulfur is
+        # missing an attached atom.
+        #
+        # constraints = HBonds means the length of covalent bonds involving
+        # hydrogen atoms are fixed to allow larger integration time steps.
+        # Constraints are not supported to atoms with particle mass = 0 which
+        # indicates a fixed atom position, and will generate errors.
+        from simtk.openmm import app
+        from simtk import unit
+        try:
+            system = forcefield.createSystem(self._topology, 
+                                             nonbondedMethod=app.CutoffNonPeriodic,
+                                             nonbondedCutoff=1.0*unit.nanometers,
+                                             constraints=app.HBonds,
+                                             rigidWater=True,
+                                             ignoreExternalBonds=False)
+        except Exception as e1:
+            system = None
+            err1 = e1
+
+        if system is not None:
+            return system
+            
+        try:
+            system = forcefield.createSystem(self._topology, 
+                                             nonbondedMethod=app.CutoffNonPeriodic,
+                                             nonbondedCutoff=1.0*unit.nanometers,
+                                             constraints=app.HBonds,
+                                             rigidWater=True,
+                                             ignoreExternalBonds=True)
+        except Exception as e2:
+            raise ForceFieldError('Missing atoms or parameterization needed by force field.\n' +
+                                  'All heavy atoms and hydrogens with standard names are required.\n' +
+                                  '\nError with ignoreExternalBonds=False was\n' + str(err1) +
+                                  '\nError with ignoreExternalBonds=True was\n' + str(e2))
+        return system
+    
 
     def _add_hydrogens(self, openmm_pdb, forcefield):
         # Need hydrogens to run simulation and most structures don't have them.
