@@ -22,7 +22,7 @@ _near_dist = _room_dist = _tree_dist + h_rad + c_rad
 
 _test_angles = [None, None, 60.0, 40.0, 36.5]
 
-debug = True
+debug = False
 
 def add_hydrogens(session, atom_list, *args):
     """Add hydrogens to maximize h-bonding and minimize steric clashes.
@@ -49,14 +49,11 @@ def add_hydrogens(session, atom_list, *args):
         return
     if debug:
         print("here 2")
-    global add_atoms, type_info_for_atom, naming_schemas, hydrogen_totals, \
+    global type_info_for_atom, naming_schemas, hydrogen_totals, \
                     idatm_type, inversion_cache, coordinations
     type_info_for_atom, naming_schemas, hydrogen_totals, idatm_type, his_Ns, \
                             coordinations, in_isolation = args
     inversion_cache = {}
-    add_atoms = {}
-    for atom in atom_list:
-        add_atoms[atom] = 1
     logger.status("Categorizing heavy atoms", blank_after=0, secondary=True)
     problem_atoms = []
     fixed = []
@@ -215,7 +212,7 @@ def add_hydrogens(session, atom_list, *args):
             hbond_info[atom] = [(alt_loc, h_positions, [])
                 for alt_loc, _, h_positions in altloc_hpos_info]
 
-    from chimerax.hbonds import find_hbonds, rec_dist_slop, rec_angle_slop
+    from chimerax.atomic.hbonds import find_hbonds, rec_dist_slop, rec_angle_slop
 
     logger.status("Finding hydrogen bonds", blank_after=0, secondary=True)
     donors = {}
@@ -258,11 +255,11 @@ def add_hydrogens(session, atom_list, *args):
         if d in donors:
             if in_isolation and a not in acceptors:
                 continue
-            sortable_hbonds.append((distance_squared(d._hb_coord, a._hb_coord), False, (d, a)))
+            sortable_hbonds.append((distance_squared(d._addh_coord, a._addh_coord), False, (d, a)))
         if a in acceptors:
             if in_isolation and d not in donors:
                 continue
-            sortable_hbonds.append((distance_squared(d._hb_coord, a._hb_coord), True, (d, a)))
+            sortable_hbonds.append((distance_squared(d._addh_coord, a._addh_coord), True, (d, a)))
     sortable_hbonds.sort()
     logger.status("Organizing h-bond info", blank_after=0, secondary=True)
     hbonds = {}
@@ -507,13 +504,13 @@ def add_hydrogens(session, atom_list, *args):
         # if also accepting, finish as tet, otherwise as planar
         accept_from = None
         targets = []
-        at_pos = a._hb_coord
+        at_pos = a._addh_coord
         for is_acc, other in hbond_info.get(a, []):
             if is_acc:
                 if not accept_from:
                     if debug:
                         print("accept from", other)
-                    accept_from = other._hb_coord
+                    accept_from = other._addh_coord
                 continue
             if debug:
                 print("possible donate to", other)
@@ -524,7 +521,7 @@ def add_hydrogens(session, atom_list, *args):
             bad_angle = False
             chack_planar = type_info_for_atom[a].geometry == planar
             for bonded in a.neighbors:
-                ang = angle(bonded._hb_coord, at_pos, target)
+                ang = angle(bonded._addh_coord, at_pos, target)
                 if ang < 90.0:
                     bad_angle = True
                     break
@@ -548,7 +545,7 @@ def add_hydrogens(session, atom_list, *args):
         bonding_info = _type_info(a)
         for alt_loc in _alt_locs(a):
             a.alt_loc = alt_loc
-            alt_pos = a._hb_coord
+            alt_pos = a._addh_coord
             positions = []
             for target in targets:
                 vec = normalize_vector(target - alt_pos)
@@ -567,10 +564,10 @@ def add_hydrogens(session, atom_list, *args):
                         for b2 in bonded.neighbors:
                             if a == b2:
                                 continue
-                            coplanar.append(b2._hb_coord)
+                            coplanar.append(b2._addh_coord)
 
                 new_pos = bond_positions(alt_pos, geom, bond_with_H_length(a, geom),
-                    [nb._hb_coord for nb in a.primaryNeighbors()] + knowns,
+                    [nb._addh_coord for nb in a.primaryNeighbors()] + knowns,
                     coplanar=coplanar)
                 positions.extend(new_pos)
             if accept_from:
@@ -586,6 +583,7 @@ def add_hydrogens(session, atom_list, *args):
     if debug:
         print("finished", num_finished, "of", len(candidates), "atoms")
 
+    # shouldn't need to keep hbond_info updated after this point...
     logger.status("Using steric criteria to resolve partial h-bonders",
                                 blank_after=0, secondary=True)
     for a in candidates.keys():
@@ -603,75 +601,80 @@ def add_hydrogens(session, atom_list, *args):
         hyds_to_position = bonding_info.substituents - num_bonds
         openings = geom - num_bonds
 
-    #TODO: most of the below may need to be in an altloc loop
-    """
+        altloc_hpos_info = []
         hb_info = hbond_info[a]
         toward_atom = hb_info[0][1]
-        if debug:
-            print(a, "toward", toward_atom, end=" ")
-        toward_pos = toward_atom._hb_coord
-        toward2 = away2 = None
-        at_pos = a._hb_coord
-        if len(hb_info) > 1:
-            toward2 = hb_info[1][1]._hb_coord
+        for alt_loc in _alt_locs(a):
+            a.alt_loc = alt_loc
             if debug:
-                print("and toward", hb_info[1][1])
-        elif openings > 3:
-            # okay, we need an "away from" atom just to position the rotamer
-            away2, dist, near_a = find_nearest(at_pos, a, [toward_atom], _near_dist)
-            if debug:
-                print("and away from nearest other", end=" ")
-                if away2:
-                    print(near_a, "[%.2f]" % dist)
-                else:
-                    print("(none)")
-        else:
-            if debug:
-                print("with no other positioning determinant")
-        bonded_pos = []
-        for bonded in a.neighbors:
-            bonded_pos.append(bonded._hb_coord)
-        positions = bond_positions(at_pos, geom,
-            bond_with_H_length(a, geom), bonded_pos,
-            toward=toward_pos, toward2=toward2, away2=away2)
+                print(a, "toward", toward_atom, end=" ")
+            toward_pos = toward_atom._addh_coord
+            toward2 = away2 = None
+            at_pos = a._addh_coord
+            if len(hb_info) > 1:
+                toward2 = hb_info[1][1]._addh_coord
+                if debug:
+                    print("and toward", hb_info[1][1])
+            elif openings > 3:
+                # okay, we need an "away from" atom just to position the rotamer
+                away2, dist, near_a = find_nearest(at_pos, a, [toward_atom], _near_dist)
+                if debug:
+                    print("and away from nearest other", end=" ")
+                    if away2:
+                        print(near_a, "[%.2f]" % dist)
+                    else:
+                        print("(none)")
+            else:
+                if debug:
+                    print("with no other positioning determinant")
+            bonded_pos = []
+            for bonded in a.neighbors:
+                bonded_pos.append(bonded._addh_coord)
+            positions = bond_positions(at_pos, geom,
+                bond_with_H_length(a, geom), bonded_pos,
+                toward=toward_pos, toward2=toward2, away2=away2)
+            altloc_hpos_info.append((alt_loc, a.occupancy, positions))
         if len(positions) == hyds_to_position:
             # easy, do them all...
-            _attach_hydrogens(a, positions)
+            _attach_hydrogens(a, altloc_hpos_info, bonding_info)
             continue
 
-        used = {}
-        for is_acc, other in hb_info:
-            nearest = None
-            otherPos = other._hb_coord
+        altloc_hpos_info = []
+        for alt_loc in _alt_locs(a):
+            a.alt_loc = alt_loc
+            used = {}
+            for is_acc, other in hb_info:
+                nearest = None
+                other_pos = other._addh_coord
+                for pos in positions:
+                    dsq = distance_squared(pos, other_pos)
+                    if not nearest or dsq < nsq:
+                        nearest = pos
+                        nsq = dsq
+                if nearest in used:
+                    continue
+                used[nearest] = is_acc
+
+            remaining = []
             for pos in positions:
-                dsq = (pos - otherPos).sqlength()
-                if not nearest or dsq < nsq:
-                    nearest = pos
-                    nsq = dsq
-            if nearest in used:
-                continue
-            used[nearest] = is_acc
-            
-        remaining = []
-        for pos in positions:
-            if pos in used:
-                continue
-            remaining.append(pos)
-        # definitely protonate the positions where we donate...
-        protonate = []
-        for pos, is_acc in used.items():
-            if not is_acc:
-                protonate.append(pos)
-        # ... and the "roomiest" remaining positions.
-        rooms = roomiest(remaining, a, _room_dist, _type_info(a))
-        needed = hyds_to_position - len(protonate)
-        protonate.extend(rooms[:needed])
+                if pos in used:
+                    continue
+                remaining.append(pos)
+            # definitely protonate the positions where we donate...
+            protonate = []
+            for pos, is_acc in used.items():
+                if not is_acc:
+                    protonate.append(pos)
+            # ... and the "roomiest" remaining positions.
+            rooms = roomiest(remaining, a, _room_dist, bonding_info)
+            needed = hyds_to_position - len(protonate)
+            protonate.extend(rooms[:needed])
+            altloc_hpos_info.append((alt_loc, a.occupancy, protonate))
         # then the least sterically challenged...
-        _attach_hydrogens(a, protonate)
-        hbond_info[a] = (protonate, rooms[needed:])
+        _attach_hydrogens(a, altloc_hpos_info, bonding_info)
 
     if debug:
-        print "finished", num_finished, "of", len(candidates), "atoms"
+        print("finished", num_finished, "of", len(candidates), "atoms")
 
     logger.status("Adding hydrogens to non-h-bonding atoms", blank_after=0, secondary=True)
     for a in candidates.keys():
@@ -685,113 +688,122 @@ def add_hydrogens(session, atom_list, *args):
         bonding_info = _type_info(a)
         geom = bonding_info.geometry
 
-        primaryNeighbors = a.primaryNeighbors()
-        num_bonds = len(primaryNeighbors)
+        neighbors = a.neighbors
+        num_bonds = len(neighbors)
         hyds_to_position = bonding_info.substituents - num_bonds
         openings = geom - num_bonds
 
-        away = None
-        away2 = None
-        toward = None
-        at_pos = a._hb_coord
-        if debug:
-            print "position", a.oslIdent(),
-        if openings > 2:
-            # okay, we need an "away from" atom for positioning
-            #
-            # if atom is tet with one bond (i.e. possible positions
-            # describe a circle away from the bond), then use the
-            # center of the circle as the test position rather 
-            # than the atom position itself
-            if geom == 4 and openings == 3:
-                away, dist, awayAtom = find_rotamer_nearest(at_pos,
-                        idatm_type[a], a,
-                        primaryNeighbors[0], 3.5)
-            else:
-                away, dist, awayAtom = find_nearest(at_pos, a, [], _near_dist)
-
-            # actually, if the nearest atom is a metal and we have
-            # a free lone pair, we want to position (the lone
-            # pair) towards the metal
-            if awayAtom and awayAtom.element.is_metal \
-              and geom - bonding_info.substituents > 0:
-                if debug:
-                    print "towards metal", awayAtom.oslIdent(), "[%.2f]" % dist,
-                toward = away
-                away = None
-            else:
-                if debug:
-                    print "away from",
-                    if awayAtom:
-                        print awayAtom.oslIdent(), "[%.2f]" % dist,
-                    else:
-                        print "(none)",
-        if openings > 3 and away is not None:
-            # need another away from
-            away2, dist, near_a = find_nearest(at_pos, a, [awayAtom], _near_dist)
+        altloc_hpos_info = []
+        for alt_loc in _alt_locs(a):
+            a.alt_loc = alt_loc
+            at_pos = a._addh_coord
+            away = away2 = toward = None
             if debug:
-                print "and away from",
-                if near_a:
-                    print near_a.oslIdent(), "[%.2f]" % dist,
+                print("position", a, end=" ")
+            if openings > 2:
+                # okay, we need an "away from" atom for positioning
+                #
+                # if atom is tet with one bond (i.e. possible positions
+                # describe a circle away from the bond), then use the
+                # center of the circle as the test position rather 
+                # than the atom position itself
+                if geom == 4 and openings == 3:
+                    away, dist, away_atom = find_rotamer_nearest(at_pos,
+                            idatm_type[a], a, neighbors[0], 3.5)
                 else:
-                    print "(none)",
-        if debug:
-            print
-        bonded_pos = []
-        for bonded in primaryNeighbors:
-            bonded_pos.append(bonded._hb_coord)
-        positions = bond_positions(at_pos, geom,
-            bond_with_H_length(a, geom),
-            bonded_pos, toward=toward, away=away, away2=away2)
+                    away, dist, away_atom = find_nearest(at_pos, a, [], _near_dist)
+
+                # actually, if the nearest atom is a metal and we have # a free lone pair,
+                # we want to position (the lone pair) towards the metal
+                if away_atom and away_atom.element.is_metal \
+                  and geom - bonding_info.substituents > 0:
+                    if debug:
+                        print("towards metal", away_atom, "[%.2f]" % dist, end=" ")
+                    toward = away
+                    away = None
+                else:
+                    if debug:
+                        print("away from", end=" ")
+                        if away_atom:
+                            print(away_atom, "[%.2f]" % dist, end=" ")
+                        else:
+                            print("(none)", end=" ")
+            if openings > 3 and away is not None:
+                # need another away from
+                away2, dist, near_a = find_nearest(at_pos, a, [away_atom], _near_dist)
+                if debug:
+                    print("and away from", end=" ")
+                    if near_a:
+                        print(near_a, "[%.2f]" % dist, end=" ")
+                    else:
+                        print("(none)", end=" ")
+            if debug:
+                print()
+            bonded_pos = []
+            for bonded in neighbors:
+                bonded_pos.append(bonded._addh_coord)
+            positions = bond_positions(at_pos, geom, bond_with_H_length(a, geom),
+                bonded_pos, toward=toward, away=away, away2=away2)
+            altloc_hpos_info.append((alt_loc, a.occupancy, positions))
         if len(positions) == hyds_to_position:
             # easy, do them all...
-            _attach_hydrogens(a, positions)
+            _attach_hydrogens(a, altloc_hpos_info, bonding_info)
             continue
 
         # protonate "roomiest" positions
-        _attach_hydrogens(a, roomiest(positions, a, _room_dist, _type_info(a))[
-                    :hyds_to_position])
+        for alt_loc, occupancy, positions in altloc_hpos_info:
+            a.alt_loc = alt_loc
+            positions[:] = roomiest(positions, a, _room_dist, bonding_info)[:hyds_to_position]
+        _attach_hydrogens(a, altloc_hpos_info, bonding_info)
 
     if debug:
-        print "finished", num_finished, "of", len(candidates), "atoms"
+        print("finished", num_finished, "of", len(candidates), "atoms")
 
-    logger.status("Deciding aromatic nitrogen protonation",
-                                blank_after=0, secondary=True)
-    # protonate one N of an aromatic multiple-N ring if none are yet
-    # protonated
+    logger.status("Deciding aromatic nitrogen protonation", blank_after=0, secondary=True)
+    # protonate one N of an aromatic multiple-N ring if none are yet protonated
     for ns in multi_N_rings.values():
-        anyBonded = True
+        any_bonded = True
         Npls = []
         for n in ns:
             if n.num_bonds > 2:
                 break
-            if n not in coordinations \
-                    and _type_info(n).substituents == 3:
+            if n not in coordinations and _type_info(n).substituents == 3:
                 Npls.append(n)
         else:
-            anyBonded = False
-        if anyBonded:
+            any_bonded = False
+        if any_bonded:
             if debug:
-                print ns[0].oslIdent(), "ring already protonated"
+                print(ns[0], "ring already protonated")
             continue
         if not Npls:
             Npls = ns
 
-        positions = []
-        for n in Npls:
-            bonded_pos = []
-            for bonded in n.primaryNeighbors():
-                bonded_pos.append(bonded._hb_coord)
-            positions.append(bond_positions(n._hb_coord, planar,
-                bond_with_H_length(n, planar), bonded_pos)[0])
-        if len(positions) == 1:
+        # decide which N to protonate
+        if len(Npls) == 1:
+            prot_n = Npls[0]
             if debug:
-                print "protonate precise ring", Npls[0].oslIdent()
-            _attach_hydrogens(Npls[0], positions)
+                print("protonate precise ring", prot_n)
         else:
+            positions = []
+            for n in Npls:
+                bonded_pos = []
+                for bonded in n.neighbors:
+                    bonded_pos.append(bonded._addh_coord)
+                positions.append(bond_positions(n._addh_coord, planar,
+                    bond_with_H_length(n, planar), bonded_pos)[0])
+            prot_n = roomiest(positions, Npls, _room_dist, _type_info)[0][0]
             if debug:
-                print "protonate roomiest ring", roomiest(positions, Npls, _room_dist, _type_info)[0][0].oslIdent()
-            _attach_hydrogens(*roomiest(positions, Npls, _room_dist, _type_info)[0])
+                print("protonate roomiest ring", prot_n)
+        altloc_hpos_info = []
+        for alt_loc in _alt_locs(prot_n):
+            prot_n.alt_loc = alt_loc
+            bonded_pos = []
+            for bonded in prot_n.neighbors:
+                bonded_pos.append(bonded._addh_coord)
+            positions = bond_positions(prot_n._addh_coord, planar,
+                bond_with_H_length(prot_n, planar), bonded_pos)
+            altloc_hpos_info.append((alt_loc, prot_n.occupancy, positions))
+        _attach_hydrogens(prot_n, altloc_hpos_info, _type_info(prot_n))
     # now correct IDATM types of these rings...
     for ns in multi_N_rings.values():
         for n in ns:
@@ -802,14 +814,13 @@ def add_hydrogens(session, atom_list, *args):
 
     logger.status("", secondary=True)
     if problem_atoms:
-        logger.error("Problems adding hydrogens to %d atom(s); see Reply Log for details" % len(problem_atoms))
+        logger.error("Problems adding hydrogens to %d atom(s); see Reply Log for details"
+            % len(problem_atoms))
         from chimera.misc import chimeraLabel
-        logger.info("Did not protonate following atoms:\n%s"
-            % "\t".join(map(chimeraLabel, problem_atoms)))
-    add_atoms = None
+        logger.info("Did not protonate the following atoms:\n%s"
+            % ", ".join([str(pa) for pa in problem_atoms]))
     type_info_for_atom = naming_schemas = hydrogen_totals = idatm_type \
             = aro_amines = inversion_cache = coordinations = None
-    """
 
 def _alt_locs(atom):
     # get an alt_loc list with the current one last (so after looping
@@ -824,7 +835,7 @@ def _alt_locs(atom):
 
 def _find_target(from_atom, at_pos, to_atom, as_donor, hbond_info, finished):
     if to_atom in coordinations.get(from_atom, []):
-        return to_atom._hb_coord
+        return to_atom._addh_coord
     if to_atom in finished:
         # known positioning already
         protons, lone_pairs = hbond_info[to_atom][-1]
@@ -844,24 +855,24 @@ def _find_target(from_atom, at_pos, to_atom, as_donor, hbond_info, finished):
     to_coplanar = []
     to_geom = _type_info(to_atom).geometry
     for tb in to_atom.neighbors:
-        to_bonded.append(tb._hb_coord)
+        to_bonded.append(tb._addh_coord)
         if tb.element.number == 1:
-            to_h_pos.append(tb._hb_coord)
+            to_h_pos.append(tb._addh_coord)
         if to_geom == planar:
             for btb in tb.neighbors:
                 if btb == to_atom:
                     continue
-                to_coplanar.append(btb._hb_coord)
+                to_coplanar.append(btb._addh_coord)
     if as_donor:
         # point towards nearest lone pair
-        targets = bond_positions(to_atom._hb_coord, to_geom, vdw_radius(to_atom), to_bonded,
+        targets = bond_positions(to_atom._addh_coord, to_geom, vdw_radius(to_atom), to_bonded,
                     coplanar=to_coplanar, toward=at_pos)
     else:
         # point to nearest hydrogen
         if _type_info(to_atom).substituents <= to_atom.num_bonds:
             targets = to_h_pos
         else:
-            targets = to_h_pos + bond_positions(to_atom._hb_coord, to_geom,
+            targets = to_h_pos + bond_positions(to_atom._addh_coord, to_geom,
                 bond_with_H_length(to_atom, to_geom),
                 to_bonded, coplanar=to_coplanar, toward=at_pos)
     nearest = None
@@ -890,7 +901,7 @@ def _can_accept(donor, acceptor, protons, lone_pairs):
         return True
     if not lone_pairs:
         raise ValueError("No lone pairs on %s for %s to donate to" % (acceptor, donor))
-    don_pos = donor._hb_coord
+    don_pos = donor._addh_coord
     h_dist = min([distance_squared(p, don_pos) for p in protons])
     lp_dist, lp = min([distance_squared(lp, don_pos) for lp in lone_pairs])
     # besides a lone pair being closest, it must be sufficiently pointed towards the donor
@@ -898,13 +909,13 @@ def _can_accept(donor, acceptor, protons, lone_pairs):
         if debug:
             from math import sqrt
             print("can't still accept; lp dist (%g) >= h dist (%g)" % (sqrt(lp_dist), sqrt(h_dist)))
-    elif chimera.angle(lp, acceptor._hb_coord, don_pos) >= _test_angles[
+    elif chimera.angle(lp, acceptor._addh_coord, don_pos) >= _test_angles[
             type_info_for_atom[acceptor].geometry]:
         if debug:
             print("can't still accept; angle (%g) >= test angle (%g)"
-                % (angle(lp, acceptor._hb_coord, don_pos),
+                % (angle(lp, acceptor._addh_coord, don_pos),
                 _test_angles[type_info_for_atom[acceptor].geometry]))
-    return lp_dist < h_dist and angle(lp, acceptor._hb_coord, don_pos) < _test_angles[type_info_for_atom[acceptor].geometry]
+    return lp_dist < h_dist and angle(lp, acceptor._addh_coord, don_pos) < _test_angles[type_info_for_atom[acceptor].geometry]
 
 def _can_donate(donor, acceptor, no_protons_ok, protons, lone_pairs):
     # donor is fixed; can it donate to acceptor?
@@ -916,7 +927,7 @@ def _can_donate(donor, acceptor, no_protons_ok, protons, lone_pairs):
                 print("can't still donate; no protons")
             return False
         raise ValueError("No protons for %s to accept from" % acceptor)
-    acc_pos = acceptor._hb_coord
+    acc_pos = acceptor._addh_coord
     h_dist, h = min([(distance_squared(xyz, acc_pos), xyz) for xyz in protons])
     lp_dist = min([distance_squared(xyz, acc_pos) for xyz in lone_pairs])
     # besides a proton being closest, it must be sufficiently pointed towards the acceptor
@@ -924,10 +935,10 @@ def _can_donate(donor, acceptor, no_protons_ok, protons, lone_pairs):
         if debug:
             from math import sqrt
             print("can't still donate; h dist (%g) >= lp dist (%g)" % (sqrt(h_dist), sqrt(lp_dist)))
-    elif angle(h, donor._hb_coord, acc_pos) >= _test_angles[type_info_for_atom[donor].geometry]:
+    elif angle(h, donor._addh_coord, acc_pos) >= _test_angles[type_info_for_atom[donor].geometry]:
         if debug:
-            print("can't still donate; angle (%g) >= test angle (%g)" % (angle(h, donor._hb_coord, acc_pos), _test_angles[ type_info_for_atom[donor].geometry]))
-    return h_dist < lp_dist and angle(h, donor._hb_coord, acc_pos) < _test_angles[
+            print("can't still donate; angle (%g) >= test angle (%g)" % (angle(h, donor._addh_coord, acc_pos), _test_angles[ type_info_for_atom[donor].geometry]))
+    return h_dist < lp_dist and angle(h, donor._addh_coord, acc_pos) < _test_angles[
             type_info_for_atom[donor].geometry]
 
 def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
@@ -959,7 +970,7 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
         return False
 
     # if so, find their positions and record in hbond_info; mark as finished
-    at_pos = atom._hb_coord
+    at_pos = atom._addh_coord
     targets = []
     for is_acc, other in hbond_info[atom][:2]:
         targets.append(_find_target(atom, at_pos, other, not is_acc, hbond_info, finished))
@@ -970,14 +981,14 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
     test_positions = []
     coplanar = []
     for bonded in atom.neighbors:
-        bonded_pos.append(bonded._hb_coord)
+        bonded_pos.append(bonded._addh_coord)
         if bonded.element.number == 1:
-            test_positions.append((True, bonded._hb_coord))
+            test_positions.append((True, bonded._addh_coord))
         if geom == planar:
             for btb in bonded.neighbors:
                 if btb == atom:
                     continue
-                coplanar.append(btb._hb_coord)
+                coplanar.append(btb._addh_coord)
     toward = targets[0]
     if len(targets) > 1:
         toward2 = targets[1]
@@ -1038,7 +1049,7 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
                         nearest_is_h = is_h
                         nsq = dsq
         else:
-            other_pos = other._hb_coord
+            other_pos = other._addh_coord
             if is_acc:
                 mul = lp_len
             else:
@@ -1104,11 +1115,11 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
                 # ignore clashes with sibling submodels or if our model isn't open
                 continue
             d_chk = vdw_radius(nb) + at_bump - 0.4
-            if d_chk * d_chk >= distance_squared(nb._hb_coord, pos):
+            if d_chk * d_chk >= distance_squared(nb._addh_coord, pos):
                 steric_clash = True
                 if debug:
                     print("steric clash with", nb, "(%.3f < %.3f)"
-                        % (distance(pos, nb._hb_coord), d_chk))
+                        % (distance(pos, nb._addh_coord), d_chk))
                 break
         if steric_clash and conflict_allowable:
             conflicting.append((is_acc, other))
@@ -1181,7 +1192,7 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
     hbond_info[atom] = altloc_info = []
     for alt_loc in _alt_locs(atom):
         atom.alt_loc = alt_loc
-        at_pos = atom._hb_coord
+        at_pos = atom._addh_coord
 
         h_locs = []
         for h_vec in protons.keys():
@@ -1198,64 +1209,14 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
     finished[atom] = True
     return True
 
-'''
-def addAltlocHyds(atom, geom, bond_length, need_coplanar, problem_atoms):
-    altLocs = set()
-    for n in atom.neighbors:
-        if n.altLoc:
-            altLocs.add(n.altLoc)
-    if need_coplanar:
-        for na in atom.neighbors:
-            for nna in na.neighbors:
-                if nna != atom:
-                    if nna.altLoc:
-                        altLocs.add(nna.altLoc)
-    for altLoc in altLocs:
-        neighbors = []
-        neighborAtoms = []
-        numOcc = 0
-        totOcc = 0.0
-        for n in atom.neighbors:
-            if n.altLoc:
-                if n.altLoc != altLoc:
-                    continue
-                numOcc += 1
-                totOcc += getattr(n, 'occupancy', 0.5)
-            neighborAtoms.append(n)
-            neighbors.append(n._hb_coord)
-
-        coplanar = []
-        if need_coplanar:
-            for na in neighborAtoms:
-                for nna in na.neighbors:
-                    if nna != atom:
-                        if nna.altLoc:
-                            if nna.altLoc != altLoc:
-                                continue
-                            numOcc += 1
-                            totOcc += getattr(nna, 'occupancy', 0.5)
-                        coplanar.append(nna._hb_coord)
-        if len(coplanar) > 2:
-            problem_atoms.append(atom)
-            continue
-        h_positions = bond_positions(atom._hb_coord, geom,
-                bond_length, neighbors, coPlanar=coplanar)
-        if numOcc:
-            occupancy = totOcc / float(numOcc)
-        else:
-            occupancy = 0.5
-        _attach_hydrogens(atom, h_positions, altLoc=altLoc, occupancy=occupancy)
-    return h_positions
-'''
-
 def _angle_check(d, a, hbond_info):
     add_A_to_D = add_D_to_A = True
     # are the protons/lps already added to the donor pointed toward the acceptor?
     if d in hbond_info:
         geom = _type_info(d).geometry
         for is_acc, da in hbond_info[d]:
-            ang = chimera.angle(da._hb_coord,
-                        d._hb_coord, a._hb_coord)
+            ang = chimera.angle(da._addh_coord,
+                        d._addh_coord, a._addh_coord)
             if ang > _test_angles[geom]:
                 continue
             if is_acc:
@@ -1263,17 +1224,18 @@ def _angle_check(d, a, hbond_info):
                 # won't work
                 add_A_to_D = add_D_to_A = False
                 if debug:
-                    print "can't donate; lone pair (to %s) pointing toward acceptor (angle %g)" % (da.oslIdent(), ang)
+                    print("can't donate; lone pair (to %s) pointing toward acceptor (angle %g)"
+                        % (da, ang))
                 break
             add_A_to_D = False
             if debug:
-                print "donor already pointing (angle %g) towards acceptor (due to %s)" % (ang, da.oslIdent())
+                print("donor already pointing (angle %g) towards acceptor (due to %s)" % (ang, da))
     if not add_A_to_D and not add_D_to_A:
         return add_A_to_D, add_D_to_A
     if a in hbond_info:
         geom = _type_info(a).geometry
         for is_acc, da in hbond_info[a]:
-            ang = angle(da._hb_coord, a._hb_coord, d._hb_coord)
+            ang = angle(da._addh_coord, a._addh_coord, d._addh_coord)
             if ang > _test_angles[geom]:
                 continue
             if not is_acc:
@@ -1303,7 +1265,7 @@ def _prune_check(pivot_atom, gold_hbond, test_hbond):
         ta = test_hbond[1]
     else:
         ta = test_hbond[0]
-    ang = angle(ga._hb_coord, pivot_atom._hb_coord, ta._hb_coord)
+    ang = angle(ga._addh_coord, pivot_atom._addh_coord, ta._addh_coord)
     full_angle = _test_angles[geom] * 3
     while ang > full_angle / 2.0:
         ang -= full_angle
@@ -1323,12 +1285,12 @@ def _resolve_anilene(donor, acceptor, aro_amines, hbond_info):
                 return True
             if toward:
                 break
-            toward = da._hb_coord
+            toward = da._addh_coord
         else:
             # one proton attached
-            donor_pos = donor._hb_coord
-            acceptor_pos = acceptor._hb_coord
-            attached = [donor.neighbors[0]._hb_coord]
+            donor_pos = donor._addh_coord
+            acceptor_pos = acceptor._addh_coord
+            attached = [donor.neighbors[0]._addh_coord]
             planars = bond_positions(donor_pos, 3, N_H, attached, toward=toward)
             planar_dist = None
             for planar in planars:
@@ -1351,12 +1313,12 @@ def _resolve_anilene(donor, acceptor, aro_amines, hbond_info):
                 return False
             if toward:
                 break
-            toward = da._hb_coord
+            toward = da._addh_coord
         else:
             # one proton attached
-            donor_pos = donor._hb_coord
-            acceptor_pos = acceptor._hb_coord
-            attached = [acceptor.neighbors[0]._hb_coord]
+            donor_pos = donor._addh_coord
+            acceptor_pos = acceptor._addh_coord
+            attached = [acceptor.neighbors[0]._addh_coord]
             planars = bond_positions(acceptor_pos, 3, N_H, attached, toward=toward)
             planar_dist = None
             for planar in planars:
@@ -1380,8 +1342,8 @@ def _type_info(atom):
 
 def _tet_check(tet, partner, hbond_info, tet_acc):
     """Check if tet can still work"""
-    tet_pos = tet._hb_coord
-    partner_pos = partner._hb_coord
+    tet_pos = tet._addh_coord
+    partner_pos = partner._addh_coord
     bonded = tet.neighbors
     tet_info = hbond_info.get(tet, [])
     towards = []
@@ -1392,7 +1354,7 @@ def _tet_check(tet, partner, hbond_info, tet_acc):
         if debug:
             print("checking dihedral")
         chk_func = lambda op, pp=partner_pos, tp=tet_pos, \
-            bp=bonded[0]._hb_coord: dihedral(pp, tp, bp, op) / 30.0
+            bp=bonded[0]._addh_coord: dihedral(pp, tp, bp, op) / 30.0
     else:
         if debug:
             print("checking angle")
@@ -1404,7 +1366,7 @@ def _tet_check(tet, partner, hbond_info, tet_acc):
         else:
             # opposite "polarity"; pointing towards is bad
             result = False
-        angle_group = int(chk_func(other._hb_coord))
+        angle_group = int(chk_func(other._addh_coord))
         if angle_group in [1,2,5,6]:
             # in the tetrahedral "dead zones"
             if debug:
@@ -1414,7 +1376,7 @@ def _tet_check(tet, partner, hbond_info, tet_acc):
             if debug:
                 print("tetCheck for; pointing towards %s returning %s" % (tet, other, result))
             return result
-        towards.append(other._hb_coord)
+        towards.append(other._addh_coord)
     # further tests only for 2 of 4 filled...
     if bonded or len(towards) != 2:
         return True
@@ -1470,8 +1432,8 @@ def _do_prune(hbond, pruned, rel_bond, processed, pruned_by):
             if rel in processed:
                 continue
             other = da == rel[0] and rel[1] or rel[0]
-            if not _tet2_check(da._hb_coord, prev[0]._hb_coord, prev[1]._hb_coord,
-                            other._hb_coord):
+            if not _tet2_check(da._addh_coord, prev[0]._addh_coord, prev[1]._addh_coord,
+                            other._addh_coord):
                 if debug:
                     print("pruned hbond (tet check)", [str(a) for a in rel])
                 processed.add(rel)
