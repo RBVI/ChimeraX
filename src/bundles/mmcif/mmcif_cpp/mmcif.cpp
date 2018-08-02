@@ -141,7 +141,7 @@ Atom* closest_atom_by_template(tmpl::Atom* ta, const tmpl::Residue* tr, const Re
     to_visit.reserve(tr->atoms_map().size());  // upper bound
     visited.insert(ta);
     for (auto n: ta->neighbors()) {
-        if (n->element().number() != 1 && visited.find(n) == visited.end())
+        if (n->element().number() != 1)
             to_visit.push_back(n);
     }
     for (auto i = to_visit.begin(); i != to_visit.end(); ++i) {

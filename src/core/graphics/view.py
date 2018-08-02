@@ -161,6 +161,7 @@ class View:
             self.update_lighting = False
             r.set_lighting_shader_capabilities()
             r.update_lighting_parameters()
+        r.activate_lighting()
 
         self._draw_scene(camera, drawings)
 
