@@ -2419,11 +2419,12 @@ class AtomicStructure(Structure):
 
     def _report_chain_summary(self, session, descripts, chain_text):
         def descript_text(description, chains):
+            from html import escape
             if len(chains) == 1:
-                return description
+                return escape(description)
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join(["#%s/%s" % (chain.structure.id_string(), chain.chain_id)
-                    for chain in chains]), description)
+                    for chain in chains]), escape(description))
         from chimerax.core.logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
