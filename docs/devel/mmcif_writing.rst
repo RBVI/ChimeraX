@@ -73,10 +73,10 @@ As shown in `Benchmarking readcif`_,
 stylized PDBx/mmCIF output can be read faster than unstylized output.
 It is also easier to visually scan fixed column width tables for
 interesting values.
-ChimeraX ouputs the **audit_conform.pdbx_keywords_flag** as **Y**
+ChimeraX ouputs the **chimerax_audit_syntax.case_sensitive_flag** as **Y**
 to indicate that all keywords are lowercase and appear at the beginning
 of a line.
-And outputs **audit_conform.pdbx_fixed_width_columns** with just the
+And outputs **chimerax_audit_syntax.fixed_width** with just the
 **atom_site** and **atom_site_anisotrop** tables listed
 (since the those tables are typically the largest ones in the mmCIF file).
 
@@ -162,9 +162,10 @@ Recognized Data Categories and Keywords
    |                            | U[2]_[2], U[2]_[3], U[3]_[3]           |
    +----------------------------+----------------------------------------+
    | audit_conform              |                                        |
-   |                            | dict_name, dict_version,               |
-   |                            | pdbx_keywords_flag,                    |
-   |                            | pdbx_fixed_width_columns               |
+   |                            | dict_name, dict_version                |
+   +----------------------------+----------------------------------------+
+   | chimerax_audit_syntax      |                                        |
+   |                            | case_sensitive_flags, fixed_width      |
    +----------------------------+----------------------------------------+
    | cell                       |                                        |
    |                            | *copied from original file*            |

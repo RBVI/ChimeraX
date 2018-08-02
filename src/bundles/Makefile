@@ -81,7 +81,7 @@ modeller.install: alignments.install
 mol2.install: atomic.install
 mouse_modes.install: ui.install
 nucleotides.install: atomic.install ui.install
-pdbio.install: atomic.install
+pdb.install: atomic.install
 read_pbonds.install: atomic.install
 registration.install: ui.install
 residue_fit.install: ui.install

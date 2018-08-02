@@ -215,9 +215,6 @@ public:
     // Return if there were any fixed width column categories specified.
     bool has_PDBx_fixed_width_columns() const;
 
-    // Return if current category is parsed using PDBx fixed width columns.
-    bool PDBx_fixed_width_columns() const;
-
     // version() returns the version of the CIF file if it is given.
     // For mmCIF files it is typically empty.
     const std::string&  version() const;  // CIF version of current parse
@@ -311,7 +308,6 @@ private:
     // parsing state
     bool        parsing;
     bool        stylized;   // true for PDBx/mmCIF keyword style
-    bool        fixed;      // true if category has fixed width columns
     std::string version_;   // version given in CIF file
     const char* whole_file;
     std::string current_data_block;
@@ -421,12 +417,6 @@ inline bool
 CIFFile::has_PDBx_fixed_width_columns() const
 {
     return !use_fixed_width_columns.empty();
-}
-
-inline bool
-CIFFile::PDBx_fixed_width_columns() const
-{
-	return fixed;
 }
 
 } // namespace readcif

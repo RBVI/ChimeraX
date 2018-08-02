@@ -48,6 +48,7 @@ commands = [
     'camera',
     'close #1',
     'open pdb:4hhb',
+    'addh',
     'color /a@CB tan',
     'colordef wow green',
     'color /c wow',
