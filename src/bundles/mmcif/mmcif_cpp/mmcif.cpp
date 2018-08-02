@@ -127,6 +127,37 @@ residue_str(Residue* r, Residue* other = nullptr)
     return ret;
 }
 
+Atom* closest_atom_by_template(tmpl::Atom* ta, const tmpl::Residue* tr, const Residue* r)
+{
+    // Find closest (in hops) existing (heavy) atom to given atom in template
+    // Assumes atom cooresponding to ta is not in residue
+    const vector<Atom*>& atoms = r->atoms();
+    if (atoms.size() == 1) {
+        // optimization for C-alpha traces
+        return atoms[0];
+    }
+    set<tmpl::Atom*> visited;
+    vector<tmpl::Atom*> to_visit;
+    to_visit.reserve(tr->atoms_map().size());  // upper bound
+    visited.insert(ta);
+    for (auto n: ta->neighbors()) {
+        if (n->element().number() != 1)
+            to_visit.push_back(n);
+    }
+    for (auto i = to_visit.begin(); i != to_visit.end(); ++i) {
+        ta = *i;
+        Atom* a = r->find_atom(ta->name());
+        if (a)
+            return a;
+        visited.insert(ta);
+        for (auto n: ta->neighbors()) {
+            if (n->element().number() != 1 && visited.find(n) == visited.end())
+                to_visit.push_back(n);
+        }
+    }
+    return nullptr;
+}
+
 } // namespace
 
 namespace mmcif {
@@ -521,11 +552,25 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
     } else {
         // peptide or nucletide
         auto ta0 = tr0 ? tr0->link() : nullptr;
-        if (ta0)
+        if (ta0) {
             a0 = r0->find_atom(ta0->name());
+            if (a0 == nullptr) {
+                // find closest heavy atom to ta0 in template that exists
+                a0 = closest_atom_by_template(ta0, tr0, r0);
+                if (a0)
+                    gap = true;
+            }
+        }
         auto ta1 = tr1 ? tr1->chief() : nullptr;
-        if (ta1)
+        if (ta1) {
             a1 = r1->find_atom(ta1->name());
+            if (a1 == nullptr) {
+                // find closest heavy atom to ta1 in template that exists
+                a1 = closest_atom_by_template(ta1, tr1, r1);
+                if (a1)
+                    gap = true;
+            }
+        }
         if (a0 == nullptr && a1 != nullptr) {
             std::swap(a0, a1);
             std::swap(r0, r1);

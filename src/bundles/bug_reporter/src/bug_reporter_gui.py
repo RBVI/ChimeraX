@@ -298,11 +298,15 @@ class BugReporter(ToolInstance):
 
     def opengl_info(self):
         r = self._ses.main_view.render
-        r.make_current()
-        lines = ['OpenGL version: ' + r.opengl_version(),
-                 'OpenGL renderer: ' + r.opengl_renderer(),
-                 'OpenGL vendor: ' + r.opengl_vendor()]
-        r.done_current()
+        try:
+            r.make_current()
+            lines = ['OpenGL version: ' + r.opengl_version(),
+                     'OpenGL renderer: ' + r.opengl_renderer(),
+                     'OpenGL vendor: ' + r.opengl_vendor()]
+            r.done_current()
+        except:
+            lines = ['OpenGL version: unknown',
+                     'Could not make opengl context current']
         return '\n'.join(lines)
 
     def chimerax_version(self):

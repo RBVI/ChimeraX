@@ -152,7 +152,8 @@ class _StatusBarOpenGL:
         # Align image pixels exactly with screen pixels to give best appearance.
         # Right align secondary status
         xp = int(xpad*lh)
-        x = 1 - 2*xp/lw - 2*uw if secondary else -1 + 2*xp/lw
+        xe = 1 - 2*xp/lw
+        x =  xe - uw if secondary else -xe
         yp = 0.5*(lh-th)
         y = -1 + 2*yp/lh
 

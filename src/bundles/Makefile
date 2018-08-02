@@ -43,7 +43,7 @@ endif
 clean:
 	rm -rf __pycache__
 
-addh.install: atomic.install
+addh.install: atomic.install hbonds.install
 align_algs.install: alignments.install
 alignments.install: atomic.install
 atom_search.install: atomic.install
@@ -81,7 +81,7 @@ modeller.install: alignments.install
 mol2.install: atomic.install
 mouse_modes.install: ui.install
 nucleotides.install: atomic.install ui.install
-pdbio.install: atomic.install
+pdb.install: atomic.install
 read_pbonds.install: atomic.install
 registration.install: ui.install
 residue_fit.install: ui.install

@@ -261,7 +261,7 @@ Atom::change_tracker() const { return structure()->change_tracker(); }
 inline const atomstruct::AtomType&
 Atom::idatm_type() const {
     if (idatm_is_explicit()) return _explicit_idatm_type;
-    if (!structure()->_idatm_valid) structure()->_compute_idatm_types();
+    structure()->ready_idatm_types();
     return _computed_idatm_type;
 }
 
