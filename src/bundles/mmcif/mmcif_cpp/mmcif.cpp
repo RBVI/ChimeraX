@@ -222,6 +222,7 @@ struct ExtractMolecule: public readcif::CIFFile
     void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
     const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
+    void parse_audit_syntax();
     void parse_atom_site();
     void parse_atom_site_anisotrop();
     void parse_struct_conn();
@@ -357,10 +358,10 @@ struct ExtractMolecule: public readcif::CIFFile
     string entry_id;
     tmpl::Molecule* my_templates;
     bool missing_poly_seq;
-    bool has_pdbx;
     set<ResName> empty_residue_templates;
     bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
     bool atomic;  // use AtomicStructure if true, else Structure
+    bool guess_fixed_width_categories;
 #ifdef SHEET_HBONDS
     typedef map<string, map<std::pair<string, string>, string>> SheetOrder;
     SheetOrder sheet_order;
@@ -371,7 +372,7 @@ struct ExtractMolecule: public readcif::CIFFile
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
-    "audit_conform", "atom_site", "entity_poly", "entity_poly_seq"
+    "audit_conform", "audit_syntax", "atom_site", "entity_poly", "entity_poly_seq"
     "struct_conn", "struct_conf", "struct_sheet_range",
 #ifdef SHEET_HBONDS
     "struct_sheet_order", "pdbx_struct_sheet_hbond",
@@ -388,13 +389,18 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
 
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
-    missing_poly_seq(true), has_pdbx(false), coordsets(coordsets), atomic(atomic)
+    missing_poly_seq(true), coordsets(coordsets), atomic(atomic),
+    guess_fixed_width_categories(false)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
     register_category("audit_conform",
         [this] () {
             parse_audit_conform();
+        });
+    register_category("chimerax_audit_syntax",
+        [this] () {
+            parse_audit_syntax();
         });
     register_category("entry",
         [this] () {
@@ -504,7 +510,7 @@ ExtractMolecule::reset_parse()
         my_templates = nullptr;
     }
     missing_poly_seq = true;
-    has_pdbx = false;
+    guess_fixed_width_categories = false;
 }
 
 const tmpl::Residue*
@@ -1120,33 +1126,53 @@ ExtractMolecule::parse_audit_conform()
             [&dict_version] (const char* start) {
                 dict_version = atof(start);
             });
-        pv.emplace_back(get_column("pdbx_keywords_flag"),
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping audit_conform category: ", e.what());
+        return;
+    }
+    parse_row(pv);
+    if (dict_name == "mmcif_pdbx.dic" && dict_version > 4) {
+        set_PDBx_keywords(true);
+        guess_fixed_width_categories = true;
+    }
+}
+void
+ExtractMolecule::parse_audit_syntax()
+{
+    // Looking for a way to tell if the mmCIF file was written
+    // in the PDBx/mmCIF stylized format.  The following technique
+    // is not guaranteed to work, but we'll use it for now.
+    bool case_sensitive = false;
+    vector<string> fixed_width;
+    fixed_width.reserve(12);
+
+    CIFFile::ParseValues pv;
+    pv.reserve(2);
+    try {
+        pv.emplace_back(get_column("case_sensitive_flag"),
             [&] (const char* start) {
-                has_pdbx = true;
-                set_PDBx_keywords(*start == 'Y' || *start == 'y');
+                case_sensitive = *start == 'Y' || *start == 'y';
             });
-        pv.emplace_back(get_column("pdbx_fixed_width_columns"),
+        pv.emplace_back(get_column("fixed_width"),
             [&] (const char* start, const char* end) {
-                has_pdbx = true;
                 for (const char *cp = start; cp < end; ++cp) {
                     if (isspace(*cp))
                         continue;
                     start = cp;
                     while (cp < end && !isspace(*cp))
                         ++cp;
-                    set_PDBx_fixed_width_columns(string(start, cp - start));
+                    fixed_width.push_back(string(start, cp - start));
                 }
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping audit_conform category: ", e.what());
+        logger::warning(_logger, "skipping audit_syntax category: ", e.what());
         return;
     }
     parse_row(pv);
-    if (!has_pdbx && dict_name == "mmcif_pdbx.dic" && dict_version > 4) {
-        set_PDBx_keywords(true);
-        set_PDBx_fixed_width_columns("atom_site");
-        set_PDBx_fixed_width_columns("atom_site_anisotrop");
-    }
+    set_PDBx_keywords(case_sensitive);
+    guess_fixed_width_categories = false;
+    for (auto& category: fixed_width)
+        set_PDBx_fixed_width_columns(category);
 }
 
 void
@@ -1176,6 +1202,9 @@ ExtractMolecule::parse_atom_site()
     double occupancy = DBL_MAX;   // occupancy
     double b_factor = DBL_MAX;    // B_iso_or_equiv
     int model_num = 0;            // pdbx_PDB_model_num
+
+    if (guess_fixed_width_categories)
+        set_PDBx_fixed_width_columns("atom_site");
 
     if (missing_poly_seq)
         logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity.");
@@ -1499,6 +1528,9 @@ ExtractMolecule::parse_atom_site_anisotrop()
 {
     readcif::CIFFile::ParseValues pv;
     pv.reserve(20);
+
+    if (guess_fixed_width_categories)
+        set_PDBx_fixed_width_columns("atom_site_anisotrop");
 
     long serial_num = 0;          // id
     float u11, u12, u13, u22, u23, u33;

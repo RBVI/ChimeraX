@@ -117,14 +117,21 @@ ChimeraX_audit_conform = mmcif.MMCIFTable(
         "dict_name",
         "dict_version",
         "dict_location",
-        "pdbx_keywords_flag",
-        "pdbx_fixed_width_columns"
     ), (
         "mmcif_pdbx.dic",
         "4.007",
         "http://mmcif.pdb.org/dictionaries/ascii/mmcif_pdbx.dic",
+    )
+)
+
+ChimeraX_audit_syntax = mmcif.MMCIFTable(
+    "chimerax_audit_syntax",
+    (
+        "case_sensitive_flag",
+        "fixed_width"
+    ), (
         "Y",
-        "atom_site,atom_site_anisotrop"
+        "atom_site atom_site_anisotrop"
     )
 )
 
@@ -263,6 +270,7 @@ def save_structure(session, file, models, used_data_names):
     _save_metadata(best_m, ['entry'], file)
 
     ChimeraX_audit_conform.print(file=file, fixed_width=True)
+    ChimeraX_audit_syntax.print(file=file, fixed_width=True)
 
     citation, citation_author, software = mmcif.get_mmcif_tables_from_metadata(
         best_m, ['citation', 'citation_author', 'software'])
