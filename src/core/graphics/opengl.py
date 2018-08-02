@@ -700,10 +700,15 @@ class Render:
         GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
         nbytes = 4*self._lighting_buffer_floats
         GL.glBufferData(GL.GL_UNIFORM_BUFFER, nbytes, pyopengl_null(), GL.GL_DYNAMIC_DRAW)
-        GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._lighting_block, b)
         GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
 
         return b
+
+    def activate_lighting(self):
+        # If two Render instances are rendering different lighting this is needed to switch
+        # between their lighting buffers.
+        # TODO: Optimize case with one Render instance to not update lighting binding every frame.
+        GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._lighting_block, self._lighting_buffer)
 
     def update_lighting_parameters(self):
         self._fill_lighting_parameter_buffer()

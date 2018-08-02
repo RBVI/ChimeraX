@@ -61,9 +61,7 @@ class MouseModePanel(ToolInstance):
         parent.add_tool_bar(self, Qt.LeftToolBarArea, tb)
         group = QActionGroup(tb)
         for mode in self.modes:
-            from os import path
-            icon_dir = path.join(path.dirname(__file__), 'icons')
-            action = QAction(QIcon(path.join(icon_dir, mode.icon_file)), mode.name, group)
+            action = QAction(self._icon(mode.icon_file), mode.name, group)
             action.setCheckable(True)
             def button_press_cb(event, mode=mode):
                 mname = mode.name
@@ -94,7 +92,6 @@ class MouseModePanel(ToolInstance):
 
     def create_panel_buttons(self, parent):
         from PyQt5.QtWidgets import QAction, QFrame, QGridLayout, QToolButton, QActionGroup
-        from PyQt5.QtGui import QIcon
         from PyQt5.QtCore import Qt, QSize
         tb = QFrame(parent)
         layout = QGridLayout(tb)
@@ -105,12 +102,10 @@ class MouseModePanel(ToolInstance):
         group = QActionGroup(tb)
         s = self._icon_size
         columns = self._icons_per_row
-        from os import path
-        icon_dir = path.join(path.dirname(__file__), 'icons')
         for mnum,mode in enumerate(self.modes):
             b = QToolButton(tb)
             b.setIconSize(QSize(s,s))
-            action = QAction(QIcon(path.join(icon_dir, mode.icon_file)), mode.name, group)
+            action = QAction(self._icon(mode.icon_file), mode.name, group)
             b.setDefaultAction(action)
             action.setCheckable(True)
             def button_press_cb(event, mode=mode):
@@ -125,6 +120,17 @@ class MouseModePanel(ToolInstance):
             row, column = mnum//columns, mnum%columns
             layout.addWidget(b, row, column)
         return tb
+
+    def _icon(self, file):
+        from os import path
+        if path.isabs(file):
+            p = file
+        else:
+            icon_dir = path.join(path.dirname(__file__), 'icons')
+            p = path.join(icon_dir, file)
+        from PyQt5.QtGui import QIcon
+        qi = QIcon(p)
+        return qi
 
     def display(self, show):
         if show:

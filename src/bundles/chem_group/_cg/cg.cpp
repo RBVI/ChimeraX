@@ -1307,7 +1307,10 @@ find_group(PyObject *, PyObject *args)
 	if (group_rep == nullptr)
 		return nullptr;
 
+	// prevent racing/hanging thread-based IDATM computations
+	s->ready_idatm_types();
 	auto& atoms = s->atoms();
+
 	std::vector<Group> groups;
 	std::mutex groups_mtx;
 
