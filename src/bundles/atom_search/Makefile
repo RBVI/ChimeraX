@@ -47,7 +47,7 @@ clean:
 	else \
 		rm -rf build dist *.egg-info src/__pycache__ ; \
 	fi
-	cd atomic_cpp; $(MAKE) clean
+	cd search_cpp; $(MAKE) clean
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
