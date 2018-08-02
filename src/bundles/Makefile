@@ -43,7 +43,7 @@ endif
 clean:
 	rm -rf __pycache__
 
-addh.install: atomic.install
+addh.install: atomic.install hbonds.install
 align_algs.install: alignments.install
 alignments.install: atomic.install
 atom_search.install: atomic.install
