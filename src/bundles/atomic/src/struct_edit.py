@@ -138,9 +138,9 @@ def add_dihedral_atom(name, element, n1, n2, n3, dist, angle, dihed,
     return add_atom(name, element, residue, final_pt, bonded_to=bonded_to, occupancy=occupancy)
 
 def add_bond(a1, a2, halfbond=None, color=None):
-    if a1.bonds:
+    if a1.num_bonds > 0:
         sample_bond = a1.bonds[0]
-    elif a2.bonds:
+    elif a2.num_bonds > 0:
         sample_bond = a2.bonds[0]
     else:
         sample_bond = None
