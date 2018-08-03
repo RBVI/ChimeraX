@@ -53,6 +53,11 @@ def local_correlation_matrix(m1, m2, window_size, subtract_mean):
         m1 = m1.astype(float32)
         m2 = m2.astype(float32)
 
+    if not m1.flags['C_CONTIGUOUS']:
+        m1 = m1.copy()
+    if not m2.flags['C_CONTIGUOUS']:
+        m2 = m2.copy()
+
     from .. import local_correlation
     local_correlation(m1, m2, window_size, subtract_mean, mc)
     return mc

@@ -62,7 +62,7 @@ dist_ui.install: ui.install
 dssp.install: atomic.install
 file_history.install: ui.install
 help_viewer.install: ui.install
-hbonds.install: atomic.install chem_group.install
+hbonds.install: atom_search.install atomic.install chem_group.install
 ihm.install: atomic.install map.install
 interfaces.install: ui.install
 log.install: ui.install
