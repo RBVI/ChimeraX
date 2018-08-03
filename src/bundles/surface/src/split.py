@@ -110,7 +110,7 @@ def copy_piece_blob(m, varray, tarray, narray, color, vrgba, temask,
   vmap[vi] = arange(len(vi), dtype = vmap.dtype)
   ta = vmap.take(ta.ravel()).reshape((len(ti),3))
 
-  gp = m.new_drawing()
+  gp = m.new_drawing('blob copy')
   gp.set_geometry(va, na, ta)
   gp.save_in_session = True
 

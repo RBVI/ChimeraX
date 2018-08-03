@@ -2019,7 +2019,7 @@ class Outline_Box:
     hide_diagonals = [b]*len(tlist)
 
     rgba = tuple(rgb) + (1,)
-    p = self.model.new_drawing()
+    p = self.model.new_drawing('outline box')
     p.display_style = p.Mesh
     p.lineThickness = linewidth
     p.use_lighting = False
