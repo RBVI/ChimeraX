@@ -144,7 +144,13 @@ class MouseMode:
     def camera_position(self):
         c = self.view.camera
         # For multiview cameras like VR camera, use camera position for desktop window.
-        return c.desktop_camera_position if hasattr(c, 'desktop_camera_position') else c.position
+        if hasattr(c, 'desktop_camera_position'):
+            cp = c.desktop_camera_position
+            if cp is None:
+                cp = c.position
+        else:
+            cp = c.position
+        return cp
     
 class MouseBinding:
     '''
