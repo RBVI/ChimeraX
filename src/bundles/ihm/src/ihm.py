@@ -30,14 +30,11 @@ def read_ihm(session, filename, name, *args, load_ensembles = False, load_linked
         filename = stream.name
         stream.close()
 
-    try:
-        m = IHMModel(session, filename,
-                 load_ensembles = load_ensembles,
-                 load_linked_files = load_linked_files,
-                 show_sphere_crosslinks = show_sphere_crosslinks,
-                 show_atom_crosslinks = show_atom_crosslinks)
-    except IOError as e:
-        raise RuntimeError('IHM error') from e
+    m = IHMModel(session, filename,
+             load_ensembles = load_ensembles,
+             load_linked_files = load_linked_files,
+             show_sphere_crosslinks = show_sphere_crosslinks,
+             show_atom_crosslinks = show_atom_crosslinks)
 
     return [m], m.description
 
@@ -1146,14 +1143,20 @@ class FileInfo:
         self.ref = ref		# ExternalReference object or None
         self.file_path = file_path
         self.ihm_dir = ihm_dir
+        self._warn = True
 
     def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
         if r is None or r.ref_type == 'Supplementary Files':
             # Local file
-            from os.path import join
+            from os.path import join, exists
             path = join(self.ihm_dir, self.file_path)
-            if uncompress and path.endswith('.gz'):
+            if not exists(path):
+                f = None
+                if self._warn:
+                    session.logger.warning('Missing file "%s"' % path)
+                    self._warn = False
+            elif uncompress and path.endswith('.gz'):
                 import gzip
                 f = gzip.open(path, mode)
             else:
@@ -1173,8 +1176,18 @@ class FileInfo:
                     f = open(path, mode)
             else:
                 f = None
+                if self._warn:
+                    session.logger.warning('Unrecognized DOI content type "%s" for file "%s",'
+                                           ' expecting "Archive" or "File".'
+                                           % (r.content, self.file_path))
+                    self._warn = False
         else:
             f = None
+            if self._warn:
+                session.logger.warning('Unrecognized external file reference_type "%s" for file "%s",'
+                                       ' expecting "Supplementary Files" or "DOI"'
+                                       % (r.ref_type, self.file_path))
+                self._warn = False
         return f
 
     @property
@@ -1257,8 +1270,6 @@ class FileDataSet(DataSet):
                 fs.close()
             else:
                 models = []
-                session.logger.warning('Could not open file "%s"' % finfo.file_path +
-                                       ' ref ' + str(finfo.ref) )
         else:
             models = []	# Don't know how to read atomic model file
         return models
