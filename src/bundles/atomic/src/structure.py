@@ -85,7 +85,7 @@ class Structure(Model, StructureData):
             style = settings.atomspec_contents
 
         id = '#' + self.id_string()
-        if style == "command" or not self.name:
+        if style.startswith("command") or not self.name:
             return id
         return '%s %s' % (self.name, id)
 
