@@ -168,12 +168,16 @@ def register_pdb_fetch():
     # fetch.register_fetch('pdbj', fetch_pdb_pdbj, 'pdb', prefixes = [])
 
 
-def process_chem_name(name, use_greek=True, probable_abbrs=False):
+def process_chem_name(name, use_greek=True, probable_abbrs=False, sentences=False):
     if name.isupper() and (" " in name or len(name) > 5):
         # probable non-abbreviation all uppercase:  need to downcase as appropriate
         text = ""
         word = ""
+        capitalize = sentences
         for c in name.strip().lower():
+            if capitalize and not c.isspace():
+                c = c.upper()
+                capitalize = False
             if c.isalpha():
                 word += c
                 continue
@@ -184,6 +188,8 @@ def process_chem_name(name, use_greek=True, probable_abbrs=False):
                     text += _process_chem_word(word, use_greek, probable_abbrs)
                 word = ""
             text += c
+            if sentences and text[-2:] == ". ":
+                capitalize = True
         if word:
             if c.isdigit() or (text and text[-1].isdigit()):
                 text += _process_chem_word(word, use_greek, probable_abbrs).upper()
@@ -245,9 +251,11 @@ def _process_chem_word(word, use_greek, probable_abbrs):
         return word.upper()
     segs = []
     for seg in word.split('-'):
-        if seg.startswith("rna") or seg.startswith("dna"):
+        if use_greek and seg in greek_letters:
+            segs.append(greek_letters[seg])
+        elif seg.startswith("rna") or seg.startswith("dna") or seg.startswith("nmr"):
             segs.append(seg[:3].upper() + seg[3:])
-        elif seg.endswith("rna") or seg.endswith("dna"):
+        elif seg.endswith("rna") or seg.endswith("dna") or seg.endswith("nmr"):
             segs.append(seg[:-3] + seg[-3:].upper())
         else:
             segs.append(word)

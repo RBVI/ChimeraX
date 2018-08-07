@@ -33,6 +33,7 @@ _additional_categories = (
     "cell",
     "symmetry",
     "software",
+    "struct",
     "citation",
     "citation_author",
 )
@@ -84,6 +85,16 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
             if mc:
                 from chimerax.std_commands.coordset import coordset_slider
                 coordset_slider(session, mc)
+    for model in models:
+        try:
+            headers, datas = model.metadata['struct'], model.metadata['struct data']
+        except KeyError:
+            continue
+        for header, data in zip(headers[1:], datas):
+            if header == 'title':
+                from chimerax.atomic.pdb import process_chem_name
+                model.html_title = process_chem_name(data, sentences=True)
+                break
     return models, info
 
 
