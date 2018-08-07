@@ -211,8 +211,6 @@ def citations(model, only=None):
         "citation", "citation_author"])
     if not citation:
         return ""
-    if citation_author is None:
-        citation_author = ()
 
     try:
         cf = citation.fields([
@@ -226,7 +224,7 @@ def citations(model, only=None):
     try:
         caf = citation_author.fields(['citation_id', 'name', 'ordinal'])
         caf = tuple((ci, n, int(o)) for ci, n, o in caf)
-    except ValueError:
+    except (AttributeError, ValueError):
         caf = ()
     citations = []
     from html import escape
