@@ -1724,7 +1724,9 @@ class RegionBrowser:
         self._sel_change_from_self = True
         self.tool_window.session.selection.clear()
         from chimerax.atomic import Residues
-        Residues(self.region_residues(region)).atoms.selected = True
+        sel_atoms = Residues(self.region_residues(region)).atoms
+        sel_atoms.selecteds = True
+        sel_atoms.intra_bonds.selecteds = True
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
