@@ -1,5 +1,11 @@
 # vim: set expandtab ts=4 sw=4:
 
+# Force import in a particular order since the latter two mess
+# with the contents of distutils, and we want Cython to win
+import distutils
+import setuptools
+from Cython.Build import cythonize
+
 def distlib_hack(_func):
     # This hack is needed because distlib and wheel do not yet
     # agree on the metadata file name.
@@ -309,7 +315,10 @@ class BundleBuilder:
                 "Operating System :: POSIX :: Linux",
             ]
         self.python_classifiers.extend(platform_classifiers)
-        self.setup_arguments["ext_modules"] = ext_mods
+        # We always cythonize, assuming that it is not too expensive if
+        # there are no py/pyx files.  We can check manually first if
+        # the assumption is incorrect.
+        self.setup_arguments["ext_modules"] = cythonize(ext_mods)
         self.setup_arguments["classifiers"] = (self.python_classifiers +
                                                self.chimerax_classifiers)
 
