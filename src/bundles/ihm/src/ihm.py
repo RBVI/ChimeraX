@@ -786,7 +786,9 @@ class IHMModel(Model):
             clrt_rows = clrt.fields(clrt_fields, allow_missing_fields = True)
             for g_id, asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, dist in clrt_rows:
                 d, dlow = distance_thresholds(dist, dist, rtype)
-                xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d, dlow)
+                aname1 = None if atom_id_1 == '.' else atom_id_1
+                aname2 = None if atom_id_2 == '.' else atom_id_2
+                xl = Crosslink(asym_id_1, int(seq_id_1), aname1, asym_id_2, int(seq_id_2), aname2, d, dlow)
                 ct = cl_type.get(g_id, '')
                 xlinks.setdefault(ct, []).append(xl)
 
@@ -1403,10 +1405,12 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
             elif a2 is None:
                 missing.append((xl.asym2, xl.seq2))
         if missing:
-            smiss = ','.join('/%s:%d' % (asym_id, seq_num) for asym_id, seq_num in missing[:3])
-            if len(missing) > 3:
+            mres = list(set((asym_id, seq_num) for asym_id, seq_num in missing))
+            mres.sort()
+            smiss = ','.join('/%s:%d' % ai for ai in mres[:5])
+            if len(missing) > 5:
                 smiss += '...'
-            msg = 'Missing %d %s crosslink residues %s' % (len(missing), xltype, smiss)
+            msg = 'Missing residues for %d of %d %s crosslinks: %s' % (len(missing), len(xlist), xltype, smiss)
             if parent is not None and hasattr(parent, 'name'):
                 msg = parent.name + ' ' + msg
             session.logger.info(msg)
@@ -1764,7 +1768,7 @@ def atom_lookup(models):
             res = a.residue
             amap[(res.chain_id, res.number, a.name)] = a
         for r in m.residues:
-            amap[(res.chain_id, res.number, None)] = r.principal_atom
+            amap[(r.chain_id, r.number, None)] = r.principal_atom
     def lookup(asym_id, res_num, atom_name, amap=amap):
         return amap.get((asym_id, res_num, atom_name))
     return lookup
