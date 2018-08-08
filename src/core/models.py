@@ -257,7 +257,7 @@ class Model(State, Drawing):
             return
         fmt = "<i>%s</i> title: <b>%s</b>"
         if self.has_formatted_metadata(session):
-            fmt += ' <small><a href="cxcmd:info metadata #%s">MORE INFO</a></small>' \
+            fmt += ' <small><a href="cxcmd:info metadata #%s">[more&nbspinfo...]</a></small>' \
                 % self.id_string()
         session.logger.info(fmt % (self.name, self.html_title) , is_html=True)
 
