@@ -130,6 +130,7 @@ class Structure(Model, StructureData):
 
         # Setup handler to manage C++ data changes that require graphics updates.
         self._graphics_updater.add_structure(self)
+        Model.added_to_session(self, session)
 
     def removed_from_session(self, session):
         self._graphics_updater.remove_structure(self)
@@ -2168,15 +2169,12 @@ class AtomicStructure(Structure):
                 sibs = [m for m in session.models if m.id[:-1] == self.id[:-1]]
                 if len(set([s.name for s in sibs])) > 1:
                     # not an NMR ensemble
-                    self._report_title(session)
                     self._report_chain_descriptions(session)
                 else:
                     sibs.sort(key=lambda m: m.id)
                     if sibs[-1] == self:
-                        self._report_title(session)
                         self._report_ensemble_chain_descriptions(session, sibs)
             else:
-                self._report_title(session)
                 self._report_chain_descriptions(session)
             self._report_assemblies(session)
 
@@ -2462,12 +2460,6 @@ class AtomicStructure(Structure):
         html = assembly_html_table(self)
         if html:
             session.logger.info(html, is_html=True)
-
-    def _report_title(self, session):
-        html_title = getattr(self, 'html_title', None)
-        if not html_title:
-            return
-        session.logger.info("%s title: <b>%s</b>" % (self.name, self.html_title) , is_html=True)
 
 def assembly_html_table(mol):
     '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''

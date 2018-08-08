@@ -72,5 +72,8 @@ class _InfoAPI(BundleAPI):
         register("info path",
                  cmd.info_path_desc,
                  cmd.info_path, logger=logger)
+        register("info metadata",
+                 cmd.info_metadata_desc,
+                 cmd.info_metadata, logger=logger)
 
 bundle_api = _InfoAPI()
