@@ -482,7 +482,7 @@ class IHMModel(Model):
         mlt = self.tables['ihm_model_list']
         ml_fields = ['model_id', 'model_name']
         ml = mlt.fields(ml_fields, allow_missing_fields = True)
-        mnames = {mid:mname for mid,mname in ml if mname}
+        mnames = {mid:(mname if mname and mname != '.' else 'result %s' % mid) for mid,mname in ml}
         return mnames
 
     # -----------------------------------------------------------------------------
