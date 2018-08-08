@@ -559,7 +559,7 @@ class _CLibrary(_CompiledCode):
         if inc_dirs:
             compiler.set_include_dirs(inc_dirs)
         if lib_dirs:
-            compiler.set_library_dirs(inc_dirs)
+            compiler.set_library_dirs(lib_dirs)
         if libraries:
             compiler.set_libraries(libraries)
         compiler.add_include_dir(distutils.sysconfig.get_python_inc())
