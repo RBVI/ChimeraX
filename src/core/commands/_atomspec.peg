@@ -32,7 +32,7 @@ selector_name    = name:/[a-zA-Z][-+a-zA-Z0-9]*/
 model_list       = { model+:model }+
                  ;
 
-model            = '#' hierarchy:model_hierarchy [ '##' attrs:attribute_list ] [ parts:model_parts ] [ zone:zone_selector ]
+model            = exact_match:('#!'|'#') hierarchy:model_hierarchy [ '##' attrs:attribute_list ] [ parts:model_parts ] [ zone:zone_selector ]
                  | '##' attrs:attribute_list [ parts:model_parts ] [ zone:zone_selector ]
 		 | parts:model_parts [ zone:zone_selector ]
                  ;

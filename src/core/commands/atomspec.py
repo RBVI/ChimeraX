@@ -245,7 +245,7 @@ class _AtomSpecSemantics:
         return model_list
 
     def model(self, ast):
-        m = _Model(ast.hierarchy, ast.attrs)
+        m = _Model(ast.exact_match == "#!", ast.hierarchy, ast.attrs)
         if ast.parts is not None:
             for p in ast.parts:
                 m.add_part(p)
@@ -518,6 +518,10 @@ class _Model(_SubPart):
     """Stores model part list and atom spec."""
     Symbol = '#'
 
+    def __init__(self, exact_match, *args):
+        super().__init__(*args)
+        self.exact_match = exact_match
+
     def find_matches(self, session, model_list, results):
         model_list = [model for model in model_list
                       if not self.my_attrs or
@@ -525,6 +529,9 @@ class _Model(_SubPart):
         if not model_list:
             return
         if self.my_parts:
+            if self.exact_match:
+                model_list = [model for model in model_list
+                              if len(model.id) == len(self.my_parts)]
             self.my_parts.find_matches(session, model_list, self.sub_parts, results)
         else:
             # No model spec given, everything matches
