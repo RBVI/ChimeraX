@@ -115,8 +115,9 @@ class IHMModel(Model):
     
         # Align starting models to first sphere model
         if smodels:
-            # TODO: Align to first result model, could be spheres or atomic
             align_starting_models_to_spheres(stmodels, smodels[0])
+        elif amodels:
+            align_starting_models_to_atoms(stmodels, amodels[0])
     
         # Ensemble localization
         self.localization_models = lmaps = self.read_localization_maps()
@@ -1758,6 +1759,42 @@ def align_starting_models_to_spheres(amodels, smodel):
             print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
         else:
             print ('could not align aligned %s to spheres, %d matching residues' % (m.name, len(mxyz)))
+
+# -----------------------------------------------------------------------------
+#
+def align_starting_models_to_atoms(amodels, refmodel):
+    if len(amodels) == 0:
+        return
+
+    # TODO: Handle case where model coordinate systems are different
+    rloc = {}
+    for r in refmodel.residues:
+        pa = r.principal_atom
+        if pa:
+            rloc[(r.chain_id, r.number)] = pa.coord
+            
+    for m in amodels:
+        # Align comparative model atoms to result model atoms
+        asym_id = m.asym_id
+        mxyz = []
+        sxyz = []
+        for r in m.residues:
+            pa = r.principal_atom
+            if pa:
+                xyz = rloc.get((asym_id, r.number))
+                if xyz is not None:
+                    mxyz.append(pa.coord)
+                    sxyz.append(xyz)
+                else:
+                    print ('could not find res for alignment', (r.chain_id, r.number))
+        if len(mxyz) >= 3:
+            from chimerax.core.geometry import align_points
+            from numpy import array, float64
+            p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
+            m.position = p
+            print ('aligned %s to %s, %d residues, rms %.4g' % (m.name, refmodel.name, len(mxyz), rms))
+        else:
+            print ('could not align %s to %s, only %d matching residues' % (m.name, refmodel.name, len(mxyz)))
             
 # -----------------------------------------------------------------------------
 #
