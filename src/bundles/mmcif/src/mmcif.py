@@ -36,6 +36,9 @@ _additional_categories = (
     "struct",
     "citation",
     "citation_author",
+    "exptl",
+    "reflns",
+    "em_3d_reconstruction",
 )
 _reserved_words = {
     'loop_', 'stop_', 'global_'
@@ -102,6 +105,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
 
 def _get_formatted_metadata(model, session):
     from chimerax.core.logger import html_table_params
+    from chimerax.atomic.pdb import process_chem_name
     html = "<table %s>\n" % html_table_params
     html += ' <thead>\n'
     html += '  <tr>\n'
@@ -128,41 +132,82 @@ def _get_formatted_metadata(model, session):
     # source
     nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"])
     if nat:
-        raw_rows = nat.fields(['common_name', 'pdbx_organism_scientific', 'genus', 'species',
-            'pdbx_ncbi_taxonomy_id'], allow_missing_fields=True)
-        usable_rows = set()
-        for raw_row in raw_rows:
-            row = substitute_none_for_unspecified(raw_row)
-            if row[:4] != [None, None, None, None]:
-                usable_rows.add(tuple(row))
-        if usable_rows:
-            rows = list(usable_rows)
+        html += _process_src(nat, "Source%s (natural)", ['common_name', 'pdbx_organism_scientific',
+            'genus', 'species', 'pdbx_ncbi_taxonomy_id'])
+    if gen:
+        html += _process_src(gen, "Gene source%s", ['gene_src_common_name',
+            'pdbx_gene_src_scientific_name', 'gene_src_genus', 'gene_src_species',
+            'pdbx_gene_src_ncbi_taxonomy_id'])
+        html += _process_src(gen, "Host organism%s", ['host_org_common_name',
+            'pdbx_host_org_scientific_name', 'host_org_genus', 'host_org_species',
+            'pdbx_host_org_ncbi_taxonomy_id'])
+
+    # experimental method; resolution
+    experiment = get_mmcif_tables_from_metadata(model, ["exptl"])[0]
+    if experiment:
+        method = substitute_none_for_unspecified(experiment.fields(
+            ['method'], allow_missing_fields=True)[0])[0]
+        if method:
             html += '  <tr>\n'
-            if len(rows) > 1:
-                html += '   <th>Sources (natural)</th>\n'
-            else:
-                html += '   <th rowspan="%d">Source (natural)</th>\n' % len(rows)
-            html += '   <td>%s</td>\n' % _format_natural_source(*rows[0])
+            html += '   <th>Experimental method</th>\n'
+            html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
             html += '  </tr>\n'
-            for row in rows[1:]:
-                html += '  <tr>\n'
-                html += '   <td>%s</td>\n' % _format_natural_source(*row)
-                html += '  </tr>\n'
+    res = None
+    reflections = get_mmcif_tables_from_metadata(model, ["reflns"])[0]
+    if reflections:
+        res = substitute_none_for_unspecified(reflections.fields(
+            ['d_resolution_high'], allow_missing_fields=True)[0])[0]
+    if res is None:
+        em = get_mmcif_tables_from_metadata(model, ["em_3d_reconstruction"])[0]
+        if em:
+            res = substitute_none_for_unspecified(em.fields(
+                ['resolution'], allow_missing_fields=True)[0])[0]
+    if res is not None:
+        html += '  <tr>\n'
+        html += '   <th>Resolution</th>\n'
+        html += '   <td>%s\N{ANGSTROM SIGN}</td>\n' % res
+        html += '  </tr>\n'
 
     html += ' </tbody>\n'
     html += "</table>"
+
+    # exper. method; resolution
+
+    return html
+
+def _process_src(src, caption, field_names):
+    raw_rows = src.fields(field_names, allow_missing_fields=True)
+    usable_rows = set()
+    for raw_row in raw_rows:
+        row = substitute_none_for_unspecified(raw_row)
+        if row[:4] != [None, None, None, None]:
+            usable_rows.add(tuple(row))
+    html = ""
+    if usable_rows:
+        rows = list(usable_rows)
+        html += '  <tr>\n'
+        if len(rows) > 1:
+            html += '   <th rowspan="%d">%s</th>\n' % (len(rows), caption % 's')
+        else:
+            html += '   <th>%s</th>\n' % caption % ''
+        html += '   <td>%s</td>\n' % _format_source_name(*rows[0])
+        html += '  </tr>\n'
+        for row in rows[1:]:
+            html += '  <tr>\n'
+            html += '   <td>%s</td>\n' % _format_source_name(*row)
+            html += '  </tr>\n'
     return html
 
 def substitute_none_for_unspecified(fields):
     substituted = []
     for field in fields:
-        if field in ('?', '.'):
+        if field in ('?', '.', ''):
             substituted.append(None)
         else:
             substituted.append(field)
     return substituted
 
-def _format_natural_source(common_name, scientific_name, genus, species, ncbi_id):
+def _format_source_name(common_name, scientific_name, genus, species, ncbi_id):
     from chimerax.atomic.pdb import process_chem_name
     text = ""
     if scientific_name:
