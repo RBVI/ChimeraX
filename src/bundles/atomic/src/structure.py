@@ -85,7 +85,7 @@ class Structure(Model, StructureData):
             style = settings.atomspec_contents
 
         id = '#' + self.id_string()
-        if style == "command" or not self.name:
+        if style.startswith("command") or not self.name:
             return id
         return '%s %s' % (self.name, id)
 
@@ -129,12 +129,11 @@ class Structure(Model, StructureData):
         self._start_change_tracking(session.change_tracker)
 
         # Setup handler to manage C++ data changes that require graphics updates.
-        gu = structure_graphics_updater(session)
-        gu.add_structure(self)
+        self._graphics_updater.add_structure(self)
+        Model.added_to_session(self, session)
 
     def removed_from_session(self, session):
-        gu = structure_graphics_updater(session)
-        gu.remove_structure(self)
+        self._graphics_updater.remove_structure(self)
 
     def _is_only_model(self):
         id = self.id
@@ -284,8 +283,11 @@ class Structure(Model, StructureData):
 
     @property
     def _level_of_detail(self):
-        gu = structure_graphics_updater(self.session)
-        return gu.level_of_detail
+        return self._graphics_updater.level_of_detail
+
+    @property
+    def _graphics_updater(self):
+        return structure_graphics_updater(self.session)
 
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
@@ -303,6 +305,7 @@ class Structure(Model, StructureData):
 
         # Update graphics
         self._graphics_changed = 0
+        self._graphics_updater.need_update()
         s = (gc & self._SHAPE_CHANGE)
         if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
             self._update_ribbon_tethers()
@@ -2378,7 +2381,7 @@ class AtomicStructure(Structure):
                 for chain_id in compnd_chain_ids:
                     chain_to_desc[chain_id] = (description, synonym)
         if chain_to_desc:
-            from .pdb import process_chem_name
+            from chimerax.atomic.pdb import process_chem_name
             for k, v in chain_to_desc.items():
                 description, synonym = v
                 chain_to_desc[k] = process_chem_name(description, probable_abbrs=synonym)
@@ -2521,6 +2524,9 @@ class StructureGraphicsChangeManager:
         self._structures.remove(s)
         self._structures_array = None
 
+    def need_update(self):
+        self._need_update = True
+        
     def _model_display_changed(self, tname, model):
         if isinstance(model, Structure) or _has_structure_descendant(model):
             self._need_update = True

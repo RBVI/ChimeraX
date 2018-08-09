@@ -33,6 +33,7 @@ _additional_categories = (
     "cell",
     "symmetry",
     "software",
+    "struct",
     "citation",
     "citation_author",
 )
@@ -84,8 +85,110 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
             if mc:
                 from chimerax.std_commands.coordset import coordset_slider
                 coordset_slider(session, mc)
+    for model in models:
+        struct = get_mmcif_tables_from_metadata(model, ["struct"])[0]
+        if not struct:
+            continue
+        try:
+            title = struct.fields(['title'])[0][0]
+        except TableMissingFieldsError:
+            continue
+        from chimerax.atomic.pdb import process_chem_name
+        model.html_title = process_chem_name(title, sentences=True)
+        model.has_formatted_metadata = lambda ses: True
+        model.get_formatted_metadata = lambda ses, m=model: _get_formatted_metadata(m, ses)
+        break
     return models, info
 
+def _get_formatted_metadata(model, session):
+    from chimerax.core.logger import html_table_params
+    html = "<table %s>\n" % html_table_params
+    html += ' <thead>\n'
+    html += '  <tr>\n'
+    html += '   <th colspan="2">Metadata for %s</th>\n' % model
+    html += '  </tr>\n'
+    html += ' </thead>\n'
+    html += ' <tbody>\n'
+
+    # citations
+    cites = citations(model)
+    if cites:
+        html += '  <tr>\n'
+        if len(cites) > 1:
+            html += '   <th rowspan="%d">Citations</th>\n' % len(cites)
+        else:
+            html += '   <th>Citation</th>\n'
+        html += '   <td>%s</td>\n' % cites[0]
+        html += '  </tr>\n'
+        for cite in cites[1:]:
+            html += '  <tr>\n'
+            html += '   <td>%s</td>\n' % cite
+            html += '  </tr>\n'
+
+    # source
+    nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"])
+    if nat:
+        raw_rows = nat.fields(['common_name', 'pdbx_organism_scientific', 'genus', 'species',
+            'pdbx_ncbi_taxonomy_id'], allow_missing_fields=True)
+        usable_rows = set()
+        for raw_row in raw_rows:
+            row = substitute_none_for_unspecified(raw_row)
+            if row[:4] != [None, None, None, None]:
+                usable_rows.add(tuple(row))
+        if usable_rows:
+            rows = list(usable_rows)
+            html += '  <tr>\n'
+            if len(rows) > 1:
+                html += '   <th>Sources (natural)</th>\n'
+            else:
+                html += '   <th rowspan="%d">Source (natural)</th>\n' % len(rows)
+            html += '   <td>%s</td>\n' % _format_natural_source(*rows[0])
+            html += '  </tr>\n'
+            for row in rows[1:]:
+                html += '  <tr>\n'
+                html += '   <td>%s</td>\n' % _format_natural_source(*row)
+                html += '  </tr>\n'
+
+    html += ' </tbody>\n'
+    html += "</table>"
+    return html
+
+def substitute_none_for_unspecified(fields):
+    substituted = []
+    for field in fields:
+        if field in ('?', '.'):
+            substituted.append(None)
+        else:
+            substituted.append(field)
+    return substituted
+
+def _format_natural_source(common_name, scientific_name, genus, species, ncbi_id):
+    from chimerax.atomic.pdb import process_chem_name
+    text = ""
+    if scientific_name:
+        text = scientific_name
+    else:
+        if genus:
+            text = genus if not species else genus + " " + species
+        else:
+            text = species
+
+    if text and ncbi_id:
+        text = process_chem_name(text, sentences=True)
+        text = '<a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=' \
+            + ncbi_id + '">' + text + '</a>'
+    if common_name:
+        if text:
+            common_name = process_chem_name(common_name.lower())
+            text = text + ' (%s)' % common_name
+        else:
+            common_name = process_chem_name(common_name.lower(), sentences=True)
+            if ncbi_id:
+                text = '<a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=' \
+                    + ncbi_id + '">' + common_name + '</a>'
+            else:
+                text = common_name
+    return text
 
 _mmcif_sources = {
     # "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
@@ -211,13 +314,11 @@ def citations(model, only=None):
         "citation", "citation_author"])
     if not citation:
         return ""
-    if citation_author is None:
-        citation_author = ()
 
     try:
         cf = citation.fields([
             'id', 'title', 'journal_abbrev', 'journal_volume', 'year'])
-    except ValueError:
+    except TableMissingFieldsError:
         return ""   # missing fields
     cf2 = citation.fields([
         'page_first', 'page_last',
@@ -226,7 +327,7 @@ def citations(model, only=None):
     try:
         caf = citation_author.fields(['citation_id', 'name', 'ordinal'])
         caf = tuple((ci, n, int(o)) for ci, n, o in caf)
-    except ValueError:
+    except (TableMissingFieldsError, AttributeError):
         caf = ()
     citations = []
     from html import escape
@@ -319,6 +420,9 @@ def get_mmcif_tables_from_metadata(model, table_names):
     return tlist
 
 
+class TableMissingFieldsError(ValueError):
+    pass
+
 class MMCIFTable:
     """
     Present a table interface for a mmCIF category
@@ -384,7 +488,7 @@ class MMCIFTable:
                 from chimerax.core.commands.cli import commas, plural_form
                 have = commas(['"%s"' % t for t in self._tags], ' and')
                 have_noun = plural_form(self._tags, 'field')
-                raise ValueError(
+                raise TableMissingFieldsError(
                     'Field "%s" not in table "%s", have %s %s'
                     % (name, self.table_name, have_noun, have))
         key_columns = [self._data[t.index(k.casefold())::n] for k in key_names]
@@ -446,7 +550,7 @@ class MMCIFTable:
                 missed_verb = plural_form(missing, 'is', 'are')
                 have = commas(['"%s"' % t for t in self._tags], ' and')
                 have_noun = plural_form(self._tags, 'field')
-                raise ValueError('%s %s %s not in table "%s", have %s %s' % (
+                raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
                     missed_noun, missed, missed_verb, self.table_name, have_noun,
                     have))
             fi = tuple(t.index(f.casefold()) for f in field_names)

@@ -24,7 +24,7 @@ SUBDIRS = addh align_algs alignments atom_search atomic \
 	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
 	  smooth_lines spacenavigator std_commands stl storm struts surface swapaa \
-	  test texture tug ui viewdockx vive vtk wavefront_obj
+	  test texture tug ui viewdockx vive vtk wavefront_obj zone
 
 include $(TOP)/mk/subdir.make
 
@@ -62,7 +62,7 @@ dist_ui.install: ui.install
 dssp.install: atomic.install
 file_history.install: ui.install
 help_viewer.install: ui.install
-hbonds.install: atomic.install chem_group.install
+hbonds.install: atom_search.install atomic.install chem_group.install
 ihm.install: atomic.install map.install
 interfaces.install: ui.install
 log.install: ui.install
