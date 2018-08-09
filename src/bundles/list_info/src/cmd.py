@@ -85,6 +85,8 @@ def info_metadata(session, models=None):
     if not any_metadata:
         if not models:
             session.logger.info("No models match specifier")
+        elif len(models) == 1:
+            session.logger.info("The model has no metadata")
         else:
             session.logger.info("No models had metadata")
 

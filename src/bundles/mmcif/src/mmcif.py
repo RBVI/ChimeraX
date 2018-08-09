@@ -109,6 +109,8 @@ def _get_formatted_metadata(model, session):
     html += '  </tr>\n'
     html += ' </thead>\n'
     html += ' <tbody>\n'
+
+    # citations
     cites = citations(model)
     if cites:
         html += '  <tr>\n'
@@ -122,10 +124,71 @@ def _get_formatted_metadata(model, session):
             html += '  <tr>\n'
             html += '   <td>%s</td>\n' % cite
             html += '  </tr>\n'
+
+    # source
+    nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"])
+    if nat:
+        raw_rows = nat.fields(['common_name', 'pdbx_organism_scientific', 'genus', 'species',
+            'pdbx_ncbi_taxonomy_id'], allow_missing_fields=True)
+        usable_rows = set()
+        for raw_row in raw_rows:
+            row = substitute_none_for_unspecified(raw_row)
+            if row[:4] != [None, None, None, None]:
+                usable_rows.add(tuple(row))
+        if usable_rows:
+            rows = list(usable_rows)
+            html += '  <tr>\n'
+            if len(rows) > 1:
+                html += '   <th>Sources (natural)</th>\n'
+            else:
+                html += '   <th rowspan="%d">Source (natural)</th>\n' % len(rows)
+            html += '   <td>%s</td>\n' % _format_natural_source(*rows[0])
+            html += '  </tr>\n'
+            for row in rows[1:]:
+                html += '  <tr>\n'
+                html += '   <td>%s</td>\n' % _format_natural_source(*row)
+                html += '  </tr>\n'
+
     html += ' </tbody>\n'
     html += "</table>"
     return html
 
+def substitute_none_for_unspecified(fields):
+    substituted = []
+    for field in fields:
+        if field in ('?', '.'):
+            substituted.append(None)
+        else:
+            substituted.append(field)
+    return substituted
+
+def _format_natural_source(common_name, scientific_name, genus, species, ncbi_id):
+    from chimerax.atomic.pdb import process_chem_name
+    text = ""
+    if scientific_name:
+        text = scientific_name
+    else:
+        if genus:
+            text = genus if not species else genus + " " + species
+        else:
+            text = species
+
+    if text and ncbi_id:
+        text = process_chem_name(text, sentences=True)
+        text = '<a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=' \
+            + ncbi_id + '">' + text + '</a>'
+    if common_name:
+        if text:
+            common_name = process_chem_name(common_name.lower())
+            text = text + ' (%s)' % common_name
+        else:
+            common_name = process_chem_name(common_name.lower(), sentences=True)
+            if ncbi_id:
+                text = '<a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=' \
+                    + ncbi_id + '">' + common_name + '</a>'
+            else:
+                text = common_name
+    return text
 
 _mmcif_sources = {
     # "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
