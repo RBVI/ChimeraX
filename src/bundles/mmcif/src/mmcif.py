@@ -33,6 +33,7 @@ _additional_categories = (
     "cell",
     "symmetry",
     "software",
+    "struct",
     "citation",
     "citation_author",
 )
@@ -84,7 +85,46 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
             if mc:
                 from chimerax.std_commands.coordset import coordset_slider
                 coordset_slider(session, mc)
+    for model in models:
+        struct = get_mmcif_tables_from_metadata(model, ["struct"])[0]
+        if not struct:
+            continue
+        try:
+            title = struct.fields(['title'])[0][0]
+        except TableMissingFieldsError:
+            continue
+        from chimerax.atomic.pdb import process_chem_name
+        model.html_title = process_chem_name(title, sentences=True)
+        model.has_formatted_metadata = lambda ses: True
+        model.get_formatted_metadata = lambda ses, m=model: _get_formatted_metadata(m, ses)
+        break
     return models, info
+
+def _get_formatted_metadata(model, session):
+    from chimerax.core.logger import html_table_params
+    html = "<table %s>\n" % html_table_params
+    html += ' <thead>\n'
+    html += '  <tr>\n'
+    html += '   <th colspan="2">Metadata for %s</th>\n' % model
+    html += '  </tr>\n'
+    html += ' </thead>\n'
+    html += ' <tbody>\n'
+    cites = citations(model)
+    if cites:
+        html += '  <tr>\n'
+        if len(cites) > 1:
+            html += '   <th rowspan="%d">Citations</th>\n' % len(cites)
+        else:
+            html += '   <th>Citation</th>\n'
+        html += '   <td>%s</td>\n' % cites[0]
+        html += '  </tr>\n'
+        for cite in cites[1:]:
+            html += '  <tr>\n'
+            html += '   <td>%s</td>\n' % cite
+            html += '  </tr>\n'
+    html += ' </tbody>\n'
+    html += "</table>"
+    return html
 
 
 _mmcif_sources = {
@@ -211,13 +251,11 @@ def citations(model, only=None):
         "citation", "citation_author"])
     if not citation:
         return ""
-    if citation_author is None:
-        citation_author = ()
 
     try:
         cf = citation.fields([
             'id', 'title', 'journal_abbrev', 'journal_volume', 'year'])
-    except ValueError:
+    except TableMissingFieldsError:
         return ""   # missing fields
     cf2 = citation.fields([
         'page_first', 'page_last',
@@ -226,7 +264,7 @@ def citations(model, only=None):
     try:
         caf = citation_author.fields(['citation_id', 'name', 'ordinal'])
         caf = tuple((ci, n, int(o)) for ci, n, o in caf)
-    except ValueError:
+    except (TableMissingFieldsError, AttributeError):
         caf = ()
     citations = []
     from html import escape
@@ -319,6 +357,9 @@ def get_mmcif_tables_from_metadata(model, table_names):
     return tlist
 
 
+class TableMissingFieldsError(ValueError):
+    pass
+
 class MMCIFTable:
     """
     Present a table interface for a mmCIF category
@@ -384,7 +425,7 @@ class MMCIFTable:
                 from chimerax.core.commands.cli import commas, plural_form
                 have = commas(['"%s"' % t for t in self._tags], ' and')
                 have_noun = plural_form(self._tags, 'field')
-                raise ValueError(
+                raise TableMissingFieldsError(
                     'Field "%s" not in table "%s", have %s %s'
                     % (name, self.table_name, have_noun, have))
         key_columns = [self._data[t.index(k.casefold())::n] for k in key_names]
@@ -446,7 +487,7 @@ class MMCIFTable:
                 missed_verb = plural_form(missing, 'is', 'are')
                 have = commas(['"%s"' % t for t in self._tags], ' and')
                 have_noun = plural_form(self._tags, 'field')
-                raise ValueError('%s %s %s not in table "%s", have %s %s' % (
+                raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
                     missed_noun, missed, missed_verb, self.table_name, have_noun,
                     have))
             fi = tuple(t.index(f.casefold()) for f in field_names)

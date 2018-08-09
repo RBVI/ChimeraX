@@ -130,6 +130,7 @@ class Structure(Model, StructureData):
 
         # Setup handler to manage C++ data changes that require graphics updates.
         self._graphics_updater.add_structure(self)
+        Model.added_to_session(self, session)
 
     def removed_from_session(self, session):
         self._graphics_updater.remove_structure(self)
@@ -2380,7 +2381,7 @@ class AtomicStructure(Structure):
                 for chain_id in compnd_chain_ids:
                     chain_to_desc[chain_id] = (description, synonym)
         if chain_to_desc:
-            from .pdb import process_chem_name
+            from chimerax.atomic.pdb import process_chem_name
             for k, v in chain_to_desc.items():
                 description, synonym = v
                 chain_to_desc[k] = process_chem_name(description, probable_abbrs=synonym)
