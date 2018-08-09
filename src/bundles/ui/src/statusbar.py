@@ -79,18 +79,25 @@ class _StatusBarOpenGL:
     def _create_opengl_context(self):
         # Create opengl context
         w = self._window
-        from chimerax.core.graphics import OpenGLContext
+        from chimerax.core.graphics import OpenGLContext, OpenGLVersionError
         self._opengl_context = c = OpenGLContext(w, self.session.ui.primaryScreen())
+        
         # Create texture drawing to render status messages
         from chimerax.core.graphics import Drawing, Render
         self._drawing = Drawing('statusbar')
         self._drawing2 = Drawing('secondary statusbar')
         self._renderer = r = Render(c)
-        if not r.make_current():
-            raise RuntimeError('Failed to make status line opengl context current')
+        try:
+            if not r.make_current():
+                raise RuntimeError('Failed to make status line opengl context current')
+        except OpenGLVersionError:
+            self._opengl_context = None
+            self._renderer = None
+            return False
         lw, lh = w.width(), w.height()
         r.initialize_opengl(lw, lh)
         r.set_background_color(self.background_color)
+        return True
 
     # TODO: Handle expose events on status bar windows so resizes show label.
     #  Should probably handle status bar as one QWindow created by this class.
@@ -106,7 +113,8 @@ class _StatusBarOpenGL:
         cc = remember_current_opengl_context()
 
         if self._opengl_context is None:
-            self._create_opengl_context()
+            if not self._create_opengl_context():
+                return	# OpenGL version is not sufficient
 
         r = self._renderer
         if not r.make_current():
