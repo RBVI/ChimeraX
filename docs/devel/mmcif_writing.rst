@@ -46,7 +46,7 @@ What ChimeraX Wants
 -------------------
 
 What ChimeraX wants to read from a mmCIF file is documented in
-`ChimeraX Fast mmCIF Guidelines`_.
+:doc:`ChimeraX Fast mmCIF Guidelines <mmcif>`.
 Saving connectivity is a major issue and is discussed separately.
 
 ---------------------
@@ -63,13 +63,11 @@ Other application's mmCIF readers might not compute the same information,
 so ChimeraX outputs the tables it infers for completeness.
 This is also needed for the mmCIF files to validate.
 
-.. _ChimeraX Fast mmCIF Guidelines: mmcif.rst
-
 ---------------
 Stylized Output
 ---------------
 
-As shown in `Benchmarking readcif`_,
+As shown in :doc:`Benchmarking readcif <bundles/mmcif/mmcif_cpp/readcif_cpp/docs/compare>`,
 stylized PDBx/mmCIF output can be read faster than unstylized output.
 It is also easier to visually scan fixed column width tables for
 interesting values.
@@ -79,8 +77,6 @@ of a line.
 And outputs **chimerax_audit_syntax.fixed_width** with just the
 **atom_site** and **atom_site_anisotrop** tables listed
 (since the those tables are typically the largest ones in the mmCIF file).
-
-.. _Benchmarking readcif: core/atomic/readcif_cpp/docs/compare.rst
 
 ----------
 Validation
