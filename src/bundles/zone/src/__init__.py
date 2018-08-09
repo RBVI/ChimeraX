@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,10 +11,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .vopcommand import register_volume_filtering_subcommands
-from .gaussian import gaussian_convolve
-from .laplace import laplacian
-from .fourier import fourier_transform
-from .median import median_filter
-from .permute import permute_axes
-from .zone import zone_volume
+from chimerax.core.toolshed import BundleAPI
+
+class _ZoneBundleAPI(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        """Install atom zone mouse mode"""
+        if session.ui.is_gui:
+            from .zone import AtomZoneMouseMode
+            mm = session.ui.mouse_modes
+            mm.add_mode(AtomZoneMouseMode(session))
+
+bundle_api = _ZoneBundleAPI()
