@@ -25,6 +25,7 @@
 #define ATOMSTRUCT_EXPORT
 #define PYINSTANCE_EXPORT
 #include "Atom.h"
+#include "backbone.h"
 #include "Bond.h"
 #include "CoordSet.h"
 #include "destruct.h"
@@ -413,6 +414,50 @@ void
 Structure::_delete_atom(Atom* a)
 {
     auto db = DestructionBatcher(this);
+    // if we're a backbone atom connecting to a backbone atom in an "adjacent" residue,
+    // need to insert missing-structure pseudobond. "adjacent" considers missing-structure
+    // pseudobonds
+    if (a->is_backbone(BBE_MIN)) {
+        std::vector<Atom*> missing_partners;
+        auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+        if (pbg != nullptr) {
+            for (auto& pb: pbg->pseudobonds()) {
+                Atom* a1 = pb->atoms()[0];
+                Atom* a2 = pb->atoms()[1];
+                if (a1 == a)
+                    missing_partners.push_back(a2);
+                else if (a2 == a)
+                    missing_partners.push_back(a1);
+            }
+        }
+        if (missing_partners.size()  == 2) {
+            // Just connect those bad boys!
+            pbg->new_pseudobond(*missing_partners.begin(), *(missing_partners.begin()+1));
+        } else if (missing_partners.size() == 1) {
+            // connect to other backbone atom in this residue
+            for (auto nb: a->neighbors())
+                if (nb->is_backbone(BBE_MIN)) {
+                    pbg->new_pseudobond(*missing_partners.begin(), nb);
+                    break;
+                }
+        } else {
+            // connect neighboring backbone atoms, if at least one in adjacent residue
+            Atom* bb_in_res = nullptr;
+            Atom* bb_other_res = nullptr;
+            for (auto nb: a->neighbors()) {
+                if (!nb->is_backbone(BBE_MIN))
+                    continue;
+                if (nb->residue() == a->residue())
+                    bb_in_res = nb;
+                else
+                    bb_other_res = nb;
+            }
+            if (bb_in_res != nullptr && bb_other_res != nullptr) {
+                auto ms_pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
+                ms_pbg->new_pseudobond(bb_in_res, bb_other_res);
+            }
+        }
+    }
     if (a->element().number() == 1)
         --_num_hyds;
     for (auto b: a->bonds()) {
@@ -452,6 +497,30 @@ Structure::delete_atom(Atom* a)
     _delete_atom(a);
 }
 
+static Atom*
+_find_attachment_atom(Residue* r, const std::set<Atom*>& atoms, std::set<Atom*>& bond_losers,
+    std::set<Atom*>& begin_missing_structure_atoms, std::set<Atom*>& end_missing_structure_atoms)
+{
+    // if old missing-structure atom is still there, use it
+    for (auto a: begin_missing_structure_atoms) {
+        if (atoms.find(a) != atoms.end())
+            continue;
+        if (a->residue() == r) {
+            if (end_missing_structure_atoms.find(a) == end_missing_structure_atoms.end())
+                return a;
+        }
+    }
+
+    // then any backbone bond loser; then _any_ bond loser
+    for (auto a: bond_losers)
+        if (a->residue() == r && a->is_backbone(BBE_MIN))
+            return a;
+    for (auto a: bond_losers)
+        if (a->residue() == r)
+            return a;
+    throw std::logic_error("No atom in newly disconnected residue lost any bonds!");
+}
+
 void
 Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
 {
@@ -470,10 +539,13 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
     // want to put missing-structure pseudobonds across new mid-chain gaps,
     // so note which residues connected to their next existing one, considering
     // pre-existing missing-structure pseudobonds
-    std::map<const Residue*, int> begin_ri_lookup, end_ri_lookup;
-    std::map<int, const Residue*> begin_ir_lookup, end_ir_lookup;
-    std::map<const Residue*, bool> begin_res_connects_to_next, end_res_connects_to_next;
-    _get_interres_connectivity(begin_ri_lookup, begin_ir_lookup, begin_res_connects_to_next);
+    std::map<Residue*, int> begin_ri_lookup, end_ri_lookup;
+    std::map<int, Residue*> begin_ir_lookup, end_ir_lookup;
+    std::map<Residue*, bool> begin_res_connects_to_next, end_res_connects_to_next;
+    std::set<Atom*> begin_left_missing_structure_atoms, end_left_missing_structure_atoms,
+        begin_right_missing_structure_atoms, end_right_missing_structure_atoms;
+    _get_interres_connectivity(begin_ri_lookup, begin_ir_lookup, begin_res_connects_to_next,
+        begin_left_missing_structure_atoms, begin_right_missing_structure_atoms);
 
     std::map<Residue*, std::vector<Atom*>> res_del_atoms;
     for (auto a: atoms) {
@@ -515,12 +587,15 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
     // delete the bonds first (not willing to add a Structure pointer [and its
     // memory use] to Bond at this point)
     std::set<Bond*> del_bonds;
+    std::set<Atom*> bond_losers;
     for (auto a: atoms) {
         for (auto b: a->bonds()) {
             del_bonds.insert(b);
             auto oa = b->other_atom(a);
-            if (atoms.find(oa) == atoms.end())
+            if (atoms.find(oa) == atoms.end()) {
                 oa->remove_bond(b);
+                bond_losers.insert(oa);
+            }
         }
     }
     for (auto b: del_bonds)
@@ -543,17 +618,18 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         });
     _bonds.erase(new_b_end, _bonds.end());
     
-    _get_interres_connectivity(end_ri_lookup, end_ir_lookup, end_res_connects_to_next);
+    _get_interres_connectivity(end_ri_lookup, end_ir_lookup, end_res_connects_to_next,
+        end_left_missing_structure_atoms, end_right_missing_structure_atoms);
     // for residues that don't connect to the next now but did before,
     // may have to create missing-structure pseudobond
     for (auto r: _residues) {
         if (end_res_connects_to_next[r] || !begin_res_connects_to_next[r])
             continue;
-        const Residue* end_next = end_ir_lookup[end_ri_lookup[r]+1];
+        Residue* end_next = end_ir_lookup[end_ri_lookup[r]+1];
         // before the deletion were these residues connected?
         bool connected = true;
         int cur_i = begin_ri_lookup[r]+1;
-        const Residue* cur_r = begin_ir_lookup[cur_i];
+        Residue* cur_r = begin_ir_lookup[cur_i];
         while (cur_r != end_next) {
             if (!begin_res_connects_to_next[cur_r]) {
                 connected = false;
@@ -563,8 +639,13 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         }
         if (!connected)
             continue;
-std::cerr << "r == end_next? " << (r == end_next) << "\n";
-std::cerr << "Need to form pseudobond between " << r->str() << " and " << end_next->str() << "\n";
+        auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
+        pbg->new_pseudobond(
+            _find_attachment_atom(r, atoms, bond_losers,
+                begin_left_missing_structure_atoms, end_left_missing_structure_atoms),
+            _find_attachment_atom(end_next, atoms, bond_losers,
+                begin_right_missing_structure_atoms, end_right_missing_structure_atoms)
+        );
     }
 
     set_gc_shape();
@@ -573,12 +654,14 @@ std::cerr << "Need to form pseudobond between " << r->str() << " and " << end_ne
 }
 
 void
-Structure::_get_interres_connectivity(std::map<const Residue*, int>& res_lookup,
-    std::map<int, const Residue*>& index_lookup,
-    std::map<const Residue*, bool>& res_connects_to_next) const
+Structure::_get_interres_connectivity(std::map<Residue*, int>& res_lookup,
+    std::map<int, Residue*>& index_lookup,
+    std::map<Residue*, bool>& res_connects_to_next,
+    std::set<Atom*>& left_missing_structure_atoms,
+    std::set<Atom*>& right_missing_structure_atoms) const
 {
     int i = 0;
-    const Residue *prev_r = nullptr;
+    Residue *prev_r = nullptr;
     for (auto r: _residues) {
         res_lookup[r] = i;
         index_lookup[i++] = r;
@@ -600,10 +683,15 @@ Structure::_get_interres_connectivity(std::map<const Residue*, int>& res_lookup,
             Residue *r2 = a2->residue();
             int i1 = res_lookup[r1];
             int i2 = res_lookup[r2];
-            if (i1+1 == i2)
+            if (i1+1 == i2) {
                 res_connects_to_next[r1] = true;
-            else if (i2+1 == i1)
+                left_missing_structure_atoms.insert(a1);
+                right_missing_structure_atoms.insert(a2);
+            } else if (i2+1 == i1) {
                 res_connects_to_next[r2] = true;
+                left_missing_structure_atoms.insert(a2);
+                right_missing_structure_atoms.insert(a1);
+            }
         }
     }
 }
