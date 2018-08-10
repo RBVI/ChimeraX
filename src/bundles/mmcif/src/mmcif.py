@@ -115,6 +115,13 @@ def _get_formatted_metadata(model, session):
     html += ' </thead>\n'
     html += ' <tbody>\n'
 
+    # title
+    if hasattr(model, 'html_title'):
+        html += '  <tr>\n'
+        html += '   <th>Title</th>\n'
+        html += '   <td>%s</td>\n' % model.html_title
+        html += '  </tr>\n'
+
     # citations
     cites = citations(model)
     if cites:

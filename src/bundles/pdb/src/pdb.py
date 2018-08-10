@@ -249,6 +249,13 @@ def _process_chem_word(word, use_greek, probable_abbrs):
         return greek_letters[word]
     if probable_abbrs and len(word) < 5 and word != "cell":
         return word.upper()
+    if not probable_abbrs and len(word) < 5:
+        for i, c in enumerate(word):
+            if c in "aeiouy":
+                if len(word) < 4 or (i > 0 and i < 3):
+                    break
+        else:
+            return word.upper()
     segs = []
     for seg in word.split('-'):
         if use_greek and seg in greek_letters:
