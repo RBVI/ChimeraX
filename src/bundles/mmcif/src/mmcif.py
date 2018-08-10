@@ -37,6 +37,7 @@ _additional_categories = (
     "citation",
     "citation_author",
     "exptl",
+    "refine",
     "reflns",
     "em_3d_reconstruction",
 )
@@ -157,6 +158,11 @@ def _get_formatted_metadata(model, session):
     if reflections:
         res = substitute_none_for_unspecified(reflections.fields(
             ['d_resolution_high'], allow_missing_fields=True)[0])[0]
+    if res is None:
+        refine = get_mmcif_tables_from_metadata(model, ["refine"])[0]
+        if refine:
+            res = substitute_none_for_unspecified(refine.fields(
+                ['ls_d_res_high'], allow_missing_fields=True)[0])[0]
     if res is None:
         em = get_mmcif_tables_from_metadata(model, ["em_3d_reconstruction"])[0]
         if em:
