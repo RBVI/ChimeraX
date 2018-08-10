@@ -467,6 +467,14 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         delete this;
         return;
     }
+    // want to put missing-structure pseudobonds across new mid-chain gaps,
+    // so note which residues connected to their next existing one, considering
+    // pre-existing missing-structure pseudobonds
+    std::map<const Residue*, int> begin_ri_lookup, end_ri_lookup;
+    std::map<int, const Residue*> begin_ir_lookup, end_ir_lookup;
+    std::map<const Residue*, bool> begin_res_connects_to_next, end_res_connects_to_next;
+    _get_interres_connectivity(begin_ri_lookup, begin_ir_lookup, begin_res_connects_to_next);
+
     std::map<Residue*, std::vector<Atom*>> res_del_atoms;
     for (auto a: atoms) {
         res_del_atoms[a->residue()].push_back(a);
@@ -534,9 +542,70 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
             return del_bonds.find(b) != del_bonds.end();
         });
     _bonds.erase(new_b_end, _bonds.end());
+    
+    _get_interres_connectivity(end_ri_lookup, end_ir_lookup, end_res_connects_to_next);
+    // for residues that don't connect to the next now but did before,
+    // may have to create missing-structure pseudobond
+    for (auto r: _residues) {
+        if (end_res_connects_to_next[r] || !begin_res_connects_to_next[r])
+            continue;
+        const Residue* end_next = end_ir_lookup[end_ri_lookup[r]+1];
+        // before the deletion were these residues connected?
+        bool connected = true;
+        int cur_i = begin_ri_lookup[r]+1;
+        const Residue* cur_r = begin_ir_lookup[cur_i];
+        while (cur_r != end_next) {
+            if (!begin_res_connects_to_next[cur_r]) {
+                connected = false;
+                break;
+            }
+            cur_r = begin_ir_lookup[++cur_i];
+        }
+        if (!connected)
+            continue;
+std::cerr << "r == end_next? " << (r == end_next) << "\n";
+std::cerr << "Need to form pseudobond between " << r->str() << " and " << end_next->str() << "\n";
+    }
+
     set_gc_shape();
     set_gc_adddel();
     _idatm_valid = false;
+}
+
+void
+Structure::_get_interres_connectivity(std::map<const Residue*, int>& res_lookup,
+    std::map<int, const Residue*>& index_lookup,
+    std::map<const Residue*, bool>& res_connects_to_next) const
+{
+    int i = 0;
+    const Residue *prev_r = nullptr;
+    for (auto r: _residues) {
+        res_lookup[r] = i;
+        index_lookup[i++] = r;
+        if (prev_r != nullptr) {
+            res_connects_to_next[prev_r] = prev_r->connects_to(r);
+        }
+        prev_r = r;
+    }
+    res_connects_to_next[prev_r] = false;
+
+    // go through missing-structure pseudobonds
+    auto pbg = const_cast<Structure*>(this)->_pb_mgr.get_group(
+        PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+    if (pbg != nullptr) {
+        for (auto& pb: pbg->pseudobonds()) {
+            Atom* a1 = pb->atoms()[0];
+            Atom* a2 = pb->atoms()[1];
+            Residue *r1 = a1->residue();
+            Residue *r2 = a2->residue();
+            int i1 = res_lookup[r1];
+            int i2 = res_lookup[r2];
+            if (i1+1 == i2)
+                res_connects_to_next[r1] = true;
+            else if (i2+1 == i1)
+                res_connects_to_next[r2] = true;
+        }
+    }
 }
 
 void
