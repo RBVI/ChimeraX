@@ -100,11 +100,12 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         from chimerax.atomic.pdb import process_chem_name
         model.html_title = process_chem_name(title, sentences=True)
         model.has_formatted_metadata = lambda ses: True
-        model.get_formatted_metadata = lambda ses, m=model: _get_formatted_metadata(m, ses)
+        model.get_formatted_metadata = lambda ses, *, m=model, verbose=False, **kw: \
+            _get_formatted_metadata(m, ses, verbose)
         break
     return models, info
 
-def _get_formatted_metadata(model, session):
+def _get_formatted_metadata(model, session, verbose):
     from chimerax.core.logger import html_table_params
     from chimerax.atomic.pdb import process_chem_name
     html = "<table %s>\n" % html_table_params
@@ -146,9 +147,10 @@ def _get_formatted_metadata(model, session):
         html += _process_src(gen, "Gene source%s", ['gene_src_common_name',
             'pdbx_gene_src_scientific_name', 'gene_src_genus', 'gene_src_species',
             'pdbx_gene_src_ncbi_taxonomy_id'])
-        html += _process_src(gen, "Host organism%s", ['host_org_common_name',
-            'pdbx_host_org_scientific_name', 'host_org_genus', 'host_org_species',
-            'pdbx_host_org_ncbi_taxonomy_id'])
+        if verbose:
+            html += _process_src(gen, "Host organism%s", ['host_org_common_name',
+                'pdbx_host_org_scientific_name', 'host_org_genus', 'host_org_species',
+                'pdbx_host_org_ncbi_taxonomy_id'])
 
     # experimental method; resolution
     experiment = get_mmcif_tables_from_metadata(model, ["exptl"])[0]
