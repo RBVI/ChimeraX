@@ -54,6 +54,7 @@ Various subcommands of <b>info</b> report
 <li><a href="#chains"><b>info chains</b></a>
 <li><a href="#polymers"><b>info polymers</b></a>
 <li><a href="#models"><b>info models</b></a>
+<li><a href="#metadata"><b>info metadata</b></a>
 <li><a href="#selection"><b>info selection</b></a>
 <li><a href="#bounds"><b>info bounds</b></a>
 <li><a href="#distmat"><b>info distmat</b></a>
@@ -137,17 +138,25 @@ physically connected chains containing the specified atoms.
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="models"><b>info models</b></a>
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
 [&nbsp;<b>type</b>&nbsp;<i>model-type</i>&nbsp;]
 [&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
 <blockquote>
 Report values of an <a href="../attributes.html">attribute</a>
-of the specified models,
-optionally restricted by model <b>type</b>.
+of the specified model(s), optionally restricted by model <b>type</b>.
 By default, model <b>type</b> and <b>name</b> attributes are reported;
 if <b>attribute</b> is given, values of <i>attribute-name</i> are reported instead. 
 The <i>model-type</i> for restricting the output can be any of the <b>type</b>
 values shown in the default report, without truncation.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="metadata"><b>info metadata</b></a>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+<blockquote>
+Report model metadata such as literature citation, 
+experimental method, and resolution, if applicable.
+Currently applies to atomic models read from mmCIF format.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -255,5 +264,5 @@ the given URL with the message encoded as parameter
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2018</address>
+August 2018</address>
 </body></html>
