@@ -64,7 +64,8 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
             text = collate_records_text(title_recs)
             m.html_title = process_chem_name(text.strip(), sentences=True)
             m.has_formatted_metadata = lambda ses: True
-            m.get_formatted_metadata = lambda ses, m=m: _get_formatted_metadata(m, ses)
+            m.get_formatted_metadata = lambda ses, *, m=m, verbose=False, **kw:\
+                _get_formatted_metadata(m, ses, verbose)
 
     return models, info
 
@@ -325,7 +326,7 @@ def _process_chem_word(word, use_greek, probable_abbrs):
             segs.append(word)
     return '-'.join(segs)
 
-def _get_formatted_metadata(model, session):
+def _get_formatted_metadata(model, session, verbose):
     from chimerax.core.logger import html_table_params
     html = "<table %s>\n" % html_table_params
     html += ' <thead>\n'
@@ -423,7 +424,7 @@ def _get_formatted_metadata(model, session):
             if engineered:
                 if genes:
                     html += _process_src(genes, "Gene source%s")
-                if hosts:
+                if hosts and verbose:
                     html += _process_src(hosts, "Host organism%s")
             elif genes:
                 html += _process_src(genes, "Source%s (natural)")
