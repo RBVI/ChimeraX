@@ -184,8 +184,6 @@ def _get_formatted_metadata(model, session):
     html += ' </tbody>\n'
     html += "</table>"
 
-    # exper. method; resolution
-
     return html
 
 def _process_src(src, caption, field_names):
@@ -197,17 +195,18 @@ def _process_src(src, caption, field_names):
             usable_rows.add(tuple(row))
     html = ""
     if usable_rows:
+        from chimerax.atomic.pdb.pdb import format_source_name
         rows = list(usable_rows)
         html += '  <tr>\n'
         if len(rows) > 1:
             html += '   <th rowspan="%d">%s</th>\n' % (len(rows), caption % 's')
         else:
             html += '   <th>%s</th>\n' % caption % ''
-        html += '   <td>%s</td>\n' % _format_source_name(*rows[0])
+        html += '   <td>%s</td>\n' % format_source_name(*rows[0])
         html += '  </tr>\n'
         for row in rows[1:]:
             html += '  <tr>\n'
-            html += '   <td>%s</td>\n' % _format_source_name(*row)
+            html += '   <td>%s</td>\n' % format_source_name(*row)
             html += '  </tr>\n'
     return html
 
@@ -219,34 +218,6 @@ def substitute_none_for_unspecified(fields):
         else:
             substituted.append(field)
     return substituted
-
-def _format_source_name(common_name, scientific_name, genus, species, ncbi_id):
-    from chimerax.atomic.pdb import process_chem_name
-    text = ""
-    if scientific_name:
-        text = scientific_name
-    else:
-        if genus:
-            text = genus if not species else genus + " " + species
-        else:
-            text = species
-
-    if text and ncbi_id:
-        text = process_chem_name(text, sentences=True)
-        text = '<a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=' \
-            + ncbi_id + '">' + text + '</a>'
-    if common_name:
-        if text:
-            common_name = process_chem_name(common_name.lower())
-            text = text + ' (%s)' % common_name
-        else:
-            common_name = process_chem_name(common_name.lower(), sentences=True)
-            if ncbi_id:
-                text = '<a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=' \
-                    + ncbi_id + '">' + common_name + '</a>'
-            else:
-                text = common_name
-    return text
 
 _mmcif_sources = {
     # "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
