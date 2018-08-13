@@ -84,6 +84,7 @@ class OpenGLContext:
         self._mode = 'stereo' if use_stereo else 'mono'
         self._contexts = {}		# Map mode to QOpenGLContext, or False if creation failed
         self._share_context = None	# First QOpenGLContext, shares state with others
+        self._create_failed = False
         self._wait_for_vsync = True
         self._deleted = False
 
@@ -100,7 +101,8 @@ class OpenGLContext:
     def delete(self):
         self._deleted = True
         for oc in self._contexts.values():
-            oc.deleteLater()
+            if oc:
+                oc.deleteLater()
         self._contexts.clear()
         self._share_context = None
 
@@ -110,13 +112,17 @@ class OpenGLContext:
     
     def make_current(self, window = None):
         '''Make the OpenGL context active.'''
+        if self._create_failed:
+            return False
+        
         qc = self._qopengl_context
         if qc is None:
             # create context
-            qc = self._initialize_context()
-
-        if not qc:
-            raise RuntimeError("Context initialization failed, could not make graphics context current")
+            try:
+                qc = self._initialize_context()
+            except (OpenGLError, OpenGLVersionError):
+                self._create_failed = True
+                raise
 
         w = self.window if window is None else window
         if not qc.makeCurrent(w):
@@ -1485,8 +1491,9 @@ class Framebuffer:
         return fbo
 
     def __del__(self):
-        if not self._deleted:
-            raise RuntimeError('OpenGL framebuffer was not deleted before core.graphics.Framebuffer destroyed')
+        if not self._deleted and self._fbo != 0:
+            raise RuntimeError('OpenGL framebuffer %s was not deleted before core.graphics.Framebuffer destroyed'
+                               % self.name)
 
     def delete(self, make_current = False):
         self._deleted = True

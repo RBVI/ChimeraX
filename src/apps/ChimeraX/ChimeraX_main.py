@@ -623,6 +623,7 @@ def init(argv, event_loop=True):
         except OpenGLVersionError as e:
             mc = False
             log.error(str(e))
+            sess.update_loop.block_redraw()	# Avoid further opengl errors
         if mc:
             info = log.info
             e = r.check_for_opengl_errors()

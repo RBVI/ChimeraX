@@ -115,8 +115,9 @@ class IHMModel(Model):
     
         # Align starting models to first sphere model
         if smodels:
-            # TODO: Align to first result model, could be spheres or atomic
             align_starting_models_to_spheres(stmodels, smodels[0])
+        elif amodels:
+            align_starting_models_to_atoms(stmodels, amodels[0])
     
         # Ensemble localization
         self.localization_models = lmaps = self.read_localization_maps()
@@ -481,7 +482,7 @@ class IHMModel(Model):
         mlt = self.tables['ihm_model_list']
         ml_fields = ['model_id', 'model_name']
         ml = mlt.fields(ml_fields, allow_missing_fields = True)
-        mnames = {mid:mname for mid,mname in ml if mname}
+        mnames = {mid:(mname if mname and mname != '.' else 'result %s' % mid) for mid,mname in ml}
         return mnames
 
     # -----------------------------------------------------------------------------
@@ -786,7 +787,9 @@ class IHMModel(Model):
             clrt_rows = clrt.fields(clrt_fields, allow_missing_fields = True)
             for g_id, asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, dist in clrt_rows:
                 d, dlow = distance_thresholds(dist, dist, rtype)
-                xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d, dlow)
+                aname1 = None if atom_id_1 == '.' else atom_id_1
+                aname2 = None if atom_id_2 == '.' else atom_id_2
+                xl = Crosslink(asym_id_1, int(seq_id_1), aname1, asym_id_2, int(seq_id_2), aname2, d, dlow)
                 ct = cl_type.get(g_id, '')
                 xlinks.setdefault(ct, []).append(xl)
 
@@ -1403,10 +1406,12 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
             elif a2 is None:
                 missing.append((xl.asym2, xl.seq2))
         if missing:
-            smiss = ','.join('/%s:%d' % (asym_id, seq_num) for asym_id, seq_num in missing[:3])
-            if len(missing) > 3:
+            mres = list(set((asym_id, seq_num) for asym_id, seq_num in missing))
+            mres.sort()
+            smiss = ','.join('/%s:%d' % ai for ai in mres[:5])
+            if len(missing) > 5:
                 smiss += '...'
-            msg = 'Missing %d %s crosslink residues %s' % (len(missing), xltype, smiss)
+            msg = 'Missing residues for %d of %d %s crosslinks: %s' % (len(missing), len(xlist), xltype, smiss)
             if parent is not None and hasattr(parent, 'name'):
                 msg = parent.name + ' ' + msg
             session.logger.info(msg)
@@ -1754,6 +1759,42 @@ def align_starting_models_to_spheres(amodels, smodel):
             print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
         else:
             print ('could not align aligned %s to spheres, %d matching residues' % (m.name, len(mxyz)))
+
+# -----------------------------------------------------------------------------
+#
+def align_starting_models_to_atoms(amodels, refmodel):
+    if len(amodels) == 0:
+        return
+
+    # TODO: Handle case where model coordinate systems are different
+    rloc = {}
+    for r in refmodel.residues:
+        pa = r.principal_atom
+        if pa:
+            rloc[(r.chain_id, r.number)] = pa.coord
+            
+    for m in amodels:
+        # Align comparative model atoms to result model atoms
+        asym_id = m.asym_id
+        mxyz = []
+        sxyz = []
+        for r in m.residues:
+            pa = r.principal_atom
+            if pa:
+                xyz = rloc.get((asym_id, r.number))
+                if xyz is not None:
+                    mxyz.append(pa.coord)
+                    sxyz.append(xyz)
+                else:
+                    print ('could not find res for alignment', (r.chain_id, r.number))
+        if len(mxyz) >= 3:
+            from chimerax.core.geometry import align_points
+            from numpy import array, float64
+            p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
+            m.position = p
+            print ('aligned %s to %s, %d residues, rms %.4g' % (m.name, refmodel.name, len(mxyz), rms))
+        else:
+            print ('could not align %s to %s, only %d matching residues' % (m.name, refmodel.name, len(mxyz)))
             
 # -----------------------------------------------------------------------------
 #
@@ -1764,7 +1805,7 @@ def atom_lookup(models):
             res = a.residue
             amap[(res.chain_id, res.number, a.name)] = a
         for r in m.residues:
-            amap[(res.chain_id, res.number, None)] = r.principal_atom
+            amap[(r.chain_id, r.number, None)] = r.principal_atom
     def lookup(asym_id, res_num, atom_name, amap=amap):
         return amap.get((asym_id, res_num, atom_name))
     return lookup
