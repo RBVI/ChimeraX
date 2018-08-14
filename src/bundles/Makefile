@@ -54,7 +54,7 @@ bond_rot.install: ui.install
 bumps.install: markers.install
 cage_builder.install: ui.install
 chem_group.install: atomic.install
-clashes.install: atomic.install
+clashes.install: atom_search.install atomic.install
 cmd_line.install: ui.install
 crosslinks.install: interfaces.install
 dist_monitor.install: atomic.install
