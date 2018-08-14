@@ -128,7 +128,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= imex msgpack numexpr numpy openmm \
+SUBDIRS	+= imex msgpack numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
 	   scipy
