@@ -152,6 +152,12 @@ Data formats that can be saved:
 
 # ChimeraX :: Save :: format_name :: tag :: is_default
 
+Bundles that have other data:
+
+# ChimeraX :: DataDir :: dir_path
+# ChimeraX :: IncludeDir :: dir_path
+# ChimeraX :: LibraryDir :: dir_path
+
 Attributes
 ----------
 TOOLSHED_BUNDLE_INFO_ADDED : str

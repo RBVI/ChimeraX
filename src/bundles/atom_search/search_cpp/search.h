@@ -16,6 +16,9 @@
 #ifndef atomsearch_search
 #define atomsearch_search
 
+#define ATOM_SEARCH_EXPORT
+#include "imex.h"
+
 #include <vector>
 
 #include "Python.h"
@@ -46,7 +49,7 @@ public:
     NodeType  type;
 };
 
-class AtomSearchTree: public atomstruct::DestructionObserver {
+class ATOM_SEARCH_IMEX AtomSearchTree: public atomstruct::DestructionObserver {
     // AtomSearchTree is a specialization of an 'adaptive k-d tree'
     // as per "The Design and Analysis of Spatial Data Structures" pp. 70-71.
     // Basically, given a set of k-dimensional points (each dimension referred

@@ -179,6 +179,13 @@ original coordinates not retained</td>
 jiggle residue and its neighbors with OpenMM dynamics
 while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/zone.png" width="35px"></td>
+<td align="center"><b>zone</b></td>
+<td align="center" class="text">
+show atoms and residue labels in a zone around the clicked residue, and limit
+<a href="volumeviewer.html">volume data</a> display to the zone
+(<a href="mousemodes.html#zone">details...</a>)</td>
 </tr>
 </table>
 
@@ -209,6 +216,25 @@ temperature 100K, and 10 time steps between coordinate updates,
 with energy minimization if a maximum force is exceeded due to bad geometry. 
 Different models do not &ldquo;feel&rdquo; the effects of each other;
 that is, only intra-model forces apply. No nonbonded cutoff is used.
+</p>
+
+<a name="zone"></a>
+<p class="nav">
+[<a href="#top">back to top: Mouse Modes...</a>]
+</p>
+<h3>Volume Zone Around Atoms</h3>
+<p>
+The <b>zone</b> mouse mode limits <a href="volumeviewer.html">volume data</a> 
+display to a 8 &Aring; zone around the atoms of the clicked residue. 
+The residue and others within 5 &Aring; of it are shown as all atoms, and
+the remaining residues of the same atomic model as a slimmed-down ribbon
+for increased visibility. Labels are displayed for residues within
+4 &Aring; of the clicked residue.
+See also: <a href="../commands/volume.html#zone"><b>volume zone</b></a>
+(with <b>newMap false</b>),
+<a href="../commands/label.html#residues"><b>label</b></a>,
+<a href="../commands/show.html"><b>show</b></a>,
+<a href="../commands/atomspec.html#zones">zone atom specification</a>
 </p>
 
 <hr>

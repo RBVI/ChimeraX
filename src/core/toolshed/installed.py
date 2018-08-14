@@ -531,6 +531,12 @@ def _make_bundle_info(d, installed, logger):
                 continue
             fi.has_save = True
             fi.save_kwds = kwds
+        elif parts[1] == 'DataDir':
+            bi.installed_data_dir = parts[2]
+        elif parts[1] == 'IncludeDir':
+            bi.installed_include_dir = parts[2]
+        elif parts[1] == 'LibraryDir':
+            bi.installed_library_dir = parts[2]
     if bi is None:
         _debug("InstalledBundleCache._make_bundle_info: no ChimeraX bundle in %s" % d)
         return None
