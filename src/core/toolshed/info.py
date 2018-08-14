@@ -47,6 +47,12 @@ class BundleInfo:
     version : readonly str
         Bundle version (which is actually the same as the distribution version,
         so all bundles from the same distribution share the same version).
+    data_dir:
+        Path (relative to bundle root) of directory of data files
+    include_dir:
+        Path (relative to bundle root) of directory of compilation include files
+    library_dir:
+        Path (relative to bundle root) of directory of link libraries
     """
 
     def __init__(self, name, installed,
@@ -57,6 +63,9 @@ class BundleInfo:
                  description="Unknown",
                  session_versions=range(1, 1 + 1),
                  custom_init=False,
+                 data_dir=None,
+                 include_dir=None,
+                 library_dir=None,
                  packages=[], supercedes=[]):
         """Initialize instance.
 
@@ -77,7 +86,13 @@ class BundleInfo:
         session_versions : range
             Range of session versions that this bundle can read.
         custom_init : boolean
-            Whether bundle has custom initialization code
+            Whether bundle has custom initialization code.
+        data_dir:
+            Path (relative to bundle root) of directory of data files.
+        include_dir:
+            Path (relative to bundle root) of directory of compilation include files.
+        library_dir:
+            Path (relative to bundle root) of directory of link libraries.
         """
         # Public attributes
         self.installed = installed
@@ -94,6 +109,9 @@ class BundleInfo:
         self.description = description
         self.supercedes = supercedes
         self.package_name = api_package_name
+        self.installed_data_dir = data_dir
+        self.installed_include_dir = include_dir
+        self.installed_library_dir = library_dir
 
         # Private attributes
         self._name = name
@@ -152,6 +170,9 @@ class BundleInfo:
             "packages": self.packages,
             "description": self.description,
             "supercedes": self.supercedes,
+            "data_dir": self.installed_data_dir,
+            "include_dir": self.installed_include_dir,
+            "library_dir": self.installed_library_dir,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
@@ -176,6 +197,12 @@ class BundleInfo:
         bi.commands = commands
         bi.formats = formats
         bi.selectors = selectors
+        if 'data_dir' in more:
+            bi.installed_data_dir = more['data_dir']
+        if 'include_dir' in more:
+            bi.installed_include_dir = more['include_dir']
+        if 'library_dir' in more:
+            bi.installed_library_dir = more['library_dir']
         if 'fetches' in more:
             bi.fetches = more['fetches']
         return bi
@@ -401,37 +428,26 @@ class BundleInfo:
                     "finish() failed in bundle %s:\n%s" % (self.name, str(e)))
 
     def include_dir(self):
-        """Deinitialize bundle by calling custom finish code if needed."""
-        try:
-            api = self._get_api()
-            return api._api_caller.include_dir(api, self)
-        except Exception as e:
-            import traceback, sys
-            traceback.print_exc(file=sys.stdout)
-            raise ToolshedError(
-                "include_dir() failed in bundle %s:\n%s" % (self.name, str(e)))
+        """Return bundle include directory."""
+        return self._bundle_path(self.installed_include_dir)
 
     def library_dir(self):
-        """Deinitialize bundle by calling custom finish code if needed."""
-        try:
-            api = self._get_api()
-            return api._api_caller.library_dir(api, self)
-        except Exception as e:
-            import traceback, sys
-            traceback.print_exc(file=sys.stdout)
-            raise ToolshedError(
-                "library_dir() failed in bundle %s:\n%s" % (self.name, str(e)))
+        """Return bundle library directory."""
+        return self._bundle_path(self.installed_library_dir)
 
     def data_dir(self):
-        """Deinitialize bundle by calling custom finish code if needed."""
-        try:
-            api = self._get_api()
-            return api._api_caller.data_dir(api, self)
-        except Exception as e:
-            import traceback, sys
-            traceback.print_exc(file=sys.stdout)
-            raise ToolshedError(
-                "data_dir() failed in bundle %s:\n%s" % (self.name, str(e)))
+        """Return bundle data directory."""
+        return self._bundle_path(self.installed_data_dir)
+
+    def _bundle_path(self, filename):
+        if not filename:
+            return None
+        import pkgutil
+        loader = pkgutil.get_loader(self.package_name)
+        if not loader:
+            return None
+        from os.path import dirname, join
+        return join(dirname(loader.path), filename)
 
     def unload(self, logger):
         """Unload bundle modules (as best as we can)."""
@@ -458,12 +474,34 @@ class BundleInfo:
         """Return module that has bundle's code"""
         if not self.package_name:
             raise ToolshedError("Bundle %s has no module" % self.name)
+        import sys
+        try:
+            return sys.modules[self.package_name]
+        except KeyError:
+            pass
         import importlib
         try:
+            self._update_library_path()
             m = importlib.import_module(self.package_name)
         except Exception as e:
             raise ToolshedError("Error importing bundle %s's module: %s" % (self.name, str(e)))
         return m
+
+    def _update_library_path(self):
+        libdir = self.library_dir()
+        if not libdir:
+            return
+        import sys
+        if sys.platform.startswith('win'):
+            import os
+            try:
+                paths = os.environ['PATH'].split(';')
+            except KeyError:
+                paths = []
+            if libdir in paths:
+                return
+            paths.append(libdir)
+            os.environ['PATH'] = ';'.join(paths)
 
     def _get_api(self, logger=None):
         """Return BundleAPI instance for this bundle."""
