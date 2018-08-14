@@ -153,9 +153,10 @@ def _get_formatted_metadata(model, session, verbose):
                 components.append(row)
         if components:
             def fmt_component(abbr, name, syns):
-                text = "%s &mdash; " % abbr
+                text = '<a href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
                 if name:
-                    text += process_chem_name(name)
+                    text += '<a href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
+                        process_chem_name(name))
                     if syns:
                         text += " (%s)" % process_chem_name(syns)
                 else:
