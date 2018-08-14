@@ -55,16 +55,10 @@ class _AtomicBundleAPI(BundleAPI):
             return ribbon.XSectionManager
 
     @staticmethod
-    def include_dir(bundle_info):
-        from os.path import dirname, join
-        return join(dirname(__file__), "include")
-
-    @staticmethod
     def initialize(session, bundle_info):
         """Install alignments manager into existing session"""
 
-        from os.path import dirname, join
-        Residue.set_templates_dir(join(dirname(__file__), "data"))
+        Residue.set_templates_dir(bundle_info.data_dir())
 
         session.change_tracker = ChangeTracker()
         session.pb_manager = PseudobondManager(session)
@@ -83,11 +77,6 @@ class _AtomicBundleAPI(BundleAPI):
     @staticmethod
     def finish(session, bundle_info):
         session.triggers.remove_handler(session._atomic_command_handler)
-
-    @staticmethod
-    def library_dir(bundle_info):
-        from os.path import dirname, join
-        return join(dirname(__file__), "lib")
 
     @staticmethod
     def _add_presets_menu(session):

@@ -19,7 +19,7 @@ endif
 ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
-RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
+RUN = $(CHIMERAX_EXE) --nogui --notools --exit --cmd
 
 PYSRCS = $(wildcard src/*.py)
 SRCS = $(PYSRCS) $(DATAFILES)
