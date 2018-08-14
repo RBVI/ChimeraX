@@ -284,6 +284,7 @@ class View:
             if tuple(lp.depth_cue_color) == tuple(self._background_rgba[:3]):
                 # Make depth cue color follow background color if they are the same.
                 lp.depth_cue_color = tuple(color[:3])
+                self.update_lighting = True
         self._background_rgba = color
         self.redraw_needed = True
         if self.triggers:
