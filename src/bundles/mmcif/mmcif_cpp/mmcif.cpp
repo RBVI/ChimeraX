@@ -976,10 +976,12 @@ void
 ExtractMolecule::parse_chem_comp()
 {
     ResName id;
+    string  mon_nstd_flag;
     string  type;
     string  name;
+    string  pdbx_synonyms;
     bool    ambiguous = false;
-    StringVector col_names = { "id", "type", "name" };
+    StringVector col_names = { "id", "mon_nstd_flag", "type", "name", "pdbx_synonyms" };
     StringVector data;
 
     CIFFile::ParseValues pv;
@@ -989,6 +991,10 @@ ExtractMolecule::parse_chem_comp()
             [&] (const char* start, const char* end) {
                 id = ResName(start, end - start);
             });
+        pv.emplace_back(get_column("mon_nstd_flag"),
+            [&] (const char* start, const char* end) {
+                mon_nstd_flag = string(start, end - start);
+            });
         pv.emplace_back(get_column("type", Required),
             [&] (const char* start, const char* end) {
                 type = string(start, end - start);
@@ -996,6 +1002,10 @@ ExtractMolecule::parse_chem_comp()
         pv.emplace_back(get_column("name"),
             [&] (const char* start, const char* end) {
                 name = string(start, end - start);
+            });
+        pv.emplace_back(get_column("pdbx_synonyms"),
+            [&] (const char* start, const char* end) {
+                pdbx_synonyms = string(start, end - start);
             });
         pv.emplace_back(get_column("pdbx_ambiguous_flag"),
             [&] (const char* start) {
@@ -1010,8 +1020,10 @@ ExtractMolecule::parse_chem_comp()
         my_templates = new tmpl::Molecule();
     while (parse_row(pv)) {
         data.push_back(id.c_str());
+        data.push_back(mon_nstd_flag);
         data.push_back(type);
         data.push_back(name);
+        data.push_back(pdbx_synonyms);
 
         tmpl::Residue* tr = my_templates->find_residue(id);
         if (tr)
