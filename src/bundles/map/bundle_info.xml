@@ -9,10 +9,6 @@
   <Synopsis>Density maps</Synopsis>
   <Description>Display and analyze 3d image data</Description>
 
-  <DataFiles>
-    <DataFile>icons/*.png</DataFile>
-  </DataFiles>
-
   <Categories>
     <Category name="Volume Data"/>
   </Categories>

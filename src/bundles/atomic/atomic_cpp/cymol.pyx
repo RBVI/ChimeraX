@@ -321,6 +321,11 @@ cdef class CyAtom:
         return [nb.py_instance(True) for nb in tmp]
 
     @property
+    def num_alt_locs(self):
+        "Number of alternate locations for this atom. Read only."
+        return self.cpp_atom.alt_locs().size()
+
+    @property
     def num_bonds(self):
         "Supported API. Number of bonds connected to this atom. Read only."
         return self.cpp_atom.bonds().size()
@@ -486,7 +491,7 @@ cdef class CyAtom:
         '''
         # work around non-const-correct code by using temporary...
         ring_ptrs = self.cpp_atom.rings(cross_residues, all_size_threshold)
-        from chimerax.core.atomic.molarray import Rings
+        from chimerax.atomic.molarray import Rings
         import numpy
         return Rings(numpy.array([<ptr_type>r for r in ring_ptrs], dtype=numpy.uintp))
 
@@ -765,7 +770,7 @@ cdef class CyResidue:
         "Supported API. :class:`.Chain` that this residue belongs to, if any. Read only."
         chain_ptr = self.cpp_res.chain()
         if chain_ptr:
-            from chimerax.core.atomic import Chain
+            from chimerax.atomic import Chain
             chain = Chain.c_ptr_to_existing_py_inst(<ptr_type>chain_ptr)
             if chain:
                 return chain
@@ -1000,7 +1005,7 @@ cdef class CyResidue:
             return '%s %s' % (chain_str, res_str)
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
-            struct_string = str(self.structure)
+            struct_string = self.structure.string(style=style)
             if style.startswith("serial"):
                 struct_string += " "
         else:

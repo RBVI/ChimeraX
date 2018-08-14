@@ -23,6 +23,11 @@ def complete_terminal_carboxylate(session, cter):
             return
         loc = bond_positions(c.coord, 3, 1.229, [n.coord for n in c.neighbors])[0]
         oxt = add_atom("OXT", Element.get_element("O"), cter, loc, bonded_to=c)
+        from chimerax.atomic.colors import element_colors
+        if c.color == element_colors(c.element.number):
+            oxt.color = element_colors(oxt.element.number)
+        else:
+            oxt.color = c.color
         session.logger.info("Missing OXT added to C-terminal residue %s" % str(cter))
 
 def determine_termini(session, structs):

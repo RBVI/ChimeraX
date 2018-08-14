@@ -20,7 +20,7 @@ import platform
 from chimerax import app_dirs
 import sys
 
-WRITER_VERSION = 'v7'
+WRITER_VERSION = 'v8'  # TODO: update after any change
 
 # chains only keep the single letter for missing residues, but entity_poly_seq
 # wants the multiletter version, so fake the names for the missing residues
@@ -61,6 +61,7 @@ _protein1to3 = {
     'T': "THR",
     'V': "VAL",
     'W': "TRP",
+    'X': "UNK",
     'Y': "TYR",
     'Z': "GLX",
 }
@@ -116,14 +117,21 @@ ChimeraX_audit_conform = mmcif.MMCIFTable(
         "dict_name",
         "dict_version",
         "dict_location",
-        "pdbx_keywords_flag",
-        "pdbx_fixed_width_columns"
     ), (
         "mmcif_pdbx.dic",
         "4.007",
         "http://mmcif.pdb.org/dictionaries/ascii/mmcif_pdbx.dic",
+    )
+)
+
+ChimeraX_audit_syntax = mmcif.MMCIFTable(
+    "chimerax_audit_syntax",
+    (
+        "case_sensitive_flag",
+        "fixed_width"
+    ), (
         "Y",
-        "atom_site,atom_site_anisotrop"
+        "atom_site atom_site_anisotrop"
     )
 )
 
@@ -253,12 +261,16 @@ def save_structure(session, file, models, used_data_names):
         name = n
     used_data_names.add(name)
 
-    print('data_%s' % name, file=file)
+    def nonblank_chars(name):
+        return ''.join(ch for ch in name if not ch.isspace())
+
+    print('data_%s' % nonblank_chars(name), file=file)
     print('#', file=file)
 
     _save_metadata(best_m, ['entry'], file)
 
     ChimeraX_audit_conform.print(file=file, fixed_width=True)
+    ChimeraX_audit_syntax.print(file=file, fixed_width=True)
 
     citation, citation_author, software = mmcif.get_mmcif_tables_from_metadata(
         best_m, ['citation', 'citation_author', 'software'])
@@ -354,11 +366,27 @@ def save_structure(session, file, models, used_data_names):
             poly_seq_info.append((eid, label_seq_id, name))
             pdbx_poly_tmp[eid].append((name, label_seq_id, seq_num, ins_code))
 
+    existing_mmcif_chain_ids = set(best_m.residues.mmcif_chain_ids)
+    used_mmcif_chain_ids = set()
+    last_asym_id = 0
+
+    def get_asym_id(want_id):
+        nonlocal existing_mmcif_chain_ids, used_mmcif_chain_ids, last_asym_id
+        if want_id not in used_mmcif_chain_ids:
+            used_mmcif_chain_ids.add(want_id)
+            return want_id
+        while True:
+            last_asym_id += 1
+            asym_id = _mmcif_chain_id(last_asym_id)
+            if asym_id in existing_mmcif_chain_ids:
+                continue
+            used_mmcif_chain_ids.add(asym_id)
+            return asym_id
+
     # assign label_asym_id's to each chain
-    asym_id = 0
     for c in best_m.chains:
-        asym_id += 1
-        label_asym_id = _mmcif_chain_id(asym_id)
+        mcid = c.existing_residues[0].mmcif_chain_id
+        label_asym_id = get_asym_id(mcid)
         chars = c.characters
         chain_id = c.chain_id
         eid, _1to3, _ = seq_entities[chars]
@@ -367,22 +395,6 @@ def save_structure(session, file, models, used_data_names):
         tmp = pdbx_poly_tmp[eid]
         for name, label_seq_id, seq_num, ins_code in tmp:
             pdbx_poly_info.append((eid, label_asym_id, name, label_seq_id, chain_id, seq_num, ins_code))
-        """
-        # pdbx_poly_seq_scheme needs residues in each chain listed
-        for seq_id, ch, r in zip(range(1, sys.maxsize), chars, c.residues):
-            label_seq_id = str(seq_id)
-            if r:
-                name = r.name
-                seq_num = r.number
-                ins_code = r.insertion_code
-                if not ins_code:
-                    ins_code = '.'
-            else:
-                name = _1to3.get(ch, 'UNK')
-                seq_num = '?'
-                ins_code = '.'
-            pdbx_poly_info.append((eid, label_asym_id, name, label_seq_id, c.chain_id, seq_num, ins_code))
-        """
     del pdbx_poly_tmp
 
     het_entities = {}   # { het_name: { 'entity': entity_id, chain: (label_entity_id, label_asym_id) } }
@@ -407,8 +419,7 @@ def save_structure(session, file, models, used_data_names):
             het_entities[n] = {'entity': eid}
         if mcid in het_entities[n]:
             continue
-        asym_id += 1
-        label_asym_id = _mmcif_chain_id(asym_id)
+        label_asym_id = get_asym_id(mcid)
         het_asym_info[mcid] = (label_asym_id, eid)
         het_entities[n][mcid] = (eid, label_asym_id)
 
@@ -450,21 +461,25 @@ def save_structure(session, file, models, used_data_names):
     ], atom_site_anisotrop_data)
     serial_num = 0
 
-    def atom_site_residue(residue, group, seq_id, asym_id, entity_id, model_num):
-        nonlocal serial_num, atom_site_data, residue_info
+    def atom_site_residue(residue, seq_id, asym_id, entity_id, model_num):
+        nonlocal serial_num, residue_info, atom_site_data, atom_site_anisotrop_data
         residue_info[residue] = (asym_id, seq_id)
         atoms = residue.atoms
+        rname = residue.name
+        cid = residue.chain_id
+        if cid == ' ':
+            cid = '.'
+        rnum = residue.number
+        rins = residue.insertion_code
+        if not rins:
+            rins = '?'
+        if rname in _standard_residues:
+            group = 'ATOM'
+        else:
+            group = 'HETATM'
         for atom in atoms:
             elem = atom.element.name
             aname = atom.name
-            rname = residue.name
-            cid = residue.chain_id
-            if cid == ' ':
-                cid = '.'
-            rnum = residue.number
-            rins = residue.insertion_code
-            if not rins:
-                rins = '?'
             original_alt_loc = atom.alt_loc
             for alt_loc in atom.alt_locs or '.':
                 if alt_loc is not '.':
@@ -494,15 +509,15 @@ def save_structure(session, file, models, used_data_names):
             for seq_id, r in zip(range(1, sys.maxsize), c.residues):
                 if r is None:
                     continue
-                atom_site_residue(r, 'ATOM', seq_id, asym_id, entity_id, model_num)
+                atom_site_residue(r, seq_id, asym_id, entity_id, model_num)
             chain_het = het_residues.filter(het_residues.chain_ids == chain_id)
             het_residues -= chain_het
             for r in chain_het:
                 asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
-                atom_site_residue(r, 'HETATM', '.', asym_id, entity_id, model_num)
+                atom_site_residue(r, '.', asym_id, entity_id, model_num)
         for r in het_residues:
             asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
-            atom_site_residue(r, 'HETATM', '.', asym_id, entity_id, model_num)
+            atom_site_residue(r, '.', asym_id, entity_id, model_num)
 
     atom_site_data[:] = flattened(atom_site_data)
     atom_site.print(file, fixed_width=True)
@@ -540,7 +555,7 @@ def save_structure(session, file, models, used_data_names):
     ], struct_conn_type_data)
 
     def struct_conn_bond(tag, b, a0, a1):
-        nonlocal count
+        nonlocal count, struct_conn_data
         r0 = a0.residue
         r1 = a1.residue
         r0_asym, r0_seq = residue_info[r0]
@@ -595,8 +610,6 @@ def save_structure(session, file, models, used_data_names):
             a1.set_alt_loc(original_alt_loc1, False)
 
     # disulfide bonds
-    from chimerax.atomic import Sequence
-    rname3to1 = Sequence.rname3to1
     count = 0
     atoms = best_m.atoms
     bonds = best_m.bonds
@@ -691,6 +704,7 @@ def save_structure(session, file, models, used_data_names):
     ], struct_conf_type_data)
 
     def struct_conf_entry(id, ctype, beg_res, end_res):
+        nonlocal struct_conf_data
         beg_asym, beg_seq = residue_info[beg_res]
         end_asym, end_seq = residue_info[end_res]
         beg_cid = beg_res.chain_id
@@ -733,6 +747,7 @@ def save_structure(session, file, models, used_data_names):
     ], sheet_range_data)
 
     def sheet_range_entry(sheet_id, count, beg_res, end_res, symmetry="1_555"):
+        nonlocal sheet_range_data
         beg_asym, beg_seq = residue_info[beg_res]
         end_asym, end_seq = residue_info[end_res]
         beg_cid = beg_res.chain_id

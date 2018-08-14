@@ -1,5 +1,11 @@
 # vim: set expandtab ts=4 sw=4:
 
+# Force import in a particular order since the latter two mess
+# with the contents of distutils, and we want Cython to win
+import distutils
+import setuptools
+from Cython.Build import cythonize
+
 def distlib_hack(_func):
     # This hack is needed because distlib and wheel do not yet
     # agree on the metadata file name.
@@ -133,6 +139,9 @@ class BundleBuilder:
         self.max_session = bi.getAttribute("maxSessionVersion")
         self.custom_init = bi.getAttribute("customInit")
         self.pure_python = bi.getAttribute("purePython")
+        self.installed_data_dir = bi.getAttribute("installedDataDir")
+        self.installed_include_dir = bi.getAttribute("installedIncludeDir")
+        self.installed_library_dir = bi.getAttribute("installedLibraryDir")
 
     def _get_categories(self, bi):
         self.categories = []
@@ -199,7 +208,8 @@ class BundleBuilder:
         for lib in self._get_elements(bi, "CLibrary"):
             c = _CLibrary(lib.getAttribute("name"),
                           lib.getAttribute("usesNumpy") == "true",
-                          lib.getAttribute("static") == "true")
+                          lib.getAttribute("static") == "true",
+                          self.installed_library_dir)
             self._add_c_options(c, lib)
             self.c_libraries.append(c)
 
@@ -250,6 +260,15 @@ class BundleBuilder:
              " :: " + self.min_session + "," + self.max_session +
              " :: " + self.package + " :: :: " + self.custom_init)
         ]
+        if self.installed_data_dir:
+            self.chimerax_classifiers.append(
+                "ChimeraX :: DataDir :: " + self.installed_data_dir)
+        if self.installed_include_dir:
+            self.chimerax_classifiers.append(
+                "ChimeraX :: IncludeDir :: " + self.installed_include_dir)
+        if self.installed_library_dir:
+            self.chimerax_classifiers.append(
+                "ChimeraX :: LibraryDir :: " + self.installed_library_dir)
         for e in self._get_elements(cls, "ChimeraXClassifier"):
             self.chimerax_classifiers.append(self._get_element_text(e))
 
@@ -309,7 +328,7 @@ class BundleBuilder:
                 "Operating System :: POSIX :: Linux",
             ]
         self.python_classifiers.extend(platform_classifiers)
-        self.setup_arguments["ext_modules"] = ext_mods
+        self.setup_arguments["ext_modules"] = cythonize(ext_mods)
         self.setup_arguments["classifiers"] = (self.python_classifiers +
                                                self.chimerax_classifiers)
 
@@ -533,9 +552,10 @@ class _CModule(_CompiledCode):
 
 class _CLibrary(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, static):
+    def __init__(self, name, uses_numpy, static, libdir):
         super().__init__(name, uses_numpy)
         self.static = static
+        self.installed_library_dir = libdir
 
     def compile(self, logger, dependencies, debug=False):
         import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
@@ -544,13 +564,16 @@ class _CLibrary(_CompiledCode):
              libraries, cpp_flags) = self._compile_options(logger, dependencies)
         except ValueError:
             return None
-        output_dir = "src"
+        if self.installed_library_dir:
+            output_dir = os.path.join("src", self.installed_library_dir)
+        else:
+            output_dir = "src"
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:
             compiler.set_include_dirs(inc_dirs)
         if lib_dirs:
-            compiler.set_library_dirs(inc_dirs)
+            compiler.set_library_dirs(lib_dirs)
         if libraries:
             compiler.set_libraries(libraries)
         compiler.add_include_dir(distutils.sysconfig.get_python_inc())

@@ -1784,7 +1784,8 @@ class Histogram_Pane:
     sh.setCheckable(True)
     sh.setFlat(True)
     sh.setStyleSheet('QPushButton {background-color: transparent;}')
-    sh_icon = icon_from_file('shown.png')
+    from chimerax.ui.icons import get_qt_icon
+    sh_icon = get_qt_icon('shown')
     sh.setIcon(sh_icon)
     sh.setIconSize(QSize(20,20))
     sh.clicked.connect(self.show_cb)
@@ -1855,7 +1856,8 @@ class Histogram_Pane:
     cb.setMaximumSize(20,20)
     cb.setFlat(True)
     layout.addWidget(cb)
-    cb_icon = icon_from_file('close.png')
+    from chimerax.ui.icons import get_qt_icon
+    cb_icon = get_qt_icon('minus')
     cb.setIcon(cb_icon)
     cb.setIconSize(QSize(20,20))
     cb.clicked.connect(self.close_map_cb)
@@ -2009,7 +2011,8 @@ class Histogram_Pane:
       cb.setMaximumSize(20,20)
       cb.setFlat(True)
       layout.addWidget(cb)
-      cb_icon = icon_from_file('x.png')
+      from chimerax.ui.icons import get_qt_icon
+      cb_icon = get_qt_icon('x')
       cb.setIcon(cb_icon)
       cb.setIconSize(QSize(20,20))
       cb.clicked.connect(lambda event, self=self: self.show_plane_slider(False))
@@ -2046,7 +2049,7 @@ class Histogram_Pane:
       for vc in v.other_channels():
           vc.new_region(nijk_min, nijk_max, ijk_step)
       # Make sure this plane is shown before we show another plane.
-      self.dialog.session.ui.update_graphics_now()
+      self.dialog.session.update_loop.update_graphics_now()
 
   # ---------------------------------------------------------------------------
   #
@@ -2220,7 +2223,7 @@ class Histogram_Pane:
     self.select_data_cb()	# Causes redisplay using GUI settings
     self.set_threshold_and_color_widgets()
     # Redraw graphics before more mouse drag events occur.
-    self.dialog.session.ui.update_graphics_now()
+    self.dialog.session.update_loop.update_graphics_now()
 
   # ---------------------------------------------------------------------------
   #
@@ -2304,13 +2307,13 @@ class Histogram_Pane:
       return
 
     shown = v.display
-    fname = 'shown.png' if shown else 'hidden.png'
+    fname = 'shown' if shown else 'hidden'
     s = self.shown
     if fname == getattr(s, 'file_name', None):
         return
     s.file_name = fname
-    from os.path import join, dirname
-    sh_icon = icon_from_file(fname)
+    from chimerax.ui.icons import get_qt_icon
+    sh_icon = get_qt_icon(fname)
     s.setIcon(sh_icon)
     s.setChecked(shown)
 
@@ -4692,16 +4695,6 @@ class Surface_Options_Panel(PopupPanel):
     ro.smoothing_factor = sf
     ro.square_mesh = self.square_mesh.get()
     ro.cap_faces = self.cap_faces.get()
-
-# -----------------------------------------------------------------------------
-#
-def icon_from_file(filename):
-    from os.path import join, dirname
-    path = join(dirname(__file__), 'icons', filename)
-    from PyQt5.QtGui import QPixmap, QIcon
-    pixmap = QPixmap(path)
-    icon = QIcon(pixmap)
-    return icon
 
 # -----------------------------------------------------------------------------
 #

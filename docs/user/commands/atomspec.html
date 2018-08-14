@@ -127,6 +127,11 @@ A <b><i>submodel</i></b> (model at a lower level) is still an entire model,
 but the hierarchy allows grouping. 
 That is, submodels at any level can be specified individually 
 by their own numbers, or collectively by their parent model number.
+A parent model <i>only</i> (without its submodels)
+can be specified with <b>#!</b> before the number,
+but this is only needed in a few specific situations, such as to
+hide an entire branch of the model hierarchy without changing the
+individual display settings of submodels within the branch.
 </p><p>
 An atomic model contains one or more <b><i>chains</i></b>, 
 each chain contains one or more <b><i>residues</i></b>, and each residue
@@ -594,7 +599,8 @@ being blue, and <i>vice versa</i>
 Atoms, residues or atomic models within or beyond some distance of a 
 reference set of atoms can be specified in the command line as a zone. See also:
 <a href="select.html#zone"><b>select zone</b></a>,
-<a href="surface.html#zone"><b>surface zone</b></a>
+<a href="surface.html#zone"><b>surface zone</b></a>,
+<a href="volume.html#zone"><b>volume zone</b></a>
 </p><p>
 A zone specification has the following parts:
 <ol>
@@ -713,5 +719,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2018</address>
+August 2018</address>
 </body></html> 

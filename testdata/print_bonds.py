@@ -29,7 +29,7 @@ for m in session.models.list():
     for a in atoms:
         other_atoms = bonds[a]
         other_atoms.sort()
-        print("%s: %s" % (osl_ident(*a),
+        print("%s -> %s" % (osl_ident(*a),
                           ', '.join([osl_ident(*x) for x in other_atoms])))
 
 raise SystemExit(0)

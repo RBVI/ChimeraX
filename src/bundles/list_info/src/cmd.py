@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, ModelsArg, ListOf
+from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, ModelsArg, ListOf, BoolArg
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_attr, report_distmat
 
@@ -65,6 +65,34 @@ def info_bounds(session, models=None):
 
 info_bounds_desc = CmdDesc(optional=[('models', ModelsArg)],
                            synopsis='Report scene bounding boxes for models')
+
+
+def info_metadata(session, models=None, verbose=False):
+    '''
+    Report metadata for models (e.g. REMARK records).
+
+    Parameters
+    ----------
+    models : list of models
+    '''
+    if models is None:
+        models = session.models
+    any_metadata = False
+    for model in models:
+        if model.has_formatted_metadata(session):
+            any_metadata = True
+            model.show_metadata(session, verbose=verbose)
+    if not any_metadata:
+        if not models:
+            session.logger.info("No models match specifier")
+        elif len(models) == 1:
+            session.logger.info("The model has no metadata")
+        else:
+            session.logger.info("No models had metadata")
+
+info_metadata_desc = CmdDesc(optional=[('models', ModelsArg)],
+                           keyword=[("verbose", BoolArg)],
+                           synopsis='Report metadata for models')
 
 
 def info_models(session, atoms=None, type_=None, attribute="name"):

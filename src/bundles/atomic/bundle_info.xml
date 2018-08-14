@@ -1,6 +1,11 @@
 <BundleInfo name="ChimeraX-Atomic" version="1.0"
-	    package="chimerax.atomic" purePython="false"
-  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
+            package="chimerax.atomic"
+            purePython="false"
+            installedDataDir="data"
+            installedIncludeDir="include"
+            installedLibraryDir="lib"
+            customInit="true"
+            minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>

@@ -41,10 +41,12 @@ ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
 ifndef UBUNTU_DIST
+ifndef CENTOS_DIST
 NEED_EXPAT=1
 NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_ZLIB=1
+endif
 endif
 endif
 
@@ -126,7 +128,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= imex msgpack numexpr numpy openmm \
+SUBDIRS	+= imex msgpack numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
 	   scipy
@@ -156,7 +158,9 @@ endif
 
 prebuilt:
 ifndef UBUNTU_DIST
+ifndef CENTOS_DIST
 	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp -cjf $$prebuilt .
+endif
 endif
 
 install-prebuilt:
@@ -201,8 +205,8 @@ leapmotion.app-install: Python.app-install
 leapmotion.install: Python.install
 llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
-msgpack.app-install: Python.app-install
-msgpack.install: Python.install
+msgpack.app-install: Python.app-install pips.app-install
+msgpack.install: Python.install pips.install
 numexpr.app-install: Python.app-install numpy.app-install pips.app-install
 numexpr.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install

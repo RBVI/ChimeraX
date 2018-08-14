@@ -96,10 +96,10 @@ def suffix_warning(paths):
   else:
     pluralize = ''
     
-  suffixes = reduce(lambda list, s: list + s[3], file_types, [])
+  suffixes = sum([s[3] for s in file_types], [])
   suffix_string = ' '.join(['.'+s for s in suffixes])
 
-  prefixes = reduce(lambda list, s: list + s[2], file_types, [])
+  prefixes = sum([s[2] for s in file_types], [])
   prefix_string = ' '.join([s+':' for s in prefixes])
   
   msg = ('Warning: Unrecognized file suffix%s for %s.\n' %

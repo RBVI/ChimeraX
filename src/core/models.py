@@ -121,6 +121,11 @@ class Model(State, Drawing):
             return ''
         return '.'.join(str(i) for i in self.id)
 
+    def __str__(self):
+        if self.id is None:
+            return self.name
+        return '%s #%s' % (self.name, self.id_string)
+
     def _get_name(self):
         return self._name
 
@@ -247,10 +252,37 @@ class Model(State, Drawing):
         return []
 
     def added_to_session(self, session):
-        pass
+        html_title = self.get_html_title(session)
+        if not html_title:
+            return
+        fmt = '<i>%s</i> title:<br><b>%s</b>'
+        if self.has_formatted_metadata(session):
+            fmt += ' <a href="cxcmd:info metadata #%s">[more&nbspinfo...]</a>' \
+                % self.id_string()
+        fmt += '<br>'
+        session.logger.info(fmt % (self.name, self.html_title) , is_html=True)
 
     def removed_from_session(self, session):
         pass
+
+    def get_html_title(self, session):
+        return getattr(self, 'html_title', None)
+
+    def show_metadata(self, session, *, verbose=False, **kw):
+        '''called by 'info metadata' command.'''
+        formatted_md = self.get_formatted_metadata(session, verbose=verbose, **kw)
+        if formatted_md:
+            session.logger.info(formatted_md, is_html=True)
+        else:
+            session.logger.info("No additional info for %s" % self)
+
+    def has_formatted_metadata(self, session):
+        '''Can override both this and 'get_formatted_metadata' if lazy evaluation desired'''
+        return hasattr(self, 'formatted_metadata')
+
+    def get_formatted_metadata(self, session, *, verbose=False, **kw):
+        formatted = getattr(self, 'formatted_metadata', None)
+        return getattr(self, 'verbose_formatted_metadata', formatted) if verbose else formatted
 
     # Atom specifier API
     def atomspec_has_atoms(self):

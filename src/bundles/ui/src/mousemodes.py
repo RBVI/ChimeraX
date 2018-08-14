@@ -140,6 +140,18 @@ class MouseMode:
             psize = max(psize, w*min_scene_frac)
         return psize
 
+    @property
+    def camera_position(self):
+        c = self.view.camera
+        # For multiview cameras like VR camera, use camera position for desktop window.
+        if hasattr(c, 'desktop_camera_position'):
+            cp = c.desktop_camera_position
+            if cp is None:
+                cp = c.position
+        else:
+            cp = c.position
+        return cp
+    
 class MouseBinding:
     '''
     Associates a mouse button ('left', 'middle', 'right', 'wheel', 'pause') and
@@ -654,10 +666,9 @@ class RotateMouseMode(MouseMode):
         self.rotate((0,1,0), 10*d)
 
     def rotate(self, axis, angle):
-        v = self.view
         # Convert axis from camera to scene coordinates
-        saxis = v.camera.position.apply_without_translation(axis)
-        v.rotate(saxis, angle, self.models())
+        saxis = self.camera_position.apply_without_translation(axis)
+        self.view.rotate(saxis, angle, self.models())
 
     def mouse_rotation(self, event):
 
@@ -748,9 +759,8 @@ class TranslateMouseMode(MouseMode):
 
         psize = self.pixel_size()
         s = tuple(dx*psize for dx in shift)     # Scene units
-        v = self.view
-        step = v.camera.position.apply_without_translation(s)    # Scene coord system
-        v.translate(step, self.models())
+        step = self.camera_position.apply_without_translation(s)    # Scene coord system
+        self.view.translate(step, self.models())
 
     def models(self):
         return None

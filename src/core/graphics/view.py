@@ -161,6 +161,7 @@ class View:
             self.update_lighting = False
             r.set_lighting_shader_capabilities()
             r.update_lighting_parameters()
+        r.activate_lighting()
 
         self._draw_scene(camera, drawings)
 
@@ -283,6 +284,7 @@ class View:
             if tuple(lp.depth_cue_color) == tuple(self._background_rgba[:3]):
                 # Make depth cue color follow background color if they are the same.
                 lp.depth_cue_color = tuple(color[:3])
+                self.update_lighting = True
         self._background_rgba = color
         self.redraw_needed = True
         if self.triggers:

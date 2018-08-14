@@ -348,7 +348,7 @@ def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
     c, r = sphere
     va *= r + offset
     va += c
-    p = surf.new_drawing()
+    p = surf.new_drawing('arcs')
     p.set_geometry(va, na, ta)
     p.color = color
 
@@ -367,7 +367,7 @@ def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
         f.move(va)
         f.move(na)
         va += cs
-        p = s.new_drawing()
+        p = s.new_drawing('circles')
         p.set_geometry(va, na, ta)
         p.color = color
 
@@ -440,7 +440,7 @@ def sphere_model(indices, centers, radii, ntri = 2000):
     for i in indices:
         va, na, ta = sphere_geometry(ntri)
         va = va*radii[i] + centers[i]
-        p = s.new_drawing()
+        p = s.new_drawing(str(i))
         p.set_geometry(va, na, ta)
 
     return s

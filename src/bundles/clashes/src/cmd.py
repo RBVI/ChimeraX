@@ -256,8 +256,9 @@ def cmd_xcontacts(session, name="contacts"):
 
 def _xcmd(session, group_name):
     if getattr(session, _continuous_attr, None) != None:
+        from chimerax.atomic import get_triggers
         get_triggers(session).remove_handler(getattr(session, _continuous_attr))
-        delattr(session, continous_attr)
+        delattr(session, _continuous_attr)
     pbg = session.pb_manager.get_group(group_name, create=False)
     pbgs = [pbg] if pbg else []
     from chimerax.atomic import AtomicStructure

@@ -151,8 +151,8 @@ def _update_list(toolshed, node, what, callback):
             print("unexpected ul tag in %s" % what)
             continue
         # <li><a href="commands/alias.html"><b>alias</b></a>
-        # - define a command alias (shortcut or composite action)</li>
-        # <li><b>texture</b> - map image onto surface</li>
+        # &ndash; define a command alias (shortcut or composite action)</li>
+        # <li><b>texture</b> &ndash; map image onto surface</li>
         # <li><a href="tools/basicactions.html"><b>Basic Actions</b></a></li>
         for li in ul:
             if li.tag != 'li':
@@ -209,7 +209,7 @@ def _update_commands(toolshed, doc_ul, doc):
         i = all_names.index(name)
         href, synopsis = missing[name]
         if synopsis:
-            synopsis = " - " + synopsis
+            synopsis = " &ndash; " + synopsis
         doc_ul.insert(
             i, E.LI(E.A(E.B(name), href=href), synopsis))
 
@@ -234,6 +234,6 @@ def _update_tools(toolshed, doc_ul, doc):
         i = all_names.index(name)
         href, synopsis = missing[name]
         if synopsis:
-            synopsis = " - " + synopsis
+            synopsis = " &ndash; " + synopsis
         doc_ul.insert(
             i, E.LI(E.A(E.B(name), href=href), synopsis))

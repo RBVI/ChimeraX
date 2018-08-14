@@ -149,22 +149,15 @@ class Slider(ToolInstance):
         return True
     
     def set_button_icon(self, play = None, record = None):
-        from os.path import dirname, join
-        dir = dirname(__file__)
+        from chimerax.ui.icons import get_qt_icon
         if play is not None:
-            bitmap_path = (join(dir, 'icons', 'play.png' if play else 'pause.png'))
+            pi = get_qt_icon('play' if play else 'pause')
             pb = self.play_button
-            from PyQt5.QtGui import QPixmap, QIcon
-            ppix = QPixmap(bitmap_path)
-            pi = QIcon(ppix)
             pb.setIcon(pi)
-                
+
         if record is not None:
-            bitmap_path = (join(dir, 'icons', 'record.png' if record else 'stop.png'))
+            pi = get_qt_icon('record' if record else 'stop')
             rb = self.record_button
-            from PyQt5.QtGui import QPixmap, QIcon
-            ppix = QPixmap(bitmap_path)
-            pi = QIcon(ppix)
             rb.setIcon(pi)
 
     def record_cb(self, event=None):

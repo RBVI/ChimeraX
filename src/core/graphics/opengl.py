@@ -84,6 +84,7 @@ class OpenGLContext:
         self._mode = 'stereo' if use_stereo else 'mono'
         self._contexts = {}		# Map mode to QOpenGLContext, or False if creation failed
         self._share_context = None	# First QOpenGLContext, shares state with others
+        self._create_failed = False
         self._wait_for_vsync = True
         self._deleted = False
 
@@ -100,7 +101,8 @@ class OpenGLContext:
     def delete(self):
         self._deleted = True
         for oc in self._contexts.values():
-            oc.deleteLater()
+            if oc:
+                oc.deleteLater()
         self._contexts.clear()
         self._share_context = None
 
@@ -110,13 +112,17 @@ class OpenGLContext:
     
     def make_current(self, window = None):
         '''Make the OpenGL context active.'''
+        if self._create_failed:
+            return False
+        
         qc = self._qopengl_context
         if qc is None:
             # create context
-            qc = self._initialize_context()
-
-        if not qc:
-            raise RuntimeError("Context initialization failed, could not make graphics context current")
+            try:
+                qc = self._initialize_context()
+            except (OpenGLError, OpenGLVersionError):
+                self._create_failed = True
+                raise
 
         w = self.window if window is None else window
         if not qc.makeCurrent(w):
@@ -337,6 +343,11 @@ class Render:
         self._multishadow_uniform_block = 2     # Uniform block number
 
         self.single_color = (1, 1, 1, 1)
+
+        # Depth texture rendering parameters
+        self.depth_texture_unit = 3
+        self._depth_texture_scale = None
+        
         self.frame_number = 0
 
 	# Camera origin, y, and xshift for SHADER_STEREO_360 mode
@@ -345,7 +356,7 @@ class Render:
     def delete(self):
         self.make_current()
         for fbattr in ('_default_framebuffer',
-                       'mask_framebuffer',
+                       '_mask_framebuffer',
                        '_silhouette_framebuffer',
                        'shadow_map_framebuffer',
                        'multishadow_map_framebuffer'):
@@ -354,10 +365,10 @@ class Render:
                 fb.delete()
             setattr(self, fbattr, None)
 
-        lb = self._light_buffer
+        lb = self._lighting_buffer
         if lb is not None:
             GL.glDeleteBuffers(1, [lb])
-            self._light_buffer = None
+            self._lighting_buffer = None
 
         mmb = self._multishadow_matrix_buffer_id
         if mmb is not None:
@@ -470,7 +481,8 @@ class Render:
         Return a shader that supports the specified capabilities.
         Also activate the shader with glUseProgram().
         The capabilities are specified as at bit field of values from
-        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_CUBEMAP,
+        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D,
+        SHADER_DEPTH_TEXTURE, SHADER_TEXTURE_CUBEMAP,
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_OUTLINE,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
@@ -510,6 +522,8 @@ class Render:
         if (self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_OUTLINE & c
             or self.SHADER_DEPTH_OUTLINE & c):
             shader.set_integer("tex2d", 0)    # Texture unit 0.
+        if self.SHADER_DEPTH_TEXTURE & c:
+            self._set_depth_texture_shader_variables(shader)
         if self.SHADER_TEXTURE_CUBEMAP & c:
             shader.set_integer("texcube", 0)
         if not self.SHADER_VERTEX_COLORS & c:
@@ -700,10 +714,15 @@ class Render:
         GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
         nbytes = 4*self._lighting_buffer_floats
         GL.glBufferData(GL.GL_UNIFORM_BUFFER, nbytes, pyopengl_null(), GL.GL_DYNAMIC_DRAW)
-        GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._lighting_block, b)
         GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
 
         return b
+
+    def activate_lighting(self):
+        # If two Render instances are rendering different lighting this is needed to switch
+        # between their lighting buffers.
+        # TODO: Optimize case with one Render instance to not update lighting binding every frame.
+        GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._lighting_block, self._lighting_buffer)
 
     def update_lighting_parameters(self):
         self._fill_lighting_parameter_buffer()
@@ -1352,11 +1371,24 @@ class Render:
             p.set_float4("camera_origin_and_shift", tuple(camera_origin) + (x_shift,))
             p.set_float4("camera_vertical", tuple(camera_y) + (0,))
 
+    def _set_depth_texture_shader_variables(self, shader):
+        shader.set_integer("tex_depth_2d", self.depth_texture_unit)
+        znear, zfar = self._near_far_clip
+        shader.set_vector3("tex_depth_params", (znear, zfar/(zfar-znear), self._depth_texture_scale))
+
+    def set_depth_texture_parameters(self, depth_texture_scale):
+        self._depth_texture_scale = depth_texture_scale
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_DEPTH_TEXTURE:
+            self._set_depth_texture_shader_variables(p)
+
+
 # Options used with Render.shader()
 shader_options = (
     'SHADER_LIGHTING',
     'SHADER_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
+    'SHADER_DEPTH_TEXTURE',
     'SHADER_TEXTURE_CUBEMAP',
     'SHADER_TEXTURE_3D_AMBIENT',
     'SHADER_SHADOWS',
@@ -1480,8 +1512,9 @@ class Framebuffer:
         return fbo
 
     def __del__(self):
-        if not self._deleted:
-            raise RuntimeError('OpenGL framebuffer was not deleted before core.graphics.Framebuffer destroyed')
+        if not self._deleted and self._fbo != 0:
+            raise RuntimeError('OpenGL framebuffer %s was not deleted before core.graphics.Framebuffer destroyed'
+                               % self.name)
 
     def delete(self, make_current = False):
         self._deleted = True
@@ -2325,7 +2358,9 @@ class Texture:
         creating a texture from a numpy array of colors.
         '''
         dim = self.dimension
-        if dim == 2 and len(data.shape) == dim and data.itemsize == 4:
+        dtype = data.dtype
+        from numpy import uint8, uint16, float32
+        if dim == 2 and len(data.shape) == dim and dtype == uint32:
             format = GL.GL_RGBA
             iformat = GL.GL_RGBA8
             tdtype = GL.GL_UNSIGNED_BYTE
@@ -2340,8 +2375,6 @@ class Texture:
                   3: GL.GL_RGB, 4: GL.GL_RGBA}[ncomp]
         iformat = {1: GL.GL_RED, 2: GL.GL_RG,
                    3: GL.GL_RGB8, 4: GL.GL_RGBA8}[ncomp]
-        dtype = data.dtype
-        from numpy import uint8, uint16, float32
         if dtype == uint8:
             tdtype = GL.GL_UNSIGNED_BYTE
         elif dtype == uint16:

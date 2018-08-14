@@ -171,6 +171,11 @@ protected:
     bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
+    void  _get_interres_connectivity(std::map<Residue*, int>& res_lookup,
+            std::map<int, Residue*>& index_lookup,
+            std::map<Residue*, bool>& res_connects_to_next,
+            std::set<Atom*>& left_missing_structure_atoms,
+            std::set<Atom*>& right_missing_structure_atoms) const;
     Chain*  _new_chain(const ChainID& chain_id, PolymerType pt = PT_NONE) const {
         auto chain = new Chain(chain_id, const_cast<Structure*>(this), pt);
         _chains->emplace_back(chain);
@@ -260,6 +265,7 @@ public:
             return std::vector<std::pair<Chain::Residues,PolymerType>>();
         }
     const PositionMatrix&  position() const { return _position; }
+    void  ready_idatm_types() { if (!_idatm_valid) _compute_idatm_types(); }
     void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,

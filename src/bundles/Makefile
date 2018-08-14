@@ -12,7 +12,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = addh active_tools align_algs alignments atom_search atomic \
+SUBDIRS = addh align_algs alignments atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter bumps \
 	  bundle_builder cage_builder cellpack chem_group clashes cmd_line \
 	  color_globe crosslinks crystal dist_monitor dist_ui dssp exp_cmd file_history \
@@ -24,7 +24,7 @@ SUBDIRS = addh active_tools align_algs alignments atom_search atomic \
 	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
 	  smooth_lines spacenavigator std_commands stl storm struts surface swapaa \
-	  test texture tug ui viewdockx vive vtk wavefront_obj
+	  test texture tug ui viewdockx vive vtk wavefront_obj zone
 
 include $(TOP)/mk/subdir.make
 
@@ -43,8 +43,7 @@ endif
 clean:
 	rm -rf __pycache__
 
-active_tools.install: ui.install surface.install
-addh.install: atomic.install
+addh.install: atomic.install hbonds.install
 align_algs.install: alignments.install
 alignments.install: atomic.install
 atom_search.install: atomic.install
@@ -55,7 +54,7 @@ bond_rot.install: ui.install
 bumps.install: markers.install
 cage_builder.install: ui.install
 chem_group.install: atomic.install
-clashes.install: atomic.install
+clashes.install: atom_search.install atomic.install
 cmd_line.install: ui.install
 crosslinks.install: interfaces.install
 dist_monitor.install: atomic.install
@@ -63,7 +62,7 @@ dist_ui.install: ui.install
 dssp.install: atomic.install
 file_history.install: ui.install
 help_viewer.install: ui.install
-hbonds.install: atomic.install chem_group.install
+hbonds.install: atom_search.install atomic.install chem_group.install
 ihm.install: atomic.install map.install
 interfaces.install: ui.install
 log.install: ui.install
@@ -82,7 +81,7 @@ modeller.install: alignments.install
 mol2.install: atomic.install
 mouse_modes.install: ui.install
 nucleotides.install: atomic.install ui.install
-pdbio.install: atomic.install
+pdb.install: atomic.install
 read_pbonds.install: atomic.install
 registration.install: ui.install
 residue_fit.install: ui.install

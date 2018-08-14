@@ -1,6 +1,7 @@
-# distutils: language=c++
-#cython: language_level=3, boundscheck=False, auto_pickle=False 
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+# distutils: language=c++
+# distutils: include_dirs=search_cpp
+#cython: language_level=3, boundscheck=False, auto_pickle=False 
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -15,6 +16,9 @@
 
 
 cimport ast
+from libcpp.vector cimport vector
+from libcpp cimport bool
+
 ctypedef ast.Atom* atom_ptr
 IF UNAME_SYSNAME == "Windows":
     ctypedef long long ptr_type

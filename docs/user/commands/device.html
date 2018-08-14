@@ -73,13 +73,13 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="vr"><b>vr</b></a> [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
-[&nbsp;<b>roomPosition</b>&nbsp;&nbsp;<i>matrix</i>&nbsp;|&nbsp;<b>report</b>&nbsp;]
-[&nbsp;<b>mirror</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>icons</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>display</b>&nbsp;&nbsp;<b>mirror</b>&nbsp;|&nbsp;independent&nbsp;|&nbsp;blank&nbsp;]
 [&nbsp;<b>showControllers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>toolbarPanels</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>simplifyGraphics</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>multishadowAllowed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>roomPosition</b>&nbsp;&nbsp;<i>matrix</i>&nbsp;|&nbsp;<b>report</b>&nbsp;]
+[&nbsp;<b>icons</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 <p>
 The <b>vr</b> command (same as <b>device vr</b>)
@@ -93,33 +93,22 @@ see <a href="../vr.html">ChimeraX virtual reality</a>.
 See also: <a href="camera.html"><b>camera</b></a>,
 <a href="view.html"><b>view</b></a>,
 <a href="../movies.html">making movies</a>
-</p><p>
-When the mode is enabled, the <b>roomPosition</b> option can be used to
-specify the transformation between room coordinates (in meters, 
-with origin at room center) and scene coordinates (typically in &Aring;)
-or to simply <b>report</b> the current transformation
-in the <a href="../tools/log.html"><b>Log</b></a>.
-The transformation <i>matrix</i> is given as
-12 numbers separated by commas only, corresponding to a 3x3 matrix 
-for rotation and scaling, with a translation vector in the fourth column.
-Ordering is row-by-row, such that the translation vector is given as 
-the fourth, eighth, and twelfth numbers. Example:
-</p>
-<blockquote>
-<b>vr &nbsp;room &nbsp;20,0,0,0,0,20,0,0,0,0,20,0</b>
-</blockquote>
 <p>
-The <b>mirror</b> option (default <b>true</b>)
-indicates whether to update the ChimeraX graphics window.
-Updating the graphics window can cause stuttering in the VR headset
+The <b>display</b> option indicates what to show in the ChimeraX graphics
+window on the desktop:
+<ul>
+<li><b>mirror</b> (default) - the right-eye view seen in the VR headset
+<li><b>independent</b> - a separate camera view
+fixed in the VR room coordinates, set to match the viewpoint of
+the VR headset when the command is issued
+<li><b>blank</b> - no graphics, allowing all graphics computing
+resources to be dedicated to VR headset rendering
+</ul>
+Updating the graphics window can cause flicker in the VR headset
 because refreshing the computer display (nominally 60 times per second)
-slows rendering to headset.  ChimeraX turns off syncing to
-vertical refresh if possible.  Another method to mirror is to use
+slows rendering to headset. ChimeraX turns off syncing to
+vertical refresh if possible. Another way to mirror is to use
 SteamVR's menu entry to display mirror window.
-</p><p>
-The <b>icons</b> option (default <b>false</b>) indicates whether 
-to show a panel of icons when the controller trackpad is touched. 
-For demonstrations, the icons can be too complex and may be better left unshown.
 </p><p>
 The <b>showControllers</b> option (default <b>true</b>)
 shows representations of the hand controllers in the scene.
@@ -150,10 +139,30 @@ lighting parameter is &gt; 0, enabling VR switches to the
 <a href="lighting.html#preset"><b>simple</b></a> lighting mode.
 With <b>multishadowAllowed</b> &nbsp;<b>true</b>, 
 the lighting mode is left unchanged.
+</p><p>
+When the mode is enabled, the <b>roomPosition</b> option can be used to
+specify the transformation between room coordinates (in meters, 
+with origin at room center) and scene coordinates (typically in &Aring;)
+or to simply <b>report</b> the current transformation
+in the <a href="../tools/log.html"><b>Log</b></a>.
+The transformation <i>matrix</i> is given as
+12 numbers separated by commas only, corresponding to a 3x3 matrix 
+for rotation and scaling, with a translation vector in the fourth column.
+Ordering is row-by-row, such that the translation vector is given as 
+the fourth, eighth, and twelfth numbers. Example:
+</p>
+<blockquote>
+<b>vr &nbsp;room &nbsp;20,0,0,0,0,20,0,0,0,0,20,0</b>
+</blockquote>
+</p><p>
+The <b>icons</b> option (default <b>false</b>) indicates whether 
+to show a panel of icons when the controller trackpad is touched.
+This user interface is deprecated, replaced by pressing the hand controller
+menu button which shows the standard ChimeraX user interface in VR.
 </p>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2018</address>
+August 2018</address>
 </body></html>

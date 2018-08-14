@@ -83,7 +83,6 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add_group(models)
         else:
             session.models.add(models)
-        show_citations(session, models)
         remember_file(session, filename, format, models, database=from_database, open_options = kw)
         session.logger.status(status, log=True)
         return models
@@ -112,7 +111,6 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     except OSError as e:
         from chimerax.core.errors import UserError
         raise UserError(e)
-    show_citations(session, models)
     
     # Remember in file history
     rfmt = None if format is None else fmt.nicknames[0]
@@ -128,26 +126,6 @@ def format_from_name(name, open=True, save=False):
     if formats:
         return formats[0]
     return None
-
-
-def show_citations(session, models):
-    return
-    from chimerax.atomic.mmcif import citations
-    c_tmp = []
-    for m in models:
-        c = citations(m, only='primary')
-        if c:
-            c_tmp.append((m.name, c))
-    cites = []
-    for c in c_tmp:
-        if c and c not in cites:
-            cites.append(c)
-    if cites:
-        from html import escape
-        info = '<dl>'
-        info += ''.join('<dt>%s citation:<dd>%s' % (escape(n), '<p>'.join(c)) for (n, c) in cites)
-        info += '</dl>'
-        session.logger.info(info, is_html=True)
 
 
 def open_formats(session):

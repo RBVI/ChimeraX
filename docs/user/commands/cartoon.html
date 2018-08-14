@@ -89,8 +89,7 @@ control per-model settings:
 </p>
 <ul>
 <li><a href="#style"><b>cartoon style</b></a>
-- width, thickness, and shape; secondary structure representations like
-<a href="#hmode">helix tubes</a>
+- width, thickness, and shape; protein secondary structure representations
 <li><a href="#tether"><b>cartoon tether</b></a>
 - appearance of connectors between cartoon and offset backbone atoms
 </ul>
@@ -126,7 +125,45 @@ The depiction of a peptide helix or strand starts at the CA atom of its first
 <p>
 The subcommands <a href="#style"><b>cartoon style</b></a> and 
 <a href="#tether"><b>cartoon tether</b></a> control per-model settings.
+Style examples, with <a href="alias.html"><b>alias</b></a> for convenience
+in reusing the settings:
 </p>
+<blockquote><b>
+<a href="alias.html">alias</a> nucrib
+&nbsp;<a href="#style">cartoon style</a> 
+&nbsp;<a href="atomspec.html#builtin">nucleic</a> 
+xsect oval width 1.6 thick 1.6
+<br>
+<a href="alias.html">alias</a> cylinders 
+&nbsp;<a href="#style">cartoon style</a> 
+&nbsp;<a href="atomspec.html#builtin">protein</a> 
+modeh tube rad 2 sides 24
+<br>
+<a href="alias.html">alias</a> licorice &nbsp;<a href="#style">car style</a>
+&nbsp;<a href="atomspec.html#builtin">protein</a> 
+modeh default arrows f xsect oval width 1 thick 1
+</b><br>
+(...of course, the <a href="#style"><b>cartoon style</b></a> commands 
+aliased above could also be used directly)
+<table cellpadding="0px" cellspacing="0px">
+<tr>
+<td><img class="outline" src="style1.png" width="200px"
+alt="6cmn default cartoon" title="6cmn default cartoon"></td>
+<td><img class="outline" src="nucrib.png" width="200px"
+alt="6cmn nucrib" title="6cmn nucrib"></td>
+<td><img class="outline" src="cylinders.png" width="200px"
+alt="6cmn alpha-helix cylinders" title="6cmn alpha-helix cylinders"></td>
+<td><img class="outline" src="licorice.png" width="200px"
+alt="6cmn licorice" title="6cmn licorice"></td>
+</tr><tr>
+<!-- 6cmn, white background, silhouettes, color bychain, nuc stubs -->
+<td align="center">initial cartoon style
+<br>+ <a href="nucleotides.html#stubs"><b>nuc stubs</b></a></td>
+<td align="center"><b>nucrib</b><br>(nucleic thick licorice)</td>
+<td align="center"><b>cylinders</b><br>(protein &alpha;-helix tubes)</td>
+<td align="center"><b>licorice</b><br>(no 2&deg;-structure representations)</td>
+</table>
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="style">
@@ -186,10 +223,6 @@ have only a single value per model:
 <a name="hmode"></a>
 <b>modeHelix</b>&nbsp;&nbsp;tube&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default
 <br>
-<table class="clRight" cellpadding="0px" cellspacing="0px">
-<tr><td><img class="outline" src="tubes-4jgs.png" width="100px"
-alt="tubes 4jgs" title="tubes 4jgs"></td>
-</table>
 The <b>modeHelix</b> option
 allows showing peptide helices as tubes (curved cylinders)
 rather than as ribbons spiraling along the backbone atoms (initial default).
@@ -208,10 +241,7 @@ is recommended to give tubes a more rounded (smoother) appearance.
 Other than <a href="#radius"><b>radius</b></a>
 and <a href="#sides"><b>sides</b></a>,
 most helix settings such as width, height, cross-section, and arrows
-do not apply to helices in the <b>tube</b> mode. Tube-helix example:
-<blockquote>
-<b>cartoon style &nbsp;modeh tube &nbsp;rad 2.0 &nbsp;sides 24</b>
-</blockquote>
+do not apply to helices in the <b>tube</b> mode.
 </blockquote><blockquote>
 <a name="radius"></a>
 <b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>
@@ -276,14 +306,9 @@ cartoon style <a href="atomspec.html#builtin">helix</a> width 1.5 thick 0.3
 <br>
 car style <a href="atomspec.html#builtin">strand</a> xsection rect width 2
 <br>
-cartoon style <a href="atomspec.html#builtin">nucleic</a> 
-width 2 thickness 2 xsection round
-<br>
 rib style x rect
 <br>
-rib style (#1 & <a href="atomspec.html#builtin">coil</a>) x round
-<br>
-cartoon style #2 arrows f wid 1 thick 1 x round
+rib style (#1 & <a href="atomspec.html#builtin">coil</a>) x oval
 </b></blockquote>
 </blockquote>
 
@@ -331,5 +356,5 @@ Tethers can be hidden using <b>opacity 0</b>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2018</address>
+August 2018</address>
 </body></html>

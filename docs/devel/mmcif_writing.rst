@@ -46,7 +46,7 @@ What ChimeraX Wants
 -------------------
 
 What ChimeraX wants to read from a mmCIF file is documented in
-`ChimeraX Fast mmCIF Guidelines`_.
+:doc:`ChimeraX Fast mmCIF Guidelines <mmcif>`.
 Saving connectivity is a major issue and is discussed separately.
 
 ---------------------
@@ -63,24 +63,20 @@ Other application's mmCIF readers might not compute the same information,
 so ChimeraX outputs the tables it infers for completeness.
 This is also needed for the mmCIF files to validate.
 
-.. _ChimeraX Fast mmCIF Guidelines: mmcif.rst
-
 ---------------
 Stylized Output
 ---------------
 
-As shown in `Benchmarking readcif`_,
+As shown in :doc:`Benchmarking readcif <bundles/mmcif/mmcif_cpp/readcif_cpp/docs/compare>`,
 stylized PDBx/mmCIF output can be read faster than unstylized output.
 It is also easier to visually scan fixed column width tables for
 interesting values.
-ChimeraX ouputs the **audit_conform.pdbx_keywords_flag** as **Y**
+ChimeraX ouputs the **chimerax_audit_syntax.case_sensitive_flag** as **Y**
 to indicate that all keywords are lowercase and appear at the beginning
 of a line.
-And outputs **audit_conform.pdbx_fixed_width_columns** with just the
+And outputs **chimerax_audit_syntax.fixed_width** with just the
 **atom_site** and **atom_site_anisotrop** tables listed
 (since the those tables are typically the largest ones in the mmCIF file).
-
-.. _Benchmarking readcif: core/atomic/readcif_cpp/docs/compare.rst
 
 ----------
 Validation
@@ -162,9 +158,10 @@ Recognized Data Categories and Keywords
    |                            | U[2]_[2], U[2]_[3], U[3]_[3]           |
    +----------------------------+----------------------------------------+
    | audit_conform              |                                        |
-   |                            | dict_name, dict_version,               |
-   |                            | pdbx_keywords_flag,                    |
-   |                            | pdbx_fixed_width_columns               |
+   |                            | dict_name, dict_version                |
+   +----------------------------+----------------------------------------+
+   | chimerax_audit_syntax      |                                        |
+   |                            | case_sensitive_flags, fixed_width      |
    +----------------------------+----------------------------------------+
    | cell                       |                                        |
    |                            | *copied from original file*            |

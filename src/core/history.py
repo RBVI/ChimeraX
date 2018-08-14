@@ -136,7 +136,11 @@ class FIFOHistory:
         self._capacity = capacity
         self._auto_save = auto_save
         self._history = ObjectHistory(tag, unversioned)
-        obj = self._history.load()
+        from json.decoder import JSONDecodeError
+        try:
+            obj = self._history.load()
+        except JSONDecodeError:
+            obj = False
         if obj is None:
             obj = []
         if not isinstance(obj, list):

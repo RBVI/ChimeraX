@@ -28,11 +28,7 @@ def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=Tr
         struct_collection = structures
         structures = list(structures)
 
-    #add_h_func = hbond_add_hydrogens if hbond else simple_add_hydrogens
-    if hbond:
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("'hbond true' option not yet implemented (use 'hbond false')")
-    add_h_func = simple_add_hydrogens
+    add_h_func = hbond_add_hydrogens if hbond else simple_add_hydrogens
 
     prot_schemes = {}
     for res_name in ['his', 'glu', 'asp', 'lys', 'cys']:
@@ -51,12 +47,17 @@ def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=Tr
     # that we use this hack to use .coord if possible
     from chimerax.atomic import Atom
     Atom._addh_coord = Atom.coord if in_isolation else Atom.scene_coord
+    session.logger.status("Adding hydrogens")
     try:
         add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
+    except:
+        session.logger.status("")
+        raise
     finally:
         delattr(Atom, "_addh_coord")
         for structure in structures:
             structure.alt_loc_change_notify = True
+    session.logger.status("Hydrogens added")
     atoms = struct_collection.atoms
     # If side chains are displayed, then the CA is _not_ hidden, so we
     # need to let the ribbon code update the hide bits so that the CA's
@@ -64,10 +65,10 @@ def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=Tr
     atoms.update_ribbon_visibility()
     session.logger.info("%s hydrogens added" %
         (len(atoms.filter(atoms.elements.numbers == 1)) - num_pre_hs))
-#TODO: hbond_add_hydrogens
 #TODO: initiate_add_hyd
 
-def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=False, **prot_schemes):
+def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=False,
+        **prot_schemes):
     """Add hydrogens to given structures using simple geometric criteria
 
     Geometric info for atoms whose IDATM types don't themselves provide
@@ -112,25 +113,53 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
                 in_isolation=in_isolation, **prot_schemes)
         return
     from .simple import add_hydrogens
-    atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, coordinations, \
-        fake_N, fake_C = _prep_add(session, structures, unknowns_info, **prot_schemes)
+    atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, \
+        coordinations, fake_N, fake_C = \
+        _prep_add(session, structures, unknowns_info, **prot_schemes)
     _make_shared_data(session, structures, in_isolation)
+    from chimerax.atomic import Atom
     invert_xforms = {}
     for atom in atoms:
         if atom not in type_info_for_atom:
             continue
         bonding_info = type_info_for_atom[atom]
-        try:
-            invert = invert_xforms[atom.structure]
-        except KeyError:
-            invert_xforms[atom.structure] = invert = atom.structure.scene_position.inverse()
+        if Atom._addh_coord == Atom.coord:
+            invert = None
+        else:
+            try:
+                invert = invert_xforms[atom.structure]
+            except KeyError:
+                invert_xforms[atom.structure] = invert = atom.structure.scene_position.inverse()
 
         add_hydrogens(atom, bonding_info, (naming_schemas[atom.residue],
             naming_schemas[atom.structure]), hydrogen_totals[atom],
             idatm_type, invert, coordinations.get(atom, []))
     post_add(session, fake_N, fake_C)
     _delete_shared_data()
-    session.logger.status("Hydrogens added")
+
+def hbond_add_hydrogens(session, structures, unknowns_info={}, in_isolation=False,
+        **prot_schemes):
+    """Add hydrogens to given structures, trying to preserve H-bonding
+
+    Argument are similar to simple_add_hydrogens() except that for the
+    'hisScheme' keyword, histidines not in the hisScheme dictionary the
+    hydrogen-bond interactions determine the histidine protonation
+    """
+
+    if in_isolation and len(structures) > 1:
+        for struct in structures:
+            hbond_add_hydrogens(session, [struct], unknowns_info=unknowns_info,
+                in_isolation=in_isolation, **prot_schemes)
+        return
+    from .hbond import add_hydrogens
+    atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, \
+        coordinations, fake_N, fake_C = \
+        _prep_add(session, structures, unknowns_info, **prot_schemes)
+    _make_shared_data(session, structures, in_isolation)
+    add_hydrogens(session, atoms, type_info_for_atom, naming_schemas, hydrogen_totals,
+        idatm_type, his_Ns, coordinations, in_isolation)
+    post_add(session, fake_N, fake_C)
+    _delete_shared_data()
 
 class IdatmTypeInfo:
     def __init__(self, geometry, substituents):
@@ -639,9 +668,7 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
     nearby = search_tree.search(center, check_dist)
     near_pos = n = near_atom = None
     for nb in nearby:
-        # using numpy.allclose() is *very* slow, so...
-        nb_sc = list(nb._addh_coord)
-        if nb_sc == list(at_pos) or nb_sc == list(n_pos):
+        if nb._addh_coord in [at_pos, n_pos]:
             # exclude atoms from identical-copy structure also...
             continue
         if nb.structure != atom.structure and (
@@ -743,6 +770,37 @@ def bond_with_H_length(heavy, geom):
         return 1.336
     return Element.bond_length(heavy.element, Element.get_element(1))
 
+def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogens, naming_schema):
+    added_hs = []
+    for alt_loc, occupancy, positions in altloc_hpos_info:
+        if added_hs:
+            for h, pos in zip(added_hs, positions):
+                if h is None:
+                    continue
+                h.set_alt_loc(alt_loc, True)
+                if invert is None:
+                    h.coord = pos
+                else:
+                    h.coord = invert * pos
+                h.occupancy = occupancy
+        else:
+            for i, pos in enumerate(positions):
+                if invert is not None:
+                    pos = invert * pos
+                h = new_hydrogen(atom, i+1, total_hydrogens, naming_schema,
+                                    pos, bonding_info, alt_loc)
+                added_hs.append(h)
+                if h is not None:
+                    h.occupancy = occupancy
+    # creating alt locs doesn't change any other atom's altloc settings, so...
+    for alt_loc, occupany, positions in altloc_hpos_info:
+        for added in added_hs:
+            if added is None:
+                continue
+            added.alt_loc = alt_loc
+            added.bfactor = atom.bfactor
+    return added_hs
+
 def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info,
         alt_loc):
     global _serial, _metals
@@ -761,7 +819,6 @@ def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent
     _serial = new_h.serial_number + 1
     new_h.color = h_color
     new_h.hide = parent_atom.hide
-    import sys
     return new_h
 
 def determine_h_color(parent_atom):

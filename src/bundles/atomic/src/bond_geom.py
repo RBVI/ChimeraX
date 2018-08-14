@@ -19,8 +19,8 @@ TODO
 """
 
 import tinyarray, numpy
-from numpy.linalg import norm
-normalize = lambda v: v/norm(v)
+from chimerax.core.geometry import normalize_vector as normalize
+from chimerax.core.geometry import norm, cross_product, Plane, look_at, rotation, z_align
 sqlength = lambda v: numpy.sum(v*v)
 
 from math import pi, sin, cos
@@ -150,8 +150,6 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
 
     if len(cur_bonded) == 1:
         # add at 109.5 degree angle
-        #
-        # stupid numpy and boolean testing of arrays...
         coplanar = toward or away
         if coplanar:
             coplanar = [coplanar]
@@ -163,7 +161,7 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
             # plane and the closer/farther position as appropriate
             old = normalize(bondee - cur_bonded[0])
             new = pos - bondee
-            midpoint = bondee + old * norm(new) * cos705
+            midpoint = tinyarray.array(bondee + old * norm(new) * cos705)
             other_pos = pos + (midpoint - pos) * 2
             d1 = sqlength(pos - (toward or away))
             d2 = sqlength(other_pos - (toward or away))
@@ -185,9 +183,9 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
         # in order to stabilize the third and fourth tetrahedral
         # positions, cross the longer vector by the shorter
         if sqlength(v1) > sqlength(v2):
-            cross_v = normalize(numpy.cross(v1, v2))
+            cross_v = normalize(cross_product(v1, v2))
         else:
-            cross_v = normalize(numpy.cross(v2, v1))
+            cross_v = normalize(cross_product(v2, v1))
 
         anti_bi = anti_bi * cos5475 * bond_len
         cross_v = cross_v * sin5475 * bond_len
@@ -210,7 +208,6 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
         for cb in cur_bonded:
             v = normalize(cb - bondee)
             unitized.append(bondee + v)
-        from chimerax.core.geometry.plane import Plane
         pl = Plane(unitized)
         normal = pl.normal
         # if normal on other side of plane from bondee, we need to
@@ -236,14 +233,12 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
             up = cpos - atom_pos
             if xforms:
                 up = tinyarray.negative(up)
-            from chimerax.core.geometry import look_at, rotation
             # lookAt puts ref point opposite that of zAlign, so 
             # also rotate 180 degrees around y axis
             xform = rotation((0.0,1.0,0.0), 180.0) * look_at(atom_pos, bond_pos, up)
             xforms.append(xform)
 
     else:
-        from chimerax.core.geometry.place import z_align
         xforms = [z_align(atom_pos, bond_pos)]
     points = []
     for xform in xforms:
@@ -257,7 +252,7 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
         v = v * bond_length / norm(v)
         return atom_pos + v
 
-    return points[0]
+    return tinyarray.array(points[0])
 
 def right_angle(orig):
     if orig[0] == 0.0:
