@@ -1,6 +1,8 @@
 <BundleInfo name="ChimeraX-Atom_Search" version="1.0"
-	    package="chimerax.atomic.search"
-  	    minSessionVersion="1" maxSessionVersion="1">
+            package="chimerax.atomic.search" purePython="false"
+            installedIncludeDir="include" installedLibraryDir="lib"
+            cython="true" cythonInclude="search_cpp"
+            minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
@@ -13,9 +15,19 @@
     <Category name="Structure Analysis"/>
   </Categories>
 
-  <CModule name="ast">
+  <DataFiles>
+    <DataFile>lib/*</DataFile>
+  </DataFiles>
+
+  <CLibrary name="atom_search">
     <SourceFile>search_cpp/search.cpp</SourceFile>
-    <SourceFile>search_cpp/ast.cpp</SourceFile>
+    <Library>atomstruct</Library>
+  </CLibrary>
+
+  <CModule name="ast">
+    <SourceFile>search_cpp/ast.pyx</SourceFile>
+    <LibraryDir>src/lib</LibraryDir>
+    <Library>atom_search</Library>
     <Library>atomstruct</Library>
   </CModule>
 

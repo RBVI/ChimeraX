@@ -1011,9 +1011,12 @@ and/or above a specified maximum
 <a href="../markers.html">markers/links</a> or atoms/bonds
 <li><a href="#unroll"><b>volume unroll</b></a>
 - unroll a cylindrical slab into a flat slab
+<li><a href="#unzone"><b>volume unzone</b></a>
+- show the full extent of a map previously limited to a zone with
+<a href="#zone"><b>volume zone</b></a>
 <li><a href="#zone"><b>volume zone</b></a>
 - zero the values at grid points within or beyond a cutoff distance from
-specified atoms
+specified atoms, or limit the display to a zone without making a new map
 </ul>
 <a href="#vop" class="nounder">&bull;</a>
 <a name="add"><b>volume add</b></a> &nbsp;<i>volume-spec</i>&nbsp;
@@ -1788,17 +1791,26 @@ as close as possible to the requested value without being smaller.
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
+<a name="unzone"><b>volume unzone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+<blockquote>
+Show the full extent of a map that was previously limited to a zone using
+<a href="#zone"><b>volume zone</b></a> with option <b>newMap</b> <b>false</b>.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
 <a name="zone"><b>volume zone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 <b>range</b>&nbsp;&nbsp;<i>r</i>&nbsp;
 [&nbsp;<b>invert</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>minimalBounds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>newMap</b>&nbsp;&nbsp;<b>true</b>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
-Set the values of grid points farther than <i>r</i> &Aring; from any atom in
-<a href="atomspec.html"><i>atom-spec</i></a> (those beyond the zone) to zero,
-or if <b>invert</b> is true, set the values of grid points
+If <b>newMap</b> is <b>true</b> (default), create a new map in which the
+values of grid points farther than <i>r</i> &Aring; from any atom in
+<a href="atomspec.html"><i>atom-spec</i></a> (those beyond the zone) 
+is set to zero, or if <b>invert</b> is true, set the values of grid points
 within the zone to zero.
 If <b>minimalBounds</b> is true, make the resulting map
 as small as possible while enclosing the zone; otherwise, the
@@ -1807,8 +1819,17 @@ If <b>bondPointSpacing</b> is specified, use points
 spaced <i>s</i> &Aring; apart along bonds
 in addition to the atoms to define the zone.
 <p>
+If <b>newMap</b> is <b>false</b>, instead of creating a new map,
+zone the surface display and restrict the 
+<a href="#dimensions">current display region</a> of the map
+to the box containing the zoned surface.
+The full extent of the map can be restored with
+<a href="#unzone"><b>volume unzone</b></a>.
 See also:
-<a href="surface.html#zone"><b>surface zone</b></a>
+<a href="surface.html#zone"><b>surface zone</b></a>,
+the <b>zone</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/zone.png"></a>
 <!--
 the
 <a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#zone"><b>Zone</b></a> feature in
@@ -1964,5 +1985,5 @@ caused by nonperiodicity of the original data.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2018</address>
+August 2018</address>
 </body></html>
