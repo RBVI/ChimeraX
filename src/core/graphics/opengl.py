@@ -332,16 +332,10 @@ class Render:
         self.shadow_texture_unit = 1
         # Maps camera coordinates to shadow map texture coordinates:
         self._shadow_transform = None
-        self.multishadow_map_framebuffer = None
-        self.multishadow_texture_unit = 2
-        self._max_multishadows = None
-        self._multishadow_transforms = None
-        # near to far clip depth for shadow map:
-        self._multishadow_depth = None
-        # Uniform buffer object for shadow matrices:
-        self._multishadow_matrix_buffer_id = None
-        self._multishadow_uniform_block = 2     # Uniform block number
 
+        # Multishadow
+        self.multishadow = Multishadow(self, texture_unit = 2)
+        
         self.single_color = (1, 1, 1, 1)
 
         # Depth texture rendering parameters
@@ -358,8 +352,7 @@ class Render:
         for fbattr in ('_default_framebuffer',
                        '_mask_framebuffer',
                        '_silhouette_framebuffer',
-                       'shadow_map_framebuffer',
-                       'multishadow_map_framebuffer'):
+                       'shadow_map_framebuffer'):
             fb = getattr(self, fbattr)
             if fb:
                 fb.delete()
@@ -370,16 +363,14 @@ class Render:
             GL.glDeleteBuffers(1, [lb])
             self._lighting_buffer = None
 
-        mmb = self._multishadow_matrix_buffer_id
-        if mmb is not None:
-            GL.glDeleteBuffers(1, [mmb])
-            self._multishadow_matrix_buffer_id = None
-
         tw = self._texture_win
         if tw is not None:
             tw.delete()
             self._texture_win = None
 
+        self.multishadow.delete()
+        self.multishadow = None
+        
     @property
     def opengl_context(self):
         return self._opengl_context
@@ -509,7 +500,7 @@ class Render:
             if self.SHADER_TEXTURE_3D_AMBIENT & c:
                 shader.set_integer('tex3d', 0)    # Tex unit 0.
             if self.SHADER_MULTISHADOW & c:
-                self._set_multishadow_shader_variables(shader)
+                self.multishadow._set_multishadow_shader_variables(shader)
             if self.SHADER_SHADOWS & c:
                 shader.set_integer("shadow_map", self.shadow_texture_unit)
                 if self._shadow_transform is not None:
@@ -563,13 +554,13 @@ class Render:
         if capabilities in sp:
             p = sp[capabilities]
         else:
-            p = Shader(capabilities, self.max_multishadows())
+            p = Shader(capabilities, self.multishadow.max_multishadows())
             sp[capabilities] = p
             if capabilities & self.SHADER_LIGHTING:
                 self._bind_lighting_parameter_buffer(p)
                 if capabilities & self.SHADER_MULTISHADOW:
                     GL.glUseProgram(p.program_id)
-                    self._set_multishadow_shader_constants(p)
+                    self.multishadow._set_multishadow_shader_constants(p)
         self._use_shader(p)
         return p
 
@@ -839,75 +830,6 @@ class Render:
             if self.SHADER_SHADOWS & c and self.SHADER_LIGHTING & c:
                 p.set_matrix("shadow_transform", m)
 
-    def set_multishadow_transforms(self, stf, ctf, shadow_depth):
-        # Transform from camera coordinates to shadow map texture coordinates.
-        if ctf is None:
-            mt = stf.opengl_matrices()
-        elif self.recording_opengl:
-            from .gllist import Mat44Func
-            mt = Mat44Func('multishadow matrices', lambda: (stf * ctf()).opengl_matrices(), len(stf))
-        else:
-            mt = (stf * ctf).opengl_matrices()
-        self._multishadow_transforms = mt
-        self._multishadow_depth = shadow_depth
-
-        # TODO: Issue warning if maximum number of shadows exceeded.
-        maxs = self.max_multishadows()
-
-        if self.recording_opengl:
-            mm = mt
-        else:
-            mm = mt[:maxs, :, :]
-        offset = 0
-        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._multishadow_matrix_buffer())
-        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, offset, mm.nbytes, mm)
-        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
-
-        p = self.current_shader_program
-        if p is not None:
-            c = p.capabilities
-            if self.SHADER_MULTISHADOW & c and self.SHADER_LIGHTING & c:
-                self._set_multishadow_shader_variables(p)
-
-    def _set_multishadow_shader_constants(self, shader):
-        # Set the multishadow texture unit and the matrix uniform block unit for the shader.
-        shader.set_integer("multishadow_map", self.multishadow_texture_unit)
-        pid = shader.program_id
-        bi = GL.glGetUniformBlockIndex(pid, b'shadow_matrix_block')
-        bslot = self._multishadow_uniform_block
-        GL.glUniformBlockBinding(pid, bi, bslot)
-
-    def _multishadow_matrix_buffer(self):
-        b = self._multishadow_matrix_buffer_id
-        if b is None:
-            # Create uniform buffer object for shadow matrices.
-            self._multishadow_matrix_buffer_id = b = GL.glGenBuffers(1)
-            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
-            nbytes = 64 * self.max_multishadows()
-            GL.glBufferData(GL.GL_UNIFORM_BUFFER, nbytes, pyopengl_null(), GL.GL_DYNAMIC_DRAW)
-            bslot = self._multishadow_uniform_block
-            GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, bslot, b)
-            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
-        return b
-
-    def _set_multishadow_shader_variables(self, shader):
-        m = self._multishadow_transforms
-        if m is None:
-            return
-
-        maxs = self.max_multishadows()            
-        shader.set_integer("shadow_count", min(maxs, len(m)))
-        shader.set_float("shadow_depth", self._multishadow_depth)
-
-    def max_multishadows(self):
-        'Maximum number of shadows to cast.'
-        m = self._max_multishadows
-        if m is None:
-            m = GL.glGetIntegerv(GL.GL_MAX_UNIFORM_BLOCK_SIZE)      # OpenGL requires >= 16384.
-            m = m // 64                                             # 64 bytes per matrix.
-            self._max_multishadows = m
-        return m
-
     def check_for_opengl_errors(self):
         # Clear previous errors.
         lines = []
@@ -1134,13 +1056,6 @@ class Render:
                                   size)
         self.shadow_map_framebuffer = fb
 
-    def start_rendering_multishadowmap(self, center, radius, size=1024):
-
-        fb = self.shadowmap_start(self.multishadow_map_framebuffer,
-                                  self.multishadow_texture_unit, center,
-                                  radius, size)
-        self.multishadow_map_framebuffer = fb
-
     def shadowmap_start(self, framebuffer, texture_unit, center, radius, size):
 
         # Set projection matrix to be orthographic and span all models.
@@ -1181,10 +1096,6 @@ class Render:
         self.draw_depth_only(False)
         fb = self.pop_framebuffer()
         return fb.depth_texture
-
-    def finish_rendering_multishadowmap(self):
-
-        return self.finish_rendering_shadowmap()
 
     def shadow_transforms(self, light_direction, center, radius,
                           depth_bias=0.005):
@@ -1382,6 +1293,202 @@ class Render:
         if p is not None and p.capabilities & self.SHADER_DEPTH_TEXTURE:
             self._set_depth_texture_shader_variables(p)
 
+
+class Multishadow:
+    '''Render shadows from several directions for ambient occlusion lighting.'''
+    
+    def __init__(self, render, texture_unit = 2):
+        self._render = render
+
+        # cached state
+        self._multishadow_dir = None
+        self._multishadow_transforms = []
+        self._multishadow_depth = None
+        self._multishadow_current_params = None
+        self.multishadow_update_needed = False
+        
+        self._multishadow_map_framebuffer = None
+        self._multishadow_texture_unit = texture_unit
+        self._max_multishadows = None
+        self._multishadow_view_transforms = None	# Includes camera view.
+
+        # near to far clip depth for shadow map:
+        self._multishadow_depth = None
+
+        # Uniform buffer object for shadow matrices:
+        self._multishadow_matrix_buffer_id = None
+        self._multishadow_uniform_block = 2     # Uniform block number
+
+    def delete(self):
+        r = self._render
+        r.make_current()
+        fb = self._multishadow_map_framebuffer
+        if fb:
+            fb.delete()
+        self._multishadow_map_framebuffer = None
+        
+        mmb = self._multishadow_matrix_buffer_id
+        if mmb is not None:
+            GL.glDeleteBuffers(1, [mmb])
+            self._multishadow_matrix_buffer_id = None
+
+    def use_multishadow_map(self, drawings, shadow_bounds):
+        r = self._render
+        lp = r.lighting
+        if lp.multishadow == 0:
+            return False
+        mat = r.material
+        msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias, mat.transparent_cast_shadows)
+        if self._multishadow_current_params != msp:
+            self.multishadow_update_needed = True
+
+        if self.multishadow_update_needed:
+            self._multishadow_transforms = []
+            self.multishadow_update_needed = False
+
+        light_directions = self._multishadow_directions()
+        if len(self._multishadow_transforms) == len(light_directions):
+            # Bind shadow map for subsequent rendering of shadows.
+            self._bind_depth_texture()
+            return True
+
+        # Compute drawing bounds so shadow map can cover all drawings.
+        center, radius, sdrawings = shadow_bounds(drawings)
+        if center is None or radius == 0:
+            return False
+
+        # Compute shadow map depth texture
+        size = lp.multishadow_map_size
+        self._start_rendering_multishadowmap(center, radius, size)
+        r.draw_background()             # Clear shadow depth buffer
+
+        mstf_list = []
+        nl = len(light_directions)
+        from .drawing import draw_depth
+        from math import ceil, sqrt
+        d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
+        s = size // d               # Subtexture size.
+        bias = lp.multishadow_depth_bias
+        for l in range(nl):
+            x, y = (l % d), (l // d)
+            r.set_viewport(x * s, y * s, s, s)
+            lvinv, tf = r.shadow_transforms(light_directions[l], center, radius, bias)
+            r.set_view_matrix(lvinv)
+            mstf_list.append(tf)
+            draw_depth(r, sdrawings, opaque_only = not mat.transparent_cast_shadows)
+        from ..geometry import Places
+        mstf = Places(mstf_list)
+
+        self._finish_rendering_multishadowmap()
+
+        # Bind shadow map for subsequent rendering of shadows.
+        self._bind_depth_texture()
+
+        # TODO: Clear shadow cache whenever scene changes
+        self._multishadow_current_params = msp
+        self._multishadow_transforms = mstf
+        self._multishadow_depth = msd = 2 * radius
+#        self.set_multishadow_transforms(mstf, None, msd)
+
+        return True
+
+    def set_multishadow_view(self, camera_position):
+        '''
+        Although shadows are independent of view direction, the fragment shader
+        uses camera coordinates.
+        '''
+        ctf = camera_position
+        stf = self._multishadow_transforms
+        r = self._render
+        # Transform from camera coordinates to shadow map texture coordinates.
+        if ctf is None:
+            mt = stf.opengl_matrices()
+        elif r.recording_opengl:
+            from .gllist import Mat44Func
+            mt = Mat44Func('multishadow matrices', lambda: (stf * ctf()).opengl_matrices(), len(stf))
+        else:
+            mt = (stf * ctf).opengl_matrices()
+        self._multishadow_view_transforms = mt
+
+        # TODO: Issue warning if maximum number of shadows exceeded.
+        maxs = self.max_multishadows()
+
+        if r.recording_opengl:
+            mm = mt
+        else:
+            mm = mt[:maxs, :, :]
+        offset = 0
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._multishadow_matrix_buffer())
+        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, offset, mm.nbytes, mm)
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
+
+        p = r.current_shader_program
+        if p is not None:
+            c = p.capabilities
+            if r.SHADER_MULTISHADOW & c and r.SHADER_LIGHTING & c:
+                self._set_multishadow_shader_variables(p)
+
+    def max_multishadows(self):
+        'Maximum number of shadows to cast.'
+        m = self._max_multishadows
+        if m is None:
+            m = GL.glGetIntegerv(GL.GL_MAX_UNIFORM_BLOCK_SIZE)      # OpenGL requires >= 16384.
+            m = m // 64                                             # 64 bytes per matrix.
+            self._max_multishadows = m
+        return m
+
+    def _start_rendering_multishadowmap(self, center, radius, size=1024):
+        r = self._render
+        fb = r.shadowmap_start(self._multishadow_map_framebuffer,
+                               self._multishadow_texture_unit, center,
+                               radius, size)
+        self._multishadow_map_framebuffer = fb
+
+    def _finish_rendering_multishadowmap(self):
+        r = self._render
+        return r.finish_rendering_shadowmap()
+
+    def _multishadow_directions(self):
+        directions = self._multishadow_dir
+        n = self._render.lighting.multishadow
+        if directions is None or len(directions) != n:
+            from ..geometry import sphere
+            self._multishadow_dir = directions = sphere.sphere_points(n)
+        return directions
+
+    def _bind_depth_texture(self):
+        dt = self._multishadow_map_framebuffer.depth_texture
+        dt.bind_texture(self._multishadow_texture_unit)
+
+    def _set_multishadow_shader_constants(self, shader):
+        # Set the multishadow texture unit and the matrix uniform block unit for the shader.
+        shader.set_integer("multishadow_map", self._multishadow_texture_unit)
+        pid = shader.program_id
+        bi = GL.glGetUniformBlockIndex(pid, b'shadow_matrix_block')
+        bslot = self._multishadow_uniform_block
+        GL.glUniformBlockBinding(pid, bi, bslot)
+
+    def _multishadow_matrix_buffer(self):
+        b = self._multishadow_matrix_buffer_id
+        if b is None:
+            # Create uniform buffer object for shadow matrices.
+            self._multishadow_matrix_buffer_id = b = GL.glGenBuffers(1)
+            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
+            nbytes = 64 * self.max_multishadows()
+            GL.glBufferData(GL.GL_UNIFORM_BUFFER, nbytes, pyopengl_null(), GL.GL_DYNAMIC_DRAW)
+            bslot = self._multishadow_uniform_block
+            GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, bslot, b)
+            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
+        return b
+
+    def _set_multishadow_shader_variables(self, shader):
+        m = self._multishadow_view_transforms
+        if m is None:
+            return
+
+        maxs = self.max_multishadows()            
+        shader.set_integer("shadow_count", min(maxs, len(m)))
+        shader.set_float("shadow_depth", self._multishadow_depth)
 
 # Options used with Render.shader()
 shader_options = (
