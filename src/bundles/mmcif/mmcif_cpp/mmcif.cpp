@@ -362,6 +362,7 @@ struct ExtractMolecule: public readcif::CIFFile
     bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
     bool atomic;  // use AtomicStructure if true, else Structure
     bool guess_fixed_width_categories;
+    bool verbose;  // whether to give extra warning messages
 #ifdef SHEET_HBONDS
     typedef map<string, map<std::pair<string, string>, string>> SheetOrder;
     SheetOrder sheet_order;
@@ -390,7 +391,7 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
     missing_poly_seq(true), coordsets(coordsets), atomic(atomic),
-    guess_fixed_width_categories(false)
+    guess_fixed_width_categories(false), verbose(false)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
@@ -479,14 +480,16 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
 
 ExtractMolecule::~ExtractMolecule()
 {
-    if (has_PDBx_fixed_width_columns())
-        logger::info(_logger, "Used PDBx fixed column width tables to speed up reading mmCIF file");
-    else
-        logger::info(_logger, "No PDBx fixed column width tables");
-    if (PDBx_keywords())
-        logger::info(_logger, "Used PDBx keywords to speed up reading mmCIF file");
-    else
-        logger::info(_logger, "No PDBx keywords");
+    if (verbose) {
+	if (has_PDBx_fixed_width_columns())
+	    logger::info(_logger, "Used PDBx fixed column width tables to speed up reading mmCIF file");
+	else
+	    logger::info(_logger, "No PDBx fixed column width tables");
+	if (PDBx_keywords())
+	    logger::info(_logger, "Used PDBx keywords to speed up reading mmCIF file");
+	else
+	    logger::info(_logger, "No PDBx keywords");
+    }
     if (my_templates)
         delete my_templates;
 }
