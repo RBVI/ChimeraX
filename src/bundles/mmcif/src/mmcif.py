@@ -164,7 +164,6 @@ def _get_formatted_metadata(model, session, verbose):
                 html += '  <tr>\n'
                 formatted = fmt_component(abbr, name, synonyms)
                 if i == 0:
-                    print("#components:", len(components))
                     if len(components) > 1:
                         html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(components)
                     else:
