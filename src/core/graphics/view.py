@@ -245,7 +245,9 @@ class View:
         if dm.shape_changed or cp.changed or dm.transparency_changed:
             # TODO: If model transparency effects multishadows, will need to detect those changes.
             if dm.shadows_changed():
-                self.render.multishadow.multishadow_update_needed = True
+                r = self.render
+                if r:
+                    r.multishadow.multishadow_update_needed = True
 
         c.redraw_needed = False
         dm.clear_changes()
