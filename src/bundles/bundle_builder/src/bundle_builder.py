@@ -566,8 +566,10 @@ class _CLibrary(_CompiledCode):
             return None
         if self.installed_library_dir:
             output_dir = os.path.join("src", self.installed_library_dir)
+            install_dir = self.installed_library_dir + '/'
         else:
             output_dir = "src"
+            install_dir = ''
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:
@@ -603,7 +605,8 @@ class _CLibrary(_CompiledCode):
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
-                extra_link_args.append("-Wl,-install_name,@loader_path/%s" % lib)
+                extra_link_args.append("-Wl,-install_name,@loader_path/%s%s" %
+                                       (install_dir, lib))
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_postargs=extra_link_args,
                                             debug=debug)
