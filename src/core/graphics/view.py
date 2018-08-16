@@ -45,6 +45,7 @@ class View:
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
 
         # Silhouette edges
+        # TODO: Move these settings to Silhouette class in opengl.py.
         self.silhouettes = False
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0, 0, 0, 1)    # black
@@ -185,7 +186,7 @@ class View:
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
-                r.start_silhouette_drawing()
+                r.silhouette.start_silhouette_drawing()
             r.draw_background()
             if len(mdraw) == 0:
                 continue
@@ -213,10 +214,10 @@ class View:
             if multishadow:
                 r.allow_equal_depth(False)
             if self.silhouettes:
-                r.finish_silhouette_drawing(self.silhouette_thickness,
-                                            self.silhouette_color,
-                                            self.silhouette_depth_jump,
-                                            self._perspective_near_far_ratio)
+                r.silhouette.finish_silhouette_drawing(self.silhouette_thickness,
+                                                       self.silhouette_color,
+                                                       self.silhouette_depth_jump,
+                                                       self._perspective_near_far_ratio)
             if any_selected:
                 draw_selection_outline(r, mdraw)
 

@@ -320,7 +320,6 @@ class Render:
         self._default_framebuffer = None
         self.framebuffer_stack = [self.default_framebuffer()]
         self._mask_framebuffer = None		# Used for drawing selection outlines
-        self._silhouette_framebuffer = None
         self._texture_win = None
 
         # 3D ambient texture transform from model coordinates to texture
@@ -332,6 +331,9 @@ class Render:
 
         # Multishadow
         self.multishadow = Multishadow(self, texture_unit = 2)
+
+        # Silhouette edges
+        self.silhouette = Silhouette(self)
         
         self.single_color = (1, 1, 1, 1)
 
@@ -346,9 +348,7 @@ class Render:
 
     def delete(self):
         self.make_current()
-        for fbattr in ('_default_framebuffer',
-                       '_mask_framebuffer',
-                       '_silhouette_framebuffer'):
+        for fbattr in ('_default_framebuffer', '_mask_framebuffer'):
             fb = getattr(self, fbattr)
             if fb:
                 fb.delete()
@@ -369,6 +369,9 @@ class Render:
         
         self.multishadow.delete()
         self.multishadow = None
+
+        self.silhouette.delete()
+        self.silhouette = None
         
     @property
     def opengl_context(self):
@@ -1163,47 +1166,6 @@ class Render:
         # GL.glDepthFunc(GL.GL_LEQUAL)
         GL.glDepthRange(min, max)
 
-    def start_silhouette_drawing(self):
-        alpha = self.current_framebuffer().alpha
-        fb = self.silhouette_framebuffer(self.render_size(), alpha)
-        self.push_framebuffer(fb)
-
-    def finish_silhouette_drawing(self, thickness, color, depth_jump,
-                                  perspective_near_far_ratio):
-        fb = self.pop_framebuffer()
-        cfb = self.current_framebuffer()
-        cfb.copy_from_framebuffer(fb, depth=False)
-        self.draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
-                                perspective_near_far_ratio)
-
-    def silhouette_framebuffer(self, size, alpha):
-        sfb = self._silhouette_framebuffer
-        if sfb and (size[0] != sfb.width or size[1] != sfb.height or alpha != sfb.alpha):
-            sfb.delete()
-            sfb = None
-        if sfb is None:
-            dt = Texture()
-            dt.linear_interpolation = False
-            dt.initialize_depth(size, depth_compare_mode=False)
-            sfb = Framebuffer('silhouette', self.opengl_context, depth_texture=dt, alpha=alpha)
-            self._silhouette_framebuffer = sfb
-        return sfb
-
-    def draw_depth_outline(self, depth_texture, thickness=1,
-                           color=(0, 0, 0, 1), depth_jump=0.03,
-                           perspective_near_far_ratio=1):
-        # Render pixels with depth in depth_texture less than neighbor pixel
-        # by at least depth_jump. The depth buffer is not used.
-        tc = self._texture_window(depth_texture, self.SHADER_DEPTH_OUTLINE)
-
-        p = self.current_shader_program
-        p.set_rgba("color", color)
-        p.set_vector2("jump", (depth_jump, perspective_near_far_ratio))
-        w, h = depth_texture.size
-        dx, dy = 1.0 / w, 1.0 / h
-        p.set_vector3("step", (dx, dy, thickness))
-        tc.draw(blend = True)
-
     def finish_rendering(self):
         GL.glFinish()
 
@@ -1550,6 +1512,65 @@ class Multishadow:
         maxs = self.max_multishadows()            
         shader.set_integer("shadow_count", min(maxs, len(m)))
         shader.set_float("shadow_depth", self._multishadow_depth)
+
+class Silhouette:
+    '''Draw silhouette edges.'''
+    
+    def __init__(self, render):
+        self._render = render
+        self._silhouette_framebuf = None
+
+    def delete(self):
+        r = self._render
+        r.make_current()
+        fb = self._silhouette_framebuf
+        if fb:
+            fb.delete()
+            self._silhouette_framebuf = None
+
+    def start_silhouette_drawing(self):
+        r = self._render
+        alpha = r.current_framebuffer().alpha
+        fb = self._silhouette_framebuffer(r.render_size(), alpha)
+        r.push_framebuffer(fb)
+
+    def finish_silhouette_drawing(self, thickness, color, depth_jump,
+                                  perspective_near_far_ratio):
+        r = self._render
+        fb = r.pop_framebuffer()
+        cfb = r.current_framebuffer()
+        cfb.copy_from_framebuffer(fb, depth=False)
+        self._draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
+                                 perspective_near_far_ratio)
+
+    def _silhouette_framebuffer(self, size, alpha):
+        sfb = self._silhouette_framebuf
+        if sfb and (size[0] != sfb.width or size[1] != sfb.height or alpha != sfb.alpha):
+            sfb.delete()
+            sfb = None
+        if sfb is None:
+            dt = Texture()
+            dt.linear_interpolation = False
+            dt.initialize_depth(size, depth_compare_mode=False)
+            sfb = Framebuffer('silhouette', self._render.opengl_context, depth_texture=dt, alpha=alpha)
+            self._silhouette_framebuf = sfb
+        return sfb
+
+    def _draw_depth_outline(self, depth_texture, thickness=1,
+                            color=(0, 0, 0, 1), depth_jump=0.03,
+                            perspective_near_far_ratio=1):
+        # Render pixels with depth in depth_texture less than neighbor pixel
+        # by at least depth_jump. The depth buffer is not used.
+        r = self._render
+        tc = r._texture_window(depth_texture, r.SHADER_DEPTH_OUTLINE)
+
+        p = r.current_shader_program
+        p.set_rgba("color", color)
+        p.set_vector2("jump", (depth_jump, perspective_near_far_ratio))
+        w, h = depth_texture.size
+        dx, dy = 1.0 / w, 1.0 / h
+        p.set_vector3("step", (dx, dy, thickness))
+        tc.draw(blend = True)
 
 # Options used with Render.shader()
 shader_options = (
