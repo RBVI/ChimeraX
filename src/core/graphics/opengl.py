@@ -319,7 +319,7 @@ class Render:
 
         self._default_framebuffer = None
         self.framebuffer_stack = [self.default_framebuffer()]
-        self._mask_framebuffer = None		# Used for drawing selection outlines
+
         self._texture_win = None
 
         # 3D ambient texture transform from model coordinates to texture
@@ -334,6 +334,9 @@ class Render:
 
         # Silhouette edges
         self.silhouette = Silhouette(self)
+
+        # Selection outlines
+        self.outline = Outline(self)
         
         self.single_color = (1, 1, 1, 1)
 
@@ -348,11 +351,11 @@ class Render:
 
     def delete(self):
         self.make_current()
-        for fbattr in ('_default_framebuffer', '_mask_framebuffer'):
-            fb = getattr(self, fbattr)
-            if fb:
-                fb.delete()
-            setattr(self, fbattr, None)
+        
+        fb = self._default_framebuffer
+        if fb:
+            fb.delete()
+            self._default_framebuffer = None
 
         lb = self._lighting_buffer
         if lb is not None:
@@ -1075,55 +1078,6 @@ class Render:
 
         return fb
 
-    def set_outline_depth(self):
-        '''Copy framebuffer depth to outline framebuffer.  Only selected
-        objects at equal depth or in front will be outlines by start_rendering_outline().
-        This routine must be called before start_rendering_outline().
-        '''
-        mfb = self.make_mask_framebuffer()
-        cfb = self.current_framebuffer()
-        cfb.copy_to_framebuffer(mfb, color=False)
-    
-    def start_rendering_outline(self):
-        '''Must call set_outline_depth() before invoking this routine.'''
-        fb = self.current_framebuffer()
-        mfb = self.make_mask_framebuffer()
-        self.push_framebuffer(mfb)
-        self.set_background_color((0, 0, 0, 0))
-        self.draw_background(depth = False)
-        # Use unlit all white color for drawing mask.
-        # Outline code requires non-zero red component.
-        self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
-                                         | self.SHADER_TEXTURE_2D
-                                         | self.SHADER_TEXTURE_CUBEMAP
-                                         | self.SHADER_LIGHTING)
-        self.enable_capabilities |= self.SHADER_ALL_WHITE
-        # Depth test GL_LEQUAL results in z-fighting:
-        self.set_depth_range(0, 0.999999)
-
-    def finish_rendering_outline(self):
-
-        self.pop_framebuffer()
-        self.disable_shader_capabilities(0)
-        self.enable_capabilities &= ~self.SHADER_ALL_WHITE
-        self.set_depth_range(0, 1)
-        t = self._mask_framebuffer.color_texture
-        self.draw_texture_mask_outline(t)
-
-    def make_mask_framebuffer(self):
-        size = self.render_size()
-        mfb = self._mask_framebuffer
-        w, h = size
-        if mfb and mfb.width == w and mfb.height == h:
-            return mfb
-        if mfb:
-            mfb.delete()
-        t = Texture()
-        t.linear_interpolation = False
-        t.initialize_8_bit(size)
-        self._mask_framebuffer = mfb = Framebuffer('mask', self.opengl_context, color_texture=t)
-        return mfb
-
     def _texture_window(self, texture, shader_options):
         tw = self._texture_win
         if tw is None:
@@ -1132,26 +1086,6 @@ class Render:
         texture.bind_texture()
         self.opengl_shader(shader_options)
         return tw
-
-    def draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1)):
-
-        # Render outline of region where texture red > 0.
-        # Outline pixels have red = 0 in texture mask but are adjacent
-        # in one of 4 directions to pixels with red > 0.
-        # The depth buffer is not used.  (Depth buffer was used to handle
-        # occlusion in the mask texture passed to this routine.)
-        w, h = texture.size
-        dx, dy = 1.0 / w, 1.0 / h
-        tc = self._texture_window(texture, self.SHADER_TEXTURE_OUTLINE)
-        p = self.current_shader_program
-        p.set_vector2('step', (dx, dy))
-        p.set_rgba('color', color)
-        tc.draw()
-
-    def set_texture_mask_color(self, color):
-        p = self.current_shader_program
-        if p is not None:
-            p.set_rgba("color", color)
 
     def allow_equal_depth(self, equal):
         GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
@@ -1208,11 +1142,9 @@ class Shadow:
         self._shadow_view_transform = None   # Map camera coordinates to shadow map texture coordinates.
 
     def delete(self):
-        r = self._render
-        r.make_current()
         fb = self._shadow_map_framebuffer
         if fb:
-            fb.delete()
+            fb.delete(make_current = True)
             self._shadow_map_framebuffer = None
     
     def use_shadow_map(self, camera, drawings, shadow_bounds):
@@ -1343,15 +1275,14 @@ class Multishadow:
         self._multishadow_uniform_block = 2     # Uniform block number
 
     def delete(self):
-        r = self._render
-        r.make_current()
         fb = self._multishadow_map_framebuffer
         if fb:
-            fb.delete()
+            fb.delete(make_current = True)
             self._multishadow_map_framebuffer = None
         
         mmb = self._multishadow_matrix_buffer_id
         if mmb is not None:
+            self._render.make_current()
             GL.glDeleteBuffers(1, [mmb])
             self._multishadow_matrix_buffer_id = None
 
@@ -1521,11 +1452,9 @@ class Silhouette:
         self._silhouette_framebuf = None
 
     def delete(self):
-        r = self._render
-        r.make_current()
         fb = self._silhouette_framebuf
         if fb:
-            fb.delete()
+            fb.delete(make_current = True)
             self._silhouette_framebuf = None
 
     def start_silhouette_drawing(self):
@@ -1572,6 +1501,87 @@ class Silhouette:
         p.set_vector3("step", (dx, dy, thickness))
         tc.draw(blend = True)
 
+class Outline:
+    '''Draw selection outlines.'''
+    
+    def __init__(self, render):
+        self._render = render
+        self._mask_framebuf = None
+
+    def delete(self):
+        fb = self._mask_framebuf
+        if fb:
+            fb.delete(make_current = True)
+            self._mask_framebuf = None
+
+    def set_outline_mask(self):
+        '''Copy framebuffer depth to outline framebuffer.  Only selected
+        objects at equal depth or in front will be outlined by start_rendering_outline().
+        This routine must be called before start_rendering_outline().
+        '''
+        r = self._render
+        mfb = self._mask_framebuffer()
+        cfb = r.current_framebuffer()
+        cfb.copy_to_framebuffer(mfb, color=False)
+    
+    def start_rendering_outline(self):
+        '''Must call set_outline_depth() before invoking this routine.'''
+        r = self._render
+        fb = r.current_framebuffer()
+        mfb = self._mask_framebuffer()
+        r.push_framebuffer(mfb)
+        r.set_background_color((0, 0, 0, 0))
+        r.draw_background(depth = False)
+        # Use unlit all white color for drawing mask.
+        # Outline code requires non-zero red component.
+        r.disable_shader_capabilities(r.SHADER_VERTEX_COLORS
+                                      | r.SHADER_TEXTURE_2D
+                                      | r.SHADER_TEXTURE_CUBEMAP
+                                      | r.SHADER_LIGHTING)
+        r.enable_capabilities |= r.SHADER_ALL_WHITE
+        # Depth test GL_LEQUAL results in z-fighting:
+        r.set_depth_range(0, 0.999999)
+
+    def finish_rendering_outline(self):
+        r = self._render
+        r.pop_framebuffer()
+        r.disable_shader_capabilities(0)
+        r.enable_capabilities &= ~r.SHADER_ALL_WHITE
+        r.set_depth_range(0, 1)
+        t = self._mask_framebuf.color_texture
+        self._draw_texture_mask_outline(t)
+
+    def _draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1)):
+
+        # Render outline of region where texture red > 0.
+        # Outline pixels have red = 0 in texture mask but are adjacent
+        # in one of 4 directions to pixels with red > 0.
+        # The depth buffer is not used.  (Depth buffer was used to handle
+        # occlusion in the mask texture passed to this routine.)
+        w, h = texture.size
+        dx, dy = 1.0 / w, 1.0 / h
+        r = self._render
+        tc = r._texture_window(texture, r.SHADER_TEXTURE_OUTLINE)
+        p = r.current_shader_program
+        p.set_vector2('step', (dx, dy))
+        p.set_rgba('color', color)
+        tc.draw()
+
+    def _mask_framebuffer(self):
+        r = self._render
+        size = r.render_size()
+        mfb = self._mask_framebuf
+        w, h = size
+        if mfb and mfb.width == w and mfb.height == h:
+            return mfb
+        if mfb:
+            mfb.delete()
+        t = Texture()
+        t.linear_interpolation = False
+        t.initialize_8_bit(size)
+        self._mask_framebuf = mfb = Framebuffer('mask', r.opengl_context, color_texture=t)
+        return mfb
+    
 # Options used with Render.shader()
 shader_options = (
     'SHADER_LIGHTING',

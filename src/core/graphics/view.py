@@ -208,7 +208,7 @@ class View:
             self._start_timing()
             draw_opaque(r, mdraw)
             if any_selected:
-                r.set_outline_depth()       # copy depth to outline framebuffer
+                r.outline.set_outline_mask()       # copy depth to outline framebuffer
             draw_transparent(r, mdraw)    
             self._finish_timing()
             if multishadow:
