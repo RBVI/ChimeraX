@@ -327,11 +327,8 @@ class Render:
         # coordinates:
         self.ambient_texture_transform = None
 
-        # Shadows
-        self.shadow_map_framebuffer = None
-        self.shadow_texture_unit = 1
-        # Maps camera coordinates to shadow map texture coordinates:
-        self._shadow_transform = None
+        # Key light shadow
+        self.shadow = Shadow(self, texture_unit = 1)
 
         # Multishadow
         self.multishadow = Multishadow(self, texture_unit = 2)
@@ -351,8 +348,7 @@ class Render:
         self.make_current()
         for fbattr in ('_default_framebuffer',
                        '_mask_framebuffer',
-                       '_silhouette_framebuffer',
-                       'shadow_map_framebuffer'):
+                       '_silhouette_framebuffer'):
             fb = getattr(self, fbattr)
             if fb:
                 fb.delete()
@@ -368,6 +364,9 @@ class Render:
             tw.delete()
             self._texture_win = None
 
+        self.shadow.delete()
+        self.shadow = None
+        
         self.multishadow.delete()
         self.multishadow = None
         
@@ -502,9 +501,7 @@ class Render:
             if self.SHADER_MULTISHADOW & c:
                 self.multishadow._set_multishadow_shader_variables(shader)
             if self.SHADER_SHADOWS & c:
-                shader.set_integer("shadow_map", self.shadow_texture_unit)
-                if self._shadow_transform is not None:
-                    shader.set_matrix("shadow_transform", self._shadow_transform)
+                self.shadow._set_shadow_shader_variables(shader)
             if self.SHADER_DEPTH_CUE & c:
                 self.set_depth_cue_parameters()
         if not (self.SHADER_TEXTURE_OUTLINE & c or self.SHADER_DEPTH_OUTLINE & c):
@@ -821,15 +818,6 @@ class Render:
         if p is not None:
             p.set_matrix("ambient_tex3d_transform", tf.opengl_matrix())
 
-    def set_shadow_transform(self, stf):
-        # Transform from camera coordinates to shadow map texture coordinates.
-        self._shadow_transform = m = stf.opengl_matrix()
-        p = self.current_shader_program
-        if p is not None:
-            c = p.capabilities
-            if self.SHADER_SHADOWS & c and self.SHADER_LIGHTING & c:
-                p.set_matrix("shadow_transform", m)
-
     def check_for_opengl_errors(self):
         # Clear previous errors.
         lines = []
@@ -1049,14 +1037,7 @@ class Render:
             b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
             GL.glDrawBuffer(b)
 
-    def start_rendering_shadowmap(self, center, radius, size=1024):
-
-        fb = self.shadowmap_start(self.shadow_map_framebuffer,
-                                  self.shadow_texture_unit, center, radius,
-                                  size)
-        self.shadow_map_framebuffer = fb
-
-    def shadowmap_start(self, framebuffer, texture_unit, center, radius, size):
+    def start_depth_render(self, framebuffer, texture_unit, center, radius, size):
 
         # Set projection matrix to be orthographic and span all models.
         from ..geometry import scale, translation
@@ -1071,7 +1052,7 @@ class Render:
                 fb.delete()
             dt = Texture()
             dt.initialize_depth((size, size))
-            fb = Framebuffer('shadowmap', self.opengl_context, depth_texture=dt, color=False)
+            fb = Framebuffer('depth map', self.opengl_context, depth_texture=dt, color=False)
             if not fb.activate():
                 fb.delete()
                 return None           # Requested size exceeds framebuffer limits
@@ -1090,47 +1071,6 @@ class Render:
         self.draw_depth_only()
 
         return fb
-
-    def finish_rendering_shadowmap(self):
-
-        self.draw_depth_only(False)
-        fb = self.pop_framebuffer()
-        return fb.depth_texture
-
-    def shadow_transforms(self, light_direction, center, radius,
-                          depth_bias=0.005):
-
-        if self.recording_opengl:
-            from . import gllist
-            s = gllist.ShadowMatrixFunc(self, light_direction, center, radius, depth_bias)
-            return (s.lvinv, s.stf)
-
-        # Projection matrix, orthographic along z
-        from ..geometry import translation, scale, orthonormal_frame
-        pm = (scale((1 / radius, 1 / radius, -1 / radius))
-              * translation((0, 0, radius)))
-
-        # Compute the view matrix looking along the light direction.
-        from ..geometry import normalize_vector
-        ld = normalize_vector(light_direction)
-        # Light view frame:
-        lv = translation(center - radius * ld) * orthonormal_frame(-ld)
-        lvinv = lv.inverse()  # Scene to light view coordinates
-
-        # Convert (-1, 1) normalized device coords to (0, 1) texture coords.
-        ntf = translation((0.5, 0.5, 0.5 - depth_bias)) * scale(0.5)
-        stf = ntf * pm * lvinv               # Scene to shadowmap coordinates
-
-        fb = self.current_framebuffer()
-        w, h = fb.width, fb.height
-        if self.current_viewport != (0, 0, w, h):
-            # Using a subregion of shadow map to handle multiple shadows in
-            # one texture.  Map scene coordinates to subtexture.
-            x, y, vw, vh = self.current_viewport
-            stf = (translation((x / w, y / w, 0)) * scale((vw / w, vh / h, 1))
-                   * stf)
-
-        return lvinv, stf
 
     def set_outline_depth(self):
         '''Copy framebuffer depth to outline framebuffer.  Only selected
@@ -1294,6 +1234,127 @@ class Render:
             self._set_depth_texture_shader_variables(p)
 
 
+class Shadow:
+    '''Render a directional shadow.'''
+    
+    def __init__(self, render, texture_unit = 1):
+        self._render = render
+
+        self._shadow_map_framebuffer = None
+        self._shadow_texture_unit = texture_unit
+        self._shadow_transform = None        # Map scene coordinates to shadow map texture coordinates.
+        self._shadow_view_transform = None   # Map camera coordinates to shadow map texture coordinates.
+
+    def delete(self):
+        r = self._render
+        r.make_current()
+        fb = self._shadow_map_framebuffer
+        if fb:
+            fb.delete()
+            self._shadow_map_framebuffer = None
+    
+    def use_shadow_map(self, camera, drawings, shadow_bounds):
+        r = self._render
+        lp = r.lighting
+        if not lp.shadows:
+            return False
+
+        # Compute light direction in scene coords.
+        kl = lp.key_light_direction
+        if r.recording_opengl:
+            light_direction = lambda c=camera, kl=kl: c.position.apply_without_translation(kl)
+        else:
+            light_direction = camera.position.apply_without_translation(kl)
+
+        # Compute drawing bounds so shadow map can cover all drawings.
+        center, radius, sdrawings = shadow_bounds(drawings)
+        if center is None or radius == 0:
+            return False
+
+        # Compute shadow map depth texture
+        size = lp.shadow_map_size
+        self._start_rendering_shadowmap(center, radius, size)
+        r.draw_background()             # Clear shadow depth buffer
+
+        # Compute light view and scene to shadow map transforms
+        bias = lp.shadow_depth_bias
+        lvinv, stf = self._shadow_transforms(light_direction, center, radius, bias)
+        self._shadow_transform = stf      # Scene to shadow map texture coordinates
+        r.set_view_matrix(lvinv)
+        from .drawing import draw_depth
+        draw_depth(r, sdrawings, opaque_only = not r.material.transparent_cast_shadows)
+
+        shadow_map = self._finish_rendering_shadowmap()     # Depth texture
+
+        # Bind shadow map for subsequent rendering of shadows.
+        shadow_map.bind_texture(self._shadow_texture_unit)
+
+        return True
+
+    def set_shadow_view(self, camera_position):
+        stf = self._shadow_transform * camera_position
+        # Transform from camera coordinates to shadow map texture coordinates.
+        self._shadow_view_transform = m = stf.opengl_matrix()
+        r = self._render
+        p = r.current_shader_program
+        if p is not None:
+            c = p.capabilities
+            if r.SHADER_SHADOWS & c and r.SHADER_LIGHTING & c:
+                p.set_matrix("shadow_transform", m)
+
+    def _start_rendering_shadowmap(self, center, radius, size=1024):
+
+        r = self._render
+        fb = r.start_depth_render(self._shadow_map_framebuffer,
+                                  self._shadow_texture_unit,
+                                  center, radius, size)
+        self._shadow_map_framebuffer = fb
+
+    def _finish_rendering_shadowmap(self):
+
+        r = self._render
+        r.draw_depth_only(False)
+        fb = r.pop_framebuffer()
+        return fb.depth_texture
+
+    def _shadow_transforms(self, light_direction, center, radius, depth_bias=0.005):
+
+        r = self._render
+        if r.recording_opengl:
+            from . import gllist
+            s = gllist.ShadowMatrixFunc(r, light_direction, center, radius, depth_bias)
+            return (s.lvinv, s.stf)
+
+        # Projection matrix, orthographic along z
+        from ..geometry import translation, scale, orthonormal_frame
+        pm = scale((1/radius, 1/radius, -1/radius)) * translation((0, 0, radius))
+
+        # Compute the view matrix looking along the light direction.
+        from ..geometry import normalize_vector
+        ld = normalize_vector(light_direction)
+        # Light view frame:
+        lv = translation(center - radius * ld) * orthonormal_frame(-ld)
+        lvinv = lv.inverse()  # Scene to light view coordinates
+
+        # Convert (-1, 1) normalized device coords to (0, 1) texture coords.
+        ntf = translation((0.5, 0.5, 0.5 - depth_bias)) * scale(0.5)
+        stf = ntf * pm * lvinv               # Scene to shadowmap coordinates
+
+        fb = r.current_framebuffer()
+        w, h = fb.width, fb.height
+        if r.current_viewport != (0, 0, w, h):
+            # Using a subregion of shadow map to handle multiple shadows in
+            # one texture.  Map scene coordinates to subtexture.
+            x, y, vw, vh = r.current_viewport
+            stf = translation((x / w, y / w, 0)) * scale((vw / w, vh / h, 1)) * stf
+
+        return lvinv, stf
+
+    def _set_shadow_shader_variables(self, shader):
+        shader.set_integer("shadow_map", self._shadow_texture_unit)
+        if self._shadow_view_transform is not None:
+            shader.set_matrix("shadow_transform", self._shadow_view_transform)
+
 class Multishadow:
     '''Render shadows from several directions for ambient occlusion lighting.'''
     
@@ -1325,7 +1386,7 @@ class Multishadow:
         fb = self._multishadow_map_framebuffer
         if fb:
             fb.delete()
-        self._multishadow_map_framebuffer = None
+            self._multishadow_map_framebuffer = None
         
         mmb = self._multishadow_matrix_buffer_id
         if mmb is not None:
@@ -1372,7 +1433,7 @@ class Multishadow:
         for l in range(nl):
             x, y = (l % d), (l // d)
             r.set_viewport(x * s, y * s, s, s)
-            lvinv, tf = r.shadow_transforms(light_directions[l], center, radius, bias)
+            lvinv, tf = r.shadow._shadow_transforms(light_directions[l], center, radius, bias)
             r.set_view_matrix(lvinv)
             mstf_list.append(tf)
             draw_depth(r, sdrawings, opaque_only = not mat.transparent_cast_shadows)
@@ -1439,14 +1500,14 @@ class Multishadow:
 
     def _start_rendering_multishadowmap(self, center, radius, size=1024):
         r = self._render
-        fb = r.shadowmap_start(self._multishadow_map_framebuffer,
-                               self._multishadow_texture_unit, center,
-                               radius, size)
+        fb = r.start_depth_render(self._multishadow_map_framebuffer,
+                                  self._multishadow_texture_unit,
+                                  center, radius, size)
         self._multishadow_map_framebuffer = fb
 
     def _finish_rendering_multishadowmap(self):
         r = self._render
-        return r.finish_rendering_shadowmap()
+        return r.shadow._finish_rendering_shadowmap()
 
     def _multishadow_directions(self):
         directions = self._multishadow_dir

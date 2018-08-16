@@ -177,7 +177,7 @@ class View:
 
         r = self._render
         self.clip_planes.enable_clip_planes(r, camera.position)
-        stf, ms_enabled = self._compute_shadowmaps(drawings, camera)
+        shadow, multishadow = self._compute_shadowmaps(drawings, camera)
         mdraw = [self.drawing] if drawings is None else drawings
         any_selected = self.any_drawing_selected(drawings)
         
@@ -196,9 +196,9 @@ class View:
             else:
                 cp = camera.get_position(vnum)
             r.set_view_matrix(cp.inverse())
-            if stf is not None:
-                r.set_shadow_transform(stf * cp)
-            if ms_enabled:
+            if shadow:
+                r.shadow.set_shadow_view(cp)
+            if multishadow:
                 r.multishadow.set_multishadow_view(cp)
                 # Initial depth pass optimization to avoid lighting
                 # calculation on hidden geometry
@@ -210,7 +210,7 @@ class View:
                 r.set_outline_depth()       # copy depth to outline framebuffer
             draw_transparent(r, mdraw)    
             self._finish_timing()
-            if ms_enabled:
+            if multishadow:
                 r.allow_equal_depth(False)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness,
@@ -485,52 +485,9 @@ class View:
     def _compute_shadowmaps(self, drawings, camera):
 
         r = self._render
-        lp = r.lighting
-        shadows = lp.shadows
-        if shadows:
-            stf = self._use_shadow_map(camera, drawings)
-        else:
-            stf = None
-
-        ms_enabled = r.multishadow.use_multishadow_map(drawings, self._shadow_bounds)
-        
-        return stf, ms_enabled
-    
-    def _use_shadow_map(self, camera, drawings):
-
-        r = self._render
-        lp = r.lighting
-
-        # Compute light direction in scene coords.
-        kl = lp.key_light_direction
-        if r.recording_opengl:
-            light_direction = lambda c=camera, kl=kl: c.position.apply_without_translation(kl)
-        else:
-            light_direction = camera.position.apply_without_translation(kl)
-
-        # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, sdrawings = self._shadow_bounds(drawings)
-        if center is None or radius == 0:
-            return None
-
-        # Compute shadow map depth texture
-        size = lp.shadow_map_size
-        r.start_rendering_shadowmap(center, radius, size)
-        r.draw_background()             # Clear shadow depth buffer
-
-        # Compute light view and scene to shadow map transforms
-        bias = lp.shadow_depth_bias
-        lvinv, stf = r.shadow_transforms(light_direction, center, radius, bias)
-        r.set_view_matrix(lvinv)
-        from .drawing import draw_depth
-        draw_depth(r, sdrawings, opaque_only = not r.material.transparent_cast_shadows)
-
-        shadow_map = r.finish_rendering_shadowmap()     # Depth texture
-
-        # Bind shadow map for subsequent rendering of shadows.
-        shadow_map.bind_texture(r.shadow_texture_unit)
-
-        return stf      # Scene to shadow map texture coordinates
+        shadow_enabled = r.shadow.use_shadow_map(camera, drawings, self._shadow_bounds)
+        multishadow_enabled = r.multishadow.use_multishadow_map(drawings, self._shadow_bounds)
+        return shadow_enabled, multishadow_enabled
 
     def _shadow_bounds(self, drawings):
         if drawings is None:
