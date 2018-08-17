@@ -1778,7 +1778,8 @@ class VolumeSurface(Surface):
     self.volume = volume
     self.level = level
     self.rgba = rgba
-    self._contour_settings = {}		# Settings for current surface geometry
+    self._contour_settings = {}	         	# Settings for current surface geometry
+    self._min_status_message_voxels = 2**24	# Show status messages only on big surface calculations
 
   def delete(self):
     self.volume._surfaces.remove(self)
@@ -1788,98 +1789,64 @@ class VolumeSurface(Surface):
   #
   def update_surface(self, show_mesh, rendering_options):
 
-    v = self.volume
-    self.name = 'level %.4g' % self.level
-    rgba = v._modulated_surface_color(self.rgba)
-
-    ro = rendering_options
-    if self._settings_changed(ro):
-      if not self._calculate_contour_surface(ro):
-        self._contour_settings.clear()		# Memory error prevented surface calc.
-        return
-
-    self.color = tuple(int(255*r) for r in rgba)
-
-    # OpenGL draws nothing for degenerate triangles where two vertices are
-    # identical.  For 2d contours want to see these triangles so show as mesh.
-    single_plane = v.single_plane()
-    contour_2d = single_plane and not ro.cap_faces
-
-    style = self.Mesh if show_mesh or contour_2d else self.Solid
-    self.display_style = style
+    if not self._geometry_changed(rendering_options):
+      self._set_appearance(show_mesh, rendering_options)
+      return
     
-    if contour_2d:  lit = False
-    elif show_mesh: lit = ro.mesh_lighting
-    else:           lit = True
-    self.use_lighting = lit
-    self.twoSidedLighting = ro.two_sided_lighting
-    self.lineThickness = ro.line_thickness
-    self.smoothLines = ro.smooth_lines
-
-#     if ro.dim_transparency:
-#       bmode = self.SRC_ALPHA_DST_1_MINUS_ALPHA
-#     else:
-#       bmode = self.SRC_1_DST_1_MINUS_ALPHA
-#     self.transparencyBlendMode = bmode
-      
-  # ---------------------------------------------------------------------------
-  #
-  def _calculate_contour_surface(self, rendering_options):
-
     v = self.volume
     matrix = v.matrix()
     level = self.level
+    
+    show_status = (matrix.size >= self._min_status_message_voxels)
+    if show_status:
+      v.message('Computing %s surface, level %.3g' % (v.data.name, level))
 
-    min_status_message_voxels = 2**24
-    name = v.data.name
-    if matrix.size >= min_status_message_voxels:
-      v.message('Computing %s surface, level %.3g' % (name, level))
-
-    # _map contour code does not handle single data planes.
-    # Handle these by stacking two planes on top of each other.
-    plane_axis = [a for a in (0,1,2) if matrix.shape[a] == 1]
-    for a in plane_axis:
-      matrix = matrix.repeat(2, axis = a)
-
-    ro = rendering_options
-
-    from ._map import contour_surface
     try:
-      varray, tarray, narray = contour_surface(matrix, level,
-                                               cap_faces = ro.cap_faces,
-                                               calculate_normals = True)
+      va, na, ta, hidden_edges = self._calculate_contour_surface(matrix, level, rendering_options)
     except MemoryError:
       ses = v.session
       ses.warning('Ran out of memory contouring at level %.3g.\n' % level +
                   'Try a higher contour level.')
-      return False
-
-    for a in plane_axis:
-      varray[:,2-a] = 0
-
-    va, na, ta, hidden_edges = self._adjust_surface_geometry(varray, narray, tarray, rendering_options)
+      return
     
-    if matrix.size >= min_status_message_voxels:
+    if show_status:
       v.message('Calculated %s surface, level %.3g, with %d triangles'
-                   % (name, level, len(ta)), blank_after = 3.0)
+                   % (v.data.name, level, len(ta)), blank_after = 3.0)
 
-    self.set_geometry(va, na, ta)
-
-    if self.auto_recolor_vertices is None:
-      self.vertex_colors = None
-    self.edge_mask = hidden_edges
-    self.clip_cap = True
-    # TODO: Clip cap offset for different contour levels is not related to voxel size.
-    self.clip_offset = .002* len([s for s in v.surfaces if level < s.level])
-
-    return True
+    self._set_surface(va, na, ta, hidden_edges)
+    self._set_appearance(show_mesh, rendering_options)
       
   # ---------------------------------------------------------------------------
   #
-  def _adjust_surface_geometry(self, varray, narray, tarray, rendering_options):
+  def _calculate_contour_surface(self, matrix, level, rendering_options):
+
+    # _map contour code does not handle single data planes.
+    # Handle these by stacking two planes on top of each other.
+    plane_axis = [a for a in (0,1,2) if matrix.shape[a] == 1]
+    if plane_axis:
+      for a in plane_axis:
+        matrix = matrix.repeat(2, axis = a)
+
+    from ._map import contour_surface
+    varray, tarray, narray = contour_surface(matrix, level,
+                                             cap_faces = rendering_options.cap_faces,
+                                             calculate_normals = True)
+
+    if plane_axis:
+      for a in plane_axis:
+        varray[:,2-a] = 0
+
+    va, na, ta, hidden_edges = self._adjust_surface_geometry(varray, narray, tarray,
+                                                             rendering_options, level)
+
+    return va, na, ta, hidden_edges
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _adjust_surface_geometry(self, varray, narray, tarray, rendering_options, level):
 
     ro = rendering_options
-    if ro.flip_normals and self.level < 0:
+    if ro.flip_normals and level < 0:
       from chimerax.surface import invert_vertex_normals
       invert_vertex_normals(narray, tarray)
 
@@ -1917,10 +1884,60 @@ class VolumeSurface(Surface):
     normalize_vectors(narray)
 
     return varray, narray, tarray, hidden_edges
+
+  # ---------------------------------------------------------------------------
+  #
+  def _set_surface(self, va, na, ta, hidden_edges):
+    
+    self.set_geometry(va, na, ta)
+
+    self.edge_mask = hidden_edges
+
+    # TODO: Clip cap offset for different contour levels is not related to voxel size.
+    v = self.volume
+    self.clip_cap = True
+    self.clip_offset = .002* len([s for s in v.surfaces if self.level < s.level])
+
+    self.name = 'level %.4g' % self.level
+
+  # ---------------------------------------------------------------------------
+  #
+  def _set_appearance(self, show_mesh, rendering_options):
+
+    # Update color
+    v = self.volume
+    rgba = v._modulated_surface_color(self.rgba)
+    self.color = tuple(int(255*r) for r in rgba)
+    if self.auto_recolor_vertices is None:
+      self.vertex_colors = None
+
+    # Update display style
+    ro = rendering_options
+    # OpenGL draws nothing for degenerate triangles where two vertices are
+    # identical.  For 2d contours want to see these triangles so show as mesh.
+    contour_2d = v.single_plane() and not ro.cap_faces
+    style = self.Mesh if show_mesh or contour_2d else self.Solid
+    self.display_style = style
+
+    # Update lighting
+    if contour_2d:  lit = False
+    elif show_mesh: lit = ro.mesh_lighting
+    else:           lit = True
+    self.use_lighting = lit
+
+#    self.twoSidedLighting = ro.two_sided_lighting
+#    self.lineThickness = ro.line_thickness
+#    self.smoothLines = ro.smooth_lines
+
+#     if ro.dim_transparency:
+#       bmode = self.SRC_ALPHA_DST_1_MINUS_ALPHA
+#     else:
+#       bmode = self.SRC_1_DST_1_MINUS_ALPHA
+#     self.transparencyBlendMode = bmode
       
   # ---------------------------------------------------------------------------
   #
-  def _settings_changed(self, rendering_options):
+  def _geometry_changed(self, rendering_options):
     v = self.volume
     ro = rendering_options
     contour_settings = {'level': self.level,
