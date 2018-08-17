@@ -649,45 +649,40 @@ class SeqCanvas:
         
     def layout_alignment(self):
         """
-        self.consensus = Consensus(self.sv)
-        def colorConsensus(line, offset, upper=string.uppercase):
-            if line[offset] in upper:
-                if line.conserved[offset]:
-                    return 'red'
-                return 'purple'
-            return 'black'
-        self.consensus.color_func = colorConsensus
-        self.conservation = Conservation(self.sv, evalWhileHidden=True)
+        self.conservation = Conservation(self.sv, eval_while_hidden=True)
         """
-        self.headers = []
+        from .consensus import Consensus
+        self.headers = [Consensus(self.sv)]
         """
         self.headers = [self.consensus, self.conservation]
-        self.builtinHeaders = self.headers[:]
-        startupHeaders = self.sv.prefs[STARTUP_HEADERS]
-        useDispDefault = startupHeaders == None
-        if useDispDefault:
-            startupHeaders = set([self.consensus.name, self.conservation.name])
-        from HeaderSequence import registeredHeaders, \
-                    DynamicStructureHeaderSequence
+        """
+        startup_headers = self.sv.settings.startup_headers
+        use_disp_default = startup_headers == None
+        if use_disp_default:
+            startup_headers = set([Consensus.name])
+            """
+            startup_headers = set([Consensus.name, Conservation.name])
+            """
+        from .header_sequence import registered_headers, DynamicStructureHeaderSequence
+        """
         for seq, defaultOn in registeredHeaders.values():
             header = seq(self.sv)
             self.headers.append(header)
-            if useDispDefault and defaultOn:
-                startupHeaders.add(header.name)
-        if useDispDefault:
-            self.sv.prefs[STARTUP_HEADERS] = startupHeaders
+            if use_disp_default and defaultOn:
+                startup_headers.add(header.name)
+        if use_disp_default:
+            self.sv.prefs[STARTUP_HEADERS] = startup_headers
         """
         single_sequence = len(self.alignment.seqs) == 1
         self.display_header = {}
-        """TODO
         for header in self.headers:
-            show = self.display_header[header] = header.name in startupHeaders \
-                and not (single_sequence and not header.singleSequenceRelevant) \
+            show = self.display_header[header] = header.name in startup_headers \
+                and not (single_sequence and not header.single_sequence_relevant) \
                 and not isinstance(header, DynamicStructureHeaderSequence)
             if show:
                 header.show()
-        self.headers.sort(lambda s1, s2: cmp(s1.sortVal, s2.sortVal)
-                        or cmp(s1.name, s2.name))
+        self.headers.sort()
+        """
         self.labelBindings = {}
         for seq in self.alignment.seqs:
             self.labelBindings[seq] = {
@@ -695,8 +690,6 @@ class SeqCanvas:
                     self.sv.status(self.seqInfoText(s)),
                 '<Double-Button>': lambda e, s=seq: self.sv._editSeqName(s)
             }
-        initialHeaders = [hd for hd in self.headers
-                        if self.display_header[hd]]
         for line in self.headers:
             self.labelBindings[line] = {}
 
@@ -738,6 +731,7 @@ class SeqCanvas:
                     " default ClustalX coloring instead\n"
                     % (prefResColor, exc_info()[1]))
         """
+        initial_headers = [hd for hd in self.headers if self.display_header[hd]]
 
         self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and not single_sequence
         self.line_width = self.line_width_from_settings()
@@ -755,7 +749,7 @@ class SeqCanvas:
         self._resizescrollregion()
         """
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
-            None, self.font, self.emphasis_font, 0, [], self.alignment,
+            None, self.font, self.emphasis_font, 0, initial_headers, self.alignment,
             self.line_width, {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
@@ -983,12 +977,9 @@ class SeqCanvas:
         """
         self.lead_block.destroy()
         self.line_width = self.line_width_from_settings()
-        initial_headers = []
-        """TODO
         initial_headers = [hd for hd in self.headers if self.display_header[hd]]
-        """
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
-            None, self.font, self.emphasis_font, 0, [], self.alignment,
+            None, self.font, self.emphasis_font, 0, initial_headers, self.alignment,
             self.line_width, {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
@@ -1775,15 +1766,21 @@ class SeqBlock:
 
 
     def _brush(self, color):
+        from PyQt5.QtGui import QBrush, QColor
+        if not isinstance(color, QColor):
+            color = QColor(color)
+        rgb = color.rgb()
         try:
-            return self._brushes[color]
+            return self._brushes[rgb]
         except KeyError:
-            from PyQt5.QtGui import QBrush
             brush = QBrush(color)
-            self._brushes[color] = brush
+            self._brushes[rgb] = brush
             return brush
 
     def _color_func(self, line):
+            if hasattr(line, 'position_color'):
+                from .region_browser import get_rgba, rgba_to_qcolor
+                return lambda l, o: rgba_to_qcolor(get_rgba(l.position_color(o)))
             from PyQt5.QtCore import Qt
             return lambda l, o, color=Qt.black: color
     """TODO

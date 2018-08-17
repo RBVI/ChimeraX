@@ -22,9 +22,14 @@ class HeaderSequence(list):
     # [1.0, 2.0) so they normally appear before registered headers.
     # Identical sort_vals tie-break on sequence name.
     sort_val = 2.0
+    numbering_start = None
 
     def __init__(self, sv, name=None, eval_while_hidden=False):
-        self.name = name
+        if name is None:
+            if not hasattr(self, 'name'):
+                self.name = ""
+        else:
+            self.name = name
         from weakref import proxy
         self.sv = proxy(sv)
         self.visible = False
@@ -40,12 +45,15 @@ class HeaderSequence(list):
 
     def evaluate(self, pos):
         raise NotImplementedError("evaluate() method must be"
-            " implemented by %s subclass" % self.__class__.__name__)tic20@cam.ac.uk
+            " implemented by %s subclass" % self.__class__.__name__)
 
     def fast_update(self):
         # if asked to update a few columns (align_change() method)
         # can it be done quickly?
         return True
+
+    def position_color(self, position):
+        return 'black'
 
     def get_state(self):
         state = {
@@ -54,6 +62,9 @@ class HeaderSequence(list):
             'eval_while_hidden': self.eval_while_hidden
         }
         return state
+
+    def __hash__(self):
+        return id(self)
 
     def hide(self):
         """Called when sequence hidden"""
@@ -71,6 +82,9 @@ class HeaderSequence(list):
         if raw >= 0:
             return 1.0 - 0.5 * exp(-raw)
         return 0.5 * exp(raw)
+
+    def __lt__(self, other):
+        return self.sort_val < other.sort_val
 
     def positive_hist_infinity(self, position):
         """Convenience function to map arbitrary positive number to 0-1 range
@@ -129,14 +143,14 @@ class FixedHeaderSequence(HeaderSequence):
         if len(self.sv.alignment.seqs[0]) == len(self.vals):
             self[:] = self.vals
             if hasattr(self, "save_color_func"):
-                self.color_func = self.save_color_func
+                self.position_color = self.save_color_func
                 delattr(self, "save_color_func")
         else:
             self[:] = '?' * len(self.sv.alignment.seqs[0])
-            if hasattr(self, "color_func") \
-            and not hasattr(self, "save_color_func"):
-                self.save_color_func = self.color_func
-                self.color_func = lambda s, o: 'black'
+            if self.position_color.__func__ != HeaderSequence.position_color:
+                self.save_color_func = self.position_color
+                self.position_color = lambda pos, *, s=self.position_color.__self__, \
+                    f=HeaderSequence.position_color: f(s, pos)
 
     def set_state(self, state):
         HeaderSequence.set_state(state['base state'])
@@ -188,4 +202,4 @@ class DynamicStructureHeaderSequence(DynamicHeaderSequence):
 
 registered_headers = []
 def register_header_sequence(header_class, default_on=True):
-    registered_headers.append(header_class, default_on))
+    registered_headers.append(header_class, default_on)
