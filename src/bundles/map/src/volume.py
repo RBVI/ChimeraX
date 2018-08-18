@@ -265,17 +265,19 @@ class Volume(Model):
       if param in kw:
         kw[param] = list(kw[param])
 
+    threaded_surf_calc = kw.get('threaded_surface_calculation', False)
     for param in parameters:
       if param in kw:
         values = kw[param]
         if param == 'surface_levels':
           if len(values) == len(self.surfaces):
             for s,level in zip(self.surfaces, values):
-              s.level = level
+              s.set_level(level, use_thread = threaded_surf_calc)
           else:
             self.remove_surfaces()
             for level in values:
-              self.add_surface(level)
+              s = self.add_surface(level)
+              s.set_level(level, use_thread = threaded_surf_calc)
         elif param == 'surface_colors':
           if len(values) == len(self.surfaces):
             for s,color in zip(self.surfaces, values):
@@ -1776,19 +1778,30 @@ class VolumeSurface(Surface):
     name = 'level %.3g' % level
     Surface.__init__(self, name, volume.session)
     self.volume = volume
-    self.level = level
+    self._level = level
     self.rgba = rgba
     self._contour_settings = {}	         	# Settings for current surface geometry
     self._min_status_message_voxels = 2**24	# Show status messages only on big surface calculations
-
+    self._use_thread = False			# Whether to compute next surface in thread
+    self._surf_calc_thread = None
+    
   def delete(self):
     self.volume._surfaces.remove(self)
     Surface.delete(self)
 
+  def get_level(self):
+    return self._level
+  def set_level(self, level, use_thread = False):
+    self._level = level
+    self._use_thread = use_thread
+  level = property(get_level, set_level)
+  
   # ---------------------------------------------------------------------------
   #
   def update_surface(self, show_mesh, rendering_options):
 
+    self._use_thread_result()
+    
     if not self._geometry_changed(rendering_options):
       self._set_appearance(show_mesh, rendering_options)
       return
@@ -1801,6 +1814,14 @@ class VolumeSurface(Surface):
     if show_status:
       v.message('Computing %s surface, level %.3g' % (v.data.name, level))
 
+    if self._use_thread:
+      self._use_thread = False
+      self._calc_surface_in_thread(matrix, level, rendering_options, show_mesh)
+      return
+    else:
+      # Don't use thread calculation started earlier since new non-threaded calculation has begun.
+      self._surf_calc_thread = None
+      
     try:
       va, na, ta, hidden_edges = self._calculate_contour_surface(matrix, level, rendering_options)
     except MemoryError:
@@ -1816,6 +1837,66 @@ class VolumeSurface(Surface):
     self._set_surface(va, na, ta, hidden_edges)
     self._set_appearance(show_mesh, rendering_options)
       
+  # ---------------------------------------------------------------------------
+  #
+  def _calc_surface_in_thread(self, matrix, level, rendering_options, show_mesh):
+    sct = self._surf_calc_thread
+    new_thread = (sct is None or not sct.is_alive())
+    if new_thread:
+      from chimerax.core.threadq import WorkThread
+      self._surf_calc_thread = sct = WorkThread(self._calculate_contour_surface_threaded,
+                                                in_queue = (sct.in_queue if sct else None),
+                                                out_queue = (sct.out_queue if sct else None))
+      sct.daemon = True
+
+    # Clear the input queue, only the most recent surface calculation is queued
+    import queue
+    try:
+      while sct.in_queue.get_nowait():
+        sct.in_queue.task_done()
+    except queue.Empty:
+      pass
+    
+    sct.in_queue.put((matrix, level, rendering_options, show_mesh))
+
+    if new_thread:
+      sct.start()	# Start surface calculation in separate thread
+      
+    self.volume._drawings_need_update()        # Check later for surface calc result
+    
+  # ---------------------------------------------------------------------------
+  #
+  def _use_thread_result(self):
+    sct = self._surf_calc_thread
+    if sct is None:
+      return
+
+    import queue
+    try:
+      result = sct.out_queue.get_nowait()
+    except queue.Empty:
+      if sct.is_alive():
+        self.volume._drawings_need_update()        # Check later for surface calc result
+      else:
+        self._surf_calc_thread = None
+      return
+
+    va, na, ta, hidden_edges, matrix, level, rendering_options, show_mesh = result
+    self._set_surface(va, na, ta, hidden_edges)
+    self._set_appearance(show_mesh, rendering_options)
+    
+    show_status = (matrix.size >= self._min_status_message_voxels)
+    if show_status:
+      v = self.volume
+      v.message('Calculated %s surface, level %.3g, with %d triangles'
+                   % (v.data.name, level, len(ta)), blank_after = 3.0)
+    
+  # ---------------------------------------------------------------------------
+  #
+  def _calculate_contour_surface_threaded(self, matrix, level, rendering_options, show_mesh):
+    va, na, ta, hidden_edges = self._calculate_contour_surface(matrix,level, rendering_options)
+    return va, na, ta, hidden_edges, matrix, level, rendering_options, show_mesh
+  
   # ---------------------------------------------------------------------------
   #
   def _calculate_contour_surface(self, matrix, level, rendering_options):
@@ -3293,9 +3374,11 @@ class VolumeUpdateManager:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
         if v.display:
-          v.update_drawings()
+          # Remove volume from update list before update since update may re-add it
+          # if surface calculation done in thread.
           vset.remove(v)
-      vdisp.clear()
+          vdisp.remove(v)
+          v.update_drawings()
    
 # -----------------------------------------------------------------------------
 # Check if file name contains %d type format specification.
