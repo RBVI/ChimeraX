@@ -37,11 +37,14 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>waitForVsync</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>graphics</b> &nbsp;<b>triangles</b> 
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br><b>graphics</b> &nbsp;<b>driver</b> 
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>graphics</b> &nbsp;<b>restart</b> 
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>graphics</b> &nbsp;<b>triangles</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 </h3>
 <p>
 The <b>graphics</b> command sets graphical rendering parameters
@@ -92,7 +95,7 @@ the frame rate can exceed the vertical refresh rate and the display can
 exhibit image tearing.
 </p><p>
 Given without options, <b>graphics</b> reports the 
-current triangles per atom and bonds, 
+current triangles per atom and bond, 
 ribbon divisions per residue, and maximum frame rate
 in the <a href="../tools/log.html"><b>Log</b></a>.
 The number of ribbon sides and divisions can be reported (or changed) with
@@ -100,13 +103,17 @@ The number of ribbon sides and divisions can be reported (or changed) with
 the maximum frame rate can also be reported/changed with 
 <a href="set.html"><b>set</b></a>.
 </p><p>
-The command <b>graphics triangles</b> reports the current total number of
-triangles, with breakdowns per model and per representation type within a model.
-</p><p>
-The command <b>graphics restart</b> reinitiates graphics drawing after an error.
+Graphics subcommands:
 </p>
+<ul>
+<li><b>graphics driver</b> &ndash; report system graphics (OpenGL) information
+in the <a href="../tools/log.html"><b>Log</b></a>
+<li><b>graphics restart</b> &ndash; reinitiate graphics drawing after an error
+<li><b>graphics triangles</b> &ndash; report the current total number of 
+triangles, with breakdowns per model and per representation type within a model
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2018</address>
+August 2018</address>
 </body></html>
