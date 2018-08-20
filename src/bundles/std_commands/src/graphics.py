@@ -138,6 +138,9 @@ def register_command(logger):
     desc = CmdDesc(optional=[('models', TopModelsArg)],
                    synopsis='Report triangles in graphics scene')
     register('graphics triangles', desc, graphics_triangles, logger=logger)
+
+    desc = CmdDesc(synopsis='Report graphics driver version info')
+    register('graphics driver', desc, graphics_driver, logger=logger)
     
 def graphics_triangles(session, models = None):
     '''
@@ -240,3 +243,17 @@ class FrameRateReporter:
         ct = self._cumulative_times
         for k in ct.keys():
             ct[k] += getattr(u, 'last_'+k)
+    
+def graphics_driver(session):
+    '''
+    Report opengl graphics driver info.
+    '''
+    info = session.logger.info
+    if session.ui.is_gui:
+        r = session.main_view.render
+        r.make_current()
+        info('OpenGL version: ' + r.opengl_version())
+        info('OpenGL renderer: ' + r.opengl_renderer())
+        info('OpenGL vendor: ' + r.opengl_vendor())
+    else:
+        info('OpenGL info not available in nogui mode.')

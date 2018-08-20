@@ -43,15 +43,12 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
         for m in models:
             m.filename = path
 
-    info = "Opened PDB data containing %d atoms%s %d bonds" % (
-        sum(m.num_atoms for m in models),
-        ("," if coordsets else " and"),
-        sum(m.num_bonds for m in models))
+    info = ''
     if coordsets:
         num_cs = 0
         for m in models:
             num_cs += m.num_coordsets
-        info += " and %s coordinate sets" % num_cs
+        info = '%s has %d coordinate sets' % (file_name, num_cs)
         if session.ui.is_gui:
             mc = [m for m in models if m.num_coordsets > 1]
             if mc:

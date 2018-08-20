@@ -26,17 +26,24 @@ class AtomZoneMouseMode(MouseMode):
         self._sheet_width_thickness = (0.6, 0.2)
         self._ribbon_transparency = 100			# 0 = completely transparent, 255 = opaque
 
-    def _show_zone(self, atom, center = False, ribbon_hiding = True):
+    def _show_zone(self, atom = None, center = False, label=True, ribbon=True, ribbon_hiding = True):
         '''Show nearby atoms, labels, and surfaces.'''
-        
+
+        if atom is None:
+            atom = self._zone_center_atom
+        else:
+            self._zone_center_atom = atom
+            
         ratoms = atom.residue.atoms
         struct = atom.structure
         all_atoms = struct.atoms
 
         natoms = self._show_near_atoms(ratoms, all_atoms)
-        self._show_labels(ratoms, all_atoms)
-        self._show_ribbons(struct, natoms.unique_residues, ribbon_hiding)
-        self._show_surface_zone(ratoms)
+        if label:
+            self._show_labels(ratoms, all_atoms)
+        if ribbon:
+            self._show_ribbons(struct, natoms.unique_residues, ribbon_hiding)
+        self._show_volume_zone(ratoms)
 
         # Set center of rotation
         v = self.session.main_view
@@ -45,6 +52,15 @@ class AtomZoneMouseMode(MouseMode):
         if center:
             self._center_camera(atom.scene_coord)
 
+    def _unzone(self):
+        atom = self._zone_center_atom
+        if atom is None:
+            return
+        struct = atom.structure
+        struct.atoms.displays = True
+        from chimerax.map.filter.vopcommand import volume_unzone
+        volume_unzone(self.session, self._shown_volumes())
+        
     def _show_near_atoms(self, ratoms, all_atoms):
         natoms = self._nearby_atoms(ratoms, all_atoms, self._residue_distance)
         cats = all_atoms.structure_categories
@@ -95,14 +111,17 @@ class AtomZoneMouseMode(MouseMode):
         rcolors[:,3] = alpha
         residues.ribbon_colors = rcolors
 
-    def _show_surface_zone(self, atoms):
+    def _show_volume_zone(self, atoms):
+        from chimerax.map.filter.zone import zone_operation
+        for v in self._shown_volumes():
+            zone_operation(v, atoms, self._surface_distance, minimal_bounds = True, new_map = False)
+
+    def _shown_volumes(self):
         # Show surface zone
         from chimerax.map import Volume
         ses = self.session
         volumes = [v for v in ses.models.list(type = Volume) if v.visible]
-        from chimerax.map.filter.zone import zone_operation
-        for v in volumes:
-            zone_operation(v, atoms, self._surface_distance, minimal_bounds = True, new_map = False)
+        return volumes
 
     def _center_camera(self, scene_point):
         # Center view on atom by moving camera perpendicular to sight direction.
@@ -152,16 +171,22 @@ class AtomZoneMouseMode(MouseMode):
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         atom = self._picked_atom(pick) 
         if atom:
-            self._show_zone(atom, center=False)
+            self._show_zone(atom, center=False, label=False, ribbon=False)
+        else:
+            self._unzone()
 
     def drag_3d(self, position, move, delta_z):
         if move is None:
             # released button
             pass
         else:
+            if abs(delta_z) < .1:
+                return "accumulate drag"
             a = self._zone_center_atom
             if a:
-                # TODO: Adjust zone radius?
-                pass
-                # if motion < min_motion:
-                #    return "accumulate drag"
+                from math import exp
+                scale = exp(delta_z / .3)
+                self._residue_distance *= scale
+                self._label_distance *= scale
+                self._surface_distance *= scale
+                self._show_zone(center=False, label=False, ribbon=False)

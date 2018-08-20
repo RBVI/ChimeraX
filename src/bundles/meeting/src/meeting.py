@@ -183,7 +183,8 @@ class MeetingServer:
         aa = self._available_server_ipv4_addresses()
         a = aa[0] if aa else QHostAddress.Any
         if not s.listen(a, port):
-            self._session.logger.warning('QTcpServer.listen() failed: %s' % s.errorString())
+            self._session.logger.warning('QTcpServer.listen() failed for address %s, port %d: %s'
+                                         % (a.toString(), port, s.errorString()))
         else:
             s.newConnection.connect(self._new_connection)
         self._color = (255,255,0,255)

@@ -1387,11 +1387,11 @@ def draw_overlays(drawings, renderer):
 def draw_selection_outline(renderer, drawings):
     '''Draw the outlines of selected parts of the specified drawings.'''
     r = renderer
-    r.start_rendering_outline()
+    r.outline.start_rendering_outline()
     from ..geometry import Place
     p = Place()
     _draw_multiple(drawings, r, p, Drawing.SELECTION_DRAW_PASS)
-    r.finish_rendering_outline()
+    r.outline.finish_rendering_outline()
 
 
 def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
