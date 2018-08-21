@@ -60,7 +60,7 @@ app-outdated:
 	$(APP_PIP) list --outdated --format=columns
 	@echo "Known issues:"
 	@echo "  grako (3.16.5 is the last version that works)"
-        @echo "  prompt-toolkit (required < 2.0.0 by IPython)"
+	@echo "  prompt-toolkit (required < 2.0.0 by IPython)"
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
