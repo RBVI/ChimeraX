@@ -196,11 +196,17 @@ class MeetingServer:
 
     def _available_server_ipv4_addresses(self):
         from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
-        a = [ha for ha in QNetworkInterface.allAddresses()
-             if not ha.isLoopback()
-             and not ha.isNull()
-             and ha.protocol() == QAbstractSocket.IPv4Protocol
-             and not ha.toString().startswith('169.254')] # Exclude link-local addresses
+        a = []
+        for ni in QNetworkInterface.allInterfaces():
+            flags = ni.flags()
+            if (flags & QNetworkInterface.IsUp) and not (flags & QNetworkInterface.IsLoopBack):
+                for ae in ni.addressEntries():
+                    ha = ae.ip()
+                    if (ha.protocol() == QAbstractSocket.IPv4Protocol
+                        and not ha.isLoopback()
+                        and not ha.isNull()
+                        and not ha.toString().startswith('169.254')): # Exclude link-local addresses
+                        a.append(ha)
         return a
 
     def copy_scene(self, copy):
