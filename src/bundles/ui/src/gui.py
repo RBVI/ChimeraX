@@ -640,6 +640,11 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     rapid_access_shown = property(_get_rapid_access_shown, _set_rapid_access_shown)
 
+    def _check_chains_update_status(self, trig_name, changes):
+        if not self.chains_menu_needs_update:
+            self.chains_menu_needs_update = \
+                changes.created_chains() or changes.num_deleted_chains() > 0
+
     def _check_rapid_access(self, *args):
         self.rapid_access_shown = len(self.session.models) == 0
 
@@ -768,10 +773,12 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         select_menu = mb.addMenu("&Select")
         self.select_chains_menu = select_menu.addMenu("&Chains")
+        self.select_chains_menu.aboutToShow.connect(self.update_select_chains_menu)
         self.select_chains_menu.setToolTipsVisible(True)
+        self.chains_menu_needs_update = False
         from chimerax import atomic
         atom_triggers = atomic.get_triggers(self.session)
-        atom_triggers.add_handler("changes", self.update_select_chains_menu)
+        atom_triggers.add_handler("changes", self._check_chains_update_status)
 
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
@@ -812,12 +819,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
         self.favorites_menu.addAction(settings)
 
-    def update_select_chains_menu(self, trig_name=None, changes=None):
-        if changes is None:
-            do_update = changes.created_chains() or changes.num_deleted_chains() > 0
-        else:
-            do_update = True
-        if not do_update:
+    def update_select_chains_menu(self):
+        if not self.chains_menu_needs_update:
             return
         from chimerax.atomic import AtomicStructures, all_atomic_structures
         structures = AtomicStructures(all_atomic_structures(self.session))
@@ -838,6 +841,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             chains = chain_info[chain_key]
             if len(chains) > 1:
                 submenu = self.select_chains_menu.addMenu(chain_key)
+                sep = submenu.addSeparator()
                 chains.sort(key=lambda c: (c.structure.id, c.chain_id))
                 collective_spec = ""
                 for chain in chains:
@@ -862,12 +866,11 @@ class MainWindow(QMainWindow, PlainTextLog):
                     if shortened:
                         submenu.setToolTipsVisible(True)
                         action.setToolTip(chain.description)
-                submenu.addSeparator()
                 action = QAction("all", self)
                 action.triggered.connect(
                     lambda *, ses=self.session, run=run, spec=collective_spec:
                     run(ses, "select clear; select %s" % spec))
-                submenu.addAction(action)
+                submenu.insertAction(sep, action)
             else:
                 chain = chains[0]
                 chain_id_text = str(chain)
@@ -889,6 +892,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                     self.select_chains_menu.setToolTipsVisible(True)
                     action.setToolTip(chain.description)
                 self.select_chains_menu.addAction(action)
+
+        self.chains_menu_needs_update = False
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}
