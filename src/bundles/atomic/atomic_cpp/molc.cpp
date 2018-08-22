@@ -4642,6 +4642,18 @@ extern "C" EXPORT PyObject *structure_molecules(void *mol)
     }
 }
 
+extern "C" EXPORT PyObject *structure_nonstandard_residue_names(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    auto rnames = m->nonstd_res_names();
+    PyObject* py_rnames = PyList_New(rnames.size());
+    size_t index = 0;
+    for (auto rname: rnames) {
+        PyList_SET_ITEM(py_rnames, index++, unicode_from_string(rname));
+    }
+    return py_rnames;
+}
+
 extern "C" EXPORT PyObject *structure_polymers(void *mol, int missing_structure_treatment, int consider_chains_ids)
 {
     Structure *m = static_cast<Structure *>(mol);

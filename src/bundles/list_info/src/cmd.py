@@ -67,34 +67,6 @@ info_bounds_desc = CmdDesc(optional=[('models', ModelsArg)],
                            synopsis='Report scene bounding boxes for models')
 
 
-def info_metadata(session, models=None, verbose=False):
-    '''
-    Report metadata for models (e.g. REMARK records).
-
-    Parameters
-    ----------
-    models : list of models
-    '''
-    if models is None:
-        models = session.models
-    any_metadata = False
-    for model in models:
-        if model.has_formatted_metadata(session):
-            any_metadata = True
-            model.show_metadata(session, verbose=verbose)
-    if not any_metadata:
-        if not models:
-            session.logger.info("No models match specifier")
-        elif len(models) == 1:
-            session.logger.info("The model has no metadata")
-        else:
-            session.logger.info("No models had metadata")
-
-info_metadata_desc = CmdDesc(optional=[('models', ModelsArg)],
-                           keyword=[("verbose", BoolArg)],
-                           synopsis='Report metadata for models')
-
-
 def info_models(session, atoms=None, type_=None, attribute="name"):
     if atoms is None:
         from chimerax.core.commands import atomspec

@@ -35,7 +35,7 @@ class _MyAPI(BundleAPI):
         if command_name == "echo":
             from chimerax.core.commands import create_alias
             create_alias("echo", "log text $*", logger=logger)
-        elif command_name == "log":
+        elif command_name.startswith("log"):
             from . import cmd
             cmd.register_log_command(logger)
 
