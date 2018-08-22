@@ -120,6 +120,9 @@ class _StatusBarOpenGL:
         if not r.make_current():
             raise RuntimeError('Failed to make status line opengl context current')
 
+        if len(msg) > 256:
+            msg = msg[:253] + '...'
+            
         r.draw_background()
         self._draw_text(msg, color, secondary)
         r.swap_buffers()
