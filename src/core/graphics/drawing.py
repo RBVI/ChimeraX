@@ -1707,7 +1707,7 @@ class PickedTriangle(Pick):
 
     def description(self):
         d = self.drawing()
-        fields = [self.id_string()]
+        fields = [self.id_string]
         if d.name is not None:
             fields.append(d.name)
         if len(d.positions) > 1:
@@ -1716,6 +1716,7 @@ class PickedTriangle(Pick):
         desc = ' '.join(fields)
         return desc
 
+    @property
     def id_string(self):
         '''
         A text identifier that can be used in commands to specified the
@@ -1781,9 +1782,10 @@ class PickedTriangles(Pick):
             desc += ', %d of %d triangles' % (nt, len(tm))
         return desc
 
+    @property
     def id_string(self):
         d = self.drawing()
-        return d.id_string() if hasattr(d, 'id_string') else '?'
+        return d.id_string if hasattr(d, 'id_string') else '?'
 
     def drawing(self):
         return self._drawing
@@ -1816,9 +1818,10 @@ class PickedInstance(Pick):
             desc += ', %d of %d instances' % (np, len(pm))
         return desc
 
+    @property
     def id_string(self):
         d = self.drawing()
-        return d.id_string() if hasattr(d, 'id_string') else '?'
+        return d.id_string if hasattr(d, 'id_string') else '?'
 
     def drawing(self):
         return self._drawing

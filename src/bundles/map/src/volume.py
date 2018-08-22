@@ -122,7 +122,7 @@ class Volume(Model):
   #
   def name_with_id(self):
 
-    return '%s #%s' % (self.name, self.id_string())
+    return '%s #%s' % (self.name, self.id_string)
 
   # ---------------------------------------------------------------------------
   #
@@ -2073,7 +2073,7 @@ class PickedMap(Pick):
     self.map = v
     self.detail = detail
   def description(self):
-    return '%s %s %s' % (self.map.id_string(), self.map.name, self.detail)
+    return '%s %s %s' % (self.map.id_string, self.map.name, self.detail)
   def select(self, mode = 'add'):
     m = self.map
     if mode == 'add':
@@ -3305,7 +3305,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     else:
       vlist = [m for m in models if isinstance(m, Volume)]
       if len(vlist) == 0:
-          mstring = ' (#%s)' % ','.join(model.id_string() for m in models) if models else ''
+          mstring = ' (#%s)' % ','.join(model.id_string for m in models) if models else ''
           from chimerax.core.errors import UserError
           raise UserError('Specified models are not volumes' + mstring)
 

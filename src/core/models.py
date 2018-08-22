@@ -105,6 +105,7 @@ class Model(State, Drawing):
             self.session.triggers.activate_trigger(MODEL_ID_CHANGED, self)
     id = property(_get_id, _set_id)
 
+    @property
     def id_string(self):
         '''Return the dot-separated identifier for this model.
         A top-level model (one that is not a child of another model)
@@ -257,8 +258,7 @@ class Model(State, Drawing):
             return
         fmt = '<i>%s</i> title:<br><b>%s</b>'
         if self.has_formatted_metadata(session):
-            fmt += ' <a href="cxcmd:log metadata #%s">[more&nbspinfo...]</a>' \
-                % self.id_string()
+            fmt += ' <a href="cxcmd:log metadata #%s">[more&nbspinfo...]</a>' % self.id_string
         fmt += '<br>'
         session.logger.info(fmt % (self.name, self.html_title) , is_html=True)
 

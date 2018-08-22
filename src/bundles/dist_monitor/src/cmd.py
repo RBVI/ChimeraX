@@ -63,7 +63,7 @@ def distance_save(session, save_file_name):
     for model in session.models:
         if not isinstance(model, Structure):
             continue
-        print("Model", model.id_string(), "is", model.name, file=save_file)
+        print("Model", model.id_string, "is", model.name, file=save_file)
 
     print("\nDistance information:", file=save_file)
     grp = session.pb_manager.get_group("distances", create=False)

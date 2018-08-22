@@ -133,9 +133,9 @@ class Alignment(State):
                 sseqs.sort(key=lambda s: len(s), reverse=True)
             associated = False
             struct_name = struct.name
-            if '.' in struct.id_string():
+            if '.' in struct.id_string:
                 # ensemble
-                struct_name += " (" + struct.id_string() + ")"
+                struct_name += " (" + struct.id_string + ")"
             def do_assoc(add_gaps=False):
                 if reeval and sseq in self.associations:
                     old_aseq = self.associations[sseq]
@@ -306,9 +306,9 @@ class Alignment(State):
             if not reassoc and isinstance(sseq, StructureSeq) and not sseq.structure.deleted:
                 struct = sseq.structure
                 struct_name = struct.name
-                if '.' in struct.id_string():
+                if '.' in struct.id_string:
                     # ensemble
-                    struct_name += " (" + struct.id_string() + ")"
+                    struct_name += " (" + struct.id_string + ")"
                 self.session.logger.info("Disassociated %s %s from %s"
                     % (struct_name, sseq.name, aseq.name))
             from chimerax.core.triggerset import DEREGISTER

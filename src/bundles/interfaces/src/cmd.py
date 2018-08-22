@@ -120,7 +120,7 @@ def chain_spheres(atoms, session):
         from chimerax.core.errors import UserError
         raise UserError('No atoms specified')
     from numpy import mean
-    s = [SphereGroup('#%s/%s'%(m.id_string(),cid), catoms)
+    s = [SphereGroup('#%s/%s'%(m.id_string,cid), catoms)
          for m, cid, catoms in atoms.by_chain]
     return s
 

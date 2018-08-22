@@ -81,7 +81,7 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
                % (c.min(), c.max(), c.mean(), c.std(), len(va), s.name))
         from chimerax.core.models import Model
         if isinstance(s, Model):
-            msg += ' ' + s.id_string()
+            msg += ' ' + s.id_string
         session.logger.status(msg, log = True)
     if sd_file:
         sd_file.close()

@@ -2057,7 +2057,7 @@ class SeqBlock:
         if not line.match_maps:
             return basic_text
         return "%s\n%s associated with:\n%s" % (basic_text, _seq_name(line, self.settings),
-            "\n".join(["#%s (%s %s)" % (m.structure.id_string(), m.structure.name,
+            "\n".join(["#%s (%s %s)" % (m.structure.id_string, m.structure.name,
             line.match_maps[m].struct_seq.name) for m in line.match_maps.keys()]))
 
     def _large_alignment(self):

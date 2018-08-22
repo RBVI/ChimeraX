@@ -84,7 +84,7 @@ def cbumps(session, surfaces, convexity_minimum = 0.3, area = None,
                % (c.min(), c.max(), c.mean(), c.std(), len(va), s.name))
         from chimerax.core.models import Model
         if isinstance(s, Model):
-            msg += ' ' + s.id_string()
+            msg += ' ' + s.id_string
         session.logger.status(msg, log = True)
 
 def register_cbumps_command(logger):

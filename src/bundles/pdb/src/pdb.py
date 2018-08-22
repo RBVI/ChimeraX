@@ -95,7 +95,7 @@ def save_pdb(session, path, *, models=None, selected_only=False, displayed_only=
     file_per_model = "[NAME]" in path or "[ID]" in path
     if file_per_model:
         for m, xform in zip(models, xforms):
-            file_name = path.replace("[ID]", m.id_string()).replace("[NAME]", m.name)
+            file_name = path.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only=selected_only,
                 displayed_only=displayed_only, xforms=[xform],
                 all_coordsets=all_coordsets, pqr=pqr, h36=(serial_numbering == "h36"))

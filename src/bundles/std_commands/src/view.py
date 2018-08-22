@@ -423,7 +423,7 @@ def report_positions(session):
     lines = ['camera position: %s' % _position_string(c.position)]
     mlist = session.models.list()
     if mlist:
-        mpos = ','.join('#%s,%s' % (m.id_string(), _position_string(m.position)) for m in mlist)
+        mpos = ','.join('#%s,%s' % (m.id_string, _position_string(m.position)) for m in mlist)
         lines.append('model positions: %s\n' % mpos)
     session.logger.info('\n'.join(lines))
 

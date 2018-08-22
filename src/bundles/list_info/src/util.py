@@ -50,7 +50,7 @@ def spec(o):
         return o.atomspec
     except AttributeError:
         try:
-            return '#' + o.id_string()
+            return '#' + o.id_string
         except AttributeError:
             return ""
 
@@ -119,7 +119,7 @@ def report_distmat(logger, atoms, distmat):
 
 def model_info(m):
     disp = 'shown' if m.display else 'hidden'
-    line = '#%s, %s, %s' % (m.id_string(), m.name, disp)
+    line = '#%s, %s, %s' % (m.id_string, m.name, disp)
     if m.triangles is not None:
         line += ', %d triangles' % len(m.triangles)
     npos = len(m.positions)

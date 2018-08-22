@@ -58,7 +58,7 @@ def info_bounds(session, models=None):
         b = session.main_view.drawing_bounds()
         msg = 'Scene %s' % bounds_description(b)
     else:
-        lines = ['#%s, %s, %s' % (m.id_string(), m.name, bounds_description(m.bounds()))
+        lines = ['#%s, %s, %s' % (m.id_string, m.name, bounds_description(m.bounds()))
                  for m in sorted(models, key = lambda m: m.id)]
         msg = '\n'.join(lines)
     session.logger.info(msg)
