@@ -257,7 +257,7 @@ class Model(State, Drawing):
             return
         fmt = '<i>%s</i> title:<br><b>%s</b>'
         if self.has_formatted_metadata(session):
-            fmt += ' <a href="cxcmd:info metadata #%s">[more&nbspinfo...]</a>' \
+            fmt += ' <a href="cxcmd:log metadata #%s">[more&nbspinfo...]</a>' \
                 % self.id_string()
         fmt += '<br>'
         session.logger.info(fmt % (self.name, self.html_title) , is_html=True)
@@ -268,13 +268,19 @@ class Model(State, Drawing):
     def get_html_title(self, session):
         return getattr(self, 'html_title', None)
 
-    def show_metadata(self, session, *, verbose=False, **kw):
-        '''called by 'info metadata' command.'''
+    def show_metadata(self, session, *, verbose=False, log=None, **kw):
+        '''called by 'log metadata' command.'''
         formatted_md = self.get_formatted_metadata(session, verbose=verbose, **kw)
-        if formatted_md:
-            session.logger.info(formatted_md, is_html=True)
+        if log:
+            if formatted_md:
+                log.log(log.LEVEL_INFO, formatted_md, (None, False), True)
+            else:
+                log.log(log.LEVEL_INFO, "No additional info for %s" % self, (None, False), False)
         else:
-            session.logger.info("No additional info for %s" % self)
+            if formatted_md:
+                session.logger.info(formatted_md, is_html=True)
+            else:
+                session.logger.info("No additional info for %s" % self)
 
     def has_formatted_metadata(self, session):
         '''Can override both this and 'get_formatted_metadata' if lazy evaluation desired'''

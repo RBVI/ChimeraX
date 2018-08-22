@@ -37,8 +37,8 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>text</b>&nbsp;|&nbsp;<b>html</b>&nbsp;&nbsp;<i>character&nbsp;string</i>&nbsp;]
 </h3>
 <p>
-The command <b>log</b> acts on the <a href="../tools/log.html"><b>Log</b></a>
-tool. Options:
+The top-level <b>log</b> command acts on the
+<a href="../tools/log.html"><b>Log</b></a>, with options:
 <ul>
 <li><b>show</b> or <b>hide</b> - open or close the
 <a href="../tools/log.html"><b>Log</b></a>
@@ -73,7 +73,30 @@ See also:
 <a href="../tools/browser.html">ChimeraX browser</a>
 </p>
 
+<a name="metadata"></a>
+<p class="nav">
+[<a href="#top">back to top: log</a>]
+</p>
+<h3>Model Metadata</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>log metadata</b>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+The subcommand <b>log metadata</b> reports model metadata in the
+<a href="../tools/log.html"><b>Log</b></a>. 
+Metadata is associated information read from the input file, such as 
+literature citation, experimental method, and resolution, if applicable.
+Using <b>verbose true</b> shows all available information, sometimes the
+same as from <b>verbose false</b> (depending on what is available).
+Currently, metadata is read from the mmCIF and PDB 
+<a href="open.html#formats">input formats</a>.
+See also: <a href="info.html"><b>info</b></a>
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2017</address>
+August 2018</address>
 </body></html>

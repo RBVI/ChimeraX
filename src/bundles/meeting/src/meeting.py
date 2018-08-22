@@ -183,7 +183,8 @@ class MeetingServer:
         aa = self._available_server_ipv4_addresses()
         a = aa[0] if aa else QHostAddress.Any
         if not s.listen(a, port):
-            self._session.logger.warning('QTcpServer.listen() failed: %s' % s.errorString())
+            self._session.logger.warning('QTcpServer.listen() failed for address %s, port %d: %s'
+                                         % (a.toString(), port, s.errorString()))
         else:
             s.newConnection.connect(self._new_connection)
         self._color = (255,255,0,255)
@@ -195,11 +196,17 @@ class MeetingServer:
 
     def _available_server_ipv4_addresses(self):
         from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
-        a = [ha for ha in QNetworkInterface.allAddresses()
-             if not ha.isLoopback()
-             and not ha.isNull()
-             and ha.protocol() == QAbstractSocket.IPv4Protocol
-             and not ha.toString().startswith('169.254')] # Exclude link-local addresses
+        a = []
+        for ni in QNetworkInterface.allInterfaces():
+            flags = ni.flags()
+            if (flags & QNetworkInterface.IsUp) and not (flags & QNetworkInterface.IsLoopBack):
+                for ae in ni.addressEntries():
+                    ha = ae.ip()
+                    if (ha.protocol() == QAbstractSocket.IPv4Protocol
+                        and not ha.isLoopback()
+                        and not ha.isNull()
+                        and not ha.toString().startswith('169.254')): # Exclude link-local addresses
+                        a.append(ha)
         return a
 
     def copy_scene(self, copy):

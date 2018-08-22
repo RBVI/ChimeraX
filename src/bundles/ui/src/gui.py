@@ -640,6 +640,11 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     rapid_access_shown = property(_get_rapid_access_shown, _set_rapid_access_shown)
 
+    def _check_chains_update_status(self, trig_name, changes):
+        if not self.chains_menu_needs_update:
+            self.chains_menu_needs_update = \
+                changes.created_chains() or changes.num_deleted_chains() > 0
+
     def _check_rapid_access(self, *args):
         self.rapid_access_shown = len(self.session.models) == 0
 
@@ -766,6 +771,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
         edit_menu.addAction(self.redo_action)
 
+        select_menu = mb.addMenu("&Select")
+        self.select_chains_menu = select_menu.addMenu("&Chains")
+        self.select_chains_menu.aboutToShow.connect(self.update_select_chains_menu)
+        self.select_chains_menu.setToolTipsVisible(True)
+        self.chains_menu_needs_update = False
+        from chimerax import atomic
+        atom_triggers = atomic.get_triggers(self.session)
+        atom_triggers.add_handler("changes", self._check_chains_update_status)
+
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
@@ -804,6 +818,82 @@ class MainWindow(QMainWindow, PlainTextLog):
         settings.setToolTip("Show/set ChimeraX settings")
         settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
         self.favorites_menu.addAction(settings)
+
+    def update_select_chains_menu(self):
+        if not self.chains_menu_needs_update:
+            return
+        from chimerax.atomic import AtomicStructures, all_atomic_structures
+        structures = AtomicStructures(all_atomic_structures(self.session))
+        chain_info = {}
+        for chain in structures.chains:
+            key = chain.description if chain.description else chain.chain_id
+            chain_info.setdefault(key, []).append(chain)
+        chain_keys = list(chain_info.keys())
+        chain_keys.sort()
+        self.select_chains_menu.clear()
+        def final_description(description):
+            if len(description) < 110:
+                return False, description
+            return True, description[:50] + "..." + description[-50:]
+        from PyQt5.QtWidgets import QAction
+        from chimerax.core.commands import run
+        for chain_key in chain_keys:
+            chains = chain_info[chain_key]
+            if len(chains) > 1:
+                submenu = self.select_chains_menu.addMenu(chain_key)
+                sep = submenu.addSeparator()
+                chains.sort(key=lambda c: (c.structure.id, c.chain_id))
+                collective_spec = ""
+                for chain in chains:
+                    if len(structures) > 1:
+                        if chain.description:
+                            shortened, final = final_description(chain.description)
+                            label = "[%s] chain %s" % (chain.structure, chain.chain_id)
+                        else:
+                            label = "[%s]" % chain.structure
+                            shortened = False
+                    else:
+                        # ...must be multiple identical descriptions...
+                        label = "chain %s" % chain.chain_id
+                        shortened = False
+                    action = QAction(label, self)
+                    spec = chain.string(style="command")
+                    action.triggered.connect(
+                        lambda *, ses=self.session, run=run, spec=spec:
+                        run(ses, "select clear; select %s" % spec))
+                    submenu.addAction(action)
+                    collective_spec += spec
+                    if shortened:
+                        submenu.setToolTipsVisible(True)
+                        action.setToolTip(chain.description)
+                action = QAction("all", self)
+                action.triggered.connect(
+                    lambda *, ses=self.session, run=run, spec=collective_spec:
+                    run(ses, "select clear; select %s" % spec))
+                submenu.insertAction(sep, action)
+            else:
+                chain = chains[0]
+                chain_id_text = str(chain)
+                slash_index = chain_id_text.rfind('/')
+                chain_id_text = chain_id_text[:slash_index] + " chain " \
+                    + chain_id_text[slash_index+1:]
+                if chain.description:
+                    shortened, final = final_description(chain.description)
+                    label = "%s (%s)" % (final, chain_id_text)
+                else:
+                    label = chain_id_text
+                    shortened = False
+                action = QAction(label, self)
+                spec = chain.string(style="command")
+                action.triggered.connect(
+                    lambda *, ses=self.session, run=run, spec=spec:
+                    run(ses, "select clear; select %s" % spec))
+                if shortened:
+                    self.select_chains_menu.setToolTipsVisible(True)
+                    action.setToolTip(chain.description)
+                self.select_chains_menu.addAction(action)
+
+        self.chains_menu_needs_update = False
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}

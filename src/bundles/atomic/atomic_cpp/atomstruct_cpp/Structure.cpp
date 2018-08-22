@@ -29,6 +29,7 @@
 #include "Bond.h"
 #include "CoordSet.h"
 #include "destruct.h"
+#include "Sequence.h"
 #include "Structure.h"
 #include "PBGroup.h"
 #include "Pseudobond.h"
@@ -879,6 +880,18 @@ Structure::new_residue(const ResName& name, const ChainID& chain,
     Residue *r = new Residue(this, name, chain, pos, insert);
     _residues.insert(ri, r);
     return r;
+}
+
+std::set<ResName>
+Structure::nonstd_res_names() const
+{
+    std::set<ResName> nonstd;
+    for (auto r: residues()) {
+        if (Sequence::rname3to1(r->name()) == 'X'
+        && Residue::std_solvent_names.find(r->name()) == Residue::std_solvent_names.end())
+            nonstd.insert(r->name());
+    }
+    return nonstd;
 }
 
 void

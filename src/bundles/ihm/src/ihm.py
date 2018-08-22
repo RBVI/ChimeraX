@@ -1151,39 +1151,9 @@ class FileInfo:
     def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
         if r is None or r.ref_type == 'Supplementary Files':
-            # Local file
-            from os.path import join, exists
-            path = join(self.ihm_dir, self.file_path)
-            if not exists(path):
-                f = None
-                if self._warn:
-                    session.logger.warning('Missing file "%s"' % path)
-                    self._warn = False
-            elif uncompress and path.endswith('.gz'):
-                import gzip
-                f = gzip.open(path, mode)
-            else:
-                f = open(path, mode)
+            f = self._open_local_file(session, self.file_path, mode, uncompress)
         elif r.ref_type == 'DOI':
-            if r.content == 'Archive':
-                from .doi_fetch import fetch_doi_archive_file
-                f = fetch_doi_archive_file(session, r.ref, r.url, self.file_path)
-                # TODO: Handle gzip decompression of archive files.
-            elif r.content == 'File':
-                from .doi_fetch import fetch_doi
-                path = fetch_doi(session, r.ref, r.url)
-                if uncompress and path.endswith('.gz'):
-                    import gzip
-                    f = gzip.open(path, mode)
-                else:
-                    f = open(path, mode)
-            else:
-                f = None
-                if self._warn:
-                    session.logger.warning('Unrecognized DOI content type "%s" for file "%s",'
-                                           ' expecting "Archive" or "File".'
-                                           % (r.content, self.file_path))
-                    self._warn = False
+            f = self._open_doi_file(session, self.file_path, mode, uncompress)
         else:
             f = None
             if self._warn:
@@ -1192,6 +1162,58 @@ class FileInfo:
                                        % (r.ref_type, self.file_path))
                 self._warn = False
         return f
+
+    def _open_local_file(self, session, file_path, mode, uncompress):
+        from os.path import join, exists
+        path = join(self.ihm_dir, file_path)
+        if not exists(path):
+            f = None
+            if self._warn:
+                session.logger.warning('Missing file "%s"' % path)
+                self._warn = False
+        elif uncompress and path.endswith('.gz'):
+            import gzip
+            f = gzip.open(path, mode)
+        else:
+            f = open(path, mode)
+        return f
+
+    def _open_doi_file(self, session, file_path, mode, uncompress):
+        r = self.ref
+        if r._fetch_failed:
+            f = None
+        elif r.content == 'Archive':
+            from .doi_fetch import fetch_doi_archive_file
+            from chimerax.core.errors import UserError
+            try:
+                f = fetch_doi_archive_file(session, r.ref, r.url, file_path)
+            except UserError as e:
+                session.logger.warning(str(e))
+                r._fetch_failed = True
+                f = None
+            # TODO: Handle gzip decompression of archive files.
+        elif r.content == 'File':
+            from .doi_fetch import fetch_doi
+            from chimerax.core.errors import UserError
+            try:
+                path = fetch_doi(session, r.ref, r.url)
+            except UserError as e:
+                session.logger.warning(str(e))
+                r._fetch_failed = True
+                f = None
+            else:
+                if uncompress and path.endswith('.gz'):
+                    import gzip
+                    f = gzip.open(path, mode)
+                else:
+                    f = open(path, mode)
+        else:
+            f = None
+            if self._warn:
+                session.logger.warning('Unrecognized DOI content type "%s" for file "%s",'
+                                       ' expecting "Archive" or "File".'
+                                       % (r.content, file_path))
+                self._warn = False
 
     @property
     def file_name(self):
@@ -1216,19 +1238,34 @@ class FileInfo:
                 return path
             
         if r and r.ref_type == 'DOI':
-            if r.content == 'Archive' and self.file_path:
+            if r._fetch_failed:
+                path = None
+            elif r.content == 'Archive' and self.file_path:
                 from .doi_fetch import unzip_archive
-                dir = unzip_archive(session, r.ref, r.url)
-                from os.path import join, isfile
-                path = join(dir, self.file_path)
-                if not isfile(path):
-                    session.logger.warning('Failed to find map file in zip archive'
-                                           'DOI "%s", url "%s", path "%s"'
-                                           % (r.ref, r.url, path))
+                from chimerax.core.errors import UserError
+                try:
+                    dir = unzip_archive(session, r.ref, r.url)
+                except UserError as e:
+                    session.logger.warning(str(e))
+                    r._fetch_failed = True
                     path = None
+                else:
+                    from os.path import join, isfile
+                    path = join(dir, self.file_path)
+                    if not isfile(path):
+                        session.logger.warning('Failed to find map file in zip archive'
+                                               'DOI "%s", url "%s", path "%s"'
+                                               % (r.ref, r.url, path))
+                        path = None
             elif r.content == 'File':
                 from .doi_fetch import fetch_doi
-                path = fetch_doi(session, r.ref, r.url)
+                from chimerax.core.errors import UserError
+                try:
+                    path = fetch_doi(session, r.ref, r.url)
+                except UserError as e:
+                    session.logger.warning(str(e))
+                    r._fetch_failed = True
+                    path = None
             else:
                 path = None
         else:
@@ -1245,6 +1282,7 @@ class ExternalReference:
         self.ref = ref 			# DOI identifier
         self.content = content		# "Archive" or "File"
         self.url = url			# URL to zip archive for a DOI, or file
+        self._fetch_failed = False	# Remember if fetch failed to avoid multiple error messages
 
 # -----------------------------------------------------------------------------
 #
