@@ -15,8 +15,8 @@
 # -----------------------------------------------------------------------------
 #
 def label(session, objects = None, object_type = None, text = None,
-          offset = None, orient = None, color = None, size = None, height = None, font = None,
-          on_top = None):
+          offset = None, orient = None, color = None, background = None,
+          size = None, height = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
@@ -37,6 +37,8 @@ def label(session, objects = None, object_type = None, text = None,
     color : Color or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
+    background : Color or "none"
+      Draw rectangular label background in this color, or if "none", background is transparent.
     size : int or "default"
       Font size in pixels. Default 24.
     height : float or "fixed"
@@ -74,6 +76,10 @@ def label(session, objects = None, object_type = None, text = None,
         settings['color'] = color.uint8x4()
     elif color == 'default':
         settings['color'] = None
+    if isinstance(background, Color):
+        settings['background'] = background.uint8x4()
+    elif background == 'none':
+        settings['background'] = None
     if size == 'default':
         settings['size'] = 24
     elif size is not None:
@@ -194,12 +200,14 @@ def register_label_command(logger):
 
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
     DefArg = EnumOf(['default'])
+    NoneArg = EnumOf(['none'])
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
                               ('orient', FloatArg),
                               ('color', Or(DefArg, ColorArg)),
+                              ('background', Or(NoneArg, ColorArg)),
                               ('size', Or(DefArg, IntArg)),
                               ('height', Or(EnumOf(['fixed']), FloatArg)),
                               ('font', StringArg),
@@ -365,7 +373,7 @@ class ObjectLabels(Model):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        lattrs = ('object', 'text', 'offset', 'orient', 'color', 'size', 'height', 'font')
+        lattrs = ('object', 'text', 'offset', 'orient', 'color', 'background', 'size', 'height', 'font')
         lstate = tuple({attr:getattr(ld, attr) for attr in lattrs}
                        for ld in self._label_drawings.values())
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -387,7 +395,8 @@ class ObjectLabels(Model):
         v = self.session.main_view
         for ls in data['labels state']:
             o = ls['object']
-            kw = {attr:ls[attr] for attr in ('text', 'offset', 'orient', 'color', 'size', 'height', 'font')}
+            kw = {attr:ls[attr] for attr in ('text', 'offset', 'orient', 'color', 'background',
+                                             'size', 'height', 'font')}
             cls = label_class(o)
             ld[o] = ol = cls(o, v, **kw)
             self.add_drawing(ol)
@@ -414,7 +423,8 @@ class ObjectLabel(Drawing):
     pickable = False		# Don't allow mouse selection of labels
     casts_shadows = False
     
-    def __init__(self, object, view, offset = None, orient = 0, text = None, color = None,
+    def __init__(self, object, view, offset = None, orient = 0, text = None,
+                 color = None, background = None,
                  size = 24, height = None, font = 'Arial'):
         Drawing.__init__(self, 'label %s' % self.default_text())
 
@@ -425,6 +435,7 @@ class ObjectLabel(Drawing):
         self._last_camera_position = None
         self._text = text
         self._color = color
+        self.background = background
         self.size = size
         self.height = height	# None or height in world coords.  If None used fixed screen size.
         self._pixel_size = (100,10)	# Size of label in pixels, calculated from size attribute
@@ -444,7 +455,7 @@ class ObjectLabel(Drawing):
         self._position_needs_update = True		# Has label position changed relative to atom?
 
     # Attributes that cause texture update
-    _texture_attrs = ('text', 'size', 'font', 'color')
+    _texture_attrs = ('text', 'size', 'font', 'color', 'background')
     
     # Attributes that cause new label position or scale
     _position_attrs = ('offset', 'orient', 'height')
@@ -488,7 +499,10 @@ class ObjectLabel(Drawing):
     def _get_color(self):
         c = self._color
         if c is None:
-            light_bg = (sum(self.view.background_color[:3]) > 1.5)
+            bg = self.background
+            if bg is None:
+                bg = self.view.background_color
+            light_bg = (sum(bg[:3]) > 1.5)
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = c
@@ -519,10 +533,12 @@ class ObjectLabel(Drawing):
             return
         self._texture_needs_update = False
         s = self.size
-        rgba8 = (255,255,255,255)
+        rgba8 = tuple(self.color)
+        bg = self.background
+        xpad = 0 if bg is None else int(.2*s)
         from .label2d import text_image_rgba
         text = self.text
-        rgba = text_image_rgba(text, rgba8, s, self.font)
+        rgba = text_image_rgba(text, rgba8, s, self.font, background_color = bg, xpad=xpad)
         if rgba is None:
             raise RuntimeError("Can't find font %s size %d for label '%s'" % (self.font, s, text))
         if self.texture is not None:
@@ -530,8 +546,9 @@ class ObjectLabel(Drawing):
         from chimerax.core.graphics import opengl
         t = opengl.Texture(rgba)
         self.texture = t
-        self.opaque_texture = False
-        Drawing.set_color(self, self.color)
+        opaque = (self.background is not None and self.background[3] == 255)
+        self.opaque_texture = opaque
+        Drawing.set_color(self, (255,255,255,255))	# Do not modulate colors
         h,w,c = rgba.shape
         ps = (s*w/h, s)
         if ps != self._pixel_size:
@@ -575,10 +592,12 @@ class ObjectLabel(Drawing):
 # -----------------------------------------------------------------------------
 #
 class AtomLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, orient = 0, text = None, color = None,
+    def __init__(self, object, view, offset = None, orient = 0, text = None,
+                 color = None, background = None,
                  size = 24, height = None, font = 'Arial'):
         self.atom = object
-        ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text, color=color,
+        ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text,
+                             color=color, background=background,
                              size=size, height=height, font=font)
     def default_text(self):
         aname = self.atom.name
@@ -595,10 +614,12 @@ class AtomLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class ResidueLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, orient = 0, text = None, color = None,
+    def __init__(self, object, view, offset = None, orient = 0, text = None,
+                 color = None, background = None,
                  size = 24, height = None, font = 'Arial'):
         self.residue = object
-        ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text, color=color,
+        ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text,
+                             color=color, background=background,
                              size=size, height=height, font=font)
     def default_text(self):
         r = self.residue
@@ -613,10 +634,12 @@ class ResidueLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class PseudobondLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, orient = 0, text = None, color = None,
+    def __init__(self, object, view, offset = None, orient = 0, text = None,
+                 color = None, background = None,
                  size = 24, height = None, font = 'Arial'):
         self.pseudobond = object
-        ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text, color=color,
+        ObjectLabel.__init__(self, object, view, offset=offset, orient=orient, text=text,
+                             color=color, background=background,
                              size=size, height=height, font=font)
     def default_text(self):
         dm = self.pseudobond.session.pb_dist_monitor

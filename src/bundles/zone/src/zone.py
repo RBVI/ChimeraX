@@ -82,7 +82,9 @@ class AtomZoneMouseMode(MouseMode):
         from chimerax.label.label3d import label, label_delete
         ses = self.session
         label_delete(ses)
-        label(ses, aobj, 'residues')
+        from chimerax.core.colors import BuiltinColors
+        label(ses, aobj, 'residues', size = 64, height = 0.7, orient = 45,
+              color = BuiltinColors['yellow'], background = BuiltinColors['black'])
 
     def _show_ribbons(self, struct, hide_residues, ribbon_hiding):
         # Show ribbons thinner and transparent

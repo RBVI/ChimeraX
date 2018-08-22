@@ -42,6 +42,12 @@ def change_model_id(session, models, id, new_name = 'group'):
     from chimerax.core.models import MODEL_ID_CHANGED
     session.triggers.block_trigger(MODEL_ID_CHANGED)
     ml = session.models
+    # If id we are changing to is one of the models being moved then
+    # we need to change that models id so a new group model can be made with the same id.
+    for m in models:
+        if m.id == id:
+            temp_id = (12345678,)
+            ml.assign_id(m, temp_id)
     p = _find_model(session, id, create = (len(models) > 1), new_name = new_name)
     if p:
         ml.add(models, parent = p)
