@@ -242,7 +242,7 @@ class Alignment(State):
                         status("Using Needleman-Wunsch to test-associate"
                             " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
                         match_map, errors = nw_assoc(self.session, aseq, sseq)
-                        if not best_match_map or errors < best_errors:
+                        if best_errors is None or errors < best_errors:
                             best_match_map = match_map
                             best_errors = errors
                 if best_match_map:
