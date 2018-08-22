@@ -151,7 +151,7 @@ class _StatusBarOpenGL:
         tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
         from chimerax.label.label2d import text_image_rgba
         size = max(1, int((1-2*ypad) * lh))
-        rgba = text_image_rgba(msg, tcolor, size, self.font, pad=1)
+        rgba = text_image_rgba(msg, tcolor, size, self.font, xpad=1, ypad=1)
         th, tw = rgba.shape[:2]
 
         # Make image pixel exactly match screen pixel size for best appearance.
