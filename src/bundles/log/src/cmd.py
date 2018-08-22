@@ -87,8 +87,29 @@ def log_clear(session):
     if log:
         log.clear()
 
+def log_metadata(session, models=None, verbose=False):
+    if models is None:
+        models = session.models
+    log = get_singleton(session, create = False)
+    if log is not None:
+        any_metadata = False
+        for model in models:
+            if model.has_formatted_metadata(session):
+                any_metadata = True
+                model.show_metadata(session, verbose=verbose, log=log)
+        if not any_metadata:
+            if not models:
+                log.log(log.LEVEL_INFO, "No models match specifier", (None, False), False)
+            elif len(models) == 1:
+                log.log(log.LEVEL_INFO, "The model has no metadata", (None, False), False)
+            else:
+                log.log(log.LEVEL_INFO, "No models had metadata", (None, False), False)
+    else:
+        session.logger.warning("no log tool for metadata")
+
 def register_log_command(logger):
-    from chimerax.core.commands import register, CmdDesc, NoArg, BoolArg, IntArg, RestOfLine, SaveFileNameArg
+    from chimerax.core.commands import register, CmdDesc, NoArg, BoolArg, IntArg, RestOfLine, \
+        SaveFileNameArg, ModelsArg
     log_desc = CmdDesc(keyword = [('thumbnail', NoArg),
                                   ('text', RestOfLine),
                                   ('html', RestOfLine),
@@ -96,10 +117,18 @@ def register_log_command(logger):
                                   ('height', IntArg),
                                   ('save_path', SaveFileNameArg),
                                   ('warning_dialog', BoolArg),
-                                  ('error_dialog', BoolArg)],
-                       synopsis = 'Added text or thumbnail images to the log panel'
+                                  ('error_dialog', BoolArg),
+                                  ('metadata', ModelsArg),
+                                  ('verbose', BoolArg)],
+                       synopsis = 'Add text or thumbnail images to the log'
     )
     register('log', log_desc, log, logger=logger)
     register('log show', CmdDesc(synopsis='Show log panel'), log_show, logger=logger)
     register('log hide', CmdDesc(synopsis='Hide log panel'), log_hide, logger=logger)
     register('log clear', CmdDesc(synopsis='Clear log panel'), log_clear, logger=logger)
+    metadata_desc = CmdDesc(
+                        optional = [('models', ModelsArg)],
+                        keyword = [('verbose', BoolArg)],
+                        synopsis = 'Add structure metadata table to the log'
+    )
+    register('log metadata', metadata_desc, log_metadata, logger=logger)

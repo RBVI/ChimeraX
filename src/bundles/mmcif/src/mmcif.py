@@ -137,39 +137,39 @@ def _get_formatted_metadata(model, session, verbose):
             html += '  </tr>\n'
 
     # non-standard residues
-    chem_comp = get_mmcif_tables_from_metadata(model, ["chem_comp"])[0]
-    if chem_comp:
-        raw_rows = chem_comp.fields(['id', 'mon_nstd_flag', 'name', 'pdbx_synonyms'],
-            allow_missing_fields=True)
-        components = []
-        for raw_row in raw_rows:
-            if raw_row[1] == 'y' or raw_row[2] == 'WATER':
-                continue
-            row = substitute_none_for_unspecified(raw_row)
-            if row[0] and (row[2] or row[3]):
-                components.append(row)
-        if components:
-            def fmt_component(abbr, name, syns):
-                text = '<a href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
-                if name:
-                    text += '<a href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
-                        process_chem_name(name))
-                    if syns:
-                        text += " (%s)" % process_chem_name(syns)
+    nonstd_res_names = model.nonstandard_residue_names
+    if nonstd_res_names:
+        nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
+        chem_comp = get_mmcif_tables_from_metadata(model, ["chem_comp"])[0]
+        if chem_comp:
+            raw_rows = chem_comp.fields(['id', 'name', 'pdbx_synonyms'], allow_missing_fields=True)
+            for raw_row in raw_rows:
+                if raw_row[0] not in nonstd_info:
+                    continue
+                row = substitute_none_for_unspecified(raw_row)
+                if row[1] or row[2]:
+                    nonstd_info[row[0]] = (row[0], row[1], row[2])
+        def fmt_component(abbr, name, syns):
+            text = '<a href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
+            if name:
+                text += '<a href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
+                    process_chem_name(name))
+                if syns:
+                    text += " (%s)" % process_chem_name(syns)
+            else:
+                text += process_chem_name(syns)
+            return text
+        for i, info in enumerate(nonstd_info.values()):
+            abbr, name, synonyms = info
+            html += '  <tr>\n'
+            formatted = fmt_component(abbr, name, synonyms)
+            if i == 0:
+                if len(nonstd_info) > 1:
+                    html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(nonstd_info)
                 else:
-                    text += process_chem_name(syns)
-                return text
-            for i, info in enumerate(components):
-                abbr, ignore, name, synonyms = info
-                html += '  <tr>\n'
-                formatted = fmt_component(abbr, name, synonyms)
-                if i == 0:
-                    if len(components) > 1:
-                        html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(components)
-                    else:
-                        html += '   <th>Non-standard residue</th>\n'
-                html += '   <td>%s</td>\n' % formatted
-                html += '  </tr>\n'
+                    html += '   <th>Non-standard residue</th>\n'
+            html += '   <td>%s</td>\n' % formatted
+            html += '  </tr>\n'
 
     # source
     nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"])

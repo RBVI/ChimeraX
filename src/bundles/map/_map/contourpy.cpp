@@ -49,12 +49,11 @@ static PyObject *surface_py2(PyObject *, PyObject *args, PyObject *keywds)
   float threshold;
   int cap_faces = 1, return_normals = 0;
   const char *kwlist[] = {"data", "threshold", "cap_faces", "calculate_normals", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("Of|ii"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("Of|pp"),
 				   (char **)kwlist,
 				   &py_data, &threshold, &cap_faces,
 				   &return_normals))
     return NULL;
-
   
   Numeric_Array data;
   if (!array_from_python(py_data, 3, &data))
