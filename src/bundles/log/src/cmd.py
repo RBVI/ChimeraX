@@ -20,7 +20,7 @@ def get_singleton(session, create=False):
 
 def log(session, save_path = None,
         thumbnail = False, text = None, html = None, width = 100, height = 100,
-        warning_dialog = None, error_dialog = None, metadata = None, verbose = False):
+        warning_dialog = None, error_dialog = None):
     '''Operations on the Log window.
 
     Parameters
@@ -39,10 +39,6 @@ def log(session, save_path = None,
     error_dialog : bool
       If true, errors popup a separate dialog, if false no error dialog is shown.
       In either case the errors appears in the log text.
-    metadata : bool/None/models
-      If not false, log metadata of given models (None == all models).
-    verbose: bool
-      Controls verbosity of metadata logging.
     '''
     log = get_singleton(session, create = False)
     if log is not None:
@@ -59,20 +55,6 @@ def log(session, save_path = None,
             log.warning_shows_dialog = warning_dialog
         if not error_dialog is None:
             log.error_shows_dialog = error_dialog
-        if metadata:
-            models = metadata
-            any_metadata = False
-            for model in models:
-                if model.has_formatted_metadata(session):
-                    any_metadata = True
-                    model.show_metadata(session, verbose=verbose, log=log)
-            if not any_metadata:
-                if not models:
-                    log.log(log.LEVEL_INFO, "No models match specifier", (None, False), False)
-                elif len(models) == 1:
-                    log.log(log.LEVEL_INFO, "The model has no metadata", (None, False), False)
-                else:
-                    log.log(log.LEVEL_INFO, "No models had metadata", (None, False), False)
     else:
         log = session.logger
         if not save_path is None:
@@ -87,8 +69,6 @@ def log(session, save_path = None,
             pass
         if not error_dialog is None:
             pass
-        if metadata:
-            log.warning("no log tool for metadata")
 
 def log_show(session):
     '''Show the log window.'''
@@ -107,6 +87,26 @@ def log_clear(session):
     if log:
         log.clear()
 
+def log_metadata(session, models=None, verbose=False):
+    if models is None:
+        models = session.models
+    log = get_singleton(session, create = False)
+    if log is not None:
+        any_metadata = False
+        for model in models:
+            if model.has_formatted_metadata(session):
+                any_metadata = True
+                model.show_metadata(session, verbose=verbose, log=log)
+        if not any_metadata:
+            if not models:
+                log.log(log.LEVEL_INFO, "No models match specifier", (None, False), False)
+            elif len(models) == 1:
+                log.log(log.LEVEL_INFO, "The model has no metadata", (None, False), False)
+            else:
+                log.log(log.LEVEL_INFO, "No models had metadata", (None, False), False)
+    else:
+        session.logger.warning("no log tool for metadata")
+
 def register_log_command(logger):
     from chimerax.core.commands import register, CmdDesc, NoArg, BoolArg, IntArg, RestOfLine, \
         SaveFileNameArg, ModelsArg
@@ -120,9 +120,15 @@ def register_log_command(logger):
                                   ('error_dialog', BoolArg),
                                   ('metadata', ModelsArg),
                                   ('verbose', BoolArg)],
-                       synopsis = 'Add text or thumbnail images to the log panel'
+                       synopsis = 'Add text or thumbnail images to the log'
     )
     register('log', log_desc, log, logger=logger)
     register('log show', CmdDesc(synopsis='Show log panel'), log_show, logger=logger)
     register('log hide', CmdDesc(synopsis='Hide log panel'), log_hide, logger=logger)
     register('log clear', CmdDesc(synopsis='Clear log panel'), log_clear, logger=logger)
+    metadata_desc = CmdDesc(
+                        optional = [('models', ModelsArg)],
+                        keyword = [('verbose', BoolArg)],
+                        synopsis = 'Add structure metadata table to the log'
+    )
+    register('log metadata', metadata_desc, log_metadata, logger=logger)
