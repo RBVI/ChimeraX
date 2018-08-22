@@ -472,6 +472,8 @@ class Alignment(State):
             viewer.alignment_notification(note_name, note_data)
             if note_name in ["add association", "remove association"]:
                 viewer.alignment_notification("modify association", (note_name, note_data))
+            elif note_name in ["add sequences", "remove sequences"]:
+                viewer.alignment_notification("add or remove sequences", (note_name, note_data))
 
     @staticmethod
     def restore_snapshot(session, data):
