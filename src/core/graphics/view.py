@@ -223,8 +223,8 @@ class View:
 
     def check_for_drawing_change(self):
         trig = self.triggers
-        if trig:
-            trig.activate_trigger('graphics update', self)
+        if trig and self._use_opengl():
+                trig.activate_trigger('graphics update', self)
 
         c = self.camera
         cp = self.clip_planes
