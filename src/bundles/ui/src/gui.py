@@ -771,14 +771,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
         edit_menu.addAction(self.redo_action)
 
-        select_menu = mb.addMenu("&Select")
-        self.select_chains_menu = select_menu.addMenu("&Chains")
-        self.select_chains_menu.aboutToShow.connect(self.update_select_chains_menu)
-        self.select_chains_menu.setToolTipsVisible(True)
-        self.chains_menu_needs_update = False
-        from chimerax import atomic
-        atom_triggers = atomic.get_triggers(self.session)
-        atom_triggers.add_handler("changes", self._check_chains_update_status)
+        self._populate_select_menu(mb.addMenu("&Select"))
 
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
@@ -809,6 +802,47 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
         help_menu.setObjectName("Help") # so custom-menu insertion can find it
+
+    def _populate_select_menu(self, select_menu):
+        from PyQt5.QtWidgets import QAction
+        self.select_chains_menu = select_menu.addMenu("&Chains")
+        self.select_chains_menu.aboutToShow.connect(self.update_select_chains_menu)
+        self.select_chains_menu.setToolTipsVisible(True)
+        self.chains_menu_needs_update = False
+        from chimerax import atomic
+        atom_triggers = atomic.get_triggers(self.session)
+        atom_triggers.add_handler("changes", self._check_chains_update_status)
+
+        chem_menu = select_menu.addMenu("Che&mistry")
+        elements_menu = chem_menu.addMenu("&element")
+        def sel_element(element_name):
+            from chimerax.core.commands import run
+            run(self.session, "select %s" % element_name)
+        for element_name in ["C", "H", "N", "O", "P", "S"]:
+            action = QAction(element_name, self)
+            action.triggered.connect(lambda arg, *, en=element_name: sel_element(en))
+            elements_menu.addAction(action)
+
+        from chimerax.atomic import Element
+        known_elements = [nm for nm in Element.names if len(nm) < 3]
+        known_elements.sort()
+        from math import sqrt
+        incr = sqrt(len(known_elements))
+        num_menus = int(incr + 0.5)
+        start_index = 0
+        other_menu = elements_menu.addMenu("other")
+        for i in range(num_menus):
+            if i < num_menus-1:
+                end_index = int((i+1) * incr + 0.5)
+            else:
+                end_index = len(known_elements) - 1
+            submenu = other_menu.addMenu("%s-%s"
+                % (known_elements[start_index], known_elements[end_index]))
+            for en in known_elements[start_index:end_index+1]:
+                action = QAction(en, self)
+                action.triggered.connect(lambda arg, *, en=en: sel_element(en))
+                submenu.addAction(action)
+            start_index = end_index + 1
 
     def update_favorites_menu(self, session):
         from PyQt5.QtWidgets import QAction
