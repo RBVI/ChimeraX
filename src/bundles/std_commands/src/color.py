@@ -519,8 +519,7 @@ def _set_surface_color_func(atoms, objects, session, func, undo_state=None):
             if amask.all():
                 v = slice(len(vcolors))
             else:
-                session.logger.info('No atom associations for surface #%s'
-                                    % s.id_string())
+                session.logger.info('No atom associations for surface #%s' % s.id_string)
                 continue
         else:
             v = amask[v2a]
@@ -938,6 +937,10 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
     if atoms is None:
         from chimerax.atomic import all_atoms
         atoms = all_atoms(session)
+
+    if len(atoms) == 0:
+        session.logger.warning('No atoms specified')
+        return
         
     target, is_default_target = get_targets(target, what)
 

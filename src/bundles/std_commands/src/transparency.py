@@ -104,8 +104,7 @@ def _set_surface_transparency(atoms, objects, session, alpha):
             if amask.all():
                 v = slice(len(vcolors))
             else:
-                session.logger.info('No atom associations for surface #%s'
-                                    % s.id_string())
+                session.logger.info('No atom associations for surface #%s' % s.id_string)
                 continue
         else:
             v = amask[v2a]

@@ -703,8 +703,6 @@ cdef class Element:
             ele_ptr = Element._string_to_cpp_element(ident.encode())
         return ele_ptr.py_instance(True)
 
-    names = set(cydecl.Element.names())
-
 cydecl.Element.set_py_class(Element)
 
 cdef class CyResidue:

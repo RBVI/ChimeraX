@@ -93,7 +93,7 @@ def chains_and_edges(pseudobonds):
     # Group pseudobonds by the pair of chains they join
     chain_xlinks = {}
     for pb in pseudobonds:
-        chains = [(a.structure, a.chain_id) for a in pb.atoms]
+        chains = [(a.structure, a.residue.chain_id) for a in pb.atoms]
         chains.sort(key = lambda si: (id(si[0]), si[1]))
         chain_xlinks.setdefault(tuple(chains), []).append(pb)
 

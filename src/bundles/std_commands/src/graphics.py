@@ -165,7 +165,7 @@ def _drawing_triangles(drawings, lines, indent = ''):
         dtri = d.number_of_triangles(displayed_only = True)
         tri += dtri
         ninst = d.number_of_positions(displayed_only = True)
-        name = '#%s %s' % (d.id_string(), d.name) if isinstance(d, Model) else d.name
+        name = '#%s %s' % (d.id_string, d.name) if isinstance(d, Model) else d.name
         line = '%s%s %d' % (indent, name, dtri)
         if ninst > 1:
             line += ' in %d instances, %d each' % (ninst, dtri//ninst)

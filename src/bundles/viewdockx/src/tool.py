@@ -122,7 +122,7 @@ class _BaseTool(HtmlToolInstance):
         name_list = []
         name_attr = self.category_name
         for s in self.structures:
-            id_list.append(s.id_string())
+            id_list.append(s.id_string)
             if name_attr:
                 name_list.append(s.viewdockx_data.get(name_attr, "unnamed"))
         text_data["id"] = id_list

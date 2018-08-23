@@ -302,7 +302,7 @@ def _file_output(file_name, output_info, naming_style):
         out_file.write("Using precise constraint criteria\n")
     out_file.write("Models used:\n")
     for s in structures:
-        out_file.write("\t%s %s\n" % (s.id_string(), s.name))
+        out_file.write("\t%s %s\n" % (s.id_string, s.name))
     if cs_ids is None:
         hbond_lists = [hbond_info]
     else:

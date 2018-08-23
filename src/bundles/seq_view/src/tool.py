@@ -455,6 +455,8 @@ class SequenceViewer(ToolInstance):
             for aseq in assoc_aseqs:
                 self.seq_canvas.assoc_mod(aseq)
                 self._update_errors_gaps(aseq)
+            from .header_sequence import DynamicStructureHeaderSequence
+            self.seq_canvas.refresh_headers(header_class=DynamicStructureHeaderSequence)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)
         elif note_name == "destroyed":
@@ -462,6 +464,9 @@ class SequenceViewer(ToolInstance):
         elif note_name == "command":
             from .cmd import run
             run(self.session, self, note_data)
+        elif note_name == "add or remove sequences":
+            from .header_sequence import DynamicHeaderSequence
+            self.seq_canvas.refresh_headers(header_class=DynamicHeaderSequence)
 
     def delete(self):
         self.region_browser.destroy()
@@ -561,15 +566,18 @@ class SequenceViewer(ToolInstance):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(session, data['alignment'])
         inst.region_browser.restore_state(data['region browser'])
+        if 'seq canvas' in data:
+            inst.seq_canvas.restore_state(session, data['seq canvas'])
         return inst
 
     SESSION_SAVE = True
-    
+
     def take_snapshot(self, session, flags):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'alignment': self.alignment,
-            'region browser': self.region_browser.save_state()
+            'region browser': self.region_browser.save_state(),
+            'seq canvas': self.seq_canvas.save_state()
         }
         return data
 
