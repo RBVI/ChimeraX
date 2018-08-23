@@ -133,9 +133,9 @@ class Alignment(State):
                 sseqs.sort(key=lambda s: len(s), reverse=True)
             associated = False
             struct_name = struct.name
-            if '.' in struct.id_string():
+            if '.' in struct.id_string:
                 # ensemble
-                struct_name += " (" + struct.id_string() + ")"
+                struct_name += " (" + struct.id_string + ")"
             def do_assoc(add_gaps=False):
                 if reeval and sseq in self.associations:
                     old_aseq = self.associations[sseq]
@@ -242,7 +242,7 @@ class Alignment(State):
                         status("Using Needleman-Wunsch to test-associate"
                             " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
                         match_map, errors = nw_assoc(self.session, aseq, sseq)
-                        if not best_match_map or errors < best_errors:
+                        if best_errors is None or errors < best_errors:
                             best_match_map = match_map
                             best_errors = errors
                 if best_match_map:
@@ -306,9 +306,9 @@ class Alignment(State):
             if not reassoc and isinstance(sseq, StructureSeq) and not sseq.structure.deleted:
                 struct = sseq.structure
                 struct_name = struct.name
-                if '.' in struct.id_string():
+                if '.' in struct.id_string:
                     # ensemble
-                    struct_name += " (" + struct.id_string() + ")"
+                    struct_name += " (" + struct.id_string + ")"
                 self.session.logger.info("Disassociated %s %s from %s"
                     % (struct_name, sseq.name, aseq.name))
             from chimerax.core.triggerset import DEREGISTER
@@ -472,6 +472,8 @@ class Alignment(State):
             viewer.alignment_notification(note_name, note_data)
             if note_name in ["add association", "remove association"]:
                 viewer.alignment_notification("modify association", (note_name, note_data))
+            elif note_name in ["add sequences", "remove sequences"]:
+                viewer.alignment_notification("add or remove sequences", (note_name, note_data))
 
     @staticmethod
     def restore_snapshot(session, data):

@@ -276,9 +276,10 @@ class PickedAtomicShape(Pick):
     def drawing(self):
         return self._drawing
 
+    @property
     def id_string(self):
         d = self.drawing()
-        return d.id_string() if hasattr(d, 'id_string') else '?'
+        return d.id_string if hasattr(d, 'id_string') else '?'
 
     def is_transparent(self):
         d = self.drawing()

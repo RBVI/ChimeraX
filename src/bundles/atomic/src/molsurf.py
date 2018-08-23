@@ -365,7 +365,7 @@ class MolecularSurface(Surface):
         if v2a is None:
             from chimerax.core.errors import UserError
             raise UserError('Surface #%s does not have atom patches, cannot color by atom'
-                            % self.id_string())
+                            % self.id_string)
         if per_atom_colors is None:
             c = self.atoms.colors[v2a[vmask],:]
         else:

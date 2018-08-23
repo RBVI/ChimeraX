@@ -519,8 +519,7 @@ def _set_surface_color_func(atoms, objects, session, func, undo_state=None):
             if amask.all():
                 v = slice(len(vcolors))
             else:
-                session.logger.info('No atom associations for surface #%s'
-                                    % s.id_string())
+                session.logger.info('No atom associations for surface #%s' % s.id_string)
                 continue
         else:
             v = amask[v2a]

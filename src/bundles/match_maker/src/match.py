@@ -426,8 +426,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 logged_params = True
             logger.status("Matchmaker %s (#%s) with %s (#%s),"
                 " sequence alignment score = %g" % (
-                s1.name, s1.structure.id_string(), s2.name,
-                s2.structure.id_string(), score), log=True)
+                s1.name, s1.structure.id_string, s2.name,
+                s2.structure.id_string, score), log=True)
             skip = set()
             viewer = None
             if show_alignment:

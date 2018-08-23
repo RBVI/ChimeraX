@@ -635,7 +635,7 @@ def fit_map_in_map(session):
 
     map1, map2 = maps
     from chimerax.core.commands import run
-    run(session, 'fit #%s in #%s' % (map1.id_string(), map2.id_string()))
+    run(session, 'fit #%s in #%s' % (map1.id_string, map2.id_string))
 
 def subtract_maps(session):
     maps = shortcut_maps(session, undisplayed = False, at_least = 2)
@@ -647,7 +647,7 @@ def subtract_maps(session):
 
     map1, map2 = maps
     from chimerax.core.commands import run
-    run(session, 'vop subtract #%s #%s minrms' % (map1.id_string(), map2.id_string()))
+    run(session, 'vop subtract #%s #%s minrms' % (map1.id_string, map2.id_string))
 
 def smooth_map(session):
     maps = shortcut_maps(session, undisplayed = False)
@@ -660,7 +660,7 @@ def smooth_map(session):
     map = maps[0]
     sdev = 3*max(map.data.step)
     from chimerax.core.commands import run
-    run(session, 'vop gaussian #%s sdev %.3g' % (map.id_string(), sdev))
+    run(session, 'vop gaussian #%s sdev %.3g' % (map.id_string, sdev))
 
 def show_biological_unit(m, session):
 

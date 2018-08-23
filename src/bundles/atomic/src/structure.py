@@ -84,7 +84,7 @@ class Structure(Model, StructureData):
             from chimerax.core.core_settings import settings
             style = settings.atomspec_contents
 
-        id = '#' + self.id_string()
+        id = '#' + self.id_string
         if style.startswith("command") or not self.name:
             return id
         return '%s %s' % (self.name, id)
@@ -92,7 +92,7 @@ class Structure(Model, StructureData):
     @property
     def atomspec(self):
         '''Return the atom specifier string for this structure.'''
-        return '#' + self.id_string()
+        return '#' + self.id_string
 
     def delete(self):
         '''Delete this structure.'''
@@ -2400,7 +2400,7 @@ class AtomicStructure(Structure):
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
             return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s</a>' % (
-                chain.structure.id_string(), chain.chain_id, chain.chain_id)
+                chain.structure.id_string, chain.chain_id, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
 
     def _report_ensemble_chain_descriptions(self, session, ensemble):
@@ -2416,8 +2416,8 @@ class AtomicStructure(Structure):
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
             return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s/%s</a>' % (
-                chain.structure.id_string(), chain.chain_id,
-                chain.structure.id_string(), chain.chain_id)
+                chain.structure.id_string, chain.chain_id,
+                chain.structure.id_string, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
 
     def _report_chain_summary(self, session, descripts, chain_text):
@@ -2426,7 +2426,7 @@ class AtomicStructure(Structure):
             if len(chains) == 1:
                 return escape(description)
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
-                ''.join(["#%s/%s" % (chain.structure.id_string(), chain.chain_id)
+                ''.join(["#%s/%s" % (chain.structure.id_string, chain.chain_id)
                     for chain in chains]), escape(description))
         from chimerax.core.logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
@@ -2485,7 +2485,7 @@ def assembly_html_table(mol):
              '<tr><th colspan=2>%s mmCIF Assemblies' % mol.name]
     for id, details in sa:
         lines.append('<tr><td><a title="Generate assembly" href="cxcmd:sym #%s assembly %s ; view">%s</a><td>%s'
-                     % (mol.id_string(), id, id, details))
+                     % (mol.id_string, id, id, details))
     lines.append('</table>')
     html = '\n'.join(lines)
     return html

@@ -174,7 +174,7 @@ class IHMModel(Model):
                 ea.setdefault(edesc,[]).append(asym_id)
 
         # Create html table of entities with chains for each entity.
-        rid = self.results_model.id_string()
+        rid = self.results_model.id_string
         from chimerax.core.logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'

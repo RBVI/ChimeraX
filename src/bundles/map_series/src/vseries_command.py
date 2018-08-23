@@ -262,7 +262,7 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         b = (ms1 - a*m1) / n
         am = a*m
         am += b
-        print ('scaling #%s' % v.id_string(), a, b, m1, ms1, m2, ms2, mms, am.mean(), am.std(), ms.mean(), ms.std())
+        print ('scaling #%s' % v.id_string, a, b, m1, ms1, m2, ms2, mms, am.mean(), am.std(), ms.mean(), ms.std())
         m[:] = am.astype(m.dtype)
 
     if not enclose_volume is None or not fast_enclose_volume is None:

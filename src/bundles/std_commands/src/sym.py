@@ -482,7 +482,7 @@ def assembly_info(mol, assemblies):
              '<tr><th colspan=3>%s mmCIF Assemblies' % mol.name]
     for a in assemblies:
         lines.append('<tr><td><a href="cxcmd:sym #%s assembly %s ; view">%s</a><td>%s<td>%s'
-                     % (mol.id_string(), a.id, a.id, a.description, a.copy_description(mol)))
+                     % (mol.id_string, a.id, a.id, a.description, a.copy_description(mol)))
     lines.append('</table>')
     html = '\n'.join(lines)
     return html

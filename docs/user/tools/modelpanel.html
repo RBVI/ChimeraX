@@ -35,13 +35,22 @@ graphical objects, for example, those read from
 A model can be read from a file,
 derived from another model, or created from scratch.
 </p><p>
-Model numbers can be assigned automatically or in some cases,
-specified by the user.
+Model numbers can be assigned automatically or specified by the user.
 They are hierarchical, with any number of levels
 (positive integers N, N.N, <i>etc.</i>); for example,
 #1.1, #1.2, ... #1.10 could be 10 structures in an NMR ensemble.
 A <b><i>submodel</i></b> (model at a lower level) is still an entire model,
-but the hierarchy allows grouping.
+but the hierarchy allows grouping. 
+Models that are grouped automatically include:
+</p>
+<ul>
+<li>NMR ensembles of atomic models
+<li>multiple contour surfaces of the same
+<a href="volumeviewer.html">volume data</a>
+</ul>
+<p>
+Model names and/or numbers (and thus groupings) can be
+changed with the <a href="../commands/rename.html"><b>rename</b></a> command.
 </p><p>
 Like other tools, the <b>Model Panel</b> can be opened from the 
 <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
@@ -86,5 +95,5 @@ See also:
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2018</address>
+August 2018</address>
 </body></html>

@@ -200,7 +200,7 @@ class ModelPanel(ToolInstance):
 
     def _get_info(self, obj):
         model_id = obj.id
-        model_id_string = obj.id_string()
+        model_id_string = obj.id_string
         bg_color = self._model_color(obj)
         display = obj.display
         name = getattr(obj, "name", "(unnamed)")

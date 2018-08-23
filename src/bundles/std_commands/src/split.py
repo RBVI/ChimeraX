@@ -56,7 +56,7 @@ def split(session, structures = None, chains = None, ligands = False, connected 
             parent.add(clist)
             slist.append(m)
             olist.append(parent)
-            msg = 'Split %s (#%s) into %d models' % (m.name, m.id_string(), len(clist))
+            msg = 'Split %s (#%s) into %d models' % (m.name, m.id_string, len(clist))
         else:
             msg = 'Did not split %s, has only one piece' % m.name
         log.status(msg)

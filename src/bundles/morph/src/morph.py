@@ -72,7 +72,7 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     if not color_segments and color_core is None:
         traj.set_initial_color()
 
-    session.logger.info('Computed %d frame morph #%s' % (traj.num_coordsets, traj.id_string()))
+    session.logger.info('Computed %d frame morph #%s' % (traj.num_coordsets, traj.id_string))
 
     if hide_models:
         for m in structures:
@@ -84,7 +84,7 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
 
     if play:
         csids = traj.coordset_ids
-        cmd = 'coordset #%s %d,%d' % (traj.id_string(), min(csids), max(csids))
+        cmd = 'coordset #%s %d,%d' % (traj.id_string, min(csids), max(csids))
         from chimerax.core.commands import run
         run(session, cmd)
 

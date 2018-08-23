@@ -958,8 +958,8 @@ class RegionBrowser:
                     break
             else:
                 self.seq_canvas.sv.status("Use delete/backspace key to remove regions")
-        interior = self._get_rgba(fill)
-        border = self._get_rgba(outline)
+        interior = get_rgba(fill)
+        border = get_rgba(outline)
         region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix, shown=shown,
                 border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, source=source)
         if isinstance(after, Region):
@@ -1342,12 +1342,6 @@ class RegionBrowser:
         window(sel)
         cofr(sel)
 
-    def _get_rgba(self, specified=None):
-        if isinstance(specified, str):
-            from chimerax.core.colors import BuiltinColors
-            return BuiltinColors[specified].rgba
-        return specified
-    
     def _key_press_cb(self, event):
         from PyQt5.QtCore import Qt
         if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
@@ -1836,6 +1830,12 @@ def region_name(region, prefs):
         return unicode(region)
     return ellipsisName(unicode(region), prefs[REGION_NAME_ELLIPSIS])
 """
+
+def get_rgba(color_info):
+    if isinstance(color_info, str):
+        from chimerax.core.colors import BuiltinColors
+        return BuiltinColors[color_info].rgba
+    return color_info
 
 def rgba_to_qcolor(rgba):
     from PyQt5.QtGui import QBrush, QPen, QColor

@@ -2113,11 +2113,11 @@ class Histogram_Pane:
     if len(v.name) >= 0:
         self.data_name.show()
         self.data_name.setText(v.name)
-        self.data_id.setText('#%s' % v.id_string())
+        self.data_id.setText('#%s' % v.id_string)
     else:
         self.data_name.hide()
         self.data_name.setText('')
-        self.data_id.setText('#%s %s' % (v.id_string(), v.name))
+        self.data_id.setText('#%s %s' % (v.id_string, v.name))
 
   # ---------------------------------------------------------------------------
   #
