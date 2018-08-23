@@ -32,7 +32,7 @@ def label(session, objects = None, object_type = None, text = None,
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
     orient : float
       Reorient the labels to face the view direction only when the view direction changes
-      changes by the specified number of degrees.  Default 0 makes the labels always face
+      by the specified number of degrees.  Default 0 makes the labels always face
       the view direction.  This option is primarily of interest with virtual reality viewing.
       This is a per-structure setting.
     color : Color or "default"
