@@ -556,7 +556,7 @@ class RegionBrowser:
         ModelessDialog.destroy(self)
         """
 
-    """TODO
+    """TODO: also change _mouse_up_cb handling of double-click to raise the region browser
     def fillInUI(self, parent):
         self.Close()
         row = 0
@@ -1528,9 +1528,10 @@ class RegionBrowser:
             # maybe a region pick
             region = self._region(event)
             if region:
-                if double:
-                    self.enter()
-                else:
+                #if double:
+                #    self.enter()
+                #else:
+                if True:
                     self._toggle_active(region)
             else:
                 # maybe a column pick
