@@ -173,7 +173,7 @@ class AtomZoneMouseMode(MouseMode):
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         atom = self._picked_atom(pick) 
         if atom:
-            self._show_zone(atom, center=False, label=False, ribbon=False)
+            self._show_zone(atom, center=False, label=True, ribbon=False)
         else:
             self._unzone()
 
