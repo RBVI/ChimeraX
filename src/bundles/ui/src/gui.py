@@ -827,8 +827,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         known_elements = [nm for nm in Element.names if len(nm) < 3]
         known_elements.sort()
         from math import sqrt
-        incr = sqrt(len(known_elements))
-        num_menus = int(incr + 0.5)
+        num_menus = int(sqrt(len(known_elements)) + 0.5)
+        incr = len(known_elements) / num_menus
         start_index = 0
         other_menu = elements_menu.addMenu("other")
         for i in range(num_menus):
