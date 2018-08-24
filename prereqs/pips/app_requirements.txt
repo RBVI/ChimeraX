@@ -6,7 +6,7 @@ colorama==0.3.9
 comtypes==1.1.7
 Cython==0.28.5
 distlib==0.2.7
-filelock==3.0.4
+filelock==3.0.6
 html2text==2018.1.9
 line_profiler==2.1.2
 lxml==4.2.4
@@ -14,6 +14,7 @@ matplotlib==2.2.3
 networkx==2.1
 openvr==1.0.1201
 Pillow==5.2.0
+pkginfo==1.4.2
 psutil==5.4.7
 pycollada==0.6
 python-dateutil==2.7.3

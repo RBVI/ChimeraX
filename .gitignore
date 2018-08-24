@@ -43,6 +43,8 @@ src/bundles/atomic/atomic_cpp/data/
 src/bundles/atomic/atomic_cpp/include/
 src/bundles/atomic/atomic_cpp/pyinstance_cpp/imex.map.h
 src/bundles/atomic/src/include/
+src/bundles/atomic/src/data/
+src/bundles/atom_search/search_cpp/ast.cpp
 src/bundles/chem_group/bundle_info.xml
 src/bundles/md_crds/gromacs/xdrfile-1.1b/
 src/bundles/mmcif/mmcif_cpp/include/
@@ -61,6 +63,7 @@ src/core/buildinfo.py
 src/core/_serialize.cpp
 src/core/commands/_atomspec.py
 src/examples/sample/license.txt
+src/examples/sample/vc140.pdb
 src/wheelhouse/Makefile.wheelhouse
 prereqs/PyQt/*commercial*
 docs/license.html
