@@ -28,7 +28,7 @@ wheel:	bundle_info.xml lib
 	$(RUN) "devel build . exit true test false"
 
 lib:
-	cd atomic_cpp; make
+	cd atomic_cpp; $(MAKE)
 
 install app-install:	bundle_info.xml $(SRCS) lib
 	$(RUN) "devel install . user false exit true test false"
@@ -47,7 +47,7 @@ clean:
 	else \
 		rm -rf build dist *.egg-info src/__pycache__ ; \
 	fi
-	cd atomic_cpp; make clean
+	cd atomic_cpp; $(MAKE) clean
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))

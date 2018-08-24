@@ -26,11 +26,11 @@ DATAFILES = $(wildcard src/icons/*.png src/widgets/icons/*.png)
 SRCS = $(PYSRCS) $(DATAFILES)
 
 wheel:	bundle_info.xml $(SRCS)
-	make -C src about.html
+	$(MAKE) -C src about.html
 	$(RUN) "devel build . exit true"
 
 install app-install:	bundle_info.xml $(SRCS)
-	make -C src about.html
+	$(MAKE) -C src about.html
 	$(RUN) "devel install . user false exit true"
 
 test:
