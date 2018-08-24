@@ -62,7 +62,7 @@ UBUNTU_DEPENDENCIES = {
         "liblzma5": "5.1.1alpha+20120614",
         "libnspr4": "4.13.1",
         "libnss3": "3.28.4",
-        "libosmesa": "17.2.8",
+        "libosmesa6": "17.2.8",
         "libpango-1.0-0": "1.38.1",
         "libpangocairo-1.0-0": "1.38.1",
         "libpulse-mainloop-glib0": "8.0",
