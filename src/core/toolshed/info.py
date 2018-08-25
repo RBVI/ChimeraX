@@ -440,14 +440,20 @@ class BundleInfo:
         return self._bundle_path(self.installed_data_dir)
 
     def _bundle_path(self, filename):
+        # Find path for a filename in bundle without
+        # actually importing the Python package
         if not filename:
             return None
-        import pkgutil
-        loader = pkgutil.get_loader(self.package_name)
-        if not loader:
+        from importlib.util import find_spec
+        s = find_spec(self.package_name)
+        if s is None:
             return None
-        from os.path import dirname, join
-        return join(dirname(loader.path), filename)
+        import os.path
+        for d in s.submodule_search_locations:
+            p = os.path.join(d, filename)
+            if os.path.exists(p):
+                return p
+        return None
 
     def unload(self, logger):
         """Unload bundle modules (as best as we can)."""
@@ -487,8 +493,10 @@ class BundleInfo:
         return m
 
     def update_library_path(self):
+        # _debug("update_library_path", self.name, self.package_name)
         libdir = self.library_dir()
         if not libdir:
+            # _debug("  update_library_path: no libdir")
             return
         import sys
         if sys.platform.startswith('win'):
@@ -501,6 +509,7 @@ class BundleInfo:
                 return
             paths.append(libdir)
             os.environ['PATH'] = ';'.join(paths)
+            # _debug("  update_library_path: windows", paths)
 
     def _get_api(self, logger=None):
         """Return BundleAPI instance for this bundle."""
@@ -508,6 +517,7 @@ class BundleInfo:
         try:
             bundle_api = getattr(m, 'bundle_api')
         except AttributeError:
+            # XXX: Should we return a default BundleAPI instance?
             raise ToolshedError("missing bundle_api for bundle \"%s\"" % self.name)
         # _debug("_get_api", self.package_name, m, bundle_api)
         return bundle_api

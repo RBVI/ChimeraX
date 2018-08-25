@@ -533,15 +533,6 @@ def _make_bundle_info(d, installed, logger):
     except (KeyError, OSError):
         pass
 
-    #
-    # If the bundle does not implement BundleAPI interface,
-    # act as if it were not a bundle
-    #
-    try:
-        bi._get_api(logger)
-    except ToolshedError as e:
-        _debug("InstalledBundleCache._make_bundle_info: %s" % str(e))
-        return None
     return bi
 
 
