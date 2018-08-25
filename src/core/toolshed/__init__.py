@@ -18,14 +18,9 @@ installation from a remote server.
 The Toolshed can handle updating, installing and uninstalling
 bundles while taking care of inter-bundle dependencies.
 
-The Toolshed interface uses :py:mod:`distlib` heavily.
-For example, `Distribution` instances from :py:mod:`distlib`
-are tracked for both available and installed bundles;
-the :py:class:`distlib.locators.Locator` class is used for finding
-an installed :py:class:`distlib.database.Distribution`.
+The Toolshed interface uses :py:mod:`pkg_resources` heavily.
 
 Each Python distribution, a ChimeraX Bundle,
-(ChimeraX uses :py:class:`distlib.wheel.Wheel`)
 may contain multiple tools, commands, data formats, and specifiers,
 with metadata entries for each deliverable.
 
@@ -625,7 +620,7 @@ class Toolshed:
             container = self._installed_bundle_info
         else:
             container = self._get_available_bundles(logger)
-        from distlib.version import NormalizedVersion as Version
+        from pkg_resources import parse_version
         lc_name = name.lower().replace('_', '-')
         best_bi = None
         best_version = None
@@ -639,12 +634,12 @@ class Toolshed:
             if version is None:
                 if best_bi is None:
                     best_bi = bi
-                    best_version = Version(bi.version)
+                    best_version = parse_version(bi.version)
                 elif best_bi.name != bi.name:
                     logger.warning("%r matches multiple bundles %s, %s" % (name, best_bi.name, bi.name))
                     return None
                 else:
-                    v = Version(bi.version)
+                    v = parse_version(bi.version)
                     if v > best_version:
                         best_bi = bi
                         best_version = v
@@ -702,6 +697,7 @@ class Toolshed:
         _debug("initialize_bundles")
         failed = []
         for bi in self._installed_bundle_info:
+            bi.update_library_path()    # for bundles with dynamic libraries
             try:
                 bi.initialize(session)
             except ToolshedError:
@@ -776,7 +772,7 @@ class Toolshed:
                     raise ImportError("bundle %r has no module" % bundle_name)
                 return module
         # No installed bundle matches
-        from distlib.version import NormalizedVersion as Version
+        from pkg_resources import parse_version
         lc_name = name.lower().replace('_', '-')
         best_bi = None
         best_version = None
@@ -785,11 +781,11 @@ class Toolshed:
                 continue
             if best_bi is None:
                 best_bi = bi
-                best_version = Version(bi.version)
+                best_version = parse_version(bi.version)
             elif best_bi.name != bi.name:
                 raise ImportError("%r matches multiple bundles %s, %s" % (package_name, best_bi.name, bi.name))
             else:
-                v = Version(bi.version)
+                v = parse_version(bi.version)
                 if v > best_version:
                     best_bi = bi
                     best_version = v
