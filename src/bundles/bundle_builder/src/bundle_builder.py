@@ -70,7 +70,7 @@ class BundleBuilder:
     def make_install(self, session, test=True, debug=False, user=None):
         self.make_wheel(test=test, debug=debug)
         from chimerax.core.commands import run
-        cmd = "toolshed install %r reinstall true" % self.wheel_path
+        cmd = "toolshed install %r" % self.wheel_path
         if user is not None:
             if user:
                 cmd += " user true"
@@ -542,15 +542,14 @@ class _CompiledCode:
 
     def _get_bundle_dirs(self, logger, dep):
         from chimerax.core import toolshed
-        # It's either pulling unsupported class from pip or roll our own.
-        from pip.req.req_install import InstallRequirement
-        ir = InstallRequirement.from_line(dep)
-        if not ir.check_if_exists():
+        from pkg_resources import Requirement, get_distribution
+        req = Requirement.parse(dep)
+        if not get_distribution(req):
             raise RuntimeError("unsatisfied dependency: %s" % dep)
         ts = toolshed.get_toolshed()
-        bundle = ts.find_bundle(ir.name, logger)
+        bundle = ts.find_bundle(req.project_name, logger)
         if not bundle:
-            raise RuntimeError("bundle not found: %s" % ir.name)
+            raise RuntimeError("bundle not found: %s" % req)
             # return None, None
         inc = bundle.include_dir()
         lib = bundle.library_dir()

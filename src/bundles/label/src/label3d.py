@@ -417,8 +417,6 @@ class ObjectLabels(Model):
             x += w
         th = y + hr	# Teture height in pixels
 
-        print ('label texture size', tw, th)
-        
         # Create single image with packed label images
         opaque = True
         from numpy import empty, uint8

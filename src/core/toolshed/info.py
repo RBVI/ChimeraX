@@ -481,13 +481,12 @@ class BundleInfo:
             pass
         import importlib
         try:
-            self._update_library_path()
             m = importlib.import_module(self.package_name)
         except Exception as e:
             raise ToolshedError("Error importing bundle %s's module: %s" % (self.name, str(e)))
         return m
 
-    def _update_library_path(self):
+    def update_library_path(self):
         libdir = self.library_dir()
         if not libdir:
             return
@@ -514,16 +513,11 @@ class BundleInfo:
         return bundle_api
 
     def get_path(self, subpath):
-        import os
-        m = self.get_module()
-        try:
-            directory = os.path.dirname(m.__file__)
-        except AttributeError:
+        p = self._bundle_path(subpath)
+        if p is None:
             return None
-        path = os.path.join(directory, subpath)
-        if os.path.exists(path):
-            return path
-        return None
+        import os.path
+        return p if os.path.exists(p) else None
 
     def start_tool(self, session, tool_name, *args, **kw):
         """Create and return a tool instance.
@@ -583,8 +577,8 @@ class BundleInfo:
         Boolean
             True if this instance is newer; False if 'bi' is newer.
         """
-        from distlib.version import NormalizedVersion as Version
-        return Version(self.version) > Version(bi.version)
+        from pkg_resources import parse_version
+        return parse_version(self.version) > parse_version(bi.version)
 
     def dependents(self, logger):
         """Return set of bundles that directly depends on this one.
