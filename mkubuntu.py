@@ -296,7 +296,6 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
             Bugs: mailto:chimerax-bugs@cgl.ucsf.edu
             Section: contrib/science
             Priority: optional
-            Recommends: opencl-icd
             Tags: science::visualisation, science::modelling, field::biology, field::chemistry,
              field::biology:structural, field::biology:bioinformatics,
              biology::nucleic-acids, biology::peptidic,
