@@ -386,9 +386,10 @@ class ObjectLabels(Model):
         ta = self._visible_label_triangles()
         self.set_geometry(va, normals, ta)
         if self.texture is not None:
-            self.texture.delete_texture()
-        from chimerax.core.graphics import Texture
-        self.texture = Texture(trgba)
+            self.texture.reload_texture(trgba)
+        else:
+            from chimerax.core.graphics import Texture
+            self.texture = Texture(trgba)
         self.texture_coordinates = tcoord
         self.opaque_texture = opaque
         self._positions_need_update = False
