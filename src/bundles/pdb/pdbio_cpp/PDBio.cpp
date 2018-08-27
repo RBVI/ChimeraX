@@ -265,6 +265,8 @@ start_t = end_t;
             if (record.unknown.junk[0] & 0200) {
                 logger::error(py_logger, "Non-ASCII character on line ",
                     *line_num, " of PDB file");
+                PyErr_SetString(PyExc_ValueError, "PDB file contains non-ASCII character"
+                    " or control character");
                 return nullptr;
             }
             logger::warning(py_logger, "Ignored bad PDB record found on line ",
