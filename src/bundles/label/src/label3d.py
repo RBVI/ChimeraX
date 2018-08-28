@@ -391,7 +391,9 @@ class ObjectLabels(Model):
             from chimerax.core.graphics import Texture
             self.texture = Texture(trgba)
         self.texture_coordinates = tcoord
-        self.opaque_texture = opaque
+        # Even if background transparent render opaque so it is not hidden by one-transparent layer
+        # when behind a transparent surface.
+        self.opaque_texture = True
         self._positions_need_update = False
         self._texture_needs_update = False
         self._visibility_needs_update = False
