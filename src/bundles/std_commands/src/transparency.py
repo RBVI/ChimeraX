@@ -133,12 +133,13 @@ def _set_surface_transparency(atoms, objects, session, alpha):
 #
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, Or, ObjectsArg, EmptyArg, FloatArg
-    from chimerax.core.commands import StringArg, ListOf, EnumOf
+    from chimerax.core.commands import ListOf, EnumOf
+    from .color import TargetArg
     from .color import WHAT_TARGETS
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                              ('percent', FloatArg)],
                    optional=[('what', what_arg)],
-                   keyword=[('target', StringArg)],
+                   keyword=[('target', TargetArg)],
                    synopsis="change object transparency")
     register('transparency', desc, transparency, logger=logger)

@@ -221,10 +221,10 @@ class LabelDrawing(Drawing):
         self.texture_size = None
         self.needs_update = True
         
-    def draw(self, renderer, place, draw_pass, selected_only=False):
+    def draw(self, renderer, place, draw_pass, highlighted_only=False):
         if not self.update_drawing():
             self.resize()
-        Drawing.draw(self, renderer, place, draw_pass, selected_only)
+        Drawing.draw(self, renderer, place, draw_pass, highlighted_only)
 
     def update_drawing(self):
         if not self.needs_update:

@@ -244,7 +244,7 @@ class DrawingState:
                   'triangle_mask', 'edge_mask', 'display_style', 'texture', 
                   'ambient_texture', 'ambient_texture_transform', 
                   'use_lighting', 'positions', 'display_positions', 
-                  'selected_positions', 'selected_triangles_mask', 'colors']
+                  'highlighted_positions', 'highlighted_triangles_mask', 'colors']
 
     @staticmethod
     def take_snapshot(drawing, session, flags):
