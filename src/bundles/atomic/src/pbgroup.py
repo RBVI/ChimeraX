@@ -95,7 +95,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def set_selected(self, sel, *, fire_trigger=True):
         self.pseudobonds.selected = sel
         Model.set_selected(self, sel, fire_trigger=fire_trigger)
-    selected = property(Model.selected.getter, set_selected)
+    selected = property(Model.selected.fget, set_selected)
 
     def selected_items(self, itype):
         if itype == 'pseudobonds':

@@ -1031,7 +1031,7 @@ class Volume(Model):
     Model.set_selected(self, sel, fire_trigger=fire_trigger)
     for s in self.surfaces:
       s.set_selected(sel)
-  selected = property(Model.selected.getter, _set_selected)
+  selected = property(Model.selected.fget, _set_selected)
 
   # ---------------------------------------------------------------------------
   #

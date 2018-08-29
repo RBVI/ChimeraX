@@ -1604,14 +1604,14 @@ class Structure(Model, StructureData):
         self.atoms.selected = sel
         self.bonds.selected = sel
         Model.set_selected(self, sel, fire_trigger=fire_trigger)
-    selected = property(Model.selected.getter, set_selected)
+    selected = property(Model.selected.fget, set_selected)
 
     def set_selected_positions(self, spos):
         sel = (spos is not None and spos.sum() > 0)
         self.atoms.selected = sel
         self.bonds.selected = sel
         Model.set_selected_positions(self, spos)
-    selected_positions = property(Model.selected_positions.getter, set_selected_positions)
+    selected_positions = property(Model.selected_positions.fget, set_selected_positions)
     
     def selected_items(self, itype):
         if itype == 'atoms':

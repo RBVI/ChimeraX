@@ -147,7 +147,9 @@ class Model(State, Drawing):
 
     selected = property(Drawing.get_highlighted, set_selected)
 
-    selected_positions = Drawing.highlighted_positions
+    @property
+    def selected_positions(self):
+        return self.highlighted_positions
     
     def _model_set_position(self, pos):
         if pos != self.position:

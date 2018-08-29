@@ -403,7 +403,7 @@ class MolecularSurface(Surface):
     def set_selected(self, sel, *, fire_trigger=True):
         self.atoms.selected = sel
         self.update_selection(fire_trigger=fire_trigger)
-    selected = property(Surface.selected.getter, set_selected)
+    selected = property(Surface.selected.fget, set_selected)
 
     def update_selection(self, *, fire_trigger=True):
         asel = self.atoms.selected
