@@ -23,7 +23,6 @@ WHAT_TARGETS = {
     'atoms': 'a',
     'cartoons': 'c', 'ribbons': 'c',
     'surfaces': 's',
-    'labels': 'l',
     'bonds': 'b',
     'pseudobonds': 'p',
     # 'distances': 'd',  # TODO: conflicts with distance argument
@@ -62,7 +61,7 @@ def color(session, objects, color=None, what=None, target=None,
     target : string
       Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
-      l = labels, b = bonds, p = pseudobonds, d = distances.
+      b = bonds, p = pseudobonds, d = distances.
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
@@ -109,10 +108,6 @@ def color(session, objects, color=None, what=None, target=None,
         if atoms is not None and color is not None:
             _set_atom_colors(atoms, color, opacity, bgcolor, undo_state)
             items.append('%d atoms' % len(atoms))
-
-    if 'l' in target:
-        if not is_default_target:
-            session.logger.warning('Label colors not supported yet')
 
     if 's' in target and color is not None:
         # TODO: save undo data
@@ -450,10 +445,6 @@ def color_func(session, objects, what=None, target=None, func=None, func_text='C
         undo_state.add(atoms, "colors", atoms.colors, c)
         atoms.colors = c
         what.append('%d atoms' % len(atoms))
-
-    if 'l' in target:
-        if not is_default_target:
-            session.logger.warning('Label colors not supported yet')
 
     if 's' in target:
         surfs = _set_surface_color_func(atoms, objects, session, func, undo_state)
@@ -881,7 +872,7 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
     target : string
       Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
-      l = labels, b = bonds, p = pseudobonds, d = distances.
+      b = bonds, p = pseudobonds, d = distances.
       Everything is colored if no target is specified.
     palette : :class:`.Colormap`
       Color map to use with sequential coloring.
