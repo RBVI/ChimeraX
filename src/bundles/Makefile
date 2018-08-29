@@ -80,7 +80,7 @@ mmtf.install: atomic.install
 model_panel.install: ui.install
 model_series.install: ui.install
 modeller.install: alignments.install
-mol2.install: atomic.install
+mol2.install: atomic.install chem_group.install
 mouse_modes.install: ui.install
 nucleotides.install: atomic.install ui.install
 pdb.install: atomic.install
