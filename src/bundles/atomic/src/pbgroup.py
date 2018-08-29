@@ -104,6 +104,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
                 return [pbonds.filter(pbonds.selected)]
         return []
 
+    def all_parts_selected(self):
+        if self.pseudobonds.num_selected < self.num_pseudobonds:
+            return False
+        for c in self.child_models():
+            if not c.all_parts_selected():
+                return False
+        return True
+
     def any_part_selected(self):
         if self.pseudobonds.num_selected > 0:
             return True

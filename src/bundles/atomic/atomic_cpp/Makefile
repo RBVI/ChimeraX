@@ -32,7 +32,7 @@ endif
 endif
 
 all: lib include data
-	make install
+	$(MAKE) install
 
 lib:
 	mkdir lib

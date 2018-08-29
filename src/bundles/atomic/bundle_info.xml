@@ -29,7 +29,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.7"/>
+    <Dependency name="ChimeraX-Core" version=">=0.8"/>
   </Dependencies>
 
   <Classifiers>

@@ -838,16 +838,8 @@ again:
 			}
 			++pos;
 			++lineno;
-			char c = *(pos + 1);
-			if (*pos == ';' && is_eol(c)) {
-#ifdef CR_IS_EOL
-				if (c == '\r') {
-					++pos;
-					c = *(pos + 1);
-				}
-#endif
-				if (c)
-					++pos;
+			if (*pos == ';') {
+				++pos;
 				break;
 			}
 			if (save_values)

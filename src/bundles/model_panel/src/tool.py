@@ -204,8 +204,8 @@ class ModelPanel(ToolInstance):
         bg_color = self._model_color(obj)
         display = obj.display
         name = getattr(obj, "name", "(unnamed)")
-        selected = obj.selected
-        part_selected = obj.any_part_selected()
+        selected = obj in self.session.selection.models(all_selected=True)
+        part_selected = selected or obj in self.session.selection.models()
         return model_id, model_id_string, bg_color, display, name, selected, part_selected
 
     def _header_click_cb(self, index):

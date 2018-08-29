@@ -2382,6 +2382,7 @@ class Texture:
         self.data = data
         self.id = None
         self.dimension = dimension
+        self.size = None
         self.gl_target = (GL.GL_TEXTURE_CUBE_MAP if cube_map else
                           (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
         self.linear_interpolation = True
@@ -2520,8 +2521,10 @@ class Texture:
     def fill_opengl_texture(self):
         data = self.data
         self.data = None
+        size = tuple(data.shape[self.dimension - 1::-1])
+        if size != self.size and self.id is not None:
+            self.delete_texture()
         if self.id is None:
-            size = tuple(data.shape[self.dimension - 1::-1])
             format, iformat, tdtype, ncomp = self.texture_format(data)
             self.initialize_texture(size, format, iformat, tdtype, ncomp, data)
         else:

@@ -104,7 +104,7 @@ th.bundle {
 
 
 def _newest_by_name(bi_list):
-    from distlib.version import NormalizedVersion as Version
+    from pkg_resources import parse_version
     bundle_map = {}
     for bi in bi_list:
         try:
@@ -112,7 +112,7 @@ def _newest_by_name(bi_list):
         except KeyError:
             bundle_map[bi.name] = bi
         else:
-            if Version(bi.version) > Version(seen.version):
+            if parse_version(bi.version) > parse_version(seen.version):
                 bundle_map[bi.name] = bi
     return bundle_map.values()
 

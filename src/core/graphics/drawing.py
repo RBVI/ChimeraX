@@ -392,7 +392,7 @@ class Drawing:
 
     def any_part_selected(self):
         '''Is any part of this Drawing or its children selected.'''
-        if self.selected:
+        if self.selected and not self.empty_drawing():
             return True
         for d in self.child_drawings():
             if d.any_part_selected():
@@ -466,10 +466,14 @@ class Drawing:
 
     def number_of_positions(self, displayed_only=False):
         '''Number of positions the Drawing is placed at.'''
-        if displayed_only and not self.display:
-            return 0
-        dp = self.display_positions
-        np = len(self.positions) if dp is None else dp.sum()
+        if displayed_only:
+            if self.display:
+                dp = self.display_positions
+                np = len(self.positions) if dp is None else dp.sum()
+            else:
+                np = 0
+        else:
+            np = len(self.positions)
         return np
 
     def get_color(self):
@@ -599,7 +603,7 @@ class Drawing:
         '''Does this drawing have no geometry? Does not consider child
         drawings.'''
         v,t = self.vertices, self.triangles
-        return v is None or t is None or len(t) == 0
+        return v is None or t is None or len(t) == 0 or len(self.positions) == 0
 
     def number_of_triangles(self, displayed_only=False):
         '''Return the number of triangles including all child drawings

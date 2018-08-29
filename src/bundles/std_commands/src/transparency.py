@@ -112,14 +112,15 @@ def _set_surface_transparency(atoms, objects, session, alpha):
         s.vertex_colors = vcolors
 
     # Handle surface models specified without specifying atoms
-    from chimerax.atomic import MolecularSurface, Structure
+    from chimerax.atomic import MolecularSurface
     from chimerax.map import Volume
+    from chimerax.core.models import Surface
     osurfs = []
     for s in objects.models:
         if isinstance(s, MolecularSurface):
             if not s in surfs:
                 osurfs.append(s)
-        elif isinstance(s, Volume) or (not isinstance(s, Structure) and not s.empty_drawing()):
+        elif isinstance(s, Volume) or isinstance(s, Surface):
             osurfs.append(s)
     for s in osurfs:
         s.set_transparency(alpha)

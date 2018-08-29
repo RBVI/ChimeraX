@@ -23,11 +23,10 @@ class Selection:
         # atomic.structure.StructureGraphicsChangeManager
         # Maybe it should be moved up to Model level somehow?
 
-    def all_models(self):
-        return self._all_models.list()
-
-    def models(self):
-        return [m for m in self.all_models() if m.any_part_selected()]
+    def models(self, all_selected=False):
+        if all_selected:
+            return [m for m in self._all_models if m.all_parts_selected()]
+        return [m for m in self._all_models if m.any_part_selected()]
 
     def items(self, itype):
         si = []
@@ -37,7 +36,7 @@ class Selection:
         return si
 
     def empty(self):
-        for m in self.all_models():
+        for m in self._all_models:
             if m.any_part_selected():
                 return False
         return True
@@ -77,7 +76,7 @@ class Selection:
                     for i in items:
                         orig = self._orig_state(i, old_state)
                         undo_state.add(i, "selected", orig, new_state)
-        models = [m for m in self.all_models() if m.selected]
+        models = [m for m in self._all_models if m.selected]
         if models:
             for m in models:
                 orig = old_state if old_state is not None else m.selected

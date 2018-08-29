@@ -1624,6 +1624,14 @@ class Structure(Model, StructureData):
                 return [bonds.filter(bonds.selected)]
         return []
 
+    def all_parts_selected(self):
+        if self.atoms.num_selected < self.num_atoms or self.bonds.num_selected < self.num_bonds:
+            return False
+        for c in self.child_models():
+            if not c.all_parts_selected():
+                return False
+        return True
+
     def any_part_selected(self):
         if self.atoms.num_selected > 0 or self.bonds.num_selected > 0:
             return True
