@@ -211,7 +211,7 @@ def triangles_model(session, points, triangles,
                     name = 'vtk polygons', color = (180,180,180,255)):
     from chimerax.core.models import Surface
     m = Surface(name, session)
-    from chimerax.core import surface
+    from chimerax import surface
     normals = surface.calculate_vertex_normals(points, triangles)
     m.set_geometry(points, normals, triangles)
     m.color = color

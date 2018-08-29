@@ -24,7 +24,7 @@ class SampleTool(HtmlToolInstance):
         for m in self.session.models.list(type=AtomicStructure):
             html.append("<li><a href=\"%s:%s\">%s - %s</a></li>" %
                         (self.CUSTOM_SCHEME, quote(m.atomspec),
-                         m.id_string(), m.name))
+                         m.id_string, m.name))
         html.extend(["</ul>",
                      "<h3>Output:</h3>",
                      '<div id="output">Counts appear here</div>'])

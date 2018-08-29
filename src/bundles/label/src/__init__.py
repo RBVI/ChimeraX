@@ -34,3 +34,4 @@ class _LabelBundle(BundleAPI):
 bundle_api = _LabelBundle()
 
 from .label2d import label_create, label_change, label_delete, Label
+from .mouselabel import LabelMouseMode

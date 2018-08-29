@@ -556,7 +556,7 @@ class RegionBrowser:
         ModelessDialog.destroy(self)
         """
 
-    """TODO
+    """TODO: also change _mouse_up_cb handling of double-click to raise the region browser
     def fillInUI(self, parent):
         self.Close()
         row = 0
@@ -958,8 +958,8 @@ class RegionBrowser:
                     break
             else:
                 self.seq_canvas.sv.status("Use delete/backspace key to remove regions")
-        interior = self._get_rgba(fill)
-        border = self._get_rgba(outline)
+        interior = get_rgba(fill)
+        border = get_rgba(outline)
         region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix, shown=shown,
                 border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, source=source)
         if isinstance(after, Region):
@@ -1342,12 +1342,6 @@ class RegionBrowser:
         window(sel)
         cofr(sel)
 
-    def _get_rgba(self, specified=None):
-        if isinstance(specified, str):
-            from chimerax.core.colors import BuiltinColors
-            return BuiltinColors[specified].rgba
-        return specified
-    
     def _key_press_cb(self, event):
         from PyQt5.QtCore import Qt
         if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
@@ -1534,9 +1528,10 @@ class RegionBrowser:
             # maybe a region pick
             region = self._region(event)
             if region:
-                if double:
-                    self.enter()
-                else:
+                #if double:
+                #    self.enter()
+                #else:
+                if True:
                     self._toggle_active(region)
             else:
                 # maybe a column pick
@@ -1724,7 +1719,9 @@ class RegionBrowser:
         self._sel_change_from_self = True
         self.tool_window.session.selection.clear()
         from chimerax.atomic import Residues
-        Residues(self.region_residues(region)).atoms.selected = True
+        sel_atoms = Residues(self.region_residues(region)).atoms
+        sel_atoms.selecteds = True
+        sel_atoms.intra_bonds.selecteds = True
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
@@ -1834,6 +1831,12 @@ def region_name(region, prefs):
         return unicode(region)
     return ellipsisName(unicode(region), prefs[REGION_NAME_ELLIPSIS])
 """
+
+def get_rgba(color_info):
+    if isinstance(color_info, str):
+        from chimerax.core.colors import BuiltinColors
+        return BuiltinColors[color_info].rgba
+    return color_info
 
 def rgba_to_qcolor(rgba):
     from PyQt5.QtGui import QBrush, QPen, QColor

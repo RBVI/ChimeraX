@@ -87,7 +87,7 @@ Parameters that are not specified retain their current values.
 <a name="text"></a>
 <b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;|&nbsp;<b>default</b>
 <br>
-Text contents of the label, which can be an arbitrary string 
+Specify text contents of the label, which can be an arbitrary string 
 or <b>default</b> information based on the object type being labeled:
 <ul>
 <li>for <b>atoms</b> (default), atom name
@@ -109,23 +109,49 @@ Carriage returns are indicated with <b>\n</b>.
 <blockquote>
 <b>color</b>&nbsp;&nbsp;<i>label-color</i>&nbsp;|&nbsp;<b>default</b>
 <br>
-Label color, where <i>label-color</i> can be 
+Set label color, where <i>label-color</i> can be 
 any <a href="colornames.html">color name</a> 
-that specifies a single color (default <b>white</b>). 
+that specifies a single color (default <b>white</b> or <b>black</b>
+depending on the color of the <a href="#background">label background</a>, 
+if any, otherwise the <a href="set.html#bgColor">window background </a>). 
+</blockquote>
+
+<a name="background"></a>
+<blockquote>
+<b>background</b>&nbsp;&nbsp;<i>background-color</i>&nbsp;|&nbsp;<b>none</b>
+<br>
+Show a rectangular background behind the label text (default <b>none</b>,
+no background), where <i>background-color</i> can be any 
+<a href="colornames.html">color name</a> that specifies a single color.
 </blockquote>
 
 <blockquote>
+<a name="size"></a>
 <b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;|&nbsp;<b>default</b>
 <br>
-Label size, where <i>font-size</i> must be an integer greater than zero 
-(default <b>24</b>). 
+Set label size, where <i>font-size</i> must be an integer greater than zero 
+(default <b>24</b>). If a <a href="#height"><b>height</b></a>&nbsp;<i>h</i>
+is specified, labels will have a constant physical size instead of a fixed size 
+relative to the screen; however, the <b>size</b> parameter 
+will still affect the number of pixels in the rasterized text,
+with larger values giving smoother edges.
+</blockquote>
+
+<blockquote>
+<a name="height"></a>
+<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;|&nbsp;<b>fixed</b>
+<br>
+Set label height in distance units of the data (typically &Aring;)
+so that labels will scale along with the scene,
+or keep label size <b>fixed</b> relative to the screen (default)
+as per the <a href="#size"><b>size</b></a> parameter.
 </blockquote>
 
 <blockquote>
 <a name="font"></a>
 <b>font</b>&nbsp;&nbsp;<i>font-type</i>&nbsp;|&nbsp;<b>default</b>
 <br>
-Label font (default <b>Arial</b>); the command <b>label listfonts</b>
+Specify label font (default <b>Arial</b>); the command <b>label listfonts</b>
 lists the possible values of <i>font-type</i> in the 
 <a href="../tools/log.html"><b>Log</b></a>.
 Those with spaces must be enclosed in quotation marks.
@@ -134,7 +160,7 @@ Those with spaces must be enclosed in quotation marks.
 <blockquote>
 <b>offset</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>default</b>
 <br>
-An absolute offset is specified by
+Specify an absolute offset for a label as
 three comma-separated values <i>x,y,z</i> representing distances along the
 X-, Y-, and Z-axes in the 
 <a href="view.html#screencoords">screen coordinate system</a>.
@@ -144,14 +170,25 @@ The default offset is <b>(<i>display_radius</i> + 0.2),0,0.5</b>.
 </blockquote>
 
 <blockquote>
+<b>orient</b>&nbsp;&nbsp;<i>update-angle</i>
+<br>
+Specify what change in viewing direction causes labels to be redrawn to face
+the viewer (default <b>0.0</b>&deg;, constant label reorientation);
+a larger angle gives less frequent label updates, which may be useful 
+for maintaining a rapid frame rate,
+such as in <a href="../vr.html">virtual reality</a>.
+The <i>update-angle</i> can be set differently for different models.
+</blockquote>
+
+<blockquote>
 <b>onTop</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to draw the labels on top of other objects regardless of their
 relative positions in 3D (default <b>true</b>);
-applies to all 3D labels no matter which atoms are specified.
+can be set differently for different models.
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2017</address>
+August 2018</address>
 </body></html> 

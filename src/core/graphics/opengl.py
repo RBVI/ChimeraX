@@ -84,6 +84,7 @@ class OpenGLContext:
         self._mode = 'stereo' if use_stereo else 'mono'
         self._contexts = {}		# Map mode to QOpenGLContext, or False if creation failed
         self._share_context = None	# First QOpenGLContext, shares state with others
+        self._create_failed = False
         self._wait_for_vsync = True
         self._deleted = False
 
@@ -100,7 +101,8 @@ class OpenGLContext:
     def delete(self):
         self._deleted = True
         for oc in self._contexts.values():
-            oc.deleteLater()
+            if oc:
+                oc.deleteLater()
         self._contexts.clear()
         self._share_context = None
 
@@ -110,13 +112,17 @@ class OpenGLContext:
     
     def make_current(self, window = None):
         '''Make the OpenGL context active.'''
+        if self._create_failed:
+            return False
+        
         qc = self._qopengl_context
         if qc is None:
             # create context
-            qc = self._initialize_context()
-
-        if not qc:
-            raise RuntimeError("Context initialization failed, could not make graphics context current")
+            try:
+                qc = self._initialize_context()
+            except (OpenGLError, OpenGLVersionError):
+                self._create_failed = True
+                raise
 
         w = self.window if window is None else window
         if not qc.makeCurrent(w):
@@ -313,30 +319,31 @@ class Render:
 
         self._default_framebuffer = None
         self.framebuffer_stack = [self.default_framebuffer()]
-        self._mask_framebuffer = None		# Used for drawing selection outlines
-        self._silhouette_framebuffer = None
+
         self._texture_win = None
 
         # 3D ambient texture transform from model coordinates to texture
         # coordinates:
         self.ambient_texture_transform = None
 
-        # Shadows
-        self.shadow_map_framebuffer = None
-        self.shadow_texture_unit = 1
-        # Maps camera coordinates to shadow map texture coordinates:
-        self._shadow_transform = None
-        self.multishadow_map_framebuffer = None
-        self.multishadow_texture_unit = 2
-        self._max_multishadows = None
-        self._multishadow_transforms = None
-        # near to far clip depth for shadow map:
-        self._multishadow_depth = None
-        # Uniform buffer object for shadow matrices:
-        self._multishadow_matrix_buffer_id = None
-        self._multishadow_uniform_block = 2     # Uniform block number
+        # Key light shadow
+        self.shadow = Shadow(self, texture_unit = 1)
 
+        # Multishadow
+        self.multishadow = Multishadow(self, texture_unit = 2)
+
+        # Silhouette edges
+        self.silhouette = Silhouette(self)
+
+        # Selection outlines
+        self.outline = Outline(self)
+        
         self.single_color = (1, 1, 1, 1)
+
+        # Depth texture rendering parameters
+        self.depth_texture_unit = 3
+        self._depth_texture_scale = None
+        
         self.frame_number = 0
 
 	# Camera origin, y, and xshift for SHADER_STEREO_360 mode
@@ -344,31 +351,31 @@ class Render:
 
     def delete(self):
         self.make_current()
-        for fbattr in ('_default_framebuffer',
-                       '_mask_framebuffer',
-                       '_silhouette_framebuffer',
-                       'shadow_map_framebuffer',
-                       'multishadow_map_framebuffer'):
-            fb = getattr(self, fbattr)
-            if fb:
-                fb.delete()
-            setattr(self, fbattr, None)
+        
+        fb = self._default_framebuffer
+        if fb:
+            fb.delete()
+            self._default_framebuffer = None
 
         lb = self._lighting_buffer
         if lb is not None:
             GL.glDeleteBuffers(1, [lb])
             self._lighting_buffer = None
 
-        mmb = self._multishadow_matrix_buffer_id
-        if mmb is not None:
-            GL.glDeleteBuffers(1, [mmb])
-            self._multishadow_matrix_buffer_id = None
-
         tw = self._texture_win
         if tw is not None:
             tw.delete()
             self._texture_win = None
 
+        self.shadow.delete()
+        self.shadow = None
+        
+        self.multishadow.delete()
+        self.multishadow = None
+
+        self.silhouette.delete()
+        self.silhouette = None
+        
     @property
     def opengl_context(self):
         return self._opengl_context
@@ -470,7 +477,8 @@ class Render:
         Return a shader that supports the specified capabilities.
         Also activate the shader with glUseProgram().
         The capabilities are specified as at bit field of values from
-        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_CUBEMAP,
+        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D,
+        SHADER_DEPTH_TEXTURE, SHADER_TEXTURE_CUBEMAP,
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_OUTLINE,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
@@ -497,11 +505,9 @@ class Render:
             if self.SHADER_TEXTURE_3D_AMBIENT & c:
                 shader.set_integer('tex3d', 0)    # Tex unit 0.
             if self.SHADER_MULTISHADOW & c:
-                self._set_multishadow_shader_variables(shader)
+                self.multishadow._set_multishadow_shader_variables(shader)
             if self.SHADER_SHADOWS & c:
-                shader.set_integer("shadow_map", self.shadow_texture_unit)
-                if self._shadow_transform is not None:
-                    shader.set_matrix("shadow_transform", self._shadow_transform)
+                self.shadow._set_shadow_shader_variables(shader)
             if self.SHADER_DEPTH_CUE & c:
                 self.set_depth_cue_parameters()
         if not (self.SHADER_TEXTURE_OUTLINE & c or self.SHADER_DEPTH_OUTLINE & c):
@@ -510,6 +516,8 @@ class Render:
         if (self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_OUTLINE & c
             or self.SHADER_DEPTH_OUTLINE & c):
             shader.set_integer("tex2d", 0)    # Texture unit 0.
+        if self.SHADER_DEPTH_TEXTURE & c:
+            self._set_depth_texture_shader_variables(shader)
         if self.SHADER_TEXTURE_CUBEMAP & c:
             shader.set_integer("texcube", 0)
         if not self.SHADER_VERTEX_COLORS & c:
@@ -549,13 +557,13 @@ class Render:
         if capabilities in sp:
             p = sp[capabilities]
         else:
-            p = Shader(capabilities, self.max_multishadows())
+            p = Shader(capabilities, self.multishadow.max_multishadows())
             sp[capabilities] = p
             if capabilities & self.SHADER_LIGHTING:
                 self._bind_lighting_parameter_buffer(p)
                 if capabilities & self.SHADER_MULTISHADOW:
                     GL.glUseProgram(p.program_id)
-                    self._set_multishadow_shader_constants(p)
+                    self.multishadow._set_multishadow_shader_constants(p)
         self._use_shader(p)
         return p
 
@@ -816,84 +824,6 @@ class Render:
         if p is not None:
             p.set_matrix("ambient_tex3d_transform", tf.opengl_matrix())
 
-    def set_shadow_transform(self, stf):
-        # Transform from camera coordinates to shadow map texture coordinates.
-        self._shadow_transform = m = stf.opengl_matrix()
-        p = self.current_shader_program
-        if p is not None:
-            c = p.capabilities
-            if self.SHADER_SHADOWS & c and self.SHADER_LIGHTING & c:
-                p.set_matrix("shadow_transform", m)
-
-    def set_multishadow_transforms(self, stf, ctf, shadow_depth):
-        # Transform from camera coordinates to shadow map texture coordinates.
-        if ctf is None:
-            mt = stf.opengl_matrices()
-        elif self.recording_opengl:
-            from .gllist import Mat44Func
-            mt = Mat44Func('multishadow matrices', lambda: (stf * ctf()).opengl_matrices(), len(stf))
-        else:
-            mt = (stf * ctf).opengl_matrices()
-        self._multishadow_transforms = mt
-        self._multishadow_depth = shadow_depth
-
-        # TODO: Issue warning if maximum number of shadows exceeded.
-        maxs = self.max_multishadows()
-
-        if self.recording_opengl:
-            mm = mt
-        else:
-            mm = mt[:maxs, :, :]
-        offset = 0
-        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._multishadow_matrix_buffer())
-        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, offset, mm.nbytes, mm)
-        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
-
-        p = self.current_shader_program
-        if p is not None:
-            c = p.capabilities
-            if self.SHADER_MULTISHADOW & c and self.SHADER_LIGHTING & c:
-                self._set_multishadow_shader_variables(p)
-
-    def _set_multishadow_shader_constants(self, shader):
-        # Set the multishadow texture unit and the matrix uniform block unit for the shader.
-        shader.set_integer("multishadow_map", self.multishadow_texture_unit)
-        pid = shader.program_id
-        bi = GL.glGetUniformBlockIndex(pid, b'shadow_matrix_block')
-        bslot = self._multishadow_uniform_block
-        GL.glUniformBlockBinding(pid, bi, bslot)
-
-    def _multishadow_matrix_buffer(self):
-        b = self._multishadow_matrix_buffer_id
-        if b is None:
-            # Create uniform buffer object for shadow matrices.
-            self._multishadow_matrix_buffer_id = b = GL.glGenBuffers(1)
-            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
-            nbytes = 64 * self.max_multishadows()
-            GL.glBufferData(GL.GL_UNIFORM_BUFFER, nbytes, pyopengl_null(), GL.GL_DYNAMIC_DRAW)
-            bslot = self._multishadow_uniform_block
-            GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, bslot, b)
-            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
-        return b
-
-    def _set_multishadow_shader_variables(self, shader):
-        m = self._multishadow_transforms
-        if m is None:
-            return
-
-        maxs = self.max_multishadows()            
-        shader.set_integer("shadow_count", min(maxs, len(m)))
-        shader.set_float("shadow_depth", self._multishadow_depth)
-
-    def max_multishadows(self):
-        'Maximum number of shadows to cast.'
-        m = self._max_multishadows
-        if m is None:
-            m = GL.glGetIntegerv(GL.GL_MAX_UNIFORM_BLOCK_SIZE)      # OpenGL requires >= 16384.
-            m = m // 64                                             # 64 bytes per matrix.
-            self._max_multishadows = m
-        return m
-
     def check_for_opengl_errors(self):
         # Clear previous errors.
         lines = []
@@ -1113,21 +1043,7 @@ class Render:
             b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
             GL.glDrawBuffer(b)
 
-    def start_rendering_shadowmap(self, center, radius, size=1024):
-
-        fb = self.shadowmap_start(self.shadow_map_framebuffer,
-                                  self.shadow_texture_unit, center, radius,
-                                  size)
-        self.shadow_map_framebuffer = fb
-
-    def start_rendering_multishadowmap(self, center, radius, size=1024):
-
-        fb = self.shadowmap_start(self.multishadow_map_framebuffer,
-                                  self.multishadow_texture_unit, center,
-                                  radius, size)
-        self.multishadow_map_framebuffer = fb
-
-    def shadowmap_start(self, framebuffer, texture_unit, center, radius, size):
+    def start_depth_render(self, framebuffer, texture_unit, center, radius, size):
 
         # Set projection matrix to be orthographic and span all models.
         from ..geometry import scale, translation
@@ -1142,7 +1058,7 @@ class Render:
                 fb.delete()
             dt = Texture()
             dt.initialize_depth((size, size))
-            fb = Framebuffer('shadowmap', self.opengl_context, depth_texture=dt, color=False)
+            fb = Framebuffer('depth map', self.opengl_context, depth_texture=dt, color=False)
             if not fb.activate():
                 fb.delete()
                 return None           # Requested size exceeds framebuffer limits
@@ -1162,100 +1078,6 @@ class Render:
 
         return fb
 
-    def finish_rendering_shadowmap(self):
-
-        self.draw_depth_only(False)
-        fb = self.pop_framebuffer()
-        return fb.depth_texture
-
-    def finish_rendering_multishadowmap(self):
-
-        return self.finish_rendering_shadowmap()
-
-    def shadow_transforms(self, light_direction, center, radius,
-                          depth_bias=0.005):
-
-        if self.recording_opengl:
-            from . import gllist
-            s = gllist.ShadowMatrixFunc(self, light_direction, center, radius, depth_bias)
-            return (s.lvinv, s.stf)
-
-        # Projection matrix, orthographic along z
-        from ..geometry import translation, scale, orthonormal_frame
-        pm = (scale((1 / radius, 1 / radius, -1 / radius))
-              * translation((0, 0, radius)))
-
-        # Compute the view matrix looking along the light direction.
-        from ..geometry import normalize_vector
-        ld = normalize_vector(light_direction)
-        # Light view frame:
-        lv = translation(center - radius * ld) * orthonormal_frame(-ld)
-        lvinv = lv.inverse()  # Scene to light view coordinates
-
-        # Convert (-1, 1) normalized device coords to (0, 1) texture coords.
-        ntf = translation((0.5, 0.5, 0.5 - depth_bias)) * scale(0.5)
-        stf = ntf * pm * lvinv               # Scene to shadowmap coordinates
-
-        fb = self.current_framebuffer()
-        w, h = fb.width, fb.height
-        if self.current_viewport != (0, 0, w, h):
-            # Using a subregion of shadow map to handle multiple shadows in
-            # one texture.  Map scene coordinates to subtexture.
-            x, y, vw, vh = self.current_viewport
-            stf = (translation((x / w, y / w, 0)) * scale((vw / w, vh / h, 1))
-                   * stf)
-
-        return lvinv, stf
-
-    def set_outline_depth(self):
-        '''Copy framebuffer depth to outline framebuffer.  Only selected
-        objects at equal depth or in front will be outlines by start_rendering_outline().
-        This routine must be called before start_rendering_outline().
-        '''
-        mfb = self.make_mask_framebuffer()
-        cfb = self.current_framebuffer()
-        cfb.copy_to_framebuffer(mfb, color=False)
-    
-    def start_rendering_outline(self):
-        '''Must call set_outline_depth() before invoking this routine.'''
-        fb = self.current_framebuffer()
-        mfb = self.make_mask_framebuffer()
-        self.push_framebuffer(mfb)
-        self.set_background_color((0, 0, 0, 0))
-        self.draw_background(depth = False)
-        # Use unlit all white color for drawing mask.
-        # Outline code requires non-zero red component.
-        self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
-                                         | self.SHADER_TEXTURE_2D
-                                         | self.SHADER_TEXTURE_CUBEMAP
-                                         | self.SHADER_LIGHTING)
-        self.enable_capabilities |= self.SHADER_ALL_WHITE
-        # Depth test GL_LEQUAL results in z-fighting:
-        self.set_depth_range(0, 0.999999)
-
-    def finish_rendering_outline(self):
-
-        self.pop_framebuffer()
-        self.disable_shader_capabilities(0)
-        self.enable_capabilities &= ~self.SHADER_ALL_WHITE
-        self.set_depth_range(0, 1)
-        t = self._mask_framebuffer.color_texture
-        self.draw_texture_mask_outline(t)
-
-    def make_mask_framebuffer(self):
-        size = self.render_size()
-        mfb = self._mask_framebuffer
-        w, h = size
-        if mfb and mfb.width == w and mfb.height == h:
-            return mfb
-        if mfb:
-            mfb.delete()
-        t = Texture()
-        t.linear_interpolation = False
-        t.initialize_8_bit(size)
-        self._mask_framebuffer = mfb = Framebuffer('mask', self.opengl_context, color_texture=t)
-        return mfb
-
     def _texture_window(self, texture, shader_options):
         tw = self._texture_win
         if tw is None:
@@ -1264,26 +1086,6 @@ class Render:
         texture.bind_texture()
         self.opengl_shader(shader_options)
         return tw
-
-    def draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1)):
-
-        # Render outline of region where texture red > 0.
-        # Outline pixels have red = 0 in texture mask but are adjacent
-        # in one of 4 directions to pixels with red > 0.
-        # The depth buffer is not used.  (Depth buffer was used to handle
-        # occlusion in the mask texture passed to this routine.)
-        w, h = texture.size
-        dx, dy = 1.0 / w, 1.0 / h
-        tc = self._texture_window(texture, self.SHADER_TEXTURE_OUTLINE)
-        p = self.current_shader_program
-        p.set_vector2('step', (dx, dy))
-        p.set_rgba('color', color)
-        tc.draw()
-
-    def set_texture_mask_color(self, color):
-        p = self.current_shader_program
-        if p is not None:
-            p.set_rgba("color", color)
 
     def allow_equal_depth(self, equal):
         GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
@@ -1297,47 +1099,6 @@ class Render:
         # # on Mac/Nvidia
         # GL.glDepthFunc(GL.GL_LEQUAL)
         GL.glDepthRange(min, max)
-
-    def start_silhouette_drawing(self):
-        alpha = self.current_framebuffer().alpha
-        fb = self.silhouette_framebuffer(self.render_size(), alpha)
-        self.push_framebuffer(fb)
-
-    def finish_silhouette_drawing(self, thickness, color, depth_jump,
-                                  perspective_near_far_ratio):
-        fb = self.pop_framebuffer()
-        cfb = self.current_framebuffer()
-        cfb.copy_from_framebuffer(fb, depth=False)
-        self.draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
-                                perspective_near_far_ratio)
-
-    def silhouette_framebuffer(self, size, alpha):
-        sfb = self._silhouette_framebuffer
-        if sfb and (size[0] != sfb.width or size[1] != sfb.height or alpha != sfb.alpha):
-            sfb.delete()
-            sfb = None
-        if sfb is None:
-            dt = Texture()
-            dt.linear_interpolation = False
-            dt.initialize_depth(size, depth_compare_mode=False)
-            sfb = Framebuffer('silhouette', self.opengl_context, depth_texture=dt, alpha=alpha)
-            self._silhouette_framebuffer = sfb
-        return sfb
-
-    def draw_depth_outline(self, depth_texture, thickness=1,
-                           color=(0, 0, 0, 1), depth_jump=0.03,
-                           perspective_near_far_ratio=1):
-        # Render pixels with depth in depth_texture less than neighbor pixel
-        # by at least depth_jump. The depth buffer is not used.
-        tc = self._texture_window(depth_texture, self.SHADER_DEPTH_OUTLINE)
-
-        p = self.current_shader_program
-        p.set_rgba("color", color)
-        p.set_vector2("jump", (depth_jump, perspective_near_far_ratio))
-        w, h = depth_texture.size
-        dx, dy = 1.0 / w, 1.0 / h
-        p.set_vector3("step", (dx, dy, thickness))
-        tc.draw(blend = True)
 
     def finish_rendering(self):
         GL.glFinish()
@@ -1357,11 +1118,476 @@ class Render:
             p.set_float4("camera_origin_and_shift", tuple(camera_origin) + (x_shift,))
             p.set_float4("camera_vertical", tuple(camera_y) + (0,))
 
+    def _set_depth_texture_shader_variables(self, shader):
+        shader.set_integer("tex_depth_2d", self.depth_texture_unit)
+        znear, zfar = self._near_far_clip
+        shader.set_vector3("tex_depth_params", (znear, zfar/(zfar-znear), self._depth_texture_scale))
+
+    def set_depth_texture_parameters(self, depth_texture_scale):
+        self._depth_texture_scale = depth_texture_scale
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_DEPTH_TEXTURE:
+            self._set_depth_texture_shader_variables(p)
+
+
+class Shadow:
+    '''Render a directional shadow.'''
+    
+    def __init__(self, render, texture_unit = 1):
+        self._render = render
+
+        self._shadow_map_framebuffer = None
+        self._shadow_texture_unit = texture_unit
+        self._shadow_transform = None        # Map scene coordinates to shadow map texture coordinates.
+        self._shadow_view_transform = None   # Map camera coordinates to shadow map texture coordinates.
+
+    def delete(self):
+        fb = self._shadow_map_framebuffer
+        if fb:
+            fb.delete(make_current = True)
+            self._shadow_map_framebuffer = None
+    
+    def use_shadow_map(self, camera, drawings, shadow_bounds):
+        r = self._render
+        lp = r.lighting
+        if not lp.shadows:
+            return False
+
+        # Compute light direction in scene coords.
+        kl = lp.key_light_direction
+        if r.recording_opengl:
+            light_direction = lambda c=camera, kl=kl: c.position.apply_without_translation(kl)
+        else:
+            light_direction = camera.position.apply_without_translation(kl)
+
+        # Compute drawing bounds so shadow map can cover all drawings.
+        center, radius, sdrawings = shadow_bounds(drawings)
+        if center is None or radius == 0:
+            return False
+
+        # Compute shadow map depth texture
+        size = lp.shadow_map_size
+        self._start_rendering_shadowmap(center, radius, size)
+        r.draw_background()             # Clear shadow depth buffer
+
+        # Compute light view and scene to shadow map transforms
+        bias = lp.shadow_depth_bias
+        lvinv, stf = self._shadow_transforms(light_direction, center, radius, bias)
+        self._shadow_transform = stf      # Scene to shadow map texture coordinates
+        r.set_view_matrix(lvinv)
+        from .drawing import draw_depth
+        draw_depth(r, sdrawings, opaque_only = not r.material.transparent_cast_shadows)
+
+        shadow_map = self._finish_rendering_shadowmap()     # Depth texture
+
+        # Bind shadow map for subsequent rendering of shadows.
+        shadow_map.bind_texture(self._shadow_texture_unit)
+
+        return True
+
+    def set_shadow_view(self, camera_position):
+        stf = self._shadow_transform * camera_position
+        # Transform from camera coordinates to shadow map texture coordinates.
+        self._shadow_view_transform = m = stf.opengl_matrix()
+        r = self._render
+        p = r.current_shader_program
+        if p is not None:
+            c = p.capabilities
+            if r.SHADER_SHADOWS & c and r.SHADER_LIGHTING & c:
+                p.set_matrix("shadow_transform", m)
+
+    def _start_rendering_shadowmap(self, center, radius, size=1024):
+
+        r = self._render
+        fb = r.start_depth_render(self._shadow_map_framebuffer,
+                                  self._shadow_texture_unit,
+                                  center, radius, size)
+        self._shadow_map_framebuffer = fb
+
+    def _finish_rendering_shadowmap(self):
+
+        r = self._render
+        r.draw_depth_only(False)
+        fb = r.pop_framebuffer()
+        return fb.depth_texture
+
+    def _shadow_transforms(self, light_direction, center, radius, depth_bias=0.005):
+
+        r = self._render
+        if r.recording_opengl:
+            from . import gllist
+            s = gllist.ShadowMatrixFunc(r, light_direction, center, radius, depth_bias)
+            return (s.lvinv, s.stf)
+
+        # Projection matrix, orthographic along z
+        from ..geometry import translation, scale, orthonormal_frame
+        pm = scale((1/radius, 1/radius, -1/radius)) * translation((0, 0, radius))
+
+        # Compute the view matrix looking along the light direction.
+        from ..geometry import normalize_vector
+        ld = normalize_vector(light_direction)
+        # Light view frame:
+        lv = translation(center - radius * ld) * orthonormal_frame(-ld)
+        lvinv = lv.inverse()  # Scene to light view coordinates
+
+        # Convert (-1, 1) normalized device coords to (0, 1) texture coords.
+        ntf = translation((0.5, 0.5, 0.5 - depth_bias)) * scale(0.5)
+        stf = ntf * pm * lvinv               # Scene to shadowmap coordinates
+
+        fb = r.current_framebuffer()
+        w, h = fb.width, fb.height
+        if r.current_viewport != (0, 0, w, h):
+            # Using a subregion of shadow map to handle multiple shadows in
+            # one texture.  Map scene coordinates to subtexture.
+            x, y, vw, vh = r.current_viewport
+            stf = translation((x / w, y / w, 0)) * scale((vw / w, vh / h, 1)) * stf
+
+        return lvinv, stf
+
+    def _set_shadow_shader_variables(self, shader):
+        shader.set_integer("shadow_map", self._shadow_texture_unit)
+        if self._shadow_view_transform is not None:
+            shader.set_matrix("shadow_transform", self._shadow_view_transform)
+
+class Multishadow:
+    '''Render shadows from several directions for ambient occlusion lighting.'''
+    
+    def __init__(self, render, texture_unit = 2):
+        self._render = render
+
+        # cached state
+        self._multishadow_dir = None
+        self._multishadow_transforms = []
+        self._multishadow_depth = None
+        self._multishadow_current_params = None
+        self.multishadow_update_needed = False
+        
+        self._multishadow_map_framebuffer = None
+        self._multishadow_texture_unit = texture_unit
+        self._max_multishadows = None
+        self._multishadow_view_transforms = None	# Includes camera view.
+
+        # near to far clip depth for shadow map:
+        self._multishadow_depth = None
+
+        # Uniform buffer object for shadow matrices:
+        self._multishadow_matrix_buffer_id = None
+        self._multishadow_uniform_block = 2     # Uniform block number
+
+    def delete(self):
+        fb = self._multishadow_map_framebuffer
+        if fb:
+            fb.delete(make_current = True)
+            self._multishadow_map_framebuffer = None
+        
+        mmb = self._multishadow_matrix_buffer_id
+        if mmb is not None:
+            self._render.make_current()
+            GL.glDeleteBuffers(1, [mmb])
+            self._multishadow_matrix_buffer_id = None
+
+    def use_multishadow_map(self, drawings, shadow_bounds):
+        r = self._render
+        lp = r.lighting
+        if lp.multishadow == 0:
+            return False
+        mat = r.material
+        msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias, mat.transparent_cast_shadows)
+        if self._multishadow_current_params != msp:
+            self.multishadow_update_needed = True
+
+        if self.multishadow_update_needed:
+            self._multishadow_transforms = []
+            self.multishadow_update_needed = False
+
+        light_directions = self._multishadow_directions()
+        if len(self._multishadow_transforms) == len(light_directions):
+            # Bind shadow map for subsequent rendering of shadows.
+            self._bind_depth_texture()
+            return True
+
+        # Compute drawing bounds so shadow map can cover all drawings.
+        center, radius, sdrawings = shadow_bounds(drawings)
+        if center is None or radius == 0:
+            return False
+
+        # Compute shadow map depth texture
+        size = lp.multishadow_map_size
+        self._start_rendering_multishadowmap(center, radius, size)
+        r.draw_background()             # Clear shadow depth buffer
+
+        mstf_list = []
+        nl = len(light_directions)
+        from .drawing import draw_depth
+        from math import ceil, sqrt
+        d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
+        s = size // d               # Subtexture size.
+        bias = lp.multishadow_depth_bias
+        for l in range(nl):
+            x, y = (l % d), (l // d)
+            r.set_viewport(x * s, y * s, s, s)
+            lvinv, tf = r.shadow._shadow_transforms(light_directions[l], center, radius, bias)
+            r.set_view_matrix(lvinv)
+            mstf_list.append(tf)
+            draw_depth(r, sdrawings, opaque_only = not mat.transparent_cast_shadows)
+        from ..geometry import Places
+        mstf = Places(mstf_list)
+
+        self._finish_rendering_multishadowmap()
+
+        # Bind shadow map for subsequent rendering of shadows.
+        self._bind_depth_texture()
+
+        # TODO: Clear shadow cache whenever scene changes
+        self._multishadow_current_params = msp
+        self._multishadow_transforms = mstf
+        self._multishadow_depth = msd = 2 * radius
+#        self.set_multishadow_transforms(mstf, None, msd)
+
+        return True
+
+    def set_multishadow_view(self, camera_position):
+        '''
+        Although shadows are independent of view direction, the fragment shader
+        uses camera coordinates.
+        '''
+        ctf = camera_position
+        stf = self._multishadow_transforms
+        r = self._render
+        # Transform from camera coordinates to shadow map texture coordinates.
+        if ctf is None:
+            mt = stf.opengl_matrices()
+        elif r.recording_opengl:
+            from .gllist import Mat44Func
+            mt = Mat44Func('multishadow matrices', lambda: (stf * ctf()).opengl_matrices(), len(stf))
+        else:
+            mt = (stf * ctf).opengl_matrices()
+        self._multishadow_view_transforms = mt
+
+        # TODO: Issue warning if maximum number of shadows exceeded.
+        maxs = self.max_multishadows()
+
+        if r.recording_opengl:
+            mm = mt
+        else:
+            mm = mt[:maxs, :, :]
+        offset = 0
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._multishadow_matrix_buffer())
+        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, offset, mm.nbytes, mm)
+        GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
+
+        p = r.current_shader_program
+        if p is not None:
+            c = p.capabilities
+            if r.SHADER_MULTISHADOW & c and r.SHADER_LIGHTING & c:
+                self._set_multishadow_shader_variables(p)
+
+    def max_multishadows(self):
+        'Maximum number of shadows to cast.'
+        m = self._max_multishadows
+        if m is None:
+            m = GL.glGetIntegerv(GL.GL_MAX_UNIFORM_BLOCK_SIZE)      # OpenGL requires >= 16384.
+            m = m // 64                                             # 64 bytes per matrix.
+            self._max_multishadows = m
+        return m
+
+    def _start_rendering_multishadowmap(self, center, radius, size=1024):
+        r = self._render
+        fb = r.start_depth_render(self._multishadow_map_framebuffer,
+                                  self._multishadow_texture_unit,
+                                  center, radius, size)
+        self._multishadow_map_framebuffer = fb
+
+    def _finish_rendering_multishadowmap(self):
+        r = self._render
+        return r.shadow._finish_rendering_shadowmap()
+
+    def _multishadow_directions(self):
+        directions = self._multishadow_dir
+        n = self._render.lighting.multishadow
+        if directions is None or len(directions) != n:
+            from ..geometry import sphere
+            self._multishadow_dir = directions = sphere.sphere_points(n)
+        return directions
+
+    def _bind_depth_texture(self):
+        dt = self._multishadow_map_framebuffer.depth_texture
+        dt.bind_texture(self._multishadow_texture_unit)
+
+    def _set_multishadow_shader_constants(self, shader):
+        # Set the multishadow texture unit and the matrix uniform block unit for the shader.
+        shader.set_integer("multishadow_map", self._multishadow_texture_unit)
+        pid = shader.program_id
+        bi = GL.glGetUniformBlockIndex(pid, b'shadow_matrix_block')
+        bslot = self._multishadow_uniform_block
+        GL.glUniformBlockBinding(pid, bi, bslot)
+
+    def _multishadow_matrix_buffer(self):
+        b = self._multishadow_matrix_buffer_id
+        if b is None:
+            # Create uniform buffer object for shadow matrices.
+            self._multishadow_matrix_buffer_id = b = GL.glGenBuffers(1)
+            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
+            nbytes = 64 * self.max_multishadows()
+            GL.glBufferData(GL.GL_UNIFORM_BUFFER, nbytes, pyopengl_null(), GL.GL_DYNAMIC_DRAW)
+            bslot = self._multishadow_uniform_block
+            GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, bslot, b)
+            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
+        return b
+
+    def _set_multishadow_shader_variables(self, shader):
+        m = self._multishadow_view_transforms
+        if m is None:
+            return
+
+        maxs = self.max_multishadows()            
+        shader.set_integer("shadow_count", min(maxs, len(m)))
+        shader.set_float("shadow_depth", self._multishadow_depth)
+
+class Silhouette:
+    '''Draw silhouette edges.'''
+    
+    def __init__(self, render):
+        self._render = render
+        self._silhouette_framebuf = None
+
+    def delete(self):
+        fb = self._silhouette_framebuf
+        if fb:
+            fb.delete(make_current = True)
+            self._silhouette_framebuf = None
+
+    def start_silhouette_drawing(self):
+        r = self._render
+        alpha = r.current_framebuffer().alpha
+        fb = self._silhouette_framebuffer(r.render_size(), alpha)
+        r.push_framebuffer(fb)
+
+    def finish_silhouette_drawing(self, thickness, color, depth_jump,
+                                  perspective_near_far_ratio):
+        r = self._render
+        fb = r.pop_framebuffer()
+        cfb = r.current_framebuffer()
+        cfb.copy_from_framebuffer(fb, depth=False)
+        self._draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
+                                 perspective_near_far_ratio)
+
+    def _silhouette_framebuffer(self, size, alpha):
+        sfb = self._silhouette_framebuf
+        if sfb and (size[0] != sfb.width or size[1] != sfb.height or alpha != sfb.alpha):
+            sfb.delete()
+            sfb = None
+        if sfb is None:
+            dt = Texture()
+            dt.linear_interpolation = False
+            dt.initialize_depth(size, depth_compare_mode=False)
+            sfb = Framebuffer('silhouette', self._render.opengl_context, depth_texture=dt, alpha=alpha)
+            self._silhouette_framebuf = sfb
+        return sfb
+
+    def _draw_depth_outline(self, depth_texture, thickness=1,
+                            color=(0, 0, 0, 1), depth_jump=0.03,
+                            perspective_near_far_ratio=1):
+        # Render pixels with depth in depth_texture less than neighbor pixel
+        # by at least depth_jump. The depth buffer is not used.
+        r = self._render
+        tc = r._texture_window(depth_texture, r.SHADER_DEPTH_OUTLINE)
+
+        p = r.current_shader_program
+        p.set_rgba("color", color)
+        p.set_vector2("jump", (depth_jump, perspective_near_far_ratio))
+        w, h = depth_texture.size
+        dx, dy = 1.0 / w, 1.0 / h
+        p.set_vector3("step", (dx, dy, thickness))
+        tc.draw(blend = True)
+
+class Outline:
+    '''Draw highlight outlines.'''
+    
+    def __init__(self, render):
+        self._render = render
+        self._mask_framebuf = None
+
+    def delete(self):
+        fb = self._mask_framebuf
+        if fb:
+            fb.delete(make_current = True)
+            self._mask_framebuf = None
+
+    def set_outline_mask(self):
+        '''Copy framebuffer depth to outline framebuffer.  Only highlighted
+        objects at equal depth or in front will be outlined by start_rendering_outline().
+        This routine must be called before start_rendering_outline().
+        '''
+        r = self._render
+        mfb = self._mask_framebuffer()
+        cfb = r.current_framebuffer()
+        cfb.copy_to_framebuffer(mfb, color=False)
+    
+    def start_rendering_outline(self):
+        '''Must call set_outline_depth() before invoking this routine.'''
+        r = self._render
+        fb = r.current_framebuffer()
+        mfb = self._mask_framebuffer()
+        r.push_framebuffer(mfb)
+        r.set_background_color((0, 0, 0, 0))
+        r.draw_background(depth = False)
+        # Use unlit all white color for drawing mask.
+        # Outline code requires non-zero red component.
+        r.disable_shader_capabilities(r.SHADER_VERTEX_COLORS
+                                      | r.SHADER_TEXTURE_2D
+                                      | r.SHADER_TEXTURE_CUBEMAP
+                                      | r.SHADER_LIGHTING)
+        r.enable_capabilities |= r.SHADER_ALL_WHITE
+        # Depth test GL_LEQUAL results in z-fighting:
+        r.set_depth_range(0, 0.999999)
+
+    def finish_rendering_outline(self):
+        r = self._render
+        r.pop_framebuffer()
+        r.disable_shader_capabilities(0)
+        r.enable_capabilities &= ~r.SHADER_ALL_WHITE
+        r.set_depth_range(0, 1)
+        t = self._mask_framebuf.color_texture
+        self._draw_texture_mask_outline(t)
+
+    def _draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1)):
+
+        # Render outline of region where texture red > 0.
+        # Outline pixels have red = 0 in texture mask but are adjacent
+        # in one of 4 directions to pixels with red > 0.
+        # The depth buffer is not used.  (Depth buffer was used to handle
+        # occlusion in the mask texture passed to this routine.)
+        w, h = texture.size
+        dx, dy = 1.0 / w, 1.0 / h
+        r = self._render
+        tc = r._texture_window(texture, r.SHADER_TEXTURE_OUTLINE)
+        p = r.current_shader_program
+        p.set_vector2('step', (dx, dy))
+        p.set_rgba('color', color)
+        tc.draw()
+
+    def _mask_framebuffer(self):
+        r = self._render
+        size = r.render_size()
+        mfb = self._mask_framebuf
+        w, h = size
+        if mfb and mfb.width == w and mfb.height == h:
+            return mfb
+        if mfb:
+            mfb.delete()
+        t = Texture()
+        t.linear_interpolation = False
+        t.initialize_8_bit(size)
+        self._mask_framebuf = mfb = Framebuffer('mask', r.opengl_context, color_texture=t)
+        return mfb
+    
 # Options used with Render.shader()
 shader_options = (
     'SHADER_LIGHTING',
     'SHADER_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
+    'SHADER_DEPTH_TEXTURE',
     'SHADER_TEXTURE_CUBEMAP',
     'SHADER_TEXTURE_3D_AMBIENT',
     'SHADER_SHADOWS',
@@ -1485,8 +1711,9 @@ class Framebuffer:
         return fbo
 
     def __del__(self):
-        if not self._deleted:
-            raise RuntimeError('OpenGL framebuffer was not deleted before core.graphics.Framebuffer destroyed')
+        if not self._deleted and self._fbo != 0:
+            raise RuntimeError('OpenGL framebuffer %s was not deleted before core.graphics.Framebuffer destroyed'
+                               % self.name)
 
     def delete(self, make_current = False):
         self._deleted = True
@@ -2155,6 +2382,7 @@ class Texture:
         self.data = data
         self.id = None
         self.dimension = dimension
+        self.size = None
         self.gl_target = (GL.GL_TEXTURE_CUBE_MAP if cube_map else
                           (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
         self.linear_interpolation = True
@@ -2293,8 +2521,10 @@ class Texture:
     def fill_opengl_texture(self):
         data = self.data
         self.data = None
+        size = tuple(data.shape[self.dimension - 1::-1])
+        if size != self.size and self.id is not None:
+            self.delete_texture()
         if self.id is None:
-            size = tuple(data.shape[self.dimension - 1::-1])
             format, iformat, tdtype, ncomp = self.texture_format(data)
             self.initialize_texture(size, format, iformat, tdtype, ncomp, data)
         else:
@@ -2330,7 +2560,9 @@ class Texture:
         creating a texture from a numpy array of colors.
         '''
         dim = self.dimension
-        if dim == 2 and len(data.shape) == dim and data.itemsize == 4:
+        dtype = data.dtype
+        from numpy import uint8, uint16, float32
+        if dim == 2 and len(data.shape) == dim and dtype == uint32:
             format = GL.GL_RGBA
             iformat = GL.GL_RGBA8
             tdtype = GL.GL_UNSIGNED_BYTE
@@ -2345,8 +2577,6 @@ class Texture:
                   3: GL.GL_RGB, 4: GL.GL_RGBA}[ncomp]
         iformat = {1: GL.GL_RED, 2: GL.GL_RG,
                    3: GL.GL_RGB8, 4: GL.GL_RGBA8}[ncomp]
-        dtype = data.dtype
-        from numpy import uint8, uint16, float32
         if dtype == uint8:
             tdtype = GL.GL_UNSIGNED_BYTE
         elif dtype == uint16:

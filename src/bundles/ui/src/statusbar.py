@@ -79,18 +79,25 @@ class _StatusBarOpenGL:
     def _create_opengl_context(self):
         # Create opengl context
         w = self._window
-        from chimerax.core.graphics import OpenGLContext
+        from chimerax.core.graphics import OpenGLContext, OpenGLVersionError
         self._opengl_context = c = OpenGLContext(w, self.session.ui.primaryScreen())
+        
         # Create texture drawing to render status messages
         from chimerax.core.graphics import Drawing, Render
         self._drawing = Drawing('statusbar')
         self._drawing2 = Drawing('secondary statusbar')
         self._renderer = r = Render(c)
-        if not r.make_current():
-            raise RuntimeError('Failed to make status line opengl context current')
+        try:
+            if not r.make_current():
+                raise RuntimeError('Failed to make status line opengl context current')
+        except OpenGLVersionError:
+            self._opengl_context = None
+            self._renderer = None
+            return False
         lw, lh = w.width(), w.height()
         r.initialize_opengl(lw, lh)
         r.set_background_color(self.background_color)
+        return True
 
     # TODO: Handle expose events on status bar windows so resizes show label.
     #  Should probably handle status bar as one QWindow created by this class.
@@ -106,12 +113,16 @@ class _StatusBarOpenGL:
         cc = remember_current_opengl_context()
 
         if self._opengl_context is None:
-            self._create_opengl_context()
+            if not self._create_opengl_context():
+                return	# OpenGL version is not sufficient
 
         r = self._renderer
         if not r.make_current():
             raise RuntimeError('Failed to make status line opengl context current')
 
+        if len(msg) > 256:
+            msg = msg[:253] + '...'
+            
         r.draw_background()
         self._draw_text(msg, color, secondary)
         r.swap_buffers()
@@ -143,7 +154,7 @@ class _StatusBarOpenGL:
         tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
         from chimerax.label.label2d import text_image_rgba
         size = max(1, int((1-2*ypad) * lh))
-        rgba = text_image_rgba(msg, tcolor, size, self.font, pad=1)
+        rgba = text_image_rgba(msg, tcolor, size, self.font, xpad=1, ypad=1)
         th, tw = rgba.shape[:2]
 
         # Make image pixel exactly match screen pixel size for best appearance.

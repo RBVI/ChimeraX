@@ -451,6 +451,7 @@ class Params(State):
 class NucleotideState(StateManager):
 
     def __init__(self, session):
+        self._session = weakref.ref(session)
         self.structures = weakref.WeakSet()
         self.need_rebuild = weakref.WeakSet()
         self.rebuild_handler = session.triggers.add_handler('new frame', self.rebuild)
@@ -490,6 +491,16 @@ class NucleotideState(StateManager):
 
     def rebuild(self, trigger_name, update_loop):
         """'monitor changes' trigger handler"""
+        if not self.structures:
+            session = self._session()
+            try:
+                del session.nucleotides
+            except AttributeError:
+                pass
+            h = self.rebuild_handler
+            self.rebuild_handler = None
+            session.triggers.remove_handler(h)
+            return
         if not self.need_rebuild:
             return
         for mol in list(self.need_rebuild):

@@ -14,11 +14,17 @@
 SINGLE_PREFIX = "single_seq_"
 ALIGNMENT_PREFIX = "alignment_"
 
-from chimerax.ui.options import Option, BooleanOption, IntOption, OptionalRGBAOption, \
-    OptionalRGBAPairOption
+from chimerax.ui.options import Option, BooleanOption, EnumOption, IntOption, \
+    OptionalRGBAOption, OptionalRGBAPairOption
 
 APPEARANCE = "Appearance"
+HEADERS = "Headers"
 REGIONS = "Regions"
+
+CSN_MAJ_GAP = "majority in column including gaps"
+CSN_MAJ_NOGAP = "majority in column ignoring gaps"
+class ConsensusStyleOption(EnumOption):
+    values = (CSN_MAJ_GAP, CSN_MAJ_NOGAP)
 
 LINE_WRAP_BALLOON = 'Only applies if wrapping is on.\n' \
             'Fit into window size and wrap at a multiple of the given value.'
@@ -31,6 +37,8 @@ defaults = {
         "Horizontal spacing (pixels)", 1, IntOption, {}, 0),
     SINGLE_PREFIX + "column_separation": (APPEARANCE,
         "Horizontal spacing (pixels)", 1, IntOption, {}, -2),
+    ALIGNMENT_PREFIX + "consensus_style": (HEADERS, "Consensus style", 1,
+        ConsensusStyleOption, {}, CSN_MAJ_GAP),
     "error_region_shown": (REGIONS,
         "Show structure-mismatch regions", 9, BooleanOption, {}, True),
     "error_region_borders": (REGIONS, "Structure-mismatch border", 10,
@@ -68,6 +76,7 @@ class _SVSettings(Settings):
     EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
     AUTO_SAVE = {
         "scf_colors_structures": True,
+        "startup_headers": None,
     }
 
 def init(session):

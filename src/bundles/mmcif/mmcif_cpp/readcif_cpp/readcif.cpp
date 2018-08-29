@@ -541,13 +541,11 @@ CIFFile::internal_parse(bool one_table)
 			}
 			if (save_values) {
 				seen.insert(current_category);
-				fixed = use_fixed_width_columns.count(current_category);
 				first_row = true;
 				in_loop = true;
 				ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 				pf();
 				first_row = false;
-				fixed = false;
 				current_category.clear();
 				current_colnames.clear();
 				current_colnames_cp.clear();
@@ -649,13 +647,11 @@ CIFFile::internal_parse(bool one_table)
 					if (save_values) {
 						// flush current category
 						seen.insert(current_category);
-						fixed = use_fixed_width_columns.count(current_category);
 						first_row = true;
 						in_loop = false;
 						ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 						pf();
 						first_row = false;
-						fixed = false;
 						//current_category.clear();
 						current_colnames.clear();
 						current_colnames_cp.clear();
@@ -722,13 +718,11 @@ CIFFile::internal_parse(bool one_table)
 			if (save_values) {
 				// flush current category
 				seen.insert(current_category);
-				fixed = use_fixed_width_columns.count(current_category);
 				first_row = true;
 				in_loop = false;
 				ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 				pf();
 				first_row = false;
-				fixed = false;
 				current_category.clear();
 				current_colnames.clear();
 				current_colnames_cp.clear();
@@ -761,7 +755,6 @@ CIFFile::internal_reset_parse()
 	version_.clear();
 	parsing = false;
 	stylized = false;
-	fixed = false;
 	use_fixed_width_columns.clear();
 	current_data_block.clear();
 	current_category.clear();
@@ -845,16 +838,8 @@ again:
 			}
 			++pos;
 			++lineno;
-			char c = *(pos + 1);
-			if (*pos == ';' && is_eol(c)) {
-#ifdef CR_IS_EOL
-				if (c == '\r') {
-					++pos;
-					c = *(pos + 1);
-				}
-#endif
-				if (c)
-					++pos;
+			if (*pos == ';') {
+				++pos;
 				break;
 			}
 			if (save_values)
@@ -1183,6 +1168,7 @@ CIFFile::parse_row(ParseValues& pv)
 		return false;
 	if (first_row) {
 		first_row = false;
+		bool fixed = use_fixed_width_columns.count(current_category);
 		columns.clear();
 		std::sort(pv.begin(), pv.end(),
 			[](const ParseColumn& a, const ParseColumn& b) -> bool {

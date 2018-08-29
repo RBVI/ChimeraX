@@ -623,6 +623,7 @@ def init(argv, event_loop=True):
         except OpenGLVersionError as e:
             mc = False
             log.error(str(e))
+            sess.update_loop.block_redraw()	# Avoid further opengl errors
         if mc:
             info = log.info
             e = r.check_for_opengl_errors()
@@ -630,9 +631,6 @@ def init(argv, event_loop=True):
                 msg = 'There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
                 msg += '\n\n\t"%s"' % e
                 log.error(msg)
-            info('OpenGL version: ' + r.opengl_version())
-            info('OpenGL renderer: ' + r.opengl_renderer())
-            info('OpenGL vendor: ' + r.opengl_vendor())
             sess.update_loop.start_redraw_timer()
             info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
                 is_html=True)

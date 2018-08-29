@@ -282,10 +282,15 @@ def register_volume_filtering_subcommands(logger):
                                    ('range', FloatArg),
                                    ('bond_point_spacing', FloatArg),
                                    ('minimal_bounds', BoolArg),
+                                   ('new_map', BoolArg),
                                    ('invert', BoolArg)] + ssm_kw,
                         required_arguments=('near_atoms', 'range'),
                         synopsis = 'Zero map values beyond a distance range from atoms')
     register('volume zone', zone_desc, volume_zone, logger=logger)
+
+    unzone_desc = CmdDesc(required = varg,
+                          synopsis = 'Show full map with no surface masking.')
+    register('volume unzone', unzone_desc, volume_unzone, logger=logger)
 
     from chimerax.core.commands import create_alias
     create_alias('vop', 'volume $*', logger=logger)
@@ -947,8 +952,8 @@ def submatrix_center(v, xyz_center, index_center, subregion, step):
 # -----------------------------------------------------------------------------
 #
 def volume_zone(session, volumes, near_atoms = None, range = None, bond_point_spacing = None,
-            minimal_bounds = False, invert = False,
-            subregion = 'all', step = 1, model_id = None):
+                minimal_bounds = False, new_map = True, invert = False,
+                subregion = 'all', step = 1, model_id = None):
 
 # TODO: atoms and radius args are required, but cli.py requires default values since they are keywords params
 
@@ -956,46 +961,18 @@ def volume_zone(session, volumes, near_atoms = None, range = None, bond_point_sp
     if len(near_atoms) == 0:
         raise CommandError('no atoms specified for zone')
 
+    from .zone import zone_operation
     for v in volumes:
         zone_operation(v, near_atoms, range, bond_point_spacing,
-                       minimal_bounds, invert, subregion, step, model_id)
+                       minimal_bounds, new_map, invert, subregion, step, model_id)
 
 # -----------------------------------------------------------------------------
 #
-def zone_operation(v, atoms, radius, bond_point_spacing = None,
-                   minimal_bounds = False, invert = False,
-                   subregion = 'all', step = 1, model_id = None):
+def volume_unzone(session, volumes):
 
-    points = atoms.scene_coords
-    if bond_point_spacing is not None:
-        bonds = atoms.intra_bonds
-        from chimerax.atomic.path import bond_points
-        bpoints = bond_points(bonds, bond_point_spacing)
-        from numpy import concatenate
-        points = concatenate((points, bpoints))
-
-    v.position.inverse().move(points)   # Convert points to map coordinates.
-
-    vz = zone_volume(v, points, radius, minimal_bounds, invert,
-                     subregion, step, model_id)
-    return vz
-
-# -----------------------------------------------------------------------------
-#
-def zone_volume(volume, points, radius,
-                minimal_bounds = False, invert = False,
-                subregion = 'all', step = 1, model_id = None):
-
-    region = volume.subregion(step, subregion)
-    from .. import data
-    sg = data.Grid_Subregion(volume.data, *region)
-
-    mg = data.zone_masked_grid_data(sg, points, radius, invert, minimal_bounds)
-    mg.name = volume.name + ' zone'
-
-    from .. import volume_from_grid_data
-    vz = volume_from_grid_data(mg, volume.session, model_id = model_id)
-    vz.copy_settings_from(volume, copy_colors = False, copy_zone = False)
-    volume.display = False
-
-    return vz
+    from chimerax.surface.zone import surface_unzone
+    for v in volumes:
+        r = v.full_region()
+        v.new_region(r[0], r[1])
+        for s in v.surfaces:
+            surface_unzone(s)

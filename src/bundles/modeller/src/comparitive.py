@@ -203,7 +203,7 @@ def regularized_seq(aseq, chain):
     return rseq
 
 def structure_save_name(s):
-    return s.name.replace(':', '_').replace(' ', '_') + "_" + s.id_string()
+    return s.name.replace(':', '_').replace(' ', '_') + "_" + s.id_string
 
 def chain_save_name(chain):
     return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')

@@ -122,7 +122,7 @@ class Volume(Model):
   #
   def name_with_id(self):
 
-    return '%s #%s' % (self.name, self.id_string())
+    return '%s #%s' % (self.name, self.id_string)
 
   # ---------------------------------------------------------------------------
   #
@@ -265,17 +265,19 @@ class Volume(Model):
       if param in kw:
         kw[param] = list(kw[param])
 
+    threaded_surf_calc = kw.get('threaded_surface_calculation', False)
     for param in parameters:
       if param in kw:
         values = kw[param]
         if param == 'surface_levels':
           if len(values) == len(self.surfaces):
             for s,level in zip(self.surfaces, values):
-              s.level = level
+              s.set_level(level, use_thread = threaded_surf_calc)
           else:
             self.remove_surfaces()
             for level in values:
-              self.add_surface(level)
+              s = self.add_surface(level)
+              s.set_level(level, use_thread = threaded_surf_calc)
         elif param == 'surface_colors':
           if len(values) == len(self.surfaces):
             for s,color in zip(self.surfaces, values):
@@ -606,7 +608,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def draw(self, renderer, place, draw_pass, selected_only = False):
+  def draw(self, renderer, place, draw_pass, highlighted_only = False):
     if not self.display:
       return
     
@@ -614,7 +616,7 @@ class Volume(Model):
       self.initialize_thresholds()
       self.update_drawings()
       
-    Model.draw(self, renderer, place, draw_pass, selected_only = selected_only)
+    Model.draw(self, renderer, place, draw_pass, highlighted_only = highlighted_only)
 
   # ---------------------------------------------------------------------------
   #
@@ -670,7 +672,7 @@ class Volume(Model):
     ro = self.rendering_options
     try:
       for s in self.surfaces:
-        self._update_surface(s, show_mesh, ro)
+        s.update_surface(show_mesh, ro)
     except CancelOperation:
       pass
 
@@ -681,141 +683,6 @@ class Volume(Model):
   #
   def _remove_contour_surface(self, surf):
     self.session.models.close([surf])
-
-  # ---------------------------------------------------------------------------
-  #
-  def _update_surface(self, surface, show_mesh, rendering_options):
-
-    surface.name = 'level %.4g' % surface.level
-    rgba = self._modulated_surface_color(surface.rgba)
-
-    ro = rendering_options
-    s = surface
-
-    contour_settings = {'level': surface.level,
-                        'matrix_id': self.matrix_id,
-                        'transform': self.matrix_indices_to_xyz_transform(),
-                        'surface_smoothing': ro.surface_smoothing,
-                        'smoothing_factor': ro.smoothing_factor,
-                        'smoothing_iterations': ro.smoothing_iterations,
-                        'subdivide_surface': ro.subdivide_surface,
-                        'subdivision_levels': ro.subdivision_levels,
-                        'square_mesh': ro.square_mesh,
-                        'cap_faces': ro.cap_faces,
-                        'flip_normals': ro.flip_normals,
-                        }
-    if (not hasattr(s, 'contour_settings') or
-        s.contour_settings != contour_settings):
-      if self.calculate_contour_surface(surface.level, rendering_options, s):
-        s.contour_settings = contour_settings
-
-    s.color = tuple(int(255*r) for r in rgba)
-
-    # OpenGL draws nothing for degenerate triangles where two vertices are
-    # identical.  For 2d contours want to see these triangles so show as mesh.
-    single_plane = self.single_plane()
-    contour_2d = single_plane and not ro.cap_faces
-
-    style = s.Mesh if show_mesh or contour_2d else s.Solid
-    s.display_style = style
-    
-    if contour_2d:  lit = False
-    elif show_mesh: lit = ro.mesh_lighting
-    else:           lit = True
-    s.use_lighting = lit
-    s.twoSidedLighting = ro.two_sided_lighting
-    s.lineThickness = ro.line_thickness
-    s.smoothLines = ro.smooth_lines
-
-#     if ro.dim_transparency:
-#       bmode = s.SRC_ALPHA_DST_1_MINUS_ALPHA
-#     else:
-#       bmode = s.SRC_1_DST_1_MINUS_ALPHA
-#     s.transparencyBlendMode = bmode
-      
-  # ---------------------------------------------------------------------------
-  #
-  def calculate_contour_surface(self, level, rendering_options, piece):
-
-    name = self.data.name
-
-    matrix = self.matrix()
-
-    min_status_message_voxels = 2**24
-    if matrix.size >= min_status_message_voxels:
-      self.message('Computing %s surface, level %.3g' % (name, level))
-
-    # _map contour code does not handle single data planes.
-    # Handle these by stacking two planes on top of each other.
-    plane_axis = [a for a in (0,1,2) if matrix.shape[a] == 1]
-    for a in plane_axis:
-      matrix = matrix.repeat(2, axis = a)
-
-    ro = rendering_options
-
-    from ._map import contour_surface
-    try:
-      varray, tarray, narray = contour_surface(matrix, level,
-                                               cap_faces = ro.cap_faces,
-                                               calculate_normals = True)
-    except MemoryError:
-      ses = self.session
-      ses.warning('Ran out of memory contouring at level %.3g.\n' % level +
-                  'Try a higher contour level.')
-      return False
-
-    for a in plane_axis:
-      varray[:,2-a] = 0
-    
-    if ro.flip_normals and level < 0:
-      from chimerax.surface import invert_vertex_normals
-      invert_vertex_normals(narray, tarray)
-
-    # Preserve triangle vertex traversal direction about normal.
-    transform = self.matrix_indices_to_xyz_transform()
-    if transform.determinant() < 0:
-      from ._map import reverse_triangle_vertex_order
-      reverse_triangle_vertex_order(tarray)
-
-    if ro.subdivide_surface:
-      from chimerax.surface import subdivide_triangles
-      for level in range(ro.subdivision_levels):
-        varray, tarray, narray = subdivide_triangles(varray, tarray, narray)
-
-    if ro.square_mesh:
-      from numpy import empty, uint8
-      hidden_edges = empty((len(tarray),), uint8)
-      from . import _map
-      _map.principle_plane_edges(varray, tarray, hidden_edges)
-
-    if ro.surface_smoothing:
-      sf, si = ro.smoothing_factor, ro.smoothing_iterations
-      from chimerax.surface import smooth_vertex_positions
-      smooth_vertex_positions(varray, tarray, sf, si)
-      smooth_vertex_positions(narray, tarray, sf, si)
-
-    # Transform vertices and normals
-    transform.move(varray)
-    tf = transform.inverse().transpose().zero_translation()
-    tf.move(narray)
-    from chimerax.core.geometry import normalize_vectors
-    normalize_vectors(narray)
-
-    if matrix.size >= min_status_message_voxels:
-      self.message('Calculated %s surface, level %.3g, with %d triangles'
-                   % (name, level, len(tarray)), blank_after = 3.0)
-
-    p = piece
-    p.set_geometry(varray, narray, tarray)
-
-    if p.auto_recolor_vertices is None:
-      p.vertex_colors = None
-    p.edge_mask = hidden_edges if ro.square_mesh else None
-    p.clip_cap = True
-    # TODO: Clip cap offset for different contour levels is not related to voxel size.
-    p.clip_offset = .002* len([s for s in self.surfaces if level < s.level])
-
-    return True
     
   # ---------------------------------------------------------------------------
   # Rank method ignores tolerance and uses a histogram of data values to
@@ -1164,7 +1031,7 @@ class Volume(Model):
     Model.set_selected(self, sel, fire_trigger=fire_trigger)
     for s in self.surfaces:
       s.set_selected(sel)
-  selected = property(Model.get_selected, _set_selected)
+  selected = property(Model.selected.fget, _set_selected)
 
   # ---------------------------------------------------------------------------
   #
@@ -1907,35 +1774,288 @@ class Volume(Model):
 from chimerax.core.models import Surface
 class VolumeSurface(Surface):
 
-    def __init__(self, volume, level, rgba = (1.0,1.0,1.0,1.0)):
-      name = 'level %.3g' % level
-      Surface.__init__(self, name, volume.session)
-      self.volume = volume
-      self.level = level
-      self.rgba = rgba
+  def __init__(self, volume, level, rgba = (1.0,1.0,1.0,1.0)):
+    name = 'level %.3g' % level
+    Surface.__init__(self, name, volume.session)
+    self.volume = volume
+    self._level = level
+    self.rgba = rgba
+    self._contour_settings = {}	         	# Settings for current surface geometry
+    self._min_status_message_voxels = 2**24	# Show status messages only on big surface calculations
+    self._use_thread = False			# Whether to compute next surface in thread
+    self._surf_calc_thread = None
+    
+  def delete(self):
+    self.volume._surfaces.remove(self)
+    Surface.delete(self)
 
-    def delete(self):
-      self.volume._surfaces.remove(self)
-      Surface.delete(self)
+  def get_level(self):
+    return self._level
+  def set_level(self, level, use_thread = False):
+    self._level = level
+    self._use_thread = use_thread
+  level = property(get_level, set_level)
+  
+  # ---------------------------------------------------------------------------
+  #
+  def update_surface(self, show_mesh, rendering_options):
 
-    # State save/restore in ChimeraX
-    def take_snapshot(self, session, flags):
-      data = {
-        'volume': self.volume,
-        'level': self.level,
-        'rgba': self.rgba,
-        'model state': Surface.take_snapshot(self, session, flags),
-        'version': 1
-      }
-      return data
+    self._use_thread_result()
+    
+    if not self._geometry_changed(rendering_options):
+      self._set_appearance(show_mesh, rendering_options)
+      return
+    
+    v = self.volume
+    matrix = v.matrix()
+    level = self.level
+    
+    show_status = (matrix.size >= self._min_status_message_voxels)
+    if show_status:
+      v.message('Computing %s surface, level %.3g' % (v.data.name, level))
 
-    @staticmethod
-    def restore_snapshot(session, data):
-      v = data['volume']
-      s = VolumeSurface(v, data['level'], data['rgba'])
-      Model.set_state_from_snapshot(s, session, data['model state'])
-      v._surfaces.append(s)
-      return s
+    if self._use_thread:
+      self._use_thread = False
+      self._calc_surface_in_thread(matrix, level, rendering_options, show_mesh)
+      return
+    else:
+      # Don't use thread calculation started earlier since new non-threaded calculation has begun.
+      self._surf_calc_thread = None
+      
+    try:
+      va, na, ta, hidden_edges = self._calculate_contour_surface(matrix, level, rendering_options)
+    except MemoryError:
+      ses = v.session
+      ses.warning('Ran out of memory contouring at level %.3g.\n' % level +
+                  'Try a higher contour level.')
+      return
+    
+    if show_status:
+      v.message('Calculated %s surface, level %.3g, with %d triangles'
+                   % (v.data.name, level, len(ta)), blank_after = 3.0)
+
+    self._set_surface(va, na, ta, hidden_edges)
+    self._set_appearance(show_mesh, rendering_options)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _calc_surface_in_thread(self, matrix, level, rendering_options, show_mesh):
+    sct = self._surf_calc_thread
+    new_thread = (sct is None or not sct.is_alive())
+    if new_thread:
+      from chimerax.core.threadq import WorkThread
+      self._surf_calc_thread = sct = WorkThread(self._calculate_contour_surface_threaded,
+                                                in_queue = (sct.in_queue if sct else None),
+                                                out_queue = (sct.out_queue if sct else None))
+      sct.daemon = True
+
+    # Clear the input queue, only the most recent surface calculation is queued
+    import queue
+    try:
+      while sct.in_queue.get_nowait():
+        sct.in_queue.task_done()
+    except queue.Empty:
+      pass
+    
+    sct.in_queue.put((matrix, level, rendering_options, show_mesh))
+
+    if new_thread:
+      sct.start()	# Start surface calculation in separate thread
+      
+    self.volume._drawings_need_update()        # Check later for surface calc result
+    
+  # ---------------------------------------------------------------------------
+  #
+  def _use_thread_result(self):
+    sct = self._surf_calc_thread
+    if sct is None:
+      return
+
+    import queue
+    try:
+      result = sct.out_queue.get_nowait()
+    except queue.Empty:
+      if sct.is_alive():
+        self.volume._drawings_need_update()        # Check later for surface calc result
+      else:
+        self._surf_calc_thread = None
+      return
+
+    va, na, ta, hidden_edges, matrix, level, rendering_options, show_mesh = result
+    self._set_surface(va, na, ta, hidden_edges)
+    self._set_appearance(show_mesh, rendering_options)
+    
+    show_status = (matrix.size >= self._min_status_message_voxels)
+    if show_status:
+      v = self.volume
+      v.message('Calculated %s surface, level %.3g, with %d triangles'
+                   % (v.data.name, level, len(ta)), blank_after = 3.0)
+    
+  # ---------------------------------------------------------------------------
+  #
+  def _calculate_contour_surface_threaded(self, matrix, level, rendering_options, show_mesh):
+    va, na, ta, hidden_edges = self._calculate_contour_surface(matrix,level, rendering_options)
+    return va, na, ta, hidden_edges, matrix, level, rendering_options, show_mesh
+  
+  # ---------------------------------------------------------------------------
+  #
+  def _calculate_contour_surface(self, matrix, level, rendering_options):
+
+    # _map contour code does not handle single data planes.
+    # Handle these by stacking two planes on top of each other.
+    plane_axis = [a for a in (0,1,2) if matrix.shape[a] == 1]
+    if plane_axis:
+      for a in plane_axis:
+        matrix = matrix.repeat(2, axis = a)
+
+    from ._map import contour_surface
+    varray, tarray, narray = contour_surface(matrix, level,
+                                             cap_faces = rendering_options.cap_faces,
+                                             calculate_normals = True)
+
+    if plane_axis:
+      for a in plane_axis:
+        varray[:,2-a] = 0
+
+    va, na, ta, hidden_edges = self._adjust_surface_geometry(varray, narray, tarray,
+                                                             rendering_options, level)
+
+    return va, na, ta, hidden_edges
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _adjust_surface_geometry(self, varray, narray, tarray, rendering_options, level):
+
+    ro = rendering_options
+    if ro.flip_normals and level < 0:
+      from chimerax.surface import invert_vertex_normals
+      invert_vertex_normals(narray, tarray)
+
+    # Preserve triangle vertex traversal direction about normal.
+    v = self.volume
+    transform = v.matrix_indices_to_xyz_transform()
+    if transform.determinant() < 0:
+      from ._map import reverse_triangle_vertex_order
+      reverse_triangle_vertex_order(tarray)
+
+    if ro.subdivide_surface:
+      from chimerax.surface import subdivide_triangles
+      for i in range(ro.subdivision_levels):
+        varray, tarray, narray = subdivide_triangles(varray, tarray, narray)
+
+    if ro.square_mesh:
+      from numpy import empty, uint8
+      hidden_edges = empty((len(tarray),), uint8)
+      from . import _map
+      _map.principle_plane_edges(varray, tarray, hidden_edges)
+    else:
+      hidden_edges = None
+      
+    if ro.surface_smoothing:
+      sf, si = ro.smoothing_factor, ro.smoothing_iterations
+      from chimerax.surface import smooth_vertex_positions
+      smooth_vertex_positions(varray, tarray, sf, si)
+      smooth_vertex_positions(narray, tarray, sf, si)
+
+    # Transform vertices and normals from index coordinates to model coordinates
+    transform.move(varray)
+    tf = transform.inverse().transpose().zero_translation()
+    tf.move(narray)
+    from chimerax.core.geometry import normalize_vectors
+    normalize_vectors(narray)
+
+    return varray, narray, tarray, hidden_edges
+
+  # ---------------------------------------------------------------------------
+  #
+  def _set_surface(self, va, na, ta, hidden_edges):
+    
+    self.set_geometry(va, na, ta)
+
+    self.edge_mask = hidden_edges
+
+    # TODO: Clip cap offset for different contour levels is not related to voxel size.
+    v = self.volume
+    self.clip_cap = True
+    self.clip_offset = .002* len([s for s in v.surfaces if self.level < s.level])
+
+    self.name = 'level %.4g' % self.level
+
+  # ---------------------------------------------------------------------------
+  #
+  def _set_appearance(self, show_mesh, rendering_options):
+
+    # Update color
+    v = self.volume
+    rgba = v._modulated_surface_color(self.rgba)
+    self.color = tuple(int(255*r) for r in rgba)
+    if self.auto_recolor_vertices is None:
+      self.vertex_colors = None
+
+    # Update display style
+    ro = rendering_options
+    # OpenGL draws nothing for degenerate triangles where two vertices are
+    # identical.  For 2d contours want to see these triangles so show as mesh.
+    contour_2d = v.single_plane() and not ro.cap_faces
+    style = self.Mesh if show_mesh or contour_2d else self.Solid
+    self.display_style = style
+
+    # Update lighting
+    if contour_2d:  lit = False
+    elif show_mesh: lit = ro.mesh_lighting
+    else:           lit = True
+    self.use_lighting = lit
+
+#    self.twoSidedLighting = ro.two_sided_lighting
+#    self.lineThickness = ro.line_thickness
+#    self.smoothLines = ro.smooth_lines
+
+#     if ro.dim_transparency:
+#       bmode = self.SRC_ALPHA_DST_1_MINUS_ALPHA
+#     else:
+#       bmode = self.SRC_1_DST_1_MINUS_ALPHA
+#     self.transparencyBlendMode = bmode
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _geometry_changed(self, rendering_options):
+    v = self.volume
+    ro = rendering_options
+    contour_settings = {'level': self.level,
+                        'matrix_id': v.matrix_id,
+                        'transform': v.matrix_indices_to_xyz_transform(),
+                        'surface_smoothing': ro.surface_smoothing,
+                        'smoothing_factor': ro.smoothing_factor,
+                        'smoothing_iterations': ro.smoothing_iterations,
+                        'subdivide_surface': ro.subdivide_surface,
+                        'subdivision_levels': ro.subdivision_levels,
+                        'square_mesh': ro.square_mesh,
+                        'cap_faces': ro.cap_faces,
+                        'flip_normals': ro.flip_normals,
+                        }
+    changed = (self._contour_settings != contour_settings)
+    if changed:
+      self._contour_settings = contour_settings
+    return changed
+
+  # State save/restore in ChimeraX
+  def take_snapshot(self, session, flags):
+    data = {
+      'volume': self.volume,
+      'level': self.level,
+      'rgba': self.rgba,
+      'model state': Surface.take_snapshot(self, session, flags),
+      'version': 1
+    }
+    return data
+
+  @staticmethod
+  def restore_snapshot(session, data):
+    v = data['volume']
+    s = VolumeSurface(v, data['level'], data['rgba'])
+    Model.set_state_from_snapshot(s, session, data['model state'])
+    v._surfaces.append(s)
+    return s
       
 # -----------------------------------------------------------------------------
 #
@@ -1953,7 +2073,7 @@ class PickedMap(Pick):
     self.map = v
     self.detail = detail
   def description(self):
-    return '%s %s %s' % (self.map.id_string(), self.map.name, self.detail)
+    return '%s %s %s' % (self.map.id_string, self.map.name, self.detail)
   def select(self, mode = 'add'):
     m = self.map
     if mode == 'add':
@@ -2019,7 +2139,7 @@ class Outline_Box:
     hide_diagonals = [b]*len(tlist)
 
     rgba = tuple(rgb) + (1,)
-    p = self.model.new_drawing()
+    p = self.model.new_drawing('outline box')
     p.display_style = p.Mesh
     p.lineThickness = linewidth
     p.use_lighting = False
@@ -3185,7 +3305,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     else:
       vlist = [m for m in models if isinstance(m, Volume)]
       if len(vlist) == 0:
-          mstring = ' (#%s)' % ','.join(model.id_string() for m in models) if models else ''
+          mstring = ' (#%s)' % ','.join(model.id_string for m in models) if models else ''
           from chimerax.core.errors import UserError
           raise UserError('Specified models are not volumes' + mstring)
 
@@ -3254,9 +3374,11 @@ class VolumeUpdateManager:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
         if v.display:
-          v.update_drawings()
+          # Remove volume from update list before update since update may re-add it
+          # if surface calculation done in thread.
           vset.remove(v)
-      vdisp.clear()
+          vdisp.remove(v)
+          v.update_drawings()
    
 # -----------------------------------------------------------------------------
 # Check if file name contains %d type format specification.

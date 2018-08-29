@@ -119,6 +119,11 @@ in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
 #endif
 
+#ifdef USE_DEPTH_TEXTURE
+uniform vec3 tex_depth_params;	// near, far/(far-near), scale
+uniform sampler2D tex_depth_2d;
+#endif
+
 #ifdef USE_TEXTURE_CUBEMAP
 in vec3 tex_coord_cubemap;
 uniform samplerCube texcube;
@@ -133,6 +138,14 @@ out vec4 frag_color;
 
 void main (void)
 {
+#ifdef USE_DEPTH_TEXTURE
+  // Adjust depth of each fragment in rendering a texture.
+  float zt = texture(tex_depth_2d, tex_coord_2d).x;
+  float znear = tex_depth_params.x, fdfmn = tex_depth_params.y, dscale = tex_depth_params.z;
+  float zs = max(znear, zt*dscale);
+  gl_FragDepth = fdfmn * (zs - znear) / zs;
+#endif
+
 #ifdef USE_TEXTURE_2D
   vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
 #else

@@ -144,7 +144,13 @@ class MouseMode:
     def camera_position(self):
         c = self.view.camera
         # For multiview cameras like VR camera, use camera position for desktop window.
-        return c.desktop_camera_position if hasattr(c, 'desktop_camera_position') else c.position
+        if hasattr(c, 'desktop_camera_position'):
+            cp = c.desktop_camera_position
+            if cp is None:
+                cp = c.position
+        else:
+            cp = c.position
+        return cp
     
 class MouseBinding:
     '''
@@ -874,47 +880,6 @@ class AtomCenterOfRotationMode(MouseMode):
             from chimerax.std_commands import cofr
             xyz = pick.atom.scene_coord
             cofr.cofr(self.session,pivot=xyz)
-
-class LabelMode(MouseMode):
-    '''Click an atom,ribbon,pseudobond or bond to label or unlabel it with default label.'''
-    name = 'label'
-    icon_file = 'label.png'
-
-    def mouse_down(self, event):
-        MouseMode.mouse_down(self, event)
-        x,y = event.position()
-        pick = picked_object(x, y, self.session.main_view)
-        self._label_pick(pick)
-
-    def _label_pick(self, pick):
-        if pick is None:
-            return
-        from chimerax.core.objects import Objects
-        objects = Objects()
-        from chimerax import atomic
-        if isinstance(pick, atomic.PickedAtom):
-            objects.add_atoms(pick.atom.residue.atoms)
-            object_type = 'residues'
-        elif isinstance(pick, atomic.PickedResidue):
-            objects.add_atoms(pick.residue.atoms)
-            object_type = 'residues'
-        elif isinstance(pick, atomic.PickedPseudobond):
-            objects.add_atoms(atomic.Atoms(pick.pbond.atoms))
-            object_type = 'pseudobonds'
-        elif isinstance(pick, atomic.PickedBond):
-            objects.add_bonds(atomic.Bonds([pick.bond]))
-            object_type = 'bonds'
-        else:
-            return
-
-        ses = self.session
-        from chimerax.label.label3d import label, label_delete
-        if label_delete(ses, objects, object_type) == 0:
-            label(ses, objects, object_type)
-
-    def laser_click(self, xyz1, xyz2):
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
-        self._label_pick(pick)
            
 class NullMouseMode(MouseMode):
     '''Used to assign no mode to a mouse button.'''
@@ -1099,6 +1064,7 @@ def standard_mouse_mode_classes():
     from chimerax import markers
     from chimerax.map import ContourLevelMouseMode, PlanesMouseMode
     from chimerax.map.series import PlaySeriesMouseMode
+    from chimerax.label import LabelMouseMode
     mode_classes = [
         SelectMouseMode,
         SelectAddMouseMode,
@@ -1113,7 +1079,7 @@ def standard_mouse_mode_classes():
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
-        LabelMode,
+        LabelMouseMode,
         AtomCenterOfRotationMode,
         ContourLevelMouseMode,
         PlanesMouseMode,

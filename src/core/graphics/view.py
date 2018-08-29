@@ -44,14 +44,8 @@ class View:
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
 
-        # Ambient shadows cached state
-        self._multishadow_dir = None
-        self._multishadow_transforms = []
-        self._multishadow_depth = None
-        self._multishadow_current_params = None
-        self._multishadow_update_needed = False
-
         # Silhouette edges
+        # TODO: Move these settings to Silhouette class in opengl.py.
         self.silhouettes = False
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0, 0, 0, 1)    # black
@@ -184,15 +178,15 @@ class View:
 
         r = self._render
         self.clip_planes.enable_clip_planes(r, camera.position)
-        stf, mstf, msdepth = self._compute_shadowmaps(drawings, camera)
+        shadow, multishadow = self._compute_shadowmaps(drawings, camera)
         mdraw = [self.drawing] if drawings is None else drawings
-        any_selected = self.any_drawing_selected(drawings)
+        any_highlighted = self.any_drawing_highlighted(drawings)
         
-        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_selection_outline
+        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
-                r.start_silhouette_drawing()
+                r.silhouette.start_silhouette_drawing()
             r.draw_background()
             if len(mdraw) == 0:
                 continue
@@ -203,29 +197,29 @@ class View:
             else:
                 cp = camera.get_position(vnum)
             r.set_view_matrix(cp.inverse())
-            if stf is not None:
-                r.set_shadow_transform(stf * cp)
-            if mstf is not None:
-                r.set_multishadow_transforms(mstf, cp, msdepth)
+            if shadow:
+                r.shadow.set_shadow_view(cp)
+            if multishadow:
+                r.multishadow.set_multishadow_view(cp)
                 # Initial depth pass optimization to avoid lighting
                 # calculation on hidden geometry
                 draw_depth(r, mdraw)
                 r.allow_equal_depth(True)
             self._start_timing()
             draw_opaque(r, mdraw)
-            if any_selected:
-                r.set_outline_depth()       # copy depth to outline framebuffer
+            if any_highlighted:
+                r.outline.set_outline_mask()       # copy depth to outline framebuffer
             draw_transparent(r, mdraw)    
             self._finish_timing()
-            if mstf is not None:
+            if multishadow:
                 r.allow_equal_depth(False)
             if self.silhouettes:
-                r.finish_silhouette_drawing(self.silhouette_thickness,
-                                            self.silhouette_color,
-                                            self.silhouette_depth_jump,
-                                            self._perspective_near_far_ratio)
-            if any_selected:
-                draw_selection_outline(r, mdraw)
+                r.silhouette.finish_silhouette_drawing(self.silhouette_thickness,
+                                                       self.silhouette_color,
+                                                       self.silhouette_depth_jump,
+                                                       self._perspective_near_far_ratio)
+            if any_highlighted:
+                draw_highlight_outline(r, mdraw)
 
     def check_for_drawing_change(self):
         trig = self.triggers
@@ -251,7 +245,9 @@ class View:
         if dm.shape_changed or cp.changed or dm.transparency_changed:
             # TODO: If model transparency effects multishadows, will need to detect those changes.
             if dm.shadows_changed():
-                self._multishadow_update_needed = True
+                r = self.render
+                if r:
+                    r.multishadow.multishadow_update_needed = True
 
         c.redraw_needed = False
         dm.clear_changes()
@@ -284,6 +280,7 @@ class View:
             if tuple(lp.depth_cue_color) == tuple(self._background_rgba[:3]):
                 # Make depth cue color follow background color if they are the same.
                 lp.depth_cue_color = tuple(color[:3])
+                self.update_lighting = True
         self._background_rgba = color
         self.redraw_needed = True
         if self.triggers:
@@ -488,134 +485,29 @@ class View:
         '''
         self._render.finish_rendering()
 
-    def _multishadow_directions(self):
-
-        directions = self._multishadow_dir
-        n = self.lighting.multishadow
-        if directions is None or len(directions) != n:
-            from ..geometry import sphere
-            self._multishadow_dir = directions = sphere.sphere_points(n)
-        return directions
-
     def _compute_shadowmaps(self, drawings, camera):
 
         r = self._render
-        lp = r.lighting
-        shadows = lp.shadows
-        if shadows:
-            stf = self._use_shadow_map(camera, drawings)
+        shadow_enabled = r.shadow.use_shadow_map(camera, drawings, self._shadow_bounds)
+        multishadow_enabled = r.multishadow.use_multishadow_map(drawings, self._shadow_bounds)
+        return shadow_enabled, multishadow_enabled
+
+    def _shadow_bounds(self, drawings):
+        if drawings is None:
+            b = self.drawing_bounds()
+            sdrawings = [self.drawing]
         else:
-            stf = None
-
-        multishadows = lp.multishadow
-        if multishadows > 0:
-            mstf, msdepth \
-                = self._use_multishadow_map(self._multishadow_directions(), drawings)
-        else:
-            mstf = msdepth = None
-
-        return stf, mstf, msdepth
-    
-    def _use_shadow_map(self, camera, drawings):
-
-        r = self._render
-        lp = r.lighting
-
-        # Compute light direction in scene coords.
-        kl = lp.key_light_direction
-        if r.recording_opengl:
-            light_direction = lambda c=camera, kl=kl: c.position.apply_without_translation(kl)
-        else:
-            light_direction = camera.position.apply_without_translation(kl)
-
-        # Compute drawing bounds so shadow map can cover all drawings.
-        sdrawings = None if drawings is None else [d for d in drawings if getattr(d, 'casts_shadows', True)]
-        center, radius, bdrawings = _drawing_bounds(sdrawings, self)
-        if center is None or radius == 0:
-            return None
-
-        # Compute shadow map depth texture
-        size = lp.shadow_map_size
-        r.start_rendering_shadowmap(center, radius, size)
-        r.draw_background()             # Clear shadow depth buffer
-
-        # Compute light view and scene to shadow map transforms
-        bias = lp.shadow_depth_bias
-        lvinv, stf = r.shadow_transforms(light_direction, center, radius, bias)
-        r.set_view_matrix(lvinv)
-        from .drawing import draw_depth
-        draw_depth(r, bdrawings, opaque_only = not r.material.transparent_cast_shadows)
-
-        shadow_map = r.finish_rendering_shadowmap()     # Depth texture
-
-        # Bind shadow map for subsequent rendering of shadows.
-        shadow_map.bind_texture(r.shadow_texture_unit)
-
-        return stf      # Scene to shadow map texture coordinates
+            sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
+            from ..geometry import bounds
+            b = bounds.union_bounds(d.bounds() for d in sdrawings)
+        center = None if b is None else b.center()
+        radius = None if b is None else b.radius()
+        return center, radius, sdrawings
 
     def max_multishadow(self):
         if not self._use_opengl():
             return 0	# OpenGL not available
-        return self._render.max_multishadows()
-
-    def _use_multishadow_map(self, light_directions, drawings):
-
-        r = self._render
-        lp = r.lighting
-        mat = r.material
-        msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias, mat.transparent_cast_shadows)
-        if self._multishadow_current_params != msp:
-            self._multishadow_update_needed = True
-
-        if self._multishadow_update_needed:
-            self._multishadow_transforms = []
-            self._multishadow_update_needed = False
-
-        if len(self._multishadow_transforms) == len(light_directions):
-            # Bind shadow map for subsequent rendering of shadows.
-            dt = r.multishadow_map_framebuffer.depth_texture
-            dt.bind_texture(r.multishadow_texture_unit)
-            return self._multishadow_transforms, self._multishadow_depth
-
-        # Compute drawing bounds so shadow map can cover all drawings.
-        sdrawings = None if drawings is None else [d for d in drawings if getattr(d, 'casts_shadows', True)]
-        center, radius, bdrawings = _drawing_bounds(sdrawings, self)
-        if center is None or radius == 0:
-            return None, None
-
-        # Compute shadow map depth texture
-        size = lp.multishadow_map_size
-        r.start_rendering_multishadowmap(center, radius, size)
-        r.draw_background()             # Clear shadow depth buffer
-
-        mstf_list = []
-        nl = len(light_directions)
-        from .drawing import draw_depth
-        from math import ceil, sqrt
-        d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
-        s = size // d               # Subtexture size.
-        bias = lp.multishadow_depth_bias
-        for l in range(nl):
-            x, y = (l % d), (l // d)
-            r.set_viewport(x * s, y * s, s, s)
-            lvinv, tf = r.shadow_transforms(light_directions[l], center, radius, bias)
-            r.set_view_matrix(lvinv)
-            mstf_list.append(tf)
-            draw_depth(r, bdrawings, opaque_only = not mat.transparent_cast_shadows)
-        from ..geometry import Places
-        mstf = Places(mstf_list)
-
-        shadow_map = r.finish_rendering_multishadowmap()     # Depth texture
-
-        # Bind shadow map for subsequent rendering of shadows.
-        shadow_map.bind_texture(r.multishadow_texture_unit)
-
-        # TODO: Clear shadow cache whenever scene changes
-        self._multishadow_current_params = msp
-        self._multishadow_transforms = mstf
-        self._multishadow_depth = msd = 2 * radius
-#        r.set_multishadow_transforms(mstf, None, msd)
-        return mstf, msd      # Scene to shadow map texture coordinates
+        return self._render.multishadow.max_multishadows()
 
     def drawing_bounds(self, clip=False, cached_only=False):
         '''Return bounds of drawing, displayed part only.'''
@@ -637,17 +529,17 @@ class View:
                 b = clip_bounds(b, [(p.plane_point, p.normal) for p in planes])
         return b
 
-    def any_drawing_selected(self, drawings=None):
-        '''Is anything selected.'''
+    def any_drawing_highlighted(self, drawings=None):
+        '''Is anything highlighted.'''
         if drawings is None:
             dm = self._drawing_manager
-            s = dm.cached_any_part_selected
+            s = dm.cached_any_part_highlighted
             if s is None:
-                dm.cached_any_part_selected = s = self.drawing.any_part_selected()
+                dm.cached_any_part_highlighted = s = self.drawing.any_part_highlighted()
             return s
         else:
             for d in drawings:
-                if d.any_part_selected():
+                if d.any_part_highlighted():
                     return True
             return False
 
@@ -1110,9 +1002,9 @@ class _RedrawNeeded:
         self.shape_changed_drawings = set()
         self.transparency_changed = False
         self.cached_drawing_bounds = None
-        self.cached_any_part_selected = None
+        self.cached_any_part_highlighted = None
 
-    def __call__(self, drawing, shape_changed=False, selection_changed=False, transparency_changed=False):
+    def __call__(self, drawing, shape_changed=False, highlight_changed=False, transparency_changed=False):
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
@@ -1121,8 +1013,8 @@ class _RedrawNeeded:
                 self.cached_drawing_bounds = None
         if transparency_changed:
             self.transparency_changed = True
-        if selection_changed:
-            self.cached_any_part_selected = None
+        if highlight_changed:
+            self.cached_any_part_highlighted = None
 
     def shadows_changed(self):
         if self.transparency_changed:
@@ -1137,16 +1029,3 @@ class _RedrawNeeded:
         self.shape_changed = False
         self.shape_changed_drawings.clear()
         self.transparency_changed = False
-        
-
-def _drawing_bounds(drawings, view):
-    if drawings is None:
-        b = view.drawing_bounds()
-        bdrawings = [view.drawing]
-    else:
-        from ..geometry import bounds
-        b = bounds.union_bounds(d.bounds() for d in drawings)
-        bdrawings = drawings
-    center = None if b is None else b.center()
-    radius = None if b is None else b.radius()
-    return center, radius, bdrawings

@@ -62,7 +62,7 @@ UBUNTU_DEPENDENCIES = {
         "liblzma5": "5.1.1alpha+20120614",
         "libnspr4": "4.13.1",
         "libnss3": "3.28.4",
-        "libosmesa": "17.2.8",
+        "libosmesa6": "17.2.8",
         "libpango-1.0-0": "1.38.1",
         "libpangocairo-1.0-0": "1.38.1",
         "libpulse-mainloop-glib0": "8.0",
@@ -296,12 +296,15 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
             Bugs: mailto:chimerax-bugs@cgl.ucsf.edu
             Section: contrib/science
             Priority: optional
-            Recommends: opencl-icd
-            Tags: science::visualisation, science::modelling, field::biology, field::chemistry,
+            Suggests: opencl-icd
+            Tag: science::visualisation, science::modelling, field::biology, field::chemistry,
              field::biology:structural, field::biology:bioinformatics,
              biology::nucleic-acids, biology::peptidic,
-             scope::application, x11::application, role::program, interface::3d,
-             implemented-in::python, uitoolkit::qt, use:viewing, network::client
+             use::viewing, use::analysing,
+             scope::application, x11::application, role::program,
+             interface::3d, interface::graphical, interface::commandline,
+             implemented-in::c++, implemented-in::python, uitoolkit::qt,
+             network::client
             Depends: {depends}
             """), file=f)
 

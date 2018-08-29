@@ -90,7 +90,7 @@ def _nonmodel_child_selected(m):
     from chimerax.core.models import Model
     for d in m.child_drawings():
         if not isinstance(d, Model):
-            if d.selected or _nonmodel_child_selected(d):
+            if d.highlighted or _nonmodel_child_selected(d):
                 return True
     return False
 

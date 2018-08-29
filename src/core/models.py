@@ -105,6 +105,7 @@ class Model(State, Drawing):
             self.session.triggers.activate_trigger(MODEL_ID_CHANGED, self)
     id = property(_get_id, _set_id)
 
+    @property
     def id_string(self):
         '''Return the dot-separated identifier for this model.
         A top-level model (one that is not a child of another model)
@@ -121,6 +122,11 @@ class Model(State, Drawing):
             return ''
         return '.'.join(str(i) for i in self.id)
 
+    def __str__(self):
+        if self.id is None:
+            return self.name
+        return '%s #%s' % (self.name, self.id_string)
+
     def _get_name(self):
         return self._name
 
@@ -133,13 +139,17 @@ class Model(State, Drawing):
     name = property(_get_name, _set_name)
     
     def set_selected(self, sel, *, fire_trigger=True):
-        Drawing.set_selected(self, sel)
+        Drawing.set_highlighted(self, sel)
         if fire_trigger:
             from chimerax.core.selection import SELECTION_CHANGED
             self.session.ui.thread_safe(self.session.triggers.activate_trigger,
                 SELECTION_CHANGED, None)
 
-    selected = property(Drawing.get_selected, set_selected)
+    selected = property(Drawing.get_highlighted, set_selected)
+
+    @property
+    def selected_positions(self):
+        return self.highlighted_positions
     
     def _model_set_position(self, pos):
         if pos != self.position:
@@ -246,11 +256,46 @@ class Model(State, Drawing):
     def selected_items(self, itype):
         return []
 
+    def clear_selection(self):
+        self.clear_highlight()
+
     def added_to_session(self, session):
-        pass
+        html_title = self.get_html_title(session)
+        if not html_title:
+            return
+        fmt = '<i>%s</i> title:<br><b>%s</b>'
+        if self.has_formatted_metadata(session):
+            fmt += ' <a href="cxcmd:log metadata #%s">[more&nbspinfo...]</a>' % self.id_string
+        fmt += '<br>'
+        session.logger.info(fmt % (self.name, self.html_title) , is_html=True)
 
     def removed_from_session(self, session):
         pass
+
+    def get_html_title(self, session):
+        return getattr(self, 'html_title', None)
+
+    def show_metadata(self, session, *, verbose=False, log=None, **kw):
+        '''called by 'log metadata' command.'''
+        formatted_md = self.get_formatted_metadata(session, verbose=verbose, **kw)
+        if log:
+            if formatted_md:
+                log.log(log.LEVEL_INFO, formatted_md, (None, False), True)
+            else:
+                log.log(log.LEVEL_INFO, "No additional info for %s" % self, (None, False), False)
+        else:
+            if formatted_md:
+                session.logger.info(formatted_md, is_html=True)
+            else:
+                session.logger.info("No additional info for %s" % self)
+
+    def has_formatted_metadata(self, session):
+        '''Can override both this and 'get_formatted_metadata' if lazy evaluation desired'''
+        return hasattr(self, 'formatted_metadata')
+
+    def get_formatted_metadata(self, session, *, verbose=False, **kw):
+        formatted = getattr(self, 'formatted_metadata', None)
+        return getattr(self, 'verbose_formatted_metadata', formatted) if verbose else formatted
 
     # Atom specifier API
     def atomspec_has_atoms(self):
@@ -281,6 +326,12 @@ class Model(State, Drawing):
                 if not tv:
                     return False
         return True
+
+    def all_parts_selected(self):
+        return self.any_part_selected()
+
+    def any_part_selected(self):
+        return self.highlighted
 
 
 class Surface(Model):

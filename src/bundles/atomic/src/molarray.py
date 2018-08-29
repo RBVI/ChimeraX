@@ -290,7 +290,7 @@ def concatenate(collections, object_class = None, remove_duplicates = False):
     collections : sequence of :class:`.Collection` objects
     '''
     if len(collections) == 0:
-        c = object_class()
+        c = object_class(None)
     else:
         import numpy
         p = numpy.concatenate([a._pointers for a in collections])

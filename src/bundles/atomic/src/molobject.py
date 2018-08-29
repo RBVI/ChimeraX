@@ -959,7 +959,7 @@ class StructureSeq(Sequence):
             name_part = " " + rem.strip()
         else:
             name_part = ""
-        return "%s (#%s)%s" % (self.structure.name, self.structure.id_string(), name_part)
+        return "%s (#%s)%s" % (self.structure.name, self.structure.id_string, name_part)
 
     # used by custom-attr registration code
     @property
@@ -1420,6 +1420,13 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
                        ret = ctypes.py_object)
         return f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
+
+    @property
+    def nonstandard_residue_names(self):
+        '''"ligand-y" residue names in this structure'''
+        f = c_function('structure_nonstandard_residue_names',
+                       args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
 
     PMS_ALWAYS_CONNECTS, PMS_NEVER_CONNECTS, PMS_TRACE_CONNECTS = range(3)
     def polymers(self, missing_structure_treatment = PMS_ALWAYS_CONNECTS,

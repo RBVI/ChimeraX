@@ -43,7 +43,8 @@ See also:
 <a href="densitymaps.html"><b>Density Map Toolbar</b></a>,
 <a href="graphics.html"><b>Graphics Toolbar</b></a>,
 <a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>,
-<a href="markerplacement.html"><b>Marker Placement</b></a>
+<a href="markerplacement.html"><b>Marker Placement</b></a>,
+<a href="../vr.html">virtual reality</a>
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -121,9 +122,8 @@ see also <a href="../commands/distance.html"><b>distance</b></a> and
 </tr><tr>
 <td align="center"><img src="mouse-icons/label.png" width="35px"></td>
 <td align="center"><b>label</b></td>
-<td align="center" class="text">label/unlabel clicked atom 
-or ribbon segment with residue name and number, clicked bond or 
-<a href="../pseudobonds.html">pseudobond</a> with length;
+<td align="center" class="text">label/unlabel clicked atom or ribbon segment 
+with residue name and number (slightly <a href="#vr">different in VR</a>);
 see also <a href="../commands/label.html"><b>label</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
@@ -179,6 +179,13 @@ original coordinates not retained</td>
 jiggle residue and its neighbors with OpenMM dynamics
 while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/zone.png" width="35px"></td>
+<td align="center"><b>zone</b></td>
+<td align="center" class="text">
+limit atomic and <a href="volumeviewer.html">volume data</a> display
+to a zone around the clicked residue
+(<a href="mousemodes.html#zone">details...</a>)</td>
 </tr>
 </table>
 
@@ -209,6 +216,51 @@ temperature 100K, and 10 time steps between coordinate updates,
 with energy minimization if a maximum force is exceeded due to bad geometry. 
 Different models do not &ldquo;feel&rdquo; the effects of each other;
 that is, only intra-model forces apply. No nonbonded cutoff is used.
+</p>
+
+<a name="zone"></a>
+<p class="nav">
+[<a href="#top">back to top: Mouse Modes...</a>]
+</p>
+<h3>Zone Around Atoms</h3>
+<p>
+The <b>zone</b> mouse mode limits <a href="volumeviewer.html">volume data</a> 
+display to a 8 &Aring; zone around the atoms of the clicked residue. 
+The residue and others within 5 &Aring; of it are shown as all atoms. 
+<a href="#vr">Except in VR</a>,
+the remaining residues of the same atomic model are shown as a ribbon
+(slimmed down for increased visibility) and labels are displayed for 
+residues within 4 &Aring; of the clicked residue.
+See also: <a href="../commands/volume.html#zone"><b>volume zone</b></a>
+(with <b>newMap false</b>),
+<a href="../commands/label.html#residues"><b>label</b></a>,
+<a href="../commands/show.html"><b>show</b></a>,
+<a href="../commands/atomspec.html#zones">zone atom specification</a>
+</p>
+
+<a name="vr"></a>
+<p class="nav">
+[<a href="#top">back to top: Mouse Modes...</a>]
+</p>
+<h3>Differences in Virtual Reality (VR)</h3>
+<p>
+Some of the mouse modes are modified in <a href="../vr.html">virtual reality</a>
+to maintain rapid graphics updates and avoid flickering:
+</p>
+<ul>
+<li><b>label</b> mode reorients labels only upon a 45&deg; change in viewing 
+angle rather than continuously, and makes labels yellow for better visibility
+<li><b>zone</b> mode does not show labels or ribbons (cartoons)
+</ul>
+<p>
+Modes that normally require clicking on an atom (<b>select</b>, <b>label</b>,
+<i>etc.</i>) require pointing at the atom with the VR hand-controller cone.
+</p><p>
+Most modes that normally involve clicking and dragging
+are operated by clicking and moving the hand controller vertically.
+The <b>bond rotation</b> mode requires rotating the hand controller. 
+Translation and rotation are separate mouse modes but a
+single hand-controller mode. 
 </p>
 
 <hr>

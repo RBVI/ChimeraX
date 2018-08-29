@@ -61,4 +61,4 @@ def adjust_threshold_level(m, f):
         m.set_parameters(solid_levels = new_levels)
     else:
         new_levels = tuple(s.level+step for s in m.surfaces)
-        m.set_parameters(surface_levels = new_levels)
+        m.set_parameters(surface_levels = new_levels, threaded_surface_calculation = True)

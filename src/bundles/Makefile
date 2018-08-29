@@ -24,7 +24,7 @@ SUBDIRS = addh align_algs alignments atom_search atomic \
 	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
 	  smooth_lines spacenavigator std_commands stl storm struts surface swapaa \
-	  test texture tug ui viewdockx vive vtk wavefront_obj
+	  test texture tug ui viewdockx vive vtk wavefront_obj zone
 
 include $(TOP)/mk/subdir.make
 
@@ -43,6 +43,7 @@ endif
 clean:
 	rm -rf __pycache__
 
+# These dependencies should the same as the dependences in the bundle bundle_info.xml files
 addh.install: atomic.install hbonds.install
 align_algs.install: alignments.install
 alignments.install: atomic.install
@@ -51,10 +52,11 @@ bild.install: atomic.install surface.install
 basic_actions.install: ui.install
 blastprotein.install: ui.install
 bond_rot.install: ui.install
+bug_reporter.install: ui.install
 bumps.install: markers.install
 cage_builder.install: ui.install
 chem_group.install: atomic.install
-clashes.install: atomic.install
+clashes.install: atom_search.install atomic.install
 cmd_line.install: ui.install
 crosslinks.install: interfaces.install
 dist_monitor.install: atomic.install
@@ -62,7 +64,7 @@ dist_ui.install: ui.install
 dssp.install: atomic.install
 file_history.install: ui.install
 help_viewer.install: ui.install
-hbonds.install: atomic.install chem_group.install
+hbonds.install: atom_search.install atomic.install chem_group.install
 ihm.install: atomic.install map.install
 interfaces.install: ui.install
 log.install: ui.install
@@ -74,11 +76,11 @@ markers.install: atomic.install ui.install
 match_maker.install: align_algs.install sim_matrices.install
 md_crds.install: atomic.install
 mmcif.install: atomic.install
-mmtf-python.install: atomic.install
+mmtf.install: atomic.install
 model_panel.install: ui.install
 model_series.install: ui.install
 modeller.install: alignments.install
-mol2.install: atomic.install
+mol2.install: atomic.install chem_group.install
 mouse_modes.install: ui.install
 nucleotides.install: atomic.install ui.install
 pdb.install: atomic.install
@@ -95,3 +97,4 @@ std_commands.install: atomic.install
 swapaa.install: ui.install
 tug.install: ui.install
 viewdockx.install: atomic.install mol2.install ui.install
+zone.install: ui.install

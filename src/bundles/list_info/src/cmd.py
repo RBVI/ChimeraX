@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, ModelsArg, ListOf
+from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, ModelsArg, ListOf, BoolArg
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_attr, report_distmat
 
@@ -58,7 +58,7 @@ def info_bounds(session, models=None):
         b = session.main_view.drawing_bounds()
         msg = 'Scene %s' % bounds_description(b)
     else:
-        lines = ['#%s, %s, %s' % (m.id_string(), m.name, bounds_description(m.bounds()))
+        lines = ['#%s, %s, %s' % (m.id_string, m.name, bounds_description(m.bounds()))
                  for m in sorted(models, key = lambda m: m.id)]
         msg = '\n'.join(lines)
     session.logger.info(msg)

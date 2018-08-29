@@ -686,10 +686,10 @@ def points_outside_contour(points, tf, volume):
 #
 def atom_fit_message(molecules, volume, stats):
 
-    mnames = ['%s (#%s)' % (m.name, m.id_string()) for m in molecules]
+    mnames = ['%s (#%s)' % (m.name, m.id_string) for m in molecules]
     mnames = ', '.join(mnames)
     plural = 's' if len(molecules) > 1 else ''
-    vname = '%s (#%s)' % (volume.name, volume.id_string())
+    vname = '%s (#%s)' % (volume.name, volume.id_string)
     natom = stats['points']
     aoc = stats.get('atoms outside contour', None)
     clevel = stats.get('contour level', None)
@@ -737,11 +737,11 @@ def map_fit_message(moved_map, fixed_map, stats):
 def transformation_matrix_message(model, map, transform = None):
     
     m = model
-    mname = '%s (#%s)' % (m.name, m.id_string())
+    mname = '%s (#%s)' % (m.name, m.id_string)
     mtf = m.position
 
     f = map
-    fname = '%s (#%s)' % (f.name, f.id_string())
+    fname = '%s (#%s)' % (f.name, f.id_string)
     ftf = f.position
     
     rtf = ftf.inverse() * mtf if transform is None else transform

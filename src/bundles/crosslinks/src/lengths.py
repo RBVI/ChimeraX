@@ -175,13 +175,13 @@ class EnsemblePlot(Plot):
                 ea = e.atoms
                 from numpy import logical_and
                 mask = logical_and.reduce(((ea.names == a.name),
-                                           (ea.chain_ids == a.chain_id),
+                                           (ea.chain_ids == a.residue.chain_id),
                                            (ea.residues.numbers == a.residue.number)))
                 matom = ea.filter(mask)
                 if len(matom) != 1:
                     from chimerax.core.errors import UserError
                     raise UserError('Require one atom in ensemble %s matching pseudobond atom /%s:%d@%s, got %d'
-                                    % (e.name, a.chain_id, a.residue.number, a.name, len(matom)))
+                                    % (e.name, a.residue.chain_id, a.residue.number, a.name, len(matom)))
                 a = matom[0]
             atoms.append(a)
         return atoms

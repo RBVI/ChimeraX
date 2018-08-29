@@ -95,7 +95,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def set_selected(self, sel, *, fire_trigger=True):
         self.pseudobonds.selected = sel
         Model.set_selected(self, sel, fire_trigger=fire_trigger)
-    selected = property(Model.get_selected, set_selected)
+    selected = property(Model.selected.fget, set_selected)
 
     def selected_items(self, itype):
         if itype == 'pseudobonds':
@@ -103,6 +103,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
             if pbonds.num_selected > 0:
                 return [pbonds.filter(pbonds.selected)]
         return []
+
+    def all_parts_selected(self):
+        if self.pseudobonds.num_selected < self.num_pseudobonds:
+            return False
+        for c in self.child_models():
+            if not c.all_parts_selected():
+                return False
+        return True
 
     def any_part_selected(self):
         if self.pseudobonds.num_selected > 0:
@@ -171,7 +179,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self._graphics_changed = 0
             self._update_graphics(gc)
             self.redraw_needed(shape_changed = (gc & self._SHAPE_CHANGE),
-                               selection_changed = (gc & self._SELECT_CHANGE))
+                               highlight_changed = (gc & self._SELECT_CHANGE))
 
     def _update_graphics(self, changes = PseudobondGroupData._ALL_CHANGE):
 
@@ -209,7 +217,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             
         if changes & self._SELECT_CHANGE:
             from . import structure as s
-            d.selected_positions = s._selected_bond_cylinders(pbonds)
+            d.highlighted_positions = s._selected_bond_cylinders(pbonds)
 
     def _update_positions(self, pbonds, bond_atoms):
         ba1, ba2 = bond_atoms

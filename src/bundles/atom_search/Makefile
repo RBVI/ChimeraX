@@ -22,15 +22,17 @@ endif
 RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
 PYSRCS = $(wildcard src/*.py)
-SRCS = $(PYSRCS) $(DATAFILES)
+CSRCS = search_cpp/imex.h search_cpp/search.cpp search_cpp/search.h \
+	search_cpp/ast.pyx search_cpp/ast.pxd
+SRCS = $(PYSRCS) $(CSRCS)
 
-wheel:	bundle_info.xml lib
+wheel:	bundle_info.xml $(SRCS)
 	$(RUN) "devel build . exit true test false"
 
-lib:
-	cd search_cpp; $(MAKE)
+search_cpp/imex.h:
+	sed -e 's/LIBNAME/ATOM_SEARCH/' < $(includedir)/imex.i > $@
 
-install app-install:	bundle_info.xml $(SRCS) lib
+install app-install:	bundle_info.xml $(SRCS)
 	$(RUN) "devel install . user false exit true test false"
 
 test:
@@ -47,7 +49,8 @@ clean:
 	else \
 		rm -rf build dist *.egg-info src/__pycache__ ; \
 	fi
-	cd search_cpp; $(MAKE) clean
+	rm -f search_cpp/search.o* search_cpp/imex.h search_cpp/ast.cpp \
+		src/lib/libatom_*
 
 pylint:
-	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+	$(CHIMERAX_EXE) -m flake8 $(PYSRCS)

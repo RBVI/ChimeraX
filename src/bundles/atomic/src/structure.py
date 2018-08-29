@@ -84,15 +84,15 @@ class Structure(Model, StructureData):
             from chimerax.core.core_settings import settings
             style = settings.atomspec_contents
 
-        id = '#' + self.id_string()
-        if style == "command" or not self.name:
+        id = '#' + self.id_string
+        if style.startswith("command") or not self.name:
             return id
         return '%s %s' % (self.name, id)
 
     @property
     def atomspec(self):
         '''Return the atom specifier string for this structure.'''
-        return '#' + self.id_string()
+        return '#' + self.id_string
 
     def delete(self):
         '''Delete this structure.'''
@@ -129,12 +129,11 @@ class Structure(Model, StructureData):
         self._start_change_tracking(session.change_tracker)
 
         # Setup handler to manage C++ data changes that require graphics updates.
-        gu = structure_graphics_updater(session)
-        gu.add_structure(self)
+        self._graphics_updater.add_structure(self)
+        Model.added_to_session(self, session)
 
     def removed_from_session(self, session):
-        gu = structure_graphics_updater(session)
-        gu.remove_structure(self)
+        self._graphics_updater.remove_structure(self)
 
     def _is_only_model(self):
         id = self.id
@@ -284,8 +283,11 @@ class Structure(Model, StructureData):
 
     @property
     def _level_of_detail(self):
-        gu = structure_graphics_updater(self.session)
-        return gu.level_of_detail
+        return self._graphics_updater.level_of_detail
+
+    @property
+    def _graphics_updater(self):
+        return structure_graphics_updater(self.session)
 
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
@@ -303,12 +305,13 @@ class Structure(Model, StructureData):
 
         # Update graphics
         self._graphics_changed = 0
+        self._graphics_updater.need_update()
         s = (gc & self._SHAPE_CHANGE)
         if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
             self._update_ribbon_tethers()
         self._update_graphics(gc)
         self.redraw_needed(shape_changed = s,
-                           selection_changed = (gc & self._SELECT_CHANGE))
+                           highlight_changed = (gc & self._SELECT_CHANGE))
 
         if gc & self._SELECT_CHANGE:
             # Update selection in child drawings (e.g., surfaces)
@@ -361,7 +364,7 @@ class Structure(Model, StructureData):
 
         if changes & self._SELECT_CHANGE:
             # Set selected
-            p.selected_positions = atoms.selected if atoms.num_selected > 0 else None
+            p.highlighted_positions = atoms.selected if atoms.num_selected > 0 else None
 
     def _atom_display_radii(self, atoms):
         return atoms.display_radii(self.ball_scale, self.bond_radius)
@@ -395,7 +398,7 @@ class Structure(Model, StructureData):
             p.colors = bonds.half_colors
             
         if changes & self._SELECT_CHANGE:
-            p.selected_positions = _selected_bond_cylinders(bonds)
+            p.highlighted_positions = _selected_bond_cylinders(bonds)
 
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
@@ -1454,9 +1457,9 @@ class Structure(Model, StructureData):
         for p, residues in da.items():
             if not residues[1] and not residues[2]:
                 # No residues being kept or added
-                p.selected_triangles_mask = None
+                p.highlighted_triangles_mask = None
             else:
-                m = p.selected_triangles_mask
+                m = p.highlighted_triangles_mask
                 if m is None:
                     import numpy
                     m = numpy.zeros((p.number_of_triangles(),), bool)
@@ -1464,7 +1467,7 @@ class Structure(Model, StructureData):
                     m[start:end] = False
                 for start, end in residues[2]:
                     m[start:end] = True
-                p.selected_triangles_mask = m
+                p.highlighted_triangles_mask = m
 
     # Position of atoms on ribbon in spline parameter units.
     # These should correspond to the "minimum" backbone atoms
@@ -1601,15 +1604,15 @@ class Structure(Model, StructureData):
         self.atoms.selected = sel
         self.bonds.selected = sel
         Model.set_selected(self, sel, fire_trigger=fire_trigger)
-    selected = property(Model.get_selected, set_selected)
+    selected = property(Model.selected.fget, set_selected)
 
     def set_selected_positions(self, spos):
         sel = (spos is not None and spos.sum() > 0)
         self.atoms.selected = sel
         self.bonds.selected = sel
         Model.set_selected_positions(self, spos)
-    selected_positions = property(Model.get_selected_positions, set_selected_positions)
-
+    selected_positions = property(Model.selected_positions.fget, set_selected_positions)
+    
     def selected_items(self, itype):
         if itype == 'atoms':
             atoms = self.atoms
@@ -1620,6 +1623,14 @@ class Structure(Model, StructureData):
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
         return []
+
+    def all_parts_selected(self):
+        if self.atoms.num_selected < self.num_atoms or self.bonds.num_selected < self.num_bonds:
+            return False
+        for c in self.child_models():
+            if not c.all_parts_selected():
+                return False
+        return True
 
     def any_part_selected(self):
         if self.atoms.num_selected > 0 or self.bonds.num_selected > 0:
@@ -2378,7 +2389,7 @@ class AtomicStructure(Structure):
                 for chain_id in compnd_chain_ids:
                     chain_to_desc[chain_id] = (description, synonym)
         if chain_to_desc:
-            from .pdb import process_chem_name
+            from chimerax.atomic.pdb import process_chem_name
             for k, v in chain_to_desc.items():
                 description, synonym = v
                 chain_to_desc[k] = process_chem_name(description, probable_abbrs=synonym)
@@ -2397,7 +2408,7 @@ class AtomicStructure(Structure):
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
             return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s</a>' % (
-                chain.structure.id_string(), chain.chain_id, chain.chain_id)
+                chain.structure.id_string, chain.chain_id, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
 
     def _report_ensemble_chain_descriptions(self, session, ensemble):
@@ -2413,8 +2424,8 @@ class AtomicStructure(Structure):
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
             return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s/%s</a>' % (
-                chain.structure.id_string(), chain.chain_id,
-                chain.structure.id_string(), chain.chain_id)
+                chain.structure.id_string, chain.chain_id,
+                chain.structure.id_string, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
 
     def _report_chain_summary(self, session, descripts, chain_text):
@@ -2423,7 +2434,7 @@ class AtomicStructure(Structure):
             if len(chains) == 1:
                 return escape(description)
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
-                ''.join(["#%s/%s" % (chain.structure.id_string(), chain.chain_id)
+                ''.join(["#%s/%s" % (chain.structure.id_string, chain.chain_id)
                     for chain in chains]), escape(description))
         from chimerax.core.logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
@@ -2482,7 +2493,7 @@ def assembly_html_table(mol):
              '<tr><th colspan=2>%s mmCIF Assemblies' % mol.name]
     for id, details in sa:
         lines.append('<tr><td><a title="Generate assembly" href="cxcmd:sym #%s assembly %s ; view">%s</a><td>%s'
-                     % (mol.id_string(), id, id, details))
+                     % (mol.id_string, id, id, details))
     lines.append('</table>')
     html = '\n'.join(lines)
     return html
@@ -2521,6 +2532,9 @@ class StructureGraphicsChangeManager:
         self._structures.remove(s)
         self._structures_array = None
 
+    def need_update(self):
+        self._need_update = True
+        
     def _model_display_changed(self, tname, model):
         if isinstance(model, Structure) or _has_structure_descendant(model):
             self._need_update = True

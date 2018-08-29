@@ -16,6 +16,8 @@
 #ifndef atomstruct_Rgba
 #define atomstruct_Rgba
 
+#include <initializer_list>
+
 namespace atomstruct {
     
 class ATOMSTRUCT_IMEX Rgba {

@@ -703,8 +703,6 @@ cdef class Element:
             ele_ptr = Element._string_to_cpp_element(ident.encode())
         return ele_ptr.py_instance(True)
 
-    names = set(cydecl.Element.names())
-
 cydecl.Element.set_py_class(Element)
 
 cdef class CyResidue:
@@ -1005,7 +1003,7 @@ cdef class CyResidue:
             return '%s %s' % (chain_str, res_str)
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
-            struct_string = str(self.structure)
+            struct_string = self.structure.string(style=style)
             if style.startswith("serial"):
                 struct_string += " "
         else:

@@ -30,14 +30,11 @@ def read_ihm(session, filename, name, *args, load_ensembles = False, load_linked
         filename = stream.name
         stream.close()
 
-    try:
-        m = IHMModel(session, filename,
-                 load_ensembles = load_ensembles,
-                 load_linked_files = load_linked_files,
-                 show_sphere_crosslinks = show_sphere_crosslinks,
-                 show_atom_crosslinks = show_atom_crosslinks)
-    except IOError as e:
-        raise RuntimeError('IHM error') from e
+    m = IHMModel(session, filename,
+             load_ensembles = load_ensembles,
+             load_linked_files = load_linked_files,
+             show_sphere_crosslinks = show_sphere_crosslinks,
+             show_atom_crosslinks = show_atom_crosslinks)
 
     return [m], m.description
 
@@ -118,8 +115,9 @@ class IHMModel(Model):
     
         # Align starting models to first sphere model
         if smodels:
-            # TODO: Align to first result model, could be spheres or atomic
             align_starting_models_to_spheres(stmodels, smodels[0])
+        elif amodels:
+            align_starting_models_to_atoms(stmodels, amodels[0])
     
         # Ensemble localization
         self.localization_models = lmaps = self.read_localization_maps()
@@ -176,7 +174,7 @@ class IHMModel(Model):
                 ea.setdefault(edesc,[]).append(asym_id)
 
         # Create html table of entities with chains for each entity.
-        rid = self.results_model.id_string()
+        rid = self.results_model.id_string
         from chimerax.core.logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
@@ -484,7 +482,7 @@ class IHMModel(Model):
         mlt = self.tables['ihm_model_list']
         ml_fields = ['model_id', 'model_name']
         ml = mlt.fields(ml_fields, allow_missing_fields = True)
-        mnames = {mid:mname for mid,mname in ml if mname}
+        mnames = {mid:(mname if mname and mname != '.' else 'result %s' % mid) for mid,mname in ml}
         return mnames
 
     # -----------------------------------------------------------------------------
@@ -789,7 +787,9 @@ class IHMModel(Model):
             clrt_rows = clrt.fields(clrt_fields, allow_missing_fields = True)
             for g_id, asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, dist in clrt_rows:
                 d, dlow = distance_thresholds(dist, dist, rtype)
-                xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d, dlow)
+                aname1 = None if atom_id_1 == '.' else atom_id_1
+                aname2 = None if atom_id_2 == '.' else atom_id_2
+                xl = Crosslink(asym_id_1, int(seq_id_1), aname1, asym_id_2, int(seq_id_2), aname2, d, dlow)
                 ct = cl_type.get(g_id, '')
                 xlinks.setdefault(ct, []).append(xl)
 
@@ -1146,36 +1146,74 @@ class FileInfo:
         self.ref = ref		# ExternalReference object or None
         self.file_path = file_path
         self.ihm_dir = ihm_dir
+        self._warn = True
 
     def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
         if r is None or r.ref_type == 'Supplementary Files':
-            # Local file
-            from os.path import join
-            path = join(self.ihm_dir, self.file_path)
-            if uncompress and path.endswith('.gz'):
-                import gzip
-                f = gzip.open(path, mode)
-            else:
-                f = open(path, mode)
+            f = self._open_local_file(session, self.file_path, mode, uncompress)
         elif r.ref_type == 'DOI':
-            if r.content == 'Archive':
-                from .doi_fetch import fetch_doi_archive_file
-                f = fetch_doi_archive_file(session, r.ref, r.url, self.file_path)
-                # TODO: Handle gzip decompression of archive files.
-            elif r.content == 'File':
-                from .doi_fetch import fetch_doi
+            f = self._open_doi_file(session, self.file_path, mode, uncompress)
+        else:
+            f = None
+            if self._warn:
+                session.logger.warning('Unrecognized external file reference_type "%s" for file "%s",'
+                                       ' expecting "Supplementary Files" or "DOI"'
+                                       % (r.ref_type, self.file_path))
+                self._warn = False
+        return f
+
+    def _open_local_file(self, session, file_path, mode, uncompress):
+        from os.path import join, exists
+        path = join(self.ihm_dir, file_path)
+        if not exists(path):
+            f = None
+            if self._warn:
+                session.logger.warning('Missing file "%s"' % path)
+                self._warn = False
+        elif uncompress and path.endswith('.gz'):
+            import gzip
+            f = gzip.open(path, mode)
+        else:
+            f = open(path, mode)
+        return f
+
+    def _open_doi_file(self, session, file_path, mode, uncompress):
+        r = self.ref
+        if r._fetch_failed:
+            f = None
+        elif r.content == 'Archive':
+            from .doi_fetch import fetch_doi_archive_file
+            from chimerax.core.errors import UserError
+            try:
+                f = fetch_doi_archive_file(session, r.ref, r.url, file_path)
+            except UserError as e:
+                session.logger.warning(str(e))
+                r._fetch_failed = True
+                f = None
+            # TODO: Handle gzip decompression of archive files.
+        elif r.content == 'File':
+            from .doi_fetch import fetch_doi
+            from chimerax.core.errors import UserError
+            try:
                 path = fetch_doi(session, r.ref, r.url)
+            except UserError as e:
+                session.logger.warning(str(e))
+                r._fetch_failed = True
+                f = None
+            else:
                 if uncompress and path.endswith('.gz'):
                     import gzip
                     f = gzip.open(path, mode)
                 else:
                     f = open(path, mode)
-            else:
-                f = None
         else:
             f = None
-        return f
+            if self._warn:
+                session.logger.warning('Unrecognized DOI content type "%s" for file "%s",'
+                                       ' expecting "Archive" or "File".'
+                                       % (r.content, file_path))
+                self._warn = False
 
     @property
     def file_name(self):
@@ -1200,19 +1238,34 @@ class FileInfo:
                 return path
             
         if r and r.ref_type == 'DOI':
-            if r.content == 'Archive' and self.file_path:
+            if r._fetch_failed:
+                path = None
+            elif r.content == 'Archive' and self.file_path:
                 from .doi_fetch import unzip_archive
-                dir = unzip_archive(session, r.ref, r.url)
-                from os.path import join, isfile
-                path = join(dir, self.file_path)
-                if not isfile(path):
-                    session.logger.warning('Failed to find map file in zip archive'
-                                           'DOI "%s", url "%s", path "%s"'
-                                           % (r.ref, r.url, path))
+                from chimerax.core.errors import UserError
+                try:
+                    dir = unzip_archive(session, r.ref, r.url)
+                except UserError as e:
+                    session.logger.warning(str(e))
+                    r._fetch_failed = True
                     path = None
+                else:
+                    from os.path import join, isfile
+                    path = join(dir, self.file_path)
+                    if not isfile(path):
+                        session.logger.warning('Failed to find map file in zip archive'
+                                               'DOI "%s", url "%s", path "%s"'
+                                               % (r.ref, r.url, path))
+                        path = None
             elif r.content == 'File':
                 from .doi_fetch import fetch_doi
-                path = fetch_doi(session, r.ref, r.url)
+                from chimerax.core.errors import UserError
+                try:
+                    path = fetch_doi(session, r.ref, r.url)
+                except UserError as e:
+                    session.logger.warning(str(e))
+                    r._fetch_failed = True
+                    path = None
             else:
                 path = None
         else:
@@ -1229,6 +1282,7 @@ class ExternalReference:
         self.ref = ref 			# DOI identifier
         self.content = content		# "Archive" or "File"
         self.url = url			# URL to zip archive for a DOI, or file
+        self._fetch_failed = False	# Remember if fetch failed to avoid multiple error messages
 
 # -----------------------------------------------------------------------------
 #
@@ -1257,8 +1311,6 @@ class FileDataSet(DataSet):
                 fs.close()
             else:
                 models = []
-                session.logger.warning('Could not open file "%s"' % finfo.file_path +
-                                       ' ref ' + str(finfo.ref) )
         else:
             models = []	# Don't know how to read atomic model file
         return models
@@ -1392,10 +1444,12 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
             elif a2 is None:
                 missing.append((xl.asym2, xl.seq2))
         if missing:
-            smiss = ','.join('/%s:%d' % (asym_id, seq_num) for asym_id, seq_num in missing[:3])
-            if len(missing) > 3:
+            mres = list(set((asym_id, seq_num) for asym_id, seq_num in missing))
+            mres.sort()
+            smiss = ','.join('/%s:%d' % ai for ai in mres[:5])
+            if len(missing) > 5:
                 smiss += '...'
-            msg = 'Missing %d %s crosslink residues %s' % (len(missing), xltype, smiss)
+            msg = 'Missing residues for %d of %d %s crosslinks: %s' % (len(missing), len(xlist), xltype, smiss)
             if parent is not None and hasattr(parent, 'name'):
                 msg = parent.name + ' ' + msg
             session.logger.info(msg)
@@ -1743,6 +1797,42 @@ def align_starting_models_to_spheres(amodels, smodel):
             print ('aligned %s, %d residues, rms %.4g' % (m.name, len(mxyz), rms))
         else:
             print ('could not align aligned %s to spheres, %d matching residues' % (m.name, len(mxyz)))
+
+# -----------------------------------------------------------------------------
+#
+def align_starting_models_to_atoms(amodels, refmodel):
+    if len(amodels) == 0:
+        return
+
+    # TODO: Handle case where model coordinate systems are different
+    rloc = {}
+    for r in refmodel.residues:
+        pa = r.principal_atom
+        if pa:
+            rloc[(r.chain_id, r.number)] = pa.coord
+            
+    for m in amodels:
+        # Align comparative model atoms to result model atoms
+        asym_id = m.asym_id
+        mxyz = []
+        sxyz = []
+        for r in m.residues:
+            pa = r.principal_atom
+            if pa:
+                xyz = rloc.get((asym_id, r.number))
+                if xyz is not None:
+                    mxyz.append(pa.coord)
+                    sxyz.append(xyz)
+                else:
+                    print ('could not find res for alignment', (r.chain_id, r.number))
+        if len(mxyz) >= 3:
+            from chimerax.core.geometry import align_points
+            from numpy import array, float64
+            p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
+            m.position = p
+            print ('aligned %s to %s, %d residues, rms %.4g' % (m.name, refmodel.name, len(mxyz), rms))
+        else:
+            print ('could not align %s to %s, only %d matching residues' % (m.name, refmodel.name, len(mxyz)))
             
 # -----------------------------------------------------------------------------
 #
@@ -1753,7 +1843,7 @@ def atom_lookup(models):
             res = a.residue
             amap[(res.chain_id, res.number, a.name)] = a
         for r in m.residues:
-            amap[(res.chain_id, res.number, None)] = r.principal_atom
+            amap[(r.chain_id, r.number, None)] = r.principal_atom
     def lookup(asym_id, res_num, atom_name, amap=amap):
         return amap.get((asym_id, res_num, atom_name))
     return lookup

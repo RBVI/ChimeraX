@@ -200,12 +200,12 @@ class ModelPanel(ToolInstance):
 
     def _get_info(self, obj):
         model_id = obj.id
-        model_id_string = obj.id_string()
+        model_id_string = obj.id_string
         bg_color = self._model_color(obj)
         display = obj.display
         name = getattr(obj, "name", "(unnamed)")
-        selected = obj.selected
-        part_selected = obj.any_part_selected()
+        selected = obj in self.session.selection.models(all_selected=True)
+        part_selected = selected or obj in self.session.selection.models()
         return model_id, model_id_string, bg_color, display, name, selected, part_selected
 
     def _header_click_cb(self, index):
@@ -240,17 +240,13 @@ class ModelPanel(ToolInstance):
 
     def _tree_change_cb(self, item, column):
         from PyQt5.QtCore import Qt
+        model = self.models[self._items.index(item)]
         if column == self.SHOWN_COLUMN:
-            self.models[self._items.index(item)].display = item.checkState(self.SHOWN_COLUMN) == Qt.Checked
+            command_name = "show" if item.checkState(self.SHOWN_COLUMN) == Qt.Checked else "hide"
+            run(self.session, "%s #!%s models" % (command_name, model.id_string))
         elif column == self.SELECT_COLUMN:
-            model = self.models[self._items.index(item)]
-            sel_val = item.checkState(self.SELECT_COLUMN) == Qt.Checked
-            # prevent a zillion firings of the trigger by firing it once ourselves
-            for m in model.all_models():
-                m.set_selected(sel_val, fire_trigger=False)
-            from chimerax.core.selection import SELECTION_CHANGED
-            self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
-
+            prefix = "" if item.checkState(self.SELECT_COLUMN) == Qt.Checked else "~"
+            run(self.session, prefix + "select #" + model.id_string)
 
 from chimerax.core.settings import Settings
 class ModelPanelSettings(Settings):

@@ -33,8 +33,14 @@ _additional_categories = (
     "cell",
     "symmetry",
     "software",
+    "struct",
     "citation",
     "citation_author",
+    "chem_comp",
+    "exptl",
+    "refine",
+    "reflns",
+    "em_3d_reconstruction",
 )
 _reserved_words = {
     'loop_', 'stop_', 'global_'
@@ -70,22 +76,183 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
     for m in models:
         m.filename = path
 
-    info = "Opened mmCIF data containing %d atoms%s %d bonds" % (
-        sum(m.num_atoms for m in models),
-        ("," if coordsets else " and"),
-        sum(m.num_bonds for m in models))
+    info = ''
     if coordsets:
         num_cs = 0
         for m in models:
             num_cs += m.num_coordsets
-        info += " and %s coordinate sets" % num_cs
+        info = '%s has %d coordinate sets' % (file_name, num_cs)
         if session.ui.is_gui:
             mc = [m for m in models if m.num_coordsets > 1]
             if mc:
                 from chimerax.std_commands.coordset import coordset_slider
                 coordset_slider(session, mc)
+    for model in models:
+        struct = get_mmcif_tables_from_metadata(model, ["struct"])[0]
+        if not struct:
+            continue
+        try:
+            title = struct.fields(['title'])[0][0]
+        except TableMissingFieldsError:
+            continue
+        from chimerax.atomic.pdb import process_chem_name
+        model.html_title = process_chem_name(title, sentences=True)
+        model.has_formatted_metadata = lambda ses: True
+        model.get_formatted_metadata = lambda ses, *, m=model, verbose=False, **kw: \
+            _get_formatted_metadata(m, ses, verbose)
+        break
     return models, info
 
+def _get_formatted_metadata(model, session, verbose):
+    from chimerax.core.logger import html_table_params
+    from chimerax.atomic.pdb import process_chem_name
+    html = "<table %s>\n" % html_table_params
+    html += ' <thead>\n'
+    html += '  <tr>\n'
+    html += '   <th colspan="2">Metadata for %s</th>\n' % model
+    html += '  </tr>\n'
+    html += ' </thead>\n'
+    html += ' <tbody>\n'
+
+    # title
+    if hasattr(model, 'html_title'):
+        html += '  <tr>\n'
+        html += '   <th>Title</th>\n'
+        html += '   <td>%s</td>\n' % model.html_title
+        html += '  </tr>\n'
+
+    # citations
+    cites = citations(model)
+    if cites:
+        html += '  <tr>\n'
+        if len(cites) > 1:
+            html += '   <th rowspan="%d">Citations</th>\n' % len(cites)
+        else:
+            html += '   <th>Citation</th>\n'
+        html += '   <td>%s</td>\n' % cites[0]
+        html += '  </tr>\n'
+        for cite in cites[1:]:
+            html += '  <tr>\n'
+            html += '   <td>%s</td>\n' % cite
+            html += '  </tr>\n'
+
+    # non-standard residues
+    nonstd_res_names = model.nonstandard_residue_names
+    if nonstd_res_names:
+        nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
+        chem_comp = get_mmcif_tables_from_metadata(model, ["chem_comp"])[0]
+        if chem_comp:
+            raw_rows = chem_comp.fields(['id', 'name', 'pdbx_synonyms'], allow_missing_fields=True)
+            for raw_row in raw_rows:
+                if raw_row[0] not in nonstd_info:
+                    continue
+                row = substitute_none_for_unspecified(raw_row)
+                if row[1] or row[2]:
+                    nonstd_info[row[0]] = (row[0], row[1], row[2])
+        def fmt_component(abbr, name, syns):
+            text = '<a href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
+            if name:
+                text += '<a href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
+                    process_chem_name(name))
+                if syns:
+                    text += " (%s)" % process_chem_name(syns)
+            else:
+                text += process_chem_name(syns)
+            return text
+        for i, info in enumerate(nonstd_info.values()):
+            abbr, name, synonyms = info
+            html += '  <tr>\n'
+            formatted = fmt_component(abbr, name, synonyms)
+            if i == 0:
+                if len(nonstd_info) > 1:
+                    html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(nonstd_info)
+                else:
+                    html += '   <th>Non-standard residue</th>\n'
+            html += '   <td>%s</td>\n' % formatted
+            html += '  </tr>\n'
+
+    # source
+    nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"])
+    if nat:
+        html += _process_src(nat, "Source%s (natural)", ['common_name', 'pdbx_organism_scientific',
+            'genus', 'species', 'pdbx_ncbi_taxonomy_id'])
+    if gen:
+        html += _process_src(gen, "Gene source%s", ['gene_src_common_name',
+            'pdbx_gene_src_scientific_name', 'gene_src_genus', 'gene_src_species',
+            'pdbx_gene_src_ncbi_taxonomy_id'])
+        if verbose:
+            html += _process_src(gen, "Host organism%s", ['host_org_common_name',
+                'pdbx_host_org_scientific_name', 'host_org_genus', 'host_org_species',
+                'pdbx_host_org_ncbi_taxonomy_id'])
+
+    # experimental method; resolution
+    experiment = get_mmcif_tables_from_metadata(model, ["exptl"])[0]
+    if experiment:
+        method = substitute_none_for_unspecified(experiment.fields(
+            ['method'], allow_missing_fields=True)[0])[0]
+        if method:
+            html += '  <tr>\n'
+            html += '   <th>Experimental method</th>\n'
+            html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
+            html += '  </tr>\n'
+    res = None
+    reflections = get_mmcif_tables_from_metadata(model, ["reflns"])[0]
+    if reflections:
+        res = substitute_none_for_unspecified(reflections.fields(
+            ['d_resolution_high'], allow_missing_fields=True)[0])[0]
+    if res is None:
+        refine = get_mmcif_tables_from_metadata(model, ["refine"])[0]
+        if refine:
+            res = substitute_none_for_unspecified(refine.fields(
+                ['ls_d_res_high'], allow_missing_fields=True)[0])[0]
+    if res is None:
+        em = get_mmcif_tables_from_metadata(model, ["em_3d_reconstruction"])[0]
+        if em:
+            res = substitute_none_for_unspecified(em.fields(
+                ['resolution'], allow_missing_fields=True)[0])[0]
+    if res is not None:
+        html += '  <tr>\n'
+        html += '   <th>Resolution</th>\n'
+        html += '   <td>%s\N{ANGSTROM SIGN}</td>\n' % res
+        html += '  </tr>\n'
+
+    html += ' </tbody>\n'
+    html += "</table>"
+
+    return html
+
+def _process_src(src, caption, field_names):
+    raw_rows = src.fields(field_names, allow_missing_fields=True)
+    usable_rows = set()
+    for raw_row in raw_rows:
+        row = substitute_none_for_unspecified(raw_row)
+        if row[:4] != [None, None, None, None]:
+            usable_rows.add(tuple(row))
+    html = ""
+    if usable_rows:
+        from chimerax.atomic.pdb.pdb import format_source_name
+        rows = list(usable_rows)
+        html += '  <tr>\n'
+        if len(rows) > 1:
+            html += '   <th rowspan="%d">%s</th>\n' % (len(rows), caption % 's')
+        else:
+            html += '   <th>%s</th>\n' % caption % ''
+        html += '   <td>%s</td>\n' % format_source_name(*rows[0])
+        html += '  </tr>\n'
+        for row in rows[1:]:
+            html += '  <tr>\n'
+            html += '   <td>%s</td>\n' % format_source_name(*row)
+            html += '  </tr>\n'
+    return html
+
+def substitute_none_for_unspecified(fields):
+    substituted = []
+    for field in fields:
+        if field in ('?', '.', ''):
+            substituted.append(None)
+        else:
+            substituted.append(field)
+    return substituted
 
 _mmcif_sources = {
     # "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
@@ -211,13 +378,11 @@ def citations(model, only=None):
         "citation", "citation_author"])
     if not citation:
         return ""
-    if citation_author is None:
-        citation_author = ()
 
     try:
         cf = citation.fields([
             'id', 'title', 'journal_abbrev', 'journal_volume', 'year'])
-    except ValueError:
+    except TableMissingFieldsError:
         return ""   # missing fields
     cf2 = citation.fields([
         'page_first', 'page_last',
@@ -226,7 +391,7 @@ def citations(model, only=None):
     try:
         caf = citation_author.fields(['citation_id', 'name', 'ordinal'])
         caf = tuple((ci, n, int(o)) for ci, n, o in caf)
-    except ValueError:
+    except (TableMissingFieldsError, AttributeError):
         caf = ()
     citations = []
     from html import escape
@@ -319,6 +484,9 @@ def get_mmcif_tables_from_metadata(model, table_names):
     return tlist
 
 
+class TableMissingFieldsError(ValueError):
+    pass
+
 class MMCIFTable:
     """
     Present a table interface for a mmCIF category
@@ -384,7 +552,7 @@ class MMCIFTable:
                 from chimerax.core.commands.cli import commas, plural_form
                 have = commas(['"%s"' % t for t in self._tags], ' and')
                 have_noun = plural_form(self._tags, 'field')
-                raise ValueError(
+                raise TableMissingFieldsError(
                     'Field "%s" not in table "%s", have %s %s'
                     % (name, self.table_name, have_noun, have))
         key_columns = [self._data[t.index(k.casefold())::n] for k in key_names]
@@ -446,7 +614,7 @@ class MMCIFTable:
                 missed_verb = plural_form(missing, 'is', 'are')
                 have = commas(['"%s"' % t for t in self._tags], ' and')
                 have_noun = plural_form(self._tags, 'field')
-                raise ValueError('%s %s %s not in table "%s", have %s %s' % (
+                raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
                     missed_noun, missed, missed_verb, self.table_name, have_noun,
                     have))
             fi = tuple(t.index(f.casefold()) for f in field_names)

@@ -46,10 +46,10 @@ clean:
 	else \
 		rm -rf build dist *.egg-info src/__pycache__ src/*/__pycache__ src/*/*/__pycache__ src/*.$(PYMOD_EXT) ; \
 	fi
-	make -C gromacs clean
+	$(MAKE) -C gromacs clean
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
 
 xdrfile_lib:
-	make -C gromacs all
+	$(MAKE) -C gromacs all

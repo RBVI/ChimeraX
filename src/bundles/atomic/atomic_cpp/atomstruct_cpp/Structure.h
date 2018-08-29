@@ -171,6 +171,12 @@ protected:
     bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
+    void  _get_interres_connectivity(std::map<Residue*, int>& res_lookup,
+            std::map<int, Residue*>& index_lookup,
+            std::map<Residue*, bool>& res_connects_to_next,
+            std::set<Atom*>& left_missing_structure_atoms,
+            std::set<Atom*>& right_missing_structure_atoms,
+            const std::set<Atom*>* deleted_atoms = nullptr) const;
     Chain*  _new_chain(const ChainID& chain_id, PolymerType pt = PT_NONE) const {
         auto chain = new Chain(chain_id, const_cast<Structure*>(this), pt);
         _chains->emplace_back(chain);
@@ -239,6 +245,7 @@ public:
     CoordSet*  new_coord_set(int index, int size);
     Residue*  new_residue(const ResName& name, const ChainID& chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
+    std::set<ResName>  nonstd_res_names() const;
     virtual void  normalize_ss_ids() {}
     size_t  num_atoms() const { return atoms().size(); }
     size_t  num_bonds() const { return bonds().size(); }

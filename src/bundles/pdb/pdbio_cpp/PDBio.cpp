@@ -125,6 +125,7 @@ push_helix(std::vector<Residue*>& cur_helix, std::vector<std::string>& helices, 
     hrec.helix.end.seq_num = end->number();
     hrec.helix.end.i_code = end->insertion_code();
     hrec.helix.helix_class = 1;
+    hrec.helix.length = cur_helix.size();
     helices.push_back(hrec.c_str());
     cur_helix.clear();
 }
@@ -238,18 +239,24 @@ cum_preloop_t += end_t - start_t;
 start_t = clock();
 #endif
         std::pair<char *, PyObject *> read_vals = (*read_func)(input);
-        char *line = read_vals.first;
-        if (line[0] == '\0') {
+        char *char_line = read_vals.first;
+        if (char_line[0] == '\0') {
             Py_XDECREF(read_vals.second);
             break;
         }
         *eof = false;
+        *line_num += 1;
+        // allow for initial Unicode byte-order marker
+        std::string line(char_line);
+        if (*line_num == 1 && line.size() >= 3 && line[0] == '\xEF'
+        && line[1] == '\xBB' && line[2] == '\xBF') {
+            line.erase(0, 3);
+        }
 
         // extra set of parens on next line to disambiguate from function decl
-        std::istringstream is((std::string((char *)line)));
+        std::istringstream is((line));
         Py_XDECREF(read_vals.second);
         is >> record;
-        *line_num += 1;
 
 #ifdef CLOCK_PROFILING
 end_t = clock();
@@ -265,6 +272,8 @@ start_t = end_t;
             if (record.unknown.junk[0] & 0200) {
                 logger::error(py_logger, "Non-ASCII character on line ",
                     *line_num, " of PDB file");
+                PyErr_SetString(PyExc_ValueError, "PDB file contains non-ASCII character"
+                    " or control character");
                 return nullptr;
             }
             logger::warning(py_logger, "Ignored bad PDB record found on line ",
@@ -705,7 +714,7 @@ start_t = end_t;
                 break;
 
             default:
-                std::string key((const char *)line, 6);
+                std::string key(line, 0, 6);
                 // remove trailing spaces from key
                 for (int i = key.length()-1; i >= 0 && key[i] == ' '; i--)
                     key.erase(i, 1);

@@ -49,12 +49,11 @@ static PyObject *surface_py2(PyObject *, PyObject *args, PyObject *keywds)
   float threshold;
   int cap_faces = 1, return_normals = 0;
   const char *kwlist[] = {"data", "threshold", "cap_faces", "calculate_normals", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("Of|ii"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("Of|pp"),
 				   (char **)kwlist,
 				   &py_data, &threshold, &cap_faces,
 				   &return_normals))
     return NULL;
-
   
   Numeric_Array data;
   if (!array_from_python(py_data, 3, &data))
@@ -66,25 +65,23 @@ static PyObject *surface_py2(PyObject *, PyObject *args, PyObject *keywds)
   			 (data, threshold, cap_faces, &cs));
   Py_END_ALLOW_THREADS
 
-  float *vxyz;
+  float *vxyz, *nxyz;
   int *tvi;
   PyObject *vertex_xyz = python_float_array(cs->vertex_count(), 3, &vxyz);
+  PyObject *normals = (return_normals ? python_float_array(cs->vertex_count(), 3, &nxyz) : NULL);
   PyObject *tv_indices = python_int_array(cs->triangle_count(), 3, &tvi);
+
+  Py_BEGIN_ALLOW_THREADS
   cs->geometry(vxyz, reinterpret_cast<Index *>(tvi));
-
-  PyObject *geom = PyTuple_New(return_normals ? 3 : 2);
-  PyTuple_SetItem(geom, 0, vertex_xyz);
-  PyTuple_SetItem(geom, 1, tv_indices);
-
   if (return_normals)
-    {
-      float *nxyz;
-      PyObject *normals = python_float_array(cs->vertex_count(), 3, &nxyz);
       cs->normals(nxyz);
-      PyTuple_SetItem(geom, 2, normals);
-    }
-  delete cs;
 
+  delete cs;
+  Py_END_ALLOW_THREADS
+
+  PyObject *geom = (return_normals ?
+		    python_tuple(vertex_xyz, tv_indices, normals) :
+		    python_tuple(vertex_xyz, tv_indices));
   return geom;
 }
 

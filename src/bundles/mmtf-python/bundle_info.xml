@@ -51,7 +51,7 @@ Implementation Notes
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-Core" version=">=0.8"/>
   </Dependencies>
 
   <Classifiers>

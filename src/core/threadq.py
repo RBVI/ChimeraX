@@ -12,11 +12,13 @@
 import threading
 class WorkThread(threading.Thread):
     """Compute a molecular surface"""
-    def __init__(self, function, in_queue, out_queue):
+    def __init__(self, function, in_queue = None, out_queue = None):
         threading.Thread.__init__(self)
         self.function = function
-        self.in_queue = in_queue
-        self.out_queue = out_queue
+
+        from queue import Queue
+        self.in_queue = Queue() if in_queue is None else in_queue
+        self.out_queue = Queue() if out_queue is None else out_queue
 
     def run(self):
         import queue
@@ -52,6 +54,7 @@ def apply_to_list(func, args, nthread = None):
     out_queue = Queue()
 
     # Create threads.
+    # Threads will exit when there is no more input.
     for i in range(nthread):
         t = WorkThread(func, in_queue, out_queue)
         t.daemon = True

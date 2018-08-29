@@ -94,7 +94,7 @@ class AtomicShapeDrawing(Drawing):
         # called by Structure._update_if_needed when atom selection has changed
         # in a child model/drawing
         self._selected_shapes = set(s for s in self._shapes if s.atoms and all(s.atoms.selected))
-        tmask = self.selected_triangles_mask
+        tmask = self.highlighted_triangles_mask
         if tmask is None:
             tris = self.triangles
             if tris is None:
@@ -104,47 +104,47 @@ class AtomicShapeDrawing(Drawing):
             tmask[:] = False
         for s in self._selected_shapes:
             tmask[s.triangle_range] = True
-        self.selected_triangles_mask = tmask
+        self.highlighted_triangles_mask = tmask
 
     def _add_selected_shape(self, shape):
         self._selected_shapes.add(shape)
-        tmask = self.selected_triangles_mask
+        tmask = self.highlighted_triangles_mask
         if tmask is None:
             tmask = numpy.zeros(len(self.triangles), bool)
         tmask[shape.triangle_range] = True
-        self.selected_triangles_mask = tmask
+        self.highlighted_triangles_mask = tmask
         if shape.atoms:
             shape.atoms.selected = True
 
     def _add_selected_shapes(self, shapes):
         self._selected_shapes.update(shapes)
-        tmask = self.selected_triangles_mask
+        tmask = self.highlighted_triangles_mask
         if tmask is None:
             tmask = numpy.zeros(len(self.triangles), bool)
         for s in shapes:
             tmask[s.triangle_range] = True
             if s.atoms:
                 s.atoms.selected = True
-        self.selected_triangles_mask = tmask
+        self.highlighted_triangles_mask = tmask
 
     def _remove_selected_shape(self, shape):
         self._selected_shapes.remove(shape)
         if shape.atoms:
             shape.atoms.selected = False
-        tmask = self.selected_triangles_mask
+        tmask = self.highlighted_triangles_mask
         if tmask is None:
             return
         tmask[shape.triangle_range] = False
-        self.selected_triangles_mask = tmask
+        self.highlighted_triangles_mask = tmask
 
     def _remove_selected_shapes(self, shapes):
         self._selected_shapes.difference_update(shapes)
-        tmask = self.selected_triangles_mask
+        tmask = self.highlighted_triangles_mask
         for s in shapes:
             tmask[s.triangle_range] = False
             if s.atoms:
                 s.atoms.selected = False
-        self.selected_triangles_mask = tmask
+        self.highlighted_triangles_mask = tmask
 
     def _add_handler_if_needed(self):
         if self._selection_handler is not None:
@@ -276,9 +276,10 @@ class PickedAtomicShape(Pick):
     def drawing(self):
         return self._drawing
 
+    @property
     def id_string(self):
         d = self.drawing()
-        return d.id_string() if hasattr(d, 'id_string') else '?'
+        return d.id_string if hasattr(d, 'id_string') else '?'
 
     def is_transparent(self):
         d = self.drawing()

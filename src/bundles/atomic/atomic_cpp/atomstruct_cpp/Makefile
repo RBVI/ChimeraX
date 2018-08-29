@@ -89,7 +89,7 @@ seq_assoc.o: Chain.h Structure.h Residue.h seq_assoc.h
 Sequence.o: Sequence.h session.h ../pyinstance_cpp/PythonInstance.declare.h \
 	../pyinstance_cpp/PythonInstance.instantiate.h
 Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h PBManager.h \
-	Pseudobond.h Structure.h Residue.h ../element_cpp/Element.h \
+	Pseudobond.h Sequence.h Structure.h Residue.h ../element_cpp/Element.h \
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
 StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h Structure.h Sequence.h Residue.h \
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h

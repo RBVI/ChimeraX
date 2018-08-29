@@ -104,8 +104,7 @@ def _set_surface_transparency(atoms, objects, session, alpha):
             if amask.all():
                 v = slice(len(vcolors))
             else:
-                session.logger.info('No atom associations for surface #%s'
-                                    % s.id_string())
+                session.logger.info('No atom associations for surface #%s' % s.id_string)
                 continue
         else:
             v = amask[v2a]
@@ -113,14 +112,15 @@ def _set_surface_transparency(atoms, objects, session, alpha):
         s.vertex_colors = vcolors
 
     # Handle surface models specified without specifying atoms
-    from chimerax.atomic import MolecularSurface, Structure
+    from chimerax.atomic import MolecularSurface
     from chimerax.map import Volume
+    from chimerax.core.models import Surface
     osurfs = []
     for s in objects.models:
         if isinstance(s, MolecularSurface):
             if not s in surfs:
                 osurfs.append(s)
-        elif isinstance(s, Volume) or (not isinstance(s, Structure) and not s.empty_drawing()):
+        elif isinstance(s, Volume) or isinstance(s, Surface):
             osurfs.append(s)
     for s in osurfs:
         s.set_transparency(alpha)
@@ -133,12 +133,13 @@ def _set_surface_transparency(atoms, objects, session, alpha):
 #
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, Or, ObjectsArg, EmptyArg, FloatArg
-    from chimerax.core.commands import StringArg, ListOf, EnumOf
+    from chimerax.core.commands import ListOf, EnumOf
+    from .color import TargetArg
     from .color import WHAT_TARGETS
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                              ('percent', FloatArg)],
                    optional=[('what', what_arg)],
-                   keyword=[('target', StringArg)],
+                   keyword=[('target', TargetArg)],
                    synopsis="change object transparency")
     register('transparency', desc, transparency, logger=logger)

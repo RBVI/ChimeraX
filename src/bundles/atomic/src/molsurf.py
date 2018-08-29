@@ -365,7 +365,7 @@ class MolecularSurface(Surface):
         if v2a is None:
             from chimerax.core.errors import UserError
             raise UserError('Surface #%s does not have atom patches, cannot color by atom'
-                            % self.id_string())
+                            % self.id_string)
         if per_atom_colors is None:
             c = self.atoms.colors[v2a[vmask],:]
         else:
@@ -403,7 +403,7 @@ class MolecularSurface(Surface):
     def set_selected(self, sel, *, fire_trigger=True):
         self.atoms.selected = sel
         self.update_selection(fire_trigger=fire_trigger)
-    selected = property(Surface.get_selected, set_selected)
+    selected = property(Surface.selected.fget, set_selected)
 
     def update_selection(self, *, fire_trigger=True):
         asel = self.atoms.selected
@@ -413,7 +413,7 @@ class MolecularSurface(Surface):
         else:
             sel_val = (tmask.sum() > 0)
         Surface.set_selected(self, sel_val, fire_trigger=fire_trigger)
-        self.selected_triangles_mask = tmask
+        self.highlighted_triangles_mask = tmask
 
     # State save/restore in ChimeraX
     _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_vertex_to_atom_count', '_max_radius',
