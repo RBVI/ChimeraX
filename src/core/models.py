@@ -320,6 +320,9 @@ class Model(State, Drawing):
                     return False
         return True
 
+    def all_parts_selected(self):
+        return self.any_part_selected()
+
 
 class Surface(Model):
     '''

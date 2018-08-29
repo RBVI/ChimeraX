@@ -39,9 +39,11 @@ def version(session, format=None):
         dists = list(dists)
         dists.sort(key=lambda d: d.name.casefold())
     else:
-        import pip
-        dists = pip.get_installed_distributions(local_only=True)
-        dists = list(dists)
+        # import pip
+        # dists = pip.get_installed_distributions(local_only=True)
+        # dists = list(dists)
+        import pkg_resources
+        dists = list(pkg_resources.WorkingSet())
         dists.sort(key=lambda d: d.project_name.casefold())
     if not dists:
         session.logger.error("no version information available")
