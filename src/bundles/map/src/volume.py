@@ -608,7 +608,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def draw(self, renderer, place, draw_pass, selected_only = False):
+  def draw(self, renderer, place, draw_pass, highlighted_only = False):
     if not self.display:
       return
     
@@ -616,7 +616,7 @@ class Volume(Model):
       self.initialize_thresholds()
       self.update_drawings()
       
-    Model.draw(self, renderer, place, draw_pass, selected_only = selected_only)
+    Model.draw(self, renderer, place, draw_pass, highlighted_only = highlighted_only)
 
   # ---------------------------------------------------------------------------
   #
@@ -1031,7 +1031,7 @@ class Volume(Model):
     Model.set_selected(self, sel, fire_trigger=fire_trigger)
     for s in self.surfaces:
       s.set_selected(sel)
-  selected = property(Model.get_selected, _set_selected)
+  selected = property(Model.selected.getter, _set_selected)
 
   # ---------------------------------------------------------------------------
   #

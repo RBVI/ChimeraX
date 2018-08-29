@@ -287,10 +287,10 @@ class ObjectLabels(Model):
         self.redraw_needed()
     single_color = property(_get_single_color, _set_single_color)
 
-    def draw(self, renderer, place, draw_pass, selected_only=False):
+    def draw(self, renderer, place, draw_pass, highlighted_only=False):
         if self.on_top:
             renderer.enable_depth_test(False)
-        Model.draw(self, renderer, place, draw_pass, selected_only)
+        Model.draw(self, renderer, place, draw_pass, highlighted_only)
         if self.on_top:
             renderer.enable_depth_test(True)
     

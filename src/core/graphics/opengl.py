@@ -1502,7 +1502,7 @@ class Silhouette:
         tc.draw(blend = True)
 
 class Outline:
-    '''Draw selection outlines.'''
+    '''Draw highlight outlines.'''
     
     def __init__(self, render):
         self._render = render
@@ -1515,7 +1515,7 @@ class Outline:
             self._mask_framebuf = None
 
     def set_outline_mask(self):
-        '''Copy framebuffer depth to outline framebuffer.  Only selected
+        '''Copy framebuffer depth to outline framebuffer.  Only highlighted
         objects at equal depth or in front will be outlined by start_rendering_outline().
         This routine must be called before start_rendering_outline().
         '''

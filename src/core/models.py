@@ -139,13 +139,15 @@ class Model(State, Drawing):
     name = property(_get_name, _set_name)
     
     def set_selected(self, sel, *, fire_trigger=True):
-        Drawing.set_selected(self, sel)
+        Drawing.set_highlighted(self, sel)
         if fire_trigger:
             from chimerax.core.selection import SELECTION_CHANGED
             self.session.ui.thread_safe(self.session.triggers.activate_trigger,
                 SELECTION_CHANGED, None)
 
-    selected = property(Drawing.get_selected, set_selected)
+    selected = property(Drawing.get_highlighted, set_selected)
+
+    selected_positions = Drawing.highlighted_positions
     
     def _model_set_position(self, pos):
         if pos != self.position:
@@ -252,6 +254,9 @@ class Model(State, Drawing):
     def selected_items(self, itype):
         return []
 
+    def clear_selection(self):
+        self.clear_highlight()
+
     def added_to_session(self, session):
         html_title = self.get_html_title(session)
         if not html_title:
@@ -322,6 +327,9 @@ class Model(State, Drawing):
 
     def all_parts_selected(self):
         return self.any_part_selected()
+
+    def any_part_selected(self):
+        return self.highlighted
 
 
 class Surface(Model):
