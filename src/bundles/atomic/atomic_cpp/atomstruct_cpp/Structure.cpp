@@ -620,7 +620,7 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
     _bonds.erase(new_b_end, _bonds.end());
     
     _get_interres_connectivity(end_ri_lookup, end_ir_lookup, end_res_connects_to_next,
-        end_left_missing_structure_atoms, end_right_missing_structure_atoms);
+        end_left_missing_structure_atoms, end_right_missing_structure_atoms, &atoms);
     // for residues that don't connect to the next now but did before,
     // may have to create missing-structure pseudobond
     for (auto r: _residues) {
@@ -659,7 +659,8 @@ Structure::_get_interres_connectivity(std::map<Residue*, int>& res_lookup,
     std::map<int, Residue*>& index_lookup,
     std::map<Residue*, bool>& res_connects_to_next,
     std::set<Atom*>& left_missing_structure_atoms,
-    std::set<Atom*>& right_missing_structure_atoms) const
+    std::set<Atom*>& right_missing_structure_atoms,
+    const std::set<Atom*>* deleted_atoms) const
 {
     int i = 0;
     Residue *prev_r = nullptr;
@@ -680,6 +681,12 @@ Structure::_get_interres_connectivity(std::map<Residue*, int>& res_lookup,
         for (auto& pb: pbg->pseudobonds()) {
             Atom* a1 = pb->atoms()[0];
             Atom* a2 = pb->atoms()[1];
+            // destruction batching hasn't run at this point,
+            // so "dead" pseudobonds can still be present
+            if (deleted_atoms != nullptr &&
+            (deleted_atoms->find(a1) != deleted_atoms->end()
+            || deleted_atoms->find(a2) != deleted_atoms->end()))
+                continue;
             Residue *r1 = a1->residue();
             Residue *r2 = a2->residue();
             int i1 = res_lookup[r1];

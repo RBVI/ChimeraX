@@ -175,7 +175,8 @@ protected:
             std::map<int, Residue*>& index_lookup,
             std::map<Residue*, bool>& res_connects_to_next,
             std::set<Atom*>& left_missing_structure_atoms,
-            std::set<Atom*>& right_missing_structure_atoms) const;
+            std::set<Atom*>& right_missing_structure_atoms,
+            const std::set<Atom*>* deleted_atoms = nullptr) const;
     Chain*  _new_chain(const ChainID& chain_id, PolymerType pt = PT_NONE) const {
         auto chain = new Chain(chain_id, const_cast<Structure*>(this), pt);
         _chains->emplace_back(chain);
