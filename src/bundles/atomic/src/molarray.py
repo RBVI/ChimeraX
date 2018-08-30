@@ -420,6 +420,9 @@ class Atoms(Collection):
     BBE_MAX = Atom.BBE_MAX
 
     bfactors = cvec_property('atom_bfactor', float32)
+    bonds = cvec_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True,
+        per_object = False,
+        doc=":class:`Bonds` object where either endpoint atom is in this collection")
     @property
     def by_chain(self):
         '''Return list of triples of structure, chain id, and Atoms for each chain.'''
@@ -509,6 +512,8 @@ class Atoms(Collection):
         doc="Whether each atom is part of an amino/nucleic acid sidechain."
             " Does not include atoms needed to connect to backbone (CA/ribose)."
             " Returns numpy bool array. Read only.")
+    num_bonds = cvec_property('atom_num_bonds', size_t, read_only = True)
+    '''Number of bonds in each atom. Read only.'''
     occupancies = cvec_property('atom_occupancy', float32)
 
     @property
