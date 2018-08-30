@@ -141,9 +141,10 @@ void main (void)
 #ifdef USE_DEPTH_TEXTURE
   // Adjust depth of each fragment in rendering a texture.
   float zt = texture(tex_depth_2d, tex_coord_2d).x;
+  zt = (zt == 0 ? 1 : zt);  // Depth 0 means unknown depth, change to maximum depth
   float znear = tex_depth_params.x, fdfmn = tex_depth_params.y, dscale = tex_depth_params.z;
   float zs = max(znear, zt*dscale);
-  gl_FragDepth = fdfmn * (zs - znear) / zs;
+  gl_FragDepth = min(.99, fdfmn * (zs - znear) / zs);
 #endif
 
 #ifdef USE_TEXTURE_2D
