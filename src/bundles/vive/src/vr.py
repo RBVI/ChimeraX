@@ -87,7 +87,7 @@ def vr(session, enable = None, room_position = None, display = None,
                 wait_for_vsync(session, False)
             c.desktop_display = display
             if display == 'independent':
-                c.desktop_camera_position = c.position
+                c.initialize_desktop_camera_position = True
         if show_controllers is not None:
             for hc in c.hand_controllers(show_controllers):
                 hc.show_in_scene(show_controllers)
@@ -216,8 +216,9 @@ class SteamVRCamera(Camera):
         self.user_interface = UserInterface(self, session)
 
         self.desktop_display = 'mirror'	# What to show in desktop graphics window, 'mirror', 'independent' or 'blank'.
-        self.desktop_camera_position = None	#  Used only for desktop_display = "independent" mode.
+        self.desktop_camera_position = Place()	#  Used only for desktop_display = "independent" mode.
         self.desktop_field_of_view = 90		# Degrees. Used only for desktop_display = "independent" mode.
+        self.initialize_desktop_camera_position = False
 
         self.room_position = Place()	# Camera position in room coordinates
         self._room_to_scene = None	# Maps room coordinates to scene coordinates
@@ -297,6 +298,9 @@ class SteamVRCamera(Camera):
     def _move_camera_in_room(self, position):
         '''Move camera to given scene position without changing scene position in room.'''
         Camera.set_position(self, position)
+        if self.initialize_desktop_camera_position:
+            self.desktop_camera_position = position
+            self.initialize_desktop_camera_position = False
         
     def fit_scene_to_room(self,
                           scene_bounds = None,
@@ -511,20 +515,25 @@ class SteamVRCamera(Camera):
         if not self._frame_started:
             self._start_frame()	# Window resize causes draw without new frame trigger.
         fb = self._texture_framebuffer(render)
-        if view_num == 0:
+        if view_num == 0:  # VR left-eye
             render.push_framebuffer(fb)
-        elif view_num == 1:
-            if not self._close:
-                # Submit left eye texture (view 0) before rendering right eye (view 1)
-                import openvr
-                result = self.compositor.submit(openvr.Eye_Left, fb.openvr_texture)
-                self._check_for_compositor_error('left', result, render)
-        elif view_num == 2:
-            if not self._close:
-                # Submit right eye texture (view 1) before rendering desktop (view 2)
-                import openvr
-                result = self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
-                self._check_for_compositor_error('right', result, render)
+            render.mix_video = False
+        elif view_num == 1:  # VR right-eye
+            # Submit left eye texture (view 0) before rendering right eye (view 1)
+            self._submit_eye_image('left', fb.openvr_texture, render)
+        elif view_num == 2: # desktop view
+            # Submit right eye texture (view 1) before rendering desktop (view 2)
+            self._submit_eye_image('right', fb.openvr_texture, render)
+            render.mix_video = True  # For making mixed reality videos
+
+    def _submit_eye_image(self, side, texture, render):
+        '''Side is "left" or "right".'''
+        if self._close:
+            return
+        import openvr
+        eye = openvr.Eye_Left if side == 'left' else openvr.Eye_Right
+        result = self.compositor.submit(eye, texture)
+        self._check_for_compositor_error(side, result, render)
 
     def _check_for_compositor_error(self, eye, result, render):
         import openvr
