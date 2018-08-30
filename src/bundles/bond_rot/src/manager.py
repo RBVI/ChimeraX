@@ -58,10 +58,6 @@ class BondRotationManager(StateManager):
     def new_rotation(self, bond, ident=None, move_smaller_side=True, one_shot=True):
         """Create bond rotation for 'bond'
 
-        Note that typically you would use the rotation_for_bond method rather than
-        calling this directly, so that funny things don't happen if the rotation is
-        already active.
-
         Parameters
         ----------
         bond : Bond
@@ -76,7 +72,7 @@ class BondRotationManager(StateManager):
             True if the rotation is going to be used to change the torsion and then immediately
             deleted -- so don't bother firing triggers.
 
-        Returns the created BondRotation
+        Returns the created BondRotater
         """
         if ident is None:
             ident = 1
