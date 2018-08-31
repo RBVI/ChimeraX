@@ -445,8 +445,11 @@ class BundleInfo:
         if not filename:
             return None
         from importlib.util import find_spec
-        s = find_spec(self.package_name)
-        if s is None:
+        try:
+            s = find_spec(self.package_name)
+            if s is None:
+                return None
+        except ModuleNotFoundError:
             return None
         import os.path
         for d in s.submodule_search_locations:
@@ -458,9 +461,8 @@ class BundleInfo:
     def unload(self, logger):
         """Unload bundle modules (as best as we can)."""
         import sys
-        m = self.get_module()
-        logger.info("unloading module %s" % m.__name__)
-        name = m.__name__
+        logger.info("unloading module %s" % self.package_name)
+        name = self.package_name
         prefix = name + '.'
         remove_list = [k for k in sys.modules.keys()
                        if k == name or k.startswith(prefix)]
@@ -785,35 +787,43 @@ class FormatInfo:
 #
 
 
+from ..commands import Annotation
+
+
 def _convert_keyword_types(kwds, bi, logger):
     from .. import commands
-    bundle_api = None
     arg_cache = {}
-
-    def get_arg(arg_name):
-        nonlocal bundle_api
-        a = arg_cache.get(arg_name, None)
-        if a is not None:
-            return a
-        full_arg_name = arg_name + 'Arg'
-        if hasattr(commands, full_arg_name):
-            a = getattr(commands, full_arg_name)
-        else:
-            if bundle_api is None:
-                bundle_api = bi._get_api(logger)
-            if hasattr(bundle_api, full_arg_name):
-                a = getattr(bundle_api, full_arg_name)
-            else:
-                print('unable to find %s argument type in bundle %s' % (arg_name, bi.name))
-                return None
-        arg_cache[arg_name] = a
-        return a
-
     result = {}
     for kw in kwds:
         desc, arg_name = kwds[kw]
-        arg_type = get_arg(arg_name)
-        if arg_type is None:
-            continue
+        try:
+            arg_type = arg_cache[arg_name]
+        except KeyError:
+            try:
+                arg_type = getattr(commands, arg_name + "Arg")
+            except AttributeError:
+                arg_type = AnnotationProxy(bi, arg_name, logger)
+                arg_cache[arg_name] = arg_type
         result[kw] = arg_type
     return result
+
+
+class AnnotationProxy(Annotation):
+
+    def __init__(self, bi, arg_name, logger):
+        self._bundle_info = bi
+        self._arg_name = arg_name
+        self._logger = logger
+        self._proxy = None
+        super().__init__()
+
+    def __getattr__(self, attr):
+        if self._proxy is None:
+            bundle_api = self._bundle_info._get_api(self._logger)
+            try:
+                self._proxy = getattr(bundle_api, self._arg_name + "Arg")
+            except AttributeError:
+                print('unable to find %s argument type in bundle %s' %
+                      (self._arg_name, self._bundle_info.name))
+                raise
+        return getattr(self._proxy, attr)
