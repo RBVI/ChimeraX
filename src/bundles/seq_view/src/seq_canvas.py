@@ -648,21 +648,13 @@ class SeqCanvas:
         """
         
     def layout_alignment(self):
-        """
-        self.conservation = Conservation(self.sv, eval_while_hidden=True)
-        """
         from .consensus import Consensus
-        self.headers = [Consensus(self.sv)]
-        """
-        self.headers = [self.consensus, self.conservation]
-        """
+        from .conservation import Conservation
+        self.headers = [Consensus(self.sv), Conservation(self.sv, eval_while_hidden=True)]
         startup_headers = self.sv.settings.startup_headers
         use_disp_default = startup_headers == None
         if use_disp_default:
-            startup_headers = set([Consensus.name])
-            """
             startup_headers = set([Consensus.name, Conservation.name])
-            """
         from .header_sequence import registered_headers, DynamicStructureHeaderSequence
         """
         for seq, defaultOn in registeredHeaders.values():

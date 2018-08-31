@@ -18,7 +18,7 @@ from .settings import CSN_MAJ_NOGAP, ALIGNMENT_PREFIX
 
 class Consensus(DynamicHeaderSequence):
     name = "Consensus"
-    sortVal = 1.3
+    sort_val = 1.3
     def __init__(self, sv, capitalize_at=0.8):
         self.capitalize_at = capitalize_at
         self.conserved = [False] * len(sv.alignment.seqs[0])

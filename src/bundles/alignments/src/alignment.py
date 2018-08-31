@@ -11,6 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+clustal_strong_groups = ["STA", "NEQK", "NHQK", "NDEQ", "QHRK", "MILV", "MILF", "HY", "FYW"]
+clustal_weak_groups = ["CSA", "ATV", "SAG", "STNK", "STPA", "SGND", "SNDEQK", "NDEQHK",
+    "NEQHRK", "FVLIM", "HFY"]
+
 from chimerax.core.state import State
 class Alignment(State):
     """A sequence alignment,

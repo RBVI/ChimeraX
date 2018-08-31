@@ -73,7 +73,7 @@ class HeaderSequence(list):
     def hist_infinity(self, position):
         """Convenience function to map arbitrary number to 0-1 range
 
-           Used in the 'depiction_val' method for some kinds of data
+           Used as the 'depiction_val' method for some kinds of data
         """
         raw = self[position]
         if raw is None:
@@ -89,7 +89,7 @@ class HeaderSequence(list):
     def positive_hist_infinity(self, position):
         """Convenience function to map arbitrary positive number to 0-1 range
 
-           Used in the 'depiction_val' method for some kinds of data
+           Used as the 'depiction_val' method for some kinds of data
         """
         raw = self[position]
         if raw is None:
