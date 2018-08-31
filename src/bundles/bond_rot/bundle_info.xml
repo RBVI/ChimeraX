@@ -39,10 +39,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
 ]
-	<ChimeraXClassifier>ChimeraX :: Command :: torsion create :: Activate bond for rotation :: activate bond for rotation</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: torsion delete :: Delete active torsion :: deactivate bond for rotation</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: torsion reset :: Reset active torsion to starting position :: reset torsion to starting position</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: torsion :: Adjust active torsion :: adjust bond rotation</ChimeraXClassifier>
+	<ChimeraXClassifier>ChimeraX :: Command :: torsion :: Report or set torsion angle :: Report torsion angle of 4 atoms, or set it (middle two atoms much be bonded for setting)</ChimeraXClassifier>
 ]
   </Classifiers>
 
