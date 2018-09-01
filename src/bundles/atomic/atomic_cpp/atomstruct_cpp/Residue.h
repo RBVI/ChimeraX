@@ -146,10 +146,12 @@ public:
 
     // handy
     static const std::set<AtomName>  aa_min_backbone_names;
+    static const std::vector<AtomName>  aa_min_ordered_backbone_names;
     static const std::set<AtomName>  aa_max_backbone_names;
     static const std::set<AtomName>  aa_ribbon_backbone_names;
     static const std::set<AtomName>  aa_side_connector_names;
     static const std::set<AtomName>  na_min_backbone_names;
+    static const std::vector<AtomName>  na_min_ordered_backbone_names;
     static const std::set<AtomName>  na_max_backbone_names;
     static const std::set<AtomName>  na_ribbon_backbone_names;
     static const std::set<AtomName>  na_side_connector_names;
