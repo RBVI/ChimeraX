@@ -311,7 +311,7 @@ class Structure(Model, StructureData):
             self._update_ribbon_tethers()
         self._update_graphics(gc)
         self.redraw_needed(shape_changed = s,
-                           selection_changed = (gc & self._SELECT_CHANGE))
+                           highlight_changed = (gc & self._SELECT_CHANGE))
 
         if gc & self._SELECT_CHANGE:
             # Update selection in child drawings (e.g., surfaces)
@@ -364,7 +364,7 @@ class Structure(Model, StructureData):
 
         if changes & self._SELECT_CHANGE:
             # Set selected
-            p.selected_positions = atoms.selected if atoms.num_selected > 0 else None
+            p.highlighted_positions = atoms.selected if atoms.num_selected > 0 else None
 
     def _atom_display_radii(self, atoms):
         return atoms.display_radii(self.ball_scale, self.bond_radius)
@@ -398,7 +398,7 @@ class Structure(Model, StructureData):
             p.colors = bonds.half_colors
             
         if changes & self._SELECT_CHANGE:
-            p.selected_positions = _selected_bond_cylinders(bonds)
+            p.highlighted_positions = _selected_bond_cylinders(bonds)
 
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
@@ -1457,9 +1457,9 @@ class Structure(Model, StructureData):
         for p, residues in da.items():
             if not residues[1] and not residues[2]:
                 # No residues being kept or added
-                p.selected_triangles_mask = None
+                p.highlighted_triangles_mask = None
             else:
-                m = p.selected_triangles_mask
+                m = p.highlighted_triangles_mask
                 if m is None:
                     import numpy
                     m = numpy.zeros((p.number_of_triangles(),), bool)
@@ -1467,7 +1467,7 @@ class Structure(Model, StructureData):
                     m[start:end] = False
                 for start, end in residues[2]:
                     m[start:end] = True
-                p.selected_triangles_mask = m
+                p.highlighted_triangles_mask = m
 
     # Position of atoms on ribbon in spline parameter units.
     # These should correspond to the "minimum" backbone atoms
@@ -1604,15 +1604,15 @@ class Structure(Model, StructureData):
         self.atoms.selected = sel
         self.bonds.selected = sel
         Model.set_selected(self, sel, fire_trigger=fire_trigger)
-    selected = property(Model.get_selected, set_selected)
+    selected = property(Model.selected.fget, set_selected)
 
     def set_selected_positions(self, spos):
         sel = (spos is not None and spos.sum() > 0)
         self.atoms.selected = sel
         self.bonds.selected = sel
         Model.set_selected_positions(self, spos)
-    selected_positions = property(Model.get_selected_positions, set_selected_positions)
-
+    selected_positions = property(Model.selected_positions.fget, set_selected_positions)
+    
     def selected_items(self, itype):
         if itype == 'atoms':
             atoms = self.atoms

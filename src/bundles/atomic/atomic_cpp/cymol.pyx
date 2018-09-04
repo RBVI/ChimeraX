@@ -842,6 +842,12 @@ cdef class CyResidue:
         self.cpp_res.set_name(new_name.encode())
 
     @property
+    def neighbors(self):
+        "Supported API. Residues directly bonded to this residue. Read only."
+        from chimerax.atomic import concatenate
+        return [r for r in concatenate(self.atoms.bonds.atoms).unique_residues if r != self]
+
+    @property
     def num_atoms(self):
         "Supported API. Number of atoms belonging to the residue. Read only."
         return self.cpp_res.atoms().size()

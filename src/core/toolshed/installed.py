@@ -21,7 +21,7 @@ class InstalledBundleCache(list):
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
-        self.help_directories = []
+        self._help_directories = None
 
     def load(self, logger, cache_file=None, rebuild_cache=False, write_cache=True):
         """Load list of installed bundles.
@@ -39,7 +39,6 @@ class InstalledBundleCache(list):
         if cache_file and not rebuild_cache:
             if self._read_cache(cache_file):
                 _debug("InstalledBundleCache.load: using cached data")
-                self._set_help_directories()
                 return
         #
         # Okay, no cache.  Go through all installed packages
@@ -66,7 +65,6 @@ class InstalledBundleCache(list):
         if cache_file and write_cache:
             _debug("InstalledBundleCache.load: write_cache")
             self._write_cache(cache_file, logger)
-        self._set_help_directories()
 
     def register_all(self, logger, session, package_map):
         """Register all installed bundles.
@@ -202,17 +200,20 @@ class InstalledBundleCache(list):
                     json.dump([bi.cache_data() for bi in self], f,
                               ensure_ascii=False, check_circular=False)
 
-    def _set_help_directories(self):
-        hd = []
-        for bi in self:
-            try:
-                help_dir = bi.get_path('docs')
-            except ToolshedError:
-                # ignore bundles that disappeared
-                continue
-            if help_dir is not None:
-                hd.append(help_dir)
-        self.help_directories = hd
+    @property
+    def help_directories(self):
+        if self._help_directories is None:
+            hd = []
+            for bi in self:
+                try:
+                    help_dir = bi.get_path('docs')
+                except ToolshedError:
+                    # ignore bundles that disappeared
+                    continue
+                if help_dir is not None:
+                    hd.append(help_dir)
+            self._help_directories = hd
+        return self._help_directories
 
     def _order_bundles(self, dist_bundle_map):
         # First we build a list of distribution names that

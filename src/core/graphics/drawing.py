@@ -24,18 +24,18 @@ class Drawing:
     density maps, geometric shapes and other models.  A Drawing has a name,
     a unique id number which is a positive integer, it can be displayed
     or hidden, has a placement in space, or multiple copies can be placed
-    in space, and a drawing can be selected.  The coordinates, colors,
+    in space, and a drawing can be highlighted.  The coordinates, colors,
     normal vectors and other geometric and display properties are managed
     by the Drawing objects.
 
     A drawing can have child drawings.  The purpose of child drawings is
-    for convenience in adding, removing, displaying and selecting parts
+    for convenience in adding, removing, displaying and highlighting parts
     of a scene. Child drawings are created by the new_drawing() method.
 
     Multiple copies of a drawing be drawn with specified positions and
     colors. Copy positions can be specified by a shift and scale factor but
     no rotation, useful for copies of spheres.  Each copy can be displayed
-    or hidden, selected or unselected.
+    or hidden, highlighted or unhighlighted.
 
     The basic data defining the triangles is an N by 3 array of vertices
     (float32 numpy array) and an array that defines triangles as 3 integer
@@ -71,9 +71,9 @@ class Drawing:
         # bool numpy array, show only some positions:
         self._displayed_positions = None
         self._any_displayed_positions = True
-        # bool numpy array, selected positions:
-        self._selected_positions = None
-        self._selected_triangles_mask = None  # bool numpy array
+        # bool numpy array, highlighted positions:
+        self._highlighted_positions = None
+        self._highlighted_triangles_mask = None  # bool numpy array
         self._child_drawings = []
 
         self._cached_geometry_bounds = None
@@ -152,9 +152,9 @@ class Drawing:
 
         # OpenGL drawing
         self._draw_shape = None
-        self._draw_selection = None
+        self._draw_highlight = None
         self._shader_opt = None                 # Cached shader options
-        self._vertex_buffers = []               # Buffers used by both drawing and selection
+        self._vertex_buffers = []               # Buffers used by both drawing and highlight
         self._opengl_context = None		# For deleting buffers, to make context current
 
         self.was_deleted = False
@@ -264,7 +264,7 @@ class Drawing:
         del d.parent
         if delete:
             d.delete()
-        self.redraw_needed(shape_changed=True, selection_changed=True)
+        self.redraw_needed(shape_changed=True, highlight_changed=True)
 
     def remove_drawings(self, drawings, delete=True):
         '''Remove specified child drawings.'''
@@ -276,7 +276,7 @@ class Drawing:
         if delete:
             for d in drawings:
                 d.delete()
-        self.redraw_needed(shape_changed=True, selection_changed=True)
+        self.redraw_needed(shape_changed=True, highlight_changed=True)
 
     def remove_all_drawings(self, delete=True):
         '''Remove all child drawings.'''
@@ -343,69 +343,69 @@ class Drawing:
                 return False
         return True
 
-    def get_selected(self):
-        sp = self._selected_positions
-        tmask = self._selected_triangles_mask
+    def get_highlighted(self):
+        sp = self._highlighted_positions
+        tmask = self._highlighted_triangles_mask
         return (((sp is not None) and sp.sum() > 0) or
                 ((tmask is not None) and tmask.sum() > 0))
 
-    def set_selected(self, sel):
+    def set_highlighted(self, sel):
         if sel:
-            sp = self._selected_positions
+            sp = self._highlighted_positions
             if sp is None:
                 from numpy import ones, bool
-                self._selected_positions = ones(len(self.positions), bool)
+                self._highlighted_positions = ones(len(self.positions), bool)
             else:
                 sp[:] = True
-                self._selected_positions = sp # Need to set to track changes
+                self._highlighted_positions = sp # Need to set to track changes
         else:
-            self._selected_positions = None
-            self._selected_triangles_mask = None
-        self.redraw_needed(selection_changed=True)
+            self._highlighted_positions = None
+            self._highlighted_triangles_mask = None
+        self.redraw_needed(highlight_changed=True)
 
-    selected = property(get_selected, set_selected)
-    '''Whether or not the drawing is selected.
+    highlighted = property(get_highlighted, set_highlighted)
+    '''Whether or not the drawing is highlighted.
     Does not include or effect children.'''
 
-    def get_selected_positions(self):
-        return self._selected_positions
+    def get_highlighted_positions(self):
+        return self._highlighted_positions
 
-    def set_selected_positions(self, spos):
-        self._selected_positions = spos
-        self.redraw_needed(selection_changed=True)
+    def set_highlighted_positions(self, spos):
+        self._highlighted_positions = spos
+        self.redraw_needed(highlight_changed=True)
 
-    selected_positions = property(get_selected_positions,
-                                  set_selected_positions)
-    '''Mask specifying which drawing positions are selected.
+    highlighted_positions = property(get_highlighted_positions,
+                                  set_highlighted_positions)
+    '''Mask specifying which drawing positions are highlighted.
     Does not include or effect children.'''
 
-    def get_selected_triangles_mask(self):
-        return self._selected_triangles_mask
+    def get_highlighted_triangles_mask(self):
+        return self._highlighted_triangles_mask
 
-    def set_selected_triangles_mask(self, tmask):
-        self._selected_triangles_mask = tmask
-        self.redraw_needed(selection_changed=True)
+    def set_highlighted_triangles_mask(self, tmask):
+        self._highlighted_triangles_mask = tmask
+        self.redraw_needed(highlight_changed=True)
 
-    selected_triangles_mask = property(get_selected_triangles_mask,
-                                       set_selected_triangles_mask)
-    '''Mask specifying which triangles are selected.'''
+    highlighted_triangles_mask = property(get_highlighted_triangles_mask,
+                                       set_highlighted_triangles_mask)
+    '''Mask specifying which triangles are highlighted.'''
 
-    def any_part_selected(self):
-        '''Is any part of this Drawing or its children selected.'''
-        if self.selected and not self.empty_drawing():
+    def any_part_highlighted(self):
+        '''Is any part of this Drawing or its children highlighted.'''
+        if self.highlighted and not self.empty_drawing():
             return True
         for d in self.child_drawings():
-            if d.any_part_selected():
+            if d.any_part_highlighted():
                 return True
         return False
 
-    def clear_selection(self, include_children=True):
-        '''Unselect this drawing and child drawings in if include_children is True.'''
-        self.selected = False
-        self.redraw_needed(selection_changed=True)
+    def clear_highlight(self, include_children=True):
+        '''Unhighlight this drawing and child drawings in if include_children is True.'''
+        self.highlighted = False
+        self.redraw_needed(highlight_changed=True)
         if include_children:
             for d in self.child_drawings():
-                d.clear_selection()
+                d.clear_highlight()
 
     def _drawing_get_position(self):
         return self._positions[0]
@@ -448,8 +448,8 @@ class Drawing:
         np = len(positions)
         if self._displayed_positions is not None and len(self._displayed_positions) != np:
             self._displayed_positions = None
-        if self._selected_positions is not None and len(self._selected_positions) != np:
-            self._selected_positions = None
+        if self._highlighted_positions is not None and len(self._highlighted_positions) != np:
+            self._highlighted_positions = None
         if len(self._colors) != np:
             from numpy import empty, uint8
             c = empty((np, 4), uint8)
@@ -623,27 +623,27 @@ class Drawing:
     "Draw pass to render only transparent drawings."
     TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
     "Draw pass to render only the depth of transparent drawings."
-    SELECTION_DRAW_PASS = 'selection'
-    "Draw pass to render only the selected parts of drawings."
+    HIGHLIGHT_DRAW_PASS = 'highlight'
+    "Draw pass to render only the highlighted parts of drawings."
 
-    def draw(self, renderer, place, draw_pass, selected_only=False):
+    def draw(self, renderer, place, draw_pass, highlighted_only=False):
         '''Draw this drawing and children using the given draw pass.'''
 
         if not self.display:
             return
 
         if not self.empty_drawing():
-            self.draw_self(renderer, place, draw_pass, selected_only)
+            self.draw_self(renderer, place, draw_pass, highlighted_only)
 
         if self.child_drawings():
             for p in self.positions:
                 pp = place if p.is_identity() else place * p
-                self._draw_children(renderer, pp, draw_pass, selected_only)
+                self._draw_children(renderer, pp, draw_pass, highlighted_only)
 
-    def draw_self(self, renderer, place, draw_pass, selected_only=False):
+    def draw_self(self, renderer, place, draw_pass, highlighted_only=False):
         '''Draw this drawing without children using the given draw pass.'''
 
-        if selected_only and not self.selected:
+        if highlighted_only and not self.highlighted:
             return
 
         if (len(self.positions) == 1 and
@@ -657,21 +657,21 @@ class Drawing:
         if draw_pass == self.OPAQUE_DRAW_PASS:
             any_opaque, any_transp = self._transparency()
             if any_opaque:
-                self._draw_geometry(renderer, selected_only, opaque_only = any_transp)
+                self._draw_geometry(renderer, highlighted_only, opaque_only = any_transp)
         elif draw_pass in (self.TRANSPARENT_DRAW_PASS,
                            self.TRANSPARENT_DEPTH_DRAW_PASS):
             any_opaque, any_transp = self._transparency()
             if any_transp:
-                self._draw_geometry(renderer, selected_only, transparent_only = any_opaque)
-        elif draw_pass == self.SELECTION_DRAW_PASS:
-            self._draw_geometry(renderer, selected_only)
+                self._draw_geometry(renderer, highlighted_only, transparent_only = any_opaque)
+        elif draw_pass == self.HIGHLIGHT_DRAW_PASS:
+            self._draw_geometry(renderer, highlighted_only)
 
-    def _draw_children(self, renderer, place, draw_pass, selected_only=False):
+    def _draw_children(self, renderer, place, draw_pass, highlighted_only=False):
         dlist = self.child_drawings()
         for d in dlist:
-            d.draw(renderer, place, draw_pass, selected_only)
+            d.draw(renderer, place, draw_pass, highlighted_only)
 
-    def _draw_geometry(self, renderer, selected_only=False,
+    def _draw_geometry(self, renderer, highlighted_only=False,
                        transparent_only=False, opaque_only=False):
         ''' Draw the geometry.'''
 
@@ -686,7 +686,7 @@ class Drawing:
         # Update opengl buffers to reflect drawing changes
         self._update_buffers()
 
-        ds = self._draw_selection if selected_only else self._draw_shape
+        ds = self._draw_highlight if highlighted_only else self._draw_shape
         ds.activate_bindings(renderer)
 
         sopt = self._shader_options(transparent_only, opaque_only)
@@ -758,19 +758,19 @@ class Drawing:
         if len(changes) == 0:
             return
 
-        ds, dss = self._draw_shape, self._draw_selection
+        ds, dss = self._draw_shape, self._draw_highlight
 
-        # Update drawing and selection triangle buffers
+        # Update drawing and highlight triangle buffers
         if ('_triangles' in changes or
             'display_style' in changes or
             '_triangle_mask' in changes or
             (self.display_style == self.Mesh and '_edge_mask' in changes) or
-            '_selected_triangles_mask' in changes):
+            '_highlighted_triangles_mask' in changes):
             ta = self.triangles
             style = self.display_style
             em = self._edge_mask
             tm = self._triangle_mask
-            tmsel = self.selected_displayed_triangles_mask
+            tmsel = self.highlighted_displayed_triangles_mask
             ds.update_element_buffer(ta, style, tm, em)
             dss.update_element_buffer(ta, style, tmsel, em)
 
@@ -780,14 +780,14 @@ class Drawing:
             '_vertex_colors' in changes or
             '_positions' in changes or
             '_displayed_positions' in changes or
-            '_selected_positions' in changes):
+            '_highlighted_positions' in changes):
             c = self.colors if self._vertex_colors is None else None
             pm = self._position_mask()
             pmsel = self._position_mask(True)
             ds.update_instance_buffers(p, c, pm)
             dss.update_instance_buffers(p, c, pmsel)
 
-        # Update buffers shared by drawing and selection
+        # Update buffers shared by drawing and highlight
         for b in self._vertex_buffers:
             aname = b.buffer_attribute_name
             if aname in changes:
@@ -797,10 +797,10 @@ class Drawing:
 
         changes.clear()
 
-    def _position_mask(self, selected_only=False):
+    def _position_mask(self, highlighted_only=False):
         dp = self._displayed_positions        # bool array
-        if selected_only:
-            sp = self._selected_positions
+        if highlighted_only:
+            sp = self._highlighted_positions
             if sp is not None:
                 import numpy
                 dp = sp if dp is None else numpy.logical_and(dp, sp)
@@ -875,7 +875,7 @@ class Drawing:
         The Pick object has a distance attribute giving the fraction (0-1)
         along the segment where the intersection occurs.
         For no intersection None is returned.  This routine is used for
-        selecting objects, for identifying objects during mouse-over, and
+        highlighting objects, for identifying objects during mouse-over, and
         to determine the front-most point in the center of view to be used
         as the interactive center of rotation.
         '''
@@ -968,7 +968,7 @@ class Drawing:
         that returns true if this drawing and its children should be excluded
         from the pick.
         Return a list of Pick objects for the contained items.
-        This routine is used for selecting objects in a frustum.
+        This routine is used for highlighting objects in a frustum.
         '''
         if not self.display:
             return []
@@ -1055,11 +1055,11 @@ class Drawing:
             b.delete_buffer()
         self._vertex_buffers = []
 
-        for ds in (self._draw_shape, self._draw_selection):
+        for ds in (self._draw_shape, self._draw_highlight):
             if ds:
                 ds.delete()
         self._draw_shape = None
-        self._draw_selection = None
+        self._draw_highlight = None
 
         self._opengl_context = None
         
@@ -1079,12 +1079,12 @@ class Drawing:
             vb.append(b)
 
         self._draw_shape = _DrawShape(self.name, vb)
-        self._draw_selection = _DrawShape(self.name + ' selection', vb)
+        self._draw_highlight = _DrawShape(self.name + ' highlight', vb)
 
     _effects_buffers = set(
         ('_vertices', '_normals', '_vertex_colors', 'texture_coordinates',
          '_triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
-         '_edge_mask', '_triangle_mask', '_selected_triangles_mask', '_selected_positions'))
+         '_edge_mask', '_triangle_mask', '_highlighted_triangles_mask', '_highlighted_positions'))
 
     EDGE0_DISPLAY_MASK = 1
     ALL_EDGES_DISPLAY_MASK = 7
@@ -1106,12 +1106,12 @@ class Drawing:
     '''
 
     @property
-    def selected_displayed_triangles_mask(self):
-        '''Mask of selected and displayed triangles.'''
+    def highlighted_displayed_triangles_mask(self):
+        '''Mask of highlighted and displayed triangles.'''
         tm = self._triangle_mask
-        tmsel = self._selected_triangles_mask
+        tmsel = self._highlighted_triangles_mask
         if tm is not None:
-            # Combine selected and displayed triangle masks
+            # Combine highlighted and displayed triangle masks
             if tmsel is not None:
                 from numpy import logical_and
                 tmsel = logical_and(tmsel, tm)
@@ -1341,9 +1341,9 @@ def draw_transparent(renderer, drawings):
 
 
 def _draw_multiple(drawings, renderer, place, draw_pass):
-    selected_only = (draw_pass == Drawing.SELECTION_DRAW_PASS)
+    highlighted_only = (draw_pass == Drawing.HIGHLIGHT_DRAW_PASS)
     for d in drawings:
-        d.draw(renderer, place, draw_pass, selected_only)
+        d.draw(renderer, place, draw_pass, highlighted_only)
 
 
 def _any_transparent_drawings(drawings):
@@ -1388,13 +1388,13 @@ def draw_overlays(drawings, renderer):
     r.disable_shader_capabilities(0)
 
 
-def draw_selection_outline(renderer, drawings):
-    '''Draw the outlines of selected parts of the specified drawings.'''
+def draw_highlight_outline(renderer, drawings):
+    '''Draw the outlines of highlighted parts of the specified drawings.'''
     r = renderer
     r.outline.start_rendering_outline()
     from ..geometry import Place
     p = Place()
-    _draw_multiple(drawings, r, p, Drawing.SELECTION_DRAW_PASS)
+    _draw_multiple(drawings, r, p, Drawing.HIGHLIGHT_DRAW_PASS)
     r.outline.finish_rendering_outline()
 
 
@@ -1402,7 +1402,7 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     '''Draw rectangle outline on front buffer using xor mode.'''
 
     if drawing is None:
-        d = Drawing('selection drag box')
+        d = Drawing('drag box')
         from numpy import array, int32, uint8
         t = array(((0,1,2), (0,2,3)), int32)
         d.set_geometry(None, None, t)
@@ -1689,10 +1689,10 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def select(self, mode = 'add'):
+    def highlight(self, mode = 'add'):
         '''
-        Cause this picked object to be selected ('add' mode), unselected ('subtract' mode)
-        or toggle selected ('toggle' mode).
+        Cause this picked object to be highlighted ('add' mode), unhighlighted ('subtract' mode)
+        or toggle highlighted ('toggle' mode).
         '''
         pass
 
@@ -1742,9 +1742,9 @@ class PickedTriangle(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, mode = 'add'):
+    def highlight(self, mode = 'add'):
         d = self.drawing()
-        pmask = d.selected_positions
+        pmask = d.highlighted_positions
         if pmask is None:
             from numpy import zeros, bool
             pmask = zeros((len(d.positions),), bool)
@@ -1756,7 +1756,7 @@ class PickedTriangle(Pick):
         elif mode == 'toggle':
             s = not pmask[c]
         pmask[c] = s
-        d.selected_positions = pmask
+        d.highlighted_positions = pmask
 
     def is_transparent(self):
         d = self.drawing()
@@ -1794,15 +1794,15 @@ class PickedTriangles(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, mode = 'add'):
+    def highlight(self, mode = 'add'):
         d = self.drawing()
         if mode == 'add':
             s = True
         elif mode == 'subtract':
             s = False
         elif mode == 'toggle':
-            s = (not d.selected)
-        d.selected = s
+            s = (not d.highlighted)
+        d.highlighted = s
 
 
 class PickedInstance(Pick):
@@ -1830,13 +1830,13 @@ class PickedInstance(Pick):
     def drawing(self):
         return self._drawing
 
-    def select(self, mode = 'add'):
+    def highlight(self, mode = 'add'):
         d = self.drawing()
         pm = self._positions_mask
-        pmask = d.selected_positions
+        pmask = d.highlighted_positions
         if pmask is None and mode != 'subtract':
             pmask = pm.copy()
-            pmask[:] = d.selected
+            pmask[:] = d.highlighted
         if mode == 'add':
             pmask[pm] = 1
         elif mode == 'subtract':
@@ -1845,7 +1845,7 @@ class PickedInstance(Pick):
         elif mode == 'toggle':
             from numpy import logical_xor
             logical_xor(pmask, pm, pmask)
-        d.selected_positions = pmask
+        d.highlighted_positions = pmask
 
 
 def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True):

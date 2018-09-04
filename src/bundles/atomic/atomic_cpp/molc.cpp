@@ -348,6 +348,19 @@ extern "C" EXPORT void set_atom_occupancy(void *atoms, size_t n, float32_t *occu
     error_wrap_array_set(a, n, &Atom::set_occupancy, occupancies);
 }
 
+extern "C" EXPORT void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Atom::Bonds &b = a[i]->bonds();
+            for (size_t j = 0; j != b.size(); ++j)
+                *bonds++ = b[j];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
 
 extern "C" EXPORT void atom_py_obj_bonds(void *atoms, size_t n, pyobject_t *bonds)
 {

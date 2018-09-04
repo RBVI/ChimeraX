@@ -17,16 +17,14 @@ _SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "by
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
 
-DEFAULT_TARGETS = 'acslbpd'
-ALL_TARGETS = 'acslbpd'
+DEFAULT_TARGETS = 'acsbp'
+ALL_TARGETS = 'acrsbp'
 WHAT_TARGETS = {
     'atoms': 'a',
     'cartoons': 'c', 'ribbons': 'c',
     'surfaces': 's',
-    'labels': 'l',
     'bonds': 'b',
     'pseudobonds': 'p',
-    # 'distances': 'd',  # TODO: conflicts with distance argument
     'All': ALL_TARGETS
 }
 
@@ -59,10 +57,10 @@ def color(session, objects, color=None, what=None, target=None,
       Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
-    target : string
+    target : string containing letters 'a', 'b', 'c', 'p', 'r', 's'
       Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
-      l = labels, b = bonds, p = pseudobonds, d = distances.
+      b = bonds, p = pseudobonds
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
@@ -110,10 +108,6 @@ def color(session, objects, color=None, what=None, target=None,
             _set_atom_colors(atoms, color, opacity, bgcolor, undo_state)
             items.append('%d atoms' % len(atoms))
 
-    if 'l' in target:
-        if not is_default_target:
-            session.logger.warning('Label colors not supported yet')
-
     if 's' in target and color is not None:
         # TODO: save undo data
         from chimerax.atomic import MolecularSurface, concatenate, Structure, PseudobondGroup
@@ -155,10 +149,6 @@ def color(session, objects, color=None, what=None, target=None,
                 undo_state.add(pbonds, "colors", pbonds.colors, color_array)
                 pbonds.colors = color_array
                 items.append('%d pseudobonds' % len(pbonds))
-
-    if 'd' in target:
-        if not is_default_target:
-            session.logger.warning('Distances colors not supported yet')
 
     if not items:
         items.append('nothing')
@@ -451,10 +441,6 @@ def color_func(session, objects, what=None, target=None, func=None, func_text='C
         atoms.colors = c
         what.append('%d atoms' % len(atoms))
 
-    if 'l' in target:
-        if not is_default_target:
-            session.logger.warning('Label colors not supported yet')
-
     if 's' in target:
         surfs = _set_surface_color_func(atoms, objects, session, func, undo_state)
         what.append('%d surfaces' % len(surfs))
@@ -482,10 +468,6 @@ def color_func(session, objects, what=None, target=None, func=None, func_text='C
             undo_state.add(pbonds, "colors", pbonds.colors, c)
             pbonds.colors = c
             what.append('%d pseudobonds' % len(pbonds))
-
-    if 'd' in target:
-        if not is_default_target:
-            session.logger.warning('Distance colors not supported yet')
 
     if not what:
         what.append('nothing')
@@ -878,10 +860,10 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
       Assigns each object a color from a palette.  Default "residues".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
-    target : string
+    target : string containing letters 'a', 'b', 'c', 'p', 'r', 's'
       Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
-      l = labels, b = bonds, p = pseudobonds, d = distances.
+      b = bonds, p = pseudobonds
       Everything is colored if no target is specified.
     palette : :class:`.Colormap`
       Color map to use with sequential coloring.
@@ -921,7 +903,7 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
     what : list of 'atoms', 'cartoons', 'ribbons', 'surface'
       What to color.  Cartoon and ribbon use average bfactor for each residue.
       Default is to color all depictions.
-    target : string
+    target : string containing letters 'a', 'b', 'c', 'p', 'r', 's'
       Alternate way to specify what to color allows specifying more than one of atoms (a),
       cartoon (c), ribbon (r), surface (s).
     average : 'residues' or None
@@ -1041,11 +1023,33 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
         spoints = s.scene_position.inverse() * points	# Transform points to surface coordinates
         color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges, auto_update = update)
 
+
+from chimerax.core.commands import StringArg
+class TargetArg(StringArg):
+    """String containing characters indicating what to color:
+    a = atoms, c = cartoon, r = cartoon, s = surfaces, b = bonds, p = pseudobonds
+    """
+    name = "characters from 'abcprs'"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            from chimerax.core.commands import AnnotationError
+            raise AnnotationError("Expected %s" % TargetArg.name)
+        from chimerax.core.commands import next_token
+        token, text, rest = next_token(text)
+        for c in token:
+            if not c in ALL_TARGETS:
+                from chimerax.core.commands import AnnotationError
+                raise AnnotationError("Character '%s' is not an allowed target, must be one of %s"
+                                      % (c, ALL_TARGETS))
+        return token, text, rest
+
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg
-    from chimerax.core.commands import ObjectsArg, create_alias, EmptyArg, Or, EnumOf, StringArg
+    from chimerax.core.commands import ObjectsArg, create_alias, EmptyArg, Or, EnumOf
     from chimerax.core.commands import ListOf, FloatArg, BoolArg, SurfacesArg
     from chimerax.core.commands import create_alias
     from chimerax.atomic import AtomsArg
@@ -1053,7 +1057,7 @@ def register_command(logger):
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),
                              ('what', what_arg)],
-                   keyword=[('target', StringArg),
+                   keyword=[('target', TargetArg),
                             ('transparency', FloatArg),
                             ('halfbond', BoolArg),
                    ],
@@ -1069,14 +1073,14 @@ def register_command(logger):
                              ('op', Or(op_arg, EmptyArg)),
                              ('number', Or(FloatArg, EmptyArg))],
                    optional=[('what', what_arg)],
-                   keyword=[('target', StringArg)],
+                   keyword=[('target', TargetArg)],
                    synopsis="saturate color")
     register('color modify', desc, color_modify, logger=logger)
 
     # color a sequence of atomic objects
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('level', EnumOf(_SequentialLevels))],
-                   keyword=[('target', StringArg),
+                   keyword=[('target', TargetArg),
                             ('what', what_arg),
                             ('palette', ColormapArg),
                             ('transparency', FloatArg),
@@ -1087,7 +1091,7 @@ def register_command(logger):
     # color atoms by bfactor
     desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
                    optional=[('what', ListOf(EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces'))))],
-                   keyword=[('target', StringArg),
+                   keyword=[('target', TargetArg),
                             ('average', EnumOf(('residues',))),
                             ('palette', ColormapArg),
                             ('range', ColormapRangeArg),

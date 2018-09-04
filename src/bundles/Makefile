@@ -43,6 +43,7 @@ endif
 clean:
 	rm -rf __pycache__
 
+# These dependencies should the same as the dependences in the bundle bundle_info.xml files
 addh.install: atomic.install hbonds.install
 align_algs.install: alignments.install
 alignments.install: atomic.install
@@ -51,6 +52,7 @@ bild.install: atomic.install surface.install
 basic_actions.install: ui.install
 blastprotein.install: ui.install
 bond_rot.install: ui.install
+bug_reporter.install: ui.install
 bumps.install: markers.install
 cage_builder.install: ui.install
 chem_group.install: atomic.install
@@ -74,11 +76,11 @@ markers.install: atomic.install ui.install
 match_maker.install: align_algs.install sim_matrices.install
 md_crds.install: atomic.install
 mmcif.install: atomic.install
-mmtf-python.install: atomic.install
+mmtf.install: atomic.install
 model_panel.install: ui.install
 model_series.install: ui.install
 modeller.install: alignments.install
-mol2.install: atomic.install
+mol2.install: atomic.install chem_group.install
 mouse_modes.install: ui.install
 nucleotides.install: atomic.install ui.install
 pdb.install: atomic.install
@@ -95,3 +97,4 @@ std_commands.install: atomic.install
 swapaa.install: ui.install
 tug.install: ui.install
 viewdockx.install: atomic.install mol2.install ui.install
+zone.install: ui.install

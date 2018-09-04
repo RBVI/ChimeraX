@@ -125,6 +125,7 @@ push_helix(std::vector<Residue*>& cur_helix, std::vector<std::string>& helices, 
     hrec.helix.end.seq_num = end->number();
     hrec.helix.end.i_code = end->insertion_code();
     hrec.helix.helix_class = 1;
+    hrec.helix.length = cur_helix.size();
     helices.push_back(hrec.c_str());
     cur_helix.clear();
 }

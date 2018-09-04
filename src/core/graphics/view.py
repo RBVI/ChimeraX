@@ -180,9 +180,9 @@ class View:
         self.clip_planes.enable_clip_planes(r, camera.position)
         shadow, multishadow = self._compute_shadowmaps(drawings, camera)
         mdraw = [self.drawing] if drawings is None else drawings
-        any_selected = self.any_drawing_selected(drawings)
+        any_highlighted = self.any_drawing_highlighted(drawings)
         
-        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_selection_outline
+        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
@@ -207,7 +207,7 @@ class View:
                 r.allow_equal_depth(True)
             self._start_timing()
             draw_opaque(r, mdraw)
-            if any_selected:
+            if any_highlighted:
                 r.outline.set_outline_mask()       # copy depth to outline framebuffer
             draw_transparent(r, mdraw)    
             self._finish_timing()
@@ -218,8 +218,8 @@ class View:
                                                        self.silhouette_color,
                                                        self.silhouette_depth_jump,
                                                        self._perspective_near_far_ratio)
-            if any_selected:
-                draw_selection_outline(r, mdraw)
+            if any_highlighted:
+                draw_highlight_outline(r, mdraw)
 
     def check_for_drawing_change(self):
         trig = self.triggers
@@ -529,17 +529,17 @@ class View:
                 b = clip_bounds(b, [(p.plane_point, p.normal) for p in planes])
         return b
 
-    def any_drawing_selected(self, drawings=None):
-        '''Is anything selected.'''
+    def any_drawing_highlighted(self, drawings=None):
+        '''Is anything highlighted.'''
         if drawings is None:
             dm = self._drawing_manager
-            s = dm.cached_any_part_selected
+            s = dm.cached_any_part_highlighted
             if s is None:
-                dm.cached_any_part_selected = s = self.drawing.any_part_selected()
+                dm.cached_any_part_highlighted = s = self.drawing.any_part_highlighted()
             return s
         else:
             for d in drawings:
-                if d.any_part_selected():
+                if d.any_part_highlighted():
                     return True
             return False
 
@@ -1002,9 +1002,9 @@ class _RedrawNeeded:
         self.shape_changed_drawings = set()
         self.transparency_changed = False
         self.cached_drawing_bounds = None
-        self.cached_any_part_selected = None
+        self.cached_any_part_highlighted = None
 
-    def __call__(self, drawing, shape_changed=False, selection_changed=False, transparency_changed=False):
+    def __call__(self, drawing, shape_changed=False, highlight_changed=False, transparency_changed=False):
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
@@ -1013,8 +1013,8 @@ class _RedrawNeeded:
                 self.cached_drawing_bounds = None
         if transparency_changed:
             self.transparency_changed = True
-        if selection_changed:
-            self.cached_any_part_selected = None
+        if highlight_changed:
+            self.cached_any_part_highlighted = None
 
     def shadows_changed(self):
         if self.transparency_changed:
