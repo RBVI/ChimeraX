@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def select(session, objects=None, polymer=None, residues=False):
+def select(session, objects=None, polymer=None, residues=False, minimum_length=None, maximum_length=None):
     '''Select specified objects.
 
     Parameters
@@ -24,15 +24,21 @@ def select(session, objects=None, polymer=None, residues=False):
     polymer : Atoms
       Reduce the selection to include only atoms belonging to chains having a sequence that is the
       same as one of the sequences specified by the polymer option.
+    minimum_length : float or None
+      Exclude pseudobonds shorter than the specified length.
+    maximum_length : float or None
+      Exclude pseudobonds longer than the specified length.
     '''
 
     if objects is None:
         from chimerax.core.commands import all_objects
         objects = all_objects(session)
 
+    
     from chimerax.core.undo import UndoState
     undo_state = UndoState("select")
     if objects is not None:
+        objects = _filter_pseudobonds_by_length(objects, minimum_length, maximum_length)
         clear_selection(session, undo_state)
         modify_selection(objects, 'add', undo_state, full_residues = residues)
 
@@ -41,7 +47,27 @@ def select(session, objects=None, polymer=None, residues=False):
         
     session.undo.register(undo_state)
     report_selection(session)
+                
+def _filter_pseudobonds_by_length(objects, minimum_length, maximum_length):
+    if (minimum_length is None and maximum_length is None) or objects.num_pseudobonds == 0:
+        return objects
 
+    pbonds = objects.pseudobonds
+    lengths = pbonds.lengths
+    if minimum_length is not None and maximum_length is not None:
+        from numpy import logical_and
+        keep = logical_and((lengths >= minimum_length), (lengths <= maximum_length))
+    elif minimum_length is not None:
+        keep = (lengths >= minimum_length)
+    elif maximum_length is not None:
+        keep = (lengths <= maximum_length)
+        
+    from chimerax.core.objects import Objects
+    fobj = Objects(atoms = objects.atoms, bonds = objects.bonds,
+                   pseudobonds = pbonds.filter(keep),
+                   models = objects.models)
+    return fobj
+    
 def select_add(session, objects=None, residues=False):
     '''Add objects to the selection.
     If objects is None everything is selected.'''
@@ -205,11 +231,13 @@ def _atoms_bonds_models(objects, full_residues = False):
     return atoms, bonds, pbonds, models
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, ObjectsArg, NoArg, create_alias, BoolArg
+    from chimerax.core.commands import CmdDesc, register, ObjectsArg, NoArg, create_alias, BoolArg, FloatArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
                    keyword=[('residues', BoolArg),
-                            ('polymer', AtomsArg)],
+                            ('polymer', AtomsArg),
+                            ('minimum_length', FloatArg),
+                            ('maximum_length', FloatArg)],
                    synopsis='select specified objects')
     register('select', desc, select, logger=logger)
 
