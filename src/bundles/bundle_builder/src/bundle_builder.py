@@ -332,7 +332,11 @@ class BundleBuilder:
         for pkg_name, entries in files.items():
             for kind, src, dst in entries:
                 if kind == "file":
-                    shutil.copyfile(src, os.path.join("src", dst))
+                    filepath = os.path.join("src", dst)
+                    dirpath = os.dirname(filepath)
+                    if dirpath:
+                        os.makedirs(dirpath, exist_ok=True)
+                    shutil.copyfile(src, filepath)
                 elif kind == "dir":
                     dstdir = os.path.join("src", dst.replace('/', os.sep))
                     if os.path.exists(dstdir):
