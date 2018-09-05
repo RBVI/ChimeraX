@@ -987,7 +987,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if toolbar.windowTitle() in self._checkbutton_tools:
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
-    def add_menu_entry(self, menu_names, entry_name, callback):
+    def add_menu_entry(self, menu_names, entry_name, callback, tool_tip=None):
         '''
         Add a main menu entry.  Menus that are needed but that don't already exist
         (including top-level ones) will be created.  Callback function takes no arguments.
@@ -1011,6 +1011,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             parent_menu = menu
         action = QAction(entry_name, self)
         action.triggered.connect(lambda arg, cb = callback: cb())
+        if tool_tip is not None:
+            action.setToolTip(tool_tip)
         menu.addAction(action)
 
     def _tool_window_destroy(self, tool_window):
