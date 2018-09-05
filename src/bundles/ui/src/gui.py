@@ -987,27 +987,31 @@ class MainWindow(QMainWindow, PlainTextLog):
         if toolbar.windowTitle() in self._checkbutton_tools:
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
-    def add_custom_menu_entry(self, menu_name, entry_name, callback):
+    def add_menu_entry(self, menu_names, entry_name, callback):
         '''
-        Add a custom top level menu entry.  Currently you can not add to
-        the standard ChimeraX menus but can create new ones.
-        Callback function takes no arguments.
+        Add a main menu entry.  Menus that are needed but that don't already exist
+        (including top-level ones) will be created.  Callback function takes no arguments.
         '''
-        mb = self.menuBar()
         from PyQt5.QtWidgets import QMenu, QAction
-        menu = mb.findChild(QMenu, menu_name)
-        add = (menu is None)
-        if add:
-            menu = QMenu(menu_name, mb)
-            menu.setToolTipsVisible(True)
-            menu.setObjectName(menu_name)	# Need for findChild() above to work.
+        from PyQt5.QtCore import Qt
+        parent_menu = self.menuBar()
+        for menu_name in menu_names:
+            menu = parent_menu.findChild(QMenu, menu_name, Qt.FindDirectChildrenOnly)
+            add = (menu is None)
+            if add:
+                menu = QMenu(menu_name, parent_menu)
+                menu.setToolTipsVisible(True)
+                menu.setObjectName(menu_name)	# Needed for findChild() above to work.
 
+            if add:
+                if parent_menu == self.menuBar():
+                    parent_menu.insertMenu(parent_menu.findChild(QMenu, "Help").menuAction(), menu)
+                else:
+                    parent_menu.addMenu(menu)
+            parent_menu = menu
         action = QAction(entry_name, self)
         action.triggered.connect(lambda arg, cb = callback: cb())
         menu.addAction(action)
-        if add:
-            # Insert menu after adding entry otherwise it is not shown on Mac.
-            mb.insertMenu(mb.findChild(QMenu, "Help").menuAction(), menu)
 
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance
