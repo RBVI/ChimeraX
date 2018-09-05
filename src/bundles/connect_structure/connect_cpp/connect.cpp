@@ -142,7 +142,8 @@ connect_structure(AtomStructure* s, float bond_len_tolerance)
 			for (auto bb_name: backbone_names) {
 				auto bba = prev_r->find_atom(bb_name);
 				if (bba != nullptr) {
-					if (bba->bonds().size() < bba->element().valence()) {
+					if (!prev_connect.connects_to(bba)
+					&& bba->bonds().size() < bba->element().valence()) {
 						auto pbg = s->manager().get_group(Structure::PBG_MISSING_STRUCTURE,
 							AS_PBManager::GRP_NORMAL);
 						pbg->new_pseudobond(prev_connect, bba);
