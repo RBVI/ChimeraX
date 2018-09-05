@@ -6,6 +6,9 @@ import distutils
 import setuptools
 from Cython.Build import cythonize
 
+# Always import this because it changes the behavior of setuptools
+from numpy.distutils.misc_util import get_numpy_include_dirs
+
 def distlib_hack(_func):
     # This hack is needed because distlib and wheel do not yet
     # agree on the metadata file name.
@@ -83,7 +86,7 @@ class BundleBuilder:
         import os.path, fnmatch
         self._rmtree(os.path.join(self.path, "build"))
         self._rmtree(os.path.join(self.path, "dist"))
-        self._rmtree(os.path.join(self.path, "src/__pycache__"))
+        self._rmtree(os.path.join(self.path, "src", "__pycache__"))
         self._rmtree(self.egg_info)
         for root, dirnames, filenames in os.walk("src"):
             # Linux, Mac
@@ -132,6 +135,7 @@ class BundleBuilder:
         self._get_categories(bi)
         self._get_descriptions(bi)
         self._get_datafiles(bi)
+        self._get_extrafiles(bi)
         self._get_dependencies(bi)
         self._get_c_modules(bi)
         self._get_c_libraries(bi)
@@ -175,11 +179,37 @@ class BundleBuilder:
             files = []
             for e in self._get_elements(dfs, "DataFile"):
                 filename = self._get_element_text(e)
-                files.append(filename)
+                files.append(("file", filename))
+            for e in self._get_elements(dfs, "DataDir"):
+                dirname = self._get_element_text(e)
+                files.append(("dir", dirname))
             if files:
                 if not pkg_name:
                     pkg_name = self.package
                 self.datafiles[pkg_name] = files
+
+    def _get_extrafiles(self, bi):
+        self.extrafiles = {}
+        for dfs in self._get_elements(bi, "ExtraFiles"):
+            pkg_name = dfs.getAttribute("package")
+            files = []
+            for e in self._get_elements(dfs, "ExtraFile"):
+                source = e.getAttribute("source")
+                filename = self._get_element_text(e)
+                files.append(("file", source, filename))
+            for e in self._get_elements(dfs, "ExtraDir"):
+                source = e.getAttribute("source")
+                dirname = self._get_element_text(e)
+                files.append(("dir", source, dirname))
+            if files:
+                if not pkg_name:
+                    pkg_name = self.package
+                self.extrafiles[pkg_name] = files
+                datafiles = [(t[0], t[2]) for t in files]
+                try:
+                    self.datafiles[pkg_name].extend(datafiles)
+                except KeyError:
+                    self.datafiles[pkg_name] = datafiles
 
     def _get_dependencies(self, bi):
         self.dependencies = []
@@ -207,7 +237,8 @@ class BundleBuilder:
             except ValueError:
                 minor = 1
             uses_numpy = cm.getAttribute("usesNumpy") == "true"
-            c = _CModule(mod_name, uses_numpy, major, minor)
+            c = _CModule(mod_name, uses_numpy, major, minor,
+                         self.installed_library_dir)
             self._add_c_options(c, cm)
             self.c_modules.append(c)
 
@@ -296,10 +327,42 @@ class BundleBuilder:
         return (not self.c_modules and not self.c_libraries
                 and self.pure_python != "false")
 
+    def _copy_extrafiles(self, files):
+        import shutil, os, os.path
+        for pkg_name, entries in files.items():
+            for kind, src, dst in entries:
+                if kind == "file":
+                    shutil.copyfile(src, os.path.join("src", dst))
+                elif kind == "dir":
+                    dstdir = os.path.join("src", dst.replace('/', os.sep))
+                    if os.path.exists(dstdir):
+                        shutil.rmtree(dstdir)
+                    shutil.copytree(src, dstdir)
+
+    def _expand_datafiles(self, files):
+        import os, os.path
+        datafiles = {}
+        for pkg_name, entries in files.items():
+            pkg_files = []
+            for kind, name in entries:
+                if kind == "file":
+                    pkg_files.append(name)
+                elif kind == "dir":
+                    prefix = "src"
+                    prefix_len = len(prefix) + 1
+                    root = os.path.join(prefix, name)
+                    for dirp, dns, fns in os.walk(root):
+                        # Strip leading root component, including separator
+                        dp = dirp[prefix_len:]
+                        pkg_files.extend([os.path.join(dp, fn) for fn in fns])
+            datafiles[pkg_name] = pkg_files
+        return datafiles
+
     def _make_setup_arguments(self):
         def add_argument(name, value):
             if value:
                 self.setup_arguments[name] = value
+        self._copy_extrafiles(self.extrafiles)
         self.setup_arguments = {"name": self.name,
                                 "python_requires": ">= 3.6"}
         add_argument("version", self.version)
@@ -310,7 +373,7 @@ class BundleBuilder:
         add_argument("url", self.url)
         add_argument("install_requires", self.dependencies)
         add_argument("license", self.license)
-        add_argument("package_data", self.datafiles)
+        add_argument("package_data", self._expand_datafiles(self.datafiles))
         # We cannot call find_packages unless we are already
         # in the right directory, and that will not happen
         # until run_setup.  So we do the package stuff there.
@@ -499,7 +562,6 @@ class _CompiledCode:
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         if self.uses_numpy:
-            from numpy.distutils.misc_util import get_numpy_include_dirs
             inc_dirs.extend(get_numpy_include_dirs())
         if sys.platform == "darwin":
             libraries = self.libraries
@@ -558,10 +620,11 @@ class _CompiledCode:
 
 class _CModule(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, major, minor):
+    def __init__(self, name, uses_numpy, major, minor, libdir):
         super().__init__(name, uses_numpy)
         self.major = major
         self.minor = minor
+        self.installed_library_dir = libdir
 
     def ext_mod(self, logger, package, dependencies):
         from setuptools import Extension
@@ -574,7 +637,11 @@ class _CModule(_CompiledCode):
             return None
         import sys
         if sys.platform == "linux":
-            extra_link_args.append("-Wl,-rpath,\$ORIGIN")
+            if self.installed_library_dir:
+                install_dir = '/' + self.installed_library_dir
+            else:
+                install_dir = ''
+            extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
         return Extension(package + '.' + self.name,
                          define_macros=macros,
                          extra_compile_args=cpp_flags+self.compile_arguments,

@@ -14,18 +14,21 @@
 UCSF DOCK output in PDB and mol2 formats are supported.
   </Description>
 
-    <DataFiles>
-      <DataFile>lib/*</DataFile>
-      <DataFile>lib/flot/jquery.flot*.min.*</DataFile>
-      <DataFile>lib/rateyo/jquery.rateyo*.min.css</DataFile>
-      <DataFile>lib/rateyo/jquery.rateyo*.min.js</DataFile>
-      <DataFile>viewdockx_*.html</DataFile>
-      <DataFile>viewdockx_*.js</DataFile>
-      <DataFile>viewdockx_*.css</DataFile>
+  <DataFiles>
+    <DataDir>lib</DataDir>
+    <DataFile>viewdockx_*.html</DataFile>
+    <DataFile>viewdockx_*.js</DataFile>
+    <DataFile>viewdockx_*.css</DataFile>
+  </DataFiles>
 
-      <!-- <DataFile></DataFile> -->
+  <!--
+  For testing only
+  <ExtraFiles>
+    <ExtraFile source="bundle_info.xml">bundle_info.xml</ExtraFile>
+    <ExtraDir source="flotsrc">lib/flotsrc</ExtraDir>
+  </ExtraFiles>
+  -->
 
-    </DataFiles>
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="General"/>

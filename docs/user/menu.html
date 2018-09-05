@@ -14,8 +14,9 @@ or derivations thereof.
 -->
 
 <head>
+<title>The ChimeraX Menu</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
-<title>Presets</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,14 +24,57 @@ or derivations thereof.
 <img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3>Presets</h3>
+<h2>The ChimeraX Menu</h2>
 <p>
-A <b><i>preset</i></b> is a predefined combination of display settings.
-Choosing an entry from the <b>Presets</b> menu 
-is easier than adjusting the associated settings individually.
-</p><p>
-The current set of presets is based directly on
-<a href="autostyle.html">automatic styling</a> and is likely to change:
+Although most functionality is currently in 
+<a href="index.html#commands">commands</a>,
+the ChimeraX menu includes basic file operations and undo,
+choices for <a href="selection.html">selection</a>,
+and access to several <a href="index.html#tools">tools</a>.
+See also: the <a href="window.html">ChimeraX window</a>,
+<a href="window.html#context-menu">context menus</a>,
+the <a href="tools/cli.html"><b>Command Line</b></a>
+</p>
+<ul>
+<a name="file"></a>
+<li><b>File</b>
+  <ul>
+  <li><b>Open...</b> a subset of <a href="commands/open.html"><b>open</b></a>
+  command functionality
+  <li><b>Save...</b> a subset of <a href="commands/save.html"><b>save</b></a>
+  command functionality
+  <li><b>Close Session</b> &ndash; same as the command
+  <a href="commands/close.html"><b>close session</b></a> 
+  </ul>
+<br>
+<a name="edit"></a>
+<li><b>Edit</b> &ndash; limited <a href="commands/undo.html">undo/redo</a>
+  <ul>
+  <li><b>Undo</b>
+  <li><b>Redo</b>
+  </ul>
+<br>
+<a name="select"></a>
+<li><b>Select</b> &ndash; choices of items to <a href="selection.html">select</a>
+  <ul>
+  <li><b>Chains</b> &ndash; <a href="commands/atomspec.html#hierarchy">chains</a>
+  in currently open structures
+  <li><b>Chemistry</b>
+    <ul>
+    <li><b>Element</b> &ndash; elements by atomic symbol
+    </ul>
+  </ul>
+<br>
+<a name="tools"></a>
+<li><b>Tools</b>
+&ndash; <a href="index.html#tools">tools</a> grouped by category
+<br><br>
+<a name="presets"></a>
+<li><b>Presets</b>
+&ndash; predefined combinations of display settings;
+the current set of presets is based directly on 
+<a href="autostyle.html">automatic styling</a> and is likely to change.
+<br><br>
 <ul>
 <li><b>Original Look</b> - initial appearance from
 <a href="autostyle.html">automatic styling</a>,
@@ -41,10 +85,10 @@ and <a href="commands/cartoon.html#style">cartoon style</a>
 may differ if they have been changed since the structure was opened)
 <li><b>Cartoon</b>
 - <a href="commands/cartoon.html">cartoons</a> plus atomic detail near
-residues <a href="commands/atomspec.html#surfcats">classified</a> 
+residues <a href="commands/atomspec.html#surfcats">classified</a>
 as <b>ligand</b> and <b>ions</b>,
 <a href="commands/lighting.html">simple lighting</a>, <i>etc.</i>
-(as for 
+(as for
 <a href="autostyle.html">automatic styling</a> of structures with 1-4 chains)
 <li><b>Space-Filling (chain colors)</b>
 - all atoms as <a href="commands/style.html">spheres</a>
@@ -65,8 +109,19 @@ ambient-only lighting, <i>etc.</i> (as for
 More render-intensive presets such as <b>Cartoon</b>
 may exhibit slow performance on very large structures.
 </p>
+<a name="help"></a>
+<li><b>Help</b>
+  <ul>
+  <li><a href="index.html"><b>User Guide</b></a>
+  <li><a href="../quickstart/index.html"><b>Quick Start Guide</b></a>
+  <li><a href="../devel/index.html"><b>Programming Manual</b></a>
+  <li><a href="../index.html"><b>Documentation Index</b></a>
+  <li><a href="../contact.html"><b>Contact Us</b></a>
+  </ul>
+</ul>
+<p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2018</address>
-</body></html>
+September 2018</address>
+</body></html> 
