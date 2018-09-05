@@ -738,6 +738,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
+        file_menu.setObjectName("File")
         open_action = QAction("&Open...", self)
         open_action.setShortcut("Ctrl+O")
         open_action.setToolTip("Open input file")
@@ -760,6 +761,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         file_menu.setToolTipsVisible(True)
 
         edit_menu = mb.addMenu("&Edit")
+        edit_menu.setObjectName("Edit")
         self.undo_action = QAction("&Undo", self)
         self.undo_action.setEnabled(False)
         self.undo_action.setShortcut(QKeySequence.Undo)
@@ -771,7 +773,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
         edit_menu.addAction(self.redo_action)
 
-        self._populate_select_menu(mb.addMenu("&Select"))
+        select_menu = mb.addMenu("&Select")
+        select_menu.setObjectName("Select")
+        self._populate_select_menu(select_menu)
 
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
@@ -783,6 +787,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.update_favorites_menu(session)
 
         help_menu = mb.addMenu("&Help")
+        help_menu.setObjectName("Help")
         help_menu.setToolTipsVisible(True)
         for entry, topic, tooltip in (
                 ('User Guide', 'user', 'Tutorials and user documentation'),
@@ -814,7 +819,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         atom_triggers.add_handler("changes", self._check_chains_update_status)
 
         chem_menu = select_menu.addMenu("Che&mistry")
+        chem_menu.setObjectName("Chemistry")
         elements_menu = chem_menu.addMenu("&element")
+        elements_menu.setObjectName("element")
         def sel_element(element_name):
             from chimerax.core.commands import run
             run(self.session, "select %s" % element_name)
@@ -991,6 +998,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         '''
         Add a main menu entry.  Menus that are needed but that don't already exist
         (including top-level ones) will be created.  Callback function takes no arguments.
+        This method cannot be used to add entries to menus that are updated dynamically,
+        such as Tools or Select->Chains.
         '''
         from PyQt5.QtWidgets import QMenu, QAction
         from PyQt5.QtCore import Qt
