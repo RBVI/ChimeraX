@@ -25,7 +25,8 @@
   </CLibrary>
 
   <ExtraFiles>
-    <ExtraFile source="search_cpp/search.h">include/search.h</ExtraFile>
+    <ExtraFile source="search_cpp/search.h">include/atomsearch/search.h</ExtraFile>
+    <ExtraFile source="search_cpp/imex.h">include/atomsearch/imex.h</ExtraFile>
   </ExtraFiles>
 
   <CModule name="ast">

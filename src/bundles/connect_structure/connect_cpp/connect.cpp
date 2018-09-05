@@ -18,14 +18,15 @@
 #include <list>
 #include <set>
 
-#include <atom_search/search.h>
+#include <atomsearch/search.h>
 #include <atomstruct/Atom.h>
+#include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Coord.h>
+#include <atomstruct/PBGroup.h>
 #include <atomstruct/polymer.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/Sequence.h>
 #include <atomstruct/string_types.h>
-#include <atomstruct/Structure.h>
 
 #ifndef PY_STUPID
 // workaround for Python API missing const's.
@@ -40,14 +41,14 @@ using namespace atomstruct;
 //    and add missing-structure pseudobonds as appropriate
 //
 static void
-connect_structure(AtomStructure* s, float bond_len_tolerance)
+connect_structure(AtomicStructure* s, float bond_len_tolerance)
 {
 	// code is pretending there is only one coordinate set;
 	// would need to be enhanced to get coordination bonds
 	// correct in multiple coordinate sets
 	const float search_dist = 3.0;
 	float search_val = search_dist + bond_len_tolerance;
-	atomsearch_search::AtomSearchTree  tree(s->atoms(), False, search_val);
+	atomsearch_search::AtomSearchTree  tree(s->atoms(), false, search_val);
 	std::list<std::pair<float,std::pair<Atom*,Atom*>>> possible_bonds;
 	std::set<Atom*> processed;
 	bool check_prebonded = s->bonds().size() > 0;
@@ -65,34 +66,32 @@ connect_structure(AtomStructure* s, float bond_len_tolerance)
 			}
 		}
 	}
-	std::sort(possible_bonds.begin(), possible_bonds.end());
+	possible_bonds.sort();
 
 	// add bonds between non-saturated atoms
 	for (auto& val_atoms: possible_bonds) {
 		Atom* a1 = val_atoms.second.first;
 		Atom* a2 = val_atoms.second.second;
-		// some of these are metal coordination bonds;
-		// there is a sophisticated scheme for finding the
-		// coordination bonds in structures where all the
-		// connectivity is pre-indicated.  We can't use
-		// that so any treat any metal<->non-metal bond
-		// as a coordination bond, and don't check valences
-		// for metals (can have higher coordination than valence)
-		if ((a1->bonds().size() >= a1->element().valence() && !a1->element.is_metal())
-		|| (a2->bonds().size() >= a2->element().valence() && !a1->element.is_metal()))
+		// some of these are metal coordination bonds; there is a sophisticated scheme
+		// for finding the coordination bonds in structures where all the connectivity
+		// is pre-indicated.  We can't use that so treat any metal<->non-metal bond as
+		// a coordination bond, and don't check valences for metals (can have higher
+		// coordination than valence)
+		if ((a1->bonds().size() >= a1->element().valence() && !a1->element().is_metal())
+		|| (a2->bonds().size() >= a2->element().valence() && !a1->element().is_metal()))
 			continue;
 		if (a1->element().is_metal() != a2->element().is_metal()) {
 			auto pbg = s->pb_mgr().get_group(s->PBG_METAL_COORDINATION, AS_PBManager::GRP_PER_CS);
 			pbg->new_pseudobond(a1, a2);
 		} else
-			s.new_bond(a1, a2);
+			s->new_bond(a1, a2);
 	}
 
 	// add missing-structure bonds for residues with chain IDs
 	std::map<ChainID, PolymerType> chain_type;
 	// find polymer type by examining all residues of a chain
 	for (auto r: s->residues()) {
-		if (r->chain_id() == ' ')
+		if (r->chain_id() == " ")
 			continue;
 		PolymerType pt = Sequence::rname_polymer_type(r->name());
 		if (pt == PT_NONE)
@@ -111,67 +110,67 @@ connect_structure(AtomStructure* s, float bond_len_tolerance)
 			prev_r = nullptr;
 			continue;
 		}
-	}
-	auto pt = Sequence::rname_polymer_type(r->name());
-	if (pt == PT_NONE) {
-		// look harder
-		bool found_backbone = true;
-		for (auto bb_name: Residue::aa_min_backbone_names) {
-			if (r->find_atom(bbname) == nullptr) {
-				found_backbone = false;
-				break;
-			}
-		}
-		if (found_backbone)
-			pt = PT_AMINO;
-		else {
-			found_backbone = true;
-			for (auto bb_name: Residue::na_min_backbone_names) {
-				if (r->find_atom(bbname) == nullptr) {
+		auto pt = Sequence::rname_polymer_type(r->name());
+		if (pt == PT_NONE) {
+			// look harder
+			bool found_backbone = true;
+			for (auto bb_name: Residue::aa_min_backbone_names) {
+				if (r->find_atom(bb_name) == nullptr) {
 					found_backbone = false;
 					break;
 				}
 			}
 			if (found_backbone)
-				pt = PT_NUCLEIC;
-		}
-	}
-	if (pt == PT_NONE) {
-		// okay, actually non-polymeric as far as we can tell
-		prev_r = nullptr;
-		continue;
-	}
-	if (prev_r && prev_chain == r->chain_id()) {
-		Atom* prev_connect = nullptr;
-		std::vector<AtomName>& backbone_names = (pt == PT_AMINO) ?
-			Residue::aa_min_ordered_backbone_names : Residue::na_min_ordered_backbone_names;
-		for (auto i = backbone_names.rbegin(); i != backbone_names.rend(); ++i) {
-			auto bba = prev_r->find_atom(*i);
-			if (bba != nullptr) {
-				if (bba->bonds().size() >= bba->element().valence())
-					prev_connect = nullptr;
-				else
-					prev_connect = bba;
-				break;
+				pt = PT_AMINO;
+			else {
+				found_backbone = true;
+				for (auto bb_name: Residue::na_min_backbone_names) {
+					if (r->find_atom(bb_name) == nullptr) {
+						found_backbone = false;
+						break;
+					}
+				}
+				if (found_backbone)
+					pt = PT_NUCLEIC;
 			}
 		}
-		if (prev_connect != nullptr) {
-			for (auto bb_name: backbone_names) {
-				auto bba = prev_r->find_atom(bb_name);
+		if (pt == PT_NONE) {
+			// okay, actually non-polymeric as far as we can tell
+			prev_r = nullptr;
+			continue;
+		}
+		if (prev_r && prev_chain == r->chain_id()) {
+			Atom* prev_connect = nullptr;
+			auto& backbone_names = (pt == PT_AMINO) ?
+				Residue::aa_min_ordered_backbone_names : Residue::na_min_ordered_backbone_names;
+			for (auto i = backbone_names.rbegin(); i != backbone_names.rend(); ++i) {
+				auto bba = prev_r->find_atom(*i);
 				if (bba != nullptr) {
-					if (!prev_connect.connects_to(bba)
-					&& bba->bonds().size() < bba->element().valence()) {
-						auto pbg = s->manager().get_group(Structure::PBG_MISSING_STRUCTURE,
-							AS_PBManager::GRP_NORMAL);
-						pbg->new_pseudobond(prev_connect, bba);
-					}
+					if (bba->bonds().size() >= bba->element().valence())
+						prev_connect = nullptr;
+					else
+						prev_connect = bba;
 					break;
 				}
 			}
+			if (prev_connect != nullptr) {
+				for (auto bb_name: backbone_names) {
+					auto bba = prev_r->find_atom(bb_name);
+					if (bba != nullptr) {
+						if (!prev_connect->connects_to(bba)
+						&& bba->bonds().size() < bba->element().valence()) {
+							auto pbg = s->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE,
+								AS_PBManager::GRP_NORMAL);
+							pbg->new_pseudobond(prev_connect, bba);
+						}
+						break;
+					}
+				}
+			}
 		}
+		prev_r = r;
+		prev_chain = r->chain_id();
 	}
-	prev_r = r;
-	prev_chain = r->chain_id();
 }
 
 extern "C" {

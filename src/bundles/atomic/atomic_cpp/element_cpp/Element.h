@@ -87,8 +87,8 @@ public:
     float  mass() const;        // standard atomic weight
     const char*  name() const;
     static const std::set<std::string>&  names();
-    int  number() const { return int(as); }
-    int  valence() const;
+    unsigned int  number() const { return static_cast<unsigned int>(as); }
+    unsigned int  valence() const;
 
     bool  operator==(const Element &a) const { return as == a.as; }
     bool  operator!=(const Element &a) const { return as != a.as; }

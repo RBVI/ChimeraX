@@ -13,16 +13,12 @@
     <Category name="Structure Analysis"/>
   </Categories>
 
-  <CModule name="_dssp">
+  <CModule name="_cs">
     <SourceFile>connect_cpp/connect.cpp</SourceFile>
     <Library>atomstruct</Library>
     <Library>element</Library>
     <Library>pyinstance</Library>
-	<!--
-    <Library>arrays</Library>
-    <Library>logger</Library>
-    <Library>appdirs</Library>
-	-->
+    <Library>atomsearch</Library>
   </CModule>
 
   <Dependencies>
