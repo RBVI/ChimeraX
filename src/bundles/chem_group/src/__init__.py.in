@@ -22,9 +22,21 @@ from chimerax.core.toolshed import BundleAPI
 class ChemGroupAPI(BundleAPI):
 
     @staticmethod
+    def initialize(session, bundle_info):
+        if session.ui.is_gui:
+           session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+               ChemGroupAPI._add_select_menu_entries(ses))
+
+    @staticmethod
     def register_selector(selector_name, logger):
         # 'register_selector' is lazily called when selector is referenced
         from . import chem_group
         chem_group.register_selectors(logger)
 
+    @staticmethod
+    def _add_select_menu_entries(session):
+        from chimerax.core.commands import run
+        for label in [SELECTOR_NAMES]:
+            session.ui.main_window.add_menu_entry(['Select', 'Chemistry', 'functional group'],
+                label, lambda ses=session, name=label, run=run: run(ses, "sel " + label))
 bundle_api = ChemGroupAPI()

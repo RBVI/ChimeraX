@@ -24,7 +24,7 @@ PYMOD_EXT = so
 endif
 RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
-SRCS = $(wildcard src/*.py)
+SRCS = $(wildcard src/*.py) src/__init__.py
 
 wheel: bundle_info.xml $(SRCS)
 	$(RUN) "devel build . exit true"
@@ -46,10 +46,13 @@ clean:
 	else \
 		rm -rf build dist *.egg-info src/__pycache__ src/*.$(PYMOD_EXT) ; \
 	fi
-	rm -f bundle_info.xml
+	rm -f bundle_info.xml src/__init__.py
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
 
 bundle_info.xml:	bundle_info.xml.in
+	$(CHIMERAX_EXE) --nogui make_selectors.py
+
+src/__init__.py:	src/__init__.py.in
 	$(CHIMERAX_EXE) --nogui make_selectors.py

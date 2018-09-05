@@ -75,4 +75,9 @@ with open("bundle_info.xml.in") as f:
     content = f.read()
 with open("bundle_info.xml", "w") as f:
     f.write(content.replace("SELECTOR_CLASSIFIERS", "".join(selectors)))
+
+with open("src/__init__.py.in") as f:
+    content = f.read()
+with open("src/__init__.py", "w") as f:
+    f.write(content.replace("SELECTOR_NAMES", ", ".join([repr(s) for s in group_info.keys()])))
 raise SystemExit(0)
