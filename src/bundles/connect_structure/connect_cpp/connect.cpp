@@ -42,15 +42,21 @@ using namespace atomstruct;
 static void
 connect_structure(AtomStructure* s, float bond_len_tolerance)
 {
+	// code is pretending there is only one coordinate set;
+	// would need to be enhanced to get coordination bonds
+	// correct in multiple coordinate sets
 	const float search_dist = 3.0;
 	float search_val = search_dist + bond_len_tolerance;
 	atomsearch_search::AtomSearchTree  tree(s->atoms(), False, search_val);
 	std::list<std::pair<float,std::pair<Atom*,Atom*>>> possible_bonds;
 	std::set<Atom*> processed;
+	bool check_prebonded = s->bonds().size() > 0;
 	for (auto a: s->atoms()) {
 		processed.insert(a);
 		for (auto oa: tree.search(a, search_val)) {
 			if (processed.find(oa) != processed.end())
+				continue;
+			if (check_prebonded && a->connects_to(oa))
 				continue;
 			float bond_len = Element::bond_length(a->element(), oa->element());
 			float dist = a->coord().distance(oa->coord());
@@ -65,10 +71,21 @@ connect_structure(AtomStructure* s, float bond_len_tolerance)
 	for (auto& val_atoms: possible_bonds) {
 		Atom* a1 = val_atoms.second.first;
 		Atom* a2 = val_atoms.second.second;
-		if (a1.bonds().size() >= a1.element().valence()
-		|| a2.bonds().size() >= a2.element().valence())
+		// some of these are metal coordination bonds;
+		// there is a sophisticated scheme for finding the
+		// coordination bonds in structures where all the
+		// connectivity is pre-indicated.  We can't use
+		// that so any treat any metal<->non-metal bond
+		// as a coordination bond, and don't check valences
+		// for metals (can have higher coordination than valence)
+		if ((a1->bonds().size() >= a1->element().valence() && !a1->element.is_metal())
+		|| (a2->bonds().size() >= a2->element().valence() && !a1->element.is_metal()))
 			continue;
-		s.new_bond(a1, a2);
+		if (a1->element().is_metal() != a2->element().is_metal()) {
+			auto pbg = s->pb_mgr().get_group(s->PBG_METAL_COORDINATION, AS_PBManager::GRP_PER_CS);
+			pbg->new_pseudobond(a1, a2);
+		} else
+			s.new_bond(a1, a2);
 	}
 
 	// add missing-structure bonds for residues with chain IDs
