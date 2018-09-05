@@ -333,7 +333,7 @@ class BundleBuilder:
             for kind, src, dst in entries:
                 if kind == "file":
                     filepath = os.path.join("src", dst)
-                    dirpath = os.dirname(filepath)
+                    dirpath = os.path.dirname(filepath)
                     if dirpath:
                         os.makedirs(dirpath, exist_ok=True)
                     shutil.copyfile(src, filepath)
