@@ -38,7 +38,8 @@ The <b>select</b> command can:
 <p>
 For click-to-select, see <a href="ui.html#mousemode"><b>mousemode</b></a>.
 See also:
-<a href="../selection.html#sel-vs-spec">selection vs. specification</a>
+<a href="../selection.html#sel-vs-spec">selection vs. specification</a>,
+the <a href="../menu.html#select"><b>Select</b> menu</a>
 </p>
 
 <a name="new"></a>
@@ -51,6 +52,8 @@ See also:
 <b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>polymer</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
+[&nbsp;<b>minimumLength</b>&nbsp;&nbsp;<i>min</i>&nbsp;]
+[&nbsp;<b>maximumLength</b>&nbsp;&nbsp;<i>max</i>&nbsp;]
 </blockquote>
 
 <p>
@@ -69,6 +72,10 @@ with the same sequences as the chains in
 </blockquote>
 &ndash; select biopolymer chains in model 2 that have the same sequence
 as chain A of model 1
+<p>
+The <b>minimumLength</b> and <b>maximumLength</b> filters apply only 
+to <a href="../pseudobonds.html">pseudobonds</a>.
+</p>
 
 <a name="modify"></a>
 <p class="nav">
@@ -167,5 +174,5 @@ non-atomic model types.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2018</address>
+September 2018</address>
 </body></html>

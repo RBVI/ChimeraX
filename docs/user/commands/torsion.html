@@ -1,0 +1,58 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: torsion</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: torsion</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>torsion</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<i>angle</i>&nbsp;]
+[&nbsp;<b>move</b>&nbsp;&nbsp;large&nbsp;|&nbsp;<b>small</b>&nbsp;]
+</h3>
+<p>
+The <b>torsion</b> command sets the angle defined by the four specified atoms 
+to <i>angle</i> in degrees, or if <i>angle</i> is omitted,
+reports the current value in the <a href="../tools/log.html"><b>Log</b></a>.
+For changing the angle, 
+the two middle atoms must be covalently bonded to one another.
+The <b>move</b> option specifies whether to move the <b>large</b> or <b>small</b>
+side of the bond (default <b>small</b>, the side with fewer atoms).
+For dragging to rotate bonds interactively,
+see <a href="ui.html#mousemode"><b>mousemode</b></a>.
+See also: 
+<a href="turn.html"><b>turn</b></a>
+</p><p>
+For example, the following commands measure a &psi; angle and set it to
+120&deg;, respectively:
+</p>
+<blockquote><b>
+torsion /a:11@n,ca,c:12@n
+<br>
+torsion /a:11@n,ca,c:12@n 120
+</b></blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+September 2018</address>
+</body></html>
