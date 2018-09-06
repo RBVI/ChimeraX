@@ -57,6 +57,7 @@ group_info = {
     "thymine": "5-methyl-2,4-dioxypyrimidine",
     "uracil": "2,4-dioxypyrimidine",
 }
+group_names = list(group_info.keys())
 
 # synonyms
 for group_name in list(group_info.keys()):
@@ -78,6 +79,22 @@ with open("bundle_info.xml", "w") as f:
 
 with open("src/__init__.py.in") as f:
     content = f.read()
+amine_endings = ['', ' primary', ' secondary', ' tertiary', ' quaternary']
+amines = ["all"] + ['aliphatic' + ending for ending in amine_endings] + ['aromatic' + ending
+    for ending in amine_endings]
+bases = []
+base_names = set(['adenine', 'cytosine', 'guanine', 'thymine', 'uracil'])
+menu_info = [('amine', amines), ('nucleoside base', bases)]
+for name in group_names:
+    if name.endswith('amine'):
+        continue
+    elif name in base_names:
+        bases.append(name)
+    else:
+        menu_info.append((name, None))
+bases.sort()
+menu_info.sort()
 with open("src/__init__.py", "w") as f:
-    f.write(content.replace("SELECTOR_NAMES", ", ".join([repr(s) for s in group_info.keys()])))
+    f.write(content.replace("SELECTOR_NAMES",
+        ", ".join([repr(s) for s in menu_info])))
 raise SystemExit(0)
