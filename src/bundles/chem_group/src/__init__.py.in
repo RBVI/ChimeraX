@@ -1,0 +1,62 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+from .chem_group import find_group
+
+# the below in case you want to add your own custom group to group_info...
+from .chem_group import group_info, N, C, O, H, R, X, \
+    single_bond, heavy, non_oxygen_single_bond, RingAtom
+
+from chimerax.core.toolshed import BundleAPI
+
+class ChemGroupAPI(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        if session.ui.is_gui:
+           session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+               ChemGroupAPI._add_select_menu_entries(ses))
+
+    @staticmethod
+    def register_selector(selector_name, logger):
+        # 'register_selector' is lazily called when selector is referenced
+        from . import chem_group
+        chem_group.register_selectors(logger)
+
+    @staticmethod
+    def _add_select_menu_entries(session):
+        from chimerax.core.commands import run
+        for label, submenu in [SELECTOR_NAMES]:
+            if submenu is None:
+                session.ui.main_window.add_menu_entry(['Select', 'Chemistry', 'functional group'],
+                    label, lambda ses=session, name=label.replace(' ', '-'), run=run:
+                    run(ses, "sel " + name))
+            else:
+                amine = False
+                for sublabel in submenu:
+                    if sublabel == "all":
+                        amine = True
+                        selector = "amine"
+                    elif amine:
+                        selector = sublabel + " amine"
+                    else:
+                        selector = sublabel
+                    session.ui.main_window.add_menu_entry(['Select', 'Chemistry',
+                        'functional group', label], sublabel, lambda ses=session,
+                        name=selector.replace(' ', '-'), run=run: run(ses, "sel " + name))
+                if not amine:
+                    session.ui.main_window.add_menu_entry(['Select', 'Chemistry',
+                        'functional group', label], "all the above", lambda ses=session,
+                        name="|".join([e.replace(' ', '-') for e in submenu]), run=run:
+                        run(ses, "sel " + name))
+bundle_api = ChemGroupAPI()
