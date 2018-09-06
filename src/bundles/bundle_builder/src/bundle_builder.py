@@ -640,12 +640,14 @@ class _CModule(_CompiledCode):
         except ValueError:
             return None
         import sys
+        if self.installed_library_dir:
+            install_dir = '/' + self.installed_library_dir
+        else:
+            install_dir = ''
         if sys.platform == "linux":
-            if self.installed_library_dir:
-                install_dir = '/' + self.installed_library_dir
-            else:
-                install_dir = ''
             extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
+        elif sys.platform == "darwin":
+            extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
         return Extension(package + '.' + self.name,
                          define_macros=macros,
                          extra_compile_args=cpp_flags+self.compile_arguments,
@@ -715,8 +717,7 @@ class _CLibrary(_CompiledCode):
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
-                extra_link_args.append("-Wl,-install_name,@loader_path%s/%s" %
-                                       (install_dir, lib))
+                extra_link_args.append("-Wl,-install_name,@rpath/%s" % lib)
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_preargs=extra_link_args,
                                             debug=debug)
