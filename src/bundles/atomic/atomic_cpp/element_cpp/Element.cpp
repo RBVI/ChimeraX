@@ -266,7 +266,7 @@ Element::atomic_number(const char *name)
 float
 Element::bond_radius(const Element& e)
 {
-    if (e.number() < 0 || e.number() >= NUM_COVALENT)
+    if (e.number() >= NUM_COVALENT)
         return 0.0;
     else
         return covalent[e.number()];
@@ -341,7 +341,7 @@ Element::mass() const {
     return standard_mass[as];
 }
 
-int
+unsigned int
 Element::valence() const
 {
     int n = number();

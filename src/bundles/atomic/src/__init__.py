@@ -100,7 +100,7 @@ class _AtomicBundleAPI(BundleAPI):
                 s.residues.ribbon_displays = False
                 s.apply_auto_styling(**kw)
         for label in ['Original Look'] + sorted(list(name_mapping.keys())):
-            session.ui.main_window.add_custom_menu_entry('Presets', label,
+            session.ui.main_window.add_menu_entry(['Presets'], label,
                 lambda name=label: callback(name))
 
 bundle_api = _AtomicBundleAPI()

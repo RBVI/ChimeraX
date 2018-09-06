@@ -21,6 +21,9 @@ cxcmd_css = """
     margin-top: .5em;
     background-color: #ddd;
 }
+a.no_underline {
+    text-decoration: none;
+}
 """
 
 context_menu_html = """

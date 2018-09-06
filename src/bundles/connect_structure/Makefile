@@ -12,24 +12,21 @@ CHIMERAX_APP = ../../../ChimeraX.app
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
-PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
-PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
-PYMOD_EXT = so
 endif
 RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
-SRCS = $(wildcard src/*.py) src/__init__.py
+SRCS = $(wildcard src/*.py)
 
-wheel: bundle_info.xml $(SRCS)
+wheel:	bundle_info.xml $(SRCS)
 	$(RUN) "devel build . exit true"
 
-install app-install:	 bundle_info.xml $(SRCS)
+install app-install:	bundle_info.xml $(SRCS)
 	$(RUN) "devel install . user false exit true"
 
 test:
@@ -41,18 +38,11 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	if [ -x $(CHIMERAX_EXE) -a -f bundle_info.xml ]; then \
+	if [ -x $(CHIMERAX_EXE) ]; then \
 		$(RUN) "devel clean . exit true" ; \
 	else \
-		rm -rf build dist *.egg-info src/__pycache__ src/*.$(PYMOD_EXT) ; \
+		rm -rf build dist *.egg-info src/__pycache__ ; \
 	fi
-	rm -f bundle_info.xml src/__init__.py
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
-
-bundle_info.xml:	bundle_info.xml.in
-	$(CHIMERAX_EXE) --nogui make_selectors.py
-
-src/__init__.py:	src/__init__.py.in
-	$(CHIMERAX_EXE) --nogui make_selectors.py

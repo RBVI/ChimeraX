@@ -11,20 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .chem_group import find_group
-
-# the below in case you want to add your own custom group to group_info...
-from .chem_group import group_info, N, C, O, H, R, X, \
-    single_bond, heavy, non_oxygen_single_bond, RingAtom
+from ._cs import connect_structure
 
 from chimerax.core.toolshed import BundleAPI
 
-class ChemGroupAPI(BundleAPI):
+class _ConnectStructureBundle(BundleAPI):
+    pass
 
-    @staticmethod
-    def register_selector(selector_name, logger):
-        # 'register_selector' is lazily called when selector is referenced
-        from . import chem_group
-        chem_group.register_selectors(logger)
-
-bundle_api = ChemGroupAPI()
+bundle_api = _ConnectStructureBundle()

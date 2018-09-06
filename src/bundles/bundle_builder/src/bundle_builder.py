@@ -6,6 +6,9 @@ import distutils
 import setuptools
 from Cython.Build import cythonize
 
+# Always import this because it changes the behavior of setuptools
+from numpy.distutils.misc_util import get_numpy_include_dirs
+
 def distlib_hack(_func):
     # This hack is needed because distlib and wheel do not yet
     # agree on the metadata file name.
@@ -234,7 +237,8 @@ class BundleBuilder:
             except ValueError:
                 minor = 1
             uses_numpy = cm.getAttribute("usesNumpy") == "true"
-            c = _CModule(mod_name, uses_numpy, major, minor)
+            c = _CModule(mod_name, uses_numpy, major, minor,
+                         self.installed_library_dir)
             self._add_c_options(c, cm)
             self.c_modules.append(c)
 
@@ -328,7 +332,11 @@ class BundleBuilder:
         for pkg_name, entries in files.items():
             for kind, src, dst in entries:
                 if kind == "file":
-                    shutil.copyfile(src, os.path.join("src", dst))
+                    filepath = os.path.join("src", dst)
+                    dirpath = os.path.dirname(filepath)
+                    if dirpath:
+                        os.makedirs(dirpath, exist_ok=True)
+                    shutil.copyfile(src, filepath)
                 elif kind == "dir":
                     dstdir = os.path.join("src", dst.replace('/', os.sep))
                     if os.path.exists(dstdir):
@@ -558,7 +566,6 @@ class _CompiledCode:
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         if self.uses_numpy:
-            from numpy.distutils.misc_util import get_numpy_include_dirs
             inc_dirs.extend(get_numpy_include_dirs())
         if sys.platform == "darwin":
             libraries = self.libraries
@@ -617,10 +624,11 @@ class _CompiledCode:
 
 class _CModule(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, major, minor):
+    def __init__(self, name, uses_numpy, major, minor, libdir):
         super().__init__(name, uses_numpy)
         self.major = major
         self.minor = minor
+        self.installed_library_dir = libdir
 
     def ext_mod(self, logger, package, dependencies):
         from setuptools import Extension
@@ -633,7 +641,11 @@ class _CModule(_CompiledCode):
             return None
         import sys
         if sys.platform == "linux":
-            extra_link_args.append("-Wl,-rpath,\$ORIGIN")
+            if self.installed_library_dir:
+                install_dir = '/' + self.installed_library_dir
+            else:
+                install_dir = ''
+            extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
         return Extension(package + '.' + self.name,
                          define_macros=macros,
                          extra_compile_args=cpp_flags+self.compile_arguments,
