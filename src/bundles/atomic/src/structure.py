@@ -154,6 +154,7 @@ class Structure(Model, StructureData):
     # used by custom-attr registration code
     @property
     def has_custom_attrs(self):
+        from .molobject import has_custom_attrs
         return has_custom_attrs(Structure, self)
 
     def take_snapshot(self, session, flags):
