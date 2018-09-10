@@ -36,11 +36,11 @@ class ChemGroupAPI(BundleAPI):
     @staticmethod
     def _add_select_menu_entries(session):
         from chimerax.core.commands import run
+        parent_menus = ['Chemistry', 'functional group']
         for label, submenu in [SELECTOR_NAMES]:
             if submenu is None:
-                session.ui.main_window.add_menu_entry(['Select', 'Chemistry', 'functional group'],
-                    label, lambda ses=session, name=label.replace(' ', '-'), run=run:
-                    run(ses, "sel " + name))
+                session.ui.main_window.add_select_menu_entry(parent_menus,
+                    label, label.replace(' ', '-'))
             else:
                 amine = False
                 for sublabel in submenu:
@@ -51,12 +51,9 @@ class ChemGroupAPI(BundleAPI):
                         selector = sublabel + " amine"
                     else:
                         selector = sublabel
-                    session.ui.main_window.add_menu_entry(['Select', 'Chemistry',
-                        'functional group', label], sublabel, lambda ses=session,
-                        name=selector.replace(' ', '-'), run=run: run(ses, "sel " + name))
+                    session.ui.main_window.add_select_menu_entry(parent_menus + [label], sublabel,
+                        selector.replace(' ', '-'))
                 if not amine:
-                    session.ui.main_window.add_menu_entry(['Select', 'Chemistry',
-                        'functional group', label], "all the above", lambda ses=session,
-                        name="|".join([e.replace(' ', '-') for e in submenu]), run=run:
-                        run(ses, "sel " + name))
+                    session.ui.main_window.add_select_menu_entry(parent_menus + [label],
+                        "all the above", "|".join([e.replace(' ', '-') for e in submenu]))
 bundle_api = ChemGroupAPI()
