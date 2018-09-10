@@ -1601,17 +1601,37 @@ class Structure(Model, StructureData):
         self._update_graphics_if_needed()       # Ribbon drawing lazily computed
         super().write_x3d(*args, **kw)
 
+    def get_selected(self, include_children=False, fully=False):
+        if fully:
+            if self.atoms.num_selected < self.num_atoms or self.bonds.num_selected < self.num_bonds:
+                return False
+            if include_children:
+                for c in self.child_models():
+                    if not c.get_selected(include_children=True, fully=True):
+                        return False
+            return True
+            
+        if self.atoms.num_selected > 0 or self.bonds.num_selected > 0:
+            return True
+
+        if include_children:
+            for c in self.child_models():
+                if c.get_selected(include_children=True):
+                    return True
+
+        return False
+
     def set_selected(self, sel, *, fire_trigger=True):
         self.atoms.selected = sel
         self.bonds.selected = sel
         Model.set_selected(self, sel, fire_trigger=fire_trigger)
-    selected = property(Model.selected.fget, set_selected)
+    selected = property(get_selected, set_selected)
 
     def set_selected_positions(self, spos):
         sel = (spos is not None and spos.sum() > 0)
         self.atoms.selected = sel
         self.bonds.selected = sel
-        Model.set_selected_positions(self, spos)
+        Model.set_highlighted_positions(self, spos)
     selected_positions = property(Model.selected_positions.fget, set_selected_positions)
     
     def selected_items(self, itype):
@@ -1624,22 +1644,6 @@ class Structure(Model, StructureData):
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
         return []
-
-    def all_parts_selected(self):
-        if self.atoms.num_selected < self.num_atoms or self.bonds.num_selected < self.num_bonds:
-            return False
-        for c in self.child_models():
-            if not c.all_parts_selected():
-                return False
-        return True
-
-    def any_part_selected(self):
-        if self.atoms.num_selected > 0 or self.bonds.num_selected > 0:
-            return True
-        for c in self.child_models():
-            if c.any_part_selected():
-                return True
-        return False
 
     def clear_selection(self):
         self.selected = False

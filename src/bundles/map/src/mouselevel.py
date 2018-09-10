@@ -47,7 +47,7 @@ def mouse_maps(models):
     mall = models.list()
     from .volume import Volume
     mdisp = [m for m in mall if isinstance(m,Volume) and m.display]
-    msel = [m for m in mdisp if m.any_part_selected()]
+    msel = [m for m in mdisp if m.get_selected(include_children=True)]
     maps = msel if msel else mdisp
     return maps
 

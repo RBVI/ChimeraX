@@ -92,10 +92,31 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def atomspec_pseudobonds(self):
         return self.pseudobonds
 
+    def get_selected(self, include_children=False, fully=False):
+        if fully:
+            if self.pseudobonds.num_selected < self.num_pseudobonds:
+                return False
+            if include_children:
+                for c in self.child_models():
+                    if not c.get_selected(include_children=True, fully=True):
+                        return False
+            return True
+
+        if self.pseudobonds.num_selected > 0:
+            return True
+
+        if include_children:
+            for c in self.child_models():
+                if c.get_selected(include_children=True):
+                    return True
+                
+        return False
+            
     def set_selected(self, sel, *, fire_trigger=True):
         self.pseudobonds.selected = sel
         Model.set_selected(self, sel, fire_trigger=fire_trigger)
-    selected = property(Model.selected.fget, set_selected)
+
+    selected = property(get_selected, set_selected)
 
     def selected_items(self, itype):
         if itype == 'pseudobonds':
@@ -103,22 +124,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
             if pbonds.num_selected > 0:
                 return [pbonds.filter(pbonds.selected)]
         return []
-
-    def all_parts_selected(self):
-        if self.pseudobonds.num_selected < self.num_pseudobonds:
-            return False
-        for c in self.child_models():
-            if not c.all_parts_selected():
-                return False
-        return True
-
-    def any_part_selected(self):
-        if self.pseudobonds.num_selected > 0:
-            return True
-        for c in self.child_models():
-            if c.any_part_selected():
-                return True
-        return False
 
     def selection_promotion(self):
         pbonds = self.pseudobonds
