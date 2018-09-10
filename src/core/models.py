@@ -328,10 +328,24 @@ class Model(State, Drawing):
         return True
 
     def all_parts_selected(self):
+        '''Is this model including all its descendants fully selected?'''
+        if not self.highlighted and not self.empty_drawing():
+            return False
+        for m in self.child_models():
+            if not m.all_parts_selected():
+                return False
+        return True
+        
         return self.any_part_selected()
 
     def any_part_selected(self):
-        return self.highlighted
+        '''Is any part of this model including its descendants selected?'''
+        if self.highlighted:
+            return True
+        for m in self.child_models():
+            if m.any_part_selected():
+                return True
+        return False
 
 
 class Surface(Model):
