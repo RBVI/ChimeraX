@@ -1039,7 +1039,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             action.setToolTip(tool_tip)
         menu.addAction(action)
 
-    def add_select_menu_entry(self, submenu_names, entry_name, label, selector_text, tool_tip=None):
+    def add_select_menu_entry(self, submenu_names, entry_name, selector_text, tool_tip=None):
         menu = self._get_target_menu(self.menuBar(), ["Select"] + submenu_names)
         self._add_select_menu_entry(menu, entry_name, selector_text, tool_tip)
 
