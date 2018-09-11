@@ -579,7 +579,9 @@ class View:
                 self._center_of_rotation = cofr
         return self._center_of_rotation
     def _set_cofr(self, cofr):
-        self._center_of_rotation = cofr
+        from numpy import array, float32
+        cofr_np = array(cofr, float32)	# TODO: temporary session save fix to handle tinyarray
+        self._center_of_rotation = cofr_np
         self._center_of_rotation_method = 'fixed'
         self._update_center_of_rotation = False
     center_of_rotation = property(_get_cofr, _set_cofr)
