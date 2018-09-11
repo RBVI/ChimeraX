@@ -253,11 +253,11 @@ def add_hydrogens(session, atom_list, *args):
                     print(a, "completely coordinated by metal")
                 continue
         if d in donors:
-            if in_isolation and a not in acceptors:
+            if in_isolation and d.structure != a.structure:
                 continue
             sortable_hbonds.append((distance_squared(d._addh_coord, a._addh_coord), False, (d, a)))
         if a in acceptors:
-            if in_isolation and d not in donors:
+            if in_isolation and a.structure != d.structure:
                 continue
             sortable_hbonds.append((distance_squared(d._addh_coord, a._addh_coord), True, (d, a)))
     sortable_hbonds.sort()

@@ -25,8 +25,8 @@ class Selection:
 
     def models(self, all_selected=False):
         if all_selected:
-            return [m for m in self._all_models if m.all_parts_selected()]
-        return [m for m in self._all_models if m.any_part_selected()]
+            return [m for m in self._all_models if m.get_selected(include_children=True, fully=True)]
+        return [m for m in self._all_models if m.get_selected(include_children=True)]
 
     def items(self, itype):
         si = []
@@ -37,7 +37,7 @@ class Selection:
 
     def empty(self):
         for m in self._all_models:
-            if m.any_part_selected():
+            if m.selected:
                 return False
         return True
 
@@ -121,6 +121,8 @@ class SelectionPromoter:
         selection promotions at that level in promotions lists.
         '''
 
+        # TODO: Make this use selection instead of drawing highlighting to determine promotions.
+
         if sel is None:
             # Drawings that are partially selected
             # or has some descendant partially selected.
@@ -131,7 +133,7 @@ class SelectionPromoter:
             p = drawing.selection_promotion()
             if p:
                 self._add_promotion(p, promotions)
-            if p or drawing.any_part_selected():
+            if p or drawing.any_part_highlighted():
                 sel.add(drawing)
 
         # Check for deeper promotions
@@ -143,7 +145,7 @@ class SelectionPromoter:
 
         # Add drawing to selected set if it is selected.
         if drawing not in sel:
-            sp = drawing.selected_positions
+            sp = drawing.highlighted_positions
             if sp is not None and sp.sum() > 0:
                 sel.add(drawing)
 
@@ -156,12 +158,12 @@ class SelectionPromoter:
                     # Some children are selected so select all children
                     for c in nsel:
                         self._add_promotion(ModelSelectionPromotion(c,level+0.5), promotions)
-            elif children and not drawing.selected and drawing is not self._drawing:
+            elif children and not drawing.highlighted and drawing is not self._drawing:
                 # All children selected so select parent
                 self._add_promotion(ModelSelectionPromotion(drawing,level), promotions)
 
             # Check if some but not all instances are selected.
-            sp = drawing.selected_positions
+            sp = drawing.highlighted_positions
             if sp is not None:
                 ns = sp.sum()
                 if ns < len(sp) and ns > 0:

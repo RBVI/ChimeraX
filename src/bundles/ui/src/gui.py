@@ -827,7 +827,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             run(self.session, "select %s" % element_name)
         for element_name in ["C", "H", "N", "O", "P", "S"]:
             action = QAction(element_name, self)
-            action.triggered.connect(lambda arg, *, en=element_name: sel_element(en))
+            action.triggered.connect(lambda arg, *, en=element_name: self.select_by_mode(en))
             elements_menu.addAction(action)
 
         from chimerax.atomic import Element
@@ -847,9 +847,43 @@ class MainWindow(QMainWindow, PlainTextLog):
                 % (known_elements[start_index], known_elements[end_index]))
             for en in known_elements[start_index:end_index+1]:
                 action = QAction(en, self)
-                action.triggered.connect(lambda arg, *, en=en: sel_element(en))
+                action.triggered.connect(lambda arg, *, en=en: self.select_by_mode(en))
                 submenu.addAction(action)
             start_index = end_index + 1
+
+        self.select_mode_menu = select_menu.addMenu("mode")
+        self.select_mode_menu.setObjectName("mode")
+        mode_names =  ["replace", "add to", "subtract from", "intersect with"]
+        self._select_mode_reminders = {k:v for k,v in zip(mode_names, 
+            ["", " (+)", " (-)", " (\N{INTERSECTION})"])}
+        for mode in mode_names:
+            action = QAction(mode + self._select_mode_reminders[mode], self)
+            self.select_mode_menu.addAction(action)
+            action.triggered.connect(
+                lambda arg, s=self, m=mode: s._set_select_mode(m))
+        self._set_select_mode("replace")
+
+    def select_by_mode(self, selector_text):
+        mode = self.select_menu_mode
+        if mode == "replace":
+            cmd = "sel"
+        elif mode == "add to":
+            cmd = "sel add"
+        elif mode == "subtract from":
+            cmd = "sel subtract"
+        else:
+            cmd = "sel intersect"
+        from chimerax.core.commands import run
+        run(self.session, "%s %s" % (cmd, selector_text))
+
+    def _set_select_mode(self, mode_text):
+        self.select_menu_mode = mode_text
+        self.select_mode_menu.setTitle("Menu mode: %s selection" % mode_text)
+        mb = self.menuBar()
+        from PyQt5.QtWidgets import QMenu
+        from PyQt5.QtCore import Qt
+        select_menu = mb.findChild(QMenu, "Select", Qt.FindDirectChildrenOnly)
+        select_menu.setTitle("Select" + self._select_mode_reminders[mode_text])
 
     def update_favorites_menu(self, session):
         from PyQt5.QtWidgets import QAction
@@ -877,7 +911,6 @@ class MainWindow(QMainWindow, PlainTextLog):
                 return False, description
             return True, description[:50] + "..." + description[-50:]
         from PyQt5.QtWidgets import QAction
-        from chimerax.core.commands import run
         for chain_key in chain_keys:
             chains = chain_info[chain_key]
             if len(chains) > 1:
@@ -899,18 +932,14 @@ class MainWindow(QMainWindow, PlainTextLog):
                         shortened = False
                     action = QAction(label, self)
                     spec = chain.string(style="command")
-                    action.triggered.connect(
-                        lambda *, ses=self.session, run=run, spec=spec:
-                        run(ses, "select clear; select %s" % spec))
+                    action.triggered.connect(lambda *, spec=spec: self.select_by_mode(spec))
                     submenu.addAction(action)
                     collective_spec += spec
                     if shortened:
                         submenu.setToolTipsVisible(True)
                         action.setToolTip(chain.description)
                 action = QAction("all", self)
-                action.triggered.connect(
-                    lambda *, ses=self.session, run=run, spec=collective_spec:
-                    run(ses, "select clear; select %s" % spec))
+                action.triggered.connect(lambda *, spec=collective_spec: self.select_by_mode(spec))
                 submenu.insertAction(sep, action)
             else:
                 chain = chains[0]
@@ -926,9 +955,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                     shortened = False
                 action = QAction(label, self)
                 spec = chain.string(style="command")
-                action.triggered.connect(
-                    lambda *, ses=self.session, run=run, spec=spec:
-                    run(ses, "select clear; select %s" % spec))
+                action.triggered.connect(lambda *, spec=spec: self.select_by_mode(spec))
                 if shortened:
                     self.select_chains_menu.setToolTipsVisible(True)
                     action.setToolTip(chain.description)
@@ -996,14 +1023,44 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def add_menu_entry(self, menu_names, entry_name, callback, tool_tip=None):
         '''
-        Add a main menu entry.  Menus that are needed but that don't already exist
-        (including top-level ones) will be created.  Callback function takes no arguments.
-        This method cannot be used to add entries to menus that are updated dynamically,
-        such as Tools or Select->Chains.
+        Add a main menu entry.  Adding entries to the Select menu should normally be done
+        with the add_select_menu_entry method instead, which allows selectors to honor the
+        selection mode of that menu.
+
+        Menus that are needed but that don't already exist (including top-level ones) will
+        be created.  Callback function takes no arguments.  This method cannot be used to
+        add entries to menus that are updated dynamically, such as Tools.
         '''
-        from PyQt5.QtWidgets import QMenu, QAction
+        menu = self._get_target_menu(self.menuBar(), menu_names)
+        from PyQt5.QtWidgets import QAction
+        action = QAction(entry_name, self)
+        action.triggered.connect(lambda arg, cb = callback: cb())
+        if tool_tip is not None:
+            action.setToolTip(tool_tip)
+        menu.addAction(action)
+
+    def add_select_menu_entry(self, submenu_names, entry_name, selector_text, tool_tip=None):
+        menu = self._get_target_menu(self.menuBar(), ["Select"] + submenu_names)
+        self._add_select_menu_entry(menu, entry_name, selector_text, tool_tip)
+
+    def add_select_menu_entries(self, submenu_names, entry_names, selector_texts, tool_tips=None):
+        menu = self._get_target_menu(self.menuBar(), ["Select"] + submenu_names)
+        if tool_tips is None:
+            tool_tips = [None] * len(entry_names)
+        for entry_name, selector_text, tool_tip in zip(entry_names, selector_texts, tool_tips):
+            self._add_select_menu_entry(menu, entry_name, selector_text, tool_tip)
+
+    def _add_select_menu_entry(self, menu, entry_name, selector_text, tool_tip):
+        from PyQt5.QtWidgets import QAction
+        action = QAction(entry_name, self)
+        action.triggered.connect(lambda arg, st=selector_text: self.select_by_mode(st))
+        if tool_tip is not None:
+            action.setToolTip(tool_tip)
+        menu.addAction(action)
+
+    def _get_target_menu(self, parent_menu, menu_names):
+        from PyQt5.QtWidgets import QMenu
         from PyQt5.QtCore import Qt
-        parent_menu = self.menuBar()
         for menu_name in menu_names:
             menu = parent_menu.findChild(QMenu, menu_name, Qt.FindDirectChildrenOnly)
             add = (menu is None)
@@ -1011,18 +1068,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                 menu = QMenu(menu_name, parent_menu)
                 menu.setToolTipsVisible(True)
                 menu.setObjectName(menu_name)	# Needed for findChild() above to work.
-
-            if add:
                 if parent_menu == self.menuBar():
                     parent_menu.insertMenu(parent_menu.findChild(QMenu, "Help").menuAction(), menu)
                 else:
                     parent_menu.addMenu(menu)
             parent_menu = menu
-        action = QAction(entry_name, self)
-        action.triggered.connect(lambda arg, cb = callback: cb())
-        if tool_tip is not None:
-            action.setToolTip(tool_tip)
-        menu.addAction(action)
+        return parent_menu
 
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance

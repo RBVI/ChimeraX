@@ -58,7 +58,7 @@ clean:
 		rm -rf build dist *.egg-info src/__pycache__ src/*.$(PYMOD_EXT) ; \
 	fi
 	rm -f search_cpp/search.o* search_cpp/imex.h search_cpp/ast.cpp \
-		src/lib/libatom_*
+		src/lib/libatomsearch.*
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(PYSRCS)

@@ -9,23 +9,6 @@ from Cython.Build import cythonize
 # Always import this because it changes the behavior of setuptools
 from numpy.distutils.misc_util import get_numpy_include_dirs
 
-def distlib_hack(_func):
-    # This hack is needed because distlib and wheel do not yet
-    # agree on the metadata file name.
-    def hack(*args, **kw):
-        # import distutils.core
-        # distutils.core.DEBUG = True
-        # TODO: remove distlib monkey patch when the wheel package
-        # implements PEP 426's pydist.json
-        from distlib import metadata
-        save = metadata.METADATA_FILENAME
-        metadata.METADATA_FILENAME = "metadata.json"
-        try:
-            return _func(*args, **kw)
-        finally:
-            metadata.METADATA_FILENAME = save
-    return hack
-
 
 class BundleBuilder:
 
@@ -42,7 +25,6 @@ class BundleBuilder:
         self._make_paths()
         self._make_setup_arguments()
 
-    @distlib_hack
     def make_wheel(self, test=True, debug=False):
         # HACK: distutils uses a cache to track created directories
         # for a single setup() run.  We want to run setup() multiple
@@ -55,8 +37,7 @@ class BundleBuilder:
             pass
         import os.path
         for lib in self.c_libraries:
-            lib_path = lib.compile(self.logger, self.dependencies, debug=debug)
-            self.datafiles[self.package].append(lib_path)
+            lib.compile(self.logger, self.dependencies, debug=debug)
         setup_args = ["--no-user-cfg", "build"]
         if debug:
             setup_args.append("--debug")
@@ -69,7 +50,6 @@ class BundleBuilder:
         else:
             print("Distribution is in %s" % self.wheel_path)
 
-    @distlib_hack
     def make_install(self, session, test=True, debug=False, user=None):
         self.make_wheel(test=test, debug=debug)
         from chimerax.core.commands import run
@@ -81,7 +61,6 @@ class BundleBuilder:
                 cmd += " user false"
         run(session, cmd)
 
-    @distlib_hack
     def make_clean(self):
         import os.path, fnmatch
         self._rmtree(os.path.join(self.path, "build"))
@@ -366,7 +345,13 @@ class BundleBuilder:
         def add_argument(name, value):
             if value:
                 self.setup_arguments[name] = value
+        # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
+        # Make sure C/C++ libraries (DLLs, shared objects or dynamic
+        # libraries) are on the install list
+        for lib in self.c_libraries:
+            for lib_path in lib.paths():
+                self.datafiles[self.package].append(("file", lib_path))
         self.setup_arguments = {"name": self.name,
                                 "python_requires": ">= 3.6"}
         add_argument("version", self.version)
@@ -640,12 +625,14 @@ class _CModule(_CompiledCode):
         except ValueError:
             return None
         import sys
+        if self.installed_library_dir:
+            install_dir = '/' + self.installed_library_dir
+        else:
+            install_dir = ''
         if sys.platform == "linux":
-            if self.installed_library_dir:
-                install_dir = '/' + self.installed_library_dir
-            else:
-                install_dir = ''
             extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
+        elif sys.platform == "darwin":
+            extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
         return Extension(package + '.' + self.name,
                          define_macros=macros,
                          extra_compile_args=cpp_flags+self.compile_arguments,
@@ -715,8 +702,7 @@ class _CLibrary(_CompiledCode):
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
-                extra_link_args.append("-Wl,-install_name,@loader_path%s/%s" %
-                                       (install_dir, lib))
+                extra_link_args.append("-Wl,-install_name,@rpath/%s" % lib)
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_preargs=extra_link_args,
                                             debug=debug)
@@ -736,6 +722,34 @@ class _CLibrary(_CompiledCode):
                                             extra_preargs=extra_link_args,
                                             debug=debug)
         return lib
+
+    def paths(self):
+        import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
+        compiler = distutils.ccompiler.new_compiler()
+        distutils.sysconfig.customize_compiler(compiler)
+        compiler.mkpath(output_dir)
+        if sys.platform == "win32":
+            lib_name = "lib" + self.name
+        else:
+            lib_name = self.name
+        if self.installed_library_dir:
+            lib_name = os.path.join(self.installed_library_dir, lib_name)
+        paths = []
+        if self.static:
+            paths.append(compiler.library_filename(lib_name, lib_type="static"))
+        else:
+            if sys.platform == "darwin":
+                paths.append(compiler.library_filename(lib_name,
+                                                       lib_type="dylib"))
+            elif sys.platform == "win32":
+                # On Windows we want both .lib and .dll
+                paths.append(compiler.shared_object_filename(lib_name))
+                paths.append(compiler.library_filename(lib_name,
+                                                       lib_type="static"))
+            else:
+                paths.append(compiler.library_filename(lib_name,
+                                                       lib_type="shared"))
+        return paths
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys

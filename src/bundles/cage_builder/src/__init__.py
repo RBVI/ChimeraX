@@ -13,7 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _CageBuilderAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
@@ -27,4 +27,12 @@ class _MyAPI(BundleAPI):
         from . import cmd
         cmd.register_cage_command(logger)
 
-bundle_api = _MyAPI()
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'CageBuilder':
+            from . import tool
+            return tool.CageBuilder
+        return None
+
+bundle_api = _CageBuilderAPI()

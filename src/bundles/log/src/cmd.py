@@ -20,7 +20,7 @@ def get_singleton(session, create=False):
 
 def log(session, save_path = None,
         thumbnail = False, text = None, html = None, width = 100, height = 100,
-        warning_dialog = None, error_dialog = None):
+        warning_dialog = None, error_dialog = None, for_demo = False):
     '''Operations on the Log window.
 
     Parameters
@@ -43,7 +43,10 @@ def log(session, save_path = None,
     log = get_singleton(session, create = False)
     if log is not None:
         if not save_path is None:
-            log.save(save_path)
+            if for_demo:
+                log.demo_save(save_path)
+            else:
+                log.save(save_path)
         if thumbnail:
             im = session.main_view.image(width, height)
             log.log(log.LEVEL_INFO, 'graphics image', (im, True), True)
@@ -119,7 +122,8 @@ def register_log_command(logger):
                                   ('warning_dialog', BoolArg),
                                   ('error_dialog', BoolArg),
                                   ('metadata', ModelsArg),
-                                  ('verbose', BoolArg)],
+                                  ('verbose', BoolArg),
+                                  ('for_demo', BoolArg)],
                        synopsis = 'Add text or thumbnail images to the log'
     )
     register('log', log_desc, log, logger=logger)

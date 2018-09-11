@@ -58,7 +58,7 @@ cage_builder.install: ui.install
 chem_group.install: atomic.install
 clashes.install: atom_search.install atomic.install
 cmd_line.install: ui.install
-connect_structure: atom_search.install atomic.install
+connect_structure.install: atom_search.install atomic.install
 crosslinks.install: interfaces.install
 dist_monitor.install: atomic.install
 dist_ui.install: ui.install

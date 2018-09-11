@@ -43,6 +43,7 @@ clean:
 	else \
 		rm -rf build dist *.egg-info src/__pycache__ ; \
 	fi
+	rm -f src/_cs.*
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
