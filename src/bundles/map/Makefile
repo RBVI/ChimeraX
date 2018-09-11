@@ -22,7 +22,7 @@ ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 PYMOD_EXT = so
 endif
-RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
+RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
 
 SRCS = $(wildcard src/*.py)
 
