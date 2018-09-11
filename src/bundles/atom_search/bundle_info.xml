@@ -15,10 +15,6 @@
     <Category name="Structure Analysis"/>
   </Categories>
 
-  <DataFiles>
-    <DataFile>lib/*</DataFile>
-  </DataFiles>
-
   <CLibrary name="atomsearch">
     <SourceFile>search_cpp/search.cpp</SourceFile>
     <Library>atomstruct</Library>
