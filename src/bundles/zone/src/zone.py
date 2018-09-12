@@ -38,7 +38,7 @@ class AtomZoneMouseMode(MouseMode):
         struct = atom.structure
         all_atoms = struct.atoms
 
-        natoms = self._show_near_atoms(ratoms, all_atoms)
+        natoms = self._show_near_atoms(ratoms, all_atoms, show_ligands=ribbon)
         if label:
             self._show_labels(ratoms, all_atoms)
         if ribbon:
@@ -61,11 +61,14 @@ class AtomZoneMouseMode(MouseMode):
         from chimerax.map.filter.vopcommand import volume_unzone
         volume_unzone(self.session, self._shown_volumes())
         
-    def _show_near_atoms(self, ratoms, all_atoms):
+    def _show_near_atoms(self, ratoms, all_atoms, show_ligands):
         natoms = self._nearby_atoms(ratoms, all_atoms, self._residue_distance)
         cats = all_atoms.structure_categories
-        all_atoms[cats == 'main'].displays = False	   # Keep ligands and ions shown
-        all_atoms[cats == 'solvent'].displays = False
+        if show_ligands:
+            all_atoms[cats == 'main'].displays = False	   # Keep ligands and ions shown
+            all_atoms[cats == 'solvent'].displays = False
+        else:
+            all_atoms.displays = False
         natoms.displays = True
         return natoms
     
