@@ -57,7 +57,7 @@ def label(session, objects = None, object_type = None, text = None,
         elif len(objects.atoms) == 0:
             otypes = ['pseudobonds']
         else:
-            otypes = ['atoms']
+            otypes = ['residues']
     else:
         otypes = [object_type]
 
