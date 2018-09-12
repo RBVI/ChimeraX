@@ -79,6 +79,12 @@ class _AtomicBundleAPI(BundleAPI):
         session.triggers.remove_handler(session._atomic_command_handler)
 
     @staticmethod
+    def register_selector(selector_name, logger):
+        # 'register_selector' is lazily called when selector is referenced
+        from .selectors import register_selectors
+        register_selectors(logger)
+
+    @staticmethod
     def _add_presets_menu(session):
         name_mapping = {
             'Stick': 'non-polymer',

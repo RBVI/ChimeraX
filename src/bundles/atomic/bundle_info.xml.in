@@ -33,6 +33,7 @@
   </Dependencies>
 
   <Classifiers>
+    ELEMENT_AND_IDATM_SELECTOR_CLASSIFIERS
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
   </Classifiers>

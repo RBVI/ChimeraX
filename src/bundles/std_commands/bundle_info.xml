@@ -6,8 +6,8 @@
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Detect chemically functional groups</Synopsis>
-  <Description>This bundle provides the ability for detection of functional groups in a structure.</Description>
+  <Synopsis>Standard commands</Synopsis>
+  <Description>General purpose commands always available in ChimeraX</Description>
 
   <Categories>
     <Category name="Structure Analysis"/>
@@ -40,7 +40,6 @@
     <ChimeraXClassifier>ChimeraX :: Selector :: sidechain :: side-chain atoms</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Selector :: sideonly :: side-chain atoms</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Selector :: ribose :: ribose</ChimeraXClassifier>
-    ELEMENT_AND_IDATM_SELECTOR_CLASSIFIERS
 	<ChimeraXClassifier>ChimeraX :: Command :: alias :: General Controls :: create shorthand version of command</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: alias list :: General Controls :: list command aliases</ChimeraXClassifier>
 	<ChimeraXClassifier>ChimeraX :: Command :: alias delete :: General Controls :: remove command alias</ChimeraXClassifier>
