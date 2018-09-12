@@ -401,6 +401,7 @@ the current value, or simply set as the current value.
 </p>
 
 <a name="attribute"></a>
+<a name="bfactor"></a>
 <p class="nav">
 [<a href="#top">back to top: color</a>]
 </p>
@@ -436,13 +437,15 @@ Cartoons are colored by the average B-factor of the atoms in each residue.
 Atoms (and their corresponding molecular surface patches) are colored
 by the atomic values unless <b>average residue</b> is given to indicate
 they should be colored by the average per residue.
-For example, to rainbow-color chain A atoms by B-factor 
-and cartoons by the average B-factor per residue:
+For example, to color chain A atoms by B-factor 
+and cartoons by the average B-factor per residue, 
+spreading blue-white-red coloring across value range 2-30:
 </p>
 <blockquote>
-<b>color bfactor /A palette rainbow</b>
+<b>color bfactor /A range 2,30</b>
 </blockquote>
-To rainbow-color chain A atoms <i>etc.</i> by the average B-factor per residue:
+To rainbow-color chain A atoms <i>etc.</i> by the average B-factor per residue,
+spreading the coloring across the full range of (atomic) values:
 <blockquote>
 <b>color bfactor /A palette rainbow ave residue</b>
 </blockquote>
@@ -903,5 +906,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2018</address>
+September 2018</address>
 </body></html>

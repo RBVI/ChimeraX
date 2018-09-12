@@ -63,7 +63,6 @@ def add_hydrogens(session, atom_list, *args):
     aro_amines = {}
     unsaturated = []
     saturated = []
-    other_lone_pairs = []
     finished = {}
     # the early donor/acceptor version of hbond_info is not keyed by alt loc (for personal
     # sanity, treat hbonds as applicable for all altlocs), but later H-position version
@@ -84,8 +83,6 @@ def add_hydrogens(session, atom_list, *args):
                             aro_N_rings[ring].append(atom)
                         else:
                             aro_N_rings[ring] = [atom]
-            if substs < geom:
-                other_lone_pairs.append(atom)
             continue
         
         if num_bonds == 0:
@@ -225,8 +222,6 @@ def add_hydrogens(session, atom_list, *args):
         acceptors[atom] = unsaturated
     for atom in saturated:
         donors[atom] = saturated
-    for atom in other_lone_pairs:
-        acceptors[atom] = other_lone_pairs
     for ring, ns in multi_N_rings.items():
         for n in ns:
             donors[n] = ring
@@ -258,11 +253,11 @@ def add_hydrogens(session, atom_list, *args):
                     print(a, "completely coordinated by metal")
                 continue
         if d in donors:
-            if in_isolation and a not in acceptors:
+            if in_isolation and d.structure != a.structure:
                 continue
             sortable_hbonds.append((distance_squared(d._addh_coord, a._addh_coord), False, (d, a)))
         if a in acceptors:
-            if in_isolation and d not in donors:
+            if in_isolation and a.structure != d.structure:
                 continue
             sortable_hbonds.append((distance_squared(d._addh_coord, a._addh_coord), True, (d, a)))
     sortable_hbonds.sort()
