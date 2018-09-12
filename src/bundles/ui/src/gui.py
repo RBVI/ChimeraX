@@ -1021,7 +1021,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if toolbar.windowTitle() in self._checkbutton_tools:
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
-    def add_menu_entry(self, menu_names, entry_name, callback, tool_tip=None):
+    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None):
         '''
         Add a main menu entry.  Adding entries to the Select menu should normally be done
         with the add_select_menu_entry method instead, which allows selectors to honor the
@@ -1039,11 +1039,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             action.setToolTip(tool_tip)
         menu.addAction(action)
 
-    def add_select_menu_entry(self, submenu_names, entry_name, selector_text, tool_tip=None):
+    def add_select_menu_entry(self, submenu_names, entry_name, selector_text, *, tool_tip=None):
         menu = self._get_target_menu(self.menuBar(), ["Select"] + submenu_names)
         self._add_select_menu_entry(menu, entry_name, selector_text, tool_tip)
 
-    def add_select_menu_entries(self, submenu_names, entry_names, selector_texts, tool_tips=None):
+    def add_select_menu_entries(self, submenu_names, entry_names, selector_texts, *, tool_tips=None):
         menu = self._get_target_menu(self.menuBar(), ["Select"] + submenu_names)
         if tool_tips is None:
             tool_tips = [None] * len(entry_names)
