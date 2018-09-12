@@ -926,6 +926,10 @@ def common_startup(sess):
     from .core_triggers import register_core_triggers
     register_core_triggers(sess.triggers)
 
+    from .triggerset import set_exception_reporter
+    set_exception_reporter(lambda preface, logger=sess.logger:
+        logger.report_exception(preface=preface))
+
     from .selection import Selection
     sess.selection = Selection(sess)
 
