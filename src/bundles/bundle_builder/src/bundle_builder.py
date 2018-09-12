@@ -727,7 +727,6 @@ class _CLibrary(_CompiledCode):
         import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
-        compiler.mkpath(output_dir)
         if sys.platform == "win32":
             lib_name = "lib" + self.name
         else:
