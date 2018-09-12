@@ -16,8 +16,8 @@ from chimerax.atomic import Element
 from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic.colors import element_colors
 
-def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=True,
-    use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
+def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.6,
+    use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
 
     if structures is None:
         from chimerax.atomic import AtomicStructure
@@ -29,6 +29,9 @@ def cmd_addh(session, structures, hbond=True, in_isolation=True, use_his_name=Tr
         structures = list(structures)
 
     add_h_func = hbond_add_hydrogens if hbond else simple_add_hydrogens
+
+    global _metal_dist
+    _metal_dist = metal_dist
 
     prot_schemes = {}
     for res_name in ['his', 'glu', 'asp', 'lys', 'cys']:
@@ -329,7 +332,6 @@ def _handle_acid_protonation_scheme_item(r, protonation, res_types, atom_names,
         type_info_for_atom[oxy] = deprot_type
 
 _tree_dist = 3.25
-_metal_dist = 3.6
 h_rad = 1.0
 def _make_shared_data(session, protonation_models, in_isolation):
     from chimerax.core.geometry import distance_squared
@@ -374,7 +376,7 @@ def _make_shared_data(session, protonation_models, in_isolation):
     from chimerax.atomic import Atom
     use_scene_coords = Atom._addh_coord == Atom.scene_coord
     search_tree = AtomSearchTree(search_atoms, sep_val=_tree_dist, scene_coords=use_scene_coords)
-    _metals = AtomSearchTree(metal_atoms, sep_val=_metal_dist, scene_coords=use_scene_coords)
+    _metals = AtomSearchTree(metal_atoms, sep_val=max(_metal_dist, 1.0), scene_coords=use_scene_coords)
     from weakref import WeakKeyDictionary
     _h_coloring = WeakKeyDictionary()
     _solvent_atoms = WeakKeyDictionary()
@@ -804,7 +806,7 @@ def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogen
 def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info,
         alt_loc):
     global _serial, _metals
-    nearby_metals = _metals.search(pos, _metal_dist)
+    nearby_metals = _metals.search(pos, _metal_dist) if _metal_dist > 0.0 else []
     for metal in nearby_metals:
         if metal.structure != parent_atom.structure:
             continue
@@ -919,12 +921,12 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
     return h_name
 
 def register_command(command_name, logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg, FloatArg
     from chimerax.atomic import AtomicStructuresArg
     desc = CmdDesc(
         required=[('structures', Or(AtomicStructuresArg,EmptyArg))],
-        keyword = [('hbond', BoolArg),
-            ('in_isolation', BoolArg), ('use_his_name', BoolArg), ('use_glu_name', BoolArg),
+        keyword = [('hbond', BoolArg), ('in_isolation', BoolArg), ('metal_dist', FloatArg),
+            ('use_his_name', BoolArg), ('use_glu_name', BoolArg),
             ('use_asp_name', BoolArg), ('use_lys_name', BoolArg), ('use_cys_name', BoolArg)],
         synopsis = 'Add hydrogens'
     )
