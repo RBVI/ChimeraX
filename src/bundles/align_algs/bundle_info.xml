@@ -39,7 +39,6 @@
     <IncludeDir>src/include</IncludeDir>
     <LibraryDir>src</LibraryDir>
     <Library>align_algs</Library>
-    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN</LinkArgument>
   </CModule>
 
   <Dependencies>
