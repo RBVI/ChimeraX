@@ -44,3 +44,39 @@ def _idatm_selector(symbol, models, results):
             if len(atoms) > 0:
                 results.add_model(m)
                 results.add_atoms(atoms, bonds=True)
+
+def add_select_menu_items(session):
+    mw = session.ui.main_window
+    parent_menus = ["Che&mistry", "&element"]
+    elements_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
+    elements_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
+    from PyQt5.QtWidgets import QAction
+    for element_name in ["C", "H", "N", "O", "P", "S"]:
+        elements_menu.addAction(QAction(element_name, mw))
+
+    from . import Element
+    known_elements = [nm for nm in Element.names if len(nm) < 3]
+    known_elements.sort()
+    from math import sqrt
+    num_menus = int(sqrt(len(known_elements)) + 0.5)
+    incr = len(known_elements) / num_menus
+    start_index = 0
+    other_menu = mw.add_select_submenu(parent_menus, "other")
+    for i in range(num_menus):
+        if i < num_menus-1:
+            end_index = int((i+1) * incr + 0.5)
+        else:
+            end_index = len(known_elements) - 1
+        submenu = mw.add_select_submenu(parent_menus + ["other"], "%s-%s"
+            % (known_elements[start_index], known_elements[end_index]))
+        for en in known_elements[start_index:end_index+1]:
+            action = QAction(en, mw)
+            submenu.addAction(action)
+        start_index = end_index + 1
+
+    parent_menus = ["Che&mistry", "&IDATM type"]
+    idatm_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
+    idatm_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
+    from . import Atom
+    for idatm in Atom.idatm_info_map.keys():
+        idatm_menu.addAction(QAction(idatm, mw))

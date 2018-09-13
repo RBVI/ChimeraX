@@ -72,7 +72,7 @@ class _AtomicBundleAPI(BundleAPI):
 
         if session.ui.is_gui:
            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
-               _AtomicBundleAPI._add_presets_menu(ses))
+               _AtomicBundleAPI._add_gui_items(ses))
 
     @staticmethod
     def finish(session, bundle_info):
@@ -85,28 +85,11 @@ class _AtomicBundleAPI(BundleAPI):
         register_selectors(logger)
 
     @staticmethod
-    def _add_presets_menu(session):
-        name_mapping = {
-            'Stick': 'non-polymer',
-            'Cartoon': 'small polymer',
-            'Space-Filling (chain colors)': 'medium polymer',
-            'Space-Filling (single color)': 'large polymer'
-        }
-        def callback(name, session=session):
-            structures = [m for m in session.models if isinstance(m, AtomicStructure)]
-            kw = {'set_lighting': len(structures) < 2}
-            if name in name_mapping:
-                kw['style'] = name_mapping[name]
-            from .nucleotides.cmd import nucleotides
-            nucleotides(session, 'atoms')
-            for s in structures:
-                atoms = s.atoms
-                atoms.displays = True
-                atoms.draw_modes = Atom.SPHERE_STYLE
-                s.residues.ribbon_displays = False
-                s.apply_auto_styling(**kw)
-        for label in ['Original Look'] + sorted(list(name_mapping.keys())):
-            session.ui.main_window.add_menu_entry(['Presets'], label,
-                lambda name=label: callback(name))
+    def _add_gui_items(session):
+        from .presets import add_presets_menu
+        add_presets_menu(session)
+
+        from .selectors import add_select_menu_items
+        add_select_menu_items(session)
 
 bundle_api = _AtomicBundleAPI()

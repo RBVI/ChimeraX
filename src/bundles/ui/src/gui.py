@@ -818,39 +818,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         atom_triggers = atomic.get_triggers(self.session)
         atom_triggers.add_handler("changes", self._check_chains_update_status)
 
-        chem_menu = select_menu.addMenu("Che&mistry")
-        chem_menu.setObjectName("Chemistry")
-        elements_menu = chem_menu.addMenu("&element")
-        elements_menu.setObjectName("element")
-        def sel_element(element_name):
-            from chimerax.core.commands import run
-            run(self.session, "select %s" % element_name)
-        for element_name in ["C", "H", "N", "O", "P", "S"]:
-            action = QAction(element_name, self)
-            action.triggered.connect(lambda arg, *, en=element_name: self.select_by_mode(en))
-            elements_menu.addAction(action)
-
-        from chimerax.atomic import Element
-        known_elements = [nm for nm in Element.names if len(nm) < 3]
-        known_elements.sort()
-        from math import sqrt
-        num_menus = int(sqrt(len(known_elements)) + 0.5)
-        incr = len(known_elements) / num_menus
-        start_index = 0
-        other_menu = elements_menu.addMenu("other")
-        for i in range(num_menus):
-            if i < num_menus-1:
-                end_index = int((i+1) * incr + 0.5)
-            else:
-                end_index = len(known_elements) - 1
-            submenu = other_menu.addMenu("%s-%s"
-                % (known_elements[start_index], known_elements[end_index]))
-            for en in known_elements[start_index:end_index+1]:
-                action = QAction(en, self)
-                action.triggered.connect(lambda arg, *, en=en: self.select_by_mode(en))
-                submenu.addAction(action)
-            start_index = end_index + 1
-
         self.select_mode_menu = select_menu.addMenu("mode")
         self.select_mode_menu.setObjectName("mode")
         mode_names =  ["replace", "add to", "subtract from", "intersect with"]
@@ -1023,13 +990,13 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None):
         '''
-        Add a main menu entry.  Adding entries to the Select menu should normally be done
-        with the add_select_menu_entry method instead, which allows selectors to honor the
-        selection mode of that menu.
+        Add a main menu entry.  Adding entries to the Select menu should normally be done via
+        the add_select_submenu method instead.  For details, see the doc string for that method.
 
         Menus that are needed but that don't already exist (including top-level ones) will
-        be created.  Callback function takes no arguments.  This method cannot be used to
-        add entries to menus that are updated dynamically, such as Tools.
+        be created.  The menu names (and entry name) can contain appropriate keyboard navigation
+        markup.  Callback function takes no arguments.  This method cannot be used to add entries
+        to menus that are updated dynamically, such as Tools.
         '''
         menu = self._get_target_menu(self.menuBar(), menu_names)
         from PyQt5.QtWidgets import QAction
@@ -1039,39 +1006,67 @@ class MainWindow(QMainWindow, PlainTextLog):
             action.setToolTip(tool_tip)
         menu.addAction(action)
 
-    def add_select_menu_entry(self, submenu_names, entry_name, selector_text, *, tool_tip=None):
-        menu = self._get_target_menu(self.menuBar(), ["Select"] + submenu_names)
-        self._add_select_menu_entry(menu, entry_name, selector_text, tool_tip)
+    def add_select_submenu(self, parent_menu_names, submenu_name):
+        '''
+        Add a submenu (or get it if it already exists).  Any parent menus will be created as
+        needed.  Menu names can contain keyboard navigation markup (the '&' character).
+        'parent_menu_names' should not contain the Select menu itself.
 
-    def add_select_menu_entries(self, submenu_names, entry_names, selector_texts, *, tool_tips=None):
-        menu = self._get_target_menu(self.menuBar(), ["Select"] + submenu_names)
-        if tool_tips is None:
-            tool_tips = [None] * len(entry_names)
-        for entry_name, selector_text, tool_tip in zip(entry_names, selector_texts, tool_tips):
-            self._add_select_menu_entry(menu, entry_name, selector_text, tool_tip)
+        The caller is responsible for filling out the menu with entries, separators, etc.
+        Any further submenus should again use this call.  Entry or menu callbacks that
+        actually make selections should use the select_by_mode(selector_text) method
+        to make the selection, which will run the command appropriate to the current
+        selection mode of the Select menu.
 
-    def _add_select_menu_entry(self, menu, entry_name, selector_text, tool_tip):
+        The convenience method add_menu_selector, which takes a menu, a label, and an
+        optional selector text (defaulting to the label) can be used to easily add items
+        to the menu.
+        '''
+
+        insert_positions = [None, "mode"] + [None] * len(parent_menu_names)
+        menu = self._get_target_menu(self.menuBar(),
+            ["Select"] + parent_menu_names + [submenu_name],
+            insert_positions=insert_positions)
+        return self._get_target_menu(self.menuBar(),
+            ["Select"] + parent_menu_names + [submenu_name],
+            insert_positions=insert_positions)
+
+    def add_menu_selector(self, menu, label, selector_text=None):
+        '''
+        Add an item to the given menu (which was probably obtained with the add_select_submenu
+        method) which will make a selection using the given selector text (which should just
+        be the text of the selector, not a full command) while honoring the current selection
+        mode set in the Select menu.  If 'selector_text' is not given, it defaults to be the
+        same as 'label'.  The label can have keyboard navigation markup.
+        '''
+        if selector_text is None:
+            selector_text = remove_keyboard_navigation(label)
         from PyQt5.QtWidgets import QAction
-        action = QAction(entry_name, self)
-        action.triggered.connect(lambda arg, st=selector_text: self.select_by_mode(st))
-        if tool_tip is not None:
-            action.setToolTip(tool_tip)
+        action = QAction(label, self)
+        action.triggered.connect(lambda *, st=selector_text: self.select_by_mode(st))
         menu.addAction(action)
 
-    def _get_target_menu(self, parent_menu, menu_names):
+    def _get_target_menu(self, parent_menu, menu_names, *, insert_positions=None):
         from PyQt5.QtWidgets import QMenu
         from PyQt5.QtCore import Qt
-        for menu_name in menu_names:
-            menu = parent_menu.findChild(QMenu, menu_name, Qt.FindDirectChildrenOnly)
+        if insert_positions is None:
+            insert_positions = [None]*len(menu_names)
+        for menu_name, insert_pos in zip(menu_names, insert_positions):
+            obj_name = remove_keyboard_navigation(menu_name)
+            menu = parent_menu.findChild(QMenu, obj_name, Qt.FindDirectChildrenOnly)
             add = (menu is None)
             if add:
                 menu = QMenu(menu_name, parent_menu)
                 menu.setToolTipsVisible(True)
-                menu.setObjectName(menu_name)	# Needed for findChild() above to work.
-                if parent_menu == self.menuBar():
-                    parent_menu.insertMenu(parent_menu.findChild(QMenu, "Help").menuAction(), menu)
-                else:
+                menu.setObjectName(obj_name)	# Needed for findChild() above to work.
+                if parent_menu == self.menuBar() and insert_pos is None:
+                    insert_pos = "Help"
+                if insert_pos is None:
                     parent_menu.addMenu(menu)
+                else:
+                    parent_menu.insertMenu(
+                        parent_menu.findChild(QMenu,
+                            remove_keyboard_navigation(insert_pos)).menuAction(), menu)
             parent_menu = menu
         return parent_menu
 
@@ -1521,3 +1516,8 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
         quote_if_necessary(ti.tool_name))))
     menu.addAction(dock_action)
     menu.exec(event.globalPos())
+
+def remove_keyboard_navigation(menu_label):
+    if menu_label.count('&') == 1:
+        return menu_label.replace('&', '')
+    return menu_label.replace('&&', '&')

@@ -84,7 +84,7 @@ amines = ["all"] + ['aliphatic' + ending for ending in amine_endings] + ['aromat
     for ending in amine_endings]
 bases = []
 base_names = set(['adenine', 'cytosine', 'guanine', 'thymine', 'uracil'])
-menu_info = [('amine', amines), ('nucleoside base', bases)]
+menu_info = [('&amine', amines), ('&nucleoside base', bases)]
 for name in group_names:
     if name.endswith('amine'):
         continue
@@ -93,7 +93,7 @@ for name in group_names:
     else:
         menu_info.append((name, None))
 bases.sort()
-menu_info.sort()
+menu_info.sort(key=lambda n: n[0][1:] if n[0][0] == '&' else n[0])
 with open("src/__init__.py", "w") as f:
     f.write(content.replace("SELECTOR_NAMES",
         ", ".join([repr(s) for s in menu_info])))
