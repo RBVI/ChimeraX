@@ -317,25 +317,19 @@ class SteamVRCamera(Camera):
 #        result, rect = chaperone.getPlayAreaRect()
 #        for c in rect.vCorners:
 #            print('corners', tuple(c.v))
-        from numpy import array, zeros, float32
         b = scene_bounds
         if b is None:
-            # TODO: Avoid this undisplay hack used to eliminate controllers from bounds.
-            cm = self._controller_models
-            hcd = [hc.display for hc in cm]
-            for hc in cm:
-                hc.display = False
             b = self.vr_view.drawing_bounds()
-            for hc, disp in zip(cm, hcd):
-                hc.display = disp
         if b:
             scene_size = b.width()
             scene_center = b.center()
         else:
             scene_size = 1
+            from numpy import zeros, float32
             scene_center = zeros((3,), float32)
         # First apply scene shift then scene scale to get room coords
         from chimerax.core.geometry import translation, scale
+        from numpy import array, float32
         self.room_to_scene = (translation(scene_center) *
                               scale(scene_size/room_scene_size) *
                               translation(-array(room_center, float32)))
