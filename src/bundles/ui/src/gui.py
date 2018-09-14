@@ -1062,6 +1062,16 @@ class MainWindow(QMainWindow, PlainTextLog):
                 if parent_menu == self.menuBar() and insert_pos is None:
                     insert_pos = "Help"
                 if insert_pos is None:
+                    # try to alphabetize; use an insert_pos of False to prevent this
+                    existing_menus = parent_menu.findChildren(QMenu, None, Qt.FindDirectChildrenOnly)
+                    names = [em.objectName() for em in existing_menus]
+                    names.sort(key=lambda n: n.lower())
+                    i = names.index(obj_name)
+                    if i < len(names) - 1:
+                        insert_pos = names[i+1]
+                    else:
+                        insert_pos = False
+                if insert_pos is False:
                     parent_menu.addMenu(menu)
                 else:
                     parent_menu.insertMenu(
