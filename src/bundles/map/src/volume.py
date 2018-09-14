@@ -2052,6 +2052,8 @@ class VolumeSurface(Surface):
   @staticmethod
   def restore_snapshot(session, data):
     v = data['volume']
+    if v is None:
+      return None	# Volume was not restored, e.g. file missing.
     s = VolumeSurface(v, data['level'], data['rgba'])
     Model.set_state_from_snapshot(s, session, data['model state'])
     v._surfaces.append(s)
