@@ -228,7 +228,14 @@ class BugReporter(ToolInstance):
         # Post form data.
         self.status("Contacting CGL....", color="blue")
         from .post_form import post_multipart_formdata
-        errcode, errmsg, headers, body = post_multipart_formdata(BUG_HOST, BUG_SELECTOR, fields)
+        try:
+            errcode, errmsg, headers, body = post_multipart_formdata(BUG_HOST, BUG_SELECTOR, fields)
+        except Exception:
+            self._ses.logger.warning('Failed to send bug report. Error while sending follows:')
+            import traceback
+            traceback.print_exc()	# Log detailed exception info
+            self.report_failure()
+            return
 
         # Report success or error.
         if int(errcode) == 200:
@@ -282,7 +289,8 @@ class BugReporter(ToolInstance):
                 "  This could be due to network problems, but more likely,"
                 " there is a problem with Computer Graphics Lab's server."
                 "  Please report this problem by sending email to"
-                " <font color=\"blue\">chimerax-bugs@cgl.ucsf.edu</font>.</p>"
+                " <font color=\"blue\">chimerax-bugs@cgl.ucsf.edu</font>"
+                " and paste a copy of the ChimeraX log into the email.</p>"
                 "<p>We apologize for any inconvenience, and do appreciate"
                 " you taking the time to provide us with valuable feedback.")
         self.result.setText(oops)
