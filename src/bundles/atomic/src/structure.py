@@ -258,7 +258,9 @@ class Structure(Model, StructureData):
         shown = atoms.filter(atoms.displays)
         if shown:
             return most_common_color(shown.colors)
-        return most_common_color(atoms.colors)
+        if atoms:
+            most_common_color(atoms.colors)
+        return self.color
 
     def _set_single_color(self, color):
         self.atoms.colors = color
