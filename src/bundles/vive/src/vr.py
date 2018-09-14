@@ -89,8 +89,7 @@ def vr(session, enable = None, room_position = None, display = None,
             if display == 'independent':
                 c.initialize_desktop_camera_position = True
         if show_controllers is not None:
-            for hc in c.hand_controllers(show_controllers):
-                hc.show_in_scene(show_controllers)
+            c.show_hand_controllers(show_controllers)
         if icons is not None: 
             for hc in c.hand_controllers():
                 hc.enable_icon_panel(icons)
@@ -213,6 +212,8 @@ class SteamVRCamera(Camera):
         self._last_h = None
         self._close = False
         self._controller_models = []	# List of HandControllerModel
+        self._controller_show = True	# Whether to show hand controllers
+        self._controller_next_id = 0	# Used when searching for controllers.
         self.user_interface = UserInterface(self, session)
 
         self.desktop_display = 'mirror'	# What to show in desktop graphics window, 'mirror', 'independent' or 'blank'.
@@ -525,6 +526,7 @@ class SteamVRCamera(Camera):
             # Submit right eye texture (view 1) before rendering desktop (view 2)
             self._submit_eye_image('right', fb.openvr_texture, render)
             render.mix_video = True  # For making mixed reality videos
+            render.mix_depth_scale = self.scene_scale
 
     def _submit_eye_image(self, side, texture, render):
         '''Side is "left" or "right".'''
@@ -601,18 +603,25 @@ class SteamVRCamera(Camera):
     def do_swap_buffers(self):
         return self.desktop_display != 'blank'
 
-    def hand_controllers(self, show = True):
+    def show_hand_controllers(self, show):
+        self._controllers_show = show
+        for hc in self._controller_models:
+            hc.show_in_scene(show)
+
+    def hand_controllers(self):
         cm = self._controller_models
-        if len(cm) == 0:
-            # TODO: If controller is turned on after initialization then it does not get in list.
+        if len(cm) < 2:
+            # Check if a controller has been turned on.
+            # Only check one controller id per-call to minimize performance penalty.
             import openvr
-            controller_ids = [d for d in range(openvr.k_unMaxTrackedDeviceCount)
-                              if self.vr_system.getTrackedDeviceClass(d)
-                                 == openvr.TrackedDeviceClass_Controller]
-            ses = self._session
+            d = self._controller_next_id
+            self._controller_next_id = (d+1) % openvr.k_unMaxTrackedDeviceCount
             vrs = self.vr_system
-            cm = [HandControllerModel(d, ses, vrs, show) for d in controller_ids]
-            self._controller_models = cm
+            if (vrs.getTrackedDeviceClass(d) == openvr.TrackedDeviceClass_Controller
+                and vrs.isTrackedDeviceConnected(d)
+                and d not in tuple(hc.device_index for hc in cm)):
+                hc = HandControllerModel(d, self._session, vrs, self._controllers_show)
+                cm.append(hc)
         return cm
 
     def other_controller(self, controller):
