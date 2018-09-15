@@ -1749,10 +1749,12 @@ class Volume(Model):
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     from .session import state_from_map, grid_data_state
+    from chimerax.core.state import State
+    include_maps = bool(flags & State.INCLUDE_MAPS)
     data = {
       'model state': Model.take_snapshot(self, session, flags),
       'volume state': state_from_map(self),
-      'grid data state': grid_data_state(self.data, session),
+      'grid data state': grid_data_state(self.data, session, include_maps=include_maps),
       'version': 1,
     }
     return data
