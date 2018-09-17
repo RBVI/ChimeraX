@@ -626,24 +626,44 @@ class Drawing:
     HIGHLIGHT_DRAW_PASS = 'highlight'
     "Draw pass to render only the highlighted parts of drawings."
 
-    def draw(self, renderer, place, draw_pass, highlighted_only=False):
+    def draw(self, renderer, place, draw_pass):
         '''Draw this drawing and children using the given draw pass.'''
 
         if not self.display:
             return
 
         if not self.empty_drawing():
-            self.draw_self(renderer, place, draw_pass, highlighted_only)
+            self.draw_self(renderer, place, draw_pass)
 
         if self.child_drawings():
             for p in self.positions:
                 pp = place if p.is_identity() else place * p
-                self._draw_children(renderer, pp, draw_pass, highlighted_only)
+                self._draw_children(renderer, pp, draw_pass)
 
-    def draw_self(self, renderer, place, draw_pass, highlighted_only=False):
+    def draw_self(self, renderer, place, draw_pass):
         '''Draw this drawing without children using the given draw pass.'''
+        if draw_pass == self.OPAQUE_DRAW_PASS:
+            any_opaque, any_transp = self._transparency()
+            if any_opaque:
+                self._draw_geometry(renderer, place, opaque_only = any_transp)
+        elif draw_pass in (self.TRANSPARENT_DRAW_PASS, self.TRANSPARENT_DEPTH_DRAW_PASS):
+            any_opaque, any_transp = self._transparency()
+            if any_transp:
+                self._draw_geometry(renderer, place, transparent_only = any_opaque)
+        elif draw_pass == self.HIGHLIGHT_DRAW_PASS:
+            if self.highlighted:
+                self._draw_geometry(renderer, place, highlighted_only = True)
 
-        if highlighted_only and not self.highlighted:
+    def _draw_children(self, renderer, place, draw_pass):
+        dlist = self.child_drawings()
+        for d in dlist:
+            d.draw(renderer, place, draw_pass)
+
+    def _draw_geometry(self, renderer, place, highlighted_only=False,
+                       transparent_only=False, opaque_only=False):
+        ''' Draw the geometry.'''
+
+        if self.vertices is None:
             return
 
         if (len(self.positions) == 1 and
@@ -653,30 +673,6 @@ class Drawing:
         else:
             pp = place
         renderer.set_model_matrix(pp)
-
-        if draw_pass == self.OPAQUE_DRAW_PASS:
-            any_opaque, any_transp = self._transparency()
-            if any_opaque:
-                self._draw_geometry(renderer, highlighted_only, opaque_only = any_transp)
-        elif draw_pass in (self.TRANSPARENT_DRAW_PASS,
-                           self.TRANSPARENT_DEPTH_DRAW_PASS):
-            any_opaque, any_transp = self._transparency()
-            if any_transp:
-                self._draw_geometry(renderer, highlighted_only, transparent_only = any_opaque)
-        elif draw_pass == self.HIGHLIGHT_DRAW_PASS:
-            self._draw_geometry(renderer, highlighted_only)
-
-    def _draw_children(self, renderer, place, draw_pass, highlighted_only=False):
-        dlist = self.child_drawings()
-        for d in dlist:
-            d.draw(renderer, place, draw_pass, highlighted_only)
-
-    def _draw_geometry(self, renderer, highlighted_only=False,
-                       transparent_only=False, opaque_only=False):
-        ''' Draw the geometry.'''
-
-        if self.vertices is None:
-            return
 
         self._opengl_context = renderer.opengl_context
         
@@ -1341,9 +1337,8 @@ def draw_transparent(renderer, drawings):
 
 
 def _draw_multiple(drawings, renderer, place, draw_pass):
-    highlighted_only = (draw_pass == Drawing.HIGHLIGHT_DRAW_PASS)
     for d in drawings:
-        d.draw(renderer, place, draw_pass, highlighted_only)
+        d.draw(renderer, place, draw_pass)
 
 
 def _any_transparent_drawings(drawings):
