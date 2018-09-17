@@ -290,7 +290,9 @@ class ObjectLabels(Model):
     def draw(self, renderer, place, draw_pass, highlighted_only=False):
         if self.on_top:
             renderer.enable_depth_test(False)
+        renderer.enable_blending(True)	# Handle transparent background
         Model.draw(self, renderer, place, draw_pass, highlighted_only)
+        renderer.enable_blending(False)	# Handle transparent background
         if self.on_top:
             renderer.enable_depth_test(True)
     
