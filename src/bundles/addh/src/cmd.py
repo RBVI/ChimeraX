@@ -454,10 +454,9 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
                 # get an additional hydrogen stripped
                 if coordinations.get(atom, []) and atom.element.name == "N":
                     if "Son" in [nb.idatm_type for nb in atom.neighbors]:
-                        from copy import copy
-                        ti = copy(type_info[atom.idatm_type])
-                        ti.substituents -= 1
-                        type_info_for_atom[atom] = ti
+                        orig_ti = type_info[atom.idatm_type]
+                        type_info_for_atom[atom] = orig_ti.__class__(orig_ti.geometry,
+                            orig_ti.substituents-1, orig_ti.description)
                 continue
             if atom in unknowns_info:
                 type_info_for_atom[atom] = unknowns_info[atom]
