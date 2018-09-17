@@ -663,7 +663,7 @@ class ResidueLabel(ObjectLabel):
 
 # -----------------------------------------------------------------------------
 #
-class PseudobondLabel(ObjectLabel):
+class EdgeLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
                  size = 24, height = None, font = 'Arial'):
@@ -690,4 +690,10 @@ class PseudobondLabel(ObjectLabel):
 
 # -----------------------------------------------------------------------------
 #
-BondLabel = PseudobondLabel
+class BondLabel(EdgeLabel):
+    pass
+
+# -----------------------------------------------------------------------------
+#
+class PseudobondLabel(EdgeLabel):
+    pass
