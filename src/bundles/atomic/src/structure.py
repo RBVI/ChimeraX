@@ -2225,6 +2225,7 @@ class AtomicStructure(Structure):
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
             if len(ribbonable) > 10:
+                lighting = "full msMapSize 128 msDepthBias 0.05"
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
