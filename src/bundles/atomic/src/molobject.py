@@ -1363,6 +1363,11 @@ class StructureData:
         f = c_function('structure_delete_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
 
+    def delete_bond(self, bond):
+        '''Supported API. Delete the specified Bond.'''
+        f = c_function('structure_delete_bond', args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, bond._c_pointer)
+
     @property
     def molecules(self):
         '''Return a tuple of :class:`.Atoms` objects each containing atoms for one molecule.
