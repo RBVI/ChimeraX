@@ -36,34 +36,6 @@ def register_selectors(logger):
     reg("sidechain", _sidechain_selector, logger, desc="side-chain atoms")
     reg("sideonly", _sideonly_selector, logger, desc="side-chain atoms")
     reg("ribose", _ribose_selector, logger, desc="ribose")
-    from chimerax.atomic import Element, Atom
-    # Since IDATM has types in conflict with element symbols (e.g. 'H'), register
-    # the types first so that they get overriden by the symbols
-    for idatm, info in Atom.idatm_info_map.items():
-        reg(idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results), logger, desc=info.description)
-    for i in range(1, Element.NUM_SUPPORTED_ELEMENTS):
-        e = Element.get_element(i)
-        reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results), logger, desc="%s (element)" % e.name)
-
-    
-
-def _element_selector(symbol, models, results):
-    from chimerax.atomic import Structure
-    for m in models:
-        if isinstance(m, Structure):
-            atoms = m.atoms.filter(m.atoms.element_names == symbol)
-            if len(atoms) > 0:
-                results.add_model(m)
-                results.add_atoms(atoms, bonds=True)
-
-def _idatm_selector(symbol, models, results):
-    from chimerax.atomic import Structure
-    for m in models:
-        if isinstance(m, Structure):
-            atoms = m.atoms.filter(m.atoms.idatm_types == symbol)
-            if len(atoms) > 0:
-                results.add_model(m)
-                results.add_atoms(atoms, bonds=True)
 
 def _sel_selector(session, models, results):
     from chimerax.atomic import Structure, PseudobondGroup

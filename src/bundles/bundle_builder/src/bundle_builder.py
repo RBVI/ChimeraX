@@ -683,8 +683,26 @@ class _CLibrary(_CompiledCode):
             lib_name = self.name
         if not self.static:
             macros.append(("DYNAMIC_LIBRARY", 1))
-        compiler.compile(self.source_files, extra_preargs=cpp_flags,
-                         macros=macros, debug=debug)
+        if sys.platform == "darwin":
+            # We need to manually separate out C from C++ code here, since clang
+            # crashes if -std=c++11 is given as a switch while compiling C code
+            c_files = []
+            cpp_files = []
+            for f in self.source_files:
+                l = compiler.detect_language(f)
+                if l == 'c':
+                    c_files.append(f)
+                elif l == 'c++':
+                    cpp_files.append(f)
+                else:
+                    raise RuntimeError("Unsupported language for %s" % f)
+            compiler.compile(cpp_files, extra_preargs=cpp_flags,
+                             macros=macros, debug=debug)
+            compiler.compile(c_files, extra_preargs=[],
+                             macros=macros, debug=debug)
+        else:
+            compiler.compile(self.source_files, extra_preargs=cpp_flags,
+                             macros=macros, debug=debug)
         objs = compiler.object_filenames(self.source_files)
         compiler.mkpath(output_dir)
         if self.static:
@@ -702,7 +720,8 @@ class _CLibrary(_CompiledCode):
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
-                extra_link_args.append("-Wl,-install_name,@rpath/%s" % lib)
+                extra_link_args.extend(["-Wl,-rpath,@loader_path",
+                                        "-Wl,-install_name,@rpath/%s" % lib])
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_preargs=extra_link_args,
                                             debug=debug)
@@ -727,7 +746,6 @@ class _CLibrary(_CompiledCode):
         import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
-        compiler.mkpath(output_dir)
         if sys.platform == "win32":
             lib_name = "lib" + self.name
         else:

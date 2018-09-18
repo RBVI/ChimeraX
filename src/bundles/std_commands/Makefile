@@ -50,6 +50,3 @@ clean:
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
-
-bundle_info.xml:	bundle_info.xml.in make_selectors.py
-	$(CHIMERAX_EXE) --nogui make_selectors.py

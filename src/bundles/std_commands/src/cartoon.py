@@ -23,8 +23,11 @@ _TetherShapeMap = {
 _TetherShapeInverseMap = dict([(v, k) for k, v in _TetherShapeMap.items()])
 _XSectionMap = {
     "rectangle": XSectionManager.STYLE_SQUARE,
+    "square": XSectionManager.STYLE_SQUARE,
     "oval": XSectionManager.STYLE_ROUND,
+    "round": XSectionManager.STYLE_ROUND,
     "barbell": XSectionManager.STYLE_PIPING,
+    "piping": XSectionManager.STYLE_PIPING,
 }
 _XSectionInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
 _ModeHelixMap = {

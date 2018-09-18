@@ -808,14 +808,13 @@ def _convert_keyword_types(kwds, bi, logger):
     return result
 
 
-class AnnotationProxy(Annotation):
+class AnnotationProxy:
 
     def __init__(self, bi, arg_name, logger):
         self._bundle_info = bi
         self._arg_name = arg_name
         self._logger = logger
         self._proxy = None
-        super().__init__()
 
     def __getattr__(self, attr):
         if self._proxy is None:

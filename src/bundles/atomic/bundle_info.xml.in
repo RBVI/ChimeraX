@@ -1,0 +1,41 @@
+<BundleInfo name="ChimeraX-Atomic" version="1.0"
+            package="chimerax.atomic"
+            purePython="false"
+            installedDataDir="data"
+            installedIncludeDir="include"
+            installedLibraryDir="lib"
+            customInit="true"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Atomic-structure functionality</Synopsis>
+  <Description>Python and C++ support for handling atomic structures</Description>
+
+  <DataFiles>
+    <DataFile>data/*/*/*</DataFile>
+    <DataFile>include/*/*</DataFile>
+    <DataFile>include/*/*/*</DataFile>
+    <DataFile>lib/*</DataFile>
+    <DataFile>cymol.*</DataFile>
+    <DataFile>lib*.*</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+    <Category name="Structure Editing"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+  </Dependencies>
+
+  <Classifiers>
+    ELEMENT_AND_IDATM_SELECTOR_CLASSIFIERS
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

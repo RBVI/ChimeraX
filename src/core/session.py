@@ -459,10 +459,13 @@ class Session:
         methods = self._snapshot_methods.get(cls, None)
         return methods
 
-    def save(self, stream, version):
+    def save(self, stream, version, include_maps=False):
         """Serialize session to binary stream."""
         from . import serialize
-        mgr = _SaveManager(self, State.SESSION)
+        flags = State.SESSION
+        if include_maps:
+            flags |= State.INCLUDE_MAPS
+        mgr = _SaveManager(self, flags)
         self.triggers.activate_trigger("begin save session", self)
         try:
             if version == 1:
@@ -682,7 +685,7 @@ def standard_metadata(previous_metadata={}):
     return metadata
 
 
-def save(session, path, version=3, uncompressed=False):
+def save(session, path, version=3, uncompressed=False, include_maps=False):
     """command line version of saving a session"""
     my_open = None
     if hasattr(path, 'write'):
@@ -714,7 +717,7 @@ def save(session, path, version=3, uncompressed=False):
     session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     session.session_file_path = path
     try:
-        session.save(output, version=version)
+        session.save(output, version=version, include_maps=include_maps)
     except:
         if my_open is not None:
             output.close("exceptional")
@@ -878,10 +881,9 @@ def register_session_format(session):
     from .commands.cli import add_keyword_arguments
     from .commands.toolshed import register_command
     register_command(session.logger)
-    from .commands.devel import register_command
-    register_command(session.logger)
-    from .commands.open import register_command
-    register_command(session.logger)
+    from .commands import devel as devel_cmd, open as open_cmd, save as save_cmd
+    devel_cmd.register_command(session.logger)
+    open_cmd.register_command(session.logger)
     from . import io, toolshed
     io.register_format(
         "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
@@ -890,21 +892,22 @@ def register_session_format(session):
         open_func=open, export_func=save)
     add_keyword_arguments('open', {'resize_window': BoolArg})
 
-    from .commands.save import register_command
-    register_command(session.logger)
+    save_cmd.register_command(session.logger)
     desc = CmdDesc(
         required=[('filename', SaveFileNameArg)],
         keyword=[('version', IntArg), ('uncompressed', BoolArg)],
         hidden=['version', 'uncompressed'],
         synopsis='save session'
     )
+    add_keyword_arguments('save', {'include_maps': BoolArg})
 
     def save_session(session, filename, **kw):
         kw['format'] = 'session'
         from .commands.save import save
         save(session, filename, **kw)
     register('save session', desc, save_session, logger=session.logger)
-
+    add_keyword_arguments('save session', {'include_maps': BoolArg})
+    
     import sys
     if sys.platform.startswith('linux'):
         from .commands.linux import register_command

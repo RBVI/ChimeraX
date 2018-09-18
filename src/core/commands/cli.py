@@ -2610,7 +2610,7 @@ class Command:
                 cargs = cmd_text[len(self.command_name):]
                 msg += '<a href="%s">%s</a>%s' % (
                     ci.url, escape(self.command_name), escape(cargs))
-            msg += ' <a title="rerun command" class="no_underline" href="cxcmd:%s">\N{DOWNWARDS ARROW WITH CORNER LEFTWARDS}</a>' % escape(cmd_text)
+                msg += ' <a title="rerun command" class="no_underline" style="float:right" href="cxcmd:%s">\N{DOWNWARDS ARROW WITH CORNER LEFTWARDS}</a>' % escape(cmd_text)
             msg += '</div>'
             session.logger.info(msg, is_html=True, add_newline=False)
 
