@@ -180,7 +180,7 @@ class View:
         self.clip_planes.enable_clip_planes(r, camera.position)
         shadow, multishadow = self._compute_shadowmaps(drawings, camera)
         mdraw = [self.drawing] if drawings is None else drawings
-        any_highlighted = self.any_drawing_highlighted(drawings)
+        any_highlighted = self._any_drawing_highlighted(drawings)
         
         from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline
         for vnum in range(camera.number_of_views()):
@@ -529,7 +529,7 @@ class View:
                 b = clip_bounds(b, [(p.plane_point, p.normal) for p in planes])
         return b
 
-    def any_drawing_highlighted(self, drawings=None):
+    def _any_drawing_highlighted(self, drawings=None):
         '''Is anything highlighted.'''
         if drawings is None:
             dm = self._drawing_manager
