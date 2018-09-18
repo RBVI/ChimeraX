@@ -15,7 +15,8 @@ include $(TOP)/mk/config.make
 SUBDIRS = addh align_algs alignments atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter bumps \
 	  bundle_builder cage_builder cellpack chem_group clashes cmd_line \
-	  color_globe crosslinks crystal dist_monitor dist_ui dssp exp_cmd file_history \
+	  color_globe connect_structure crosslinks crystal \
+	  dist_monitor dist_ui dssp exp_cmd file_history \
 	  gltf hbonds help_viewer ihm interfaces label list_info log \
 	  map map_data map_filter map_fit map_series \
 	  markers match_maker md_crds meeting mlp model_series \

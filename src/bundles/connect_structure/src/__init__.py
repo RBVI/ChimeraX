@@ -13,7 +13,6 @@
 
 # Must import search to get shared object loaded
 import chimerax.atomic.search
-from ._cs import connect_structure
 
 from chimerax.core.toolshed import BundleAPI
 
