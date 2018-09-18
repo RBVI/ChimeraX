@@ -64,6 +64,7 @@ class Drawing:
         from ..geometry import Places
         # Copies of drawing are placed at these positions:
         self._positions = Places()
+        self._displayed_scene_positions = None	# Cached
         from numpy import array, uint8
         # Colors for each position, N by 4 uint8 numpy array:
         self._colors = array(((178, 178, 178, 255),), uint8)
@@ -416,6 +417,7 @@ class Drawing:
         if (not self._displayed_positions is None
             and len(self._displayed_positions) != 1):
             self._displayed_positions = None
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     position = property(_drawing_get_position, _drawing_set_position)
@@ -430,10 +432,19 @@ class Drawing:
     '''Position in scene coordinates.'''
 
     def get_scene_positions(self, displayed_only = False):
-        p = self.get_positions(displayed_only)
-        for d in reversed(self.drawing_lineage[:-1]):
-            p = d.get_positions(displayed_only) * p
-        return p
+        # TODO: Need to clear cached positions if position or display state of any parent changes.
+        dsp = self._displayed_scene_positions
+        if dsp is None:
+            p = self.get_positions(displayed_only)
+            for d in reversed(self.drawing_lineage[:-1]):
+                p = d.get_positions(displayed_only) * p
+            self._displayed_scene_positions = dsp = p
+        return dsp
+
+    def _scene_positions_changed(self):
+        self._displayed_scene_positions = None
+        for c in self.child_drawings():
+            c._scene_positions_changed()
         
     def get_positions(self, displayed_only=False):
         if displayed_only:
@@ -455,6 +466,7 @@ class Drawing:
             c = empty((np, 4), uint8)
             c[:,:] = self._colors[0,:] if len(self._colors) > 0 else 255
             self._colors = c
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     positions = property(get_positions, set_positions)
@@ -626,53 +638,39 @@ class Drawing:
     HIGHLIGHT_DRAW_PASS = 'highlight'
     "Draw pass to render only the highlighted parts of drawings."
 
-    def draw(self, renderer, place, draw_pass):
+    def draw(self, renderer, draw_pass):
         '''Draw this drawing and children using the given draw pass.'''
 
         if not self.display:
             return
 
         if not self.empty_drawing():
-            self.draw_self(renderer, place, draw_pass)
+            self.draw_self(renderer, draw_pass)
 
-        if self.child_drawings():
-            for p in self.positions:
-                pp = place if p.is_identity() else place * p
-                self._draw_children(renderer, pp, draw_pass)
+        # Draw children
+        for d in self.child_drawings():
+            d.draw(renderer, draw_pass)
 
-    def draw_self(self, renderer, place, draw_pass):
+    def draw_self(self, renderer, draw_pass):
         '''Draw this drawing without children using the given draw pass.'''
         if draw_pass == self.OPAQUE_DRAW_PASS:
             any_opaque, any_transp = self._transparency()
             if any_opaque:
-                self._draw_geometry(renderer, place, opaque_only = any_transp)
+                self._draw_geometry(renderer, opaque_only = any_transp)
         elif draw_pass in (self.TRANSPARENT_DRAW_PASS, self.TRANSPARENT_DEPTH_DRAW_PASS):
             any_opaque, any_transp = self._transparency()
             if any_transp:
-                self._draw_geometry(renderer, place, transparent_only = any_opaque)
+                self._draw_geometry(renderer, transparent_only = any_opaque)
         elif draw_pass == self.HIGHLIGHT_DRAW_PASS:
             if self.highlighted:
-                self._draw_geometry(renderer, place, highlighted_only = True)
+                self._draw_geometry(renderer, highlighted_only = True)
 
-    def _draw_children(self, renderer, place, draw_pass):
-        dlist = self.child_drawings()
-        for d in dlist:
-            d.draw(renderer, place, draw_pass)
-
-    def _draw_geometry(self, renderer, place, highlighted_only=False,
+    def _draw_geometry(self, renderer, highlighted_only=False,
                        transparent_only=False, opaque_only=False):
         ''' Draw the geometry.'''
 
         if self.vertices is None:
             return
-
-        if (len(self.positions) == 1 and
-                self.positions.shift_and_scale_array() is None):
-            p = self.position
-            pp = place if p.is_identity() else place * p
-        else:
-            pp = place
-        renderer.set_model_matrix(pp)
 
         self._opengl_context = renderer.opengl_context
         
@@ -702,12 +700,19 @@ class Drawing:
             at.bind_texture()
             r.set_ambient_texture_transform(self.ambient_texture_transform)
 
-        # Draw triangles
-        mtex = self.multitexture
-        if mtex:
-            ds.draw_multitexture(self.display_style, mtex, self.multitexture_reverse_order)
-        else:
-            ds.draw(self.display_style)
+        pos = self.positions
+        use_instancing = (len(pos) > 1 or pos.shift_and_scale_array() is not None)
+        spos = self.parent.get_scene_positions(displayed_only=True) if use_instancing else self.get_scene_positions(displayed_only=True)
+        for p in spos:
+            # TODO: Optimize this to use same 4x4 opengl matrix each call.
+            renderer.set_model_matrix(p)
+
+            # Draw triangles
+            mtex = self.multitexture
+            if mtex:
+                ds.draw_multitexture(self.display_style, mtex, self.multitexture_reverse_order)
+            else:
+                ds.draw(self.display_style)
 
         if t is not None:
             t.unbind_texture()
@@ -1314,31 +1319,28 @@ def _draw_drawings(renderer, drawings, opaque_only = False):
     Render opaque and transparent draw passes for a given set of drawings.
     '''
     r = renderer
-    from ..geometry import Place
-    p = Place()
-    _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
+    _draw_multiple(drawings, r, Drawing.OPAQUE_DRAW_PASS)
     if not opaque_only and _any_transparent_drawings(drawings):
         r.draw_transparent(
-            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
-            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
+            lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
+            lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS))
 
 def draw_opaque(renderer, drawings):
     from ..geometry import identity
-    _draw_multiple(drawings, renderer, identity(), Drawing.OPAQUE_DRAW_PASS)
+    _draw_multiple(drawings, renderer, Drawing.OPAQUE_DRAW_PASS)
 
 def draw_transparent(renderer, drawings):
     if _any_transparent_drawings(drawings):
         from ..geometry import identity
-        p = identity()
         r = renderer
         r.draw_transparent(
-            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
-            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
+            lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
+            lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS))
 
 
-def _draw_multiple(drawings, renderer, place, draw_pass):
+def _draw_multiple(drawings, renderer, draw_pass):
     for d in drawings:
-        d.draw(renderer, place, draw_pass)
+        d.draw(renderer, draw_pass)
 
 
 def _any_transparent_drawings(drawings):
@@ -1375,9 +1377,9 @@ def draw_overlays(drawings, renderer):
     r.set_model_matrix(p0)
     r.enable_depth_test(False)
     r.enable_blending(False)
-    _draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
+    _draw_multiple(drawings, r, Drawing.OPAQUE_DRAW_PASS)
     r.enable_blending(True)
-    _draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
+    _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS)
     r.enable_blending(False)
     r.enable_depth_test(True)
     r.disable_shader_capabilities(0)
@@ -1387,9 +1389,7 @@ def draw_highlight_outline(renderer, drawings):
     '''Draw the outlines of highlighted parts of the specified drawings.'''
     r = renderer
     r.outline.start_rendering_outline()
-    from ..geometry import Place
-    p = Place()
-    _draw_multiple(drawings, r, p, Drawing.HIGHLIGHT_DRAW_PASS)
+    _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
     r.outline.finish_rendering_outline()
 
 
