@@ -287,10 +287,12 @@ class ObjectLabels(Model):
         self.redraw_needed()
     single_color = property(_get_single_color, _set_single_color)
 
-    def draw(self, renderer, place, draw_pass, highlighted_only=False):
+    def draw(self, renderer, place, draw_pass):
         if self.on_top:
             renderer.enable_depth_test(False)
-        Model.draw(self, renderer, place, draw_pass, highlighted_only)
+        renderer.enable_blending(True)	# Handle transparent background
+        Model.draw(self, renderer, place, draw_pass)
+        renderer.enable_blending(False)
         if self.on_top:
             renderer.enable_depth_test(True)
     
@@ -663,7 +665,7 @@ class ResidueLabel(ObjectLabel):
 
 # -----------------------------------------------------------------------------
 #
-class PseudobondLabel(ObjectLabel):
+class EdgeLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
                  size = 24, height = None, font = 'Arial'):
@@ -690,4 +692,10 @@ class PseudobondLabel(ObjectLabel):
 
 # -----------------------------------------------------------------------------
 #
-BondLabel = PseudobondLabel
+class BondLabel(EdgeLabel):
+    pass
+
+# -----------------------------------------------------------------------------
+#
+class PseudobondLabel(EdgeLabel):
+    pass

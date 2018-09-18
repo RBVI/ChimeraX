@@ -608,7 +608,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def draw(self, renderer, place, draw_pass, highlighted_only = False):
+  def draw(self, renderer, place, draw_pass):
     if not self.display:
       return
     
@@ -616,7 +616,7 @@ class Volume(Model):
       self.initialize_thresholds()
       self.update_drawings()
       
-    Model.draw(self, renderer, place, draw_pass, highlighted_only = highlighted_only)
+    Model.draw(self, renderer, place, draw_pass)
 
   # ---------------------------------------------------------------------------
   #

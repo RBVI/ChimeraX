@@ -71,32 +71,56 @@ substitutes the corresponding pathname text.
 The display is updated as needed when a user presses return after entering
 a command, or when a <a href="wait.html"><b>wait</b></a>
 command is executed within a script.
-Multiple commands can be combined into a single line with semicolon separators.
-During interactive command entry, this may be useful for making multi-frame 
-actions start simultaneously or for suppressing the display
-of intermediate states.
-Semicolon separators are also needed for defining composite (multi-command)
-actions with <a href="alias.html"><b>alias</b></a>
-or <a href="perframe.html"><b>perframe</b></a>,
-whether interactively or in a script.
 </p>
 
 <a name="cxc-files"></a>
 <h3>ChimeraX Command Files</h3>
 <p>
-ChimeraX command files are plain text files 
-containing the same commands that could be entered into the 
+ChimeraX command files (scripts) are plain text files 
+containing the same commands as entered into the
 <a href="../tools/cli.html"><b>Command Line Interface</b></a>.
-In addition, they may contain blank lines and/or comments
-(text with # as the first nonspace character in a line, 
-or in-line with # as the first nonspace character following a semicolon).
 The filename suffix <b>.cxc</b> is recommended.
-</p><p>
 Opening a ChimeraX command file in ChimeraX executes the commands.
-See also: <a href="open.html"><b>open</b></a>
+See also: <a href="open.html"><b>open</b></a>,
+<a href="../movies.html">making movies</a>
 </p>
+Rules and tips:
+<ul>
+<li><b>Comments</b>:
+Lines with # as the first nonspace character and in-line text 
+with # as the first nonspace character following a semicolon (;)
+are interpreted as comments and ignored.
+Blank lines are also allowed.
+<br><br>
+<a name="multi-commands"></a>
+<li><b>Combining commands</b>:
+Multiple commands can be combined into a single line with 
+semicolon separators.
+This is done to make multi-frame actions start simultaneously and/or 
+to suppress the display of intermediate states, usually within a script.
+Semicolon separators are also needed to define composite (multi-command)
+actions with <a href="alias.html"><b>alias</b></a>
+or <a href="perframe.html"><b>perframe</b></a>, 
+whether interactively or in a script.
+<br><br>
+<a name="order"></a>
+<li><b>Order of execution</b>:
+Even when multiple actions occur within a single image update frame, 
+their order is important, and one command may need to precede or follow 
+another to give the desired result. In general, the order of execution 
+is the order in which the commands are given.
+For example, if a script plays a molecular dynamics trajectory and at each
+frame shows a molecular surface and colors it by electrostatic potential, 
+the coloring should come after the surface calculation.
+<br><br>
+<li><b>Concurrent <i>vs.</i> serial execution</b>:
+The <a href="wait.html"><b>wait</b></a> command is used to enforce
+completion of a multi-frame action before initiation of the next command in 
+a script; omitting it or waiting for fewer frames allows successive actions 
+to overlap or run concurrently.
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+September 2018</address>
 </body></html>

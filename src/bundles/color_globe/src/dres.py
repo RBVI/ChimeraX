@@ -150,7 +150,7 @@ class ColorGlobe(Drawing):
             ca[i::nd,:] = rgba
         return ca
 
-    def draw(self, renderer, place, draw_pass, highlighted_only=False):
+    def draw(self, renderer, place, draw_pass):
         # TODO: Overlay drawing sets projection to identity which will defeat supersample
         #       image capture using pixel shifts that go into the projection matrix from the camera.
         r = renderer
@@ -171,7 +171,7 @@ class ColorGlobe(Drawing):
                                  (ox, oy, oz, 1)))
         rot = self.session.main_view.camera.position.zero_translation()
         r.set_view_matrix(rot.inverse())
-        Drawing.draw(self, renderer, place, draw_pass, highlighted_only)
+        Drawing.draw(self, renderer, place, draw_pass)
         # Restore drawing settings so other overlays get expected state.
         from chimerax.core.geometry import identity
         r.set_view_matrix(identity())

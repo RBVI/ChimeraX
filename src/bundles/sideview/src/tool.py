@@ -474,12 +474,12 @@ class SideViewUI(ToolInstance):
 
 class OrthoOverlay(Drawing):
     '''Overlay drawing that uses orthographic projection in window pixel units.'''
-    def draw(self, renderer, place, draw_pass, highlighted_only=False):
+    def draw(self, renderer, place, draw_pass):
         r = renderer
         ww, wh = r.render_size()
         from chimerax.core.graphics.camera import ortho
         projection = ortho(0, ww, 0, wh, -1, 1)
         r.set_projection_matrix(projection)
-        Drawing.draw(self, renderer, place, draw_pass, highlighted_only)
+        Drawing.draw(self, renderer, place, draw_pass)
         r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
                                  (0, 0, 0, 1)))
