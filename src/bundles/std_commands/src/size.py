@@ -51,6 +51,8 @@ def size(session, objects=None, atom_radius=None,
         b = objects.bonds
         undo_state.add(b, "radii", b.radii, stick_radius)
         b.radii = stick_radius
+        for s in b.unique_structures:
+            s.bond_radius = stick_radius
         what.append('%d bond radii' % len(b))
 
     if pseudobond_radius is not None:
