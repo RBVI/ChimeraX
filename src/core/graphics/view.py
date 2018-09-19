@@ -29,6 +29,8 @@ class View:
         self.window_size = window_size		# pixels
         self._render = None
         self._opengl_initialized = False
+
+        # Lights and material properties
         from .opengl import Lighting, Material
         self._lighting = Lighting()
         self._material = Material()
@@ -40,17 +42,10 @@ class View:
         from .camera import MonoCamera
         self._camera = MonoCamera()
 
+        # Clip planes
         self.clip_planes = ClipPlanes()
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
-
-        # Silhouette edges
-        # TODO: Move these settings to Silhouette class in opengl.py.
-        self.silhouettes = False
-        self.silhouette_thickness = 1           # pixels
-        self.silhouette_color = (0, 0, 0, 1)    # black
-        self.silhouette_depth_jump = 0.03       # fraction of scene depth
-        self._perspective_near_far_ratio = 1	# Needed for handling depth buffer scaling
 
         # Graphics overlays, used for example for crossfade
         self._overlays = []
@@ -186,12 +181,13 @@ class View:
                        len(transparent_drawings) == 0 and
                        len(highlight_drawings) == 0 and
                        len(on_top_drawings) == 0)
+        silhouette = r.silhouette
         
         from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
-            if self.silhouettes:
-                r.silhouette.start_silhouette_drawing()
+            if silhouette.enabled:
+                silhouette.start_silhouette_drawing()
             r.draw_background()
             if no_drawings:
                 continue
@@ -220,11 +216,8 @@ class View:
             self._finish_timing()
             if multishadow:
                 r.allow_equal_depth(False)
-            if self.silhouettes:
-                r.silhouette.finish_silhouette_drawing(self.silhouette_thickness,
-                                                       self.silhouette_color,
-                                                       self.silhouette_depth_jump,
-                                                       self._perspective_near_far_ratio)
+            if silhouette.enabled:
+                silhouette.finish_silhouette_drawing()
             if highlight_drawings:
                 draw_highlight_outline(r, highlight_drawings)
             if on_top_drawings:
@@ -746,7 +739,7 @@ class View:
             pm = camera.projection_matrix(near_far, view_num, (ww, wh))
             pnf = 1 if camera.name == 'orthographic' else (near_far[0] / near_far[1])
 
-        self._perspective_near_far_ratio = pnf
+        r.silhouette.perspective_near_far_ratio = pnf
 
         r.set_projection_matrix(pm)
         r.set_near_far_clip(near_far)	# Used by depth cue

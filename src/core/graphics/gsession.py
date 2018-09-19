@@ -17,9 +17,8 @@ class ViewState:
 
     version = 1
     save_attrs = ['camera', 'lighting', 'material',
-                  'center_of_rotation', 'center_of_rotation_method', 'background_color',
-                  'silhouettes', 'silhouette_thickness', 'silhouette_color',
-                  'silhouette_depth_jump']
+                  'center_of_rotation', 'center_of_rotation_method', 'background_color']
+    silhouette_attrs = ['enabled', 'thickness', 'color', 'depth_jump']
 
     @staticmethod
     def take_snapshot(view, session, flags):
@@ -35,6 +34,7 @@ class ViewState:
             c.position = p
             data['camera'] = c
 
+        data['silhouettes'] = {attr:getattr(v.render.silhouette, attr) for attr in ViewState.silhouette_attrs}
         data['window_size'] = v.window_size
         data['clip_planes'] = v.clip_planes.planes()
         data['version'] = ViewState.version
@@ -74,6 +74,10 @@ class ViewState:
             from .windowsize import window_size
             width, height = data['window_size']
             window_size(session, width, height)
+
+        if 'silhouettes' in data:
+            for attr, value in data['silhouettes'].items():
+                setattr(v.render.silhouette, attr, value)
 
     @staticmethod
     def reset_state(view, session):
