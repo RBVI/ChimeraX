@@ -180,15 +180,20 @@ class View:
         self.clip_planes.enable_clip_planes(r, camera.position)
         shadow, multishadow = self._compute_shadowmaps(drawings, camera)
         mdraw = [self.drawing] if drawings is None else drawings
-        any_highlighted = self._any_drawing_highlighted(drawings)
+        (opaque_drawings, transparent_drawings,
+         highlight_drawings, on_top_drawings) = self._drawings_by_pass(mdraw)
+        no_drawings = (len(opaque_drawings) == 0 and
+                       len(transparent_drawings) == 0 and
+                       len(highlight_drawings) == 0 and
+                       len(on_top_drawings) == 0)
         
-        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline
+        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
                 r.silhouette.start_silhouette_drawing()
             r.draw_background()
-            if len(mdraw) == 0:
+            if no_drawings:
                 continue
             self._update_projection(camera, vnum)
             if r.recording_opengl:
@@ -203,13 +208,15 @@ class View:
                 r.multishadow.set_multishadow_view(cp)
                 # Initial depth pass optimization to avoid lighting
                 # calculation on hidden geometry
-                draw_depth(r, mdraw)
-                r.allow_equal_depth(True)
+                if opaque_drawings:
+                    draw_depth(r, opaque_drawings)
+                    r.allow_equal_depth(True)
             self._start_timing()
-            draw_opaque(r, mdraw)
-            if any_highlighted:
+            if opaque_drawings:
+                draw_opaque(r, opaque_drawings)
+            if highlight_drawings:
                 r.outline.set_outline_mask()       # copy depth to outline framebuffer
-            draw_transparent(r, mdraw)    
+            draw_transparent(r, transparent_drawings)
             self._finish_timing()
             if multishadow:
                 r.allow_equal_depth(False)
@@ -218,8 +225,21 @@ class View:
                                                        self.silhouette_color,
                                                        self.silhouette_depth_jump,
                                                        self._perspective_near_far_ratio)
-            if any_highlighted:
-                draw_highlight_outline(r, mdraw)
+            if highlight_drawings:
+                draw_highlight_outline(r, highlight_drawings)
+            if on_top_drawings:
+                draw_on_top(r, on_top_drawings)
+                
+    def _drawings_by_pass(self, drawings):
+        pass_drawings = {}
+        for d in drawings:
+            d.drawings_for_each_pass(pass_drawings)
+        from .drawing import Drawing
+        passes = (Drawing.OPAQUE_DRAW_PASS,
+                  Drawing.TRANSPARENT_DRAW_PASS,
+                  Drawing.HIGHLIGHT_DRAW_PASS,
+                  Drawing.LAST_DRAW_PASS)
+        return [pass_drawings.get(draw_pass, []) for draw_pass in passes]
 
     def check_for_drawing_change(self):
         trig = self.triggers

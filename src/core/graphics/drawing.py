@@ -151,6 +151,11 @@ class Drawing:
         """Whether to use lighting when rendering.  If false then a flat
         unshaded color will be shown."""
 
+        self.on_top = False
+        '''
+        Whether to draw on top of everything else.  Used for text labels.
+        '''
+        
         # OpenGL drawing
         self._draw_shape = None
         self._draw_highlight = None
@@ -637,7 +642,34 @@ class Drawing:
     "Draw pass to render only the depth of transparent drawings."
     HIGHLIGHT_DRAW_PASS = 'highlight'
     "Draw pass to render only the highlighted parts of drawings."
+    LAST_DRAW_PASS = 'last'
+    "Draw pass to render after everything else for showing labels on top."
 
+    def drawings_for_each_pass(self, pass_drawings):
+        if not self.display:
+            return
+
+        if not self.empty_drawing():
+            passes = []
+            any_opaque, any_transp = self._transparency()
+            if self.on_top:
+                passes.append(self.LAST_DRAW_PASS)
+            else:
+                if any_opaque:
+                    passes.append(self.OPAQUE_DRAW_PASS)
+                if any_transp:
+                    passes.append(self.TRANSPARENT_DRAW_PASS)
+                if self.highlighted:
+                    passes.append(self.HIGHLIGHT_DRAW_PASS)
+            for p in passes:
+                if p in pass_drawings:
+                    pass_drawings[p].append(self)
+                else:
+                    pass_drawings[p] = [self]
+
+        for d in self.child_drawings():
+            d.drawings_for_each_pass(pass_drawings)
+            
     def draw(self, renderer, draw_pass):
         '''Draw this drawing and children using the given draw pass.'''
 
@@ -664,6 +696,8 @@ class Drawing:
         elif draw_pass == self.HIGHLIGHT_DRAW_PASS:
             if self.highlighted:
                 self._draw_geometry(renderer, highlighted_only = True)
+        if draw_pass == self.LAST_DRAW_PASS:
+            self._draw_geometry(renderer)
 
     def _draw_geometry(self, renderer, highlighted_only=False,
                        transparent_only=False, opaque_only=False):
@@ -1314,48 +1348,28 @@ def opaque_count(rgba):
     from . import _graphics
     return _graphics.count_value(rgba[:,3], 255)
 
-def _draw_drawings(renderer, drawings, opaque_only = False):
-    '''
-    Render opaque and transparent draw passes for a given set of drawings.
-    '''
-    r = renderer
-    _draw_multiple(drawings, r, Drawing.OPAQUE_DRAW_PASS)
-    if not opaque_only and _any_transparent_drawings(drawings):
-        r.draw_transparent(
-            lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
-            lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS))
-
 def draw_opaque(renderer, drawings):
-    from ..geometry import identity
     _draw_multiple(drawings, renderer, Drawing.OPAQUE_DRAW_PASS)
 
 def draw_transparent(renderer, drawings):
-    if _any_transparent_drawings(drawings):
-        from ..geometry import identity
-        r = renderer
-        r.draw_transparent(
-            lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
-            lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS))
+    r = renderer
+    r.draw_transparent(
+        lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
+        lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS))
 
 
 def _draw_multiple(drawings, renderer, draw_pass):
     for d in drawings:
         d.draw(renderer, draw_pass)
 
-
-def _any_transparent_drawings(drawings):
-    for d in drawings:
-        if d.showing_transparent():
-            return True
-    return False
-
-
 def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
                                   r.SHADER_DEPTH_CUE | r.SHADER_VERTEX_COLORS | r.SHADER_TEXTURE_2D)
-    _draw_drawings(r, drawings, opaque_only)
+    draw_opaque(renderer, drawings)
+    if not opaque_only:
+        draw_transparent(r, drawings)
     r.disable_shader_capabilities(0)
 
 
@@ -1392,7 +1406,15 @@ def draw_highlight_outline(renderer, drawings):
     _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
     r.outline.finish_rendering_outline()
 
+    
+def draw_on_top(renderer, drawings):
+    renderer.enable_depth_test(False)
+    renderer.enable_blending(True)	# Handle transparent background
+    _draw_multiple(drawings, renderer, Drawing.LAST_DRAW_PASS)
+    renderer.enable_blending(False)
+    renderer.enable_depth_test(True)
 
+    
 def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     '''Draw rectangle outline on front buffer using xor mode.'''
 
