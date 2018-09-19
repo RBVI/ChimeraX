@@ -1,57 +1,11 @@
-# The "make" targets are:
-# 	wheel: build a Python wheel in "dist" directory.
-# 	install: build wheel (if needed) and install in ChimeraX.
-# 	test: run ChimeraX
-# 	debug: run ChimeraX with debugging flag set
-# 	clean: remove files used in building wheel
+include ../Makefile.bundle
 
-CHIMERAX_APP = ../../../ChimeraX.app
-
-# Platform-dependent settings.  Should not need fixing.
-# For Windows, we assume Cygwin is being used.
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+	CLEAN += src/support.obj src/_[sn]w*.pyd src/libalign_algs.*
 endif
 ifeq ($(OS),Darwin)
-CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+	CLEAN += src/support.o src/_[sn]w*.so src/libalign_algs.*
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+	CLEAN += src/support.o src/_[sn]w*.so src/libalign_algs.*
 endif
-RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
-
-SRCS = $(wildcard src/*.py)
-
-wheel:	bundle_info.xml $(SRCS)
-	$(RUN) "devel build . exit true"
-
-install app-install:	bundle_info.xml $(SRCS)
-	$(RUN) "devel install . user false exit true"
-
-test:
-	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
-		do $(CHIMERAX_EXE) --exit --nogui $$t;\
-	done
-
-debug:
-	$(CHIMERAX_EXE) --debug
-
-clean:
-	if [ -x $(CHIMERAX_EXE) ]; then \
-		$(RUN) "devel clean . exit true" ; \
-	else \
-		rm -rf build dist *.egg-info src/__pycache__ src/*/__pycache__; \
-	fi
-ifeq ($(OS),CYGWIN_NT)
-	rm -rf src/support.obj src/_[sn]w*.pyd src/libalign_algs.*
-endif
-ifeq ($(OS),Darwin)
-	rm -rf src/support.o src/_[sn]w*.so src/libalign_algs.*
-endif
-ifeq ($(OS),Linux)
-	rm -rf src/support.o src/_[sn]w*.so src/libalign_algs.*
-endif
-
-pylint:
-	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
