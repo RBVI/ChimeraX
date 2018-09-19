@@ -370,11 +370,9 @@ class SteamVRCamera(Camera):
         if self._close_cb:
             self._close_cb()	# Replaces the main view camera and resets redraw rate.
 
-        
-    def name(self):
-        '''Name of camera.'''
-        return 'vr'
-
+    name = 'vr'
+    '''Name of camera.'''
+    
     @property
     def vr_view(self):
         return self._session.main_view
