@@ -286,15 +286,6 @@ class ObjectLabels(Model):
         self._texture_needs_update = True
         self.redraw_needed()
     single_color = property(_get_single_color, _set_single_color)
-
-    def draw(self, renderer, draw_pass):
-        if self.on_top:
-            renderer.enable_depth_test(False)
-        renderer.enable_blending(True)	# Handle transparent background
-        Model.draw(self, renderer, draw_pass)
-        renderer.enable_blending(False)
-        if self.on_top:
-            renderer.enable_depth_test(True)
     
     def add_labels(self, objects, label_class, view, settings = {}, on_top = None):
         if on_top is not None:
@@ -393,9 +384,7 @@ class ObjectLabels(Model):
             from chimerax.core.graphics import Texture
             self.texture = Texture(trgba)
         self.texture_coordinates = tcoord
-        # Even if background transparent render opaque so it is not hidden by one-transparent layer
-        # when behind a transparent surface.
-        self.opaque_texture = True
+        self.opaque_texture = opaque
         self._positions_need_update = False
         self._texture_needs_update = False
         self._visibility_needs_update = False
