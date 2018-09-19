@@ -1,32 +1,6 @@
-# The "make" targets are:
-# 	wheel: build a Python wheel in "dist" directory.
-# 	install: build wheel (if needed) and install in ChimeraX.
-# 	test: run ChimeraX
-# 	debug: run ChimeraX with debugging flag set
-# 	clean: remove files used in building wheel
+include ../Makefile.bundle
 
-CHIMERAX_APP = ../../../ChimeraX.app
-
-# Platform-dependent settings.  Should not need fixing.
-# For Windows, we assume Cygwin is being used.
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
-ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
-PYMOD_EXT = pyd
-endif
-ifeq ($(OS),Darwin)
-CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
-PYMOD_EXT = so
-endif
-ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
-PYMOD_EXT = so
-endif
-RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
-
-PYSRCS = $(wildcard src/*.py)
 CSRCS = $(wildcard _mmtf/*.cpp)
-SRCS = $(PYSRCS) $(CSRCS)
 HEADERS = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
 MMTF_CPP_VERSION = master
@@ -36,30 +10,9 @@ MSGPACK_VERSION = master
 MSGPACK_DISTRIBUTION = msgpack-c-$(MSGPACK_VERSION).zip
 MSGPACK_SOURCE	= msgpack-c-$(MSGPACK_VERSION)
 
-wheel: bundle_info.xml $(SRCS) $(HEADERS)
-	$(RUN) "devel build . exit true"
+CLEAN_ALWAYS = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
-install app-install: bundle_info.xml $(SRCS) $(HEADERS)
-	$(RUN) "devel install . user false exit true"
-
-test:
-	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
-		do $(CHIMERAX_EXE) --exit --nogui $$t;\
-	done
-
-debug:
-	$(CHIMERAX_EXE) --debug
-
-clean:
-	if [ -x $(CHIMERAX_EXE) ]; then \
-		$(RUN) "devel clean . exit true" ; \
-	else \
-		rm -rf build dist *.egg-info src/__pycache__ src/*.$(PYMOD_EXT) ; \
-	fi
-	rm -rf $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
-
-pylint:
-	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+wheel install app-install:	$(CSRCS) $(HEADERS)
 
 $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 	# only need the include files

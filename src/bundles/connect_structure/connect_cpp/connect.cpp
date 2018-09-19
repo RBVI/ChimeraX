@@ -41,12 +41,12 @@ using namespace atomstruct;
 //    and add missing-structure pseudobonds as appropriate
 //
 static void
-connect_structure(AtomicStructure* s, float bond_len_tolerance)
+connect_structure(AtomicStructure* s, float bond_len_tolerance, float metal_coord_dist)
 {
 	// code is pretending there is only one coordinate set;
 	// would need to be enhanced to get coordination bonds
 	// correct in multiple coordinate sets
-	const float search_dist = 3.0;
+	const float search_dist = std::max((float)(3.0 + bond_len_tolerance), metal_coord_dist);
 	float search_val = search_dist + bond_len_tolerance;
 	atomsearch_search::AtomSearchTree  tree(s->atoms(), false, search_val);
 	std::list<std::pair<float,std::pair<Atom*,Atom*>>> possible_bonds;
@@ -59,6 +59,20 @@ connect_structure(AtomicStructure* s, float bond_len_tolerance)
 				continue;
 			if (check_prebonded && a->connects_to(oa))
 				continue;
+			// if it's a metal-coordination interaction, set up the
+			// pseudobond now and skip it as a covalent bond
+			if (a->element().is_metal() != oa->element().is_metal()) {
+				Atom* nonmetal = a->element().is_metal() ? oa : a;
+				if (nonmetal->element().valence() >= 5) {
+					if (a->coord().distance(oa->coord()) < metal_coord_dist) {
+						auto pbg = s->pb_mgr().get_group(s->PBG_METAL_COORDINATION,
+							AS_PBManager::GRP_PER_CS);
+						pbg->new_pseudobond(a, oa);
+					}
+					continue;
+				}
+
+			}
 			float bond_len = Element::bond_length(a->element(), oa->element());
 			float dist = a->coord().distance(oa->coord());
 			if (dist <= bond_len + bond_len_tolerance) {
@@ -72,18 +86,9 @@ connect_structure(AtomicStructure* s, float bond_len_tolerance)
 	for (auto& val_atoms: possible_bonds) {
 		Atom* a1 = val_atoms.second.first;
 		Atom* a2 = val_atoms.second.second;
-		// some of these are metal coordination bonds; there is a sophisticated scheme
-		// for finding the coordination bonds in structures where all the connectivity
-		// is pre-indicated.  We can't use that so treat any metal<->non-metal bond as
-		// a coordination bond, and don't check valences for metals (can have higher
-		// coordination than valence)
-		if ((a1->bonds().size() >= a1->element().valence() && !a1->element().is_metal())
-		|| (a2->bonds().size() >= a2->element().valence() && !a1->element().is_metal()))
-			continue;
-		if (a1->element().is_metal() != a2->element().is_metal()) {
-			auto pbg = s->pb_mgr().get_group(s->PBG_METAL_COORDINATION, AS_PBManager::GRP_PER_CS);
-			pbg->new_pseudobond(a1, a2);
-		} else
+		// skip already fully bonded
+		if ((a1->bonds().size() < a1->element().valence())
+		&& (a2->bonds().size() < a2->element().valence()))
 			s->new_bond(a1, a2);
 	}
 
@@ -155,7 +160,7 @@ connect_structure(AtomicStructure* s, float bond_len_tolerance)
 			}
 			if (prev_connect != nullptr) {
 				for (auto bb_name: backbone_names) {
-					auto bba = prev_r->find_atom(bb_name);
+					auto bba = r->find_atom(bb_name);
 					if (bba != nullptr) {
 						if (!prev_connect->connects_to(bba)
 						&& bba->bonds().size() < bba->element().valence()) {
@@ -181,7 +186,8 @@ py_connect_structure(PyObject *, PyObject *args)
 {
     PyObject* ptr;
 	float bond_len_tolerance;
-    if (!PyArg_ParseTuple(args, PY_STUPID "Of", &ptr, &bond_len_tolerance))
+	float metal_coord_tolerance;
+    if (!PyArg_ParseTuple(args, PY_STUPID "Off", &ptr, &bond_len_tolerance, &metal_coord_tolerance))
         return nullptr;
     // convert first arg to Structure*
     if (!PyLong_Check(ptr)) {
@@ -191,7 +197,7 @@ py_connect_structure(PyObject *, PyObject *args)
 	using atomstruct::AtomicStructure;
     AtomicStructure* mol = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(ptr));
     try {
-		connect_structure(mol, bond_len_tolerance);
+		connect_structure(mol, bond_len_tolerance, metal_coord_tolerance);
     } catch (std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
 		return nullptr;

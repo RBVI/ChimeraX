@@ -281,7 +281,7 @@ class MeetingServer:
     def _encode_session(self):
         from io import BytesIO
         stream = BytesIO()
-        self._session.save(stream, version=3)
+        self._session.save(stream, version=3, include_maps=True)
         from base64 import b64encode
         sbytes = b64encode(stream.getbuffer())
         return sbytes

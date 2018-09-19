@@ -94,11 +94,11 @@ class MotionBlur(Drawing):
             raise LimitationError("Unable to do motion blur without rendering images")
         self.capture_image()
 
-    def draw(self, renderer, place, draw_pass, highlighted_only=False):
+    def draw(self, renderer, draw_pass):
         if draw_pass == self.OPAQUE_DRAW_PASS:
             self.changed = self.capture_image()
         elif self.changed:
-            Drawing.draw(self, renderer, place, draw_pass, highlighted_only)
+            Drawing.draw(self, renderer, draw_pass)
 
     def capture_image(self):
 

@@ -4762,6 +4762,16 @@ extern "C" EXPORT void structure_delete_atom(void *mol, void *atom)
     }
 }
 
+extern "C" EXPORT void structure_delete_bond(void *mol, void *bond)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->delete_bond(static_cast<Bond *>(bond));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *structure_new_bond(void *mol, void *atom1, void *atom2)
 {
     Structure *m = static_cast<Structure *>(mol);

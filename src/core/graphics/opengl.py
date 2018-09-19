@@ -1450,6 +1450,11 @@ class Silhouette:
     
     def __init__(self, render):
         self._render = render
+        self.enabled = False
+        self.thickness = 1           # pixels
+        self.color = (0, 0, 0, 1)    # black
+        self.depth_jump = 0.03       # fraction of scene depth
+        self.perspective_near_far_ratio = 1	# Needed for handling depth buffer scaling
         self._silhouette_framebuf = None
 
     def delete(self):
@@ -1464,14 +1469,14 @@ class Silhouette:
         fb = self._silhouette_framebuffer(r.render_size(), alpha)
         r.push_framebuffer(fb)
 
-    def finish_silhouette_drawing(self, thickness, color, depth_jump,
-                                  perspective_near_far_ratio):
+    def finish_silhouette_drawing(self):
         r = self._render
         fb = r.pop_framebuffer()
         cfb = r.current_framebuffer()
         cfb.copy_from_framebuffer(fb, depth=False)
-        self._draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
-                                 perspective_near_far_ratio)
+        self._draw_depth_outline(fb.depth_texture, self.thickness,
+                                 self.color, self.depth_jump,
+                                 self.perspective_near_far_ratio)
 
     def _silhouette_framebuffer(self, size, alpha):
         sfb = self._silhouette_framebuf

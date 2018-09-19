@@ -63,9 +63,6 @@ def register_bumps_command(logger):
     from chimerax.core.commands import CenterArg, FloatArg, Color8Arg, StringArg, BoolArg, SaveFileNameArg, ModelsArg
     from chimerax.map import MapArg
 
-    from os.path import dirname, join
-    help_url = 'help:' + join(dirname(__file__), 'bumps.html')
-    
     desc = CmdDesc(
         required = [('volume', MapArg)],
         keyword = [('center', CenterArg),
@@ -79,15 +76,13 @@ def register_bumps_command(logger):
                    ('all_extrema', BoolArg),],
         required_arguments = ['center'],
         synopsis = 'Mark protrusions in 3D image data',
-        url = help_url
     )
     register('bumps', desc, bumps, logger=logger)
     desc = CmdDesc(
         optional = [('bumps', ModelsArg)],
         keyword = [('save', SaveFileNameArg),
                    ('signal_map', MapArg)],
-        synopsis = 'Output table reporting protrusions in 3D image data',
-        url = help_url
+        synopsis = 'Output table reporting protrusions in 3D image data'
     )
     register('bumps report', desc, bumps_report, logger=logger)
 

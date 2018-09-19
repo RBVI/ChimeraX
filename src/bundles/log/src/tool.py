@@ -125,7 +125,7 @@ class Log(ToolInstance, HtmlLog):
                 menu.addAction("Insert image", save_image)
                 log_window = self.tool_instance.log_window
                 menu.addAction("Save", log_window.cm_save)
-                menu.addAction("Save For Demo", log_window.cm_demo_save)
+                menu.addAction("Save for demo", log_window.cm_demo_save)
                 menu.addAction("Clear", self.tool_instance.clear)
                 menu.addAction("Copy selection", lambda:
                     log_window.page().triggerAction(log_window.page().Copy))

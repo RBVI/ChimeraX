@@ -443,10 +443,22 @@ spreading blue-white-red coloring across value range 2-30:
 <blockquote>
 <b>color bfactor /A range 2,30</b>
 </blockquote>
-To rainbow-color chain A atoms <i>etc.</i> by the average B-factor per residue,
-spreading the coloring across the full range of (atomic) values:
+<p>
+Regardless of whether the <a href="palette-options">range</a> of values 
+over which to spread the coloring is specified, the full range of atomic
+values (or per-residue values if <b>average residue</b> is used) is reported
+in the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
+If no range for colormapping is specified, the full range over all specified 
+atoms is used for atom coloring and the full range of per-residue averages 
+(over that same set of atoms) is used for cartoon coloring.
+Importantly, the value ranges will include solvent, ions, and ligands unless 
+the specification excludes them, or they have been deleted beforehand.
+For example, to rainbow-color chain A atoms <i>etc.</i> 
+by the average B-factor per residue, spreading the coloring across 
+the full range of values from protein only:
 <blockquote>
-<b>color bfactor /A palette rainbow ave residue</b>
+<b>color bfactor (/A & protein) palette rainbow ave residue</b>
 </blockquote>
 <!--
 <p>

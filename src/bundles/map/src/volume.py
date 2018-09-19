@@ -608,7 +608,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def draw(self, renderer, place, draw_pass, highlighted_only = False):
+  def draw(self, renderer, draw_pass):
     if not self.display:
       return
     
@@ -616,7 +616,7 @@ class Volume(Model):
       self.initialize_thresholds()
       self.update_drawings()
       
-    Model.draw(self, renderer, place, draw_pass, highlighted_only = highlighted_only)
+    Model.draw(self, renderer, draw_pass)
 
   # ---------------------------------------------------------------------------
   #
@@ -1749,10 +1749,12 @@ class Volume(Model):
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     from .session import state_from_map, grid_data_state
+    from chimerax.core.state import State
+    include_maps = bool(flags & State.INCLUDE_MAPS)
     data = {
       'model state': Model.take_snapshot(self, session, flags),
       'volume state': state_from_map(self),
-      'grid data state': grid_data_state(self.data, session),
+      'grid data state': grid_data_state(self.data, session, include_maps=include_maps),
       'version': 1,
     }
     return data
@@ -2052,6 +2054,8 @@ class VolumeSurface(Surface):
   @staticmethod
   def restore_snapshot(session, data):
     v = data['volume']
+    if v is None:
+      return None	# Volume was not restored, e.g. file missing.
     s = VolumeSurface(v, data['level'], data['rgba'])
     Model.set_state_from_snapshot(s, session, data['model state'])
     v._surfaces.append(s)
