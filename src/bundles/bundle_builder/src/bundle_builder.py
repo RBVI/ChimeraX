@@ -35,6 +35,9 @@ class BundleBuilder:
             distutils.dir_util._path_created.clear()
         except AttributeError:
             pass
+        # Copy additional files into package source tree
+        self._copy_extrafiles(self.extrafiles)
+        # Build C libraries
         import os.path
         for lib in self.c_libraries:
             lib.compile(self.logger, self.dependencies, debug=debug)
@@ -345,8 +348,6 @@ class BundleBuilder:
         def add_argument(name, value):
             if value:
                 self.setup_arguments[name] = value
-        # Copy additional files into package source tree
-        self._copy_extrafiles(self.extrafiles)
         # Make sure C/C++ libraries (DLLs, shared objects or dynamic
         # libraries) are on the install list
         for lib in self.c_libraries:

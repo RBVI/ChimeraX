@@ -98,5 +98,6 @@ sim_matrices.install: alignments.install
 std_commands.install: atomic.install
 swapaa.install: ui.install
 tug.install: ui.install
+ui.clean: map.clean
 viewdockx.install: atomic.install mol2.install ui.install
 zone.install: ui.install
