@@ -38,7 +38,7 @@ def set(session, bg_color=None,
     '''
     had_arg = False
     view = session.main_view
-    silhouette = view.render.silhouette
+    silhouette = view.silhouette
     if bg_color is not None:
         had_arg = True
         view.background_color = bg_color.rgba

@@ -31,9 +31,10 @@ class View:
         self._opengl_initialized = False
 
         # Lights and material properties
-        from .opengl import Lighting, Material
+        from .opengl import Lighting, Material, Silhouette
         self._lighting = Lighting()
         self._material = Material()
+        self._silhouette = Silhouette()
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
@@ -83,6 +84,7 @@ class View:
             self._render = r = Render(opengl_context)
             r.lighting = self._lighting
             r.material = self._material
+            r.silhouette = self._silhouette
         elif opengl_context is r.opengl_context:
             # OpenGL context switched between stereo and mono mode
             self._opengl_initialized = False
@@ -181,13 +183,13 @@ class View:
                        len(transparent_drawings) == 0 and
                        len(highlight_drawings) == 0 and
                        len(on_top_drawings) == 0)
-        silhouette = r.silhouette
+        silhouette = self.silhouette
         
         from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if silhouette.enabled:
-                silhouette.start_silhouette_drawing()
+                silhouette.start_silhouette_drawing(r)
             r.draw_background()
             if no_drawings:
                 continue
@@ -217,7 +219,7 @@ class View:
             if multishadow:
                 r.allow_equal_depth(False)
             if silhouette.enabled:
-                silhouette.finish_silhouette_drawing()
+                silhouette.finish_silhouette_drawing(r)
             if highlight_drawings:
                 draw_highlight_outline(r, highlight_drawings)
             if on_top_drawings:
@@ -328,6 +330,11 @@ class View:
 
     material = property(_get_material, _set_material)
     '''Material reflectivity parameters.'''
+
+    @property
+    def silhouette(self):
+        '''Silhouette parameters.'''
+        return self._silhouette
 
     def add_overlay(self, overlay):
         '''
@@ -739,7 +746,7 @@ class View:
             pm = camera.projection_matrix(near_far, view_num, (ww, wh))
             pnf = 1 if camera.name == 'orthographic' else (near_far[0] / near_far[1])
 
-        r.silhouette.perspective_near_far_ratio = pnf
+        self.silhouette.perspective_near_far_ratio = pnf
 
         r.set_projection_matrix(pm)
         r.set_near_far_clip(near_far)	# Used by depth cue

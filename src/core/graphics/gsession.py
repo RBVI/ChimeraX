@@ -34,7 +34,7 @@ class ViewState:
             c.position = p
             data['camera'] = c
 
-        data['silhouettes'] = {attr:getattr(v.render.silhouette, attr) for attr in ViewState.silhouette_attrs}
+        data['silhouettes'] = {attr:getattr(v.silhouette, attr) for attr in ViewState.silhouette_attrs}
         data['window_size'] = v.window_size
         data['clip_planes'] = v.clip_planes.planes()
         data['version'] = ViewState.version
@@ -77,7 +77,7 @@ class ViewState:
 
         if 'silhouettes' in data:
             for attr, value in data['silhouettes'].items():
-                setattr(v.render.silhouette, attr, value)
+                setattr(v.silhouette, attr, value)
 
     @staticmethod
     def reset_state(view, session):
