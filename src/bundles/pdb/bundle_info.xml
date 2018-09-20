@@ -15,6 +15,7 @@
 
   <CModule name="_pdbio">
     <SourceFile>pdbio_cpp/PDBio.cpp</SourceFile>
+    <SourceFile>pdbio_cpp/connect.cpp</SourceFile>
     <IncludeDir>pdb_cpp/include</IncludeDir>
     <LibraryDir>pdb_cpp/lib</LibraryDir>
     <Library>atomstruct</Library>
