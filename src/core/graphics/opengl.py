@@ -342,7 +342,7 @@ class Render:
 
         # Depth texture rendering parameters
         self.depth_texture_unit = 3
-        self._depth_texture_scale = None
+        self._depth_texture_scale = None	# texture xscale, yscale and value zscale
         
         self.frame_number = 0
 
@@ -1121,10 +1121,11 @@ class Render:
     def _set_depth_texture_shader_variables(self, shader):
         shader.set_integer("tex_depth_2d", self.depth_texture_unit)
         znear, zfar = self._near_far_clip
-        shader.set_vector3("tex_depth_params", (znear, zfar/(zfar-znear), self._depth_texture_scale))
+        shader.set_vector2("tex_depth_projection", (znear, zfar/(zfar-znear)))
+        shader.set_vector3("tex_depth_scale", self._depth_texture_scale)
 
-    def set_depth_texture_parameters(self, depth_texture_scale):
-        self._depth_texture_scale = depth_texture_scale
+    def set_depth_texture_parameters(self, tex_coord_xscale, tex_coord_yscale, zscale):
+        self._depth_texture_scale = (tex_coord_xscale, tex_coord_yscale, zscale)
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_DEPTH_TEXTURE:
             self._set_depth_texture_shader_variables(p)

@@ -50,7 +50,10 @@ class ViewState:
     @staticmethod
     def set_state_from_snapshot(view, session, data):
         v = view
+        restore_camera = session.restore_options.get('restore camera')
         for k in ViewState.save_attrs:
+            if not restore_camera and k == 'camera':
+                continue
             if k in data:
                 setattr(v, k, data[k])
 
@@ -76,8 +79,10 @@ class ViewState:
             window_size(session, width, height)
 
         if 'silhouettes' in data:
-            for attr, value in data['silhouettes'].items():
-                setattr(v.silhouette, attr, value)
+            sil = data['silhouettes']
+            if isinstance(sil, dict):
+                for attr, value in sil.items():
+                    setattr(v.silhouette, attr, value)
 
     @staticmethod
     def reset_state(view, session):
