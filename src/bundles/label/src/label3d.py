@@ -373,7 +373,8 @@ class ObjectLabels(Model):
                 self._update_triangles()
                 
     def _rebuild_label_graphics(self):
-        trgba, tcoord, opaque = self._packed_texture()	# Compute images first since vertices depend on image size
+        trgba, tcoord = self._packed_texture()	# Compute images first since vertices depend on image size
+        opaque = self._all_labels_opaque()
         va = self._label_vertices()
         normals = None
         ta = self._visible_label_triangles()
@@ -412,14 +413,11 @@ class ObjectLabels(Model):
         th = y + hr	# Teture height in pixels
 
         # Create single image with packed label images
-        opaque = True
         from numpy import empty, uint8
         trgba = empty((th, tw, 4), uint8)
         for (x,y,w,h),rgba in zip(positions, images):
             h,w = rgba.shape[:2]
             trgba[y:y+h,x:x+w,:] = rgba
-            if opaque and not (rgba[:,3] == 255).all():
-                opaque = False
 
         # Create texture coordinates for each label.
         tclist = []
@@ -429,8 +427,15 @@ class ObjectLabels(Model):
         from numpy import array, float32
         tcoord = array(tclist, float32)
 
-        return trgba, tcoord, opaque
+        return trgba, tcoord
 
+    def _all_labels_opaque(self):
+        for l in self._labels:
+            bg = l.background
+            if bg is None or bg[3] < 255:
+                return False
+        return True
+    
     def _reposition_label_graphics(self):
         self.set_geometry(self._label_vertices(), self.normals, self.triangles)
         self._positions_need_update = False
