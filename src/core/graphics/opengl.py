@@ -342,7 +342,7 @@ class Render:
 
         # Depth texture rendering parameters
         self.depth_texture_unit = 3
-        self._depth_texture_scale = None
+        self._depth_texture_scale = None	# texture xscale, yscale and value zscale
         
         self.frame_number = 0
 
@@ -1121,10 +1121,11 @@ class Render:
     def _set_depth_texture_shader_variables(self, shader):
         shader.set_integer("tex_depth_2d", self.depth_texture_unit)
         znear, zfar = self._near_far_clip
-        shader.set_vector3("tex_depth_params", (znear, zfar/(zfar-znear), self._depth_texture_scale))
+        shader.set_vector2("tex_depth_projection", (znear, zfar/(zfar-znear)))
+        shader.set_vector3("tex_depth_scale", self._depth_texture_scale)
 
-    def set_depth_texture_parameters(self, depth_texture_scale):
-        self._depth_texture_scale = depth_texture_scale
+    def set_depth_texture_parameters(self, tex_coord_xscale, tex_coord_yscale, zscale):
+        self._depth_texture_scale = (tex_coord_xscale, tex_coord_yscale, zscale)
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_DEPTH_TEXTURE:
             self._set_depth_texture_shader_variables(p)
@@ -1449,6 +1450,11 @@ class Silhouette:
     
     def __init__(self, render):
         self._render = render
+        self.enabled = False
+        self.thickness = 1           # pixels
+        self.color = (0, 0, 0, 1)    # black
+        self.depth_jump = 0.03       # fraction of scene depth
+        self.perspective_near_far_ratio = 1	# Needed for handling depth buffer scaling
         self._silhouette_framebuf = None
 
     def delete(self):
@@ -1463,14 +1469,14 @@ class Silhouette:
         fb = self._silhouette_framebuffer(r.render_size(), alpha)
         r.push_framebuffer(fb)
 
-    def finish_silhouette_drawing(self, thickness, color, depth_jump,
-                                  perspective_near_far_ratio):
+    def finish_silhouette_drawing(self):
         r = self._render
         fb = r.pop_framebuffer()
         cfb = r.current_framebuffer()
         cfb.copy_from_framebuffer(fb, depth=False)
-        self._draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
-                                 perspective_near_far_ratio)
+        self._draw_depth_outline(fb.depth_texture, self.thickness,
+                                 self.color, self.depth_jump,
+                                 self.perspective_near_far_ratio)
 
     def _silhouette_framebuffer(self, size, alpha):
         sfb = self._silhouette_framebuf

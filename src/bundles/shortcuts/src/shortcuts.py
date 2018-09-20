@@ -758,7 +758,7 @@ def toggle_shadows(session):
 def toggle_silhouettes(session):
     v = session.main_view
     from chimerax.core.commands import run
-    run(session, 'set silhouettes %s' % ('false' if v.silhouettes else 'true'))
+    run(session, 'set silhouettes %s' % ('false' if v.render.silhouette.enabled else 'true'))
 
 def depth_cue(viewer):
     viewer.depth_cue = not viewer.depth_cue
