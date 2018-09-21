@@ -22,6 +22,7 @@
     <Library>atomstruct</Library>
     <Library>element</Library>
     <Library>pyinstance</Library>
+    <Library>pdbconnect</Library>
     <Library>readcif</Library>
     <Library>logger</Library>
     <Library>arrays</Library>
@@ -31,6 +32,7 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.8"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
+    <Dependency name="ChimeraX-PDB" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
