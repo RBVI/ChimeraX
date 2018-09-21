@@ -671,17 +671,13 @@ class Drawing:
             d.drawings_for_each_pass(pass_drawings)
             
     def draw(self, renderer, draw_pass):
-        '''Draw this drawing and children using the given draw pass.'''
+        '''Draw this drawing using the given draw pass. Does not draw child drawings'''
 
         if not self.display:
             return
 
         if not self.empty_drawing():
             self.draw_self(renderer, draw_pass)
-
-        # Draw children
-        for d in self.child_drawings():
-            d.draw(renderer, draw_pass)
 
     def draw_self(self, renderer, draw_pass):
         '''Draw this drawing without children using the given draw pass.'''
