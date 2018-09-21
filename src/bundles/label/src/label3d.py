@@ -41,7 +41,7 @@ def label(session, objects = None, object_type = None, text = None,
     background : Color or "none"
       Draw rectangular label background in this color, or if "none", background is transparent.
     size : int or "default"
-      Font size in pixels. Default 24.
+      Font size in points (1/72 inch). Default 24.
     height : float or "fixed"
       Text height in scene units.  Or if "fixed" use fixed pixel height on screen.
     font : string or "default"
@@ -527,9 +527,9 @@ class ObjectLabel:
         self._text = text
         self._color = color
         self.background = background
-        self.size = size
+        self.size = size	# Points (1/72 inch) so high and normal DPI displays look the same.
         self.height = height	# None or height in world coords.  If None used fixed screen size.
-        self._pixel_size = (100,10)	# Size of label in pixels, calculated from size attribute
+        self._pixel_size = (100,10)	# Size of label in pixels, derived from size attribute
 
         self.font = font
         
@@ -585,7 +585,7 @@ class ObjectLabel:
         rgba8 = tuple(self.color)
         bg = self.background
         xpad = 0 if bg is None else int(.2*s)
-        from .label2d import text_image_rgba
+        from chimerax.core.graphics import text_image_rgba
         text = self.text
         rgba = text_image_rgba(text, rgba8, s, self.font, background_color = bg, xpad=xpad)
         if rgba is None:

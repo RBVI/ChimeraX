@@ -22,7 +22,8 @@ __all__ = [
     'View', 'OpenGLContext',
 ]
 
-from .drawing import Drawing, Pick, PickedTriangle, PickedTriangles, qimage_to_numpy
+from .drawing import Drawing, Pick, PickedTriangle, PickedTriangles
+from .drawing import text_image_rgba, qimage_to_numpy
 
 from .camera import Camera, MonoCamera, OrthographicCamera, StereoCamera, SplitStereoCamera
 from .camera360 import Mono360Camera, Stereo360Camera

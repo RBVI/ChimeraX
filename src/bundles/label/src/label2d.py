@@ -26,7 +26,7 @@ def label_create(session, name, text = '', color = None, size = 24, font = 'Aria
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
     size : int
-      Font size in pixels.
+      Font size in points.
     font : string
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.
@@ -181,7 +181,7 @@ class Label:
         self.name = name
         self.text = text
         self.color = color
-        self.size = size
+        self.size = size	# Points (1/72 inch) to get similar appearance on high DPI displays
         self.font = font
         self.xpos = xpos
         self.ypos = ypos
@@ -237,6 +237,7 @@ class LabelDrawing(Drawing):
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = tuple(l.color)
+        from chimerax.core.graphics import text_image_rgba
         rgba = text_image_rgba(l.text, rgba8, l.size, l.font)
         if rgba is None:
             l.session.logger.info("Can't find font for label")
@@ -275,64 +276,6 @@ class LabelDrawing(Drawing):
     def custom_x3d(self, stream, x3d_scene, indent, place):
         # TODO
         pass
-
-# -----------------------------------------------------------------------------
-#
-def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, ypad = 0):
-    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QBrush, QColor
-    f = QFont(font, size)
-    fm = QFontMetrics(f)
-    r = fm.boundingRect(text)
-    # TODO: width is sometimes 1 or 2 pixels too small in Qt 5.9.
-    # Right bearing of rightmost character was positive, so does not extend right.
-    # Use pad option to add some pixels to avoid clipped text.
-    ti = QImage(r.width()+2*xpad, r.height()+2*ypad, QImage.Format_ARGB32)
-    bg = (0,0,0,0) if background_color is None else tuple(background_color)
-    ti.fill(QColor(*bg))    # Set background transparent
-    p = QPainter()
-    p.begin(ti)
-    p.setFont(f)
-    c = QColor(*color)
-    p.setPen(c)
-    p.drawText(xpad, -r.y()+ypad, text)
-    from chimerax.core.graphics import qimage_to_numpy
-    rgba = qimage_to_numpy(ti)
-    p.end()
-    return rgba
-
-# -----------------------------------------------------------------------------
-#
-def text_image_rgba_pil(text, color, size, font, data_dir):
-    import os, sys
-    from PIL import Image, ImageDraw, ImageFont
-    font_dir = os.path.join(data_dir, 'fonts', 'freefont')
-    f = None
-    for tf in (font, 'FreeSans'):
-        path = os.path.join(font_dir, '%s.ttf' % tf)
-        if os.path.exists(path):
-            f = ImageFont.truetype(path, size)
-            break
-        if sys.platform.startswith('darwin'):
-            path = '/Library/Fonts/%s.ttf' % tf
-            if os.path.exists(path):
-                f = ImageFont.truetype(path, size)
-                break
-    if f is None:
-        return
-    pixel_size = f.getsize(text)
-    # Size 0 image gives rgba array that is not 3-dimensional
-    pixel_size = (max(1,pixel_size[0]), max(1,pixel_size[1]))
-    i = Image.new('RGBA', pixel_size)
-    d = ImageDraw.Draw(i)
-    #print('Size of "%s" is %s' % (text, pixel_size))
-    d.text((0,0), text, font = f, fill = color)
-    #i.save('test.png')
-    from numpy import array
-    rgba = array(i)
-#    print ('Text "%s" rgba array size %s' % (text, tuple(rgba.shape)))
-    frgba = rgba[::-1,:,:]	# Flip so text is right side up.
-    return frgba
-
 
 # -----------------------------------------------------------------------------
 #
