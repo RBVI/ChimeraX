@@ -34,8 +34,8 @@
 #include <atomstruct/Sequence.h>
 #include <atomstruct/destruct.h>
 #include <atomstruct/tmpl/residues.h>
-#include "connect.h"
 #include <logger/logger.h>
+#include "pdb/connect.h"
 #include <pdb/PDB.h>
 
 using atomstruct::Atom;
@@ -54,6 +54,7 @@ using atomstruct::Structure;
 using atomstruct::Coord;
 
 using namespace pdb;
+using namespace pdb_connect;
 
 std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");

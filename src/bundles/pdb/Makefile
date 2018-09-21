@@ -5,7 +5,9 @@
 # 	debug: run ChimeraX with debugging flag set
 # 	clean: remove files used in building wheel
 
-CHIMERAX_APP = ../../../ChimeraX.app
+TOP = ../../..
+CHIMERAX_APP = $(TOP)/ChimeraX.app
+include $(TOP)/mk/config.make
 
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
@@ -24,14 +26,17 @@ RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 PYSRCS = $(wildcard src/*.py)
 SRCS = $(PYSRCS) $(DATAFILES)
 
-wheel:	bundle_info.xml lib
+wheel:	bundle_info.xml lib connect_cpp/imex.h
 	$(RUN) "devel build . exit true test false"
 
 lib:
 	cd pdb_cpp; $(MAKE) install
 
-install app-install:	bundle_info.xml $(SRCS) lib
+install app-install:	bundle_info.xml $(SRCS) lib connect_cpp/imex.h
 	$(RUN) "devel install . user false exit true"
+
+connect_cpp/imex.h:
+	sed -e 's/LIBNAME/PDB_CONNECT/' < $(includedir)/imex.i > $@
 
 test:
 	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
