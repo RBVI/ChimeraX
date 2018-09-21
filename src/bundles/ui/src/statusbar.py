@@ -61,12 +61,12 @@ class _StatusBarOpenGL:
         return sb
 
     def _resize_event(self, event):
-        s = event.size()
-        w,h = s.width(), s.height()
         r = self._renderer
         if r:
+            s = event.size()
+            w,h = s.width(), s.height()
             r.make_current()
-            r.set_viewport(0,0,w,h)
+            r.set_default_framebuffer_size(w, h)
             # Clear status line.
             self.status('', 'black', False)
 
@@ -149,28 +149,27 @@ class _StatusBarOpenGL:
         lw, lh = win.width(), win.height()
         aspect = lh/lw
         xpad,ypad = self.pad_horz, self.pad_vert
+        print ('status bar height', lh, 'ypad', ypad)
 
         from chimerax.core.colors import BuiltinColors
         tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
-        from chimerax.label.label2d import text_image_rgba
         size = max(1, int((1-2*ypad) * lh))
-        rgba = text_image_rgba(msg, tcolor, size, self.font, xpad=1, ypad=1)
+        ptsize = 36
+        from chimerax.core.graphics import text_image_rgba
+        rgba = text_image_rgba(msg, tcolor, ptsize, self.font, xpad=2, ypad=1)
         th, tw = rgba.shape[:2]
 
         # Make image pixel exactly match screen pixel size for best appearance.
-        uh = 2*th/lh
-        uw = 2*tw/lw
-        # Align image pixels exactly with screen pixels to give best appearance.
+        uh = 2*(1-2*ypad)
+        uw = uh * (tw/th)*(lh/lw)
         # Right align secondary status
-        xp = int(xpad*lh)
-        xe = 1 - 2*xp/lw
-        x =  xe - uw if secondary else -xe
-        yp = 0.5*(lh-th)
-        y = -1 + 2*yp/lh
+        xp = xpad*lh/lw  # xpad is as a fraction of statusbar height.
+        x =  1 - 2*xp - uw if secondary else -1 + 2*xp
+        y = -1 + 2*ypad
 
         from chimerax.core.graphics.drawing import rgba_drawing, draw_overlays
         rgba_drawing(d, rgba, (x, y), (uw, uh), opaque = False)
-            
+
 #
 # Status bar drawing that partially restricts Qt event processing.  Allows event related
 # callbacks to be invoked during status message display which leads to hard to reproduce
