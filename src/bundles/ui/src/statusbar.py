@@ -149,7 +149,6 @@ class _StatusBarOpenGL:
         lw, lh = win.width(), win.height()
         aspect = lh/lw
         xpad,ypad = self.pad_horz, self.pad_vert
-        print ('status bar height', lh, 'ypad', ypad)
 
         from chimerax.core.colors import BuiltinColors
         tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
