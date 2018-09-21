@@ -609,9 +609,10 @@ class Render:
                         or model_matrix.same(cmm)):
                     return
             self.current_model_matrix = model_matrix
-            # TODO: optimize matrix multiply.  Rendering bottleneck with 200
-            # models open.
-            mv4 = (self.current_view_matrix * model_matrix).opengl_matrix()
+            # TODO: optimize matrix multiply.  Rendering bottleneck with 200 models open.
+            cvm = self.current_view_matrix
+            mv = cvm if model_matrix.is_identity() else (cvm * model_matrix)
+            mv4 = mv.opengl_matrix()
             self.current_model_view_matrix = mv4
 
         p = self.current_shader_program
