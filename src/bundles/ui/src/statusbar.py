@@ -33,7 +33,7 @@ class _StatusBarOpenGL:
         self.background_color = (0.85,0.85,0.85,1.0)
         self.text_color = (0,0,0,255)
         self.font = 'Lucida Sans'	# Wider and clearer than Helvetica or Arial
-        self.pad_vert = 0.1 		# Fraction of status bar height
+        self.pad_vert = 0.2 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
         self.widget = self._make_widget()
 
@@ -145,26 +145,24 @@ class _StatusBarOpenGL:
         if d.cleared:
             return
 
-        win = self._window
-        lw, lh = win.width(), win.height()
+        lw, lh = self._renderer.render_size()
         aspect = lh/lw
         xpad,ypad = self.pad_horz, self.pad_vert
 
         from chimerax.core.colors import BuiltinColors
         tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
-        size = max(1, int((1-2*ypad) * lh))
-        ptsize = 36
+        image_height = lh
+        ixpad, iypad = max(1, int(xpad*lh)), max(1, int(ypad*lh))
         from chimerax.core.graphics import text_image_rgba
-        rgba = text_image_rgba(msg, tcolor, ptsize, self.font, xpad=2, ypad=1)
+        rgba = text_image_rgba(msg, tcolor, image_height, self.font,
+                               xpad=ixpad, ypad=iypad, pixels=True)
         th, tw = rgba.shape[:2]
 
         # Make image pixel exactly match screen pixel size for best appearance.
-        uh = 2*(1-2*ypad)
-        uw = uh * (tw/th)*(lh/lw)
+        uw, uh = 2*(tw/th)*(lh/lw), 2
         # Right align secondary status
-        xp = xpad*lh/lw  # xpad is as a fraction of statusbar height.
-        x =  1 - 2*xp - uw if secondary else -1 + 2*xp
-        y = -1 + 2*ypad
+        x = (1-uw) if secondary else -1
+        y = -1
 
         from chimerax.core.graphics.drawing import rgba_drawing, draw_overlays
         rgba_drawing(d, rgba, (x, y), (uw, uh), opaque = False)

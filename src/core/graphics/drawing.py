@@ -1958,31 +1958,58 @@ def qimage_to_numpy(qi):
 
 # -----------------------------------------------------------------------------
 #
-def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, ypad = 0):
+def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, ypad = 0,
+                    pixels = False):
     '''
-    Size argument is in points (1/72 inch).
-    The returned image fits the specified text plus padding on each edge,
-    xpad and ypad specified in pixels.
+    Size argument is in points (1/72 inch) if pixels is False and the returned
+    image has size to fit the specified text plus padding on each edge, xpad and
+    ypad specified in pixels.  If pixels is True then size is the image height in pixels
+    and the font is chosen to fit within this image height minus ypad pixels at top
+    and bottom.
     '''
-    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QBrush, QColor
-    f = QFont(font, size)
+    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor
+
+    p = QPainter()
+
+    # Determine image size.
+    if pixels:
+        f = QFont(font)
+        f.setPixelSize(size-2*ypad)
+    else:
+        f = QFont(font, size)  # Size in points.
+
+    # Use font metrics to determine image width
     fm = QFontMetrics(f)
     r = fm.boundingRect(text)
-    # TODO: width is sometimes 1 or 2 pixels too small in Qt 5.9.
-    # Right bearing of rightmost character was positive, so does not extend right.
-    # Use pad option to add some pixels to avoid clipped text.
-    ti = QImage(r.width()+2*xpad, r.height()+2*ypad, QImage.Format_ARGB32)
+    # TODO: font metric width is sometimes 1 or 2 pixels too small in Qt 5.9.
+    #       Right bearing of rightmost character was positive, so does not extend right.
+    #       Use pad option to add some pixels to avoid clipped text.
+    tw, th = r.width(), r.height()  # pixels
+    if pixels:
+        iw, ih = tw+2*xpad, size
+    else:
+        iw, ih = tw+2*xpad, th+2*ypad
+
+    ti = QImage(iw, ih, QImage.Format_ARGB32)
+    
+    # Paint background
     bg = (0,0,0,0) if background_color is None else tuple(background_color)
     ti.fill(QColor(*bg))    # Set background transparent
-    p = QPainter()
+
+    # Paint text
     p.begin(ti)
     p.setFont(f)
     c = QColor(*color)
     p.setPen(c)
-    p.drawText(xpad, -r.y()+ypad, text)
+    x, y = xpad, (ih-1) - (r.bottom()+ypad)
+    p.drawText(x, y, text)
+
+    # Convert to numpy rgba array.
     from chimerax.core.graphics import qimage_to_numpy
     rgba = qimage_to_numpy(ti)
+    
     p.end()
+    
     return rgba
 
 # -----------------------------------------------------------------------------
