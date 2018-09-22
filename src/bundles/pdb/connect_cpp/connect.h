@@ -16,6 +16,9 @@
 #ifndef pdbio_connect
 #define pdbio_connect
 
+#define PDB_CONNECT_EXPORT
+#include "imex.h"
+
 #include <vector>
 #include <set>
 
@@ -28,21 +31,25 @@
 
 using namespace atomstruct;
 
-bool  is_standard_residue(const ResName& name);
-void  add_standard_residue(const ResName& name);
-void  remove_standard_residue(const ResName& name);
+namespace pdb_connect {
 
-void  connect_structure(Structure* as,
+bool PDB_CONNECT_IMEX is_standard_residue(const ResName& name);
+void PDB_CONNECT_IMEX add_standard_residue(const ResName& name);
+void PDB_CONNECT_IMEX remove_standard_residue(const ResName& name);
+
+void PDB_CONNECT_IMEX connect_structure(Structure* as,
         std::vector<Residue *>* chain_starters,
         std::vector<Residue *>* chain_enders,
         std::set<Atom *>* conect_atoms, std::set<MolResId>* mod_res);
-void connect_residue_by_distance(Residue* r,
+void PDB_CONNECT_IMEX connect_residue_by_distance(Residue* r,
         std::set<Atom *>* conect_atoms = nullptr);
-Atom* find_closest(Atom* a, Residue* r, float* ret_dist_sq,
+Atom* PDB_CONNECT_IMEX find_closest(Atom* a, Residue* r, float* ret_dist_sq,
         bool nonSaturated=false);
-void  find_nearest_pair(Residue* from, Residue* to,
+void PDB_CONNECT_IMEX find_nearest_pair(Residue* from, Residue* to,
         Atom** ret_from_atom, Atom** ret_to_atom, float* ret_dist_sq = nullptr);
-void  find_and_add_metal_coordination_bonds(Structure* as);
-void  find_missing_structure_bonds(Structure* as);
+void PDB_CONNECT_IMEX find_and_add_metal_coordination_bonds(Structure* as);
+void PDB_CONNECT_IMEX find_missing_structure_bonds(Structure* as);
+
+} // namespace pdb_connect
 
 #endif  // pdbio_connect

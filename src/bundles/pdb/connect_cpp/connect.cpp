@@ -17,6 +17,7 @@
 #include <map>
 #include <stdlib.h>
 
+#define PDB_CONNECT_EXPORT
 #include "connect.h"
 #include <atomstruct/Bond.h>
 #include <atomstruct/Coord.h>
@@ -24,6 +25,8 @@
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/tmpl/Atom.h>
 #include <atomstruct/tmpl/residues.h>
+
+namespace pdb_connect {
 
 // standard_residues contains the names of residues that should use
 // PDB ATOM records.
@@ -634,3 +637,5 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
         find_missing_structure_bonds(as);
     }
 }
+
+} // namespace pdb_connect
