@@ -22,7 +22,7 @@
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
-#include <atomstruct/connect.h>
+#include <pdb/connect.h>
 #include <atomstruct/tmpl/restmpl.h>
 #include <logger/logger.h>
 #include <arrays/pythonarray.h>	// Use python_voidp_array()
@@ -587,7 +587,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
         conn_type = "linking atoms for ";
     }
     if (a0 == nullptr) {
-        find_nearest_pair(r0, r1, &a0, &a1);
+        pdb_connect::find_nearest_pair(r0, r1, &a0, &a1);
         if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
             // suppress warning for CA traces and when missing templates
             if (!gap && tr0 && tr1)
@@ -595,7 +595,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
                                 residue_str(r0, r1), " and ", residue_str(r1));
         }
     } else if (a1 == nullptr) {
-        a1 = find_closest(a0, r1, nullptr, true);
+        a1 = pdb_connect::find_closest(a0, r1, nullptr, true);
         if (a1 == nullptr || a1->element() != Element::C || a1->name() != "CA") {
             // suppress warning for CA traces and when missing templates
             if (!gap && tr0 && tr1)
@@ -665,7 +665,7 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
                 logger::warning(_logger, "Found disconnected atom ", a->name(),
                                 " that is not in residue template for ",
                                 residue_str(r));
-                connect_residue_by_distance(r);
+                pdb_connect::connect_residue_by_distance(r);
                 return;
             }
             // atom is connected, so assume template is still appropriate
@@ -777,7 +777,7 @@ ExtractMolecule::finished_parse()
         if (tr == nullptr) {
             logger::warning(_logger, "Missing or invalid residue template for ", residue_str(r));
             has_ambiguous = true;   // safe to treat as ambiguous
-            connect_residue_by_distance(r);
+            pdb_connect::connect_residue_by_distance(r);
         } else {
             has_ambiguous = has_ambiguous || tr->pdbx_ambiguous;
             connect_residue_by_template(r, tr);
@@ -866,9 +866,9 @@ ExtractMolecule::finished_parse()
             mol->input_seq_source = "mmCIF entity_poly_seq table";
     }
     if (has_ambiguous)
-        find_and_add_metal_coordination_bonds(mol);
+        pdb_connect::find_and_add_metal_coordination_bonds(mol);
     if (missing_poly_seq)
-        find_missing_structure_bonds(mol);
+        pdb_connect::find_missing_structure_bonds(mol);
 
     // export mapping of label chain ids to entity ids.
     StringVector chain_mapping;

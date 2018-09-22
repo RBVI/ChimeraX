@@ -77,8 +77,8 @@ map_series.install: map.install ui.install
 markers.install: atomic.install ui.install
 match_maker.install: align_algs.install sim_matrices.install
 md_crds.install: atomic.install
-mmcif.install: atomic.install
-mmtf.install: atomic.install
+mmcif.install: atomic.install pdb.install
+mmtf.install: atomic.install pdb.install
 model_panel.install: ui.install
 model_series.install: ui.install
 modeller.install: alignments.install

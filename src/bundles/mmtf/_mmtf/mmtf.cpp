@@ -26,7 +26,7 @@
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
-#include <atomstruct/connect.h>
+#include <pdb/connect.h>
 #include <logger/logger.h>
 #include <arrays/pythonarray.h> // Use python_voidp_array()
 
@@ -56,6 +56,8 @@ using atomstruct::PolymerType;
 using atomstruct::AtomName;
 using atomstruct::ChainID;
 using atomstruct::ResName;
+
+using namespace pdb_connect;
 
 typedef vector<AtomicStructure*> Models;
 
