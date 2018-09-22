@@ -24,7 +24,6 @@
 #include <atomstruct/Chain.h>
 #include <atomstruct/ChangeTracker.h>
 #include <atomstruct/CoordSet.h>
-#include <atomstruct/connect.h>
 #include <atomstruct/destruct.h>     // Use DestructionObserver
 #include <atomstruct/MolResId.h>
 #include <atomstruct/PBGroup.h>
