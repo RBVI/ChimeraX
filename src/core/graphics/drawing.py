@@ -671,17 +671,13 @@ class Drawing:
             d.drawings_for_each_pass(pass_drawings)
             
     def draw(self, renderer, draw_pass):
-        '''Draw this drawing and children using the given draw pass.'''
+        '''Draw this drawing using the given draw pass. Does not draw child drawings'''
 
         if not self.display:
             return
 
         if not self.empty_drawing():
             self.draw_self(renderer, draw_pass)
-
-        # Draw children
-        for d in self.child_drawings():
-            d.draw(renderer, draw_pass)
 
     def draw_self(self, renderer, draw_pass):
         '''Draw this drawing without children using the given draw pass.'''
@@ -1955,3 +1951,92 @@ def qimage_to_numpy(qi):
     rgba[:,:,2] = bgra[:,:,0]
     rgba = rgba[::-1,:,:]	# flip
     return rgba
+
+# -----------------------------------------------------------------------------
+#
+def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, ypad = 0,
+                    pixels = False):
+    '''
+    Size argument is in points (1/72 inch) if pixels is False and the returned
+    image has size to fit the specified text plus padding on each edge, xpad and
+    ypad specified in pixels.  If pixels is True then size is the image height in pixels
+    and the font is chosen to fit within this image height minus ypad pixels at top
+    and bottom.
+    '''
+    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor
+
+    p = QPainter()
+
+    # Determine image size.
+    if pixels:
+        f = QFont(font)
+        f.setPixelSize(size-2*ypad)
+    else:
+        f = QFont(font, size)  # Size in points.
+
+    # Use font metrics to determine image width
+    fm = QFontMetrics(f)
+    r = fm.boundingRect(text)
+    # TODO: font metric width is sometimes 1 or 2 pixels too small in Qt 5.9.
+    #       Right bearing of rightmost character was positive, so does not extend right.
+    #       Use pad option to add some pixels to avoid clipped text.
+    tw, th = r.width(), r.height()  # pixels
+    if pixels:
+        iw, ih = tw+2*xpad, size
+    else:
+        iw, ih = tw+2*xpad, th+2*ypad
+
+    ti = QImage(iw, ih, QImage.Format_ARGB32)
+    
+    # Paint background
+    bg = (0,0,0,0) if background_color is None else tuple(background_color)
+    ti.fill(QColor(*bg))    # Set background transparent
+
+    # Paint text
+    p.begin(ti)
+    p.setFont(f)
+    c = QColor(*color)
+    p.setPen(c)
+    x, y = xpad, (ih-1) - (r.bottom()+ypad)
+    p.drawText(x, y, text)
+
+    # Convert to numpy rgba array.
+    from chimerax.core.graphics import qimage_to_numpy
+    rgba = qimage_to_numpy(ti)
+    
+    p.end()
+    
+    return rgba
+
+# -----------------------------------------------------------------------------
+#
+def text_image_rgba_pil(text, color, size, font, data_dir):
+    import os, sys
+    from PIL import Image, ImageDraw, ImageFont
+    font_dir = os.path.join(data_dir, 'fonts', 'freefont')
+    f = None
+    for tf in (font, 'FreeSans'):
+        path = os.path.join(font_dir, '%s.ttf' % tf)
+        if os.path.exists(path):
+            f = ImageFont.truetype(path, size)
+            break
+        if sys.platform.startswith('darwin'):
+            path = '/Library/Fonts/%s.ttf' % tf
+            if os.path.exists(path):
+                f = ImageFont.truetype(path, size)
+                break
+    if f is None:
+        return
+    pixel_size = f.getsize(text)
+    # Size 0 image gives rgba array that is not 3-dimensional
+    pixel_size = (max(1,pixel_size[0]), max(1,pixel_size[1]))
+    i = Image.new('RGBA', pixel_size)
+    d = ImageDraw.Draw(i)
+    #print('Size of "%s" is %s' % (text, pixel_size))
+    d.text((0,0), text, font = f, fill = color)
+    #i.save('test.png')
+    from numpy import array
+    rgba = array(i)
+#    print ('Text "%s" rgba array size %s' % (text, tuple(rgba.shape)))
+    frgba = rgba[::-1,:,:]	# Flip so text is right side up.
+    return frgba
