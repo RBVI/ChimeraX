@@ -774,9 +774,10 @@ class UserInterface:
         mw = ui.main_window
         from PyQt5.QtCore import QPoint, QPointF
         x,y = window_xy
-        gp = mw.mapToGlobal(QPoint(int(x), int(y)))
-        # Mouse events sent to main window are not handled.  Need to send to widget under mouse.
-        w = ui.widgetAt(gp)
+        mwp = QPoint(int(x), int(y))
+        w = mw.childAt(mwp)	# Works even if widget is covered.
+        gp = mw.mapToGlobal(mwp)
+        # Using w = ui.widgetAt(gp) does not work if the widget is covered by another app.
         wpos = QPointF(w.mapFromGlobal(gp)) if w else None
         return w, wpos
 
