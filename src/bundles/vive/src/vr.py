@@ -199,6 +199,8 @@ def wait_for_vsync(session, wait):
 from chimerax.core.graphics import Camera
 class SteamVRCamera(Camera):
 
+    always_draw = True	# Draw even if main window iconified.
+    
     def __init__(self, session):
 
         Camera.__init__(self)
@@ -472,7 +474,9 @@ class SteamVRCamera(Camera):
 
     def number_of_views(self):
         '''Number of views rendered by camera.'''
-        return 3 if self.desktop_display == 'independent' else 2
+        draw_desktop = (self.desktop_display == 'independent'
+                        and self._session.ui.main_window.graphics_window.is_drawable)
+        return 3 if draw_desktop else 2
 
     def view_width(self, point):
         fov = 100	# Effective field of view, degrees
