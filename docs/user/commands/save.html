@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>save</b> 
-[&nbsp;<a href="#image"><b>image</b></a>&nbsp;|&nbsp;<b>session</b>&nbsp;|&nbsp;<a href="#map"><b>map</b></a>&nbsp;]
+[&nbsp;<a href="#image"><b>image</b></a>&nbsp;|&nbsp;<a href="#session"><b>session</b></a>&nbsp;|&nbsp;<a href="#map"><b>map</b></a>&nbsp;]
 &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#formats"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
@@ -69,6 +69,7 @@ There may be several additional options, depending on the file type:
 <ul class="none">
 <li><a href="#formats"><b>Output Formats</b></a>
 <li><a href="#image"><b>Save Image</b></a>
+<li><a href="#session"><b>Save Session</b></a>
 <li><a href="#map"><b>Save Map</b></a>
 <li><a href="#pdb"><b>Save PDB</b></a>
 <li><a href="#mol2"><b>Save Mol2</b></a>
@@ -115,8 +116,8 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center"><b>ppm</b></td>
 <td align="center">.ppm</td>
 <td align="center">Portable PixMap</td>
-</tr><tr>
-<td align="center"><b>session</b></td>
+</tr><tr id="sesformat">
+<td align="center"><a href="#session"><b>session</b></a></td>
 <td align="center"><b>ses</b></td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
@@ -276,6 +277,26 @@ with different backgrounds in image-editing applications.
 (<b>Note:</b> TIFF images with background transparency may not be
 interpreted correctly by Adobe Photoshop.)
 </blockquote>
+
+<a name="session"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>Save Session</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#sesformat"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>includeMaps</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+There is only one <a href="#sesformat">format</a> for saving sessions. 
+A session file always includes maps generated on the fly 
+(rather than read from a file) if present, but including maps 
+read from pre-existing files is optional.
+The default is <b>false</b>, as maps can be very large.
+Other types of data (atomic models, sequences, <i>etc.</i>) are always included.
+</p>
 
 <a name="map"></a>
 <p class="nav">
