@@ -638,8 +638,8 @@ class UserInterface:
         self._session = session
         self._width = 0.5		# Billboard width in room coords, meters.
         self._height = None		# Height in room coords determined by window aspect and width.
-        self._panel_size = None 	# Panel size in pixels
-        self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle 
+        self._panel_size = None 	# Panel size in Qt device independent pixels
+        self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
         self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
         self._update_later = 0		# Redraw panel after this many frames
         self._update_delay = 10		# After click on panel, update after this number of frames
@@ -802,13 +802,16 @@ class UserInterface:
         im = ui.window_image()
         from chimerax.core.graphics.drawing import qimage_to_numpy
         rgba = qimage_to_numpy(im)
+        mw = ui.main_window
+        dpr = mw.devicePixelRatio()
         gw = ui.main_window.graphics_window
-        self._panel_offset = (ox, oy) = (gw.x() + gw.width(), gw.y())
-        ph = gw.height()
+        ox, oy = (dpr*(gw.x() + gw.width()), dpr*gw.y())
+        ph = dpr*gw.height()
         wh,ww = rgba.shape[:2]
         prgba = rgba[wh-(ph+oy):wh-oy,ox:,:]
         h,w = prgba.shape[:2]
-        self._panel_size = (w, h)
+        self._panel_offset = (ox/dpr, oy/dpr)
+        self._panel_size = (w/dpr, h/dpr)
         return prgba
 
     def display_ui(self, button_pressed, hand_room_position, camera_position):
