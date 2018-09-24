@@ -1,0 +1,20 @@
+# should be run in directory with source snapshot with singularity
+#
+# For example:
+# 	singularity exec centos-7.img make centos-install
+#
+TOP = .
+TOP := $(shell (cd "$(TOP)"; pwd))
+include $(TOP)/mk/config.make
+
+install:
+	. /opt/rh/devtoolset-3/enable; env HOME=`pwd` $(MAKE) install CENTOS_DIST=1
+
+package:
+	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS)
+
+daily-package:
+	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) daily
+
+candidate-package:
+	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) candidate
