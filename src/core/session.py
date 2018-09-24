@@ -298,6 +298,10 @@ class _RestoreManager:
         missing_bundles = []
         out_of_date_bundles = []
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
+            # put the below kludge in to allow sessions saved before the seq_view
+            # bundle name change to restore; remove on or after 1.0 release
+            if bundle_name == "ChimeraX-SEQ-VIEW":
+                bundle_name = "ChimeraX-SeqView"
             bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
                 missing_bundles.append(bundle_name)
