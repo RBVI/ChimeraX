@@ -155,10 +155,7 @@ class UI(QApplication):
     def window_image(self):
         screen = self.primaryScreen()
         w = self.main_window
-        w_id = w.winId()
-#        g = w.geometry()  # Works on Mac, wrong origin on Windows
-        g = w.rect()
-        pixmap = screen.grabWindow(w_id, g.x(), g.y(), g.width(), g.height())
+        pixmap = w.grab()
         im = pixmap.toImage()
         return im
 

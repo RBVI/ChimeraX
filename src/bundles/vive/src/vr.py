@@ -199,6 +199,8 @@ def wait_for_vsync(session, wait):
 from chimerax.core.graphics import Camera
 class SteamVRCamera(Camera):
 
+    always_draw = True	# Draw even if main window iconified.
+    
     def __init__(self, session):
 
         Camera.__init__(self)
@@ -472,7 +474,9 @@ class SteamVRCamera(Camera):
 
     def number_of_views(self):
         '''Number of views rendered by camera.'''
-        return 3 if self.desktop_display == 'independent' else 2
+        draw_desktop = (self.desktop_display == 'independent'
+                        and self._session.ui.main_window.graphics_window.is_drawable)
+        return 3 if draw_desktop else 2
 
     def view_width(self, point):
         fov = 100	# Effective field of view, degrees
@@ -638,8 +642,8 @@ class UserInterface:
         self._session = session
         self._width = 0.5		# Billboard width in room coords, meters.
         self._height = None		# Height in room coords determined by window aspect and width.
-        self._panel_size = None 	# Panel size in pixels
-        self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle 
+        self._panel_size = None 	# Panel size in Qt device independent pixels
+        self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
         self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
         self._update_later = 0		# Redraw panel after this many frames
         self._update_delay = 10		# After click on panel, update after this number of frames
@@ -774,9 +778,10 @@ class UserInterface:
         mw = ui.main_window
         from PyQt5.QtCore import QPoint, QPointF
         x,y = window_xy
-        gp = mw.mapToGlobal(QPoint(int(x), int(y)))
-        # Mouse events sent to main window are not handled.  Need to send to widget under mouse.
-        w = ui.widgetAt(gp)
+        mwp = QPoint(int(x), int(y))
+        w = mw.childAt(mwp)	# Works even if widget is covered.
+        gp = mw.mapToGlobal(mwp)
+        # Using w = ui.widgetAt(gp) does not work if the widget is covered by another app.
         wpos = QPointF(w.mapFromGlobal(gp)) if w else None
         return w, wpos
 
@@ -802,13 +807,16 @@ class UserInterface:
         im = ui.window_image()
         from chimerax.core.graphics.drawing import qimage_to_numpy
         rgba = qimage_to_numpy(im)
+        mw = ui.main_window
+        dpr = mw.devicePixelRatio()
         gw = ui.main_window.graphics_window
-        self._panel_offset = (ox, oy) = (gw.x() + gw.width(), gw.y())
-        ph = gw.height()
+        ox, oy = (dpr*(gw.x() + gw.width()), dpr*gw.y())
+        ph = dpr*gw.height()
         wh,ww = rgba.shape[:2]
         prgba = rgba[wh-(ph+oy):wh-oy,ox:,:]
         h,w = prgba.shape[:2]
-        self._panel_size = (w, h)
+        self._panel_offset = (ox/dpr, oy/dpr)
+        self._panel_size = (w/dpr, h/dpr)
         return prgba
 
     def display_ui(self, button_pressed, hand_room_position, camera_position):
