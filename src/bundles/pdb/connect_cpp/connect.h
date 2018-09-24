@@ -16,7 +16,6 @@
 #ifndef pdbio_connect
 #define pdbio_connect
 
-#define PDB_CONNECT_EXPORT
 #include "imex.h"
 
 #include <vector>
