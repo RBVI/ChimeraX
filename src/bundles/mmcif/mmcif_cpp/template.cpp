@@ -16,11 +16,11 @@
 #include "mmcif.h"
 #include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Residue.h>
+#include <atomstruct/MolResId.h>
 #include <atomstruct/Bond.h>
 #include <atomstruct/Atom.h>
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Sequence.h>
-#include <atomstruct/connect.h>
 #include <atomstruct/tmpl/restmpl.h>
 #include <readcif.h>
 #include <float.h>

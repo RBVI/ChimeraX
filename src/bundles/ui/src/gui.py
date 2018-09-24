@@ -155,10 +155,7 @@ class UI(QApplication):
     def window_image(self):
         screen = self.primaryScreen()
         w = self.main_window
-        w_id = w.winId()
-#        g = w.geometry()  # Works on Mac, wrong origin on Windows
-        g = w.rect()
-        pixmap = screen.grabWindow(w_id, g.x(), g.y(), g.width(), g.height())
+        pixmap = w.grab()
         im = pixmap.toImage()
         return im
 
@@ -672,7 +669,6 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _build_status(self):
         from .statusbar import _StatusBar
         self._status_bar = sbar = _StatusBar(self.session)
-        sbar.pad_vert = 0.2	# Make text in main status bar a little smaller to match command-line
         sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
         self._rapid_access_button = rab = QToolButton(sb)
@@ -820,7 +816,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         self.select_mode_menu = select_menu.addMenu("mode")
         self.select_mode_menu.setObjectName("mode")
-        mode_names =  ["replace", "add to", "subtract from", "intersect with"]
+        mode_names =  ["replace", "add", "subtract", "intersect"]
         self._select_mode_reminders = {k:v for k,v in zip(mode_names, 
             ["", " (+)", " (-)", " (\N{INTERSECTION})"])}
         for mode in mode_names:
@@ -834,9 +830,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         mode = self.select_menu_mode
         if mode == "replace":
             cmd = "sel"
-        elif mode == "add to":
+        elif mode == "add":
             cmd = "sel add"
-        elif mode == "subtract from":
+        elif mode == "subtract":
             cmd = "sel subtract"
         else:
             cmd = "sel intersect"
@@ -845,7 +841,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _set_select_mode(self, mode_text):
         self.select_menu_mode = mode_text
-        self.select_mode_menu.setTitle("Menu mode: %s selection" % mode_text)
+        self.select_mode_menu.setTitle("Menu mode: %s" % mode_text)
         mb = self.menuBar()
         from PyQt5.QtWidgets import QMenu
         from PyQt5.QtCore import Qt

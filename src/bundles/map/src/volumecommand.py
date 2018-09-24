@@ -64,7 +64,7 @@ def register_volume_command(logger):
 # Rendering options.
                ('show_outline_box', BoolArg),
                ('outline_box_rgb', ColorArg),
-               ('outline_box_linewidth', FloatArg),
+#               ('outline_box_linewidth', FloatArg),
                ('limit_voxel_count', BoolArg),
                ('voxel_limit', FloatArg),
                ('color_mode', EnumOf(ro.color_modes)),
@@ -75,7 +75,7 @@ def register_volume_command(logger):
                ('linear_interpolation', BoolArg),
                ('dim_transparency', BoolArg),
                ('dim_transparent_voxels', BoolArg),
-               ('line_thickness', FloatArg),
+#               ('line_thickness', FloatArg),
                ('smooth_lines', BoolArg),
                ('mesh_lighting', BoolArg),
                ('two_sided_lighting', BoolArg),

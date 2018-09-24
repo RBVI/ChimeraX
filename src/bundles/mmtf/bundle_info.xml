@@ -21,12 +21,14 @@
     <Library>element</Library>
     <Library>logger</Library>
     <Library>arrays</Library>
+    <Library>pdbconnect</Library>
     <LinkArgument platform="win32">ws2_32.lib</LinkArgument>
   </CModule>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.8"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
+    <Dependency name="ChimeraX-PDB" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>

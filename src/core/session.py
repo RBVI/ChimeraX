@@ -298,6 +298,10 @@ class _RestoreManager:
         missing_bundles = []
         out_of_date_bundles = []
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
+            # put the below kludge in to allow sessions saved before the seq_view
+            # bundle name change to restore; remove on or after 1.0 release
+            if bundle_name == "ChimeraX-SEQ-VIEW":
+                bundle_name = "ChimeraX-SeqView"
             bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
                 missing_bundles.append(bundle_name)
@@ -501,7 +505,8 @@ class Session:
             mgr.cleanup()
             self.triggers.activate_trigger("end save session", self)
 
-    def restore(self, stream, path=None, resize_window=None, metadata_only=False):
+    def restore(self, stream, path=None, resize_window=None, restore_camera=True,
+                metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
@@ -550,6 +555,7 @@ class Session:
 
         if resize_window is not None:
             self.restore_options['resize window'] = resize_window
+        self.restore_options['restore camera'] = restore_camera
         
         self.triggers.activate_trigger("begin restore session", self)
         try:

@@ -126,18 +126,8 @@ public:
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
     static void  set_templates_dir(const std::string&);
-    int  ss_id() const {
-        if (!structure()->ss_assigned())
-            structure()->compute_secondary_structure();
-        if (!structure()->ss_ids_normalized)
-            structure()->normalize_ss_ids();
-        return _ss_id;
-    }
-    SSType  ss_type() const {
-        if (!structure()->ss_assigned())
-            structure()->compute_secondary_structure();
-        return _ss_type;
-    }
+    int  ss_id() const;
+    SSType  ss_type() const;
     std::string  str() const;
     Structure*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(
@@ -329,6 +319,22 @@ Residue::set_ribbon_hide_backbone(bool d) {
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_HIDE_BACKBONE);
     _structure->set_gc_ribbon();
     _ribbon_hide_backbone = d;
+}
+
+inline int
+Residue::ss_id() const {
+    if (!structure()->ss_assigned())
+        structure()->compute_secondary_structure();
+    if (!structure()->ss_ids_normalized)
+        structure()->normalize_ss_ids();
+    return _ss_id;
+}
+
+inline Residue::SSType
+Residue::ss_type() const {
+    if (!structure()->ss_assigned())
+        structure()->compute_secondary_structure();
+    return _ss_type;
 }
 
 inline void

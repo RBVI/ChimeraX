@@ -291,7 +291,9 @@ class MeetingServer:
         sbytes = b64decode(base64_sbytes)
         from io import BytesIO
         stream = BytesIO(sbytes)
-        self._session.restore(stream, resize_window = False)
+        ses = self._session
+        restore_camera = (ses.main_view.camera.name != 'vr')
+        ses.restore(stream, resize_window = False, restore_camera = restore_camera)
             
     @property
     def vr_tracker(self):

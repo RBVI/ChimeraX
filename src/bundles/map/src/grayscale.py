@@ -176,7 +176,7 @@ class GrayScaleDrawing(Drawing):
       if bi:
         bi.set_grid_size(grid_size)
 
-  def draw(self, renderer, place, draw_pass):
+  def draw(self, renderer, draw_pass):
     if not self.display:
       return
     
@@ -184,7 +184,7 @@ class GrayScaleDrawing(Drawing):
     bi = self.blend_image
     if bi:
       if self is bi.master_drawing:
-        bi.draw(renderer, place, draw_pass)
+        bi.draw(renderer, draw_pass)
       return
 
     from chimerax.core.graphics import Drawing
@@ -229,7 +229,7 @@ class GrayScaleDrawing(Drawing):
     if dtransp:
       r.write_depth(False)
 
-    Drawing.draw(self, r, place, draw_pass)
+    Drawing.draw(self, r, draw_pass)
 
     if dtransp:
       r.write_depth(True)
@@ -410,12 +410,12 @@ class BlendedImage(GrayScaleDrawing):
                  'show_box_faces', 'show_ortho_planes', 'ortho_planes_position'):
       setattr(self, attr, getattr(d, attr))
 
-  def draw(self, renderer, place, draw_pass):
+  def draw(self, renderer, draw_pass):
 
     self.mirror_attributes()
     self.check_update_colors()
     
-    GrayScaleDrawing.draw(self, renderer, place, draw_pass)
+    GrayScaleDrawing.draw(self, renderer, draw_pass)
 
   @property
   def master_drawing(self):

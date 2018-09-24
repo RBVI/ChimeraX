@@ -5,38 +5,37 @@
 # 	debug: run ChimeraX with debugging flag set
 # 	clean: remove files used in building wheel
 
-TOP = ../../..
-CHIMERAX_APP = $(TOP)/ChimeraX.app
-include $(TOP)/mk/config.make
+CHIMERAX_APP = ../../../ChimeraX.app
+
+# These can be overridden by bundles for customization
+DEVEL_ARGS =
+CLEAN = build dist *.egg-info src/__pycache__ src/*/__pycache__
+CLEAN_ALWAYS =
 
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+PYMOD_EXT = so
 endif
-RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
+RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
 
 PYSRCS = $(wildcard src/*.py)
-SRCS = $(PYSRCS) $(DATAFILES)
 
-wheel:	bundle_info.xml lib connect_cpp/imex.h
-	$(RUN) "devel build . exit true test false"
+wheel:	bundle_info.xml $(PYSRCS)
+	$(RUN) "devel build . exit true"
 
-lib:
-	cd pdb_cpp; $(MAKE) install
-
-install app-install:	bundle_info.xml $(SRCS) lib connect_cpp/imex.h
-	$(RUN) "devel install . user false exit true"
-
-connect_cpp/imex.h:
-	sed -e 's/LIBNAME/PDB_CONNECT/' < $(includedir)/imex.i > $@
+install app-install:	bundle_info.xml $(PYSRCS)
+	$(RUN) "devel install . user false exit true $(DEVEL_ARGS)"
 
 test:
 	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
@@ -47,12 +46,14 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	if [ -x $(CHIMERAX_EXE) ]; then \
+	if [ -x $(CHIMERAX_EXE) -a -e bundle_info.xml ]; then \
 		$(RUN) "devel clean . exit true" ; \
 	else \
-		rm -rf build dist *.egg-info src/__pycache__ ; \
+		rm -rf $(CLEAN) ; \
 	fi
-	cd pdb_cpp; $(MAKE) clean
+	if [ -n "$(CLEAN_ALWAYS)" ]; then \
+		rm -rf $(CLEAN_ALWAYS); \
+	fi
 
 pylint:
-	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(PYSRCS))

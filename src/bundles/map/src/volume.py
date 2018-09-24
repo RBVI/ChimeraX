@@ -187,6 +187,7 @@ class Volume(Model):
       self.add([s])
     else:
       ses.models.add([s], parent = self)
+    self._drawings_need_update()
     return s
   
   # ---------------------------------------------------------------------------
@@ -605,18 +606,6 @@ class Volume(Model):
     if not display:
       self._keep_displayed_data = None	# Allow data to be freed from cache.
   display = Model.display.setter(_set_display)
-
-  # ---------------------------------------------------------------------------
-  #
-  def draw(self, renderer, place, draw_pass):
-    if not self.display:
-      return
-    
-    if not self.initialized_thresholds:
-      self.initialize_thresholds()
-      self.update_drawings()
-      
-    Model.draw(self, renderer, place, draw_pass)
 
   # ---------------------------------------------------------------------------
   #
@@ -1768,6 +1757,7 @@ class Volume(Model):
     Model.set_state_from_snapshot(v, session, data['model state'])
     from .session import set_map_state
     set_map_state(data['volume state'], v)
+    v._drawings_need_update()
     show_volume_dialog(session)
     return v
 
@@ -3382,6 +3372,8 @@ class VolumeUpdateManager:
           # if surface calculation done in thread.
           vset.remove(v)
           vdisp.remove(v)
+          if not v.initialized_thresholds:
+            v.initialize_thresholds()
           v.update_drawings()
    
 # -----------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 <BundleInfo name="ChimeraX-PDB" version="1.0"
 	    package="chimerax.atomic.pdb" purePython="false"
+		installedIncludeDir="include" installedLibraryDir="lib"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -13,15 +14,28 @@
     <Category name="Molecular structure"/>
   </Categories>
 
+  <CLibrary name="pdbconnect">
+    <SourceFile>connect_cpp/connect.cpp</SourceFile>
+	<Library>atomstruct</Library>
+  </CLibrary>
+
+  <ExtraFiles>
+    <ExtraFile source="connect_cpp/connect.h">include/pdb/connect.h</ExtraFile>
+    <ExtraFile source="connect_cpp/imex.h">include/pdb/imex.h</ExtraFile>
+  </ExtraFiles>
+
   <CModule name="_pdbio">
     <SourceFile>pdbio_cpp/PDBio.cpp</SourceFile>
     <IncludeDir>pdb_cpp/include</IncludeDir>
+    <IncludeDir>src/include</IncludeDir>
     <LibraryDir>pdb_cpp/lib</LibraryDir>
+    <LibraryDir>src/lib</LibraryDir>
     <Library>atomstruct</Library>
     <Library>element</Library>
     <Library>pyinstance</Library>
     <Library>logger</Library>
     <Library>pdb</Library>
+    <Library>pdbconnect</Library>
     <Library>arrays</Library>
     <Library>appdirs</Library>
   </CModule>

@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# get shared lib loaded
+from . import _pdbio
 from .pdb import open_pdb
 from .pdb import process_chem_name
 

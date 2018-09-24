@@ -38,25 +38,26 @@ def set(session, bg_color=None,
     '''
     had_arg = False
     view = session.main_view
+    silhouette = view.silhouette
     if bg_color is not None:
         had_arg = True
         view.background_color = bg_color.rgba
         view.redraw_needed = True
     if silhouettes is not None:
         had_arg = True
-        view.silhouettes = silhouettes
+        silhouette.enabled = silhouettes
         view.redraw_needed = True
     if silhouette_width is not None:
         had_arg = True
-        view.silhouette_thickness = silhouette_width
+        silhouette.thickness = silhouette_width
         view.redraw_needed = True
     if silhouette_color is not None:
         had_arg = True
-        view.silhouette_color = silhouette_color.rgba
+        silhouette.color = silhouette_color.rgba
         view.redraw_needed = True
     if silhouette_depth_jump is not None:
         had_arg = True
-        view.silhouette_depth_jump = silhouette_depth_jump
+        silhouette.depth_jump = silhouette_depth_jump
         view.redraw_needed = True
     if subdivision is not None:
         had_arg = True
@@ -77,10 +78,10 @@ def set(session, bg_color=None,
             rate = 0
         msg = '\n'.join(('Current settings:',
                          '  Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3]),
-                         '  Silhouettes: ' + str(view.silhouettes),
-                         '  Silhouette width: %.3g' % view.silhouette_thickness,
-                         '  Silhouette color: %d,%d,%d' % tuple(100*r for r in view.silhouette_color[:3]),
-                         '  Silhouette depth jump: %.3g' % view.silhouette_depth_jump,
+                         '  Silhouettes: ' + str(silhouette.enabled),
+                         '  Silhouette width: %.3g' % silhouette.thickness,
+                         '  Silhouette color: %d,%d,%d' % tuple(100*r for r in silhouette.color[:3]),
+                         '  Silhouette depth jump: %.3g' % silhouette.depth_jump,
                          '  Subdivision: %.3g'  % lod.quality,
                          '  Max frame rate: %.3g' % rate))
         session.logger.info(msg)

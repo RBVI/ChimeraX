@@ -10,6 +10,32 @@ from Cython.Build import cythonize
 from numpy.distutils.misc_util import get_numpy_include_dirs
 
 
+#
+# The compile process is initiated by setuptools and handled
+# by numpy.distutils, which eventually calls subprocess.
+# On Windows, subprocess invokes CreateProcess.  If a shell
+# is used, subprocess sets the STARTF_USESHOWWINDOW flag
+# to CreateProcess, assuming that "cmd" is going to create
+# a window; otherwise, it does not set the flag and a window
+# gets created for each compile and link process.  The code
+# below is used to make STARTF_USESHOWWINDOW be set by
+# default (written after examining subprocess.py).  The
+# default STARTUPINFO class is replaced before calling
+# setuptools.setup() and reset after it returns.
+# 
+try:
+    from subprocess import STARTUPINFO
+except ImportError:
+    MySTARTUPINFO = None
+else:
+    import subprocess, _winapi
+    class MySTARTUPINFO(STARTUPINFO):
+        _original = STARTUPINFO
+        def __init__(self, *args, **kw):
+            super().__init__(*args, **kw)
+            self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
+
+
 class BundleBuilder:
 
     def __init__(self, logger, bundle_path=None):
@@ -35,6 +61,9 @@ class BundleBuilder:
             distutils.dir_util._path_created.clear()
         except AttributeError:
             pass
+        # Copy additional files into package source tree
+        self._copy_extrafiles(self.extrafiles)
+        # Build C libraries
         import os.path
         for lib in self.c_libraries:
             lib.compile(self.logger, self.dependencies, debug=debug)
@@ -345,8 +374,6 @@ class BundleBuilder:
         def add_argument(name, value):
             if value:
                 self.setup_arguments[name] = value
-        # Copy additional files into package source tree
-        self._copy_extrafiles(self.extrafiles)
         # Make sure C/C++ libraries (DLLs, shared objects or dynamic
         # libraries) are on the install list
         for lib in self.c_libraries:
@@ -433,6 +460,9 @@ class BundleBuilder:
         cwd = os.getcwd()
         save = sys.argv
         try:
+            if MySTARTUPINFO:
+                import subprocess
+                subprocess.STARTUPINFO = MySTARTUPINFO
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
@@ -446,6 +476,9 @@ class BundleBuilder:
         finally:
             sys.argv = save
             os.chdir(cwd)
+            if MySTARTUPINFO:
+                import subprocess
+                subprocess.STARTUPINFO = MySTARTUPINFO._original
 
     #
     # Utility functions dealing with XML tree
@@ -768,6 +801,7 @@ class _CLibrary(_CompiledCode):
                 paths.append(compiler.library_filename(lib_name,
                                                        lib_type="shared"))
         return paths
+
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys

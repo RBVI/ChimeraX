@@ -19,7 +19,6 @@
 
 #define ATOMSTRUCT_EXPORT
 #define PYINSTANCE_EXPORT
-#include "connect.h"
 #include "polymer.h"
 #include "Residue.h"
 #include "seq_assoc.h"
@@ -72,18 +71,40 @@ find_gaps(StructureSeq& sseq)
                 if (gap == 0) {
                     Atom* a1;
                     Atom* a2;
+                    auto pt = res->polymer_type();
                     if (ca_only) {
                         a1 = res->atoms()[0];
                         a2 = prev_res->atoms()[0];
                     } else {
                         // 2a06 has just a missing backbone nitrogen between residues 20 and 21
                         // on chains B and O; we will co-op the CA-CA criteria...
-                        float pair_dist_sq;
-                        find_nearest_pair(prev_res, res, &a1, &a2, &pair_dist_sq);
+                        auto& backbone_names = (pt == PT_AMINO) ?
+                            Residue::aa_min_ordered_backbone_names :
+                            Residue::na_min_ordered_backbone_names;
+                        for (auto i = backbone_names.rbegin(); i != backbone_names.rend(); ++i) {
+                            a2 = prev_res->find_atom(*i);
+                            if (a2 != nullptr)
+                                break;
+                        }
+                        if (a2 != nullptr) {
+                            for (auto bb_name: backbone_names) {
+                                a1 = res->find_atom(bb_name);
+                                if (a1 != nullptr) {
+                                    if (a2->connects_to(a1))
+                                        no_gap = true;
+                                    break;
+                                }
+                            }
+                        }
                     }
-                    Real distsq_cutoff = a1->residue()->polymer_type() == PT_AMINO ?
-                        Residue::TRACE_PROTEIN_DISTSQ_CUTOFF : Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
-                    no_gap = a1->coord().sqdistance(a2->coord()) < distsq_cutoff;
+                    if (no_gap == false) {
+                        if (a2 != nullptr && a1 != nullptr) {
+                            Real distsq_cutoff = pt == PT_AMINO ?
+                                Residue::TRACE_PROTEIN_DISTSQ_CUTOFF :
+                                Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
+                            no_gap = a1->coord().sqdistance(a2->coord()) < distsq_cutoff;
+                        }
+                    }
                 }
                 if (!no_gap) {
                     if (gap < 1)

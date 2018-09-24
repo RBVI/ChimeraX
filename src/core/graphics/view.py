@@ -29,9 +29,12 @@ class View:
         self.window_size = window_size		# pixels
         self._render = None
         self._opengl_initialized = False
-        from .opengl import Lighting, Material
+
+        # Lights and material properties
+        from .opengl import Lighting, Material, Silhouette
         self._lighting = Lighting()
         self._material = Material()
+        self._silhouette = Silhouette()
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
@@ -40,17 +43,10 @@ class View:
         from .camera import MonoCamera
         self._camera = MonoCamera()
 
+        # Clip planes
         self.clip_planes = ClipPlanes()
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
-
-        # Silhouette edges
-        # TODO: Move these settings to Silhouette class in opengl.py.
-        self.silhouettes = False
-        self.silhouette_thickness = 1           # pixels
-        self.silhouette_color = (0, 0, 0, 1)    # black
-        self.silhouette_depth_jump = 0.03       # fraction of scene depth
-        self._perspective_near_far_ratio = 1	# Needed for handling depth buffer scaling
 
         # Graphics overlays, used for example for crossfade
         self._overlays = []
@@ -88,6 +84,7 @@ class View:
             self._render = r = Render(opengl_context)
             r.lighting = self._lighting
             r.material = self._material
+            r.silhouette = self._silhouette
         elif opengl_context is r.opengl_context:
             # OpenGL context switched between stereo and mono mode
             self._opengl_initialized = False
@@ -178,17 +175,23 @@ class View:
 
         r = self._render
         self.clip_planes.enable_clip_planes(r, camera.position)
-        shadow, multishadow = self._compute_shadowmaps(drawings, camera)
         mdraw = [self.drawing] if drawings is None else drawings
-        any_highlighted = self.any_drawing_highlighted(drawings)
+        (opaque_drawings, transparent_drawings,
+         highlight_drawings, on_top_drawings) = self._drawings_by_pass(mdraw)
+        no_drawings = (len(opaque_drawings) == 0 and
+                       len(transparent_drawings) == 0 and
+                       len(highlight_drawings) == 0 and
+                       len(on_top_drawings) == 0)
+        silhouette = self.silhouette
+        shadow, multishadow = self._compute_shadowmaps(opaque_drawings + transparent_drawings, camera)
         
-        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline
+        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
-            if self.silhouettes:
-                r.silhouette.start_silhouette_drawing()
+            if silhouette.enabled:
+                silhouette.start_silhouette_drawing(r)
             r.draw_background()
-            if len(mdraw) == 0:
+            if no_drawings:
                 continue
             self._update_projection(camera, vnum)
             if r.recording_opengl:
@@ -203,23 +206,35 @@ class View:
                 r.multishadow.set_multishadow_view(cp)
                 # Initial depth pass optimization to avoid lighting
                 # calculation on hidden geometry
-                draw_depth(r, mdraw)
-                r.allow_equal_depth(True)
+                if opaque_drawings:
+                    draw_depth(r, opaque_drawings)
+                    r.allow_equal_depth(True)
             self._start_timing()
-            draw_opaque(r, mdraw)
-            if any_highlighted:
+            if opaque_drawings:
+                draw_opaque(r, opaque_drawings)
+            if highlight_drawings:
                 r.outline.set_outline_mask()       # copy depth to outline framebuffer
-            draw_transparent(r, mdraw)    
+            draw_transparent(r, transparent_drawings)
             self._finish_timing()
             if multishadow:
                 r.allow_equal_depth(False)
-            if self.silhouettes:
-                r.silhouette.finish_silhouette_drawing(self.silhouette_thickness,
-                                                       self.silhouette_color,
-                                                       self.silhouette_depth_jump,
-                                                       self._perspective_near_far_ratio)
-            if any_highlighted:
-                draw_highlight_outline(r, mdraw)
+            if silhouette.enabled:
+                silhouette.finish_silhouette_drawing(r)
+            if highlight_drawings:
+                draw_highlight_outline(r, highlight_drawings)
+            if on_top_drawings:
+                draw_on_top(r, on_top_drawings)
+                
+    def _drawings_by_pass(self, drawings):
+        pass_drawings = {}
+        for d in drawings:
+            d.drawings_for_each_pass(pass_drawings)
+        from .drawing import Drawing
+        passes = (Drawing.OPAQUE_DRAW_PASS,
+                  Drawing.TRANSPARENT_DRAW_PASS,
+                  Drawing.HIGHLIGHT_DRAW_PASS,
+                  Drawing.LAST_DRAW_PASS)
+        return [pass_drawings.get(draw_pass, []) for draw_pass in passes]
 
     def check_for_drawing_change(self):
         trig = self.triggers
@@ -315,6 +330,11 @@ class View:
 
     material = property(_get_material, _set_material)
     '''Material reflectivity parameters.'''
+
+    @property
+    def silhouette(self):
+        '''Silhouette parameters.'''
+        return self._silhouette
 
     def add_overlay(self, overlay):
         '''
@@ -529,7 +549,7 @@ class View:
                 b = clip_bounds(b, [(p.plane_point, p.normal) for p in planes])
         return b
 
-    def any_drawing_highlighted(self, drawings=None):
+    def _any_drawing_highlighted(self, drawings=None):
         '''Is anything highlighted.'''
         if drawings is None:
             dm = self._drawing_manager
@@ -726,7 +746,7 @@ class View:
             pm = camera.projection_matrix(near_far, view_num, (ww, wh))
             pnf = 1 if camera.name == 'orthographic' else (near_far[0] / near_far[1])
 
-        self._perspective_near_far_ratio = pnf
+        self.silhouette.perspective_near_far_ratio = pnf
 
         r.set_projection_matrix(pm)
         r.set_near_far_clip(near_far)	# Used by depth cue

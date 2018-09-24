@@ -28,7 +28,6 @@
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Bond.h>
-#include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Residue.h>
@@ -36,9 +35,8 @@
 #include <atomstruct/destruct.h>
 #include <atomstruct/tmpl/residues.h>
 #include <logger/logger.h>
+#include "pdb/connect.h"
 #include <pdb/PDB.h>
-
-namespace pdb {
 
 using atomstruct::Atom;
 using atomstruct::AtomicStructure;
@@ -54,6 +52,9 @@ using atomstruct::ResName;
 using atomstruct::Sequence;
 using atomstruct::Structure;
 using atomstruct::Coord;
+
+using namespace pdb;
+using namespace pdb_connect;
 
 std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");
@@ -1529,7 +1530,7 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
     }
 
     for (auto r: s->residues()) {
-        bool standard = atomstruct::is_standard_residue(r->name());
+        bool standard = is_standard_residue(r->name());
         // verify that the "standard" residue in fact has standard connectivity...
         if (standard) {
             auto index = res_order[r];
@@ -1588,7 +1589,7 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
                     continue;
                 auto oar = oa->residue();
                 if (skip_conect && oar != r) {
-                    if (!atomstruct::is_standard_residue(oar->name())
+                    if (!is_standard_residue(oar->name())
                     || !chief_or_link(a)
                     || oar->chain_id() != r->chain_id()
                     || std::abs(res_order[r] - res_order[oar]) > 1)
@@ -1891,5 +1892,3 @@ PyMODINIT_FUNC PyInit__pdbio()
 {
     return PyModule_Create(&pdbio_def);
 }
-
-}  // namespace pdb

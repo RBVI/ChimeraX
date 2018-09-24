@@ -41,7 +41,7 @@ def label(session, objects = None, object_type = None, text = None,
     background : Color or "none"
       Draw rectangular label background in this color, or if "none", background is transparent.
     size : int or "default"
-      Font size in pixels. Default 24.
+      Font size in points (1/72 inch). Default 24.
     height : float or "fixed"
       Text height in scene units.  Or if "fixed" use fixed pixel height on screen.
     font : string or "default"
@@ -286,15 +286,6 @@ class ObjectLabels(Model):
         self._texture_needs_update = True
         self.redraw_needed()
     single_color = property(_get_single_color, _set_single_color)
-
-    def draw(self, renderer, place, draw_pass):
-        if self.on_top:
-            renderer.enable_depth_test(False)
-        renderer.enable_blending(True)	# Handle transparent background
-        Model.draw(self, renderer, place, draw_pass)
-        renderer.enable_blending(False)
-        if self.on_top:
-            renderer.enable_depth_test(True)
     
     def add_labels(self, objects, label_class, view, settings = {}, on_top = None):
         if on_top is not None:
@@ -382,7 +373,8 @@ class ObjectLabels(Model):
                 self._update_triangles()
                 
     def _rebuild_label_graphics(self):
-        trgba, tcoord, opaque = self._packed_texture()	# Compute images first since vertices depend on image size
+        trgba, tcoord = self._packed_texture()	# Compute images first since vertices depend on image size
+        opaque = self._all_labels_opaque()
         va = self._label_vertices()
         normals = None
         ta = self._visible_label_triangles()
@@ -393,9 +385,7 @@ class ObjectLabels(Model):
             from chimerax.core.graphics import Texture
             self.texture = Texture(trgba)
         self.texture_coordinates = tcoord
-        # Even if background transparent render opaque so it is not hidden by one-transparent layer
-        # when behind a transparent surface.
-        self.opaque_texture = True
+        self.opaque_texture = opaque
         self._positions_need_update = False
         self._texture_needs_update = False
         self._visibility_needs_update = False
@@ -423,14 +413,11 @@ class ObjectLabels(Model):
         th = y + hr	# Teture height in pixels
 
         # Create single image with packed label images
-        opaque = True
         from numpy import empty, uint8
         trgba = empty((th, tw, 4), uint8)
         for (x,y,w,h),rgba in zip(positions, images):
             h,w = rgba.shape[:2]
             trgba[y:y+h,x:x+w,:] = rgba
-            if opaque and not (rgba[:,3] == 255).all():
-                opaque = False
 
         # Create texture coordinates for each label.
         tclist = []
@@ -440,8 +427,15 @@ class ObjectLabels(Model):
         from numpy import array, float32
         tcoord = array(tclist, float32)
 
-        return trgba, tcoord, opaque
+        return trgba, tcoord
 
+    def _all_labels_opaque(self):
+        for l in self._labels:
+            bg = l.background
+            if bg is None or bg[3] < 255:
+                return False
+        return True
+    
     def _reposition_label_graphics(self):
         self.set_geometry(self._label_vertices(), self.normals, self.triangles)
         self._positions_need_update = False
@@ -533,9 +527,9 @@ class ObjectLabel:
         self._text = text
         self._color = color
         self.background = background
-        self.size = size
+        self.size = size	# Points (1/72 inch) so high and normal DPI displays look the same.
         self.height = height	# None or height in world coords.  If None used fixed screen size.
-        self._pixel_size = (100,10)	# Size of label in pixels, calculated from size attribute
+        self._pixel_size = (100,10)	# Size of label in pixels, derived from size attribute
 
         self.font = font
         
@@ -591,7 +585,7 @@ class ObjectLabel:
         rgba8 = tuple(self.color)
         bg = self.background
         xpad = 0 if bg is None else int(.2*s)
-        from .label2d import text_image_rgba
+        from chimerax.core.graphics import text_image_rgba
         text = self.text
         rgba = text_image_rgba(text, rgba8, s, self.font, background_color = bg, xpad=xpad)
         if rgba is None:

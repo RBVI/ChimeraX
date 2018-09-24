@@ -79,6 +79,7 @@ class Place:
         self._is_identity = (matrix is None and axes is None
                              and origin is None)
         self._inverse = None    # Cached inverse.
+        self._m44 = None	# Cached 4x4 opengl matrix
 
     def __eq__(self, p):
         return p is self or (p.matrix == self.matrix).all()
@@ -163,7 +164,10 @@ class Place:
     def opengl_matrix(self):
         '''Return a numpy 4x4 array which is the transformation matrix
         in OpenGL order (columns major).'''
-        return m34.opengl_matrix(self.matrix)
+        m = self._m44
+        if m is None:
+            self._m44 = m = m34.opengl_matrix(self.matrix)
+        return m
 
     def interpolate(self, tf, center, frac):
         '''Interpolate from this transform to the specified one by

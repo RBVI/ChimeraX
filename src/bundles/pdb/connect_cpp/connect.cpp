@@ -17,22 +17,16 @@
 #include <map>
 #include <stdlib.h>
 
-#define ATOMSTRUCT_EXPORT
-#define PYINSTANCE_EXPORT
-#include "Atom.h"
-#include "Bond.h"
+#define PDB_CONNECT_EXPORT
 #include "connect.h"
-#include "Coord.h"
-#include "destruct.h"
-#include "Structure.h"
-#include "MolResId.h"
-#include "PBGroup.h"
-#include "Residue.h"
-#include "tmpl/Residue.h"
-#include "tmpl/Atom.h"
-#include "tmpl/residues.h"
+#include <atomstruct/Bond.h>
+#include <atomstruct/Coord.h>
+#include <atomstruct/destruct.h>
+#include <atomstruct/PBGroup.h>
+#include <atomstruct/tmpl/Atom.h>
+#include <atomstruct/tmpl/residues.h>
 
-namespace atomstruct {
+namespace pdb_connect {
 
 // standard_residues contains the names of residues that should use
 // PDB ATOM records.
@@ -107,8 +101,11 @@ connect_atom_by_distance(Atom* a, const Residue::Atoms& atoms,
         if (a == oa || a->connects_to(oa)
         || (oa->element() <= Element::H && (H_or_LP || !oa->bonds().empty())))
             continue;
-        if (ai < a_it && conect_atoms && conect_atoms->find(oa) == conect_atoms->end())
+        if (ai < a_it)
             // already checked
+            continue;
+        if (conect_atoms && conect_atoms->find(oa) != conect_atoms->end())
+            // bonds for other atom already known
             continue;
         float dist = bonded_dist(a, oa);
         if (dist == 0.0)
@@ -641,10 +638,4 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
     }
 }
 
-void
-connect_structure_by_distance(Structure* as)
-{
-    
-}
-
-}  // namespace atomstruct
+} // namespace pdb_connect
