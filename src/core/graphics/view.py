@@ -175,7 +175,6 @@ class View:
 
         r = self._render
         self.clip_planes.enable_clip_planes(r, camera.position)
-        shadow, multishadow = self._compute_shadowmaps(drawings, camera)
         mdraw = [self.drawing] if drawings is None else drawings
         (opaque_drawings, transparent_drawings,
          highlight_drawings, on_top_drawings) = self._drawings_by_pass(mdraw)
@@ -184,6 +183,7 @@ class View:
                        len(highlight_drawings) == 0 and
                        len(on_top_drawings) == 0)
         silhouette = self.silhouette
+        shadow, multishadow = self._compute_shadowmaps(opaque_drawings + transparent_drawings, camera)
         
         from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
         for vnum in range(camera.number_of_views()):
