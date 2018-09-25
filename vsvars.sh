@@ -46,6 +46,7 @@ fi
 export VSINSTALLDIR
 export VCINSTALLDIR
 export FrameworkDir="c:\\Windows\\Microsoft.NET\\Framework$B64"
+export VisualStudioVersion
 
 function GetMicrosoftSdkDir () {
 	GetMicrosoftSdkDirHelper HKLM > /dev/null 2>&1

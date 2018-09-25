@@ -170,8 +170,11 @@ class Color(State):
         return not numpy.array_equal(self.rgba, other.rgba)
 
     def take_snapshot(self, session, flags):
-        data = {'rgba': self.rgba}
-        return CORE_STATE_VERSION, data
+        data = {
+            'rgba': self.rgba,
+            'version': CORE_STATE_VERSION,
+        }
+        return data
 
     @staticmethod
     def restore_snapshot(session, data):

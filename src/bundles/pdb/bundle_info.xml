@@ -17,6 +17,8 @@
   <CLibrary name="pdbconnect">
     <SourceFile>connect_cpp/connect.cpp</SourceFile>
 	<Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>pyinstance</Library>
   </CLibrary>
 
   <ExtraFiles>
