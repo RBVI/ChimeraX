@@ -534,8 +534,34 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
 
         // connect up previous residue
         if (link_res != NULL) {
+            auto pt = Sequence::rname_polymer_type(link_res->name());
             if (prelinked) {
                 ; // do nothing
+            } else if (pt != PT_NONE && pt == Sequence::rname_polymer_type(r->name())) {
+                Atom* prev_connect = nullptr;
+                auto& backbone_names = (pt == PT_AMINO) ?
+                    Residue::aa_min_ordered_backbone_names :
+                    Residue::na_min_ordered_backbone_names;
+                bool made_connection = false;
+                for (auto i = backbone_names.rbegin(); i != backbone_names.rend(); ++i) {
+                    auto prev_bba = link_res->find_atom(*i);
+                    if (prev_bba != nullptr) {
+                        prev_connect = prev_bba;
+                        break;
+                    }
+                }
+                if (prev_connect != nullptr) {
+                    for (auto bb_name: backbone_names) {
+                        auto bba = r->find_atom(bb_name);
+                        if (bba != nullptr) {
+                            add_bond(prev_connect, bba);
+                            made_connection = true;
+                            break;
+                        }
+                    }
+                }
+                if (!made_connection)
+                    add_bond_nearest_pair(link_res, r);
             } else if (tr == NULL || tr->chief() == NULL) {
                 add_bond_nearest_pair(link_res, r);
             } else {

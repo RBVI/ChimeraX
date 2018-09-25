@@ -97,10 +97,7 @@ canonicalize_res_name(ResName& rname)
     for (int i = rname.length(); i > 0; ) {
         --i;
         if (rname[i] == ' ') {
-            auto j = i;
-            do {
-                rname[j] = rname[j+1];
-            } while (rname[j++] != '\0');
+            rname.replace(i, 1, "");
             continue;
         }
         rname[i] = toupper(rname[i]);
