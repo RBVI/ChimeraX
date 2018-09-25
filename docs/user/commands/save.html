@@ -37,7 +37,7 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>save</b> <b>formats</b>
 </h3>
 <p>
-The <b>save</b> command saves an image, ChimeraX session,
+The <b>save</b> command saves an image, <a href="#session">ChimeraX session</a>,
 map (<a href="../tools/volumeviewer.html">volume data</a>),
 atomic coordinates, sequences, or other data to <i>filename</i>, 
 which can be a pathname including the directory location.
@@ -290,12 +290,34 @@ interpreted correctly by Adobe Photoshop.)
 [&nbsp;<b>includeMaps</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
-There is only one <a href="#sesformat">format</a> for saving sessions. 
-A session file always includes maps generated on the fly 
-(rather than read from a file) if present, but including maps 
-read from pre-existing files is optional.
+A <b><i>ChimeraX session file</i></b> encodes most aspects of a
+modeling session in ChimeraX, including atomic and other models, sequences,
+<a href="view.html#name">camera views</a>, coloring, display styles, lighting,
+labels (<a href="2dlabels.html">2D</a> and <a href="label.html">3D</a>),
+<a href="../attributes.html">attributes</a>, and
+<a href="color.html#name">custom colors</a>.
+Saving and later opening a session file 
+restores the session and allows resuming work in ChimeraX.
+A common use is to store setups for 
+<a href="../images.html">figures</a> and <a href="../movies.html">movies</a>.
+See also: 
+<a href="../preferences.html#sessions"><b>Sessions</b> preferences</a>,
+<a href="usageconventions.html#cxc-files">ChimeraX command files</a>
+</p><p>
+**&nbsp;Currently, a ChimeraX session file may only be restorable 
+using the same ChimeraX build (same downloaded version) 
+from which it was saved.&nbsp;**
+</p><p>
+Sessions are saved in a ChimeraX-specific <a href="#sesformat">format</a>
+not read by other programs.
+Maps generated on the fly (rather than read from a file) are always 
+included if present, but the <b>includeMaps</b> option indicates whether 
+maps read from pre-existing files should also be included. 
 The default is <b>false</b>, as maps can be very large.
-Other types of data (atomic models, sequences, <i>etc.</i>) are always included.
+If the maps are not included, the session file will still include the
+locations of the corresponding map files and open them automatically
+upon session restore, or if they are not found, prompt the user
+for their current locations.
 </p>
 
 <a name="map"></a>
@@ -317,6 +339,8 @@ Other types of data (atomic models, sequences, <i>etc.</i>) are always included.
 [&nbsp;<b>chunkShapes</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
 </blockquote>
 <p>
+Various <a href="#mapformats">formats</a> are available for saving maps
+(<a href="../tools/volumeviewer.html">volume data</a>).
 MRC files written by ChimeraX are in the MRC 2000 format.
 Older MRC-reading programs or programs expecting CCP4 format will read such 
 files successfully but may not align the data correctly with other data sets.
