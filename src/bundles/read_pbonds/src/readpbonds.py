@@ -24,7 +24,7 @@ def read_pseudobond_file(session, stream, file_name, *args, radius = 0.5, color 
 
     from chimerax.atomic import AtomsArg
     for i, line in enumerate(lines):
-        aspec1, aspec2 = line.decode('utf-8').split()[:2]
+        aspec1, aspec2 = line.split()[:2]
         a1, used, rest = AtomsArg.parse(aspec1, session)
         a2, used, rest = AtomsArg.parse(aspec2, session)
         for a, aspec in ((a1,aspec1), (a2,aspec2)):
