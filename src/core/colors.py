@@ -67,7 +67,8 @@ class UserColors(SortedDict, StateManager):
 
     def add(self, key, value):
         if key in BuiltinColors:
-            raise ValueError('Can not override builtin color')
+            from .errors import UserError
+            raise UserError('Can not override builtin color')
         self[key] = value
 
     def remove(self, key):
