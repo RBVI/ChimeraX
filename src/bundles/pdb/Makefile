@@ -1,58 +1,18 @@
-# The "make" targets are:
-# 	wheel: build a Python wheel in "dist" directory.
-# 	install: build wheel (if needed) and install in ChimeraX.
-# 	test: run ChimeraX
-# 	debug: run ChimeraX with debugging flag set
-# 	clean: remove files used in building wheel
-
+include ../Makefile.bundle
 TOP = ../../..
-CHIMERAX_APP = $(TOP)/ChimeraX.app
 include $(TOP)/mk/config.make
 
-# Platform-dependent settings.  Should not need fixing.
-# For Windows, we assume Cygwin is being used.
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
-ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
-endif
-ifeq ($(OS),Darwin)
-CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
-endif
-ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
-endif
-RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
+DEVEL_ARGS = test false
+CSRCS = connect_cpp/imex.h connect_cpp/connect.cpp connect_cpp/connect.h \
+	pdbio_cpp/PDBio.cpp
+CLEAN_ALWAYS =	src/lib/libpdbconnect.* src/*.$(PYMOD_EXT) \
+		connect_cpp/connect.o* connect_cpp/imex.h pdbio_cpp/PDBio.o* \
+		pdb_cpp/*.o* pdb_cpp/libpdb.*
 
-PYSRCS = $(wildcard src/*.py)
-SRCS = $(PYSRCS) $(DATAFILES)
+wheel install app-install:	$(CSRCS) pdb
 
-wheel:	bundle_info.xml lib connect_cpp/imex.h
-	$(RUN) "devel build . exit true test false"
-
-lib:
-	cd pdb_cpp; $(MAKE) install
-
-install app-install:	bundle_info.xml $(SRCS) lib connect_cpp/imex.h
-	$(RUN) "devel install . user false exit true"
+pdb:
+	cd pdb_cpp && $(MAKE) install
 
 connect_cpp/imex.h:
 	sed -e 's/LIBNAME/PDB_CONNECT/' < $(includedir)/imex.i > $@
-
-test:
-	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
-		do $(CHIMERAX_EXE) --exit --nogui $$t;\
-	done
-
-debug:
-	$(CHIMERAX_EXE) --debug
-
-clean:
-	if [ -x $(CHIMERAX_EXE) ]; then \
-		$(RUN) "devel clean . exit true" ; \
-	else \
-		rm -rf build dist *.egg-info src/__pycache__ ; \
-	fi
-	cd pdb_cpp; $(MAKE) clean
-
-pylint:
-	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
