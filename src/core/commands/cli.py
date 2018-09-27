@@ -2475,7 +2475,7 @@ class Command:
             if not text:
                 break
 
-    def run(self, text, *, log=True, _used_aliases=None):
+    def run(self, text, *, log=True, log_only=False, _used_aliases=None):
         """Parse and execute commands in the text
 
         :param text: The text to be parsed.
@@ -2557,14 +2557,15 @@ class Command:
             if log:
                 self.log()
             if not isinstance(ci.function, Alias):
-                try:
-                    result = ci.function(session, **kw_args)
-                except UserError as e:
-                    self.log_error(str(e))
-                    raise
-                except:
-                    raise
-                results.append(result)
+                if not log_only:
+                    try:
+                        result = ci.function(session, **kw_args)
+                    except UserError as e:
+                        self.log_error(str(e))
+                        raise
+                    except:
+                        raise
+                    results.append(result)
             else:
                 arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
                 arg_names.sort()
@@ -2578,8 +2579,10 @@ class Command:
                 else:
                     used_aliases = _used_aliases.copy()
                     used_aliases.add(self.command_name)
-                results.append(ci.function(session, *args, optional=optional,
-                               _used_aliases=used_aliases, log=log))
+                if not log_only:
+                    result = ci.function(session, *args, optional=optional,
+                                         _used_aliases=used_aliases, log=log)
+                    results.append(result)
             if session is not None:
                 cmd_text = self.current_text[self.start:self.amount_parsed]
                 session.triggers.activate_trigger("command finished", cmd_text)
