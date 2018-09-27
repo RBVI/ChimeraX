@@ -63,6 +63,7 @@ class ContourLevelMouseMode(MouseMode):
         self.session.update_loop.update_graphics_now()
 
     def mouse_up(self, event):
+        self.log_volume_command()
         self._maps = []
         MouseMode.mouse_up(self, event)
         
@@ -72,6 +73,15 @@ class ContourLevelMouseMode(MouseMode):
     def drag_3d(self, position, move, delta_z):
         if delta_z is not None:
             adjust_threshold_levels(self._maps, delta_z)
+        else:
+            self.log_volume_command()
+            self._maps = []
+
+    def log_volume_command(self):
+        for v in self._maps:
+            if isinstance(v, tuple):
+                v = v[0]
+            log_volume_level_command(v)
 
 def mouse_maps(models):    
     mall = models.list()
@@ -102,3 +112,14 @@ def adjust_threshold_level(m, f, surf=None):
         else:
             new_levels = tuple(s.level+step for s in m.surfaces)
         m.set_parameters(surface_levels = new_levels, threaded_surface_calculation = True)
+
+def log_volume_level_command(v):
+    if v.representation == 'solid':
+        levels = ' '.join('level %.4g,%.4g' % sl for sl in v.solid_levels)
+    else:
+        levels = ' '.join('level %.4g' % s.level for s in v.surfaces)
+    command = 'volume #%s %s' % (v.id_string, levels)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(v.session, command)
+
+            
