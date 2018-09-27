@@ -7,7 +7,7 @@ VERSION = 1.14.3
 
 ifdef WIN32
 # Downloaded from http://www.lfd.uci.edu/~gohlke/pythonlibs/
-WHEEL = numpy-$(VERSION)+mkl-cp36-cp36m-win_amd64.whl
+WHEEL = numpy-$(VERSION)+mkl-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl
 endif
 
 all:
