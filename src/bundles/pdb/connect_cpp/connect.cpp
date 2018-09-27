@@ -28,34 +28,6 @@
 
 namespace pdb_connect {
 
-// standard_residues contains the names of residues that should use
-// PDB ATOM records.
-static std::set<ResName> standard_residues = {
-// "N" and "DN", are basically "UNK" for nucleic acids
-    "A", "ALA", "ARG", "ASN", "ASP", "ASX", "C", "CYS", "DA", "DC", "DG", "DN", "DT",
-    "G", "GLN", "GLU", "GLX", "GLY", "HIS", "I", "ILE", "LEU", "LYS", "MET", "N",
-    "PHE", "PRO", "SER", "T", "THR", "TRP", "TYR", "U", "UNK", "VAL"
-};
-
-//TODO: these 3 funcs need to be wrapped also
-bool
-is_standard_residue(const ResName& name)
-{
-    return standard_residues.find(name) != standard_residues.end();
-}
-
-void
-add_standard_residue(const ResName& name)
-{
-    standard_residues.insert(name);
-}
-
-void
-remove_standard_residue(const ResName& name)
-{
-    standard_residues.erase(name);
-}
-
 inline static void
 add_bond(Atom* a1, Atom* a2)
 {
@@ -460,7 +432,7 @@ find_missing_structure_bonds(Structure *as)
 void
 connect_structure(Structure* as, std::vector<Residue *>* start_residues,
     std::vector<Residue *>* end_residues, std::set<Atom *>* conect_atoms,
-    std::set<MolResId>* mod_res)
+    std::set<MolResId>* mod_res, std::set<ResName>& polymeric_res_names)
 {
     // walk the residues, connecting residues as appropriate and
     // connect the atoms within the residue
@@ -624,7 +596,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
         for (Structure::Residues::const_iterator ri=as->residues().begin()
         ; ri != as->residues().end(); ++ri) {
             Residue *r = *ri;
-            if (is_standard_residue(r->name()) || r->name() == "UNK")
+            if (polymeric_res_names.find(r->name()) != polymeric_res_names.end())
                 continue;
             if (!r->is_het()) {
                 break_long = true;
@@ -643,7 +615,8 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             Residue *r2 = atoms[1]->residue();
             if (r1 == r2)
                 continue;
-            if (is_standard_residue(r1->name()) && is_standard_residue(r2->name()))
+            if (polymeric_res_names.find(r1->name()) != polymeric_res_names.end()
+            && polymeric_res_names.find(r2->name()) != polymeric_res_names.end())
                 continue;
             // break if non-physical
             float criteria = 1.5 * Element::bond_length(atoms[0]->element(),

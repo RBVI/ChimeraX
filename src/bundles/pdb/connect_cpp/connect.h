@@ -33,13 +33,12 @@ using namespace atomstruct;
 namespace pdb_connect {
 
 PDB_CONNECT_IMEX bool is_standard_residue(const ResName& name);
-PDB_CONNECT_IMEX void add_standard_residue(const ResName& name);
-PDB_CONNECT_IMEX void remove_standard_residue(const ResName& name);
 
 PDB_CONNECT_IMEX void connect_structure(Structure* as,
         std::vector<Residue *>* chain_starters,
         std::vector<Residue *>* chain_enders,
-        std::set<Atom *>* conect_atoms, std::set<MolResId>* mod_res);
+        std::set<Atom *>* conect_atoms, std::set<MolResId>* mod_res,
+        std::set<ResName>& polymeric_res_names);
 PDB_CONNECT_IMEX void connect_residue_by_distance(Residue* r,
         std::set<Atom *>* conect_atoms = nullptr);
 PDB_CONNECT_IMEX Atom* find_closest(Atom* a, Residue* r, float* ret_dist_sq,
