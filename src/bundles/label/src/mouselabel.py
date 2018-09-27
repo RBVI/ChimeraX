@@ -17,6 +17,8 @@ class LabelMouseMode(MouseMode):
         if pick is None:
             from .label3d import label_delete
             label_delete(self.session, object_type = 'residues')
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, 'label delete residues')
             return
 
         from chimerax import atomic
@@ -40,6 +42,11 @@ class LabelMouseMode(MouseMode):
         if label_delete(ses, objects, object_type) == 0:
             label(ses, objects, object_type, color=color, background=background,
                   size=size, height=height, orient=orient)
+            from chimerax.core.commands import log_equivalent_command, residues_specifier, options_text
+            rspec = residues_specifier(objects)
+            opts = options_text((('color',color), ('background',background), 
+                                 ('size',size), ('height',height), ('orient',orient)))
+            log_equivalent_command(ses, 'label %s %s' % (rspec, opts))
 
     def laser_click(self, xyz1, xyz2):
         from chimerax.ui.mousemodes import picked_object_on_segment
