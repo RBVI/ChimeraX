@@ -24,7 +24,7 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
     path = stream.name if hasattr(stream, 'name') else None
 
     from . import _pdbio
-    pointers = _pdbio.read_pdb_file(stream, log=session.logger, explode=not coordsets, atomic=atomic)
+    pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic)
     stream.close()
 
     if atomic:
@@ -68,7 +68,8 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
 
 
 def save_pdb(session, path, *, models=None, selected_only=False, displayed_only=False,
-        all_coordsets=False, pqr=False, rel_model=None, serial_numbering="h36"):
+        all_coordsets=False, pqr=False, rel_model=None, serial_numbering="h36",
+        polymeric_res_names = None):
     from chimerax.core.errors import UserError
     if models is None:
         models = session.models
@@ -92,17 +93,19 @@ def save_pdb(session, path, *, models=None, selected_only=False, displayed_only=
                     xforms.append((s.scene_position * inv).matrix)
 
     from . import _pdbio
+    if polymeric_res_names is None:
+        polymeric_res_names = _pdbio.standard_polymeric_res_names
     file_per_model = "[NAME]" in path or "[ID]" in path
     if file_per_model:
         for m, xform in zip(models, xforms):
             file_name = path.replace("[ID]", m.id_string).replace("[NAME]", m.name)
-            _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only=selected_only,
-                displayed_only=displayed_only, xforms=[xform],
-                all_coordsets=all_coordsets, pqr=pqr, h36=(serial_numbering == "h36"))
+            _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only,
+                displayed_only, [xform], all_coordsets,
+                pqr, (serial_numbering == "h36"), polymeric_res_names)
     else:
-        _pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only=selected_only,
-            displayed_only=displayed_only, xforms=xforms, all_coordsets=all_coordsets, pqr=pqr,
-            h36=(serial_numbering == "h36"))
+        _pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only,
+            displayed_only, xforms, all_coordsets, pqr,
+            (serial_numbering == "h36"), polymeric_res_names)
 
 
 _pdb_sources = {
