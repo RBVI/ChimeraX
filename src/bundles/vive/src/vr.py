@@ -13,7 +13,8 @@
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
 def vr(session, enable = None, room_position = None, display = None,
-       show_controllers = True, multishadow_allowed = False, simplify_graphics = True,
+       show_controllers = True, click_range = None,
+       multishadow_allowed = False, simplify_graphics = True,
        toolbar_panels = True, icons = False):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
@@ -40,6 +41,9 @@ def vr(session, enable = None, room_position = None, display = None,
       the VR headset rendering.
     show_controllers : bool
       Whether to show the hand controllers in the scene. Default true.
+    click_range : float
+      How far away hand controller tip can be when clicking an atom in scene units
+      (Angstroms).  Default 5.
     multishadow_allowed : bool
       If this option is false and multi-shadow lighting is enabled (ambient occlusion) when vr is
       enabled, then lighting is switched to simple lighting.  If the option is true then no
@@ -90,6 +94,8 @@ def vr(session, enable = None, room_position = None, display = None,
                 c.initialize_desktop_camera_position = True
         if show_controllers is not None:
             c.show_hand_controllers(show_controllers)
+        if click_range is not None:
+            c.user_interface.set_mouse_mode_click_range(click_range)
         if icons is not None: 
             for hc in c.hand_controllers():
                 hc.enable_icon_panel(icons)
@@ -645,6 +651,7 @@ class UserInterface:
         self._panel_size = None 	# Panel size in Qt device independent pixels
         self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
         self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
+        self._mouse_mode_click_range = 5 # In scene units (Angstroms).
         self._update_later = 0		# Redraw panel after this many frames
         self._update_delay = 10		# After click on panel, update after this number of frames
         self._ui_drawing = None
@@ -741,6 +748,9 @@ class UserInterface:
                 return self._hand_mode(a.mouse_mode)
         return None
 
+    def set_mouse_mode_click_range(self, range):
+        self._mouse_mode_click_range = range
+
     def _hand_mode(self, mouse_mode):
         name = mouse_mode.name
         if name == 'zoom':
@@ -748,7 +758,7 @@ class UserInterface:
         elif name in ('rotate', 'translate'):
             m = MoveSceneMode()
         else:
-            m = MouseMode(mouse_mode)
+            m = MouseMode(mouse_mode, self._mouse_mode_click_range)
         return m
     
     def _post_mouse_event(self, type, window_xy):
@@ -1145,12 +1155,12 @@ class RecenterMode(HandMode):
 
 class MouseMode(HandMode):
     name = 'mouse mode'
-    def __init__(self, mouse_mode):
+    def __init__(self, mouse_mode, click_range = 5.0):
         self._mouse_mode = mouse_mode
         mouse_mode.enable()
         self.name = mouse_mode.name
         self._last_drag_room_position = None # Hand controller position at last drag_3d call
-        self._laser_range = 5		# Range for mouse mode laser clicks
+        self._laser_range = click_range	# Range for mouse mode laser clicks in scene units (Angstroms)
 
     @property
     def has_vr_support(self):
@@ -1169,7 +1179,7 @@ class MouseMode(HandMode):
             if pressed:
                 p = hand_controller.position
                 xyz1 = p * (0,0,0)
-                range_scene = self._laser_range / camera.scene_scale
+                range_scene = self._laser_range
                 xyz2 = p * (0,0,-range_scene)
                 m.laser_click(xyz1, xyz2)
         if hasattr(m, 'drag_3d'):

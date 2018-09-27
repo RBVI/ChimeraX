@@ -1416,10 +1416,9 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
 
     if drawing is None:
         d = Drawing('drag box')
-        from numpy import array, int32, uint8
+        from numpy import array, int32
         t = array(((0,1,2), (0,2,3)), int32)
         d.set_geometry(None, None, t)
-        d.edge_mask = array((3, 6), uint8)
         d.display_style = d.Mesh
         d.use_lighting = False
     else:
@@ -1427,11 +1426,12 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
 
     r = renderer
     s = r.pixel_scale()
-    from numpy import array, float32
+    from numpy import array, float32, uint8
     v = array(((s*x1, s*y1, 0), (s*x2, s*y1, 0),
                (s*x2, s*y2, 0), (s*x1, s*y2, 0)),
               float32)
     d.set_geometry(v, None, d.triangles)
+    d.edge_mask = array((3, 6), uint8)
     d.color = color
 
     from ..geometry import identity
@@ -1448,7 +1448,7 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     from .camera import ortho
     r.set_projection_matrix(ortho(0, w, 0, h, -1, 1))
 
-    d.draw(r, p0, d.OPAQUE_DRAW_PASS)
+    d.draw(r, d.OPAQUE_DRAW_PASS)
 
     r.disable_capabilities = rdc
     r.enable_xor(False)

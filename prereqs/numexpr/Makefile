@@ -8,7 +8,7 @@ DISTRIBUTION = numexpr-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numexpr-$(VERSION)
 
 ifdef WIN32
-WHEEL = numexpr-$(VERSION)-cp36-cp36m-win_amd64.whl
+WHEEL = numexpr-$(VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl
 endif
 
 SETUP_BUILD =

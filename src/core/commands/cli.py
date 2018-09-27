@@ -2581,7 +2581,8 @@ class Command:
                 results.append(ci.function(session, *args, optional=optional,
                                _used_aliases=used_aliases, log=log))
             if session is not None:
-                session.triggers.activate_trigger("command finished", text)
+                cmd_text = self.current_text[self.start:self.amount_parsed]
+                session.triggers.activate_trigger("command finished", cmd_text)
 
             self.command_name = None
             self._ci = None

@@ -25,24 +25,25 @@ class AtomZoneMouseMode(MouseMode):
         self._helix_width_thickness = (0.6, 0.2)
         self._sheet_width_thickness = (0.6, 0.2)
         self._ribbon_transparency = 100			# 0 = completely transparent, 255 = opaque
+        self._labeled_residues = None
 
-    def _show_zone(self, atom = None, center = False, label=True, ribbon=True, ribbon_hiding = True):
+    def _show_zone(self, atom, center = False, label=True,
+                   ribbon=True, ribbon_hiding = True):
         '''Show nearby atoms, labels, and surfaces.'''
 
-        if atom is None:
-            atom = self._zone_center_atom
-        else:
-            self._zone_center_atom = atom
+        self._zone_center_atom = atom
             
         ratoms = atom.residue.atoms
         struct = atom.structure
         all_atoms = struct.atoms
 
-        natoms = self._show_near_atoms(ratoms, all_atoms, show_ligands=ribbon)
         if label:
             self._show_labels(ratoms, all_atoms)
+
         if ribbon:
+            natoms = self._show_near_atoms(ratoms, all_atoms, show_ligands=ribbon)
             self._show_ribbons(struct, natoms.unique_residues, ribbon_hiding)
+
         self._show_volume_zone(ratoms)
 
         # Set center of rotation
@@ -51,6 +52,15 @@ class AtomZoneMouseMode(MouseMode):
 
         if center:
             self._center_camera(atom.scene_coord)
+
+    def _unlabel(self):
+        res = self._labelled_residues
+        if res is None:
+            return False
+        from chimerax.label.label3d import label_delete
+        label_delete(self.session, res, 'residues')
+        self._labelled_residues = None
+        return True
 
     def _unzone(self):
         atom = self._zone_center_atom
@@ -88,6 +98,7 @@ class AtomZoneMouseMode(MouseMode):
         from chimerax.core.colors import BuiltinColors
         label(ses, aobj, 'residues', size = 64, height = 0.7, orient = 45,
               color = BuiltinColors['yellow'], background = BuiltinColors['black'])
+        self._labelled_residues = aobj
 
     def _show_ribbons(self, struct, hide_residues, ribbon_hiding):
         # Show ribbons thinner and transparent
@@ -141,8 +152,10 @@ class AtomZoneMouseMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         atom = self._mouse_pick(event)
-        if atom is not None:
+        if atom:
             self._show_zone(atom)
+        elif not self._unlabel():
+            self._unzone()
     
     def mouse_drag(self, event):
         # TODO: Change radius by dragging?  Could be slow.
@@ -177,7 +190,7 @@ class AtomZoneMouseMode(MouseMode):
         atom = self._picked_atom(pick) 
         if atom:
             self._show_zone(atom, center=False, label=True, ribbon=False)
-        else:
+        elif not self._unlabel():
             self._unzone()
 
     def drag_3d(self, position, move, delta_z):
@@ -194,4 +207,4 @@ class AtomZoneMouseMode(MouseMode):
                 self._residue_distance *= scale
                 self._label_distance *= scale
                 self._surface_distance *= scale
-                self._show_zone(center=False, label=False, ribbon=False)
+                self._show_zone(a, center=False, label=False, ribbon=False)
