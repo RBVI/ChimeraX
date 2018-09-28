@@ -12,7 +12,7 @@
 from chimerax.ui import MouseMode
 class MoveLabelMouseMode(MouseMode):
     '''Move 2D labels with mouse.'''
-    name = 'movelabel'
+    name = 'move label'
     icon_file = 'movelabel.png'
 
     def __init__(self, session):
