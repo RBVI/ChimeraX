@@ -18,9 +18,16 @@ class _ZoneBundleAPI(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         """Install atom zone mouse mode"""
+        from .zone import AtomZoneMouseMode
+        zm = AtomZoneMouseMode(session)
+        session._atom_zone_mouse_mode = zm	# Used by zone command
         if session.ui.is_gui:
-            from .zone import AtomZoneMouseMode
             mm = session.ui.mouse_modes
-            mm.add_mode(AtomZoneMouseMode(session))
+            mm.add_mode(zm)
+
+    @staticmethod
+    def register_command(command_name, logger):
+        from . import zone
+        zone.register_zone_command(logger)
 
 bundle_api = _ZoneBundleAPI()
