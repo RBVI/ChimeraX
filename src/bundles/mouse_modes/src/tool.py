@@ -13,6 +13,13 @@
 
 from chimerax.core.tools import ToolInstance
 
+mode_order = ('select', 'rotate', 'translate', 'zoom', 'rotate and select',
+              'translate selected models', 'rotate selected models',
+              'clip', 'clip rotate', 'distance', 'label', 'movelabel',
+              'pivot', 'bond rotation',
+              'contour level', 'move planes', 'place marker', 'play map series',
+              'tug', 'minimize', 'swapaa', 'zone')
+
 # ------------------------------------------------------------------------------
 #
 class MouseModePanel(ToolInstance):
@@ -29,23 +36,7 @@ class MouseModePanel(ToolInstance):
         self._icons_per_row = 13
         self.tool_window = None
         
-        self.modes = [m for m in mm.modes if m.icon_file]
-        # there should be a generic ordering scheme, but for now move distance mode
-        # and bond-rotation mode up some
-        mode_names = [m.name for m in self.modes]
-        if "distance" in mode_names:
-            index = mode_names.index("distance")
-            if index > 8:
-                self.modes = self.modes[:9] + [self.modes[index]] + self.modes[9:index] \
-                    + self.modes[index+1:]
-                mode_names = mode_names[:9] + [mode_names[index]] + mode_names[9:index] \
-                    + mode_names[index+1:]
-        if "bond rotation" in mode_names:
-            index = mode_names.index("bond rotation")
-            if index > 12:
-                self.modes = self.modes[:12] + [self.modes[index]] + self.modes[12:index] \
-                    + self.modes[index+1:]
-
+        self.modes = ordered_modes(mm.modes, mode_order)
         parent = session.ui.main_window
         self.buttons = self.create_toolbar(parent)
         
@@ -61,7 +52,7 @@ class MouseModePanel(ToolInstance):
         parent.add_tool_bar(self, Qt.LeftToolBarArea, tb)
         group = QActionGroup(tb)
         for mode in self.modes:
-            action = QAction(self._icon(mode.icon_file), mode.name, group)
+            action = QAction(self._icon(mode.icon_path), mode.name, group)
             action.setCheckable(True)
             def button_press_cb(event, mode=mode):
                 mname = mode.name
@@ -105,7 +96,7 @@ class MouseModePanel(ToolInstance):
         for mnum,mode in enumerate(self.modes):
             b = QToolButton(tb)
             b.setIconSize(QSize(s,s))
-            action = QAction(self._icon(mode.icon_file), mode.name, group)
+            action = QAction(self._icon(mode.icon_path), mode.name, group)
             b.setDefaultAction(action)
             action.setCheckable(True)
             def button_press_cb(event, mode=mode):
@@ -122,14 +113,8 @@ class MouseModePanel(ToolInstance):
         return tb
 
     def _icon(self, file):
-        from os import path
-        if path.isabs(file):
-            p = file
-        else:
-            icon_dir = path.join(path.dirname(__file__), 'icons')
-            p = path.join(icon_dir, file)
         from PyQt5.QtGui import QIcon
-        qi = QIcon(p)
+        qi = QIcon(file)
         return qi
 
     def display(self, show):
@@ -155,3 +140,14 @@ class MouseModePanel(ToolInstance):
     def get_singleton(cls, session):
         from chimerax.core import tools
         return tools.get_singleton(session, MouseModePanel, 'Mouse Modes for Right Button')
+
+def ordered_modes(modes, mode_order):
+    # First arrange named ordered modes
+    nm = {m.name:m for m in modes if m.icon_file}
+    omodes = [nm[mode_name] for mode_name in mode_order if mode_name in nm]
+    # Modes not in ordered list are put at end
+    omset = set(omodes)
+    for m in nm.values():
+        if m not in omset:
+            omodes.append(m)
+    return omodes

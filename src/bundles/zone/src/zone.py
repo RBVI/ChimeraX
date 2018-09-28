@@ -9,11 +9,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from os.path import join, dirname
 from chimerax.ui import MouseMode
 class AtomZoneMouseMode(MouseMode):
     name = 'zone'
-    icon_file = join(dirname(__file__), 'zone.png')
+    icon_file = 'zone.png'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

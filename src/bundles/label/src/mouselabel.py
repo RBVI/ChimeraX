@@ -61,3 +61,7 @@ class LabelMouseMode(MouseMode):
         # Use opaque background to speed up rendering and improve appearance in VR.
         # Use fixed height in scene units since that is more natural in VR.
         # Reorient only on 45 degree view changes, less distracting in VR.
+          
+def register_mousemode(session):
+    mm = session.ui.mouse_modes
+    mm.add_mode(LabelMouseMode(session))

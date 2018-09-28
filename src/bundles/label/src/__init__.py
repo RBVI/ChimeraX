@@ -14,6 +14,14 @@ from chimerax.core.toolshed import BundleAPI
 class _LabelBundle(BundleAPI):
 
     @staticmethod
+    def initialize(session, bundle_info):
+        """Register label mouse modes."""
+        if session.ui.is_gui:
+            from . import mouselabel, movelabel
+            mouselabel.register_mousemode(session)
+            movelabel.register_mousemode(session)
+
+    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import label2d, label3d
@@ -35,3 +43,4 @@ bundle_api = _LabelBundle()
 
 from .label2d import label_create, label_change, label_delete, Label
 from .mouselabel import LabelMouseMode
+from .movelabel import MoveLabelMouseMode

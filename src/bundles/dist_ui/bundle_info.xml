@@ -11,6 +11,10 @@
   <Synopsis>Distance measurement user interface</Synopsis>
   <Description>Distance measurement tool, mouse mode, and context-menu entry</Description>
 
+  <DataFiles>
+    <DataFile>distance.png</DataFile>
+  </DataFiles>
+
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="Structure Analysis"/>

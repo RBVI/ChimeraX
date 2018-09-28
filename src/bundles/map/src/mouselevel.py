@@ -122,4 +122,6 @@ def log_volume_level_command(v):
     from chimerax.core.commands import log_equivalent_command
     log_equivalent_command(v.session, command)
 
-            
+def register_mousemode(session):
+    mm = session.ui.mouse_modes
+    mm.add_mode(ContourLevelMouseMode(session))

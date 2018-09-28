@@ -16,6 +16,13 @@ from chimerax.core.toolshed import BundleAPI
 class _MarkersAPI(BundleAPI):
 
     @staticmethod
+    def initialize(session, bundle_info):
+        """Register marker mouse modes."""
+        if session.ui.is_gui:
+            from . import mouse
+            mouse.register_mousemode(session)
+
+    @staticmethod
     def start_tool(session, tool_name):
         from .markergui import marker_panel
         p = marker_panel(session, tool_name)
