@@ -38,7 +38,7 @@ install app-install:	bundle_info.xml $(PYSRCS)
 	$(RUN) "devel install . user false exit true $(DEVEL_ARGS)"
 
 test:
-	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
+	for t in $(wildcard cxtest*.cxc) $(wildcard cxtest*.py);\
 		do $(CHIMERAX_EXE) --exit --nogui $$t;\
 	done
 
