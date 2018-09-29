@@ -20,7 +20,7 @@ TODO
 
 from chimerax.core.core_settings import set_proxies, settings as core_settings
 from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, FloatOption
-from .options import StringOption, HostPortOption
+from .options import StringOption, HostPortOption, Option
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
@@ -30,6 +30,143 @@ class AtomSpecOption(SymbolicEnumOption):
 class UpdateIntervalOption(SymbolicEnumOption):
     values = ("day", "week", "month")
     labels = ("every day", "every week", "every month")
+
+class InitWindowSizeOption(Option):
+
+    def get(self):
+        size_scheme = self.push_button.text()
+        if size_scheme == "last used":
+            data = None
+        elif size_scheme == "proportional":
+            data = (self.w_proportional_spin_box.value()/100,
+                self.h_proportional_spin_box.value()/100)
+        else:
+            data = (self.w_fixed_spin_box.value(), self.h_fixed_spin_box.value())
+        return (size_scheme, data)
+
+    def set(self, value):
+        size_scheme, size_data = value
+        self.push_button.setText(size_scheme)
+        if size_scheme == "proportional":
+            w, h = size_data
+            data = (self.w_proportional_spin_box.setValue(w*100),
+                self.h_proportional_spin_box.setValue(h*100))
+        elif size_scheme == "fixed":
+            w, h = size_data
+            self.w_fixed_spin_box.setValue(w)
+            self.h_fixed_spin_box.setValue(h)
+        self._show_appropriate_widgets()
+
+    def set_multiple(self):
+        self.push_button.setText(self.multiple_value)
+
+    def _make_widget(self, **kw):
+        from PyQt5.QtWidgets import QWidget, QHBoxLayout
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
+        self.widget.setLayout(layout)
+
+        from PyQt5.QtWidgets import QPushButton, QMenu
+        size_scheme, size_data = self.default
+        self.push_button = QPushButton(size_scheme)
+        menu = QMenu()
+        self.push_button.setMenu(menu)
+        from PyQt5.QtWidgets import QAction
+        menu = self.push_button.menu()
+        for label in ("last used", "proportional", "fixed"):
+            action = QAction(label, self.push_button)
+            action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
+            menu.addAction(action)
+        layout.addWidget(self.push_button)
+
+        self.fixed_widgets = []
+        self.proportional_widgets = []
+        w_pr_val, h_pr_val = 67, 67
+        w_px_val, h_px_val = 1200, 750
+        if size_scheme == "proportional":
+            w_pr_val, h_pr_val = size_data
+        elif size_scheme == "fixed":
+            w_px_val, h_px_val = size_data
+        from PyQt5.QtWidgets import QSpinBox, QWidget, QVBoxLayout, QLabel
+        self.nonmenu_widgets = QWidget()
+        layout.addWidget(self.nonmenu_widgets)
+        nonmenu_layout = QVBoxLayout()
+        nonmenu_layout.setContentsMargins(0,0,0,0)
+        self.nonmenu_widgets.setLayout(nonmenu_layout)
+        w_widgets = QWidget()
+        nonmenu_layout.addWidget(w_widgets)
+        w_layout = QHBoxLayout()
+        w_widgets.setLayout(w_layout)
+        w_layout.setContentsMargins(0,0,0,0)
+        w_layout.addWidget(QLabel("  width: "))
+        self.w_proportional_spin_box = QSpinBox()
+        self.w_proportional_spin_box.setMinimum(1)
+        self.w_proportional_spin_box.setMaximum(100)
+        self.w_proportional_spin_box.setValue(w_pr_val)
+        self.w_proportional_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        w_layout.addWidget(self.w_proportional_spin_box)
+        self.proportional_widgets.append(self.w_proportional_spin_box)
+        self.w_fixed_spin_box = QSpinBox()
+        self.w_fixed_spin_box.setMinimum(1)
+        self.w_fixed_spin_box.setMaximum(1000000)
+        self.w_fixed_spin_box.setValue(w_px_val)
+        self.w_fixed_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        w_layout.addWidget(self.w_fixed_spin_box)
+        self.fixed_widgets.append(self.w_fixed_spin_box)
+        w_proportional_label = QLabel("% of screen width")
+        w_layout.addWidget(w_proportional_label)
+        self.proportional_widgets.append(w_proportional_label)
+        w_fixed_label = QLabel("pixels")
+        w_layout.addWidget(w_fixed_label)
+        self.fixed_widgets.append(w_fixed_label)
+        h_widgets = QWidget()
+        nonmenu_layout.addWidget(h_widgets)
+        h_layout = QHBoxLayout()
+        h_widgets.setLayout(h_layout)
+        h_layout.setContentsMargins(0,0,0,0)
+        h_layout.addWidget(QLabel("  height: "))
+        self.h_proportional_spin_box = QSpinBox()
+        self.h_proportional_spin_box.setMinimum(1)
+        self.h_proportional_spin_box.setMaximum(100)
+        self.h_proportional_spin_box.setValue(h_pr_val)
+        self.h_proportional_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        h_layout.addWidget(self.h_proportional_spin_box)
+        self.proportional_widgets.append(self.h_proportional_spin_box)
+        self.h_fixed_spin_box = QSpinBox()
+        self.h_fixed_spin_box.setMinimum(1)
+        self.h_fixed_spin_box.setMaximum(1000000)
+        self.h_fixed_spin_box.setValue(h_px_val)
+        self.h_fixed_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        h_layout.addWidget(self.h_fixed_spin_box)
+        self.fixed_widgets.append(self.h_fixed_spin_box)
+        h_proportional_label = QLabel("% of screen height")
+        h_layout.addWidget(h_proportional_label)
+        self.proportional_widgets.append(h_proportional_label)
+        h_fixed_label = QLabel("pixels")
+        h_layout.addWidget(h_fixed_label)
+        self.fixed_widgets.append(h_fixed_label)
+        self._show_appropriate_widgets()
+
+    def _menu_cb(self, label):
+        self.push_button.setText(label)
+        self._show_appropriate_widgets()
+        self.make_callback()
+
+    def _show_appropriate_widgets(self):
+        for w in self.proportional_widgets + self.fixed_widgets:
+            w.hide()
+        self.nonmenu_widgets.hide()
+        size_scheme = self.push_button.text()
+        if size_scheme == "proportional":
+            self.nonmenu_widgets.show()
+            for w in self.proportional_widgets:
+                w.show()
+        elif size_scheme == "fixed":
+            self.nonmenu_widgets.show()
+            for w in self.fixed_widgets:
+                w.show()
 
 class CoreSettingsPanel:
 
@@ -163,9 +300,19 @@ class CoreSettingsPanel:
             None,
             'HTTPS proxy for ChimeraX to use when trying to reach web sites',
             True),
+        'initial_window_size': (
+            "Initial main window size",
+            "Window",
+            InitWindowSizeOption,
+            None,
+            None,
+            None,
+            None,
+            """Initial overall size of ChimeraX window""",
+            True),
         'resize_window_on_session_restore': (
             'Resize window on session restore',
-            'Sessions',
+            'Window',
             BooleanOption,
             None,
             None,
@@ -234,47 +381,3 @@ class CoreSettingsPanel:
             run(self.session, updater % val)
         else:
             updater(self.session, opt.value)
-
-    """
-    def _reset(self):
-        from chimerax.core.configfile import Value
-        all_categories = self.all_check.isChecked()
-        if not all_categories:
-            cur_cat = self.options_widget.tabText(self.options_widget.currentIndex())
-        for setting, setting_info in self.settings_info.items():
-            if not all_categories and setting_info[1] != cur_cat:
-                continue
-            default_val = core_settings.PROPERTY_INFO[setting]
-            if isinstance(default_val, Value):
-                default_val = default_val.default
-            opt = self.options[setting]
-            opt.set(default_val)
-            self._opt_cb(opt)
-
-    def _restore(self):
-        all_categories = self.all_check.isChecked()
-        if not all_categories:
-            cur_cat = self.options_widget.tabText(self.options_widget.currentIndex())
-        for setting, setting_info in self.settings_info.items():
-            if not all_categories and setting_info[1] != cur_cat:
-                continue
-            restore_val = core_settings.saved_value(setting)
-            opt = self.options[setting]
-            opt.set(restore_val)
-            self._opt_cb(opt)
-
-    def _save(self):
-        all_categories = self.all_check.isChecked()
-        # need to ensure "current value" is up to date before saving...
-        cur_cat = self.options_widget.tabText(self.options_widget.currentIndex())
-        save_settings = []
-        for setting, setting_info in self.settings_info.items():
-            if not all_categories and setting_info[1] != cur_cat:
-                continue
-            opt = self.options[setting]
-            setattr(core_settings, setting, opt.get())
-            save_settings.append(setting)
-        # We don't simply use core_settings.save() when all_categories is True
-        # since there may be core settings that aren't presented in the GUI
-        core_settings.save(settings=save_settings)
-    """

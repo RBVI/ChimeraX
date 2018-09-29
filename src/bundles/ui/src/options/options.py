@@ -510,7 +510,7 @@ class StringIntOption(Option):
 
     def _make_widget(self, min=None, max=None, string_label=None, int_label=None,
             initial_text_width="10em", **kw):
-        """initial_text_width should be a string hold a "stylesheet-friendly"
+        """initial_text_width should be a string holding a "stylesheet-friendly"
            value, (e.g. '10em' or '7ch') or None"""
         from PyQt5.QtWidgets import QLineEdit
         self._line_edit = QLineEdit()

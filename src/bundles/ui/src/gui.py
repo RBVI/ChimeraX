@@ -317,10 +317,22 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.session = session
         QMainWindow.__init__(self)
         self.setWindowTitle("ChimeraX")
-        # make main window 2/3 of full screen of primary display
-        dw = QDesktopWidget()
-        main_screen = dw.availableGeometry(dw.primaryScreen())
-        self.resize(main_screen.width()*.67, main_screen.height()*.67)
+
+        from chimerax.core.core_settings import settings as core_settings
+        sizing_scheme, size_data = core_settings.initial_window_size
+        if sizing_scheme == "last used" and core_settings.last_window_size is None:
+            sizing_scheme = "proportional"
+            size_data = (0.67, 0.67)
+        if sizing_scheme == "last used":
+            width, height = core_settings.last_window_size
+        elif sizing_scheme == "proportional":
+            wf, hf = size_data
+            dw = QDesktopWidget()
+            main_screen = dw.availableGeometry(dw.primaryScreen())
+            width, height = main_screen.width()*wf, main_screen.height()*hf
+        else:
+            width, height = size_data
+        self.resize(width, height)
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -644,6 +656,12 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _check_rapid_access(self, *args):
         self.rapid_access_shown = len(self.session.models) == 0
+
+    def resizeEvent(self, event):
+        QMainWindow.resizeEvent(self, event)
+        from chimerax.core.core_settings import settings as core_settings
+        size = event.size()
+        core_settings.last_window_size = (size.width(), size.height())
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
