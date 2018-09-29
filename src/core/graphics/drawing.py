@@ -437,14 +437,16 @@ class Drawing:
     '''Position in scene coordinates.'''
 
     def get_scene_positions(self, displayed_only = False):
-        # TODO: Need to clear cached positions if position or display state of any parent changes.
         dsp = self._displayed_scene_positions
-        if dsp is None:
-            p = self.get_positions(displayed_only)
-            for d in reversed(self.drawing_lineage[:-1]):
-                p = d.get_positions(displayed_only) * p
-            self._displayed_scene_positions = dsp = p
-        return dsp
+        if displayed_only and dsp is not None:
+            return dsp		# Cached value is for displayed only true.
+
+        p = self.get_positions(displayed_only)
+        for d in reversed(self.drawing_lineage[:-1]):
+            p = d.get_positions(displayed_only) * p
+        if displayed_only
+            self._displayed_scene_positions = p
+        return p
 
     def _scene_positions_changed(self):
         self._displayed_scene_positions = None
