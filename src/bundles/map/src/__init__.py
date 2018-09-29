@@ -91,6 +91,11 @@ class _MapBundle(BundleAPI):
         map.register_map_file_formats(session)
         map.register_eds_fetch()
         map.register_emdb_fetch()
+        if session.ui.is_gui:
+            from . import mouselevel, moveplanes
+            mouselevel.register_mousemode(session)
+            moveplanes.register_mousemode(session)
+
 
     @staticmethod
     def get_class(class_name):

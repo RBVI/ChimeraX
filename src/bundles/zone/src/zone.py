@@ -9,118 +9,141 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from os.path import join, dirname
 from chimerax.ui import MouseMode
 class AtomZoneMouseMode(MouseMode):
     name = 'zone'
-    icon_file = join(dirname(__file__), 'zone.png')
+    icon_file = 'zone.png'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
-        self._zone_center_atom = None
+        self._zone_center_residue = None
         self._residue_distance = 5
         self._label_distance = 4
+        self._label_size = 64		# Pixels
+        self._label_height = 0.7	# Scene units (Angstroms)
+        self._label_reorient = 45	# Degrees
+        from chimerax.core.colors import BuiltinColors
+        self._label_color = BuiltinColors['yellow']
+        self._label_background = BuiltinColors['black']
         self._surface_distance = 8
         self._coil_width_thickness = (0.2, 0.2)
         self._helix_width_thickness = (0.6, 0.2)
         self._sheet_width_thickness = (0.6, 0.2)
         self._ribbon_transparency = 100			# 0 = completely transparent, 255 = opaque
         self._labeled_residues = None
+        self._scale_accum = 1
+        self._scale_step = 1.3		# Minimum scaling step factor
 
-    def _show_zone(self, atom, center = False, label=True,
-                   ribbon=True, ribbon_hiding = True):
-        '''Show nearby atoms, labels, and surfaces.'''
+    def _show_zone(self, residue, label=True, ribbon=True, log_command = True):
+        '''Show nearby residues, labels, and surfaces.'''
 
-        self._zone_center_atom = atom
+        self._zone_center_residue = residue
             
-        ratoms = atom.residue.atoms
-        struct = atom.structure
-        all_atoms = struct.atoms
+        ratoms = residue.atoms
+        nres = self._show_near_residues(residue, show_ligands=ribbon)
 
         if label:
-            self._show_labels(ratoms, all_atoms)
+            self._show_labels()
 
         if ribbon:
-            natoms = self._show_near_atoms(ratoms, all_atoms, show_ligands=ribbon)
-            self._show_ribbons(struct, natoms.unique_residues, ribbon_hiding)
+            self._show_ribbons(nres)
 
         self._show_volume_zone(ratoms)
 
         # Set center of rotation
         v = self.session.main_view
-        v.center_of_rotation = atom.scene_coord
+        c = residue.structure.scene_position * residue.center
+        v.center_of_rotation = c
 
-        if center:
-            self._center_camera(atom.scene_coord)
+        if log_command:
+            rspec = residue.string(style='command line')
+            options = ' '.join(('' if ribbon else 'ribbon False',
+                                '' if label else 'label False'))
+            if log_command == 'include distances':
+                options = ' '.join((options,
+                                    'residueDistance %.3g' % self._residue_distance,
+                                    'labelDistance %.3g' % self._label_distance,
+                                    'surfaceDistance %.3g' % self._surface_distance))
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, 'zone %s %s' % (rspec, options))
 
-    def _unlabel(self):
-        res = self._labelled_residues
+    def _unlabel(self, log_command = True):
+        res = self._labeled_residues
         if res is None:
             return False
         from chimerax.label.label3d import label_delete
         label_delete(self.session, res, 'residues')
-        self._labelled_residues = None
+        self._labeled_residues = None
+        if log_command:
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, 'zone label False')
         return True
 
-    def _unzone(self):
-        atom = self._zone_center_atom
-        if atom is None:
+    def _unzone(self, log_command = True):
+        r = self._zone_center_residue
+        if r is None:
             return
-        struct = atom.structure
-        struct.atoms.displays = True
+        r.structure.atoms.displays = True
+        self._unlabel(log_command = False)
         from chimerax.map.filter.vopcommand import volume_unzone
         volume_unzone(self.session, self._shown_volumes())
+        if log_command:
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, 'zone clear')
         
-    def _show_near_atoms(self, ratoms, all_atoms, show_ligands):
-        natoms = self._nearby_atoms(ratoms, all_atoms, self._residue_distance)
+    def _show_near_residues(self, residue, show_ligands):
+        nres = self._nearby_residues(residue, self._residue_distance)
+        all_atoms = residue.structure.atoms
         cats = all_atoms.structure_categories
         if show_ligands:
             all_atoms[cats == 'main'].displays = False	   # Keep ligands and ions shown
             all_atoms[cats == 'solvent'].displays = False
         else:
             all_atoms.displays = False
-        natoms.displays = True
-        return natoms
+        nres.atoms.displays = True
+        return nres
     
-    def _nearby_atoms(self, atoms, other_atoms, distance):
+    def _nearby_residues(self, residue, distance):
         from chimerax.std_commands.zonesel import zone_items
-        za, zs = zone_items(atoms, [], distance, other_atoms, [], extend = True, residues = True)
-        return za
+        atoms = residue.atoms
+        other_atoms = residue.structure.atoms
+        za, zs = zone_items(atoms, [], distance, other_atoms, [],
+                            extend = True)
+        nres = za.unique_residues
+        return nres
 
-    def _show_labels(self, atoms, all_atoms):
-        # Show residue labels for nearby atoms.
-        latoms = self._nearby_atoms(atoms, all_atoms, self._label_distance)
+    def _show_labels(self):
+        # Show residue labels for nearby residues
+        r = self._zone_center_residue
+        lres = self._nearby_residues(r, self._label_distance)
         from chimerax.core.objects import Objects
-        aobj = Objects(atoms = latoms)
+        aobj = Objects(atoms = lres.atoms)
         from chimerax.label.label3d import label, label_delete
         ses = self.session
         label_delete(ses)
-        from chimerax.core.colors import BuiltinColors
-        label(ses, aobj, 'residues', size = 64, height = 0.7, orient = 45,
-              color = BuiltinColors['yellow'], background = BuiltinColors['black'])
-        self._labelled_residues = aobj
+        label(ses, aobj, 'residues', size = self._label_size, height = self._label_height,
+              orient = self._label_reorient, color = self._label_color,
+              background = self._label_background)
+        self._labeled_residues = aobj
 
-    def _show_ribbons(self, struct, hide_residues, ribbon_hiding):
+    def _show_ribbons(self, hide_residues):
         # Show ribbons thinner and transparent
-        res = struct.residues
-        if not hasattr(struct, '_zone_ribbon_setup'):
-            struct._zone_ribbon_setup = True
-            res.ribbon_displays = True
-            res.ribbon_hide_backbones = False
-            rm = struct.ribbon_xs_mgr
-            cw,ch = self._coil_width_thickness
-            rm.set_coil_scale(cw, ch)
-            hw,hh = self._helix_width_thickness
-            rm.set_helix_scale(hw, hh)
-            sw,sh = self._sheet_width_thickness
-            rm.set_sheet_scale(sw, sh)
-        if ribbon_hiding:
+        for struct in hide_residues.unique_structures:
+            res = struct.residues
+            if not hasattr(struct, '_zone_ribbon_setup'):
+                struct._zone_ribbon_setup = True
+                res.ribbon_displays = True
+                res.ribbon_hide_backbones = False
+                rm = struct.ribbon_xs_mgr
+                cw,ch = self._coil_width_thickness
+                rm.set_coil_scale(cw, ch)
+                hw,hh = self._helix_width_thickness
+                rm.set_helix_scale(hw, hh)
+                sw,sh = self._sheet_width_thickness
+                rm.set_sheet_scale(sw, sh)
+
             res.ribbon_displays = True
             hide_residues.ribbon_displays = False
-        else:
-            # Make ribbon where atoms are shown completely transparent
-            self._set_ribbon_transparency(res, self._ribbon_transparency)
-            self._set_ribbon_transparency(hide_residues, 0)
 
     def _set_ribbon_transparency(self, residues, alpha):
         rcolors = residues.ribbon_colors
@@ -130,7 +153,8 @@ class AtomZoneMouseMode(MouseMode):
     def _show_volume_zone(self, atoms):
         from chimerax.map.filter.zone import zone_operation
         for v in self._shown_volumes():
-            zone_operation(v, atoms, self._surface_distance, minimal_bounds = True, new_map = False)
+            zone_operation(v, atoms, self._surface_distance,
+                           minimal_bounds = True, new_map = False)
 
     def _shown_volumes(self):
         # Show surface zone
@@ -139,57 +163,70 @@ class AtomZoneMouseMode(MouseMode):
         volumes = [v for v in ses.models.list(type = Volume) if v.visible]
         return volumes
 
-    def _center_camera(self, scene_point):
-        # Center view on atom by moving camera perpendicular to sight direction.
-        # This pretty disorienting since everything in view jumps.
-        v = self.session.main_view
-        cpos = v.camera.position
-        (ax,ay,az) = cpos.inverse() * scene_point
-        offset = cpos*(ax,ay,0) - cpos.origin()
-        from chimerax.core.geometry import translation
-        v.move(translation(-offset))
+    def _scale_range(self, scale, ribbon=True):
+        r = self._zone_center_residue
+        if r is None:
+            return
+
+        # Accumulate scaling until a large enough scaling is requested
+        s = self._scale_accum * scale
+        step = self._scale_step
+        if s < step and s > 1/step:
+            self._scale_accum = s
+            return
+        self._scale_accum = 1
+
+        self._residue_distance *= s
+        self._label_distance *= s
+        self._surface_distance *= s
+
+        self._show_zone(r, ribbon=ribbon, log_command = 'include distances')
     
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        atom = self._mouse_pick(event)
-        if atom:
-            self._show_zone(atom)
+        res = self._mouse_pick(event)
+        if res:
+            self._show_zone(res)
         elif not self._unlabel():
             self._unzone()
     
     def mouse_drag(self, event):
-        # TODO: Change radius by dragging?  Could be slow.
-        pass
+        dx, dy = self.mouse_motion(event)
+        from math import exp
+        scale = exp(-0.003*dy)
+        self._scale_range(scale)
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
     
     def wheel(self, event):
-        # TODL: Change radius of zone?
-        pass
+        d = event.wheel_value()
+        from math import exp
+        scale = exp(0.3*d)
+        self._scale_range(scale)
     
     def _mouse_pick(self, event):
         x,y = event.position()
         from chimerax.ui.mousemodes import picked_object
         pick = picked_object(x, y, self.session.main_view)
-        return self._picked_atom(pick)
+        return self._picked_residue(pick)
     
-    def _picked_atom(self, pick):
-        from chimerax.atomic import PickedAtom, PickedResidue
+    def _picked_residue(self, pick):
+        from chimerax.atomic import PickedAtom, PickedResidue, Atoms
         if isinstance(pick, PickedAtom):
-            a = pick.atom
+            r = pick.atom.residue
         elif isinstance(pick, PickedResidue):
-            a = pick.residue.principal_atom
+            r = pick.residue
         else:
-            a = None
-        return a
+            r = None
+        return r
 
     def laser_click(self, xyz1, xyz2):
         from chimerax.ui.mousemodes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
-        atom = self._picked_atom(pick) 
-        if atom:
-            self._show_zone(atom, center=False, label=True, ribbon=False)
+        res = self._picked_residue(pick) 
+        if res:
+            self._show_zone(res, ribbon=False)
         elif not self._unlabel():
             self._unzone()
 
@@ -198,13 +235,50 @@ class AtomZoneMouseMode(MouseMode):
             # released button
             pass
         else:
-            if abs(delta_z) < .1:
-                return "accumulate drag"
-            a = self._zone_center_atom
-            if a:
-                from math import exp
-                scale = exp(delta_z / .3)
-                self._residue_distance *= scale
-                self._label_distance *= scale
-                self._surface_distance *= scale
-                self._show_zone(a, center=False, label=False, ribbon=False)
+            from math import exp
+            scale = exp(delta_z / .3)
+            self._scale_range(scale, ribbon=False)
+
+def zone(session, atoms = None, residue_distance = None,
+         label = None, label_distance = None,
+         surface_distance = None, ribbon = True):
+    zm = session._atom_zone_mouse_mode
+    if residue_distance is not None:
+        zm._residue_distance = residue_distance
+    if label_distance is not None:
+        zm._label_distance = label_distance
+    if surface_distance is not None:
+        zm._surface_distance = surface_distance
+    if atoms is None and label is not None:
+        if label:
+            zm._show_labels()
+        else:
+            zm._unlabel(log_command = False)
+    if atoms is not None:
+        res = atoms.unique_residues
+        if len(res) != 1:
+            from chimerax.core.errors import UserError
+            raise UserError('Must specify a single residue, %d specified' % len(res))
+        lbl = True if label is None else label
+        zm._show_zone(res[0], label=lbl, ribbon=ribbon, log_command = False)
+
+def zone_clear(session):
+    zm = session._atom_zone_mouse_mode
+    zm._unzone(log_command = False)
+         
+def register_zone_command(logger):
+    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg
+    from chimerax.atomic import AtomsArg
+    desc = CmdDesc(
+        optional = [('atoms', AtomsArg)],
+        keyword = [('label', BoolArg),
+                   ('label_distance', FloatArg),
+                   ('surface_distance', FloatArg),
+                   ('residue_distance', FloatArg),
+                   ('ribbon', BoolArg)],
+        synopsis = 'Show atom and map zone'
+    )
+    register('zone', desc, zone, logger=logger)
+
+    desc = CmdDesc(synopsis = 'Show all atoms and full map')
+    register('zone clear', desc, zone_clear, logger=logger)

@@ -67,7 +67,18 @@ def label_change(session, name, text = None, color = None, size = None, font = N
     l.update_drawing()
     return l
 
-
+# -----------------------------------------------------------------------------
+#
+def label_under_window_position(session, win_x, win_y):
+    w,h = session.main_view.window_size
+    fx,fy = (win_x+.5)/w, 1-(win_y+.5)/h	# win_y is 0 at top
+    for lbl in session_labels(session).labels.values():
+        dx,dy = fx - lbl.xpos, fy - lbl.ypos
+        lw,lh = lbl.drawing.size
+        if dx >=0 and dx < lw and dy >=0 and dy < lh:
+            return lbl
+    return None
+    
 # -----------------------------------------------------------------------------
 #
 def label_delete(session, name):
@@ -79,7 +90,6 @@ def label_delete(session, name):
         return
     l = lb.labels[name]
     l.delete()
-
 
 # -----------------------------------------------------------------------------
 #
@@ -166,9 +176,9 @@ class Labels(StateManager):
 # -----------------------------------------------------------------------------
 #
 def session_labels(session):
-    lb = getattr(session, 'labels', None)
+    lb = getattr(session, '_2d_labels', None)
     if lb is None:
-        session.labels = lb = Labels()
+        session._2d_labels = lb = Labels()
     return lb
         
 
@@ -256,6 +266,13 @@ class LabelDrawing(Drawing):
         uw,uh = 2*tw/w, 2*th/h
         from chimerax.core.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
+
+    @property
+    def size(self):
+        '''Label size as fraction of window size (0-1).'''
+        w,h = self.window_size
+        tw,th = self.texture_size
+        return (tw/w, th/h)
 
     def resize(self):
         l = self.label

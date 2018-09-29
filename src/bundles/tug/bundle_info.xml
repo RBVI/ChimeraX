@@ -9,6 +9,11 @@
   <Synopsis>Tug on atoms with molecular dynamics</Synopsis>
   <Description>Tug on atoms with molecular dynamics.</Description>
 
+  <DataFiles>
+    <DataFile>tug.png</DataFile>
+    <DataFile>minimize.png</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="Molecular structure"/>
   </Categories>

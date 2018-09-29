@@ -12,6 +12,7 @@
   <DataFiles>
     <DataFile>about.html</DataFile>
     <DataFile>icons/*.png</DataFile>
+    <DataFile>mousemode_icons/*.png</DataFile>
     <DataFile>widgets/icons/*.png</DataFile>
   </DataFiles>
 

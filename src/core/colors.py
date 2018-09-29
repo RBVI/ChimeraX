@@ -924,6 +924,7 @@ def _init():
     for name in BuiltinColors:
         rgb = BuiltinColors[name]
         color = Color([x / 255 for x in rgb], mutable=False)
+        color.color_name = name
         BuiltinColors[name] = color
 
 

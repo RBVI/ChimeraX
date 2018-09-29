@@ -19,7 +19,19 @@ DOCDIR = $(app_datadir)/docs/user/tools
 SRCS = $(wildcard *.html)
 IMAGES = $(wildcard *.png)
 
-MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png $(TOP)/src/bundles/zone/src/zone.png 
+MOUSEICONS = $(TOP)/src/bundles/ui/src/mousemode_icons/*.png \
+		$(TOP)/src/bundles/bond_rot/src/bondrot.png \
+		$(TOP)/src/bundles/dist_ui/src/distance.png \
+		$(TOP)/src/bundles/label/src/label.png \
+		$(TOP)/src/bundles/label/src/movelabel.png \
+		$(TOP)/src/bundles/map/src/contour.png \
+		$(TOP)/src/bundles/map/src/moveplanes.png \
+		$(TOP)/src/bundles/map_series/src/vseries.png \
+		$(TOP)/src/bundles/markers/src/icons/marker.png \
+		$(TOP)/src/bundles/swapaa/src/swapaa.png \
+		$(TOP)/src/bundles/tug/src/minimize.png \
+		$(TOP)/src/bundles/tug/src/tug.png \
+		$(TOP)/src/bundles/zone/src/zone.png
 MICONDIR = $(DOCDIR)/mouse-icons
 SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
 SICONDIR = $(DOCDIR)/shortcut-icons
