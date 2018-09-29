@@ -1007,12 +1007,60 @@ extern "C" int parse_writable_float_n9_array(PyObject *arg, void *farray)
 
 // ----------------------------------------------------------------------------
 //
+extern "C" int parse_float_2d_array(PyObject *arg, void *farray)
+{
+  Numeric_Array v;
+  if (!array_from_python(arg, 2, Numeric_Array::Float, &v, true))
+    return 0;
+  *static_cast<FArray*>(farray) = static_cast<FArray>(v);
+
+  return 1;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_writable_float_2d_array(PyObject *arg, void *farray)
+{
+  Numeric_Array v;
+  if (!array_from_python(arg, 2, Numeric_Array::Float, &v, false))
+    return 0;
+  *static_cast<FArray*>(farray) = static_cast<FArray>(v);
+
+  return 1;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" int parse_writable_float_3d_array(PyObject *arg, void *farray)
 {
   Numeric_Array v;
   if (!array_from_python(arg, 3, Numeric_Array::Float, &v, false))
     return 0;
   *static_cast<FArray*>(farray) = static_cast<FArray>(v);
+
+  return 1;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_int_2d_array(PyObject *arg, void *iarray)
+{
+  Numeric_Array v;
+  if (!array_from_python(arg, 2, Numeric_Array::Int, &v, true))
+    return 0;
+  *static_cast<IArray*>(iarray) = static_cast<IArray>(v);
+
+  return 1;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_writable_int_2d_array(PyObject *arg, void *iarray)
+{
+  Numeric_Array v;
+  if (!array_from_python(arg, 2, Numeric_Array::Int, &v, false))
+    return 0;
+  *static_cast<IArray*>(iarray) = static_cast<IArray>(v);
 
   return 1;
 }
