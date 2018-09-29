@@ -444,7 +444,7 @@ class Drawing:
         p = self.get_positions(displayed_only)
         for d in reversed(self.drawing_lineage[:-1]):
             p = d.get_positions(displayed_only) * p
-        if displayed_only
+        if displayed_only:
             self._displayed_scene_positions = p
         return p
 
