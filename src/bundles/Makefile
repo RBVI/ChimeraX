@@ -19,7 +19,7 @@ SUBDIRS = addh align_algs alignments atom_search atomic \
 	  dist_monitor dist_ui dssp exp_cmd file_history \
 	  gltf hbonds help_viewer ihm interfaces label list_info log \
 	  map map_data map_filter map_fit map_series \
-	  markers match_maker md_crds meeting mlp model_series \
+	  markers mask match_maker md_crds meeting mlp model_series \
 	  mmcif mmtf model_panel mol2 morph mouse_modes movie \
 	  nucleotides pdb read_pbonds \
 	  registration remote_control rest_server \
