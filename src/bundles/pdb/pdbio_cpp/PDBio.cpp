@@ -1738,7 +1738,7 @@ read_pdb_file(PyObject *, PyObject *args)
     PyObject *pdb_file;
     PyObject *py_logger;
     int explode, atomic;
-    if (!PyArg_ParseTuple(args, "O$Opp", &pdb_file, &py_logger, &explode, &atomic))
+    if (!PyArg_ParseTuple(args, "OOpp", &pdb_file, &py_logger, &explode, &atomic))
         return nullptr;
     return read_pdb(pdb_file, py_logger, explode, atomic);
 }
@@ -1785,7 +1785,7 @@ write_pdb_file(PyObject *, PyObject *args)
     int pqr;
     int h36;
     PyObject *py_poly_res_names;
-    if (!PyArg_ParseTuple(args, "OO&$ppOpppO",
+    if (!PyArg_ParseTuple(args, "OO&ppOpppO",
             &py_structures, PyUnicode_FSConverter, &py_path, &selected_only,
             &displayed_only, &py_xforms, &all_coordsets, &pqr, &h36, &py_poly_res_names))
         return nullptr;
