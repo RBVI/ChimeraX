@@ -1,0 +1,88 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: zone</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: zone</h3>
+
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>zone</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;
+[&nbsp;<b>residueDistance</b>&nbsp;&nbsp;<i>d<sub>r</sub></i>&nbsp;]
+[&nbsp;<b>labelDistance</b>&nbsp;&nbsp;<i>d<sub>l</sub></i>&nbsp;]
+[&nbsp;<b>surfaceDistance</b>&nbsp;&nbsp;<i>d<sub>s</sub></i>&nbsp;]
+[&nbsp;<b>label</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>ribbons</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>zone clear</b>
+</h3>
+<p>
+The <b>zone</b> command shows atomic detail and residue labels near a 
+specified single residue of interest.
+Density-map or other <a href="../tools/volumeviewer.html">volume data</a> 
+displays can also be restricted to a zone near that residue, 
+and different cutoff distances can be used for the atoms, residue labels,
+and volume displays:
+</p>
+<ul>
+<li><b>residueDistance</b> (initial default <b>5</b> &Aring;)
+- for all-atom display of nearby residues
+<li><b>labelDistance</b> (initial default <b>4</b> &Aring;)
+- for labels on nearby residues
+<li><b>surfaceDistance</b> (initial default <b>8</b> &Aring;)
+- for <a href="../tools/volumeviewer.html">volume data</a> displays
+(surface, mesh, or solid);
+does not affect <a href="surface.html">molecular surfaces</a>
+</ul>
+<p>
+The cutoff values remain in effect for automatic application with
+the <b>zone</b> command and/or
+<b>zone</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/zone.png"></a>
+until they are explicitly changed or ChimeraX is exited.
+</p><p>
+The <b>label</b> option indicates whether to show zone residue labels
+(default <b>true</b>; <b>false</b> removes all residue labels).
+The <b>ribbons</b> option shows the beyond-zone residues 
+of the same atomic model as a narrow ribbon
+(default <b>true</b>; <b>false</b> does not modify any existing cartoons).
+</p><p>
+The <b>zone clear</b> command clears the labels, shows all atoms,
+and turns off volume zoning.
+</p><p>
+For <a href="surface.html">molecular surfaces</a>,
+see <a href="surface.html#zone"><b>surface zone</b></a>.
+See also: 
+<a href="volume.html#zone"><b>volume zone</b></a> (with <b>newMap false</b>),
+<a href="label.html#residues"><b>label</b></a>,
+<a href="show.html"><b>show</b></a>,
+<a href="cartoon.html"><b>cartoon</b></a>,
+<a href="select.html#zone"><b>select zone</b></a>,
+<a href="atomspec.html#zones">zone atom specification</a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2018</address>
+</body></html> 

@@ -27,20 +27,17 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>start</b>&nbsp;
-[&nbsp;<b>copyScene</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;] 
-[&nbsp;<b>port</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>updateInterval</b>&nbsp;&nbsp;<i>M</i>&nbsp;] 
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;] 
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>&nbsp;] 
 [&nbsp;<b>headImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
+<span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<i>host</i>&nbsp;
-[&nbsp;<b>port</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>updateInterval</b>&nbsp;&nbsp;<i>M</i>&nbsp;] 
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;] 
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>&nbsp;] 
 [&nbsp;<b>headImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
+<span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>send</b>
@@ -57,9 +54,7 @@ although it can also be used without VR.
 Each participant is represented by a head image and 
 hand-controller pointers (or if not using VR, the mouse pointer)
 so that participants can see each other pointing at atoms in the scene.
-Participants can specify a <b>name</b> to serve as an identifier 
-within the shared environment, a head-image file, and a <b>color</b>
-for their pointer(s), which are represented by cones.
+See also: <a href="vr.html"><b>vr</b></a>
 </p><p>
 The meeting is initiated with <b>meeting start</b>, which reports the 
 hostname and IP address in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -67,17 +62,22 @@ Subsequently, others join using <b>meeting</b> <i>host</i>,
 where <i>host</i> is the hostname or IP address of the starting instance
 (<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>).
 </p><p>
+Each participant can specify a <b>name</b> to serve as an identifier 
+within the shared environment, a <b>headImage</b> file, 
+and a pointer-cone <b>color</b>.
+</p><p>
 Aside from synchronizing pointers, the <b>meeting</b> command will 
 <a href="#options">copy</a>
 a session from the ChimeraX instance that initiates the meeting 
 to each person who joins the meeting.
-This copying is done only when a person joins the meeting; 
-subsequent changes are not shared, except if a particpant using 
-VR moves the scene, others using VR will see the motion.
+This copying is done only when a person joins the meeting. 
+Commands executed by one participant will automatically execute for the others
+(by <a href="#relayCommands">default</a>),
+and if a participant using VR moves the scene,
+others using VR will see the motion.
 Participants not using VR maintain their own viewing directions.
-After opening and closing models or otherwise changing the display, 
-however, any participant can share his current scene with the others 
-using the <b>meeting send</b> command.
+If unshared changes have been made, a participant can still share 
+his current scene with the others by using <b>meeting send</b>.
 The host can end the meeting with <b>meeting close</b>, or
 others can use it to exit the meeting individually.
 </p><p>
@@ -91,36 +91,6 @@ and has several <a href="#limitations">limitations</a>.
 </p>
 <h3>Options</h3>
 
-<blockquote>
-<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
-<br>
-Specified with <b>meeting start</b>,
-whether to copy the session from the starting instance
-to each person who joins the meeting (default <b>true</b>).
-This copying is done only when a person joins the meeting. 
-Subsequently, if any participant opens a new model
-or changes the display of existing models, 
-those changes will not appear for the other participants.
-However, after making changes, any participant can share his current scene
-with the others using <b>meeting send</b>.
-</blockquote>
-<blockquote>
-<b>port</b>&nbsp;&nbsp;<i>N</i>
-<br>
-Number of the network port used to connect to the meeting host
-(default <b>52194</b>). Unless the default is used,
-all who join the meeting must specify the same number 
-as specified with <b>meeting start</b>.
-</blockquote>
-<blockquote>
-<b>updateInterval</b>&nbsp;&nbsp;<i>M</i>
-<br>
-How often to send a participant's
-VR headset and hand-controller positions to the other participants
-(every <i>M</i><sup>th</sup> frame, default <b>1</b>, every frame).
-For non-VR users, the mouse pointer is not tracked continuously;
-the position is only displayed to others when it hovers over an atom.
-</blockquote>
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>participant-name</i>
 <br>
@@ -145,19 +115,58 @@ for the pathname brings up a file browser window for choosing the
 file interactively.
 </blockquote>
 
+<blockquote>
+<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Specified with <b>meeting start</b>,
+whether to copy the session from the starting instance
+to each person who joins the meeting (default <b>true</b>).
+This copying is done only when a person joins the meeting. 
+</blockquote>
+<blockquote>
+<a name="relayCommands"></a>
+<b>relayCommands</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to share <a href="../index.html#commands">commands</a>
+with other participants, and in turn, execute other participants' commands 
+automatically (default <b>true</b>).
+Note that <a href="../index.html#tools">toolbar</a> icon buttons and many 
+<a href="ui.html#mousemode">mouseclick/pointer operations</a> act via commands.
+</blockquote>
+<blockquote>
+<b>port</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Number of the network port used to connect to the meeting host
+(default <b>52194</b>). Unless the default is used,
+all who join the meeting must specify the same number 
+as specified with <b>meeting start</b>.
+</blockquote>
+<blockquote>
+<b>updateInterval</b>&nbsp;&nbsp;<i>M</i>
+<br>
+How often to send a participant's
+VR headset and hand-controller positions to the other participants
+(every <i>M</i><sup>th</sup> frame, default <b>1</b>, every frame).
+For non-VR users, the mouse pointer is not tracked continuously;
+the position is only displayed to others when it hovers over an atom.
+</blockquote>
+
 <a name="limitations"></a>
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
 <h3>Limitations and Potential Developments</h3>
 <p>
-In the future we hope to synchronize more kinds of changes 
-(hiding/showing, display styles, colors, <i>etc.</i>). 
-Currently the only changes propagated to other participants are moving
-and scaling the displayed structures. Some additional synchronization 
-is simple to add, but changes that create and delete atoms or load new data
-will likely require sending the entire updated session to all participants. 
-This may be very slow for large amounts of data.
+After the initial scene is shared, the only changes 
+that are automatically propagated are moving and scaling 
+the displayed structures and (by <a href="#relayCommands">default</a>) 
+executing <a href="../index.html#commands">commands</a>.
+If a participant makes any unshared changes or
+introduces data for which the input file is not directly accessible 
+to others (<i>i.e.</i>, the same <a href="open.html"><b>open</b></a>
+command will not work for everyone), <b>meeting send</b> 
+is needed to share the updated session.
+This may be slow for large amounts of data.
 </p><p>
 An audio connection is not provided,
 so it is necessary to set up a separate audio link for remote participants.
@@ -175,5 +184,5 @@ accounts and payment for commercial services.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2018</address>
+October 2018</address>
 </body></html>
