@@ -13,6 +13,7 @@
 
   <DataFiles>
     <DataFile>templates.cif</DataFile>
+    <DataFile>swapaa.png</DataFile>
   </DataFiles>
 
   <!-- Categories is a list where this bundle should appear -->

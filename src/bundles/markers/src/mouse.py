@@ -17,7 +17,7 @@
 from chimerax.ui import MouseMode
 class MarkerMouseMode(MouseMode):
     name = 'place marker'
-    icon_file = 'marker.png'
+    icon_file = 'icons/marker.png'
 
     def __init__(self, session):
 
@@ -425,3 +425,10 @@ def _mouse_place_marker(session, center, link_to_selected = False, select = True
     if select:
         session.selection.clear()
         a.selected = True
+
+# -----------------------------------------------------------------------------
+#
+def register_mousemode(session):
+    mm = session.ui.mouse_modes
+    mm.add_mode(MarkerMouseMode(session))
+    mm.add_mode(ConnectMouseMode(session))

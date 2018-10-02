@@ -9,10 +9,6 @@
   <Synopsis>Provide right button mouse mode tool</Synopsis>
   <Description>Provide a series of icons for changing the assigment of the right mouse button.</Description>
 
-  <DataFiles>
-    <DataFile>icons/*.png</DataFile>
-  </DataFiles>
-
   <Categories>
     <Category name="Toolbar"/>
   </Categories>

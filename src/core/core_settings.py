@@ -34,6 +34,7 @@ class _CoreSettings(Settings):
         'clipping_cap_offset': 0.01,
         'http_proxy': ("", 80),
         'https_proxy': ("", 443),
+        'initial_window_size': ("last used", None),
         'resize_window_on_session_restore': False,
     }
     AUTO_SAVE = {
@@ -42,6 +43,7 @@ class _CoreSettings(Settings):
         'distance_decimal_places': 3,
         'distance_radius': 0.1,
         'distance_show_units': True,
+        'last_window_size': None,
         'toolshed_update_interval': 'week',
         'toolshed_last_check': '',
     }

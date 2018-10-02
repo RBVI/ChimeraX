@@ -151,6 +151,21 @@ class MouseMode:
         else:
             cp = c.position
         return cp
+
+    @property
+    def icon_path(self):
+        file = self.icon_file
+        if file is None:
+            return None
+
+        from os import path
+        if path.isabs(file):
+            return file
+
+        import inspect
+        cfile = inspect.getfile(self.__class__)
+        p = path.join(path.dirname(cfile), file)
+        return p
     
 class MouseBinding:
     '''
@@ -430,7 +445,7 @@ class MouseEvent:
 class SelectMouseMode(MouseMode):
     '''Mouse mode to select objects by clicking on them.'''
     name = 'select'
-    icon_file = 'select.png'
+    icon_file = 'mousemode_icons/select.png'
 
     _menu_entry_info = []
 
@@ -632,7 +647,7 @@ class RotateMouseMode(MouseMode):
     perpendicular to the direction of the drag.
     '''
     name = 'rotate'
-    icon_file = 'rotate.png'
+    icon_file = 'mousemode_icons/rotate.png'
     click_to_select = False
 
     def __init__(self, session):
@@ -702,7 +717,7 @@ class RotateAndSelectMouseMode(RotateMouseMode):
     while click and drag produces rotation.
     '''
     name = 'rotate and select'
-    icon_file = 'rotatesel.png'
+    icon_file = 'mousemode_icons/rotatesel.png'
     click_to_select = True
 
 class RotateSelectedMouseMode(RotateMouseMode):
@@ -713,7 +728,7 @@ class RotateSelectedMouseMode(RotateMouseMode):
     then the camera is moved as if all models are rotated.
     '''
     name = 'rotate selected models'
-    icon_file = 'rotate_h2o.png'
+    icon_file = 'mousemode_icons/rotate_h2o.png'
 
     def models(self):
         return top_selected(self.session)
@@ -735,7 +750,7 @@ class TranslateMouseMode(MouseMode):
     Mouse mode to move objects in x and y (actually the camera is moved) by dragging.
     '''
     name = 'translate'
-    icon_file = 'translate.png'
+    icon_file = 'mousemode_icons/translate.png'
 
     def mouse_drag(self, event):
 
@@ -768,7 +783,7 @@ class TranslateSelectedMouseMode(TranslateMouseMode):
     then the camera is moved as if all models are shifted.
     '''
     name = 'translate selected models'
-    icon_file = 'move_h2o.png'
+    icon_file = 'mousemode_icons/move_h2o.png'
 
     def models(self):
         return top_selected(self.session)
@@ -779,7 +794,7 @@ class ZoomMouseMode(MouseMode):
     and the objects remain at their same scene coordinates.
     '''
     name = 'zoom'
-    icon_file = 'zoom.png'
+    icon_file = 'mousemode_icons/zoom.png'
 
     def mouse_drag(self, event):        
 
@@ -860,7 +875,7 @@ class ObjectIdMouseMode(MouseMode):
 class AtomCenterOfRotationMode(MouseMode):
     '''Clicking on an atom sets the center of rotation at that position.'''
     name = 'pivot'
-    icon_file = 'pivot.png'
+    icon_file = 'mousemode_icons/pivot.png'
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -885,7 +900,7 @@ class ClipMouseMode(MouseMode):
     If the planes do not exist create them.
     '''
     name = 'clip'
-    icon_file = 'clip.png'
+    icon_file = 'mousemode_icons/clip.png'
 
     def mouse_drag(self, event):
 
@@ -993,7 +1008,7 @@ class ClipRotateMouseMode(MouseMode):
     Rotate clip planes.
     '''
     name = 'clip rotate'
-    icon_file = 'cliprot.png'
+    icon_file = 'mousemode_icons/cliprot.png'
 
     def mouse_drag(self, event):
 
@@ -1052,10 +1067,6 @@ class ClipRotateMouseMode(MouseMode):
 
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
-    from chimerax import markers
-    from chimerax.map import ContourLevelMouseMode, PlanesMouseMode
-    from chimerax.map.series import PlaySeriesMouseMode
-    from chimerax.label import LabelMouseMode
     mode_classes = [
         SelectMouseMode,
         SelectAddMouseMode,
@@ -1070,13 +1081,7 @@ def standard_mouse_mode_classes():
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
-        LabelMouseMode,
         AtomCenterOfRotationMode,
-        ContourLevelMouseMode,
-        PlanesMouseMode,
-        markers.MarkerMouseMode,
-        markers.ConnectMouseMode,
-        PlaySeriesMouseMode,
         NullMouseMode,
     ]
     return mode_classes

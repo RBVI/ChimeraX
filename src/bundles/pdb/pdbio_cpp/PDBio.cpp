@@ -69,6 +69,15 @@ const std::vector<std::string> record_order = {
     "SIGUIJ", "TER", "HETATM", "ENDMDL", "CONECT", "MASTER", "END",
 };
 
+// standard_polymer_res_names contains the names of residues that should use
+// PDB ATOM records.
+static std::set<ResName> standard_polymeric_res_names = {
+    // "N" and "DN", are basically "UNK" for nucleic acids
+    "A", "ALA", "ARG", "ASN", "ASP", "ASX", "C", "CYS", "DA", "DC", "DG", "DN", "DT",
+    "G", "GLN", "GLU", "GLX", "GLY", "HIS", "I", "ILE", "LEU", "LYS", "MET", "N",
+    "PHE", "PRO", "SER", "T", "THR", "TRP", "TYR", "U", "UNK", "VAL"
+};
+
 static void
 canonicalize_atom_name(AtomName& aname, bool *asterisks_translated)
 {
@@ -97,10 +106,7 @@ canonicalize_res_name(ResName& rname)
     for (int i = rname.length(); i > 0; ) {
         --i;
         if (rname[i] == ' ') {
-            auto j = i;
-            do {
-                rname[j] = rname[j+1];
-            } while (rname[j++] != '\0');
+            rname.replace(i, 1, "");
             continue;
         }
         rname[i] = toupper(rname[i]);
@@ -1238,7 +1244,7 @@ start_t = end_t;
             Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
                 link_up(*li, fs, &conect_atoms, py_logger);
-            connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs]);
+            connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs], standard_polymeric_res_names);
             prune_short_bonds(fs);
             fs->use_best_alt_locs();
         }
@@ -1507,7 +1513,7 @@ chief_or_link(const Atom* a)
 
 static void
 write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& rev_asn,
-    const std::set<const Atom*>& written)
+    const std::set<const Atom*>& written, const std::set<ResName>& polymeric_res_names)
 {
     PDB p;
     // to handle circular/cross-linked structures, make a map from residue to residue index...
@@ -1530,7 +1536,7 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
     }
 
     for (auto r: s->residues()) {
-        bool standard = is_standard_residue(r->name());
+        bool standard = polymeric_res_names.find(r->name()) != polymeric_res_names.end();
         // verify that the "standard" residue in fact has standard connectivity...
         if (standard) {
             auto index = res_order[r];
@@ -1589,7 +1595,7 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
                     continue;
                 auto oar = oa->residue();
                 if (skip_conect && oar != r) {
-                    if (!is_standard_residue(oar->name())
+                    if (polymeric_res_names.find(oar->name()) == polymeric_res_names.end()
                     || !chief_or_link(a)
                     || oar->chain_id() != r->chain_id()
                     || std::abs(res_order[r] - res_order[oar]) > 1)
@@ -1626,7 +1632,8 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
 
 static void
 write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selected_only,
-    bool displayed_only, std::vector<double*>& xforms, bool all_coordsets, bool pqr, bool h36)
+    bool displayed_only, std::vector<double*>& xforms, bool all_coordsets, bool pqr, bool h36,
+    const std::set<ResName>& polymeric_res_names)
 {
     PDB p(h36);
     // non-selected/displayed atoms may not be written out, so we need to track what
@@ -1703,7 +1710,7 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
                 os << p << "\n";
             }
         }
-        write_conect(os, s, rev_asn, written);
+        write_conect(os, s, rev_asn, written, polymeric_res_names);
         p.set_type(PDB::END);
         os << p << "\n";
     }
@@ -1726,14 +1733,12 @@ docstr_read_pdb_file =
 " (if 'atomic' is True, otherwise Structure objects)";
 
 extern "C" PyObject *
-read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
+read_pdb_file(PyObject *, PyObject *args)
 {
     PyObject *pdb_file;
-    PyObject *py_logger = Py_None;
-    int explode = 1, atomic = 1;
-    static const char *kw_list[] = {"file", "log", "explode", "atomic", nullptr};
-    if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Opp",
-            (char **) kw_list, &pdb_file, &py_logger, &explode, &atomic))
+    PyObject *py_logger;
+    int explode, atomic;
+    if (!PyArg_ParseTuple(args, "OOpp", &pdb_file, &py_logger, &explode, &atomic))
         return nullptr;
     return read_pdb(pdb_file, py_logger, explode, atomic);
 }
@@ -1741,7 +1746,8 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 static const char*
 docstr_write_pdb_file = 
 "write_pdb_file(structures, file_name, selected_only=False,"
-" displayed_only=False, xforms=None, all_coordsets=True, pqr=False)\n"
+" displayed_only=False, xforms=None, all_coordsets=True, pqr=False,"
+" polymeric_res_names=None)\n"
 "\n"
 "'structures' is a sequence of C++ structure pointers\n"
 "'file_name' is the output file path\n"
@@ -1763,26 +1769,25 @@ docstr_write_pdb_file =
 " column of ATOM records will be stolen for an additional digit (AMBER style), so up to"
 " 999,999 atoms.  If True, then hybrid-36 encoding will be used (see"
 " http://cci.lbl.gov/hybrid_36), so up to 87,440,031 atoms."
+" 'polymeric_res_names' is a sequence of residue names that"
+" should be output using ATOM records rather than HETATM records."
 "\n";
 
 extern "C" PyObject*
-write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
+write_pdb_file(PyObject *, PyObject *args)
 {
     PyObject *py_structures;
     PyObject *py_path;
-    int selected_only = (int)false;
-    int displayed_only = (int)false;
-    PyObject* py_xforms = Py_None;
-    int all_coordsets = (int)true;
-    int pqr = (int)false;
-    int h36 = (int)true;
-    static const char *kw_list[] = {
-        "structures", "file_name", "selected_only", "displayed_only", "xforms", "all_coordsets",
-        "pqr", "h36", nullptr
-    };
-    if (!PyArg_ParseTupleAndKeywords(args, keywords, "OO&|$ppOppp",
-            (char **) kw_list, &py_structures, PyUnicode_FSConverter, &py_path, &selected_only,
-            &displayed_only, &py_xforms, &all_coordsets, &pqr, &h36))
+    int selected_only;
+    int displayed_only;
+    PyObject* py_xforms;
+    int all_coordsets;
+    int pqr;
+    int h36;
+    PyObject *py_poly_res_names;
+    if (!PyArg_ParseTuple(args, "OO&ppOpppO",
+            &py_structures, PyUnicode_FSConverter, &py_path, &selected_only,
+            &displayed_only, &py_xforms, &all_coordsets, &pqr, &h36, &py_poly_res_names))
         return nullptr;
 
     if (!PySequence_Check(py_structures)) {
@@ -1804,6 +1809,24 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
             return nullptr;
         }
         structures.push_back(static_cast<const Structure*>(PyLong_AsVoidPtr(py_ptr)));
+    }
+
+    std::set<ResName> poly_res_names;
+    if (!PySequence_Check(py_poly_res_names)) {
+        PyErr_SetString(PyExc_TypeError, "'polymeric_res_names' arg is not a sequence");
+        return nullptr;
+    }
+    for (auto i = PySequence_Length(py_poly_res_names); i > 0; --i) {
+        auto py_res_name = PySequence_GetItem(py_poly_res_names, i-1);
+        if (!PyUnicode_Check(py_res_name)) {
+            Py_DECREF(py_res_name);
+            std::stringstream err_msg;
+            err_msg << "Item at index " << i-1 << " of 'polymeric_res_names' arg is not a string";
+            PyErr_SetString(PyExc_TypeError, err_msg.str().c_str());
+            return nullptr;
+        }
+        poly_res_names.insert(PyUnicode_AS_DATA(py_res_name));
+        Py_DECREF(py_res_name);
     }
 
     const char* path = PyBytes_AS_STRING(py_path);
@@ -1854,8 +1877,9 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
             xforms.push_back(static_cast<double*>(array.values()));
         }
     }
+
     write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xforms,
-        (bool)all_coordsets, (bool)pqr, (bool)h36);
+        (bool)all_coordsets, (bool)pqr, (bool)h36, poly_res_names);
 
     if (os.bad()) {
         PyErr_SetString(PyExc_ValueError, "Problem writing output PDB file");
@@ -1868,9 +1892,9 @@ write_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 
 static struct PyMethodDef pdbio_functions[] =
 {
-    { "read_pdb_file", (PyCFunction)read_pdb_file, METH_VARARGS|METH_KEYWORDS, 
+    { "read_pdb_file", (PyCFunction)read_pdb_file, METH_VARARGS, 
         docstr_read_pdb_file },
-    { "write_pdb_file", (PyCFunction)write_pdb_file, METH_VARARGS|METH_KEYWORDS,
+    { "write_pdb_file", (PyCFunction)write_pdb_file, METH_VARARGS,
         docstr_write_pdb_file },
     { nullptr, nullptr, 0, nullptr }
 };
@@ -1890,5 +1914,10 @@ static struct PyModuleDef pdbio_def =
 
 PyMODINIT_FUNC PyInit__pdbio()
 {
-    return PyModule_Create(&pdbio_def);
+    auto mod = PyModule_Create(&pdbio_def);
+    auto res_names = PyFrozenSet_New(nullptr);
+    for (auto res_name: standard_polymeric_res_names)
+        PySet_Add(res_names, PyUnicode_FromString(res_name.c_str()));
+    PyModule_AddObject(mod, "standard_polymeric_res_names", res_names);
+    return mod;
 }

@@ -54,7 +54,7 @@ from .eds_fetch import register_eds_fetch
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
 from .molmap import register_molmap_command
-from .mapargs import MapArg, MapsArg
+from .mapargs import MapArg, MapsArg, Float1or3Arg
 
 # -----------------------------------------------------------------------------
 #
@@ -91,6 +91,11 @@ class _MapBundle(BundleAPI):
         map.register_map_file_formats(session)
         map.register_eds_fetch()
         map.register_emdb_fetch()
+        if session.ui.is_gui:
+            from . import mouselevel, moveplanes
+            mouselevel.register_mousemode(session)
+            moveplanes.register_mousemode(session)
+
 
     @staticmethod
     def get_class(class_name):
