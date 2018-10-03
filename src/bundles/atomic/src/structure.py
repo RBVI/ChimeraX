@@ -1525,11 +1525,11 @@ class Structure(Model, StructureData):
                 colors[:,3] = around(colors[:,3] * self.ribbon_tether_opacity).astype(int)
                 tp.colors = colors
 
-    def bounds(self, positions = True):
-        self._update_graphics_if_needed()       # Ribbon bound computed from graphics
+    def bounds(self):
+        self._update_graphics_if_needed()       # Ribbon bounds computed from graphics
         # import sys, time
         # start = time.time()
-        b = super().bounds(positions=positions)
+        b = super().bounds()
         # stop = time.time()
         # print('structure bounds time:', (stop - start) * 1e6, file=sys.__stderr__)
         return b
@@ -1541,7 +1541,8 @@ class Structure(Model, StructureData):
         picks = []
         np = len(self.positions)
         if np > 1:
-            pos_nums = self.bounds_intercept_copies(self.bounds(positions = False), mxyz1, mxyz2)
+            b = self._pick_bounds()
+            pos_nums = self.bounds_intercept_copies(b, mxyz1, mxyz2)
         else:
             # Don't do bounds check for single copy because bounds are not cached.
             pos_nums = range(np)
@@ -1557,6 +1558,18 @@ class Structure(Model, StructureData):
                 pclosest = p
         return pclosest
 
+    def _pick_bounds(self):
+        '''
+        Bounds for this model not including positions.  Used for optimizing picking
+        when there are multiple positions.  Includes atoms and ribbons.
+        '''
+        ad = self._atoms_drawing
+        drawings = [ad]
+        drawings.extend(rd for rd in self.child_drawings() if isinstance(rd, RibbonDrawing))
+        from chimerax.core.geometry import union_bounds
+        b = union_bounds([d.bounds() for d in drawings if d is not None])
+        return b
+        
     def _position_intercepts(self, place, mxyz1, mxyz2, exclude=None):
         # TODO: check intercept of bounding box as optimization
         xyz1, xyz2 = place.inverse() * (mxyz1, mxyz2)
@@ -1954,10 +1967,8 @@ class AtomsDrawing(Drawing):
         self.visible_atoms = None
         super().__init__(name)
 
-    def bounds(self, positions=True):
-        if not positions:
-            return self._geometry_bounds()
-        cpb = self._cached_position_bounds
+    def bounds(self):
+        cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
             return cpb
         # TODO: use the next two lines instead of the following four for a 5% speedup
@@ -1965,6 +1976,8 @@ class AtomsDrawing(Drawing):
         # xyzr = self.positions.shift_and_scale_array()
         # coords, radii = xyzr[:, :3], xyzr[:, 3]
         a = self.visible_atoms
+        if len(a) == 0:
+            return None
         adisp = a[a.displays]
         coords = adisp.coords
         radii = self.parent._atom_display_radii(adisp)
@@ -1973,9 +1986,12 @@ class AtomsDrawing(Drawing):
         #       If that was fixed by using a precomputed radius, then it would make
         #       sense to optimize this bounds calculation in C++ so arrays
         #       of display state, radii and coordinates are not needed.
-        from chimerax.core import geometry
-        b = geometry.sphere_bounds(coords, radii)
+        from chimerax.core.geometry import sphere_bounds, copies_bounding_box
+        sb = sphere_bounds(coords, radii)
+        spos = self.parent.get_scene_positions(displayed_only=True)
+        b = sb if spos.is_identity() else copies_bounding_box(sb, spos)
         self._cached_position_bounds = b
+        
         return b
 
     def add_drawing(self, d):
@@ -2048,10 +2064,8 @@ class BondsDrawing(Drawing):
         self._picks_class = picks_class
         super().__init__(name)
 
-    def bounds(self, positions=True):
-        if not positions:
-            return self._geometry_bounds()
-        cpb = self._cached_position_bounds
+    def bounds(self):
+        cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
             return cpb
         bonds = self.visible_bonds
@@ -2063,9 +2077,12 @@ class BondsDrawing(Drawing):
         from numpy import amin, amax
         xyz_min = amin([amin(c1 - r, axis=0), amin(c2 - r, axis=0)], axis=0)
         xyz_max = amax([amax(c1 + r, axis=0), amax(c2 + r, axis=0)], axis=0)
-        from chimerax.core import geometry
-        b = geometry.Bounds(xyz_min, xyz_max)
+        from chimerax.core.geometry import Bounds, copies_bounding_box
+        cb = Bounds(xyz_min, xyz_max)
+        spos = self.parent.get_scene_positions(displayed_only=True)
+        b = cb if spos.is_identity() else copies_bounding_box(cb, spos)
         self._cached_position_bounds = b
+        
         return b
 
     def add_drawing(self, d):

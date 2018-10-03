@@ -1229,7 +1229,7 @@ class CenterArg(Annotation):
                 if obj.empty():
                     raise AnnotationError('Center argument no objects specified')
                 elif obj.bounds() is None:
-                    raise AnnotationError('Center argument objects are not displayed')
+                    raise AnnotationError('Center argument has no object bounds')
                 c = Center(objects=obj)
 
         if c is None:
