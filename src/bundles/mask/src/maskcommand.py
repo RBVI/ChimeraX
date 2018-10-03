@@ -104,8 +104,8 @@ def ones_volume(surfaces, pad, spacing, border, default_size = 100):
 # -----------------------------------------------------------------------------
 #
 def scene_bounds(models, displayed_only = True):
-    from chimerax.core.geometry import union_bounds, copies_bounding_box
-    b = union_bounds([copies_bounding_box(m.bounds(), m.parent.get_scene_positions(displayed_only = True)) for m in models])
+    from chimerax.core.geometry import union_bounds
+    b = union_bounds([m.bounds() for m in models])
     return b
 
 # -----------------------------------------------------------------------------

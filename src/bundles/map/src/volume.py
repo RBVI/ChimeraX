@@ -946,17 +946,11 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def bounds(self, positions = True):
-
-    from chimerax.core.graphics import Drawing
-    b = Drawing.bounds(self, positions)
-    if b is None:
-      # TODO: Should this be only displayed bounds?
-      xyz_min, xyz_max = self.xyz_bounds()
-      from chimerax.core.geometry import Bounds
-      b = Bounds(xyz_min, xyz_max)
-    return b
-
+  def surface_bounds(self):
+    '''Surface bounds in volume coordinate system.'''
+    from chimerax.core.geometry import union_bounds
+    return union_bounds([s.geometry_bounds() for s in self.surfaces])
+      
   # ---------------------------------------------------------------------------
   # The xyz bounding box encloses the subsampled grid with half a step size
   # padding on all sides.

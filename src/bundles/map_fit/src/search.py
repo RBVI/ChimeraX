@@ -28,7 +28,7 @@ def fit_search(models, points, point_weights, volume, n,
                ijk_step_size_min = 0.01, ijk_step_size_max = 0.5,
                request_stop_cb = None):
 
-    bounds = volume.bounds(positions = False)
+    bounds = volume.surface_bounds()
     if bounds is None:
         bounds = volume.xyz_bounds(step = 1)
 

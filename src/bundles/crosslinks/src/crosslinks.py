@@ -180,7 +180,7 @@ class interpolate_position:
         if b is None:
             model.position = pos1
         else:
-            center = 0.5*(b.xyz_min + b.xyz_max)
+            center = model.scene_position.inverse() * b.center() # Center in model coords
             self.c0, self.c1 = pos0*center, pos1*center
             self.axis, self.angle = (pos1*pos0.inverse()).rotation_axis_and_angle()
             triggers.add_handler('new frame', self.update_position)

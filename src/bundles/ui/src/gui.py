@@ -328,8 +328,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         elif sizing_scheme == "proportional":
             wf, hf = size_data
             dw = QDesktopWidget()
-            main_screen = dw.availableGeometry(dw.primaryScreen())
-            width, height = main_screen.width()*wf, main_screen.height()*hf
+            main_screen_geom = ui.primaryScreen().availableGeometry()
+            width, height = main_screen_geom.width()*wf, main_screen_geom.height()*hf
         else:
             width, height = size_data
         self.resize(width, height)
@@ -405,6 +405,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         if os.path.exists(icon_path):
             from PyQt5.QtGui import QIcon
             self.setWindowIcon(QIcon(icon_path))
+
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('resized')
 
         session.logger.add_log(self)
 
@@ -661,7 +665,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         QMainWindow.resizeEvent(self, event)
         from chimerax.core.core_settings import settings as core_settings
         size = event.size()
-        core_settings.last_window_size = (size.width(), size.height())
+        wh = (size.width(), size.height())
+        core_settings.last_window_size = wh
+        self.triggers.activate_trigger('resized', wh)
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]

@@ -33,6 +33,10 @@ class UpdateIntervalOption(SymbolicEnumOption):
 
 class InitWindowSizeOption(Option):
 
+    def __init__(self, *args, session=None, **kw):
+        self.session = session
+        Option.__init__(self, *args, **kw)
+
     def get(self):
         size_scheme = self.push_button.text()
         if size_scheme == "last used":
@@ -100,7 +104,6 @@ class InitWindowSizeOption(Option):
         w_layout = QHBoxLayout()
         w_widgets.setLayout(w_layout)
         w_layout.setContentsMargins(0,0,0,0)
-        w_layout.addWidget(QLabel("  width: "))
         self.w_proportional_spin_box = QSpinBox()
         self.w_proportional_spin_box.setMinimum(1)
         self.w_proportional_spin_box.setMaximum(100)
@@ -118,7 +121,7 @@ class InitWindowSizeOption(Option):
         w_proportional_label = QLabel("% of screen width")
         w_layout.addWidget(w_proportional_label)
         self.proportional_widgets.append(w_proportional_label)
-        w_fixed_label = QLabel("pixels")
+        w_fixed_label = QLabel("pixels wide")
         w_layout.addWidget(w_fixed_label)
         self.fixed_widgets.append(w_fixed_label)
         h_widgets = QWidget()
@@ -126,7 +129,6 @@ class InitWindowSizeOption(Option):
         h_layout = QHBoxLayout()
         h_widgets.setLayout(h_layout)
         h_layout.setContentsMargins(0,0,0,0)
-        h_layout.addWidget(QLabel("  height: "))
         self.h_proportional_spin_box = QSpinBox()
         self.h_proportional_spin_box.setMinimum(1)
         self.h_proportional_spin_box.setMaximum(100)
@@ -144,9 +146,16 @@ class InitWindowSizeOption(Option):
         h_proportional_label = QLabel("% of screen height")
         h_layout.addWidget(h_proportional_label)
         self.proportional_widgets.append(h_proportional_label)
-        h_fixed_label = QLabel("pixels")
+        h_fixed_label = QLabel("pixels high")
         h_layout.addWidget(h_fixed_label)
         self.fixed_widgets.append(h_fixed_label)
+
+        self.current_fixed_size_label = QLabel()
+        self.current_proportional_size_label = QLabel()
+        nonmenu_layout.addWidget(self.current_fixed_size_label)
+        nonmenu_layout.addWidget(self.current_proportional_size_label)
+        self._update_current_size()
+
         self._show_appropriate_widgets()
 
     def _menu_cb(self, label):
@@ -157,16 +166,43 @@ class InitWindowSizeOption(Option):
     def _show_appropriate_widgets(self):
         for w in self.proportional_widgets + self.fixed_widgets:
             w.hide()
+        self.current_fixed_size_label.hide()
+        self.current_proportional_size_label.hide()
         self.nonmenu_widgets.hide()
         size_scheme = self.push_button.text()
         if size_scheme == "proportional":
             self.nonmenu_widgets.show()
             for w in self.proportional_widgets:
                 w.show()
+            self.current_proportional_size_label.show()
         elif size_scheme == "fixed":
             self.nonmenu_widgets.show()
             for w in self.fixed_widgets:
                 w.show()
+            self.current_fixed_size_label.show()
+
+    def _update_current_size(self, trig_name=None, wh=None):
+        mw = getattr(self.session.ui, "main_window", None)
+        if not mw:
+            self.session.ui.triggers.add_handler('ready', self._update_current_size)
+            return
+
+        if wh is None:
+            # this should only happen once...
+            mw.triggers.add_handler('resized', self._update_current_size)
+            window_width, window_height = mw.width(), mw.height()
+        else:
+            window_width, window_height = wh
+
+        from PyQt5.QtWidgets import QDesktopWidget
+        dw = QDesktopWidget()
+        screen_geom = self.session.ui.primaryScreen().availableGeometry()
+        screen_width, screen_height = screen_geom.width(), screen_geom.height()
+        self.current_fixed_size_label.setText(
+            "Current: %d wide, %d high" % (window_width, window_height))
+        self.current_proportional_size_label.setText("Current: %d%% wide, %d%% high" % (
+                int(100.0 * window_width / screen_width),
+                int(100.0 * window_height / screen_height)))
 
 class CoreSettingsPanel:
 
@@ -301,9 +337,9 @@ class CoreSettingsPanel:
             'HTTPS proxy for ChimeraX to use when trying to reach web sites',
             True),
         'initial_window_size': (
-            "Initial main window size",
+            "Initial overall window size",
             "Window",
-            InitWindowSizeOption,
+            (InitWindowSizeOption, {'session': None}),
             None,
             None,
             None,
@@ -311,7 +347,7 @@ class CoreSettingsPanel:
             """Initial overall size of ChimeraX window""",
             True),
         'resize_window_on_session_restore': (
-            'Resize window on session restore',
+            'Resize graphics window on session restore',
             'Window',
             BooleanOption,
             None,
@@ -343,6 +379,8 @@ class CoreSettingsPanel:
                 set_setting = setting_info
             if isinstance(opt_class, tuple):
                 opt_class, kw = opt_class
+                if 'session' in kw:
+                    kw['session'] = self.session
             else:
                 kw = {}
             opt = opt_class(opt_name, getattr(core_settings, setting), self._opt_cb,
