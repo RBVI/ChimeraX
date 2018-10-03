@@ -408,7 +408,6 @@ class Drawing:
     def clear_highlight(self, include_children=True):
         '''Unhighlight this drawing and child drawings in if include_children is True.'''
         self.highlighted = False
-        self.redraw_needed(highlight_changed=True)
         if include_children:
             for d in self.child_drawings():
                 d.clear_highlight()
@@ -1708,7 +1707,7 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         '''
         Cause this picked object to be highlighted ('add' mode), unhighlighted ('subtract' mode)
         or toggle highlighted ('toggle' mode).
@@ -1761,7 +1760,7 @@ class PickedTriangle(Pick):
     def drawing(self):
         return self._drawing
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         d = self.drawing()
         pmask = d.highlighted_positions
         if pmask is None:
@@ -1813,7 +1812,7 @@ class PickedTriangles(Pick):
     def drawing(self):
         return self._drawing
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         d = self.drawing()
         if mode == 'add':
             s = True
@@ -1849,7 +1848,7 @@ class PickedInstance(Pick):
     def drawing(self):
         return self._drawing
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         d = self.drawing()
         pm = self._positions_mask
         pmask = d.highlighted_positions
