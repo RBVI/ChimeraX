@@ -469,6 +469,18 @@ class MainWindow(QMainWindow, PlainTextLog):
         tb.visibilityChanged.connect(lambda vis, tb=tb: self._set_tool_checkbuttons(tb, vis))
         tb.contextMenuEvent = lambda e, self=self, tb=tb: self.show_tb_context_menu(tb, e)
         self._fill_tb_context_menu_cbs[tb] = (tool, fill_context_menu_cb)
+        settings =  self.session.ui.settings
+        if tool.tool_name in settings.tool_positions['toolbars']:
+            version, placement, geom_info = settings.tool_positions['toolbars'][tool.tool_name]
+            if placement is None:
+                self.session.logger.info("Cannot restore toolbar as floating")
+                #from PyQt5.QtCore import Qt
+                #QMainWindow.addToolBar(self, Qt.NoToolBarArea, tb)
+                #from PyQt5.QtCore import QRect
+                #geometry = QRect(*geom_info)
+                #tb.setGeometry(geometry)
+            else:
+                QMainWindow.addToolBar(self, placement, tb)
         return tb
 
     def adjust_size(self, delta_width, delta_height):
@@ -671,7 +683,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
-        show_context_menu(event, tool, fill_cb, True)
+        _show_context_menu(event, tool, fill_cb, True, tb)
 
     def status(self, msg, color, secondary):
         self._status_bar.status(msg, color, secondary)
@@ -1213,6 +1225,12 @@ class ToolWindow(StatusLogger):
         return self.__toolkit.dock_widget.isFloating()
 
     from PyQt5.QtCore import Qt
+    window_placement_to_text = {
+        Qt.RightDockWidgetArea: "right",
+        Qt.LeftDockWidgetArea: "left",
+        Qt.TopDockWidgetArea: "top",
+        Qt.BottomDockWidgetArea: "bottom"
+    }
     def manage(self, placement, fixed_size=False, allowed_areas=Qt.AllDockWidgetAreas):
         """Show this tool window in the interface
 
@@ -1225,10 +1243,20 @@ class ToolWindow(StatusLogger):
         The tool window will be allowed to dock in the allowed_areas, the value
         of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
         """
-        if self.tool_instance.tool_name in self.session.ui.settings.undockable:
+        settings =  self.session.ui.settings
+        tool_name = self.tool_instance.tool_name
+        if tool_name in settings.undockable:
             from PyQt5.QtCore import Qt
             allowed_areas = Qt.NoDockWidgetArea
-        self.__toolkit.manage(placement, allowed_areas, fixed_size)
+        geometry = None
+        if tool_name in settings.tool_positions['windows']:
+            version, placement, geom_info = settings.tool_positions['windows'][tool_name]
+            if placement is not None:
+                placement = self.window_placement_to_text[placement]
+            if geom_info is not None:
+                from PyQt5.QtCore import QRect
+                geometry = QRect(*geom_info)
+        self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
 
     def _get_shown(self):
         """Whether this window is hidden or shown"""
@@ -1293,7 +1321,7 @@ class ToolWindow(StatusLogger):
         return [self.__toolkit.status_bar]
 
     def _show_context_menu(self, event):
-        # this routine needed as a kludge to allow QwebEngine to show
+        # this routine needed as a kludge to allow QWebEngine to show
         # our own context menu
         self.__toolkit.show_context_menu(event)
 
@@ -1403,7 +1431,7 @@ class _Qt:
 
     dockable = property(_get_dockable, _set_dockable)
 
-    def manage(self, placement, allowed_areas, fixed_size=False):
+    def manage(self, placement, allowed_areas, fixed_size, geometry):
         from PyQt5.QtCore import Qt
         placements = self.tool_window.placements
         if placement is None or isinstance(placement, ToolWindow):
@@ -1427,6 +1455,8 @@ class _Qt:
             mw.addDockWidget(side, self.dock_widget)
             if placement is None or allowed_areas == Qt.NoDockWidgetArea:
                 self.dock_widget.setFloating(True)
+        if geometry is not None:
+            self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)
 
         #QT disable: create a 'hide_title_bar' option
@@ -1438,8 +1468,10 @@ class _Qt:
             self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
     def show_context_menu(self, event):
-        show_context_menu(event, self.tool_window.tool_instance, self.tool_window.fill_context_menu,
-            self.tool_window.tool_instance.tool_info in self.main_window._tools_cache)
+        _show_context_menu(event, self.tool_window.tool_instance,
+            self.tool_window.fill_context_menu,
+            self.tool_window.tool_instance.tool_info in self.main_window._tools_cache,
+            self.dock_widget if isinstance(self.tool_window, MainToolWindow) else None)
 
     def _get_shown(self):
         return not self.dock_widget.isHidden()
@@ -1502,7 +1534,7 @@ def redirect_stdio_to_logger(logger):
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
-def show_context_menu(event, tool_instance, fill_cb, autostartable):
+def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
     from PyQt5.QtWidgets import QMenu, QAction
     menu = QMenu()
 
@@ -1545,7 +1577,42 @@ def show_context_menu(event, tool_instance, fill_cb, autostartable):
         run(ses, "ui dockable %s %s" % (("true" if arg else "false"),
         quote_if_necessary(ti.tool_name))))
     menu.addAction(dock_action)
+    if memorable:
+        position_action = QAction("Save tool position")
+        position_action.setStatusTip("Use current docked side,"
+            " or undocked size/position as default")
+        from chimerax.core.commands import run, quote_if_necessary
+        position_action.triggered.connect(lambda arg, ui=session.ui, widget=memorable, ti=ti:
+            _remember_tool_pos(ui, ti, widget))
+        menu.addAction(position_action)
     menu.exec(event.globalPos())
+
+def _remember_tool_pos(ui, tool_instance, widget):
+    mw = ui.main_window
+    from PyQt5.QtWidgets import QToolBar
+    # need to copy _before_ modifying, so that default isn't also changed
+    from copy import deepcopy
+    remembered = deepcopy(ui.settings.tool_positions)
+    if isinstance(widget, QToolBar):
+        if widget.isFloating():
+            from chimerax.core.errors import LimitationError
+            raise LimitationError("Cannot currently save toolbars as floating")
+        get_side = mw.toolBarArea
+        mem_location = remembered['toolbars']
+    else:
+        get_side = mw.dockWidgetArea
+        mem_location = remembered['windows']
+    if widget.isFloating():
+        side = None
+        geom = widget.geometry()
+        pos_info = (geom.x(), geom.y(), geom.width(), geom.height())
+    else:
+        side = get_side(widget)
+        pos_info = None
+    version = 1
+    mem_location[tool_instance.tool_name] = (version, side, pos_info)
+    ui.settings.tool_positions = remembered
+    ui.settings.save()
 
 def remove_keyboard_navigation(menu_label):
     if menu_label.count('&') == 1:
