@@ -68,9 +68,9 @@ class InitWindowSizeOption(Option):
         self.push_button.setText(self.multiple_value)
 
     def _make_widget(self, **kw):
-        from PyQt5.QtWidgets import QWidget, QHBoxLayout
+        from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
         self.widget = QWidget()
-        layout = QHBoxLayout()
+        layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(2)
         self.widget.setLayout(layout)
@@ -86,7 +86,8 @@ class InitWindowSizeOption(Option):
             action = QAction(label, self.push_button)
             action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)
-        layout.addWidget(self.push_button)
+        from PyQt5.QtCore import Qt
+        layout.addWidget(self.push_button, 0, Qt.AlignLeft)
 
         self.fixed_widgets = []
         self.proportional_widgets = []
@@ -96,17 +97,19 @@ class InitWindowSizeOption(Option):
             w_pr_val, h_pr_val = size_data
         elif size_scheme == "fixed":
             w_px_val, h_px_val = size_data
-        from PyQt5.QtWidgets import QSpinBox, QWidget, QVBoxLayout, QLabel
+        from PyQt5.QtWidgets import QSpinBox, QWidget, QLabel
         self.nonmenu_widgets = QWidget()
         layout.addWidget(self.nonmenu_widgets)
         nonmenu_layout = QVBoxLayout()
         nonmenu_layout.setContentsMargins(0,0,0,0)
+        nonmenu_layout.setSpacing(2)
         self.nonmenu_widgets.setLayout(nonmenu_layout)
         w_widgets = QWidget()
         nonmenu_layout.addWidget(w_widgets)
         w_layout = QHBoxLayout()
         w_widgets.setLayout(w_layout)
         w_layout.setContentsMargins(0,0,0,0)
+        w_layout.setSpacing(2)
         self.w_proportional_spin_box = QSpinBox()
         self.w_proportional_spin_box.setMinimum(1)
         self.w_proportional_spin_box.setMaximum(100)
@@ -132,6 +135,7 @@ class InitWindowSizeOption(Option):
         h_layout = QHBoxLayout()
         h_widgets.setLayout(h_layout)
         h_layout.setContentsMargins(0,0,0,0)
+        h_layout.setSpacing(2)
         self.h_proportional_spin_box = QSpinBox()
         self.h_proportional_spin_box.setMinimum(1)
         self.h_proportional_spin_box.setMaximum(100)
