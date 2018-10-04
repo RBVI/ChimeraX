@@ -52,7 +52,7 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
     # Color surfaces by lipophilicity
     if color:
         # Compute surfaces if not already created
-        from chimerax.core.commands.surface import surface
+        from chimerax.surface import surface
         surfs = surface(session, atoms)
         for s in surfs:
             satoms = s.atoms
