@@ -20,12 +20,15 @@ TODO
 
 from chimerax.core.core_settings import set_proxies, settings as core_settings
 from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, FloatOption
-from .options import StringOption, HostPortOption, Option
+from .options import StringOption, HostPortOption, Option, EnumOption
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
     values = ("command", "serial", "simple")
     labels = ("command line", "serial number", "simple")
+
+class ToolSideOption(EnumOption):
+    values = ("left", "right")
 
 class UpdateIntervalOption(SymbolicEnumOption):
     values = ("day", "week", "month")
@@ -265,6 +268,16 @@ class CoreSettingsPanel:
             lambda ses: core_settings.clipping_surface_caps,
             'Whether to cap surface holes created by clipping',
             False),
+        'default_tool_window_side': (
+            "Default tool side",
+            "Window",
+            ToolSideOption,
+            None,
+            None,
+            None,
+            None,
+            "Which side of main window that new tool windows appear on by default.",
+            True),
         'distance_color': (
             "Color",
             "Distances",

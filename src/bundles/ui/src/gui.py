@@ -1376,11 +1376,6 @@ class _Qt:
         self.tool_window = tool_window
         self.title = title
         self.main_window = mw = main_window
-        from PyQt5.QtCore import Qt
-        # for now, 'side' equals 'right'
-        qt_sides = [Qt.RightDockWidgetArea, Qt.RightDockWidgetArea, Qt.LeftDockWidgetArea,
-            Qt.TopDockWidgetArea, Qt.BottomDockWidgetArea]
-        self.placement_map = dict(zip(self.tool_window.placements, qt_sides))
 
         if not mw:
             raise RuntimeError("No main window or main window dead")
@@ -1432,16 +1427,23 @@ class _Qt:
     dockable = property(_get_dockable, _set_dockable)
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
+        # map 'side' to the user's preferred side
+        from chimerax.core.core_settings import settings as core_settings
         from PyQt5.QtCore import Qt
+        pref_area = Qt.RightDockWidgetArea if core_settings.default_tool_window_side == "right" \
+            else Qt.LeftDockWidgetArea
+        qt_sides = [pref_area, Qt.RightDockWidgetArea, Qt.LeftDockWidgetArea,
+            Qt.TopDockWidgetArea, Qt.BottomDockWidgetArea]
+        self.placement_map = dict(zip(self.tool_window.placements, qt_sides))
         placements = self.tool_window.placements
         if placement is None or isinstance(placement, ToolWindow):
             side = Qt.RightDockWidgetArea
         else:
-            if placement not in placements:
+            try:
+                side = self.placement_map[placement]
+            except KeyError:
                 raise ValueError("placement value must be one of: {}, or None"
                     .format(", ".join(placements)))
-            else:
-                side = self.placement_map[placement]
 
         # With in-window status bar support now creating an additional layer
         # of containing widgets, the following updateGeometry call now seems
