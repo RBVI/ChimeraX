@@ -75,7 +75,8 @@ def compute_cap(drawing, plane, offset):
 
     # Compute cap geometry.
     # TODO: Cap instances
-    if len(d.positions) > 1:
+    np = len(d.get_scene_positions(displayed_only = True))
+    if np > 1:
         varray, tarray, pnormal = compute_instances_cap(d, t, plane, offset)
     else:
         dp = d.scene_position.inverse()
@@ -95,32 +96,29 @@ def compute_cap(drawing, plane, offset):
 def compute_instances_cap(drawing, triangles, plane, offset):
     d = drawing
     doffset = offset + getattr(d, 'clip_offset', 0)
-    geom = []
-    # TODO: Handle two hierarchy levels of instancing.
-    pp = drawing.parent.scene_position.inverse()
-    parent_ppoint = pp*plane.plane_point
-    parent_pnormal = pp.apply_without_translation(plane.normal)
+    point = plane.plane_point
+    normal = plane.normal
 
-    # TODO: Optimize by testing if plane intercepts bounding sphere.
-    b = d.bounds(positions = False)
+    b = d.geometry_bounds()
     if b is None:
         return None, None, None
         
-    dpos = d.positions.masked(d.display_positions)
-    ipos = box_positions_intersecting_plane(dpos, b, parent_ppoint, parent_pnormal)
+    dpos = d.get_scene_positions(displayed_only = True)
+    ipos = box_positions_intersecting_plane(dpos, b, point, normal)
     if len(ipos) == 0:
         return None, None, None
+    geom = []
     for pos in ipos:
         pinv = pos.inverse()
-        pnormal = pinv.apply_without_translation(parent_pnormal)
+        pnormal = pinv.apply_without_translation(normal)
         from chimerax.core.geometry import inner_product
-        poffset = inner_product(pnormal, pinv*parent_ppoint) + doffset
+        poffset = inner_product(pnormal, pinv*point) + doffset
         from . import compute_cap
         ivarray, itarray = compute_cap(pnormal, poffset, d.vertices, triangles)
         pos.move(ivarray)
         geom.append((ivarray, itarray))
     varray, tarray = concatenate_geometry(geom)
-    return varray, tarray, parent_pnormal
+    return varray, tarray, normal
 
 def box_positions_intersecting_plane(positions, b, origin, normal):
     c, r = b.center(), b.radius()
@@ -159,10 +157,11 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
         return
     else:
         cap_name = 'cap ' + plane_name
-        if len(d.positions) == 1:
-            cm = new_cap(d, cap_name)
+        np = len(d.get_scene_positions(displayed_only = True))
+        if np == 1:
+            cm = new_cap(d.session, d, cap_name)
         else:
-            cm = new_cap(d.parent, cap_name)
+            cm = new_cap(d.session, None, cap_name + ' ' + d.name)
             cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
         cm.clip_plane_name = plane_name
         cm.clip_cap_owner = d
@@ -171,13 +170,17 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
 
     cm.set_geometry(varray, narray, tarray)
 
-def new_cap(drawing, cap_name):
+def new_cap(session, drawing, cap_name):
     from chimerax.core.models import Model, Surface
-    if isinstance(drawing, Model):
+    if isinstance(drawing, Model) or drawing is None:
         # Make cap a model when capping a model so color can be set by command.
-        c = Surface(cap_name, drawing.session)
+        c = Surface(cap_name, session)
         c.SESSION_SAVE = False
-        drawing.add([c])
+        if drawing is None:
+            session.models.add([c])
+        else:
+            drawing.add([c])
     else:
+        # Cap is on a Drawing that is not a Model
         c = drawing.new_drawing(cap_name)
     return c

@@ -31,16 +31,14 @@ def cage(session, cage, place_model = None, polygon_sides = 6,
       Resolution for computing surfaces when surface_only is true.
     '''
 
-    from chimerax.core.commands import AnnotationError
-    if place_model is None:
-        raise AnnotationError('Cage command requires "place_model" argument')
+    from chimerax.core.errors import UserError
     if not hasattr(cage, 'placements'):
-        raise AnnotationError('Model %s is not a cage model.' % cage.name)
+        raise UserError('Model %s is not a cage model.' % cage.name)
 
     n = polygon_sides
     p = cage.placements('p%d' % n)
     if len(p) == 0:
-        raise AnnotationError('Cage %s has no %d-gons.' % (cage.name, n))
+        raise UserError('Cage %s has no %d-gons.' % (cage.name, n))
     c = place_model.bounds().center()
     pc = make_closest_placement_identity(p, c)
 
@@ -83,5 +81,6 @@ def register_cage_command(logger):
                               ('polygon_sides', IntArg),
                               ('surface_only', BoolArg),
                               ('resolution', FloatArg)],
+                   required_arguments = [place_model],
                    synopsis = 'Place copies of model on polygons of cage.')
     register('cage', desc, cage, logger=logger)

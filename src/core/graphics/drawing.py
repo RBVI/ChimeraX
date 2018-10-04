@@ -77,8 +77,8 @@ class Drawing:
         self._highlighted_triangles_mask = None  # bool numpy array
         self._child_drawings = []
 
-        self._cached_geometry_bounds = None
-        self._cached_position_bounds = None
+        self._cached_geometry_bounds = None	# Triangles, positions not included.
+        self._cached_position_bounds = None	# Triangles including positions, children not included
 
         # Geometry and colors
         self._vertices = None		# N x 3 float32 numpy array
@@ -408,7 +408,6 @@ class Drawing:
     def clear_highlight(self, include_children=True):
         '''Unhighlight this drawing and child drawings in if include_children is True.'''
         self.highlighted = False
-        self.redraw_needed(highlight_changed=True)
         if include_children:
             for d in self.child_drawings():
                 d.clear_highlight()
@@ -839,42 +838,46 @@ class Drawing:
                 dp = sp if dp is None else numpy.logical_and(dp, sp)
         return dp
 
-    def bounds(self, positions=True):
+    def bounds(self):
         '''
-        The bounds of drawing and displayed children and displayed positions
-        in the parent model coordinate system.
+        The bounds of all displayed parts of a drawing and its children and all descendants, including
+        instance positions, in scene coordinates.  Drawings with an attribute skip_bounds = True are not included.
         '''
-        from ..geometry import bounds
-        dbounds = [d.bounds() for d in self.child_drawings() if d.display and not hasattr(d, 'skip_bounds')]
-        if dbounds:
-            cb = bounds.union_bounds(dbounds)
-            if positions:
-                cb = bounds.copies_bounding_box(cb, self.get_positions(displayed_only=True))
-        else:
+
+        # Get child drawing bounds
+        from ..geometry.bounds import union_bounds, copies_bounding_box
+        dbounds = [d.bounds() for d in self.child_drawings()
+                   if d.display and not getattr(d, 'skip_bounds', False)]
+        nc = len(dbounds)
+        if nc == 0:
             cb = None
+        elif nc == 1:
+            cb = dbounds[0]
+        else:
+            cb = union_bounds(dbounds)
+
+        # If this drawing has no geometry return child bounds.
         if self.empty_drawing():
             return cb
-        if not positions:
-            b = self._geometry_bounds()
-            if cb:
-                b = bounds.union_bounds((b, cb))
-            return b
-        if self._cached_position_bounds is not None:
-            pb = self._cached_position_bounds
-        else:
-            b = self._geometry_bounds()
-            pb = bounds.copies_bounding_box(
-                    b, self.get_positions(displayed_only=True))
+
+        # Get self bounds
+        pb = self._cached_position_bounds
+        if pb is None:
+            sb = self.geometry_bounds()
+            spos = self.get_scene_positions(displayed_only=True)
+            pb = sb if spos.is_identity() else copies_bounding_box(sb, spos)
             self._cached_position_bounds = pb
-        if cb is None:
-            return pb
-        b = bounds.union_bounds((pb, cb))
+
+        # Combine child and self bounds
+        b = pb if cb is None else union_bounds((pb, cb))
+        
         return b
 
-    def _geometry_bounds(self):
+    def geometry_bounds(self):
         '''
-        Return the bounds of the drawing not including positions nor children
-        in this drawing's coordinate system.
+        Return the bounds of this drawing's geometry not including positions and
+        not including children.  Bounds are in this drawing's coordinate system.
+        These bounds are cached for speed.
         '''
         cb = self._cached_geometry_bounds
         if cb is not None:
@@ -958,7 +961,7 @@ class Drawing:
             if fmin is not None:
                 p = PickedTriangle(fmin, tmin, 0, self)
         else:
-            pos_nums = self.bounds_intercept_copies(self._geometry_bounds(), mxyz1, mxyz2)
+            pos_nums = self.bounds_intercept_copies(self.geometry_bounds(), mxyz1, mxyz2)
             for i in pos_nums:
                 cxyz1, cxyz2 = self.positions[i].inverse() * (mxyz1, mxyz2)
                 fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
@@ -1013,7 +1016,7 @@ class Drawing:
             from ..geometry import points_within_planes
             if len(self.positions) > 1:
                 # Use center of instances.
-                b = self._geometry_bounds()
+                b = self.geometry_bounds()
                 if b:
                     pc = self.positions * b.center()
                     pmask = points_within_planes(pc, planes)
@@ -1704,7 +1707,7 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         '''
         Cause this picked object to be highlighted ('add' mode), unhighlighted ('subtract' mode)
         or toggle highlighted ('toggle' mode).
@@ -1757,7 +1760,7 @@ class PickedTriangle(Pick):
     def drawing(self):
         return self._drawing
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         d = self.drawing()
         pmask = d.highlighted_positions
         if pmask is None:
@@ -1809,7 +1812,7 @@ class PickedTriangles(Pick):
     def drawing(self):
         return self._drawing
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         d = self.drawing()
         if mode == 'add':
             s = True
@@ -1845,7 +1848,7 @@ class PickedInstance(Pick):
     def drawing(self):
         return self._drawing
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         d = self.drawing()
         pm = self._positions_mask
         pmask = d.highlighted_positions

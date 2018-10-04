@@ -197,13 +197,26 @@ class Objects:
         return d
 
     def bounds(self):
-        from chimerax.atomic import Structure, PseudobondGroup
-        bm = [m.bounds() for m in self.models if not isinstance(m, (Structure, PseudobondGroup))]
+        '''Bounds of objects including undisplayed ones in scene coordinates.'''
         from .geometry import union_bounds, copies_bounding_box
+
+        # Model bounds excluding structures and pseudobond groups.
+        from chimerax.atomic import Structure, PseudobondGroup
+        bm = [copies_bounding_box(m.geometry_bounds(), m.get_scene_positions())
+              for m in self.models if not isinstance(m, (Structure, PseudobondGroup))]
+
+        # Model instance bounds
         for m, minst in self.model_instances.items():
-            b = m.bounds(positions = False)
-            bm.append(copies_bounding_box(b, m.positions.masked(minst)))
-        return union_bounds(bm + [self.atoms.scene_bounds])
+            b = m.geometry_bounds()
+            ib = copies_bounding_box(b, m.positions.masked(minst))
+            sb = copies_bounding_box(ib, m.parent.get_scene_positions())
+            bm.append(sb)
+
+        # Atom bounds
+        bm.append(self.atoms.scene_bounds)
+
+        b = union_bounds(bm)
+        return b
 
     def refresh(self, session):
         """Remove atoms/bonds/pseudobonds of deleted model.
