@@ -262,6 +262,7 @@ class Log(ToolInstance, HtmlLog):
                 rb = QPushButton('Report Bug')
                 rb.clicked.connect(self._report_a_bug)
                 brow.addWidget(rb)
+                ed.report_bug_button = rb
                 el.addLayout(brow, row, col, rowspan, colspan)
 
     def _report_a_bug(self):
@@ -293,7 +294,7 @@ class Log(ToolInstance, HtmlLog):
             if image_break:
                 self.page_source += "<br>\n"
         else:
-            if ((level == self.LEVEL_ERROR and self.error_shows_dialog) or
+            if ((level >= self.LEVEL_ERROR and self.error_shows_dialog) or
                     (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
@@ -314,7 +315,13 @@ class Log(ToolInstance, HtmlLog):
                         link, search_text = text_plus.split('</a>', 1)
                         dlg_msg += link
                     dlg_msg += search_text
-                self.session.ui.thread_safe(self.error_dialog.showMessage, dlg_msg)
+                if level == self.LEVEL_BUG:
+                    f = lambda dlg=self.error_dialog, msg=dlg_msg: (dlg.report_bug_button.show(),
+                        dlg.showMessage(msg))
+                else:
+                    f = lambda dlg=self.error_dialog, msg=dlg_msg: (dlg.report_bug_button.hide(),
+                        dlg.showMessage(msg))
+                self.session.ui.thread_safe(f)
             if not is_html:
                 from html import escape
                 msg = escape(msg)
