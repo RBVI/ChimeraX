@@ -11,8 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
-from . import AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN
+CP_SPECIFIC_SPECIFIC = "ss"
+CP_SPECIFIC_BEST = "bs"
+CP_BEST_BEST = "bb"
+
+AA_NEEDLEMAN_WUNSCH = "Needleman-Wunsch"
+AA_SMITH_WATERMAN = "Smith-Waterman"
 
 from .settings import defaults
 default_ss_matrix = defaults['ss_scores']
@@ -175,23 +179,54 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             _dm_cleanup.append(aligned)
     return score, gapped_ref, gapped_match
 
-def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend,
+def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *,
         cutoff_distance=None, show_alignment=False, align=align, domain_residues=(None, None),
-        bring=None, verbose=False, **align_kw):
+        bring=None, verbose=False, always_raise_errors=False, **align_kw):
     """Superimpose structures based on sequence alignment
 
        'chain_pairing' is the method of pairing chains to match:
-       
+
        CP_SPECIFIC_SPECIFIC --
        Each reference chain is paired with a specified match chain
-       
+       ('match_items' is sequence of (ref_chain, match_chain) tuples)
+
        CP_SPECIFIC_BEST --
        Single reference chain is paired with best seq-aligning
        chain from one or more structures
+       ('match_items' is (reference_chain, [match_structures]))
 
        CP_BEST_BEST --
        Best seq-aligning pair of chains from reference structure and
        match structure(s) is used
+       ('match_items' is (ref_structure, [match_structures]))
+
+       'matrix' is name of similarity matrix
+
+       'alg' is the alignment algorithm: AA_NEEDLEMAN_WUNSCH or AA_SMITH_WATERMAN
+
+       'gap_open' and 'gap_extend' are the gap open/extend penalties used
+       for the initial sequence alignment
+
+       'cutoff_distance' is the cutoff used for iterative superposition -- iteration stops
+       when all remaining distances are below the cutoff.  If None, no iteration.
+
+       'show_alignment' controls whether the sequence alignment is also shown in a
+       sequence viewer.
+
+       'align' allows specification of the actual function align/score one chain to
+       another.  See the align() function above.
+
+       'domain_residues' allows matching to be restricted to a subset of the chain(s).
+       If given, should be (ref_Residues_collection, match_Residues_collection)
+
+       'bring' specifies other structures that should be transformed along with the
+       match structure (so, there must be only one match structure in such a case).
+
+       'verbose', if True, produces additional output to the log.
+
+       If 'always_raise_errors' is True, then an iteration that goes to too few
+       matched atoms will immediately raise an error instead of noting the
+       failure in the log and continuing on to other pairings.
     """
     dssp_cache = set()
     alg = alg.lower()
@@ -498,6 +533,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             ret_vals.append(align.align(session, Atoms(match_atoms), Atoms(ref_atoms),
                 cutoff_distance=cutoff_distance))
         except align.IterationError:
+            if always_raise_errors:
+                raise
             logger.error("Iteration produces fewer than 3"
                 " residues aligned.\nCannot match %s with %s"
                 " satisfying iteration threshold."
