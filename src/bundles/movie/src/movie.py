@@ -293,15 +293,18 @@ class Movie:
         basepat = self.getInputPattern().replace('*', '%05d')
         suffix = ".%s" % self.getImgFormat().lower()
         pattern = basepat + suffix
+        image_dir = self.getImgDir()
 
-        from os.path import isfile
-        if not isfile(pattern % 1):
+        from os.path import join, isfile
+        first_image = join(image_dir, pattern % 1)
+        if not isfile(first_image):
+            print ('could not find %s' % (pattern % 1))
             raise MovieError("Movie encoding failed because no images were recorded.")
 
         from .encode import ffmpeg_encoder
         self.encoder = ffmpeg_encoder(output_file, output_format, output_size, video_codec, pixel_format,
                                       size_restriction, framerate, bit_rate, quality, round_trip,
-                                      self.getImgDir(), pattern, self.getFrameCount(), self._notifyStatus,
+                                      image_dir, pattern, self.getFrameCount(), self._notifyStatus,
                                       self.verbose, self.session)
         self._notifyStatus('Started encoding %d frames' % self.getFrameCount())
 
