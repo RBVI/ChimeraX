@@ -24,6 +24,14 @@ static wchar_t* extra[] = {
 };
 static const int ec = sizeof(extra) / sizeof (extra[0]);
 
+/*
+ * Make Nvidia Optimus GPU switching choose high performance graphics.
+ * http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+ */
+#ifdef _WIN32
+_declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+#endif
+	
 static int
 app_main(int argc, wchar_t** wargv)
 {
