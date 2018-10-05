@@ -298,7 +298,6 @@ class Movie:
         from os.path import join, isfile
         first_image = join(image_dir, pattern % 1)
         if not isfile(first_image):
-            print ('could not find %s' % (pattern % 1))
             raise MovieError("Movie encoding failed because no images were recorded.")
 
         from .encode import ffmpeg_encoder
