@@ -187,6 +187,11 @@ class Movie:
         self.postprocess_frames = 0
         save_path1 = self.image_path(self.frame_number - frames - 1)
         save_path2 = self.image_path(self.frame_number)
+        from os.path import isfile
+        if not isfile(save_path1):
+            self.stop_recording()
+            from chimerax.core.errors import UserError
+            raise UserError('movie crossfade cannot be used until one frame has been recorded.')
         from PIL import Image
         image1 = Image.open(save_path1)
         image2 = Image.open(save_path2)
@@ -288,11 +293,17 @@ class Movie:
         basepat = self.getInputPattern().replace('*', '%05d')
         suffix = ".%s" % self.getImgFormat().lower()
         pattern = basepat + suffix
+        image_dir = self.getImgDir()
+
+        from os.path import join, isfile
+        first_image = join(image_dir, pattern % 1)
+        if not isfile(first_image):
+            raise MovieError("Movie encoding failed because no images were recorded.")
 
         from .encode import ffmpeg_encoder
         self.encoder = ffmpeg_encoder(output_file, output_format, output_size, video_codec, pixel_format,
                                       size_restriction, framerate, bit_rate, quality, round_trip,
-                                      self.getImgDir(), pattern, self.getFrameCount(), self._notifyStatus,
+                                      image_dir, pattern, self.getFrameCount(), self._notifyStatus,
                                       self.verbose, self.session)
         self._notifyStatus('Started encoding %d frames' % self.getFrameCount())
 
