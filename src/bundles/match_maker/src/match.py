@@ -183,6 +183,10 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         cutoff_distance=None, show_alignment=False, align=align, domain_residues=(None, None),
         bring=None, verbose=False, always_raise_errors=False, **align_kw):
     """Superimpose structures based on sequence alignment
+       
+       Returns a list of tuples, one per chain pairing.  The tuples are:
+       (ref-Atoms-used, match-Atoms-used, paired-RMSD, overall-RMSD, transformation-matrix)
+       "Atoms-used" means after any pruning due to iteration.
 
        'chain_pairing' is the method of pairing chains to match:
 
