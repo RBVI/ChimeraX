@@ -1839,7 +1839,7 @@ class Structure(Model, StructureData):
                     def choose_type(value, s=part.start.lower(), e=part.end.lower()):
                         v = value.lower()
                         return v >= s and v <= e
-                if start_number:
+                if start_number is not None:
                     if end_number is None:
                         def choose_id(n, ic, test_val=str(start_number)+start_ic):
                             return str(n)+ic == test_val
