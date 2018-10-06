@@ -46,6 +46,7 @@ class CrossFade(Drawing):
         # Make textured square surface piece
         from .drawing import rgba_drawing
         rgba_drawing(self, self.rgba, (-1, -1), (2, 2))
+        self.opaque_texture = False
 
         v.add_overlay(self)
         session.triggers.add_handler('new frame', lambda *_, v=v: self.next_frame(v))
@@ -132,6 +133,7 @@ class MotionBlur(Drawing):
             if c == 0:
                 return False    # No change
             self.texture.reload_texture(self.rgba)
+        self.opaque_texture = False
         self.redraw_needed()
         return True
 
