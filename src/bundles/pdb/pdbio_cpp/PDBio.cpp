@@ -1307,10 +1307,12 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
 {
     Residue* prev_res = nullptr;
     bool prev_standard = false;
-    PDB p(h36), p_ter(h36);
+    PDB p(h36), p_ter(h36), p_anisou(h36);
     bool need_ter = false;
     bool some_output = false;
     int serial = 0;
+    p_ter.set_type(PDB::TER);
+    p_anisou.set_type(PDB::ANISOU);
     for (auto r: s->residues()) {
         bool standard = Sequence::rname3to1(r->name()) != 'X';
         if (prev_res != nullptr && (prev_standard || standard) && some_output) {
@@ -1321,7 +1323,6 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                 need_ter = true;
         }
         if (need_ter) {
-            p_ter.set_type(PDB::TER);
             p_ter.ter.serial = ++serial;
             strcpy(p_ter.ter.res.name, prev_res->name().c_str());
             p_ter.ter.res.chain_id = prev_res->chain_id()[0];
@@ -1493,6 +1494,24 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                 (*xyz)[2] = final_crd[2];
                 os << p << "\n";
                 some_output = true;
+                if (a->has_aniso_u()) {
+                    p_anisou.anisou.serial = *rec_serial;
+                    strcpy(p_anisou.anisou.name, *rec_name);
+                    p_anisou.anisou.alt_loc = *rec_alt_loc;
+                    p_anisou.anisou.res = *res;
+                    // Atom.aniso_u is row major; whereas PDB is 11, 22, 33, 12, 13, 23
+                    auto aniso_u = a->aniso_u();
+                    p_anisou.anisou.u[0] = (*aniso_u)[0];
+                    p_anisou.anisou.u[1] = (*aniso_u)[3];
+                    p_anisou.anisou.u[2] = (*aniso_u)[5];
+                    p_anisou.anisou.u[3] = (*aniso_u)[1];
+                    p_anisou.anisou.u[4] = (*aniso_u)[2];
+                    p_anisou.anisou.u[5] = (*aniso_u)[4];
+                    strcpy(p_anisou.anisou.seg_id, p.atom.seg_id);
+                    strcpy(p_anisou.anisou.element, p.atom.element);
+                    strcpy(p_anisou.anisou.charge, p.atom.charge);
+                    os << p << "\n";
+                }
             }
             written.insert(a);
         }
