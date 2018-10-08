@@ -1831,22 +1831,26 @@ write_pdb_file(PyObject *, PyObject *args)
     }
 
     std::set<ResName> poly_res_names;
-    if (!PySequence_Check(py_poly_res_names)) {
-        PyErr_SetString(PyExc_TypeError, "'polymeric_res_names' arg is not a sequence");
+    if (!PySequence_Check(py_poly_res_names) && !PyAnySet_Check(py_poly_res_names)) {
+        PyErr_SetString(PyExc_TypeError, "'polymeric_res_names' arg must be a sequence or a set");
         return nullptr;
     }
-    for (auto i = PySequence_Length(py_poly_res_names); i > 0; --i) {
-        auto py_res_name = PySequence_GetItem(py_poly_res_names, i-1);
+    PyObject *iter = PyObject_GetIter(py_poly_res_names);
+    PyObject *py_res_name;
+    while (py_res_name = PyIter_Next(iter)) {
         if (!PyUnicode_Check(py_res_name)) {
             Py_DECREF(py_res_name);
             std::stringstream err_msg;
-            err_msg << "Item at index " << i-1 << " of 'polymeric_res_names' arg is not a string";
+            err_msg << "Item in 'polymeric_res_names' arg is not a string";
             PyErr_SetString(PyExc_TypeError, err_msg.str().c_str());
+            Py_DECREF(py_res_name);
+            Py_DECREF(iter);
             return nullptr;
         }
         poly_res_names.insert(PyUnicode_AS_DATA(py_res_name));
         Py_DECREF(py_res_name);
     }
+    Py_DECREF(iter);
 
     const char* path = PyBytes_AS_STRING(py_path);
     std::ofstream os(path);
