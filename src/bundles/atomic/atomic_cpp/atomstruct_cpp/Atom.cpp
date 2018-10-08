@@ -79,16 +79,6 @@ Atom::alt_locs() const
     return alt_locs;
 }
 
-float
-Atom::bfactor() const
-{
-    if (_alt_loc != ' ') {
-        _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
-        return (*i).second.bfactor;
-    }
-    return structure()->active_coord_set()->get_bfactor(this);
-}
-
 const std::vector<float> *
 Atom::aniso_u() const
 {
@@ -98,6 +88,27 @@ Atom::aniso_u() const
         return (*i).second.aniso_u.get();
     }
     return _aniso_u;
+}
+
+const std::vector<float> *
+Atom::aniso_u(char alt_loc) const
+{
+    if (alt_loc != ' ') {
+        _Alt_loc_map::const_iterator i = _alt_loc_map.find(alt_loc);
+        assert(i != _alt_loc_map.end());
+        return (*i).second.aniso_u.get();
+    }
+    return _aniso_u;
+}
+
+float
+Atom::bfactor() const
+{
+    if (_alt_loc != ' ') {
+        _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
+        return (*i).second.bfactor;
+    }
+    return structure()->active_coord_set()->get_bfactor(this);
 }
 
 void
