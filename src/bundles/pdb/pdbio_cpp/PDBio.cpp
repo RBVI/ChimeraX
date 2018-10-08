@@ -1300,6 +1300,13 @@ primes_to_asterisks(const char* orig_name)
     return new_name;
 }
 
+static int
+aniso_u_to_int(Real aniso_u_val)
+{
+    return static_cast<int>(aniso_u_val < 0.0 ?
+        10000.0 * aniso_u_val - 0.5 : 10000.0 * aniso_u_val + 0.5);
+}
+
 static void
 write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
     std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double* xform,
@@ -1501,16 +1508,16 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                     p_anisou.anisou.res = *res;
                     // Atom.aniso_u is row major; whereas PDB is 11, 22, 33, 12, 13, 23
                     auto aniso_u = a->aniso_u();
-                    p_anisou.anisou.u[0] = (*aniso_u)[0];
-                    p_anisou.anisou.u[1] = (*aniso_u)[3];
-                    p_anisou.anisou.u[2] = (*aniso_u)[5];
-                    p_anisou.anisou.u[3] = (*aniso_u)[1];
-                    p_anisou.anisou.u[4] = (*aniso_u)[2];
-                    p_anisou.anisou.u[5] = (*aniso_u)[4];
+                    p_anisou.anisou.u[0] = aniso_u_to_int((*aniso_u)[0]);
+                    p_anisou.anisou.u[1] = aniso_u_to_int((*aniso_u)[3]);
+                    p_anisou.anisou.u[2] = aniso_u_to_int((*aniso_u)[5]);
+                    p_anisou.anisou.u[3] = aniso_u_to_int((*aniso_u)[1]);
+                    p_anisou.anisou.u[4] = aniso_u_to_int((*aniso_u)[2]);
+                    p_anisou.anisou.u[5] = aniso_u_to_int((*aniso_u)[4]);
                     strcpy(p_anisou.anisou.seg_id, p.atom.seg_id);
                     strcpy(p_anisou.anisou.element, p.atom.element);
                     strcpy(p_anisou.anisou.charge, p.atom.charge);
-                    os << p << "\n";
+                    os << p_anisou << "\n";
                 }
             }
             written.insert(a);
@@ -1847,10 +1854,11 @@ write_pdb_file(PyObject *, PyObject *args)
             Py_DECREF(iter);
             return nullptr;
         }
-        poly_res_names.insert(PyUnicode_AS_DATA(py_res_name));
+        poly_res_names.insert(PyUnicode_AsUTF8(py_res_name));
         Py_DECREF(py_res_name);
     }
     Py_DECREF(iter);
+for (auto prn: poly_res_names) std::cerr << "std res name: " << prn << "\n";
 
     const char* path = PyBytes_AS_STRING(py_path);
     std::ofstream os(path);
