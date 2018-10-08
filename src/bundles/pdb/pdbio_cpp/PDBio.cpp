@@ -637,7 +637,9 @@ start_t = end_t;
             float u12 = *u++ / 10000.0;
             float u13 = *u++ / 10000.0;
             float u23 = *u++ / 10000.0;
-            (*si).second->set_aniso_u(u11, u12, u13, u22, u23, u33);
+            Atom *a = (*si).second;
+            a->set_alt_loc(record.anisou.alt_loc);
+            a->set_aniso_u(u11, u12, u13, u22, u23, u33);
             break;
         }
         case PDB::CONECT:
@@ -1470,8 +1472,8 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                     occupancy = cs->get_occupancy(a);
                 } else {
                     crd = &a->coord(alt_loc);
-                    bfactor = a->bfactor();
-                    occupancy = a->occupancy();
+                    bfactor = a->bfactor(alt_loc);
+                    occupancy = a->occupancy(alt_loc);
                 }
                 if (!pqr) {
                     p.atom.temp_factor = bfactor;
@@ -1501,13 +1503,13 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
                 (*xyz)[2] = final_crd[2];
                 os << p << "\n";
                 some_output = true;
-                if (a->has_aniso_u()) {
+                if (a->has_aniso_u(alt_loc)) {
                     p_anisou.anisou.serial = *rec_serial;
                     strcpy(p_anisou.anisou.name, *rec_name);
                     p_anisou.anisou.alt_loc = *rec_alt_loc;
                     p_anisou.anisou.res = *res;
                     // Atom.aniso_u is row major; whereas PDB is 11, 22, 33, 12, 13, 23
-                    auto aniso_u = a->aniso_u();
+                    auto aniso_u = a->aniso_u(alt_loc);
                     p_anisou.anisou.u[0] = aniso_u_to_int((*aniso_u)[0]);
                     p_anisou.anisou.u[1] = aniso_u_to_int((*aniso_u)[3]);
                     p_anisou.anisou.u[2] = aniso_u_to_int((*aniso_u)[5]);
