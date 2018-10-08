@@ -1858,7 +1858,6 @@ write_pdb_file(PyObject *, PyObject *args)
         Py_DECREF(py_res_name);
     }
     Py_DECREF(iter);
-for (auto prn: poly_res_names) std::cerr << "std res name: " << prn << "\n";
 
     const char* path = PyBytes_AS_STRING(py_path);
     std::ofstream os(path);
