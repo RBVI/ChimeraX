@@ -12,7 +12,8 @@
 
 # -----------------------------------------------------------------------------
 #
-def label_create(session, name, text = '', color = None, size = 24, font = 'Arial',
+def label_create(session, name, text = '', color = None,
+                 size = 24, font = 'Arial', bold = False, italic = False,
                  xpos = 0.5, ypos = 0.5, visibility = True):
     '''Create a label at a fixed position in the graphics window.
 
@@ -48,7 +49,8 @@ def label_create(session, name, text = '', color = None, size = 24, font = 'Aria
 
 # -----------------------------------------------------------------------------
 #
-def label_change(session, name, text = None, color = None, size = None, font = None,
+def label_change(session, name, text = None, color = None,
+                 size = None, font = None, bold = False, italic = False,
                  xpos = None, ypos = None, visibility = None):
     '''Change label parameters.'''
     lb = session_labels(session)
@@ -61,6 +63,8 @@ def label_change(session, name, text = None, color = None, size = None, font = N
     if not color is None: l.color = color.uint8x4()
     if not size is None: l.size = size
     if not font is None: l.font = font
+    if not bold is None: l.bold = bold
+    if not italic is None: l.italic = italic
     if not xpos is None: l.xpos = xpos
     if not ypos is None: l.ypos = ypos
     if not visibility is None: l.visibility = visibility
@@ -115,6 +119,8 @@ def register_label_command(logger):
              ('color', ColorArg),
              ('size', IntArg),
              ('font', StringArg),
+             ('bold', BoolArg),
+             ('italic', BoolArg),
              ('xpos', FloatArg),
              ('ypos', FloatArg),
              ('visibility', BoolArg)]
@@ -152,7 +158,8 @@ class Labels(StateManager):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        lattrs = ('name', 'text', 'color', 'size', 'font', 'xpos', 'ypos', 'visibility')
+        lattrs = ('name', 'text', 'color', 'size', 'font',
+                  'bold', 'italic', 'xpos', 'ypos', 'visibility')
         lstate = tuple({attr:getattr(l, attr) for attr in lattrs}
                        for l in self.labels.values())
         data = {'labels state': lstate, 'version': 1}
@@ -185,7 +192,8 @@ def session_labels(session):
 # -----------------------------------------------------------------------------
 #
 class Label:
-    def __init__(self, session, name, text = '', color = None, size = 24, font = 'Arial',
+    def __init__(self, session, name, text = '', color = None,
+                 size = 24, font = 'Arial', bold = False, italic = False,
                  xpos = 0.5, ypos = 0.5, visibility = True):
         self.session = session
         self.name = name
@@ -193,6 +201,8 @@ class Label:
         self.color = color
         self.size = size	# Points (1/72 inch) to get similar appearance on high DPI displays
         self.font = font
+        self.bold = bold
+        self.italic = italic
         self.xpos = xpos
         self.ypos = ypos
         self.visibility = visibility
@@ -248,7 +258,8 @@ class LabelDrawing(Drawing):
         else:
             rgba8 = tuple(l.color)
         from chimerax.core.graphics import text_image_rgba
-        rgba = text_image_rgba(l.text, rgba8, l.size, l.font)
+        rgba = text_image_rgba(l.text, rgba8, l.size, l.font,
+                               bold = l.bold, italic = l.italic)
         if rgba is None:
             l.session.logger.info("Can't find font for label")
             return True

@@ -1960,7 +1960,7 @@ def qimage_to_numpy(qi):
 # -----------------------------------------------------------------------------
 #
 def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, ypad = 0,
-                    pixels = False):
+                    pixels = False, italic = False, bold = False):
     '''
     Size argument is in points (1/72 inch) if pixels is False and the returned
     image has size to fit the specified text plus padding on each edge, xpad and
@@ -1973,11 +1973,12 @@ def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, yp
     p = QPainter()
 
     # Determine image size.
+    weight = QFont.Bold if bold else QFont.Normal
     if pixels:
-        f = QFont(font)
+        f = QFont(font, weight=weight, italic=italic)
         f.setPixelSize(size-2*ypad)
     else:
-        f = QFont(font, size)  # Size in points.
+        f = QFont(font, size, weight=weight, italic=italic)  # Size in points.
 
     # Use font metrics to determine image width
     fm = QFontMetrics(f)
