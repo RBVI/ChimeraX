@@ -49,12 +49,14 @@ to match the compiler used by the standard Python 3 distribution.
 Cygwin is use to provide a unix-like environment (bash shell, make, ...) to build ChimeraX on Windows.
 Several cygwin packages are needed beyond the standard cygwin install.
 
-  - python3
   - make
   - unzip
   - patch
   - rsync
   - ImageMagick
+
+ChimeraX also uses the standard Python 3.6 distribution so that should be installed from Python on the
+build machine.  It requires an exact version (currently Python 3.6.4) specified in chimerax/prereqs/Python/Makefile.
 
 macOS Build
 -----------
