@@ -61,7 +61,7 @@ private:
     friend class Bond;
 
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version < 6 ? 10 : (version < 10 ? 9 : 8);
+        return version < 6 ? 10 : (version < 10 ? 9 : (version < 14 ? 8 : 7));
     }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
 
@@ -70,7 +70,6 @@ private:
     Chain*  _chain;
     ChainID  _chain_id;
     char  _insertion_code;
-    bool  _is_het;
     ChainID  _mmcif_chain_id;
     ResName  _name;
     PolymerType  _polymer_type;
@@ -98,7 +97,6 @@ public:
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
     char  insertion_code() const { return _insertion_code; }
     bool  is_helix() const { return ss_type() == SS_HELIX; }
-    bool  is_het() const { return _is_het; }
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     void  set_name(const ResName &name) {
@@ -121,7 +119,6 @@ public:
     void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
     void  set_insertion_code(char ic) { _insertion_code = ic; }
     void  set_is_helix(bool ih);
-    void  set_is_het(bool ih);
     void  set_is_strand(bool is);
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
@@ -259,14 +256,6 @@ Residue::set_is_helix(bool ih) {
         set_ss_type(SS_HELIX);
     else
         set_ss_type(SS_COIL);
-}
-
-inline void
-Residue::set_is_het(bool ih) {
-    if (ih == _is_het)
-        return;
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IS_HET);
-    _is_het = ih;
 }
 
 inline void

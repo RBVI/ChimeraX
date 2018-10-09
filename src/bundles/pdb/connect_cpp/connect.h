@@ -38,7 +38,7 @@ PDB_CONNECT_IMEX void connect_structure(Structure* as,
         std::vector<Residue *>* chain_starters,
         std::vector<Residue *>* chain_enders,
         std::set<Atom *>* conect_atoms, std::set<MolResId>* mod_res,
-        std::set<ResName>& polymeric_res_names);
+        std::set<ResName>& polymeric_res_names, std::set<Residue*>& het_res);
 PDB_CONNECT_IMEX void connect_residue_by_distance(Residue* r,
         std::set<Atom *>* conect_atoms = nullptr);
 PDB_CONNECT_IMEX Atom* find_closest(Atom* a, Residue* r, float* ret_dist_sq,

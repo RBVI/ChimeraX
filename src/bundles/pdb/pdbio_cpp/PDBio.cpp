@@ -69,7 +69,7 @@ const std::vector<std::string> record_order = {
     "SIGUIJ", "TER", "HETATM", "ENDMDL", "CONECT", "MASTER", "END",
 };
 
-// standard_polymer_res_names contains the names of residues that should use
+// standard_polymeric_res_names contains the names of residues that should use
 // PDB ATOM records.
 static std::set<ResName> standard_polymeric_res_names = {
     // "N" and "DN", are basically "UNK" for nucleic acids
@@ -210,7 +210,7 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     std::vector<PDB::Conect_> *conect_records,
     std::vector<PDB> *link_ssbond_records,
     std::set<MolResId> *mod_res, bool *reached_end,
-    PyObject *py_logger, bool explode, bool *eof)
+    PyObject *py_logger, bool explode, bool *eof, std::set<Residue*>& het_res)
 {
     bool        start_connect = true;
     int            in_model = 0;
@@ -441,7 +441,8 @@ start_t = end_t;
             } else if (cur_residue == nullptr || cur_rid != rid
             // modifying HETs can be inline...
             || (cur_residue->name() != rname && (record.type() != PDB::HETATM
-                || cur_residue->is_het())))
+            || standard_polymeric_res_names.find(cur_residue->name())
+            == standard_polymeric_res_names.end())))
             {
                 // on to new residue
 
@@ -468,8 +469,9 @@ start_t = end_t;
                 // until we come out on the "other side" into
                 // the following ATOM residue.  When we do,
                 // remove the chain break.
-                if (!start_connect && cur_residue != nullptr
-                && record.type() == PDB::ATOM && cur_residue->is_het()
+                if (!start_connect && cur_residue != nullptr && record.type() == PDB::ATOM
+                && standard_polymeric_res_names.find(cur_residue->name())
+                    == standard_polymeric_res_names.end()
                 && rid.chain != " " && mod_res->find(cur_rid) == mod_res->end()
                 && cur_rid.chain == rid.chain){
                     // if there were several HETATM residues
@@ -478,7 +480,8 @@ start_t = end_t;
                         Residue *sr = start_residues->back();
                         if (sr->chain_id() != rid.chain)
                             break;
-                        if (!sr->is_het())
+                        if (standard_polymeric_res_names.find(sr->name())
+                        != standard_polymeric_res_names.end())
                             break;
                         Residue *er = end_residues->back();
                         if (er->chain_id() != rid.chain)
@@ -493,7 +496,7 @@ start_t = end_t;
                 cur_rid = rid;
                 cur_residue = as->new_residue(rname, rid.chain, rid.number, rid.insert);
                 if (record.type() == PDB::HETATM)
-                    cur_residue->set_is_het(true);
+                    het_res.insert(cur_residue);
                 cur_res_index = as->residues().size() - 1;
                 if (start_connect)
                     start_residues->push_back(cur_residue);
@@ -1132,9 +1135,10 @@ start_t = clock();
             as = new AtomicStructure(py_logger);
         else
             as = new Structure(py_logger);
+        std::set<Residue*> het_res;
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
-          &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof);
+          &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof, het_res);
         if (ret == nullptr) {
             for (std::vector<Structure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
@@ -1246,7 +1250,7 @@ start_t = end_t;
             Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
                 link_up(*li, fs, &conect_atoms, py_logger);
-            connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs], standard_polymeric_res_names);
+            connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs], standard_polymeric_res_names, het_res);
             prune_short_bonds(fs);
             fs->use_best_alt_locs();
         }
@@ -1312,7 +1316,8 @@ aniso_u_to_int(Real aniso_u_val)
 static void
 write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
     std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double* xform,
-    bool pqr, bool h36, std::set<const Atom*>& written, std::map<const Residue*, int>& polymer_map)
+    bool pqr, bool h36, std::set<const Atom*>& written, std::map<const Residue*, int>& polymer_map,
+    const std::set<ResName>& polymeric_res_names)
 {
     Residue* prev_res = nullptr;
     bool prev_standard = false;
@@ -1360,7 +1365,7 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             res = &p.atomqr.res;
             xyz = &p.atomqr.xyz;
         } else {
-            if (standard && !r->is_het()) {
+            if (standard && polymeric_res_names.find(r->name()) != polymeric_res_names.end()) {
                 p.set_type(PDB::ATOM);
             } else {
                 p.set_type(PDB::HETATM);
@@ -1732,7 +1737,7 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
                 os << p << "\n";
             }
             write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, pqr, h36,
-                written, polymer_map);
+                written, polymer_map, polymeric_res_names);
             if (use_MODEL) {
                 p.set_type(PDB::ENDMDL);
                 os << p << "\n";
@@ -1846,7 +1851,7 @@ write_pdb_file(PyObject *, PyObject *args)
     }
     PyObject *iter = PyObject_GetIter(py_poly_res_names);
     PyObject *py_res_name;
-    while (py_res_name = PyIter_Next(iter)) {
+    while ((py_res_name = PyIter_Next(iter))) {
         if (!PyUnicode_Check(py_res_name)) {
             Py_DECREF(py_res_name);
             std::stringstream err_msg;

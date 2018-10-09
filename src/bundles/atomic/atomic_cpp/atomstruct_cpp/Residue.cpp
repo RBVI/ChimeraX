@@ -58,7 +58,7 @@ std::set<ResName> Residue::std_solvent_names = std_water_names;
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int num, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _is_het(false), _mmcif_chain_id(chain), _name(name), _polymer_type(PT_NONE),
+    _mmcif_chain_id(chain), _name(name), _polymer_type(PT_NONE),
     _number(num), _ribbon_adjust(-1.0), _ribbon_display(false),
     _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
     _ss_id(-1), _ss_type(SS_COIL), _structure(as)
@@ -185,7 +185,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         _alt_loc = int_ptr[0];
         if (int_ptr[1]) // is_helix
             _ss_type = SS_HELIX;
-        _is_het = int_ptr[2];
+        // was is_het
         if (int_ptr[3]) // is_strand
             _ss_type = SS_STRAND;
         _ribbon_display = int_ptr[5];
@@ -195,22 +195,30 @@ Residue::session_restore(int version, int** ints, float** floats)
         num_atoms = int_ptr[9];
     } else if (version < 10) {
         _alt_loc = int_ptr[0];
-        _is_het = int_ptr[1];
+        // was is_het
         _ribbon_display = int_ptr[3];
         _ribbon_hide_backbone = int_ptr[4];
         _ribbon_selected = int_ptr[5];
         _ss_id = int_ptr[6];
         _ss_type = (SSType)int_ptr[7];
         num_atoms = int_ptr[8];
-    } else {
+    } else if (version < 14) {
         _alt_loc = int_ptr[0];
-        _is_het = int_ptr[1];
+        // was is_het
         _ribbon_display = int_ptr[2];
         _ribbon_hide_backbone = int_ptr[3];
         _ribbon_selected = int_ptr[4];
         _ss_id = int_ptr[5];
         _ss_type = (SSType)int_ptr[6];
         num_atoms = int_ptr[7];
+    } else {
+        _alt_loc = int_ptr[0];
+        _ribbon_display = int_ptr[1];
+        _ribbon_hide_backbone = int_ptr[2];
+        _ribbon_selected = int_ptr[3];
+        _ss_id = int_ptr[4];
+        _ss_type = (SSType)int_ptr[5];
+        num_atoms = int_ptr[6];
     }
     int_ptr += SESSION_NUM_INTS(version);
 
@@ -232,13 +240,12 @@ Residue::session_save(int** ints, float** floats) const
     auto& float_ptr = *floats;
 
     int_ptr[0] = (int)_alt_loc;
-    int_ptr[1] = (int)_is_het;
-    int_ptr[2] = (int)_ribbon_display;
-    int_ptr[3] = (int)_ribbon_hide_backbone;
-    int_ptr[4] = (int) _ribbon_selected;
-    int_ptr[5] = (int)_ss_id;
-    int_ptr[6] = (int)_ss_type;
-    int_ptr[7] = atoms().size();
+    int_ptr[1] = (int)_ribbon_display;
+    int_ptr[2] = (int)_ribbon_hide_backbone;
+    int_ptr[3] = (int) _ribbon_selected;
+    int_ptr[4] = (int)_ss_id;
+    int_ptr[5] = (int)_ss_type;
+    int_ptr[6] = atoms().size();
     int_ptr += SESSION_NUM_INTS();
 
     float_ptr[0] = _ribbon_adjust;
