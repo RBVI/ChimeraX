@@ -45,13 +45,16 @@ src/bundles/atomic/atomic_cpp/pyinstance_cpp/imex.map.h
 src/bundles/atomic/src/include/
 src/bundles/atomic/src/data/
 src/bundles/atom_search/search_cpp/ast.cpp
+src/bundles/atom_search/src/include/
 src/bundles/chem_group/bundle_info.xml
+src/bundles/chem_group/src/__init__.py
 src/bundles/md_crds/gromacs/xdrfile-1.1b/
 src/bundles/mmcif/mmcif_cpp/include/
 src/bundles/mmtf/.eggs/
 src/bundles/mmtf/mmtf-cpp-master/
 src/bundles/mmtf/msgpack-c-master/
 src/bundles/pdb/pdb_cpp/include/
+src/bundles/pdb/src/include/
 src/bundles/rest_server/src/server.pem
 src/bundles/rest_server/server.key
 src/bundles/ui/src/about.html
