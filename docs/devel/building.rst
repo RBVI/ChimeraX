@@ -30,6 +30,9 @@ installs various non-Python third-party libraries such as Qt 5 and HDF5 and seve
 wheels for about 100 ChimeraX-specific bundles written in Python and C++.  And it builds an application
 with an appropriate directory structure the operating system.
 
+The ChimeraX build uses a commercial license version of PyQt and gets this from plato.cgl.ucsf.edu and
+requires a password or that the build machine can ssh to plato.
+
 The prereqs subdirectory contains Makefiles to build the various third party packages.  Most of the ChimeraX
 build time is making these prereq packages.  To save time on subsequent builds the installed packages are
 archived in a file prereqs/prebuilt-<OS>.tar.bz2.
