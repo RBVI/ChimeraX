@@ -158,7 +158,13 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
         raise UserError('Failed to import OpenVR module: %s' % str(e))
 
     mv = session.main_view
-    mv.camera = SteamVRCamera(session)
+    try:
+        mv.camera = SteamVRCamera(session)
+    except openvr.OpenVRError as e:
+        from chimerax.core.errors import UserError
+        raise UserError('Failed to initialize OpenVR.\n'
+                        'Either SteamVR is not installed or it failed to start.\n%s' % str(e))
+        
     
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
     session.update_loop.set_redraw_interval(0)
@@ -241,6 +247,8 @@ class SteamVRCamera(Camera):
 
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
+        # The init() call raises OpenVRError if SteamVR is not installed.
+        # Handle this in the code that tries to create the camera.
 
         self._render_size = self.vr_system.getRecommendedRenderTargetSize()
         self.compositor = openvr.VRCompositor()

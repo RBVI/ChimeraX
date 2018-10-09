@@ -674,30 +674,25 @@ class Atoms(Collection):
 
     @property
     def aniso_u(self):
-        '''Anisotropic temperature factors, returns Nx3x3 array of numpy float32 or None
-        if any of the atoms does not have temperature factors.  Read only.'''
+        '''Anisotropic temperature factors, returns Nx3x3 array of numpy float32.
+        If any of the atoms does not have temperature factors it raises a ValueError exception.
+        Read only.'''
         f = c_function('atom_aniso_u', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         from numpy import empty, float32
         n = len(self)
         ai = empty((n,3,3), float32)
-        try:
-            f(self._c_pointers, n, pointer(ai))
-        except ValueError:
-            ai = None
+        f(self._c_pointers, n, pointer(ai))
         return ai
 
     def _get_aniso_u6(self):
         '''Get anisotropic temperature factors as a Nx6 array of numpy float32 containing
-        (u11,u22,u33,u12,u13,u23) for each atom or None if any of the atoms does not have
-        temperature factors.'''
+        (u11,u22,u33,u12,u13,u23) for each atom. If any of the atoms does not have
+        temperature factors raise a ValueError exception.'''
         f = c_function('atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         from numpy import empty, float32
         n = len(self)
         ai = empty((n,6), float32)
-        try:
-            f(self._c_pointers, n, pointer(ai))
-        except ValueError:
-            ai = None
+        f(self._c_pointers, n, pointer(ai))
         return ai
     def _set_aniso_u6(self, u6):
         '''Set anisotropic temperature factors as a Nx6 element numpy float32 array
