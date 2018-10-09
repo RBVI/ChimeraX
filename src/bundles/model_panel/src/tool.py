@@ -135,12 +135,15 @@ class ModelPanel(ToolInstance):
                                 for i in self._items if hasattr(i, '_model')}
             self.tree.clear()
             self._items = []
+        all_selected_models = self.session.selection.models(all_selected=True)
+        part_selected_models = self.session.selection.models()
         from PyQt5.QtWidgets import QTreeWidgetItem, QPushButton
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QColor
         item_stack = [self.tree.invisibleRootItem()]
         for model in self.models:
-            model_id, model_id_string, bg_color, display, name, selected, part_selected = self._get_info(model)
+            model_id, model_id_string, bg_color, display, name, selected, part_selected = \
+                self._get_info(model, all_selected_models, part_selected_models)
             len_id = len(model_id)
             if update:
                 if len_id == len(item_stack):
@@ -201,14 +204,14 @@ class ModelPanel(ToolInstance):
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
 
-    def _get_info(self, obj):
+    def _get_info(self, obj, all_selected_models, part_selected_models):
         model_id = obj.id
         model_id_string = obj.id_string
         bg_color = self._model_color(obj)
         display = obj.display
         name = getattr(obj, "name", "(unnamed)")
-        selected = obj in self.session.selection.models(all_selected=True)
-        part_selected = selected or obj in self.session.selection.models()
+        selected = obj in all_selected_models
+        part_selected = selected or obj in part_selected_models
         return model_id, model_id_string, bg_color, display, name, selected, part_selected
 
     def _header_click_cb(self, index):
