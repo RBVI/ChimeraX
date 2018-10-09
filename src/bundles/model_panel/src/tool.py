@@ -75,8 +75,8 @@ class ModelPanel(ToolInstance):
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(MODEL_ID_CHANGED,
-            lambda *args: self._fill_tree(*args, always_rebuild=True))
-        self.session.triggers.add_handler(MODEL_NAME_CHANGED, self._fill_tree)
+            lambda *args: self._initiate_fill_tree(*args, always_rebuild=True))
+        self.session.triggers.add_handler(MODEL_NAME_CHANGED, self._initiate_fill_tree)
         from chimerax import atomic
         atomic.get_triggers(self.session).add_handler("changes", self._changes_cb)
         self._frame_drawn_handler = None
@@ -92,7 +92,7 @@ class ModelPanel(ToolInstance):
     def _shown_changed(self, shown):
         if shown:
             # Update panel when it is shown.
-            self._fill_tree()
+            self._initiate_fill_tree()
 
     @classmethod
     def get_singleton(self, session):
@@ -108,7 +108,7 @@ class ModelPanel(ToolInstance):
         # ensure that the newly visible model id isn't just "..."
         self.tree.resizeColumnToContents(self.ID_COLUMN)
 
-    def _initiate_fill_tree(self, *args):
+    def _initiate_fill_tree(self, *args, always_rebuild=False):
         # in order to allow molecules to be drawn as quickly as possible,
         # delay the update of the tree until the 'frame drawn' trigger fires,
         # unless no models are open, in which case update immediately because
@@ -116,12 +116,16 @@ class ModelPanel(ToolInstance):
         if len(self.session.models) == 0:
             if self._frame_drawn_handler is not None:
                 self.session.triggers.remove_handler(self._frame_drawn_handler)
-            self._fill_tree()
+            self._fill_tree(always_rebuild=always_rebuild)
         elif self._frame_drawn_handler is None:
-            self._frame_drawn_handler = self.session.triggers.add_handler(
-                "frame drawn", self._fill_tree)
+            self._frame_drawn_handler = self.session.triggers.add_handler("frame drawn",
+                lambda *args, ft=self._fill_tree, ar=always_rebuild: ft(always_rebuild=ar))
+        elif always_rebuild:
+            self.session.triggers.remove_handler(self._frame_drawn_handler)
+            self._frame_drawn_handler = self.session.triggers.add_handler("frame drawn",
+                lambda *args, ft=self._fill_tree: ft(always_rebuild=True))
 
-    def _fill_tree(self, *args, always_rebuild=False):
+    def _fill_tree(self, *, always_rebuild=False):
         if not self.displayed():
             # Don't update panel when it is hidden.
             return
@@ -194,9 +198,8 @@ class ModelPanel(ToolInstance):
             self.tree.resizeColumnToContents(i)
 
         self._frame_drawn_handler = None
-        if args and args[0] == "frame drawn":
-            from chimerax.core.triggerset import DEREGISTER
-            return DEREGISTER
+        from chimerax.core.triggerset import DEREGISTER
+        return DEREGISTER
 
     def _get_info(self, obj):
         model_id = obj.id
