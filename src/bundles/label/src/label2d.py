@@ -13,7 +13,7 @@
 # -----------------------------------------------------------------------------
 #
 def label_create(session, name, text = '', color = None,
-                 size = 24, font = 'Arial', bold = False, italic = False,
+                 size = 24, font = 'Arial', bold = None, italic = None,
                  xpos = 0.5, ypos = 0.5, visibility = True):
     '''Create a label at a fixed position in the graphics window.
 
@@ -50,7 +50,7 @@ def label_create(session, name, text = '', color = None,
 # -----------------------------------------------------------------------------
 #
 def label_change(session, name, text = None, color = None,
-                 size = None, font = None, bold = False, italic = False,
+                 size = None, font = None, bold = None, italic = None,
                  xpos = None, ypos = None, visibility = None):
     '''Change label parameters.'''
     lb = session_labels(session)
