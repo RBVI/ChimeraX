@@ -25,29 +25,31 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: 2dlabels</h3>
 
+<table class="clRight">
+<tr><td>
+<a href="prc.png" title="click to enlarge...">
+<img class="outline" src="prc.png" alt="2D labels example" 
+width="300px"></a></td></tr>
+</table>
+
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>2dlabels</b>&nbsp;(&nbsp;<b>create</b>&nbsp;|&nbsp;<b>change</b>&nbsp;|&nbsp;<b>delete</b>&nbsp;)&nbsp;<i>name</i>&nbsp;&nbsp;<i>options</i>
+<br><b>2dlabels</b>&nbsp;(&nbsp;<a href="#create"><b>create</b></a>&nbsp;|&nbsp;<a href="#change"><b>change</b></a>&nbsp;|&nbsp;<a href="#delete"><b>delete</b></a>&nbsp;)&nbsp;&nbsp;<i>name</i>&nbsp;&nbsp;<i>options</i>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>2dlabels</b> &nbsp;<b>fonts</b>
+<br><b>2dlabels</b> &nbsp;<b>listfonts</b>
 </h3>
 <p>
 The <b>2dlabels</b> command allows adding 2D text and
 <a href="symbols.html">symbols</a> to the display 
 for presentation-quality images and movies.
-The labels can be of multiple colors and sizes.
-They exist in the X,Y plane (the plane of the screen) 
-and do not move along with the scene.
-2D labels can be repositioned interactively using the
-<b>move label</b> <a href="ui.html#mousemode">mouse mode</a>
+2D labels exist in the X,Y plane (the plane of the screen) 
+and do not move along with the 3D scene, but they can be repositioned
+with the <b>move label</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a>.
 Dragging a label echoes the corresponding command with X and Y positions 
 to the <a href="../tools/log.html"><b>Log</b></a>, which may be useful 
-for <a href="usageconventions.html#cxc-files">scripting</a> purposes.
-Example image and script:
-<a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html#switch"
-target="_blank">G-Protein Switch Regions</a>
+for <a href="usageconventions.html#cxc-files">scripting</a>.
 </p><p>
 For &ldquo;3D labels&rdquo; that move along with the associated atoms,
 see the <a href="label.html"><b>label</b></a> command.
@@ -58,19 +60,18 @@ See also:
 <a href="../movies.html">making movies</a>
 </p><p>
 Examples:
+</p>
 <blockquote><b>
-2dlabels create lab1 text 'Green Fluorescent Protein' color light sea green size 26 xpos .03  ypos .92 vis true
+2dlabels create title text 'Green Fluorescent Protein' color light sea green size 26 xpos .03 ypos .92
 <br>
-2dlabels change lab1 ypos .03 size 40
+2dlab change title ypos .03 size 40
 <br>
-2dlabels delete all
-<br>
-2dlab fonts
+2dlab delete all
 </b></blockquote>
 <p>
-<b>2dlabels fonts</b> lists the available fonts
-in the <a href="../tools/log.html"><b>Log</b></a>.
-The other subcommands and their options are detailed below:
+For an example image with a script, see
+<a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html#switch"
+target="_blank">G-Protein Switch Regions</a>.
 </p>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -78,9 +79,11 @@ The other subcommands and their options are detailed below:
   [&nbsp;<b>text</b>&nbsp;<i>label-contents</i>&nbsp;]
   [&nbsp;<b>color</b>&nbsp;<i>label-color</i>&nbsp;]
   [&nbsp;<b>size</b>&nbsp;<i>font-size</i>&nbsp;]
-  [&nbsp;<b>font</b>&nbsp;<i>font-type</i>&nbsp;]
   [&nbsp;<b>xpos</b>&nbsp;<i>x-position</i>&nbsp;]
   [&nbsp;<b>ypos</b>&nbsp;<i>y-position</i>&nbsp;]
+  [&nbsp;<b>font</b>&nbsp;<i>font-name</i>&nbsp;]
+  [&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+  [&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
   [&nbsp;<b>visibility</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
 The <i>name</i> is required and serves as an identifier
@@ -105,17 +108,18 @@ any <a href="colornames.html">color name</a>
 that specifies a single color (default <b>white</b>). 
 The <i>font-size</i> must be an integer greater than zero 
 (default <b>24</b>). 
-The possible values of <i>font-type</i> (default <b>Arial</b>)
-can be listed in the <a href="../tools/log.html"><b>Log</b></a>
-with the command <b>2dlabels fonts</b>.
-Those with spaces must be enclosed in quoatation marks.
 The <i>x-position</i> and <i>y-position</i> are the X and Y
 coordinates of the lower lefthand corner of the label 
 (defaults are <b>0.5</b> and <b>0.5</b>).  The X axis is 
 horizontal and the Y axis is vertical, and both range from
 0 to 1 in the visible portion of the graphics window. It is possible to place
 a label partially or completely outside the visible area, however.
-The <b>visibility</b> option specifies whether the label should be displayed.
+The possible values of <i>font-name</i> (default <b>Arial</b>)
+can be listed with <a href="#listfonts"><b>2dlabels listfonts</b></a>.
+Font names with spaces must be enclosed in quotation marks.
+In addition, the font can be designated as <b>italic</b> and/or <b>bold</b>.
+The <b>visibility</b> option specifies whether the label should be displayed
+when it is created.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -123,9 +127,11 @@ The <b>visibility</b> option specifies whether the label should be displayed.
   [&nbsp;<b>text</b>&nbsp;<i>label-contents</i>&nbsp;]
   [&nbsp;<b>color</b>&nbsp;<i>label-color</i>&nbsp;]
   [&nbsp;<b>size</b>&nbsp;<i>font-size</i>&nbsp;]
-  [&nbsp;<b>font</b>&nbsp;<i>font-type</i>&nbsp;]
   [&nbsp;<b>xpos</b>&nbsp;<i>x-position</i>&nbsp;]
   [&nbsp;<b>ypos</b>&nbsp;<i>y-position</i>&nbsp;]
+  [&nbsp;<b>font</b>&nbsp;<i>font-name</i>&nbsp;]
+  [&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+  [&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
   [&nbsp;<b>visibility</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
 The 2D label to change is specified by the <i>name</i> it was assigned with
@@ -142,6 +148,12 @@ except the defaults are to leave the current label unchanged.
 The 2D label to delete is specified by the
 <i>name</i> it was assigned with <a href="#create"><b>create</b></a>,
 or the word <b>all</b> can be used to specify all 2D labels collectively.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="listfonts"><b>2dlabels listfonts</b></a>
+<blockquote>
+List the available font names in the <a href="../tools/log.html"><b>Log</b></a>.
 </blockquote>
 
 <hr>
