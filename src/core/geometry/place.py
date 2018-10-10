@@ -166,7 +166,8 @@ class Place:
         in OpenGL order (columns major).'''
         m = self._m44
         if m is None:
-            self._m44 = m = m34.opengl_matrix(self.matrix)
+            from numpy import array, float32
+            self._m44 = m = array(m34.opengl_matrix(self.matrix), float32)
         return m
 
     def interpolate(self, tf, center, frac):
