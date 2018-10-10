@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import CP_BEST_BEST, AA_NEEDLEMAN_WUNSCH
+from .match import CP_BEST_BEST, AA_NEEDLEMAN_WUNSCH
 
 defaults = {
     'chain_pairing': CP_BEST_BEST,

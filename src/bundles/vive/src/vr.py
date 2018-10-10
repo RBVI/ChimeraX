@@ -13,7 +13,7 @@
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
 def vr(session, enable = None, room_position = None, display = None,
-       show_controllers = True, click_range = None,
+       show_controllers = True, gui = None, click_range = None,
        multishadow_allowed = False, simplify_graphics = True,
        toolbar_panels = True, icons = False):
     '''
@@ -41,6 +41,9 @@ def vr(session, enable = None, room_position = None, display = None,
       the VR headset rendering.
     show_controllers : bool
       Whether to show the hand controllers in the scene. Default true.
+    gui : string
+      Name of a tool instance which will be shown as the VR gui panel.  If not specified
+      then the VR gui panel consists of all tools docked on the right side of the main window.
     click_range : float
       How far away hand controller tip can be when clicking an atom in scene units
       (Angstroms).  Default 5.
@@ -94,6 +97,8 @@ def vr(session, enable = None, room_position = None, display = None,
                 c.initialize_desktop_camera_position = True
         if show_controllers is not None:
             c.show_hand_controllers(show_controllers)
+        if gui is not None:
+            c.user_interface.set_gui_tool_name(gui)
         if click_range is not None:
             c.user_interface.set_mouse_mode_click_range(click_range)
         if icons is not None: 
@@ -113,12 +118,14 @@ def vr(session, enable = None, room_position = None, display = None,
 # Register the oculus command for ChimeraX.
 #
 def register_vr_command(logger):
-    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf, NoArg
+    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf, StringArg
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
                               ('display', EnumOf(('mirror', 'independent', 'blank'))),
                               ('show_controllers', BoolArg),
+                              ('gui', StringArg),
+                              ('click_range', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                               ('toolbar_panels', BoolArg),
@@ -151,7 +158,13 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
         raise UserError('Failed to import OpenVR module: %s' % str(e))
 
     mv = session.main_view
-    mv.camera = SteamVRCamera(session)
+    try:
+        mv.camera = SteamVRCamera(session)
+    except openvr.OpenVRError as e:
+        from chimerax.core.errors import UserError
+        raise UserError('Failed to initialize OpenVR.\n'
+                        'Either SteamVR is not installed or it failed to start.\n%s' % str(e))
+        
     
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
     session.update_loop.set_redraw_interval(0)
@@ -234,6 +247,8 @@ class SteamVRCamera(Camera):
 
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
+        # The init() call raises OpenVRError if SteamVR is not installed.
+        # Handle this in the code that tries to create the camera.
 
         self._render_size = self.vr_system.getRecommendedRenderTargetSize()
         self.compositor = openvr.VRCompositor()
@@ -648,6 +663,7 @@ class UserInterface:
         self._session = session
         self._width = 0.5		# Billboard width in room coords, meters.
         self._height = None		# Height in room coords determined by window aspect and width.
+        self._gui_tool_name = None	# Name of tool instance shown in VR gui panel.
         self._panel_size = None 	# Panel size in Qt device independent pixels
         self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
         self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
@@ -812,22 +828,41 @@ class UserInterface:
         from chimerax.core.graphics.drawing import rgba_drawing
         rgba_drawing(self._ui_drawing, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
 
+    def set_gui_tool_name(self, tool_name):
+        self._gui_tool_name = tool_name
+
     def _panel_image(self):
         ui = self._session.ui
         im = ui.window_image()
         from chimerax.core.graphics.drawing import qimage_to_numpy
         rgba = qimage_to_numpy(im)
+        wh,ww = rgba.shape[:2]
         mw = ui.main_window
         dpr = mw.devicePixelRatio()
-        gw = ui.main_window.graphics_window
-        ox, oy = (dpr*(gw.x() + gw.width()), dpr*gw.y())
-        ph = dpr*gw.height()
-        wh,ww = rgba.shape[:2]
-        prgba = rgba[wh-(ph+oy):wh-oy,ox:,:]
-        h,w = prgba.shape[:2]
-        self._panel_offset = (ox/dpr, oy/dpr)
-        self._panel_size = (w/dpr, h/dpr)
+        x0, y0, w, h = self._panel_rectangle(mw)
+        prgba = rgba[wh-dpr*(y0+h):wh-dpr*y0,dpr*x0:dpr*(x0+w),:]
+        self._panel_offset = (x0, y0)
+        self._panel_size = (w, h)
         return prgba
+
+    def _panel_rectangle(self, mw):
+        tw = self._gui_tool_window()
+        if tw is None:
+            gw = mw.graphics_window
+            x0, y0 = gw.x() + gw.width(), gw.y()
+            h = gw.height()
+            w = mw.width() - x0
+        else:
+            x0, y0, w, h  = tw.x(), tw.y(), tw.width(), tw.height()
+        return x0, y0, w, h
+
+    def _gui_tool_window(self):
+        tname = self._gui_tool_name
+        if tname is not None:
+            for ti in self._session.tools.list():
+                if ti.tool_name == tname and hasattr(ti, 'tool_window'):
+                    return ti.tool_window._dock_widget
+        return None
 
     def display_ui(self, button_pressed, hand_room_position, camera_position):
         if button_pressed:
@@ -973,11 +1008,13 @@ class HandControllerModel(Model):
 
         # Check for click on user interface panel.
         b = e.data.controller.button
-        if self._process_ui_event(camera.user_interface, b, pressed, released):
-            return
+        m = self._modes.get(b)
+        if not isinstance(m, ShowUIMode):
+            # Check for click on UI panel.
+            if self._process_ui_event(camera.user_interface, b, pressed, released):
+                return
         
         # Call HandMode press() or release() callback.
-        m = self._modes.get(b)
         if m:
             adm = self._active_drag_modes
             if pressed:

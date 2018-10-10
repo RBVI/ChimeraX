@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -11,20 +11,21 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#--- public API ---
-from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
-from .match import AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN
-from .match import match
-
-#--- toolshed/session-init funcs ---
-
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _ButtonPanelAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        from .match import register_command
-        register_command(logger)
+        from . import buttons
+        buttons.register_buttonpanel_command(logger)
 
-bundle_api = _MyAPI()
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'ButtonPanel':
+            from .buttons import ButtonPanel
+            return ButtonPanel
+        return None
+
+bundle_api = _ButtonPanelAPI()

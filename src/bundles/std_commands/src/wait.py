@@ -21,8 +21,11 @@ def wait(session, frames=None):
        command in a command script.
     '''
     if frames is None:
-        from chimerax.core.commands import motion
-        while motion.motion_in_progress(session):
+        from chimerax.core.commands.motion import motion_in_progress
+        if not motion_in_progress(session):
+            from chimerax.core.errors import UserError
+            raise UserError('wait requires a frame count argument unless motion is in progress')
+        while motion_in_progress(session):
             draw_frame(session)
     else:
         for f in range(frames):

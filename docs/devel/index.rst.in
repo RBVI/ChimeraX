@@ -64,6 +64,11 @@ User documentation for the ChimeraX application is in the `User's Manual`_.
 
    cpplibs.rst
 
+.. toctree::
+   :maxdepth: 1
+
+   building.rst
+
 **********
 API Status
 **********

@@ -144,7 +144,9 @@ public:
     char  alt_loc() const { return _alt_loc; }
     std::set<char>  alt_locs() const;
     const std::vector<float> *aniso_u() const;
+    const std::vector<float> *aniso_u(char alt_loc) const;
     float  bfactor() const;
+    float  bfactor(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.bfactor; }
     const Bonds&  bonds() const { return _bonds; }
     bool  connects_to(const Atom* other) const {
         return std::find(_neighbors.begin(), _neighbors.end(), other) != _neighbors.end();
@@ -161,6 +163,7 @@ public:
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
     bool  has_aniso_u() const { return aniso_u() != nullptr; }
+    bool  has_aniso_u(char alt_loc) const { return aniso_u(alt_loc) != nullptr; }
     bool  has_missing_structure_pseudobond() const;
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
@@ -172,6 +175,7 @@ public:
     const Neighbors&  neighbors() const { return _neighbors; }
     Bonds::size_type  num_explicit_bonds() const; // includes missing-structure bonds
     float  occupancy() const;
+    float  occupancy(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.occupancy; }
     int  serial_number() const { return _serial_number; }
     float radius() const {
         if (_radius == 0.0) {

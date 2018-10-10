@@ -410,7 +410,9 @@ class Models(StateManager):
     def empty(self):
         return len(self._models) == 0
 
-    def add(self, models, parent=None, _notify=True, _need_fire_id_trigger=[], _from_session=False):
+    def add(self, models, parent=None, _notify=True, _need_fire_id_trigger=None, _from_session=False):
+        if _need_fire_id_trigger is None:
+            _need_fire_id_trigger = []
         start_count = len(self._models)
 
         d = self.drawing if parent is None else parent

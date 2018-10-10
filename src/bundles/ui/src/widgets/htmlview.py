@@ -306,12 +306,12 @@ class ChimeraXHtmlView(HtmlView):
                 if len(parts) == 2 and parts[1].isdigit():
                     url_file = parts[0] + extension
             file_path = os.path.join(os.path.dirname(item.path()), url_file)
-            from pip.wheel import Wheel, InvalidWheelFilename
+            from wheel.install import WheelFile, BadWheelFile
             try:
-                w = Wheel(file_path)
-                if not w.supported():
+                w = WheelFile(file_path)
+                if not w.compatible:
                     raise ValueError("unsupported wheel platform")
-            except (InvalidWheelFilename, ValueError):
+            except (BadWheelFile, ValueError):
                 pass
             finally:
                 item.setPath(file_path)

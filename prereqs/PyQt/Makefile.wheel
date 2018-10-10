@@ -9,9 +9,9 @@ REMOTE_HOST = plato.cgl.ucsf.edu:
 REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
-VERSION = 5.11
-PYQT_MINOR_VERSION = 3
-QT_MINOR_VERSION = 2
+VERSION = 5.9
+PYQT_MINOR_VERSION = 2
+QT_MINOR_VERSION = 6
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(VERSION)
 else
@@ -25,10 +25,10 @@ WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(BUILD_TAGS).whl
 # Explicitly choose sip version that works -- depends how unlicensed wheel
 # from Riverbank Computing Limited was built and presumably matches the gpl
 # wheel in PyPI.
-SIP_VERSION = 4.19.13
+SIP_VERSION = 4.19.8
 
-PYQT_LICENSE_VERSION = 1.12
-PYTHON_TAGS = cp35.cp36.cp37.cp38
+PYQT_LICENSE_VERSION = 1.8
+PYTHON_TAGS = cp35.cp36.cp37
 
 ifeq ($(OS),Darwin)
 #BIN_PLATFORM = macos
@@ -58,7 +58,8 @@ LICENSE_ARGS = --quiet --license pyqt-commercial.sip --qt $(QTDIR) --qt-version 
 ifdef WIN32
 LICENSE_ARGS += --no-msvc-runtime
 endif
-PYQTLICENSE=pyqtlicense-$(PYQT_LICENSE_VERSION)-$(BIN_PLATFORM)
+#PYQTLICENSE=pyqtlicense-$(PYQT_LICENSE_VERSION)-$(BIN_PLATFORM)
+PYQTLICENSE=pyqtlicense-$(BIN_PLATFORM)
 
 export PATH := $(bindir):$(PATH)
 
@@ -66,10 +67,10 @@ export PATH := $(bindir):$(PATH)
 all:
 
 install: $(WHEEL)
-	$(PIP) install -U $(WHEEL) PyQt5_sip==$(SIP_VERSION)
+	$(PIP) install -U $(WHEEL) sip==$(SIP_VERSION)
 
 app-install: $(WHEEL)
-	$(APP_PIP) install PyQt5_sip==$(SIP_VERSION) $(WHEEL)
+	$(APP_PIP) install sip==$(SIP_VERSION) $(WHEEL)
 
 $(WHEEL) prefetch:
 ifeq ($(PYQT_LICENSE),commercial)
