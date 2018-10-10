@@ -432,7 +432,8 @@ find_missing_structure_bonds(Structure *as)
 void
 connect_structure(Structure* as, std::vector<Residue *>* start_residues,
     std::vector<Residue *>* end_residues, std::set<Atom *>* conect_atoms,
-    std::set<MolResId>* mod_res, std::set<ResName>& polymeric_res_names)
+    std::set<MolResId>* mod_res, std::set<ResName>& polymeric_res_names,
+    std::set<Residue*>& het_res)
 {
     // walk the residues, connecting residues as appropriate and
     // connect the atoms within the residue
@@ -451,11 +452,11 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
         // Before we add a bunch of bonds, make sure we're not already linked
         // to other residues via CONECT records [*not* just preceding
         // residue; see entry 209D, residues 5.C and 6.C].
-        // For HET residues check non-metal non-disulphide linkages to
-        // other residues; for non-HET just look for linkage to previous
+        // For non-polymeric residues check non-metal non-disulphide linkages to
+        // other residues; for polymeric just look for linkage to previous
         // residue.
         // Can't just check conect_atoms because if the previous
-        // residue is HET and this one isn't, only the cross-residue
+        // residue is non-polymeric and this one is, only the cross-residue
         // bond may be in the CONECT records and therefore this
         // residue's connected atom won't be in conect_atoms (which
         // is only for atoms whose complete connectivity is
@@ -467,7 +468,8 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
                 for (auto b: a->bonds()) {
                     auto other = b->other_atom(a);
                     if (other->residue() != r) {
-                        if (a->residue()->is_het() && !is_mod_res) {
+                        if (polymeric_res_names.find(a->residue()->name())
+                        == polymeric_res_names.end() && !is_mod_res) {
                             // not coordination...
                             if (!(other->element().is_metal() || a->element().is_metal())
                             // and not disulphide...
@@ -539,7 +541,8 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             } else {
                 bool made_connection = false;
                 // don't definitely connect a leading HET residue
-                bool definitely_connect = (link_res != first_res || !first_res->is_het());
+                bool definitely_connect = (link_res != first_res
+                    || polymeric_res_names.find(first_res->name()) != polymeric_res_names.end());
                 Atom *chief = r->find_atom(tr->chief()->name());
                 if (chief != NULL) {
                     // 1vqn, chain 5, is a nucleic/amino acid
@@ -563,8 +566,8 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             }
         } else if (r->atoms().size() > 1 && prev_res != NULL
                 && prev_res->chain_id() == r->chain_id()
-                && r->is_het() && conect_atoms->find(
-                (*r->atoms().begin())) == conect_atoms->end()) {
+                && polymeric_res_names.find(r->name()) == polymeric_res_names.end()
+                && conect_atoms->find((*r->atoms().begin())) == conect_atoms->end()) {
             // multi-atom HET residues with no CONECTs (i.e. _not_
             // a standard PDB entry) _may_ connect to previous residue...
             add_bond_nearest_pair(prev_res, r, false);
@@ -598,7 +601,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             Residue *r = *ri;
             if (polymeric_res_names.find(r->name()) != polymeric_res_names.end())
                 continue;
-            if (!r->is_het()) {
+            if (het_res.find(r) != het_res.end()) {
                 break_long = true;
                 break;
             }
