@@ -658,6 +658,11 @@ class UserInterface:
     Panel in VR showing ChimeraX main window.
     Buttons can be clicked with hand controllers.
     '''
+    casts_shadows = False
+    pickable = False
+    skip_bounds = True
+    SESSION_SAVE = False
+
     def __init__(self, camera, session):
         self._camera = camera
         self._session = session
