@@ -127,9 +127,9 @@ class CommandLine(ToolInstance):
         self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e, forwarded=True)
         session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
-        self._processing_command = False
-        self._command_finished_handler = session.triggers.add_handler("command finished",
-            self._command_finished_cb)
+        self._just_typed_command = False
+        self._command_started_handler = session.triggers.add_handler("command started",
+            self._command_started_cb)
         self.tool_window.manage(placement="bottom")
         self._in_init = False
 
@@ -148,7 +148,7 @@ class CommandLine(ToolInstance):
 
     def delete(self):
         self.session.ui.deregister_for_keystrokes(self.text)
-        self.session.triggers.remove_handler(self._command_finished_handler)
+        self.session.triggers.remove_handler(self._command_started_handler)
         super().delete()
 
     def fill_context_menu(self, menu, x, y):
@@ -220,7 +220,7 @@ class CommandLine(ToolInstance):
                 continue
             with processing_command(self.text.lineEdit(), cmd_text):
                 try:
-                    self._processing_command = True
+                    self._just_typed_command = True
                     cmd = Command(session)
                     cmd.run(cmd_text)
                 except SystemExit:
@@ -230,11 +230,6 @@ class CommandLine(ToolInstance):
                     logger.status(str(err), color="crimson")
                 except:
                     raise
-                finally:
-                    # done before command execution, will show
-                    # oldest known command while command executing
-                    self.history_dialog.add(cmd_text, typed=True)
-                    self._processing_command = False
         self.set_focus()
 
     def set_focus(self):
@@ -246,9 +241,9 @@ class CommandLine(ToolInstance):
         from chimerax.core import tools
         return tools.get_singleton(session, CommandLine, 'Command Line Interface', **kw)
 
-    def _command_finished_cb(self, trig_name, cmd_text):
-        if not self._processing_command:
-            self.history_dialog.add(cmd_text, typed=False)
+    def _command_started_cb(self, trig_name, cmd_text):
+        self.history_dialog.add(cmd_text, typed=self._just_typed_command)
+        self._just_typed_command = False
 
     def _set_typed_only(self, typed_only):
         self.settings.typed_only = typed_only

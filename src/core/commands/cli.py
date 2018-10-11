@@ -2495,73 +2495,68 @@ class Command:
         self.current_text = text
         final = True    # TODO: support partial parsing for cmd/arg completion
         results = []
-        if session is not None:
-            # prevent scripts from possibly making thousands of log/command-history entries
-            top_level = not session.triggers.is_trigger_blocked("command finished")
-            if top_level:
-                session.triggers.block_trigger("command finished")
-
-        try:
-            while True:
-                self._find_command_name(final, used_aliases=_used_aliases)
-                if self._error:
-                    if self.registry == _command_info:
-                        # See if this command is available in the toolshed
-                        save_error = self._error
-                        self._error = ""
-                        global _available_commands
-                        if _available_commands is None:
-                            from .. import toolshed
-                            _available_commands = RegisteredCommandInfo()
-                            ts = toolshed.get_toolshed()
-                            ts.register_available_commands(session.logger)
-                        self._find_command_name(final, used_aliases=_used_aliases,
-                                                parent_info=_available_commands.commands)
-                    if self._error or not self._ci:
-                        # Nope, give the original error message
-                        self._error = save_error
-                        if log:
-                            self.log_parse_error()
-                        raise UserError(self._error)
-                if not self._ci:
-                    if len(self.current_text) > self.amount_parsed and self.current_text[self.amount_parsed] == ';':
-                        # allow for leading and empty semicolon-separated commands
-                        self.amount_parsed += 1  # skip semicolon
-                        continue
-                    return results
-                prev_annos = self._process_positional_arguments()
-                if self._error:
+        while True:
+            self._find_command_name(final, used_aliases=_used_aliases)
+            if self._error:
+                if self.registry == _command_info:
+                    # See if this command is available in the toolshed
+                    save_error = self._error
+                    self._error = ""
+                    global _available_commands
+                    if _available_commands is None:
+                        from .. import toolshed
+                        _available_commands = RegisteredCommandInfo()
+                        ts = toolshed.get_toolshed()
+                        ts.register_available_commands(session.logger)
+                    self._find_command_name(final, used_aliases=_used_aliases,
+                                            parent_info=_available_commands.commands)
+                if self._error or not self._ci:
+                    # Nope, give the original error message
+                    self._error = save_error
                     if log:
                         self.log_parse_error()
                     raise UserError(self._error)
-                self._process_keyword_arguments(final, prev_annos)
-                if self._error:
-                    if log:
-                        self.log_parse_error()
-                    raise UserError(self._error)
-                missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
-                if missing:
-                    arg_names = ['"%s"' % m for m in missing]
-                    msg = commas(arg_names, ' and')
-                    noun = plural_form(arg_names, 'argument')
-                    self._error = "Missing required %s %s" % (msg, noun)
-                    if log:
-                        self.log_parse_error()
-                    raise UserError(self._error)
-                for cond in self._ci._postconditions:
-                    if not cond.check(self._kw_args):
-                        self._error = cond.error_message()
-                        if log:
-                            self.log_parse_error()
-                        raise UserError(self._error)
-
-                if not final:
-                    return results
-
-                ci = self._ci
-                kw_args = self._kw_args
+            if not self._ci:
+                if len(self.current_text) > self.amount_parsed and self.current_text[self.amount_parsed] == ';':
+                    # allow for leading and empty semicolon-separated commands
+                    self.amount_parsed += 1  # skip semicolon
+                    continue
+                return results
+            prev_annos = self._process_positional_arguments()
+            if self._error:
                 if log:
-                    self.log()
+                    self.log_parse_error()
+                raise UserError(self._error)
+            self._process_keyword_arguments(final, prev_annos)
+            if self._error:
+                if log:
+                    self.log_parse_error()
+                raise UserError(self._error)
+            missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
+            if missing:
+                arg_names = ['"%s"' % m for m in missing]
+                msg = commas(arg_names, ' and')
+                noun = plural_form(arg_names, 'argument')
+                self._error = "Missing required %s %s" % (msg, noun)
+                if log:
+                    self.log_parse_error()
+                raise UserError(self._error)
+            for cond in self._ci._postconditions:
+                if not cond.check(self._kw_args):
+                    self._error = cond.error_message()
+                    if log:
+                        self.log_parse_error()
+                    raise UserError(self._error)
+
+            if not final:
+                return results
+
+            ci = self._ci
+            kw_args = self._kw_args
+            if log:
+                self.log()
+            cmd_text = self.current_text[self.start:self.amount_parsed]
+            with command_trigger(session, log, cmd_text):
                 if not isinstance(ci.function, Alias):
                     if not log_only:
                         try:
@@ -2589,25 +2584,15 @@ class Command:
                         result = ci.function(session, *args, optional=optional,
                                              _used_aliases=used_aliases, log=log)
                         results.append(result)
-                if session is not None and top_level:
-                    cmd_text = self.current_text[self.start:self.amount_parsed]
-                    session.triggers.release_trigger("command finished")
-                    try:
-                        session.triggers.activate_trigger("command finished", cmd_text)
-                    finally:
-                        session.triggers.block_trigger("command finished")
 
-                self.command_name = None
-                self._ci = None
-                self._kw_args = {}
-                m = _whitespace.match(self.current_text, self.amount_parsed)
-                self.amount_parsed = m.end()
-                if self.amount_parsed == len(self.current_text):
-                    return results
-                self.amount_parsed += 1  # skip semicolon
-        finally:
-            if session is not None and top_level:
-                session.triggers.release_trigger("command finished")
+            self.command_name = None
+            self._ci = None
+            self._kw_args = {}
+            m = _whitespace.match(self.current_text, self.amount_parsed)
+            self.amount_parsed = m.end()
+            if self.amount_parsed == len(self.current_text):
+                return results
+            self.amount_parsed += 1  # skip semicolon
 
     def log(self):
         session = self._session()  # resolve back reference
@@ -2684,6 +2669,16 @@ class Command:
             msg += '</div>\n<span style="color:%s;font-weight:bold">%s</span>\n' % (
                 err_color, escape(self._error))
             session.logger.info(msg, is_html=True)
+
+
+from contextlib import contextmanager
+@contextmanager
+def command_trigger(session, log, cmd_text):
+    if session is not None and log:
+        session.triggers.activate_trigger("command started", cmd_text)
+    yield
+    if session is not None and log:
+        session.triggers.activate_trigger("command finished", cmd_text)
 
 
 def command_function(name, no_aliases=False, *, registry=None):
