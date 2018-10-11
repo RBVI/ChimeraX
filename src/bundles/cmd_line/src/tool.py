@@ -24,12 +24,15 @@ class CommandLine(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        from chimerax.ui import MainToolWindow
 
         self._in_init = True
+        from .settings import CmdLineSettings
+        self.settings = CmdLineSettings(session, tool_name)
+        from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
-        self.history_dialog = _HistoryDialog(self)
+        self.tool_window.fill_context_menu = self.fill_context_menu
+        self.history_dialog = _HistoryDialog(self, self.settings.typed_only)
         from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel
         label = QLabel(parent)
         label.setText("Command:")
@@ -124,6 +127,9 @@ class CommandLine(ToolInstance):
         self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e, forwarded=True)
         session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
+        self._processing_command = False
+        self._command_finished_handler = session.triggers.add_handler("command finished",
+            self._command_finished_cb)
         self.tool_window.manage(placement="bottom")
         self._in_init = False
 
@@ -142,7 +148,20 @@ class CommandLine(ToolInstance):
 
     def delete(self):
         self.session.ui.deregister_for_keystrokes(self.text)
+        self.session.triggers.remove_handler(self._command_finished_handler)
         super().delete()
+
+    def fill_context_menu(self, menu, x, y):
+        # avoid having actions destroyed when this routine returns
+        # by stowing a reference in the menu itself
+        menu.kludge_refs = []
+        from PyQt5.QtWidgets import QAction
+        filter_action = QAction("Typed commands only")
+        filter_action.setCheckable(True)
+        filter_action.setChecked(self.settings.typed_only)
+        filter_action.toggled.connect(lambda arg, f=self._set_typed_only: f(arg))
+        menu.kludge_refs.append(filter_action)
+        menu.addAction(filter_action)
 
     def on_combobox(self, event):
         val = self.text.GetValue()
@@ -201,6 +220,7 @@ class CommandLine(ToolInstance):
                 continue
             with processing_command(self.text.lineEdit(), cmd_text):
                 try:
+                    self._processing_command = True
                     cmd = Command(session)
                     cmd.run(cmd_text)
                 except SystemExit:
@@ -213,7 +233,8 @@ class CommandLine(ToolInstance):
                 finally:
                     # done before command execution, will show
                     # oldest known command while command executing
-                    self.history_dialog.add(cmd_text)
+                    self.history_dialog.add(cmd_text, typed=True)
+                    self._processing_command = False
         self.set_focus()
 
     def set_focus(self):
@@ -225,6 +246,14 @@ class CommandLine(ToolInstance):
         from chimerax.core import tools
         return tools.get_singleton(session, CommandLine, 'Command Line Interface', **kw)
 
+    def _command_finished_cb(self, trig_name, cmd_text):
+        if not self._processing_command:
+            self.history_dialog.add(cmd_text, typed=False)
+
+    def _set_typed_only(self, typed_only):
+        self.settings.typed_only = typed_only
+        self.history_dialog.set_typed_only(typed_only)
+
 class _HistoryDialog:
 
     record_label = "Record..."
@@ -232,9 +261,10 @@ class _HistoryDialog:
 
     NUM_REMEMBERED = 500
 
-    def __init__(self, controller):
+    def __init__(self, controller, typed_only):
         # make dialog hidden initially
         self.controller = controller
+        self.typed_only = typed_only
 
         self.window = controller.tool_window.create_child_window(
             "Command History", close_destroys=False)
@@ -260,18 +290,18 @@ class _HistoryDialog:
         self.window.manage(placement=None)
         self.window.shown = False
         from chimerax.core.history import FIFOHistory
-        self.history = FIFOHistory(self.NUM_REMEMBERED, controller.session, "command line")
+        self._history = FIFOHistory(self.NUM_REMEMBERED, controller.session, "commands")
         self._record_dialog = None
         self._search_cache = None
         self._suspend_handler = False
 
-    def add(self, item):
+    def add(self, item, *, typed=False):
         self.listbox.addItem(item)
         while self.listbox.count() > self.NUM_REMEMBERED:
             self.listbox.takeItem(0)
-        self.history.enqueue(item)
+        self._history.enqueue((item, typed))
         self.listbox.clearSelection()
-        self.listbox.setCurrentRow(len(self.history) - 1)
+        self.listbox.setCurrentRow(len(self.history()) - 1)
         self.update_list()
 
     def button_clicked(self, label):
@@ -315,7 +345,7 @@ class _HistoryDialog:
                 from chimerax.core.errors import UserError
                 raise UserError("No file specified for saving command history")
             if self.save_amount_widget.currentText() == "all":
-                cmds = [cmd for cmd in self.history]
+                cmds = [cmd for cmd in self.history()]
             else:
                 # listbox.selectedItems() may not be in order, so...
                 items = [self.listbox.item(i) for i in range(self.listbox.count())
@@ -336,8 +366,17 @@ class _HistoryDialog:
                 self.controller.execute()
             return
         if label == "Delete":
-            self.history.replace([self.listbox.item(i).text()
-                for i in range(self.listbox.count()) if not self.listbox.item(i).isSelected()])
+            retain = []
+            listbox_index = 0
+            for h_item in self._history:
+                if self.typed_only and not h[1]:
+                    retain.append(h_item)
+                    continue
+                if not self.listbox.item(listbox_index).isSelected():
+                    # not selected for deletion
+                    retain.append(h_item)
+                listbox_index += 1
+            self.history.replace(retain)
             self.populate()
             return
         if label == "Copy":
@@ -395,8 +434,9 @@ class _HistoryDialog:
 
     def populate(self):
         self.listbox.clear()
-        self.listbox.addItems([cmd for cmd in self.history])
-        self.listbox.setCurrentRow(len(self.history) - 1)
+        history = self.history()
+        self.listbox.addItems([cmd for cmd in history])
+        self.listbox.setCurrentRow(len(history) - 1)
         self.update_list()
         self.select()
         self.controller.text.lineEdit().setFocus()
@@ -443,9 +483,18 @@ class _HistoryDialog:
 
     def update_list(self):
         c = self.controller
-        last8 = self.history[:8]
+        last8 = list(reversed(self.history()[-8:]))
         c.text.clear()
         c.text.addItems(last8 + [c.show_history_label, c.compact_label])
+
+    def history(self):
+        if self.typed_only:
+            return [h[0] for h in self._history if h[1]]
+        return [h[0] for h in self._history]
+
+    def set_typed_only(self, typed_only):
+        self.typed_only = typed_only
+        self.populate()
 
     def _entry_modified(self, event):
         if not self._suspend_handler:
