@@ -1249,7 +1249,7 @@ class ToolWindow(StatusLogger):
             from PyQt5.QtCore import Qt
             allowed_areas = Qt.NoDockWidgetArea
         geometry = None
-        if tool_name in settings.tool_positions['windows']:
+        if tool_name in settings.tool_positions['windows'] and isinstance(self, MainToolWindow):
             version, placement, geom_info = settings.tool_positions['windows'][tool_name]
             if placement is not None:
                 placement = self.window_placement_to_text[placement]
