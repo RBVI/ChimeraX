@@ -170,7 +170,7 @@ def relative_path(path, base_path):
 # ---------------------------------------------------------------------------
 # Get ChimeraX unique GridDataState object for a grid.
 #
-def grid_data_state(grid_data, session):
+def grid_data_state(grid_data, session, include_maps = False):
   gs = getattr(session, '_volume_grid_data_session_states', None)
   if gs is None:
     session._volume_grid_data_session_states = gs = {}
@@ -181,7 +181,7 @@ def grid_data_state(grid_data, session):
 
   gds = gs.get(grid_data, None)
   if gds is None:
-    gs[grid_data] = gds = GridDataState(grid_data)
+    gs[grid_data] = gds = GridDataState(grid_data, include_maps = include_maps)
   return gds
 
 # ---------------------------------------------------------------------------
@@ -190,12 +190,14 @@ def grid_data_state(grid_data, session):
 from chimerax.core.state import State
 class GridDataState(State):
 
-  def __init__(self, grid_data):
+  def __init__(self, grid_data, include_maps = False):
     self.grid_data = grid_data
+    self._include_maps = include_maps
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    data = state_from_grid_data(self.grid_data, session_path = session.session_file_path)
+    data = state_from_grid_data(self.grid_data, session_path = session.session_file_path,
+                                include_maps = self._include_maps)
     return data
 
   @staticmethod
@@ -257,7 +259,7 @@ def existing_directory(path):
 
 # ---------------------------------------------------------------------------
 #
-def state_from_grid_data(data, session_path = None):
+def state_from_grid_data(data, session_path = None, include_maps = False):
     
   dt = data
   relpath = relative_path(dt.path, session_path)
@@ -267,7 +269,7 @@ def state_from_grid_data(data, session_path = None):
        'version': 1,
      }
 
-  if not dt.path:
+  if not dt.path or include_maps:
     s['size'] = dt.size
     s['value_type'] = str(dt.value_type)
     from gzip import compress
@@ -311,12 +313,7 @@ def state_from_grid_data(data, session_path = None):
 #
 def grid_data_from_state(s, gdcache, session, file_paths):
 
-  dbfetch = s.get('database_fetch')
-  path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
-                       base_path = session.session_file_path)
-  if (path is None or path == '') and dbfetch is None:
-    if 'array' not in s:
-      return None
+  if 'array' in s:
     from numpy import frombuffer, dtype
     from gzip import decompress
     from base64 import b64decode
@@ -325,9 +322,15 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     from .data import Array_Grid_Data
     dlist = [Array_Grid_Data(array)]
   else:
-    gid = s.get('grid_id','')
-    file_type = s['file_type']
-    dlist = open_data(path, gid, file_type, dbfetch, gdcache, session)
+    dbfetch = s.get('database_fetch')
+    path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
+                         base_path = session.session_file_path)
+    if (path is None or path == '') and dbfetch is None:
+      return None
+    else:
+      gid = s.get('grid_id','')
+      file_type = s['file_type']
+      dlist = open_data(path, gid, file_type, dbfetch, gdcache, session)
 
   for data in dlist:
     data.name = s['name']
@@ -376,6 +379,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     for cell_size, dstate in s['available_subsamplings'].items():
       dpath = absolute_path(dstate.path, file_paths, base_path = session.session_file_path)
       if dpath != path:
+        # TODO: This looks wrong.  Don't we just recurse calling grid_data_from_state()?
         ssdlist = dstate.create_object(gdcache)
         for i,ssdata in enumerate(ssdlist):
           dlist[i].add_subsamples(ssdata, cell_size)

@@ -7,7 +7,7 @@ VERSION = 1.1.0
 
 ifdef WIN32
 # Downloaded from http://www.lfd.uci.edu/~gohlke/pythonlibs/
-WHEEL = scipy-$(VERSION)-cp36-cp36m-win_amd64.whl
+WHEEL = scipy-$(VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl
 endif
 
 all:

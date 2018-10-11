@@ -64,7 +64,9 @@ The <i>action</i> can be</a>:
 <li><a href="#slider"><b>slider</b></a>
 - show slider interface for the series 
 <li><a href="#measure"><b>measure</b></a>
+ <font color="brown">(not yet implemented)
 - track surface area, enclosed volume, and centroid position
+</font>
 <li><a href="#save"><b>save</b></a>
 - save to <a href="save.html#chimap">Chimera map</a> format,
 optionally with cropping, normalization, alignment
@@ -163,8 +165,10 @@ Display the specified markers to trace spatial and temporal paths.
 (A <a href="../markers.html">marker</a> is implemented as an atom and can be
 <a href="atomspec.html">specified</a> similarly by model number, <i>etc.</i>)
 The markers could have been created manually with the mouse
-(see <a href="ui.html#mousemode"><b>mousemode</b></a>)
+(see <a href="ui.html#mousemode"><b>mousemode</b></a>).
+<!--
 or automatically with <a href="#measure"><b>vseries measure</b></a>.
+-->
 For marker display to be synchronized with playback, 
 each marker should be labeled with the <a href="#time">time</a> 
 of the data set on which it was placed.
@@ -251,6 +255,7 @@ a <a href="ui.html#mousemode">mouse mode</a> such as scrolling.
 </p>
 </blockquote>
 
+<font color="brown">
 <a href="#top" class="nounder">&bull;</a>
 <a name="measure"><b>vseries measure</b></a> &nbsp;<i>volume-spec</i>
 [&nbsp;<b>output</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
@@ -258,6 +263,8 @@ a <a href="ui.html#mousemode">mouse mode</a> such as scrolling.
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>centroid-radius</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<i>centroid-color</i>&nbsp;]
 <blockquote>
+** not yet implemented **
+<p>
 For each <a href="#time">time</a> in the
 <a href="#volume-spec">specified</a> volume series,
 calculate centroid (x,y,z) coordinates, distance from the previous centroid
@@ -266,7 +273,9 @@ from the first centroid, surface-enclosed volume, and surface area.
 The results are saved as plain text in <i>filename</i>
 specified with the <b>output</b> option, otherwise given in the
 <a href="../tools/log.html"><b>Log</b></a>.
-<p>
+See also: <a href="../measurements.html">measurements</a>
+</p><p>
+<!-- no need to show details until it's implemented #1296
 The calculation uses the
 <a href="volume.html#step">step size</a> and
 <a href="volume.html#level">threshold</a> (contour level)  
@@ -278,6 +287,7 @@ the triangles of the contour surface. The surface-enclosed volume does not
 include interior bubbles (if any), and any holes in the surface are treated
 as if covered by planar caps.
 </p><p>
+-->
 If <b>centroids</b> is <b>true</b>,
 a <a href="../markers.html">marker</a> will be placed at at each centroid, with
 radius <i>centroid-radius</i> (default is the minimum grid-spacing in
@@ -290,6 +300,7 @@ The markers can be shown during playback with the
 <a href="#play"><b>vseries play</b></a>.
 </p>
 </blockquote>
+</font>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="save"><b>vseries save</b></a> &nbsp;<i>volume-spec</i> 
@@ -415,5 +426,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2018</address>
+September 2018</address>
 </body></html>

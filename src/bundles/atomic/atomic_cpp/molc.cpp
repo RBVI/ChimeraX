@@ -24,7 +24,6 @@
 #include <atomstruct/Chain.h>
 #include <atomstruct/ChangeTracker.h>
 #include <atomstruct/CoordSet.h>
-#include <atomstruct/connect.h>
 #include <atomstruct/destruct.h>     // Use DestructionObserver
 #include <atomstruct/MolResId.h>
 #include <atomstruct/PBGroup.h>
@@ -4762,6 +4761,16 @@ extern "C" EXPORT void structure_delete_atom(void *mol, void *atom)
     }
 }
 
+extern "C" EXPORT void structure_delete_bond(void *mol, void *bond)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->delete_bond(static_cast<Bond *>(bond));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *structure_new_bond(void *mol, void *atom1, void *atom2)
 {
     Structure *m = static_cast<Structure *>(mol);
@@ -4864,17 +4873,6 @@ extern "C" EXPORT void set_pdb_version(void *mols, size_t n, int32_t *version)
     }
 }
 
-extern "C" EXPORT int structure_connect(void *mol)
-{
-    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
-    try {
-        connect_structure(m, nullptr, nullptr, nullptr, nullptr);
-    } catch (...) {
-        molc_error();
-    }
-    return m->num_bonds();
-}
-        
 
 // -------------------------------------------------------------------------
 // element functions

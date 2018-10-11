@@ -21,6 +21,9 @@ cxcmd_css = """
     margin-top: .5em;
     background-color: #ddd;
 }
+a.no_underline {
+    text-decoration: none;
+}
 """
 
 context_menu_html = """
@@ -122,6 +125,7 @@ class Log(ToolInstance, HtmlLog):
                 menu.addAction("Insert image", save_image)
                 log_window = self.tool_instance.log_window
                 menu.addAction("Save", log_window.cm_save)
+                menu.addAction("Save for demo", log_window.cm_demo_save)
                 menu.addAction("Clear", self.tool_instance.clear)
                 menu.addAction("Copy selection", lambda:
                     log_window.page().triggerAction(log_window.page().Copy))
@@ -192,6 +196,22 @@ class Log(ToolInstance, HtmlLog):
                     raise UserError("No file specified for save log contents")
                 self.log.save(filename)
 
+            def cm_demo_save(self):
+                from chimerax.ui.open_save import export_file_filter, SaveDialog
+                from chimerax.core.io import format_from_name
+                fmt = format_from_name("HTML")
+                ext = fmt.extensions[0]
+                save_dialog = SaveDialog(self, "Save Log For Demo",
+                                         name_filter=export_file_filter(format_name="HTML"),
+                                         add_extension=ext)
+                if not save_dialog.exec():
+                    return
+                filename = save_dialog.selectedFiles()[0]
+                if not filename:
+                    from chimerax.core.errors import UserError
+                    raise UserError("No file specified for save log contents")
+                self.log.demo_save(filename)
+
         self.log_window = lw = HtmlWindow(session, parent, self)
         from PyQt5.QtWidgets import QGridLayout, QErrorMessage
         class BiggerErrorDialog(QErrorMessage):
@@ -242,6 +262,7 @@ class Log(ToolInstance, HtmlLog):
                 rb = QPushButton('Report Bug')
                 rb.clicked.connect(self._report_a_bug)
                 brow.addWidget(rb)
+                ed.report_bug_button = rb
                 el.addLayout(brow, row, col, rowspan, colspan)
 
     def _report_a_bug(self):
@@ -273,7 +294,7 @@ class Log(ToolInstance, HtmlLog):
             if image_break:
                 self.page_source += "<br>\n"
         else:
-            if ((level == self.LEVEL_ERROR and self.error_shows_dialog) or
+            if ((level >= self.LEVEL_ERROR and self.error_shows_dialog) or
                     (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
@@ -294,7 +315,13 @@ class Log(ToolInstance, HtmlLog):
                         link, search_text = text_plus.split('</a>', 1)
                         dlg_msg += link
                     dlg_msg += search_text
-                self.session.ui.thread_safe(self.error_dialog.showMessage, dlg_msg)
+                if level == self.LEVEL_BUG:
+                    f = lambda dlg=self.error_dialog, msg=dlg_msg: (dlg.report_bug_button.show(),
+                        dlg.showMessage(msg))
+                else:
+                    f = lambda dlg=self.error_dialog, msg=dlg_msg: (dlg.report_bug_button.hide(),
+                        dlg.showMessage(msg))
+                self.session.ui.thread_safe(f)
             if not is_html:
                 from html import escape
                 msg = escape(msg)
@@ -352,24 +379,62 @@ class Log(ToolInstance, HtmlLog):
     def save(self, path):
         from os.path import expanduser
         path = expanduser(path)
-        f = open(path, 'w')
-        f.write("<!DOCTYPE html>\n"
-                "<html>\n"
-                "<head>\n"
-                "<title> ChimeraX Log </title>\n"
-                '<script type="text/javascript">\n'
-                "%s"
-                "</script>\n"
-                "</head>\n"
-                '<body onload="cxlinks_init()">\n'
-                "<h1> ChimeraX Log </h1>\n"
-                "<style>\n"
-                "%s"
-                "</style>\n" % (self._get_cxcmd_script(), cxcmd_css))
-        f.write(self.page_source)
-        f.write("</body>\n"
-                "</html>\n")
-        f.close()
+        with open(path, 'w') as f:
+            f.write("<!DOCTYPE html>\n"
+                    "<html>\n"
+                    "<head>\n"
+                    "<title> ChimeraX Log </title>\n"
+                    '<script type="text/javascript">\n'
+                    "%s"
+                    "</script>\n"
+                    "</head>\n"
+                    '<body onload="cxlinks_init()">\n'
+                    "<h1> ChimeraX Log </h1>\n"
+                    "<style>\n"
+                    "%s"
+                    "</style>\n" % (self._get_cxcmd_script(), cxcmd_css))
+            f.write(self.page_source)
+            f.write("</body>\n"
+                    "</html>\n")
+
+    def demo_save(self, path):
+        from os.path import expanduser
+        path = expanduser(path)
+        with open(path, 'wb') as f:
+            f.write(b"<!DOCTYPE html>\n")
+            tmp = ("<html>\n"
+                    "<head>\n"
+                    "<title> ChimeraX Log </title>\n"
+                    '<script type="text/javascript">\n'
+                    "%s"
+                    "</script>\n"
+                    "</head>\n"
+                    '<body onload="cxlinks_init()">\n'
+                    "<h1> ChimeraX Log </h1>\n"
+                    "<style>\n"
+                    "%s"
+                    "</style>\n" % (self._get_cxcmd_script(), cxcmd_css))
+            tmp += self.page_source
+            tmp += ("</body>\n"
+                    "</html>\n")
+            # find <div> with commands, and replace text with its cxcmd link
+            from urllib.parse import unquote
+            import lxml.html
+            html = lxml.html.fromstring(tmp)
+            for node in html.find_class("cxcmd"):
+                for child in node:
+                    if child.tag != 'a':
+                        node.remove(child)
+                        continue
+                    href = child.attrib.get('href', None)
+                    if not href or not href.startswith('cxcmd:'):
+                        node.remove(child)
+                        continue
+                    child.attrib.clear()
+                    child.attrib["href"] = href
+                    child.text = unquote(href[6:])
+
+            f.write(lxml.html.tostring(html))
 
     def _get_cxcmd_script(self):
         try:

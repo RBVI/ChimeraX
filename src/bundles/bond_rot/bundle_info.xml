@@ -11,6 +11,10 @@
   <Synopsis>Bond rotation support</Synopsis>
   <Description>Bond rotation support</Description>
 
+  <DataFiles>
+    <DataFile>bondrot.png</DataFile>
+  </DataFiles>
+
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="Structure Editing"/>

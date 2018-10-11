@@ -15,7 +15,7 @@
 def map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, symmetries, step):
 
   d = v.data
-  if ijk_cell_size == d.size and len(symmetries) == 0:
+  if ijk_cell_size == d.size and (symmetries is None or len(symmetries) == 0):
     # Full unit cell and no symmetries to average.
     g = v.grid_data(subregion = 'all', step = step, mask_zone = False)
     from .. import volume
@@ -99,7 +99,7 @@ def extend_crystal_map(volarray, ijk_cell_size, ijk_symmetries,
 #
 def ijk_symmetry_matrices(data, symmetries):
 
-  if len(symmetries) == 0:
+  if symmetries is None or len(symmetries) == 0:
     from chimerax.core.geometry import Places
     return Places()
 

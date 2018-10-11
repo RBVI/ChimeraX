@@ -116,3 +116,26 @@ def profile(func):
         p.strip_dirs().sort_stats("cumulative", "time").print_callers(40)
         return v
     return wrapper
+
+
+# These are entry points for copying files into
+# .dist-info directories of wheels when they are built
+
+def copy_distinfo_textfile(cmd, basename, filename):
+    try:
+        with open(basename, "r") as fi:
+            with open(filename, "w") as fo:
+                fo.write(fi.read())
+    except IOError as e:
+        # Missing file is okay
+        pass
+
+
+def copy_distinfo_binaryfile(cmd, basename, filename):
+    try:
+        with open(basename, "rb") as fi:
+            with open(filename, "wb") as fo:
+                fo.write(fi.read())
+    except IOError as e:
+        # Missing file is okay
+        pass

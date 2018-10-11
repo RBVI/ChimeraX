@@ -13,7 +13,7 @@
 from chimerax.ui import MouseMode
 class PlanesMouseMode(MouseMode):
     name = 'move planes'
-    icon_file = 'cubearrow.png'
+    icon_file = 'moveplanes.png'
 
     def __init__(self, session):
 
@@ -204,3 +204,7 @@ def drag_distance(v, ijk, axis, dx, dy, viewer, clamp_speed = 3):
 
 def sign(x):
     return 1 if x >= 0 else -1
+
+def register_mousemode(session):
+    mm = session.ui.mouse_modes
+    mm.add_mode(PlanesMouseMode(session))

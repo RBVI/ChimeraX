@@ -470,8 +470,6 @@ def sign(x):
 #
 def rotation_transform(axis, angle, center=(0, 0, 0)):
     axis = normalize_vector(axis)
-
-
     arad = angle * pi / 180.0
     sa = sin(arad)
     ca = cos(arad)

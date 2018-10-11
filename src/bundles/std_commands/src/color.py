@@ -963,7 +963,7 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
 
     session.undo.register(undo_state)
     if msg:
-        r = 'bfactor range' if average is None else 'residue average bfactor range'
+        r = 'atom bfactor range' if average is None else 'residue average bfactor range'
         m = ', '.join(msg) + ', %s %.3g to %.3g' % (r, min(abf), max(abf))
         session.logger.status(m, log=True)
 

@@ -1,5 +1,6 @@
 <BundleInfo name="ChimeraX-PDB" version="1.0"
 	    package="chimerax.atomic.pdb" purePython="false"
+		installedIncludeDir="include" installedLibraryDir="lib"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -13,15 +14,30 @@
     <Category name="Molecular structure"/>
   </Categories>
 
+  <CLibrary name="pdbconnect">
+    <SourceFile>connect_cpp/connect.cpp</SourceFile>
+	<Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>pyinstance</Library>
+  </CLibrary>
+
+  <ExtraFiles>
+    <ExtraFile source="connect_cpp/connect.h">include/pdb/connect.h</ExtraFile>
+    <ExtraFile source="connect_cpp/imex.h">include/pdb/imex.h</ExtraFile>
+  </ExtraFiles>
+
   <CModule name="_pdbio">
     <SourceFile>pdbio_cpp/PDBio.cpp</SourceFile>
     <IncludeDir>pdb_cpp/include</IncludeDir>
+    <IncludeDir>src/include</IncludeDir>
     <LibraryDir>pdb_cpp/lib</LibraryDir>
+    <LibraryDir>src/lib</LibraryDir>
     <Library>atomstruct</Library>
     <Library>element</Library>
     <Library>pyinstance</Library>
     <Library>logger</Library>
     <Library>pdb</Library>
+    <Library>pdbconnect</Library>
     <Library>arrays</Library>
     <Library>appdirs</Library>
   </CModule>
@@ -34,7 +50,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: PDB :: :: Molecular structure :: .pdb :: :: http://www.wwpdb.org/documentation/file-format :: :: :: Protein Databank Format (PDB)</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: PDB :: :: Molecular structure :: .pdb,.pdb1,.ent,.pqr :: :: http://www.wwpdb.org/documentation/file-format :: :: :: Protein Databank Format (PDB)</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Fetch :: pdb :: PDB :: :: 1a0m ::</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Fetch :: pdbe :: PDB :: :: 1a0m ::</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: PDB :: PDB :: false :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool</ChimeraXClassifier>

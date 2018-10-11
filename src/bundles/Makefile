@@ -14,11 +14,12 @@ include $(TOP)/mk/config.make
 
 SUBDIRS = addh align_algs alignments atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter bumps \
-	  bundle_builder cage_builder cellpack chem_group clashes cmd_line \
-	  color_globe crosslinks crystal dist_monitor dist_ui dssp exp_cmd file_history \
+	  bundle_builder buttons cage_builder cellpack chem_group clashes cmd_line \
+	  color_globe connect_structure crosslinks crystal \
+	  dist_monitor dist_ui dssp exp_cmd file_history \
 	  gltf hbonds help_viewer ihm interfaces label list_info log \
 	  map map_data map_filter map_fit map_series \
-	  markers match_maker md_crds meeting mlp model_series \
+	  markers mask match_maker md_crds meeting mlp model_series \
 	  mmcif mmtf model_panel mol2 morph mouse_modes movie \
 	  nucleotides pdb read_pbonds \
 	  registration remote_control rest_server \
@@ -58,6 +59,7 @@ cage_builder.install: ui.install
 chem_group.install: atomic.install
 clashes.install: atom_search.install atomic.install
 cmd_line.install: ui.install
+connect_structure.install: atom_search.install atomic.install
 crosslinks.install: interfaces.install
 dist_monitor.install: atomic.install
 dist_ui.install: ui.install
@@ -75,8 +77,8 @@ map_series.install: map.install ui.install
 markers.install: atomic.install ui.install
 match_maker.install: align_algs.install sim_matrices.install
 md_crds.install: atomic.install
-mmcif.install: atomic.install
-mmtf.install: atomic.install
+mmcif.install: atomic.install pdb.install
+mmtf.install: atomic.install pdb.install
 model_panel.install: ui.install
 model_series.install: ui.install
 modeller.install: alignments.install
@@ -96,5 +98,6 @@ sim_matrices.install: alignments.install
 std_commands.install: atomic.install
 swapaa.install: ui.install
 tug.install: ui.install
+ui.clean: map.clean
 viewdockx.install: atomic.install mol2.install ui.install
 zone.install: ui.install

@@ -48,7 +48,9 @@ or <img class="iconbar" src="rapidon.png">
 <p>
 See also:
 <a href="commands/windowsize.html"><b>windowsize</b></a>,
-<a href="commands/ui.html#mousemode"><b>mousemode</b></a>
+<a href="commands/ui.html#mousemode"><b>mousemode</b></a>,
+<a href="preferences.html#window"><b>Window</b> preferences</a>,
+the <a href="menu.html">ChimeraX menu</a>
 </p>
 
 <a name="panels"></a>
@@ -58,7 +60,8 @@ See also:
 <h3>Panels and Context Menus</h3>
 <p>
 A <b><i>panel</i></b> may appear within the <a href="#top">ChimeraX window</a>
-when a tool is started (for example, from the <b>Tools</b> menu),
+when a tool is started (for example, from the 
+<a href="menu.html#tools"><b>Tools</b> menu</a>),
 or as the result of a calculation (for example,
 the <a href="commands/interfaces.html"><b>interfaces</b></a> command
 shows a chain-chain network diagram) or <a href="commands/open.html">opening</a>
@@ -104,7 +107,8 @@ its top bar, and an individual tabbed panel can be untabbed
 <a href="index.html#tools">Icon toolbars</a>
 and the <a href="tools/cli.html"><b>Command Line</b></a>
 lack their own title bars, but the other methods of control
-are still available.
+are still available. An icon toolbar can be grabbed for 
+repositioning by clicking the small dashed line on its top or left end.
 The overall window or any undocked panel can be resized by dragging 
 any corner and moved by dragging its title bar.
 The boundaries between docked panels or between panel(s) and the
@@ -126,22 +130,29 @@ Panels may have their own specific <a href="#panels">context menus</a>
 <li><b>Hide tool</b>
 <li><b>Help</b>
 - show documentation in the <a href="tools/browser.html"><b>Help Viewer</b></a>
-<li>(if applicable) <b>Start at ChimeraX startup</b>
-- whether the tool should start automatically upon subsequent ChimeraX startup;
-saved in <a href="preferences.html#other">preferences</a>
-<li>(if applicable) <b>Dockable tool</b>
+</ul>
+&nbsp;...and certain tool-specific 
+<a href="preferences.html#other">preferences</a>, when applicable:
+<ul>
+<li><b>Start at ChimeraX startup</b>
+- whether the tool should start automatically upon subsequent ChimeraX startup
+<li><b>Dockable tool</b>
 - whether panels of the tool should be allowed to reinsert automatically
 when dragged over the main window, as opposed to remaining separate;
 initially true for all panels except the
-<a href="tools/browser.html"><b>Help Viewer</b></a>;
-saved in <a href="preferences.html#other">preferences</a>
+<a href="tools/browser.html"><b>Help Viewer</b></a>
+<li><b>Save tool position</b>
+- save whether a tool panel is docked, and if so, 
+whether it is on the left, right, top, or bottom side of the main window
+(but not the specific order when multiple panels are docked on the same side);
+if undocked, save panel size and screen position
 </ul>
 <p>
-The latter two settings can be also be adjusted with the 
+Tool autostart behavior and dockability can also be set with the
 <a href="commands/ui.html"><b>ui</b></a> command.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2018</address>
+October 2018</address>
 </body></html> 

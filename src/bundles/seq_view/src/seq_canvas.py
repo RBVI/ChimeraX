@@ -143,8 +143,6 @@ class SeqCanvas:
         self.emphasis_font.setBold(True)
         self.font_metrics = QFontMetrics(self.font)
         self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
-        self.label_width = _find_label_width(self.alignment.seqs, self.sv.settings,
-            self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
         # On Windows the maxWidth() of Helvetica is 39(!), whereas the width of 'W' is 14.
         # So, I have no idea what that 39-wide character is, but I don't care -- just use
         # the width of 'W' as the maximum width instead.
@@ -170,7 +168,7 @@ class SeqCanvas:
         layout.setSpacing(0)
         layout.addWidget(self.label_view)
         #layout.addWidget(self._vdivider)
-        layout.addWidget(self.main_view, stretch=1, alignment=Qt.AlignLeft)
+        layout.addWidget(self.main_view, stretch=1)
         parent.setLayout(layout)
         parent.resizeEvent = self.resizeEvent
         self.label_view.hide()
@@ -222,6 +220,9 @@ class SeqCanvas:
     def _actually_resize(self):
         self._resize_timer.stop()
         self._reformat()
+        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
+        self.label_scene.setSceneRect(self.label_scene.itemsBoundingRect())
+
 
     """TODO
     def _addDelSeqsCB(self, trigName, myData, trigData):
@@ -724,6 +725,8 @@ class SeqCanvas:
                     % (prefResColor, exc_info()[1]))
         """
         initial_headers = [hd for hd in self.headers if self.display_header[hd]]
+        self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
+            self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
 
         self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and not single_sequence
         self.line_width = self.line_width_from_settings()
@@ -740,9 +743,13 @@ class SeqCanvas:
             self.sv.settings)
         self._resizescrollregion()
         """
-        self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
-            None, self.font, self.emphasis_font, 0, initial_headers, self.alignment,
-            self.line_width, {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
+        label_scene = self._label_scene()
+        from PyQt5.QtCore import Qt
+        self.main_view.setAlignment(
+            Qt.AlignCenter if label_scene == self.main_scene else Qt.AlignLeft)
+        self.lead_block = SeqBlock(label_scene, self.main_scene, None, self.font,
+            self.emphasis_font, 0, initial_headers, self.alignment, self.line_width,
+            {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
 
@@ -968,9 +975,15 @@ class SeqCanvas:
             activeNode = self.activeNode()
         """
         self.lead_block.destroy()
-        self.line_width = self.line_width_from_settings()
         initial_headers = [hd for hd in self.headers if self.display_header[hd]]
-        self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
+        self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
+            self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
+        self.line_width = self.line_width_from_settings()
+        label_scene = self._label_scene()
+        from PyQt5.QtCore import Qt
+        self.main_view.setAlignment(
+            Qt.AlignCenter if label_scene == self.main_scene else Qt.AlignLeft)
+        self.lead_block = SeqBlock(label_scene, self.main_scene,
             None, self.font, self.emphasis_font, 0, initial_headers, self.alignment,
             self.line_width, {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,

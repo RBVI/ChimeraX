@@ -95,8 +95,7 @@ class GeometryColor(State):
         if origin is None:
             s = self.surface
             b = s.bounds()
-            lc = (0,0,0) if b is None else b.center()
-            origin = s.scene_position * lc
+            origin = (s.scene_position * (0,0,0)) if b is None else b.center()
         self.origin = tuple(origin)
 
     # -------------------------------------------------------------------------

@@ -67,8 +67,6 @@ Chain.o: Chain.h ChangeTracker.h StructureSeq.h ../pyinstance_cpp/PythonInstance
 	../pyinstance_cpp/PythonInstance.instantiate.h
 ChangeTracker.o: ChangeTracker.h
 CompSS.o: Atom.h AtomicStructure.h Coord.h Residue.h Structure.h
-connect.o: Atom.h Bond.h connect.h Coord.h destruct.h Structure.h MolResId.h PBGroup.h \
-	Residue.h string_types.h tmpl/Residue.h tmpl/Atom.h tmpl/residues.h
 CoordSet.o: Atom.h ChangeTracker.h CoordSet.h destruct.h session.h Structure.h \
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
 destruct.o: destruct.h

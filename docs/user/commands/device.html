@@ -75,6 +75,7 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 <a name="vr"><b>vr</b></a> [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
 [&nbsp;<b>display</b>&nbsp;&nbsp;<b>mirror</b>&nbsp;|&nbsp;independent&nbsp;|&nbsp;blank&nbsp;]
 [&nbsp;<b>showControllers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>clickRange</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>toolbarPanels</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>simplifyGraphics</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>multishadowAllowed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -92,6 +93,7 @@ before starting SteamVR. For details and related issues,
 see <a href="../vr.html">ChimeraX virtual reality</a>.
 See also: <a href="camera.html"><b>camera</b></a>,
 <a href="view.html"><b>view</b></a>,
+<a href="meeting.html"><b>meeting</b></a>,
 <a href="../movies.html">making movies</a>
 <p>
 The <b>display</b> option indicates what to show in the ChimeraX graphics
@@ -114,6 +116,12 @@ The <b>showControllers</b> option (default <b>true</b>)
 shows representations of the hand controllers in the scene.
 Not showing the representations may be useful to avoid time-consuming
 calculations of the shadows they cast. 
+<p><p>
+The <b>clickRange</b> option sets the depth range for
+picking objects with the hand-controller cones, where <i>r</i>
+(default <b>5.0</b>) is the maximum distance from the tip of the cone 
+to the object in scene distance units, typically &Aring;.
+Limiting the range prevents accidentally picking far-away objects.
 </p><p>
 The <b>toolbarPanels</b> option (default <b>true</b>)
 indicates whether to hide icon toolbars
@@ -164,5 +172,5 @@ menu button which shows the standard ChimeraX user interface in VR.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2018</address>
+September 2018</address>
 </body></html>

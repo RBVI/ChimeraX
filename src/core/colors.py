@@ -67,7 +67,8 @@ class UserColors(SortedDict, StateManager):
 
     def add(self, key, value):
         if key in BuiltinColors:
-            raise ValueError('Can not override builtin color')
+            from .errors import UserError
+            raise UserError('Can not override builtin color')
         self[key] = value
 
     def remove(self, key):
@@ -170,8 +171,11 @@ class Color(State):
         return not numpy.array_equal(self.rgba, other.rgba)
 
     def take_snapshot(self, session, flags):
-        data = {'rgba': self.rgba}
-        return CORE_STATE_VERSION, data
+        data = {
+            'rgba': self.rgba,
+            'version': CORE_STATE_VERSION,
+        }
+        return data
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -920,6 +924,7 @@ def _init():
     for name in BuiltinColors:
         rgb = BuiltinColors[name]
         color = Color([x / 255 for x in rgb], mutable=False)
+        color.color_name = name
         BuiltinColors[name] = color
 
 

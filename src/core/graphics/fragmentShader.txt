@@ -120,7 +120,8 @@ uniform sampler2D tex2d;
 #endif
 
 #ifdef USE_DEPTH_TEXTURE
-uniform vec3 tex_depth_params;	// near, far/(far-near), scale
+uniform vec2 tex_depth_projection;	// near, far/(far-near)
+uniform vec3 tex_depth_scale;		// tex coord xscale, yscale and value zscale
 uniform sampler2D tex_depth_2d;
 #endif
 
@@ -140,9 +141,10 @@ void main (void)
 {
 #ifdef USE_DEPTH_TEXTURE
   // Adjust depth of each fragment in rendering a texture.
-  float zt = texture(tex_depth_2d, tex_coord_2d).x;
+  float xscale = tex_depth_scale.x, yscale = tex_depth_scale.y, dscale = tex_depth_scale.z;
+  float zt = texture(tex_depth_2d, vec2(0.5+xscale*(tex_coord_2d.x-0.5), 0.5+yscale*(tex_coord_2d.y-0.5))).x;
   zt = (zt == 0 ? 1 : zt);  // Depth 0 means unknown depth, change to maximum depth
-  float znear = tex_depth_params.x, fdfmn = tex_depth_params.y, dscale = tex_depth_params.z;
+  float znear = tex_depth_projection.x, fdfmn = tex_depth_projection.y;
   float zs = max(znear, zt*dscale);
   gl_FragDepth = min(.99, fdfmn * (zs - znear) / zs);
 #endif

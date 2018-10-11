@@ -71,7 +71,7 @@ def recent_crash(time, dir, file_prefix):
     if t < time:
         return None     # No file more recent than time.
 
-    f = open(p, 'r')
+    f = open(p, 'r', encoding = 'iso-8859-1')
     log = f.read()
     f.close()
 

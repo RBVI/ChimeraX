@@ -21,8 +21,8 @@ ALREADY_INSTALLED = grep -E "(already satisfied|not upgraded)"
 
 ifdef WIN32
 include ../pips/Makefile.pip
-WHEEL = PyOpenGL-$(VERSION)-cp36-cp36m-win_amd64.whl \
-	PyOpenGL_accelerate-$(VERSION)-cp36-cp36m-win_amd64.whl
+WHEEL = PyOpenGL-$(VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl \
+	PyOpenGL_accelerate-$(VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl
 endif
 
 ifdef DEBUG
@@ -33,8 +33,7 @@ endif
 
 PATCHES = $(wildcard PyOpenGL-$(VERSION)-*.patch) \
 	$(wildcard PyOpenGL-$(VERSION)_$(OS).patch) \
-	$(wildcard PyOpenGL-$(VERSION)_$(OS)_$(OPENGL_PLATFORM).patch) \
-	PyOpenGL-wgl.patch PyOpenGL-glbuffersubdata.patch
+	$(wildcard PyOpenGL-$(VERSION)_$(OS)_$(OPENGL_PLATFORM).patch)
 
 all:
 
@@ -42,13 +41,11 @@ ifdef WIN32
 
 install:
 	$(PIP_INSTALL) $(WHEEL) | $(ALREADY_INSTALLED) || \
-		((cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch && \
-		 (cd $(PYSITEDIR) && patch -f -p0) < PyOpenGL-glbuffersubdata.patch)
+		(for p in $(PATCHES); do (cd $(PYSITEDIR) && patch -f -p0) < $$p; done)
 
 app-install:
 	$(APP_PIP_INSTALL) $(WHEEL) | $(ALREADY_INSTALLED) || \
-		((cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-wgl.patch && \
-		 (cd $(APP_PYSITEDIR) && patch -f -p0) < PyOpenGL-glbuffersubdata.patch)
+		(for p in $(PATCHES); do (cd $(APP_PYSITEDIR) && patch -f -p0) < $$p; done)
 
 else
 

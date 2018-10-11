@@ -549,7 +549,6 @@ def dump_topology(t):
         ci = c.index
         print ('%d %s %s %d %d %s' % (ai, an, rn, ri, ci, c.id))
 
-        
 def register_mousemode(session):
     mm = session.ui.mouse_modes
     mm.add_mode(TugAtomsMode(session))

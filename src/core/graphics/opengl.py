@@ -333,7 +333,7 @@ class Render:
         self.multishadow = Multishadow(self, texture_unit = 2)
 
         # Silhouette edges
-        self.silhouette = Silhouette(self)
+        self.silhouette = Silhouette()
 
         # Selection outlines
         self.outline = Outline(self)
@@ -342,7 +342,7 @@ class Render:
 
         # Depth texture rendering parameters
         self.depth_texture_unit = 3
-        self._depth_texture_scale = None
+        self._depth_texture_scale = None	# texture xscale, yscale and value zscale
         
         self.frame_number = 0
 
@@ -609,9 +609,10 @@ class Render:
                         or model_matrix.same(cmm)):
                     return
             self.current_model_matrix = model_matrix
-            # TODO: optimize matrix multiply.  Rendering bottleneck with 200
-            # models open.
-            mv4 = (self.current_view_matrix * model_matrix).opengl_matrix()
+            # TODO: optimize matrix multiply.  Rendering bottleneck with 200 models open.
+            cvm = self.current_view_matrix
+            mv = cvm if model_matrix.is_identity() else (cvm * model_matrix)
+            mv4 = mv.opengl_matrix()
             self.current_model_view_matrix = mv4
 
         p = self.current_shader_program
@@ -1121,10 +1122,11 @@ class Render:
     def _set_depth_texture_shader_variables(self, shader):
         shader.set_integer("tex_depth_2d", self.depth_texture_unit)
         znear, zfar = self._near_far_clip
-        shader.set_vector3("tex_depth_params", (znear, zfar/(zfar-znear), self._depth_texture_scale))
+        shader.set_vector2("tex_depth_projection", (znear, zfar/(zfar-znear)))
+        shader.set_vector3("tex_depth_scale", self._depth_texture_scale)
 
-    def set_depth_texture_parameters(self, depth_texture_scale):
-        self._depth_texture_scale = depth_texture_scale
+    def set_depth_texture_parameters(self, tex_coord_xscale, tex_coord_yscale, zscale):
+        self._depth_texture_scale = (tex_coord_xscale, tex_coord_yscale, zscale)
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_DEPTH_TEXTURE:
             self._set_depth_texture_shader_variables(p)
@@ -1447,8 +1449,12 @@ class Multishadow:
 class Silhouette:
     '''Draw silhouette edges.'''
     
-    def __init__(self, render):
-        self._render = render
+    def __init__(self):
+        self.enabled = False
+        self.thickness = 1           # pixels
+        self.color = (0, 0, 0, 1)    # black
+        self.depth_jump = 0.03       # fraction of scene depth
+        self.perspective_near_far_ratio = 1	# Needed for handling depth buffer scaling
         self._silhouette_framebuf = None
 
     def delete(self):
@@ -1457,22 +1463,24 @@ class Silhouette:
             fb.delete(make_current = True)
             self._silhouette_framebuf = None
 
-    def start_silhouette_drawing(self):
-        r = self._render
-        alpha = r.current_framebuffer().alpha
-        fb = self._silhouette_framebuffer(r.render_size(), alpha)
+    def start_silhouette_drawing(self, render):
+        r = render
+        fb = self._silhouette_framebuffer(r)
         r.push_framebuffer(fb)
 
-    def finish_silhouette_drawing(self, thickness, color, depth_jump,
-                                  perspective_near_far_ratio):
-        r = self._render
+    def finish_silhouette_drawing(self, render):
+        r = render
         fb = r.pop_framebuffer()
         cfb = r.current_framebuffer()
         cfb.copy_from_framebuffer(fb, depth=False)
-        self._draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
-                                 perspective_near_far_ratio)
+        self._draw_depth_outline(render, fb.depth_texture, self.thickness,
+                                 self.color, self.depth_jump,
+                                 self.perspective_near_far_ratio)
 
-    def _silhouette_framebuffer(self, size, alpha):
+    def _silhouette_framebuffer(self, render):
+        r = render
+        size = r.render_size()
+        alpha = r.current_framebuffer().alpha
         sfb = self._silhouette_framebuf
         if sfb and (size[0] != sfb.width or size[1] != sfb.height or alpha != sfb.alpha):
             sfb.delete()
@@ -1481,16 +1489,16 @@ class Silhouette:
             dt = Texture()
             dt.linear_interpolation = False
             dt.initialize_depth(size, depth_compare_mode=False)
-            sfb = Framebuffer('silhouette', self._render.opengl_context, depth_texture=dt, alpha=alpha)
+            sfb = Framebuffer('silhouette', r.opengl_context, depth_texture=dt, alpha=alpha)
             self._silhouette_framebuf = sfb
         return sfb
 
-    def _draw_depth_outline(self, depth_texture, thickness=1,
+    def _draw_depth_outline(self, render, depth_texture, thickness=1,
                             color=(0, 0, 0, 1), depth_jump=0.03,
                             perspective_near_far_ratio=1):
         # Render pixels with depth in depth_texture less than neighbor pixel
         # by at least depth_jump. The depth buffer is not used.
-        r = self._render
+        r = render
         tc = r._texture_window(depth_texture, r.SHADER_DEPTH_OUTLINE)
 
         p = r.current_shader_program

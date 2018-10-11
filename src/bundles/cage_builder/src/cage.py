@@ -62,6 +62,8 @@ def select_polygons(session, polygons):
     for p in polygons:
         for v in p.vertices:
             v.selected = True
+        for e in p.edges:
+            e.selected = True
 
 # -----------------------------------------------------------------------------
 #

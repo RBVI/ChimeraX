@@ -123,8 +123,15 @@ see also <a href="../commands/distance.html"><b>distance</b></a> and
 <td align="center"><img src="mouse-icons/label.png" width="35px"></td>
 <td align="center"><b>label</b></td>
 <td align="center" class="text">label/unlabel clicked atom or ribbon segment 
-with residue name and number (slightly <a href="#vr">different in VR</a>);
+with residue name and number (slightly <a href="#vr">different in VR</a>),
+<br>unlabel all residues when background is clicked;
 see also <a href="../commands/label.html"><b>label</b></a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/movelabel.png" width="35px"></td>
+<td align="center"><b>move label</b></td>
+<td align="center" class="text">
+move <a href="../commands/2dlabels.html">2D label</a>;
+see also <a href="../commands/2dlabels.html"><b>2dlabels</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
 <td align="center"><b>pivot</b><br>(shift right)</td>
@@ -133,8 +140,8 @@ see also <a href="../commands/cofr.html"><b>cofr</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
 <td align="center"><b>bond rotation</b></td>
-<td align="center" class="text">adjust torsion angle;
-original position not retained</td>
+<td align="center" class="text">adjust torsion angle (original position
+not retained); see also <a href="../commands/torsion.html"><b>torsion</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/contour.png" width="35px"></td>
 <td align="center"><b>contour level</b></td>
@@ -142,7 +149,7 @@ original position not retained</td>
 <a href="volumeviewer.html">volume data</a> threshold level; see also 
 <a href="../commands/volume.html"><b>volume</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/cubearrow.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/moveplanes.png" width="35px"></td>
 <td align="center"><b>move planes</b></td>
 <td align="center" class="text">show different planes of
 <a href="volumeviewer.html">volume data</a>; see also
@@ -159,14 +166,6 @@ original position not retained</td>
 <a href="../trajectories.html#vseries">volume series</a>;
 see also <a href="../commands/vseries.html"><b>vseries</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
-<td align="center"><b>swapaa</b></td>
-<td align="center" class="text">&ldquo;mutate&rdquo;
-and <a href="../commands/label.html">label</a> the amino acid residue
-under the mouseclick,
-with vertical drag cycling through the 20 standard types
-in arbitrary conformations; original sidechain not retained</td>
-</tr><tr>
 <td align="center"><img src="mouse-icons/tug.png" width="35px"></td>
 <td align="center"><b>tug</b></td>
 <td align="center" class="text">drag atoms and apply OpenMM dynamics
@@ -179,6 +178,14 @@ original coordinates not retained</td>
 jiggle residue and its neighbors with OpenMM dynamics
 while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
+<td align="center"><b>swapaa</b></td>
+<td align="center" class="text">&ldquo;mutate&rdquo;
+and <a href="../commands/label.html">label</a> the amino acid residue
+under the mouseclick,
+with vertical drag cycling through the 20 standard types
+in arbitrary conformations; original sidechain not retained</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/zone.png" width="35px"></td>
 <td align="center"><b>zone</b></td>
@@ -224,17 +231,25 @@ that is, only intra-model forces apply. No nonbonded cutoff is used.
 </p>
 <h3>Zone Around Atoms</h3>
 <p>
-The <b>zone</b> mouse mode limits <a href="volumeviewer.html">volume data</a> 
-display to a 8 &Aring; zone around the atoms of the clicked residue. 
-The residue and others within 5 &Aring; of it are shown as all atoms. 
+The <b>zone</b> mouse mode limits atomic detail and
+<a href="volumeviewer.html">volume data</a> 
+(map) display to a zone around the atoms of the clicked residue. 
 <a href="#vr">Except in VR</a>,
-the remaining residues of the same atomic model are shown as a ribbon
-(slimmed down for increased visibility) and labels are displayed for 
-residues within 4 &Aring; of the clicked residue.
-See also: <a href="../commands/volume.html#zone"><b>volume zone</b></a>
+the remaining residues of the same atomic model are shown as a 
+narrow ribbon, and residues in the zone are labeled. 
+Subsequently clicking the background clears the labels, and 
+clicking the background a second time shows all atoms for the whole model.
+These actions are implemented via the
+<a href="../commands/zone.html"><b>zone</b></a> command,
+which can also be used to adjust zone size
+(cutoff distances from the clicked residue
+are initially <b>5</b>, <b>4</b>, and <b>8</b> &Aring; for
+residue atoms, residue labels, and map displays, respectively).
+See also: 
+<a href="../commands/surface.html#zone"><b>surface zone</b></a>,
+<a href="../commands/volume.html#zone"><b>volume zone</b></a>
 (with <b>newMap false</b>),
-<a href="../commands/label.html#residues"><b>label</b></a>,
-<a href="../commands/show.html"><b>show</b></a>,
+<a href="../commands/select.html#zone"><b>select zone</b></a>,
 <a href="../commands/atomspec.html#zones">zone atom specification</a>
 </p>
 
@@ -265,5 +280,5 @@ single hand-controller mode.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2018</address>
+October 2018</address>
 </body></html>

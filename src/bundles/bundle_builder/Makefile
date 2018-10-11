@@ -44,6 +44,9 @@ wheel $(WHEEL): setup.py $(PYSRCS)
 install app-install: $(WHEEL)
 	$(PYTHON_EXE) -m pip install --upgrade --force-reinstall $(WHEEL)
 
+sync:
+	rsync -av dist/*.whl plato:/usr/local/projects/chimerax/builds/repo/
+
 test:
 	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
 		do $(CHIMERAX_EXE) --exit --nogui $$t;\

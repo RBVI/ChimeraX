@@ -12,13 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 #--- public API ---
-CP_SPECIFIC_SPECIFIC = "ss"
-CP_SPECIFIC_BEST = "bs"
-CP_BEST_BEST = "bb"
-
-AA_NEEDLEMAN_WUNSCH = "Needleman-Wunsch"
-AA_SMITH_WATERMAN = "Smith-Waterman"
-
+from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
+from .match import AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN
+from .match import match
 
 #--- toolshed/session-init funcs ---
 
@@ -28,7 +24,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        from . import match
-        match.register_command(logger)
+        from .match import register_command
+        register_command(logger)
 
 bundle_api = _MyAPI()

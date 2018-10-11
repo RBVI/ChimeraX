@@ -38,7 +38,7 @@ The <b>size</b> command sets the following:
 <li>
 <b>atomRadius</b>&nbsp;<i>r<sub><font size=-1>a</font></sub></i>
 - atomic <a href="../radii.html">VDW radius</a> as shown in
-<a href="style.html">sphere display</a>.
+<a href="style.html">sphere style</a>.
 The <a href="../radii.html">default VDW radii</a>
 assigned by <a href="../atomtypes.html">atom type</a> can be restored
 by giving <b>default</b> as the value. Since VDW radii are also used to
@@ -51,13 +51,18 @@ before such calculations.
 <li>
 <b>ballScale</b> <i>factor</i> (initial default <b>0.3</b>)
 - scale factor to multiply by <a href="../radii.html">VDW radius</a>
-for <a href="style.html">ball display</a>.
+for <a href="style.html">ball style</a>.
 The <b>ballScale</b> parameter applies to an entire atomic model even
 if only part of the model is specified.
 <li>
 <b>stickRadius</b>&nbsp;<i>r<sub><font size=-1>b</font></sub></i>
 (initial default <b>0.2</b> &Aring;)
-- bond stick radius in <a href="style.html">ball and stick displays</a>
+- bond stick radius and display radius of singleton (zero-bond) atoms in
+<a href="style.html">stick style</a>. 
+Within a single atomic model,
+different bonds can have different stick radii, but a single 
+&ldquo;stick&rdquo; radius is used for all singletons and will be adjusted
+if any singleton in that model is specified.
 <li>
 <b>pseudobondRadius</b>&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>
 - <a href="../pseudobonds.html">pseudobond</a> stick radius
@@ -86,5 +91,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+September 2018</address>
 </body></html>

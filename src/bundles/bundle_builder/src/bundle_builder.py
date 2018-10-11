@@ -6,22 +6,34 @@ import distutils
 import setuptools
 from Cython.Build import cythonize
 
-def distlib_hack(_func):
-    # This hack is needed because distlib and wheel do not yet
-    # agree on the metadata file name.
-    def hack(*args, **kw):
-        # import distutils.core
-        # distutils.core.DEBUG = True
-        # TODO: remove distlib monkey patch when the wheel package
-        # implements PEP 426's pydist.json
-        from distlib import metadata
-        save = metadata.METADATA_FILENAME
-        metadata.METADATA_FILENAME = "metadata.json"
-        try:
-            return _func(*args, **kw)
-        finally:
-            metadata.METADATA_FILENAME = save
-    return hack
+# Always import this because it changes the behavior of setuptools
+from numpy.distutils.misc_util import get_numpy_include_dirs
+
+
+#
+# The compile process is initiated by setuptools and handled
+# by numpy.distutils, which eventually calls subprocess.
+# On Windows, subprocess invokes CreateProcess.  If a shell
+# is used, subprocess sets the STARTF_USESHOWWINDOW flag
+# to CreateProcess, assuming that "cmd" is going to create
+# a window; otherwise, it does not set the flag and a window
+# gets created for each compile and link process.  The code
+# below is used to make STARTF_USESHOWWINDOW be set by
+# default (written after examining subprocess.py).  The
+# default STARTUPINFO class is replaced before calling
+# setuptools.setup() and reset after it returns.
+# 
+try:
+    from subprocess import STARTUPINFO
+except ImportError:
+    MySTARTUPINFO = None
+else:
+    import subprocess, _winapi
+    class MySTARTUPINFO(STARTUPINFO):
+        _original = STARTUPINFO
+        def __init__(self, *args, **kw):
+            super().__init__(*args, **kw)
+            self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
 
 
 class BundleBuilder:
@@ -39,7 +51,6 @@ class BundleBuilder:
         self._make_paths()
         self._make_setup_arguments()
 
-    @distlib_hack
     def make_wheel(self, test=True, debug=False):
         # HACK: distutils uses a cache to track created directories
         # for a single setup() run.  We want to run setup() multiple
@@ -50,10 +61,12 @@ class BundleBuilder:
             distutils.dir_util._path_created.clear()
         except AttributeError:
             pass
+        # Copy additional files into package source tree
+        self._copy_extrafiles(self.extrafiles)
+        # Build C libraries
         import os.path
         for lib in self.c_libraries:
-            lib_path = lib.compile(self.logger, self.dependencies, debug=debug)
-            self.datafiles[self.package].append(lib_path)
+            lib.compile(self.logger, self.dependencies, debug=debug)
         setup_args = ["--no-user-cfg", "build"]
         if debug:
             setup_args.append("--debug")
@@ -66,7 +79,6 @@ class BundleBuilder:
         else:
             print("Distribution is in %s" % self.wheel_path)
 
-    @distlib_hack
     def make_install(self, session, test=True, debug=False, user=None):
         self.make_wheel(test=test, debug=debug)
         from chimerax.core.commands import run
@@ -78,12 +90,11 @@ class BundleBuilder:
                 cmd += " user false"
         run(session, cmd)
 
-    @distlib_hack
     def make_clean(self):
         import os.path, fnmatch
         self._rmtree(os.path.join(self.path, "build"))
         self._rmtree(os.path.join(self.path, "dist"))
-        self._rmtree(os.path.join(self.path, "src/__pycache__"))
+        self._rmtree(os.path.join(self.path, "src", "__pycache__"))
         self._rmtree(self.egg_info)
         for root, dirnames, filenames in os.walk("src"):
             # Linux, Mac
@@ -132,6 +143,7 @@ class BundleBuilder:
         self._get_categories(bi)
         self._get_descriptions(bi)
         self._get_datafiles(bi)
+        self._get_extrafiles(bi)
         self._get_dependencies(bi)
         self._get_c_modules(bi)
         self._get_c_libraries(bi)
@@ -175,11 +187,37 @@ class BundleBuilder:
             files = []
             for e in self._get_elements(dfs, "DataFile"):
                 filename = self._get_element_text(e)
-                files.append(filename)
+                files.append(("file", filename))
+            for e in self._get_elements(dfs, "DataDir"):
+                dirname = self._get_element_text(e)
+                files.append(("dir", dirname))
             if files:
                 if not pkg_name:
                     pkg_name = self.package
                 self.datafiles[pkg_name] = files
+
+    def _get_extrafiles(self, bi):
+        self.extrafiles = {}
+        for dfs in self._get_elements(bi, "ExtraFiles"):
+            pkg_name = dfs.getAttribute("package")
+            files = []
+            for e in self._get_elements(dfs, "ExtraFile"):
+                source = e.getAttribute("source")
+                filename = self._get_element_text(e)
+                files.append(("file", source, filename))
+            for e in self._get_elements(dfs, "ExtraDir"):
+                source = e.getAttribute("source")
+                dirname = self._get_element_text(e)
+                files.append(("dir", source, dirname))
+            if files:
+                if not pkg_name:
+                    pkg_name = self.package
+                self.extrafiles[pkg_name] = files
+                datafiles = [(t[0], t[2]) for t in files]
+                try:
+                    self.datafiles[pkg_name].extend(datafiles)
+                except KeyError:
+                    self.datafiles[pkg_name] = datafiles
 
     def _get_dependencies(self, bi):
         self.dependencies = []
@@ -207,7 +245,8 @@ class BundleBuilder:
             except ValueError:
                 minor = 1
             uses_numpy = cm.getAttribute("usesNumpy") == "true"
-            c = _CModule(mod_name, uses_numpy, major, minor)
+            c = _CModule(mod_name, uses_numpy, major, minor,
+                         self.installed_library_dir)
             self._add_c_options(c, cm)
             self.c_modules.append(c)
 
@@ -296,10 +335,50 @@ class BundleBuilder:
         return (not self.c_modules and not self.c_libraries
                 and self.pure_python != "false")
 
+    def _copy_extrafiles(self, files):
+        import shutil, os, os.path
+        for pkg_name, entries in files.items():
+            for kind, src, dst in entries:
+                if kind == "file":
+                    filepath = os.path.join("src", dst)
+                    dirpath = os.path.dirname(filepath)
+                    if dirpath:
+                        os.makedirs(dirpath, exist_ok=True)
+                    shutil.copyfile(src, filepath)
+                elif kind == "dir":
+                    dstdir = os.path.join("src", dst.replace('/', os.sep))
+                    if os.path.exists(dstdir):
+                        shutil.rmtree(dstdir)
+                    shutil.copytree(src, dstdir)
+
+    def _expand_datafiles(self, files):
+        import os, os.path
+        datafiles = {}
+        for pkg_name, entries in files.items():
+            pkg_files = []
+            for kind, name in entries:
+                if kind == "file":
+                    pkg_files.append(name)
+                elif kind == "dir":
+                    prefix = "src"
+                    prefix_len = len(prefix) + 1
+                    root = os.path.join(prefix, name)
+                    for dirp, dns, fns in os.walk(root):
+                        # Strip leading root component, including separator
+                        dp = dirp[prefix_len:]
+                        pkg_files.extend([os.path.join(dp, fn) for fn in fns])
+            datafiles[pkg_name] = pkg_files
+        return datafiles
+
     def _make_setup_arguments(self):
         def add_argument(name, value):
             if value:
                 self.setup_arguments[name] = value
+        # Make sure C/C++ libraries (DLLs, shared objects or dynamic
+        # libraries) are on the install list
+        for lib in self.c_libraries:
+            for lib_path in lib.paths():
+                self.datafiles[self.package].append(("file", lib_path))
         self.setup_arguments = {"name": self.name,
                                 "python_requires": ">= 3.6"}
         add_argument("version", self.version)
@@ -310,7 +389,7 @@ class BundleBuilder:
         add_argument("url", self.url)
         add_argument("install_requires", self.dependencies)
         add_argument("license", self.license)
-        add_argument("package_data", self.datafiles)
+        add_argument("package_data", self._expand_datafiles(self.datafiles))
         # We cannot call find_packages unless we are already
         # in the right directory, and that will not happen
         # until run_setup.  So we do the package stuff there.
@@ -381,6 +460,9 @@ class BundleBuilder:
         cwd = os.getcwd()
         save = sys.argv
         try:
+            if MySTARTUPINFO:
+                import subprocess
+                subprocess.STARTUPINFO = MySTARTUPINFO
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
@@ -394,6 +476,9 @@ class BundleBuilder:
         finally:
             sys.argv = save
             os.chdir(cwd)
+            if MySTARTUPINFO:
+                import subprocess
+                subprocess.STARTUPINFO = MySTARTUPINFO._original
 
     #
     # Utility functions dealing with XML tree
@@ -499,7 +584,6 @@ class _CompiledCode:
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         if self.uses_numpy:
-            from numpy.distutils.misc_util import get_numpy_include_dirs
             inc_dirs.extend(get_numpy_include_dirs())
         if sys.platform == "darwin":
             libraries = self.libraries
@@ -558,10 +642,11 @@ class _CompiledCode:
 
 class _CModule(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, major, minor):
+    def __init__(self, name, uses_numpy, major, minor, libdir):
         super().__init__(name, uses_numpy)
         self.major = major
         self.minor = minor
+        self.installed_library_dir = libdir
 
     def ext_mod(self, logger, package, dependencies):
         from setuptools import Extension
@@ -573,8 +658,14 @@ class _CModule(_CompiledCode):
         except ValueError:
             return None
         import sys
+        if self.installed_library_dir:
+            install_dir = '/' + self.installed_library_dir
+        else:
+            install_dir = ''
         if sys.platform == "linux":
-            extra_link_args.append("-Wl,-rpath,\$ORIGIN")
+            extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
+        elif sys.platform == "darwin":
+            extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
         return Extension(package + '.' + self.name,
                          define_macros=macros,
                          extra_compile_args=cpp_flags+self.compile_arguments,
@@ -625,8 +716,26 @@ class _CLibrary(_CompiledCode):
             lib_name = self.name
         if not self.static:
             macros.append(("DYNAMIC_LIBRARY", 1))
-        compiler.compile(self.source_files, extra_preargs=cpp_flags,
-                         macros=macros, debug=debug)
+        if sys.platform == "darwin":
+            # We need to manually separate out C from C++ code here, since clang
+            # crashes if -std=c++11 is given as a switch while compiling C code
+            c_files = []
+            cpp_files = []
+            for f in self.source_files:
+                l = compiler.detect_language(f)
+                if l == 'c':
+                    c_files.append(f)
+                elif l == 'c++':
+                    cpp_files.append(f)
+                else:
+                    raise RuntimeError("Unsupported language for %s" % f)
+            compiler.compile(cpp_files, extra_preargs=cpp_flags,
+                             macros=macros, debug=debug)
+            compiler.compile(c_files, extra_preargs=[],
+                             macros=macros, debug=debug)
+        else:
+            compiler.compile(self.source_files, extra_preargs=cpp_flags,
+                             macros=macros, debug=debug)
         objs = compiler.object_filenames(self.source_files)
         compiler.mkpath(output_dir)
         if self.static:
@@ -644,8 +753,8 @@ class _CLibrary(_CompiledCode):
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
                 lib = compiler.library_filename(lib_name, lib_type="dylib")
-                extra_link_args.append("-Wl,-install_name,@loader_path%s/%s" %
-                                       (install_dir, lib))
+                extra_link_args.extend(["-Wl,-rpath,@loader_path",
+                                        "-Wl,-install_name,@rpath/%s" % lib])
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_preargs=extra_link_args,
                                             debug=debug)
@@ -665,6 +774,34 @@ class _CLibrary(_CompiledCode):
                                             extra_preargs=extra_link_args,
                                             debug=debug)
         return lib
+
+    def paths(self):
+        import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
+        compiler = distutils.ccompiler.new_compiler()
+        distutils.sysconfig.customize_compiler(compiler)
+        if sys.platform == "win32":
+            lib_name = "lib" + self.name
+        else:
+            lib_name = self.name
+        if self.installed_library_dir:
+            lib_name = os.path.join(self.installed_library_dir, lib_name)
+        paths = []
+        if self.static:
+            paths.append(compiler.library_filename(lib_name, lib_type="static"))
+        else:
+            if sys.platform == "darwin":
+                paths.append(compiler.library_filename(lib_name,
+                                                       lib_type="dylib"))
+            elif sys.platform == "win32":
+                # On Windows we want both .lib and .dll
+                paths.append(compiler.shared_object_filename(lib_name))
+                paths.append(compiler.library_filename(lib_name,
+                                                       lib_type="static"))
+            else:
+                paths.append(compiler.library_filename(lib_name,
+                                                       lib_type="shared"))
+        return paths
+
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     import sys

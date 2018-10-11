@@ -154,6 +154,7 @@ class Structure(Model, StructureData):
     # used by custom-attr registration code
     @property
     def has_custom_attrs(self):
+        from .molobject import has_custom_attrs
         return has_custom_attrs(Structure, self)
 
     def take_snapshot(self, session, flags):
@@ -257,7 +258,9 @@ class Structure(Model, StructureData):
         shown = atoms.filter(atoms.displays)
         if shown:
             return most_common_color(shown.colors)
-        return most_common_color(atoms.colors)
+        if atoms:
+            most_common_color(atoms.colors)
+        return self.color
 
     def _set_single_color(self, color):
         self.atoms.colors = color
@@ -1522,11 +1525,11 @@ class Structure(Model, StructureData):
                 colors[:,3] = around(colors[:,3] * self.ribbon_tether_opacity).astype(int)
                 tp.colors = colors
 
-    def bounds(self, positions = True):
-        self._update_graphics_if_needed()       # Ribbon bound computed from graphics
+    def bounds(self):
+        self._update_graphics_if_needed()       # Ribbon bounds computed from graphics
         # import sys, time
         # start = time.time()
-        b = super().bounds(positions=positions)
+        b = super().bounds()
         # stop = time.time()
         # print('structure bounds time:', (stop - start) * 1e6, file=sys.__stderr__)
         return b
@@ -1538,7 +1541,8 @@ class Structure(Model, StructureData):
         picks = []
         np = len(self.positions)
         if np > 1:
-            pos_nums = self.bounds_intercept_copies(self.bounds(positions = False), mxyz1, mxyz2)
+            b = self._pick_bounds()
+            pos_nums = self.bounds_intercept_copies(b, mxyz1, mxyz2)
         else:
             # Don't do bounds check for single copy because bounds are not cached.
             pos_nums = range(np)
@@ -1554,6 +1558,18 @@ class Structure(Model, StructureData):
                 pclosest = p
         return pclosest
 
+    def _pick_bounds(self):
+        '''
+        Bounds for this model not including positions.  Used for optimizing picking
+        when there are multiple positions.  Includes atoms and ribbons.
+        '''
+        ad = self._atoms_drawing
+        drawings = [ad]
+        drawings.extend(rd for rd in self.child_drawings() if isinstance(rd, RibbonDrawing))
+        from chimerax.core.geometry import union_bounds
+        b = union_bounds([d.bounds() for d in drawings if d is not None])
+        return b
+        
     def _position_intercepts(self, place, mxyz1, mxyz2, exclude=None):
         # TODO: check intercept of bounding box as optimization
         xyz1, xyz2 = place.inverse() * (mxyz1, mxyz2)
@@ -1600,17 +1616,37 @@ class Structure(Model, StructureData):
         self._update_graphics_if_needed()       # Ribbon drawing lazily computed
         super().write_x3d(*args, **kw)
 
+    def get_selected(self, include_children=False, fully=False):
+        if fully:
+            if self.atoms.num_selected < self.num_atoms or self.bonds.num_selected < self.num_bonds:
+                return False
+            if include_children:
+                for c in self.child_models():
+                    if not c.get_selected(include_children=True, fully=True):
+                        return False
+            return True
+            
+        if self.atoms.num_selected > 0 or self.bonds.num_selected > 0:
+            return True
+
+        if include_children:
+            for c in self.child_models():
+                if c.get_selected(include_children=True):
+                    return True
+
+        return False
+
     def set_selected(self, sel, *, fire_trigger=True):
         self.atoms.selected = sel
         self.bonds.selected = sel
         Model.set_selected(self, sel, fire_trigger=fire_trigger)
-    selected = property(Model.selected.fget, set_selected)
+    selected = property(get_selected, set_selected)
 
     def set_selected_positions(self, spos):
         sel = (spos is not None and spos.sum() > 0)
         self.atoms.selected = sel
         self.bonds.selected = sel
-        Model.set_selected_positions(self, spos)
+        Model.set_highlighted_positions(self, spos)
     selected_positions = property(Model.selected_positions.fget, set_selected_positions)
     
     def selected_items(self, itype):
@@ -1623,22 +1659,6 @@ class Structure(Model, StructureData):
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
         return []
-
-    def all_parts_selected(self):
-        if self.atoms.num_selected < self.num_atoms or self.bonds.num_selected < self.num_bonds:
-            return False
-        for c in self.child_models():
-            if not c.all_parts_selected():
-                return False
-        return True
-
-    def any_part_selected(self):
-        if self.atoms.num_selected > 0 or self.bonds.num_selected > 0:
-            return True
-        for c in self.child_models():
-            if c.any_part_selected():
-                return True
-        return False
 
     def clear_selection(self):
         self.selected = False
@@ -1819,7 +1839,7 @@ class Structure(Model, StructureData):
                     def choose_type(value, s=part.start.lower(), e=part.end.lower()):
                         v = value.lower()
                         return v >= s and v <= e
-                if start_number:
+                if start_number is not None:
                     if end_number is None:
                         def choose_id(n, ic, test_val=str(start_number)+start_ic):
                             return str(n)+ic == test_val
@@ -1947,10 +1967,8 @@ class AtomsDrawing(Drawing):
         self.visible_atoms = None
         super().__init__(name)
 
-    def bounds(self, positions=True):
-        if not positions:
-            return self._geometry_bounds()
-        cpb = self._cached_position_bounds
+    def bounds(self):
+        cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
             return cpb
         # TODO: use the next two lines instead of the following four for a 5% speedup
@@ -1958,6 +1976,8 @@ class AtomsDrawing(Drawing):
         # xyzr = self.positions.shift_and_scale_array()
         # coords, radii = xyzr[:, :3], xyzr[:, 3]
         a = self.visible_atoms
+        if len(a) == 0:
+            return None
         adisp = a[a.displays]
         coords = adisp.coords
         radii = self.parent._atom_display_radii(adisp)
@@ -1966,9 +1986,12 @@ class AtomsDrawing(Drawing):
         #       If that was fixed by using a precomputed radius, then it would make
         #       sense to optimize this bounds calculation in C++ so arrays
         #       of display state, radii and coordinates are not needed.
-        from chimerax.core import geometry
-        b = geometry.sphere_bounds(coords, radii)
+        from chimerax.core.geometry import sphere_bounds, copies_bounding_box
+        sb = sphere_bounds(coords, radii)
+        spos = self.parent.get_scene_positions(displayed_only=True)
+        b = sb if spos.is_identity() else copies_bounding_box(sb, spos)
         self._cached_position_bounds = b
+        
         return b
 
     def add_drawing(self, d):
@@ -2041,10 +2064,8 @@ class BondsDrawing(Drawing):
         self._picks_class = picks_class
         super().__init__(name)
 
-    def bounds(self, positions=True):
-        if not positions:
-            return self._geometry_bounds()
-        cpb = self._cached_position_bounds
+    def bounds(self):
+        cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
             return cpb
         bonds = self.visible_bonds
@@ -2056,9 +2077,12 @@ class BondsDrawing(Drawing):
         from numpy import amin, amax
         xyz_min = amin([amin(c1 - r, axis=0), amin(c2 - r, axis=0)], axis=0)
         xyz_max = amax([amax(c1 + r, axis=0), amax(c2 + r, axis=0)], axis=0)
-        from chimerax.core import geometry
-        b = geometry.Bounds(xyz_min, xyz_max)
+        from chimerax.core.geometry import Bounds, copies_bounding_box
+        cb = Bounds(xyz_min, xyz_max)
+        spos = self.parent.get_scene_positions(displayed_only=True)
+        b = cb if spos.is_identity() else copies_bounding_box(cb, spos)
         self._cached_position_bounds = b
+        
         return b
 
     def add_drawing(self, d):

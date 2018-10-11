@@ -15,6 +15,10 @@ class LabelMouseMode(MouseMode):
     def _label_pick(self, pick, color = None, background = None,
                     size = None, height = None, orient = None):
         if pick is None:
+            from .label3d import label_delete
+            label_delete(self.session, object_type = 'residues')
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, 'label delete residues')
             return
 
         from chimerax import atomic
@@ -34,22 +38,30 @@ class LabelMouseMode(MouseMode):
         object_type = 'residues'
         
         ses = self.session
-        from chimerax.label.label3d import label, label_delete
+        from .label3d import label, label_delete
         if label_delete(ses, objects, object_type) == 0:
             label(ses, objects, object_type, color=color, background=background,
                   size=size, height=height, orient=orient)
+            from chimerax.core.commands import log_equivalent_command, residues_specifier, options_text
+            rspec = residues_specifier(objects)
+            opts = options_text((('color',color), ('background',background), 
+                                 ('size',size), ('height',height), ('orient',orient)))
+            log_equivalent_command(ses, 'label %s %s' % (rspec, opts))
 
     def laser_click(self, xyz1, xyz2):
         from chimerax.ui.mousemodes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
-        if pick:
-            from chimerax.core.colors import BuiltinColors
-            self._label_pick(pick,
-                             color = BuiltinColors['yellow'],
-                             background = BuiltinColors['dimgray'],
-                             size = 64,		# pixels
-                             height = 0.7,	# Angstroms
-                             orient = 45)	# degrees
-            # Use opaque background to speed up rendering and improve appearance in VR.
-            # Use fixed height in scene units since that is more natural in VR.
-            # Reorient only on 45 degree view changes, less distracting in VR.
+        from chimerax.core.colors import BuiltinColors
+        self._label_pick(pick,
+                         color = BuiltinColors['yellow'],
+                         background = BuiltinColors['dimgray'],
+                         size = 64,		# pixels
+                         height = 0.7,	# Angstroms
+                         orient = 45)	# degrees
+        # Use opaque background to speed up rendering and improve appearance in VR.
+        # Use fixed height in scene units since that is more natural in VR.
+        # Reorient only on 45 degree view changes, less distracting in VR.
+          
+def register_mousemode(session):
+    mm = session.ui.mouse_modes
+    mm.add_mode(LabelMouseMode(session))

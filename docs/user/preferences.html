@@ -36,8 +36,8 @@ and contains sections:
 <br><a href="#clipping">Clipping</a>
 <br><a href="#distances">Distances</a>
 <br><a href="#labels">Labels</a>
-<br><a href="#sessions">Sessions</a>
 <br><a href="#toolshed">Toolshed</a>
+<br><a href="#window">Window</a>
 </b></blockquote>
 <p>
 Several <a href="#other">other preferences</a> do not appear in this 
@@ -155,22 +155,6 @@ Model number will be included when multiple models are present.
 </p>
 </ul>
 
-<a name="sessions"></a>
-<!--
-<p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
-</p>
--->
-<h3><a href="#top" class="nounder"><b>&larr;</b></a>
-Sessions</h3>
-<ul>
-<li><b>Resize window on session restore</b>
-- whether to restore the window size of a session along with its contents;
-if this option is off (initial default), the graphics window will not resize
-when a session is restored. 
-See also: <a href="commands/windowsize.html"><b>windowsize</b></a>
-</ul>
-
 <a name="toolshed"></a>
 <!--
 <p class="nav">
@@ -193,6 +177,40 @@ is the web repository of ChimeraX bundles.
   </ul>
 </ul>
 
+<a name="window"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Window</h3>
+<ul>
+<li><b>Default tool side</b>
+- on which side of the main window to dock 
+<a href="window.html#panels">tool panels</a> when they first appear 
+(overridden for tools with
+<a href="window.html#toolprefs">previously saved positions</a>):
+  <ul>
+  <li><b>left</b>
+  <li><b>right</b> (initial default)
+  </ul>
+<li><b>Initial overall window size</b> - startup size of the overall
+<a href="window.html">ChimeraX window</a>
+(including any tools present at startup, not just the graphics window)
+  <ul>
+  <li><b>last used</b> (initial default)
+  <li><b>proportional</b> - as a percentage of screen width and height
+  <li><b>fixed</b> - width and height in pixels
+  </ul>
+<li><b>Resize graphics window on session restore</b>
+- whether to restore the graphics window size of a 
+<a href="commands/save.html#session">session</a> along with its contents;
+if this option is off (initial default), the graphics window will not resize
+when a session is restored. 
+See also: <a href="commands/windowsize.html"><b>windowsize</b></a>
+</ul>
+
 <a name="other"></a>
 <p class="nav">
 [<a href="#top">back to top: ChimeraX Preferences</a>]
@@ -205,14 +223,16 @@ and other dialogs:
 </p>
 <ul>
 <li>Generic <a href="window.html#toolprefs">tool-interface preferences</a>:
-autostart, panel dockability (see also <a href="commands/ui.html"><b>ui</b></a>)
+autostart, panel dockability, panel position 
 <li>Tool-specific preferences:
   <ul>
   <li><a href="tools/sequenceviewer.html#settings"><b>Sequence Viewer</b></a>
   </ul>
 </ul>
+Tool autostart behavior and dockability can also be set with the
+<a href="commands/ui.html"><b>ui</b></a> command.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2018</address>
+October 2018</address>
 </body></html> 

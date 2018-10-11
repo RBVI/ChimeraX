@@ -133,10 +133,18 @@ cdef class CyAtom:
     @property
     def aniso_u6(self):
         "Get anisotropic temperature factors as a 6 element float array"
-        " containing (u11, u22, u33, u12, u13, u23) or None."
+        " containing (u11, u22, u33, u12, u13, u23) [i.e. PDB/mmCIF order] or None."
         c_arr = self.cpp_atom.aniso_u()
         if c_arr:
-            return array(dereference(c_arr))
+            # The C++ layer holds the values in row major order, so...
+            arr = dereference(c_arr)
+            a00 = arr[0]
+            a01 = arr[1]
+            a02 = arr[2]
+            a11 = arr[3]
+            a12 = arr[4]
+            a22 = arr[5]
+            return array([a00, a11, a22, a01, a02, a12])
         return None
 
     @aniso_u6.setter
@@ -146,7 +154,8 @@ cdef class CyAtom:
         " containing (u11, u22, u33, u12, u13, u23)."
         if len(u6) != 6:
             raise ValueError("aniso_u6 array isn't length 6")
-        self.cpp_atom.set_aniso_u(u6[0], u6[1], u6[2], u6[3], u6[4], u6[5])
+        # Note C++ layer holds the values in row major order
+        self.cpp_atom.set_aniso_u(u6[0], u6[3], u6[4], u6[1], u6[5], u6[2])
 
     @property
     def bfactor(self):
@@ -1024,24 +1033,12 @@ cdef class CyResidue:
     # static methods...
 
     @staticmethod
-    def add_standard_residue(res_name):
-        cydecl.add_standard_residue(res_name)
-
-    @staticmethod
     def c_ptr_to_existing_py_inst(ptr_type ptr_val):
         return (<cydecl.Residue *>ptr_val).py_instance(False)
 
     @staticmethod
     def c_ptr_to_py_inst(ptr_type ptr_val):
         return (<cydecl.Residue *>ptr_val).py_instance(True)
-
-    @staticmethod
-    def is_standard_residue(res_name):
-        return cydecl.is_standard_residue(res_name)
-
-    @staticmethod
-    def remove_standard_residue(res_name):
-        cydecl.remove_standard_residue(res_name)
 
     @staticmethod
     def set_py_class(klass):

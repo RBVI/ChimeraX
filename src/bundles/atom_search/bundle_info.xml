@@ -15,19 +15,20 @@
     <Category name="Structure Analysis"/>
   </Categories>
 
-  <DataFiles>
-    <DataFile>lib/*</DataFile>
-  </DataFiles>
-
-  <CLibrary name="atom_search">
+  <CLibrary name="atomsearch">
     <SourceFile>search_cpp/search.cpp</SourceFile>
     <Library>atomstruct</Library>
   </CLibrary>
 
+  <ExtraFiles>
+    <ExtraFile source="search_cpp/search.h">include/atomsearch/search.h</ExtraFile>
+    <ExtraFile source="search_cpp/imex.h">include/atomsearch/imex.h</ExtraFile>
+  </ExtraFiles>
+
   <CModule name="ast">
     <SourceFile>search_cpp/ast.pyx</SourceFile>
     <LibraryDir>src/lib</LibraryDir>
-    <Library>atom_search</Library>
+    <Library>atomsearch</Library>
     <Library>atomstruct</Library>
   </CModule>
 

@@ -38,6 +38,7 @@ floating point coordinates.
 
 
 from . import matrix as m34
+from . import _geometry
 
 
 class Place:
@@ -79,6 +80,7 @@ class Place:
         self._is_identity = (matrix is None and axes is None
                              and origin is None)
         self._inverse = None    # Cached inverse.
+        self._m44 = None	# Cached 4x4 opengl matrix
 
     def __eq__(self, p):
         return p is self or (p.matrix == self.matrix).all()
@@ -90,7 +92,7 @@ class Place:
         the coordinate transforms acting in right to left order producing
         a new Place object.'''
         if isinstance(p, Place):
-            return Place(m34.multiply_matrices(self.matrix, p.matrix))
+            return Place(_geometry.multiply_matrices_f64(self.matrix, p.matrix))
         elif isinstance(p, Places):
             return Places([self]) * p
 
@@ -163,7 +165,10 @@ class Place:
     def opengl_matrix(self):
         '''Return a numpy 4x4 array which is the transformation matrix
         in OpenGL order (columns major).'''
-        return m34.opengl_matrix(self.matrix)
+        m = self._m44
+        if m is None:
+            self._m44 = m = _geometry.opengl_matrix(self.matrix)  # float32
+        return m
 
     def interpolate(self, tf, center, frac):
         '''Interpolate from this transform to the specified one by
@@ -533,7 +538,7 @@ class Places:
             pp = []
             for p in self:
                 for p2 in places:
-                    pp.append(Place(m34.multiply_matrices(p.matrix, p2.matrix)))
+                    pp.append(p*p2)
             return Places(pp)
         elif isinstance(places_or_vector, Place):
             place = places_or_vector

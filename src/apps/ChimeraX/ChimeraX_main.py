@@ -118,6 +118,7 @@ def parse_arguments(argv):
     opts.use_defaults = False
     opts.version = -1
     opts.get_available_bundles = True
+    opts.safe_mode = False
 
     # Will build usage string from list of arguments
     arguments = [
@@ -135,6 +136,7 @@ def parse_arguments(argv):
         "--cmd <command>",
         "--script <python script and arguments>",
         "--notools",
+        "--safemode",
         "--stereo",
         "--uninstall",
         "--usedefaults",
@@ -168,6 +170,7 @@ def parse_arguments(argv):
         opts.event_loop = False
         opts.get_available_bundles = False
         opts.module = sys.argv[2]
+        opts.load_tools = False
         return opts, sys.argv[2:]
     if len(sys.argv) > 2 and sys.argv[1] == '-c':
         # treat like Python's -c argument
@@ -176,6 +179,7 @@ def parse_arguments(argv):
         opts.event_loop = False
         opts.get_available_bundles = False
         opts.cmd = sys.argv[2]
+        opts.load_tools = False
         return opts, sys.argv[2:]
     if len(sys.argv) > 2 and sys.argv[1:3] == ['-u', '-c']:
         # treat like Python's -c argument
@@ -189,6 +193,7 @@ def parse_arguments(argv):
         opts.event_loop = False
         opts.get_available_bundles = False
         opts.cmd = sys.argv[3]
+        opts.load_tools = False
         return opts, sys.argv[3:]
     try:
         shortopts = ""
@@ -247,6 +252,9 @@ def parse_arguments(argv):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
             opts.uninstall = True
+        elif opt == "--safemode":
+            opts.safe_mode = True
+            opts.load_tools = False
         elif opt in ("--usedefaults", "--nousedefaults"):
             opts.load_tools = opt[2] == 'u'
         elif opt == "--version":
@@ -537,7 +545,8 @@ def init(argv, event_loop=True):
                                 next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print("Initializing bundles", flush=True)
-        sess.toolshed.bootstrap_bundles(sess)
+        if not opts.safe_mode:
+            sess.toolshed.bootstrap_bundles(sess)
         from chimerax.core import tools
         sess.tools = tools.Tools(sess, first=True)
         from chimerax.core import tasks

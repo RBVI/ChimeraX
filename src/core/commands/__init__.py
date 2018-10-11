@@ -11,6 +11,7 @@
 
 from .run import run, concise_model_spec
 from .runscript import runscript
+from .logging import log_equivalent_command, residues_specifier, options_text
 
 from .cli import CmdDesc, register, Command, create_alias, command_function
 from .cli import commas, plural_form, plural_of, discard_article

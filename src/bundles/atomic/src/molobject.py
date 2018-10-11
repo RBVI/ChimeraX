@@ -1347,12 +1347,19 @@ class StructureData:
             ret = ctypes.py_object)
         return f(self._c_pointer, cs_id)
 
-    def connect_structure(self):
-        '''Generate connectivity.  See connect_structure in connectivity.rst for more details.'''
-        f = c_function('structure_connect',
-                       args = (ctypes.c_void_p,),
-                       ret = ctypes.c_int)
-        return f(self._c_pointer)
+    def connect_structure(self, *, bond_length_tolerance=0.4, metal_coordination_distance=3.6):
+        '''Generate bonds and relevant pseudobonds (missing structure; metal coordination)
+        for structure.  Typically used for structures where only the atom positions and not
+        the connectivity is known.
+        
+        'bond_length_tolerance' is how much longer the inter-atom distance can exceed the
+        ideal bond length and still have a bond created between the atoms.
+        
+        'metal_coordination_distance' is the maximum distance between a metal and a possibly
+        coordinating atom that will generate a metal-coordination pseudobond.
+        '''
+        from .connect_structure._cs import connect_structure as connect_struct
+        connect_struct(self.cpp_pointer, bond_length_tolerance, metal_coordination_distance)
 
     def delete_alt_locs(self):
         '''Incorporate current alt locs as "regular" atoms and remove other alt locs'''
@@ -1362,6 +1369,11 @@ class StructureData:
         '''Supported API. Delete the specified Atom.'''
         f = c_function('structure_delete_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
+
+    def delete_bond(self, bond):
+        '''Supported API. Delete the specified Bond.'''
+        f = c_function('structure_delete_bond', args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, bond._c_pointer)
 
     @property
     def molecules(self):

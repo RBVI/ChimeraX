@@ -356,13 +356,15 @@ and their subparts:
 <li>protein/peptide secondary structure types:
 <b>helix</b>, <b>strand</b>, <b>coil</b>
 <li>element symbols: <b>C</b>, <b>Fe</b>, <i>etc.</i>
+as in the <a href="../menu.html#select"><b>Select</b> menu</a>
 <li>ChimeraX <a href="../atomtypes.html">atom types</a>:
 <b>Car</b>, <b>N3+</b>, <b>O2</b>, <i>etc.</i>
 (<b>H</b> is both an element symbol and an 
 <a href="../atomtypes.html">atom type</a>, but element &ldquo;wins&rdquo;)
-<li>functional groups: 
-<b>amide</b>, <b>disulfide</b>, <b>hydroxyl</b>, <b>phosphate</b>,
-and many others
+<li>functional groups: <b>amide</b>, <b>disulfide</b>, <i>etc.</i>
+as in the <a href="../menu.html#select"><b>Select</b> menu</a>, except
+with hyphens instead of spaces in multiword names 
+(for example, <b>aromatic-ring</b> instead of &ldquo;aromatic ring&rdquo;)
 <li><b>sel</b> - the current <a href="../selection.html">selection</a>
 <li><b>selAtoms</b> - the current atomic
 <a href="../selection.html">selection</a>,
@@ -453,18 +455,18 @@ see <a href="#combinations">combinations</a>)
 - nucleic acid ribose-phosphate backbone
 <blockquote>
 <b>Car &amp; :phe,tyr</b>
+<br>&ndash; or &ndash;<br>
+<b>aromatic-ring &amp; :phe,tyr</b>
 </blockquote>
 - aromatic ring carbons of phenylalanine and tyrosine
 <blockquote>
 <b>H &amp; ~HC</b>
 </blockquote>
 - polar hydrogens (those not bonded to carbon)
-<!--
 <blockquote>
 <b>carboxylate</b>
 </blockquote>
 - atoms in carboxylate groups
--->
 
 <hr>
 <a name="user"></a>
@@ -600,7 +602,8 @@ Atoms, residues or atomic models within or beyond some distance of a
 reference set of atoms can be specified in the command line as a zone. See also:
 <a href="select.html#zone"><b>select zone</b></a>,
 <a href="surface.html#zone"><b>surface zone</b></a>,
-<a href="volume.html#zone"><b>volume zone</b></a>
+<a href="volume.html#zone"><b>volume zone</b></a>,
+<a href="zone.html"><b>zone</b></a>
 </p><p>
 A zone specification has the following parts:
 <ol>
@@ -719,5 +722,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2018</address>
+October 2018</address>
 </body></html> 

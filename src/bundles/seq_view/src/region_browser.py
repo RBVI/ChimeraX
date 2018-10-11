@@ -1537,8 +1537,8 @@ class RegionBrowser:
                 # maybe a column pick
                 col = self._column_pick(event)
                 if col is not None:
-                    residues = self._residues_in_block((
-                        self.seq_canvas.seqs[0], self.seq_canvas.seqs[-1], col, col))
+                    residues = self._residues_in_block((self.seq_canvas.alignment.seqs[0],
+                        self.seq_canvas.alignment.seqs[-1], col, col))
                     sel = ItemizedSelection()
                     sel.add(residues)
                     selectionOperation(sel)

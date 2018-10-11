@@ -173,7 +173,7 @@ negative = set([Element.get_element(sym) for sym in ["N", "O", "S"]])
 from chimerax.atomic.idatm import type_info
 def _donor(a):
     if a.element == hyd:
-        if a.num_bonds > 0 and a.neighbors[0].element.name in negative:
+        if a.num_bonds > 0 and a.neighbors[0].element in negative:
             return True
     elif a.element in negative:
         try:

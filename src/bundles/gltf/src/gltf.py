@@ -67,7 +67,7 @@ def read_gltf(session, filename, name):
 
     # Make a Drawing for each mesh.
     ba = buffer_arrays(j['accessors'], j['bufferViews'], bin_chunk)
-    mesh_drawings = meshes_as_drawings(j['meshes'], ba)
+    mesh_drawings = meshes_as_models(session, j['meshes'], ba)
 
     # Add mesh drawings to node models.
     for nm in nodes:
@@ -154,12 +154,12 @@ def scene_and_node_models(scenes, nodes, file_name, session):
 
 # -----------------------------------------------------------------------------
 #
-def meshes_as_drawings(meshes, buf_arrays):
+def meshes_as_models(session, meshes, buf_arrays):
 
-    mesh_drawings = []
+    mesh_models = []
     ba = buf_arrays
     from numpy import int32
-    from chimerax.core.graphics import Drawing
+    from chimerax.core.models import Surface
     for m in meshes:
         if 'primitives' not in m:
             raise glTFError('glTF mesh has no "primitives": %s' % str(j))
@@ -188,12 +188,12 @@ def meshes_as_drawings(meshes, buf_arrays):
                 vc = ba[pa['COLOR_0']]
             else:
                 vc = None
-            pd = Drawing('p%d' % pi)
+            pd = Surface('p%d' % pi, session)
             set_geometry(pd, va, na, vc, ta)
             pdlist.append(pd)
-        mesh_drawings.append(pdlist)
+        mesh_models.append(pdlist)
 
-    return mesh_drawings
+    return mesh_models
                     
 # -----------------------------------------------------------------------------
 #

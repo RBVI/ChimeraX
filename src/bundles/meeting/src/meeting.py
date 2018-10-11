@@ -12,7 +12,8 @@
 # -----------------------------------------------------------------------------
 #
 def meeting(session, host = None, port = 52194, name = None, color = None,
-            head_image = None, copy_scene = None, update_interval = None):
+            head_image = None, copy_scene = None, relay_commands = None,
+            update_interval = None):
     '''Allow two or more ChimeraX instances to show each others' VR hand-controller
     and headset positions or mouse positions.
 
@@ -36,6 +37,10 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
+    relay_commands : bool
+      Whether to have every command you run sent to the other participants and their commands
+      sent to you and automatically run so changes to the scene are mirrored for all participants.
+      Default true.
     update_interval : int
       How often VR hand and head model positions are sent for this ChimeraX instance in frames.
       Value of 1 updates every frame.  Default 9.
@@ -83,6 +88,11 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
         if s:
             s.copy_scene(copy_scene)
 
+    if relay_commands is not None:
+        s = meeting_server(session)
+        if s:
+            s.relay_commands(relay_commands)
+
     if update_interval is not None:
         s = meeting_server(session)
         if s:
@@ -116,6 +126,7 @@ def register_meeting_command(logger):
                               ('color', ColorArg),
                               ('head_image', OpenFileNameArg),
                               ('copy_scene', BoolArg),
+                              ('relay_commands', BoolArg),
                               ('update_interval', IntArg)],
                    synopsis = 'Show synchronized mouse or VR hand controllers between two ChimeraX instances')
     register('meeting', desc, meeting, logger=logger)
@@ -151,6 +162,10 @@ class MeetingServer:
         self._mouse_tracker = None
         self._vr_tracker = None
         self._copy_scene = True
+
+        self._command_relay_handler = None	# Send commands to peers
+        self._running_received_command = False
+        self.relay_commands()
 
     def set_color(self, color):
         self._color = color
@@ -281,7 +296,7 @@ class MeetingServer:
     def _encode_session(self):
         from io import BytesIO
         stream = BytesIO()
-        self._session.save(stream, version=3)
+        self._session.save(stream, version=3, include_maps=True)
         from base64 import b64encode
         sbytes = b64encode(stream.getbuffer())
         return sbytes
@@ -291,8 +306,39 @@ class MeetingServer:
         sbytes = b64decode(base64_sbytes)
         from io import BytesIO
         stream = BytesIO(sbytes)
-        self._session.restore(stream, resize_window = False)
-            
+        ses = self._session
+        restore_camera = (ses.main_view.camera.name != 'vr')
+        ses.restore(stream, resize_window = False, restore_camera = restore_camera)
+
+    def relay_commands(self, relay=True):
+        h = self._command_relay_handler
+        triggers = self._session.triggers
+        if relay and h is None:
+            h = triggers.add_handler('command finished', self._ran_command)
+            self._command_relay_handler = h
+        elif not relay and h:
+            triggers.remove_handler(h)
+            self._command_relay_handler = None
+
+    def _ran_command(self, trigger_name, command):
+        if self._running_received_command:
+            return
+        if command.lstrip().startswith('meeting'):
+            return
+        msg = {'command': command}  # Have peers run the command we just ran
+        self._send_message(msg)
+
+    def _run_command(self, msg):
+        if self._command_relay_handler is None:
+            return	# Don't run commands from others if we are not relaying commands.
+        command = msg['command']
+        self._running_received_command = True
+        from chimerax.core.commands import run
+        try:
+            run(self._session, command)
+        finally:
+            self._running_received_command = False
+
     @property
     def vr_tracker(self):
         self._initiate_tracking()
@@ -313,6 +359,8 @@ class MeetingServer:
             msg['id'] = self._peer_id(socket)
         if 'scene' in msg:
             self._restore_session(msg['scene'])
+        if 'command' in msg:
+            self._run_command(msg)
         for t in self._trackers:
             t.update_model(msg)
         self._relay_message(msg)

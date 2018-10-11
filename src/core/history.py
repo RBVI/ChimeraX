@@ -146,81 +146,61 @@ class FIFOHistory:
         if not isinstance(obj, list):
             session.logger.warning("Corrupt %s history: cleared" % tag)
             obj = []
-        self._front, self._back = obj, []
-        while len(self._front) + len(self._back) > self._capacity:
+        self._queue = obj
+        while len(self._queue) > self._capacity:
             self.dequeue()
 
     def enqueue(self, value):
         """Add newest item"""
-        self._back.append(value)
-        while len(self._front) + len(self._back) > self._capacity:
+        self._queue.append(value)
+        while len(self._queue) > self._capacity:
             self.dequeue(_skip_save=True)
         if self._auto_save:
             self.save()
 
     def extend(self, iterable):
         """Add newest items"""
-        self._back.extend(iterable)
-        while len(self._front) + len(self._back) > self._capacity:
+        self._queue.extend(iterable)
+        while len(self._queue) > self._capacity:
             self.dequeue(_skip_save=True)
         if self._auto_save:
             self.save()
 
     def dequeue(self, _skip_save=False):
         """Remove and return oldest item"""
-        front = self._front
-        if not front:
-            self._front, self._back = self.back, front
-            front = self._front
-            front.reverse()
-        value = front.pop()
+        value = self._queue.pop(0)
         if not _skip_save and self._auto_save:
             self.save()
         return value
 
     def clear(self):
         """Remove all items"""
-        self._front.clear()
-        self._back.clear()
+        self._queue.clear()
         if self._auto_save:
             self.save()
 
     def replace(self, iterable):
         """Replace current items"""
-        self._front.clear()
-        self._back.clear()
+        self._queue.clear()
         self.extend(iterable)
 
     def save(self):
         """Save to history file."""
-        self._front = list(reversed(self._back)) + self._front
-        self._back = []
-        self._history.save(self._front)
+        self._history.save(self._queue)
 
     def __len__(self):
-        return len(self._front) + len(self._back)
+        return len(self._queue)
 
     def __iter__(self):
         # return oldest first
-        import itertools
-        return itertools.chain(reversed(self._front), self._back)
+        return iter(self._queue)
 
     def __getitem__(self, index):
         # return oldest first
-        front_len = len(self._front)
-        back_len = len(self._back)
-        total_len = front_len + back_len
         if isinstance(index, int):
-            if index < -total_len or index >= total_len:
-                raise IndexError("index out of range")
-            if index < 0:
-                index += total_len
-            if index < front_len:
-                return self._front[front_len - 1 - index]
-            index -= front_len
-            return self._back[index]
+            return self._queue[index]
         if isinstance(index, slice):
-            return [self[total_len - i - 1] for i in range(*index.indices(total_len))]
+            return [self._queue[i] for i in range(*index.indices(len(self._queue)))]
         raise TypeError("Expected integer or slice")
 
 

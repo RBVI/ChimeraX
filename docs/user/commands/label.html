@@ -44,7 +44,8 @@ The <b>label</b> command shows labels that move along with the associated
 with <a href="#text">default contents</a>: atom name, residue name and number,
 and bond or <a href="../pseudobonds.html">pseudobond</a> length.
 See also: <a href="distance.html"><b>distance</b></a>,
-<a href="2dlabels.html"><b>2dlabels</b></a>
+<a href="2dlabels.html"><b>2dlabels</b></a>,
+<a href="../measurements.html">measurements</a>
 </p><p>
 These &ldquo;3D&rdquo; (although flat in appearance)
 labels can be of multiple colors and sizes, and both atom and residue 
@@ -57,7 +58,7 @@ Using a blank <a href="atomspec.html"><i>atom-spec</i></a> with the
 optionally restricted with the
 <b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b> keyword;
 if <a href="atomspec.html"><i>atom-spec</i></a> is not blank,
-the default is to act on labels for <b>atoms</b> only. A non-blank 
+the default is to act on labels for <b>residues</b> only. A non-blank 
 <a href="atomspec.html"><i>atom-spec</i></a> is required to create new labels.
 For <b>label delete</b> (regardless of whether the 
 <a href="atomspec.html"><i>atom-spec</i></a> is blank),
@@ -186,9 +187,12 @@ The <i>update-angle</i> can be set differently for different models.
 Whether to draw the labels on top of other objects regardless of their
 relative positions in 3D (default <b>true</b>);
 can be set differently for different models.
+Labels that are not on top will not show through a transparent surface 
+unless <i>all</i> of the labels displayed for that model have a 
+<a href="#background">background</a>.
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2018</address>
+September 2018</address>
 </body></html> 

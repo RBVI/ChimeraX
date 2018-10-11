@@ -64,6 +64,7 @@ class Drawing:
         from ..geometry import Places
         # Copies of drawing are placed at these positions:
         self._positions = Places()
+        self._displayed_scene_positions = None	# Cached
         from numpy import array, uint8
         # Colors for each position, N by 4 uint8 numpy array:
         self._colors = array(((178, 178, 178, 255),), uint8)
@@ -76,8 +77,8 @@ class Drawing:
         self._highlighted_triangles_mask = None  # bool numpy array
         self._child_drawings = []
 
-        self._cached_geometry_bounds = None
-        self._cached_position_bounds = None
+        self._cached_geometry_bounds = None	# Triangles, positions not included.
+        self._cached_position_bounds = None	# Triangles including positions, children not included
 
         # Geometry and colors
         self._vertices = None		# N x 3 float32 numpy array
@@ -150,6 +151,11 @@ class Drawing:
         """Whether to use lighting when rendering.  If false then a flat
         unshaded color will be shown."""
 
+        self.on_top = False
+        '''
+        Whether to draw on top of everything else.  Used for text labels.
+        '''
+        
         # OpenGL drawing
         self._draw_shape = None
         self._draw_highlight = None
@@ -402,7 +408,6 @@ class Drawing:
     def clear_highlight(self, include_children=True):
         '''Unhighlight this drawing and child drawings in if include_children is True.'''
         self.highlighted = False
-        self.redraw_needed(highlight_changed=True)
         if include_children:
             for d in self.child_drawings():
                 d.clear_highlight()
@@ -416,6 +421,7 @@ class Drawing:
         if (not self._displayed_positions is None
             and len(self._displayed_positions) != 1):
             self._displayed_positions = None
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     position = property(_drawing_get_position, _drawing_set_position)
@@ -430,10 +436,21 @@ class Drawing:
     '''Position in scene coordinates.'''
 
     def get_scene_positions(self, displayed_only = False):
+        dsp = self._displayed_scene_positions
+        if displayed_only and dsp is not None:
+            return dsp		# Cached value is for displayed only true.
+
         p = self.get_positions(displayed_only)
         for d in reversed(self.drawing_lineage[:-1]):
             p = d.get_positions(displayed_only) * p
+        if displayed_only:
+            self._displayed_scene_positions = p
         return p
+
+    def _scene_positions_changed(self):
+        self._displayed_scene_positions = None
+        for c in self.child_drawings():
+            c._scene_positions_changed()
         
     def get_positions(self, displayed_only=False):
         if displayed_only:
@@ -455,6 +472,7 @@ class Drawing:
             c = empty((np, 4), uint8)
             c[:,:] = self._colors[0,:] if len(self._colors) > 0 else 255
             self._colors = c
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     positions = property(get_positions, set_positions)
@@ -625,51 +643,58 @@ class Drawing:
     "Draw pass to render only the depth of transparent drawings."
     HIGHLIGHT_DRAW_PASS = 'highlight'
     "Draw pass to render only the highlighted parts of drawings."
+    LAST_DRAW_PASS = 'last'
+    "Draw pass to render after everything else for showing labels on top."
 
-    def draw(self, renderer, place, draw_pass, highlighted_only=False):
-        '''Draw this drawing and children using the given draw pass.'''
+    def drawings_for_each_pass(self, pass_drawings):
+        if not self.display:
+            return
+
+        if not self.empty_drawing():
+            passes = []
+            any_opaque, any_transp = self._transparency()
+            if self.on_top:
+                passes.append(self.LAST_DRAW_PASS)
+            else:
+                if any_opaque:
+                    passes.append(self.OPAQUE_DRAW_PASS)
+                if any_transp:
+                    passes.append(self.TRANSPARENT_DRAW_PASS)
+                if self.highlighted:
+                    passes.append(self.HIGHLIGHT_DRAW_PASS)
+            for p in passes:
+                if p in pass_drawings:
+                    pass_drawings[p].append(self)
+                else:
+                    pass_drawings[p] = [self]
+
+        for d in self.child_drawings():
+            d.drawings_for_each_pass(pass_drawings)
+            
+    def draw(self, renderer, draw_pass):
+        '''Draw this drawing using the given draw pass. Does not draw child drawings'''
 
         if not self.display:
             return
 
         if not self.empty_drawing():
-            self.draw_self(renderer, place, draw_pass, highlighted_only)
+            self.draw_self(renderer, draw_pass)
 
-        if self.child_drawings():
-            for p in self.positions:
-                pp = place if p.is_identity() else place * p
-                self._draw_children(renderer, pp, draw_pass, highlighted_only)
-
-    def draw_self(self, renderer, place, draw_pass, highlighted_only=False):
+    def draw_self(self, renderer, draw_pass):
         '''Draw this drawing without children using the given draw pass.'''
-
-        if highlighted_only and not self.highlighted:
-            return
-
-        if (len(self.positions) == 1 and
-                self.positions.shift_and_scale_array() is None):
-            p = self.position
-            pp = place if p.is_identity() else place * p
-        else:
-            pp = place
-        renderer.set_model_matrix(pp)
-
         if draw_pass == self.OPAQUE_DRAW_PASS:
             any_opaque, any_transp = self._transparency()
             if any_opaque:
-                self._draw_geometry(renderer, highlighted_only, opaque_only = any_transp)
-        elif draw_pass in (self.TRANSPARENT_DRAW_PASS,
-                           self.TRANSPARENT_DEPTH_DRAW_PASS):
+                self._draw_geometry(renderer, opaque_only = any_transp)
+        elif draw_pass in (self.TRANSPARENT_DRAW_PASS, self.TRANSPARENT_DEPTH_DRAW_PASS):
             any_opaque, any_transp = self._transparency()
             if any_transp:
-                self._draw_geometry(renderer, highlighted_only, transparent_only = any_opaque)
+                self._draw_geometry(renderer, transparent_only = any_opaque)
         elif draw_pass == self.HIGHLIGHT_DRAW_PASS:
-            self._draw_geometry(renderer, highlighted_only)
-
-    def _draw_children(self, renderer, place, draw_pass, highlighted_only=False):
-        dlist = self.child_drawings()
-        for d in dlist:
-            d.draw(renderer, place, draw_pass, highlighted_only)
+            if self.highlighted:
+                self._draw_geometry(renderer, highlighted_only = True)
+        if draw_pass == self.LAST_DRAW_PASS:
+            self._draw_geometry(renderer)
 
     def _draw_geometry(self, renderer, highlighted_only=False,
                        transparent_only=False, opaque_only=False):
@@ -706,12 +731,19 @@ class Drawing:
             at.bind_texture()
             r.set_ambient_texture_transform(self.ambient_texture_transform)
 
-        # Draw triangles
-        mtex = self.multitexture
-        if mtex:
-            ds.draw_multitexture(self.display_style, mtex, self.multitexture_reverse_order)
-        else:
-            ds.draw(self.display_style)
+        pos = self.positions
+        use_instancing = (len(pos) > 1 or pos.shift_and_scale_array() is not None)
+        spos = self.parent.get_scene_positions(displayed_only=True) if use_instancing else self.get_scene_positions(displayed_only=True)
+        for p in spos:
+            # TODO: Optimize this to use same 4x4 opengl matrix each call.
+            renderer.set_model_matrix(p)
+
+            # Draw triangles
+            mtex = self.multitexture
+            if mtex:
+                ds.draw_multitexture(self.display_style, mtex, self.multitexture_reverse_order)
+            else:
+                ds.draw(self.display_style)
 
         if t is not None:
             t.unbind_texture()
@@ -806,42 +838,46 @@ class Drawing:
                 dp = sp if dp is None else numpy.logical_and(dp, sp)
         return dp
 
-    def bounds(self, positions=True):
+    def bounds(self):
         '''
-        The bounds of drawing and displayed children and displayed positions
-        in the parent model coordinate system.
+        The bounds of all displayed parts of a drawing and its children and all descendants, including
+        instance positions, in scene coordinates.  Drawings with an attribute skip_bounds = True are not included.
         '''
-        from ..geometry import bounds
-        dbounds = [d.bounds() for d in self.child_drawings() if d.display and not hasattr(d, 'skip_bounds')]
-        if dbounds:
-            cb = bounds.union_bounds(dbounds)
-            if positions:
-                cb = bounds.copies_bounding_box(cb, self.get_positions(displayed_only=True))
-        else:
+
+        # Get child drawing bounds
+        from ..geometry.bounds import union_bounds, copies_bounding_box
+        dbounds = [d.bounds() for d in self.child_drawings()
+                   if d.display and not getattr(d, 'skip_bounds', False)]
+        nc = len(dbounds)
+        if nc == 0:
             cb = None
+        elif nc == 1:
+            cb = dbounds[0]
+        else:
+            cb = union_bounds(dbounds)
+
+        # If this drawing has no geometry return child bounds.
         if self.empty_drawing():
             return cb
-        if not positions:
-            b = self._geometry_bounds()
-            if cb:
-                b = bounds.union_bounds((b, cb))
-            return b
-        if self._cached_position_bounds is not None:
-            pb = self._cached_position_bounds
-        else:
-            b = self._geometry_bounds()
-            pb = bounds.copies_bounding_box(
-                    b, self.get_positions(displayed_only=True))
+
+        # Get self bounds
+        pb = self._cached_position_bounds
+        if pb is None:
+            sb = self.geometry_bounds()
+            spos = self.get_scene_positions(displayed_only=True)
+            pb = sb if spos.is_identity() else copies_bounding_box(sb, spos)
             self._cached_position_bounds = pb
-        if cb is None:
-            return pb
-        b = bounds.union_bounds((pb, cb))
+
+        # Combine child and self bounds
+        b = pb if cb is None else union_bounds((pb, cb))
+        
         return b
 
-    def _geometry_bounds(self):
+    def geometry_bounds(self):
         '''
-        Return the bounds of the drawing not including positions nor children
-        in this drawing's coordinate system.
+        Return the bounds of this drawing's geometry not including positions and
+        not including children.  Bounds are in this drawing's coordinate system.
+        These bounds are cached for speed.
         '''
         cb = self._cached_geometry_bounds
         if cb is not None:
@@ -925,7 +961,7 @@ class Drawing:
             if fmin is not None:
                 p = PickedTriangle(fmin, tmin, 0, self)
         else:
-            pos_nums = self.bounds_intercept_copies(self._geometry_bounds(), mxyz1, mxyz2)
+            pos_nums = self.bounds_intercept_copies(self.geometry_bounds(), mxyz1, mxyz2)
             for i in pos_nums:
                 cxyz1, cxyz2 = self.positions[i].inverse() * (mxyz1, mxyz2)
                 fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
@@ -980,7 +1016,7 @@ class Drawing:
             from ..geometry import points_within_planes
             if len(self.positions) > 1:
                 # Use center of instances.
-                b = self._geometry_bounds()
+                b = self.geometry_bounds()
                 if b:
                     pc = self.positions * b.center()
                     pmask = points_within_planes(pc, planes)
@@ -1313,52 +1349,28 @@ def opaque_count(rgba):
     from . import _graphics
     return _graphics.count_value(rgba[:,3], 255)
 
-def _draw_drawings(renderer, drawings, opaque_only = False):
-    '''
-    Render opaque and transparent draw passes for a given set of drawings.
-    '''
-    r = renderer
-    from ..geometry import Place
-    p = Place()
-    _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
-    if not opaque_only and _any_transparent_drawings(drawings):
-        r.draw_transparent(
-            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
-            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
-
 def draw_opaque(renderer, drawings):
-    from ..geometry import identity
-    _draw_multiple(drawings, renderer, identity(), Drawing.OPAQUE_DRAW_PASS)
+    _draw_multiple(drawings, renderer, Drawing.OPAQUE_DRAW_PASS)
 
 def draw_transparent(renderer, drawings):
-    if _any_transparent_drawings(drawings):
-        from ..geometry import identity
-        p = identity()
-        r = renderer
-        r.draw_transparent(
-            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
-            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
+    r = renderer
+    r.draw_transparent(
+        lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
+        lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS))
 
 
-def _draw_multiple(drawings, renderer, place, draw_pass):
-    highlighted_only = (draw_pass == Drawing.HIGHLIGHT_DRAW_PASS)
+def _draw_multiple(drawings, renderer, draw_pass):
     for d in drawings:
-        d.draw(renderer, place, draw_pass, highlighted_only)
-
-
-def _any_transparent_drawings(drawings):
-    for d in drawings:
-        if d.showing_transparent():
-            return True
-    return False
-
+        d.draw(renderer, draw_pass)
 
 def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
                                   r.SHADER_DEPTH_CUE | r.SHADER_VERTEX_COLORS | r.SHADER_TEXTURE_2D)
-    _draw_drawings(r, drawings, opaque_only)
+    draw_opaque(renderer, drawings)
+    if not opaque_only:
+        draw_transparent(r, drawings)
     r.disable_shader_capabilities(0)
 
 
@@ -1380,9 +1392,9 @@ def draw_overlays(drawings, renderer):
     r.set_model_matrix(p0)
     r.enable_depth_test(False)
     r.enable_blending(False)
-    _draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
+    _draw_multiple(drawings, r, Drawing.OPAQUE_DRAW_PASS)
     r.enable_blending(True)
-    _draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
+    _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS)
     r.enable_blending(False)
     r.enable_depth_test(True)
     r.disable_shader_capabilities(0)
@@ -1392,21 +1404,26 @@ def draw_highlight_outline(renderer, drawings):
     '''Draw the outlines of highlighted parts of the specified drawings.'''
     r = renderer
     r.outline.start_rendering_outline()
-    from ..geometry import Place
-    p = Place()
-    _draw_multiple(drawings, r, p, Drawing.HIGHLIGHT_DRAW_PASS)
+    _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
     r.outline.finish_rendering_outline()
 
+    
+def draw_on_top(renderer, drawings):
+    renderer.enable_depth_test(False)
+    renderer.enable_blending(True)	# Handle transparent background
+    _draw_multiple(drawings, renderer, Drawing.LAST_DRAW_PASS)
+    renderer.enable_blending(False)
+    renderer.enable_depth_test(True)
 
+    
 def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     '''Draw rectangle outline on front buffer using xor mode.'''
 
     if drawing is None:
         d = Drawing('drag box')
-        from numpy import array, int32, uint8
+        from numpy import array, int32
         t = array(((0,1,2), (0,2,3)), int32)
         d.set_geometry(None, None, t)
-        d.edge_mask = array((3, 6), uint8)
         d.display_style = d.Mesh
         d.use_lighting = False
     else:
@@ -1414,11 +1431,12 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
 
     r = renderer
     s = r.pixel_scale()
-    from numpy import array, float32
+    from numpy import array, float32, uint8
     v = array(((s*x1, s*y1, 0), (s*x2, s*y1, 0),
                (s*x2, s*y2, 0), (s*x1, s*y2, 0)),
               float32)
     d.set_geometry(v, None, d.triangles)
+    d.edge_mask = array((3, 6), uint8)
     d.color = color
 
     from ..geometry import identity
@@ -1435,7 +1453,7 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     from .camera import ortho
     r.set_projection_matrix(ortho(0, w, 0, h, -1, 1))
 
-    d.draw(r, p0, d.OPAQUE_DRAW_PASS)
+    d.draw(r, d.OPAQUE_DRAW_PASS)
 
     r.disable_capabilities = rdc
     r.enable_xor(False)
@@ -1689,7 +1707,7 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         '''
         Cause this picked object to be highlighted ('add' mode), unhighlighted ('subtract' mode)
         or toggle highlighted ('toggle' mode).
@@ -1742,7 +1760,7 @@ class PickedTriangle(Pick):
     def drawing(self):
         return self._drawing
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         d = self.drawing()
         pmask = d.highlighted_positions
         if pmask is None:
@@ -1794,7 +1812,7 @@ class PickedTriangles(Pick):
     def drawing(self):
         return self._drawing
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         d = self.drawing()
         if mode == 'add':
             s = True
@@ -1830,7 +1848,7 @@ class PickedInstance(Pick):
     def drawing(self):
         return self._drawing
 
-    def highlight(self, mode = 'add'):
+    def select(self, mode = 'add'):
         d = self.drawing()
         pm = self._positions_mask
         pmask = d.highlighted_positions
@@ -1938,3 +1956,93 @@ def qimage_to_numpy(qi):
     rgba[:,:,2] = bgra[:,:,0]
     rgba = rgba[::-1,:,:]	# flip
     return rgba
+
+# -----------------------------------------------------------------------------
+#
+def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, ypad = 0,
+                    pixels = False, italic = False, bold = False):
+    '''
+    Size argument is in points (1/72 inch) if pixels is False and the returned
+    image has size to fit the specified text plus padding on each edge, xpad and
+    ypad specified in pixels.  If pixels is True then size is the image height in pixels
+    and the font is chosen to fit within this image height minus ypad pixels at top
+    and bottom.
+    '''
+    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor
+
+    p = QPainter()
+
+    # Determine image size.
+    weight = QFont.Bold if bold else QFont.Normal
+    if pixels:
+        f = QFont(font, weight=weight, italic=italic)
+        f.setPixelSize(size-2*ypad)
+    else:
+        f = QFont(font, size, weight=weight, italic=italic)  # Size in points.
+
+    # Use font metrics to determine image width
+    fm = QFontMetrics(f)
+    r = fm.boundingRect(text)
+    # TODO: font metric width is sometimes 1 or 2 pixels too small in Qt 5.9.
+    #       Right bearing of rightmost character was positive, so does not extend right.
+    #       Use pad option to add some pixels to avoid clipped text.
+    tw, th = r.width(), r.height()  # pixels
+    if pixels:
+        iw, ih = tw+2*xpad, size
+    else:
+        iw, ih = tw+2*xpad, th+2*ypad
+
+    ti = QImage(iw, ih, QImage.Format_ARGB32)
+    
+    # Paint background
+    bg = (0,0,0,0) if background_color is None else tuple(background_color)
+    ti.fill(QColor(*bg))    # Set background transparent
+
+    # Paint text
+    p.begin(ti)
+    p.setFont(f)
+    c = QColor(*color)
+    p.setPen(c)
+    x, y = xpad, (ih-1) - (r.bottom()+ypad)
+    p.drawText(x, y, text)
+
+    # Convert to numpy rgba array.
+    from chimerax.core.graphics import qimage_to_numpy
+    rgba = qimage_to_numpy(ti)
+    
+    p.end()
+    
+    return rgba
+
+# -----------------------------------------------------------------------------
+#
+def text_image_rgba_pil(text, color, size, font, data_dir):
+    import os, sys
+    from PIL import Image, ImageDraw, ImageFont
+    font_dir = os.path.join(data_dir, 'fonts', 'freefont')
+    f = None
+    for tf in (font, 'FreeSans'):
+        path = os.path.join(font_dir, '%s.ttf' % tf)
+        if os.path.exists(path):
+            f = ImageFont.truetype(path, size)
+            break
+        if sys.platform.startswith('darwin'):
+            path = '/Library/Fonts/%s.ttf' % tf
+            if os.path.exists(path):
+                f = ImageFont.truetype(path, size)
+                break
+    if f is None:
+        return
+    pixel_size = f.getsize(text)
+    # Size 0 image gives rgba array that is not 3-dimensional
+    pixel_size = (max(1,pixel_size[0]), max(1,pixel_size[1]))
+    i = Image.new('RGBA', pixel_size)
+    d = ImageDraw.Draw(i)
+    #print('Size of "%s" is %s' % (text, pixel_size))
+    d.text((0,0), text, font = f, fill = color)
+    #i.save('test.png')
+    from numpy import array
+    rgba = array(i)
+#    print ('Text "%s" rgba array size %s' % (text, tuple(rgba.shape)))
+    frgba = rgba[::-1,:,:]	# Flip so text is right side up.
+    return frgba

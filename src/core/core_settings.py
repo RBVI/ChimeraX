@@ -32,8 +32,10 @@ class _CoreSettings(Settings):
         'bg_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
         'clipping_surface_caps': True,
         'clipping_cap_offset': 0.01,
+        'default_tool_window_side': "right",
         'http_proxy': ("", 80),
         'https_proxy': ("", 443),
+        'initial_window_size': ("last used", None),
         'resize_window_on_session_restore': False,
     }
     AUTO_SAVE = {
@@ -42,6 +44,7 @@ class _CoreSettings(Settings):
         'distance_decimal_places': 3,
         'distance_radius': 0.1,
         'distance_show_units': True,
+        'last_window_size': None,
         'toolshed_update_interval': 'week',
         'toolshed_last_check': '',
     }

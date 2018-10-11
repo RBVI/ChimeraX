@@ -172,16 +172,16 @@ molecular surfaces can be colored to match with the command:
  <li><b>p</b> - pseudobonds-only
  (coloring shown for <a href="../pseudobonds.html">pseudobonds</a>
  not in <a href="#halfbond">halfbond mode</a>)
-<li><b>A</b> - all of the above (default, equivalent to <b>abcsp</b>)
 <!--
  <li><b>n</b> - nonmolecular models (model-level color)
  <li><b>m</b> - molecular models (model-level color)
  <li><b>d</b> - distances and other pseudobond labels
 -->
  </ul>
-The default is all of the above, plus  
+The default is all of the above (<b>target abcsp</b>), plus  
 <a href="label.html">3D labels</a>
-in the case of <a href="#simple">simple coloring</a>.
+in the case of <a href="#simple">simple coloring</a>
+using any <a href="colornames.html">color name</a> that specifies a single color.
 3D labels can be colored independently
 with the <a href="label.html"><b>label</b></a> command.
 <p>
@@ -196,7 +196,7 @@ as a comma-separated list:
 or <b>target r</b>
 <li><b>surfaces</b> - equivalent to <b>target s</b>
 <li><b>pseudobonds</b> - equivalent to <b>target p</b>
-<li><b>All</b> - equivalent to <b>target A</b> or <b>target abcsp</b>
+<li><b>All</b> - equivalent to <b>target abcsp</b>
 </ul>
 These target keywords must be given in the right place in the command:
 <ul>
@@ -397,9 +397,14 @@ the space is needed to indicate a change from the current value
 rather than an absolute value).
 For <b>hue</b>, the <i>angle</i> can be added to or subtracted from
 the current value, or simply set as the current value.
+</p><p>
+Example image and script:
+<a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html#colormod"
+target="_blank">Potassium Channel-Calmodulin Complex</a> 
 </p>
 
 <a name="attribute"></a>
+<a name="bfactor"></a>
 <p class="nav">
 [<a href="#top">back to top: color</a>]
 </p>
@@ -435,15 +440,29 @@ Cartoons are colored by the average B-factor of the atoms in each residue.
 Atoms (and their corresponding molecular surface patches) are colored
 by the atomic values unless <b>average residue</b> is given to indicate
 they should be colored by the average per residue.
-For example, to rainbow-color chain A atoms by B-factor 
-and cartoons by the average B-factor per residue:
+For example, to color chain A atoms by B-factor 
+and cartoons by the average B-factor per residue, 
+spreading blue-white-red coloring across value range 2-30:
 </p>
 <blockquote>
-<b>color bfactor /A palette rainbow</b>
+<b>color bfactor /A range 2,30</b>
 </blockquote>
-To rainbow-color chain A atoms <i>etc.</i> by the average B-factor per residue:
+<p>
+Regardless of whether the <a href="palette-options">range</a> of values 
+over which to spread the coloring is specified, the full range of atomic
+values (or per-residue values if <b>average residue</b> is used) is reported
+in the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
+If no range for colormapping is specified, the full range over all specified 
+atoms is used for atom coloring and the full range of per-residue averages 
+(over that same set of atoms) is used for cartoon coloring.
+Importantly, the value ranges will include solvent, ions, and ligands unless 
+the specification excludes them, or they have been deleted beforehand.
+For example, to rainbow-color chain A atoms <i>etc.</i> 
+by the average B-factor per residue, spreading the coloring across 
+the full range of values from protein only:
 <blockquote>
-<b>color bfactor /A palette rainbow ave residue</b>
+<b>color bfactor (/A & protein) palette rainbow ave residue</b>
 </blockquote>
 <!--
 <p>
@@ -869,11 +888,13 @@ the <b>full</b> range is determined separately for each model.
 The command <b>color name</b> assigns <i>cname</i> as the name of the
 <a href="colornames.html">specified</a> color.  
 It can be used to define a new color name or redefine an existing one. 
+A <a href="colornames.html#builtin">built-in color name</a>, however,
+cannot be redefined.
 Color names must begin with an alphabetical letter and may contain 
 only lowercase letters, numbers, hyphens, underscores, and spaces. 
 If <i>cname</i> has embedded spaces, it must be enclosed in quotation marks.
-</p>
 Examples:
+</p>
 <blockquote>
 <b>color name tpurple 60,0,80,50</b>
 <br>
@@ -883,6 +904,7 @@ Examples:
 The command <b>color delete</b> can be used to &ldquo;forget&rdquo; a specific
 user-defined color or all <b>custom</b> (user-defined) colors. 
 A <a href="colornames.html#builtin">built-in color name</a> cannot be deleted.
+User-defined color names are saved in <a href="save.html#session">sessions</a>.
 </p><p>
 The command <b>color list</b> lists color names along with
 color swatches in the <a href="../tools/log.html"><b>Log</b></a>, with options:
@@ -902,5 +924,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2018</address>
+October 2018</address>
 </body></html>

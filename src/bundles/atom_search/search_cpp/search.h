@@ -16,7 +16,6 @@
 #ifndef atomsearch_search
 #define atomsearch_search
 
-#define ATOM_SEARCH_EXPORT
 #include "imex.h"
 
 #include <vector>

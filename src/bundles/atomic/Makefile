@@ -1,53 +1,22 @@
-# The "make" targets are:
-# 	wheel: build a Python wheel in "dist" directory.
-# 	install: build wheel (if needed) and install in ChimeraX.
-# 	test: run ChimeraX
-# 	debug: run ChimeraX with debugging flag set
-# 	clean: remove files used in building wheel
+include ../Makefile.bundle
 
-CHIMERAX_APP = ../../../ChimeraX.app
-
-# Platform-dependent settings.  Should not need fixing.
-# For Windows, we assume Cygwin is being used.
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
+DEVEL_ARGS = test false
 ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+CLEAN_ALWAYS += src/lib/* src/libmolc.dll src/cymol.pyd
 endif
 ifeq ($(OS),Darwin)
-CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+CLEAN_ALWAYS += src/lib/* src/libmolc.dylib src/cymol.so
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+CLEAN_ALWAYS += src/lib/* src/libmolc.so src/cymol.so
 endif
-RUN = $(CHIMERAX_EXE) --nogui --notools --exit --cmd
 
-PYSRCS = $(wildcard src/*.py)
-SRCS = $(PYSRCS) $(DATAFILES)
-
-wheel:	bundle_info.xml lib
-	$(RUN) "devel build . exit true test false"
+wheel install app-install:	lib
 
 lib:
-	cd atomic_cpp; $(MAKE)
+	$(MAKE) -C atomic_cpp
 
-install app-install:	bundle_info.xml $(SRCS) lib
-	$(RUN) "devel install . user false exit true test false"
+clean:	atomic_cpp.clean
 
-test:
-	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
-		do $(CHIMERAX_EXE) --exit --nogui $$t;\
-	done
-
-debug:
-	$(CHIMERAX_EXE) --debug
-
-clean:
-	if [ -x $(CHIMERAX_EXE) ]; then \
-		$(RUN) "devel clean . exit true" ; \
-	else \
-		rm -rf build dist *.egg-info src/__pycache__ ; \
-	fi
-	cd atomic_cpp; $(MAKE) clean
-
-pylint:
-	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
+atomic_cpp.clean:
+	$(MAKE) -C atomic_cpp clean

@@ -12,7 +12,8 @@
 
 # -----------------------------------------------------------------------------
 #
-def label_create(session, name, text = '', color = None, size = 24, font = 'Arial',
+def label_create(session, name, text = '', color = None,
+                 size = 24, font = 'Arial', bold = None, italic = None,
                  xpos = 0.5, ypos = 0.5, visibility = True):
     '''Create a label at a fixed position in the graphics window.
 
@@ -26,7 +27,7 @@ def label_create(session, name, text = '', color = None, size = 24, font = 'Aria
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
     size : int
-      Font size in pixels.
+      Font size in points.
     font : string
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.
@@ -48,7 +49,8 @@ def label_create(session, name, text = '', color = None, size = 24, font = 'Aria
 
 # -----------------------------------------------------------------------------
 #
-def label_change(session, name, text = None, color = None, size = None, font = None,
+def label_change(session, name, text = None, color = None,
+                 size = None, font = None, bold = None, italic = None,
                  xpos = None, ypos = None, visibility = None):
     '''Change label parameters.'''
     lb = session_labels(session)
@@ -61,13 +63,26 @@ def label_change(session, name, text = None, color = None, size = None, font = N
     if not color is None: l.color = color.uint8x4()
     if not size is None: l.size = size
     if not font is None: l.font = font
+    if not bold is None: l.bold = bold
+    if not italic is None: l.italic = italic
     if not xpos is None: l.xpos = xpos
     if not ypos is None: l.ypos = ypos
     if not visibility is None: l.visibility = visibility
     l.update_drawing()
     return l
 
-
+# -----------------------------------------------------------------------------
+#
+def label_under_window_position(session, win_x, win_y):
+    w,h = session.main_view.window_size
+    fx,fy = (win_x+.5)/w, 1-(win_y+.5)/h	# win_y is 0 at top
+    for lbl in session_labels(session).labels.values():
+        dx,dy = fx - lbl.xpos, fy - lbl.ypos
+        lw,lh = lbl.drawing.size
+        if dx >=0 and dx < lw and dy >=0 and dy < lh:
+            return lbl
+    return None
+    
 # -----------------------------------------------------------------------------
 #
 def label_delete(session, name):
@@ -79,7 +94,6 @@ def label_delete(session, name):
         return
     l = lb.labels[name]
     l.delete()
-
 
 # -----------------------------------------------------------------------------
 #
@@ -105,6 +119,8 @@ def register_label_command(logger):
              ('color', ColorArg),
              ('size', IntArg),
              ('font', StringArg),
+             ('bold', BoolArg),
+             ('italic', BoolArg),
              ('xpos', FloatArg),
              ('ypos', FloatArg),
              ('visibility', BoolArg)]
@@ -142,7 +158,8 @@ class Labels(StateManager):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        lattrs = ('name', 'text', 'color', 'size', 'font', 'xpos', 'ypos', 'visibility')
+        lattrs = ('name', 'text', 'color', 'size', 'font',
+                  'bold', 'italic', 'xpos', 'ypos', 'visibility')
         lstate = tuple({attr:getattr(l, attr) for attr in lattrs}
                        for l in self.labels.values())
         data = {'labels state': lstate, 'version': 1}
@@ -166,23 +183,26 @@ class Labels(StateManager):
 # -----------------------------------------------------------------------------
 #
 def session_labels(session):
-    lb = getattr(session, 'labels', None)
+    lb = getattr(session, '_2d_labels', None)
     if lb is None:
-        session.labels = lb = Labels()
+        session._2d_labels = lb = Labels()
     return lb
         
 
 # -----------------------------------------------------------------------------
 #
 class Label:
-    def __init__(self, session, name, text = '', color = None, size = 24, font = 'Arial',
+    def __init__(self, session, name, text = '', color = None,
+                 size = 24, font = 'Arial', bold = False, italic = False,
                  xpos = 0.5, ypos = 0.5, visibility = True):
         self.session = session
         self.name = name
         self.text = text
         self.color = color
-        self.size = size
+        self.size = size	# Points (1/72 inch) to get similar appearance on high DPI displays
         self.font = font
+        self.bold = bold
+        self.italic = italic
         self.xpos = xpos
         self.ypos = ypos
         self.visibility = visibility
@@ -221,10 +241,10 @@ class LabelDrawing(Drawing):
         self.texture_size = None
         self.needs_update = True
         
-    def draw(self, renderer, place, draw_pass, highlighted_only=False):
+    def draw(self, renderer, draw_pass):
         if not self.update_drawing():
             self.resize()
-        Drawing.draw(self, renderer, place, draw_pass, highlighted_only)
+        Drawing.draw(self, renderer, draw_pass)
 
     def update_drawing(self):
         if not self.needs_update:
@@ -237,7 +257,9 @@ class LabelDrawing(Drawing):
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = tuple(l.color)
-        rgba = text_image_rgba(l.text, rgba8, l.size, l.font)
+        from chimerax.core.graphics import text_image_rgba
+        rgba = text_image_rgba(l.text, rgba8, l.size, l.font,
+                               bold = l.bold, italic = l.italic)
         if rgba is None:
             l.session.logger.info("Can't find font for label")
             return True
@@ -255,6 +277,13 @@ class LabelDrawing(Drawing):
         uw,uh = 2*tw/w, 2*th/h
         from chimerax.core.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
+
+    @property
+    def size(self):
+        '''Label size as fraction of window size (0-1).'''
+        w,h = self.window_size
+        tw,th = self.texture_size
+        return (tw/w, th/h)
 
     def resize(self):
         l = self.label
@@ -275,64 +304,6 @@ class LabelDrawing(Drawing):
     def custom_x3d(self, stream, x3d_scene, indent, place):
         # TODO
         pass
-
-# -----------------------------------------------------------------------------
-#
-def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, ypad = 0):
-    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QBrush, QColor
-    f = QFont(font, size)
-    fm = QFontMetrics(f)
-    r = fm.boundingRect(text)
-    # TODO: width is sometimes 1 or 2 pixels too small in Qt 5.9.
-    # Right bearing of rightmost character was positive, so does not extend right.
-    # Use pad option to add some pixels to avoid clipped text.
-    ti = QImage(r.width()+2*xpad, r.height()+2*ypad, QImage.Format_ARGB32)
-    bg = (0,0,0,0) if background_color is None else tuple(background_color)
-    ti.fill(QColor(*bg))    # Set background transparent
-    p = QPainter()
-    p.begin(ti)
-    p.setFont(f)
-    c = QColor(*color)
-    p.setPen(c)
-    p.drawText(xpad, -r.y()+ypad, text)
-    from chimerax.core.graphics import qimage_to_numpy
-    rgba = qimage_to_numpy(ti)
-    p.end()
-    return rgba
-
-# -----------------------------------------------------------------------------
-#
-def text_image_rgba_pil(text, color, size, font, data_dir):
-    import os, sys
-    from PIL import Image, ImageDraw, ImageFont
-    font_dir = os.path.join(data_dir, 'fonts', 'freefont')
-    f = None
-    for tf in (font, 'FreeSans'):
-        path = os.path.join(font_dir, '%s.ttf' % tf)
-        if os.path.exists(path):
-            f = ImageFont.truetype(path, size)
-            break
-        if sys.platform.startswith('darwin'):
-            path = '/Library/Fonts/%s.ttf' % tf
-            if os.path.exists(path):
-                f = ImageFont.truetype(path, size)
-                break
-    if f is None:
-        return
-    pixel_size = f.getsize(text)
-    # Size 0 image gives rgba array that is not 3-dimensional
-    pixel_size = (max(1,pixel_size[0]), max(1,pixel_size[1]))
-    i = Image.new('RGBA', pixel_size)
-    d = ImageDraw.Draw(i)
-    #print('Size of "%s" is %s' % (text, pixel_size))
-    d.text((0,0), text, font = f, fill = color)
-    #i.save('test.png')
-    from numpy import array
-    rgba = array(i)
-#    print ('Text "%s" rgba array size %s' % (text, tuple(rgba.shape)))
-    frgba = rgba[::-1,:,:]	# Flip so text is right side up.
-    return frgba
-
 
 # -----------------------------------------------------------------------------
 #

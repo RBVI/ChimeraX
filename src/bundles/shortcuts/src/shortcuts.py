@@ -599,7 +599,7 @@ def fit_molecule_in_map(session):
 def fit_subtract(session):
     models = session.models.list()
     from chimerax.map import Volume
-    maps = [m for m in models if isinstance(m, Volume) and m.any_part_selected()]
+    maps = [m for m in models if isinstance(m, Volume) and m.get_selected(include_children=True)]
     if len(maps) == 0:
         maps = [m for m in models if isinstance(m, Volume) and m.display]
     molfit = [m for m in shortcut_molecules(session) if m.display]
@@ -758,7 +758,7 @@ def toggle_shadows(session):
 def toggle_silhouettes(session):
     v = session.main_view
     from chimerax.core.commands import run
-    run(session, 'set silhouettes %s' % ('false' if v.silhouettes else 'true'))
+    run(session, 'set silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
 
 def depth_cue(viewer):
     viewer.depth_cue = not viewer.depth_cue

@@ -1229,7 +1229,7 @@ class CenterArg(Annotation):
                 if obj.empty():
                     raise AnnotationError('Center argument no objects specified')
                 elif obj.bounds() is None:
-                    raise AnnotationError('Center argument objects are not displayed')
+                    raise AnnotationError('Center argument has no object bounds')
                 c = Center(objects=obj)
 
         if c is None:
@@ -2475,7 +2475,7 @@ class Command:
             if not text:
                 break
 
-    def run(self, text, *, log=True, _used_aliases=None):
+    def run(self, text, *, log=True, log_only=False, _used_aliases=None):
         """Parse and execute commands in the text
 
         :param text: The text to be parsed.
@@ -2495,8 +2495,7 @@ class Command:
         self.current_text = text
         final = True    # TODO: support partial parsing for cmd/arg completion
         results = []
-
-        while 1:
+        while True:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
                 if self.registry == _command_info:
@@ -2556,32 +2555,35 @@ class Command:
             kw_args = self._kw_args
             if log:
                 self.log()
-            if not isinstance(ci.function, Alias):
-                try:
-                    result = ci.function(session, **kw_args)
-                except UserError as e:
-                    self.log_error(str(e))
-                    raise
-                except:
-                    raise
-                results.append(result)
-            else:
-                arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
-                arg_names.sort()
-                args = [kw_args[k] for k in arg_names]
-                if 'optional' in kw_args:
-                    optional = kw_args['optional']
+            cmd_text = self.current_text[self.start:self.amount_parsed]
+            with command_trigger(session, log, cmd_text):
+                if not isinstance(ci.function, Alias):
+                    if not log_only:
+                        try:
+                            result = ci.function(session, **kw_args)
+                        except UserError as e:
+                            self.log_error(str(e))
+                            raise
+                        except:
+                            raise
+                        results.append(result)
                 else:
-                    optional = ''
-                if _used_aliases is None:
-                    used_aliases = {self.command_name}
-                else:
-                    used_aliases = _used_aliases.copy()
-                    used_aliases.add(self.command_name)
-                results.append(ci.function(session, *args, optional=optional,
-                               _used_aliases=used_aliases, log=log))
-            if session is not None:
-                session.triggers.activate_trigger("command finished", text)
+                    arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
+                    arg_names.sort()
+                    args = [kw_args[k] for k in arg_names]
+                    if 'optional' in kw_args:
+                        optional = kw_args['optional']
+                    else:
+                        optional = ''
+                    if _used_aliases is None:
+                        used_aliases = {self.command_name}
+                    else:
+                        used_aliases = _used_aliases.copy()
+                        used_aliases.add(self.command_name)
+                    if not log_only:
+                        result = ci.function(session, *args, optional=optional,
+                                             _used_aliases=used_aliases, log=log)
+                        results.append(result)
 
             self.command_name = None
             self._ci = None
@@ -2610,6 +2612,7 @@ class Command:
                 cargs = cmd_text[len(self.command_name):]
                 msg += '<a href="%s">%s</a>%s' % (
                     ci.url, escape(self.command_name), escape(cargs))
+                msg += ' <a title="rerun command" class="no_underline" style="float:right" href="cxcmd:%s">\N{DOWNWARDS ARROW WITH CORNER LEFTWARDS}</a>' % escape(cmd_text)
             msg += '</div>'
             session.logger.info(msg, is_html=True, add_newline=False)
 
@@ -2666,6 +2669,16 @@ class Command:
             msg += '</div>\n<span style="color:%s;font-weight:bold">%s</span>\n' % (
                 err_color, escape(self._error))
             session.logger.info(msg, is_html=True)
+
+
+from contextlib import contextmanager
+@contextmanager
+def command_trigger(session, log, cmd_text):
+    if session is not None and log:
+        session.triggers.activate_trigger("command started", cmd_text)
+    yield
+    if session is not None and log:
+        session.triggers.activate_trigger("command finished", cmd_text)
 
 
 def command_function(name, no_aliases=False, *, registry=None):

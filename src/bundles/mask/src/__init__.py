@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -13,12 +13,11 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _MaskBundleAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        # 'register_command' is lazily called when the command is referenced
-        from . import oculuscmd
-        oculuscmd.register_oculus_command(logger)
+        from . import maskcommand
+        maskcommand.register_mask_command(logger)
 
-bundle_api = _MyAPI()
+bundle_api = _MaskBundleAPI()

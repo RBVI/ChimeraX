@@ -176,20 +176,36 @@ class GrayScaleDrawing(Drawing):
       if bi:
         bi.set_grid_size(grid_size)
 
-  def draw(self, renderer, place, draw_pass, highlighted_only = False):
+  def drawings_for_each_pass(self, pass_drawings):
+    '''Override Drawing method because geometry is not set until draw() is called.'''
     if not self.display:
       return
-    
+        
+    transparent = ('a' in self.color_mode)
+    p = self.TRANSPARENT_DRAW_PASS if transparent else self.OPAQUE_DRAW_PASS
+    if p in pass_drawings:
+      pass_drawings[p].append(self)
+    else:
+      pass_drawings[p] = [self]
+
+    # Do not include child drawings since this drawing overrides draw() method
+    # and draws the children.
+
+  def draw(self, renderer, draw_pass):
+    if not self.display:
+      return
+
     self.update_blend_groups()
     bi = self.blend_image
     if bi:
       if self is bi.master_drawing:
-        bi.draw(renderer, place, draw_pass, highlighted_only)
+        bi.draw(renderer, draw_pass)
       return
 
+    transparent = ('a' in self.color_mode)
     from chimerax.core.graphics import Drawing
-    dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
-    dtransp = (draw_pass == Drawing.TRANSPARENT_DRAW_PASS and 'a' in self.color_mode)
+    dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not transparent)
+    dtransp = (draw_pass == Drawing.TRANSPARENT_DRAW_PASS and transparent)
     if not dopaq and not dtransp:
       return
 
@@ -229,7 +245,7 @@ class GrayScaleDrawing(Drawing):
     if dtransp:
       r.write_depth(False)
 
-    Drawing.draw(self, r, place, draw_pass, highlighted_only)
+    pd.draw(r, draw_pass)
 
     if dtransp:
       r.write_depth(True)
@@ -410,12 +426,12 @@ class BlendedImage(GrayScaleDrawing):
                  'show_box_faces', 'show_ortho_planes', 'ortho_planes_position'):
       setattr(self, attr, getattr(d, attr))
 
-  def draw(self, renderer, place, draw_pass, highlighted_only = False):
+  def draw(self, renderer, draw_pass):
 
     self.mirror_attributes()
     self.check_update_colors()
     
-    GrayScaleDrawing.draw(self, renderer, place, draw_pass, highlighted_only)
+    GrayScaleDrawing.draw(self, renderer, draw_pass)
 
   @property
   def master_drawing(self):

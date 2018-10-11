@@ -67,6 +67,15 @@ of ``mac``.
     - **name**: bundle name (must start with ``ChimeraX-`` for now)
     - **customInit**: set to ``true`` if bundle has custom initialization
       function; omit otherwise
+    - **installedDataDir**: name of directory containing data files,
+      relative to the bundle Python package directory
+    - **installedIncludeDir**: name of directory containing C/C++ header files,
+      relative to the bundle Python package directory
+    - **installedLibraryDir**: name of directory containing DLLs (Windows),
+      shared objects (Mac OS X), or shared libraries (Linux),
+      relative to the bundle Python package directory
+    - **installedDataDir**: name of directory containing data files, relative
+      to the bundle Python package directory
     - **minSessionVersion**: version number of oldest supported Chimera session
     - **maxSessionVersion**: version number of newest supported Chimera session
     - **package**: Python package name corresponding to bundle
@@ -77,13 +86,15 @@ of ``mac``.
   - Child elements:
 
     - **Author** (one)
-    - **Email** (one)
     - **Categories** (one)
     - **Classifiers** (one)
-    - **DataFiles** (zero or more)
     - **CModule** (zero or more)
+    - **DataFiles** (zero or more)
     - **Dependencies** (zero or more)
     - **Description** (one)
+    - **ExtraFiles** (zero or more)
+    - **Email** (one)
+    - **ExtraFiles** (zero or more)
     - **Synopsis** (one)
     - **URL** (one)
 
@@ -142,6 +153,17 @@ of ``mac``.
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
 
+- **DataDir**
+
+  - Element text
+
+    - Data directory name (no wildcard characters) relative to package
+      source.  For example, because current package source is expected
+      to be in folder **src**, a data directory **datadir** in the
+      same folder is referenced as ``datadir``, not ``src/datafile``.
+      All files and subdirectories in the specified directory are
+      included in the bundle.
+
 - **DataFile**
 
   - Element text
@@ -162,12 +184,16 @@ of ``mac``.
 
   - Child elements:
 
-    - **DataFile** (one or more)
+    - **DataDir** (zero or more)
+    - **DataFile** (zero or more)
 
 - **Dependencies**
 
   - List of all ChimeraX bundles and Python packages that the current
-    bundle depends on.
+    bundle depends on.  For building bundles containing C/C++ source code,
+    *include* and *library* directories of bundles in the dependency lists
+    are automatically incorporated in compilation options.  (This implies
+    that bundles on the dependency list must alreay be installed.)
   - Child elements:
 
     - **Dependency** (one or more)
@@ -192,6 +218,57 @@ of ``mac``.
   - Element text:
 
     - Contact address for bundle maintainer.
+
+- **ExtraDir**
+
+  - Extra directory in the bundle that is copied from elsewhere in
+    the source tree.
+  - Element text
+
+    - Directory name (no wildcard characters) relative to package
+      source.  For example, because current package source is expected
+      to be in folder **src**, a directory **extradir** in the
+      same folder is referenced as ``extradir``, not ``src/extrafile``.
+      All files and subdirectories in the specified directory are
+      included in the bundle.
+
+  - Attributes:
+
+    - **source**: Directory name relative to bundle source directory.
+      The source directory will be copied into the ``src`` directory
+      with the directory name given in the element text.
+
+- **ExtraFile**
+
+  - Element text
+
+    - Extra file name (or wildcard pattern) relative to package
+      source.  For example, because current package source is expected
+      to be in folder **src**, a data file **datafile** in the
+      same folder is referenced as ``datafile``, not ``src/datafile``.
+
+  - Attributes:
+
+    - **source**: File name relative to bundle source directory.
+      The source file will be copied into the ``src`` directory
+      with the file name given in the element text.
+
+- **ExtraFiles**
+
+  - List of extra files in package source tree that should be included
+    in bundle.  The extra files, *e.g.*, C++ header files, are copied
+    from elsewhere in the source tree into the ``src`` directory for
+    inclusion in the bundle.  Files listed under **ExtraFiles** do not
+    need to be listed under **DataFiles**.
+  - Attribute:
+
+    - **package**: name of package that has the extra data files.
+      If omitted, the current bundle package is used.
+
+  - Child elements:
+
+    - **ExtraDir** (zero or more)
+    - **ExtraFile** (zero or more)
 
 - **Framework**
 

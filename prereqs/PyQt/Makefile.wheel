@@ -11,7 +11,7 @@ REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt5
 # VERSION is overriden by Makefile
 VERSION = 5.9
 PYQT_MINOR_VERSION = 2
-QT_MINOR_VERSION = 5
+QT_MINOR_VERSION = 6
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(VERSION)
 else
@@ -84,6 +84,11 @@ pyqt-commercial.sip:
 	rsync -a $(REMOTE_DIR)/pyqt-commercial.sip .
 
 wheel: pyqt-commercial.sip
+ifeq ($(OS),Linux)
+	# Only need to fix rpath in icu libraries in Qt 5.11.1,
+	# but make sure all are correct.
+	cd $(QTDIR)/lib; chrpath -r '$$ORIGIN' *.so
+endif
 	./$(PYQTLICENSE) $(LICENSE_ARGS) *.whl-unlicensed
 
 upload: wheel

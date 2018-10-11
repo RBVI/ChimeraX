@@ -36,7 +36,9 @@ class State:
     SCENE = 0x1
     #: state flag
     SESSION = 0x2
-    ALL = SCENE | SESSION
+    #: state flag
+    INCLUDE_MAPS = 0x4
+    ALL = SCENE | SESSION | INCLUDE_MAPS
 
     def take_snapshot(self, session, flags):
         """Return snapshot of current state of instance.

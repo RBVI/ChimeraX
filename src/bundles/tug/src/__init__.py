@@ -18,12 +18,10 @@ class _TugAPI(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         """Register steered md mouse mode."""
-        if not session.ui.is_gui:
-            return
-        from . import tugatoms
-        tugatoms.register_mousemode(session)
-        from . import minimize
-        minimize.register_mousemode(session)
+        if session.ui.is_gui:
+            from . import tugatoms, minimize
+            tugatoms.register_mousemode(session)
+            minimize.register_mousemode(session)
 
     @staticmethod
     def finish(session, bundle_info):

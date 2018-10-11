@@ -91,14 +91,14 @@ def parse_symop(line):
 def parse_symop_axis(string):
 
     rt = [0,0,0,0]
-    axis_names = ('X', 'Y', 'Z')
-    for axis in range(3):
-        axis_name = axis_names[axis]
-        for (sym, sign) in (('+', 1), ('-', -1), ('', 1)):
-            signed_name = sym + axis_name
-            if string.find(signed_name) >= 0:
-                string = string.replace(signed_name, '')
-                rt[axis] = sign
+    
+    axes = (('+X', 0, 1), ('-X', 0, -1), ('X', 0, 1), ('+x', 0, 1), ('-x', 0, -1), ('x', 0, 1),
+            ('+Y', 1, 1), ('-Y', 1, -1), ('Y', 1, 1), ('+y', 1, 1), ('-y', 1, -1), ('y', 1, 1),
+            ('+Z', 2, 1), ('-Z', 2, -1), ('Z', 2, 1), ('+z', 2, 1), ('-z', 2, -1), ('z', 2, 1))
+    for name, axis, sign in axes:
+        if string.find(name) >= 0:
+            string = string.replace(name, '')
+            rt[axis] = sign
 
     if string:
         fields = string.split('/')

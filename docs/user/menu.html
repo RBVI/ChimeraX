@@ -1,0 +1,139 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<title>The ChimeraX Menu</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h2>The ChimeraX Menu</h2>
+<p>
+Although most functionality is currently in 
+<a href="index.html#commands">commands</a>,
+the ChimeraX menu includes basic file operations and undo,
+choices for <a href="selection.html">selection</a>,
+and access to several <a href="index.html#tools">tools</a>.
+See also: the <a href="window.html">ChimeraX window</a>,
+<a href="window.html#context-menu">context menus</a>,
+<a href="tools/basicactions.html"><b>Basic Actions</b></a>,
+the <a href="tools/cli.html"><b>Command Line</b></a>
+</p>
+<ul>
+<a name="file"></a>
+<li><b>File</b>
+  <ul>
+  <li><b>Open...</b> a subset of <a href="commands/open.html"><b>open</b></a>
+  command functionality
+  <li><b>Save...</b> a subset of <a href="commands/save.html"><b>save</b></a>
+  command functionality
+  <li><b>Close Session</b> &ndash; same as the command
+  <a href="commands/close.html"><b>close session</b></a> 
+  </ul>
+<br>
+<a name="edit"></a>
+<li><b>Edit</b> &ndash; limited <a href="commands/undo.html">undo/redo</a>
+  <ul>
+  <li><b>Undo</b>
+  <li><b>Redo</b>
+  </ul>
+<br>
+<a name="select"></a>
+<li><b>Select</b> 
+&ndash; what or how to <a href="selection.html">select</a>
+  <ul>
+  <li><b>Chains</b>
+  &ndash; <a href="commands/atomspec.html#hierarchy">chains</a>
+  in currently open structures
+  <li><b>Chemistry</b>
+    <ul>
+    <li><b>element</b> &ndash; elements by atomic symbol
+    <li><b>functional group</b>
+    <li><b>IDATM type</b> &ndash; <a href="atomtypes.html">atom type</a>
+    </ul>
+  <li><b>Menu mode: <i>mode</i></b>
+    <ul>
+    <li><b>replace</b> (initial default <i>mode</i>)
+    <li><b>add (+)</b>
+    <li><b>subtract (&ndash;)</b>
+    <li><b>intersect (&cap;)</b>
+    </ul>
+  </ul>
+<br>
+<a name="tools"></a>
+<li><b>Tools</b>
+&ndash; <a href="index.html#tools">tools</a> grouped by category
+<br><br>
+<a name="presets"></a>
+<li><b>Presets</b>
+&ndash; predefined combinations of display settings;
+the current set of presets is based directly on 
+<a href="autostyle.html">automatic styling</a> and is likely to change.
+<br><br>
+<ul>
+<li><b>Original Look</b> - initial appearance from
+<a href="autostyle.html">automatic styling</a>,
+which depends on the number of chains in an atomic structure
+(however, certain aspects of appearance
+like <a href="commands/set.html#silhouettes">silhouettes</a>
+and <a href="commands/cartoon.html#style">cartoon style</a>
+may differ if they have been changed since the structure was opened)
+<li><b>Cartoon</b>
+- <a href="commands/cartoon.html">cartoons</a> plus atomic detail near
+residues <a href="commands/atomspec.html#surfcats">classified</a>
+as <b>ligand</b> and <b>ions</b>,
+<a href="commands/lighting.html">simple lighting</a>, <i>etc.</i>
+(as for
+<a href="autostyle.html">automatic styling</a> of structures with 1-4 chains)
+<li><b>Space-Filling (chain colors)</b>
+- all atoms as <a href="commands/style.html">spheres</a>
+except sticks for <b>ligand</b> and balls for <b>solvent</b>,
+<a href="commands/colortables.html#autocolors">chain colors</a>,
+shadows, <i>etc.</i> (as for
+<a href="autostyle.html">automatic styling</a> of structures with 5-249 chains)
+<li><b>Space-Filling (single color)</b>
+- all atoms as <a href="commands/style.html">spheres</a>,
+ambient-only lighting, <i>etc.</i> (as for
+<a href="autostyle.html">automatic styling</a> of structures with &ge;250 chains)
+<li><b>Stick</b>
+- all atoms as <a href="commands/style.html">sticks</a>,
+<a href="commands/lighting.html">simple lighting</a>, <i>etc.</i> (as for
+<a href="autostyle.html">automatic styling</a> of structures with 0 chains)
+</ul>
+<p>
+More render-intensive presets such as <b>Cartoon</b>
+may exhibit slow performance on very large structures.
+</p>
+<a name="help"></a>
+<li><b>Help</b>
+  <ul>
+  <li><a href="index.html"><b>User Guide</b></a>
+  <li><a href="../quickstart/index.html"><b>Quick Start Guide</b></a>
+  <li><a href="../devel/index.html"><b>Programming Manual</b></a>
+  <li><a href="../index.html"><b>Documentation Index</b></a>
+  <li><a href="../contact.html"><b>Contact Us</b></a>
+  </ul>
+</ul>
+<p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+September 2018</address>
+</body></html> 

@@ -29,6 +29,7 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [&nbsp;<b>hbond</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>inIsolation</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>metalDist</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 &nbsp;<a href="#options"><i>residue-name-options</i></a>
 </h3>
 <p>
@@ -62,6 +63,18 @@ Sibling submodels of the same model (<i>e.g.</i>, #1.1, #1.2, #1.3, ...)
 are always treated in isolation from one another, even if this option is 
 <b>false</b>.
 </p><p>
+The <b>metalDist</b> option specifies a distance between a heavy atom X
+and metal ion M (default <b>3.6</b> &Aring;)
+within which to suppress adding a hydrogen to X
+if all of the following also apply:
+</p>
+<ul>
+<li>X is electronegative (O or N, but more generally, periodic table groups 15-16)
+<li>the X-H-M angle would be &gt;120&deg;
+<li>if X is <i>sp</i><sup>2</sup>-hybridized,
+it is bonded to two other heavy atoms 
+</ul>
+<p>
 <a name="options"></a>
 The remaining options allow alternative protonation states of certain amino acids
 to be specified with special residue names:

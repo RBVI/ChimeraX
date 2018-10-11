@@ -24,7 +24,8 @@ class Log:
 
     Attributes
     ----------
-    LEVEL_ERROR : for error messages
+    LEVEL_BUG : for bugs
+    LEVEL_ERROR : for other error messages
     LEVEL_INFO : for informational messages
     LEVEL_WARNING : for warning messages
     """
@@ -33,8 +34,9 @@ class Log:
     LEVEL_INFO = 0
     LEVEL_WARNING = 1
     LEVEL_ERROR = 2
+    LEVEL_BUG = 3
 
-    LEVEL_DESCRIPTS = ["note", "warning", "error"]
+    LEVEL_DESCRIPTS = ["note", "warning", "error", "bug"]
 
     # if excludes_other_logs is True, then if this log consumed the
     # message (log() returned True) downstream logs will not get
@@ -279,6 +281,7 @@ class Logger(StatusLogger):
         self._prev_newline = True
         self.logs = OrderedSet()
         self.method_map = {
+            Log.LEVEL_BUG: self.bug,
             Log.LEVEL_ERROR: self.error,
             Log.LEVEL_WARNING: self.warning,
             Log.LEVEL_INFO: self.info
@@ -287,7 +290,6 @@ class Logger(StatusLogger):
         import sys
         if sys.excepthook == sys.__excepthook__:
             def ehook(*exc_info):
-                from traceback import format_exception
                 if self.session.debug or not hasattr(self.session, "ui"):
                     from traceback import print_exception
                     print_exception(*exc_info, file=sys.__stderr__)
@@ -327,6 +329,27 @@ class Logger(StatusLogger):
             self._early_collation = False
             early_collator.log_summary(self)
 
+    def bug(self, msg, add_newline=True, image=None, is_html=False):
+        """Supported API. Log a bug
+
+        Parameters
+        ----------
+        msg : text
+            Message to log, either plain text or HTML
+        add_newline : boolean
+            Whether to add a newline to the message before logging it
+            (also whether there is a line break after an image)
+        image : PIL image or None
+            If not None, an image to log.  If an image is provided, then
+            the :param:msg parameter is alt text to show for logs than
+            cannot display images
+        is_html : boolean
+            Is the :param:msg text HTML or plain text
+        """
+        import sys
+        self._log(Log.LEVEL_BUG, msg, add_newline, image, is_html, 
+                  last_resort=sys.__stderr__)
+
     def clear(self):
         """Supported API. Clear all loggers"""
         StatusLogger.clear(self)
@@ -350,7 +373,7 @@ class Logger(StatusLogger):
             Is the :param:msg text HTML or plain text
         """
         import sys
-        self._log(Log.LEVEL_ERROR, msg, add_newline, image, is_html,
+        self._log(Log.LEVEL_ERROR, msg, add_newline, image, is_html, 
                   last_resort=sys.__stderr__)
 
     def info(self, msg, add_newline=True, image=None, is_html=False):
@@ -420,7 +443,7 @@ class Logger(StatusLogger):
             loc = "".join(format_tb(ei[2])[-1:])
             err_msg = "%s%s\n%s\n" % (preface, err, loc) + \
                 "<i>See log for complete Python traceback.</i>\n"
-            self.error(err_msg.replace("\n", "<br>"), is_html=True)
+            self.bug(err_msg.replace("\n", "<br>"), is_html=True)
 
     def status(self, msg, **kw):
         """Supported API. Show status."""
@@ -643,7 +666,7 @@ class _EarlyCollator(CollatingLog):
     excludes_other_logs = False
 
     def log_summary(self, logger):
-        if self.msgs[self.LEVEL_ERROR]:
+        if self.msgs[self.LEVEL_ERROR] or self.msgs[self.LEVEL_BUG]:
             title = "Startup Errors"
         else:
             title = "Startup Messages"

@@ -16,6 +16,7 @@
 #include <algorithm>  // std::sort, mix/max_element
 #include <utility>  // std::make_pair
 
+#define ATOM_SEARCH_EXPORT
 #include "search.h"
 
 AtomSearchTree::AtomSearchTree(const std::vector<Atom*>& atoms, bool transformed, double sep_val):

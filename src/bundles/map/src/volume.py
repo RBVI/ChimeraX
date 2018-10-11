@@ -187,6 +187,7 @@ class Volume(Model):
       self.add([s])
     else:
       ses.models.add([s], parent = self)
+    self._drawings_need_update()
     return s
   
   # ---------------------------------------------------------------------------
@@ -608,18 +609,6 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def draw(self, renderer, place, draw_pass, highlighted_only = False):
-    if not self.display:
-      return
-    
-    if not self.initialized_thresholds:
-      self.initialize_thresholds()
-      self.update_drawings()
-      
-    Model.draw(self, renderer, place, draw_pass, highlighted_only = highlighted_only)
-
-  # ---------------------------------------------------------------------------
-  #
   def show(self, representation = None, rendering_options = None, show = True):
     '''
     Deprecated: Use v.display = True.
@@ -957,17 +946,11 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def bounds(self, positions = True):
-
-    from chimerax.core.graphics import Drawing
-    b = Drawing.bounds(self, positions)
-    if b is None:
-      # TODO: Should this be only displayed bounds?
-      xyz_min, xyz_max = self.xyz_bounds()
-      from chimerax.core.geometry import Bounds
-      b = Bounds(xyz_min, xyz_max)
-    return b
-
+  def surface_bounds(self):
+    '''Surface bounds in volume coordinate system.'''
+    from chimerax.core.geometry import union_bounds
+    return union_bounds([s.geometry_bounds() for s in self.surfaces])
+      
   # ---------------------------------------------------------------------------
   # The xyz bounding box encloses the subsampled grid with half a step size
   # padding on all sides.
@@ -1749,10 +1732,12 @@ class Volume(Model):
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     from .session import state_from_map, grid_data_state
+    from chimerax.core.state import State
+    include_maps = bool(flags & State.INCLUDE_MAPS)
     data = {
       'model state': Model.take_snapshot(self, session, flags),
       'volume state': state_from_map(self),
-      'grid data state': grid_data_state(self.data, session),
+      'grid data state': grid_data_state(self.data, session, include_maps=include_maps),
       'version': 1,
     }
     return data
@@ -1766,6 +1751,7 @@ class Volume(Model):
     Model.set_state_from_snapshot(v, session, data['model state'])
     from .session import set_map_state
     set_map_state(data['volume state'], v)
+    v._drawings_need_update()
     show_volume_dialog(session)
     return v
 
@@ -2052,6 +2038,8 @@ class VolumeSurface(Surface):
   @staticmethod
   def restore_snapshot(session, data):
     v = data['volume']
+    if v is None:
+      return None	# Volume was not restored, e.g. file missing.
     s = VolumeSurface(v, data['level'], data['rgba'])
     Model.set_state_from_snapshot(s, session, data['model state'])
     v._surfaces.append(s)
@@ -3378,6 +3366,8 @@ class VolumeUpdateManager:
           # if surface calculation done in thread.
           vset.remove(v)
           vdisp.remove(v)
+          if not v.initialized_thresholds:
+            v.initialize_thresholds()
           v.update_drawings()
    
 # -----------------------------------------------------------------------------

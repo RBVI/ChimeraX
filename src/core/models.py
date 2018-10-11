@@ -137,6 +137,27 @@ class Model(State, Drawing):
         if self._id != None:  # model actually open
             self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
     name = property(_get_name, _set_name)
+
+    def get_selected(self, include_children=False, fully=False):
+        '''Is this model selected?  If fully is true then are all parts of this model selected?'''
+        if fully:
+            if not self.highlighted and not self.empty_drawing():
+                return False
+            if include_children:
+                for m in self.child_models():
+                    if not m.get_selected(include_children=True, fully=True):
+                        return False
+            return True
+
+        if self.highlighted:
+            return True
+
+        if include_children:
+            for m in self.child_models():
+                if m.get_selected(include_children=True):
+                    return True
+
+        return False
     
     def set_selected(self, sel, *, fire_trigger=True):
         Drawing.set_highlighted(self, sel)
@@ -145,8 +166,9 @@ class Model(State, Drawing):
             self.session.ui.thread_safe(self.session.triggers.activate_trigger,
                 SELECTION_CHANGED, None)
 
-    selected = property(Drawing.get_highlighted, set_selected)
-
+    selected = property(get_selected, set_selected)
+    '''selected indicates if this model has any part selected but does not include children.'''
+        
     @property
     def selected_positions(self):
         return self.highlighted_positions
@@ -265,7 +287,7 @@ class Model(State, Drawing):
             return
         fmt = '<i>%s</i> title:<br><b>%s</b>'
         if self.has_formatted_metadata(session):
-            fmt += ' <a href="cxcmd:log metadata #%s">[more&nbspinfo...]</a>' % self.id_string
+            fmt += ' <a href="cxcmd:log metadata #%s">[more&nbsp;info...]</a>' % self.id_string
         fmt += '<br>'
         session.logger.info(fmt % (self.name, self.html_title) , is_html=True)
 
@@ -326,12 +348,6 @@ class Model(State, Drawing):
                 if not tv:
                     return False
         return True
-
-    def all_parts_selected(self):
-        return self.any_part_selected()
-
-    def any_part_selected(self):
-        return self.highlighted
 
 
 class Surface(Model):
@@ -394,7 +410,9 @@ class Models(StateManager):
     def empty(self):
         return len(self._models) == 0
 
-    def add(self, models, parent=None, _notify=True, _need_fire_id_trigger=[], _from_session=False):
+    def add(self, models, parent=None, _notify=True, _need_fire_id_trigger=None, _from_session=False):
+        if _need_fire_id_trigger is None:
+            _need_fire_id_trigger = []
         start_count = len(self._models)
 
         d = self.drawing if parent is None else parent
