@@ -181,7 +181,7 @@ class DynamicHeaderSequence(HeaderSequence):
         if self.visible or self.eval_while_hidden:
             self.reevaluate()
             if not kw.get('from_show', False):
-                self.sv.refreshHeader(self)
+                self.sv.seq_canvas.refresh(self)
             self._need_update = False
         else:
             self._need_update = True

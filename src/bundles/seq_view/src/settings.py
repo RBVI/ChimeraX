@@ -31,7 +31,8 @@ CSV_CLUSTAL_HIST = "Clustal histogram"
 CSV_CLUSTAL_CHARS = "Clustal characters"
 CSV_AL2CO = "AL2CO"
 class ConservationStyleOption(EnumOption):
-    values = (CSV_PERCENT, CSV_CLUSTAL_HIST, CSV_CLUSTAL_CHARS, CSV_AL2CO)
+    #values = (CSV_PERCENT, CSV_CLUSTAL_HIST, CSV_CLUSTAL_CHARS, CSV_AL2CO)
+    values = (CSV_PERCENT, CSV_CLUSTAL_HIST, CSV_CLUSTAL_CHARS)
 
 LINE_WRAP_BALLOON = 'Only applies if wrapping is on.\n' \
             'Fit into window size and wrap at a multiple of the given value.'

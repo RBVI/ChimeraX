@@ -508,6 +508,12 @@ class SequenceViewer(ToolInstance):
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
         menu.addAction(scf_action)
 
+    def headers(self, shown_only=False):
+        headers = self.seq_canvas.headers
+        if shown_only:
+            return [hd for hd in headers if self.seq_canvas.display_header[hd]]
+        return headers
+
     def load_scf_file(self, path, color_structures=None):
         """color_structures=None means use user's preference setting"""
         self.region_browser.load_scf_file(path, color_structures)
@@ -538,6 +544,9 @@ class SequenceViewer(ToolInstance):
             kw['blocks'] = blocks
             del kw['columns']
         return self.region_browser.new_region(**kw)
+
+    def refresh_headers(self, *, header_class=None):
+        self.seq_canvas.refresh_headers(header_class=header_class)
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):

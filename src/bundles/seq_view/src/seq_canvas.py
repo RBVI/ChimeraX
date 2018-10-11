@@ -1009,16 +1009,20 @@ class SeqCanvas:
         for hdr in self.headers:
             if header_class is None or isinstance(hdr, header_class):
                 hdr.refresh()
-    """TODO
-    def refresh(self, seq, left=0, right=None, updateAttrs=True):
+
+    def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.display_header and not self.display_header[seq]:
             return
         if right is None:
             right = len(self.alignment.seqs[0])-1
         self.lead_block.refresh(seq, left, right)
-        if updateAttrs:
+        self.main_scene.update()
+        """TODO
+        if update_attrs:
             self.sv.setResidueAttrs()
+        """
 
+    """TODO
     def refreshTree(self):
         if self.treeShown:
             self.lead_block.showTree({'tree': self.tree},
@@ -1456,6 +1460,8 @@ class SeqBlock:
     header_label_color = Qt.blue
     multi_assoc_color = Qt.darkGreen
     label_pad = 3
+    from PyQt5.QtGui import QPen
+    qt_no_pen = QPen(Qt.NoPen)
 
     def __init__(self, label_scene, main_scene, prev_block, font, emphasis_font,
             seq_offset, headers, alignment, line_width, label_bindings, status_func,
@@ -2268,8 +2274,9 @@ class SeqBlock:
             text.setBrush(self._brush(color_func(line, offset)))
             return text
         if info != None and info > 0.0:
-            return self.main_scene.addRect(x + left_rect_off, y, right_rect_off - left_rect_off,
-                info * self.font_pixels[1], brush=self._brush(color_func(line, offset)))
+            return self.main_scene.addRect(x + left_rect_off, y-1, right_rect_off - left_rect_off,
+                -info * self.font_pixels[1], pen=self.qt_no_pen,
+                brush=self._brush(color_func(line, offset)))
         return None
 
     def _make_numbering(self, line, numbering):
@@ -2420,14 +2427,15 @@ class SeqBlock:
             if line_item is None:
                 continue
             line_item.configure(fill=color_func(seq, self.seq_offset + i))
-        
+    """
+
     def refresh(self, seq, left, right):
         if self.seq_offset + self.line_width <= right:
             self.next_block.refresh(seq, left, right)
         if left >= self.seq_offset + self.line_width:
             return
-        myLeft = max(left - self.seq_offset, 0)
-        myRight = min(right - self.seq_offset, self.line_width - 1)
+        my_left = max(left - self.seq_offset, 0)
+        my_right = min(right - self.seq_offset, self.line_width - 1)
 
         half_x, left_rect_off, right_rect_off = self.base_layout_info()
         line_items = self.line_items[seq]
@@ -2437,26 +2445,24 @@ class SeqBlock:
         else:
             res_status = seq in self.alignment.seqs
         color_func = self._color_func(seq)
-        for i in range(myLeft, myRight+1):
+        for i in range(my_left, my_right+1):
             line_item = line_items[i]
             if line_item is not None:
-                line_item.delete()
+                self.main_scene.removeItem(line_item)
             x, y = item_aux_info[i]
             line_items[i] = self.make_item(seq, self.seq_offset + i,
                         x, y, half_x, left_rect_off,
                         right_rect_off, color_func)
             if res_status:
                 self._assoc_res_bind(line_items[i], seq, self.seq_offset + i)
-        if self.show_numberings[0] and seq.numbering_start != None \
-                            and myLeft == 0:
-            self.main_scene.delete(self.numbering_texts[seq][0])
+        if self.show_numberings[0] and seq.numbering_start != None and my_left == 0:
+            self.main_scene.removeItem(self.numbering_texts[seq][0])
             self.numbering_texts[seq][0] = self._make_numbering(seq,0)
         if self.show_numberings[1] and seq.numbering_start != None \
-                    and myRight == self.line_width - 1:
-            self.main_scene.delete(self.numbering_texts[seq][1])
+                    and my_right == self.line_width - 1:
+            self.main_scene.removeItem(self.numbering_texts[seq][1])
             self.numbering_texts[seq][1] = self._make_numbering(seq,1)
-    """
-        
+
     def relative_y(self, rawY):
         '''return the y relative to the block the y is in'''
         if rawY < self.top_y:
