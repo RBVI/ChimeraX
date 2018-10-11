@@ -370,12 +370,5 @@ def cxcmd(session, url):
     from urllib.parse import unquote
     cmd = url.split(':', 1)[1]  # skip cxcmd:
     cmd = unquote(cmd)  # undo expected quoting
-    from chimerax.cmd_line.tool import CommandLine
-    ti = CommandLine.get_singleton(session, create=False)
-    if ti:
-        ti.cmd_replace(cmd)
-        ti.execute()
-    else:
-        # no command line?!?
-        from chimerax.core.commands import run
-        run(session, cmd)
+    from chimerax.core.commands import run
+    run(session, cmd)

@@ -38,6 +38,7 @@ floating point coordinates.
 
 
 from . import matrix as m34
+from . import _geometry
 
 
 class Place:
@@ -91,7 +92,7 @@ class Place:
         the coordinate transforms acting in right to left order producing
         a new Place object.'''
         if isinstance(p, Place):
-            return Place(m34.multiply_matrices(self.matrix, p.matrix))
+            return Place(_geometry.multiply_matrices_f64(self.matrix, p.matrix))
         elif isinstance(p, Places):
             return Places([self]) * p
 
@@ -166,8 +167,7 @@ class Place:
         in OpenGL order (columns major).'''
         m = self._m44
         if m is None:
-            from numpy import array, float32
-            self._m44 = m = array(m34.opengl_matrix(self.matrix), float32)
+            self._m44 = m = _geometry.opengl_matrix(self.matrix)  # float32
         return m
 
     def interpolate(self, tf, center, frac):
@@ -538,7 +538,7 @@ class Places:
             pp = []
             for p in self:
                 for p2 in places:
-                    pp.append(Place(m34.multiply_matrices(p.matrix, p2.matrix)))
+                    pp.append(p*p2)
             return Places(pp)
         elif isinstance(places_or_vector, Place):
             place = places_or_vector

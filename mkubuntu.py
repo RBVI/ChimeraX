@@ -144,14 +144,14 @@ def main():
     # assume ChimeraX.app already has appropriate binaries
     error = False
     os_version = None
-    daily = False
+    build = 'release'
     if len(sys.argv) >= 2:
         os_version = sys.argv[1]
     else:
         error = True
     if len(sys.argv) >= 3:
-        daily = sys.argv[2] == 'daily'
-        if not daily:
+        build = sys.argv[2]
+        if build not in ['release', 'candidate', 'daily']:
             error = True
     if error or len(sys.argv) > 3 or os_version not in UBUNTU_DEPENDENCIES:
         print(f'Usage: {sys.argv[0]} ubuntu-version [daily]', file=sys.stderr)
@@ -167,14 +167,19 @@ def main():
     version_date = version_date[1:-1].replace('-', '.')
     pkg_name = f"{app_author.lower()}-{app_name.lower()}"
     bin_name = app_name.lower()  # name of command in /usr/bin
-    if not daily:
-        # release build
-        version = version_number
-    else:
+    if build == 'daily':
         # daily build, version is date
         version = version_date
         pkg_name += "-daily"
         bin_name += "-daily"
+    elif build == 'release':
+        # release build
+        version = version_number
+    else:
+        # release build
+        version = version_number
+        print('candiate builds are not supported yet', file=sys.stderr)
+        raise SystemExit(1)
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))

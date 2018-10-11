@@ -82,7 +82,6 @@ index.rst: index.rst.in
 		$< > $@
 
 html: conf.py index.rst
-	env  # debug why locale wasn't set correctly
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
