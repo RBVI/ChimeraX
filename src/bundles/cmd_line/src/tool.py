@@ -172,11 +172,11 @@ class CommandLine(ToolInstance):
             self.cmd_clear()
             prev_cmd = None
             unique_cmds = []
-            for cmd in self.history_dialog.history:
+            for cmd in self.history_dialog._history:
                 if cmd != prev_cmd:
                     unique_cmds.append(cmd)
                     prev_cmd = cmd
-            self.history_dialog.history.replace(unique_cmds)
+            self.history_dialog._history.replace(unique_cmds)
             self.history_dialog.populate()
         else:
             event.Skip()
@@ -190,11 +190,11 @@ class CommandLine(ToolInstance):
             self.cmd_clear()
             prev_cmd = None
             unique_cmds = []
-            for cmd in self.history_dialog.history:
+            for cmd in self.history_dialog._history:
                 if cmd != prev_cmd:
                     unique_cmds.append(cmd)
                     prev_cmd = cmd
-            self.history_dialog.history.replace(unique_cmds)
+            self.history_dialog._history.replace(unique_cmds)
             self.history_dialog.populate()
 
     def execute(self):
@@ -251,7 +251,7 @@ class CommandLine(ToolInstance):
 
 class _HistoryDialog:
 
-    record_label = "Record..."
+    record_label = "Save..."
     execute_label = "Execute"
 
     NUM_REMEMBERED = 500
@@ -278,8 +278,6 @@ class _HistoryDialog:
             but = QPushButton(but_name, button_frame)
             but.setAutoDefault(False)
             but.clicked.connect(lambda arg, txt=but_name: self.button_clicked(txt))
-            if but_name == "Help":
-                but.setDisabled(True)
             button_layout.addWidget(but)
         button_frame.setLayout(button_layout)
         self.window.manage(placement=None)
@@ -307,7 +305,7 @@ class _HistoryDialog:
                 fmt = format_from_name("ChimeraX commands")
                 ext = fmt.extensions[0]
                 self._record_dialog = dlg = SaveDialog(self.window.ui_area,
-                    "Record Commands", name_filter=export_file_filter(format_name="ChimeraX commands"),
+                    "Save Commands", name_filter=export_file_filter(format_name="ChimeraX commands"),
                                                        add_extension=ext)
                 from PyQt5.QtWidgets import QFrame, QLabel, QHBoxLayout, QVBoxLayout, QComboBox
                 from PyQt5.QtWidgets import QCheckBox
@@ -318,7 +316,7 @@ class _HistoryDialog:
                 amount_frame = QFrame(options_frame)
                 options_layout.addWidget(amount_frame, Qt.AlignCenter)
                 amount_layout = QHBoxLayout(amount_frame)
-                amount_layout.addWidget(QLabel("Record", amount_frame))
+                amount_layout.addWidget(QLabel("Save", amount_frame))
                 self.save_amount_widget = saw = QComboBox(amount_frame)
                 saw.addItems(["all", "selected"])
                 amount_layout.addWidget(saw)
@@ -371,7 +369,7 @@ class _HistoryDialog:
                     # not selected for deletion
                     retain.append(h_item)
                 listbox_index += 1
-            self.history.replace(retain)
+            self._history.replace(retain)
             self.populate()
             return
         if label == "Copy":
@@ -379,7 +377,8 @@ class _HistoryDialog:
             clipboard.setText("\n".join([item.text() for item in self.listbox.selectedItems()]))
             return
         if label == "Help":
-            # TODO
+            from chimerax.core.commands import run
+            run(self.controller.session, 'help help:user/tools/cli.html#history')
             return
 
     def down(self, shifted):
