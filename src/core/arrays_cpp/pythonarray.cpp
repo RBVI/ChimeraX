@@ -752,6 +752,20 @@ PyObject *python_double_array(int size, double **data)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *python_double_array(int size1, int size2, double **data)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int dimensions[2] = {size1, size2};
+  PyObject *a = allocate_python_array(2, dimensions, NPY_DOUBLE);
+  if (a && data)
+    *data = (double *)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
 PyObject *python_voidp_array(int size, void ***data)
 {
   initialize_numpy();       // required before using NumPy.
@@ -984,6 +998,56 @@ static int parse_float_nm(PyObject *arg, int m, void *farray, bool allow_copy, b
         *static_cast<FArray*>(farray) = static_cast<FArray>(v);
     }
   return s;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_contiguous_float_4x4_array(PyObject *arg, void *farray)
+{
+  Numeric_Array v;
+  bool s = array_from_python(arg, 2, Numeric_Array::Float, &v, false);
+  if (s)
+    {
+      if (v.size(0) != 4 || v.size(1) != 4)
+	{
+	  PyErr_Format(PyExc_TypeError, "Require array size 4x4, got %d by %d",
+		       v.size(0), v.size(1));
+	  s = false;
+	}
+      else if (!v.is_contiguous())
+	{
+	  PyErr_Format(PyExc_TypeError, "Require contiguous 4x4 array");
+	  s = false;
+	}
+      else
+	*static_cast<FArray*>(farray) = static_cast<FArray>(v);
+    }
+  return (s ? 1 : 0);
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_contiguous_double_3x4_array(PyObject *arg, void *darray)
+{
+  Numeric_Array v;
+  bool s = array_from_python(arg, 2, Numeric_Array::Double, &v, false);
+  if (s)
+    {
+      if (v.size(0) != 3 || v.size(1) != 4)
+	{
+	  PyErr_Format(PyExc_TypeError, "Require array size 3x4, got %d by %d",
+		       v.size(0), v.size(1));
+	  s = false;
+	}
+      else if (!v.is_contiguous())
+	{
+	  PyErr_Format(PyExc_TypeError, "Require contiguous 3x4 array");
+	  s = false;
+	}
+      else
+	*static_cast<DArray*>(darray) = static_cast<DArray>(v);
+    }
+  return (s ? 1 : 0);
 }
 
 // ----------------------------------------------------------------------------
