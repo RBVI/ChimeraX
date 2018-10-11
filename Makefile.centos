@@ -18,3 +18,9 @@ daily-package:
 
 candidate-package:
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) candidate
+
+clean:
+	rm -rf .rpmmacros rpmbuild
+
+lint:
+	rpmlint -i -f rpmlint-config rpmbuild/RPMS/x86_64/*.rpm

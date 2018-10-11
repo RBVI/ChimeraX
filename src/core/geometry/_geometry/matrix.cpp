@@ -77,3 +77,126 @@ extern "C" PyObject *look_at(PyObject *, PyObject *args)
     }
   return NULL;
 }
+
+// ----------------------------------------------------------------------------
+// 3x4 matrix indices
+//  0   1   2   3
+//  4   5   6   7
+//  8   9  10  11
+//
+static void multiply_matrices(double *m, double *n, double *r)
+{
+  // Save result in locals in case result matrix is same array as
+  // one of the matrices being multiplied.
+  double r0 = m[0]*n[0] + m[1]*n[4] + m[2]*n[8];
+  double r1 = m[0]*n[1] + m[1]*n[5] + m[2]*n[9];
+  double r2 = m[0]*n[2] + m[1]*n[6] + m[2]*n[10];
+  double r3 = m[0]*n[3] + m[1]*n[7] + m[2]*n[11] + m[3];
+
+  double r4 = m[4]*n[0] + m[5]*n[4] + m[6]*n[8];
+  double r5 = m[4]*n[1] + m[5]*n[5] + m[6]*n[9];
+  double r6 = m[4]*n[2] + m[5]*n[6] + m[6]*n[10];
+  double r7 = m[4]*n[3] + m[5]*n[7] + m[6]*n[11] + m[7];
+
+  double r8 = m[8]*n[0] + m[9]*n[4] + m[10]*n[8];
+  double r9 = m[8]*n[1] + m[9]*n[5] + m[10]*n[9];
+  double r10 = m[8]*n[2] + m[9]*n[6] + m[10]*n[10];
+  double r11 = m[8]*n[3] + m[9]*n[7] + m[10]*n[11] + m[11];
+
+  r[0] = r0; r[1] = r1; r[2] = r2; r[3] = r3;
+  r[4] = r4; r[5] = r5; r[6] = r6; r[7] = r7;
+  r[8] = r8; r[9] = r9; r[10] = r10; r[11] = r11;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *multiply_matrices_f64(PyObject *, PyObject *args, PyObject *keywds)
+{
+  PyObject *py_result = NULL;
+  DArray m1, m2;
+  const char *kwlist[] = {"matrix1", "matrix2", "result", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&|O"),
+				   (char **)kwlist,
+				   parse_contiguous_double_3x4_array, &m1,
+				   parse_contiguous_double_3x4_array, &m2,
+				   &py_result))
+    return NULL;
+
+  if (py_result == NULL)
+    {
+      double *r;
+      py_result = python_double_array(3, 4, &r);
+      multiply_matrices(m1.values(), m2.values(), r);
+    }
+  else
+    {
+      DArray result;
+      if (!parse_contiguous_double_3x4_array(py_result, &result))
+	return NULL;
+      multiply_matrices(m1.values(), m2.values(), result.values());
+    }
+
+  Py_INCREF(py_result);
+  return py_result;
+}
+
+// ----------------------------------------------------------------------------
+// 3x4 matrix indices
+//  0   1   2   3
+//  4   5   6   7
+//  8   9  10  11
+//
+static void opengl_matrix(double *m, float *r)
+{
+  // Save result in locals in case result matrix is same array as
+  // one of the matrices being multiplied.
+  r[0] = (float)m[0];
+  r[1] = (float)m[4];
+  r[2] = (float)m[8];
+  r[3] = 0;
+  r[4] = (float)m[1];
+  r[5] = (float)m[5];
+  r[6] = (float)m[9];
+  r[7] = 0;
+  r[8] = (float)m[2];
+  r[9] = (float)m[6];
+  r[10] = (float)m[10];
+  r[11] = 0;
+  r[12] = (float)m[3];
+  r[13] = (float)m[7];
+  r[14] = (float)m[11];
+  r[15] = 1;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *opengl_matrix(PyObject *, PyObject *args, PyObject *keywds)
+{
+  PyObject *py_result = NULL;
+  DArray m;
+  const char *kwlist[] = {"matrix_3x4", "result", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&|O"),
+				   (char **)kwlist,
+				   parse_contiguous_double_3x4_array, &m,
+				   &py_result))
+    return NULL;
+
+  if (py_result == NULL)
+    {
+      float *r;
+      py_result = python_float_array(4, 4, &r);
+      opengl_matrix(m.values(), r);
+    }
+  else
+    {
+      FArray result;
+      if (!parse_contiguous_float_4x4_array(py_result, &result))
+	return NULL;
+      opengl_matrix(m.values(), result.values());
+    }
+
+  Py_INCREF(py_result);
+  return py_result;
+}

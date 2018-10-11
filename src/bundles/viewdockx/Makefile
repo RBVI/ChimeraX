@@ -7,7 +7,7 @@ wheel install app-install:	$(LIBS)
 # From http://www.flotcharts.org/
 src/lib/flot:	flot-0.8.3.zip
 	# touch needed because unzip restores update time
-	rm -rf $@ && unzip $? && mv flot $@ && touch $@
+	rm -rf $@ && unzip $? && rm -rf flot/examples && mv flot $@ && touch $@
 
 # From http://rateyo.fundoocode.ninja/
 src/lib/rateyo:	rateyo-2.3.2.zip

@@ -34,8 +34,8 @@ app_name = "ChimeraX"
 CHIMERAX_INSTALL = f"{os.getcwd()}/{app_name}.app"
 CHIMERAX_BIN = f"{CHIMERAX_INSTALL}/bin/{app_name}"
 
-INST_DIR = "/opt"
-#INST_DIR = "/usr/libexec"
+INST_DIR = f"/opt/{app_author}/{app_name}"
+#INST_DIR = "/usr/libexec/{app_author}-{app_name}""
 
 CENTOS_DEPENDENCIES = {
     "7": {
@@ -114,6 +114,8 @@ def main():
     if build == 'daily':
         # daily build, version is date
         version = version_date
+        global INST_DIR
+        INST_DIR += "-daily"
         pkg_name += "-daily"
         bin_path += "-daily"
         rpm_release = 1
@@ -194,7 +196,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
     else:
         deps = []
     depends = ', '.join(deps)
-    pkg_root = f'{INST_DIR}/{pkg_name}'
+    pkg_root = f'{INST_DIR}'
     bin_name = os.path.basename(bin_path)
     relpath = os.path.relpath(f'{pkg_root}/bin', os.path.dirname(bin_path))
     man_dir = '/usr/share/man/man1'
@@ -263,7 +265,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             http://www.rbvi.ucsf.edu/chimerax
 
             Copyrights for embedded code are given in the documentation
-            in {INST_DIR}/{pkg_name}/share/docs/embeded.html
+            in {INST_DIR}/share/docs/embeded.html
 
             The computer code and documentation that comprises UCSF ChimeraX is protected
             by copyrights held by The Regents of the University of California ("The Regents")

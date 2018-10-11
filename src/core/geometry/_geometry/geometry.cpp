@@ -24,7 +24,7 @@
 #include "spline.h"			// use natural_cubic_spline
 #include "transform.h"			// use affine_transform_vertices, ...
 #include "vector_ops.h"			// use inner_product_64
-#include "matrix.h"         // defines look_at
+#include "matrix.h"		        // defines look_at
 
 namespace Geometry_Cpp
 {
@@ -74,6 +74,10 @@ static struct PyMethodDef geometry_cpp_methods[] =
 
   /* matrix.h */
   {const_cast<char*>("look_at"), (PyCFunction)look_at, METH_VARARGS, NULL},
+  {const_cast<char*>("multiply_matrices_f64"), (PyCFunction)multiply_matrices_f64,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("opengl_matrix"), (PyCFunction)opengl_matrix,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
