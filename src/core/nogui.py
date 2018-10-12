@@ -215,7 +215,7 @@ class _Input(Task):
         except Exception:
             logger.error("\nUnexpected exception, save your work and exit:\n")
             import traceback
-            logger.error(traceback.format_exc())
+            logger.bug(traceback.format_exc())
 
     #
     # Required State methods, do nothing

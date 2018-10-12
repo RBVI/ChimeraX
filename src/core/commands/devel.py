@@ -151,7 +151,7 @@ def _run(path, logger, exit, unbound_method, *args, **kw):
                 unbound_method(bb, *args, **kw)
             except:
                 import traceback
-                logger.error(traceback.format_exc())
+                logger.bug(traceback.format_exc())
                 exit_status = 1
             output = log.getvalue()
         logger.info(output)
