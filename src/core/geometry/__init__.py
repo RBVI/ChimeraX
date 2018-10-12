@@ -13,6 +13,7 @@
 
 from .place import Place, Places, identity, rotation, vector_rotation, translation, scale, z_align
 from .place import product, orthonormal_frame, interpolate_rotation, transform_planes, look_at
+from .place import multiply_transforms
 from .vector import interpolate_points, inner_product, normalize_vector, normalize_vectors, ray_segment
 from .vector import planes_as_4_vectors, distance, cross_product, norm, distance_squared
 from .vector import angle, dihedral, dihedral_point

@@ -1259,7 +1259,8 @@ class Multishadow:
 
         # cached state
         self._multishadow_dir = None
-        self._multishadow_transforms = []
+        from ..geometry import Places
+        self._multishadow_transforms = Places()
         self._multishadow_depth = None
         self._multishadow_current_params = None
         self.multishadow_update_needed = False
@@ -1267,7 +1268,7 @@ class Multishadow:
         self._multishadow_map_framebuffer = None
         self._multishadow_texture_unit = texture_unit
         self._max_multishadows = None
-        self._multishadow_view_transforms = None	# Includes camera view.
+        self._multishadow_view_transforms = Places()	# Includes camera view.
 
         # near to far clip depth for shadow map:
         self._multishadow_depth = None
@@ -1355,21 +1356,20 @@ class Multishadow:
         '''
         ctf = camera_position
         stf = self._multishadow_transforms
+        vtf = self._multishadow_view_transforms
         r = self._render
         # Transform from camera coordinates to shadow map texture coordinates.
-        if ctf is None:
-            mt = stf
-        elif r.recording_opengl:
-            from .gllist import Mat44Func
-            mt = Mat44Func('multishadow matrices', lambda: (stf * ctf()), len(stf))
+        if r.recording_opengl:
+            from .gllist import Mat34Func
+            self._multishadow_view_transforms = Mat34Func('multishadow matrices', lambda: (stf * ctf()), len(stf))
         else:
-            mt = stf * ctf
-        self._multishadow_view_transforms = mt
+            from ..geometry import multiply_transforms
+            multiply_transforms(stf, ctf, result = vtf)
 
         # TODO: Issue warning if maximum number of shadows exceeded.
         maxs = self.max_multishadows()
 
-        mm = mt.opengl_matrices()
+        mm = vtf.opengl_matrices()
         if not r.recording_opengl:
             mm = mm[:maxs, :, :]
         offset = 0

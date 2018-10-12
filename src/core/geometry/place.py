@@ -285,6 +285,14 @@ class Place:
         return (self._is_identity
                 or _geometry.is_identity_matrix(self.matrix, tolerance))
 
+    def _matrix_changed(self):
+        self._is_identity = False
+        self._inverse = None
+        m44 = self._m44
+        if m44 is not None:
+            _geometry.opengl_matrix(self.matrix, m44)
+
+
 '''
 The following routines create Place objects representing specific
 transformations.
@@ -565,3 +573,49 @@ class Places:
             return self
         csys_inv = csys.inverse()
         return Places([csys_inv*p*csys for p in self])
+
+    def _resize(self, n):
+        if len(self) == n:
+            return
+        from numpy import empty, float64
+        self._place_array = empty((n,3,4), float64)
+        self._place_list = None
+        self._opengl_array = None
+        self._shift_and_scale = None
+
+    def _matrices_changed(self):
+        self._place_list = None
+        self._shift_and_scale = None
+        oa = self._opengl_array
+        if oa is not None:
+            _geometry.opengl_matrices(self.array(), len(self), oa)
+
+    
+def multiply_transforms(tf1, tf2, result = None):
+    if result is None:
+        return tf1 * tf2
+
+    # Set result transform.
+    if isinstance(tf1, Place) and isinstance(tf2, Place):
+        _geometry.multiply_matrices(tf1.matrix, tf2.matrix, result.matrix)
+        result._matrix_changed()
+    elif isinstance(tf1, Places) and isinstance(tf2, Place):
+        n = len(tf1)
+        result._resize(n)
+        _geometry.multiply_matrix_lists(tf1.array(), n, tf2.matrix.reshape((1,3,4)), 1, result.array())
+        result._matrices_changed()
+    elif isinstance(tf1, Place) and isinstance(tf2, Places):
+        n = len(tf2)
+        result._resize(n)
+        _geometry.multiply_matrix_lists(tf1.matrix.reshape((1,3,4)), 1, tf2.array(), n, result.array())
+        result._matrices_changed()
+    elif isinstance(tf1, Places) and isinstance(tf2, Places):
+        n1, n2 = len(tf1), len(tf2)
+        result._resize(n1*n2)
+        _geometry.multiply_matrix_lists(tf1.array(), n1, tf2.array(), n2, result.array())
+        result._matrices_changed()
+    else:
+        raise ValueError('Arguments must be Place or Places.  Got %s and %s.'
+                         % (str(type(tf1)), str(type(tf2))))
+
+    return result
