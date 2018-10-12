@@ -598,8 +598,8 @@ class Render:
         '''
 
         if model_matrix is None:
-            mv4 = self.current_model_view_matrix
-            if mv4 is None:
+            mv = self.current_model_view_matrix
+            if mv is None:
                 return
         else:
             # TODO: optimize check of same model matrix.
@@ -612,14 +612,13 @@ class Render:
             # TODO: optimize matrix multiply.  Rendering bottleneck with 200 models open.
             cvm = self.current_view_matrix
             mv = cvm if model_matrix.is_identity() else (cvm * model_matrix)
-            mv4 = mv.opengl_matrix()
-            self.current_model_view_matrix = mv4
+            self.current_model_view_matrix = mv
 
         p = self.current_shader_program
         if (p is not None and
             not p.capabilities & self.SHADER_TEXTURE_OUTLINE and
             not p.capabilities & self.SHADER_DEPTH_OUTLINE):
-            p.set_matrix('model_view_matrix', mv4)
+            p.set_matrix('model_view_matrix', mv.opengl_matrix())
 #            if (self.SHADER_CLIP_PLANES | self.SHADER_MULTISHADOW) & p.capabilities:
             if self.SHADER_CLIP_PLANES & p.capabilities:
                 cmm = self.current_model_matrix
@@ -1190,13 +1189,13 @@ class Shadow:
     def set_shadow_view(self, camera_position):
         stf = self._shadow_transform * camera_position
         # Transform from camera coordinates to shadow map texture coordinates.
-        self._shadow_view_transform = m = stf.opengl_matrix()
+        self._shadow_view_transform = stf
         r = self._render
         p = r.current_shader_program
         if p is not None:
             c = p.capabilities
             if r.SHADER_SHADOWS & c and r.SHADER_LIGHTING & c:
-                p.set_matrix("shadow_transform", m)
+                p.set_matrix("shadow_transform", stf.opengl_matrix())
 
     def _start_rendering_shadowmap(self, center, radius, size=1024):
 
@@ -1248,8 +1247,9 @@ class Shadow:
 
     def _set_shadow_shader_variables(self, shader):
         shader.set_integer("shadow_map", self._shadow_texture_unit)
-        if self._shadow_view_transform is not None:
-            shader.set_matrix("shadow_transform", self._shadow_view_transform)
+        stf = self._shadow_view_transform
+        if stf is not None:
+            shader.set_matrix("shadow_transform", stf.opengl_matrix())
 
 class Multishadow:
     '''Render shadows from several directions for ambient occlusion lighting.'''
@@ -1358,21 +1358,20 @@ class Multishadow:
         r = self._render
         # Transform from camera coordinates to shadow map texture coordinates.
         if ctf is None:
-            mt = stf.opengl_matrices()
+            mt = stf
         elif r.recording_opengl:
             from .gllist import Mat44Func
-            mt = Mat44Func('multishadow matrices', lambda: (stf * ctf()).opengl_matrices(), len(stf))
+            mt = Mat44Func('multishadow matrices', lambda: (stf * ctf()), len(stf))
         else:
-            mt = (stf * ctf).opengl_matrices()
+            mt = stf * ctf
         self._multishadow_view_transforms = mt
 
         # TODO: Issue warning if maximum number of shadows exceeded.
         maxs = self.max_multishadows()
 
-        if r.recording_opengl:
-            mm = mt
-        else:
-            mm = mt[:maxs, :, :]
+        mm = mt.opengl_matrices()
+        if not r.recording_opengl:
+            mm = mm[:maxs, :, :]
         offset = 0
         GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._multishadow_matrix_buffer())
         GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, offset, mm.nbytes, mm)

@@ -110,7 +110,7 @@ static void multiply_matrices(double *m, double *n, double *r)
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *multiply_matrices_f64(PyObject *, PyObject *args, PyObject *keywds)
+extern "C" PyObject *multiply_matrices(PyObject *, PyObject *args, PyObject *keywds)
 {
   PyObject *py_result = NULL;
   DArray m1, m2;
@@ -135,6 +135,58 @@ extern "C" PyObject *multiply_matrices_f64(PyObject *, PyObject *args, PyObject 
       if (!parse_contiguous_double_3x4_array(py_result, &result))
 	return NULL;
       multiply_matrices(m1.values(), m2.values(), result.values());
+    }
+
+  Py_INCREF(py_result);
+  return py_result;
+}
+
+// ----------------------------------------------------------------------------
+//
+static void multiply_matrix_lists(double *m1, int n1, double *m2, int n2, double *r)
+{
+  for (int i1 = 0 ; i1 < n1 ; ++i1)
+    for (int i2 = 0 ; i2 < n2 ; ++i2)
+      multiply_matrices(m1 + 12*i1, m2 + 12*i2, r + 12*n2*i1 + 12*i2);
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *multiply_matrix_lists(PyObject *, PyObject *args, PyObject *keywds)
+{
+  DArray m1, m2;
+  int n1, n2;
+  PyObject *py_result = NULL;
+  const char *kwlist[] = {"matrices1", "n1", "matrices2", "n2", "result", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&iO&i|O"),
+				   (char **)kwlist,
+				   parse_contiguous_double_n34_array, &m1,
+				   &n1,
+				   parse_contiguous_double_n34_array, &m2,
+				   &n2,
+				   &py_result))
+    return NULL;
+
+  if (py_result == NULL)
+    {
+      double *r;
+      py_result = python_double_array(n1*n2, 3, 4, &r);
+      multiply_matrix_lists(m1.values(), n1, m2.values(), n2, r);
+    }
+  else
+    {
+      DArray result;
+      if (!parse_contiguous_double_n34_array(py_result, &result))
+	return NULL;
+      if (result.size(0) != n1*n2)
+	{
+	  PyErr_Format(PyExc_TypeError,
+		       "Require result array size %d x 3 x 4, got %d by 3 by 4",
+		       n1*n2, result.size(0));
+	  return NULL;
+	}
+      multiply_matrix_lists(m1.values(), n1, m2.values(), n2, result.values());
     }
 
   Py_INCREF(py_result);
@@ -195,6 +247,55 @@ extern "C" PyObject *opengl_matrix(PyObject *, PyObject *args, PyObject *keywds)
       if (!parse_contiguous_float_4x4_array(py_result, &result))
 	return NULL;
       opengl_matrix(m.values(), result.values());
+    }
+
+  Py_INCREF(py_result);
+  return py_result;
+}
+
+// ----------------------------------------------------------------------------
+//
+static void opengl_matrices(double *m34, int n, float *m44)
+{
+  for (int i = 0 ; i < n ; ++i)
+    opengl_matrix(m34 + 12*i, m44 + 16*i);
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *opengl_matrices(PyObject *, PyObject *args, PyObject *keywds)
+{
+  DArray m;
+  int n;
+  PyObject *py_result = NULL;
+  const char *kwlist[] = {"matrices", "n", "result", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&i|O"),
+				   (char **)kwlist,
+				   parse_contiguous_double_n34_array, &m,
+				   &n,
+				   &py_result))
+    return NULL;
+
+  if (py_result == NULL)
+    {
+      float *r;
+      py_result = python_float_array(n, 4, 4, &r);
+      opengl_matrices(m.values(), n, r);
+    }
+  else
+    {
+      FArray result;
+      if (!parse_contiguous_float_n44_array(py_result, &result))
+	return NULL;
+      if (result.size(0) != n)
+	{
+	  PyErr_Format(PyExc_TypeError,
+		       "Require result array size %d x 4 x 4, got %d by 4 by 4",
+		       n, result.size(0));
+	  return NULL;
+	}
+      opengl_matrices(m.values(), n, result.values());
     }
 
   Py_INCREF(py_result);
