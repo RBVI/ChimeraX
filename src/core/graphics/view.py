@@ -519,7 +519,7 @@ class View:
         else:
             sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
             from ..geometry import bounds
-            b = bounds.union_bounds(d.bounds() for d in sdrawings)
+            b = bounds.union_bounds(d.bounds() for d in sdrawings if not getattr(d, 'skip_bounds', False))
             # TODO: Need to transform drawing bounds if they have different positions.
             #   Check all places I use union_bounds() for this transform error.
         center = None if b is None else b.center()
