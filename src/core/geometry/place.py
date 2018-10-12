@@ -277,13 +277,13 @@ class Place:
         return m34.same_transform(self.matrix, p.matrix,
                                   angle_tolerance, shift_tolerance)
 
-    def is_identity(self, tolerance=1e-6):
+    def is_identity(self, tolerance=0):
         '''Is the transform the identity transformation?  Tests if each
         of the 3 by 4 matrix elements is within the specified tolerance
         of the identity transform.
         '''
         return (self._is_identity
-                or m34.is_identity_matrix(self.matrix, tolerance))
+                or _geometry.is_identity_matrix(self.matrix, tolerance))
 
 '''
 The following routines create Place objects representing specific
@@ -412,7 +412,7 @@ def z_align(pt1, pt2):
 def transform_planes(coord_sys, planes):
     '''Planes are given by 4 vectors v defining plane v0*x + v1*y + v2*z + v3 = 0.
     Returns planes in new coordinate system.'''
-    if coord_sys.is_identity(tolerance = 0):
+    if coord_sys.is_identity():
         return planes
     cp = planes.copy()
     ct = coord_sys.transpose()

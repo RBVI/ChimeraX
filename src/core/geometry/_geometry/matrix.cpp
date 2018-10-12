@@ -200,3 +200,67 @@ extern "C" PyObject *opengl_matrix(PyObject *, PyObject *args, PyObject *keywds)
   Py_INCREF(py_result);
   return py_result;
 }
+
+// ----------------------------------------------------------------------------
+//
+static bool same_matrix(double *m, double *n)
+{
+  for (int i = 0 ; i < 12 ; ++i)
+    if (m[i] != n[i])
+      return false;
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *same_matrix(PyObject *, PyObject *args, PyObject *keywds)
+{
+  DArray m1, m2;
+  const char *kwlist[] = {"matrix1", "matrix2", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&"),
+				   (char **)kwlist,
+				   parse_contiguous_double_3x4_array, &m1,
+				   parse_contiguous_double_3x4_array, &m2))
+    return NULL;
+
+  bool same = same_matrix(m1.values(), m2.values());
+  return python_bool(same);
+}
+
+// ----------------------------------------------------------------------------
+//
+static bool is_identity_matrix(double *m, double tolerance)
+{
+  bool id;
+  if (tolerance == 0)
+    id = (m[0] == 1 && m[1] == 0 && m[2] == 0 && m[3] == 0 &&
+	  m[4] == 0 && m[5] == 1 && m[6] == 0 && m[7] == 0 &&
+	  m[8] == 0 && m[9] == 0 && m[10] == 1 && m[11] == 0);
+  else
+    {
+      double t = tolerance;
+      id = (fabs(m[0]-1) <= t && fabs(m[1]) <= t && fabs(m[2]) <= t && fabs(m[3]) <= t &&
+	    fabs(m[4]) <= t && fabs(m[5]-1) <= t && fabs(m[6]) <= t && fabs(m[7]) <= t &&
+	    fabs(m[8]) <= t && fabs(m[9]) <= t && fabs(m[10]-1) <= t && fabs(m[11]) <= t);
+    }
+  return id;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *is_identity_matrix(PyObject *, PyObject *args, PyObject *keywds)
+{
+  DArray m;
+  double tolerance = 0;
+  const char *kwlist[] = {"matrix", "tolerance", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&|d"),
+				   (char **)kwlist,
+				   parse_contiguous_double_3x4_array, &m,
+				   &tolerance))
+    return NULL;
+
+  bool id = is_identity_matrix(m.values(), tolerance);
+  return python_bool(id);
+}

@@ -76,6 +76,10 @@ static struct PyMethodDef geometry_cpp_methods[] =
   {const_cast<char*>("look_at"), (PyCFunction)look_at, METH_VARARGS, NULL},
   {const_cast<char*>("multiply_matrices_f64"), (PyCFunction)multiply_matrices_f64,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("same_matrix"), (PyCFunction)same_matrix,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("is_identity_matrix"), (PyCFunction)is_identity_matrix,
+   METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("opengl_matrix"), (PyCFunction)opengl_matrix,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
