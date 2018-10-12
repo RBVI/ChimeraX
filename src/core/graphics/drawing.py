@@ -925,7 +925,7 @@ class Drawing:
             p = self._first_intercept_excluding_children(mxyz1, mxyz2)
             if p and (pclosest is None or p.distance < pclosest.distance):
                 pclosest = p
-        p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude)
+        p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude=exclude)
         if p and (pclosest is None or p.distance < pclosest.distance):
             pclosest = p
         return pclosest
@@ -941,7 +941,7 @@ class Drawing:
         for d in child_drawings:
             if d.display and (exclude is None or not exclude(d)):
                 for cxyz1, cxyz2 in pos:
-                    p = d.first_intercept(cxyz1, cxyz2, exclude)
+                    p = d.first_intercept(cxyz1, cxyz2, exclude=exclude)
                     if p and (pclosest is None or p.distance < pclosest.distance):
                         pclosest = p
         return pclosest
