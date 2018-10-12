@@ -81,7 +81,7 @@ def identity_matrix():
 
 # -----------------------------------------------------------------------------
 #
-def is_identity_matrix(tf, tolerance=1e-6):
+def is_identity_matrix(tf, tolerance=0):
     # Matrix argument may be a NumPy array or a tuple.
     # Need to be careful in how comparison is done.  Comparing a NumPy array
     # to a tuple gives an array of element wise comparisons.
@@ -629,35 +629,11 @@ def transformation_description(tf):
 
 # -----------------------------------------------------------------------------
 #
-def same_xform(xf1, xf2, angle_tolerance=0, shift_tolerance=0,
-               shift_point=(0, 0, 0)):
-    if angle_tolerance == 0 and shift_tolerance == 0:
-        return xf1.getOpenGLMatrix() == xf2.getOpenGLMatrix()
-
-    from chimera import Point
-    p = Point(*tuple(shift_point))
-    trans = xf1.apply(p) - xf2.apply(p)
-    if trans.length > shift_tolerance:
-        return False
-
-    from chimera import Xform
-    xf = Xform()
-    xf.multiply(xf1)
-    xf.multiply(xf2.inverse())
-    axis, angle = xf.getRotation()
-    if abs(angle) > angle_tolerance:
-        return False
-
-    return True
-
-
-# -----------------------------------------------------------------------------
-#
 def same_transform(tf1, tf2, angle_tolerance=0, shift_tolerance=0,
                    shift_point=(0, 0, 0)):
-    import numpy
     if angle_tolerance == 0 and shift_tolerance == 0:
-        return numpy.all(tf1 == tf2)
+        from . import _geometry
+        return _geometry.same_matrix(tf1, tf2)
 
     trans = apply_matrix(tf1,shift_point) - apply_matrix(tf2,shift_point)
     if length(trans) > shift_tolerance:

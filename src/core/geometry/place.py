@@ -92,7 +92,7 @@ class Place:
         the coordinate transforms acting in right to left order producing
         a new Place object.'''
         if isinstance(p, Place):
-            return Place(_geometry.multiply_matrices_f64(self.matrix, p.matrix))
+            return Place(_geometry.multiply_matrices(self.matrix, p.matrix))
         elif isinstance(p, Places):
             return Places([self]) * p
 
@@ -277,13 +277,13 @@ class Place:
         return m34.same_transform(self.matrix, p.matrix,
                                   angle_tolerance, shift_tolerance)
 
-    def is_identity(self, tolerance=1e-6):
+    def is_identity(self, tolerance=0):
         '''Is the transform the identity transformation?  Tests if each
         of the 3 by 4 matrix elements is within the specified tolerance
         of the identity transform.
         '''
         return (self._is_identity
-                or m34.is_identity_matrix(self.matrix, tolerance))
+                or _geometry.is_identity_matrix(self.matrix, tolerance))
 
 '''
 The following routines create Place objects representing specific
@@ -412,7 +412,7 @@ def z_align(pt1, pt2):
 def transform_planes(coord_sys, planes):
     '''Planes are given by 4 vectors v defining plane v0*x + v1*y + v2*z + v3 = 0.
     Returns planes in new coordinate system.'''
-    if coord_sys.is_identity(tolerance = 0):
+    if coord_sys.is_identity():
         return planes
     cp = planes.copy()
     ct = coord_sys.transpose()
@@ -466,18 +466,18 @@ class Places:
     def array(self):
         pa = self._place_array
         if pa is None:
+            from numpy import empty, float64
+            pa = empty((len(self),3,4), float64)
             if self._place_list is not None:
-                from numpy import array, float32
-                pa = array(tuple(p.matrix for p in self._place_list), float32)
-                self._place_array = pa
+                for i,p in enumerate(self._place_list):
+                    pa[i,:,:] = p.matrix
             elif self._shift_and_scale is not None:
                 sas = self._shift_and_scale
-                from numpy import empty, float32
-                pa = empty((len(sas), 3, 4), float32)
                 pa[:,:,3] = sas[:,:3]
                 pa[:,0,0] = pa[:,1,1] = pa[:,2,2] = sas[:,3]
             elif self._opengl_array is not None:
-                pa = self._opengl_array.transpose((0,2,1))[:,:3,:]
+                pa[:] = self._opengl_array.transpose((0,2,1))[:,:3,:]
+            self._place_array = pa
         return pa
 
     def masked(self, mask):
@@ -503,12 +503,7 @@ class Places:
         '''
         m = self._opengl_array
         if m is None:
-            from numpy import empty, float32, transpose
-            n = len(self)
-            m = empty((n, 4, 4), float32)
-            m[:, :, :3] = transpose(self.array(), axes=(0, 2, 1))
-            m[:, :3, 3] = 0
-            m[:, 3, 3] = 1
+            m = _geometry.opengl_matrices(self.array(), len(self))
             self._opengl_array = m
         return m
 
@@ -535,14 +530,14 @@ class Places:
     def __mul__(self, places_or_vector):
         if isinstance(places_or_vector, Places):
             places = places_or_vector
-            pp = []
-            for p in self:
-                for p2 in places:
-                    pp.append(p*p2)
-            return Places(pp)
+            r = _geometry.multiply_matrix_lists(self.array(), len(self),
+                                                places.array(), len(places))
+            return Places(place_array = r)
         elif isinstance(places_or_vector, Place):
             place = places_or_vector
-            return Places([p*place for p in self])
+            r = _geometry.multiply_matrix_lists(self.array(), len(self),
+                                                place.matrix.reshape((1,3,4)), 1)
+            return Places(place_array = r)
         else:
             from numpy import array, float32, dot, empty
             a = self.array()

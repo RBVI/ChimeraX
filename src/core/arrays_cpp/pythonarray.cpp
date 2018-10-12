@@ -766,6 +766,20 @@ PyObject *python_double_array(int size1, int size2, double **data)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *python_double_array(int size1, int size2, int size3, double **data)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int dimensions[3] = {size1, size2, size3};
+  PyObject *a = allocate_python_array(3, dimensions, NPY_DOUBLE);
+  if (a && data)
+    *data = (double *)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
 PyObject *python_voidp_array(int size, void ***data)
 {
   initialize_numpy();       // required before using NumPy.
@@ -1027,6 +1041,31 @@ extern "C" int parse_contiguous_float_4x4_array(PyObject *arg, void *farray)
 
 // ----------------------------------------------------------------------------
 //
+extern "C" int parse_contiguous_float_n44_array(PyObject *arg, void *farray)
+{
+  Numeric_Array v;
+  bool s = array_from_python(arg, 3, Numeric_Array::Float, &v, false);
+  if (s)
+    {
+      if (v.size(1) != 4 || v.size(2) != 4)
+	{
+	  PyErr_Format(PyExc_TypeError, "Require array size n x 4 x 4, got %d by %d by %d",
+		       v.size(0), v.size(1), v.size(2));
+	  s = false;
+	}
+      else if (!v.is_contiguous())
+	{
+	  PyErr_Format(PyExc_TypeError, "Require contiguous n x 4 x 4 array");
+	  s = false;
+	}
+      else
+	*static_cast<FArray*>(farray) = static_cast<FArray>(v);
+    }
+  return (s ? 1 : 0);
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" int parse_contiguous_double_3x4_array(PyObject *arg, void *darray)
 {
   Numeric_Array v;
@@ -1042,6 +1081,31 @@ extern "C" int parse_contiguous_double_3x4_array(PyObject *arg, void *darray)
       else if (!v.is_contiguous())
 	{
 	  PyErr_Format(PyExc_TypeError, "Require contiguous 3x4 array");
+	  s = false;
+	}
+      else
+	*static_cast<DArray*>(darray) = static_cast<DArray>(v);
+    }
+  return (s ? 1 : 0);
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_contiguous_double_n34_array(PyObject *arg, void *darray)
+{
+  Numeric_Array v;
+  bool s = array_from_python(arg, 3, Numeric_Array::Double, &v, false);
+  if (s)
+    {
+      if (v.size(1) != 3 || v.size(2) != 4)
+	{
+	  PyErr_Format(PyExc_TypeError, "Require array size n x 3 x 4, got %d by %d by %d",
+		       v.size(0), v.size(1), v.size(2));
+	  s = false;
+	}
+      else if (!v.is_contiguous())
+	{
+	  PyErr_Format(PyExc_TypeError, "Require contiguous n x 3 x 4 array");
 	  s = false;
 	}
       else

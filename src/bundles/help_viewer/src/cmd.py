@@ -56,7 +56,7 @@ def help(session, topic=None, *, option=None):
             return
         if url_path in ('user', 'user/index.html'):
             with open(path) as f:
-                new_path = _generate_index(f)
+                new_path = _generate_index(f, session.logger)
                 if new_path is not None:
                     path = new_path
         url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
@@ -101,7 +101,7 @@ help_desc = CmdDesc(
 )
 
 
-def _generate_index(source):
+def _generate_index(source, logger):
     # Take contents of source, look for lists of tools and commands,
     # and insert tools and commands from bundles that come with
     # documentation
@@ -122,9 +122,9 @@ def _generate_index(source):
     for node in html.iterfind(".//div[@id]"):
         ident = node.attrib["id"]
         if ident == "clist":
-            _update_list(ts, node, 'commands', _update_commands)
+            _update_list(ts, node, 'commands', _update_commands, logger)
         elif ident == "tlist":
-            _update_list(ts, node, 'tools', _update_tools)
+            _update_list(ts, node, 'tools', _update_tools, logger)
     data = lxml.html.tostring(html)
     os.makedirs(user_dir, exist_ok=True)
     with open(path, 'wb') as f:
@@ -132,12 +132,13 @@ def _generate_index(source):
     return path
 
 
-def _update_list(toolshed, node, what, callback):
+def _update_list(toolshed, node, what, callback, logger):
     doc_ul = None    # ul node with documented stuff
     doc = OrderedDict()
     undoc_ul = None  # ul node with undocumented stuff
     undoc = OrderedDict()
     d = None
+    errors = []
     for ul in node:
         if ul.tag != 'ul':
             continue
@@ -148,7 +149,7 @@ def _update_list(toolshed, node, what, callback):
             undoc_ul = ul
             d = undoc
         else:
-            print("unexpected ul tag in %s" % what)
+            errors.append("unexpected ul tag at line %d", ul.sourceline)
             continue
         # <li><a href="commands/alias.html"><b>alias</b></a>
         # &ndash; define a command alias (shortcut or composite action)</li>
@@ -156,7 +157,7 @@ def _update_list(toolshed, node, what, callback):
         # <li><a href="tools/basicactions.html"><b>Basic Actions</b></a></li>
         for li in ul:
             if li.tag != 'li':
-                print("unexpected node %r in %s on line %d" % (li, what, li.sourceline))
+                errors.append("unexpected node %r on line %d" % (li, li.sourceline))
                 continue
             # inspect first child for name
             ab = li[0]
@@ -165,22 +166,32 @@ def _update_list(toolshed, node, what, callback):
             if ab.tag == 'b':
                 name = ab.text.strip()
                 if d == doc_ul:
-                    print("bad <b> on line", ab.sourceline)  # DEBUG
+                    errors.append("bad <b> on line", ab.sourceline)  # DEBUG
                     valid = False
             elif ab.tag == 'a':
                 href = ab.attrib["href"]
                 w, name = href.split('/')
                 if w != what:
-                    print("didn't expected %s hrefs to be to %s on line %d" % (
-                        what, href, li.sourceline))
+                    errors.append("didn't expect href to be to %s on line %d" % (
+                        href, ab.sourceline))
                 name = name.split('.')[0]
                 if d == undoc_ul:
-                    print("bad <a> on line", ab.sourceline)  # DEBUG
+                    errors.append("bad <a> on line", ab.sourceline)  # DEBUG
                     valid = False
             if not valid:
-                print("expected %s tag as first part of <li> in %s on line %d" % (
-                    "<a>" if d == doc else "<b>", what, li.sourceline))
+                errors.append("expected %s tag as first part of <li> on line %d" % (
+                    "<a>" if d == doc else "<b>", li.sourceline))
             d[name] = li
+    # TODO: only report error in daily (non-production) builds
+    if errors:
+        from html import escape
+        logger.info(
+                '<p style="margin-bottom:0">'
+                '<div style="font-size:small">'
+                f'Developer warnings in user {what} index:'
+                '<ul style="margin-top:0">'
+                + ''.join('\n<li>%s' % escape(e) for e in errors) + "</ul></div>",
+                is_html=True)
     # Currently, don't do anything with undocumented things
     callback(toolshed, doc_ul, doc)
 

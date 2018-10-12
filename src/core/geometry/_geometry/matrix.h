@@ -18,8 +18,12 @@
 
 extern "C" {
 
-PyObject *multiply_matrices_f64(PyObject *, PyObject *args, PyObject *keywds);
+PyObject *multiply_matrices(PyObject *, PyObject *args, PyObject *keywds);
+PyObject *multiply_matrix_lists(PyObject *, PyObject *args, PyObject *keywds);
+PyObject *same_matrix(PyObject *, PyObject *args, PyObject *keywds);
+PyObject *is_identity_matrix(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *opengl_matrix(PyObject *, PyObject *args, PyObject *keywds);
+PyObject *opengl_matrices(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *look_at(PyObject *, PyObject *args);
 
 }

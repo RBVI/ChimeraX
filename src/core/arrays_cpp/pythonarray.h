@@ -80,8 +80,10 @@ ARRAYS_IMEX int parse_float_3x3_array(PyObject *arg, void *f3x3);
 ARRAYS_IMEX int parse_double_3x3_array(PyObject *arg, void *d3x3);
 ARRAYS_IMEX int parse_float_3x4_array(PyObject *arg, void *f3x4);
 ARRAYS_IMEX int parse_contiguous_float_4x4_array(PyObject *arg, void *darray);
+ARRAYS_IMEX int parse_contiguous_float_n44_array(PyObject *arg, void *darray);
 ARRAYS_IMEX int parse_double_3x4_array(PyObject *arg, void *d3x4);
 ARRAYS_IMEX int parse_contiguous_double_3x4_array(PyObject *arg, void *darray);
+ARRAYS_IMEX int parse_contiguous_double_n34_array(PyObject *arg, void *darray);
 ARRAYS_IMEX int parse_writable_float_2d_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_writable_float_3d_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_int_n_array(PyObject *arg, void *iarray);
@@ -147,6 +149,7 @@ ARRAYS_IMEX PyObject *python_float_array(int size1, int size2, float **data = NU
 ARRAYS_IMEX PyObject *python_float_array(int size1, int size2, int size3, float **data = NULL);
 ARRAYS_IMEX PyObject *python_double_array(int size, double **data = NULL);
 ARRAYS_IMEX PyObject *python_double_array(int size1, int size2, double **data = NULL);
+ARRAYS_IMEX PyObject *python_double_array(int size1, int size2, int size3, double **data = NULL);
 ARRAYS_IMEX PyObject *python_voidp_array(int size, void ***data = NULL);
 ARRAYS_IMEX PyObject *python_object_array(int size, PyObject **data = NULL);
 
