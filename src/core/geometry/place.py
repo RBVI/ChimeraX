@@ -81,9 +81,16 @@ class Place:
                              and origin is None)
         self._inverse = None    # Cached inverse.
         self._m44 = None	# Cached 4x4 opengl matrix
+        
+    def copy(self):
+        return Place(self.matrix)
 
+    def set_matrix(self, matrix):
+        self.matrix[:] = matrix
+        self._matrix_changed()
+        
     def __eq__(self, p):
-        return p is self or (p.matrix == self.matrix).all()
+        return p is self or _geometry.same_matrix(p.matrix, self.matrix)
 
     def __mul__(self, p):
         '''Multiplication of a Place and a point transforms from local
@@ -144,6 +151,15 @@ class Place:
             self._inverse = Place(m34.invert_matrix(self.matrix))
         return self._inverse
 
+    def inverse_orthonormal(self, result = None):
+        '''Invert this transform assuming it is orthonormal, so the 3x3 transpose is the inverse.'''
+        if result is None:
+            result = Place(_geometry.invert_orthonormal(self.matrix))
+        else:
+            _geometry.invert_orthonormal(self.matrix, result.matrix)
+            result._matrix_changed()
+        return result
+
     def transpose(self):
         '''Return a copy of the transform with the linear part transposed.'''
         m = self.matrix.copy()
@@ -162,6 +178,18 @@ class Place:
         m[:, 3] *= s
         return Place(m)
 
+    def translate(self, shift):
+        '''Modify this Place shifting by the specified 3-vector.'''
+        self.matrix[:,3] += shift
+        self._matrix_changed()
+
+    def scale(self, scale):
+        '''Modify this transform by scaling on the left by this 3-vector.'''
+        m = self.matrix
+        for r in (0,1,2):
+            m[r,:] *= scale[r]
+        self._matrix_changed()
+        
     def opengl_matrix(self):
         '''Return a numpy 4x4 array which is the transformation matrix
         in OpenGL order (columns major).'''
@@ -325,12 +353,20 @@ def scale(s):
     return Place(((s[0], 0, 0, 0), (0, s[1], 0, 0), (0, 0, s[2], 0)))
 
 
-def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None):
+def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None, result=None):
     '''Return a Place object with the specified z axis.  Any rotation
     about that z axis is allowed, unless a vector ydir is given in which
     case the y axis will be in the plane define by the z axis and ydir.
     '''
-    return Place(axes=m34.orthonormal_frame(zaxis, ydir, xdir), origin=origin)
+    axes = m34.orthonormal_frame(zaxis, ydir, xdir)
+    if result is None:
+        result = Place(axes=axes, origin=origin)
+    else:
+        o0,o1,o2 = (0,0,0) if origin is None else origin
+        result.set_matrix(((axes[0][0], axes[1][0], axes[2][0], o0),
+                           (axes[0][1], axes[1][1], axes[2][1], o1),
+                           (axes[0][2], axes[1][2], axes[2][2], o2)))
+    return result
 
 
 def skew_axes(cell_angles):
@@ -352,9 +388,13 @@ def cross_product(u):
                   (-u[1], u[0], 0, 0)))
 
 
+_identity_place = None
 def identity():
     '''Return the identity transform.'''
-    return Place()
+    global _identity_place
+    if _identity_place is None:
+        _identity_place = Place()
+    return _identity_place
 
 def product(plist):
     '''Product of a sequence of Place transforms.'''
@@ -445,7 +485,7 @@ class Places:
                 or opengl_array is not None):
             pl = None
         elif places is None:
-            pl = [identity()]
+            pl = [Place()]
         else:
             pl = list(places)
         self._place_list = pl
