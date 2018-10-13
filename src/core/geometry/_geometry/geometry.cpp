@@ -86,6 +86,8 @@ static struct PyMethodDef geometry_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("opengl_matrices"), (PyCFunction)opengl_matrices,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("invert_orthonormal"), (PyCFunction)invert_orthonormal,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
