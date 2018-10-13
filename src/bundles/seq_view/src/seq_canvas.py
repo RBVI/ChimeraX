@@ -68,7 +68,15 @@ class SeqCanvas:
         ms_brush.setColor(ms_color)
         self.main_scene.setBackgroundBrush(ms_color)
         """
-        self.main_view = QGraphicsView(self.main_scene)
+        class CustomView(QGraphicsView):
+            def __init__(self, scene, resize_cb=self.viewport_resized):
+                self.__resize_cb = resize_cb
+                QGraphicsView.__init__(self, scene)
+
+            def resizeEvent(self, event):
+                super().resizeEvent(event)
+                self.__resize_cb()
+        self.main_view = CustomView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.main_view.setMouseTracking(True)
         main_vsb = self.main_view.verticalScrollBar()
@@ -170,7 +178,6 @@ class SeqCanvas:
         #layout.addWidget(self._vdivider)
         layout.addWidget(self.main_view, stretch=1)
         parent.setLayout(layout)
-        parent.resizeEvent = self.resizeEvent
         self.label_view.hide()
         #self._vdivider.hide()
         self.main_view.show()
@@ -221,7 +228,6 @@ class SeqCanvas:
         self._resize_timer.stop()
         self._reformat()
         self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
-        self.label_scene.setSceneRect(self.label_scene.itemsBoundingRect())
 
 
     """TODO
@@ -440,7 +446,6 @@ class SeqCanvas:
 
     def _configureCB(self, e):
         # size change; scrollbars?
-        import sys
         if hasattr(self, "_configureWait") and self._configureWait:
             self.mainCanvas.after_cancel(self._configureWait)
         # Windows/Mac can get into a configure loop somehow unless we
@@ -773,7 +778,7 @@ class SeqCanvas:
             lwm = getattr(self.sv.settings, prefix + "line_width_multiple")
             lw = lwm
             try_lw = lw + lwm
-            win_width = self.sv.tool_window.ui_area.size().width()
+            win_width = self.main_view.viewport().size().width()
             aln_len = len(self.alignment.seqs[0])
             while try_lw - lwm < aln_len \
             and self._line_width_fits(win_width, min(aln_len, try_lw)):
@@ -997,6 +1002,8 @@ class SeqCanvas:
                 self.lead_block.treeNodeMap = {'active': activeNode }
         """
         self.sv.region_browser.redraw_regions(cull_empty=cull_empty)
+        self.main_scene.update()
+        self.label_scene.update()
         """TODO
         if len(self.alignment.seqs) != len(self._checkPoints[0]):
             self._checkPoint(fromScratch=True)
@@ -1036,11 +1043,6 @@ class SeqCanvas:
                 self.recolor(self.sv.associations[m])
     """
     
-    def resizeEvent(self, event):
-        self._resize_timer.stop()
-        if self.line_width != self.line_width_from_settings():
-            self._resize_timer.start()
-
     """TODO
     def _resizescrollregion(self):
         left, top, right, bottom = self.mainCanvas.bbox("all")
@@ -1338,6 +1340,11 @@ class SeqCanvas:
         self._clustalXcache[offset] = consensusChars
         return consensusChars
         """
+
+    def viewport_resized(self):
+        self._resize_timer.stop()
+        if self.line_width != self.line_width_from_settings():
+            self._resize_timer.start()
 
     def wrap_okay(self):
         return _wrap_okay(len(self.alignment.seqs), self.sv.settings)

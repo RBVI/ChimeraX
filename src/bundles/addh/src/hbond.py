@@ -45,8 +45,8 @@ def add_hydrogens(session, atom_list, *args):
         # Second, it would be a nightmare to compute all the positions
         # before adding any of the hydrogens (so that neighbor lists
         # are correct during the computation)
-        logger.error("Adding H-bond-preserving hydrogens to trajectories not supported.")
-        return
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Adding H-bond-preserving hydrogens to trajectories not supported.")
     if debug:
         print("here 2")
     global type_info_for_atom, naming_schemas, hydrogen_totals, \

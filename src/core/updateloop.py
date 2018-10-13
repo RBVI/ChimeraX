@@ -82,7 +82,7 @@ class UpdateLoop:
                     self.block_redraw()
                     msg = 'An error occurred in drawing the scene. Redrawing graphics is now stopped to avoid a continuous stream of error messages. To restart graphics use the command "graphics restart" after changing the settings that caused the error.'
                     import traceback
-                    session.logger.error(msg + '\n\n' + traceback.format_exc())
+                    session.logger.bug(msg + '\n\n' + traceback.format_exc())
                 session.triggers.activate_trigger('frame drawn', self)
         finally:
             self.unblock_redraw()

@@ -154,13 +154,11 @@ class CommandLine(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        menu.kludge_refs = []
         from PyQt5.QtWidgets import QAction
-        filter_action = QAction("Typed commands only")
+        filter_action = QAction("Typed commands only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.settings.typed_only)
         filter_action.toggled.connect(lambda arg, f=self._set_typed_only: f(arg))
-        menu.kludge_refs.append(filter_action)
         menu.addAction(filter_action)
 
     def on_combobox(self, event):

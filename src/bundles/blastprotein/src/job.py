@@ -77,7 +77,7 @@ class BlastProteinJob(OpalJob):
                 self.fail_callback(self, err)
             else:
                 if err:
-                    logger.error("Standard error:\n" + err.decode("utf-8"))
+                    logger.bug("Standard error:\n" + err.decode("utf-8"))
         else:
             from .blastp_parser import Parser
             results = self.get_file(self.RESULTS_FILENAME).decode("utf-8")
@@ -87,7 +87,7 @@ class BlastProteinJob(OpalJob):
                 if self.fail_callback:
                     self.fail_callback(self, str(e))
                 else:
-                    logger.error("BLAST output parsing error: %s" % str(e))
+                    logger.bug("BLAST output parsing error: %s" % str(e))
             else:
                 if self.finish_callback:
                     self.finish_callback(p, self)

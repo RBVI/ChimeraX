@@ -486,25 +486,20 @@ class SequenceViewer(ToolInstance):
         # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
         save_as_menu = menu.addMenu("Save as")
-        save_as_menu.kludge_refs = []
         from chimerax.core import io
         from chimerax.core.commands import run, quote_if_necessary
         for fmt in io.formats(open=False):
             if fmt.category == "Sequence alignment":
-                action = QAction(fmt.name)
-                save_as_menu.kludge_refs.append(action)
+                action = QAction(fmt.name, save_as_menu)
                 action.triggered.connect(lambda arg, fmt=fmt:
                     run(self.session, "save browse format %s alignment %s"
                     % (fmt.name, quote_if_necessary(self.alignment.ident))))
                 save_as_menu.addAction(action)
 
-        menu.kludge_refs = []
-        settings_action = QAction("Settings...")
-        menu.kludge_refs.append(settings_action)
+        settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
-        scf_action = QAction("Load sequence coloring file...")
-        menu.kludge_refs.append(scf_action)
+        scf_action = QAction("Load sequence coloring file...", menu)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
         menu.addAction(scf_action)
 
