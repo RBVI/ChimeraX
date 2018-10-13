@@ -1046,10 +1046,13 @@ class Render:
     def start_depth_render(self, framebuffer, texture_unit, center, radius, size):
 
         # Set projection matrix to be orthographic and span all models.
-        from ..geometry import scale, translation
-        pm = (scale((1 / radius, 1 / radius, -1 / radius))
-              * translation((0, 0, radius)))  # orthographic projection along z
-        self.set_projection_matrix(pm.opengl_matrix())
+        rinv = 1/radius
+        from numpy import array, float64
+        pm = array(((rinv, 0, 0, 0),
+                    (0, rinv, 0, 0),
+                    (0, 0, -rinv, 0),
+                    (0, 0, -1, 1)), float64)  # orthographic projection along z
+        self.set_projection_matrix(pm)
 
         # Make a framebuffer for depth texture rendering
         fb = framebuffer
@@ -1212,7 +1215,8 @@ class Shadow:
         fb = r.pop_framebuffer()
         return fb.depth_texture
 
-    def _shadow_transforms(self, light_direction, center, radius, depth_bias=0.005):
+    def _shadow_transforms(self, light_direction, center, radius, depth_bias=0.005,
+                           out_lvinv = None, out_stf = None):
 
         r = self._render
         if r.recording_opengl:
@@ -1220,28 +1224,35 @@ class Shadow:
             s = gllist.ShadowMatrixFunc(r, light_direction, center, radius, depth_bias)
             return (s.lvinv, s.stf)
 
-        # Projection matrix, orthographic along z
-        from ..geometry import translation, scale, orthonormal_frame
-        pm = scale((1/radius, 1/radius, -1/radius)) * translation((0, 0, radius))
-
         # Compute the view matrix looking along the light direction.
-        from ..geometry import normalize_vector
+        from ..geometry import normalize_vector, orthonormal_frame
         ld = normalize_vector(light_direction)
         # Light view frame:
-        lv = translation(center - radius * ld) * orthonormal_frame(-ld)
-        lvinv = lv.inverse()  # Scene to light view coordinates
+        if out_lvinv is None:
+            lvinv = orthonormal_frame(-ld)
+        else:
+            lvinv = out_lvinv
+            orthonormal_frame(-ld, result = lvinv)
+        lvinv.translate(center - radius * ld)
+        lvinv.inverse_orthonormal(result = lvinv)  # Scene to light view coordinates
 
-        # Convert (-1, 1) normalized device coords to (0, 1) texture coords.
-        ntf = translation((0.5, 0.5, 0.5 - depth_bias)) * scale(0.5)
-        stf = ntf * pm * lvinv               # Scene to shadowmap coordinates
-
+        # Project orthographic along z to (0, 1) texture coords.
+        if out_stf is None:
+            stf = lvinv.copy()
+        else:
+            stf = out_stf
+            stf.set_matrix(lvinv.matrix)
+        stf.scale((0.5/radius, 0.5/radius, -0.5/radius))
+        stf.translate((0.5, 0.5, -depth_bias))
+        
         fb = r.current_framebuffer()
         w, h = fb.width, fb.height
         if r.current_viewport != (0, 0, w, h):
             # Using a subregion of shadow map to handle multiple shadows in
             # one texture.  Map scene coordinates to subtexture.
             x, y, vw, vh = r.current_viewport
-            stf = translation((x / w, y / w, 0)) * scale((vw / w, vh / h, 1)) * stf
+            stf.scale((vw / w, vh / h, 1))
+            stf.translate((x / w, y / w, 0))
 
         return lvinv, stf
 
@@ -1319,22 +1330,29 @@ class Multishadow:
         self._start_rendering_multishadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
-        mstf_list = []
+
         nl = len(light_directions)
+        from numpy import empty, float64
+        mstf_array = empty((nl,3,4), float64)
         from .drawing import draw_depth
         from math import ceil, sqrt
         d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
         s = size // d               # Subtexture size.
         bias = lp.multishadow_depth_bias
+
+        from ..geometry import Place
+        lvinv = Place()
+        tf = Place()
         for l in range(nl):
             x, y = (l % d), (l // d)
             r.set_viewport(x * s, y * s, s, s)
-            lvinv, tf = r.shadow._shadow_transforms(light_directions[l], center, radius, bias)
+            r.shadow._shadow_transforms(light_directions[l], center, radius, bias,
+                                        out_lvinv = lvinv, out_stf = tf)
             r.set_view_matrix(lvinv)
-            mstf_list.append(tf)
+            mstf_array[l,:,:] = tf.matrix
             draw_depth(r, sdrawings, opaque_only = not mat.transparent_cast_shadows)
         from ..geometry import Places
-        mstf = Places(mstf_list)
+        mstf = Places(place_array = mstf_array)
 
         self._finish_rendering_multishadowmap()
 
