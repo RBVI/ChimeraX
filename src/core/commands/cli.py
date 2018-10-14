@@ -2610,9 +2610,10 @@ class Command:
                 msg += escape(cmd_text)
             else:
                 cargs = cmd_text[len(self.command_name):]
-                msg += '<div class="as_doc"><a href="%s">%s</a>%s</div>' % (
+                msg += '<div class="cxcmd_as_doc"><a href="%s">%s</a>%s</div>' % (
                     ci.url, escape(self.command_name), escape(cargs))
-                msg += '<div class="as_cmd"><a href="cxcmd:%s">%s</a></div>' % (escape(cmd_text), escape(cmd_text))
+                text = escape(cmd_text)
+                msg += '<div class="cxcmd_as_cmd"><a href="cxcmd:%s">%s</a></div>' % (text, text)
             msg += '</div>'
             session.logger.info(msg, is_html=True, add_newline=False)
 

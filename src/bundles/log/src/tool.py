@@ -26,18 +26,18 @@ a.no_underline {
 }
 """
 cxcmd_as_doc_css = """
-.as_doc {
+.cxcmd_as_doc {
     display: inline;
 }
-.as_cmd {
+.cxcmd_as_cmd {
     display: none;
 }
 """
 cxcmd_as_cmd_css = """
-.as_doc {
+.cxcmd_as_doc {
     display: none;
 }
-.as_cmd {
+.cxcmd_as_cmd {
     display: inline;
 }
 """
@@ -132,7 +132,8 @@ class Log(ToolInstance, HtmlLog):
         ToolInstance.__init__(self, session, tool_name)
         self.warning_shows_dialog = False
         self.error_shows_dialog = True
-        self.executable_cmd_links = False
+        from .settings import LogSettings
+        self.settings = LogSettings(session, tool_name)
         from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
@@ -150,7 +151,7 @@ class Log(ToolInstance, HtmlLog):
                 from PyQt5.QtWidgets import QAction
                 link_action = QAction("Executable command links", menu)
                 link_action.setCheckable(True)
-                link_action.setChecked(self.tool_instance.executable_cmd_links)
+                link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
                 link_action.triggered.connect(self.tool_instance.cm_set_cmd_links)
                 menu.addAction(link_action)
         self.tool_window = LogToolWindow(self, close_destroys = False)
@@ -241,7 +242,7 @@ class Log(ToolInstance, HtmlLog):
         self.show_page_source()
 
     def cm_set_cmd_links(self, checked):
-        self.executable_cmd_links = checked
+        self.settings.exec_cmd_links = checked
         self._show()
 
     def _add_report_bug_button(self):
@@ -352,7 +353,7 @@ class Log(ToolInstance, HtmlLog):
     def _show(self):
         html = "<style>%s%s</style>\n<body onload=\"window.scrollTo(0, document.body.scrollHeight);\">%s</body>" % (
             cxcmd_css,
-            cxcmd_as_cmd_css if self.executable_cmd_links else cxcmd_as_doc_css,
+            cxcmd_as_cmd_css if self.settings.exec_cmd_links else cxcmd_as_doc_css,
             self.page_source
         )
         lw = self.log_window
@@ -409,7 +410,7 @@ class Log(ToolInstance, HtmlLog):
                     "%s"
                     "</style>\n" % (
                         self._get_cxcmd_script(), cxcmd_css,
-                        cxcmd_as_cmd_css if self.executable_cmd_links else cxcmd_as_doc_css,
+                        cxcmd_as_cmd_css if self.settings.exec_cmd_links else cxcmd_as_doc_css,
                     )
             )
             f.write(self.page_source)
