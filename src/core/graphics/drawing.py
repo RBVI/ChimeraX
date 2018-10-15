@@ -442,7 +442,9 @@ class Drawing:
 
         p = self.get_positions(displayed_only)
         for d in reversed(self.drawing_lineage[:-1]):
-            p = d.get_positions(displayed_only) * p
+            dp = d.get_positions(displayed_only)
+            if not dp.is_identity():
+                p = dp * p
         if displayed_only:
             self._displayed_scene_positions = p
         return p
@@ -925,7 +927,7 @@ class Drawing:
             p = self._first_intercept_excluding_children(mxyz1, mxyz2)
             if p and (pclosest is None or p.distance < pclosest.distance):
                 pclosest = p
-        p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude)
+        p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude=exclude)
         if p and (pclosest is None or p.distance < pclosest.distance):
             pclosest = p
         return pclosest
@@ -941,7 +943,7 @@ class Drawing:
         for d in child_drawings:
             if d.display and (exclude is None or not exclude(d)):
                 for cxyz1, cxyz2 in pos:
-                    p = d.first_intercept(cxyz1, cxyz2, exclude)
+                    p = d.first_intercept(cxyz1, cxyz2, exclude=exclude)
                     if p and (pclosest is None or p.distance < pclosest.distance):
                         pclosest = p
         return pclosest

@@ -854,7 +854,9 @@ class Structure(Model, StructureData):
             m = residues[0].structure
             if m.ribbon_tether_scale > 0 and any(tethered):
                 tp = p.new_drawing(str(self) + " ribbon_tethers")
-                tp.skip_bounds = True
+                tp.skip_bounds = True   # Don't include in bounds calculation. Optimization.
+                tp.no_cofr = True	# Don't use for finding center of rotation. Optimization.
+                tp.pickable = False	# Don't allow mouse picking.
                 nc = m.ribbon_tether_sides
                 from chimerax import surface
                 if m.ribbon_tether_shape == self.TETHER_CYLINDER:
@@ -1580,7 +1582,7 @@ class Structure(Model, StructureData):
         for d in self.child_drawings():
             if not d.display or (exclude is not None and exclude(d)):
                 continue
-            p = d.first_intercept(xyz1, xyz2)
+            p = d.first_intercept(xyz1, xyz2, exclude=exclude)
             if p is None:
                 continue
             if isinstance(p, PickedAtom):

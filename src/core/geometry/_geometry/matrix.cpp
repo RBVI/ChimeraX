@@ -365,3 +365,51 @@ extern "C" PyObject *is_identity_matrix(PyObject *, PyObject *args, PyObject *ke
   bool id = is_identity_matrix(m.values(), tolerance);
   return python_bool(id);
 }
+
+// ----------------------------------------------------------------------------
+//
+static void invert_orthonormal(double *m, double *result)
+{
+  double *r = result;
+  double s0 = m[0]*m[3] + m[4]*m[7] + m[8]*m[11];
+  double s1 = m[1]*m[3] + m[5]*m[7] + m[9]*m[11];
+  double s2 = m[2]*m[3] + m[6]*m[7] + m[10]*m[11];
+  // Use temporaries in case result is the same array as m, ie inverting in place.
+  double m01 = m[1], m02 = m[2], m12 = m[6];
+  // 3x3 transposed is the inverse.
+  r[0] = m[0]; r[1] = m[4]; r[2] = m[8]; r[3] = -s0;
+  r[4] = m01; r[5] = m[5]; r[6] = m[9]; r[7] = -s1;
+  r[8] = m02; r[9] = m12; r[10] = m[10]; r[11] = -s2;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *invert_orthonormal(PyObject *, PyObject *args, PyObject *keywds)
+{
+  DArray m;
+  PyObject *py_result = NULL;
+  const char *kwlist[] = {"matrix", "result", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&|O"),
+				   (char **)kwlist,
+				   parse_contiguous_double_3x4_array, &m,
+				   &py_result))
+    return NULL;
+
+  if (py_result == NULL)
+    {
+      double *r;
+      py_result = python_double_array(3, 4, &r);
+      invert_orthonormal(m.values(), r);
+    }
+  else
+    {
+      DArray result;
+      if (!parse_contiguous_double_3x4_array(py_result, &result))
+	return NULL;
+      invert_orthonormal(m.values(), result.values());
+    }
+
+  Py_INCREF(py_result);
+  return py_result;
+}

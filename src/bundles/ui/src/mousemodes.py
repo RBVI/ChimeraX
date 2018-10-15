@@ -216,6 +216,7 @@ class MouseModes:
 
         # Mouse pause parameters
         self._last_mouse_time = None
+        self._paused = False
         self._mouse_pause_interval = 0.5         # seconds
         self._mouse_pause_position = None
 
@@ -298,20 +299,20 @@ class MouseModes:
             return      # Cursor outside of graphics window
         from time import time
         t = time()
-        mp = self._mouse_pause_position
-        if cp == mp:
+        moved = (cp != self._mouse_pause_position)
+        if moved:
+            self._mouse_pause_position = cp
+            self._last_mouse_time = t
+            if self._paused:
+                # Moved after pausing
+                self._paused = False
+                self._mouse_move_after_pause()
+        elif not self._paused:
+            # Not moving but not paused for enough time yet.
             lt = self._last_mouse_time
             if lt and t >= lt + self._mouse_pause_interval:
                 self._mouse_pause()
-                self._mouse_pause_position = None
-                self._last_mouse_time = None
-            return
-        self._mouse_pause_position = cp
-        if mp:
-            # Require mouse move before setting timer to avoid
-            # repeated mouse pause callbacks at same point.
-            self._last_mouse_time = t
-            self._mouse_move_after_pause()
+                self._paused = True
 
     def remove_binding(self, button, modifiers):
         '''

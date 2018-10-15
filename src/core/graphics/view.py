@@ -42,6 +42,8 @@ class View:
         # Create camera
         from .camera import MonoCamera
         self._camera = MonoCamera()
+        from ..geometry import Place
+        self._view_matrix = Place()		# Temporary used during rendering
 
         # Clip planes
         self.clip_planes = ClipPlanes()
@@ -199,7 +201,8 @@ class View:
                 cp = gllist.ViewMatrixFunc(self, vnum)
             else:
                 cp = camera.get_position(vnum)
-            r.set_view_matrix(cp.inverse())
+            vm = cp.inverse_orthonormal(result = self._view_matrix)
+            r.set_view_matrix(vm)
             if shadow:
                 r.shadow.set_shadow_view(cp)
             if multishadow:
@@ -519,7 +522,7 @@ class View:
         else:
             sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
             from ..geometry import bounds
-            b = bounds.union_bounds(d.bounds() for d in sdrawings)
+            b = bounds.union_bounds(d.bounds() for d in sdrawings if not getattr(d, 'skip_bounds', False))
             # TODO: Need to transform drawing bounds if they have different positions.
             #   Check all places I use union_bounds() for this transform error.
         center = None if b is None else b.center()
@@ -838,8 +841,8 @@ class View:
             center = b.center()
         else:
             center = self.center_of_rotation
-        from ..geometry import place
-        r = place.rotation(axis, angle, center)
+        from ..geometry import rotation
+        r = rotation(axis, angle, center)
         self.move(r, drawings)
 
     def translate(self, shift, drawings=None):
@@ -849,8 +852,8 @@ class View:
             return
         if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
-        from ..geometry import place
-        t = place.translation(shift)
+        from ..geometry import translation
+        t = translation(shift)
         self.move(t, drawings)
 
     def move(self, tf, drawings=None):

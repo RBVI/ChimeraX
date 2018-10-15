@@ -24,6 +24,7 @@ PyObject *same_matrix(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *is_identity_matrix(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *opengl_matrix(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *opengl_matrices(PyObject *, PyObject *args, PyObject *keywds);
+PyObject *invert_orthonormal(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *look_at(PyObject *, PyObject *args);
 
 }

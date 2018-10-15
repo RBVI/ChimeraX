@@ -2605,15 +2605,16 @@ class Command:
         else:
             from html import escape
             ci = self._ci
-            msg = '<div class="cxcmd">'
+            msg = '<div class="cxcmd"><div class="cxcmd_as_doc">'
             if ci is None or ci.url is None:
                 msg += escape(cmd_text)
             else:
                 cargs = cmd_text[len(self.command_name):]
                 msg += '<a href="%s">%s</a>%s' % (
                     ci.url, escape(self.command_name), escape(cargs))
-                msg += ' <a title="rerun command" class="no_underline" style="float:right" href="cxcmd:%s">\N{DOWNWARDS ARROW WITH CORNER LEFTWARDS}</a>' % escape(cmd_text)
-            msg += '</div>'
+            text = escape(cmd_text)
+            msg += '</div><div class="cxcmd_as_cmd"><a href="cxcmd:%s">%s</a></div></div>' % (
+                text, text)
             session.logger.info(msg, is_html=True, add_newline=False)
 
     def log_error(self, msg):
