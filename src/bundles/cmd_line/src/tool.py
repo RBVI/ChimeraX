@@ -241,6 +241,7 @@ class CommandLine(ToolInstance):
 
     def _command_started_cb(self, trig_name, cmd_text):
         self.history_dialog.add(cmd_text, typed=self._just_typed_command)
+        self.text.lineEdit().selectAll()
         self._just_typed_command = False
 
     def _set_typed_only(self, typed_only):
@@ -287,9 +288,11 @@ class _HistoryDialog:
         self._suspend_handler = False
 
     def add(self, item, *, typed=False):
-        self.listbox.addItem(item)
-        while self.listbox.count() > self.NUM_REMEMBERED:
-            self.listbox.takeItem(0)
+        if len(self._history) >= self.NUM_REMEMBERED:
+            if not self.typed_only or self._history[0][1]:
+                self.listbox.takeItem(0)
+        if typed or not self.typed_only:
+            self.listbox.addItem(item)
         self._history.enqueue((item, typed))
         self.listbox.clearSelection()
         self.listbox.setCurrentRow(len(self.history()) - 1)
