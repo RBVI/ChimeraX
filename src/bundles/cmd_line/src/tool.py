@@ -262,6 +262,7 @@ class _HistoryDialog:
 
         self.window = controller.tool_window.create_child_window(
             "Command History", close_destroys=False)
+        self.window.fill_context_menu = self.fill_context_menu
 
         parent = self.window.ui_area
         from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
@@ -414,6 +415,16 @@ class _HistoryDialog:
         if orig_text == new_text:
             self.down(shifted)
         self._suspend_handler = False
+
+    def fill_context_menu(self, menu, x, y):
+        # avoid having actions destroyed when this routine returns
+        # by stowing a reference in the menu itself
+        from PyQt5.QtWidgets import QAction
+        filter_action = QAction("Typed commands only", menu)
+        filter_action.setCheckable(True)
+        filter_action.setChecked(self.controller.settings.typed_only)
+        filter_action.toggled.connect(lambda arg, f=self.controller._set_typed_only: f(arg))
+        menu.addAction(filter_action)
 
     def on_append_change(self, event):
         self.overwrite_disclaimer.Show(self.save_append_CheckBox.Value)
