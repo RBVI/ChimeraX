@@ -38,27 +38,16 @@ See also:
 Sometimes it is necessary to click in the graphics window or
 command line to take back focus from some other dialog so that command 
 keystrokes will register.
-</p><p>
 When the focus is in the command line or graphics window,
-<b>Ctrl-u</b> erases the command line contents,
-<b>Ctrl-k</b> erases from the cursor position to the end of line,
-and the command history can be navigated with
-<b>Ctrl-p</b> (previous command) and <b>Ctrl-n</b> (next command).
-Additionally pressing <b>Shift</b> indicates navigating to
-the next/previous occurrence of the same command name
-(initial set of characters)
-instead of to whatever command is immediately adjacent in the history.
-Navigation skips commands for which the entire line is identical.
-When the mouse focus is in the command line (not the graphics window),
-another way to navigate the history is with
-the keyboard <b>up arrow</b> and <b>down arrow</b>,
-alone or in combination with <b>Shift</b>.
+the history can be navigated and commands edited as described 
+<a href="#navigation">below</a>.
 </p><p>
 Dragging and dropping the icon for a file or directory into the command line
 substitutes the corresponding pathname text.
 </p><p>
 The inverted triangle to the right of the command line marks a pulldown menu.
 The menu includes:
+</p>
 <ul>
 <li>the most recently entered commands
 <li><b>Command History...</b> for showing the full
@@ -72,32 +61,67 @@ remove all but one occurrence from the history
 <h3><a href="#top" class="nounder">&larr;</a>
 Command History</h3>
 <p>
-The <b>Command History</b> lists previously used commands.
+Previously used commands are remembered in the <b>Command History</b>.
 The commands can be re-executed and/or saved to a file.
-The <b>Command History</b> can be opened from the pulldown menu marked by 
-a triangle or chevron
-to the right of the <a href="#top"><b>Command Line Interface</b></a>.
+Whether the history should include <b>Typed commands only</b>
+is a <a href="../preferences.html#other">preference</a>
+that can be set using the <a href="../window.html#context-menu">context menu</a>
+in the command line or history panel.
+Typed commands are those explicitly entered by the user
+rather than generated automatically 
+by clicking <a href="../index.html#toolbars">toolbar</a> icons,
+using the <a href="filehistory.html"><b>File History</b></a> to open data,
+<i>etc.</i>
 See also: <a href="log.html"><b>Log</b></a>
 </p><p>
-In the <b>Command History</b>,
-individual commands or blocks of commands may be
+The <b>Command History</b> panel can be opened from the pulldown menu marked by 
+a triangle or chevron
+to the right of the <a href="#top"><b>Command Line Interface</b></a>.
+</p><p>
+In the <b>Command History</b> panel,
+double-clicking an individual command executes that command.
+Individual commands or blocks of commands may be
 <b><i>chosen</i></b> (highlighted) using the left mouse button.
 <b>Ctrl</b>-click adds to an existing choice rather than replacing it.
 To choose a block of commands without dragging,
 click on the first (or last) and then <b>Shift</b>-click on the
-last (or first) in the desired block.
-</p><p>
-<b>Record...</b> brings up a dialog for saving or appending commands to a 
+last (or first) in the desired block. 
+Some of the buttons act only upon the chosen command(s):
+</p><ul>
+<b>Save...</b> brings up a dialog for saving or appending commands to a 
 text file. The chosen commands or all commands in the history can be saved.
 The filename suffix <b>.cxc</b> is recommended for
 <a href="../commands/usageconventions.html#cxc-files">ChimeraX command 
 files</a>.
-</p><p>
-<b>Execute</b> executes the chosen commands in the order shown;
-double-clicking an individual command executes that command.
-<b>Delete</b> removes the chosen commands from the history.
-<b>Copy</b> copies the chosen commands as plain text that can be
-pasted into another application window.
+<li><b>Execute</b> executes the chosen commands in the order shown
+<li><b>Delete</b> removes the chosen commands from the history
+<li><b>Copy</b> copies the chosen commands as plain text that can be
+pasted into another application window
+<li><b>Help</b> shows documentation
+in the <a href="browser.html"><b>Help Viewer</b></a>
+</ul>
+<a name="navigation"></a>
+<p>
+The command history can also be navigated directly in the command line
+regardless of whether the <b>Command History</b> panel is shown.
+With the focus in the command line or graphics window:
+</p>
+<ul>
+<li><b>Ctrl-p</b> - previous command
+<li><b>Ctrl-n</b> - next command
+<li><b>Shift-Ctrl-p</b> - previous use of same command
+(initial set of characters)
+<li><b>Shift-Ctrl-n</b> - next use of same command
+(initial set of characters)
+<li><b>Ctrl-u</b> - erase command-line contents
+<li><b>Ctrl-k</b> - erase from the cursor position to the end of line
+</ul>
+<p>
+Navigation skips commands for which the entire line is identical.
+When the mouse focus is in the command line (not the graphics window),
+another way to navigate the history is with
+the keyboard <b>up arrow</b> and <b>down arrow</b>,
+alone or in combination with <b>Shift</b>.
 </p><p>
 The history is stored in a file in a platform-dependent standard location
 and carries over between different ChimeraX sessions.
@@ -109,5 +133,5 @@ The location can be reported with command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2018</address>
+October 2018</address>
 </body></html>
