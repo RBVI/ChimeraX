@@ -63,7 +63,7 @@ class SettingsTool:
 
     def _setting_change_cb(self, category, opt):
         opt.set_attribute(self.sv.settings)
-        from .settings import APPEARANCE, REGIONS
+        from .settings import APPEARANCE, REGIONS, HEADERS
         if category == APPEARANCE:
             self.sv.seq_canvas._reformat()
         elif category == REGIONS:
@@ -101,3 +101,10 @@ class SettingsTool:
                             region.border_rgba = color
                         else:
                             region.interior_rgba = color
+        elif category == HEADERS:
+            if opt.attr_name.endswith("consensus_style"):
+                from .consensus import Consensus
+                self.sv.refresh_headers(header_class=Consensus)
+            elif opt.attr_name.endswith("conservation_style"):
+                from .conservation import Conservation
+                self.sv.refresh_headers(header_class=Conservation)

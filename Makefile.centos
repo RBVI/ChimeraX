@@ -1,23 +1,32 @@
 # should be run in directory with source snapshot with singularity
 #
 # For example:
-# 	singularity exec centos-7.img make centos-install
+# 	singularity exec centos-7.img make -f Makefile.centos daily-package CENTOS=7
 #
 TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
 include $(TOP)/mk/config.make
 
 install:
-	. /opt/rh/devtoolset-3/enable; env HOME=`pwd` $(MAKE) install CENTOS_DIST=1
+	# assume ". /opt/rh/devtoolset-3/enable" has been done already
+	env HOME=`pwd` $(MAKE) install CENTOS_DIST=1
 
-package:
+package: centos
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS)
 
-daily-package:
+daily-package: centos
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) daily
 
-candidate-package:
+candidate-package: centos
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) candidate
+
+centos:
+ifeq (,$(CENTOS))
+	$(error "Set the CENTOS version variable on the command line")
+	@exit 1
+else
+	@exit 0
+endif
 
 clean:
 	rm -rf .rpmmacros rpmbuild

@@ -68,7 +68,15 @@ class SeqCanvas:
         ms_brush.setColor(ms_color)
         self.main_scene.setBackgroundBrush(ms_color)
         """
-        self.main_view = QGraphicsView(self.main_scene)
+        class CustomView(QGraphicsView):
+            def __init__(self, scene, resize_cb=self.viewport_resized):
+                self.__resize_cb = resize_cb
+                QGraphicsView.__init__(self, scene)
+
+            def resizeEvent(self, event):
+                super().resizeEvent(event)
+                self.__resize_cb()
+        self.main_view = CustomView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.main_view.setMouseTracking(True)
         main_vsb = self.main_view.verticalScrollBar()
@@ -170,7 +178,6 @@ class SeqCanvas:
         #layout.addWidget(self._vdivider)
         layout.addWidget(self.main_view, stretch=1)
         parent.setLayout(layout)
-        parent.resizeEvent = self.resizeEvent
         self.label_view.hide()
         #self._vdivider.hide()
         self.main_view.show()
@@ -221,7 +228,6 @@ class SeqCanvas:
         self._resize_timer.stop()
         self._reformat()
         self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
-        self.label_scene.setSceneRect(self.label_scene.itemsBoundingRect())
 
 
     """TODO
@@ -440,7 +446,6 @@ class SeqCanvas:
 
     def _configureCB(self, e):
         # size change; scrollbars?
-        import sys
         if hasattr(self, "_configureWait") and self._configureWait:
             self.mainCanvas.after_cancel(self._configureWait)
         # Windows/Mac can get into a configure loop somehow unless we
@@ -649,21 +654,13 @@ class SeqCanvas:
         """
         
     def layout_alignment(self):
-        """
-        self.conservation = Conservation(self.sv, eval_while_hidden=True)
-        """
         from .consensus import Consensus
-        self.headers = [Consensus(self.sv)]
-        """
-        self.headers = [self.consensus, self.conservation]
-        """
+        from .conservation import Conservation
+        self.headers = [Consensus(self.sv), Conservation(self.sv, eval_while_hidden=True)]
         startup_headers = self.sv.settings.startup_headers
         use_disp_default = startup_headers == None
         if use_disp_default:
-            startup_headers = set([Consensus.name])
-            """
             startup_headers = set([Consensus.name, Conservation.name])
-            """
         from .header_sequence import registered_headers, DynamicStructureHeaderSequence
         """
         for seq, defaultOn in registeredHeaders.values():
@@ -781,7 +778,7 @@ class SeqCanvas:
             lwm = getattr(self.sv.settings, prefix + "line_width_multiple")
             lw = lwm
             try_lw = lw + lwm
-            win_width = self.sv.tool_window.ui_area.size().width()
+            win_width = self.main_view.viewport().size().width()
             aln_len = len(self.alignment.seqs[0])
             while try_lw - lwm < aln_len \
             and self._line_width_fits(win_width, min(aln_len, try_lw)):
@@ -1005,6 +1002,8 @@ class SeqCanvas:
                 self.lead_block.treeNodeMap = {'active': activeNode }
         """
         self.sv.region_browser.redraw_regions(cull_empty=cull_empty)
+        self.main_scene.update()
+        self.label_scene.update()
         """TODO
         if len(self.alignment.seqs) != len(self._checkPoints[0]):
             self._checkPoint(fromScratch=True)
@@ -1017,16 +1016,20 @@ class SeqCanvas:
         for hdr in self.headers:
             if header_class is None or isinstance(hdr, header_class):
                 hdr.refresh()
-    """TODO
-    def refresh(self, seq, left=0, right=None, updateAttrs=True):
+
+    def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.display_header and not self.display_header[seq]:
             return
         if right is None:
             right = len(self.alignment.seqs[0])-1
         self.lead_block.refresh(seq, left, right)
-        if updateAttrs:
+        self.main_scene.update()
+        """TODO
+        if update_attrs:
             self.sv.setResidueAttrs()
+        """
 
+    """TODO
     def refreshTree(self):
         if self.treeShown:
             self.lead_block.showTree({'tree': self.tree},
@@ -1040,11 +1043,6 @@ class SeqCanvas:
                 self.recolor(self.sv.associations[m])
     """
     
-    def resizeEvent(self, event):
-        self._resize_timer.stop()
-        if self.line_width != self.line_width_from_settings():
-            self._resize_timer.start()
-
     """TODO
     def _resizescrollregion(self):
         left, top, right, bottom = self.mainCanvas.bbox("all")
@@ -1343,6 +1341,11 @@ class SeqCanvas:
         return consensusChars
         """
 
+    def viewport_resized(self):
+        self._resize_timer.stop()
+        if self.line_width != self.line_width_from_settings():
+            self._resize_timer.start()
+
     def wrap_okay(self):
         return _wrap_okay(len(self.alignment.seqs), self.sv.settings)
 
@@ -1464,6 +1467,8 @@ class SeqBlock:
     header_label_color = Qt.blue
     multi_assoc_color = Qt.darkGreen
     label_pad = 3
+    from PyQt5.QtGui import QPen
+    qt_no_pen = QPen(Qt.NoPen)
 
     def __init__(self, label_scene, main_scene, prev_block, font, emphasis_font,
             seq_offset, headers, alignment, line_width, label_bindings, status_func,
@@ -2276,8 +2281,9 @@ class SeqBlock:
             text.setBrush(self._brush(color_func(line, offset)))
             return text
         if info != None and info > 0.0:
-            return self.main_scene.addRect(x + left_rect_off, y, right_rect_off - left_rect_off,
-                info * self.font_pixels[1], brush=self._brush(color_func(line, offset)))
+            return self.main_scene.addRect(x + left_rect_off, y-1, right_rect_off - left_rect_off,
+                -info * self.font_pixels[1], pen=self.qt_no_pen,
+                brush=self._brush(color_func(line, offset)))
         return None
 
     def _make_numbering(self, line, numbering):
@@ -2428,14 +2434,15 @@ class SeqBlock:
             if line_item is None:
                 continue
             line_item.configure(fill=color_func(seq, self.seq_offset + i))
-        
+    """
+
     def refresh(self, seq, left, right):
         if self.seq_offset + self.line_width <= right:
             self.next_block.refresh(seq, left, right)
         if left >= self.seq_offset + self.line_width:
             return
-        myLeft = max(left - self.seq_offset, 0)
-        myRight = min(right - self.seq_offset, self.line_width - 1)
+        my_left = max(left - self.seq_offset, 0)
+        my_right = min(right - self.seq_offset, self.line_width - 1)
 
         half_x, left_rect_off, right_rect_off = self.base_layout_info()
         line_items = self.line_items[seq]
@@ -2445,26 +2452,24 @@ class SeqBlock:
         else:
             res_status = seq in self.alignment.seqs
         color_func = self._color_func(seq)
-        for i in range(myLeft, myRight+1):
+        for i in range(my_left, my_right+1):
             line_item = line_items[i]
             if line_item is not None:
-                line_item.delete()
+                self.main_scene.removeItem(line_item)
             x, y = item_aux_info[i]
             line_items[i] = self.make_item(seq, self.seq_offset + i,
                         x, y, half_x, left_rect_off,
                         right_rect_off, color_func)
             if res_status:
                 self._assoc_res_bind(line_items[i], seq, self.seq_offset + i)
-        if self.show_numberings[0] and seq.numbering_start != None \
-                            and myLeft == 0:
-            self.main_scene.delete(self.numbering_texts[seq][0])
+        if self.show_numberings[0] and seq.numbering_start != None and my_left == 0:
+            self.main_scene.removeItem(self.numbering_texts[seq][0])
             self.numbering_texts[seq][0] = self._make_numbering(seq,0)
         if self.show_numberings[1] and seq.numbering_start != None \
-                    and myRight == self.line_width - 1:
-            self.main_scene.delete(self.numbering_texts[seq][1])
+                    and my_right == self.line_width - 1:
+            self.main_scene.removeItem(self.numbering_texts[seq][1])
             self.numbering_texts[seq][1] = self._make_numbering(seq,1)
-    """
-        
+
     def relative_y(self, rawY):
         '''return the y relative to the block the y is in'''
         if rawY < self.top_y:

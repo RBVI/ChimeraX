@@ -9,11 +9,28 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+import sys
 import copy
 from html import escape
 import os
 import pkg_resources
 import shutil
+
+ffmpeg_doc = """
+<p>
+<dt><a href="http://ffmpeg.org/" target="_blank"> FFmpeg </a> version 3.2.4
+<dd>&ldquo;A complete, cross-platform solution to record, convert and stream audio and video.&rdquo;
+<br>
+License: <a href="http://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3</a><br>
+Embedded licenses: <a href="licenses/ffmpeg/index.html" target="_blank">FFmpeg embedded licences</a>
+<p>
+FFmpeg is bundled as a convenience for users of ChimeraX.
+It is a separate product,
+and thus, its license does not affect ChimeraX's license.
+FFmpeg can be freely redistributed separately from ChimeraX.
+See the <a href="http://www.gnu.org/gpl-faq.html" target="_blank">GPL FAQ</a> for more details.
+It can be found in the <code>bin</code> directory.
+"""
 
 def get_packages_info():
     # based on http://stackoverflow.com/questions/19086030/can-pip-or-setuptools-distribute-etc-list-the-license-used-by-each-install
@@ -199,6 +216,7 @@ def ffmpeg_licenses():
 </html>
 """, file=f)
 
+include_ffmpeg = 'ffmpeg' in sys.argv
 
 os.makedirs('licenses', exist_ok=True)
 
@@ -207,11 +225,15 @@ with open('embedded.html.in') as src:
         for line in src.readlines():
             if line == 'PYTHON_PKGS\n':
                 print_pkgs(out)
+            elif line == '<!--ffmpeg-->\n':
+                if include_ffmpeg:
+                    print(ffmpeg_doc, end='', file=out)
             else:
                 print(line, end='', file=out)
 
 try:
-    ffmpeg_licenses()
+    if include_ffmpeg:
+        ffmpeg_licenses()
 except:
     pass
 

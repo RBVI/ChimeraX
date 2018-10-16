@@ -1,14 +1,14 @@
 # should be run in directory with source snapshot with singularity
 #
 # For example:
-# 	singularity exec ubuntu-16.04.img make ubuntu-install UBUNTU=16.04
+# 	singularity exec ubuntu-16.04.img make -f Makefile.ubuntu daily-package UBUNTU=16.04
 #
 TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
 include $(TOP)/mk/config.make
 
-install: ubuntu
-	env HOME=`pwd` $(MAKE) install UBUNUT_DIST=1 UBUNTU=$(UBUNTU)
+install:
+	env HOME=`pwd` $(MAKE) install UBUNTU_DIST=1
 
 package: ubuntu
 	$(PYTHON_EXE) mkubuntu.py $(UBUNTU)

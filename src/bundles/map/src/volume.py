@@ -1822,7 +1822,7 @@ class VolumeSurface(Surface):
 
     self._set_surface(va, na, ta, hidden_edges)
     self._set_appearance(show_mesh, rendering_options)
-      
+
   # ---------------------------------------------------------------------------
   #
   def _calc_surface_in_thread(self, matrix, level, rendering_options, show_mesh):

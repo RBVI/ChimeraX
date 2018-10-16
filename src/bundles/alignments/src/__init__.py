@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .cmd import get_alignment_sequence, SeqArg, AlignmentArg, AlignSeqPairArg
+from .alignment import clustal_strong_groups, clustal_weak_groups
 
 from chimerax.core.toolshed import BundleAPI
 

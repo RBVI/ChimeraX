@@ -239,7 +239,6 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
              ChimeraX can be downloaded free of charge for academic, government
              nonprofit, and personal use. Commercial users, please see licensing.
 
-            Prefix: {INST_DIR}
             %prep
 
             %build

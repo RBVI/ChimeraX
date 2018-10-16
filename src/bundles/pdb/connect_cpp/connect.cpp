@@ -501,9 +501,17 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             tr = tmpl::find_template_residue(r->name(),
                 sres_map.find(r) != sres_map.end(),
                 eres_map.find(r) != eres_map.end());
-        if (tr != NULL)
+        if (tr != NULL) {
             connect_residue_by_template(r, tr, conect_atoms);
-        else
+            // if PDB uses non-standard (or old standard) hydrogen names
+            // then there may be "floating" hydrogens.  Check for that.
+            for (auto a: r->atoms()) {
+                if (a->bonds().size() == 0 and a->element().number() == 1) {
+                    connect_residue_by_distance(r, conect_atoms);
+                    break;
+                }
+            }
+        } else
             connect_residue_by_distance(r, conect_atoms);
 
         // connect up previous residue

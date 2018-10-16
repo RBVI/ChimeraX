@@ -74,9 +74,19 @@ static struct PyMethodDef geometry_cpp_methods[] =
 
   /* matrix.h */
   {const_cast<char*>("look_at"), (PyCFunction)look_at, METH_VARARGS, NULL},
-  {const_cast<char*>("multiply_matrices_f64"), (PyCFunction)multiply_matrices_f64,
+  {const_cast<char*>("multiply_matrices"), (PyCFunction)multiply_matrices,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("multiply_matrix_lists"), (PyCFunction)multiply_matrix_lists,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("same_matrix"), (PyCFunction)same_matrix,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("is_identity_matrix"), (PyCFunction)is_identity_matrix,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("opengl_matrix"), (PyCFunction)opengl_matrix,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("opengl_matrices"), (PyCFunction)opengl_matrices,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("invert_orthonormal"), (PyCFunction)invert_orthonormal,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */

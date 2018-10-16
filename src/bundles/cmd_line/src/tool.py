@@ -154,13 +154,11 @@ class CommandLine(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        menu.kludge_refs = []
         from PyQt5.QtWidgets import QAction
-        filter_action = QAction("Typed commands only")
+        filter_action = QAction("Typed commands only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.settings.typed_only)
         filter_action.toggled.connect(lambda arg, f=self._set_typed_only: f(arg))
-        menu.kludge_refs.append(filter_action)
         menu.addAction(filter_action)
 
     def on_combobox(self, event):
@@ -172,11 +170,11 @@ class CommandLine(ToolInstance):
             self.cmd_clear()
             prev_cmd = None
             unique_cmds = []
-            for cmd in self.history_dialog.history:
+            for cmd in self.history_dialog._history:
                 if cmd != prev_cmd:
                     unique_cmds.append(cmd)
                     prev_cmd = cmd
-            self.history_dialog.history.replace(unique_cmds)
+            self.history_dialog._history.replace(unique_cmds)
             self.history_dialog.populate()
         else:
             event.Skip()
@@ -190,11 +188,11 @@ class CommandLine(ToolInstance):
             self.cmd_clear()
             prev_cmd = None
             unique_cmds = []
-            for cmd in self.history_dialog.history:
+            for cmd in self.history_dialog._history:
                 if cmd != prev_cmd:
                     unique_cmds.append(cmd)
                     prev_cmd = cmd
-            self.history_dialog.history.replace(unique_cmds)
+            self.history_dialog._history.replace(unique_cmds)
             self.history_dialog.populate()
 
     def execute(self):
@@ -243,6 +241,7 @@ class CommandLine(ToolInstance):
 
     def _command_started_cb(self, trig_name, cmd_text):
         self.history_dialog.add(cmd_text, typed=self._just_typed_command)
+        self.text.lineEdit().selectAll()
         self._just_typed_command = False
 
     def _set_typed_only(self, typed_only):
@@ -251,7 +250,7 @@ class CommandLine(ToolInstance):
 
 class _HistoryDialog:
 
-    record_label = "Record..."
+    record_label = "Save..."
     execute_label = "Execute"
 
     NUM_REMEMBERED = 500
@@ -263,6 +262,7 @@ class _HistoryDialog:
 
         self.window = controller.tool_window.create_child_window(
             "Command History", close_destroys=False)
+        self.window.fill_context_menu = self.fill_context_menu
 
         parent = self.window.ui_area
         from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
@@ -278,8 +278,6 @@ class _HistoryDialog:
             but = QPushButton(but_name, button_frame)
             but.setAutoDefault(False)
             but.clicked.connect(lambda arg, txt=but_name: self.button_clicked(txt))
-            if but_name == "Help":
-                but.setDisabled(True)
             button_layout.addWidget(but)
         button_frame.setLayout(button_layout)
         self.window.manage(placement=None)
@@ -291,9 +289,11 @@ class _HistoryDialog:
         self._suspend_handler = False
 
     def add(self, item, *, typed=False):
-        self.listbox.addItem(item)
-        while self.listbox.count() > self.NUM_REMEMBERED:
-            self.listbox.takeItem(0)
+        if len(self._history) >= self.NUM_REMEMBERED:
+            if not self.typed_only or self._history[0][1]:
+                self.listbox.takeItem(0)
+        if typed or not self.typed_only:
+            self.listbox.addItem(item)
         self._history.enqueue((item, typed))
         self.listbox.clearSelection()
         self.listbox.setCurrentRow(len(self.history()) - 1)
@@ -307,7 +307,7 @@ class _HistoryDialog:
                 fmt = format_from_name("ChimeraX commands")
                 ext = fmt.extensions[0]
                 self._record_dialog = dlg = SaveDialog(self.window.ui_area,
-                    "Record Commands", name_filter=export_file_filter(format_name="ChimeraX commands"),
+                    "Save Commands", name_filter=export_file_filter(format_name="ChimeraX commands"),
                                                        add_extension=ext)
                 from PyQt5.QtWidgets import QFrame, QLabel, QHBoxLayout, QVBoxLayout, QComboBox
                 from PyQt5.QtWidgets import QCheckBox
@@ -318,7 +318,7 @@ class _HistoryDialog:
                 amount_frame = QFrame(options_frame)
                 options_layout.addWidget(amount_frame, Qt.AlignCenter)
                 amount_layout = QHBoxLayout(amount_frame)
-                amount_layout.addWidget(QLabel("Record", amount_frame))
+                amount_layout.addWidget(QLabel("Save", amount_frame))
                 self.save_amount_widget = saw = QComboBox(amount_frame)
                 saw.addItems(["all", "selected"])
                 amount_layout.addWidget(saw)
@@ -371,7 +371,7 @@ class _HistoryDialog:
                     # not selected for deletion
                     retain.append(h_item)
                 listbox_index += 1
-            self.history.replace(retain)
+            self._history.replace(retain)
             self.populate()
             return
         if label == "Copy":
@@ -379,7 +379,8 @@ class _HistoryDialog:
             clipboard.setText("\n".join([item.text() for item in self.listbox.selectedItems()]))
             return
         if label == "Help":
-            # TODO
+            from chimerax.core.commands import run
+            run(self.controller.session, 'help help:user/tools/cli.html#history')
             return
 
     def down(self, shifted):
@@ -414,6 +415,16 @@ class _HistoryDialog:
         if orig_text == new_text:
             self.down(shifted)
         self._suspend_handler = False
+
+    def fill_context_menu(self, menu, x, y):
+        # avoid having actions destroyed when this routine returns
+        # by stowing a reference in the menu itself
+        from PyQt5.QtWidgets import QAction
+        filter_action = QAction("Typed commands only", menu)
+        filter_action.setCheckable(True)
+        filter_action.setChecked(self.controller.settings.typed_only)
+        filter_action.toggled.connect(lambda arg, f=self.controller._set_typed_only: f(arg))
+        menu.addAction(filter_action)
 
     def on_append_change(self, event):
         self.overwrite_disclaimer.Show(self.save_append_CheckBox.Value)

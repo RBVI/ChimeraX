@@ -176,6 +176,25 @@ class GrayScaleDrawing(Drawing):
       if bi:
         bi.set_grid_size(grid_size)
 
+  def bounds(self):
+    # Override bounds because GrayScaleDrawing does not set geometry until draw() is called
+    # but setting initial camera view uses bounds before draw() is called.
+
+    if not self.display:
+      return None
+
+    gs = self.grid_size
+    if gs is None:
+      return None
+
+    gx, gy, gz = gs
+    from numpy import array, float32
+    corners = array(((0,0,0), (gx,0,0), (0,gy,0), (0,0,gz), (gx,gy,0), (gx,0,gz), (0,gy,gz), (gx,gy,gz)), float32)
+    corners[:] += -.5
+    from chimerax.core.geometry import point_bounds
+    b = point_bounds(corners, self.get_scene_positions(displayed_only = True) * self.ijk_to_xyz)
+    return b
+    
   def drawings_for_each_pass(self, pass_drawings):
     '''Override Drawing method because geometry is not set until draw() is called.'''
     if not self.display:

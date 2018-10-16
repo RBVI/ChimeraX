@@ -58,7 +58,7 @@ setup(
     ],
     entry_points={
         "egg_info.writers": [
-            "RELNOTES.html = chimerax.core:copy_distinfo_textfile",
+            "RELNOTES.html = chimerax.core:copy_distinfo_file",
         ],
     },
 )
