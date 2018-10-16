@@ -241,6 +241,7 @@ class CommandLine(ToolInstance):
 
     def _command_started_cb(self, trig_name, cmd_text):
         self.history_dialog.add(cmd_text, typed=self._just_typed_command)
+        self.text.lineEdit().selectAll()
         self._just_typed_command = False
 
     def _set_typed_only(self, typed_only):
@@ -261,6 +262,7 @@ class _HistoryDialog:
 
         self.window = controller.tool_window.create_child_window(
             "Command History", close_destroys=False)
+        self.window.fill_context_menu = self.fill_context_menu
 
         parent = self.window.ui_area
         from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
@@ -287,9 +289,11 @@ class _HistoryDialog:
         self._suspend_handler = False
 
     def add(self, item, *, typed=False):
-        self.listbox.addItem(item)
-        while self.listbox.count() > self.NUM_REMEMBERED:
-            self.listbox.takeItem(0)
+        if len(self._history) >= self.NUM_REMEMBERED:
+            if not self.typed_only or self._history[0][1]:
+                self.listbox.takeItem(0)
+        if typed or not self.typed_only:
+            self.listbox.addItem(item)
         self._history.enqueue((item, typed))
         self.listbox.clearSelection()
         self.listbox.setCurrentRow(len(self.history()) - 1)
@@ -411,6 +415,16 @@ class _HistoryDialog:
         if orig_text == new_text:
             self.down(shifted)
         self._suspend_handler = False
+
+    def fill_context_menu(self, menu, x, y):
+        # avoid having actions destroyed when this routine returns
+        # by stowing a reference in the menu itself
+        from PyQt5.QtWidgets import QAction
+        filter_action = QAction("Typed commands only", menu)
+        filter_action.setCheckable(True)
+        filter_action.setChecked(self.controller.settings.typed_only)
+        filter_action.toggled.connect(lambda arg, f=self.controller._set_typed_only: f(arg))
+        menu.addAction(filter_action)
 
     def on_append_change(self, event):
         self.overwrite_disclaimer.Show(self.save_append_CheckBox.Value)

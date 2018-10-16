@@ -2605,16 +2605,16 @@ class Command:
         else:
             from html import escape
             ci = self._ci
-            msg = '<div class="cxcmd">'
+            msg = '<div class="cxcmd"><div class="cxcmd_as_doc">'
             if ci is None or ci.url is None:
                 msg += escape(cmd_text)
             else:
                 cargs = cmd_text[len(self.command_name):]
-                msg += '<div class="cxcmd_as_doc"><a href="%s">%s</a>%s</div>' % (
+                msg += '<a href="%s">%s</a>%s' % (
                     ci.url, escape(self.command_name), escape(cargs))
-                text = escape(cmd_text)
-                msg += '<div class="cxcmd_as_cmd"><a href="cxcmd:%s">%s</a></div>' % (text, text)
-            msg += '</div>'
+            text = escape(cmd_text)
+            msg += '</div><div class="cxcmd_as_cmd"><a href="cxcmd:%s">%s</a></div></div>' % (
+                text, text)
             session.logger.info(msg, is_html=True, add_newline=False)
 
     def log_error(self, msg):
