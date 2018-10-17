@@ -25,6 +25,8 @@ def sequence_model(session, targets, combined_templates=False, custom_script=Non
         if alignment in seen:
             raise UserError("Only one target sequence per alignent allowed;"
                 " multiple targets chosen in alignment %s" % alignment)
+        seen.add(alignment)
+    #TODO: if license_key given, save in settings; otherwise try to retrieve from settings
     from . import comparitive
     try:
         comparitive.model(session, targets, combined_templates=combined_templates,
@@ -38,6 +40,7 @@ def sequence_model(session, targets, combined_templates=False, custom_script=Non
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg
     from chimerax.seqalign import AlignSeqPairArg
+    #TODO: all the other args; make sure license_key uses PasswordArg
     desc = CmdDesc(
         required = [('targets', ListOf(AlignSeqPairArg))],
         keyword = [('combined_templates', BoolArg)],

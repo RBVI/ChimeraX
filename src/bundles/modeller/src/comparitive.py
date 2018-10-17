@@ -77,9 +77,16 @@ def model(session, targets, combined_templates=False, custom_script=None,
                 template_info.append((target, target_templates))
             target_templates.append((regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
 
+    from .common import write_modeller_scripts
+    scripts_path, config_path, temp_dir = write_modeller_scripts(license_key, num_models, het_preserve,
+        water_preserve, hydrogens, fast, None, custom_script, temp_path, thorough_opt, dist_restraints_path)
+
+    input_file_map = {}
+
     # collate the template info in series of strings that can be joined with '/'
     target_strings = []
     templates_strings = []
+    from chimerax.atomic.pdb import standard_polymeric_res_names as std_res_names
     for target, templates_info in template_info:
         target_seq = target.characters
         target_strings.append(target_seq)
@@ -105,7 +112,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
                     break
                 end = r
                 if water_preserve and r.name in r.standard_water_names \
-                or het_preserve and r.is_het:
+                or het_preserve and r.name not in std_res_names:
                     char = '.'
                 else:
                     char = '-'
@@ -128,20 +135,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
             appending.append(line_to_add)
         for insertion in insertions[i+1:]:
             insertion.append(line_to_add)
-    """
-    # just checking things out...
-    session.logger.info("<pre> targ " + '/'.join(target_strings) + "</pre>", is_html=True) 
-    for i, lines in enumerate(templates_strings):
-        for line in lines:
-            joined_line = line
-            insertion = '/'.join(insertions[i])
-            if insertion:
-                joined_line = insertion + '/' + joined_line
-            appending = '/'.join(appendings[i])
-            if appending:
-                joined_line = joined_line + '/' + appending
-            session.logger.info("<pre> tmpl " + joined_line + "</pre>", is_html=True) 
-    """
+
     # form the sequences to be written out as a PIR
     pir_seqs = []
     from chimerax.atomic import Sequence
@@ -164,17 +158,44 @@ def model(session, targets, combined_templates=False, custom_script=None,
                 full_line = full_line + '/' + suffix
             pir_template.characters = full_line
     pir_target = Sequence(name=template_info[0][0].name)
+    # now for something completely different...
+    # write the namelist.dat file, target seq name on first line, templates on remaining lines
+    import os.path
+    name_file = os.path.join(temp_dir.name, "namelist.dat")
+    input_file_map["namelist.dat"] = name_file
+    with open(name_file, 'w') as f:
+        print(pir_target.name, file=f)
+        for template_seq in pir_seqs:
+            print(template_seq.name, file=f)
+    # carry on...
     pir_seqs.append(pir_target)
     pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
     pir_target.characters = '/'.join(target_strings)
-    from tempfile import NamedTemporaryFile
-    tf = NamedTemporaryFile(mode="w", suffix=".pir", delete=False)
+    pir_file = os.path.join(temp_dir.name, "alignment.ali")
     aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False)
-    aln.save(tf, format_name="pir")
+    aln.save(pir_file, format_name="pir")
     session.alignments.destroy_alignment(aln)
-    #TODO: save structure files
-    #TODO: ...
-    #TODO: delete temp PIR file
+    input_file_map["alignment.ali"] = pir_file
+
+    # save structure files
+    import os
+    struct_dir = os.path.join(temp_dir.name, "template_struc")
+    if not os.path.exists(struct_dir):
+        try:
+            os.mkdir(struct_dir, mode=0o755)
+        except FileExistsError:
+            pass
+    from chimerax.atomic.pdb import save_pdb
+    for structure in structures_to_save:
+        base_name = structure_save_name(structure) + '.pdb'
+        pdb_file_name = os.path.join(struct_dir, base_name)
+        input_file_map[base_name] = pdb_file_name
+        ATOM_res_names = structure.in_seq_hets
+        ATOM_res_names.update(std_res_names)
+        save_pdb(session, pdb_file_name, polymeric_res_names=ATOM_res_names)
+        delattr(structure, 'in_seq_hets')
+
+    #TODO...
 
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]
@@ -183,6 +204,7 @@ def regularized_seq(aseq, chain):
     rseq.descript = "structure:" + chain_save_name(chain)
     seq_chars = list(rseq.characters)
     from chimerax.atomic import Sequence
+    from chimerax.atomic.pdb import standard_polymeric_res_names as std_res_names
     in_seq_hets = []
     for ungapped in range(len(aseq.ungapped())):
         gapped = aseq.ungapped_to_gapped(ungapped)
@@ -190,14 +212,14 @@ def regularized_seq(aseq, chain):
             seq_chars[gapped] = '-'
         else:
             r = mmap[ungapped]
-            if r.is_het: # or not PDBio.standard_residue(r.name)
+            if r.name not in std_res_names:
                 in_seq_hets.append(r)
                 seq_chars[gapped] = '.'
             else:
                 seq_chars[gapped] = Sequence.rname3to1(mmap[ungapped].name)
     s = chain.structure
     het_set = getattr(s, 'in_seq_hets', set())
-    het_set.add(in_seq_hets)
+    het_set.update(in_seq_hets)
     s.in_seq_hets = het_set
     rseq.characters = "".join(seq_chars)
     return rseq
