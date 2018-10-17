@@ -471,7 +471,6 @@ def get_info(session, system, create=False):
     version = None
     from . import BUNDLE_NAME as CORE_BUNDLE_NAME
     import pkg_resources
-    dists = pip.get_installed_distributions(local_only=True)
     for d in pkg_resources.working_set:
         if d.project_name == CORE_BUNDLE_NAME:
             version = d.version
