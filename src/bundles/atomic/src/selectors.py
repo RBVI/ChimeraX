@@ -45,8 +45,20 @@ def _idatm_selector(symbol, models, results):
                 results.add_model(m)
                 results.add_atoms(atoms, bonds=True)
 
+_chains_menu_needs_update = False
+_chains_menu_name = "&Chains"
+
 def add_select_menu_items(session):
     mw = session.ui.main_window
+
+    parent_menus = [_chains_menu_name]
+    select_chains_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
+    select_chains_menu.aboutToShow.connect(lambda ses=session: _update_select_chains_menu(ses))
+    select_chains_menu.setToolTipsVisible(True)
+    from . import get_triggers
+    atom_triggers = get_triggers(session)
+    atom_triggers.add_handler("changes", _check_chains_update_status)
+
     parent_menus = ["Che&mistry", "&element"]
     elements_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     elements_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
@@ -80,3 +92,74 @@ def add_select_menu_items(session):
     from . import Atom
     for idatm in Atom.idatm_info_map.keys():
         idatm_menu.addAction(QAction(idatm, mw))
+
+def _update_select_chains_menu(session):
+    global _chains_menu_needs_update
+    if not _chains_menu_needs_update:
+        return
+    mw = session.ui.main_window
+    select_chains_menu = mw.add_select_submenu([], _chains_menu_name)
+    from . import AtomicStructures, all_atomic_structures
+    structures = AtomicStructures(all_atomic_structures(session))
+    chain_info = {}
+    for chain in structures.chains:
+        key = chain.description if chain.description else chain.chain_id
+        chain_info.setdefault(key, []).append(chain)
+    chain_keys = list(chain_info.keys())
+    chain_keys.sort()
+    select_chains_menu.clear()
+    def final_description(description):
+        if len(description) < 110:
+            return False, description
+        return True, description[:50] + "..." + description[-50:]
+    from PyQt5.QtWidgets import QAction
+    for chain_key in chain_keys:
+        chains = chain_info[chain_key]
+        if len(chains) > 1:
+            submenu = select_chains_menu.addMenu(chain_key)
+            sep = submenu.addSeparator()
+            chains.sort(key=lambda c: (c.structure.id, c.chain_id))
+            collective_spec = ""
+            for chain in chains:
+                if len(structures) > 1:
+                    if chain.description:
+                        shortened, final = final_description(chain.description)
+                        label = "[%s] chain %s" % (chain.structure, chain.chain_id)
+                    else:
+                        label = "[%s]" % chain.structure
+                        shortened = False
+                else:
+                    # ...must be multiple identical descriptions...
+                    label = "chain %s" % chain.chain_id
+                    shortened = False
+                spec = chain.string(style="command")
+                action = mw.add_menu_selector(submenu, label, spec)
+                collective_spec += spec
+                if shortened:
+                    submenu.setToolTipsVisible(True)
+                    action.setToolTip(chain.description)
+            mw.add_menu_selector(submenu, "all", collective_spec, insertion_point=sep)
+        else:
+            chain = chains[0]
+            chain_id_text = str(chain)
+            slash_index = chain_id_text.rfind('/')
+            chain_id_text = chain_id_text[:slash_index] + " chain " + chain_id_text[slash_index+1:]
+            if chain.description:
+                shortened, final = final_description(chain.description)
+                label = "%s (%s)" % (final, chain_id_text)
+            else:
+                label = chain_id_text
+                shortened = False
+            spec = chain.string(style="command")
+            action = mw.add_menu_selector(select_chains_menu, label, spec)
+            if shortened:
+                select_chains_menu.setToolTipsVisible(True)
+                action.setToolTip(chain.description)
+
+    _chains_menu_needs_update = False
+
+def _check_chains_update_status(trig_name, changes):
+    global _chains_menu_needs_update
+    if not _chains_menu_needs_update:
+        _chains_menu_needs_update = changes.created_chains() or changes.num_deleted_chains() > 0
+
