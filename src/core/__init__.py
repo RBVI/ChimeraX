@@ -121,15 +121,22 @@ def profile(func):
 # These are entry points for copying files into
 # .dist-info directories of wheels when they are built
 
-def copy_distinfo_file(cmd, basename, filename, mode="r"):
+def copy_distinfo_file(cmd, basename, filename, binary=''):
     """Entry point to copy files into bundle .dist-info directory.
 
-    Only text files are supported.
+    File is copied as text if binary is '', and as binary if 'b'.
     """
     try:
-        with open(basename, "r") as fi:
+        with open(basename, 'r' + binary) as fi:
             value = fi.read()
-            cmd.write_or_delete_file(basename, filename, value)
+            from distutils import log
+            log.info("copying %s", basename)
+            if not cmd.dry_run:
+                with open(filename, 'w' + binary) as fo:
+                    fo.write(value)
     except IOError as e:
         # Missing file is okay
         pass
+
+def copy_distinfo_binary_file(cmd, basename, filename):
+    copy_distinfo_file(cmd, basename, filename, binary='b')
