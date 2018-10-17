@@ -77,6 +77,7 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 [&nbsp;<b>showControllers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>clickRange</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>toolbarPanels</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>gui</b>&nbsp;&nbsp;<i>tool-title</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>simplifyGraphics</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>multishadowAllowed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>roomPosition</b>&nbsp;&nbsp;<i>matrix</i>&nbsp;|&nbsp;<b>report</b>&nbsp;]
@@ -130,6 +131,16 @@ indicates whether to hide icon toolbars
 <i>etc.</i>) and instead show them as tool panels.
 This is useful for consolidating the controls in VR.
 </p><p>
+By default, pressing the Vive hand-controller
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
+target="_blank">menu button</a> (similar for other systems)
+shows all the tools that are on the right side of the desktop interface 
+as a control panel in VR. However,
+the <b>gui</b> option allows showing the single tool with title bar 
+contents <i>tool-title</i> instead. Subsituting <b>all</b> 
+(or any other string that is not a tool title) for <i>tool-title</i>
+restores the default behavior of showing all righthand tools.
+</p><p>
 The <b>simplifyGraphics</b> option (default <b>true</b>)
 reduces the maximum level of detail in VR by limiting the 
 total atom and bond triangles to one million each.
@@ -172,5 +183,5 @@ menu button which shows the standard ChimeraX user interface in VR.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+October 2018</address>
 </body></html>
