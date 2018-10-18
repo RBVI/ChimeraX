@@ -995,8 +995,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction(label, self)
         action.triggered.connect(lambda *, st=selector_text: self.select_by_mode(st))
         if insertion_point is None:
-            return menu.addAction(action)
-        return menu.insertAction(insertion_point, action)
+            menu.addAction(action)
+        else:
+            menu.insertAction(insertion_point, action)
+        return action
 
     def _get_target_menu(self, parent_menu, menu_names, *, insert_positions=None):
         from PyQt5.QtWidgets import QMenu
