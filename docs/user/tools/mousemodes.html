@@ -44,7 +44,7 @@ See also:
 <a href="graphics.html"><b>Graphics Toolbar</b></a>,
 <a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>,
 <a href="markerplacement.html"><b>Marker Placement</b></a>,
-<a href="../vr.html">virtual reality</a>
+<a href="#vr">mouse modes in virtual reality</a>
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -257,9 +257,44 @@ See also:
 <p class="nav">
 [<a href="#top">back to top: Mouse Modes...</a>]
 </p>
-<h3>Differences in Virtual Reality (VR)</h3>
+<h3>Mouse Modes in Virtual Reality (VR)</h3>
 <p>
-Some of the mouse modes are modified in <a href="../vr.html">virtual reality</a>
+In <a href="../vr.html">virtual reality</a>, mouse
+modes that normally require clicking on an atom (<b>select</b>, <b>label</b>,
+<i>etc.</i>) require pointing at the atom with the hand-controller cone
+and pressing the assigned button.
+Most modes that normally involve clicking and dragging
+are operated by clicking and moving the hand controller vertically.
+The <b>bond rotation</b> mode requires rotating the hand controller. 
+</p><p>
+Descriptions here are for Vive hand controllers, 
+but different hand controllers have similar buttons: 
+<br>
+Pressing the Vive
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
+target="_blank">menu button</a> shows the ChimeraX desktop user interface 
+(by <a href="../commands/device.html#vr">default</a>, 
+the righthand panel of tool windows including the
+<a href="#top">mouse modes toolbar</a>) in the headset, 
+and holding the menu button allows moving the panel in the scene.
+Pointing a hand-controller cone at a 
+<a href="#top">mouse mode icon</a> and clicking with the
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
+target="_blank">trigger, trackpad, or grip button</a> 
+assigns that button to that mode, allowing for a total of six modes for
+the two hand controllers.
+</p><p>
+Keeping the trigger buttons assigned to <b>rotate</b> or <b>translate</b>
+(equivalent modes in VR) is recommended to maintain these default behaviors:
+</p>
+<ul>
+<li>models can be moved and rotated by
+moving or rotating either controller while squeezing its trigger
+<li>models can be scaled up or down (made larger or smaller) by squeezing the
+triggers of both controllers and moving them farther apart
+or closer together, respectively
+</ul>
+Some mouse modes are modified
 to maintain rapid graphics updates and avoid flickering:
 </p>
 <ul>
@@ -267,16 +302,6 @@ to maintain rapid graphics updates and avoid flickering:
 angle rather than continuously, and makes labels yellow for better visibility
 <li><b>zone</b> mode does not show labels or ribbons (cartoons)
 </ul>
-<p>
-Modes that normally require clicking on an atom (<b>select</b>, <b>label</b>,
-<i>etc.</i>) require pointing at the atom with the VR hand-controller cone.
-</p><p>
-Most modes that normally involve clicking and dragging
-are operated by clicking and moving the hand controller vertically.
-The <b>bond rotation</b> mode requires rotating the hand controller. 
-Translation and rotation are separate mouse modes but a
-single hand-controller mode. 
-</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
