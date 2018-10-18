@@ -89,7 +89,9 @@ Models in ChimeraX should then appear in the VR headset.
 With the hand controllers (positions shown as colored cones in the headset):
 <ul>
 <li>models can be moved and rotated by
-moving or rotating either controller while squeezing its trigger
+moving or rotating either controller while squeezing its
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
+target="_blank">trigger</a>
 <li>models can be scaled up or down (made larger or smaller) by squeezing the
 triggers of both controllers and moving them farther apart 
 or closer together, respectively
@@ -98,18 +100,12 @@ or closer together, respectively
 target="_blank">grip button</a> centers and rescales the model
 <li>pressing the Vive
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">menu button</a> shows the desktop user interface in the 
-headset, allowing &ldquo;clicking&rdquo; normal desktop controls
-such as toolbar icons to control
-<a href="tools/moldisplay.html"><b>Molecule Display</b></a> and
-<a href="tools/densitymaps.html"><b>Density Maps</b></a>,
-and
-<a href="tools/mousemodes.html"><b>Mouse Modes</b></a>
-icons to assign the hand controller function. By default,
-the entire set of righthand tool windows (in the desktop display) are
-shown as a control panel in VR, but a single tool can be
-designated instead with the <a href="commands/device.html#vr"><b>vr</b></a> 
-command <b>gui</b> option.
+target="_blank">menu button</a> shows the ChimeraX desktop user interface 
+(by <a href="commands/device.html#vr">default</a>,
+the righthand panel of tool windows)
+in the headset, allowing &ldquo;clicking&rdquo; normal desktop controls
+such as <a href="index.html#toolbars">toolbar icons</a> to adjust the display 
+and to assign <a href="#mousemodes">hand-controller modes</a>
 </ul>
 <p>
 The physical room bounds are shown
@@ -124,8 +120,9 @@ desktop display, use the ChimeraX command:
 <a href="commands/device.html#vr"><b>vr off</b></a>
 </blockquote>
 <p>
-See also the <a href="commands/meeting.html"><b>meeting</b></a> command
-for shared VR sessions.
+The <a href="commands/meeting.html"><b>meeting</b></a> command
+allows shared VR sessions. See also:
+<a href="commands/graphics.html"><b>graphics</b></a>
 </p>
 
 <a name="mousemodes"></a>
@@ -142,23 +139,30 @@ To assign a mouse mode to a hand controller button:
 <ol>
 <li>press the Vive
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-   target="_blank">menu button</a> to show the desktop user interface in the headset.
-   Holding the menu button allows moving the panel in the VR scene.
+target="_blank">menu button</a> to show the ChimeraX desktop user interface 
+(by <a href="commands/device.html#vr">default</a>,
+including the <a href="tools/mousemodes.html"><b>Mouse Modes</b></a> toolbar)
+in the headset.
+Holding the menu button allows moving the panel in the VR scene.
 <li>put the tip of a hand controller cone on a 
 <a href="tools/mousemodes.html">mouse mode icon</a> and click with
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-   target="_blank">trigger, trackpad, or grip</a> hand controller buttons to assign
+target="_blank">trigger, trackpad, or grip</a> hand controller buttons to assign
 that mouse mode to the clicked button
 </ol>
-
 <p>
-  There are three assignable buttons on each controller,
-  so six modes can be assigned. Functions include:
+There are three assignable buttons on each controller,
+so six modes can be assigned. However, keeping the default
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
+target="_blank">trigger</a> assignment (rotation or translation, equivalent in VR)
+is recommended to allow manipulation as described <a href="#starting">above</a>.
+</p><p>
+Functions include:
 </p>
 
 <ul>
   <li>Selection
-  <li>Rotation + translation (single mode)
+  <li>Rotation + translation (single mode) - default/recommended for triggers
   <li>Zooming
   <li>Rotate and translate selected model only
   <li>Move clip planes
@@ -195,19 +199,34 @@ that mouse mode to the clicked button
   have not yet had time to fix them.
 </p>
 
-<p><b>No click feedback.</b> There is no visual indication when you click a mouse mode icon. The icons are
-  small and it is easy to miss. It helps to move the panel close by holding the menu button on the hand
-  controller.  The Log panel will show if the mode was changed.
-<p><b>No mode indicator.</b> There is no visual indication of what modes are currently assigned to the buttons.
-  It is easy to forget the six modes assigned to the two controllers.  In the future we plan to put the mode icon
-  on the cone at the location of each of the three assignable buttons.
-<p><b>Blackout.</b> Modes that perform calculations taking longer than 1/90th second cause the graphics not
-  to update, and the VR scene will gray out after a fraction of a second without graphics updates.  Changing
-  map contour level and running molecular dynamics are prone to this problem.  In the future these calculations
-  will be done in parallel so the graphics will not be slowed down.
-<p><b>Flickering labels.</b> Atom labels or residue labels crated by the swap amino acid mode can cause
-  scene flicker because the labels are slow to render.  Graphics optimization is needed.
-<p><b>Selection outlines.</b> Green selection outlines can slow rendering and cause flicker.
+<p><b>No click feedback.</b> 
+There is no visual indication when you click a mouse mode icon. 
+The icons are small and easy to miss. It helps to move the panel close 
+by holding the menu button on the hand controller. 
+The <a href="tools/log.html"><b>Log</b></a> will show if the mode was changed.
+</p>
+<p><b>No mode indicator.</b> 
+There is no visual indication of what modes are currently assigned to the buttons.
+It is easy to forget the six modes assigned to the two controllers.
+In the future we plan to put the mode icon on the cone at the location of 
+each of the three assignable buttons.
+</p>
+<p><b>Blackout.</b> 
+Modes that perform calculations taking longer than 1/90th second cause the 
+graphics not to update, and the VR scene will gray out after a fraction 
+of a second without graphics updates. Changing map contour level and 
+running molecular dynamics are prone to this problem.
+In the future these calculations will be done in parallel 
+so the graphics will not be slowed down.
+</p>
+<p><b>Flickering labels.</b>
+Atom labels or residue labels crated by the swap amino acid mode can cause
+scene flicker because the labels are slow to render.
+Graphics optimization is needed.
+</p>
+<p><b>Selection outlines.</b>
+Green selection outlines can slow rendering and cause flicker.
+</p>
 
 <a name="interactive"></a>
 <p class="nav">
