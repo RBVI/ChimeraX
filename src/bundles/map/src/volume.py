@@ -1183,7 +1183,7 @@ class Volume(Model):
       return None
     s = [slice(None), slice(None), slice(None)]
     s[2-axis] = 0
-    m2d = m[s]
+    m2d = m[tuple(s)]
     return m2d
 
   # ---------------------------------------------------------------------------
