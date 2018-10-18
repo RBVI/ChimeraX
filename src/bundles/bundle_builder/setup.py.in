@@ -59,6 +59,7 @@ setup(
     entry_points={
         "egg_info.writers": [
             "RELNOTES.html = chimerax.core:copy_distinfo_file",
+            "screenshot.png = chimerax.core:copy_distinfo_binary_file",
         ],
     },
 )

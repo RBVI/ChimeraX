@@ -506,7 +506,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             // if PDB uses non-standard (or old standard) hydrogen names
             // then there may be "floating" hydrogens.  Check for that.
             for (auto a: r->atoms()) {
-                if (a->bonds().size() == 0 and a->element().number() == 1) {
+                if (a->bonds().size() == 0 && a->element().number() == 1) {
                     connect_residue_by_distance(r, conect_atoms);
                     break;
                 }
