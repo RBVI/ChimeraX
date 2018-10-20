@@ -84,10 +84,6 @@ class Place:
         
     def copy(self):
         return Place(self.matrix)
-
-    def set_matrix(self, matrix):
-        self.matrix[:] = matrix
-        self._matrix_changed()
         
     def __eq__(self, p):
         return p is self or _geometry.same_matrix(p.matrix, self.matrix)
@@ -98,8 +94,11 @@ class Place:
         new point.  Multiplication of a Place by another Place composes
         the coordinate transforms acting in right to left order producing
         a new Place object.'''
+        
         if isinstance(p, Place):
-            return Place(_geometry.multiply_matrices(self.matrix, p.matrix))
+            sp = _reuse_place()
+            _geometry.multiply_matrices(self.matrix, p.matrix, sp.matrix)
+            return sp
         elif isinstance(p, Places):
             return Places([self]) * p
 
@@ -151,13 +150,10 @@ class Place:
             self._inverse = Place(m34.invert_matrix(self.matrix))
         return self._inverse
 
-    def inverse_orthonormal(self, result = None):
+    def inverse_orthonormal(self):
         '''Invert this transform assuming it is orthonormal, so the 3x3 transpose is the inverse.'''
-        if result is None:
-            result = Place(_geometry.invert_orthonormal(self.matrix))
-        else:
-            _geometry.invert_orthonormal(self.matrix, result.matrix)
-            result._matrix_changed()
+        result = _reuse_place()
+        _geometry.invert_orthonormal(self.matrix, result.matrix)
         return result
 
     def transpose(self):
@@ -177,18 +173,6 @@ class Place:
         m = self.matrix.copy()
         m[:, 3] *= s
         return Place(m)
-
-    def translate(self, shift):
-        '''Modify this Place shifting by the specified 3-vector.'''
-        self.matrix[:,3] += shift
-        self._matrix_changed()
-
-    def scale(self, scale):
-        '''Modify this transform by scaling on the left by this 3-vector.'''
-        m = self.matrix
-        for r in (0,1,2):
-            m[r,:] *= scale[r]
-        self._matrix_changed()
         
     def opengl_matrix(self):
         '''Return a numpy 4x4 array which is the transformation matrix
@@ -313,12 +297,10 @@ class Place:
         return (self._is_identity
                 or _geometry.is_identity_matrix(self.matrix, tolerance))
 
-    def _matrix_changed(self):
+    def _reuse(self):
         self._is_identity = False
         self._inverse = None
-        m44 = self._m44
-        if m44 is not None:
-            _geometry.opengl_matrix(self.matrix, m44)
+        self._m44 = None
 
 
 '''
@@ -326,10 +308,14 @@ The following routines create Place objects representing specific
 transformations.
 '''
 
-
 def translation(v):
     '''Return a transform which is a shift by vector v.'''
-    return Place(origin=v)
+    p = _reuse_place(create = False)
+    if p:
+        _geometry.set_translation_matrix(v, p.matrix)
+    else:
+        p = Place(origin=v)
+    return p
 
 
 def rotation(axis, angle, center=(0, 0, 0)):
@@ -348,24 +334,23 @@ def vector_rotation(u, v):
 
 def scale(s):
     '''Return a transform which is a scale by factor s.'''
-    if isinstance(s, (float, int)):
-        return Place(((s, 0, 0, 0), (0, s, 0, 0), (0, 0, s, 0)))
-    return Place(((s[0], 0, 0, 0), (0, s[1], 0, 0), (0, 0, s[2], 0)))
+    p = _reuse_place()
+    v = (s,s,s) if isinstance(s, (float, int)) else s
+    _geometry.set_scale_matrix(v, p.matrix)
+    return p
 
 
-def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None, result=None):
+def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None):
     '''Return a Place object with the specified z axis.  Any rotation
     about that z axis is allowed, unless a vector ydir is given in which
     case the y axis will be in the plane define by the z axis and ydir.
     '''
     axes = m34.orthonormal_frame(zaxis, ydir, xdir)
-    if result is None:
-        result = Place(axes=axes, origin=origin)
-    else:
-        o0,o1,o2 = (0,0,0) if origin is None else origin
-        result.set_matrix(((axes[0][0], axes[1][0], axes[2][0], o0),
-                           (axes[0][1], axes[1][1], axes[2][1], o1),
-                           (axes[0][2], axes[1][2], axes[2][2], o2)))
+    result = _reuse_place()
+    o0,o1,o2 = (0,0,0) if origin is None else origin
+    result.matrix[:] = ((axes[0][0], axes[1][0], axes[2][0], o0),
+                        (axes[0][1], axes[1][1], axes[2][1], o1),
+                        (axes[0][2], axes[1][2], axes[2][2], o2))
     return result
 
 
@@ -471,8 +456,33 @@ def transform_planes(coord_sys, planes):
         cp[p,3] = planes[p,3] + (t * v).sum()
     return cp
 
+from sys import getrefcount
+_recent_place_instances = []
+_max_recent_place_instances = 10
+def _reuse_place(create = True):
+    '''
+    Keep a cache of Place instances and reuse them if they are no longer used.
+    This is to improve performance when using many temporary matrices, so it is not
+    required to allocate to numpy arrays and Place instances.
+    '''
+    global _recent_place_instances
+    for p in _recent_place_instances:
+        if getrefcount(p) == 3:
+            p._reuse()
+            return p
+    if create:
+        p = Place()
+        _recent_place_instances.insert(0, p)
+        if len(_recent_place_instances) > _max_recent_place_instances:
+            _recent_place_instances = _recent_place_instances[:_max_recent_place_instances]
+    else:
+        p = None
+    return p
+
+    
 class Places:
-    ''' The Places class represents a list of 0 or more Place objects.
+    '''
+    The Places class represents a list of 0 or more Place objects.
     The advantage of Places over using a list of Place objects is that
     it doesn't need to create a separate Python Place object for each
     position, instead it is able to represent for example 10,000 atom
@@ -638,7 +648,7 @@ def multiply_transforms(tf1, tf2, result = None):
     # Set result transform.
     if isinstance(tf1, Place) and isinstance(tf2, Place):
         _geometry.multiply_matrices(tf1.matrix, tf2.matrix, result.matrix)
-        result._matrix_changed()
+        result._reuse()
     elif isinstance(tf1, Places) and isinstance(tf2, Place):
         n = len(tf1)
         result._resize(n)
