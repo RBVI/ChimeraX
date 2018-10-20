@@ -695,6 +695,7 @@ class Sequence(State):
         ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
     protein3to1 = lambda rn: c_function('sequence_protein3to1', args = (ctypes.c_char_p,),
         ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
+    amino3to1 = protein3to1
     rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
         ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
 

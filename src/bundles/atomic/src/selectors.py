@@ -25,7 +25,7 @@ def register_selectors(logger):
         e = Element.get_element(i)
         reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results), logger, desc="%s (element)" % e.name)
 
-    
+
 
 def _element_selector(symbol, models, results):
     from chimerax.atomic import Structure
@@ -47,6 +47,9 @@ def _idatm_selector(symbol, models, results):
 
 _chains_menu_needs_update = False
 _chains_menu_name = "&Chains"
+_residues_menu_needs_update = False
+_residues_menu_name = "&Residues"
+
 
 def add_select_menu_items(session):
     mw = session.ui.main_window
@@ -92,6 +95,14 @@ def add_select_menu_items(session):
     from . import Atom
     for idatm in Atom.idatm_info_map.keys():
         idatm_menu.addAction(QAction(idatm, mw))
+
+    parent_menus = [_residues_menu_name]
+    select_residues_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
+    select_residues_menu.aboutToShow.connect(lambda ses=session: _update_select_residues_menu(ses))
+    select_residues_menu.setToolTipsVisible(True)
+    from . import get_triggers
+    atom_triggers = get_triggers(session)
+    atom_triggers.add_handler("changes", _check_residues_update_status)
 
 def _update_select_chains_menu(session):
     global _chains_menu_needs_update
@@ -162,4 +173,52 @@ def _check_chains_update_status(trig_name, changes):
     global _chains_menu_needs_update
     if not _chains_menu_needs_update:
         _chains_menu_needs_update = changes.created_chains() or changes.num_deleted_chains() > 0
+
+def _update_select_residues_menu(session):
+    global _residues_menu_needs_update
+    if not _residues_menu_needs_update:
+        return
+    mw = session.ui.main_window
+    select_residues_menu = mw.add_select_submenu([], _residues_menu_name)
+    from . import AtomicStructures, all_atomic_structures
+    structures = AtomicStructures(all_atomic_structures(session))
+    nonstandard = set()
+    amino = set()
+    nucleic = set()
+    from . import Sequence
+    for r in structures.residues:
+        if Sequence.rname3to1(r.name) == 'X':
+            nonstandard.add(r.name)
+        elif Sequence.amino3to1(r.name) == 'X':
+            nucleic.add(r.name)
+        else:
+            amino.add(r.name)
+    prev_entries = False
+    for cat_name, members in (("all nonstandard", nonstandard), ("standard nucleic acids", nucleic),
+            ("standard amino acids", amino)):
+        if not members:
+            continue
+        collective_spec = ""
+        if prev_entries:
+            select_residues_menu.addSeparator()
+        # remember first action so that collective spec can be inserted
+        first_entry = None
+        res_names = list(members)
+        res_names.sort()
+        for rn in res_names:
+            spec = ':' + rn
+            collective_spec += spec
+            action = mw.add_menu_selector(select_residues_menu, rn, spec)
+            if first_entry is None:
+                first_entry = action
+        if len(res_names) > 1:
+            mw.add_menu_selector(select_residues_menu, cat_name, collective_spec, insertion_point=first_entry)
+        prev_entries = True
+
+    _residues_menu_needs_update = False
+
+def _check_residues_update_status(trig_name, changes):
+    global _residues_menu_needs_update
+    if not _residues_menu_needs_update:
+        _residues_menu_needs_update = changes.created_residues() or changes.num_deleted_residues() > 0
 
