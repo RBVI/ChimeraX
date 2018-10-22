@@ -452,10 +452,11 @@ class BundleInfo:
         except ModuleNotFoundError:
             return None
         import os.path
-        for d in s.submodule_search_locations:
-            p = os.path.join(d, filename)
-            if os.path.exists(p):
-                return p
+        if s.submodule_search_locations:
+            for d in s.submodule_search_locations:
+                p = os.path.join(d, filename)
+                if os.path.exists(p):
+                    return p
         return None
 
     def unload(self, logger):

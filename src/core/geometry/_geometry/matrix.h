@@ -22,6 +22,8 @@ PyObject *multiply_matrices(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *multiply_matrix_lists(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *same_matrix(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *is_identity_matrix(PyObject *, PyObject *args, PyObject *keywds);
+PyObject *set_scale_matrix(PyObject *, PyObject *args, PyObject *keywds);
+PyObject *set_translation_matrix(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *opengl_matrix(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *opengl_matrices(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *invert_orthonormal(PyObject *, PyObject *args, PyObject *keywds);
