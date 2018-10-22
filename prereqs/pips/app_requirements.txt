@@ -18,7 +18,7 @@ pkginfo==1.4.2
 psutil==5.4.7
 pycollada==0.6
 python-dateutil==2.7.3
-qtconsole==4.4.1
+qtconsole==4.4.2
 six==1.11.0
 sortedcontainers==2.0.5
 suds-jurko==0.6
