@@ -77,8 +77,7 @@ class Place:
         '''3 by 4 numpy array, first 3 columns are axes, last column
         is origin.'''
 
-        self._is_identity = (matrix is None and axes is None
-                             and origin is None)
+        self._is_identity = None # Cached boolean value whether matrix is identity
         self._inverse = None    # Cached inverse.
         self._m44 = None	# Cached 4x4 opengl matrix
         
@@ -294,11 +293,16 @@ class Place:
         of the 3 by 4 matrix elements is within the specified tolerance
         of the identity transform.
         '''
-        return (self._is_identity
-                or _geometry.is_identity_matrix(self.matrix, tolerance))
+        if tolerance == 0:
+            ii = self._is_identity
+            if ii is None:
+                self._is_identity = ii = _geometry.is_identity_matrix(self.matrix, tolerance)
+        else:
+            ii = _geometry.is_identity_matrix(self.matrix, tolerance)
+        return ii
 
     def _reuse(self):
-        self._is_identity = False
+        self._is_identity = None
         self._inverse = None
         self._m44 = None
 
