@@ -503,6 +503,24 @@ class Places:
         self._opengl_array = opengl_array
         self._shift_and_scale = shift_and_scale
 
+        # Check that arrays are the right type.
+        if place_array is not None:
+            self._check_array('place_array', place_array, double=True)
+        if opengl_array is not None:
+            self._check_array('opengl_array', opengl_array)
+        if shift_and_scale is not None:
+            self._check_array('shift_and_scale', shift_and_scale)
+
+    def _check_array(self, name, array, double = False, contiguous = True):
+        from numpy import ndarray, float32, float64
+        dtype = float64 if double else float32
+        if not isinstance(array, ndarray):
+            raise ValueError('Places %s argument must be a numpy array, got %s' % (name, str(type(array))))
+        if array.dtype != dtype:
+            raise ValueError('Places %s argument must have type %s, got %s' % (name, str(dtype), str(array.dtype)))
+        if contiguous and not array.flags['C_CONTIGUOUS']:
+            raise ValueError('Places %s argument must be contiguous' % name)
+        
     def place_list(self):
         pl = self._place_list
         if pl is None:
