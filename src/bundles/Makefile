@@ -10,6 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 TOP = ../..
+SUBDIR_SYNC = 1
 include $(TOP)/mk/config.make
 
 SUBDIRS = addh align_algs alignments atom_search atomic \
