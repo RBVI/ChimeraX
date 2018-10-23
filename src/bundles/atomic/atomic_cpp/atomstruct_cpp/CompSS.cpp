@@ -639,7 +639,11 @@ compute_chain(KsdsspParams& params)
         hbonds.resize(num_res);
 
     // Compute secondary structure
-    add_imide_hydrogens(params);
+	try {
+		add_imide_hydrogens(params);
+	} catch (std::domain_error&) {
+		throw std::domain_error("Structure has degenerate atomic coordinates; assigning all 'turn'");
+	}
     find_hbonds(params);
 
     find_turns(params, 3);
@@ -744,6 +748,7 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
         for (auto ih: params.imide_Hs)
             delete ih;
     } catch (...) {
+		set_ss_assigned(true); // leave as all-turn; don't try again
         for (auto crd: params.coords)
             delete crd;
         for (auto ih: params.imide_Hs)
