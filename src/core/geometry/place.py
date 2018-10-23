@@ -71,7 +71,7 @@ class Place:
             if origin is not None:
                 m[:, 3] = origin
         else:
-            m = array(matrix, float64)
+            m = array(matrix, float64, order = 'C')
 
         self.matrix = m
         '''3 by 4 numpy array, first 3 columns are axes, last column
