@@ -1031,8 +1031,12 @@ class HandControllerModel(Model):
     def _process_ui_event(self, ui, b, pressed, released):
         if b not in ui.buttons:
             return False
+
+        rp = self.room_position
+        if rp is None:
+            return False
         
-        window_xy, on_panel = ui.click_position(self.room_position.origin())
+        window_xy, on_panel = ui.click_position(rp.origin())
         if released and ui.button_down == (self, b) and window_xy:
             # Always release mouse button even if off panel.
             ui.release(window_xy)

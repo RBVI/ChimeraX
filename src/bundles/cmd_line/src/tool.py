@@ -253,8 +253,6 @@ class _HistoryDialog:
     record_label = "Save..."
     execute_label = "Execute"
 
-    NUM_REMEMBERED = 500
-
     def __init__(self, controller, typed_only):
         # make dialog hidden initially
         self.controller = controller
@@ -265,15 +263,43 @@ class _HistoryDialog:
         self.window.fill_context_menu = self.fill_context_menu
 
         parent = self.window.ui_area
-        from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
+        from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QLabel
         self.listbox = QListWidget(parent)
         self.listbox.setSelectionMode(QListWidget.ExtendedSelection)
         self.listbox.itemSelectionChanged.connect(self.select)
         main_layout = QVBoxLayout(parent)
+        main_layout.setContentsMargins(0,0,0,0)
         main_layout.addWidget(self.listbox)
+        num_cmd_frame = QFrame(parent)
+        main_layout.addWidget(num_cmd_frame)
+        num_cmd_layout = QHBoxLayout(num_cmd_frame)
+        num_cmd_layout.setContentsMargins(0,0,0,0)
+        remem_label = QLabel("Remember")
+        from PyQt5.QtCore import Qt
+        remem_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        num_cmd_layout.addWidget(remem_label, 1)
+        from PyQt5.QtWidgets import QSpinBox, QSizePolicy
+        class ShorterQSpinBox(QSpinBox):
+            max_val = 1000000
+            def textFromValue(self, val):
+                # kludge to make the damn entry field shorter
+                if val == self.max_val:
+                    return "1 mil"
+                return str(val)
+
+        spin_box = ShorterQSpinBox()
+        spin_box.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        spin_box.setRange(100, spin_box.max_val)
+        spin_box.setSingleStep(100)
+        spin_box.setValue(controller.settings.num_remembered)
+        spin_box.valueChanged.connect(self._num_remembered_changed)
+        num_cmd_layout.addWidget(spin_box, 0)
+        num_cmd_layout.addWidget(QLabel("commands"), 1)
+        num_cmd_frame.setLayout(num_cmd_layout)
         button_frame = QFrame(parent)
         main_layout.addWidget(button_frame)
         button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0,0,0,0)
         for but_name in [self.record_label, self.execute_label, "Delete", "Copy", "Help"]:
             but = QPushButton(but_name, button_frame)
             but.setAutoDefault(False)
@@ -283,13 +309,13 @@ class _HistoryDialog:
         self.window.manage(placement=None)
         self.window.shown = False
         from chimerax.core.history import FIFOHistory
-        self._history = FIFOHistory(self.NUM_REMEMBERED, controller.session, "commands")
+        self._history = FIFOHistory(controller.settings.num_remembered, controller.session, "commands")
         self._record_dialog = None
         self._search_cache = None
         self._suspend_handler = False
 
     def add(self, item, *, typed=False):
-        if len(self._history) >= self.NUM_REMEMBERED:
+        if len(self._history) >= self.controller.settings.num_remembered:
             if not self.typed_only or self._history[0][1]:
                 self.listbox.takeItem(0)
         if typed or not self.typed_only:
@@ -506,3 +532,10 @@ class _HistoryDialog:
         if not self._suspend_handler:
             self._search_cache = None
         event.Skip()
+
+    def _num_remembered_changed(self, new_hist_len):
+        if len(self._history) > new_hist_len:
+            self._history.replace(self._history[-new_hist_len:])
+            self.populate()
+        self.controller.settings.num_remembered = new_hist_len
+

@@ -211,6 +211,17 @@ class InitWindowSizeOption(Option):
                 int(100.0 * window_width / screen_width),
                 int(100.0 * window_height / screen_height)))
 
+# next two variables needed so that log can notify interface about setting change
+log_error_cb = log_warning_cb = None
+
+def _set_error_cb(ses, cb):
+    global log_error_cb
+    log_error_cb = cb
+
+def _set_warning_cb(ses, cb):
+    global log_warning_cb
+    log_warning_cb = cb
+
 class CoreSettingsPanel:
 
     # settings_info is keyed on setting name, and value is a tuple composed of:
@@ -333,6 +344,16 @@ class CoreSettingsPanel:
             lambda ses: ses.pb_dist_monitor.show_units,
             'Whether to show angstrom symbol after the distancee',
             False),
+        'errors_raise_dialog': (
+            'Errors shown in dialog',
+            'Log',
+            BooleanOption,
+            None,
+            None,
+            _set_error_cb,
+            lambda ses: core_settings.errors_raise_dialog,
+            'Should error messages be shown in a separate dialog as well as being logged',
+            True),
         'http_proxy': (
             'HTTP proxy',
             'Web Access',
@@ -383,6 +404,16 @@ class CoreSettingsPanel:
             None,
             'How frequently to check toolshed for new updates<br>',
             True),
+        'warnings_raise_dialog': (
+            'Warnings shown in dialog',
+            'Log',
+            BooleanOption,
+            None,
+            None,
+            _set_warning_cb,
+            lambda ses: core_settings.warnings_raise_dialog,
+            'Should warning messages be shown in a separate dialog as well as being logged',
+            True),
     }
 
     def __init__(self, session, ui_area):
@@ -408,7 +439,7 @@ class CoreSettingsPanel:
             """
             if notifier is not None:
                 notifier(session,
-                    lambda tn, data, fetch=fetcher, ses=session, opt=opt: opt.set(fetch(ses)))
+                    lambda tn, data, *, fetch=fetcher, ses=session, opt=opt: opt.set(fetch(ses)))
 
         layout = QBoxLayout(QBoxLayout.TopToBottom)
         layout.setSpacing(5)

@@ -33,10 +33,12 @@ class _CoreSettings(Settings):
         'clipping_surface_caps': True,
         'clipping_cap_offset': 0.01,
         'default_tool_window_side': "right",
+        'errors_raise_dialog': True,
         'http_proxy': ("", 80),
         'https_proxy': ("", 443),
         'initial_window_size': ("last used", None),
         'resize_window_on_session_restore': False,
+        'warnings_raise_dialog': False,
     }
     AUTO_SAVE = {
         'distance_color': configfile.Value(BuiltinColors['gold'], commands.ColorArg, Color.hex_with_alpha),

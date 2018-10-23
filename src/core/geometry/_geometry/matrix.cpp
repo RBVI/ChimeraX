@@ -413,3 +413,55 @@ extern "C" PyObject *invert_orthonormal(PyObject *, PyObject *args, PyObject *ke
   Py_INCREF(py_result);
   return py_result;
 }
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *set_translation_matrix(PyObject *, PyObject *args, PyObject *keywds)
+{
+  PyObject *result;
+  double t[3];
+  const char *kwlist[] = {"translation", "matrix", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O"),
+				   (char **)kwlist,
+				   parse_double_3_array, &(t[0]),
+				   &result))
+    return NULL;
+
+  DArray r;
+  if (!parse_contiguous_double_3x4_array(result, &r))
+	return NULL;
+
+  double *m = r.values();
+  m[0] = 1; m[1] = 0; m[2] = 0; m[3] = t[0];
+  m[4] = 0; m[5] = 1; m[6] = 0; m[7] = t[1];
+  m[8] = 0; m[9] = 0; m[10] = 1; m[11] = t[2];
+
+  return python_none();
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *set_scale_matrix(PyObject *, PyObject *args, PyObject *keywds)
+{
+  PyObject *result;
+  double s[3];
+  const char *kwlist[] = {"scale", "matrix", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O"),
+				   (char **)kwlist,
+				   parse_double_3_array, &(s[0]),
+				   &result))
+    return NULL;
+
+  DArray r;
+  if (!parse_contiguous_double_3x4_array(result, &r))
+	return NULL;
+
+  double *m = r.values();
+  m[0] = s[0]; m[1] = 0; m[2] = 0; m[3] = 0;
+  m[4] = 0; m[5] = s[1]; m[6] = 0; m[7] = 0;
+  m[8] = 0; m[9] = 0; m[10] = s[2]; m[11] = 0;
+
+  return python_none();
+}
