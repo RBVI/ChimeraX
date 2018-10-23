@@ -39,6 +39,9 @@ endif
 test src.test:
 	$(MAKE) -C src test
 
+sync:
+	$(MAKE) -C src/bundles sync
+
 ifdef WIN32
 vsdefined:
 	@if [ -z $${VSINSTALLDIR+x} ]; then \
