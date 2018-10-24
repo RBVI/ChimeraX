@@ -74,7 +74,7 @@ part_list        = range:part_range_list ',' part:part_list
                  | range:part_range_list 
                  ;
 
-part_range_list  = start:/-?[a-zA-Z0-9'"]+/ [ '-' end:/[-a-zA-Z0-9'"]+/ ]
+part_range_list  = start:/-?[a-zA-Z0-9'"*?\[\]]+/ [ '-' end:/[-a-zA-Z0-9'"]+/ ]
                  ;
 
 attribute_list   = attr_test { ',' attr_test }*
@@ -95,6 +95,10 @@ attr_operator    = '>='
                  | '='
                  | '!='
                  | '<>'
+                 | '~'
+                 | '~~'
+                 | '!~'
+                 | '!~~'
                  ;
 
 attr_value       = '"' ?/[^"]+/? '"'
