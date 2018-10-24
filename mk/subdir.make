@@ -45,12 +45,12 @@ $(SUBDIR_TEST):
 	$(MAKE) -C $(subst .test,,$@) test
 endif
 
-ifdef NO_SUBDIR_SYNC
-sync:
-else
+ifdef SUBDIR_SYNC
 SUBDIR_SYNC = $(SUBDIRS:=.sync)
 .PHONY: $(SUBDIR_SYNC)
 sync: $(SUBDIR_SYNC)
 $(SUBDIR_SYNC):
 	$(MAKE) -C $(subst .sync,,$@) sync
+else
+sync:
 endif
