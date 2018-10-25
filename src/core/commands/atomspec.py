@@ -670,7 +670,7 @@ class _Part:
                         return True
                     else:
                         return ic <= end_ic
-            return matcher
+        return matcher
 
     def _parse_as_res_id(self, n):
         try:
