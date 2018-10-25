@@ -15,6 +15,7 @@ line_profiler==2.1.2
 lxml==4.2.5
 markupsafe==1.0
 mccabe==0.6.1
+msgpack=0.5.6
 pep8==1.7.1
 pep8-naming==0.7.0
 Pillow==5.3.0
