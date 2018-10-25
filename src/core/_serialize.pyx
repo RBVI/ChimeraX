@@ -286,7 +286,6 @@ cdef object _decode_ext(int n, bytes buf):
 # same keyword options
 _packer_args = {
     'default': _encode_ext,
-    'encoding': 'utf-8',
     'use_bin_type': True,
     'use_single_float': False,
     'strict_types': True
@@ -294,7 +293,7 @@ _packer_args = {
 
 _unpacker_args = {
     'ext_hook': _decode_ext,
-    'encoding': 'utf-8'
+    'raw': False
 }
 
 
