@@ -169,6 +169,8 @@ def _update_list(toolshed, node, what, callback, logger):
                     errors.append("bad <b> on line", ab.sourceline)  # DEBUG
                     valid = False
             elif ab.tag == 'a':
+                if 'href' not in ab.attrib:
+                    continue
                 href = ab.attrib["href"]
                 w, name = href.split('/')
                 if w != what:
