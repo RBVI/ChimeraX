@@ -124,8 +124,8 @@ class _TriggerHandler:
     def invoke(self, data, remove_if_error):
         try:
             return self._func(self._name, data)
-        except Exception:
-            _report('%s "%s"' % (TRIGGER_ERROR, self._name))
+        except Exception as e:
+            _report('%s "%s": %s' % (TRIGGER_ERROR, self._name, str(e)))
             if remove_if_error:
                 return DEREGISTER
 
@@ -513,6 +513,7 @@ class TriggerSet:
             for data, ao in bl:
                 self.activate_trigger(name, data, absent_okay=ao)
             del self._block_data[name]
+
 
 if __name__ == "__main__":
     first_trigger = None
