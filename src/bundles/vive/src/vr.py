@@ -69,7 +69,9 @@ def vr(session, enable = None, room_position = None, display = None,
     
     if enable is None and room_position is None:
         enable = True
-    
+
+    start = (vr_camera(session) is None)
+
     if enable is not None:
         if enable:
             start_vr(session, multishadow_allowed, simplify_graphics)
@@ -88,9 +90,14 @@ def vr(session, enable = None, room_position = None, display = None,
             c.room_to_scene = room_position
 
     if c:
+        if display is None and start:
+            if not wait_for_vsync(session, False):
+                session.logger.warning('Graphics on desktop display may cause VR to flicker. Turning off mirroring to desktop display.')
+                display = 'blank'
         if display is not None:
             if display in ('mirror', 'independent'):
-                wait_for_vsync(session, False)
+                if not wait_for_vsync(session, False):
+                    session.logger.warning('Graphics on desktop display may cause VR to flicker.')
             c.desktop_display = display
             if display == 'independent':
                 c.initialize_desktop_camera_position = True
@@ -207,10 +214,7 @@ def stop_vr(session, simplify_graphics = True):
 def wait_for_vsync(session, wait):
     r = session.main_view.render
     r.make_current()
-    if not r.wait_for_vsync(wait):
-        if not wait:
-            session.logger.warning('Could not turn off waiting for vsync on main display.'
-                                   '  May cause flicker in VR headset.')
+    return r.wait_for_vsync(wait)
 
 # -----------------------------------------------------------------------------
 #
