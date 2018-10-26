@@ -45,5 +45,10 @@ class PlacesState:
         if 'shift_and_scale' in data:
             p = Places(shift_and_scale = data['shift_and_scale'])
         else:
-            p = Places(place_array = data['array'])
+            pa = data['array']
+            from numpy import float32, float64
+            if pa.dtype == float32:
+                # Fix old sessions that saved array as float32
+                pa = pa.astype(float64)
+            p = Places(place_array = pa)
         return p

@@ -270,8 +270,14 @@ class Model(State, Drawing):
         p = data['parent']
         if p:
             p.add([self])
+
+        pa = data['positions']
+        from numpy import float32, float64
+        if pa.dtype == float32:
+            # Fix old sessions that saved array as float32
+            pa = pa.astype(float64)
         from .geometry import Places
-        self.positions = Places(place_array=data['positions'])
+        self.positions = Places(place_array=pa)
         if 'display_positions' in data:
             self.display_positions = data['display_positions']
 
