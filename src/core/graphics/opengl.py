@@ -398,7 +398,8 @@ class Render:
         try:
             from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
             i = 1 if wait else 0
-            return True if wglSwapIntervalEXT(i) else False
+            success = wglSwapIntervalEXT(i)
+            return True if success else False
         except:
             return False
 
