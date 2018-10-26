@@ -8,7 +8,7 @@ include Makefile.pip
 LANG	= en_US.UTF-8
 
 #PATCHES = pillow_ome_tiff.patch pillow_i16s_tiff.patch
-PATCHES = pillow_ome_tiff.patch
+PATCHES = pillow_ome_tiff.patch openvr_linux_button.patch
 
 all:
 
