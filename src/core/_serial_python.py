@@ -26,6 +26,8 @@ from datetime import datetime, timezone, timedelta
 from PIL import Image
 from .session import _UniqueName
 from .state import FinalizedState
+import tinyarray
+from tinyarray import ndarray_int, ndarray_float, ndarray_complex
 
 
 def _encode_unique_name(un):
@@ -68,7 +70,6 @@ def _encode_unique_name(un):
         raise RuntimeError("Unable to encode unique id")
 
 
-@line_profile
 def _decode_unique_name(buf):
     # restore _UniqueName from serialized representation
     import struct
@@ -108,7 +109,6 @@ def _encode_ndarray(o):
     }
 
 
-@line_profile
 def _decode_ndarray(data):
     kind = data[b'kind']
     dtype = data[b'dtype']
@@ -194,36 +194,37 @@ def _encode_ext(obj):
         # TODO: save as msgpack array without converting to list first
         # restored as a tuple
         return ExtType(13, packer.pack(list(obj.__getinitargs__())))
+    if isinstance(obj, (ndarray_int, ndarray_float, ndarray_complex)):
+        return ExtType(14, packer.pack(list(obj.__reduce__()[1])))
 
     raise RuntimeError("Can't convert object of type: %s" % type(obj))
 
 
 _decode_handlers = (
     # order must match _encode_ext ExtType's type code
-    _decode_unique_name,
-    lambda buf: _decode_ndarray(_decode_bytes(buf)),
-    lambda buf: complex(*_decode_bytes_as_tuple(buf)),
-    lambda buf: set(_decode_bytes(buf)),
-    lambda buf: frozenset(_decode_bytes(buf)),
-    lambda buf: OrderedDict(_decode_bytes(buf)),
-    lambda buf: deque(_decode_bytes(buf)),
-    lambda buf: _decode_datetime(_decode_bytes(buf)),
-    lambda buf: timedelta(*_decode_bytes_as_tuple(buf)),
-    lambda buf: _decode_image(buf),
-    lambda buf: _decode_numpy_number(_decode_bytes(buf)),
-    lambda buf: FinalizedState(_decode_bytes(buf)),
-    lambda buf: _decode_bytes_as_tuple(buf),
-    lambda buf: timezone(*_decode_bytes_as_tuple(buf)),
+    _decode_unique_name,                                            # 0
+    lambda buf: _decode_ndarray(_decode_bytes(buf)),                # 1
+    lambda buf: complex(*_decode_bytes_as_tuple(buf)),              # 2
+    lambda buf: set(_decode_bytes(buf)),                            # 3
+    lambda buf: frozenset(_decode_bytes(buf)),                      # 4
+    lambda buf: OrderedDict(_decode_bytes(buf)),                    # 5
+    lambda buf: deque(_decode_bytes(buf)),                          # 6
+    lambda buf: _decode_datetime(_decode_bytes(buf)),               # 7
+    lambda buf: timedelta(*_decode_bytes_as_tuple(buf)),            # 8
+    lambda buf: _decode_image(buf),                                 # 9
+    lambda buf: _decode_numpy_number(_decode_bytes(buf)),           # 10
+    lambda buf: FinalizedState(_decode_bytes(buf)),                 # 11
+    lambda buf: _decode_bytes_as_tuple(buf),                        # 12
+    lambda buf: timezone(*_decode_bytes_as_tuple(buf)),             # 13
+    lambda buf: _decode_tinyarray(*_decode_bytes_as_tuple(buf)),    # 14
 )
-assert len(_decode_handlers) == 14
+assert len(_decode_handlers) == 15
 
 
-@line_profile
 def _decode_bytes(buf):
     return unpackb(buf, **_unpacker_args)
 
 
-@line_profile
 def _decode_bytes_as_tuple(buf):
     unpacker = Unpacker(None, **_unpacker_args)
     unpacker.feed(buf)
@@ -234,8 +235,9 @@ def _decode_bytes_as_tuple(buf):
             yield unpacker.unpack()
     return tuple(extract())
 
+def _decode_tinyarray(shape, format, data):
+    return tinyarray._reconstruct(shape, format, data)
 
-@line_profile
 def _decode_ext(n, buf):
     # assert 0 <= n < len(_decode_handlers)
     return _decode_handlers[n](buf)

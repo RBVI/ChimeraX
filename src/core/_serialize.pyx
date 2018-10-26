@@ -21,6 +21,8 @@ from datetime import datetime, timezone, timedelta
 from PIL import Image
 from .session import _UniqueName
 from .state import FinalizedState
+import tinyarray
+from tinyarray import ndarray_int, ndarray_float, ndarray_complex
 
 from cpython.tuple cimport (
     PyTuple_New, PyTuple_SetItem
@@ -226,15 +228,17 @@ cdef object _encode_ext(object obj):
     if isinstance(obj, timezone):
         # restored as a tuple
         return ExtType(13, _pack_as_array(obj.__getinitargs__()))
+    if isinstance(obj, (ndarray_int, ndarray_float, ndarray_complex)):
+        return ExtType(14, _pack_as_array(obj.__reduce__()[1]))
 
     raise RuntimeError("Can't convert object of type: %s" % type(obj))
 
 
-cdef inline _decode_bytes(bytes buf):
+cdef inline object _decode_bytes(bytes buf):
     return unpackb(buf, **_unpacker_args)
 
 
-cdef _decode_bytes_as_tuple(bytes buf):
+cdef object _decode_bytes_as_tuple(bytes buf):
     unpacker = Unpacker(None, **_unpacker_args)
     unpacker.feed(buf)
     cdef size_t n = unpacker.read_array_header()
@@ -246,6 +250,11 @@ cdef _decode_bytes_as_tuple(bytes buf):
         Py_INCREF(u)  # cython doesn't know about PyTuple_SetItem stealing reference
         PyTuple_SetItem(obj, i, u)
     return obj
+
+
+cdef object _decode_tinyarray(object decoded_buffer):
+    shape, format, data = decoded_buffer
+    return tinyarray._reconstruct(shape, format, data)
 
 
 cdef object _decode_ext(int n, bytes buf):
@@ -278,6 +287,8 @@ cdef object _decode_ext(int n, bytes buf):
         return _decode_bytes_as_tuple(buf)
     elif n == 13:
         return timezone(*_decode_bytes_as_tuple(buf))
+    elif n == 14:
+        return _decode_tinyarray(_decode_bytes(buf))
     else:
         raise RuntimeError("Unknown extension type: %d" % n)
 
