@@ -591,7 +591,7 @@ class Session:
                     mgr.add_reference(name, obj)
         except:
             import traceback
-            self.logger.error("Unable to restore session, resetting.\n\n%s"
+            self.logger.bug("Unable to restore session, resetting.\n\n%s"
                               % traceback.format_exc())
             self.reset()
         finally:

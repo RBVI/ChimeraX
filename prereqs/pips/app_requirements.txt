@@ -20,7 +20,10 @@ pkginfo==1.4.2
 psutil==5.4.7
 pycollada==0.6
 python-dateutil==2.7.3
-qtconsole==4.4.2
+# ipython7 / ipykernel 5 seem to stop working after an error; force use of older versions
+ipython==6.5.0
+ipykernel==4.9.0
+qtconsole==4.4.1
 six==1.11.0
 sortedcontainers==2.0.5
 suds-jurko==0.6
