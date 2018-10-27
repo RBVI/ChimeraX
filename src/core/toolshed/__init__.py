@@ -987,7 +987,7 @@ class BundleAPI:
             the command to be registered and the bundle where
             it was defined.
 
-        command : :py:class:`str`
+        command : str
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
             Version 0 of the API only passes in the name of the
@@ -1009,7 +1009,7 @@ class BundleAPI:
             both the selector to be registered and the bundle
             where it is defined.
 
-        selector_name : :py:class:`str`
+        selector_name : str
         logger : :py:class:`chimerax.core.logger.Logger` instance.
 
             Version 0 of the API only passes in the name of the
@@ -1033,7 +1033,7 @@ class BundleAPI:
 
         Returns
         -------
-        :py:class:`tuple`
+        tuple
             The return value is a 2-tuple whose first element is a list of
             :py:class:`~chimerax.core.models.Model` instances and second
             element is a string containing a status message, such as the
@@ -1119,7 +1119,7 @@ class BundleAPI:
 
         Returns
         -------
-        :py:class:`str` or None
+        str or None
 
         """
         return None
@@ -1137,7 +1137,7 @@ class BundleAPI:
 
         Returns
         -------
-        :py:class:`str` or None
+        str or None
         """
         return None
 
@@ -1153,7 +1153,7 @@ class BundleAPI:
 
         Returns
         -------
-        :py:class:`str` or None
+        str or None
         """
         return None
 
