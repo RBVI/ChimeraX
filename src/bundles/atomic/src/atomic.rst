@@ -39,28 +39,28 @@ Efficient collections of molecular objects and molecular surfaces are also avail
 Atomic data classes
 -------------------
 
-.. automodule:: chimerax.core.atomic.structure
+.. automodule:: chimerax.atomic.structure
     :members:
     :show-inheritance:
 
-.. automodule:: chimerax.core.atomic.molobject
+.. automodule:: chimerax.atomic.molobject
     :members:
     :show-inheritance:
 
-.. automodule:: chimerax.core.atomic.cymol
+.. automodule:: chimerax.atomic.cymol
     :members:
     :show-inheritance:
 
-.. automodule:: chimerax.core.atomic.molarray
+.. automodule:: chimerax.atomic.molarray
     :members:
     :member-order: bysource
     :special-members: __len__, __iter__, __getitem__, __or__, __and__, __sub__
     :show-inheritance:
 
-.. automodule:: chimerax.core.atomic.pbgroup
+.. automodule:: chimerax.atomic.pbgroup
     :members:
     :show-inheritance:
 
-.. automodule:: chimerax.core.atomic.molsurf
+.. automodule:: chimerax.atomic.molsurf
     :members:
     :show-inheritance:

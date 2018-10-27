@@ -15,6 +15,6 @@
 mmcif: mmCIF input/output
 =========================
 
-.. automodule:: chimerax.core.atomic.mmcif
+.. automodule:: chimerax.atomic.mmcif
     :members:
     :show-inheritance:

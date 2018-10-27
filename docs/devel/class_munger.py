@@ -41,8 +41,6 @@ Replacements = [
     (r"\.atomic\.pdb\b", ".atomic"),
     (r"\.atomic\.search\b", ".atomic"),
     (r"\.atomic\.shapedrawing\b", ".atomic"),
-    # Implementation is still chimerax.core.atomic for now so we map that too.
-    (r"\.core\.atomic\b", ".atomic"),
 ]
 
 

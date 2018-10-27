@@ -370,7 +370,7 @@ class Toolshed:
 
     def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
                check_remote=False, report=False):
-        """Discard and reread bundle info.
+        """Supported API. Discard and reread bundle info.
 
         Parameters
         ----------
@@ -453,12 +453,11 @@ class Toolshed:
             bi.register_available_commands(logger)
 
     def set_install_timestamp(self, per_user=False):
-        """Set last installed timestamp."""
         _debug("set_install_timestamp")
         self._installed_bundle_info.set_install_timestamp(per_user=per_user)
 
     def bundle_info(self, logger, installed=True, available=False):
-        """Return list of bundle info.
+        """Supported API. Return list of bundle info.
 
         Parameters
         ----------
@@ -488,7 +487,7 @@ class Toolshed:
             return []
 
     def install_bundle(self, bundle, logger, *, per_user=True, reinstall=False, session=None):
-        """Install the bundle by retrieving it from the remote shed.
+        """Supported API. Install the bundle by retrieving it from the remote shed.
 
         Parameters
         ----------
@@ -562,7 +561,7 @@ class Toolshed:
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle)
 
     def uninstall_bundle(self, bundle, logger, *, session=None):
-        """Uninstall bundle by removing the corresponding Python distribution.
+        """Supported API. Uninstall bundle by removing the corresponding Python distribution.
 
         Parameters
         ----------
@@ -600,7 +599,7 @@ class Toolshed:
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bundle)
 
     def find_bundle(self, name, logger, installed=True, version=None):
-        """Return a :py:class:`BundleInfo` instance with the given name.
+        """Supported API. Return a :py:class:`BundleInfo` instance with the given name.
 
         Parameters
         ----------
@@ -646,7 +645,7 @@ class Toolshed:
         return best_bi
 
     def find_bundle_for_tool(self, name):
-        """Find named tool and its bundle
+        """Supported API. Find named tool and its bundle
 
         Return the bundle it is in and its true name.
         """
@@ -665,7 +664,7 @@ class Toolshed:
         return tools[0]
 
     def find_bundle_for_command(self, cmd):
-        """Find bundle registering given command
+        """Supported API. Find bundle registering given command
         
         `cmd` must be the full command name, not an abbreviation."""
         for bi in self._installed_bundle_info:
@@ -675,7 +674,7 @@ class Toolshed:
         return None
 
     def find_bundle_for_class(self, cls):
-        """Find bundle that has given class"""
+        """Supported API. Find bundle that has given class"""
 
         package = tuple(cls.__module__.split('.'))
         while package:
@@ -687,7 +686,7 @@ class Toolshed:
         return None
 
     def bootstrap_bundles(self, session):
-        """Do custom initialization for installed bundles
+        """Supported API. Do custom initialization for installed bundles
 
         After adding the :py:class:`Toolshed` singleton to a session,
         allow bundles need to install themselves into the session,
@@ -708,7 +707,7 @@ class Toolshed:
 
     def import_bundle(self, bundle_name, logger,
                       install="ask", session=None):
-        """Return the module for the bundle with the given name.
+        """Supported API. Return the module for the bundle with the given name.
 
         Parameters
         ----------
@@ -744,7 +743,7 @@ class Toolshed:
 
     def import_package(self, package_name, logger,
                        install=None, session=None):
-        """Return package of given name if it is associated with a bundle.
+        """Supported API. Return package of given name if it is associated with a bundle.
 
         Parameters
         ----------
@@ -940,7 +939,7 @@ class BundleAPI:
 
     @staticmethod
     def start_tool(*args):
-        """This method is called when the tool is invoked,
+        """Supported API. This method is called when the tool is invoked,
         typically from the application menu.
         Errors should be reported via exceptions.
 
@@ -969,7 +968,7 @@ class BundleAPI:
 
     @staticmethod
     def register_command(*args):
-        """When ChimeraX starts, it registers placeholders for
+        """Supported API. When ChimeraX starts, it registers placeholders for
         commands from all bundles.  When a command from this
         bundle is actually used, ChimeraX calls this method to
         register the function that implements the command
@@ -998,7 +997,7 @@ class BundleAPI:
 
     @staticmethod
     def register_selector(*args):
-        """This method is called the first time when the selector is used.
+        """Supported API. This method is called the first time when the selector is used.
 
         Parameters
         ----------
@@ -1020,7 +1019,7 @@ class BundleAPI:
 
     @staticmethod
     def open_file(session, stream_or_path, optional_format_name, optional_file_name, **kw):
-        """Called to open a file.
+        """Supported API. Called to open a file.
 
         Second arg must be 'stream' or 'path'.  Depending on the name, either an open
         data stream or a filesystem path will be provided.  The third and fourth
@@ -1044,7 +1043,7 @@ class BundleAPI:
 
     @staticmethod
     def save_file(session, stream, name, **kw):
-        """Called to save a file.
+        """Supported API. Called to save a file.
 
         Arguments and return values are as described for save functions in
         :py:mod:`chimerax.core.io`.
@@ -1054,7 +1053,7 @@ class BundleAPI:
 
     @staticmethod
     def fetch_from_database(session, identifier, **kw):
-        """Called to fetch an entry from a network resource.
+        """Supported API. Called to fetch an entry from a network resource.
 
         Arguments and return values are as described for save functions in
         :py:mod:`chimerax.core.fetch`.
@@ -1065,22 +1064,22 @@ class BundleAPI:
 
     @staticmethod
     def initialize(session, bundle_info):
-        """Called to initialize a bundle in a session.
+        """Supported API. Called to initialize a bundle in a session.
+
+        Must be defined if the ``custom_init`` metadata field is set to 'true'.
+        ``initialize`` is called when the bundle is first loaded.
+        To make ChimeraX start quickly, custom initialization is discouraged.
 
         Parameters
         ----------
         session : :py:class:`~chimerax.core.session.Session` instance.
         bundle_info : :py:class:`BundleInfo` instance.
-
-        Must be defined if the ``custom_init`` metadata field is set to 'true'.
-        ``initialize`` is called when the bundle is first loaded.
-        To make ChimeraX start quickly, custom initialization is discouraged.
         """
         raise NotImplementedError("BundleAPI.initialize")
 
     @staticmethod
     def finish(session, bundle_info):
-        """Called to deinitialize a bundle in a session.
+        """Supported API. Called to deinitialize a bundle in a session.
 
         Parameters
         ----------
@@ -1094,7 +1093,7 @@ class BundleAPI:
 
     @staticmethod
     def get_class(name):
-        """Called to get named class from bundle.
+        """Supported API. Called to get named class from bundle.
 
         Parameters
         ----------
@@ -1111,16 +1110,17 @@ class BundleAPI:
     def include_dir(bundle_info):
         """Returns path to directory of C++ header files.
 
+        Used to get directory path to C++ header files needed for
+        compiling against libraries provided by the bundle.
+
         Parameters
         ----------
         bundle_info : :py:class:`BundleInfo` instance.
 
-        Used to get directory path to C++ header files needed for
-        compiling against libraries provided by the bundle.
-
         Returns
         -------
         :py:class:`str` or None
+
         """
         return None
 
@@ -1128,12 +1128,12 @@ class BundleAPI:
     def library_dir(bundle_info):
         """Returns path to directory of compiled libraries.
 
+        Used to get directory path to libraries (shared objects, DLLs)
+        for linking against libraries provided by the bundle.
+
         Parameters
         ----------
         bundle_info : :py:class:`BundleInfo` instance.
-
-        Used to get directory path to libraries (shared objects, DLLs)
-        for linking against libraries provided by the bundle.
 
         Returns
         -------
@@ -1143,13 +1143,13 @@ class BundleAPI:
 
     @staticmethod
     def data_dir(bundle_info):
-        """Returns path to directory of bundle-specific data.
+        """Supported API. Returns path to directory of bundle-specific data.
+
+        Used to get directory path to data included in the bundle.
 
         Parameters
         ----------
         bundle_info : :py:class:`BundleInfo` instance.
-
-        Used to get directory path to data included in the bundle.
 
         Returns
         -------
@@ -1258,7 +1258,7 @@ _default_help_dirs = None
 
 
 def init(*args, debug=None, **kw):
-    """Initialize toolshed.
+    """Supported API. Initialize toolshed.
 
     The toolshed instance is a singleton across all sessions.
     The first call creates the instance and all subsequent
@@ -1282,7 +1282,7 @@ def init(*args, debug=None, **kw):
 
 
 def get_toolshed():
-    """Return current toolshed.
+    """Supported API. Return current toolshed.
 
     Returns
     -------
