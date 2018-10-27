@@ -11,8 +11,8 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-cxlinks_base="http://www.rbvi.ucsf.edu/chimerax/docs/"
-cxlinks_init = function() {
+window.onload(function() {
+  cxlinks_base="http://www.rbvi.ucsf.edu/chimerax/docs/"
   if(!window.navigator.userAgent.includes("ChimeraX")){
     window.onclick = function(e){
       if(e.target.tagName.toLowerCase()!="a")
@@ -36,4 +36,4 @@ cxlinks_init = function() {
 	link.style.color="darkred";
     }
   }
-}
+});

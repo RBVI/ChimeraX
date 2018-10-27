@@ -81,10 +81,14 @@ index.rst: index.rst.in
 		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
 		$< > $@
 
-html: conf.py index.rst
+html: conf.py index.rst _static/cxlinks.js
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+
+_static/cxlinks.js: ../js/cxlinks.js
+	mkdir -p _static
+	cp $< $@
 
 dirhtml: conf.py index.rst
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
