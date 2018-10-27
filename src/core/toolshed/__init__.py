@@ -1081,13 +1081,13 @@ class BundleAPI:
     def finish(session, bundle_info):
         """Supported API. Called to deinitialize a bundle in a session.
 
+        Must be defined if the ``custom_init`` metadata field is set to 'true'.
+        ``finish`` is called when the bundle is unloaded.
+
         Parameters
         ----------
         session : :py:class:`~chimerax.core.session.Session` instance.
         bundle_info : :py:class:`BundleInfo` instance.
-
-        Must be defined if the ``custom_init`` metadata field is set to 'true'.
-        ``finish`` is called when the bundle is unloaded.
         """
         raise NotImplementedError("BundleAPI.finish")
 
@@ -1095,14 +1095,14 @@ class BundleAPI:
     def get_class(name):
         """Supported API. Called to get named class from bundle.
 
+        Used when restoring sessions.  Instances whose class can't be found via
+        'get_class' can not be saved in sessions.  And those classes must implement
+        the :py:class:`~chimerax.core.state.State` API.
+
         Parameters
         ----------
         name : str
             Name of class in bundle.
-
-        Used when restoring sessions.  Instances whose class can't be found via
-        'get_class' can not be saved in sessions.  And those classes must implement
-        the :py:class:`~chimerax.core.state.State` API.
         """
         return None
 
