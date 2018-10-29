@@ -404,7 +404,6 @@ class Log(ToolInstance, HtmlLog):
                     "%s"
                     "</script>\n"
                     "</head>\n"
-                    '<body onload="cxlinks_init()">\n'
                     "<h1> ChimeraX Log </h1>\n"
                     "<style>\n"
                     "%s"
