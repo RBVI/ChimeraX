@@ -1109,9 +1109,12 @@ class ToolWindow(StatusLogger):
         StatusLogger.__init__(self, tool_instance.session)
         self.tool_instance = tool_instance
         self.close_destroys = close_destroys
-        mw = tool_instance.session.ui.main_window
+        ui = tool_instance.session.ui
+        mw = ui.main_window
         self.__toolkit = _Qt(self, title, statusbar, mw)
         self.ui_area = self.__toolkit.ui_area
+        # forward unused keystrokes (to the command line by default)
+        self.ui_area.keyPressEvent = ui.forward_keystroke
         mw._new_tool_window(self)
         self._kludge = self.__toolkit
 
