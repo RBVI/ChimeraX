@@ -251,3 +251,89 @@ def _cut_triangles(edge_cuts, varray, narray, tarray, carray):
     ta = array(tae, tarray.dtype)
     ca = concatenate((carray, array(cae, carray.dtype)))
     return va, na, ta, ca
+
+# ---------------------------------------------------------------------------
+#
+def volume_zone_color(volume):
+    for surf in volume.surfaces:
+        zc = getattr(surf, 'auto_recolor_vertices', None)
+        if isinstance(zc, ZoneColor):
+            return zc
+    return None
+        
+# ---------------------------------------------------------------------------
+#
+def split_volume_by_color_zone(volume):
+
+    zc = volume_zone_color(volume)
+    if zc is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Volume %s does not have zone coloring' % volume.name_with_id())
+
+    grids = split_zones_by_color(volume, zc.points, zc.point_colors, zc.distance)
+    session = volume.session
+    from chimerax.map import volume_from_grid_data
+    vlist = [volume_from_grid_data(g, session, open_model = False) for g in grids]
+    for v in vlist:
+        v.copy_settings_from(volume, copy_region = False)
+        rgba = tuple(c/255 for c in v.data.zone_color)
+        v.set_parameters(surface_colors = [rgba]*len(v.surfaces))
+        v.display = True
+    volume.display = False
+
+    if len(vlist) == 1:
+        session.models.add(vlist)
+    else:
+        session.models.add_group(vlist, name = volume.name + ' split')
+  
+    return vlist
+  
+# ---------------------------------------------------------------------------
+#
+def split_zones_by_color(volume, points, point_colors, radius):
+
+  ctable = {}
+  cc = 0
+  for c in point_colors:
+    tc = tuple(c)
+    if not tc in ctable:
+      cc += 1
+      ctable[tc] = cc
+  point_indices = [ctable[tuple(c)] for c in point_colors]
+
+  ijk_min, ijk_max, ijk_step = volume.region
+  from chimerax.map.data import Grid_Subregion
+  sg = Grid_Subregion(volume.data, ijk_min, ijk_max)
+
+  # Get volume mask with values indicating nearest color within given radius.
+  from chimerax.map.data import zone_mask, masked_grid_data
+  mask = zone_mask(sg, points, radius, zone_point_mask_values = point_indices)
+
+  grids = []
+  for m in range(cc+1):
+      g = masked_grid_data(sg, mask, m)
+      g.name = volume.data.name + (' %d' % m)
+      grids.append(g)
+
+  # Record colors.
+  for color, m in ctable.items():
+    grids[m].zone_color = color
+  grids[0].zone_color = volume.surfaces[0].rgba	# Outside zone color same as original map.
+  
+  return grids
+
+# ---------------------------------------------------------------------------
+#
+def split_volumes_by_color_zone(session, volume):
+    for v in volume:
+        split_volume_by_color_zone(v)
+
+# ---------------------------------------------------------------------------
+#
+def register_volume_split_command(logger):
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.map import MapsArg
+    desc = CmdDesc(
+        required = [('volume', MapsArg)],
+        synopsis = 'split volume by color zone')
+    register('volume splitbyzone', desc, split_volumes_by_color_zone, logger=logger)

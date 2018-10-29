@@ -52,6 +52,7 @@
     <ChimeraXClassifier>ChimeraX :: Command :: color height :: Surfaces :: color surface by distance from a plane</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: surface :: Surfaces :: create/modify surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: ~surface :: Surfaces :: delete surface</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: volume splitbyzone :: Volume Data :: split volume by color zone</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: sop :: Surfaces :: surface operation</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: measure sasa :: Surfaces :: measure solvent-accessible surface area</ChimeraXClassifier>
   </Classifiers>
