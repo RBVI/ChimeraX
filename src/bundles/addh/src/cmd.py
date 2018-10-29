@@ -435,6 +435,8 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
                 if not a.element.is_metal:
                     coordinations.setdefault(a, []).append(pb.other_atom(a))
 
+    remaining_unknowns = {}
+    type_info_class = type_info['H'].__class__
     for struct in structures:
         for atom in struct.atoms:
             if atom.element.number == 0:
@@ -462,8 +464,15 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
                 type_info_for_atom[atom] = unknowns_info[atom]
                 atoms.append(atom)
                 continue
-            logger.info("Unknown hybridization for atom (%s) of residue type %s" %
-                    (atom.name, atom.residue.name))
+            remaining_unknowns.setdefault(atom.residue.name, set()).add(atom.name)
+            # leave remaining unknown atoms alone
+            type_info_for_atom[atom] = type_info_class(4, atom.num_bonds, atom.name)
+
+        for rname, atom_names in remaining_unknowns.items():
+            names_text = ", ".join([nm for nm in atom_names])
+            atom_text, obj_text = ("atoms", "them") if len(atom_names) > 1 else ("atom", "it")
+            logger.warning("Unknown hybridization for %s (%s) of residue type %s;"
+                " not adding hydrogens to %s" % (atom_text, names_text, rname, obj_text))
         naming_schemas.update(determine_naming_schemas(struct, type_info_for_atom))
 
     if need_all:
