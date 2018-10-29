@@ -869,7 +869,7 @@ class Render:
                  'renderer: %s' % GL.glGetString(GL.GL_RENDERER).decode('utf-8'),
                  'version: %s' % GL.glGetString(GL.GL_VERSION).decode('utf-8'),
                  'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8')]
-        ne = GL.glGetInteger(GL.GL_NUM_EXTENSIONS)
+        ne = GL.glGetIntegerv(GL.GL_NUM_EXTENSIONS)
         for e in range(ne):
             lines.append('extension: %s' % GL.glGetStringi(GL.GL_EXTENSIONS,e).decode('utf-8'))
         return '\n'.join(lines)
