@@ -77,8 +77,8 @@ class Drawing:
         self._highlighted_triangles_mask = None  # bool numpy array
         self._child_drawings = []
 
-        self._cached_geometry_bounds = None	# Triangles, positions not included.
-        self._cached_position_bounds = None	# Triangles including positions, children not included
+        self._cached_geometry_bounds = None	# Triangles, positions not included. Local coords.
+        self._cached_position_bounds = None	# Triangles including positions, children not included. Scene coords.
 
         # Geometry and colors
         self._vertices = None		# N x 3 float32 numpy array
@@ -451,6 +451,7 @@ class Drawing:
 
     def _scene_positions_changed(self):
         self._displayed_scene_positions = None
+        self._cached_position_bounds = None
         for c in self.child_drawings():
             c._scene_positions_changed()
         

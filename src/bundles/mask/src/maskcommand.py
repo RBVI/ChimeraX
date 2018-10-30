@@ -47,8 +47,7 @@ def mask(session, volumes, surfaces, axis = None, full_map = False,
 
 # -----------------------------------------------------------------------------
 #
-def ones_mask(session, surfaces, spacing = None, border = 0,
-              axis = None, full_map = False,
+def ones_mask(session, surfaces, spacing = None, border = 0, axis = None,
               extend = 0, pad = 0, slab = None, sandwich = True, invert_mask = False,
               fill_overlap = False, model_id = None):
 
@@ -65,8 +64,7 @@ def ones_mask(session, surfaces, spacing = None, border = 0,
 
     volumes = [ones_volume(surfaces, vpad, spacing, border)]
 
-    if border != 0:
-        full_map = True
+    full_map = False if border == 0 else True
 
     mvlist = mask(session, volumes, surfaces, axis = axis, full_map = full_map,
                   extend = extend, pad = pad, slab = slab, sandwich = sandwich,
@@ -111,12 +109,11 @@ def scene_bounds(models, displayed_only = True):
 # -----------------------------------------------------------------------------
 #
 def register_mask_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg
     from chimerax.core.commands import AxisArg, Float2Arg, Or, ModelIdArg, SurfacesArg
     from chimerax.map import MapsArg, Float1or3Arg
     mask_kw = [('axis', AxisArg),
-               ('full_map', BoolArg),
-               ('extend', FloatArg),
+               ('extend', IntArg),
                ('pad', FloatArg),
                ('slab', Or(FloatArg, Float2Arg)),
                ('invert_mask', BoolArg),
@@ -124,10 +121,7 @@ def register_mask_command(logger):
                ('model_id', ModelIdArg)]
     desc = CmdDesc(
         required = [('volumes', MapsArg)],
-        keyword = ([('surfaces', SurfacesArg)] +
-                   mask_kw +
-                   [('spacing', Float1or3Arg),
-                    ('border', FloatArg)]),
+        keyword = [('surfaces', SurfacesArg), ('full_map', BoolArg)] + mask_kw,
         required_arguments = ['surfaces'],
         synopsis = 'Mask a map to a surface'
     )

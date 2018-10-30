@@ -15,6 +15,6 @@
 pdbio: PDB input/output
 =======================
 
-.. automodule:: chimerax.core.atomic.pdbio
+.. automodule:: chimerax.atomic.pdbio
     :members:
     :show-inheritance:

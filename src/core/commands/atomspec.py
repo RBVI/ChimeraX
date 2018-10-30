@@ -339,6 +339,8 @@ class _AtomSpecSemantics:
                 op = operator.le
             elif ast.op == "<":
                 op = operator.lt
+            else:
+                op = ast.op
             # Convert string to value for comparison
             # TODO: if ast.name ends with color, convert to 3-float-tuple
             av = ast.value
@@ -591,6 +593,13 @@ class _PartList(list):
         return self
 
 
+def _has_wildcard(s):
+    try:
+        return any((c in s) for c in "*?[")
+    except TypeError:
+        return False
+
+
 class _Part:
     """Stores one part of a part range."""
     def __init__(self, start, end):
@@ -602,6 +611,72 @@ class _Part:
             return self.start
         else:
             return "%s-%s" % (self.start, self.end)
+
+    def string_matcher(self, case_sensitive=False):
+        # String matcher used for atom names, chain ids, residue names, etc.
+        start_test = self.start if case_sensitive else self.start.lower()
+        if self.end is None:
+            from fnmatch import fnmatch
+            if _has_wildcard(start_test):
+                def matcher(name):
+                    return fnmatch(name.lower(), start_test)
+            else:
+                def matcher(name):
+                    return name.lower() == start_test
+        else:
+            # Both start and end specified.  No wildcards allowed (for now).
+            end_test = self.end if case_sensitive else self.end.lower()
+            def matcher(name):
+                n = name.lower()
+                return n >= start_test and n <= end_test
+        return matcher
+
+    def res_id_matcher(self):
+        # Residue id matcher used for (residue sequence, insert code) pairs
+        # "ic" = insert code
+        try:
+            start_seq, start_ic = self._parse_as_res_id(self.start)
+        except (ValueError, IndexError):
+            return None
+        if self.end is None:
+            def matcher(seq, ic):
+                return seq == start_seq and ic == start_ic
+        else:
+            try:
+                end_seq, end_ic = self._parse_as_res_id(self.end)
+            except (ValueError, IndexError):
+                return None
+            def matcher(seq, ic):
+                if seq < start_seq or seq > end_seq:
+                    return False
+                elif seq > start_seq and seq < end_seq:
+                    return True
+                elif seq == start_seq:
+                    if not ic and not start_ic:
+                        return True
+                    elif ic and not start_ic:
+                        # Blank insert code < any non-blank
+                        return True
+                    elif not ic and start_ic:
+                        return False
+                    else:
+                        return start_ic <= ic
+                else:   # seq == end_seq
+                    if not ic and not start_ic:
+                        return True
+                    elif ic and not end_ic:
+                        return False
+                    elif not ic and end_ic:
+                        return True
+                    else:
+                        return ic <= end_ic
+        return matcher
+
+    def _parse_as_res_id(self, n):
+        try:
+            return int(n), ""
+        except ValueError:
+            return int(n[:-1]), n[-1]
 
 
 class _AttrList(list):
@@ -625,7 +700,9 @@ class _AttrTest:
             return self.name
         else:
             import operator
-            if self.op == operator.eq:
+            if isinstance(self.op, str):
+                op = self.op
+            elif self.op == operator.eq:
                 op = "="
             elif self.op == operator.ne:
                 op = "!="
@@ -640,6 +717,36 @@ class _AttrTest:
             else:
                 op = "???"
             return "%s%s%s" % (self.name, op, self.value)
+
+    def attr_matcher(self):
+        import operator
+        attr_name = self.name
+        want_missing = not self.no
+        if (self.op in ("~", "~~", "!~", "!~~") and
+                _has_wildcard(self.value)):
+            case_sensitive = self.op.endswith("~~")
+            invert = self.op[0] == '!'
+            attr_value = self.value if case_sensitive else self.value.lower()
+            from fnmatch import fnmatch
+            def matcher(obj):
+                try:
+                    v = getattr(obj, attr_name)
+                except AttributeError:
+                    return want_missing
+                if case_sensitive:
+                    v = v.lower()
+                matches = fnmatch(v, attr_value)
+                return not matches if invert else matches
+        else:
+            op = self.op
+            attr_value = self.value
+            def matcher(obj):
+                try:
+                    v = getattr(obj, attr_name)
+                except AttributeError:
+                    return want_missing
+                return op(v, attr_value)
+        return matcher
 
 
 class _SelectorName:

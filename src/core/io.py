@@ -379,6 +379,7 @@ def open_data(session, filespec, format=None, name=None, **kw):
         raise UserError("Second param of %s-opening function must be 'path' or 'stream'" % fmt.name)
     import os.path
     filename = os.path.expanduser(os.path.expandvars(filename))
+    delete_when_done = False
     provide_stream = list(params.keys())[1] == "stream"
     if provide_stream:
         enc = fmt.encoding
@@ -388,6 +389,16 @@ def open_data(session, filespec, format=None, name=None, **kw):
             mode = 'rt'
         filename, dname, stream = _compressed_open(filename, compression, mode, encoding=enc)
         args = (session, stream)
+    elif compression:
+        # need to use temporary file
+        import tempfile
+        filename, dname, stream = _compressed_open(filename, compression, 'rb')
+        with tempfile.NamedTemporaryFile(delete=False) as tf:
+            tf.write(stream.read())
+            tf.close()
+        filename = tf.name
+        delete_when_done = True
+        args = (session, filename)
     else:
         args = (session, filename)
         dname = os.path.basename(filename)
@@ -397,14 +408,20 @@ def open_data(session, filespec, format=None, name=None, **kw):
     if 'file_name' in params:
         kw['file_name'] = dname
 
-    if fmt.category == SCRIPT:
-        with session.in_script:
+    try:
+        if fmt.category == SCRIPT:
+            with session.in_script:
+                models, status = open_func(*args, **kw)
+        else:
             models, status = open_func(*args, **kw)
-    else:
-        models, status = open_func(*args, **kw)
-
-    if provide_stream and not stream.closed:
-        stream.close()
+    finally:
+        if provide_stream and not stream.closed:
+            stream.close()
+        if delete_when_done:
+            try:
+                os.remove(filename)
+            except OSError:
+                pass
 
     if name is not None:
         for m in models:

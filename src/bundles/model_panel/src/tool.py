@@ -35,6 +35,7 @@ class ModelPanel(ToolInstance):
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
             QFrame, QPushButton
         self.tree = QTreeWidget()
+        self.tree.keyPressEvent = session.ui.forward_keystroke
         self.tree.expanded.connect(self._ensure_id_width)
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)

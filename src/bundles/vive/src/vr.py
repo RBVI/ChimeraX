@@ -69,7 +69,9 @@ def vr(session, enable = None, room_position = None, display = None,
     
     if enable is None and room_position is None:
         enable = True
-    
+
+    start = (vr_camera(session) is None)
+
     if enable is not None:
         if enable:
             start_vr(session, multishadow_allowed, simplify_graphics)
@@ -88,9 +90,14 @@ def vr(session, enable = None, room_position = None, display = None,
             c.room_to_scene = room_position
 
     if c:
+        if display is None and start:
+            if not wait_for_vsync(session, False):
+                session.logger.warning('Graphics on desktop display may cause VR to flicker. Turning off mirroring to desktop display.')
+                display = 'blank'
         if display is not None:
             if display in ('mirror', 'independent'):
-                wait_for_vsync(session, False)
+                if not wait_for_vsync(session, False):
+                    session.logger.warning('Graphics on desktop display may cause VR to flicker.')
             c.desktop_display = display
             if display == 'independent':
                 c.initialize_desktop_camera_position = True
@@ -207,10 +214,7 @@ def stop_vr(session, simplify_graphics = True):
 def wait_for_vsync(session, wait):
     r = session.main_view.render
     r.make_current()
-    if not r.wait_for_vsync(wait):
-        if not wait:
-            session.logger.warning('Could not turn off waiting for vsync on main display.'
-                                   '  May cause flicker in VR headset.')
+    return r.wait_for_vsync(wait)
 
 # -----------------------------------------------------------------------------
 #
@@ -276,9 +280,10 @@ class SteamVRCamera(Camera):
         self._frame_started = False
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self._poses = poses_t()
-        h = session.triggers.add_handler('new frame', self.next_frame)
-        self._new_frame_handler = h
-
+        t = session.triggers
+        self._new_frame_handler = t.add_handler('new frame', self.next_frame)
+        self._app_quit_handler = t.add_handler('app quit', self._app_quit)
+        
     def _get_position(self):
         # In independent desktop camera mode this is the desktop camera position,
         # otherwise it is the VR head mounted display position.
@@ -373,14 +378,23 @@ class SteamVRCamera(Camera):
         self._close = True
         self._close_cb = close_cb
         self._session.main_view.redraw_needed = True
+
+    def _app_quit(self, tname, tdata):
+        # On Linux (Ubuntu 18.04) the ChimeraX process does not exit
+        # if VR has not been shutdown.
+        import openvr
+        openvr.shutdown()
         
     def _delayed_close(self):
         # Apparently OpenVR doesn't make its OpenGL context current
         # before deleting resources.  If the Qt GUI opengl context is current
         # openvr deletes the Qt resources instead.  So delay openvr close
         # until after rendering so that openvr opengl context is current.
-        self._session.triggers.remove_handler(self._new_frame_handler)
+        t = self._session.triggers
+        t.remove_handler(self._new_frame_handler)
         self._new_frame_handler = None
+        t.remove_handler(self._app_quit_handler)
+        self._app_quit_handler = None
         for hc in self._controller_models:
             hc.close()
         self._controller_models = []

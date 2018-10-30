@@ -161,8 +161,8 @@ A selector callback function is invoked with three arguments:
 The callback function is expected to process all the given ``models``
 and add items of interest to ``results``.  Currently, the only items
 that can be added are instances of :py:class:`chimerax.core.models.Model`,
-:py:class:`chimerax.core.atomic.Atom` and
-:py:class:`chimerax.core.atomic.Bond`.
+:py:class:`chimerax.atomic.Atom` and
+:py:class:`chimerax.atomic.Bond`.
 Typically, :py:class:`~chimerax.core.models.Model` instances
 are only added explicitly for non-atomic models.
 More commonly, atoms (and bonds) are added

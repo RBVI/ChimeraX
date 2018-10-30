@@ -71,7 +71,7 @@ class Place:
             if origin is not None:
                 m[:, 3] = origin
         else:
-            m = array(matrix, float64)
+            m = array(matrix, float64, order = 'C')
 
         self.matrix = m
         '''3 by 4 numpy array, first 3 columns are axes, last column
@@ -553,6 +553,7 @@ class Places:
                     pa[i,:,:] = p.matrix
             elif self._shift_and_scale is not None:
                 sas = self._shift_and_scale
+                pa[:] = 0
                 pa[:,:,3] = sas[:,:3]
                 pa[:,0,0] = pa[:,1,1] = pa[:,2,2] = sas[:,3]
             elif self._opengl_array is not None:

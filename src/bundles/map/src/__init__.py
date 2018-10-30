@@ -83,6 +83,9 @@ class _MapBundle(BundleAPI):
             map.register_volume_command(logger)
         elif command_name == 'molmap':
             map.register_molmap_command(logger)
+        elif command_name == 'measure mapstats':
+            from . import measure
+            measure.register_measure_mapstats_command(logger)
 
     @staticmethod
     def initialize(session, bundle_info):

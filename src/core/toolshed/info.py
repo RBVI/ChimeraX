@@ -17,7 +17,7 @@ from . import _debug
 
 
 class BundleInfo:
-    """Metadata about a bundle, whether installed or available.
+    """Supported API. Metadata about a bundle, whether installed or available.
 
     A :py:class:`BundleInfo` instance stores the properties about a bundle and
     can create a tool instance.
@@ -120,14 +120,17 @@ class BundleInfo:
 
     @property
     def name(self):
+        """Supported API. Return bundle name."""
         return self._name
 
     @property
     def version(self):
+        """Supported API. Return bundle version."""
         return self._version
 
     @property
     def synopsis(self):
+        """Supported API. Return bundle synopsis."""
         return self._synopsis or "no synopsis available"
 
     def __repr__(self):
@@ -150,7 +153,7 @@ class BundleInfo:
         return s
 
     def cache_data(self):
-        """Return state data that can be used to recreate the instance.
+        """Supported API. Return state data that can be used to recreate the instance.
 
         Returns
         -------
@@ -185,6 +188,11 @@ class BundleInfo:
 
     @classmethod
     def from_cache_data(cls, data):
+        """Supported API. Class method for reconstructing instance from cache data.
+        Returns
+        -------
+        instance of BundleInfo
+        """
         args, kw, more = data
         kw['session_versions'] = range(*kw['session_versions'])
         kw['packages'] = [tuple(x) for x in kw['packages']]
@@ -208,7 +216,7 @@ class BundleInfo:
         return bi
 
     def distribution(self):
-        """Return distribution information.
+        """Supported API. Return distribution information.
 
         Returns
         -------
@@ -218,7 +226,7 @@ class BundleInfo:
         return self._name, self._version
 
     def register(self, logger):
-        """Register bundle commands, tools, data formats, selectors, etc.
+        """Supported API. Register bundle commands, tools, data formats, selectors, etc.
 
         Parameters
         ----------
@@ -239,7 +247,7 @@ class BundleInfo:
             logger.warning(str(e))
 
     def deregister(self, logger):
-        """Deregister bundle commands, tools, data formats, selectors, etc.
+        """Supported API. Deregister bundle commands, tools, data formats, selectors, etc.
 
         Parameters
         ----------
@@ -251,7 +259,6 @@ class BundleInfo:
         self._deregister_commands(logger)
 
     def _register_commands(self, logger):
-        """Register commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
             def cb(s=self, ci=ci, l=logger):
@@ -260,7 +267,6 @@ class BundleInfo:
             cli.delay_registration(ci.name, cb, logger=logger)
 
     def _register_cmd(self, ci, logger):
-        """Called when commands need to be really registered."""
         try:
             api = self._get_api(logger)
             api._api_caller.register_command(api, self, ci, logger)
@@ -269,7 +275,6 @@ class BundleInfo:
                 "register_command() failed for command %s in bundle %s:\n%s" % (ci.name, self.name, str(e)))
 
     def _deregister_commands(self, logger):
-        """Deregister commands with cli."""
         from chimerax.core.commands import cli
         for ci in self.commands:
             _debug("deregister_command", ci.name)
@@ -279,7 +284,6 @@ class BundleInfo:
                 pass  # don't care if command was already missing
 
     def _register_file_types(self, logger):
-        """Register file types."""
         from chimerax.core import io, fetch
         for fi in self.formats:
             _debug("register_file_type", fi.name)
@@ -357,7 +361,6 @@ class BundleInfo:
                 is_default_format=is_default, example_id=example_id)
 
     def _deregister_file_types(self, logger):
-        """Deregister file types."""
         from chimerax.core import io, fetch
         # Deregister fetch first since it might use format info
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
@@ -390,7 +393,7 @@ class BundleInfo:
             deregister_selector(si.name, logger)
 
     def register_available_commands(self, logger):
-        """Register available commands with cli."""
+        """Supported API. Register available commands with cli."""
         from chimerax.core.commands import cli, CmdDesc
         for ci in self.commands:
             cd = CmdDesc(synopsis=ci.synopsis)
@@ -404,7 +407,7 @@ class BundleInfo:
         logger.status(msg, log=True)
 
     def initialize(self, session):
-        """Initialize bundle by calling custom initialization code if needed."""
+        """Supported API. Initialize bundle by calling custom initialization code if needed."""
         if self.custom_init:
             try:
                 api = self._get_api(session.logger)
@@ -416,7 +419,7 @@ class BundleInfo:
                     "initialize() failed in bundle %s:\n%s" % (self.name, str(e)))
 
     def finish(self, session):
-        """Deinitialize bundle by calling custom finish code if needed."""
+        """Supported API. Deinitialize bundle by calling custom finish code if needed."""
         if self.custom_init:
             try:
                 api = self._get_api(session.logger)
@@ -428,15 +431,15 @@ class BundleInfo:
                     "finish() failed in bundle %s:\n%s" % (self.name, str(e)))
 
     def include_dir(self):
-        """Return bundle include directory."""
+        """Supported API. Return bundle include directory."""
         return self._bundle_path(self.installed_include_dir)
 
     def library_dir(self):
-        """Return bundle library directory."""
+        """Supported API. Return bundle library directory."""
         return self._bundle_path(self.installed_library_dir)
 
     def data_dir(self):
-        """Return bundle data directory."""
+        """Supported API. Return bundle data directory."""
         return self._bundle_path(self.installed_data_dir)
 
     def _bundle_path(self, filename):
@@ -460,7 +463,7 @@ class BundleInfo:
         return None
 
     def unload(self, logger):
-        """Unload bundle modules (as best as we can)."""
+        """Supported API. Unload bundle modules (as best as we can)."""
         import sys
         logger.info("unloading module %s" % self.package_name)
         name = self.package_name
@@ -471,7 +474,7 @@ class BundleInfo:
             del sys.modules[k]
 
     def get_class(self, class_name, logger):
-        """Return bundle's class with given name."""
+        """Supported API. Return bundle's class with given name."""
         try:
             f = self._get_api(logger).get_class
         except AttributeError:
@@ -480,7 +483,7 @@ class BundleInfo:
         return f(class_name)
 
     def get_module(self):
-        """Return module that has bundle's code"""
+        """Supported API. Return module that has bundle's code"""
         if not self.package_name:
             raise ToolshedError("Bundle %s has no module" % self.name)
         import sys
@@ -533,7 +536,7 @@ class BundleInfo:
         return p if os.path.exists(p) else None
 
     def start_tool(self, session, tool_name, *args, **kw):
-        """Create and return a tool instance.
+        """Supported API. Create and return a tool instance.
 
         Parameters
         ----------
@@ -578,7 +581,7 @@ class BundleInfo:
                 "start_tool() failed for tool %s in bundle %s:\n%s" % (tool_name, self.name, str(e)))
 
     def newer_than(self, bi):
-        """Return whether this :py:class:`BundleInfo` instance is newer than given one
+        """Supported API. Return whether this :py:class:`BundleInfo` instance is newer than given one
 
         Parameters
         ----------
@@ -594,7 +597,7 @@ class BundleInfo:
         return parse_version(self.version) > parse_version(bi.version)
 
     def dependents(self, logger):
-        """Return set of bundles that directly depends on this one.
+        """Supported API. Return set of bundles that directly depends on this one.
 
         Parameters
         ----------

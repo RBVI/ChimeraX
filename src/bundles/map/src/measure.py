@@ -35,3 +35,39 @@ def volume_center_of_mass(v, level = None, step = None, subregion = None):
     center = tf*mcenter
 
     return center
+
+
+# -----------------------------------------------------------------------------
+# Compute center of mass of a map for the region above a specifie contour level.
+#
+def measure_map_stats(session, volumes = None, step = None, subregion = None):
+
+    if volumes is None:
+        from . import Volume
+        volumes = session.models.list(type = Volume)
+        
+    for v in volumes:
+        # Get 3-d array of map values.
+        m = v.matrix(step = step, subregion = subregion)
+        from numpy import float64, sqrt
+        mean = m.mean(dtype=float64)
+        sd = m.std(dtype=float64)
+        rms = sqrt(sd*sd + mean*mean)
+        msg = ('Map %s, minimum %.4g, maximum %.4g, mean %.4g, SD %.4g, RMS %.4g'
+               % (v.name_with_id(), m.min(), m.max(), mean, sd, rms))
+        session.logger.status(msg, log=True)
+
+
+# -----------------------------------------------------------------------------
+#
+def register_measure_mapstats_command(logger):
+
+    from chimerax.core.commands import CmdDesc, register
+    from .mapargs import MapsArg, MapRegionArg, MapStepArg
+    desc = CmdDesc(
+        optional = [('volumes', MapsArg)],
+        keyword = [('step', MapStepArg),
+                   ('subregion', MapRegionArg)],
+        synopsis = 'Report map statistics'
+    )
+    register('measure mapstats', desc, measure_map_stats, logger=logger)

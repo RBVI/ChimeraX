@@ -236,7 +236,7 @@ def add_hydrogens(session, atom_list, *args):
         else:
             return
     else:
-        from chimerax.core.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure
         s_list = [s for s in session.models if isinstance(s, AtomicStructure)]
     hbonds = find_hbonds(session, s_list, dist_slop=rec_dist_slop, angle_slop=rec_angle_slop)
     logger.info("%d hydrogen bonds" % len(hbonds))

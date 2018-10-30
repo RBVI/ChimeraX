@@ -195,7 +195,7 @@ of a list of structures and a status message.  The :py:meth:`open_xyz` code
 simply initializes an empty list of structures (line 10) and repeatedly
 calls :py:func:`_read_block` until the entire file is read (lines 14-20).
 When :py:func:`read_block` successfully reads a block, it returns an instance
-of :py:class:`chimerax.core.atomic.structure.AtomicStructure`,
+of :py:class:`chimerax.atomic.structure.AtomicStructure`,
 which is added to the structure list (line 18); otherwise,
 it returns **None** which terminates the block-reading loop (lines 16-17).
 A status message is constructed from the total number of structures,
@@ -209,9 +209,9 @@ structure in several steps:
 #. read the number of atoms in the block (lines 32-43).
 #. build an empy atomic structure to which atoms will be added
    (lines 45-51).
-   The :py:class:`chimerax.core.atomic.structure.AtomicStructure`
+   The :py:class:`chimerax.atomic.structure.AtomicStructure`
    instance is created on line 50, and a
-   :py:class:`chimerax.core.atomic.molobject.Residue` instance
+   :py:class:`chimerax.atomic.molobject.Residue` instance
    is created on line 51.  The latter is required because ChimeraX
    expects every atom in a structure to be part of exactly one residue
    in the same structure.  Even though XYZ format does not support the
@@ -219,19 +219,19 @@ structure in several steps:
 #. skip the comment line (lines 61-63).
 #. loop over the expected number of atoms and add them to the structure
    (lines 66-94).  The construction of a
-   :py:class:`chimerax.core.atomic.molobject.Atom`
+   :py:class:`chimerax.atomic.molobject.Atom`
    instance is somewhat elaborate (lines 80-94).  First, the atom
    parameters are prepared: the atomic coordinates are extracted from
    the input (line 84), and the atom name is constructed from the
    element type and an element-specific running index (lines 85-88).
    The **Atom** instance is created on line 92; the newly created atom
    is part of the structure being built through the use of the
-   :py:meth:`~chimerax.core.atomic.molobject.StructureData.new_atom`
+   :py:meth:`~chimerax.atomic.molobject.StructureData.new_atom`
    method of the structure.  The atomic coordinates are set on line 93.
    Finally, the atom is added to the dummy residue on line 94.
 #. XYZ format files do not have connectivity information, so no bonds
    are created while processing input lines.  Instead, the
-   :py:meth:`~chimerax.core.atomic.molobject.StructureData.connect_structure`
+   :py:meth:`~chimerax.atomic.molobject.StructureData.connect_structure`
    method of the structure is called to deduce connectivity from
    interatomic distances (line 97).
 #. Return success or failure to read a structure to ``open_xyz`` (line 100).

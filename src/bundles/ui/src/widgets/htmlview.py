@@ -306,33 +306,29 @@ class ChimeraXHtmlView(HtmlView):
                 if len(parts) == 2 and parts[1].isdigit():
                     url_file = parts[0] + extension
             file_path = os.path.join(os.path.dirname(item.path()), url_file)
-            from wheel.install import WheelFile, BadWheelFile
+            import pkg_resources
+            py_env = pkg_resources.Environment()
+            dist = pkg_resources.Distribution.from_filename(file_path)
+            if not py_env.can_add(dist):
+                raise ValueError("unsupported wheel platform")
+            item.setPath(file_path)
+            # print("ChimeraXHtmlView.download_requested clean", file_path)
             try:
-                w = WheelFile(file_path)
-                if not w.compatible:
-                    raise ValueError("unsupported wheel platform")
-            except (BadWheelFile, ValueError):
+                # Guarantee that file name is available
+                os.remove(file_path)
+            except OSError:
                 pass
-            finally:
-                item.setPath(file_path)
-                # print("ChimeraXHtmlView.download_requested clean")
-                try:
-                    # Guarantee that file name is available
-                    os.remove(file_path)
-                except OSError:
-                    pass
-                self._pending_downloads.append(item)
-                self.session.logger.info("Downloading bundle %s" % url_file)
-                item.finished.connect(self.download_finished)
-                item.accept()
+            self._pending_downloads.append(item)
+            self.session.logger.info("Downloading bundle %s" % url_file)
+            item.finished.connect(self.download_finished)
+        else:
+            from PyQt5.QtWidgets import QFileDialog
+            path, filt = QFileDialog.getSaveFileName(directory=item.path())
+            if not path:
                 return
-        from PyQt5.QtWidgets import QFileDialog
-        path, filt = QFileDialog.getSaveFileName(directory=item.path())
-        if not path:
-            return
-        self.session.logger.info("Downloading file %s" % url_file)
-        item.setPath(path)
-        # print("ChimeraXHTMLView.download_requested accept")
+            self.session.logger.info("Downloading file %s" % url_file)
+            item.setPath(path)
+        # print("ChimeraXHTMLView.download_requested accept", file_path)
         item.accept()
 
     def download_finished(self, *args, **kw):

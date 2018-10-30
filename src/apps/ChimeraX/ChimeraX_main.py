@@ -288,6 +288,10 @@ def init(argv, event_loop=True):
         # Setup SSL CA certificates file
         import certifi
         os.environ["SSL_CERT_FILE"] = certifi.where()
+    if sys.platform.startswith('linux'):
+        # Workaround for #638:
+        # "any number of threads more than one leads to 200% CPU usage"
+        os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
     # for modules that moved out of core, allow the old imports to work for awhile...
     from importlib.abc import MetaPathFinder, Loader

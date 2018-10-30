@@ -53,6 +53,7 @@
     <ChimeraXClassifier>ChimeraX :: Open :: CCP4 density map :: ::</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: volume :: Volume data :: control volume data display</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: molmap :: Volume data :: create density map for molecule</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: measure mapstats :: Volume data :: report map statistics</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Volume Viewer :: Volume Data :: Show density maps info</ChimeraXClassifier>
   </Classifiers>
 

@@ -180,6 +180,7 @@ def _update_select_residues_menu(session):
         return
     mw = session.ui.main_window
     select_residues_menu = mw.add_select_submenu([], _residues_menu_name)
+    select_residues_menu.clear()
     from . import AtomicStructures, all_atomic_structures
     structures = AtomicStructures(all_atomic_structures(session))
     nonstandard = set()
