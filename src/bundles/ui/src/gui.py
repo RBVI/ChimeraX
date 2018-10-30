@@ -125,7 +125,7 @@ class UI(QApplication):
             QtInfoMsg: Log.LEVEL_INFO,
             QtWarningMsg: Log.LEVEL_WARNING,
             QtCriticalMsg: Log.LEVEL_ERROR,
-            QtFatalMsg: Log.LEVEL_ERROR,
+            QtFatalMsg: Log.LEVEL_BUG,
         }
         from PyQt5.QtCore import qInstallMessageHandler
         def cx_qt_msg_handler(msg_type, msg_log_context, msg_string):
