@@ -987,6 +987,9 @@ Several operations are available:
 <li><a href="#laplacian"><b>volume laplacian</b></a> - Laplacian filtering
 <li><a href="#localCorrelation"><b>volume localCorrelation</b></a>
 - calculate map-map correlation over a sliding box
+<li><a href="#mask"><b>volume mask</b></a>
+- mask a map to a surface; 
+see also <a href="#onesmask"><b>volume onesmask</b></a>
 <li><a href="#maximum"><b>volume maximum</b></a>
 - take the maximum values pointwise from two or more maps
 <li><a href="#median"><b>volume median</b></a>
@@ -997,9 +1000,13 @@ Several operations are available:
 - morph (interpolate) between two or more maps
 <li><a href="#multiply"><b>volume multiply</b></a>
 - multiply values in two or more maps
-<li><a href="#new"><b>volume new</b></a> - create empty (zero-valued) map
+<li><a href="#new"><b>volume new</b></a> - create empty (zero-valued) map;
+see also <a href="#onesmask"><b>volume onesmask</b></a>
 <li><a href="#cutoctant"><b>volume ~octant</b></a> - erase positive octant
-<li><a href="#octant"><b>volume octant</b></a> - erase all but the positive octant
+<li><a href="#octant"><b>volume octant</b></a>
+- erase all but the positive octant
+<li><a href="#onesmask"><b>volume onesmask</b></a>
+- create map with values of 1 bounded by a surface
 <li><a href="#permuteAxes"><b>volume permuteAxes</b></a> - permute axes
 <li><a href="#resample"><b>volume resample</b></a>
 - resample on the grid of another map
@@ -1343,6 +1350,70 @@ the first map.
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
+<a name="mask"><b>volume mask</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+<b>surfaces</b> &nbsp;<i>surface-spec</i>&nbsp;
+[&nbsp;<b>fullmap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
+[&nbsp;<b>pad</b> &nbsp;<i>distance</i>&nbsp;]
+[&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
+[&nbsp;<b>invertMask</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>axis</b> &nbsp;<i>x,y,z</i></a>&nbsp;]
+[&nbsp;<b>sandwich</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
+[&nbsp;<b>fillOverlap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
+[&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
+<blockquote>
+Mask a map to a surface (<a href="#masking">details...</a>). 
+The <b>fullmap</b> option indicates making the new
+map dimensions the same as the full dimensions of the original map, even if 
+only a subregion is being displayed; otherwise (default), the new map
+will be made as small as possible to enclose the surface.
+The <b>pad</b> option allows extracting a larger or smaller region by
+moving the surface a positive or negative <i>distance</i>
+(in the distance units of the data, typically &Aring; or nm) 
+along surface normals before creating the masked volume.
+However, if the resulting surface intersects itself,
+the masked volume will not include the intersection.
+For larger-region extraction, this problem can be avoided
+by instead using the <b>extend</b> option to move the surface
+outward by <i>N</i> voxels before creating the masked volume.
+In other words, <b>extend</b> includes grid points that are within <i>N</i> 
+grid units (along the grid X, Y, and Z axes) of the original surface.
+<p>
+The <b>slab</b> option allows instead extracting a slab of data around a surface
+layer. Two additional surfaces, displaced as specified from the existing 
+surface and joined at their edges (if any), are computed but not displayed.
+Data for voxels between the computed surfaces are retained. If a single value
+(<i>width</i>) is supplied, the two computed surfaces are offset
+along the normals of the original surface by &plusmn;&frac12;(<i>width</i>).
+Alternatively, two values separated by a comma but no spaces can be used
+to specify the offsets of the two surfaces independently.
+Positive or negative values can be used.
+</p><p>
+The <b>invertMask</b> option allows getting the opposite result (spatial
+complement of values and zeros) of what would otherwise be obtained.
+</p><p>
+The region between surface layers is computed along the
+projection <b>axis</b> (default is along the data Y axis: <b>0,1,0</b>).
+The axis direction is relevant when the surface has holes.
+Vector coordinates <i>x,y,z</i> are in the map coordinate system;
+the vector can point in any direction and need not be of unit length.
+The <b>sandwich</b> option specifies including only volume voxels between
+paired surface layers; if false, the volume projected along the axis beyond 
+a single surface layer will also be included.
+When intersecting or nested surfaces are involved,
+the <b>fillOverlap</b> option indicates retaining the union of the values
+from masking to each surface separately.
+For example, if the surface(s) include two concentric spheres,
+<b>fillOverlap</b> true will return values for all grid points within
+the larger sphere, whereas <b>fillOverlap</b> false will return values for
+only those points in the shell between the two surfaces.
+</p><p>
+The related command <a href="#onesmask"><b>volume onesmask</b></a> 
+creates a new map with values of 1 bounded by a surface.
+</p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
 <a name="maximum"><b>volume maximum</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
@@ -1486,6 +1557,7 @@ and can be 8-, 16-, or 32-bit signed integer
 8-, 16-, or 32-bit unsigned integer
 (<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
 or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+See also: <a href="#onesmask"><b>volume onesmask</b></a>
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
@@ -1516,6 +1588,35 @@ octant has been cut away from a map of positive values.
 <blockquote>
 Erase values outside the positive octant. Options are as described for
 <a href="#cutoctant"><b>volume ~octant</b></a> above.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="onesmask"><b>volume onesmask</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+<b>surfaces</b> &nbsp;<i>surface-spec</i>&nbsp;
+[&nbsp;<b>border</b> &nbsp;<i>B</i>&nbsp;]
+[&nbsp;<b>spacing</b> &nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
+[&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>pad</b> &nbsp;<i>distance</i>&nbsp;]
+[&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
+[&nbsp;<b>invertMask</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>axis</b> &nbsp;<i>x,y,z</i></a>&nbsp;]
+[&nbsp;<b>sandwich</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
+[&nbsp;<b>fillOverlap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
+[&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
+<blockquote>
+Create a map with values of 1 bounded by a surface 
+(<a href="#masking">details...</a>). The <b>border</b> option indicates
+how far out from the bounding surfaces in all six directions
+(&plusmn;X, &plusmn;Y, &plusmn;Z) to place the edge of the output map.
+The <b>spacing</b> option gives the grid spacing for the output map
+in physical units of length, typically &Aring;
+(default is 1% of the maximum of the X, Y, and Z dimensions
+of the bounding surfaces). If a single number is supplied, it is used 
+in all three directions; if three numbers are supplied (separated by commas 
+but not spaces), they are used in the X, Y, and Z directions, respectively.
+The remaining options are the same as described for 
+<a href="#mask"><b>volume mask</b></a>. See also:
+<a href="#new"><b>volume new</b></a>
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
@@ -1987,8 +2088,35 @@ to have nonzero values only in the middle half or third of its bounding box.
 The missing wedge in electron microscope tomograms can also be seen.
 Spikes radiating along the principal axes in the Fourier transform are
 caused by nonperiodicity of the original data.
+</p><p>
+<a name="masking"><b>Mask algorithm</b>.</a>
+The masked volume is computed by finding where lines
+parallel to the projection <b>axis</b> intersect the surface(s).
+For a given line, the volume data between the 1st and 2nd,
+3rd and 4th, 5th and 6th, ... points of intersection are included
+in the masked volume,
+while those between the 2nd and 3rd, 4th and 5th, ... are excluded
+(unless there are intersecting or nested surfaces
+and <b>fillOverlap</b> is set to true).
+The calculation uses a set of parallel lines that pass through points
+on a rectangular grid perpendicular to the projection axis.
+If the projection is along a data axis (data X, Y, or Z), the
+lines will pass through the grid points of the data; otherwise,
+lines along the projection axis with spacing equal to the minimum
+grid plane spacing of the data will be used.
+For each volume voxel, the intersections of the closest grid line 
+are used to determine inclusion in the masked volume. 
+If there is an odd number of intersections, then points beyond 
+the final one are not included in the masked volume
+unless the <b>sandwich</b> option is set to false.
+In the new data set, values outside the masked region are set to zero
+and those inside are set to the original volume values
+(for <a href="#mask"><b>volume mask</b></a>) or 1
+(for <a href="#onesmask"><b>volume onesmask</b></a>).
+The grid points of the calculated volume align exactly with those of
+the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+October 2018</address>
 </body></html>

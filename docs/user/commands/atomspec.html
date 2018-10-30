@@ -42,10 +42,7 @@ can be specified using:
     <li><a href="#capitalization">capitalization</a>
     <li><a href="#lists">lists and ranges</a>
     <li><a href="#implicit">implicit operations</a>
-<!--
     <li><a href="#wildcards">wild cards</a>
-    <font color="brown">(not yet implemented)</font> 
--->
     </ul>
   <li><a href="#builtin">built-in classifications</a>
   - <b>sel</b> (current <a href="../selection.html">selection</a>),
@@ -54,7 +51,6 @@ can be specified using:
   <li><a href="#user">user-defined targets</a> - named selections 
   or other targets defined with <a href="name.html"><b>name</b></a>
   <li><a href="#attributes">attribute</a> names and values
-  <font color="brown">(partially implemented)</font>
   <li><a href="#zones">zones</a> - by distance from other items
   <li><a href="#combinations">combinations</a> of the above
   </ul>
@@ -85,9 +81,10 @@ but there are <a href="atomspec-diffsum.html">differences</a>.
 </p>
 <h3>Hierarchical Specifiers</h3>
 
-<table border width="95%" cellpadding="10" cellspacing="0">
+<table border width="95%" cellpadding="4" cellspacing="0">
 <tr>
-<th>Symbol</th> <th>Reference Level</th> <th>Definition</th> <th>Examples</th>
+<th class="shaded">Symbol</th><th class="shaded">Reference Level</th> 
+<th class="shaded">Definition</th><th class="shaded">Examples</th>
 </tr><tr>
 <td align=center><b>#</b></td> <td align=center>model</td> 
 <td>model number assigned to the data in ChimeraX 
@@ -177,8 +174,8 @@ comma-separated lists of individual numbers and/or one or more ranges of the
 form <i>start</i>-<i>end</i>. 
 <font color="brown">
 Not yet implemented:
-An asterisk <b>*</b> can be substituted
-for <i>start</i> or <i>end</i> to extend the range to
+The word <b>start</b> or <b>end</b> can be substituted
+for the <i>start</i> or <i>end</i> value to extend the range to
 the first or last number possible, respectively. 
 </font>
 Chain IDs, residue names, and atom names can also be entered
@@ -232,13 +229,6 @@ Examples:
 <b>#5,2.1-3</b>
 </blockquote>
 - models 5.1, 5.2, 5.3, 2.1, 2.2, and 2.3 (submodels 1-3 of models 5 and 2)
-<blockquote>
-<b>#*.1-3</b>
-</blockquote>
-- submodels 1-3 of all models that have them
-<font color="brown">
-(this is the only type of <a href="#wildcards">wild card</a>
-currently implemented)</font>
 </p>
 
 <a name="implicit"></a>
@@ -291,24 +281,17 @@ see <a href="#combinations">combinations</a>)
 
 <a name="wildcards"></a>
 <h4><a href="#hierarchy" class="nounder"><b>&larr;</b></a>
-Wild Cards <font color="brown">(not yet implemented)</font></h4>
+Wild Cards</h4>
 <p>
-The <b>global wild card *</b> matches all atoms in a residue
-or all residues in a model. It stands alone as a symbol, that is,
-it cannot be used to match <i>parts</i> of names,
-such as <b>G*</b> or <b>*A</b>.
-The <b>partial wild card =</b> matches parts of atom or residue names
-but not parts of residue sequence numbers; similarly,
-the <b>single-character wild card ?</b> matches single characters
-within residue or atom names but not single digits within residue
-sequence numbers.
+The wild card <b>*</b> matches parts of atom and/or residue names.
+Similarly, the single-character wild card <b>?</b> matches single characters
+within residue or atom names. 
 Examples:
+</p>
 <blockquote>
-<b>/A:12@*</b>
-<br>- or -<br>
-<b>/A:12</b>
+<b>@S*</b>
 </blockquote>
-- all atoms in residue 12 of chain A
+- atoms with names starting with <b>S</b>
 <blockquote>
 <b>#2:G??</b>
 </blockquote>
@@ -318,14 +301,20 @@ Examples:
 </blockquote>
 - atoms in residue FMN with two-letter names ending with <b>1</b>
 <blockquote>
-<b>@S=</b>
-</blockquote>
-- atoms with names starting with <b>S</b>
-<blockquote>
 <b>@h,h?,h??</b>
 </blockquote>
 - atoms with one-, two-, or three-letter names starting with <b>H</b>
+<p>
+The wild card <b>*</b> can also be used to signify &ldquo;all,&rdquo; 
+for example, all atoms in a residue or all residues in a model.
+Since blank indicates the same thing, this is really only needed in the middle 
+of a specification where a blank or omitted character would not be accepted,
+for example:
 </p>
+<blockquote>
+<b>#*.1-3</b>
+</blockquote>
+- submodels 1-3 of all models that have them
 
 <hr>
 <a name="builtin"></a>
@@ -385,8 +374,8 @@ Actions</b></a> tool or with the command:
 </p>
 <a name="surfcats"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
-<tr><td align="center">Category</td> 
-<td align="center">Membership rules, in order of application</td></tr>
+<tr><th class="shaded">Category</td> 
+<th class="shaded">Membership rules, in order of application</td></tr>
 <tr><td align=center><b>solvent</b></td>
 <td>
 of the following two, the set with the greater number of residues:
@@ -495,7 +484,7 @@ Built-in classifications cannot be redefined by the user.
 <p class="nav">
 [<a href="#top">back to top: Target Specification</a>]
 </p>
-<h3>Attributes <font color="brown">(partially implemented)</font></h3>
+<h3>Attributes</h3>
 <p>
 <a href="../attributes.html">Attributes</a> are properties
 specified by <a href="../attributes.html#attrnames">name</a> and value, 
@@ -505,12 +494,50 @@ indicated with symbols:
 <b>##</b> for atomic-model attributes.
 Custom attributes can be created with <a href="setattr.html"><b>setattr</b></a>.
 </p><p>
-String values should be enclosed in quotation marks if they contain spaces or
+Attribute names are case-sensitive. Values that are strings
+should be enclosed in quotation marks if they contain spaces or
 characters with special meanings in the command line (@, :, others).
-A wild card * can be used in unquoted string values.
+In unquoted string values, the wild card * or single-character wild card ? 
+can be used, or escaped with a preceding backslash \ to be taken literally 
+(for example, to match a name containing that character).
+Backslash can also be escaped with a preceding backslash.
+</p>
+<table border cellpadding="4" cellspacing="0">
+<tr>
+<th colspan=2 style="background-color:#cccccc">Attribute-Test Operators</th>
+</tr><tr>
+<th class="shaded">symbol</th>
+<th class="shaded">meaning</th>
+</tr><tr>
+<td align="center"><b>=</b></td>
+<td>equals (or case-insensitive string match)</td>
+</tr><tr>
+<td align="center"><b>!=</b></td>
+<td>does not equal, string does not match</td>
+</tr><tr>
+<td align="center"><b>==</b> </td>
+<td>string match, case-sensitive</td>
+</tr><tr>
+<td align="center"><b>!==</b></td>
+<td>string does not match, case-sensitive</td>
+</tr><tr>
+<td align="center"><b>&gt;</b> 
+<td>greater than</td> 
+</tr><tr>
+<td align="center"><b>&lt;</b> 
+<td>less than</td>
+</tr><tr>
+<td align="center"><b>&gt;=</b></td>
+<td>greater than or equal to</td>
+</tr><tr>
+<td align="center"><b>&lt;=</b></td>
+<td>less than or equal to</td>
+</tr>
+</table>
+<ul>
+</ul>
 <!-- Jan 23 2018 can't figure out any way to specify colors, w/ or w/o quotes;
      info reports color like 255,105,180,255 but that doesn't work either
-Attribute <i>names</i> are case-sensitive, attribute <i>values</i> are not.
 Attribute values containing spaces must be enclosed in double quotation marks.
 Color values can be specified by <a href="colornames.html">color name</a>
 or as a comma-separated list of component values
@@ -518,12 +545,6 @@ or as a comma-separated list of component values
 each value can range from zero to 1 and specification of <i>alpha</i>
 (1 &ndash; transparency) is optional.
 -->
-</p><p>
-Besides <b>=</b> (equals), attributes with numerical values can also be used 
-with <b>&gt;</b> (greater than), <b>&lt;</b> (less than), <b>&gt;=</b>
-(greater than or equal to), and <b>&lt;=</b> (less than or equal to).
-For negation, <b>~</b> can be used outside of the attribute specification
-(see <a href="#attr-examples">examples</a>).
 <!-- caret not implemented, tested on custom attr created with setattr
 When placed before an attribute name,
 the <b>caret ^</b> indicates that the atoms, residues, or models have
@@ -532,7 +553,6 @@ For example, <b>::^kdHydrophobicity</b> designates residues
 (such as water or nucleic acids) that lack a 
 <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/hydrophob.html">Kyte-Doolittle hydrophobicity</a> assignment.
 -->
-</p>
 <a name="attr-examples"></a>
 <p>
 Examples include <b>&amp;</b> for intersection and <b>~</b> for negation, 
