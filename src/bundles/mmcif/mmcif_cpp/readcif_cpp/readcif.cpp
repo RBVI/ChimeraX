@@ -582,10 +582,10 @@ CIFFile::internal_parse(bool one_table)
 			continue;
 		case T_STOP:
 			throw error("unexpected stop_ keyword");
-		case T_LEFT_BRACKET:
-			throw error("unexpected left bracket");
-		case T_RIGHT_BRACKET:
-			throw error("unexpected right bracket");
+		case T_LEFT_SQUARE_BRACKET:
+			throw error("unexpected left square bracket");
+		case T_RIGHT_SQUARE_BRACKET:
+			throw error("unexpected right square bracket");
 		case T_TAG: {
 			// collapse consectutive tag value pairs with the
 			// same category
@@ -932,11 +932,11 @@ again:
 		goto data_value;
 	case '[':
 		++pos;
-		current_token = T_LEFT_BRACKET;
+		current_token = T_LEFT_SQUARE_BRACKET;
 		return;
 	case ']':
 		++pos;
-		current_token = T_RIGHT_BRACKET;
+		current_token = T_RIGHT_SQUARE_BRACKET;
 		return;
 	case '"':
 	case '\'': {
