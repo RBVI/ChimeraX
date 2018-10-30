@@ -112,11 +112,12 @@ def register_mask_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg
     from chimerax.core.commands import AxisArg, Float2Arg, Or, ModelIdArg, SurfacesArg
     from chimerax.map import MapsArg, Float1or3Arg
-    mask_kw = [('axis', AxisArg),
+    mask_kw = [('pad', FloatArg),
                ('extend', IntArg),
-               ('pad', FloatArg),
                ('slab', Or(FloatArg, Float2Arg)),
                ('invert_mask', BoolArg),
+               ('axis', AxisArg),
+               ('sandwich', BoolArg),
                ('fill_overlap', BoolArg),
                ('model_id', ModelIdArg)]
     desc = CmdDesc(
@@ -129,9 +130,8 @@ def register_mask_command(logger):
 
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
-        keyword = mask_kw + [
-            ('spacing', Float1or3Arg),
-            ('border', FloatArg)],
+        keyword = [('spacing', Float1or3Arg),
+                   ('border', FloatArg)] + mask_kw,
         synopsis = 'Make a mask of 1 values for a surface'
     )
     register('volume onesmask', desc, ones_mask, logger=logger)

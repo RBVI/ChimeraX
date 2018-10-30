@@ -30,6 +30,7 @@ img.icon3 {width:25px; margin: 1px 0px; vertical-align:middle}
 table.clRight {float:right; clear:right; margin: 4px}
 table.clLeft {float:left; clear:left; margin: 4px}
 td.text {padding-left: 5px; padding-right: 5px}
+th.shaded {background-color:#eaeaea; padding-left: 5px; padding-right: 5px}
 
 ul.circle {list-style-type: circle}
 ul.none {list-style-type: none}
