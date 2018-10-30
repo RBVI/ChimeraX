@@ -48,6 +48,9 @@ interactively.  Volume data can be opened with the command
 <a href="open.html"><b>open</b></a> (which automatically starts 
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)
 and saved to a file with <a href="save.html"><b>save</b></a>.
+</p><p>
+Data set statistics (minimum, maximum, <i>etc.</i>) can be reported
+with <a href="measure.html#mapstats"><b>measure mapstats</b></a>.
 See also:
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
@@ -947,6 +950,7 @@ to create a new volume data set.
 The original map is undisplayed and the new map
 is displayed with the same threshold and color as the original.
 See also:
+<a href="measure.html#mapstats"><b>measure mapstats</b></a>,
 <a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="smoothlines.html"><b>smoothlines</b></a>,
 <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
@@ -1014,6 +1018,9 @@ see also <a href="#onesmask"><b>volume onesmask</b></a>
 - skeletonize; emphasize ridges or filaments in the density
 <li><a href="#scale"><b>volume scale</b></a>
 - scale, shift, normalize, and/or cast to a different data value type
+<li><a href="#splitbyzone"><b>volume splitbyzone</b></a>
+- split map by zones previously colored with
+<a href="color.html#zone"><b>color zone</b></a>
 <li><a href="#subtract"><b>volume subtract</b></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
@@ -1712,6 +1719,19 @@ options of <b>volume</b></a>
 <a href="measure.html#mapStats"><b>measure mapStats</b></a>
 -->
 </p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="splitbyzone">
+<b>volume splitbyzone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+<blockquote>
+Split a map by zones previously colored with
+<a href="color.html#zone"><b>color zone</b></a>. A new map is created 
+for each distinct color and for the &ldquo;uncolored&rdquo; zone 
+(any parts of the original map not within a color zone). 
+Values outside the respective zones are set to zero. 
+The new data sets are created as submodels of a new model
+named by appending &ldquo;split&rdquo; to the name of the original map.
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
