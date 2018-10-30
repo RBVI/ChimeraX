@@ -116,6 +116,7 @@ def register_mask_command(logger):
                ('extend', IntArg),
                ('pad', FloatArg),
                ('slab', Or(FloatArg, Float2Arg)),
+               ('sandwich', BoolArg),
                ('invert_mask', BoolArg),
                ('fill_overlap', BoolArg),
                ('model_id', ModelIdArg)]
