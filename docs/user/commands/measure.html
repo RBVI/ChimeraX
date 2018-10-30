@@ -40,6 +40,9 @@ area buried between two sets of atoms
 - calculate convexity at each surface vertex, color the surface accordingly
 <li><a href="#length"><b>length</b></a>
 - sum bond lengths
+<li><a href="#mapstats"><b>mapstats</b></a>
+- report <a href="../tools/volumeviewer.html">volume data</a> 
+min, max, mean, SD, and RMSD values
 <li><a href="#motion"><b>motion</b></a>
 - show changes in surface position by drawing lines
 <li><a href="#sasa"><b>sasa</b></a>
@@ -165,6 +168,39 @@ primarily used to measure the length of traced paths of markers.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="mapstats"><b>measure mapstats</b></a>
+[&nbsp;<a href="atomspec.html#othermodels"><i>volume-spec</i></a>&nbsp;]
+[&nbsp;<b>step</b> &nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>subregion</b> &nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+<blockquote>
+Report the minimum value, maximum value, mean, standard deviation (SD) 
+from the mean, and the root-mean-square (RMS) deviation from zero for
+the specified <a href="../tools/volumeviewer.html">volume data</a> models,
+if any, otherwise all such models.
+The <b>step</b> and <b>subregion</b> options can be used to limit
+the calculation to a subsample or spatial subregion of the data.
+The step size must be an integer; 1 indicates all data points (default),
+2 indicates every other data point, 3 every third point, <i>etc.</i>
+If a single number is supplied, it is used along all three axes; 
+if three numbers are supplied (separated by commas but not spaces), they
+are used along the X, Y, and Z axes, respectively.
+A subregion can be specified by:
+  <ul>
+  <li><i>name</i> previously assigned
+  with the <a href="volume.html#dimensions"><b>nameRegion</b> 
+  option of <b>volume</b></a>
+  <li>grid indices
+  <i>i1&ndash;i2</i> along the X axis,
+  <i>j1&ndash;j2</i> along the Y axis, and
+  <i>k1&ndash;k2</i> along the Z axis.
+  Grid indices must be integers separated by commas but not spaces.
+  <li>the word <b>all</b>, indicating the full extent of the data
+  (default) rather than a subregion
+  </ul>
+See also: <a href="../measurements.html">measurements</a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="motion"><b>measure motion</b></a>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 <b>toMap</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
@@ -228,5 +264,5 @@ phenylalanine, tyrosine, and tryptophan residues
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+October 2018</address>
 </body></html>
