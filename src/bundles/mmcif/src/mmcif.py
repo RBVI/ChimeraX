@@ -56,7 +56,10 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         lambda name, session=session: _get_template(session, name))
     categories = _additional_categories + tuple(extra_categories)
     log = session.logger if log_info else None
-    pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic)
+    try:
+        pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic)
+    except _mmcif.error as e:
+        raise UserError('mmCIF parsing error: %s' % e)
 
     if file_name is None:
         from os.path import basename
