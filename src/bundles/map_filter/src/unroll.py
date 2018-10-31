@@ -70,7 +70,7 @@ def annulus_grid(radius0, radius1, center, axis, ncircum, nradius):
         multiply(grid_points[:,i,:], r, grid_points[:,i,:])
     from chimerax.core.geometry import translation, orthonormal_frame
     tf = translation(center) * orthonormal_frame(axis)
-    tf.move(grid_points.reshape((ncircum*nradius,3)))
+    tf.transform_points(grid_points.reshape((ncircum*nradius,3)), in_place = True)
     return grid_points
 
 # -----------------------------------------------------------------------------

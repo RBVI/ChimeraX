@@ -363,7 +363,7 @@ class GrayScaleDrawing(Drawing):
       a0, a1 = (axis + 1) % 3, (axis + 2) % 3
       vap[1:3,a0] += gs[a0]
       vap[2:4,a1] += gs[a1]
-      self.ijk_to_xyz.move(vap)
+      self.ijk_to_xyz.transform_points(vap, in_place = True)
       ta[2*p:2*(p+1),:] = tap + 4*p
       textures.append(self.texture_plane(k, axis))
       tc[4*p:4*(p+1),:] = (tc2 if axis == 1 else tc1)

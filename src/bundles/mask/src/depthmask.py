@@ -154,8 +154,7 @@ def surface_projection_coordinates(surfaces, projection_axis, volume):
   zsurf = []
   tcount = 0
   for vertices, triangles in surfaces:
-    varray = vertices.copy()
-    tfrs.move(varray)
+    varray = tfrs.transform_points(varray)
     zsurf.append((varray, triangles))
     tcount += len(triangles)
   if tcount == 0:
@@ -298,8 +297,7 @@ def bounding_box(surfaces, tf = None):
     if tf is None:
       v = vertices
     else:
-      v = vertices.copy()
-      tf.move(v)
+      v = tf.transform_points(v)
     v = v.take(triangles.ravel(), axis = 0)
     vmin = v.min(axis = 0)
     if smin is None:      smin = vmin
@@ -331,8 +329,7 @@ def surface_geometry(plist, tf, pad):
     if not tf is None:
       vtf = tf * p.scene_position
       if not vtf.is_identity(tolerance = 0):
-        varray = varray.copy()
-        vtf.move(varray)
+        varray = vtf.transform_points(varray)
 
     surfaces.append((varray, tarray))
 

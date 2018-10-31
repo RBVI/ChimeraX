@@ -397,9 +397,8 @@ def volume_gradients(points, xyz_to_ijk_transform, data_array, syminv = []):
         for sinv in syminv:
             # TODO: Make interpolation use original point array.
             p[:] = points
-            sinv.move(p)
-            g, outside = VD.interpolate_volume_gradient(p, xyz_to_ijk_transform,
-                                                        data_array)
+            sinv.transform_points(p, in_place = True)
+            g, outside = VD.interpolate_volume_gradient(p, xyz_to_ijk_transform, data_array)
             add(gradients, g, gradients)
 
     return gradients
@@ -423,7 +422,7 @@ def volume_torques(points, center, xyz_to_ijk_transform, data_array,
         for sinv in syminv:
             # TODO: Make interpolation use original point array.
             p[:] = points
-            sinv.move(p)
+            sinv.transform_points(p, in_place = True)
             g, outside = VD.interpolate_volume_gradient(p, xyz_to_ijk_transform,
                                                         data_array)
             _map.torques(p, center, g, g)
@@ -559,7 +558,7 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
             points = take(points, nz, axis=0)
             weights = take(weights, nz, axis=0)
 
-    xyz_to_ijk_tf.inverse().move(points)
+    xyz_to_ijk_tf.inverse().transform_points(points, in_place = True)
 
     return points, weights
     

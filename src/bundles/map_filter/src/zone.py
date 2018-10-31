@@ -25,7 +25,7 @@ def zone_operation(v, atoms, radius, bond_point_spacing = None,
         from numpy import concatenate
         points = concatenate((points, bpoints))
 
-    v.position.inverse().move(points)   # Convert points to map coordinates.
+    v.position.inverse().transform_points(points, in_place = True)   # Convert points to map coordinates.
 
     if new_map:
         vz = zone_volume(v, points, radius, minimal_bounds, invert,

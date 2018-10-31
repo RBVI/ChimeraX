@@ -41,7 +41,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
                            (0, 0, 1.0/s, -origin[2]/s)))
     from numpy import float32
     ijk = xyz.astype(float32)
-    xyz_to_ijk_tf.move(ijk)
+    xyz_to_ijk_tf.transform_points(ijk, in_place = True)
     ri = radii.astype(float32)
     ri += probe_radius
     ri /= s
@@ -56,7 +56,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     sas_va, sas_ta, sas_na = contour_surface(matrix, level, cap_faces = False,
                                              calculate_normals = True)
     if sas:
-        xyz_to_ijk_tf.inverse().move(sas_va)
+        xyz_to_ijk_tf.inverse().transform_points(sas_va, in_place = True)
         return sas_va, sas_na, sas_ta
 
     # Compute SES surface distance map using SAS surface vertex
@@ -69,7 +69,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
                                              calculate_normals = True)
 
     # Transform surface from grid index coordinates to atom coordinates
-    xyz_to_ijk_tf.inverse().move(ses_va)
+    xyz_to_ijk_tf.inverse().transform_points(ses_va, in_place = True)
 
     # Delete connected components more than 1.5 probe radius from atom spheres.
     kvi = []

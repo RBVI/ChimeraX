@@ -77,7 +77,7 @@ def _show_prickles(surface, length = 1, color = None, prickles_model = None, chi
             p = prickles_model
             pp, sp = prickles_model.scene_position, surface.position
             if not pp.is_identity() or not sp.is_identity():
-                (pp.inverse() * sp).move(van)
+                (pp.inverse() * sp).transform_points(van, in_place = True)
         else:
             p = surface
         p = prickles_model if prickles_model else surface

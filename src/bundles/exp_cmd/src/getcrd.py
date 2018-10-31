@@ -30,7 +30,7 @@ def getcrd(session, atoms=None, coordinate_system='scene'):
     elif coordinate_system == 'screen':
         s2c = session.main_view.camera.position.inverse()
         coords = atoms.scene_coords
-        s2c.move(coords)
+        s2c.transform_points(coords, in_place=True)
     save = settings.atomspec_contents
     settings.atomspec_contents = "command-line specifier"
     for i, a in enumerate(atoms):

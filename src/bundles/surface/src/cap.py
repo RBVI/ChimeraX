@@ -115,7 +115,7 @@ def compute_instances_cap(drawing, triangles, plane, offset):
         poffset = inner_product(pnormal, pinv*point) + doffset
         from . import compute_cap
         ivarray, itarray = compute_cap(pnormal, poffset, d.vertices, triangles)
-        pos.move(ivarray)
+        pos.transform_points(ivarray, in_place = True)
         geom.append((ivarray, itarray))
     varray, tarray = concatenate_geometry(geom)
     return varray, tarray, normal
