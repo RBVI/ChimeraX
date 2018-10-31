@@ -1175,10 +1175,9 @@ class Axis:
         elif coordinate_system is not None:
             # Camera coords are actually coordinate_system coords if
             # coordinate_system is not None.
-            c = self.coords
-            a = coordinate_system.apply_without_translation(c)
+            a = coordinate_system.transform_vectors(self.coords)
         elif camera:
-            a = camera.position.apply_without_translation(self.coords)
+            a = camera.position.transform_vectors(self.coords)
         else:
             a = self.coords
         if normalize:

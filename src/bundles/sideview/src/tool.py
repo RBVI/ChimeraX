@@ -326,8 +326,7 @@ class SideViewCanvas(QWindow):
         diff_x = x - self.x
         self.x, self.y = x, y
         psize = self.view.pixel_size()
-        shift = self.main_view.camera.position.apply_without_translation(
-            (0, 0, diff_x * psize))
+        shift = self.main_view.camera.position.transform_vector((0, 0, diff_x * psize))
         if self.moving == self.ON_EYE:
             main_camera = self.main_view.camera
             ortho = hasattr(main_camera, 'field_width')

@@ -402,7 +402,7 @@ class HelixCylinder:
             num_pts = len(self.coords)
             tf, rmsd = align_points(self.IDEAL_COORDS[:num_pts], self.coords)
             centroid = tf * self.IDEAL_PARAMS[0]
-            axis = tf.apply_without_translation(self.IDEAL_PARAMS[1])
+            axis = tf.transform_vector(self.IDEAL_PARAMS[1])
             rel_coords = self.coords - centroid
         axis_pos = dot(rel_coords, axis)[:, newaxis]
         radial_vecs = rel_coords - axis * axis_pos

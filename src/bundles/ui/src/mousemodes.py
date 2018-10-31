@@ -683,7 +683,7 @@ class RotateMouseMode(MouseMode):
 
     def rotate(self, axis, angle):
         # Convert axis from camera to scene coordinates
-        saxis = self.camera_position.apply_without_translation(axis)
+        saxis = self.camera_position.transform_vector(axis)
         self.view.rotate(saxis, angle, self.models())
 
     def mouse_rotation(self, event):
@@ -766,7 +766,7 @@ class TranslateMouseMode(MouseMode):
 
         psize = self.pixel_size()
         s = tuple(dx*psize for dx in shift)     # Scene units
-        step = self.camera_position.apply_without_translation(s)    # Scene coord system
+        step = self.camera_position.transform_vector(s)    # Scene coord system
         self.view.translate(step, self.models())
 
     def models(self):
@@ -819,7 +819,7 @@ class ZoomMouseMode(MouseMode):
             # TODO: Make camera field_width a property so it knows to redraw.
             c.redraw_needed = True
         else:
-            shift = c.position.apply_without_translation((0, 0, delta_z))
+            shift = c.position.transform_vector((0, 0, delta_z))
             v.translate(shift)
         
 class ObjectIdMouseMode(MouseMode):
@@ -984,7 +984,7 @@ class ClipMouseMode(MouseMode):
 
     def _tilt_shift(self, delta_xy, camera, normal):
         # Measure drag direction along plane normal direction.
-        nx,ny,nz = camera.position.inverse().apply_without_translation(normal)
+        nx,ny,nz = camera.position.inverse().transform_vector(normal)
         from math import sqrt
         d = sqrt(nx*nx + ny*ny)
         if d > 0:
@@ -1001,7 +1001,7 @@ class ClipMouseMode(MouseMode):
         if move:
             for p in self._planes(front_shift = 1, back_shift = 0):
                 if p:
-                    p.normal = move.apply_without_translation(p.normal)
+                    p.normal = move.transform_vector(p.normal)
                     p.plane_point = move * p.plane_point
 
 class ClipRotateMouseMode(MouseMode):
@@ -1031,11 +1031,11 @@ class ClipRotateMouseMode(MouseMode):
 
     def clip_rotate(self, axis, angle):
         v = self.view
-        scene_axis = v.camera.position.apply_without_translation(axis)
+        scene_axis = v.camera.position.transform_vector(axis)
         from chimerax.core.geometry import rotation
         r = rotation(scene_axis, angle, v.center_of_rotation)
         for p in self._planes():
-            p.normal = r.apply_without_translation(p.normal)
+            p.normal = r.transform_vector(p.normal)
             p.plane_point = r * p.plane_point
 
     def _planes(self):
@@ -1063,7 +1063,7 @@ class ClipRotateMouseMode(MouseMode):
     def drag_3d(self, position, move, delta_z):
         if move:
             for p in self._planes():
-                p.normal = move.apply_without_translation(p.normal)
+                p.normal = move.transform_vector(p.normal)
                 p.plane_point = move * p.plane_point
 
 def standard_mouse_mode_classes():

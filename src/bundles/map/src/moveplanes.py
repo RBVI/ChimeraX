@@ -108,7 +108,7 @@ class PlanesMouseMode(MouseMode):
             if v:
                 trans = move * position.origin() - position.origin()
                 dxyz = v.position.inverse() * trans
-                dijk = v.data.xyz_to_ijk_transform.apply_without_translation(dxyz)
+                dijk = v.data.xyz_to_ijk_transform.transform_vector(dxyz)
                 istep = dijk[self.axis]
                 self._move_plane(istep)
 
@@ -188,7 +188,7 @@ def drag_distance(v, ijk, axis, dx, dy, viewer, clamp_speed = 3):
     d = sqrt(dx*dx + dy*dy)
     face_normal = v.axis_vector(axis)    # global coords
     m2c = viewer.camera.position.inverse()
-    nx,ny,nz = m2c.apply_without_translation(face_normal)
+    nx,ny,nz = m2c.transform_vector(face_normal)
     if ((dx == 0 and abs(dy) == 1 and abs(nx) > abs(ny)) or
         (dy == 0 and abs(dx) == 1 and abs(ny) > abs(nx))):
         # Slow mouse drags generate single pixel steps (1,0), (0,1), ...
