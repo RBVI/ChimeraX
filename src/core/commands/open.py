@@ -62,8 +62,15 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             return f(*args, **kw)
         except TypeError as e:
             if 'unexpected keyword' in str(e):
-                from chimerax.core.errors import UserError
-                raise UserError(str(e))
+                # try to distinguish between keywords typed by the user that are not appropriate for
+                # the format and that produce TypeError from similar-looking errors from actual code,
+                # by examining the stack traceback
+                import sys
+                etype, evalue, etraceback = sys.exc_info()
+                import traceback
+                if len(traceback.format_tb(etraceback)) == 4:
+                    from chimerax.core.errors import UserError
+                    raise UserError(str(e))
             raise
     from chimerax.core.filehistory import remember_file
     if from_database is not None:

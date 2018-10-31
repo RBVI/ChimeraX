@@ -1082,7 +1082,7 @@ class SeqCanvas:
                     session.logger.error("Cannot restore alignment header of type %s due to"
                         " being unable to find any bundle named %s" % (class_name, bundle_name))
                 continue
-            header_class = bundle.get_class(class_name)
+            header_class = bundle.get_class(class_name, session.logger)
             headers.append(header_class.session_restore(session, self.sv, header_state))
 
     """TODO

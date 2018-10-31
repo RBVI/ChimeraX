@@ -13,6 +13,7 @@
  * === UCSF ChimeraX Copyright ===
  */
 
+#include <cctype>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -46,8 +47,11 @@ py_exception_msg()
     PyObject* err_val;
     PyObject* err_trace;
     PyErr_Fetch(&err_type, &err_val, &err_trace);
+    PyObject* val_str = PyObject_Str(err_val);
     PyErr_Restore(err_type, err_val, err_trace);
-    return std::string(PyUnicode_AsUTF8(err_val));
+    auto utf8_val = PyUnicode_AsUTF8(val_str);
+    Py_DECREF(val_str);
+    return std::string(utf8_val);
 }
 
 void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level, bool is_html)
@@ -80,7 +84,14 @@ void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level, bool is_ht
                 "' method in logger object is not callable.";
             throw std::invalid_argument(err_msg.str());
         }
-        PyObject* py_msg = PyUnicode_FromString(msg.str().c_str());
+        std::string sanitized_string;
+        for (auto c: msg.str()) {
+            if (std::isprint(c) || std::isspace(c))
+                sanitized_string.push_back(c);
+            else
+                sanitized_string.push_back('?');
+        }
+        PyObject* py_msg = PyUnicode_FromString(sanitized_string.c_str());
         if (py_msg == nullptr) {
             std::stringstream err_msg;
             err_msg << "Could not convert error message to unicode: "
