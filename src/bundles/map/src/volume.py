@@ -681,8 +681,7 @@ class Volume(Model):
   def surface_level_for_enclosed_volume(self, volume, tolerance = 1e-3,
                                         max_bisections = 30, rank_method = False):
 
-    sx,sy,sz = self.data.step
-    cell_volume = float(sx)*sy*sz
+    cell_volume = self.data.voxel_volume()
 
     if rank_method:
       ms = self.matrix_value_statistics()
