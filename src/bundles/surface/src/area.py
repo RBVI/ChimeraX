@@ -33,6 +33,7 @@ def enclosed_volume(varray, tarray):
     from ._surface import enclosed_volume
     vol, hole_count = enclosed_volume(varray, tarray)
     if vol < 0:
+        # Surface has boundary but edges are traversed in opposing directions.
         return None, hole_count
     return vol, hole_count
 
@@ -54,3 +55,73 @@ def surface_volume_and_area(model):
             holes += hc
             area += surface_area(varray, tarray)
     return volume, area, holes
+
+# -----------------------------------------------------------------------------
+#
+def measure_volume(session, surfaces, include_masked = True):
+    vtot = 0
+    totholes = 0
+    lines = []
+    for surf in surfaces:
+        va = surf.vertices
+        ta = surf.triangles if include_masked else surf.masked_triangles
+        v, nholes = enclosed_volume(va, ta)
+        if v is None:
+            lines.append('Surface %s (#%s) has boundary edges traversed in opposing directions.'
+                         '  Cannot determine volume.' % (surf.name, surf.id_string))
+        else:
+            vtot += v
+            totholes += nholes
+            line = 'Enclosed volume for %s (#%s) = %.4g' % (surf.name, surf.id_string, v)
+            if nholes > 0:
+                line += ' with %d surface holes' % nholes
+            lines.append(line)
+    if len(surfaces) > 1:
+        line = 'Total enclosed volume for %d surfaces = %.4g' % (len(surfaces), vtot)
+        if totholes > 0:
+            line += ' with %d surface holes' % totholes
+        lines.append(line)
+    msg = '\n'.join(lines)
+    if len(lines) == 1:
+        session.logger.status(msg)
+    session.logger.info(msg)
+
+# -----------------------------------------------------------------------------
+#
+def measure_area(session, surfaces, include_masked = True):
+    atot = 0
+    lines = []
+    for surf in surfaces:
+        va = surf.vertices
+        ta = surf.triangles if include_masked else surf.masked_triangles
+        a = surface_area(va, ta)
+        atot += a
+        lines.append('Surface area for %s (#%s) = %.4g' % (surf.name, surf.id_string, a))
+    if len(surfaces) > 1:
+        lines.append('Total surface area for %d surfaces = %.4g' % (len(surfaces), atot))
+    msg = '\n'.join(lines)
+    if len(lines) == 1:
+        session.logger.status(msg)
+    session.logger.info(msg)
+        
+# -----------------------------------------------------------------------------
+#
+def register_measure_subcommand(command_name, logger):
+    from chimerax.core.commands import register, CmdDesc, SurfacesArg, BoolArg
+
+    if command_name == 'measure volume':
+        desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                       keyword = [('include_masked', BoolArg)],
+                       synopsis = "measure volume enclosed by surface")
+        register('measure volume', desc, measure_volume, logger=logger)
+
+    elif command_name == 'measure area':
+        desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                       keyword = [('include_masked', BoolArg)],
+                       synopsis = "measure area of surface")
+        register('measure area', desc, measure_area, logger=logger)
+
+    elif command_name == 'measure sasa':
+        # Register "measure sasa" command
+        from . import measure_sasacmd
+        measure_sasacmd.register_command(logger)

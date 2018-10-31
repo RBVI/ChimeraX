@@ -55,6 +55,8 @@
     <ChimeraXClassifier>ChimeraX :: Command :: volume splitbyzone :: Volume Data :: split volume by color zone</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: sop :: Surfaces :: surface operation</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: measure sasa :: Surfaces :: measure solvent-accessible surface area</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: measure volume :: Surfaces :: measure enclosed surface volume</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: measure area :: Surfaces :: measure surface area</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

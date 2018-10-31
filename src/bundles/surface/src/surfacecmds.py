@@ -349,10 +349,6 @@ def register_command(logger):
     # Register surface operation subcommands.
     from . import sop
     sop.register_surface_subcommands(logger)
-
-    # Register "measure sasa" command
-    from . import measure_sasacmd
-    measure_sasacmd.register_command(logger)
     
 def check_atoms(atoms, session):
     if atoms is None:
