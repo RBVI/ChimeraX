@@ -11,6 +11,7 @@
 
 def align_points(xyz, ref_xyz):
     '''
+    Supported API.
     Computes rotation and translation to align one set of points with another.
     The sum of the squares of the distances between corresponding positions is
     minimized.

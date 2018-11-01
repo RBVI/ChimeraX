@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 commands = [
-    'log warn false error false',
+    'log settings warn false error false',
     'open 1mtx',
     'mmaker #1.1 to #1.2',
     'mmaker #1.1-5 to #1.6 alg sw matrix PAM-150 cutoff 5.0',
@@ -76,7 +76,6 @@ commands = [
     'info',
     'log hide',
     'log show',
-    'log error false',
     'material specular 1.2 exponent 100',
     'material shiny',
     'molmap #1 5 grid 1',

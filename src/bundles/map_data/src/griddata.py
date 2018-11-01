@@ -211,6 +211,14 @@ class Grid_Data:
     return self.ijk_to_xyz_transform * ijk
     
   # ---------------------------------------------------------------------------
+  #
+  def voxel_volume(self):
+    '''
+    Volume of one voxel including skewing.
+    '''
+    return self.ijk_to_xyz_transform.determinant()
+    
+  # ---------------------------------------------------------------------------
   # Spacings in xyz space of jk, ik, and ij planes.
   #
   def plane_spacings(self):

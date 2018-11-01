@@ -28,7 +28,7 @@ def fit_sequence(models, volume, steps, subtract_maps = [],
     from numpy import float32, multiply, add, array
     from ..data import grid_indices
     grid_points = grid_indices(size, float32)
-    xyz_to_ijk_transform.inverse().move(grid_points)
+    xyz_to_ijk_transform.inverse().transform_points(grid_points, in_place = True)
     grid_points_to_scene_transform = identity()
 
     # Make float32 copy for subtracting interpolated molecule maps.

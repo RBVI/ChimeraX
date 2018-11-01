@@ -756,7 +756,7 @@ class Render:
         from ..geometry import normalize_vector
         kld = normalize_vector(lp.key_light_direction)
         if move:
-            kld = move.apply_without_translation(kld)
+            kld = move.transform_vector(kld)
         params["key_light_direction"] = kld
         ds = mp.diffuse_reflectivity * lp.key_light_intensity
         kdc = tuple(ds * c for c in lp.key_light_color)
@@ -771,7 +771,7 @@ class Render:
         # Fill light
         fld = normalize_vector(lp.fill_light_direction)
         if move:
-            fld = move.apply_without_translation(fld)
+            fld = move.transform_vector(fld)
         params["fill_light_direction"] = fld
         ds = mp.diffuse_reflectivity * lp.fill_light_intensity
         fdc = tuple(ds * c for c in lp.fill_light_color)
@@ -1161,9 +1161,9 @@ class Shadow:
         # Compute light direction in scene coords.
         kl = lp.key_light_direction
         if r.recording_opengl:
-            light_direction = lambda c=camera, kl=kl: c.position.apply_without_translation(kl)
+            light_direction = lambda c=camera, kl=kl: c.position.transform_vector(kl)
         else:
-            light_direction = camera.position.apply_without_translation(kl)
+            light_direction = camera.position.transform_vector(kl)
 
         # Compute drawing bounds so shadow map can cover all drawings.
         center, radius, sdrawings = shadow_bounds(drawings)
@@ -1229,7 +1229,7 @@ class Shadow:
         ld = normalize_vector(light_direction)
         # Light view frame:
         lv = translation(center - radius * ld) * orthonormal_frame(-ld)
-        lvinv = lv.inverse_orthonormal()  # Scene to light view coordinates
+        lvinv = lv.inverse(is_orthonormal = True)  # Scene to light view coordinates
 
         # Project orthographic along z to (0, 1) texture coords.
         stf = translation((0.5, 0.5, -depth_bias)) * scale((0.5/radius, 0.5/radius, -0.5/radius)) * lvinv

@@ -157,7 +157,7 @@ class SegmentInterpolator:
         def reverse_motion(self, coordset):
                 for atom_indices, xform in self.motion_transforms:
                         ca = coordset[atom_indices]	# Copies array
-                        xform.inverse().move(ca)
+                        xform.inverse().transform_points(ca, in_place = True)
                         coordset[atom_indices] = ca
 
         def interpolate(self, f, coordset):
@@ -172,7 +172,7 @@ def apply_rigid_motion_py(coordset, atom_indices, axis, angle, center, shift, f)
         from chimerax.core.geometry import rotation, translation
         xf = translation(f*shift) * rotation(axis, f*angle, center)
         ca = coordset[atom_indices]	# Copies array
-        xf.move(ca)  # Apply rigid segment motion
+        xf.transform_points(ca, in_place = True)  # Apply rigid segment motion
         coordset[atom_indices] = ca
 # Use C++ optimized version
 from ._morph import apply_rigid_motion

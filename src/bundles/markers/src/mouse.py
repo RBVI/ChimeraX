@@ -176,7 +176,7 @@ class MarkerMouseMode(MouseMode):
         psize = self.pixel_size(sxyz)
         s = (dx*psize, -dy*psize, 0)	# Screen shift
         cpos = self.session.main_view.camera.position
-        step = cpos.apply_without_translation(s)    # Scene coord system
+        step = cpos.transform_vector(s)    # Scene coord system
         m.scene_coord = sxyz + step
 
     def resize_begin(self, event):

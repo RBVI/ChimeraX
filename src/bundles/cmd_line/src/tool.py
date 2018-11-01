@@ -58,6 +58,12 @@ class CommandLine(ToolInstance):
                 self.lineEdit().insert(text)
                 event.acceptProposedAction()
 
+            def focusOutEvent(self, event):
+                le = self.lineEdit()
+                sel_start, sel_length = le.selectionStart(), len(le.selectedText())
+                QComboBox.focusOutEvent(self, event)
+                le.setSelection(sel_start, sel_length)
+
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
                 from PyQt5.QtCore import Qt
@@ -98,16 +104,6 @@ class CommandLine(ToolInstance):
                     self.setFocus()
                 self._processing_key = False
 
-            def retain_sel_on_focus_out(self):
-                # if a full command has been selected, retain that selection on
-                # focus out so that it is easy to type a new command
-                if self._processing_key:
-                    return
-                le = self.lineEdit()
-                if not le.hasFocus() and not le.selectedText() \
-                        and self.count() > 0 and self.itemText(0) == self.currentText():
-                    le.selectAll()
-
             def sizeHint(self):
                 # prevent super-long commands from making the whole interface super wide
                 return self.minimumSizeHint()
@@ -122,13 +118,12 @@ class CommandLine(ToolInstance):
         layout.addWidget(self.text, 1)
         parent.setLayout(layout)
         # lineEdit() seems to be None during entire CmdText constructor, so connect here...
-        self.text.lineEdit().selectionChanged.connect(self.text.retain_sel_on_focus_out)
         self.text.lineEdit().returnPressed.connect(self.execute)
         self.text.currentTextChanged.connect(self.text_changed)
         self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e, forwarded=True)
         session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
-        self._just_typed_command = False
+        self._just_typed_command = None
         self._command_started_handler = session.triggers.add_handler("command started",
             self._command_started_cb)
         self.tool_window.manage(placement="bottom")
@@ -219,7 +214,7 @@ class CommandLine(ToolInstance):
                 continue
             with processing_command(self.text.lineEdit(), cmd_text):
                 try:
-                    self._just_typed_command = True
+                    self._just_typed_command = cmd_text
                     cmd = Command(session)
                     cmd.run(cmd_text)
                 except SystemExit:
@@ -241,9 +236,10 @@ class CommandLine(ToolInstance):
         return tools.get_singleton(session, CommandLine, 'Command Line Interface', **kw)
 
     def _command_started_cb(self, trig_name, cmd_text):
-        self.history_dialog.add(cmd_text, typed=self._just_typed_command)
+        self.history_dialog.add(self._just_typed_command or cmd_text,
+            typed=self._just_typed_command is not None)
         self.text.lineEdit().selectAll()
-        self._just_typed_command = False
+        self._just_typed_command = None
 
     def _set_typed_only(self, typed_only):
         self.settings.typed_only = typed_only

@@ -106,15 +106,15 @@ class Tube:
                                                    caps = self.end_caps)
         # Transform circles.
         for i in range(nz):
-            tflist[i].move(varray[nc*i:nc*(i+1),:])
-            tfnlist[i].move(narray[nc*i:nc*(i+1),:])
+            tflist[i].transform_points(varray[nc*i:nc*(i+1),:], in_place = True)
+            tfnlist[i].transform_points(narray[nc*i:nc*(i+1),:], in_place = True)
 
         if self.end_caps:
             # Transform cap center points
-            tflist[0].move(varray[-2:-1,:])
-            tfnlist[0].move(narray[-2:-1,:])
-            tflist[-1].move(varray[-1:,:])
-            tfnlist[-1].move(narray[-1:,:])
+            tflist[0].transform_points(varray[-2:-1,:], in_place = True)
+            tfnlist[0].transform_points(narray[-2:-1,:], in_place = True)
+            tflist[-1].transform_points(varray[-1:,:], in_place = True)
+            tfnlist[-1].transform_points(narray[-1:,:], in_place = True)
 
         return varray, narray, tarray
 

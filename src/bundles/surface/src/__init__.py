@@ -41,6 +41,9 @@ class _SurfaceBundle(BundleAPI):
         if command_name.startswith('color'):
             from . import colorcmds
             colorcmds.register_color_subcommand(command_name, logger)
+        elif command_name.startswith('measure'):
+            from . import area
+            area.register_measure_subcommand(command_name, logger)
         elif command_name == 'volume splitbyzone':
             from . import colorzone
             colorzone.register_volume_split_command(logger)

@@ -212,7 +212,7 @@ class MonoCamera(Camera):
         '''
         d = perspective_direction(window_x, window_y, window_size, self.field_of_view)
         p = self.position
-        ds = p.apply_without_translation(d)  # Convert camera to scene coordinates
+        ds = p.transform_vector(d)  # Convert camera to scene coordinates
         return (p.origin(), ds)
 
 def perspective_view_all(bounds, position, field_of_view, window_size = None, pad = 0):
@@ -223,14 +223,14 @@ def perspective_view_all(bounds, position, field_of_view, window_size = None, pa
     from math import radians, sin, cos
     fov2 = radians(field_of_view)/2
     s,c = sin(fov2), cos(fov2)
-    face_normals = [position.apply_without_translation(v)
+    face_normals = [position.transform_vector(v)
                     for v in ((c/s,0,1), (-c/s,0,1))] # frustum side normals
     if window_size is not None:
         aspect = window_size[1]/window_size[0]
         from math import tan, atan
         fov2y = atan(aspect*tan(fov2))
         sy,cy = sin(fov2y), cos(fov2y)
-        face_normals.extend([position.apply_without_translation(v)
+        face_normals.extend([position.transform_vector(v)
                              for v in ((0,cy/sy,1), (0,-cy/sy,1))]) # frustum top/bottom normals
     center = bounds.center()
     bc = bounds.box_corners() - center

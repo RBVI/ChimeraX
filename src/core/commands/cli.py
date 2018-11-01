@@ -1175,10 +1175,9 @@ class Axis:
         elif coordinate_system is not None:
             # Camera coords are actually coordinate_system coords if
             # coordinate_system is not None.
-            c = self.coords
-            a = coordinate_system.apply_without_translation(c)
+            a = coordinate_system.transform_vectors(self.coords)
         elif camera:
-            a = camera.position.apply_without_translation(self.coords)
+            a = camera.position.transform_vectors(self.coords)
         else:
             a = self.coords
         if normalize:
@@ -2553,10 +2552,11 @@ class Command:
 
             ci = self._ci
             kw_args = self._kw_args
-            if log:
+            really_log = log and _used_aliases is None
+            if really_log:
                 self.log()
             cmd_text = self.current_text[self.start:self.amount_parsed]
-            with command_trigger(session, log, cmd_text):
+            with command_trigger(session, really_log, cmd_text):
                 if not isinstance(ci.function, Alias):
                     if not log_only:
                         try:

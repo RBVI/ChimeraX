@@ -227,7 +227,7 @@ class Fit:
         points_int = _volume.high_indices(matrix, threshold)
         from numpy import float32
         points = points_int.astype(float32)
-        (tf * xyz_to_ijk_tf.inverse()).move(points)
+        (tf * xyz_to_ijk_tf.inverse()).transform_points(points, in_place = True)
 
         # Transform points by volume symmetries and count how many are inside
         # contour of map m.
@@ -236,7 +236,7 @@ class Fit:
         for s in symlist:
             if not s.is_identity():
                 p = points.copy()
-                (tfinv * s).move(p)
+                (tfinv * s).transform_points(p, in_place = True)
                 v = m.interpolated_values(p)
                 inside += (v >= threshold).sum()
 

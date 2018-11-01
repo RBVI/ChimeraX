@@ -112,7 +112,8 @@ class ZoneColor(State):
 # -----------------------------------------------------------------------------
 #
 def color_zone_sharp_edges(surface, points, colors, distance, replace = False):
-    surface.scene_position.inverse().move(points)	# Transform points to surface coordinates
+    # Transform points to surface coordinates
+    surface.scene_position.inverse().transform_points(points, in_place = True)
 
     varray = surface.vertices
     from chimerax.core.geometry import find_closest_points

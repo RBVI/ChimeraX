@@ -681,8 +681,7 @@ class Volume(Model):
   def surface_level_for_enclosed_volume(self, volume, tolerance = 1e-3,
                                         max_bisections = 30, rank_method = False):
 
-    sx,sy,sz = self.data.step
-    cell_volume = float(sx)*sy*sz
+    cell_volume = self.data.voxel_volume()
 
     if rank_method:
       ms = self.matrix_value_statistics()
@@ -1446,7 +1445,7 @@ class Volume(Model):
       points = grid_indices((size[0],size[1],1), float32)  # Single z plane.
       points[:,2] = zplane
     mt = transform_to_local_coords * self.model_transform() * data.ijk_to_xyz_transform
-    mt.move(points)
+    mt.transform_points(points, in_place = True)
     return points
   
   # ---------------------------------------------------------------------------
@@ -1944,9 +1943,8 @@ class VolumeSurface(Surface):
       smooth_vertex_positions(narray, tarray, sf, si)
 
     # Transform vertices and normals from index coordinates to model coordinates
-    transform.move(varray)
-    tf = transform.inverse().transpose().zero_translation()
-    tf.move(narray)
+    transform.transform_points(varray, in_place = True)
+    transform.transform_normals(narray, in_place = True)
     from chimerax.core.geometry import normalize_vectors
     normalize_vectors(narray)
 
@@ -2742,7 +2740,7 @@ def transformed_points(points, tf):
 
   from numpy import array, single as floatc
   tf_points = array(points, floatc)
-  tf.move(tf_points)
+  tf.transform_points(tf_points, in_place = True)
   return tf_points
     
 # -----------------------------------------------------------------------------
@@ -2787,7 +2785,7 @@ def atom_bounds(atoms, pad, volume):
 
     # Transform atom coordinates to volume ijk indices.
     tf = volume.data.xyz_to_ijk_transform * volume.position.inverse()
-    tf.move(xyz)
+    tf.transform_points(xyz, in_place = True)
     ijk = xyz
 
     # Find integer bounds.

@@ -84,7 +84,7 @@ class BondRotater(State):
         side_atoms = self.bond.side_atoms(self.moving_side)
         coords = side_atoms.coords
         # avoid a copy...
-        update.move(coords)
+        update.transform_points(coords, in_place=True)
         side_atoms.coords = coords
         self.rotation._rotater_update(self, delta)
         # manager listening on changes will fire 'modified' trigger...

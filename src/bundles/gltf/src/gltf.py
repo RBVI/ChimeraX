@@ -386,7 +386,7 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colo
             geom = [combine_instance_geometry(va, na, vc, ta, pos, ic)]
         else:
             p0 = pos[0]
-            geom = [(p0*va, p0.apply_without_translation(na), vc, ta)]
+            geom = [(p0*va, p0.transform_vectors(na), vc, ta)]
         if short_vertex_indices:
             geom = limit_vertex_count(geom)
         prims = []
@@ -538,7 +538,7 @@ def combine_instance_geometry(va, na, vc, ta, places, instance_colors):
     offset = 0
     for i,p in enumerate(places):
         v.append(p*va)
-        n.append(p.apply_without_translation(na))
+        n.append(p.transform_vectors(na))
         if vc is None:
             ivc = single_vertex_color(len(va), instance_colors[i])
             c.append(ivc)

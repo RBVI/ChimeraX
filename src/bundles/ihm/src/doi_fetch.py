@@ -113,8 +113,12 @@ def find_link_in_html(filename, url_suffix = '.zip', mime_type = 'application/zi
 def fetch_doi_archive_file(session, doi, url, archive_path, mode = 'r', ignore_cache = False):
 
     zip_path = fetch_doi(session, doi, url, ignore_cache = ignore_cache)
-    from zipfile import ZipFile
-    zf = ZipFile(zip_path, 'r')
+    from zipfile import ZipFile, BadZipFile
+    try:
+        zf = ZipFile(zip_path, 'r')
+    except BadZipFile:
+        session.logger.warning('Could not open zip file %s' % zip_path)
+        raise
     full_paths = []
     for p in zf.namelist():
         if p.endswith(archive_path):

@@ -608,9 +608,9 @@ class ObjectLabel:
             w, h = sh*pw/ph, sh
         offset = self.offset
         if offset is not None:
-            xyz += camera_position.apply_without_translation(offset)
-        wa = camera_position.apply_without_translation((w,0,0))
-        ha = camera_position.apply_without_translation((0,h,0))
+            xyz += camera_position.transform_vector(offset)
+        wa = camera_position.transform_vector((w,0,0))
+        ha = camera_position.transform_vector((0,h,0))
         from numpy import array, float32
         va = array((xyz, xyz + wa, xyz + wa + ha, xyz + ha), float32)
         return va

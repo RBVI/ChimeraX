@@ -1083,7 +1083,10 @@ class SeqCanvas:
                         " being unable to find any bundle named %s" % (class_name, bundle_name))
                 continue
             header_class = bundle.get_class(class_name, session.logger)
-            headers.append(header_class.session_restore(session, self.sv, header_state))
+            if header_class:
+                headers.append(header_class.session_restore(session, self.sv, header_state))
+            else:
+                session.logger.warning("Could not find alignment header class %s" % class_name)
 
     """TODO
     def saveEPS(self, fileName, colorMode, rotate, extent, hideNodes):

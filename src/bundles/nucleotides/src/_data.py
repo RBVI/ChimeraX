@@ -745,7 +745,7 @@ def get_cylinder(radius, p0, p1, bottom=True, top=True):
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
-    inverse.update_normals(normals, pure=True)
+    inverse.transform_normals(normals, in_place=True, is_rotation=True)
     return vertices, normals, triangles
 
 
@@ -842,8 +842,8 @@ def draw_slab(nd, residue, name, params):
         raise RuntimeError('unknown base shape')
 
     description = '%s %s' % (residue, tag)
-    xf2.move(va)
-    xf2.update_normals(na, pure=pure_rotation)
+    xf2.transform_points(va, in_place=True)
+    xf2.transform_normals(na, in_place=True, is_rotation=pure_rotation)
     nd.add_shape(va, na, ta, color, atoms, description)
 
     if not params.orient:
@@ -853,20 +853,20 @@ def draw_slab(nd, residue, name, params):
     if tag == PYRIMIDINE:
         center = (llx + urx) / 2.0, (lly + ury) / 2, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
-        xf.move(va)
-        xf.update_normals(na, pure=True)
+        xf.transform_points(va, in_place=True)
+        xf.transform_normals(na, in_place=True, is_rotation=True)
         nd.add_shape(va, na, ta, color, atoms, description)
     else:
         # purine
         center = (llx + urx) / 2.0, lly + (ury - lly) / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
-        xf.move(va)
-        xf.update_normals(na, pure=True)
+        xf.transform_points(va, in_place=True)
+        xf.transform_normals(na, in_place=True, is_rotation=True)
         nd.add_shape(va, na, ta, color, atoms, description)
         center = (llx + urx) / 2.0, lly + (ury - lly) * 2 / 3, half_thickness
         va, na, ta = get_sphere(half_thickness, center)
-        xf.move(va)
-        xf.update_normals(na, pure=True)
+        xf.transform_points(va, in_place=True)
+        xf.transform_normals(na, in_place=True, is_rotation=True)
         nd.add_shape(va, na, ta, color, atoms, description)
     return True
 

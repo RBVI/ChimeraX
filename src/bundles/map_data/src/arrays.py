@@ -272,7 +272,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
     # Calculate plane by plane to save memory with grid point array
     xsize, ysize, zsize = grid_data.size
     grid_points = grid_indices((xsize,ysize,1), floatc)
-    grid_data.ijk_to_xyz_transform.move(grid_points)
+    grid_data.ijk_to_xyz_transform.transform_points(grid_points, in_place = True)
     zstep = [grid_data.ijk_to_xyz_transform.matrix[a][2] for a in range(3)]
     for z in range(zsize):
       i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
@@ -284,7 +284,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
       grid_points[:,:] += zstep
   else:
     grid_points = grid_indices(grid_data.size, floatc)
-    grid_data.ijk_to_xyz_transform.move(grid_points)
+    grid_data.ijk_to_xyz_transform.transform_points(grid_points, in_place = True)
     i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
     if zone_point_mask_values is None:
       mask_1d[i1] = mask_value
