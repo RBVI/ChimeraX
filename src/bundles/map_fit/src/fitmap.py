@@ -458,8 +458,8 @@ def rotation_step(points, point_weights, center, data_array,
 #
 def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
 
-    from chimerax.core.geometry.place import cross_product, translation
-    tf = xyz_to_ijk_transform.zero_translation() * cross_product(axis) * translation(-center)
+    from chimerax.core.geometry.place import cross_product_matrix, translation
+    tf = xyz_to_ijk_transform.zero_translation() * cross_product_matrix(axis) * translation(-center)
 
     from chimerax.core.geometry.vector import maximum_norm
     av = maximum_norm(points, tf.matrix)
