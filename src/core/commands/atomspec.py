@@ -329,7 +329,7 @@ class _AtomSpecSemantics:
         else:
             if ast.op == "=":
                 op = operator.eq
-            elif ast.op == "!=" or ast.op == "<>":
+            elif ast.op == "!=":
                 op = operator.ne
             elif ast.op == ">=":
                 op = operator.ge
@@ -342,11 +342,19 @@ class _AtomSpecSemantics:
             else:
                 op = ast.op
             # Convert string to value for comparison
-            # TODO: if ast.name ends with color, convert to 3-float-tuple
             av = ast.value
-            if isinstance(av, list) and len(av) == 3 and av[0] in ('"', "'") and av[2] in ('"', "'"):
-                v = av[1]	# Quoted string value.
+            if (isinstance(av, list) and len(av) == 3
+                     and av[0] in ('"', "'") and av[2] in ('"', "'")):
+                # Quoted value stay as string
+                v = av[1]
+            elif op in ["==", "!=="]:
+                # case sensitive compare must be string
+                v = av
+            elif ast.name.lower().endswith("color"):
+                # if ast.name ends with color, convert to 3-float-tuple
+                v = self._parse_color(av)
             else:
+                # convert to best matching common type
                 try:
                     v = int(av)
                 except ValueError:
@@ -355,6 +363,28 @@ class _AtomSpecSemantics:
                     except ValueError:
                         v = av
         return _AttrTest(ast.no, ast.name, op, v)
+
+    def _parse_color(self, av):
+        from .. import colors
+        # Handle comma-separated syntax
+        parts = av.split(',')
+        if len(parts) > 1:
+            try:
+                return colors.Color([float(p) for p in parts]).uint8x4()
+            except ValueError:
+                pass
+        # Handle CSS color syntax
+        try:
+            return colors.Color(av).uint8x4()
+        except ValueError:
+            pass
+        # See if it is a built-in or user-defined color
+        try:
+            return self._session.user_colors[av].uint8x4()
+        except KeyError:
+            pass
+        # Give up and return the string itself
+        return av
 
     def zone_selector(self, ast):
         operator, distance = ast
@@ -635,7 +665,7 @@ class _Part:
         # Residue id matcher used for (residue sequence, insert code) pairs
         # "ic" = insert code
         try:
-            start_seq, start_ic = self._parse_as_res_id(self.start)
+            start_seq, start_ic = self._parse_as_res_id(self.start, True)
         except (ValueError, IndexError):
             return None
         if self.end is None:
@@ -643,36 +673,83 @@ class _Part:
                 return seq == start_seq and ic == start_ic
         else:
             try:
-                end_seq, end_ic = self._parse_as_res_id(self.end)
+                end_seq, end_ic = self._parse_as_res_id(self.end, False)
             except (ValueError, IndexError):
                 return None
-            def matcher(seq, ic):
-                if seq < start_seq or seq > end_seq:
-                    return False
-                elif seq > start_seq and seq < end_seq:
+            if start_seq is None and end_seq is None:
+                # :start-end
+                def matcher(seq, ic):
                     return True
-                elif seq == start_seq:
-                    if not ic and not start_ic:
+            elif start_seq is None:
+                # :start-N
+                def matcher(seq, ic):
+                    if seq > end_seq:
+                        return False
+                    elif seq < end_seq:
                         return True
-                    elif ic and not start_ic:
+                    else:
+                        # seq == end_seq
                         # Blank insert code < any non-blank
-                        return True
-                    elif not ic and start_ic:
+                        if not ic and not end_ic:
+                            return True
+                        elif ic and not end_ic:
+                            return False
+                        elif not ic and end_ic:
+                            return True
+                        else:
+                            return ic <= end_ic
+            elif end_seq is None:
+                # :N-end
+                def matcher(seq, ic):
+                    if seq < start_seq:
                         return False
-                    else:
-                        return start_ic <= ic
-                else:   # seq == end_seq
-                    if not ic and not start_ic:
+                    elif seq > start_seq:
                         return True
-                    elif ic and not end_ic:
+                    else:
+                        # seq == start_seq
+                        # Blank insert code < any non-blank
+                        if not ic and not start_ic:
+                            return True
+                        elif ic and not start_ic:
+                            return True
+                        elif not ic and start_ic:
+                            return False
+                        else:
+                            return ic <= start_ic
+            else:
+                # :N-M
+                def matcher(seq, ic):
+                    if seq < start_seq or seq > end_seq:
                         return False
-                    elif not ic and end_ic:
+                    elif seq > start_seq and seq < end_seq:
                         return True
-                    else:
-                        return ic <= end_ic
+                    elif seq == start_seq:
+                        if not ic and not start_ic:
+                            return True
+                        elif ic and not start_ic:
+                            return True
+                        elif not ic and start_ic:
+                            return False
+                        else:
+                            return start_ic <= ic
+                    else:   # seq == end_seq
+                        if not ic and not end_ic:
+                            return True
+                        elif ic and not end_ic:
+                            return False
+                        elif not ic and end_ic:
+                            return True
+                        else:
+                            return ic <= end_ic
         return matcher
 
-    def _parse_as_res_id(self, n):
+    def _parse_as_res_id(self, n, at_start):
+        if at_start:
+            if n.lower() == "start":
+                return None, None
+        else:
+            if n.lower() == "end":
+                return None, None
         try:
             return int(n), ""
         except ValueError:
@@ -722,21 +799,33 @@ class _AttrTest:
         import operator
         attr_name = self.name
         want_missing = not self.no
-        if (self.op in ("~", "~~", "!~", "!~~") and
-                _has_wildcard(self.value)):
-            case_sensitive = self.op.endswith("~~")
-            invert = self.op[0] == '!'
+        if (self.op in (operator.eq, operator.ne, "==", "!==") and
+                isinstance(self.value, str)):
+            # Equality-comparison operators for strings handle wildcards
+            case_sensitive = self.op in ["==", "!=="]
             attr_value = self.value if case_sensitive else self.value.lower()
-            from fnmatch import fnmatch
-            def matcher(obj):
-                try:
-                    v = getattr(obj, attr_name)
-                except AttributeError:
-                    return want_missing
-                if case_sensitive:
-                    v = v.lower()
-                matches = fnmatch(v, attr_value)
-                return not matches if invert else matches
+            invert = self.op in (operator.ne, "!==")
+            if _has_wildcard(self.value):
+                from fnmatch import fnmatchcase
+                def matcher(obj):
+                    try:
+                        v = getattr(obj, attr_name)
+                    except AttributeError:
+                        return want_missing
+                    if not case_sensitive:
+                        v = v.lower()
+                    matches = fnmatchcase(v, attr_value)
+                    return not matches if invert else matches
+            else:
+                def matcher(obj):
+                    try:
+                        v = getattr(obj, attr_name)
+                    except AttributeError:
+                        return want_missing
+                    if not case_sensitive:
+                        v = v.lower()
+                    matches = v == attr_value
+                    return not matches if invert else matches
         else:
             op = self.op
             attr_value = self.value
