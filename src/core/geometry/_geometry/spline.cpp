@@ -109,6 +109,7 @@ static void solve_tridiagonal(double *y, int n, double *temp)
 const char *natural_cubic_spline_doc =
   "natural_cubic_spline(path, segment_subdivisions) -> spath, tangents\n"
   "\n"
+  "Supported API\n"
   "Compute a natural cubic spline through path points in 3 dimensions,\n"
   "producing a finer set of points and tangent vectors at those points.\n"
   "Implemented in C++.\n"
