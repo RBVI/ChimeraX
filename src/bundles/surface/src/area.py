@@ -64,7 +64,12 @@ def measure_volume(session, surfaces, include_masked = True):
     lines = []
     for surf in surfaces:
         va = surf.vertices
-        ta = surf.triangles if include_masked else surf.masked_triangles
+        # Use joined triangles for molecular surfaces with sharp edges that use disconnected triangles.
+        ta = surf.joined_triangles if hasattr(surf, 'joined_triangles') else surf.triangles
+        if not include_masked:
+            tmask = surf.triangle_mask
+            if tmask is not None:
+                ta = ta[tmask]
         v, nholes = enclosed_volume(va, ta)
         if v is None:
             lines.append('Surface %s (#%s) has boundary edges traversed in opposing directions.'
