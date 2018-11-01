@@ -665,7 +665,7 @@ class _Part:
         # Residue id matcher used for (residue sequence, insert code) pairs
         # "ic" = insert code
         try:
-            start_seq, start_ic = self._parse_as_res_id(self.start)
+            start_seq, start_ic = self._parse_as_res_id(self.start, True)
         except (ValueError, IndexError):
             return None
         if self.end is None:
@@ -673,36 +673,83 @@ class _Part:
                 return seq == start_seq and ic == start_ic
         else:
             try:
-                end_seq, end_ic = self._parse_as_res_id(self.end)
+                end_seq, end_ic = self._parse_as_res_id(self.end, False)
             except (ValueError, IndexError):
                 return None
-            def matcher(seq, ic):
-                if seq < start_seq or seq > end_seq:
-                    return False
-                elif seq > start_seq and seq < end_seq:
+            if start_seq is None and end_seq is None:
+                # :start-end
+                def matcher(seq, ic):
                     return True
-                elif seq == start_seq:
-                    if not ic and not start_ic:
+            elif start_seq is None:
+                # :start-N
+                def matcher(seq, ic):
+                    if seq > end_seq:
+                        return False
+                    elif seq < end_seq:
                         return True
-                    elif ic and not start_ic:
+                    else:
+                        # seq == end_seq
                         # Blank insert code < any non-blank
-                        return True
-                    elif not ic and start_ic:
+                        if not ic and not end_ic:
+                            return True
+                        elif ic and not end_ic:
+                            return False
+                        elif not ic and end_ic:
+                            return True
+                        else:
+                            return ic <= end_ic
+            elif end_seq is None:
+                # :N-end
+                def matcher(seq, ic):
+                    if seq < start_seq:
                         return False
-                    else:
-                        return start_ic <= ic
-                else:   # seq == end_seq
-                    if not ic and not start_ic:
+                    elif seq > start_seq:
                         return True
-                    elif ic and not end_ic:
+                    else:
+                        # seq == start_seq
+                        # Blank insert code < any non-blank
+                        if not ic and not start_ic:
+                            return True
+                        elif ic and not start_ic:
+                            return True
+                        elif not ic and start_ic:
+                            return False
+                        else:
+                            return ic <= start_ic
+            else:
+                # :N-M
+                def matcher(seq, ic):
+                    if seq < start_seq or seq > end_seq:
                         return False
-                    elif not ic and end_ic:
+                    elif seq > start_seq and seq < end_seq:
                         return True
-                    else:
-                        return ic <= end_ic
+                    elif seq == start_seq:
+                        if not ic and not start_ic:
+                            return True
+                        elif ic and not start_ic:
+                            return True
+                        elif not ic and start_ic:
+                            return False
+                        else:
+                            return start_ic <= ic
+                    else:   # seq == end_seq
+                        if not ic and not end_ic:
+                            return True
+                        elif ic and not end_ic:
+                            return False
+                        elif not ic and end_ic:
+                            return True
+                        else:
+                            return ic <= end_ic
         return matcher
 
-    def _parse_as_res_id(self, n):
+    def _parse_as_res_id(self, n, at_start):
+        if at_start:
+            if n.lower() == "start":
+                return None, None
+        else:
+            if n.lower() == "end":
+                return None, None
         try:
             return int(n), ""
         except ValueError:
