@@ -329,7 +329,7 @@ class _AtomSpecSemantics:
         else:
             if ast.op == "=":
                 op = operator.eq
-            elif ast.op == "!=" or ast.op == "<>":
+            elif ast.op == "!=":
                 op = operator.ne
             elif ast.op == ">=":
                 op = operator.ge
@@ -342,11 +342,19 @@ class _AtomSpecSemantics:
             else:
                 op = ast.op
             # Convert string to value for comparison
-            # TODO: if ast.name ends with color, convert to 3-float-tuple
             av = ast.value
-            if isinstance(av, list) and len(av) == 3 and av[0] in ('"', "'") and av[2] in ('"', "'"):
-                v = av[1]	# Quoted string value.
+            if (isinstance(av, list) and len(av) == 3
+                     and av[0] in ('"', "'") and av[2] in ('"', "'")):
+                # Quoted value stay as string
+                v = av[1]
+            elif op in ["==", "!=="]:
+                # case sensitive compare must be string
+                v = av
+            elif ast.name.lower().endswith("color"):
+                # if ast.name ends with color, convert to 3-float-tuple
+                v = self._parse_color(av)
             else:
+                # convert to best matching common type
                 try:
                     v = int(av)
                 except ValueError:
@@ -355,6 +363,28 @@ class _AtomSpecSemantics:
                     except ValueError:
                         v = av
         return _AttrTest(ast.no, ast.name, op, v)
+
+    def _parse_color(self, av):
+        from .. import colors
+        # Handle comma-separated syntax
+        parts = av.split(',')
+        if len(parts) > 1:
+            try:
+                return colors.Color([float(p) for p in parts]).uint8x4()
+            except ValueError:
+                pass
+        # Handle CSS color syntax
+        try:
+            return colors.Color(av).uint8x4()
+        except ValueError:
+            pass
+        # See if it is a built-in or user-defined color
+        try:
+            return self._session.user_colors[av].uint8x4()
+        except KeyError:
+            pass
+        # Give up and return the string itself
+        return av
 
     def zone_selector(self, ast):
         operator, distance = ast
@@ -722,21 +752,33 @@ class _AttrTest:
         import operator
         attr_name = self.name
         want_missing = not self.no
-        if (self.op in ("~", "~~", "!~", "!~~") and
-                _has_wildcard(self.value)):
-            case_sensitive = self.op.endswith("~~")
-            invert = self.op[0] == '!'
+        if (self.op in (operator.eq, operator.ne, "==", "!==") and
+                isinstance(self.value, str)):
+            # Equality-comparison operators for strings handle wildcards
+            case_sensitive = self.op in ["==", "!=="]
             attr_value = self.value if case_sensitive else self.value.lower()
-            from fnmatch import fnmatch
-            def matcher(obj):
-                try:
-                    v = getattr(obj, attr_name)
-                except AttributeError:
-                    return want_missing
-                if case_sensitive:
-                    v = v.lower()
-                matches = fnmatch(v, attr_value)
-                return not matches if invert else matches
+            invert = self.op in (operator.ne, "!==")
+            if _has_wildcard(self.value):
+                from fnmatch import fnmatchcase
+                def matcher(obj):
+                    try:
+                        v = getattr(obj, attr_name)
+                    except AttributeError:
+                        return want_missing
+                    if not case_sensitive:
+                        v = v.lower()
+                    matches = fnmatchcase(v, attr_value)
+                    return not matches if invert else matches
+            else:
+                def matcher(obj):
+                    try:
+                        v = getattr(obj, attr_name)
+                    except AttributeError:
+                        return want_missing
+                    if not case_sensitive:
+                        v = v.lower()
+                    matches = v == attr_value
+                    return not matches if invert else matches
         else:
             op = self.op
             attr_value = self.value
