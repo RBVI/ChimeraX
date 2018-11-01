@@ -201,7 +201,7 @@ class View:
                 cp = gllist.ViewMatrixFunc(self, vnum)
             else:
                 cp = camera.get_position(vnum)
-            self._view_matrix = vm = cp.inverse_orthonormal()
+            self._view_matrix = vm = cp.inverse(is_orthonormal = True)
             r.set_view_matrix(vm)
             if shadow:
                 r.shadow.set_shadow_view(cp)

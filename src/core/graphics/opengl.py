@@ -1229,7 +1229,7 @@ class Shadow:
         ld = normalize_vector(light_direction)
         # Light view frame:
         lv = translation(center - radius * ld) * orthonormal_frame(-ld)
-        lvinv = lv.inverse_orthonormal()  # Scene to light view coordinates
+        lvinv = lv.inverse(is_orthonormal = True)  # Scene to light view coordinates
 
         # Project orthographic along z to (0, 1) texture coords.
         stf = translation((0.5, 0.5, -depth_bias)) * scale((0.5/radius, 0.5/radius, -0.5/radius)) * lvinv
