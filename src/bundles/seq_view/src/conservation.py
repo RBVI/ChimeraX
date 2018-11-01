@@ -15,9 +15,9 @@
 
 from .header_sequence import DynamicHeaderSequence
 from chimerax.seqalign import clustal_strong_groups, clustal_weak_groups
-from .settings import ALIGNMENT_PREFIX, CSV_AL2CO, CSV_PERCENT, CSV_CLUSTAL_HIST, CSV_CLUSTAL_CHARS
+from .settings import ALIGNMENT_PREFIX, CSV_AL2CO, CSV_PERCENT, CSV_CLUSTAL_CHARS
 #from prefs import CONSERVATION_STYLE, \
-#        CSV_AL2CO, CSV_PERCENT, CSV_CLUSTAL_HIST, CSV_CLUSTAL_CHARS, \
+#        CSV_AL2CO, CSV_PERCENT, CSV_CLUSTAL_CHARS, \
 #        AL2CO_FREQ, AL2CO_CONS, AL2CO_WINDOW, AL2CO_GAP, AL2CO_MATRIX, \
 #        AL2CO_TRANSFORM
 
@@ -33,10 +33,7 @@ class Conservation(DynamicHeaderSequence):
     def evaluate(self, pos):
         if self.style == CSV_PERCENT:
             return self.percent_identity(pos)
-        if self.style == CSV_CLUSTAL_HIST:
-            values = [0.0, 0.33, 0.67, 1.0]
-        else:
-            values = [' ', '.', ':', '*']
+        values = [' ', '.', ':', '*']
         return values[self.clustal_type(pos)]
 
     def fast_update(self):
