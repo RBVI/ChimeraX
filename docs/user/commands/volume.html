@@ -49,8 +49,8 @@ interactively.  Volume data can be opened with the command
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)
 and saved to a file with <a href="save.html"><b>save</b></a>.
 </p><p>
-Data set statistics (minimum, maximum, <i>etc.</i>) can be reported
-with <a href="measure.html#mapstats"><b>measure mapstats</b></a>.
+Data set statistics and isosurface-enclosed volumes can be reported
+with <a href="measure.html"><b>measure</b></a>.
 See also:
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
@@ -59,11 +59,11 @@ See also:
 <a href="molmap.html"><b>molmap</b></a>,
 <a href="fitmap.html"><b>fitmap</b></a>,
 <a href="resfit.html"><b>resfit</b></a>,
-<a href="bumps.html"><b>bumps</b></a>,
 <a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="sym.html"><b>sym</b></a>,
 <a href="smoothlines.html"><b>smoothlines</b></a>,
-<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>,
+<a href="../measurements.html">measurements</a>
 </p>
 <a name="examples">Examples</a>:
 <blockquote>
@@ -196,10 +196,8 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   or standard deviations (SD) from the mean, respectively, 
   calculated for the <a href="#dimensions">current display region</a>
   and <a href="#sampling">step size</a>.
-  See also: <a href="#scale"><b>volume scale</b></a>
-<!--
-  <a href="measure.html#mapStats"><b>measure mapStats</b></a>
--->
+  See also: <a href="#scale"><b>volume scale</b></a>,
+<a href="measure.html#mapstats"><b>measure mapstats</b></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -245,10 +243,8 @@ is significant.
   The <a href="#fastEncloseVolume"><b>fastEncloseVolume</b></a> option
   is similar but uses a noniterative approximation.
   See also: 
-  <a href="vseries.html#align"><b>vseries align</b></a>
-<!--
-<a href="measure.html#volume"><b>measure volume</b></a>,
--->
+  <a href="vseries.html#align"><b>vseries align</b></a>,
+<a href="measure.html#volume"><b>measure volume</b></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -268,10 +264,8 @@ is significant.
   is similar but uses an iterative procedure with increased accuracy
   at the cost of increased computation time.
   See also: 
-  <a href="vseries.html#align"><b>vseries align</b></a>
-<!--
-<a href="measure.html#volume"><b>measure volume</b></a>,
--->
+  <a href="vseries.html#align"><b>vseries align</b></a>,
+<a href="measure.html#volume"><b>measure volume</b></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -950,7 +944,7 @@ to create a new volume data set.
 The original map is undisplayed and the new map
 is displayed with the same threshold and color as the original.
 See also:
-<a href="measure.html#mapstats"><b>measure mapstats</b></a>,
+<a href="measure.html"><b>measure</b></a>,
 <a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="smoothlines.html"><b>smoothlines</b></a>,
 <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
@@ -1598,12 +1592,11 @@ Erase values outside the positive octant. Options are as described for
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
-<a name="onesmask"><b>volume onesmask</b></a> &nbsp;<i>volume-spec</i>&nbsp;
-<b>surfaces</b> &nbsp;<i>surface-spec</i>&nbsp;
+<a name="onesmask"><b>volume onesmask</b></a> &nbsp;<i>surface-spec</i>&nbsp;
 [&nbsp;<b>border</b> &nbsp;<i>B</i>&nbsp;]
 [&nbsp;<b>spacing</b> &nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
-[&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>pad</b> &nbsp;<i>distance</i>&nbsp;]
+[&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
 [&nbsp;<b>invertMask</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>axis</b> &nbsp;<i>x,y,z</i></a>&nbsp;]
@@ -1613,7 +1606,7 @@ Erase values outside the positive octant. Options are as described for
 <blockquote>
 Create a map with values of 1 bounded by a surface 
 (<a href="#masking">details...</a>). The <b>border</b> option indicates
-how far out from the bounding surfaces in all six directions
+how far out from the bounding surface in all six directions
 (&plusmn;X, &plusmn;Y, &plusmn;Z) to place the edge of the output map.
 The <b>spacing</b> option gives the grid spacing for the output map
 in physical units of length, typically &Aring;
@@ -1714,10 +1707,8 @@ or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
 <p>
 See also:
 <a href="#general"><b>rmsLevel, sdLevel</b>
-options of <b>volume</b></a>
-<!--
-<a href="measure.html#mapStats"><b>measure mapStats</b></a>
--->
+options of <b>volume</b></a>,
+<a href="measure.html#mapstats"><b>measure mapstats</b></a>
 </p>
 </blockquote>
 
