@@ -84,6 +84,7 @@ class MolecularSurface(Surface):
         self._atom_patch_color_mask = None
         self.visible_patches = visible_patches
         self.sharp_boundaries = sharp_boundaries
+        self._joined_triangles = None
         self._refinement_steps = 1	# Used for fixing sharp edge problems near 3 atom junctions.
 
         self._vertex_to_atom = None
@@ -128,6 +129,7 @@ class MolecularSurface(Surface):
             self.vertex_colors = None
             self._vertex_to_atom = None
             self._max_radius = None
+            self._joined_triangles = None
         elif shown_changed:
             self.triangle_mask = self._calc_triangle_mask()
                 
@@ -167,7 +169,7 @@ class MolecularSurface(Surface):
                 kw['atom_radii'] = atoms.radii
             from chimerax.surface import sharp_edge_patches
             va, na, ta, tj, v2a = sharp_edge_patches(va, na, ta, v2a, xyz, **kw)
-            self.joined_triangles = tj	# With non-duplicate vertices for clip cap calculation
+            self._joined_triangles = tj	# With non-duplicate vertices for clip cap calculation
             self._vertex_to_atom = v2a
 
         self.set_geometry(va, na, ta)
@@ -181,17 +183,24 @@ class MolecularSurface(Surface):
             return tmask
 
         from chimerax import surface
-        if self.sharp_boundaries:
-            # With sharp boundaries triangles are not connected.
-            vmap = surface.unique_vertex_map(self.vertices)
-            tri = vmap[self.triangles]
-        else:
-            tri = self.triangles
-        m = surface.largest_blobs_triangle_mask(self.vertices, tri, tmask,
+        m = surface.largest_blobs_triangle_mask(self.vertices, self.joined_triangles, tmask,
                                                 blob_count = self.visible_patches,
                                                 rank_metric = 'area rank')
         return m
 
+    @property
+    def joined_triangles(self):
+        if self.sharp_boundaries:
+            tri = self._joined_triangles
+            if tri is None:
+                from chimerax import surface
+                # With sharp boundaries triangles are not connected.
+                vmap = surface.unique_vertex_map(self.vertices)
+                self._joined_triangles = tri = vmap[self.triangles]
+        else:
+            tri = self.triangles
+        return tri
+    
     def vertex_to_atom_map(self, vertices = None):
         '''
         Returns a numpy array of integer values with length equal to
