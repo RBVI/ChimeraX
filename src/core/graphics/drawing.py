@@ -1371,12 +1371,13 @@ def _draw_multiple(drawings, renderer, draw_pass):
 def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
+    dc = r.disable_capabilities
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
-                                  r.SHADER_DEPTH_CUE | r.SHADER_VERTEX_COLORS | r.SHADER_TEXTURE_2D)
-    draw_opaque(renderer, drawings)
+                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D)
+    draw_opaque(r, drawings)
     if not opaque_only:
         draw_transparent(r, drawings)
-    r.disable_shader_capabilities(0)
+    r.disable_shader_capabilities(dc)
 
 
 def draw_overlays(drawings, renderer):
