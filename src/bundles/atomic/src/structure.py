@@ -418,7 +418,7 @@ class Structure(Model, StructureData):
             if updated_model == check_model:
                 need_update = True
                 break
-            check_model = getattr(check_model, 'parent', None)
+            check_model = check_model.parent
 
         if need_update:
             self._cpp_notify_position(self.scene_position)

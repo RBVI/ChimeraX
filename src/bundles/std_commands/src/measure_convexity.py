@@ -89,7 +89,7 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
 def _surface_data(surf, vertex_values):
     surf_name = surf.name
     from chimerax.core.models import Model
-    if not isinstance(surf, Model) and hasattr(surf, 'parent'):
+    if not isinstance(surf, Model) and surf.parent:
         surf_name = surf.parent.name + ' ' + surf.name
     vertices, normals, triangles = surf.vertices, surf.normals, surf.triangles
     lines = ['# Surface vertex data for %s, %d vertices, %d triangles'

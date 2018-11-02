@@ -61,6 +61,8 @@ class Drawing:
         self.name = name
         "Name of this drawing."
 
+        self.parent = None
+        
         from ..geometry import Places
         # Copies of drawing are placed at these positions:
         self._positions = Places()
@@ -257,7 +259,7 @@ class Drawing:
         d.set_redraw_callback(self._redraw_needed)
         cd = self._child_drawings
         cd.append(d)
-        if hasattr(d, 'parent') and d.parent is not None:
+        if d.parent is not None:
             # Reparent drawing.
             d.parent.remove_drawing(d, delete=False)
         d.parent = self
@@ -267,7 +269,7 @@ class Drawing:
     def remove_drawing(self, d, delete=True):
         '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
-        del d.parent
+        d.parent = None
         if delete:
             d.delete()
         self.redraw_needed(shape_changed=True, highlight_changed=True)
@@ -278,7 +280,7 @@ class Drawing:
         self._child_drawings = [d for d in self._child_drawings
                                 if d not in dset]
         for d in drawings:
-            del d.parent
+            d.parent = None
         if delete:
             for d in drawings:
                 d.delete()
@@ -293,7 +295,7 @@ class Drawing:
     @property
     def drawing_lineage(self):
         '''Return a sequence of drawings from the root down to the current drawing.'''
-        if hasattr(self, 'parent'):
+        if self.parent is not None:
             return self.parent.drawing_lineage + [self]
         else:
             return [self]
@@ -1754,7 +1756,7 @@ class PickedTriangle(Pick):
             if hasattr(d, 'id') and d.id is not None:
                 s = '#' + '.'.join(('%d' % id) for id in d.id)
                 return s
-            if hasattr(d, 'parent') and not d.parent is None:
+            if d.parent is not None:
                 d = d.parent
             else:
                 break
