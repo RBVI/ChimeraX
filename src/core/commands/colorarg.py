@@ -132,7 +132,7 @@ class ColorArg(cli.Annotation):
             c = Color([red, green, blue, alpha])
             c.explicit_transparency = True
             return c, m.group(), rest
-        raise ValueError(
+        raise cli.AnnotationError(
             "Wrong number of components for %s specifier" % color_space,
             offset=m.end())
 
