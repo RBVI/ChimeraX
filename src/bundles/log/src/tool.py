@@ -386,6 +386,15 @@ class Log(ToolInstance, HtmlLog):
             lw.load(QUrl.fromLocalFile(self._tf_name))
         lw.setEnabled(True)
 
+    def plain_text(self):
+        """Convert HTML to plain text"""
+        import html2text
+        h = html2text.HTML2Text()
+        h.unicode_snob = True
+        h.ignore_links = True
+        h.ignore_emphasis = True
+        return h.handle(self.page_source)
+
     def clear(self):
         self.page_source = ""
         self.show_page_source()
