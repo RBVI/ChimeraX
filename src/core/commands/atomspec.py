@@ -351,12 +351,12 @@ class _AtomSpecSemantics:
                 quoted = True
             if ast.name.lower().endswith("color"):
                 # if ast.name ends with color, convert to color
-                from . import ColorArg
+                from . import ColorArg, as_parser
                 try:
-                    c, text, rest = ColorArg.parse(av, self._session)
-                except ValueError:
+                    c = as_parser(ColorArg)(self._session, av)
+                except ValueError as e:
                     from ..errors import UserError
-                    raise UserError("bad color: %s" % av)
+                    raise UserError("bad color: %s: %s" % (av, e))
                 v = c.uint8x4()
             elif quoted or op in ["==", "!=="]:
                 # case sensitive compare must be string
