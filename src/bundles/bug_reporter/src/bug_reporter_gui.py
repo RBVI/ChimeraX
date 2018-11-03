@@ -332,3 +332,18 @@ class BugReporter(ToolInstance):
             'version': self.version.text()
         }
         return values
+
+def show_bug_reporter(session):
+    tool_name = 'Bug Reporter'
+    tool = BugReporter(session, tool_name)
+    return tool
+
+def add_help_menu_entry(session):
+    ui = session.ui
+    if ui.is_gui:
+        def main_window_created(tname, tdata):
+            mw = ui.main_window
+            mw.add_menu_entry(['Help'], 'Report a Bug', lambda: show_bug_reporter(session))
+            return "delete handler"
+    
+        ui.triggers.add_handler('ready', main_window_created)

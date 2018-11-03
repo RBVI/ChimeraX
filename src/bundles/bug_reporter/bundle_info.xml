@@ -23,7 +23,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Bug Reporter :: General :: Report bugs</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
