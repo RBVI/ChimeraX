@@ -20,11 +20,9 @@ Python Modules
 .. toctree::
     :maxdepth: 1
 
-    core/atomic/atomic.rst
+    bundles/atomic/src/atomic.rst
 
     core/commands/commands.rst
-
-    core/commands/user_commands.rst
 
     core/configfile.rst
 
@@ -44,7 +42,7 @@ Python Modules
 
     core/logger.rst
 
-    core/map/map.rst
+    bundles/map/src/map.rst
 
     core/models.rst
 
@@ -52,9 +50,9 @@ Python Modules
 
     core/orderedset.rst
 
-    core/atomic/mmcif.rst
+    bundles/mmcif/src/mmcif.rst
 
-    core/atomic/pdbio.rst
+    bundles/atomic/src/pdbio.rst
 
     core/safesave.rst
 

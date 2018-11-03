@@ -15,6 +15,13 @@
 mmcif: mmCIF input/output
 =========================
 
-.. automodule:: chimerax.atomic.mmcif
+.. toctree::
+   :maxdepth: 1
+
+   mmcif_writing.rst
+   mmcif_guidelines.rst
+
+
+.. automodule:: chimerax.atomic.mmcif.mmcif
     :members:
     :show-inheritance:

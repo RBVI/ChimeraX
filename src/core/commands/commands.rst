@@ -12,8 +12,8 @@
 
 .. module:: chimerax.core.commands
 
-chimerax.core.commands: Application command line support
-========================================================
+commands: Application command line support
+==========================================
 
 .. automodule:: chimerax.core.commands.cli
     :members:
