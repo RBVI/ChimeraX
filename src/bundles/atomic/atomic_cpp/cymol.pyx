@@ -870,10 +870,11 @@ cdef class CyResidue:
     @property
     def polymer_type(self):
         '''Supported API.  Polymer type of residue. Values are:
-            PT_NONE: not a polymeric residue
-            PT_AMINO: amino acid
-            PT_NUCLEIC: nucleotide
-        (Access as Residue.PT_XXX)
+             * PT_NONE: not a polymeric residue
+             * PT_AMINO: amino acid
+             * PT_NUCLEIC: nucleotide
+
+	   (Access as Residue.PT_XXX)
         '''
         return self.cpp_res.polymer_type()
 
