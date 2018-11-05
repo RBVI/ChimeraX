@@ -12,9 +12,9 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-pdbio: PDB input/output
-=======================
+pdb: Read and write PDB files
+=============================
 
-.. automodule:: chimerax.atomic.pdb
+.. automodule:: chimerax.atomic.pdb.pdb
     :members:
     :show-inheritance:
