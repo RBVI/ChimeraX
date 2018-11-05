@@ -12,8 +12,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-mmcif: mmCIF input/output
-=========================
+mmcif: Read and write mmCIF files
+=================================
 
 .. toctree::
    :maxdepth: 1
