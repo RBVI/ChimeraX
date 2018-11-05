@@ -21,7 +21,9 @@ mmcif: mmCIF input/output
    mmcif_writing.rst
    mmcif_guidelines.rst
 
-
+   ../mmcif_cpp/readcif_cpp/cifgrep/cifgrep.rst
+   ../mmcif_cpp/readcif_cpp/docs/index.rst
+   
 .. automodule:: chimerax.atomic.mmcif.mmcif
     :members:
     :show-inheritance:
