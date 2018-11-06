@@ -33,6 +33,8 @@ and sends results to the <a href="../tools/log.html"><b>Log</b></a>.
 Possible values of <i>property</i>:
 </p>
 <ul>
+<li><a href="#area"><b>area</b></a> 
+- report the area of an existing surface (sum of surface triangles)
 <li><a href="#buriedArea"><b>buriedArea</b></a> 
 - calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area buried between two sets of atoms
@@ -46,8 +48,9 @@ min, max, mean, SD, and RMSD values
 <li><a href="#motion"><b>motion</b></a>
 - show changes in surface position by drawing lines
 <li><a href="#sasa"><b>sasa</b></a>
-- calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
-area
+- calculate <a href="surface.html#surfdefs">solvent-accessible surface</a> area
+<li><a href="#volume"><b>volume</b></a> 
+- report the volume enclosed by an existing surface
 </ul>
 <p>
 See also: <a href="interfaces.html"><b>interfaces</b></a>,
@@ -56,6 +59,22 @@ See also: <a href="interfaces.html"><b>interfaces</b></a>,
 <a href="../radii.html">VDW radii</a>,
 <a href="../measurements.html">measurements</a>
 </p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="area"><b>measure area</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+[&nbsp;<b>includeMasked</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Report the total surface area of an existing surface model, computed as the
+sum of the areas of its triangles.
+The <b>includeMasked</b> option controls
+whether to include parts of the surface that have been hidden,
+such as with <a href="surface.html#dust"><b>surface dust</b></a>
+or <a href="surface.html#zone"><b>surface zone</b></a>
+(<a href="clip.html">clipping</a> does not affect the measurement, however).
+See also: <a href="#sasa"><b>measure sasa</b></a>
+</blockquote>
+
 <a href="#top" class="nounder">&bull;</a>
 <a name="buriedArea"><b>measure buriedArea</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp; <b>withAtoms2</b>
@@ -260,6 +279,20 @@ Example:
 and report both the total area and the collective contribution from
 phenylalanine, tyrosine, and tryptophan residues
 </blockquote>
+See also: <a href="#area"><b>measure area</b></a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="volume"><b>measure volume</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+[&nbsp;<b>includeMasked</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Report the volume enclosed by an existing surface model.
+The <b>includeMasked</b> option controls
+whether to include parts of the surface that have been hidden,
+such as with <a href="surface.html#dust"><b>surface dust</b></a>
+or <a href="surface.html#zone"><b>surface zone</b></a>
+(<a href="clip.html">clipping</a> does not affect the measurement, however).
 </blockquote>
 
 <hr>

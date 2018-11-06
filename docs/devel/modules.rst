@@ -14,65 +14,114 @@
 
 .. _ChimeraX Python Modules:
 
-Python Modules
-==============
+Standard Bundles and Python Modules
+===================================
+
+Atomic Structures
+-----------------
+
+* :doc:`bundles/atomic/src/atomic`
+
+  * :doc:`bundles/mmcif/src/mmcif`
+
+  * :doc:`bundles/atomic/src/pdbio`
+
+ChimeraX Core
+-------------
+
+These modules are in chimerax.core.
+
+Commands and Tools
 
 .. toctree::
     :maxdepth: 1
 
-    core/atomic/atomic.rst
-
     core/commands/commands.rst
-
-    core/commands/user_commands.rst
-
-    core/configfile.rst
-
-    core/data_events.rst
-
-    core/fetch.rst
-
-    core/geometry/geometry.rst
-
-    core/graphics/graphics.rst
-
-    bundles/ui/src/gui.rst
-
-    core/history.rst
-
-    core/io.rst
-
-    core/logger.rst
-
-    core/map/map.rst
-
-    core/models.rst
-
-    core/objects.rst
-
-    core/orderedset.rst
-
-    core/atomic/mmcif.rst
-
-    core/atomic/pdbio.rst
-
-    core/safesave.rst
-
-    core/serialize.rst
-
-    core/session.rst
-
-    core/settings.rst
-
-    bundles/surface/src/surface.rst
-
-    core/tasks.rst
 
     core/tools.rst
 
     core/toolshed.rst
 
+Data
+  
+.. toctree::
+    :maxdepth: 1
+
+    core/geometry/geometry.rst
+
+    core/graphics/graphics.rst
+
+    core/models.rst
+
+    core/objects.rst
+
+    core/session.rst
+
+Files
+
+.. toctree::
+    :maxdepth: 1
+
+    core/configfile.rst
+
+    core/fetch.rst
+
+    core/history.rst
+
+    core/io.rst
+
+    core/safesave.rst
+
+    core/serialize.rst
+
+    core/settings.rst
+
+Notifications
+
+.. toctree::
+    :maxdepth: 1
+
+    core/data_events.rst
+
+    core/logger.rst
+
+    core/tasks.rst
+
     core/triggerset.rst
 
+Utility
+
+.. toctree::
+    :maxdepth: 1
+
+    core/orderedset.rst
+
     core/utils.rst
+
+Surfaces
+--------
+
+.. toctree::
+    :maxdepth: 1
+
+    bundles/surface/src/surface.rst
+
+    
+User Interface
+--------------
+
+These modules are in chimerax.ui.
+
+.. toctree::
+    :maxdepth: 1
+
+    bundles/ui/src/gui.rst
+
+Volume Data
+-----------
+
+.. toctree::
+    :maxdepth: 1
+
+    bundles/map/src/map.rst
 

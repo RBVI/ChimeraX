@@ -77,7 +77,7 @@ class ToolUI(ToolInstance):
         if n < 0:
             return
         chain = self.chain_combobox.itemData(n)
-        BlastProteinJob(self.session, chain.characters, chain.atomspec,
+        BlastProteinJob(self.session, chain.characters, self._chain_spec(chain),
                         finish_callback=self._blast_job_finished)
         self.results_view.setHtml(_InProgressPage)
 
@@ -95,6 +95,14 @@ class ToolUI(ToolInstance):
         if selected_chain:
             n = self.chain_combobox.findData(selected_chain)
             self.chain_combobox.setCurrentIndex(n)
+
+    def _chain_spec(self, chain):
+        spec = chain.atomspec
+        if spec[0] == '/':
+            # Make sure we have a structure spec in there so
+            # the atomspec remains unique when we load structures later
+            spec = chain.structure.atomspec + spec
+        return spec
 
     def _blast_job_finished(self, blast_results, job):
         self._update_blast_results(blast_results, job.atomspec)
@@ -155,8 +163,14 @@ class ToolUI(ToolInstance):
         if scheme == self.CUSTOM_SCHEME:
             # self._load_pdb(url.path())
             self.session.ui.thread_safe(self._load_pdb, url.path())
-        # For now, we only intercept our custom scheme.  All other
-        # requests are processed normally.
+        elif scheme == "http" or scheme == "https":
+            self.results_view.stop()
+            from chimerax.help_viewer import show_url
+            self.session.ui.thread_safe(show_url, self.session,
+                                        url.toString(), new_tab=True)
+        # For now, we only intercept our custom scheme and redirect
+        # web links to the help viewer.  All other requests are
+        # processed normally.
 
     def _load_pdb(self, code):
         from chimerax.core.commands import run

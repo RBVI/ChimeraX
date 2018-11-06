@@ -1309,6 +1309,24 @@ def _remove_child_models(models):
     return tuple(m for m in models if m in s)
 
 
+def as_parser(annotation):
+    """Use any annotation as simple parser
+
+    :param annotation: the annotation to use
+
+    For example:
+    
+        color = as_parser(ColorArg)(session, "red")
+    """
+    def use_annotation(session, text):
+        value, _, rest = annotation.parse(text, session)
+        if rest:
+            raise AnnotationError("extra text at end of %s" % discard_article(
+                annotation.name))
+        return value
+    return use_annotation
+
+
 def quote_if_necessary(s):
     """quote a string
 

@@ -386,6 +386,28 @@ class Log(ToolInstance, HtmlLog):
             lw.load(QUrl.fromLocalFile(self._tf_name))
         lw.setEnabled(True)
 
+    def plain_text(self):
+        """Convert HTML to plain text"""
+        import html2text
+        h = html2text.HTML2Text()
+        h.unicode_snob = True
+        h.ignore_links = True
+        h.ignore_emphasis = True
+        # html2text doesn't understand css style display:None
+        # so remove "duplicate" of command and add leading '> '
+        import lxml.html
+        html = lxml.html.fromstring(self.page_source)
+        for node in html.find_class("cxcmd"):
+            for child in node:
+                if (child.tag != 'div' or child.attrib.get('class', None)
+                        not in (None, 'cxcmd_as_cmd')):
+                    node.remove(child)
+                    continue
+                child.text = '> '
+                break
+        src = lxml.html.tostring(html, encoding='unicode')
+        return h.handle(src)
+
     def clear(self):
         self.page_source = ""
         self.show_page_source()

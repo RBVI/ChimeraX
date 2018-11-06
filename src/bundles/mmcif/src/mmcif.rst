@@ -12,9 +12,18 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-mmcif: mmCIF input/output
-=========================
+mmcif: Read and write mmCIF files
+=================================
 
-.. automodule:: chimerax.atomic.mmcif
+.. toctree::
+   :maxdepth: 1
+
+   mmcif_writing.rst
+   mmcif_guidelines.rst
+
+   ../mmcif_cpp/readcif_cpp/cifgrep/cifgrep.rst
+   ../mmcif_cpp/readcif_cpp/docs/index.rst
+   
+.. automodule:: chimerax.atomic.mmcif.mmcif
     :members:
     :show-inheritance:

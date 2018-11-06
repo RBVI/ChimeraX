@@ -172,12 +172,9 @@ although a residue number may have an insertion code directly appended.
 Multiple model numbers or residue numbers can be indicated by 
 comma-separated lists of individual numbers and/or one or more ranges of the 
 form <i>start</i>-<i>end</i>. 
-<font color="brown">
-Not yet implemented:
 The word <b>start</b> or <b>end</b> can be substituted
 for the <i>start</i> or <i>end</i> value to extend the range to
 the first or last number possible, respectively. 
-</font>
 Chain IDs, residue names, and atom names can also be entered
 as comma-separated lists. Ranges of chain IDs are also allowed; in that case,
 ordering is alphabetical, and neither <i>start</i> nor <i>end</i> 
@@ -284,26 +281,38 @@ see <a href="#combinations">combinations</a>)
 Wild Cards</h4>
 <p>
 The wild card <b>*</b> matches parts of atom and/or residue names.
-Similarly, the single-character wild card <b>?</b> matches single characters
-within residue or atom names. 
+Similarly, the single-character wild card <b>?</b> matches single characters.
+Square brackets <b>[&nbsp;]</b> indicate
+a set of characters to substitute individually, 
+and can also be used to &ldquo;escape&rdquo; a single character 
+that would otherwise have a special meaning, <i>i.e.</i>, to
+force interpreting that character literally.
 Examples:
 </p>
 <blockquote>
 <b>@S*</b>
 </blockquote>
-- atoms with names starting with <b>S</b>
+- atoms with names starting with S
 <blockquote>
 <b>#2:G??</b>
 </blockquote>
-- residues in model 2 with three-letter names starting with <b>G</b>
+- residues in model 2 with three-letter names starting with G
+<blockquote>
+<b>@c[ab]</b>
+</blockquote>
+- atoms named CA and atoms named CB (unordered)
+<blockquote>
+<b>:[*][*][*]</b>
+</blockquote>
+- residues named ***
 <blockquote>
 <b>:fmn@?1</b>
 </blockquote>
-- atoms in residue FMN with two-letter names ending with <b>1</b>
+- atoms in residue FMN with two-letter names ending with 1
 <blockquote>
 <b>@h,h?,h??</b>
 </blockquote>
-- atoms with one-, two-, or three-letter names starting with <b>H</b>
+- atoms with one-, two-, or three-letter names starting with H
 <p>
 The wild card <b>*</b> can also be used to signify &ldquo;all,&rdquo; 
 for example, all atoms in a residue or all residues in a model.
@@ -496,11 +505,10 @@ Custom attributes can be created with <a href="setattr.html"><b>setattr</b></a>.
 </p><p>
 Attribute names are case-sensitive. Values that are strings
 should be enclosed in quotation marks if they contain spaces or
-characters with special meanings in the command line (@, :, others).
-In unquoted string values, the wild card * or single-character wild card ? 
-can be used, or escaped with a preceding backslash \ to be taken literally 
-(for example, to match a name containing that character).
-Backslash can also be escaped with a preceding backslash.
+characters with special meanings in the command line 
+(<b>@</b>, <b>:</b>, <i>etc.</i>).
+In unquoted string values, wild-card symbols such as <b>*</b> and <b>?</b>
+can be used as described <a href="#wildcards">above</a>.
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>

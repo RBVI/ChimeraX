@@ -1,0 +1,71 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<title>Clustal Conservation Groups</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>Clustal Conservation Groups</h3>
+<p>
+The Clustal ALN sequence-alignment format includes characters symbolizing
+degree of conservation in a column.
+</p><p>
+Positions where every residue is the same type (complete identity)
+are marked with an asterisk (*).
+</p><p>
+Positions where one of the following <b>strong</b> groups is fully conserved are
+marked with a colon (:).
+<blockquote><pre>
+STA
+NEQK
+NHQK
+NDEQ
+QHRK
+MILV
+MILF
+HY
+FYW
+</pre></blockquote>
+Positions where one of the following <b>weak</b> groups is fully conserved are
+marked with a period (.).
+<blockquote><pre>
+CSA
+ATV
+SAG
+STNK
+STPA
+SGND
+SNDEQK
+NDEQHK
+NEQHRK
+FVLIM
+HFY
+</pre></blockquote>
+The groups are defined using the PAM250 matrix; scores within the strong
+groups are &gt; 0.5 and scores within the weak groups are positive but &le; 0.5.
+</p><p>
+Other positions are not marked with any character.
+</p>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+November 2018</address>
+</body></html>

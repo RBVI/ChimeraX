@@ -12,10 +12,18 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-C++ Libraries
-=============
+Included third-party packages
+=============================
 
-.. toctree::
-    :maxdepth: 1
-
-    core/appdirs_cpp/appdirs_cpp.rst
+  * Python 3.6
+  * Qt 5.9
+  * PyQt
+  * PyOpenGL
+  * Numpy 1.15
+  * SciPy
+  * OpenMM
+  * ffmpeg
+  * matplotlib
+  * pillow
+  * msgpack
+  * ...

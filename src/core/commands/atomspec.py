@@ -343,16 +343,24 @@ class _AtomSpecSemantics:
                 op = ast.op
             # Convert string to value for comparison
             av = ast.value
+            quoted = False
             if (isinstance(av, list) and len(av) == 3
                      and av[0] in ('"', "'") and av[2] in ('"', "'")):
                 # Quoted value stay as string
-                v = av[1]
-            elif op in ["==", "!=="]:
+                av = av[1]
+                quoted = True
+            if ast.name.lower().endswith("color"):
+                # if ast.name ends with color, convert to color
+                from . import ColorArg, as_parser
+                try:
+                    c = as_parser(ColorArg)(self._session, av)
+                except ValueError as e:
+                    from ..errors import UserError
+                    raise UserError("bad color: %s: %s" % (av, e))
+                v = c.uint8x4()
+            elif quoted or op in ["==", "!=="]:
                 # case sensitive compare must be string
                 v = av
-            elif ast.name.lower().endswith("color"):
-                # if ast.name ends with color, convert to 3-float-tuple
-                v = self._parse_color(av)
             else:
                 # convert to best matching common type
                 try:
@@ -363,28 +371,6 @@ class _AtomSpecSemantics:
                     except ValueError:
                         v = av
         return _AttrTest(ast.no, ast.name, op, v)
-
-    def _parse_color(self, av):
-        from .. import colors
-        # Handle comma-separated syntax
-        parts = av.split(',')
-        if len(parts) > 1:
-            try:
-                return colors.Color([float(p) for p in parts]).uint8x4()
-            except ValueError:
-                pass
-        # Handle CSS color syntax
-        try:
-            return colors.Color(av).uint8x4()
-        except ValueError:
-            pass
-        # See if it is a built-in or user-defined color
-        try:
-            return self._session.user_colors[av].uint8x4()
-        except KeyError:
-            pass
-        # Give up and return the string itself
-        return av
 
     def zone_selector(self, ast):
         operator, distance = ast
