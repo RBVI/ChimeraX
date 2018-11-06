@@ -40,12 +40,14 @@ strings, which generally mean &ldquo;all&rdquo; when left blank
 <li> mutually exclusive choices of a required item are grouped with
 parentheses: <b>(&nbsp;)</b>
 </ul>
+<p>
+These brackets, vertical bars, and parentheses in <b>Usage</b> lines are 
+merely symbolic and should not be included in the typed command.
+</p><p>
 See also: <a href="help.html"><b>help</b></a>,
 <a href="usage.html"><b>usage</b></a>,
-<a href="colornames.html">color specification</a>
-<p>
-The brackets, vertical bars, and parentheses in the <b>Usage</b> lines are 
-merely symbolic and should not be included in the typed command.
+<a href="colornames.html">color specification</a>,
+<a href="atomspec.html">target specification</a>
 </p><p>
 Command names and keywords can be truncated to unique strings,
 with rare exceptions specifically noted.
@@ -67,6 +69,13 @@ a file browser window for specifying the name and location interactively.
 Alternatively, dragging and dropping the icon for a file or directory into the
 <a href="../tools/cli.html"><b>Command Line Interface</b></a>
 substitutes the corresponding pathname text.
+</p><p>
+Pathname and string values should be enclosed in quotation marks 
+if they contain spaces or characters with special meanings in the command line 
+(<b>#</b>, <b>:</b>, and others). In unquoted pathnames and strings,
+<b>*</b> (wild card), <b>?</b> (single-character wild card), and square brackets 
+<b>[ ]</b> enclosing alternative single-character matches can be used, as
+described <a href="atomspec.html#wildcards">here</a> for atom and residue names.
 </p><p>
 The display is updated as needed when a user presses return after entering
 a command, or when a <a href="wait.html"><b>wait</b></a>
@@ -127,5 +136,5 @@ to overlap or run concurrently.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+November 2018</address>
 </body></html>

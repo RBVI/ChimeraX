@@ -73,6 +73,7 @@ Specification strings may contain embedded spaces, and
 a blank specification (where allowed) means &ldquo;all.&rdquo;
 Specification in ChimeraX is generally similar to that in Chimera,
 but there are <a href="atomspec-diffsum.html">differences</a>.
+See also: <a href="usageconventions.html">command usage conventions</a>
 </p>
 
 <a name="hierarchy"></a>
@@ -190,6 +191,10 @@ Examples:
 <b>#1/B-D,F</b>
 </blockquote>
 - chains B, C, D, and F in model 1
+<blockquote>
+<b>:start-40</b>
+</blockquote>
+- residue numbers up to 40 in all chains
 <blockquote>
 <b>#1,2:50,70-85@ca</b>
 </blockquote>
@@ -503,12 +508,16 @@ indicated with symbols:
 <b>##</b> for atomic-model attributes.
 Custom attributes can be created with <a href="setattr.html"><b>setattr</b></a>.
 </p><p>
-Attribute names are case-sensitive. Values that are strings
+Attribute names are case-sensitive. Attribute values that are
+character strings or <a href="colornames.html#builtin">color names</a>
+<!-- Nov 5 2018 works with string colornames, Tk codes, and for 100%/0% colors,
+rgb(a) tuple formats -->
 should be enclosed in quotation marks if they contain spaces or
 characters with special meanings in the command line 
-(<b>@</b>, <b>:</b>, <i>etc.</i>).
-In unquoted string values, wild-card symbols such as <b>*</b> and <b>?</b>
-can be used as described <a href="#wildcards">above</a>.
+(<b>#</b>, <b>:</b>, and others). In unquoted string values, 
+<b>*</b> (wild card), <b>?</b> (single-character wild card), and square brackets
+<b>[ ]</b> enclosing alternative single-character matches can be used as
+described <a href="#wildcards">above</a> for atom and residue names.
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -544,15 +553,6 @@ can be used as described <a href="#wildcards">above</a>.
 </table>
 <ul>
 </ul>
-<!-- Jan 23 2018 can't figure out any way to specify colors, w/ or w/o quotes;
-     info reports color like 255,105,180,255 but that doesn't work either
-Attribute values containing spaces must be enclosed in double quotation marks.
-Color values can be specified by <a href="colornames.html">color name</a>
-or as a comma-separated list of component values
-<i>red,green,blue,alpha</i> where
-each value can range from zero to 1 and specification of <i>alpha</i>
-(1 &ndash; transparency) is optional.
--->
 <!-- caret not implemented, tested on custom attr created with setattr
 When placed before an attribute name,
 the <b>caret ^</b> indicates that the atoms, residues, or models have
@@ -750,5 +750,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+November 2018</address>
 </body></html> 

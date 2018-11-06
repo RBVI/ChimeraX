@@ -462,6 +462,33 @@ class SeqCanvas:
 
         self._recomputeScrollers(e.width, e.height)
 
+    """
+
+    @property
+    def consensus_ignores_gaps(self):
+        return self.consensus.ignore_gaps
+
+    @consensus_ignores_gaps.setter
+    def consensus_ignores_gaps(self, ignore_gaps):
+        if self.consensus.ignore_gaps == ignore_gaps:
+            return
+        self.consensus.ignore_gaps = ignore_gaps
+        if self.consensus.visible:
+            self.lead_block.refresh(self.consensus, 0, len(self.consensus)-1)
+
+    @property
+    def conservation_style(self):
+        return self.conservation.style
+
+    @conservation_style.setter
+    def conservation_style(self, style):
+        if self.conservation.style == style:
+            return
+        self.conservation.style = style
+        if self.conservation.visible:
+            self.lead_block.refresh(self.conservation, 0, len(self.conservation)-1)
+
+    """TODO
     def _copyCB(self, e):
         region = self.sv.currentRegion()
         if region is None:
@@ -654,17 +681,22 @@ class SeqCanvas:
         """
         
     def layout_alignment(self):
-        from .consensus import Consensus
-        from .conservation import Conservation
-        self.headers = [Consensus(self.sv), Conservation(self.sv, eval_while_hidden=True)]
-        startup_headers = self.sv.settings.startup_headers
+        from .settings import CSN_MAJ_NOGAP
+        settings = self.sv.settings
+        from chimerax.seqalign.headers import Consensus, Conservation
+        self.consensus = Consensus(self.sv.alignment,
+            ignore_gaps=getattr(settings, ALIGNMENT_PREFIX + 'consensus_style') == CSN_MAJ_NOGAP)
+        self.conservation = Conservation(self.sv.alignment, eval_while_hidden=True,
+            style=getattr(settings, ALIGNMENT_PREFIX + 'conservation_style'))
+        self.headers = [self.consensus, self.conservation]
+        startup_headers = settings.startup_headers
         use_disp_default = startup_headers == None
         if use_disp_default:
             startup_headers = set([Consensus.name, Conservation.name])
-        from .header_sequence import registered_headers, DynamicStructureHeaderSequence
+        from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
         """
         for seq, defaultOn in registeredHeaders.values():
-            header = seq(self.sv)
+            header = seq(self.sv.alignment)
             self.headers.append(header)
             if use_disp_default and defaultOn:
                 startup_headers.add(header.name)
@@ -1012,10 +1044,15 @@ class SeqCanvas:
         """
         self.sv.status("Alignment reformatted")
 
-    def refresh_headers(self, header_class=None):
+    def refresh_headers(self, notification):
+        update_main_scene = False
         for hdr in self.headers:
-            if header_class is None or isinstance(hdr, header_class):
-                hdr.refresh()
+            refresh = hdr.refresh(notification)
+            if refresh:
+                update_main_scene = True
+                if refresh is True:
+                    refresh = (0, len(hdr)-1)
+                self.lead_block.refresh(hdr, *refresh)
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.display_header and not self.display_header[seq]:

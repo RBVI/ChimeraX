@@ -13,7 +13,7 @@ TOP = ../..
 SUBDIR_SYNC = 1
 include $(TOP)/mk/config.make
 
-SUBDIRS = addh align_algs alignments atom_search atomic \
+SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter bumps \
 	  bundle_builder buttons cage_builder cellpack chem_group clashes cmd_line \
 	  color_globe connect_structure crosslinks crystal \
@@ -48,6 +48,7 @@ clean:
 # These dependencies should the same as the dependences in the bundle bundle_info.xml files
 addh.install: atomic.install hbonds.install
 align_algs.install: alignments.install
+alignment_hdrs.install: alignments.install
 alignments.install: atomic.install
 atom_search.install: atomic.install
 bild.install: atomic.install surface.install
@@ -90,7 +91,7 @@ pdb.install: atomic.install
 read_pbonds.install: atomic.install
 registration.install: ui.install
 residue_fit.install: ui.install
-seq_view.install: alignments.install ui.install
+seq_view.install: alignment_hdrs.install alignments.install ui.install
 shell.install: ui.install
 shortcuts.install: ui.install
 sideview.install: ui.install
