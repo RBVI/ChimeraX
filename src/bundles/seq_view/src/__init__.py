@@ -27,10 +27,10 @@ class _SeqViewerBundleAPI(BundleAPI):
             from .tool import SequenceViewer
             return SequenceViewer
         if class_name == "Consensus":
-            from .consensus import Consensus
+            from chimerax.seqalign.headers import Consensus
             return Consensus
         if class_name == "Conservation":
-            from .conservation import Conservation
+            from chimerax.seqalign.headers import Conservation
             return Conservation
 
     @staticmethod

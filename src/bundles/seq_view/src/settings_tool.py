@@ -103,8 +103,7 @@ class SettingsTool:
                             region.interior_rgba = color
         elif category == HEADERS:
             if opt.attr_name.endswith("consensus_style"):
-                from .consensus import Consensus
-                self.sv.refresh_headers(header_class=Consensus)
+                from .settings import CSN_MAJ_NOGAP
+                self.sv.consensus_ignores_gaps = opt.get() == CSN_MAJ_NOGAP
             elif opt.attr_name.endswith("conservation_style"):
-                from .conservation import Conservation
-                self.sv.refresh_headers(header_class=Conservation)
+                self.sv.conservation_style = opt.get()
