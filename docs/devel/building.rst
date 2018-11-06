@@ -12,8 +12,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-Building ChimeraX
-=================
+Compiling ChimeraX
+==================
 
 TODO: Fill out the details of requirements and procedures for building ChimeraX from scratch.
 
