@@ -46,7 +46,7 @@ What ChimeraX Wants
 -------------------
 
 What ChimeraX wants to read from a mmCIF file is documented in
-:doc:`ChimeraX Fast mmCIF Guidelines <mmcif>`.
+:doc:`ChimeraX Fast mmCIF Guidelines <mmcif_guidelines>`.
 Saving connectivity is a major issue and is discussed separately.
 
 ---------------------

@@ -225,7 +225,7 @@ class Model(State, Drawing):
     @property
     def visible(self):
         if self.display:
-            p = getattr(self, 'parent', None)
+            p = self.parent
             return p is None or p.visible
         return False
 
@@ -241,7 +241,7 @@ class Model(State, Drawing):
     display = Drawing.display.setter(_set_display)
 
     def take_snapshot(self, session, flags):
-        p = getattr(self, 'parent', None)
+        p = self.parent
         if p is session.models.drawing:
             p = None    # Don't include root as a parent since root is not saved.
         data = {
@@ -397,7 +397,7 @@ class Models(StateManager):
         m = session.models
         for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
-                if not hasattr(model, 'parent'):
+                if model.parent is None:
                     m.add([model], _from_session=True)
         return m
 
@@ -423,7 +423,7 @@ class Models(StateManager):
 
         d = self.drawing if parent is None else parent
         for m in models:
-            if not hasattr(m, 'parent') or m.parent is not d:
+            if m.parent is None or m.parent is not d:
                 d.add_drawing(m)
 
         # Clear model ids if they are not subids of parent id.
@@ -435,7 +435,7 @@ class Models(StateManager):
                 _need_fire_id_trigger.append(model)
                 del self._models[model.id]
                 model.id = None
-                if hasattr(model, 'parent'):
+                if model.parent is not None:
                     model.parent._next_unused_id = None
 
         # Assign new model ids
@@ -612,10 +612,9 @@ def ancestor_models(models):
     ma = set()
     mset = models if isinstance(models, set) else set(models)
     for m in mset:
-        if hasattr(m, 'parent'):
-            p = m.parent
-            if p not in mset:
-                ma.add(p)
+        p = m.parent
+        if p is not None and p not in mset:
+            ma.add(p)
     if ma:
         ma.update(ancestor_models(ma))
     return ma

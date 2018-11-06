@@ -418,7 +418,7 @@ class Structure(Model, StructureData):
             if updated_model == check_model:
                 need_update = True
                 break
-            check_model = getattr(check_model, 'parent', None)
+            check_model = check_model.parent
 
         if need_update:
             self._cpp_notify_position(self.scene_position)
@@ -1794,12 +1794,13 @@ class Structure(Model, StructureData):
             res_ics = atoms.residues.insertion_codes
             selected = numpy.zeros(num_atoms, dtype=numpy.bool_)
             for part in parts:
-                choose_type = part.string_matcher(False)
-                s = numpy.vectorize(choose_type)(res_names)
-                selected = numpy.logical_or(selected, s)
                 choose_id = part.res_id_matcher()
                 if choose_id:
                     s = numpy.vectorize(choose_id)(res_numbers, res_ics)
+                    selected = numpy.logical_or(selected, s)
+                else:
+                    choose_type = part.string_matcher(False)
+                    s = numpy.vectorize(choose_type)(res_names)
                     selected = numpy.logical_or(selected, s)
         if attrs:
             selected = self._atomspec_attr_filter(atoms.residues, selected, attrs)

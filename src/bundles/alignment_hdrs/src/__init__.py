@@ -11,20 +11,21 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .header_sequence import HeaderSequence, FixedHeaderSequence, \
+    DynamicHeaderSequence, DynamicStructureHeaderSequence, register_header, registered_headers
+from .consensus import Consensus
+from .conservation import Conservation
+
 from chimerax.core.toolshed import BundleAPI
 
-class _BugReporterAPI(BundleAPI):
+class _AlignmentHdrsAPI(BundleAPI):
 
     @staticmethod
-    def initialize(session, bundle_info):
-        '''Check if for Mac crash logs after startup.'''
-        from . import mac_crash_report
-        mac_crash_report.register_mac_crash_checker(session)
+    def get_class(class_name):
+        if class_name == "Consensus":
+            return Consensus
+        if class_name == "Conservation":
+            return Conservation
 
-        # Add Report a Bug to Help menu
-        from . import bug_reporter_gui
-        bug_reporter_gui.add_help_menu_entry(session)
 
-bundle_api = _BugReporterAPI()
-
-from .bug_reporter_gui import show_bug_reporter
+bundle_api = _AlignmentHdrsAPI()

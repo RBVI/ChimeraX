@@ -12,8 +12,9 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-* Python Classes
-
+Python Classes
+==============
+	      
  * :class:`.Atom` - a molecule atom
  * :class:`.AtomicStructure` - molecular data
  * :class:`.Atoms` - a collection of atoms

@@ -12,8 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 '''
-ui.mousemodes: Mouse modes
-==========================
+mousemodes: Mouse modes
+=======================
 
 Classes to create mouse modes and assign mouse buttons and modifier
 keys to specific modes.
@@ -741,7 +741,7 @@ def top_selected(session):
     return None if len(mlist) == 0 else mlist
 
 def any_parent_selected(m):
-    if not hasattr(m, 'parent') or m.parent is None:
+    if m.parent is None:
         return False
     p = m.parent
     return p.selected or any_parent_selected(p)

@@ -35,7 +35,7 @@ and the :doc:`applications` that use the functionality.
     The following modules are in the process of being reorganzied.
 
 Contents
-========
+--------
 
 .. toctree::
     :maxdepth: 2

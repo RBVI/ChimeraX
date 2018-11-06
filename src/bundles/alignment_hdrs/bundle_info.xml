@@ -1,25 +1,21 @@
-<BundleInfo name="ChimeraX-AlignmentMatrices" version="1.0"
-	    package="chimerax.seqalign.sim_matrices"
+<BundleInfo name="ChimeraX-AlignmentHdrs" version="1.0"
+	    package="chimerax.seqalign.headers"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Sequence alignment similarity matrices</Synopsis>
-  <Description>Provide common sequence alignment BLOSUM similarity matrices.</Description>
-
-  <DataFiles>
-    <DataFile>matrices/*.matrix</DataFile>
-    <DataFile>matrices/*.dnamatrix</DataFile>
-  </DataFiles>
+  <Synopsis>Alignment header support</Synopsis>
+  <Description>Default useful alignment headers, and support for creating custom headers</Description>
 
   <Categories>
-    <Category name="Sequence alignment"/>
+    <Category name="Sequence"/>
   </Categories>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Alignments" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
