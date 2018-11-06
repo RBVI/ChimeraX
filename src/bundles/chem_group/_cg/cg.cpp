@@ -1065,6 +1065,7 @@ initiate_find_ring_planar_NHR2(AtomicStructure::Atoms::const_iterator start,
 					groups_mutex->lock();
 					groups->emplace_back();
 					auto& back = groups->back();
+					back.reserve(3); // vector resize empirically not thread safe
 					groups_mutex->unlock();
 					back.push_back(ra);
 					back.push_back(ra->neighbors()[0]);
@@ -1151,6 +1152,7 @@ initiate_find_5ring_OR2(AtomicStructure::Atoms::const_iterator start,
 			groups_mutex->lock();
 			groups->emplace_back();
 			auto& back = groups->back();
+			back.reserve(3); // vector resizing empirically not thread safe
 			groups_mutex->unlock();
 			back.push_back(a);
 			for (auto nb: a->neighbors())
