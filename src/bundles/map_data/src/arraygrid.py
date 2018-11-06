@@ -12,15 +12,15 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Array_Grid_Data objects wraps a NumPy array for use by volume viewer.
+# ArrayGridData objects wraps a NumPy array for use by volume viewer.
 #
-from . import Grid_Data
+from . import GridData
 
 # -----------------------------------------------------------------------------
 # Constructor requires NumPy arrays with indices in z, y, x order.
 # Origin and step parameters are in x, y, z order.
 #
-class Array_Grid_Data(Grid_Data):
+class ArrayGridData(GridData):
   
   def __init__(self, array, origin = (0,0,0), step = (1,1,1),
                cell_angles = (90,90,90),
@@ -39,10 +39,10 @@ class Array_Grid_Data(Grid_Data):
 
       value_type = array.dtype
 
-      Grid_Data.__init__(self, grid_size, value_type,
-                         origin, step, cell_angles = cell_angles,
-                         rotation = rotation, symmetries = symmetries,
-                         name = name, path = path, file_type = file_type)
+      GridData.__init__(self, grid_size, value_type,
+                        origin, step, cell_angles = cell_angles,
+                        rotation = rotation, symmetries = symmetries,
+                        name = name, path = path, file_type = file_type)
 
       self.writable = True
   

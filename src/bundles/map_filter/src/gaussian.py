@@ -47,12 +47,12 @@ def gaussian_grid(volume, sdev, step = 1, subregion = None, region = None,
   gm = gaussian_convolution(m, ijk_sdev, value_type = value_type,
                             invert = invert, task = task)
 
-  from ..data import Array_Grid_Data
+  from ..data import ArrayGridData
   d = v.data
   if v.name.endswith('gaussian'): name = v.name
   else:                           name = '%s gaussian' % v.name
-  gg = Array_Grid_Data(gm, origin, step, d.cell_angles, d.rotation,
-                       name = name)
+  gg = ArrayGridData(gm, origin, step, d.cell_angles, d.rotation,
+                     name = name)
   return gg
 
 # -----------------------------------------------------------------------------

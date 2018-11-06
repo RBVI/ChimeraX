@@ -256,8 +256,8 @@ def save_grid_data(grids, path, session, format = None, options = {}):
     raise ValueError(('Unsupported options for format %s: %s'
                       % (fw[1], ' ,'.join(badopt))))
 
-  from .griddata import Grid_Data
-  if isinstance(grids, Grid_Data):
+  from .griddata import GridData
+  if isinstance(grids, GridData):
     glist = [grids]
   else:
     glist = grids

@@ -1036,11 +1036,11 @@ class Precomputed_Subsamples_Panel(PopupPanel):
   #
   def open_subsamples(self, data, grid_object, cell_size):
     
-    from VolumeData import Subsampled_Grid
-    if isinstance(data, Subsampled_Grid):
+    from VolumeData import SubsampledGrid
+    if isinstance(data, SubsampledGrid):
       ssdata = data
     else:
-      ssdata = Subsampled_Grid(data)
+      ssdata = SubsampledGrid(data)
       import volume
       volume.replace_data(data, ssdata)
     

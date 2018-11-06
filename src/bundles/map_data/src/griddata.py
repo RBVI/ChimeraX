@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# The Grid_Data class defines the data format needed by the ChimeraX
+# The GridData class defines the data format needed by the ChimeraX
 # Volume Viewer extension to produce surface, mesh, and solid
 # displays.  It should be used as a base class for reading specific 3D data
 # formats, for example, Delphi electrostatic potentials, DSN6 electron density
@@ -20,9 +20,9 @@
 #
 # The simplest volume data is just a 3 dimensional matrix of values.
 # This could be kept in memory as a 3 dimensional NumPy array.
-# The Grid_Data object is an extension of this case in a couple ways.
+# The GridData object is an extension of this case in a couple ways.
 #
-# Grid_Data defines how the data is positioned in an xyz coordinate space.
+# GridData defines how the data is positioned in an xyz coordinate space.
 # Each data value is thought of as a sample at a particular point in space.
 # The data value with index (0,0,0) has xyz postion given by origin.
 # The step parameter (3 values) gives the spacing between data values
@@ -32,7 +32,7 @@
 # axes.  The angles are measured in degrees.
 #
 from numpy import float32
-class Grid_Data:
+class GridData:
   '''
   3-dimensional array of numeric values usually representing a density map
   from electron microscopy, x-ray crystallography or optical imaging.
@@ -100,8 +100,8 @@ class Grid_Data:
 
     
   # ---------------------------------------------------------------------------
-  # Return dictionary of options for Grid_Data constructor used to initialize
-  # a new Grid_Data.  Keyword options replace the specified settings.
+  # Return dictionary of options for GridData constructor used to initialize
+  # a new GridData.  Keyword options replace the specified settings.
   #
   def settings(self, **replace):
     attrs = ('size', 'value_type', 'origin', 'step', 'cell_angles', 'rotation', 'symmetries',
@@ -110,7 +110,7 @@ class Grid_Data:
     s['default_color'] = self.rgba
     for k in replace.keys():
       if k not in attrs:
-        raise ValueError('Unknown argument to Grid_Data settings(): "%s"' % k)
+        raise ValueError('Unknown argument to GridData settings(): "%s"' % k)
     s.update(replace)
     return s
       
@@ -447,7 +447,7 @@ def apply_rotation(r, v):
 
 # -----------------------------------------------------------------------------
 #
-class Grid_Subregion(Grid_Data):
+class Grid_Subregion(GridData):
 
   def __init__(self, grid_data, ijk_min, ijk_max, ijk_step = (1,1,1)):
 
@@ -463,7 +463,7 @@ class Grid_Subregion(Grid_Data):
     step = [ijk_step[a]*d.step[a] for a in range(3)]
 
     settings = d.settings(size=size, origin=origin, step=step, name=d.name+' subregion')
-    Grid_Data.__init__(self, **settings)
+    GridData.__init__(self, **settings)
 
     self.data_cache = None      # Caching done by underlying grid.
         

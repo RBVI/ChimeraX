@@ -51,8 +51,8 @@ def fourier_transform(v, step = None, subregion = None, model_id = None,
   step = [scale/a for a in xyz_size]
   origin = [c-0.5*s*z for c,s,z in zip(xyz_center, step, ijk_size)]
 
-  from ..data import Array_Grid_Data
-  ftd = Array_Grid_Data(ftm, origin, step)
+  from ..data import ArrayGridData
+  ftd = ArrayGridData(ftm, origin, step)
   ftd.name = v.name + (' FT phase' if phase else ' FT')
   from .. import volume_from_grid_data
   ftr = volume_from_grid_data(ftd, v.session, model_id = model_id)

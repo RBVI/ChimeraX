@@ -14,17 +14,17 @@ def imagej_grids(path):
     pi = imagej_pixels(path)
     nc = pi.nchannels * pi.ncolors
     if nc == 1 and pi.ntimes == 1:
-        grids = [ImageJ_Grid(pi)]
+        grids = [ImageJGrid(pi)]
     elif pi.ntimes == 1:
-        grids = [ImageJ_Grid(pi, c) for c in range(nc)]
+        grids = [ImageJGrid(pi, c) for c in range(nc)]
     else:
-        grids = [ImageJ_Grid(pi, c, t) for c in range(nc) for t in range(pi.ntimes)]
+        grids = [ImageJGrid(pi, c, t) for c in range(nc) for t in range(pi.ntimes)]
     return grids
 
 # -----------------------------------------------------------------------------
 #
-from .. import Grid_Data
-class ImageJ_Grid(Grid_Data):
+from .. import GridData
+class ImageJGrid(GridData):
 
   def __init__(self, imagej_pixels, channel = None, time = None):
 
@@ -36,12 +36,12 @@ class ImageJ_Grid(Grid_Data):
         name += ' ch%d' % channel
 
     origin = (0,0,0)
-    Grid_Data.__init__(self, d.grid_size, d.value_type,
-                       origin, d.grid_spacing,
-                       name = name, path = d.path,
-                       file_type = 'imagestack',
-                       channel = channel,
-                       time = time)
+    GridData.__init__(self, d.grid_size, d.value_type,
+                      origin, d.grid_spacing,
+                      name = name, path = d.path,
+                      file_type = 'imagestack',
+                      channel = channel,
+                      time = time)
         
   # ---------------------------------------------------------------------------
   #

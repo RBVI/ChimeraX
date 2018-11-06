@@ -13,11 +13,11 @@
 # Wrap netCDF array data as grid data for displaying surface, meshes,
 # and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
     
 # -----------------------------------------------------------------------------
 #
-class NetCDF_Grid(Grid_Data):
+class NetCDFGrid(GridData):
 
   def __init__(self, path, grid_size, origin, step, cell_angles, rotation,
                netcdf_array):
@@ -30,11 +30,11 @@ class NetCDF_Grid(Grid_Data):
     else:
       name = '%s %s' % (basename(path), netcdf_array.descriptive_name)
 
-    Grid_Data.__init__(self, grid_size, netcdf_array.dtype,
-                       origin, step, cell_angles, rotation,
-                       name = name, path = path, file_type = 'netcdf', 
-                       grid_id = netcdf_array.variable_name,
-                       default_color = netcdf_array.color)
+    GridData.__init__(self, grid_size, netcdf_array.dtype,
+                      origin, step, cell_angles, rotation,
+                      name = name, path = path, file_type = 'netcdf', 
+                      grid_id = netcdf_array.variable_name,
+                      default_color = netcdf_array.color)
   
   # ---------------------------------------------------------------------------
   #
@@ -52,16 +52,16 @@ def read_netcdf(path):
 
   glist = []
   for a in d.arrays:
-    g = NetCDF_Grid(d.path, d.grid_size, d.xyz_origin, d.xyz_step,
-                    d.cell_angles, d.rotation, a)
+    g = NetCDFGrid(d.path, d.grid_size, d.xyz_origin, d.xyz_step,
+                   d.cell_angles, d.rotation, a)
     ssa = subsampled_arrays(a)
     if ssa:
-      from .. import Subsampled_Grid
-      g = Subsampled_Grid(g)
+      from .. import SubsampledGrid
+      g = SubsampledGrid(g)
       for grid_size, cell_size, arrays in ssa:
         step = [s*c for s,c in zip(d.xyz_step, cell_size)]
-        sg = NetCDF_Grid(d.path, grid_size, d.xyz_origin, step,
-                         d.cell_angles, d.rotation, arrays)
+        sg = NetCDFGrid(d.path, grid_size, d.xyz_origin, step,
+                        d.cell_angles, d.rotation, arrays)
         g.add_subsamples(sg, cell_size)
     glist.append(g)
     

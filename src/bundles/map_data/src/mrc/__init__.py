@@ -20,5 +20,5 @@ from .writemrc import write_mrc2000_grid_data
 #
 def open(path):
 
-  from .mrc_grid import MRC_Grid
-  return [MRC_Grid(path)]
+  from .mrc_grid import MRCGrid
+  return [MRCGrid(path)]

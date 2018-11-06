@@ -12,11 +12,11 @@
 # -----------------------------------------------------------------------------
 # Wrap Imaris image data as grid data for displaying surface, meshes, and volumes.
 #
-from ..griddata import Grid_Data
+from ..griddata import GridData
 
 # -----------------------------------------------------------------------------
 #
-class IMS_Grid(Grid_Data):
+class IMSGrid(GridData):
 
   # Attribute names for constructor grid settings.
   attributes = ('size', 'value_type', 'origin', 'step', 'cell_angles',
@@ -32,8 +32,8 @@ class IMS_Grid(Grid_Data):
     if image_name and image_name != name.rsplit('.',1)[0]:
       name += ' ' + image_name
 
-    Grid_Data.__init__(self, path = hdf_data.path, file_type = 'ims', grid_id = array_path, name = name,
-                       **grid_settings)
+    GridData.__init__(self, path = hdf_data.path, file_type = 'ims', grid_id = array_path, name = name,
+                      **grid_settings)
 
   # ---------------------------------------------------------------------------
   #
@@ -49,7 +49,7 @@ class IMS_Grid(Grid_Data):
   #
   def clear_cache(self):
     self.hdf_data.close_file()
-    Grid_Data.clear_cache(self)
+    GridData.clear_cache(self)
     
 # -----------------------------------------------------------------------------
 #
@@ -63,8 +63,8 @@ def read_imaris_map(path):
     glist = []
     for i in images:
       image_name = i.name if len(images) > 1 else ''
-      gsettings = {attr:getattr(i,attr) for attr in IMS_Grid.attributes}
-      g = IMS_Grid(d, image_name, i.array_path, **gsettings)
+      gsettings = {attr:getattr(i,attr) for attr in IMSGrid.attributes}
+      g = IMSGrid(d, image_name, i.array_path, **gsettings)
       if i.subsamples:
         g = add_subsamples(d, i, g)
       # Mark as volume series if maps of same size.
@@ -81,14 +81,14 @@ def read_imaris_map(path):
 #
 def add_subsamples(hdf_data, hdf_image, g):
 
-  from ..subsample import Subsampled_Grid
-  g = Subsampled_Grid(g)
+  from ..subsample import SubsampledGrid
+  g = SubsampledGrid(g)
   i = hdf_image
   for cell_size, data_size, array_path in i.subsamples:
       step = tuple(s*c for s,c in zip(i.step, cell_size))
-      gsettings = {attr:getattr(i,attr) for attr in IMS_Grid.attributes}
+      gsettings = {attr:getattr(i,attr) for attr in IMSGrid.attributes}
       gsettings.update({'size':data_size, 'step':step})
-      sg = IMS_Grid(hdf_data, i.name, array_path, **gsettings)
+      sg = IMSGrid(hdf_data, i.name, array_path, **gsettings)
       g.add_subsamples(sg, cell_size)
       
   return g

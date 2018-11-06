@@ -13,11 +13,11 @@
 # Wrap SPIDER volume data as grid data for displaying surface, meshes, and
 # volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class SPIDER_Grid(Grid_Data):
+class SPIDERGrid(GridData):
 
   def __init__(self, path):
 
@@ -27,8 +27,8 @@ class SPIDER_Grid(Grid_Data):
 
     origin = tuple(a * b for a,b in zip(d.data_origin, d.data_step))
 
-    Grid_Data.__init__(self, d.data_size, origin = origin, step = d.data_step,
-                       path = path, file_type = 'spider')
+    GridData.__init__(self, d.data_size, origin = origin, step = d.data_step,
+                      path = path, file_type = 'spider')
 
   # ---------------------------------------------------------------------------
   #

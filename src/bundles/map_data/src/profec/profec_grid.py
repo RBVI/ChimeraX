@@ -13,21 +13,21 @@
 # Wrap PROFEC energy maps as grid data for displaying surface, meshes,
 # and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class PROFEC_Grid(Grid_Data):
+class PROFECGrid(GridData):
 
   def __init__(self, path):
 
     from . import profec_format
     eg = profec_format.PROFEC_Potential(path)
     self.energy_grid = eg
-    Grid_Data.__init__(self, eg.grid_size,
-                       origin = eg.origin, step = eg.step,
-                       rotation = eg.rotation,
-                       path = path, file_type = 'profec')
+    GridData.__init__(self, eg.grid_size,
+                      origin = eg.origin, step = eg.step,
+                      rotation = eg.rotation,
+                      path = path, file_type = 'profec')
   
   # ---------------------------------------------------------------------------
   #

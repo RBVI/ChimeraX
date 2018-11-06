@@ -47,10 +47,10 @@ def unbend_volume(volume, path, yaxis, xsize, ysize, grid_spacing,
     m[k,:,:] = volume.interpolated_values(s, tf, subregion=subregion, step=step).reshape((ny,nx))
 
   # Create volume.
-  from ..data import Array_Grid_Data
+  from ..data import ArrayGridData
   step = [grid_spacing] * 3
   origin = [0,0,0]
-  g = Array_Grid_Data(m, origin, step, name = 'unbend')
+  g = ArrayGridData(m, origin, step, name = 'unbend')
   from .. import volume_from_grid_data
   v = volume_from_grid_data(g, volume.session, model_id = model_id)
   v.copy_settings_from(volume, copy_region = False, copy_active = False,

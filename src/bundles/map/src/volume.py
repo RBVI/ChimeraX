@@ -20,7 +20,7 @@
 from chimerax.core.models import Model
 class Volume(Model):
   '''
-  A Volume is a rendering of a 3-d image Grid_Data object.  It includes
+  A Volume is a rendering of a 3-d image GridData object.  It includes
   color, display styles including surface, mesh and grayscale, contouring levels,
   brightness and transparency for grayscale rendering, region bounds for display
   a subregion including single plane display, subsampled display of every Nth data
@@ -938,8 +938,8 @@ class Volume(Model):
     from numpy import zeros
     m = zeros(shape, value_type)
     origin, step = self.region_origin_and_step(r)
-    from .data import Array_Grid_Data
-    g = Array_Grid_Data(m, origin, step, d.cell_angles, d.rotation)
+    from .data import ArrayGridData
+    g = ArrayGridData(m, origin, step, d.cell_angles, d.rotation)
     g.rgba = d.rgba           # Copy default data color.
     return g
 
@@ -2824,9 +2824,9 @@ def map_from_periodic_map(grid, ijk_min, ijk_max):
 
     # Create volume data copy.
     xyz_min = grid.ijk_to_xyz(ijk_min)
-    from .data import Array_Grid_Data
-    g = Array_Grid_Data(m, xyz_min, grid.step, grid.cell_angles, grid.rotation,
-                        name = grid.name)
+    from .data import ArrayGridData
+    g = ArrayGridData(m, xyz_min, grid.step, grid.cell_angles, grid.rotation,
+                      name = grid.name)
     return g
 
 # -----------------------------------------------------------------------------
@@ -2879,8 +2879,8 @@ def default_settings(session):
 # -----------------------------------------------------------------------------
 #
 def set_data_cache(grid_data, session):
-  from .data import Array_Grid_Data
-  if isinstance(grid_data, Array_Grid_Data):
+  from .data import ArrayGridData
+  if isinstance(grid_data, ArrayGridData):
     return	# No caching for in-memory maps
 
   grid_data.data_cache = data_cache(session)

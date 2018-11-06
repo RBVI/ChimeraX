@@ -15,9 +15,9 @@
 # Python readers for array file formats.
 #
 
-from .griddata import Grid_Data, Grid_Subregion
-from .arraygrid import Array_Grid_Data
-from .subsample import Subsampled_Grid
+from .griddata import GridData, Grid_Subregion
+from .arraygrid import ArrayGridData
+from .subsample import SubsampledGrid
 from .fileformats import file_types, electrostatics_types
 from .fileformats import open_file, File_Format_Error, Unknown_File_Type, save_grid_data
 from .progress import Progress_Reporter

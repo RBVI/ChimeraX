@@ -89,8 +89,8 @@ def ones_volume(surfaces, pad, spacing, border, default_size = 100):
     # Create ones array
     from numpy import ones, float32
     varray = ones(size[::-1], float32)
-    from chimerax.map.data import Array_Grid_Data
-    g = Array_Grid_Data(varray, origin, spacing, name = 'mask')
+    from chimerax.map.data import ArrayGridData
+    g = ArrayGridData(varray, origin, spacing, name = 'mask')
 
     # Create Volume model
     from chimerax.map import volume_from_grid_data

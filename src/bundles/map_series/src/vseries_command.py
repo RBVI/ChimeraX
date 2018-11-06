@@ -296,8 +296,8 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
     if not final_value_type is None:
         m = m.astype(final_value_type)
 
-    from ..data import Array_Grid_Data
-    d = Array_Grid_Data(m, d.origin, d.step, d.cell_angles, d.rotation)
+    from ..data import ArrayGridData
+    d = ArrayGridData(m, d.origin, d.step, d.cell_angles, d.rotation)
 
     return d
 

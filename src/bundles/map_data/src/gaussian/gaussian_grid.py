@@ -13,11 +13,11 @@
 # Wrap Gaussian energy maps as grid data for displaying surface, meshes,
 # and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class Gaussian_Grid(Grid_Data):
+class GaussianGrid(GridData):
 
   def __init__(self, gc, component_number):
 
@@ -27,11 +27,11 @@ class Gaussian_Grid(Grid_Data):
     from chimerax.core.geometry import matrix
     ca, rot = matrix.cell_angles_and_rotation(gc.grid_axes)
 
-    Grid_Data.__init__(self, gc.grid_size,
-                       origin = gc.origin, step = gc.step,
-                       cell_angles = ca, rotation = rot,
-                       path = gc.path, file_type = 'gaussian',
-                       grid_id = str(component_number))
+    GridData.__init__(self, gc.grid_size,
+                      origin = gc.origin, step = gc.step,
+                      cell_angles = ca, rotation = rot,
+                      path = gc.path, file_type = 'gaussian',
+                      grid_id = str(component_number))
 
     self.polar_values = True
   
@@ -54,7 +54,7 @@ def read_gaussian_file(path):
 
     grids = []
     for c in range(gc.num_components):
-      g = Gaussian_Grid(gc, c)
+      g = GaussianGrid(gc, c)
       grids.append(g)
 
     return grids

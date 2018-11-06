@@ -43,13 +43,13 @@ def scaled_grid(v, scale, shift, type, subregion = None, step = 1,
   else:
     from ..data import Grid_Subregion
     d = Grid_Subregion(v.data, *region)
-  sd = Scaled_Grid(d, scale, shift, type)
+  sd = ScaledGrid(d, scale, shift, type)
   return sd
 
 # -----------------------------------------------------------------------------
 #
-from ..data import Grid_Data
-class Scaled_Grid(Grid_Data):
+from ..data import GridData
+class ScaledGrid(GridData):
   
   def __init__(self, grid_data, scale, shift, value_type):
 
@@ -58,7 +58,7 @@ class Scaled_Grid(Grid_Data):
     self.shift = shift
     self.value_type = vt = (value_type or g.value_type)
     settings = g.settings(value_type=vt, name = g.name + ' scaled')
-    Grid_Data.__init__(self, **settings)
+    GridData.__init__(self, **settings)
     
   # ---------------------------------------------------------------------------
   #

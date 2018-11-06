@@ -307,9 +307,9 @@ def masked_grid_data(grid_data, mask, mask_value = None):
   else:
     putmask(masked, mask == mask_value, matrix)
 
-  from . import Array_Grid_Data
-  masked_grid_data = Array_Grid_Data(masked, d.origin, d.step,
-                                     d.cell_angles, d.rotation)
+  from . import ArrayGridData
+  masked_grid_data = ArrayGridData(masked, d.origin, d.step,
+                                   d.cell_angles, d.rotation)
   return masked_grid_data
 
 # -----------------------------------------------------------------------------
