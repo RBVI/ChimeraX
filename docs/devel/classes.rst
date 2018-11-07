@@ -54,5 +54,5 @@ State
 
 Volume Data
 
- * :class:`.Grid_Data` - density map data
+ * :class:`.GridData` - density map data
  * :class:`.Volume` - density map
