@@ -1,5 +1,5 @@
 *** openvr/__init__.py.orig	Mon Oct 29 10:11:37 2018
---- openvr/__init__.py	Tue Nov  6 17:41:21 2018
+--- openvr/__init__.py	Wed Nov  7 15:45:24 2018
 ***************
 *** 31,36 ****
 --- 31,38 ----
@@ -11,3 +11,37 @@
       else:
           raise ValueError("Libraries not available for this platform: " + platform.system())
   
+***************
+*** 1762,1768 ****
+  
+  # TODO: Fix the generator of this file (translate/translate.pl) as
+  # explained in https://github.com/cmbruns/pyopenvr/pull/42#issuecomment-346866490
+! if sizeof(c_void_p) != 4 and platform.system() == 'Linux':
+      class VRControllerState_t(Structure):
+          _pack_ = 4
+          _fields_ = [
+--- 1764,1770 ----
+  
+  # TODO: Fix the generator of this file (translate/translate.pl) as
+  # explained in https://github.com/cmbruns/pyopenvr/pull/42#issuecomment-346866490
+! if sizeof(c_void_p) != 4:
+      class VRControllerState_t(Structure):
+          _pack_ = 4
+          _fields_ = [
+***************
+*** 2295,2301 ****
+  
+  # TODO: Fix the generator of this file (translate/translate.pl) as
+  # explained in https://github.com/cmbruns/pyopenvr/pull/42#issuecomment-346866490
+! if sizeof(c_void_p) != 4 and platform.system() == 'Linux':
+      class VREvent_t(Structure):
+          "An event posted by the server to all running applications"
+          _pack_ = 4
+--- 2297,2303 ----
+  
+  # TODO: Fix the generator of this file (translate/translate.pl) as
+  # explained in https://github.com/cmbruns/pyopenvr/pull/42#issuecomment-346866490
+! if sizeof(c_void_p) != 4:
+      class VREvent_t(Structure):
+          "An event posted by the server to all running applications"
+          _pack_ = 4
