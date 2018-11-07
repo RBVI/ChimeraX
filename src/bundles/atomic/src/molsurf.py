@@ -188,8 +188,7 @@ class MolecularSurface(Surface):
                                                 rank_metric = 'area rank')
         return m
 
-    @property
-    def joined_triangles(self):
+    def _get_joined_triangles(self):
         if self.sharp_boundaries:
             tri = self._joined_triangles
             if tri is None:
@@ -200,6 +199,9 @@ class MolecularSurface(Surface):
         else:
             tri = self.triangles
         return tri
+    def _set_joined_triangles(self, jtri):
+        self._joined_triangles = jtri
+    joined_triangles = property(_get_joined_triangles, _set_joined_triangles)
     
     def vertex_to_atom_map(self, vertices = None):
         '''
