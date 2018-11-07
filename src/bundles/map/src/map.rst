@@ -18,6 +18,7 @@ map: Density maps
 .. automodule:: chimerax.map.volume
     :members:
     :special-members: __init__
+    :member-order: bysource
     :show-inheritance:
 
 .. automodule:: chimerax.map.data.griddata
