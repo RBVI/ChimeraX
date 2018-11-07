@@ -4899,5 +4899,6 @@ def volume_dialog(session, create=False):
 #
 def show_volume_dialog(session):
     vv = volume_dialog(session, create = True)
-    vv.show()
+    if vv:		# In nogui mode vv = None.
+        vv.show()
     return vv
