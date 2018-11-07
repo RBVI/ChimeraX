@@ -24,3 +24,8 @@ map: Density maps
     :members:
     :special-members: __init__
     :show-inheritance:
+
+.. automodule:: chimerax.map.data.arraygrid
+    :members:
+    :special-members: __init__
+    :show-inheritance:
