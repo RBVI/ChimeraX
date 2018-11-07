@@ -27,7 +27,7 @@ class ArrayGridData(GridData):
                rotation = ((1,0,0),(0,1,0),(0,0,1)),
                symmetries = (),
                name = ''):
-      '''Supported API.'''
+      '''Supported API.  The array argument is a numpy 3-dimensional array.'''
       
       self.array = array
       

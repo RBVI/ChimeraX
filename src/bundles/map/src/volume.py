@@ -171,11 +171,13 @@ class Volume(Model):
   #
   @property
   def surfaces(self):
+    '''Supported API.  Return a list of VolumeSurface instances for this Volume.'''
     return self._surfaces
   
   # ---------------------------------------------------------------------------
   #
   def add_surface(self, level, rgba = None):
+    '''Supported API.  Create and add a new VolumeSurface with specified contour level and color.'''
     ses = self.session
     s = VolumeSurface(self, level, rgba)
     self._surfaces.append(s)
@@ -189,6 +191,10 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def remove_surfaces(self, surfaces = None):
+    '''
+    Supported API.  Remove a list of VolumeSurface instances from this Volume.
+    If surfaces is None then all current surfaces are removed.
+    '''
     surfs = self._surfaces if surfaces is None else surfaces
     if self.id is None:
       self.remove_drawings(surfs)
