@@ -429,7 +429,7 @@ class MolecularSurface(Surface):
     # State save/restore in ChimeraX
     _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_vertex_to_atom_count', '_max_radius',
                    'vertices', 'normals', 'triangles', 'triangle_mask', 'vertex_colors', 'color',
-                   'joined_triangles', '_atom_patch_colors', '_atom_patch_color_mask')
+                   '_joined_triangles', '_atom_patch_colors', '_atom_patch_color_mask')
 
     def take_snapshot(self, session, flags):
         init_attrs = ('atoms', 'show_atoms', 'probe_radius', 'grid_spacing', 'resolution', 'level',
