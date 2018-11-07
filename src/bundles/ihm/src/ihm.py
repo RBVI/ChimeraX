@@ -1320,10 +1320,10 @@ class FileDataSet(DataSet):
         image_path = finfo.path(session)
         if image_path:
             from chimerax.map.volume import open_map
-            from chimerax.map.data import Unknown_File_Type
+            from chimerax.map.data import UnknownFileType
             try:
                 maps,msg = open_map(session, image_path)
-            except Unknown_File_Type:
+            except UnknownFileType:
                 return None
             v = maps[0]
             return v

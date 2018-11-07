@@ -27,7 +27,8 @@ class ArrayGridData(GridData):
                rotation = ((1,0,0),(0,1,0),(0,0,1)),
                symmetries = (),
                name = ''):
-
+      '''Supported API.'''
+      
       self.array = array
       
       path = ''

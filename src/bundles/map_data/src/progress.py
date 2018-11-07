@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 # Report progress reading or writing a file, plane by plane.
 #
-class Progress_Reporter:
+class ProgressReporter:
 
   def __init__(self, operation,
                ijk_size = None,

@@ -15,12 +15,12 @@
 # Python readers for array file formats.
 #
 
-from .griddata import GridData, Grid_Subregion
+from .griddata import GridData, GridSubregion
 from .arraygrid import ArrayGridData
 from .subsample import SubsampledGrid
 from .fileformats import file_types, electrostatics_types
-from .fileformats import open_file, File_Format_Error, Unknown_File_Type, save_grid_data
-from .progress import Progress_Reporter
+from .fileformats import open_file, FileFormatError, UnknownFileType, save_grid_data
+from .progress import ProgressReporter
 from .readarray import allocate_array
 
 # -----------------------------------------------------------------------------
@@ -28,7 +28,7 @@ from .readarray import allocate_array
 #
 from .arrays import interpolate_volume_data, interpolate_volume_gradient
 
-from .arrays import Matrix_Value_Statistics, invert_matrix
+from .arrays import MatrixValueStatistics, invert_matrix
 from .arrays import grid_indices, zone_masked_grid_data
 from .arrays import zone_mask, masked_grid_data
 from .arrays import surface_level_enclosing_volume

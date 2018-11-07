@@ -26,14 +26,12 @@ class Volume(Model):
   a subregion including single plane display, subsampled display of every Nth data
   value along each axis, outline box display.
   '''
-  def __init__(self, data, session, region = None, rendering_options = None,
-               model_id = None, open_model = True, message_cb = None):
-
+  def __init__(self, session, data, region = None, rendering_options = None):
+    '''Supported API. Create a volume model from a GridData instance.'''
+    
     Model.__init__(self, data.name, session)
 
     self.session = session
-    if not model_id is None:
-      self.id = model_id
 
     ds = default_settings(session)
     self.pickable = ds['pickable']
@@ -52,9 +50,7 @@ class Volume(Model):
       rendering_options = Rendering_Options()
     self.rendering_options = rendering_options
 
-    if message_cb is None:
-      message_cb = session.logger.status
-    self.message_cb = message_cb
+    self.message_cb = session.logger.status
     
     self.matrix_stats = None
     self.matrix_id = 1          # Incremented when shape or values change.
@@ -1122,9 +1118,9 @@ class Volume(Model):
     origin, size, step = self.step_aligned_region(region)
     d = self.data
     operation = 'reading %s' % d.name
-    from .data import Progress_Reporter
-    progress = Progress_Reporter(operation, size, d.value_type.itemsize,
-                                 message = self.message_cb)
+    from .data import ProgressReporter
+    progress = ProgressReporter(operation, size, d.value_type.itemsize,
+                                message = self.message_cb)
     from_cache_only = not read_matrix
     m = d.matrix(origin, size, step, progress, from_cache_only)
     return m
@@ -1482,8 +1478,8 @@ class Volume(Model):
       sg = self.data
     else:
       ijk_min, ijk_max, ijk_step = region
-      from .data import Grid_Subregion
-      sg = Grid_Subregion(self.data, ijk_min, ijk_max, ijk_step)
+      from .data import GridSubregion
+      sg = GridSubregion(self.data, ijk_min, ijk_max, ijk_step)
 
     if mask_zone:
       surf_model = self.surface_model()
@@ -1561,7 +1557,7 @@ class Volume(Model):
     if nvox >= min_status_message_voxels:
       self.message('Computing histogram for %s' % self.name)
     from . import data
-    self.matrix_stats = ms = data.Matrix_Value_Statistics(matrices)
+    self.matrix_stats = ms = data.MatrixValueStatistics(matrices)
     if nvox >= min_status_message_voxels:    
       self.message('')
 
@@ -1746,7 +1742,7 @@ class Volume(Model):
     grid_data = data['grid data state'].grid_data
     if grid_data is None:
       return None	# Map file not available.
-    v = Volume(grid_data, session)
+    v = Volume(session, grid_data)
     Model.set_state_from_snapshot(v, session, data['model state'])
     from .session import set_map_state
     set_map_state(data['volume state'], v)
@@ -2839,7 +2835,7 @@ def open_volume_file(path, session, format = None, name = None, representation =
   from . import data
   try:
     glist = data.open_file(path, format)
-  except data.File_Format_Error as value:
+  except data.FileFormatError as value:
     raise
     from os.path import basename
     if isinstance(path, (list,tuple)):
@@ -2901,7 +2897,12 @@ def data_cache(session):
 #
 def volume_from_grid_data(grid_data, session, representation = None,
                           open_model = True, model_id = None, show_dialog = True):
-
+  '''
+  Supported API.
+  Create a new Volume model from a GridData instance and set its initial 
+  display style and color and add it to the session open models.
+  '''
+  
   set_data_cache(grid_data, session)
 
   ds = default_settings(session)
@@ -2912,9 +2913,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
   if d:
     grid_data = d
     
-  v = Volume(grid_data, session, rendering_options = ro,
-             model_id = model_id, open_model = open_model,
-             message_cb = session.logger.status)
+  v = Volume(session, grid_data, rendering_options = ro)
   
   # Set display style
   if representation is None:
@@ -2925,6 +2924,9 @@ def volume_from_grid_data(grid_data, session, representation = None,
   
   if grid_data.rgba is None:
     set_initial_volume_color(v, session)
+
+  if not model_id is None:
+    v.id = model_id
 
   if open_model:
     session.models.add([v])
@@ -3015,7 +3017,7 @@ def volume_list(session):
 #
 def open_map(session, stream, name = None, format = None, **kw):
     '''
-    Open a density map file having any of the known density map formats.
+    Supported API. Open a density map file having any of the known density map formats.
     '''
     if isinstance(stream, (str, list)):
       map_path = stream         # Batched paths

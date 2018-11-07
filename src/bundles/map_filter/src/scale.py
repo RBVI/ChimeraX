@@ -41,8 +41,8 @@ def scaled_grid(v, scale, shift, type, subregion = None, step = 1,
   if region is None:
     d = v.grid_data(subregion, step, mask_zone = False)
   else:
-    from ..data import Grid_Subregion
-    d = Grid_Subregion(v.data, *region)
+    from ..data import GridSubregion
+    d = GridSubregion(v.data, *region)
   sd = ScaledGrid(d, scale, shift, type)
   return sd
 

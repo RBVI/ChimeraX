@@ -31,8 +31,8 @@ def boxes(session, volume, atoms, size = 0, isize = None, use_atom_size = False,
         from ..volume import is_empty_region
         if is_empty_region(region):
             continue
-        from ..data import Grid_Subregion
-        g = Grid_Subregion(volume.data, *region)
+        from ..data import GridSubregion
+        g = GridSubregion(volume.data, *region)
         g.name = 'box %s' % str(a)
         if base_model_id is None:
             mid = None

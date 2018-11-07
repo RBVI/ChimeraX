@@ -58,7 +58,8 @@ class GridData:
                default_color = None,
                time = None,
                channel = None):
-
+    '''Supported API.'''
+    
     # Path, file_type and grid_id are for reloading data sets.
     self.path = path
     self.file_type = file_type  # 'mrc', 'spider', ....
@@ -447,7 +448,7 @@ def apply_rotation(r, v):
 
 # -----------------------------------------------------------------------------
 #
-class Grid_Subregion(GridData):
+class GridSubregion(GridData):
 
   def __init__(self, grid_data, ijk_min, ijk_max, ijk_step = (1,1,1)):
 

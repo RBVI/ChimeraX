@@ -69,7 +69,7 @@ electrostatics_types = ('apbs', 'delphi', 'uhbd')
 
 # -----------------------------------------------------------------------------
 #
-class Unknown_File_Type(Exception):
+class UnknownFileType(Exception):
 
   def __init__(self, path):
 
@@ -82,7 +82,7 @@ class Unknown_File_Type(Exception):
 
 # -----------------------------------------------------------------------------
 #
-class File_Format_Error(Exception):
+class FileFormatError(Exception):
   pass
   
 # -----------------------------------------------------------------------------
@@ -120,7 +120,7 @@ def open_file(path, file_type = None):
     if file_type is None:
       file_type, path = file_type_from_colon_specifier(p)
       if file_type is None:
-        raise Unknown_File_Type(p)
+        raise UnknownFileType(p)
 
   module_name = file_type
   module = __import__(module_name, globals(), level = 1)
@@ -136,7 +136,7 @@ def open_file(path, file_type = None):
       for p in apath:
         data.extend(module.open(p))
   except SyntaxError as value:
-    raise File_Format_Error(value)
+    raise FileFormatError(value)
   
   return data
 
@@ -279,9 +279,9 @@ def save_grid_data(grids, path, session, format = None, options = {}):
   g = glist[0]
   from os.path import basename
   operation = 'Writing %s to %s' % (g.name, basename(path))
-  from .progress import Progress_Reporter
-  p = Progress_Reporter(operation, g.size, g.value_type.itemsize,
-                        message = session.logger.status)
+  from .progress import ProgressReporter
+  p = ProgressReporter(operation, g.size, g.value_type.itemsize,
+                       message = session.logger.status)
   if 'multigrid' in allowed_options:
     garg = glist
   else:

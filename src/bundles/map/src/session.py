@@ -496,7 +496,7 @@ def create_map_from_state(s, data, session):
 
   ro = rendering_options_from_state(s['rendering_options'])
   from .volume import Volume
-  v = Volume(data[0], session, s['region'], ro)
+  v = Volume(session, data[0], s['region'], ro)
   v.session_volume_id = s['session_volume_id']
 
   if isinstance(v.data.path, str):
