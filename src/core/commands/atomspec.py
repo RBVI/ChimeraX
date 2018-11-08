@@ -470,9 +470,9 @@ class _ModelRange:
             return self.start == '*' or mid == self.start
         else:
             # Range match
-            if self.start != 'start' and mid < self.start:
+            if self.start != 'start' and self.start != '*' and mid < self.start:
                 return False
-            return self.end == 'end' or mid <= self.end
+            return self.end == 'end' or self.end == '*' or mid <= self.end
 
 
 class _SubPart:
