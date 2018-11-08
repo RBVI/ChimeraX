@@ -48,10 +48,14 @@ model_range_list = range:model_range { ',' range_list:model_range_list }*
                  ;
 
 model_range      = start:model_spec_start '-' end:model_spec_end
-                 | start:model_spec_start
+                 | start:model_spec_any
                  ;
 
 (* limit model numbers to 5 digits to avoid conflict with # colors *)
+
+model_spec_any = number:model_spec
+                 | word:'*'
+                 ;
 
 model_spec_start = number:model_spec
                  | word:'start'

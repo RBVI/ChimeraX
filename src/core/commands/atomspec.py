@@ -274,21 +274,16 @@ class _AtomSpecSemantics:
     def model_range(self, ast):
         return _ModelRange(ast.start, ast.end)
 
-    def model_spec_start(self, ast):
+    def model_spec_any(self, ast):
         if ast.number:
             return ast.number
         elif ast.word:
             return ast.word
         else:
             return None
-
-    def model_spec_end(self, ast):
-        if ast.number:
-            return ast.number
-        elif ast.word:
-            return ast.word
-        else:
-            return None
+    # Start and end are the same as any, except a different word is used
+    model_spec_start = model_spec_any
+    model_spec_end = model_spec_any
 
     def model_spec(self, ast):
         if ast.number is not None:
@@ -472,7 +467,7 @@ class _ModelRange:
     def matches(self, mid):
         if self.end is None:
             # Exact match
-            return self.start == 'start' or mid == self.start
+            return self.start == '*' or mid == self.start
         else:
             # Range match
             if self.start != 'start' and mid < self.start:
