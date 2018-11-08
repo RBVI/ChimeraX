@@ -274,11 +274,25 @@ class _AtomSpecSemantics:
     def model_range(self, ast):
         return _ModelRange(ast.start, ast.end)
 
+    def model_spec_start(self, ast):
+        if ast.number:
+            return ast.number
+        elif ast.word:
+            return ast.word
+        else:
+            return None
+
+    def model_spec_end(self, ast):
+        if ast.number:
+            return ast.number
+        elif ast.word:
+            return ast.word
+        else:
+            return None
+
     def model_spec(self, ast):
         if ast.number is not None:
             return int(ast.number)
-        elif ast.star is not None:
-            return '*'
         else:
             return None
 
@@ -458,12 +472,12 @@ class _ModelRange:
     def matches(self, mid):
         if self.end is None:
             # Exact match
-            return self.start == '*' or mid == self.start
+            return self.start == 'start' or mid == self.start
         else:
             # Range match
-            if self.start != '*' and mid < self.start:
+            if self.start != 'start' and mid < self.start:
                 return False
-            return self.end == '*' or mid <= self.end
+            return self.end == 'end' or mid <= self.end
 
 
 class _SubPart:
