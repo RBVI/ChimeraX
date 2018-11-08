@@ -409,6 +409,13 @@ class Render:
             from ._graphics import set_mac_swap_interval
             success = set_mac_swap_interval(sync)
             return success
+        elif platform == 'linux':
+            sync = 1 if wait else 0
+            from ._graphics import set_linux_swap_interval
+            success = set_linux_swap_interval(sync)
+            return success
+
+        return False
 
     def use_shared_context(self, window, width, height):
         '''
