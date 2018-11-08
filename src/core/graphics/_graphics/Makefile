@@ -20,10 +20,15 @@ SRCS	= blend_rgba.cpp count.cpp graphics.cpp mac_swap_interval.cpp mesh_edges.cp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS	+= $(PYDEF)
 INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+
 ifdef WIN32
 LIBS	+= libarrays.lib $(PYTHON_LIB)
 else
+ifeq ($(OS),Darwin)
 LIBS	+= -larrays $(PYTHON_LIB) -framework OpenGL
+else
+LIBS	+= -larrays $(PYTHON_LIB)
+endif
 endif
 
 all: $(PYMOD)
