@@ -1,5 +1,5 @@
 *** openvr/__init__.py.orig	Mon Oct 29 10:11:37 2018
---- openvr/__init__.py	Wed Nov  7 15:45:24 2018
+--- openvr/__init__.py	Wed Nov  7 16:58:32 2018
 ***************
 *** 31,36 ****
 --- 31,38 ----
@@ -24,7 +24,7 @@
   
   # TODO: Fix the generator of this file (translate/translate.pl) as
   # explained in https://github.com/cmbruns/pyopenvr/pull/42#issuecomment-346866490
-! if sizeof(c_void_p) != 4:
+! if sizeof(c_void_p) != 4 and platform.system() in ('Linux', 'Darwin'):
       class VRControllerState_t(Structure):
           _pack_ = 4
           _fields_ = [
@@ -41,7 +41,7 @@
   
   # TODO: Fix the generator of this file (translate/translate.pl) as
   # explained in https://github.com/cmbruns/pyopenvr/pull/42#issuecomment-346866490
-! if sizeof(c_void_p) != 4:
+! if sizeof(c_void_p) != 4 and platform.system() in ('Linux', 'Darwin'):
       class VREvent_t(Structure):
           "An event posted by the server to all running applications"
           _pack_ = 4
