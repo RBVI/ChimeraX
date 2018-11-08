@@ -17,6 +17,7 @@
 
 #include "blend_rgba.h"			// use blur_blend_images
 #include "count.h"			// use count_values
+#include "mac_swap_interval.h"		// use set_mac_swap_interval
 #include "mesh_edges.h"			// use masked_edges
 
 namespace Graphics_Cpp
@@ -34,6 +35,10 @@ static struct PyMethodDef graphics_cpp_methods[] =
 
   /* count.h */
   {const_cast<char*>("count_value"), (PyCFunction)count_value,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* mac_swap_interval.h */
+  {const_cast<char*>("set_mac_swap_interval"), (PyCFunction)set_mac_swap_interval,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* mesh_edges.h */

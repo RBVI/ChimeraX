@@ -395,13 +395,20 @@ class Render:
         Currently this call is only supported on Windows. Returns true if
         the setting can be changed, otherwise false.
         '''
-        try:
-            from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
-            i = 1 if wait else 0
-            success = wglSwapIntervalEXT(i)
-            return True if success else False
-        except:
-            return False
+        from sys import platform
+        if platform == 'win32':
+            try:
+                from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
+                i = 1 if wait else 0
+                success = wglSwapIntervalEXT(i)
+                return True if success else False
+            except:
+                return False
+        elif platform == 'darwin':
+            sync = 1 if wait else 0
+            from ._graphics import set_mac_swap_interval
+            success = set_mac_swap_interval(sync)
+            return success
 
     def use_shared_context(self, window, width, height):
         '''
