@@ -15,5 +15,5 @@
 #
 def open(path):
 
-  from .plt_grid import Plt_Grid
-  return [Plt_Grid(path)]
+  from .plt_grid import PltGrid
+  return [PltGrid(path)]

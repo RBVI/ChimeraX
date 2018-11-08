@@ -14,5 +14,5 @@
 #
 def open(path):
 
-  from .xplor_grid import XPLOR_Grid
-  return [XPLOR_Grid(path)]
+  from .xplor_grid import XPLORGrid
+  return [XPLORGrid(path)]

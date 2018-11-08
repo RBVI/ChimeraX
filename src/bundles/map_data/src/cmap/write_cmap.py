@@ -65,8 +65,8 @@ def write_grid_as_chimera_map(grid_data, path, options = {}, progress = None):
         }
     settings.update(options)
 
-    from .. import Grid_Data
-    if isinstance(grid_data, Grid_Data):
+    from .. import GridData
+    if isinstance(grid_data, GridData):
         data_sets = [grid_data]
     else:
         data_sets = grid_data

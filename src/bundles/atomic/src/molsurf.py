@@ -188,8 +188,7 @@ class MolecularSurface(Surface):
                                                 rank_metric = 'area rank')
         return m
 
-    @property
-    def joined_triangles(self):
+    def _get_joined_triangles(self):
         if self.sharp_boundaries:
             tri = self._joined_triangles
             if tri is None:
@@ -200,6 +199,9 @@ class MolecularSurface(Surface):
         else:
             tri = self.triangles
         return tri
+    def _set_joined_triangles(self, jtri):
+        self._joined_triangles = jtri
+    joined_triangles = property(_get_joined_triangles, _set_joined_triangles)
     
     def vertex_to_atom_map(self, vertices = None):
         '''
@@ -427,7 +429,7 @@ class MolecularSurface(Surface):
     # State save/restore in ChimeraX
     _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_vertex_to_atom_count', '_max_radius',
                    'vertices', 'normals', 'triangles', 'triangle_mask', 'vertex_colors', 'color',
-                   'joined_triangles', '_atom_patch_colors', '_atom_patch_color_mask')
+                   '_joined_triangles', '_atom_patch_colors', '_atom_patch_color_mask')
 
     def take_snapshot(self, session, flags):
         init_attrs = ('atoms', 'show_atoms', 'probe_radius', 'grid_spacing', 'resolution', 'level',

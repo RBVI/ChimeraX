@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Create and show a volume madel from a Grid_Data object as defined by the
+# Create and show a volume madel from a GridData object as defined by the
 # data module.
 #
 from .volume import volume_from_grid_data

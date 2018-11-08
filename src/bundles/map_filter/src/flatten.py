@@ -50,13 +50,13 @@ def flattened_grid(volume, method = 'multiply linear',
     moffset = (0,0,0)
   flatten_matrix(m, method, mfit, moffset, task = task)
 
-  from ..data import Array_Grid_Data
+  from ..data import ArrayGridData
   d = v.data
   if v.name.endswith('flat'): name = v.name
   else:                       name = '%s flat' % v.name
   forigin, fstep = v.region_origin_and_step(region)
-  fg = Array_Grid_Data(m, forigin, fstep, d.cell_angles, d.rotation,
-                       name = name)
+  fg = ArrayGridData(m, forigin, fstep, d.cell_angles, d.rotation,
+                     name = name)
   return fg
 
 # -----------------------------------------------------------------------------

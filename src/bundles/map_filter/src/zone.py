@@ -55,7 +55,7 @@ def zone_volume(volume, points, radius,
 
     region = volume.subregion(step, subregion)
     from .. import data
-    sg = data.Grid_Subregion(volume.data, *region)
+    sg = data.GridSubregion(volume.data, *region)
 
     mg = data.zone_masked_grid_data(sg, points, radius, invert, minimal_bounds)
     mg.name = volume.name + ' zone'

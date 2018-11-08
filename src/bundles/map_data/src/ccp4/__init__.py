@@ -14,5 +14,5 @@
 #
 def open(path):
 
-  from .ccp4_grid import CCP4_Grid
-  return [CCP4_Grid(path)]
+  from .ccp4_grid import CCP4Grid
+  return [CCP4Grid(path)]

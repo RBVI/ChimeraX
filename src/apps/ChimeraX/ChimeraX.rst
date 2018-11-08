@@ -1,10 +1,10 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-====================
-ChimeraX Application
-====================
+================
+ChimeraX Startup
+================
 
-The ChimeraX application should work on Microsoft Windows, Apple Mac OS X,
+The ChimeraX application runs on Microsoft Windows, Apple Mac OS X,
 and Linux.
 
 For the developer,
@@ -86,6 +86,29 @@ In particular, the follow command line arguments are useful:
     This is done after ChimeraX has started up, so a ChimeraX session
     is available in the global variable ``session``.
 
+Run Custom Python Code at Start Up
+==================================
+
+To have ChimeraX run custom Python code each time you start it you can put Python files
+in directory
+
+	~/chimerax_start
+
+Each Python file will be executed with the variable "session" added to the global namespace.
+For example, the following line put in ~/chimerax_start/starttools.py automatically starts
+the File History panel and Density Map toolbar.
+
+        session.tools.start_tools(('File History', 'Density Map Toolbar'))
+
+Python code can be used to register new commands, add mouse modes and file readers that you
+develop.  In addition to executing Python files in the directory, the startup directory will
+be appended to the Python sys.path search path so Python modules in the subdirectory can be
+imported.  Subdirectories in the startup directory that contain an __init__.py file will be
+imported and if they contain a function named "start" it will be called with session as
+an argument.
+
+To use a directory other than ~/chimerax_start as the startup directory set the environment
+variable CHIMERAX_START to the desired directory in the shell where Chimera is started.
 
 Initializing the Session
 ========================

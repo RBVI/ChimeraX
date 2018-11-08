@@ -348,8 +348,8 @@ def subsample_arrays(grid_data, dname, f):
 
   sarrays = []
 
-  from .. import Subsampled_Grid
-  if not isinstance(grid_data, Subsampled_Grid):
+  from .. import SubsampledGrid
+  if not isinstance(grid_data, SubsampledGrid):
     return sarrays
 
   cslist = grid_data.available_subsamplings.keys()

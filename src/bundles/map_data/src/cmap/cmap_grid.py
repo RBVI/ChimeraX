@@ -13,11 +13,11 @@
 # Wrap Chimera HDF image data as grid data for displaying surface, meshes,
 # and volumes.
 #
-from ..griddata import Grid_Data
+from ..griddata import GridData
 
 # -----------------------------------------------------------------------------
 #
-class Chimera_HDF_Grid(Grid_Data):
+class ChimeraHDFGrid(GridData):
 
   # Attribute names for grid settings in constructor call.
   attributes = ('size', 'value_type', 'origin', 'step', 'cell_angles',
@@ -33,8 +33,8 @@ class Chimera_HDF_Grid(Grid_Data):
     if image_name and image_name != name.rsplit('.',1)[0]:
       name = image_name
 
-    Grid_Data.__init__(self, name = name, path = hdf_data.path, file_type = 'cmap',
-                       grid_id = sorted(array_paths)[0], **grid_settings)
+    GridData.__init__(self, name = name, path = hdf_data.path, file_type = 'cmap',
+                      grid_id = sorted(array_paths)[0], **grid_settings)
 
   # ---------------------------------------------------------------------------
   #
@@ -57,8 +57,8 @@ def read_chimera_map(path):
   for i in d.images:
     if len(d.images) > 1: image_name = i.name
     else:                 image_name = ''
-    settings = {attr:getattr(i,attr) for attr in Chimera_HDF_Grid.attributes}
-    g = Chimera_HDF_Grid(d, image_name, i.array_paths, **settings)
+    settings = {attr:getattr(i,attr) for attr in ChimeraHDFGrid.attributes}
+    g = ChimeraHDFGrid(d, image_name, i.array_paths, **settings)
     if i.subsamples:
       g = add_subsamples(d, i, g)
     glist.append(g)
@@ -76,14 +76,14 @@ def read_chimera_map(path):
 #
 def add_subsamples(hdf_data, hdf_image, g):
 
-  from ..subsample import Subsampled_Grid
-  g = Subsampled_Grid(g)
+  from ..subsample import SubsampledGrid
+  g = SubsampledGrid(g)
   i = hdf_image
   for cell_size, data_size, array_paths in i.subsamples:
-      settings = {attr:getattr(i,attr) for attr in Chimera_HDF_Grid.attributes}
+      settings = {attr:getattr(i,attr) for attr in ChimeraHDFGrid.attributes}
       step = tuple(s*c for s,c in zip(i.step, cell_size))
       settings.update({'size':data_size, 'step':step})
-      sg = Chimera_HDF_Grid(hdf_data, i.name, array_paths, **settings)
+      sg = ChimeraHDFGrid(hdf_data, i.name, array_paths, **settings)
       g.add_subsamples(sg, cell_size)
       
   return g

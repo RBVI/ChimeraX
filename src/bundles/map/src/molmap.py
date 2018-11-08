@@ -212,8 +212,8 @@ def bounding_grid(xyz, step, pad, transforms = None):
              for a in (2,1,0)]
     from numpy import zeros, float32
     matrix = zeros(shape, float32)
-    from .data import Array_Grid_Data
-    grid = Array_Grid_Data(matrix, origin, (step,step,step))
+    from .data import ArrayGridData
+    grid = ArrayGridData(matrix, origin, (step,step,step))
     return grid
 
 # -----------------------------------------------------------------------------

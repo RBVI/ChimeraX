@@ -12,11 +12,11 @@
 # -----------------------------------------------------------------------------
 # Wrap PIF image data as grid data for displaying surface, meshes, and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class PIF_Grid(Grid_Data):
+class PIFGrid(GridData):
 
   def __init__(self, path):
 
@@ -24,9 +24,9 @@ class PIF_Grid(Grid_Data):
     d = pif_format.PIF_Data(path)
     self.pif_data = d
 
-    Grid_Data.__init__(self, d.data_size, d.element_type,
-                       d.data_origin, d.data_step, d.cell_angles,
-                       path = path, file_type = 'pif')
+    GridData.__init__(self, d.data_size, d.element_type,
+                      d.data_origin, d.data_step, d.cell_angles,
+                      path = path, file_type = 'pif')
 
     self.polar_values = True    # These maps are frequently inverted.
   

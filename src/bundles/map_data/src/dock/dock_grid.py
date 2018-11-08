@@ -12,11 +12,11 @@
 # -----------------------------------------------------------------------------
 # Wrap DOCK grid data for displaying surface, meshes, and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class Dock_Grid(Grid_Data):
+class DockGrid(GridData):
 
   def __init__(self, dock_data, component_name):
 
@@ -28,11 +28,11 @@ class Dock_Grid(Grid_Data):
     from os.path import basename
     name = basename(path) + ' ' + component_name
 
-    Grid_Data.__init__(self, d.data_size, d.value_type(component_name),
-                       d.data_origin, d.data_step,
-                       name = name, path = path, file_type = 'dock',
-                       grid_id = component_name,
-                       default_color = d.color(component_name))
+    GridData.__init__(self, d.data_size, d.value_type(component_name),
+                      d.data_origin, d.data_step,
+                      name = name, path = path, file_type = 'dock',
+                      grid_id = component_name,
+                      default_color = d.color(component_name))
   
   # ---------------------------------------------------------------------------
   #
@@ -51,7 +51,7 @@ def read_dock_file(path):
 
   grids = []
   for cname in dock_data.component_names:
-    g = Dock_Grid(dock_data, cname)
+    g = DockGrid(dock_data, cname)
     grids.append(g)
 
   return grids

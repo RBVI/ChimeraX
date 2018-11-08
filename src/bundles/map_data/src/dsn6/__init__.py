@@ -15,8 +15,8 @@
 #
 def open(path):
 
-  from .dsn6_grid import DSN6_Grid
-  return [DSN6_Grid(path)]
+  from .dsn6_grid import DSN6Grid
+  return [DSN6Grid(path)]
 
 # -----------------------------------------------------------------------------
 #

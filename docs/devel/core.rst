@@ -14,8 +14,8 @@
 
 .. _core:
 
-ChimeraX Core
-=============
+Intro to ChimeraX Design
+========================
 
 There are three major components of the ChimeraX core:
 the :doc:`user interface <user_interface>` modules,

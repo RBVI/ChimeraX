@@ -12,20 +12,20 @@
 # -----------------------------------------------------------------------------
 # Wrap CCP4 image data as grid data for displaying surface, meshes, and volumes.
 #
-from ..mrc.mrc_grid import MRC_Grid
+from ..mrc.mrc_grid import MRCGrid
 
 # -----------------------------------------------------------------------------
 #
-class IMOD_Grid(MRC_Grid):
+class IMODGrid(MRCGrid):
 
   def __init__(self, path):
-    MRC_Grid.__init__(self, path, file_type = 'imod')
+    MRCGrid.__init__(self, path, file_type = 'imod')
   
   # ---------------------------------------------------------------------------
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    d = MRC_Grid.read_matrix(self, ijk_origin, ijk_size, ijk_step, progress)
+    d = MRCGrid.read_matrix(self, ijk_origin, ijk_size, ijk_step, progress)
 
     import numpy
     if self.value_type == numpy.uint8:

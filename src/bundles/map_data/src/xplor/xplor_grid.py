@@ -13,11 +13,11 @@
 # Wrap XPLOR density maps as grid data for displaying surface, meshes,
 # and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class XPLOR_Grid(Grid_Data):
+class XPLORGrid(GridData):
 
   def __init__(self, path):
 
@@ -29,9 +29,9 @@ class XPLOR_Grid(Grid_Data):
     from ..griddata import scale_and_skew
     origin = scale_and_skew((xm.amin, xm.bmin, xm.cmin), step, xm.cell_angles)
 
-    Grid_Data.__init__(self, xm.grid_size, origin = origin, step = step,
-                       cell_angles = xm.cell_angles,
-                       path = path, file_type = 'xplor')
+    GridData.__init__(self, xm.grid_size, origin = origin, step = step,
+                      cell_angles = xm.cell_angles,
+                      path = path, file_type = 'xplor')
   
   # ---------------------------------------------------------------------------
   #

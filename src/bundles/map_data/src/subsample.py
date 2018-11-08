@@ -12,15 +12,15 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Subsampled_Grid wraps a set of Grid_Data objects.  One of the wrapped grid
+# SubsampledGrid wraps a set of GridData objects.  One of the wrapped grid
 # objects is the primary data and the others are subsamples.
 #
 
-from . import Grid_Data
+from . import GridData
 
 # -----------------------------------------------------------------------------
 #
-class Subsampled_Grid(Grid_Data):
+class SubsampledGrid(GridData):
 
   def __init__(self, primary_grid_data):
 
@@ -29,8 +29,8 @@ class Subsampled_Grid(Grid_Data):
     self.available_subsamplings = {(1,1,1): pg}
 
     settings = pg.settings()
-    Grid_Data.__init__(self, path = pg.path, file_type = pg.file_type,
-                       grid_id = pg.grid_id, **settings)
+    GridData.__init__(self, path = pg.path, file_type = pg.file_type,
+                      grid_id = pg.grid_id, **settings)
 
   # ---------------------------------------------------------------------------
   #

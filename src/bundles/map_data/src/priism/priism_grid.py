@@ -13,11 +13,11 @@
 # Wrap Priism microscope image data as grid data for displaying
 # surface, meshes, and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class Priism_Grid(Grid_Data):
+class PriismGrid(GridData):
 
   def __init__(self, priism_data, wd, time):
 
@@ -47,11 +47,11 @@ class Priism_Grid(Grid_Data):
     else:
       initial_color = (.7, .7, .7, opacity)         # white
 
-    Grid_Data.__init__(self, size, value_type,
-                       xyz_origin, xyz_step,
-                       name = name, path = priism_data.path,
-                       file_type = 'priism', grid_id = str(wd.wave_index),
-                       default_color = initial_color)
+    GridData.__init__(self, size, value_type,
+                      xyz_origin, xyz_step,
+                      name = name, path = priism_data.path,
+                      file_type = 'priism', grid_id = str(wd.wave_index),
+                      default_color = initial_color)
 
     self.num_times = priism_data.num_times
   
@@ -73,7 +73,7 @@ def read_priism_file(path):
   nt = priism_data.num_times
   for t in range(nt):
     for c,wd in enumerate(priism_data.wavelength_data):
-      g = Priism_Grid(priism_data, wd, t)
+      g = PriismGrid(priism_data, wd, t)
       if priism_data.num_waves > 1:
         g.channel = c
       if nt > 1:

@@ -83,6 +83,6 @@ def read_storm(session, filename, name):
 def matching_grid(grid):
     from numpy import zeros, float32
     matrix = zeros(grid.full_matrix().shape, float32)
-    from chimerax.map.data import Array_Grid_Data
-    g = Array_Grid_Data(matrix, grid.origin, grid.step)
+    from chimerax.map.data import ArrayGridData
+    g = ArrayGridData(matrix, grid.origin, grid.step)
     return g

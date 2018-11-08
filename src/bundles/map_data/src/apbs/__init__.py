@@ -15,5 +15,5 @@
 #
 def open(path):
 
-  from .apbs_grid import APBS_Grid
-  return [APBS_Grid(path)]
+  from .apbs_grid import APBSGrid
+  return [APBSGrid(path)]

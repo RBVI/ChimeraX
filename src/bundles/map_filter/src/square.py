@@ -21,7 +21,7 @@ m = v.full_matrix().astype(numpy.float32)
 m[:] = m*m
 
 # Make a new map.
-from VolumeData import Array_Grid_Data
+from VolumeData import ArrayGridData
 from VolumeViewer.volume import volume_from_grid_data
-g = Array_Grid_Data(m, v.data.origin, v.data.step, v.data.cell_angles)
+g = ArrayGridData(m, v.data.origin, v.data.step, v.data.cell_angles)
 c = volume_from_grid_data(g)

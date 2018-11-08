@@ -12,21 +12,22 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-map: Density maps
-=================
+Supported and Experimental APIs
+===============================
 
-.. automodule:: chimerax.map.volume
-    :members:
-    :special-members: __init__
-    :member-order: bysource
-    :show-inheritance:
+.. _supported-api:
 
-.. automodule:: chimerax.map.data.griddata
-    :members:
-    :special-members: __init__
-    :show-inheritance:
+Supported API
+-------------
 
-.. automodule:: chimerax.map.data.arraygrid
-    :members:
-    :special-members: __init__
-    :show-inheritance:
+Items marked as **Supported API** are guaranteed to continue to
+work in subsequent ChimeraX releases with the same major version number.
+
+.. _experimental-api:
+
+Experimental API
+----------------
+
+Items marked as **Experimental API** are likely to be added as
+**Supported API** in the future but the exact arguments, return
+values, and even functionality may still change.

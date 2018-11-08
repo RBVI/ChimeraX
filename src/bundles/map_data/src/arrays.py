@@ -38,7 +38,7 @@ def interpolate_volume_gradient(vertices, v2m_transform, array,
 # -----------------------------------------------------------------------------
 # Minimum, maximum, and sampled matrix values.
 #
-class Matrix_Value_Statistics:
+class MatrixValueStatistics:
 
   def __init__(self, matrix, bins = 10000):
 
@@ -230,8 +230,8 @@ def zone_masked_grid_data(grid_data, zone_points, zone_radius,
     from .regions import points_ijk_bounds, clamp_region, integer_region
     r = points_ijk_bounds(zone_points, zone_radius, grid_data)
     r = clamp_region(integer_region(r), grid_data.size)
-    from .griddata import Grid_Subregion
-    grid_data = Grid_Subregion(grid_data, r[0], r[1])
+    from .griddata import GridSubregion
+    grid_data = GridSubregion(grid_data, r[0], r[1])
 
   mask = zone_mask(grid_data, zone_points, zone_radius,
                    invert_mask, zone_point_mask_values)
@@ -307,9 +307,9 @@ def masked_grid_data(grid_data, mask, mask_value = None):
   else:
     putmask(masked, mask == mask_value, matrix)
 
-  from . import Array_Grid_Data
-  masked_grid_data = Array_Grid_Data(masked, d.origin, d.step,
-                                     d.cell_angles, d.rotation)
+  from . import ArrayGridData
+  masked_grid_data = ArrayGridData(masked, d.origin, d.step,
+                                   d.cell_angles, d.rotation)
   return masked_grid_data
 
 # -----------------------------------------------------------------------------
@@ -338,7 +338,7 @@ def invert_matrix(m):
 # the level passes through a grid point data value.
 #
 # This could be made much faster by starting at the level that encloses the
-# correct fraction of grid points (use Matrix_Value_Statistics binning),
+# correct fraction of grid points (use MatrixValueStatistics binning),
 # then increase or decrease 1% to try to find a small bounding interval.
 # This would require fewer subdivisions and avoid making very large surfaces
 # at too low a contour level.

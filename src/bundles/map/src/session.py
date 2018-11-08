@@ -63,10 +63,10 @@ def state_from_maps(data_maps, include_unsaved_volumes = True, session_path = No
 #
 def create_maps_from_state(dms, session, file_paths):
 
-  # Cache of Grid_Data objects improves load speed when multiple regions
+  # Cache of GridData objects improves load speed when multiple regions
   # are using same data file.  Especially important for files that contain
   # many data arrays.
-  gdcache = {}        # (path, grid_id) -> Grid_Data object
+  gdcache = {}        # (path, grid_id) -> GridData object
   for ds, vslist in dms:
     data = grid_data_from_state(ds, gdcache, session, file_paths)
     if data:        # Can be None if user does not replace missing file.
@@ -185,7 +185,7 @@ def grid_data_state(grid_data, session, include_maps = False):
   return gds
 
 # ---------------------------------------------------------------------------
-# Encapsulate Grid_Data state for session saving in ChimeraX.
+# Encapsulate GridData state for session saving in ChimeraX.
 #
 from chimerax.core.state import State
 class GridDataState(State):
@@ -211,7 +211,7 @@ class GridDataState(State):
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
       session.triggers.add_handler('end restore session', remove_grid_cache)
-    gdcache = session._grid_restore_cache        # (path, grid_id) -> Grid_Data object
+    gdcache = session._grid_restore_cache        # (path, grid_id) -> GridData object
     rfp = getattr(session, '_map_replacement_file_paths', None)
     if rfp is None:
       session._map_replacement_file_paths = rfp = ReplacementFilePaths(session.ui)
@@ -300,8 +300,8 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
   if hasattr(dt, 'time') and dt.time is not None:
     s['time'] = dt.time
 
-  from .data import Subsampled_Grid
-  if isinstance(dt, Subsampled_Grid):
+  from .data import SubsampledGrid
+  if isinstance(dt, SubsampledGrid):
     s['available_subsamplings'] = ass = {}
     for csize, ssdata in dt.available_subsamplings.items():
       if ssdata.path != dt.path:
@@ -319,8 +319,8 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     from base64 import b64decode
     a = frombuffer(decompress(b64decode(s['array'])), dtype = dtype(s['value_type']))
     array = a.reshape(s['size'][::-1])
-    from .data import Array_Grid_Data
-    dlist = [Array_Grid_Data(array)]
+    from .data import ArrayGridData
+    dlist = [ArrayGridData(array)]
   else:
     dbfetch = s.get('database_fetch')
     path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
@@ -369,11 +369,11 @@ def grid_data_from_state(s, gdcache, session, file_paths):
       
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
-    from .data import Subsampled_Grid
+    from .data import SubsampledGrid
     dslist = []
     for data in dlist:
-      if not isinstance(data, Subsampled_Grid):
-        data = Subsampled_Grid(data)
+      if not isinstance(data, SubsampledGrid):
+        data = SubsampledGrid(data)
       dslist.append(data)
     dlist = dslist
     for cell_size, dstate in s['available_subsamplings'].items():
@@ -496,7 +496,7 @@ def create_map_from_state(s, data, session):
 
   ro = rendering_options_from_state(s['rendering_options'])
   from .volume import Volume
-  v = Volume(data[0], session, s['region'], ro)
+  v = Volume(session, data[0], s['region'], ro)
   v.session_volume_id = s['session_volume_id']
 
   if isinstance(v.data.path, str):

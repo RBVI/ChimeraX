@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # Wrap image data as grid data for displaying surface, meshes, and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
     
 # -----------------------------------------------------------------------------
 #
@@ -20,25 +20,25 @@ def image_stack_grids(paths):
   from . import imagestack_format
   d = imagestack_format.Image_Stack_Data(paths)
   if d.mode == 'RGB':
-    grids = [Image_Stack_Grid(d, channel) for channel in (0,1,2)]
+    grids = [ImageStackGrid(d, channel) for channel in (0,1,2)]
     colors = [(1,0,0,1), (0,1,0,1), (0,0,1,1)]
     for g,rgba in zip(grids,colors):
       g.rgba = rgba
   else:
-    grids = [Image_Stack_Grid(d)]
+    grids = [ImageStackGrid(d)]
   return grids
 
 # -----------------------------------------------------------------------------
 #
-class Image_Stack_Grid(Grid_Data):
+class ImageStackGrid(GridData):
 
   def __init__(self, d, channel = None):
 
     self.image_stack = d
 
-    Grid_Data.__init__(self, d.data_size, d.value_type,
-                       d.data_origin, d.data_step,
-                       path = d.paths, file_type = 'imagestack', channel = channel)
+    GridData.__init__(self, d.data_size, d.value_type,
+                      d.data_origin, d.data_step,
+                      path = d.paths, file_type = 'imagestack', channel = channel)
 
   # ---------------------------------------------------------------------------
   #
