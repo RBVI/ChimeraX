@@ -13,7 +13,10 @@
  * === UCSF ChimeraX Copyright ===
  */
 
+#ifdef __APPLE__
 #include <OpenGL/OpenGL.h>			// Use CGLSetParameter
+#endif
+
 #include <arrays/pythonarray.h>		// use parse_uint8_n_array()
 
 // ----------------------------------------------------------------------------
@@ -30,6 +33,7 @@ static bool set_mac_swap_interval(int sync)
   // CGLSetParameter(ctx, NSOpenGLCPSwapInterval, &gl_sync);
   return true;
 #endif
+
   return false;
 }
 
