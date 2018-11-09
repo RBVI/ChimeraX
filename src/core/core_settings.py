@@ -38,6 +38,7 @@ class _CoreSettings(Settings):
         'https_proxy': ("", 443),
         'initial_window_size': ("last used", None),
         'resize_window_on_session_restore': False,
+        'trackpad_multitouch': True,
         'warnings_raise_dialog': False,
     }
     AUTO_SAVE = {
