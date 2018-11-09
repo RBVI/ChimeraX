@@ -62,7 +62,8 @@ class CommandLine(ToolInstance):
                 le = self.lineEdit()
                 sel_start, sel_length = le.selectionStart(), len(le.selectedText())
                 QComboBox.focusOutEvent(self, event)
-                le.setSelection(sel_start, sel_length)
+                if sel_start >= 0:
+                    le.setSelection(sel_start, sel_length)
 
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
