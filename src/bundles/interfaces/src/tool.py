@@ -69,29 +69,29 @@ class ContactPlot(Graph):
 
         # Show/hide menu entries
         if nodes:
-            add('Show only %s' % node_names, self._show_node_atoms, nodes)
+            add('Show Only %s' % node_names, self._show_node_atoms, nodes)
 
         if len(nodes) == 1:
-            add('Show %s and neighbors' % node_names, self._show_neighbors, nodes[0])
-            add('Show contact residues of neighbors with %s' % node_names,
+            add('Show %s and Neighbors' % node_names, self._show_neighbors, nodes[0])
+            add('Show Contact Residues of Neighbors with %s' % node_names,
                 self._show_contact_residues, nodes[0])
 
         from .cmd import Contact, SphereGroup
         if isinstance(item, Contact):
             c = item
             n1, n2 = (c.group1.name, c.group2.name)
-            add('Show contact residues of %s with %s' % (n1,n2),
+            add('Show Contact Residues of %s with %s' % (n1,n2),
                 self._show_interface_residues, c, c.group1)
-            add('Show contact residues of %s with %s' % (n2,n1),
+            add('Show Contact Residues of %s with %s' % (n2,n1),
                 self._show_interface_residues, c, c.group2)
 
         if item is None:
-            add('Show all atoms', self._show_all_atoms)
+            add('Show All Atoms', self._show_all_atoms)
 
         if isinstance(item, Contact):
             flip = True
-            add('Residue plot %s with %s' % (n1,n2), self._show_residue_plot, item, flip)
-            add('Residue plot %s with %s' % (n2,n1), self._show_residue_plot, item)
+            add('Residue Plot %s with %s' % (n1,n2), self._show_residue_plot, item, flip)
+            add('Residue Plot %s with %s' % (n2,n1), self._show_residue_plot, item)
         
         menu.addSeparator()
         
@@ -100,30 +100,30 @@ class ContactPlot(Graph):
             add('Select %s' % node_names, self._select_nodes, nodes)
 
         if nn == 1:
-            add('Select neighbors of %s' % node_names, self._select_neighbors, nodes[0])
+            add('Select Neighbors of %s' % node_names, self._select_neighbors, nodes[0])
 
         if nn == 0:
             clist = self.contacts
-            stext = 'Select all contact residues'
+            stext = 'Select All Contact Residues'
         elif nn == 1:
             clist = self._node_contacts(nodes[0])
-            stext = 'Select contact residues of %s and neighbors' % node_names
+            stext = 'Select Contact Residues of %s and Neighbors' % node_names
         elif nn == 2:
             clist = [item]
-            stext = 'Select contact residues of %s' % node_names
+            stext = 'Select Contact Residues of %s' % node_names
         add(stext, self._select_contact_residues, clist)
 
         if isinstance(item, Contact):
             c = item
             n1, n2 = (c.group1.name, c.group2.name)
-            add('Select contact residues of %s with %s' % (n1,n2),
+            add('Select Contact Residues of %s with %s' % (n1,n2),
                 self._select_contact_residues, clist, c.group1)
-            add('Select contact residues of %s with %s' % (n2,n1),
+            add('Select Contact Residues of %s with %s' % (n2,n1),
                 self._select_contact_residues, clist, c.group2)
 
         if item is None:
-            add('Select all', self._select_nodes, self.groups)
-            add('Clear selection', self._clear_selection)
+            add('Select All', self._select_nodes, self.groups)
+            add('Clear Selection', self._clear_selection)
 
         menu.addSeparator()
 
@@ -134,18 +134,18 @@ class ContactPlot(Graph):
         elif isinstance(item, SphereGroup):
             explode = self._explode_neighbors
             eargs = (item,)
-            ewhat = 'neighbors of %s' % node_names
+            ewhat = 'Neighbors of %s' % node_names
         else:
             explode = self._explode_all
-            ewhat = 'all'
+            ewhat = 'All'
         add('Explode ' + ewhat, explode, *eargs)
         add('Unexplode ' + ewhat, self._unexplode_all)
 
         menu.addSeparator()
 
         if item is None:
-            add('Lay out to match structure', self.draw_graph)
-            add('Orient structure to match layout', self._orient)
+            add('Lay Out to Match Structure', self.draw_graph)
+            add('Orient Structure to Match Layout', self._orient)
                     
     def _select_nodes(self, nodes):
         self._clear_selection()

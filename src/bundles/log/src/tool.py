@@ -138,16 +138,16 @@ class Log(ToolInstance, HtmlLog):
                 def save_image(ses=session):
                     from chimerax.core.commands import run
                     run(ses, "log thumbnail")
-                menu.addAction("Insert image", save_image)
+                menu.addAction("Insert Image", save_image)
                 log_window = self.tool_instance.log_window
-                menu.addAction("Save as...", log_window.cm_save)
+                menu.addAction("Save As...", log_window.cm_save)
                 menu.addAction("Clear", self.tool_instance.clear)
-                menu.addAction("Copy selection", lambda:
+                menu.addAction("Copy Selection", lambda:
                     log_window.page().triggerAction(log_window.page().Copy))
-                menu.addAction("Select all", lambda:
+                menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
                 from PyQt5.QtWidgets import QAction
-                link_action = QAction("Executable command links", menu)
+                link_action = QAction("Executable Command Links", menu)
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
                 link_action.triggered.connect(self.tool_instance.cm_set_cmd_links)

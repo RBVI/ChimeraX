@@ -499,7 +499,7 @@ class SequenceViewer(ToolInstance):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
-        save_as_menu = menu.addMenu("Save as")
+        save_as_menu = menu.addMenu("Save As")
         from chimerax.core import io
         from chimerax.core.commands import run, quote_if_necessary
         for fmt in io.formats(open=False):
@@ -513,7 +513,7 @@ class SequenceViewer(ToolInstance):
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
-        scf_action = QAction("Load sequence coloring file...", menu)
+        scf_action = QAction("Load Sequence Coloring File...", menu)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
         menu.addAction(scf_action)
 
