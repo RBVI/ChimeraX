@@ -228,7 +228,7 @@ class SteamVRCamera(Camera):
         Camera.__init__(self)
 
         self._session = session
-        self._framebuffer = None	# For rendering each eye view to a texture
+        self._framebuffers = []		# For rendering each eye view to a texture
         self._texture_drawing = None	# For desktop graphics display
         from chimerax.core.geometry import Place
 
@@ -403,13 +403,17 @@ class SteamVRCamera(Camera):
         openvr.shutdown()
         self.vr_system = None
         self.compositor = None
-        fb = self._framebuffer
-        if fb is not None:
-            self.render.make_current()
-            fb.delete()
-            self._framebuffer = None
+        self._delete_framebuffers()
         if self._close_cb:
             self._close_cb()	# Replaces the main view camera and resets redraw rate.
+
+    def _delete_framebuffers(self):
+        fbs = self._framebuffers
+        if fbs:
+            self.render.make_current()
+            for fb in fbs:
+                fb.delete()
+            self._framebuffers.clear()
 
     name = 'vr'
     '''Name of camera.'''
@@ -542,16 +546,18 @@ class SteamVRCamera(Camera):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         if not self._frame_started:
             self._start_frame()	# Window resize causes draw without new frame trigger.
-        fb = self._texture_framebuffer(render)
+        left_fb, right_fb = self._eye_framebuffers(render)
         if view_num == 0:  # VR left-eye
-            render.push_framebuffer(fb)
+            render.push_framebuffer(left_fb)
             render.mix_video = False
         elif view_num == 1:  # VR right-eye
             # Submit left eye texture (view 0) before rendering right eye (view 1)
-            self._submit_eye_image('left', fb.openvr_texture, render)
+            self._submit_eye_image('left', left_fb.openvr_texture, render)
+            render.pop_framebuffer()
+            render.push_framebuffer(right_fb)
         elif view_num == 2: # desktop view
             # Submit right eye texture (view 1) before rendering desktop (view 2)
-            self._submit_eye_image('right', fb.openvr_texture, render)
+            self._submit_eye_image('right', right_fb.openvr_texture, render)
             render.mix_video = True  # For making mixed reality videos
             render.mix_depth_scale = self.scene_scale
 
@@ -596,23 +602,26 @@ class SteamVRCamera(Camera):
 
         self._frame_started = False
 
-    def _texture_framebuffer(self, render):
+    def _eye_framebuffers(self, render):
 
         tw,th = self._render_size
-        fb = self._framebuffer
-        if fb is None or fb.width != tw or fb.height != th:
+        fbs = self._framebuffers
+        if not fbs or fbs[0].width != tw or fbs[0].height != th:
+            self._delete_framebuffers()
             from chimerax.core.graphics import Texture, opengl
-            t = Texture()
-            t.initialize_rgba((tw,th))
-            self._framebuffer = fb = opengl.Framebuffer('VR', render.opengl_context, color_texture = t)
-            # OpenVR texture id object
-            import openvr
-            fb.openvr_texture = ovrt = openvr.Texture_t()
-            from ctypes import c_void_p
-            ovrt.handle = c_void_p(int(t.id))
-            ovrt.eType = openvr.TextureType_OpenGL
-            ovrt.eColorSpace = openvr.ColorSpace_Gamma
-        return fb
+            for eye in ('left', 'right'):
+                t = Texture()
+                t.initialize_rgba((tw,th))
+                fb = opengl.Framebuffer('VR %s eye' % eye, render.opengl_context, color_texture = t)
+                fbs.append(fb)
+                # OpenVR texture id object
+                import openvr
+                fb.openvr_texture = ovrt = openvr.Texture_t()
+                from ctypes import c_void_p
+                ovrt.handle = c_void_p(int(t.id))
+                ovrt.eType = openvr.TextureType_OpenGL
+                ovrt.eColorSpace = openvr.ColorSpace_Gamma
+        return fbs
 
     def _desktop_drawing(self, window_size):
         '''Used  to render ChimeraX desktop graphics window.'''
@@ -620,7 +629,7 @@ class SteamVRCamera(Camera):
         if td is None:
             # Drawing object for rendering to ChimeraX window
             from chimerax.core.graphics.drawing import _texture_drawing
-            t = self._framebuffer.color_texture
+            t = self._framebuffers[0].color_texture
             self._texture_drawing = td = _texture_drawing(t)
             td.opaque_texture = True
         from chimerax.core.graphics.drawing import match_aspect_ratio

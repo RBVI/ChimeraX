@@ -62,7 +62,8 @@ class CommandLine(ToolInstance):
                 le = self.lineEdit()
                 sel_start, sel_length = le.selectionStart(), len(le.selectedText())
                 QComboBox.focusOutEvent(self, event)
-                le.setSelection(sel_start, sel_length)
+                if sel_start >= 0:
+                    le.setSelection(sel_start, sel_length)
 
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
@@ -151,7 +152,7 @@ class CommandLine(ToolInstance):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
-        filter_action = QAction("Typed commands only", menu)
+        filter_action = QAction("Typed Commands Only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.settings.typed_only)
         filter_action.toggled.connect(lambda arg, f=self._set_typed_only: f(arg))

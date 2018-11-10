@@ -18,72 +18,55 @@
 ChimeraX Programming Manual
 ***************************
 
-This manual covers programming APIs for the :ref:`core`, tools and libraries.
+This manual covers programming APIs for ChimeraX.
 They are implemented in `Python <http://www.python.org/>`_
 with routines that need to run fast implemented in C++.
 
 User documentation for the ChimeraX application is in the `User's Manual`_.
+
+Tutorials and Examples
+======================
 
 .. toctree::
    :maxdepth: 1
 
    tutorials/introduction.rst
 
+Developer Guide
+===============
+
 .. toctree::
    :maxdepth: 1
 
+   conventions.rst
+   apps/ChimeraX/ChimeraX.rst
    writing_bundles.rst
-
-.. toctree::
-   :maxdepth: 1
-
-   core/commands/user_commands.rst
-
-.. toctree::
-   :maxdepth: 1
-
-   modules.rst
-
-.. toctree::
-   :maxdepth: 1
-
-   classes.rst
-
-.. toctree::
-   :maxdepth: 1
-
-   cpplibs.rst
-
-.. toctree::
-   :maxdepth: 1
-
+   core.rst
+   core/startup.rst
    building.rst
 
-.. _supported-api:
-.. _experimental-api:
+API Reference
+=============
 
+.. toctree::
+   :maxdepth: 1
 
-Application Program Interface
-=============================
+   supported_api.rst	      
+   modules.rst
+   core/commands/user_commands.rst
+   classes.rst
+   cpplibs.rst
+   prereqs.rst
 
-Items marked as **Supported API** are guaranteed to continue to
-work in subsequent ChimeraX releases with the same major version number.
-
-Items marked as **Experimental API** are likely to be added as
-**Supported API** in the future but the exact arguments, return
-values, and even functionality may still change.
-
-*****
 Index
-*****
+=====
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
 
-********
 License
-********
+=======
 
 This code is free for non-commercial use, see the :doc:`license <license>` for details.
 

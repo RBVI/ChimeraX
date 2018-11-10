@@ -189,6 +189,21 @@
     <ChimeraXClassifier>ChimeraX :: Selector :: Uus :: Uus (element)</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Selector :: Uuo :: Uuo (element)</ChimeraXClassifier>
 
+    <ChimeraXClassifier>ChimeraX :: Selector :: backbone :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: mainchain :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: ions :: ions</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: ligand :: ligands</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: main :: main structure</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: solvent :: solvent</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: protein :: proteins</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: nucleic :: nucleic acids</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: nucleic-acid :: nucleic acids</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: strand :: beta sheet strands</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: helix :: protein helices</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: coil :: protein coils</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: sidechain :: side-chain atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: sideonly :: side-chain atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Selector :: ribose :: ribose</ChimeraXClassifier>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
   </Classifiers>

@@ -843,7 +843,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._select_mode_reminders = {k:v for k,v in zip(mode_names, 
             ["", " (+)", " (-)", " (\N{INTERSECTION})"])}
         for mode in mode_names:
-            action = QAction(mode + self._select_mode_reminders[mode], self)
+            action = QAction(mode.title() + self._select_mode_reminders[mode], self)
             self.select_mode_menu.addAction(action)
             action.triggered.connect(
                 lambda arg, s=self, m=mode: s._set_select_mode(m))
@@ -864,7 +864,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _set_select_mode(self, mode_text):
         self.select_menu_mode = mode_text
-        self.select_mode_menu.setTitle("Menu mode: %s" % mode_text)
+        self.select_mode_menu.setTitle("Menu Mode: %s" % mode_text.title())
         mb = self.menuBar()
         from PyQt5.QtWidgets import QMenu
         from PyQt5.QtCore import Qt
@@ -1470,7 +1470,7 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
     if not menu.isEmpty():
         menu.addSeparator()
     ti = tool_instance
-    hide_tool_action = QAction("Hide tool")
+    hide_tool_action = QAction("Hide Tool")
     hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
     if ti.help is not None:
@@ -1479,13 +1479,13 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
         help_action.triggered.connect(lambda arg, ti=ti: ti.display_help())
         menu.addAction(help_action)
     else:
-        no_help_action = QAction("No help available")
+        no_help_action = QAction("No Help Available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
     session = ti.session
     if autostartable:
         autostart = ti.tool_name in session.ui.settings.autostart
-        auto_action = QAction("Start at ChimeraX startup")
+        auto_action = QAction("Start at ChimeraX Startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
         from chimerax.core.commands import run, quote_if_necessary
@@ -1495,7 +1495,7 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
             quote_if_necessary(ti.tool_name))))
         menu.addAction(auto_action)
     undockable = ti.tool_name in session.ui.settings.undockable
-    dock_action = QAction("Dockable tool")
+    dock_action = QAction("Dockable Tool")
     dock_action.setCheckable(True)
     dock_action.setChecked(not undockable)
     from chimerax.core.commands import run, quote_if_necessary
@@ -1505,7 +1505,7 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
         quote_if_necessary(ti.tool_name))))
     menu.addAction(dock_action)
     if memorable:
-        position_action = QAction("Save tool position")
+        position_action = QAction("Save Tool Position")
         position_action.setStatusTip("Use current docked side,"
             " or undocked size/position as default")
         from chimerax.core.commands import run, quote_if_necessary

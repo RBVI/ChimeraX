@@ -211,6 +211,9 @@ class InitWindowSizeOption(Option):
                 int(100.0 * window_width / screen_width),
                 int(100.0 * window_height / screen_height)))
 
+def _enable_trackpad_multitouch(session, enable):
+    session.ui.mouse_modes.trackpad.enable_multitouch(enable)
+
 # next two variables needed so that log can notify interface about setting change
 log_error_cb = log_warning_cb = None
 
@@ -403,6 +406,16 @@ class CoreSettingsPanel:
             None,
             None,
             'How frequently to check toolshed for new updates<br>',
+            True),
+        'trackpad_multitouch': (
+            'Use trackpad gestures to rotate and move',
+            'Trackpad',
+            BooleanOption,
+            _enable_trackpad_multitouch,
+            None,
+            None,
+            None,
+            'Whether to enable 2 and 3 finger trackpad drags to rotate and move.',
             True),
         'warnings_raise_dialog': (
             'Warnings shown in dialog',

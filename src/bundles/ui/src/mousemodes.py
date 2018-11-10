@@ -222,6 +222,9 @@ class MouseModes:
 
         self.bind_standard_mouse_modes()
 
+        from .trackpad import MultitouchTrackpad
+        self.trackpad = MultitouchTrackpad(session)
+
     def bind_mouse_mode(self, button, modifiers, mode):
         '''
         Button is "left", "middle", "right", "wheel", or "pause".
@@ -403,8 +406,11 @@ class MouseModes:
         gw.mouseReleaseEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_up")
         gw.mouseDoubleClickEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_double_click")
         gw.wheelEvent = self._wheel_event
+        self.trackpad.set_graphics_window(gw)
 
     def _wheel_event(self, event):
+        if self.trackpad.is_trackpad_wheel_event(event):
+            return	# Trackpad processing handled this event
         f = self.mode('wheel', self._key_modifiers(event))
         if f:
             f.wheel(MouseEvent(event))

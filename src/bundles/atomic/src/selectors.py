@@ -24,8 +24,21 @@ def register_selectors(logger):
     for i in range(1, Element.NUM_SUPPORTED_ELEMENTS):
         e = Element.get_element(i)
         reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results), logger, desc="%s (element)" % e.name)
-
-
+    reg("backbone", _backbone_selector, logger, desc="backbone atoms")
+    reg("mainchain", _backbone_selector, logger, desc="backbone atoms")
+    reg("protein", lambda s, m, r: _polymer_selector(m, r, True), logger, desc="proteins")
+    reg("nucleic", lambda s, m, r: _polymer_selector(m, r, False), logger, desc="nucleic acids")
+    reg("nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False), logger, desc="nuecleic acids")
+    reg("ions", lambda s, m, r: _structure_category_selector("ions", m, r), logger, desc="ions")
+    reg("ligand", lambda s, m, r: _structure_category_selector("ligand", m, r), logger, desc="ligands")
+    reg("main", lambda s, m, r: _structure_category_selector("main", m, r), logger, desc="main structure")
+    reg("solvent", lambda s, m, r: _structure_category_selector("solvent", m, r), logger, desc="solvent")
+    reg("strand", _strands_selector, logger, desc="strands")
+    reg("helix", _helices_selector, logger, desc="helices")
+    reg("coil", _coil_selector, logger, desc="coils")
+    reg("sidechain", _sidechain_selector, logger, desc="side-chain atoms")
+    reg("sideonly", _sideonly_selector, logger, desc="side-chain atoms")
+    reg("ribose", _ribose_selector, logger, desc="ribose")
 
 def _element_selector(symbol, models, results):
     from chimerax.atomic import Structure
@@ -45,6 +58,119 @@ def _idatm_selector(symbol, models, results):
                 results.add_model(m)
                 results.add_atoms(atoms, bonds=True)
 
+def _backbone_selector(session, models, results):
+    from chimerax.atomic import Structure, structure_atoms
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    backbone = atoms.filter(atoms.is_backbones())
+    if backbone:
+        for s, struct_backbone in backbone.by_structure:
+            results.add_model(s)
+            pbs, pbg = _get_missing_structure(s, struct_backbone)
+            if pbs:
+                _add_missing_structure(results, pbs, pbg)
+        results.add_atoms(backbone, bonds=True)
+
+def _polymer_selector(models, results, protein):
+    from chimerax.atomic import Structure
+    for m in models:
+        if isinstance(m, Structure):
+            pas = m.residues.existing_principal_atoms
+            if protein:
+                residues = pas.residues.filter(pas.names=="CA")
+            else:
+                residues = pas.residues.filter(pas.names!="CA")
+            atoms = residues.atoms
+            pbs, pbg = _get_missing_structure(m, atoms)
+            if residues:
+                results.add_model(m)
+                results.add_atoms(atoms, bonds=True)
+                if pbs:
+                    _add_missing_structure(results, pbs, pbg)
+
+def _add_missing_structure(results, pbs, pbg):
+    from chimerax.atomic import Pseudobonds
+    results.add_pseudobonds(Pseudobonds(pbs))
+    results.add_model(pbg)
+
+def _structure_category_selector(cat, models, results):
+    from chimerax.atomic import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            atoms = m.atoms.filter(m.atoms.structure_categories == cat)
+            if len(atoms) > 0:
+                results.add_model(m)
+                results.add_atoms(atoms, bonds=True)
+
+def _get_missing_structure(struct, atoms):
+    pbg = struct.pseudobond_group("missing structure", create_type=None)
+    pbs = []
+    if pbg:
+        for pb in pbg.pseudobonds:
+            a1, a2 = pb.atoms
+            if a1 in atoms and a2 in atoms:
+                pbs.append(pb)
+    return pbs, pbg
+
+def _strands_selector(session, models, results):
+    from chimerax.atomic import Structure
+    for m in models:
+        if isinstance(m, Structure):
+            strands = m.residues.filter(m.residues.is_strand)
+            if strands:
+                results.add_model(m)
+                results.add_atoms(strands.atoms, bonds=True)
+
+def _helices_selector(session, models, results):
+    from chimerax.atomic import Structure
+    for m in models:
+        if isinstance(m, Structure):
+            helices = m.residues.filter(m.residues.is_helix)
+            if helices:
+                results.add_model(m)
+                results.add_atoms(helices.atoms, bonds=True)
+
+def _coil_selector(session, models, results):
+    from chimerax.atomic import Structure
+    for m in models:
+        if isinstance(m, Structure):
+            from numpy import logical_not, logical_or
+            cr = m.chains.existing_residues
+            is_coil = logical_not(logical_or(cr.is_strand, cr.is_helix))
+            coil = cr.filter(is_coil)
+            # also exclude nucleic acids
+            coil = coil.existing_principal_atoms.residues
+            coil = coil.filter(coil.existing_principal_atoms.names == "CA")
+            if coil:
+                results.add_model(m)
+                results.add_atoms(coil.atoms, bonds=True)
+
+def _sidechain_selector(session, models, results):
+    from chimerax.atomic import Structure, structure_atoms
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    sidechain = atoms.filter(atoms.is_side_chains)
+    if sidechain:
+        for m in sidechain.unique_structures:
+            results.add_model(m)
+        results.add_atoms(sidechain, bonds=True)
+
+def _sideonly_selector(session, models, results):
+    from chimerax.atomic import Structure, structure_atoms
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    sideonly = atoms.filter(atoms.is_side_onlys)
+    if sideonly:
+        for m in sideonly.unique_structures:
+            results.add_model(m)
+        results.add_atoms(sideonly, bonds=True)
+
+def _ribose_selector(session, models, results):
+    from chimerax.atomic import Structure, structure_atoms
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    ribose = atoms.filter(atoms.is_riboses)
+    if ribose:
+        for m in ribose.unique_structures:
+            results.add_model(m)
+        results.add_atoms(ribose, bonds=True)
+
 _chains_menu_needs_update = False
 _chains_menu_name = "&Chains"
 _residues_menu_needs_update = False
@@ -62,7 +188,7 @@ def add_select_menu_items(session):
     atom_triggers = get_triggers(session)
     atom_triggers.add_handler("changes", _check_chains_update_status)
 
-    parent_menus = ["Che&mistry", "&element"]
+    parent_menus = ["Che&mistry", "&Element"]
     elements_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     elements_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
     from PyQt5.QtWidgets import QAction
@@ -76,13 +202,13 @@ def add_select_menu_items(session):
     num_menus = int(sqrt(len(known_elements)) + 0.5)
     incr = len(known_elements) / num_menus
     start_index = 0
-    other_menu = mw.add_select_submenu(parent_menus, "other")
+    other_menu = mw.add_select_submenu(parent_menus, "Other")
     for i in range(num_menus):
         if i < num_menus-1:
             end_index = int((i+1) * incr + 0.5)
         else:
             end_index = len(known_elements) - 1
-        submenu = mw.add_select_submenu(parent_menus + ["other"], "%s-%s"
+        submenu = mw.add_select_submenu(parent_menus + ["Other"], "%s-%s"
             % (known_elements[start_index], known_elements[end_index]))
         for en in known_elements[start_index:end_index+1]:
             action = QAction(en, mw)
@@ -103,6 +229,30 @@ def add_select_menu_items(session):
     from . import get_triggers
     atom_triggers = get_triggers(session)
     atom_triggers.add_handler("changes", _check_residues_update_status)
+
+    parent_menus = ["&Structure"]
+    select_structure_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
+    select_structure_menu.addAction(QAction("Backbone", mw))
+    select_structure_menu.addAction(QAction("Ions", mw))
+    select_structure_menu.addAction(QAction("Ligand", mw))
+    select_structure_menu.addAction(QAction("Main", mw))
+    select_structure_menu.addAction(QAction("Nucleic Acid", mw))
+    select_structure_menu.addAction(QAction("Protein", mw))
+    select_structure_menu.addAction(QAction("Ribose", mw))
+    parent_menus = ["&Structure", "&Secondary Structure"]
+    ss_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
+    ss_menu.addAction(QAction("Coil", mw))
+    ss_menu.addAction(QAction("Helix", mw))
+    ss_menu.addAction(QAction("Strand", mw))
+    select_structure_menu.addAction(QAction("Sidechain + Connector", mw))
+    select_structure_menu.addAction(QAction("Sidechain Only", mw))
+    select_structure_menu.addAction(QAction("Solvent", mw))
+    sel_text_remapping = {
+        'Sidechain + Connector': 'sidechain',
+        'Sidechain Only': 'sideonly'
+    }
+    select_structure_menu.triggered.connect(lambda act, mw=mw:
+        mw.select_by_mode(sel_text_remapping.get(act.text(), act.text()).lower().replace(' ', '-')))
 
 def _update_select_chains_menu(session):
     global _chains_menu_needs_update
@@ -141,7 +291,7 @@ def _update_select_chains_menu(session):
                         shortened = False
                 else:
                     # ...must be multiple identical descriptions...
-                    label = "chain %s" % chain.chain_id
+                    label = "Chain %s" % chain.chain_id
                     shortened = False
                 spec = chain.string(style="command")
                 action = mw.add_menu_selector(submenu, label, spec)
@@ -149,12 +299,15 @@ def _update_select_chains_menu(session):
                 if shortened:
                     submenu.setToolTipsVisible(True)
                     action.setToolTip(chain.description)
-            mw.add_menu_selector(submenu, "all", collective_spec, insertion_point=sep)
+            mw.add_menu_selector(submenu, "All", collective_spec, insertion_point=sep)
         else:
             chain = chains[0]
             chain_id_text = str(chain)
             slash_index = chain_id_text.rfind('/')
-            chain_id_text = chain_id_text[:slash_index] + " chain " + chain_id_text[slash_index+1:]
+            if slash_index > 0:
+                chain_id_text = chain_id_text[:slash_index] + " chain " + chain_id_text[slash_index+1:]
+            else:
+                chain_id_text = "chain " + chain_id_text[slash_index+1:]
             if chain.description:
                 shortened, final = final_description(chain.description)
                 label = "%s (%s)" % (final, chain_id_text)
@@ -195,8 +348,8 @@ def _update_select_residues_menu(session):
         else:
             amino.add(r.name)
     prev_entries = False
-    for cat_name, members in (("all nonstandard", nonstandard), ("standard nucleic acids", nucleic),
-            ("standard amino acids", amino)):
+    for cat_name, members in (("All Nonstandard", nonstandard), ("Standard Nucleic Acids", nucleic),
+            ("Standard Amino Acids", amino)):
         if not members:
             continue
         collective_spec = ""
