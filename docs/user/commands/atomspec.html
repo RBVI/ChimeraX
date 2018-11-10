@@ -175,11 +175,13 @@ comma-separated lists of individual numbers and/or one or more ranges of the
 form <i>start</i>-<i>end</i>. 
 The word <b>start</b> or <b>end</b> can be substituted
 for the <i>start</i> or <i>end</i> value to extend the range to
-the first or last number possible, respectively. 
+the first or last number possible, respectively.
+An asterisk (<b>*</b>) can be used in the place of either 
+<b>start</b> or <b>end</b>,
+in addition to its other uses as a <a href="#wildcards">wild card</a>.
 Chain IDs, residue names, and atom names can also be entered
 as comma-separated lists. Ranges of chain IDs are also allowed; in that case,
-ordering is alphabetical, and neither <i>start</i> nor <i>end</i> 
-can be omitted.
+ordering is alphabetical.
 </p><p>
 Examples:
 <blockquote>
@@ -223,6 +225,10 @@ Examples:
 <b>/A:195,221@n,ca,c,o</b>
 </blockquote>
 - atoms named N, CA, C, O in residues 195 and 221 of chain A
+<blockquote>
+<b>#1.2-end</b>
+</blockquote>
+- all submodels of 1 except 1.1 
 <blockquote>
 <b>#2.1-3,5</b>
 </blockquote>
@@ -319,7 +325,7 @@ Examples:
 </blockquote>
 - atoms with one-, two-, or three-letter names starting with H
 <p>
-The wild card <b>*</b> can also be used to signify &ldquo;all,&rdquo; 
+The wild card <b>*</b> can also signify &ldquo;all,&rdquo; 
 for example, all atoms in a residue or all residues in a model.
 Since blank indicates the same thing, this is really only needed in the middle 
 of a specification where a blank or omitted character would not be accepted,
