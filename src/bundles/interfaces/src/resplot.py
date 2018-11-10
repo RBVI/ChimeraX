@@ -69,9 +69,9 @@ class ResiduePlot(Graph):
     def fill_context_menu(self, menu, rnode):
         r = rnode.residue if rnode else None
         add = lambda *args: self.add_menu_entry(menu, *args)
-        add('Show interface', self._show_interface)
+        add('Show Interface', self._show_interface)
         if r:
-            add('Select residue', self._select_residue, r)
+            add('Select Residue', self._select_residue, r)
 
     def _residue_name(self, r):
         return '%s %d' % (r.name, r.number)

@@ -188,7 +188,7 @@ def add_select_menu_items(session):
     atom_triggers = get_triggers(session)
     atom_triggers.add_handler("changes", _check_chains_update_status)
 
-    parent_menus = ["Che&mistry", "&element"]
+    parent_menus = ["Che&mistry", "&Element"]
     elements_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     elements_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
     from PyQt5.QtWidgets import QAction
@@ -202,13 +202,13 @@ def add_select_menu_items(session):
     num_menus = int(sqrt(len(known_elements)) + 0.5)
     incr = len(known_elements) / num_menus
     start_index = 0
-    other_menu = mw.add_select_submenu(parent_menus, "other")
+    other_menu = mw.add_select_submenu(parent_menus, "Other")
     for i in range(num_menus):
         if i < num_menus-1:
             end_index = int((i+1) * incr + 0.5)
         else:
             end_index = len(known_elements) - 1
-        submenu = mw.add_select_submenu(parent_menus + ["other"], "%s-%s"
+        submenu = mw.add_select_submenu(parent_menus + ["Other"], "%s-%s"
             % (known_elements[start_index], known_elements[end_index]))
         for en in known_elements[start_index:end_index+1]:
             action = QAction(en, mw)
@@ -232,27 +232,27 @@ def add_select_menu_items(session):
 
     parent_menus = ["&Structure"]
     select_structure_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
-    select_structure_menu.addAction(QAction("backbone", mw))
-    select_structure_menu.addAction(QAction("ions", mw))
-    select_structure_menu.addAction(QAction("ligand", mw))
-    select_structure_menu.addAction(QAction("main", mw))
-    select_structure_menu.addAction(QAction("nucleic acid", mw))
-    select_structure_menu.addAction(QAction("protein", mw))
-    select_structure_menu.addAction(QAction("ribose", mw))
-    parent_menus = ["&Structure", "secondary structure"]
+    select_structure_menu.addAction(QAction("Backbone", mw))
+    select_structure_menu.addAction(QAction("Ions", mw))
+    select_structure_menu.addAction(QAction("Ligand", mw))
+    select_structure_menu.addAction(QAction("Main", mw))
+    select_structure_menu.addAction(QAction("Nucleic Acid", mw))
+    select_structure_menu.addAction(QAction("Protein", mw))
+    select_structure_menu.addAction(QAction("Ribose", mw))
+    parent_menus = ["&Structure", "&Secondary Structure"]
     ss_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
-    ss_menu.addAction(QAction("coil", mw))
-    ss_menu.addAction(QAction("helix", mw))
-    ss_menu.addAction(QAction("strand", mw))
-    select_structure_menu.addAction(QAction("sidechain + connector", mw))
-    select_structure_menu.addAction(QAction("sidechain only", mw))
-    select_structure_menu.addAction(QAction("solvent", mw))
+    ss_menu.addAction(QAction("Coil", mw))
+    ss_menu.addAction(QAction("Helix", mw))
+    ss_menu.addAction(QAction("Strand", mw))
+    select_structure_menu.addAction(QAction("Sidechain + Connector", mw))
+    select_structure_menu.addAction(QAction("Sidechain Only", mw))
+    select_structure_menu.addAction(QAction("Solvent", mw))
     sel_text_remapping = {
-        'sidechain + connector': 'sidechain',
-        'sidechain only': 'sideonly'
+        'Sidechain + Connector': 'sidechain',
+        'Sidechain Only': 'sideonly'
     }
-    select_structure_menu.triggered.connect(
-        lambda act, mw=mw: mw.select_by_mode(sel_text_remapping.get(act.text(), act.text()).replace(' ', '-')))
+    select_structure_menu.triggered.connect(lambda act, mw=mw:
+        mw.select_by_mode(sel_text_remapping.get(act.text(), act.text()).lower().replace(' ', '-')))
 
 def _update_select_chains_menu(session):
     global _chains_menu_needs_update
@@ -291,7 +291,7 @@ def _update_select_chains_menu(session):
                         shortened = False
                 else:
                     # ...must be multiple identical descriptions...
-                    label = "chain %s" % chain.chain_id
+                    label = "Chain %s" % chain.chain_id
                     shortened = False
                 spec = chain.string(style="command")
                 action = mw.add_menu_selector(submenu, label, spec)
@@ -299,12 +299,15 @@ def _update_select_chains_menu(session):
                 if shortened:
                     submenu.setToolTipsVisible(True)
                     action.setToolTip(chain.description)
-            mw.add_menu_selector(submenu, "all", collective_spec, insertion_point=sep)
+            mw.add_menu_selector(submenu, "All", collective_spec, insertion_point=sep)
         else:
             chain = chains[0]
             chain_id_text = str(chain)
             slash_index = chain_id_text.rfind('/')
-            chain_id_text = chain_id_text[:slash_index] + " chain " + chain_id_text[slash_index+1:]
+            if slash_index > 0:
+                chain_id_text = chain_id_text[:slash_index] + " chain " + chain_id_text[slash_index+1:]
+            else:
+                chain_id_text = "chain " + chain_id_text[slash_index+1:]
             if chain.description:
                 shortened, final = final_description(chain.description)
                 label = "%s (%s)" % (final, chain_id_text)
@@ -345,8 +348,8 @@ def _update_select_residues_menu(session):
         else:
             amino.add(r.name)
     prev_entries = False
-    for cat_name, members in (("all nonstandard", nonstandard), ("standard nucleic acids", nucleic),
-            ("standard amino acids", amino)):
+    for cat_name, members in (("All Nonstandard", nonstandard), ("Standard Nucleic Acids", nucleic),
+            ("Standard Amino Acids", amino)):
         if not members:
             continue
         collective_spec = ""
