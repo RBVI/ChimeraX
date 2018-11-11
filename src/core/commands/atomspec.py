@@ -643,17 +643,29 @@ class _Part:
         if self.end is None:
             from fnmatch import fnmatch
             if _has_wildcard(start_test):
-                def matcher(name):
-                    return fnmatch(name.lower(), start_test)
+                if case_sensitive:
+                    def matcher(name):
+                        return fnmatch(name, start_test)
+                else:
+                    def matcher(name):
+                        return fnmatch(name.lower(), start_test)
             else:
-                def matcher(name):
-                    return name.lower() == start_test
+                if case_sensitive:
+                    def matcher(name):
+                        return name == start_test
+                else:
+                    def matcher(name):
+                        return name.lower() == start_test
         else:
             # Both start and end specified.  No wildcards allowed (for now).
             end_test = self.end if case_sensitive else self.end.lower()
-            def matcher(name):
-                n = name.lower()
-                return n >= start_test and n <= end_test
+            if case_sensitive:
+                def matcher(name):
+                    return name >= start_test and name <= end_test
+            else:
+                def matcher(name):
+                    n = name.lower()
+                    return n >= start_test and n <= end_test
         return matcher
 
     def res_id_matcher(self):
