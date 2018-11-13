@@ -81,6 +81,6 @@ def register_cage_command(logger):
                               ('polygon_sides', IntArg),
                               ('surface_only', BoolArg),
                               ('resolution', FloatArg)],
-                   required_arguments = [place_model],
+                   required_arguments = ['place_model'],
                    synopsis = 'Place copies of model on polygons of cage.')
     register('cage', desc, cage, logger=logger)
