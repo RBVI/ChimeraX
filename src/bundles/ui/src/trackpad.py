@@ -21,7 +21,8 @@ class MultitouchTrackpad:
         self._session = session
         self._view = session.main_view
         self._recent_touch_points = None
-        self.trackpad_speed = 1 	        	# Trackpad position sensitivity
+        from chimerax.core.core_settings import settings
+        self.trackpad_speed = settings.trackpad_sensitivity   	# Trackpad position sensitivity
         # macOS trackpad units are in points (1/72 inch).
         cm_tpu = 72/2.54		# Convert centimeters to trackpad units.
         self._full_rotation_distance = 4 * cm_tpu		# trackpad units
