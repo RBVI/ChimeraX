@@ -215,7 +215,7 @@ def add_select_menu_items(session):
             submenu.addAction(action)
         start_index = end_index + 1
 
-    parent_menus = ["Che&mistry", "&IDATM type"]
+    parent_menus = ["Che&mistry", "&IDATM Type"]
     idatm_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     idatm_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
     from . import Atom
