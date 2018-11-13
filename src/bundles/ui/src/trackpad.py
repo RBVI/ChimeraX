@@ -21,7 +21,7 @@ class MultitouchTrackpad:
         self._session = session
         self._view = session.main_view
         self._recent_touch_points = None
-        self._trackpad_speed = 1 	        	# Trackpad position sensitivity
+        self.trackpad_speed = 1 	        	# Trackpad position sensitivity
         # macOS trackpad units are in points (1/72 inch).
         cm_tpu = 72/2.54		# Convert centimeters to trackpad units.
         self._full_rotation_distance = 4 * cm_tpu		# trackpad units
@@ -75,6 +75,9 @@ class MultitouchTrackpad:
     # The Qt 5.0.2 source code qcocoawindow.mm does not include the environment variable patch.
     def _touch_event(self, event):
 
+        if self._touch_handler is None:
+            return
+
         from PyQt5.QtCore import QEvent
         t = event.type()
         if t == QEvent.TouchUpdate:
@@ -99,7 +102,7 @@ class MultitouchTrackpad:
         import time
         self._last_trackpad_touch_time = time.time()
         self._last_trackpad_touch_count = n
-        speed = self._trackpad_speed
+        speed = self.trackpad_speed
         moves = [t.move() for t in touches]
         if n == 2:
             (dx0,dy0),(dx1,dy1) = moves[0], moves[1]
