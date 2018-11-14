@@ -1745,15 +1745,14 @@ class Structure(Model, StructureData):
 
     def _atomspec_filter_chain(self, atoms, num_atoms, parts, attrs):
         # print("Structure._atomspec_filter_chain", num_atoms, parts, attrs)
-        chain_ids = atoms.residues.chain_ids
-        case_insensitive = not self.lower_case_chains
         import numpy
+        chain_ids = atoms.residues.chain_ids
         if not parts:
             selected = numpy.ones(num_atoms, dtype=numpy.bool_)
         else:
             selected = numpy.zeros(num_atoms, dtype=numpy.bool_)
             for part in parts:
-                choose = part.string_matcher(not case_insensitive)
+                choose = part.string_matcher(self.lower_case_chains)
                 s = numpy.vectorize(choose)(chain_ids)
                 selected = numpy.logical_or(selected, s)
         if attrs:

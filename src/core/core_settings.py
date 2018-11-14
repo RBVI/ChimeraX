@@ -39,6 +39,7 @@ class _CoreSettings(Settings):
         'initial_window_size': ("last used", None),
         'resize_window_on_session_restore': False,
         'trackpad_multitouch': True,
+        'trackpad_sensitivity': 1.0,
         'warnings_raise_dialog': False,
     }
     AUTO_SAVE = {

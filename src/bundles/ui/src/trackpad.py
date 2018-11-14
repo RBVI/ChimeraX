@@ -21,8 +21,14 @@ class MultitouchTrackpad:
         self._session = session
         self._view = session.main_view
         self._recent_touch_points = None
-        self._trackpad_speed = 4         # Trackpad position sensitivity
-        self._minimum_pinch = 0.1	# Fraction of trackpad width
+        from chimerax.core.core_settings import settings
+        self.trackpad_speed = settings.trackpad_sensitivity   	# Trackpad position sensitivity
+        # macOS trackpad units are in points (1/72 inch).
+        cm_tpu = 72/2.54		# Convert centimeters to trackpad units.
+        self._full_rotation_distance = 4 * cm_tpu		# trackpad units
+        self._full_width_translation_distance = 4 * cm_tpu      # trackpad units
+        self._zoom_scaling = 3		# zoom (z translation) faster than xy translation.
+        self._twist_scaling = 6		# twist faster than finger rotation
         self._last_trackpad_touch_time = 0
         self._last_trackpad_touch_count = 0
         self._touch_handler = None
@@ -70,6 +76,9 @@ class MultitouchTrackpad:
     # The Qt 5.0.2 source code qcocoawindow.mm does not include the environment variable patch.
     def _touch_event(self, event):
 
+        if self._touch_handler is None:
+            return
+
         from PyQt5.QtCore import QEvent
         t = event.type()
         if t == QEvent.TouchUpdate:
@@ -85,7 +94,7 @@ class MultitouchTrackpad:
     def _collapse_touch_events(self):
         touches = self._recent_touch_points
         if not touches is None:
-            txy = [(t.id(), t.pos().x(), t.pos().y(), t.lastPos().x(), t.lastPos().y()) for t in touches]
+            txy = [Touch(t) for t in touches]
             self._process_touches(txy)
             self._recent_touch_points = None
 
@@ -94,42 +103,50 @@ class MultitouchTrackpad:
         import time
         self._last_trackpad_touch_time = time.time()
         self._last_trackpad_touch_count = n
-        s = self._trackpad_speed
-        moves = [(id, s*(x-lx), s*(y-ly)) for id,x,y,lx,ly in touches]
+        speed = self.trackpad_speed
+        moves = [t.move() for t in touches]
         if n == 2:
-            (dx0,dy0),(dx1,dy1) = moves[0][1:], moves[1][1:]
+            (dx0,dy0),(dx1,dy1) = moves[0], moves[1]
             from math import sqrt, exp, atan2, pi
             l0,l1 = sqrt(dx0*dx0 + dy0*dy0),sqrt(dx1*dx1 + dy1*dy1)
             d12 = dx0*dx1+dy0*dy1
-            min_pinch = self._minimum_pinch
-            if l0 >= min_pinch and l1 >= min_pinch and d12 < -0.7*l0*l1:
-                # pinch or twist
-                (x0,y0),(x1,y1) = [t[1:3] for t in touches[:2]]
+            if d12 < 0:
+                # Finger moving in opposite directions: pinch or twist
+                (x0,y0),(x1,y1) = [(t.x,t.y) for t in touches[:2]]
                 sx,sy = x1-x0,y1-y0
                 sn = sqrt(sx*sx + sy*sy)
                 sd0,sd1 = sx*dx0 + sy*dy0, sx*dx1 + sy*dy1
                 if abs(sd0) > 0.5*sn*l0 and abs(sd1) > 0.5*sn*l1:
-                    # pinch to zoom
+                    # Fingers move along line between them: pinch to zoom
                     s = 1 if sd1 > 0 else -1
-                    self._translate((0,0,10*s*(l0+l1)))
-                    return
+                    ww = self._view.window_size[0]	# Window width in pixels
+                    zpix = s * speed * self._zoom_scaling * ww * (l0+l1) / self._full_width_translation_distance
+                    self._translate((0,0,zpix))
                 else:
-                    # twist
-                    a = (atan2(-sy*dx1+sx*dy1,sn*sn) +
-                         atan2(sy*dx0-sx*dy0,sn*sn))*180/pi
+                    # Fingers move perpendicular to line between them: twist
+                    rot = atan2(-sy*dx1+sx*dy1,sn*sn) + atan2(sy*dx0-sx*dy0,sn*sn)
+                    a = -speed * self._twist_scaling * rot * 180 / pi
                     zaxis = (0,0,1)
-                    self._rotate(zaxis, -3*a)
-                    return
-            dx = sum(x for id,x,y in moves)
-            dy = sum(y for id,x,y in moves)
-            # rotation
+                    self._rotate(zaxis, a)
+                return
+            # Fingers moving in same direction: rotation
+            dx = sum(x for x,y in moves)/n
+            dy = sum(y for x,y in moves)/n
             from math import sqrt
-            angle = 0.3*sqrt(dx*dx + dy*dy)
+            turns = sqrt(dx*dx + dy*dy)/self._full_rotation_distance
+            angle = speed*360*turns
             self._rotate((dy, dx, 0), angle)
         elif n == 3:
-            dx = sum(x for id,x,y in moves)/n
-            dy = sum(y for id,x,y in moves)/n
-            self._translate((dx, -dy, 0))
+            dx = sum(x for x,y in moves)/n
+            dy = sum(y for x,y in moves)/n
+            ww = self._view.window_size[0]	# Window width in pixels
+            s = speed * ww / self._full_width_translation_distance
+            self._translate((s*dx, -s*dy, 0))
+        elif n == 4:
+            dy = sum(y for x,y in moves)/n
+            ww = self._view.window_size[0]	# Window width in pixels
+            zpix = speed * self._zoom_scaling * dy * ww / self._full_width_translation_distance
+            self._translate((0, 0, zpix))
 
     def _rotate(self, screen_axis, angle):
         if angle == 0:
@@ -158,3 +175,17 @@ class MultitouchTrackpad:
             # Suppress momentum scrolling for 1 second after trackpad scrolling ends.
             return True
         return False
+
+class Touch:
+    def __init__(self, touch_point):
+        t = touch_point
+        self.id = t.id()
+        # Touch positions in macOS correspond to physical trackpad distances in points (= 1/72 inch).
+        # There is an offset in Qt 5.9 which is the current pointer window position x,y (in pixels).
+        self.x = t.pos().x()
+        self.y = t.pos().y()
+        self.last_x = t.lastPos().x()
+        self.last_y = t.lastPos().y()
+
+    def move(self):
+        return (self.x-self.last_x, self.y-self.last_y)

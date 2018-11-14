@@ -230,6 +230,9 @@ class SteamVRCamera(Camera):
         self._session = session
         self._framebuffers = []		# For rendering each eye view to a texture
         self._texture_drawing = None	# For desktop graphics display
+        from sys import platform
+        self._use_opengl_flush = (platform == 'darwin')	# On macOS 10.14.1 flickers without glFlush().
+
         from chimerax.core.geometry import Place
 
         self._close = False
@@ -568,6 +571,8 @@ class SteamVRCamera(Camera):
         import openvr
         eye = openvr.Eye_Left if side == 'left' else openvr.Eye_Right
         result = self.compositor.submit(eye, texture)
+        if self._use_opengl_flush:
+            render.flush()
         self._check_for_compositor_error(side, result, render)
 
     def _check_for_compositor_error(self, eye, result, render):
@@ -588,9 +593,7 @@ class SteamVRCamera(Camera):
         fb = render.pop_framebuffer()
 
         if self.number_of_views() == 2 and not self._close:
-            import openvr
-            result = self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
-            self._check_for_compositor_error('right', result, render)
+            self._submit_eye_image('right', fb.openvr_texture, render)
 
         if self.desktop_display in ('mirror', 'independent'):
             # Render right eye to ChimeraX window.

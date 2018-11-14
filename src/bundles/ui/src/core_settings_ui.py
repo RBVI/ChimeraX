@@ -214,6 +214,9 @@ class InitWindowSizeOption(Option):
 def _enable_trackpad_multitouch(session, enable):
     session.ui.mouse_modes.trackpad.enable_multitouch(enable)
 
+def _set_trackpad_sensitivity(session, value):
+    session.ui.mouse_modes.trackpad.trackpad_speed = value
+
 # next two variables needed so that log can notify interface about setting change
 log_error_cb = log_warning_cb = None
 
@@ -408,7 +411,7 @@ class CoreSettingsPanel:
             'How frequently to check toolshed for new updates<br>',
             True),
         'trackpad_multitouch': (
-            'Use trackpad gestures to rotate and move',
+            'Trackpad gestures to rotate and move',
             'Trackpad',
             BooleanOption,
             _enable_trackpad_multitouch,
@@ -416,6 +419,16 @@ class CoreSettingsPanel:
             None,
             None,
             'Whether to enable 2 and 3 finger trackpad drags to rotate and move.',
+            True),
+        'trackpad_sensitivity': (
+            'Trackpad sensitivity',
+            'Trackpad',
+            (FloatOption, {'decimal_places': 2 }),
+            _set_trackpad_sensitivity,
+            None,
+            None,
+            None,
+            'How fast models move in response to multitouch trackpad gestures',
             True),
         'warnings_raise_dialog': (
             'Warnings shown in dialog',
