@@ -678,7 +678,7 @@ class EdgeLabel(ObjectLabel):
             return None
         a1,a2 = pb.atoms
         sxyz = 0.5 * (a1.scene_coord + a2.scene_coord)	# Midpoint
-        xyz = scene_position.inverse() * sxyz
+        xyz = scene_position.inverse() * sxyz if scene_position else sxyz
         return xyz
     def visible(self):
         pb = self.pseudobond
