@@ -118,10 +118,10 @@ class MultitouchTrackpad:
                 sd0,sd1 = sx*dx0 + sy*dy0, sx*dx1 + sy*dy1
                 if abs(sd0) > 0.5*sn*l0 and abs(sd1) > 0.5*sn*l1:
                     # Fingers move along line between them: pinch to zoom
-                    s = 1 if sd1 > 0 else -1
-                    ww = self._view.window_size[0]	# Window width in pixels
-                    zpix = s * speed * self._zoom_scaling * ww * (l0+l1) / self._full_width_translation_distance
-                    self._translate((0,0,zpix))
+                    zf = 1 + speed * self._zoom_scaling * (l0+l1) / self._full_width_translation_distance
+                    if sd1 < 0:
+                        zf = 1/zf
+                    self._zoom(zf)
                 else:
                     # Fingers move perpendicular to line between them: twist
                     rot = atan2(-sy*dx1+sx*dy1,sn*sn) + atan2(sy*dx0-sx*dy0,sn*sn)
@@ -144,9 +144,10 @@ class MultitouchTrackpad:
             self._translate((s*dx, -s*dy, 0))
         elif n == 4:
             dy = sum(y for x,y in moves)/n
-            ww = self._view.window_size[0]	# Window width in pixels
-            zpix = speed * self._zoom_scaling * dy * ww / self._full_width_translation_distance
-            self._translate((0, 0, zpix))
+            zf = 1 + speed * self._zoom_scaling * abs(dy) / self._full_width_translation_distance
+            if dy < 0:
+                zf = 1/zf
+            self._zoom(zf)
 
     def _rotate(self, screen_axis, angle):
         if angle == 0:
@@ -161,6 +162,19 @@ class MultitouchTrackpad:
         s = tuple(dx*psize for dx in screen_shift)     # Scene units
         shift = v.camera.position.transform_vector(s)    # Scene coord system
         v.translate(shift)
+
+    def _zoom(self, factor):
+        v = self._view
+        c = v.camera
+        if c.name == 'orthographic':
+            c.field_width = c.field_width / factor
+            # TODO: Make camera field_width a property so it knows to redraw.
+            c.redraw_needed = True
+        else:
+            psize = v.pixel_size()
+            zpix = (factor-1) * v.window_size[0]	# Window width in pixels
+            shift = v.camera.position.transform_vector((0,0,zpix*psize))    # Scene coord system
+            v.translate(shift)
 
     def is_trackpad_wheel_event(self, event):
         # Suppress trackpad wheel events when using multitouch
