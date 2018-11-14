@@ -14,7 +14,7 @@
 from abc import ABCMeta, abstractmethod
 
 class Option(metaclass=ABCMeta):
-    """Base class (and common API) for all options"""
+    """Supported API. Base class (and common API) for all options"""
 
     multiple_value = "-- multiple --"
     read_only = False
@@ -89,21 +89,25 @@ class Option(metaclass=ABCMeta):
 
     @abstractmethod
     def get(self):
-        # return the option's value
+        """Supported API. Return the option's value"""
         pass
 
     @abstractmethod
     def set(self, value):
-        # set the option's value; should NOT invoke the callback
+        """Supported API. Set the option's value; should NOT invoke the callback"""
         pass
 
     def get_attribute(self, obj):
+        """Supported API. Get the attribute associated with this option ('attr_name' in constructor)
+           from the provided 'obj'"""
         if not self.attr_name:
             raise ValueError("No attribute associated with %s" % repr(self))
         fetcher = recurse_getattr if '.' in self.attr_name else getattr
         return fetcher(obj, self.attr_name)
 
     def set_attribute(self, obj):
+        """Supported API. Set the attribute associated with this option ('attr_name' in constructor)
+           in the provided 'obj'"""
         if not self.attr_name:
             raise ValueError("No attribute associated with %s" % repr(self))
         setter = recurse_setattr if '.' in self.attr_name else setattr
@@ -111,29 +115,31 @@ class Option(metaclass=ABCMeta):
 
     @abstractmethod
     def set_multiple(self):
-        # indicate that the items the option covers have multiple different values
+        """Supported API. Indicate that the items the option covers have multiple different values"""
         pass
 
-    def _get_value(self):
+    @property
+    def value(self):
         return self.get()
 
-    def _set_value(self, val):
+    @value.setter
+    def value(self, val):
         self.set(val)
 
-    value = property(_get_value, _set_value)
-
     def enable(self):
+        """Supported API. Enable the option"""
         # usually no need to override, since enabling/disabling
         # a Qt widget implicitly does the same for its children
         self.widget.setDisabled(False)
 
     def disable(self):
+        """Supported API. Disable the option"""
         # usually no need to override, since enabling/disabling
         # a Qt widget implicitly does the same for its children
         self.widget.setDisabled(True)
 
     def make_callback(self):
-        # Called (usually by GUI) to propagate changes back to program
+        """Supported API. Called (usually by GUI) to propagate changes back to program"""
         if self._callback:
             self._callback(self)
 
@@ -155,7 +161,7 @@ def recurse_setattr(obj, attr_name, val):
     setattr(obj, attrs[-1], val)
 
 class BooleanOption(Option):
-    """Option for true/false values"""
+    """Supported API. Option for true/false values"""
 
     def get(self):
         return self.widget.isChecked()
@@ -173,7 +179,7 @@ class BooleanOption(Option):
         self.widget.clicked.connect(lambda state, s=self: s.make_callback())
 
 class EnumOption(Option):
-    """Option for enumerated values"""
+    """Supported API. Option for enumerated values"""
     values = ()
 
     def get(self):
@@ -210,7 +216,7 @@ class EnumOption(Option):
         self.make_callback()
 
 class FloatOption(Option):
-    """Option for floating-point values.
+    """Supported API. Option for floating-point values.
        Constructor takes option min/max keywords to specify lower/upper bound values.
        Besides being numeric values, those keyords can also be 'positive' or 'negative'
        respectively, in which case the allowed value can be arbitrarily close to zero but
@@ -282,7 +288,7 @@ class FloatOption(Option):
         self.widget.setLayout(layout)
 
 class IntOption(Option):
-    """Option for integer values.
+    """Supported API. Option for integer values.
        Constructor takes option min/max keywords to specify lower/upper bound values.
        
        Supports 'preceding_text' and 'trailing_text' keywords for putting text before
@@ -472,7 +478,7 @@ class OptionalRGBAPairOption(OptionalRGBA8PairOption):
         return tuple(None if i is None else [c/255.0 for c in i] for i in rgba8s)
 
 class StringOption(Option):
-    """Option for text strings"""
+    """Supported API. Option for text strings"""
 
     def get(self):
         return self.widget.text()
@@ -489,7 +495,7 @@ class StringOption(Option):
         self.widget.editingFinished.connect(lambda s=self: s.make_callback())
 
 class StringIntOption(Option):
-    """Option for a string and an int (as a 2-tuple), for something such as host and port"""
+    """Supported API. Option for a string and an int (as a 2-tuple), for something such as host and port"""
 
     default_minimum = IntOption.default_minimum
     default_maximum = IntOption.default_maximum
@@ -537,13 +543,13 @@ class StringIntOption(Option):
         self.widget.setLayout(layout)
 
 class HostPortOption(StringIntOption):
-    """Option for a host name or address and a TCP port number (as a 2-tuple)"""
+    """Supported API. Option for a host name or address and a TCP port number (as a 2-tuple)"""
     def _make_widget(self, **kw):
         StringIntOption._make_widget(self, min=0, max=65535, string_label="host", int_label="port",             **kw)
 
 
 class SymbolicEnumOption(EnumOption):
-    """Option for enumerated values with symbolic names"""
+    """Supported API. Option for enumerated values with symbolic names"""
     values = ()
     labels = ()
 

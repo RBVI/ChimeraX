@@ -62,8 +62,6 @@ Files
 .. toctree::
     :maxdepth: 1
 
-    core/configfile.rst
-
     core/fetch.rst
 
     core/history.rst
