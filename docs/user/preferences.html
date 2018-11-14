@@ -38,6 +38,8 @@ and contains sections:
 <br><a href="#labels">Labels</a>
 <br><a href="#log">Log</a>
 <br><a href="#toolshed">Toolshed</a>
+<br><a href="#trackpad">Trackpad</a>
+<br><a href="#webaccess">Web Access</a>
 <br><a href="#window">Window</a>
 </b></blockquote>
 <p>
@@ -197,9 +199,54 @@ is the web repository of ChimeraX bundles.
 <li><b>Toolshed update interval</b> - how often to check for updates
   <ul>
   <li><b>every day</b>
-  <li><b>every week</b> (default)
+  <li><b>every week</b> (initial default)
   <li><b>every month</b>
   </ul>
+</ul>
+
+<a name="trackpad"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Trackpad</h3>
+<ul>
+<li><b>Use trackpad gestures to rotate and move</b> (initial default <b>on</b>)
+- whether to respond to trackpad multitouch gestures 
+(currently <b>Mac</b> only):
+two-finger rotation, pinch-to-zoom, three-finger translation, four-finger zoom
+<p>
+Otherwise and on other platforms' multitouch trackpads, 
+two-finger drag performs the &ldquo;scrolling&rdquo; action
+(initial default zooming, see 
+<a href="commands/ui.html#mousemode"><b>mousemode</b></a>).
+Regardless of the multitouch setting, 
+touchpad click-drag alone and with modifier keys
+perform the actions of left, middle and right mouse buttons
+(see <a href="commands/ui.html#mousemode"><b>mousemode</b></a>).
+</p>
+</ul>
+
+<a name="webaccess"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Preferences</a>]
+</p>
+-->
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>
+Web Access</h3>
+<p>
+Proxy settings are needed to allow users at certain sites to 
+<a href="commands/open.html#fetch">fetch data</a> over the web; 
+these settings should be the same as for web browsers.
+</p>
+<ul>
+<li><b>HTTP proxy host</b> [&nbsp;<i>hostname</i>&nbsp;] <b>port</b> [&nbsp;<i>number</i>&nbsp;]
+(initial default <b>80</b>)
+<li><b>HTTPS proxy host</b> [&nbsp;<i>hostname</i>&nbsp;] <b>port</b> [&nbsp;<i>number</i>&nbsp;]
+(initial default <b>443</b>)
 </ul>
 
 <a name="window"></a>
@@ -263,5 +310,5 @@ autostart, panel dockability, panel position
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2018</address>
+November 2018</address>
 </body></html> 

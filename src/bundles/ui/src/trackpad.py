@@ -20,13 +20,14 @@ class MultitouchTrackpad:
     def __init__(self, session):
         self._session = session
         self._view = session.main_view
-        self._recent_touch_points = None
+        self._recent_touches = []	# List of Touch instances
+        self._last_touch_locations = {}	# Map touch id -> (x,y)
         from chimerax.core.core_settings import settings
         self.trackpad_speed = settings.trackpad_sensitivity   	# Trackpad position sensitivity
         # macOS trackpad units are in points (1/72 inch).
         cm_tpu = 72/2.54		# Convert centimeters to trackpad units.
-        self._full_rotation_distance = 4 * cm_tpu		# trackpad units
-        self._full_width_translation_distance = 4 * cm_tpu      # trackpad units
+        self._full_rotation_distance = 6 * cm_tpu		# trackpad units
+        self._full_width_translation_distance = 6 * cm_tpu      # trackpad units
         self._zoom_scaling = 3		# zoom (z translation) faster than xy translation.
         self._twist_scaling = 6		# twist faster than finger rotation
         self._last_trackpad_touch_time = 0
@@ -86,17 +87,17 @@ class MultitouchTrackpad:
             # time consuming computatation.  It appears Qt does not collapse the events.
             # So event processing can get tens of seconds behind.  To reduce this problem
             # we only handle the most recent touch update per redraw.
-            self._recent_touch_points = event.touchPoints()
+            self._recent_touches = [Touch(t) for t in event.touchPoints()]
         elif t == QEvent.TouchEnd or t == QEvent.TouchCancel:
             self._last_trackpad_touch_count = 0
-            self._recent_touch_points = None
+            self._recent_touches = []
+            self._last_touch_locations.clear()
 
     def _collapse_touch_events(self):
-        touches = self._recent_touch_points
-        if not touches is None:
-            txy = [Touch(t) for t in touches]
-            self._process_touches(txy)
-            self._recent_touch_points = None
+        touches = self._recent_touches
+        if touches:
+            self._process_touches(touches)
+            self._recent_touches = []
 
     def _process_touches(self, touches):
         n = len(touches)
@@ -104,7 +105,7 @@ class MultitouchTrackpad:
         self._last_trackpad_touch_time = time.time()
         self._last_trackpad_touch_count = n
         speed = self.trackpad_speed
-        moves = [t.move() for t in touches]
+        moves = [t.move(self._last_touch_locations) for t in touches]
         if n == 2:
             (dx0,dy0),(dx1,dy1) = moves[0], moves[1]
             from math import sqrt, exp, atan2, pi
@@ -118,10 +119,10 @@ class MultitouchTrackpad:
                 sd0,sd1 = sx*dx0 + sy*dy0, sx*dx1 + sy*dy1
                 if abs(sd0) > 0.5*sn*l0 and abs(sd1) > 0.5*sn*l1:
                     # Fingers move along line between them: pinch to zoom
-                    s = 1 if sd1 > 0 else -1
-                    ww = self._view.window_size[0]	# Window width in pixels
-                    zpix = s * speed * self._zoom_scaling * ww * (l0+l1) / self._full_width_translation_distance
-                    self._translate((0,0,zpix))
+                    zf = 1 + speed * self._zoom_scaling * (l0+l1) / self._full_width_translation_distance
+                    if sd1 < 0:
+                        zf = 1/zf
+                    self._zoom(zf)
                 else:
                     # Fingers move perpendicular to line between them: twist
                     rot = atan2(-sy*dx1+sx*dy1,sn*sn) + atan2(sy*dx0-sx*dy0,sn*sn)
@@ -144,9 +145,10 @@ class MultitouchTrackpad:
             self._translate((s*dx, -s*dy, 0))
         elif n == 4:
             dy = sum(y for x,y in moves)/n
-            ww = self._view.window_size[0]	# Window width in pixels
-            zpix = speed * self._zoom_scaling * dy * ww / self._full_width_translation_distance
-            self._translate((0, 0, zpix))
+            zf = 1 + speed * self._zoom_scaling * abs(dy) / self._full_width_translation_distance
+            if dy < 0:
+                zf = 1/zf
+            self._zoom(zf)
 
     def _rotate(self, screen_axis, angle):
         if angle == 0:
@@ -161,6 +163,19 @@ class MultitouchTrackpad:
         s = tuple(dx*psize for dx in screen_shift)     # Scene units
         shift = v.camera.position.transform_vector(s)    # Scene coord system
         v.translate(shift)
+
+    def _zoom(self, factor):
+        v = self._view
+        c = v.camera
+        if c.name == 'orthographic':
+            c.field_width = c.field_width / factor
+            # TODO: Make camera field_width a property so it knows to redraw.
+            c.redraw_needed = True
+        else:
+            psize = v.pixel_size()
+            zpix = (factor-1) * v.window_size[0]	# Window width in pixels
+            shift = v.camera.position.transform_vector((0,0,zpix*psize))    # Scene coord system
+            v.translate(shift)
 
     def is_trackpad_wheel_event(self, event):
         # Suppress trackpad wheel events when using multitouch
@@ -187,5 +202,12 @@ class Touch:
         self.last_x = t.lastPos().x()
         self.last_y = t.lastPos().y()
 
-    def move(self):
-        return (self.x-self.last_x, self.y-self.last_y)
+    def move(self, last_touch_locations):
+        id = self.id
+        if id in last_touch_locations:
+            lx,ly = last_touch_locations[id]
+        else:
+            lx,ly = self.last_x, self.last_y
+        x,y = self.x, self.y
+        last_touch_locations[id] = (x,y)
+        return (x-lx, y-ly)

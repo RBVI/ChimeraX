@@ -282,3 +282,9 @@ class ContactPlot(Graph):
         if 'display changed' in changes.atom_reasons():
             # Atoms shown or hidden.  Color hidden nodes gray.
             self.recolor_nodes()
+        if changes.num_deleted_atoms() > 0:
+            for g in self.groups:
+                if len(g.atoms) > 0:
+                    return
+            # Close plot.  All atoms have been closed.
+            self.delete()
