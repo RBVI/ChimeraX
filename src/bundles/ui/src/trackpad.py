@@ -20,13 +20,14 @@ class MultitouchTrackpad:
     def __init__(self, session):
         self._session = session
         self._view = session.main_view
-        self._recent_touch_points = None
+        self._recent_touches = []	# List of Touch instances
+        self._last_touch_locations = {}	# Map touch id -> (x,y)
         from chimerax.core.core_settings import settings
         self.trackpad_speed = settings.trackpad_sensitivity   	# Trackpad position sensitivity
         # macOS trackpad units are in points (1/72 inch).
         cm_tpu = 72/2.54		# Convert centimeters to trackpad units.
-        self._full_rotation_distance = 4 * cm_tpu		# trackpad units
-        self._full_width_translation_distance = 4 * cm_tpu      # trackpad units
+        self._full_rotation_distance = 6 * cm_tpu		# trackpad units
+        self._full_width_translation_distance = 6 * cm_tpu      # trackpad units
         self._zoom_scaling = 3		# zoom (z translation) faster than xy translation.
         self._twist_scaling = 6		# twist faster than finger rotation
         self._last_trackpad_touch_time = 0
@@ -86,17 +87,17 @@ class MultitouchTrackpad:
             # time consuming computatation.  It appears Qt does not collapse the events.
             # So event processing can get tens of seconds behind.  To reduce this problem
             # we only handle the most recent touch update per redraw.
-            self._recent_touch_points = event.touchPoints()
+            self._recent_touches = [Touch(t) for t in event.touchPoints()]
         elif t == QEvent.TouchEnd or t == QEvent.TouchCancel:
             self._last_trackpad_touch_count = 0
-            self._recent_touch_points = None
+            self._recent_touches = []
+            self._last_touch_locations.clear()
 
     def _collapse_touch_events(self):
-        touches = self._recent_touch_points
-        if not touches is None:
-            txy = [Touch(t) for t in touches]
-            self._process_touches(txy)
-            self._recent_touch_points = None
+        touches = self._recent_touches
+        if touches:
+            self._process_touches(touches)
+            self._recent_touches = []
 
     def _process_touches(self, touches):
         n = len(touches)
@@ -104,7 +105,7 @@ class MultitouchTrackpad:
         self._last_trackpad_touch_time = time.time()
         self._last_trackpad_touch_count = n
         speed = self.trackpad_speed
-        moves = [t.move() for t in touches]
+        moves = [t.move(self._last_touch_locations) for t in touches]
         if n == 2:
             (dx0,dy0),(dx1,dy1) = moves[0], moves[1]
             from math import sqrt, exp, atan2, pi
@@ -201,5 +202,12 @@ class Touch:
         self.last_x = t.lastPos().x()
         self.last_y = t.lastPos().y()
 
-    def move(self):
-        return (self.x-self.last_x, self.y-self.last_y)
+    def move(self, last_touch_locations):
+        id = self.id
+        if id in last_touch_locations:
+            lx,ly = last_touch_locations[id]
+        else:
+            lx,ly = self.last_x, self.last_y
+        x,y = self.x, self.y
+        last_touch_locations[id] = (x,y)
+        return (x-lx, y-ly)
