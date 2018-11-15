@@ -236,7 +236,7 @@ class TriggerSet:
 
     def add_trigger(self, name, *, usage_cb=None, after=None,
                     default_one_time=False, remove_bad_handlers=False):
-        """Add a trigger with the given name.
+        """Supported API. Add a trigger with the given name.
 
         triggerset.add_trigger(name) => None
 
@@ -273,7 +273,7 @@ class TriggerSet:
             self.add_dependency(name, after)
 
     def delete_trigger(self, name):
-        """Remove a trigger with the given name.
+        """Supported API. Remove a trigger with the given name.
 
         triggerset.delete_trigger(name) => None
 
@@ -283,7 +283,7 @@ class TriggerSet:
         del self._triggers[name]
 
     def activate_trigger(self, name, data, absent_okay=False):
-        """Invoke all handlers registered with the given name.
+        """Supported API. Invoke all handlers registered with the given name.
 
         triggerset.activate_trigger(name, data) => None
 
@@ -321,7 +321,7 @@ class TriggerSet:
             trigger.activate(data)
 
     def block_trigger(self, name):
-        """Block all handlers registered with the given name.
+        """Supported API. Block all handlers registered with the given name.
 
         triggerset.block_trigger(name) => None
 
@@ -332,11 +332,11 @@ class TriggerSet:
         self._triggers[name].block()
 
     def is_trigger_blocked(self, name):
-        """Is named trigger blocked?"""
+        """Supported API. Returns whether named trigger is blocked."""
         return self._triggers[name].is_blocked()
 
     def release_trigger(self, name):
-        """Release all handlers registered with the given name.
+        """Supported API. Release all handlers registered with the given name.
 
         triggerset.release_trigger(name) => None
 
@@ -347,11 +347,11 @@ class TriggerSet:
         self._triggers[name].release()
 
     def has_trigger(self, name):
-        """Check if trigger exists."""
+        """Supported API. Check if trigger exists."""
         return name in self._triggers
 
     def add_handler(self, name, func):
-        """Register a function with the trigger with the given name.
+        """Supported API. Register a function with the trigger with the given name.
 
         triggerset.add_handler(name, func) => handler
 
@@ -365,7 +365,7 @@ class TriggerSet:
         return handler
 
     def remove_handler(self, handler):
-        """Deregister a handler.
+        """Supported API. Deregister a handler.
 
         triggerset.remove_handler(handler) => None
 
@@ -376,7 +376,7 @@ class TriggerSet:
         self._triggers[handler._name].delete(handler)
 
     def has_handlers(self, name):
-        """Return if the trigger with the given name has any handlers.
+        """Supported API. Return if the trigger with the given name has any handlers.
 
         triggerset.has_handlers(name) => bool
 
@@ -385,7 +385,7 @@ class TriggerSet:
         return self._triggers[name].num_handlers() != 0
 
     def trigger_handlers(self, name):
-        """Return functions registered for trigger with the given name.
+        """Supported API. Return functions registered for trigger with the given name.
 
         triggerset.trigger_handlers(name) => list
 
@@ -394,21 +394,21 @@ class TriggerSet:
         return self._triggers[name].list_handlers()
 
     def trigger_names(self):
-        """Return an unordered list of the trigger names (dict keys).
+        """Supported API. Return an unordered list of the trigger names (dict keys).
 
         triggerset.trigger_names() => list
         """
         return self._triggers.keys()
 
     def block(self):
-        """Block all triggers from firing until released.
+        """Supported API. Block all triggers from firing until released.
 
         triggerset.block() => None
         """
         self._blocked += 1
 
     def release(self):
-        """Release trigger blocks and fire trigger in dependency order.
+        """Supported API. Release trigger blocks and fire trigger in dependency order.
 
         triggerset.release() => boolean
 
@@ -428,10 +428,11 @@ class TriggerSet:
             self._activate_trigger_tree(name)
 
     def is_blocked(self):
+        """Supported API. Returns whether entire trigger set is blocked."""
         return bool(self._blocked)
 
     def add_dependency(self, trigger, after):
-        """Specify firing order dependency for 'trigger'.
+        """Supported API. Specify firing order dependency for 'trigger'.
 
         triggerset.add_dependency(trigger, after) => None
 
