@@ -12,8 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 '''
-mousemodes: Mouse modes
-=======================
+mouse_modes: Mouse modes
+========================
 
 Classes to create mouse modes and assign mouse buttons and modifier
 keys to specific modes.
@@ -29,12 +29,14 @@ class MouseMode:
 
     name = 'mode name'
     '''
+    Supported API.
     Name of the mouse mode used with the mousemode command.
     Should be unique among all mouse modes.
     '''
 
     icon_file = None
     '''
+    Supported API.
     Image file name for an icon for this mouse mode to show in the mouse mode GUI panel.
     The icon file of this name needs to be in the mouse_modes tool icons subdirectory,
     should be PNG, square, and at least 64 pixels square.  It will be rescaled as needed.
@@ -42,6 +44,7 @@ class MouseMode:
     '''
 
     def __init__(self, session):
+        '''Supported API.'''
         self.session = session
         self.view = session.main_view
 
@@ -51,18 +54,25 @@ class MouseMode:
         self.last_mouse_position = None
         '''Last mouse position during a mouse drag.'''
         self.double_click = False
-        '''Whether the last mouse-down was actually a double_click.  Can be used in the mouse-up
+        '''
+        Supported API.
+        Whether the last mouse-down was actually a double_click.  Can be used in the mouse-up
         event handler if different behavior needed after a double click.  There is a
         mouse_double_click method for doing something on a double click (which happens on the
         second mouse down), so this boolean is only for mouse-up handlers that behave differently
         after single vs. double clicks.'''
 
     def enable(self):
-        '''Override if mode wants to know that it has been bound to a mouse button.'''
+        '''
+        Supported API. 
+        Called when mouse mode is enabled.
+        Override if mode wants to know that it has been bound to a mouse button.
+        '''
         pass
 
     def mouse_down(self, event):
         '''
+        Supported API.
         Override this method to handle mouse down events.
         Derived methods can call this base class method to
         set mouse_down_position and last_mouse_position
@@ -75,6 +85,7 @@ class MouseMode:
 
     def mouse_up(self, event):
         '''
+        Supported API.
         Override this method to handle mouse down events.
         Derived methods can call this base class method to
         set mouse_down_position and last_mouse_position to None.
@@ -84,6 +95,7 @@ class MouseMode:
 
     def mouse_double_click(self, event):
         '''
+        Supported API.
         Override this method to handle double clicks.
         Keep in mind that you will also receive the mouse_down and
         mouse_up events.  If your mouse_up handler needs to behave
@@ -95,6 +107,7 @@ class MouseMode:
 
     def mouse_motion(self, event):
         '''
+        Supported API.
         Return the mouse motion in pixels (dx,dy) since the last mouse event.
         '''
         lmp = self.last_mouse_position
@@ -109,11 +122,15 @@ class MouseMode:
         return dx, dy
 
     def wheel(self, event):
-        '''Override this method to handle mouse wheel events.'''
+        '''
+        Supported API.
+        Override this method to handle mouse wheel events.
+        '''
         pass
 
     def pause(self, position):
         '''
+        Supported API.
         Override this method to take action when the mouse hovers for a time
         given by the MouseModes pause interval (default 0.5 seconds).
         '''
@@ -121,6 +138,7 @@ class MouseMode:
 
     def move_after_pause(self):
         '''
+        Supported API.
         Override this method to take action when the mouse moves after a hover.
         This allows for instance undisplaying a popup help balloon window.
         '''
@@ -128,6 +146,7 @@ class MouseMode:
 
     def pixel_size(self, center = None, min_scene_frac = 1e-5):
         '''
+        Supported API.
         Report the pixel size in scene units at the center of rotation.
         Clamp the value to be at least min_scene_fraction times the width
         of the displayed models.
@@ -261,7 +280,7 @@ class MouseModes:
                 self.bind_mouse_mode(button, modifiers, mmap[mode_name])
 
     def add_mode(self, mode):
-        '''Add a MouseMode instance to the list of available modes.'''
+        '''Supported API. Add a MouseMode instance to the list of available modes.'''
         self._available_modes.append(mode)
 
     @property
@@ -427,21 +446,31 @@ class MouseEvent:
         self._event = event	# Window toolkit event object
 
     def shift_down(self):
-        '''Does the mouse event have the shift key down.'''
+        '''
+        Supported API.
+        Does the mouse event have the shift key down.
+        '''
         from PyQt5.QtCore import Qt
         return bool(self._event.modifiers() & Qt.ShiftModifier)
 
     def alt_down(self):
-        '''Does the mouse event have the alt key down.'''
+        '''
+        Supported API.
+        Does the mouse event have the alt key down.
+        '''
         from PyQt5.QtCore import Qt
         return bool(self._event.modifiers() & Qt.AltModifier)
 
     def position(self):
-        '''Pair of integer x,y pixel coordinates relative to upper-left corner of graphics window.'''
+        '''
+        Supported API.
+        Pair of integer x,y pixel coordinates relative to upper-left corner of graphics window.
+        '''
         return self._event.x(), self._event.y()
 
     def wheel_value(self):
         '''
+        Supported API.
         Number of clicks the mouse wheel was turned, signed float.
         One click is typically 15 degrees of wheel rotation.
         '''
