@@ -87,7 +87,7 @@ model_panel.install: ui.install
 model_series.install: ui.install
 modeller.install: alignments.install
 mol2.install: atomic.install chem_group.install
-mouse_modes.install: 
+mouse_modes.install:  ui.install
 nucleotides.install: atomic.install ui.install
 pdb.install: atomic.install
 read_pbonds.install: atomic.install
@@ -103,6 +103,5 @@ std_commands.install: atomic.install
 swapaa.install: mouse_modes.install ui.install
 tug.install: mouse_modes.install ui.install
 ui.clean: map.clean
-ui.install: mouse_modes.install
 viewdockx.install: atomic.install mol2.install ui.install
 zone.install: mouse_modes.install ui.install
