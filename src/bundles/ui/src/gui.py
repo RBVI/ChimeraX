@@ -279,7 +279,7 @@ class UI(QApplication):
         QApplication.quit()
 
     def thread_safe(self, func, *args, **kw):
-        """Call function 'func' in a thread-safe manner
+        """Supported API.  Call function 'func' in a thread-safe manner
         """
         import threading
         if threading.main_thread() == threading.current_thread():
@@ -581,10 +581,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             action.setText("%s %s" % (label, name))
             action.setEnabled(True)
 
-    def _get_hide_tools(self):
+    @property
+    def hide_tools(self):
         return self._hide_tools
 
-    def _set_hide_tools(self, ht):
+    @hide_tools.setter
+    def hide_tools(self, ht):
         if ht == self._hide_tools:
             return
 
@@ -620,9 +622,6 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         self._global_hide_button.setIcon(icon)
 
-
-    hide_tools = property(_get_hide_tools, _set_hide_tools)
-
     def log(self, *args, **kw):
         return False
 
@@ -639,10 +638,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         if tool_windows:
             tool_windows[0].shown = shown
 
-    def _get_rapid_access_shown(self):
+    @property
+    def rapid_access_shown(self):
         return self._stack.currentWidget() == self.rapid_access
 
-    def _set_rapid_access_shown(self, show):
+    @rapid_access_shown.setter
+    def rapid_access_shown(self, show):
         if show == (self._stack.currentWidget() == self.rapid_access):
             return
 
@@ -662,8 +663,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         but.setChecked(show)
         but.defaultAction().setChecked(show)
         but.setIcon(icon)
-
-    rapid_access_shown = property(_get_rapid_access_shown, _set_rapid_access_shown)
 
     def _check_rapid_access(self, *args):
         self.rapid_access_shown = len(self.session.models) == 0
@@ -850,6 +849,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._set_select_mode("replace")
 
     def select_by_mode(self, selector_text):
+        """Supported API.  Select based on the selector 'selector_text' but honoring the current
+           selection mode chosen in the Select menu.  Typically used by callbacks off the Selection menu"""
         mode = self.select_menu_mode
         if mode == "replace":
             cmd = "sel"
@@ -939,7 +940,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
     def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None):
-        '''
+        '''Supported API.
         Add a main menu entry.  Adding entries to the Select menu should normally be done via
         the add_select_submenu method instead.  For details, see the doc string for that method.
 
@@ -957,7 +958,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         menu.addAction(action)
 
     def add_select_submenu(self, parent_menu_names, submenu_name):
-        '''
+        '''Supported API.
         Add a submenu (or get it if it already exists).  Any parent menus will be created as
         needed.  Menu names can contain keyboard navigation markup (the '&' character).
         'parent_menu_names' should not contain the Select menu itself.
@@ -982,7 +983,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             insert_positions=insert_positions)
 
     def add_menu_selector(self, menu, label, selector_text=None, *, insertion_point=None):
-        '''
+        '''Supported API.
         Add an item to the given menu (which was probably obtained with the add_select_submenu
         method) which will make a selection using the given selector text (which should just
         be the text of the selector, not a full command) while honoring the current selection
@@ -1075,7 +1076,7 @@ def _open_dropped_file(session, path):
 
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):
-    """An area that a tool can populate with widgets.
+    """Supported API. An area that a tool can populate with widgets.
 
     This class is not used directly.  Instead, a tool makes its main
     window by instantiating the :py:class:`MainToolWindow` class
@@ -1098,7 +1099,6 @@ class ToolWindow(StatusLogger):
     The resulting QStatusBar widget (or None if statusbar was False) will be
     available from the ToolWindow's "statusbar" in case you need to add widgets to it
     or otherwise customize it.
-
     """
 
     #: Where the window can be placed in the main interface;
@@ -1119,14 +1119,14 @@ class ToolWindow(StatusLogger):
         self._kludge = self.__toolkit
 
     def cleanup(self):
-        """Perform tool-specific cleanup
+        """Supported API. Perform tool-specific cleanup
 
         Override this method to perform additional actions needed when
         the window is destroyed"""
         pass
 
     def destroy(self):
-        """Called to destroy the window (from non-UI code)
+        """Supported API. Called to destroy the window (from non-UI code)
 
         Destroying a tool's main window will also destroy all its
         child windows.
@@ -1134,7 +1134,7 @@ class ToolWindow(StatusLogger):
         self.session.ui.main_window._tool_window_destroy(self)
 
     def fill_context_menu(self, menu, x, y):
-        """Add items to this tool window's context menu,
+        """Supported API. Add items to this tool window's context menu,
         whose downclick occurred at position (x,y)
 
         Override to add items to any context menu popped up over this window.
@@ -1157,11 +1157,12 @@ class ToolWindow(StatusLogger):
         Qt.BottomDockWidgetArea: "bottom"
     }
     def manage(self, placement, fixed_size=False, allowed_areas=Qt.AllDockWidgetAreas):
-        """Show this tool window in the interface
+        """Supported API. Show this tool window in the interface
 
         Tool will be docked into main window on the side indicated by
-        `placement` (which should be a value from :py:attr:`placements`
-        or None, or another tool window).  If `placement` is None, the tool will
+        `placement` (which should be a value from :py:attr:`placements` or 'side'
+        or None, or another tool window).  If `placement` is "side", then the user-preferred
+        side will be used.  If `placement` is None, the tool will
         be detached from the main window.  If `placement` is another tool window,
         then those tools will be tabbed together.
 
@@ -1183,23 +1184,24 @@ class ToolWindow(StatusLogger):
                 geometry = QRect(*geom_info)
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
 
-    def _get_shown(self):
+    @property
+    def shown(self):
         """Whether this window is hidden or shown"""
         return self.__toolkit.shown
 
-    def _set_shown(self, shown):
+    @shown.setter
+    def shown(self, shown):
         self.session.ui.main_window._tool_window_request_shown(self, shown)
 
-    shown = property(_get_shown, _set_shown)
-
     def shown_changed(self, shown):
-        """Perform actions when window hidden/shown
+        """Supported API. Perform actions when window hidden/shown
 
         Override to perform any actions you want done when the window
         is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
         pass
 
     def status(self, *args, **kw):
+        """Supported API.  Show a status message for the tool."""
         if self._have_statusbar:
             StatusLogger.status(self, *args, **kw)
         else:
@@ -1211,18 +1213,18 @@ class ToolWindow(StatusLogger):
         tk = self.__toolkit
         return tk is not None and tk.status_bar is not None
 
-    def _get_title(self):
+    @property
+    def title(self):
+        """Supported API.  Get/change window title."""
         if self.__toolkit is None:
             return ""
         return self.__toolkit.title
 
-    def _set_title(self, title):
+    @title.setter
+    def title(self, title):
         if self.__toolkit is None:
             return
         self.__toolkit.set_title(title)
-    set_title = _set_title
-
-    title = property(_get_title, _set_title)
 
     def _destroy(self):
         self.cleanup()
@@ -1251,7 +1253,7 @@ class ToolWindow(StatusLogger):
         self.__toolkit.show_context_menu(event)
 
 class MainToolWindow(ToolWindow):
-    """Class used to generate tool's main UI window.
+    """Supported API. Class used to generate tool's main UI window.
 
     The window's :py:attr:`ui_area` attribute is the parent to all the tool's
     widgets for this window.  Call :py:meth:`manage` once the widgets
@@ -1266,7 +1268,7 @@ class MainToolWindow(ToolWindow):
         super().__init__(tool_instance, tool_instance.display_name, **kw)
 
     def create_child_window(self, title, *, window_class=None, **kw):
-        """Make additional tool window
+        """Supported API. Make additional tool window
 
         Parameters
         ----------
@@ -1288,7 +1290,7 @@ class MainToolWindow(ToolWindow):
         return window_class(self.tool_instance, title, **kw)
 
 class ChildToolWindow(ToolWindow):
-    """Child (*i.e.* additional) tool window
+    """Supported API. Child (*i.e.* additional) tool window
 
     Only created through use of
     :py:meth:`MainToolWindow.create_child_window` method.
@@ -1338,18 +1340,18 @@ class _Qt:
             self.status_bar = None
         self.dock_widget.destroy()
 
-    def _get_dockable(self):
+    @property
+    def dockable(self):
         from PyQt5.QtCore import Qt
         return self.dock_widget.allowedAreas() != Qt.NoDockWidgetArea
 
-    def _set_dockable(self, dockable):
+    @dockable.setter
+    def dockable(self, dockable):
         from PyQt5.QtCore import Qt
         areas = Qt.AllDockWidgetAreas if dockable else Qt.NoDockWidgetArea
         self.dock_widget.setAllowedAreas(areas)
         if not dockable and not self.dock_widget.isFloating():
             self.dock_widget.setFloating(True)
-
-    dockable = property(_get_dockable, _set_dockable)
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
         # map 'side' to the user's preferred side
@@ -1400,10 +1402,12 @@ class _Qt:
             self.tool_window.tool_instance.tool_info in self.main_window._tools_cache,
             self.dock_widget if isinstance(self.tool_window, MainToolWindow) else None)
 
-    def _get_shown(self):
+    @property
+    def shown(self):
         return not self.dock_widget.isHidden()
 
-    def _set_shown(self, shown):
+    @shown.setter
+    def shown(self, shown):
         # isHidden() is not to be trusted before the main window is shown
         # since it will return True even though the window _will_ be shown
         # once the main window shows, so comment out the optimization
@@ -1422,8 +1426,6 @@ class _Qt:
             self.dock_widget.raise_()
         else:
             self.dock_widget.hide()
-
-    shown = property(_get_shown, _set_shown)
 
     def set_title(self, title):
         self.dock_widget.setWindowTitle(title)

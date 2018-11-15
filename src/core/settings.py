@@ -110,7 +110,7 @@ Moving/deleting settings
 from .configfile import ConfigFile, only_use_defaults
 
 class Settings(ConfigFile):
-    """Save/remember tool interface settings
+    """Supported API. Save/remember tool interface settings
 
     A tool remembers interface setting across tool invocations with this
     class.  There are two types of settings supported: ones that save to
@@ -183,7 +183,7 @@ class Settings(ConfigFile):
             ConfigFile.__setattr__(self, name, value)
 
     def save(self, setting=None, *, settings=None):
-        '''If 'setting' or 'settings' is specified, save only those settings (don't
+        '''Supported API. If 'setting' or 'settings' is specified, save only those settings (don't
         change saved value of any other setting. Otherwise, save all settings.'''
         if setting is not None:
             settings_to_save = [setting]

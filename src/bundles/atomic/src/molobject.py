@@ -739,12 +739,12 @@ class Sequence(State):
         return not hasattr(self, '_c_pointer')
 
     characters = c_property('sequence_characters', string, doc=
-        "A string representing the contents of the sequence")
+        "Supported API. A string representing the contents of the sequence")
     circular = c_property('sequence_circular', npy_bool, doc="Indicates the sequence involves"
         " a circular permutation; the sequence characters have been doubled, and residue"
         " correspondences of the first half implicitly exist in the second half as well."
         " Typically used in alignments to line up with sequences that aren't permuted.")
-    name = c_property('sequence_name', string, doc="The sequence name")
+    name = c_property('sequence_name', string, doc="Supported API. The sequence name")
 
     # Some Sequence methods may have to be overridden/disallowed in Chain...
 
@@ -780,6 +780,8 @@ class Sequence(State):
         return self.name
 
     def gapped_to_ungapped(self, index):
+        """Supported API.  Given an index into the sequence,
+           returns the corresponding index into the sequence as if gaps had been removed."""
         f = c_function('sequence_gapped_to_ungapped', args = (ctypes.c_void_p, ctypes.c_int),
             ret = ctypes.c_int)
         g2u = f(self._c_pointer, index)
@@ -799,7 +801,7 @@ class Sequence(State):
         return id(self)
 
     def __len__(self):
-        """Sequence length"""
+        """Supported API. Sequence length"""
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
         return f(self._c_pointer)
 
@@ -851,11 +853,13 @@ class Sequence(State):
         return data
 
     def ungapped(self):
-        """String of sequence without gap characters"""
+        """Supported APU. String of sequence without gap characters"""
         f = c_function('sequence_ungapped', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
     def ungapped_to_gapped(self, index):
+        """Supported API.  Given an index into the sequence with gaps removed,
+           returns the corresponding index into the full sequence."""
         f = c_function('sequence_ungapped_to_gapped', args = (ctypes.c_void_p, ctypes.c_int),
             ret = ctypes.c_int)
         return f(self._c_pointer, index)
@@ -903,22 +907,22 @@ class StructureSeq(Sequence):
     '''Chain identifier. Limited to 4 characters. Read only string.'''
     # characters read-only in StructureSeq/Chain (use bulk_set)
     characters = c_property('sequence_characters', string, doc=
-        "A string representing the contents of the sequence. Read only.")
+        "Supported API. A string representing the contents of the sequence. Read only.")
     existing_residues = c_property('sseq_residues', cptr, 'num_residues', astype = convert.non_null_residues, read_only = True)
-    ''':class:`.Residues` collection containing the residues of this sequence with existing structure, in order. Read only.'''
+    '''Supported API. :class:`.Residues` collection containing the residues of this sequence with existing structure, in order. Read only.'''
     from_seqres = c_property('sseq_from_seqres', npy_bool, doc = "Was the full sequence "
         " determined from SEQRES (or equivalent) records in the input file")
     num_existing_residues = c_property('sseq_num_existing_residues', size_t, read_only = True)
-    '''Number of residues in this sequence with existing structure. Read only.'''
+    '''Supported API. Number of residues in this sequence with existing structure. Read only.'''
     num_residues = c_property('sseq_num_residues', size_t, read_only = True)
-    '''Number of residues belonging to this sequence, including those without structure. Read only.'''
+    '''Supported API. Number of residues belonging to this sequence, including those without structure. Read only.'''
     polymer_type = c_property('sseq_polymer_type', uint8, read_only = True)
     '''Polymer type of this sequence. Same values as Residue.polymer_type, except should not return PT_NONE.'''
     residues = c_property('sseq_residues', cptr, 'num_residues', astype = convert.residues_or_nones,
-        read_only = True, doc = "List containing the residues of this sequence in order. "
+        read_only = True, doc = "Supported API. List containing the residues of this sequence in order. "
         "Residues with no structure will be None. Read only.")
     structure = c_property('sseq_structure', pyobject, read_only = True)
-    ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
+    '''Supported API. :class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
 
     # allow append/extend for now, since NeedlemanWunsch uses it
 
@@ -988,7 +992,7 @@ class StructureSeq(Sequence):
 
     @property
     def res_map(self):
-        '''Returns a dict that maps from :class:`.Residue` to an ungapped sequence position'''
+        '''Supported API. Returns a dict that maps from :class:`.Residue` to an ungapped sequence position'''
         f = c_function('sseq_res_map', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         ptr_map = f(self._c_pointer)
         obj_map = {}
@@ -998,7 +1002,7 @@ class StructureSeq(Sequence):
         return obj_map
 
     def residue_at(self, index):
-        '''Return the Residue/None at the (ungapped) position 'index'.'''
+        '''Supported API. Return the Residue/None at the (ungapped) position 'index'.'''
         '''  More efficient that self.residues[index] since the entire residues'''
         ''' list isn't built/destroyed.'''
         f = c_function('sseq_residue_at', args = (ctypes.c_void_p, ctypes.c_size_t),
@@ -1029,7 +1033,7 @@ class StructureSeq(Sequence):
 
     @property
     def session(self):
-        "Session that this StructureSeq is in"
+        "Supported API. Session that this StructureSeq is in"
         return self.structure.session
 
     def ss_type(self, loc, loc_is_ungapped=False):
@@ -1251,7 +1255,7 @@ class StructureData:
         read_only = True, doc = "Supported API. :class:`.Residues` collection containing the"
         " residues of this structure. Read only.")
     pbg_map = c_property('structure_pbg_map', pyobject, astype = convert.pseudobond_group_map,
-        read_only = True, doc = "Suported API. Dictionary mapping name to"
+        read_only = True, doc = "Supported API. Dictionary mapping name to"
         " :class:`.PseudobondGroup` for pseudobond groups belonging to this structure. Read only.")
     metadata = c_property('metadata', pyobject, read_only = True,
         doc = "Supported API. Dictionary with metadata. Read only.")

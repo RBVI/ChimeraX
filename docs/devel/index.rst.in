@@ -42,7 +42,6 @@ Developer Guide
    apps/ChimeraX/ChimeraX.rst
    writing_bundles.rst
    core.rst
-   core/startup.rst
    building.rst
 
 API Reference

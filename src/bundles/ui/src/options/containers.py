@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import QWidget, QFormLayout, QTabWidget, QBoxLayout, QGridL
     QPushButton, QCheckBox, QScrollArea
 
 class OptionsPanel(QScrollArea):
-    """OptionsPanel is a container for single-use (not savable) Options"""
+    """Supported API. OptionsPanel is a container for single-use (not savable) Options"""
 
     def __init__(self, parent=None, *, sorting=True, **kw):
         """sorting:
@@ -45,6 +45,7 @@ class OptionsPanel(QScrollArea):
         self._scrolled.setLayout(self._form)
 
     def add_option(self, option):
+        """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
         if self._sorting is None:
             insert_row = len(self._options)
         else:
@@ -72,7 +73,7 @@ class OptionsPanel(QScrollArea):
         return QSize(min(form_size.width(), 800), min(form_size.height(), 800))
 
 class CategorizedOptionsPanel(QTabWidget):
-    """CategorizedOptionsPanel is a container for single-use (not savable) Options sorted by category"""
+    """Supported API. CategorizedOptionsPanel is a container for single-use (not savable) Options sorted by category"""
 
     def __init__(self, parent=None, *, category_sorting=True, option_sorting=True, **kw):
         """sorting:
@@ -86,7 +87,7 @@ class CategorizedOptionsPanel(QTabWidget):
         self._category_to_panel = {}
 
     def add_option(self, category, option):
-        """Add option to given category"""
+        """Supported API. Add option (instance of chimerax.ui.options.Option) to given category"""
         try:
             panel = self._category_to_panel[category]
         except KeyError:
@@ -95,7 +96,7 @@ class CategorizedOptionsPanel(QTabWidget):
         panel.add_option(option)
 
     def add_tab(self, category, panel):
-        """Only used if a tab needs to present a custom interface.
+        """Supported API. Only used if a tab needs to present a custom interface.
 
            The panel needs to offer a .options() method that returns its options."""
         self._category_to_panel[category] = panel
@@ -212,7 +213,7 @@ class SettingsPanelBase(QWidget):
         self.settings.save(settings=save_settings)
 
 class SettingsPanel(SettingsPanelBase):
-    """SettingsPanel is a container for remember-able Options that work in conjunction with a
+    """Supported API. SettingsPanel is a container for remember-able Options that work in conjunction with a
        Settings instance (found in chimerax.core.settings).
 
        The callback function for each option will have to call option.set_attribute(settings)
@@ -226,10 +227,11 @@ class SettingsPanel(SettingsPanelBase):
         SettingsPanelBase.__init__(self, settings, owner_description, parent, sorting, multicategory=False, **kw)
 
     def add_option(self, option):
+        """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
         self.options_panel.add_option(option)
 
 class CategorizedSettingsPanel(SettingsPanelBase):
-    """CategorizedSettingsPanel is a container for remember-able Options that work in conjunction
+    """Supported API. CategorizedSettingsPanel is a container for remember-able Options that work in conjunction
        with a Settings instance (found in chimerax.core.settings) and that are presented in
        categories.
     """
@@ -242,8 +244,9 @@ class CategorizedSettingsPanel(SettingsPanelBase):
             category_sorting=category_sorting, **kw)
 
     def add_option(self, category, option):
+        """Supported API. Add option (instance of chimerax.ui.options.Option) to given category"""
         self.options_panel.add_option(category, option)
 
     def add_tab(self, category, panel):
-        """Same as CategorizedOptionsPanel.add_tab(...)"""
+        """Supported API. Same as CategorizedOptionsPanel.add_tab(...)"""
         self.options_panel.add_tab(category, panel)

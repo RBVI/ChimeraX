@@ -16,8 +16,9 @@ ui: ChimeraX user interface
 ===========================
 """
 
-from .mousemodes import MouseMode, SelectMouseMode, RotateMouseMode, TranslateMouseMode, \
-                RotateSelectedMouseMode, TranslateSelectedMouseMode, ZoomMouseMode, mod_key_info
+from .mousemodes import MouseMode, SelectMouseMode, SelectContextMenuAction, \
+                RotateMouseMode, TranslateMouseMode, RotateSelectedMouseMode, \
+                TranslateSelectedMouseMode, ZoomMouseMode, mod_key_info
 from .htmltool import HtmlToolInstance
 from .font import shrink_font
 from .gui import MainToolWindow, initialize_qt
