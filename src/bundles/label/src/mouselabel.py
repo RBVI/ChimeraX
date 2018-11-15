@@ -1,4 +1,4 @@
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 
 class LabelMouseMode(MouseMode):
     '''Click an atom,ribbon,pseudobond or bond to label or unlabel it with default label.'''

@@ -96,7 +96,7 @@ class UI(QApplication):
         from .settings import UI_Settings
         self.settings = UI_Settings(session, "ui")
 
-        from .mousemodes import MouseModes
+        from chimerax.mouse_modes import MouseModes
         self.mouse_modes = MouseModes(session)
 
         # for whatever reason, QtWebEngineWidgets has to be imported before a

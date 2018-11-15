@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 class BondRotationMouseMode(MouseMode):
     name = 'bond rotation'
     icon_file = 'bondrot.png'

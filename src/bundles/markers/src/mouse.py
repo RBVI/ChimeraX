@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 # Mouse mode to place markers on surfaces
 #
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 class MarkerMouseMode(MouseMode):
     name = 'place marker'
     icon_file = 'icons/marker.png'

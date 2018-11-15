@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 class AtomZoneMouseMode(MouseMode):
     name = 'zone'
     icon_file = 'zone.png'

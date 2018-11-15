@@ -34,7 +34,7 @@
     :show-inheritance:
     :members:
 
-.. automodule:: chimerax.ui.mousemodes
+.. automodule:: chimerax.mousemodes
     :members:
     :show-inheritance:
 

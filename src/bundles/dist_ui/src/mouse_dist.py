@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 class DistMouseMode(MouseMode):
     name = 'distance'
     icon_file = 'distance.png'
