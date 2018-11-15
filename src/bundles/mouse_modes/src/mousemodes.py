@@ -506,3 +506,23 @@ def mod_key_info(key_function):
         if sys.platform == "darwin":
             return Qt.ControlModifier, "control"
         return Qt.MetaModifier, command_name
+
+def picked_object(window_x, window_y, view, max_transparent_layers = 3):
+    xyz1, xyz2 = view.clip_plane_points(window_x, window_y)
+    if xyz1 is None or xyz2 is None:
+        return None
+    p = picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = max_transparent_layers)
+    return p
+
+def picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = 3):    
+    p2 = p = view.first_intercept_on_segment(xyz1, xyz2, exclude=unpickable)
+    for i in range(max_transparent_layers):
+        if p2 and getattr(p2, 'pick_through', False) and p2.distance is not None:
+            p2 = view.first_intercept_on_segment(xyz1, xyz2, exclude=unpickable, beyond=p2.distance)
+        else:
+            break
+    return p2 if p2 else p
+
+def unpickable(drawing):
+    return not getattr(drawing, 'pickable', True)
+

@@ -66,7 +66,7 @@ class MarkerMouseMode(MouseMode):
         xyz1, xyz2 = self._view_line(event)
         s = self.session
         log = s.logger
-        from chimerax.ui.mousemodes import picked_object_on_segment
+        from chimerax.mouse_modes import picked_object_on_segment
         p = picked_object_on_segment(xyz1, xyz2, s.main_view)
         if p is None:
             c = None
@@ -136,7 +136,7 @@ class MarkerMouseMode(MouseMode):
     
     def picked_marker_or_link(self, event, select = False):
         xyz1, xyz2 = self._view_line(event)
-        from chimerax.ui.mousemodes import picked_object_on_segment, select_pick
+        from chimerax.mouse_modes import picked_object_on_segment, select_pick
         pick = picked_object_on_segment(xyz1, xyz2, self.session.main_view)
         m = l = None
         from chimerax.atomic import PickedAtom, PickedBond

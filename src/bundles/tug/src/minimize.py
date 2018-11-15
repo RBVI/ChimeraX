@@ -73,7 +73,7 @@ class MinimizeMode(MouseMode):
         self._tugger._simulate(steps = self._minimize_steps)
 
     def laser_click(self, xyz1, xyz2):
-        from chimerax.ui.mousemodes import picked_object_on_segment
+        from chimerax.mouse_modes import picked_object_on_segment
         view = self.session.main_view
         pick = picked_object_on_segment(xyz1, xyz2, view)
         self._pick_atom(pick)

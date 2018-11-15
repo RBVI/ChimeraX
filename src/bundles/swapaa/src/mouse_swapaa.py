@@ -82,7 +82,7 @@ class SwapAAMouseMode(MouseMode):
 
     def _picked_residue(self, event):
         x,y = event.position()
-        from chimerax.ui.mousemodes import picked_object
+        from chimerax.mouse_modes import picked_object
         pick = picked_object(x, y, self.session.main_view)
         return self._residue_from_pick(pick)
 
@@ -229,7 +229,7 @@ class SwapAAMouseMode(MouseMode):
             label_delete(self.session, objects, otype)
         
     def laser_click(self, xyz1, xyz2):
-        from chimerax.ui.mousemodes import picked_object_on_segment
+        from chimerax.mouse_modes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         r = self._residue_from_pick(pick)
         if r and self._has_alignment_atoms(r):
