@@ -412,7 +412,7 @@ ui
 ==
 .. autofunction:: chimerax.ui.cmd.ui_autostart
 .. autofunction:: chimerax.ui.cmd.ui_dockable
-.. autofunction:: chimerax.ui.cmd.ui_mousemode
+.. autofunction:: chimerax.mouse_modes.cmd.ui_mousemode
 
 
 view

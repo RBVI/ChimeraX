@@ -12,7 +12,7 @@
 # Mouse mode to click on residues an minimize using OpenMM that residue and nearby residues.
 #
 
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 class MinimizeMode(MouseMode):
     name = 'minimize'
     icon_file = 'minimize.png'

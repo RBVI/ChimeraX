@@ -11,15 +11,26 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .mousemodes import MouseMode, MouseModes, mod_key_info
+from .std_modes import SelectMouseMode, SelectContextMenuAction, \
+                RotateMouseMode, TranslateMouseMode, RotateSelectedMouseMode, \
+                TranslateSelectedMouseMode, ZoomMouseMode
+
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _MouseModesAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
         # 'start_tool' is called to start an instance of the tool
         from .tool import MouseModePanel
         return MouseModePanel.get_singleton(session)
+
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command is lazily called when command is referenced
+        from .cmd import register_mousemode_command
+        register_mousemode_command(logger)
 
     @staticmethod
     def get_class(class_name):
@@ -29,4 +40,4 @@ class _MyAPI(BundleAPI):
             return tool.MouseModePanel
         return None
 
-bundle_api = _MyAPI()
+bundle_api = _MouseModesAPI()
