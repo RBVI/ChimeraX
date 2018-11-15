@@ -486,34 +486,32 @@ class SelectMouseMode(MouseMode):
         MouseMode.mouse_up(self, event)
 
     def mouse_double_click(self, event):
+        '''Show a context menu when double-clicking in select mode.'''
         MouseMode.mouse_double_click(self, event)
         entries = []
         dangerous_entries = []
-        for label_info, criteria, callback, dangerous in SelectMouseMode._menu_entry_info:
-            if criteria(self.session):
-                if callable(label_info):
-                    label_text = label_info(self.session)
+        ses = self.session
+        for entry in SelectMouseMode._menu_entry_info:
+            if entry.criteria(ses):
+                if entry.dangerous:
+                    dangerous_entries.append(entry)
                 else:
-                    label_text = label_info
-                if dangerous:
-                    dangerous_entries.append((label_text, callback))
-                else:
-                    entries.append((label_text, callback))
-        entries.sort()
-        dangerous_entries.sort()
+                    entries.append(entry)
+        entries.sort(key = lambda e: e.label(ses))
+        dangerous_entries.sort(key = lambda e: e.label(ses))
         from PyQt5.QtWidgets import QMenu, QAction
         menu = QMenu()
         actions = []
         all_entries = entries
         if dangerous_entries:
-            all_entries = all_entries + [(None, None)] + dangerous_entries
+            all_entries = all_entries + [None] + dangerous_entries
         if all_entries:
-            for label, callback in all_entries:
-                if label is None:
+            for entry in all_entries:
+                if entry is None:
                     menu.addSeparator()
                     continue
-                action = QAction(label)
-                action.triggered.connect(lambda arg, cb=callback, sess=self.session: cb(sess))
+                action = QAction(entry.label(ses))
+                action.triggered.connect(lambda arg, cb=entry.callback, sess=ses: cb(sess))
                 menu.addAction(action)
                 actions.append(action) # keep reference
         else:
@@ -522,20 +520,12 @@ class SelectMouseMode(MouseMode):
         menu.exec(event._event.globalPos())
 
     @staticmethod
-    def register_menu_entry(label, criteria, callback, dangerous=False):
-        '''Register a context-menu entry.
+    def register_menu_entry(menu_entry):
+        '''Register a context-menu entry shown when double-clicking in select mode.
 
-        'label' is the text of the menu entry.  It can be a callable that return the text of the
-            entry.  If it is, then it is called with the session as an argument.
-        'criteria' is a callable that is given the session as an argument.  It should return a
-            boolean that indicates whether the menu should include this entry (usually based on
-            the current contents of the selection).
-        'callback' is a callable that is given the session as an argument.  It should perform
-            the entry's corresponding action.
-        If a menu is hazardous to click accidentally, supply the 'dangerous' keyword as True.
-            Such entries will be organized at the bottom of the menu after a separator.
+        menu_entry is a SelectContextMenuAction instance.
         '''
-        SelectMouseMode._menu_entry_info.append((label, criteria, callback, dangerous))
+        SelectMouseMode._menu_entry_info.append(menu_entry)
 
     def _is_drag(self, event):
         dp = self.mouse_down_position
@@ -1120,72 +1110,21 @@ def mod_key_info(key_function):
             return Qt.ControlModifier, "control"
         return Qt.MetaModifier, command_name
 
-# generic additions to context selection menu...
-from chimerax.core.commands import run
-for cmd in ("hide", "delete"):
-    cap_cmd = cmd.capitalize()
-    cmd_fmt = "delete %s sel" if cmd == "delete" else "hide sel %s"
-    dangerous = cmd == "delete"
-    # avoid directly importing atomic module
-    def num_sel(ses):
-        from chimerax.atomic import selected_atoms
-        return len(selected_atoms(ses))
-
-    def atoms_label(ses, cap_cmd=cap_cmd, num_sel=num_sel):
-        return ("%s atom" if num_sel(ses) == 1 else "%s atoms") % cap_cmd
-
-    def atoms_criteria(ses, num_sel=num_sel):
-        return num_sel(ses) > 0
-
-    def atoms_callback(ses, cmd_fmt=cmd_fmt, num_sel=num_sel, dangerous=dangerous):
-        if dangerous:
-            from .ask import ask
-            if ask(ses, "Really delete %s atom(s)" % num_sel(ses),
-                    title="Deletion Request") == "no":
-                return
-        run(ses, cmd_fmt % "atoms")
-
-    SelectMouseMode.register_menu_entry(atoms_label, atoms_criteria, atoms_callback,
-        dangerous=dangerous)
-
-    def num_sel(ses):
-        from chimerax.atomic import selected_bonds
-        return len(selected_bonds(ses))
-
-    def bonds_label(ses, cap_cmd=cap_cmd, num_sel=num_sel):
-        return ("%s bond" if num_sel(ses) == 1 else "%s bonds") % cap_cmd
-
-    def bonds_criteria(ses, num_sel=num_sel):
-        return num_sel(ses) > 0
-
-    def bonds_callback(ses, cmd_fmt=cmd_fmt, dangerous=dangerous):
-        if dangerous:
-            from .ask import ask
-            if ask(ses, "Really delete %s bond(s)" % num_sel(ses),
-                    title="Deletion Request") == "no":
-                return
-        run(ses, cmd_fmt % "bonds")
-
-    SelectMouseMode.register_menu_entry(bonds_label, bonds_criteria, bonds_callback,
-        dangerous=dangerous)
-
-    def num_sel(ses):
-        from chimerax.atomic import selected_pseudobonds
-        return len(selected_pseudobonds(ses))
-
-    def pseudobonds_label(ses, cap_cmd=cap_cmd, num_sel=num_sel):
-        return ("%s pseudobond" if num_sel(ses) == 1 else "%s pseudobonds") % cap_cmd
-
-    def pseudobonds_criteria(ses, num_sel=num_sel):
-        return num_sel(ses) > 0
-
-    def pseudobonds_callback(ses, cmd_fmt=cmd_fmt, dangerous=dangerous):
-        if dangerous:
-            from .ask import ask
-            if ask(ses, "Really delete %s pseudobond(s)" % num_sel(ses),
-                    title="Deletion Request") == "no":
-                return
-        run(ses, cmd_fmt % "pseudobonds")
-
-    SelectMouseMode.register_menu_entry(pseudobonds_label, pseudobonds_criteria,
-        pseudobonds_callback, dangerous=dangerous)
+class SelectContextMenuAction:
+    '''Methods implementing a context-menu entry shown when double-clicking in select mode.'''
+    def label(self, session):
+        '''Returns the text of the menu entry.'''
+        return 'unknown'
+    def criteria(self, session):
+        '''
+        Return a boolean that indicates whether the menu should include this entry
+        (usually based on the current contents of the selection).
+        '''
+        return False
+    def callback(self, session):
+        '''Perform the entry's action.'''
+        pass
+    dangerous = False
+    '''If a menu is hazardous to click accidentally, 'dangerous' should be True.
+    Such entries will be organized at the bottom of the menu after a separator.
+    '''
