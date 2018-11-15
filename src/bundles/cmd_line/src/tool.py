@@ -128,7 +128,7 @@ class CommandLine(ToolInstance):
         self._command_started_handler = session.triggers.add_handler("command started",
             self._command_started_cb)
         self.tool_window.manage(placement="bottom")
-        self._in_init = False
+        self._in_init = self._processing_command = False
 
     def cmd_clear(self):
         self.text.lineEdit().clear()
@@ -197,12 +197,12 @@ class CommandLine(ToolInstance):
         @contextmanager
         def processing_command(line_edit, cmd_text):
             line_edit.blockSignals(True)
-            try:
-                yield
-            finally:
-                line_edit.blockSignals(False)
-                line_edit.setText(cmd_text)
-                line_edit.selectAll()
+            self._processing_command = True
+            yield
+            line_edit.blockSignals(False)
+            line_edit.setText(cmd_text)
+            line_edit.selectAll()
+            self._processing_command = False
         session = self.session
         logger = session.logger
         text = self.text.lineEdit().text()
@@ -237,10 +237,15 @@ class CommandLine(ToolInstance):
         return tools.get_singleton(session, CommandLine, 'Command Line Interface', **kw)
 
     def _command_started_cb(self, trig_name, cmd_text):
-        self.history_dialog.add(self._just_typed_command or cmd_text,
-            typed=self._just_typed_command is not None)
-        self.text.lineEdit().selectAll()
-        self._just_typed_command = None
+        # the self._processing_command test is necessary when multiple commands
+        # separated by semicolons are typed in order to prevent putting the 
+        # second and later commands into the command history, since we will get 
+        # triggers for each command in the line
+        if self._just_typed_command or not self._processing_command:
+            self.history_dialog.add(self._just_typed_command or cmd_text,
+                typed=self._just_typed_command is not None)
+            self.text.lineEdit().selectAll()
+            self._just_typed_command = None
 
     def _set_typed_only(self, typed_only):
         self.settings.typed_only = typed_only
