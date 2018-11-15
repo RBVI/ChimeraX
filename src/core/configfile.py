@@ -236,7 +236,7 @@ only_use_defaults = False   # if True, do not read nor write configuration data
 
 
 class ConfigFile:
-    """In-memory handle to persistent configuration information.
+    """Supported API. In-memory handle to persistent configuration information.
 
     Parameters
     ----------

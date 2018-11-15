@@ -37,3 +37,11 @@
 .. automodule:: chimerax.ui.mousemodes
     :members:
     :show-inheritance:
+
+.. automodule:: chimerax.ui.options.containers
+    :members:
+    :show-inheritance:
+
+.. automodule:: chimerax.ui.options.options
+    :members:
+    :show-inheritance:
