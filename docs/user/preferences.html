@@ -213,10 +213,10 @@ is the web repository of ChimeraX bundles.
 <h3><a href="#top" class="nounder"><b>&larr;</b></a>
 Trackpad</h3>
 <ul>
-<li><b>Use trackpad gestures to rotate and move</b> (initial default <b>on</b>)
+<li><b>Trackpad gestures to rotate and move</b> (initial default <b>on</b>)
 - whether to respond to trackpad multitouch gestures 
 (currently <b>Mac</b> only):
-two-finger rotation, pinch-to-zoom, three-finger translation, four-finger zoom
+two-finger rotation, three-finger translation, pinch-zoom, four-finger zoom
 <p>
 Otherwise and on other platforms' multitouch trackpads, 
 two-finger drag performs the &ldquo;scrolling&rdquo; action
@@ -227,6 +227,20 @@ touchpad click-drag alone and with modifier keys
 perform the actions of left, middle and right mouse buttons
 (see <a href="commands/ui.html#mousemode"><b>mousemode</b></a>).
 </p>
+<li><b>Trackpad sensitivity</b> - sensitivity to trackpad multitouch gestures;
+with a factor of <b>1.0</b> (initial default):
+  <ul>
+  <li>a 6-cm two-finger drag rotates 360&deg;
+  <li>a 6-cm three-finger drag translates across the full width of 
+  the graphics window
+  </ul>
+Other actions scale accordingly:
+  <ul>
+<li>sensitivity of two-finger twist (rotation around Z axis) is 6 times that 
+of two-finger drag (XY rotation)
+<li>sensitivity of pinch-zoom or four-finger zoom (translation along Z axis)
+is 3 times that of three-finger drag (XY translation)
+  </ul>
 </ul>
 
 <a name="webaccess"></a>
