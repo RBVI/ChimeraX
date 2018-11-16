@@ -542,6 +542,31 @@ class StringIntOption(Option):
         layout.addWidget(self._spin_box)
         self.widget.setLayout(layout)
 
+class StringsOption(Option):
+    """Supported API. Option for list of plain text strings
+       There is no builtin way for the user to indicate that they are done wditing the text,
+       so no callback will occur.  If such an indication is needed, another widget would have to
+       provide it."""
+
+    def get(self):
+        return self.widget.toPlainText().split('\n')
+
+    def set(self, value):
+        self.widget.setText('\n'.join(value))
+
+    def set_multiple(self):
+        self.widget.setText(self.multiple_value)
+
+    def _make_widget(self, initial_text_width="10em", **kw):
+        """initial_text_width should be a string holding a "stylesheet-friendly"
+           value, (e.g. '10em' or '7ch') or None"""
+        from PyQt5.QtWidgets import QTextEdit
+        self.widget = QTextEdit(**kw)
+        self.widget.setAcceptRichText(False)
+        self.widget.setLineWrapMode(QTextEdit.NoWrap)
+        if initial_text_width:
+            self.widget.setStyleSheet("* { width: %s }" % initial_text_width)
+
 class HostPortOption(StringIntOption):
     """Supported API. Option for a host name or address and a TCP port number (as a 2-tuple)"""
     def _make_widget(self, **kw):

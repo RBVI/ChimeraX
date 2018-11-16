@@ -128,7 +128,12 @@ class CommandLine(ToolInstance):
         self._command_started_handler = session.triggers.add_handler("command started",
             self._command_started_cb)
         self.tool_window.manage(placement="bottom")
-        self._in_init = self._processing_command = False
+        self._in_init = False
+        self._processing_command = False
+        from chimerax.core.core_settings import settings as core_settings
+        if core_settings.startup_commands:
+            # prevent the startup command output from being summarized into 'startup messages' table
+            session.ui.triggers.add_handler('ready', self._run_startup_commands)
 
     def cmd_clear(self):
         self.text.lineEdit().clear()
@@ -246,6 +251,22 @@ class CommandLine(ToolInstance):
                 typed=self._just_typed_command is not None)
             self.text.lineEdit().selectAll()
             self._just_typed_command = None
+
+    def _run_startup_commands(self, *args):
+        # log the commands; but prevent them from going into command history...
+        self._processing_command = True
+        from chimerax.core.commands import run
+        from chimerax.core.errors import UserError
+        from chimerax.core.core_settings import settings as core_settings
+        try:
+            for cmd_text in core_settings.startup_commands:
+                run(self.session, cmd_text)
+        except UserError as err:
+            session.logger.status(str(err), color="crimson")
+        except:
+            self._process_command = False
+            raise
+        self._processing_command = False
 
     def _set_typed_only(self, typed_only):
         self.settings.typed_only = typed_only

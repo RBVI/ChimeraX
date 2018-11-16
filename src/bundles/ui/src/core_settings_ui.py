@@ -20,7 +20,7 @@ TODO
 
 from chimerax.core.core_settings import set_proxies, settings as core_settings
 from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, FloatOption
-from .options import StringOption, HostPortOption, Option, EnumOption
+from .options import StringOption, HostPortOption, Option, EnumOption, StringsOption
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
@@ -399,6 +399,16 @@ class CoreSettingsPanel:
             None,
             None,
             'Whether to resize main window when restoring a session to the size it had when the session was saved.',
+            True),
+        'startup_commands': (
+            "Execute these commands at startup",
+            "Startup",
+            StringsOption,
+            None,
+            None,
+            None,
+            None,
+            "List of commands to execute when ChimeraX command-line tool starts",
             True),
         'toolshed_update_interval': (
             "Toolshed update interval",
