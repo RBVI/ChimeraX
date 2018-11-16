@@ -45,7 +45,7 @@ def log(session, thumbnail = False, text = None, html = None, width = 100, heigh
             im = session.main_view.image(width, height)
             log.log(log.LEVEL_INFO, 'graphics image', (im, True), True)
         if text:
-            log.log(log.LEVEL_INFO, text, (None, False), False)
+            log.log(log.LEVEL_INFO, text + '\n', (None, False), False)
         if html:
             log.log(log.LEVEL_INFO, html, (None, False), True)
         if not warning_dialog is None:

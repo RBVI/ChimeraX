@@ -307,7 +307,7 @@ class Log(ToolInstance, HtmlLog):
             if ((level >= self.LEVEL_ERROR and core_settings.errors_raise_dialog) or
                     (level == self.LEVEL_WARNING and core_settings.warnings_raise_dialog)):
                 if not is_html:
-                    dlg_msg = "<br>".join(msg.split("\n")) + "<br>"
+                    dlg_msg = "<br>".join(msg.split("\n"))
                 else:
                     # error dialog doesn't actually handle anchor links, so they
                     # look misleadingly clickable; strip them...
@@ -336,7 +336,7 @@ class Log(ToolInstance, HtmlLog):
             if not is_html:
                 from html import escape
                 msg = escape(msg)
-                msg = msg.replace("\n", "<br>\n") + "<br>"
+                msg = msg.replace("\n", "<br>\n")
 
             if level == self.LEVEL_ERROR:
                 msg = '<p style="color:crimson;font-weight:bold">' + msg + '</p>'
