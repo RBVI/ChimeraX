@@ -639,6 +639,7 @@ class Render:
                 cmm = self.current_model_matrix
                 if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
+                    self.set_clip_parameters()
             if self.SHADER_STEREO_360 & p.capabilities:
                 cmm = self.current_model_matrix
                 cvm = self.current_view_matrix
