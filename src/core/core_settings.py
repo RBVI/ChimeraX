@@ -29,7 +29,7 @@ class _CoreSettings(Settings):
     # chimerax.ui.core_settings_ui.py
     EXPLICIT_SAVE = {
         'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
-        'bg_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
+        'background_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
         'clipping_surface_caps': True,
         'clipping_cap_offset': 0.01,
         'default_tool_window_side': "right",

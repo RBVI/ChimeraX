@@ -34,7 +34,7 @@ class Option(metaclass=ABCMeta):
             else:
                 self.attr_name = None
 
-        if default != None or not hasattr(self, 'default'):
+        if default is not None or not hasattr(self, 'default'):
             self.default = default
 
         self._make_widget(**kw)

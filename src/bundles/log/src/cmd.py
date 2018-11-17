@@ -112,13 +112,9 @@ def log_settings(session, error_dialog = None, warning_dialog = None):
     from chimerax.core.core_settings import settings as core_settings
     if error_dialog is not None:
         core_settings.errors_raise_dialog = error_dialog
-        from chimerax.ui.core_settings_ui import log_error_cb
-        log_error_cb('update log errors', None)
 
     if warning_dialog is not None:
         core_settings.warnings_raise_dialog = warning_dialog
-        from chimerax.ui.core_settings_ui import log_warning_cb
-        log_warning_cb('update log warnings', None)
 
 def log_metadata(session, models=None, verbose=False):
     if models is None:
