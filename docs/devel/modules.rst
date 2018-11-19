@@ -108,8 +108,6 @@ Surfaces
 User Interface
 --------------
 
-These modules are in chimerax.ui.
-
 .. toctree::
     :maxdepth: 1
 

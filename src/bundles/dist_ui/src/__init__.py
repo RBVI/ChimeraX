@@ -23,7 +23,7 @@ class _DistUIBundleAPI(BundleAPI):
             from .mouse_dist import DistMouseMode
             mm.add_mode(DistMouseMode(session))
 
-            from chimerax.ui import SelectContextMenuAction
+            from chimerax.mouse_modes import SelectContextMenuAction, SelectMouseMode
             class DistanceContextMenuEntry(SelectContextMenuAction):
                 def label(self, session):
                     return 'Distance'
@@ -37,7 +37,6 @@ class _DistUIBundleAPI(BundleAPI):
                         a2.string(style="command line"))
                     from chimerax.core.commands import run
                     run(session, command)
-            from chimerax.ui import SelectMouseMode
             SelectMouseMode.register_menu_entry(DistanceContextMenuEntry())
 
 bundle_api = _DistUIBundleAPI()

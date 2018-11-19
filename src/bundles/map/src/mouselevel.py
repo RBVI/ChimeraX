@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 class ContourLevelMouseMode(MouseMode):
     name = 'contour level'
     icon_file = 'contour.png'

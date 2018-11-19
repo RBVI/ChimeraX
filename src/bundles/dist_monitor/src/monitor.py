@@ -48,7 +48,6 @@ class DistancesMonitor(StateManager):
             return
         settings.distance_decimal_places = places
         self._update_distances()
-        self.session.triggers.activate_trigger("distance decimal places changed", places)
 
     decimal_places = property(_get_decimal_places, _set_decimal_places)
 
@@ -86,7 +85,6 @@ class DistancesMonitor(StateManager):
             return
         settings.distance_show_units = show
         self._update_distances()
-        self.session.triggers.activate_trigger("distance show units changed", show)
 
     show_units = property(_get_show_units, _set_show_units)
 

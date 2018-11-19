@@ -147,7 +147,10 @@ def save_image(session, path, format_name, width=None, height=None,
     view = session.main_view
     i = view.image(width, height, supersample=supersample,
                    transparent_background=transparent_background)
-    i.save(path, fmt.pil_name, **metadata)
+    if i is not None:
+        i.save(path, fmt.pil_name, **metadata)
+    else:
+        session.logger.warning("Unable to save image.  Perhaps too big?")
 
 
 def register_image_save(session):

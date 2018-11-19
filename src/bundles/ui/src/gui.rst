@@ -34,8 +34,10 @@
     :show-inheritance:
     :members:
 
-.. automodule:: chimerax.ui.mousemodes
+.. automodule:: chimerax.mouse_modes.mousemodes
     :members:
+    :exclude-members: MouseBinding
+    :special-members: __init__
     :show-inheritance:
 
 .. automodule:: chimerax.ui.options.containers

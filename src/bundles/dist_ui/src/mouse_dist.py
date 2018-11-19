@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 class DistMouseMode(MouseMode):
     name = 'distance'
     icon_file = 'distance.png'
@@ -30,7 +30,7 @@ class DistMouseMode(MouseMode):
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
         x,y = event.position()
-        from chimerax.ui.mousemodes import picked_object
+        from chimerax.mouse_modes import picked_object
         pick = picked_object(x, y, self.session.main_view)
         self._picked_object(pick)
 
@@ -71,6 +71,6 @@ class DistMouseMode(MouseMode):
             warning("no atom/distance picked by mouse click")
 
     def laser_click(self, xyz1, xyz2):
-        from chimerax.ui.mousemodes import picked_object_on_segment
+        from chimerax.mouse_modes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         self._picked_object(pick)

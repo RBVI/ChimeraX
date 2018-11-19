@@ -12,447 +12,16 @@
 # === UCSF ChimeraX Copyright ===
 
 '''
-mousemodes: Mouse modes
-=======================
-
-Classes to create mouse modes and assign mouse buttons and modifier
-keys to specific modes.
+Standard mouse modes
+====================
 '''
 
-class MouseMode:
-    '''
-    Classes derived from MouseMode implement specific mouse modes providing
-    methods mouse_down(), mouse_up(), mouse_motion(), wheel(), pause() that
-    are called when mouse events occur.  Which mouse button and modifier
-    keys are detected by a mode is controlled by a different MauseModes class.
-    '''
+from .mousemodes import MouseMode
 
-    name = 'mode name'
-    '''
-    Name of the mouse mode used with the mousemode command.
-    Should be unique among all mouse modes.
-    '''
-
-    icon_file = None
-    '''
-    Image file name for an icon for this mouse mode to show in the mouse mode GUI panel.
-    The icon file of this name needs to be in the mouse_modes tool icons subdirectory,
-    should be PNG, square, and at least 64 pixels square.  It will be rescaled as needed.
-    A none value means no icon will be shown in the gui interface.
-    '''
-
-    def __init__(self, session):
-        self.session = session
-        self.view = session.main_view
-
-        self.mouse_down_position = None
-        '''Pixel position (x,y) of mouse-down, sometimes useful to detect on mouse-up
-        whether any mouse motion occured. Set to None after mouse up.'''
-        self.last_mouse_position = None
-        '''Last mouse position during a mouse drag.'''
-        self.double_click = False
-        '''Whether the last mouse-down was actually a double_click.  Can be used in the mouse-up
-        event handler if different behavior needed after a double click.  There is a
-        mouse_double_click method for doing something on a double click (which happens on the
-        second mouse down), so this boolean is only for mouse-up handlers that behave differently
-        after single vs. double clicks.'''
-
-    def enable(self):
-        '''Override if mode wants to know that it has been bound to a mouse button.'''
-        pass
-
-    def mouse_down(self, event):
-        '''
-        Override this method to handle mouse down events.
-        Derived methods can call this base class method to
-        set mouse_down_position and last_mouse_position
-        and properly handle double clicks.
-        '''
-        pos = event.position()
-        self.mouse_down_position = pos
-        self.last_mouse_position = pos
-        self.double_click = False
-
-    def mouse_up(self, event):
-        '''
-        Override this method to handle mouse down events.
-        Derived methods can call this base class method to
-        set mouse_down_position and last_mouse_position to None.
-        '''
-        self.mouse_down_position = None
-        self.last_mouse_position = None
-
-    def mouse_double_click(self, event):
-        '''
-        Override this method to handle double clicks.
-        Keep in mind that you will also receive the mouse_down and
-        mouse_up events.  If your mouse_up handler needs to behave
-        differently depending on whether it is the second part of a
-        double click, have it check the self.double_click boolean,
-        and make sure to call this base method so that the boolean is set.
-        '''
-        self.double_click = True
-
-    def mouse_motion(self, event):
-        '''
-        Return the mouse motion in pixels (dx,dy) since the last mouse event.
-        '''
-        lmp = self.last_mouse_position
-        x, y = pos = event.position()
-        if lmp is None:
-            dx = dy = 0
-        else:
-            dx = x - lmp[0]
-            dy = y - lmp[1]
-            # dy > 0 is downward motion.
-        self.last_mouse_position = pos
-        return dx, dy
-
-    def wheel(self, event):
-        '''Override this method to handle mouse wheel events.'''
-        pass
-
-    def pause(self, position):
-        '''
-        Override this method to take action when the mouse hovers for a time
-        given by the MouseModes pause interval (default 0.5 seconds).
-        '''
-        pass
-
-    def move_after_pause(self):
-        '''
-        Override this method to take action when the mouse moves after a hover.
-        This allows for instance undisplaying a popup help balloon window.
-        '''
-        pass
-
-    def pixel_size(self, center = None, min_scene_frac = 1e-5):
-        '''
-        Report the pixel size in scene units at the center of rotation.
-        Clamp the value to be at least min_scene_fraction times the width
-        of the displayed models.
-        '''
-        v = self.view
-        psize = v.pixel_size(center)
-        b = v.drawing_bounds(cached_only = True)
-        if not b is None:
-            w = b.width()
-            psize = max(psize, w*min_scene_frac)
-        return psize
-
-    @property
-    def camera_position(self):
-        c = self.view.camera
-        # For multiview cameras like VR camera, use camera position for desktop window.
-        if hasattr(c, 'desktop_camera_position'):
-            cp = c.desktop_camera_position
-            if cp is None:
-                cp = c.position
-        else:
-            cp = c.position
-        return cp
-
-    @property
-    def icon_path(self):
-        file = self.icon_file
-        if file is None:
-            return None
-
-        from os import path
-        if path.isabs(file):
-            return file
-
-        import inspect
-        cfile = inspect.getfile(self.__class__)
-        p = path.join(path.dirname(cfile), file)
-        return p
-    
-class MouseBinding:
-    '''
-    Associates a mouse button ('left', 'middle', 'right', 'wheel', 'pause') and
-    set of modifier keys ('alt', 'command', 'control', 'shift') with a MouseMode.
-    '''
-    def __init__(self, button, modifiers, mode):
-        self.button = button		# 'left', 'middle', 'right', 'wheel', 'pause'
-        self.modifiers = modifiers	# List of 'alt', 'command', 'control', 'shift'
-        self.mode = mode		# MouseMode instance
-    def matches(self, button, modifiers):
-        '''
-        Does this binding match the specified button and modifiers?
-        A match requires all of the binding modifiers keys are among
-        the specified modifiers (and possibly more).
-        '''
-        return (button == self.button and
-                len([k for k in self.modifiers if not k in modifiers]) == 0)
-    def exact_match(self, button, modifiers):
-        '''
-        Does this binding exactly match the specified button and modifiers?
-        An exact match requires the binding modifiers keys are exactly the
-        same set as the specified modifier keys.
-        '''
-        return button == self.button and set(modifiers) == set(self.modifiers)
-
-class MouseModes:
-    '''
-    Keep the list of available mouse modes and also which mode is bound
-    to each mouse button (left, middle, right), or mouse button and modifier
-    key (alt, command, control shift).
-    The mouse modes object for a session is session.ui.mouse_modes
-    '''
-    def __init__(self, session):
-
-        self.graphics_window = None
-        self.session = session
-
-        self._available_modes = [mode(session) for mode in standard_mouse_mode_classes()]
-
-        self._bindings = []  # List of MouseBinding instances
-
-        from PyQt5.QtCore import Qt
-        # Qt maps control to meta on Mac...
-        self._modifier_bits = []
-        for keyfunc in ["alt", "control", "command", "shift"]:
-            self._modifier_bits.append((mod_key_info(keyfunc)[0], keyfunc))
-
-        # Mouse pause parameters
-        self._last_mouse_time = None
-        self._paused = False
-        self._mouse_pause_interval = 0.5         # seconds
-        self._mouse_pause_position = None
-
-        self.bind_standard_mouse_modes()
-
-        from .trackpad import MultitouchTrackpad
-        self.trackpad = MultitouchTrackpad(session)
-
-    def bind_mouse_mode(self, button, modifiers, mode):
-        '''
-        Button is "left", "middle", "right", "wheel", or "pause".
-        Modifiers is a list 0 or more of 'alt', 'command', 'control', 'shift'.
-        Mode is a MouseMode instance.
-        '''
-        self.remove_binding(button, modifiers)
-        if mode is not None and not isinstance(mode, NullMouseMode):
-            b = MouseBinding(button, modifiers, mode)
-            self._bindings.append(b)
-            mode.enable()
-
-    def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
-        '''
-        Bind the standard mouse modes: left = rotate, ctrl-left = select, middle = translate,
-        right = zoom, wheel = zoom, pause = identify object.
-        '''
-        standard_modes = (
-            ('left', ['control'], 'select'),
-            ('left', ['control', 'shift'], 'select toggle'),
-            ('left', [], 'rotate'),
-            ('middle', [], 'translate'),
-            ('right', [], 'zoom'),
-            ('right', ['shift'], 'pivot'),
-            ('wheel', [], 'zoom'),
-            ('pause', [], 'identify object'),
-            )
-        mmap = {m.name:m for m in self.modes}
-        for button, modifiers, mode_name in standard_modes:
-            if button in buttons:
-                self.bind_mouse_mode(button, modifiers, mmap[mode_name])
-
-    def add_mode(self, mode):
-        '''Add a MouseMode instance to the list of available modes.'''
-        self._available_modes.append(mode)
-
-    @property
-    def bindings(self):
-        '''List of MouseBinding instances.'''
-        return self._bindings
-
-    def mode(self, button = 'left', modifiers = []):
-        '''Return the MouseMode associated with a specified button and modifiers,
-        or None if no mode is bound.'''
-        mb = [b for b in self._bindings if b.matches(button, modifiers)]
-        if len(mb) == 1:
-            m = mb[0].mode
-        elif len(mb) > 1:
-            m = max(mb, key = lambda b: len(b.modifiers)).mode
-        else:
-            m = None
-        return m
-
-    @property
-    def modes(self):
-        '''List of MouseMode instances.'''
-        return self._available_modes
-
-    def named_mode(self, name):
-        for m in self.modes:
-            if m.name == name:
-                return m
-        return None
-    
-    def mouse_pause_tracking(self):
-        '''
-        Called periodically to check for mouse pause and invoke pause mode.
-        Typically this will be called by the redraw loop and is used to determine
-        when a mouse pause occurs.
-        '''
-        cp = self._cursor_position()
-        w,h = self.graphics_window.view.window_size
-        x,y = cp
-        if x < 0 or y < 0 or x >= w or y >= h:
-            return      # Cursor outside of graphics window
-        from time import time
-        t = time()
-        moved = (cp != self._mouse_pause_position)
-        if moved:
-            self._mouse_pause_position = cp
-            self._last_mouse_time = t
-            if self._paused:
-                # Moved after pausing
-                self._paused = False
-                self._mouse_move_after_pause()
-        elif not self._paused:
-            # Not moving but not paused for enough time yet.
-            lt = self._last_mouse_time
-            if lt and t >= lt + self._mouse_pause_interval:
-                self._mouse_pause()
-                self._paused = True
-
-    def remove_binding(self, button, modifiers):
-        '''
-        Unbind the mouse button and modifier key combination.
-        No mode will be associated with this button and modifier.
-        '''
-        self._bindings = [b for b in self.bindings if not b.exact_match(button, modifiers)]
-
-    def remove_mode(self, mode):
-        '''Remove a MouseMode instance from the list of available modes.'''
-        self._available_modes.append(mode)
-        self._bindings = [b for b in self.bindings if b.mode is not mode]
-
-    def _cursor_position(self):
-        from PyQt5.QtGui import QCursor
-        p = self.graphics_window.mapFromGlobal(QCursor.pos())
-        return p.x(), p.y()
-
-    def _dispatch_mouse_event(self, event, action):
-        button, modifiers = self._event_type(event)
-        if button is None:
-            return
-
-        m = self.mode(button, modifiers)
-        if m and hasattr(m, action):
-            f = getattr(m, action)
-            f(MouseEvent(event))
-
-    def _event_type(self, event):
-        modifiers = self._key_modifiers(event)
-
-        # button() gives press/release buttons; buttons() gives move buttons
-        from PyQt5.QtCore import Qt
-        b = event.button() | event.buttons()
-        if b & Qt.LeftButton:
-            button = 'left'
-        elif b & Qt.MiddleButton:
-            button = 'middle'
-        elif b & Qt.RightButton:
-            button = 'right'
-        else:
-            button = None
-
-        # Mac-specific remappings...
-        import sys
-        if sys.platform == "darwin":
-            if button == 'left':
-                # Emulate additional buttons for one-button mice/trackpads
-                if 'command' in modifiers and not self._have_mode('left','command'):
-                    button = 'right'
-                    modifiers.remove('command')
-                elif 'alt' in modifiers and not self._have_mode('left','alt'):
-                    button = 'middle'
-                    modifiers.remove('alt')
-            elif button == 'right':
-                # On the Mac, a control left-click comes back as a right-click
-                # so map control-right to control-left.  We lose use of control-right,
-                # but more important to have control-left!
-                if 'control' in modifiers:
-                    button = 'left'
-        return button, modifiers
-
-    def _have_mode(self, button, modifier):
-        for b in self.bindings:
-            if b.exact_match(button, [modifier]):
-                return True
-        return False
-
-    def _key_modifiers(self, event):
-        mod = event.modifiers()
-        modifiers = [mod_name for bit, mod_name in self._modifier_bits if bit & mod]
-        return modifiers
-
-    def _mouse_pause(self):
-        m = self.mode('pause')
-        if m:
-            m.pause(self._mouse_pause_position)
-
-    def _mouse_move_after_pause(self):
-        m = self.mode('pause')
-        if m:
-            m.move_after_pause()
-
-    def set_graphics_window(self, graphics_window):
-        self.graphics_window = gw = graphics_window
-        gw.mousePressEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_down")
-        gw.mouseMoveEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_drag")
-        gw.mouseReleaseEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_up")
-        gw.mouseDoubleClickEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_double_click")
-        gw.wheelEvent = self._wheel_event
-        self.trackpad.set_graphics_window(gw)
-
-    def _wheel_event(self, event):
-        if self.trackpad.is_trackpad_wheel_event(event):
-            return	# Trackpad processing handled this event
-        f = self.mode('wheel', self._key_modifiers(event))
-        if f:
-            f.wheel(MouseEvent(event))
-
-class MouseEvent:
-    '''
-    Provides an interface to mouse event coordinates and modifier keys
-    so that mouse modes do not directly depend on details of the window toolkit.
-    '''
-    def __init__(self, event):
-        self._event = event	# Window toolkit event object
-
-    def shift_down(self):
-        '''Does the mouse event have the shift key down.'''
-        from PyQt5.QtCore import Qt
-        return bool(self._event.modifiers() & Qt.ShiftModifier)
-
-    def alt_down(self):
-        '''Does the mouse event have the alt key down.'''
-        from PyQt5.QtCore import Qt
-        return bool(self._event.modifiers() & Qt.AltModifier)
-
-    def position(self):
-        '''Pair of integer x,y pixel coordinates relative to upper-left corner of graphics window.'''
-        return self._event.x(), self._event.y()
-
-    def wheel_value(self):
-        '''
-        Number of clicks the mouse wheel was turned, signed float.
-        One click is typically 15 degrees of wheel rotation.
-        '''
-        deltas = self._event.angleDelta()
-        delta = max(deltas.x(), deltas.y())
-        if delta == 0:
-            delta = min(deltas.x(), deltas.y())
-        return delta/120.0   # Usually one wheel click is delta of 120
-
-                
 class SelectMouseMode(MouseMode):
     '''Mouse mode to select objects by clicking on them.'''
     name = 'select'
-    icon_file = 'mousemode_icons/select.png'
+    icon_file = 'icons/select.png'
 
     _menu_entry_info = []
 
@@ -554,6 +123,7 @@ class SelectMouseMode(MouseMode):
             self._drawn_rectangle = None
 
     def laser_click(self, xyz1, xyz2):
+        from . import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         select_pick(self.session, pick, self.mode)
 
@@ -568,6 +138,24 @@ class SelectMouseMode(MouseMode):
             else:
                 return 'accumulate drag'
 
+class SelectContextMenuAction:
+    '''Methods implementing a context-menu entry shown when double-clicking in select mode.'''
+    def label(self, session):
+        '''Returns the text of the menu entry.'''
+        return 'unknown'
+    def criteria(self, session):
+        '''
+        Return a boolean that indicates whether the menu should include this entry
+        (usually based on the current contents of the selection).
+        '''
+        return False
+    def callback(self, session):
+        '''Perform the entry's action.'''
+        pass
+    dangerous = False
+    '''If a menu is hazardous to click accidentally, 'dangerous' should be True.
+    Such entries will be organized at the bottom of the menu after a separator.
+    '''
 
 class SelectAddMouseMode(SelectMouseMode):
     '''Mouse mode to add objects to selection by clicking on them.'''
@@ -586,31 +174,14 @@ class SelectToggleMouseMode(SelectMouseMode):
 
 def mouse_select(event, mode, session, view):
     x,y = event.position()
+    from . import picked_object
     pick = picked_object(x, y, view)
     select_pick(session, pick, mode)
-
-def picked_object(window_x, window_y, view, max_transparent_layers = 3):
-    xyz1, xyz2 = view.clip_plane_points(window_x, window_y)
-    if xyz1 is None or xyz2 is None:
-        return None
-    p = picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = max_transparent_layers)
-    return p
-
-def picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = 3):    
-    p2 = p = view.first_intercept_on_segment(xyz1, xyz2, exclude=unpickable)
-    for i in range(max_transparent_layers):
-        if p2 and getattr(p2, 'pick_through', False) and p2.distance is not None:
-            p2 = view.first_intercept_on_segment(xyz1, xyz2, exclude=unpickable, beyond=p2.distance)
-        else:
-            break
-    return p2 if p2 else p
-
-def unpickable(drawing):
-    return not getattr(drawing, 'pickable', True)
 
 def mouse_drag_select(start_xy, event, mode, session, view):
     sx, sy = start_xy
     x,y = event.position()
+    from .mousemodes import unpickable
     pick = view.rectangle_intercept(sx,sy,x,y,exclude=unpickable)
     select_pick(session, pick, mode)
 
@@ -644,7 +215,7 @@ class RotateMouseMode(MouseMode):
     perpendicular to the direction of the drag.
     '''
     name = 'rotate'
-    icon_file = 'mousemode_icons/rotate.png'
+    icon_file = 'icons/rotate.png'
     click_to_select = False
 
     def __init__(self, session):
@@ -714,7 +285,7 @@ class RotateAndSelectMouseMode(RotateMouseMode):
     while click and drag produces rotation.
     '''
     name = 'rotate and select'
-    icon_file = 'mousemode_icons/rotatesel.png'
+    icon_file = 'icons/rotatesel.png'
     click_to_select = True
 
 class RotateSelectedMouseMode(RotateMouseMode):
@@ -725,7 +296,7 @@ class RotateSelectedMouseMode(RotateMouseMode):
     then the camera is moved as if all models are rotated.
     '''
     name = 'rotate selected models'
-    icon_file = 'mousemode_icons/rotate_h2o.png'
+    icon_file = 'icons/rotate_h2o.png'
 
     def models(self):
         return top_selected(self.session)
@@ -747,7 +318,7 @@ class TranslateMouseMode(MouseMode):
     Mouse mode to move objects in x and y (actually the camera is moved) by dragging.
     '''
     name = 'translate'
-    icon_file = 'mousemode_icons/translate.png'
+    icon_file = 'icons/translate.png'
 
     def mouse_drag(self, event):
 
@@ -780,7 +351,7 @@ class TranslateSelectedMouseMode(TranslateMouseMode):
     then the camera is moved as if all models are shifted.
     '''
     name = 'translate selected models'
-    icon_file = 'mousemode_icons/move_h2o.png'
+    icon_file = 'icons/move_h2o.png'
 
     def models(self):
         return top_selected(self.session)
@@ -791,7 +362,7 @@ class ZoomMouseMode(MouseMode):
     and the objects remain at their same scene coordinates.
     '''
     name = 'zoom'
-    icon_file = 'mousemode_icons/zoom.png'
+    icon_file = 'icons/zoom.png'
 
     def mouse_drag(self, event):        
 
@@ -844,6 +415,7 @@ class ObjectIdMouseMode(MouseMode):
         if apw and ui.topLevelAt(apw.mapToGlobal(QPoint())) == ui.main_window:
             return
         x,y = position
+        from . import picked_object
         p = picked_object(x, y, self.view)
 
         # Show atom spec balloon
@@ -872,17 +444,30 @@ class ObjectIdMouseMode(MouseMode):
 class AtomCenterOfRotationMode(MouseMode):
     '''Clicking on an atom sets the center of rotation at that position.'''
     name = 'pivot'
-    icon_file = 'mousemode_icons/pivot.png'
+    icon_file = 'icons/pivot.png'
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
         view = self.session.main_view
+        from . import picked_object
         pick = picked_object(x, y, view)
+        from chimerax.atomic import PickedResidue, PickedBond, PickedPseudobond
         if hasattr(pick, 'atom'):
-            from chimerax.std_commands import cofr
             xyz = pick.atom.scene_coord
-            cofr.cofr(self.session,pivot=xyz)
+        elif isinstance(pick, PickedResidue):
+            r = pick.residue
+            xyz = sum([a.scene_coord for a in r.atoms]) / r.num_atoms
+        elif isinstance(pick, PickedBond):
+            b = pick.bond
+            xyz = sum([a.scene_coord for a in b.atoms]) / 2
+        elif isinstance(pick, PickedPseudobond):
+            b = pick.pbond
+            xyz = sum([a.scene_coord for a in b.atoms]) / 2
+        else:
+            return
+        from chimerax.std_commands import cofr
+        cofr.cofr(self.session, pivot=xyz)
            
 class NullMouseMode(MouseMode):
     '''Used to assign no mode to a mouse button.'''
@@ -897,7 +482,7 @@ class ClipMouseMode(MouseMode):
     If the planes do not exist create them.
     '''
     name = 'clip'
-    icon_file = 'mousemode_icons/clip.png'
+    icon_file = 'icons/clip.png'
 
     def mouse_drag(self, event):
 
@@ -1005,7 +590,7 @@ class ClipRotateMouseMode(MouseMode):
     Rotate clip planes.
     '''
     name = 'clip rotate'
-    icon_file = 'mousemode_icons/cliprot.png'
+    icon_file = 'icons/cliprot.png'
 
     def mouse_drag(self, event):
 
@@ -1082,49 +667,3 @@ def standard_mouse_mode_classes():
         NullMouseMode,
     ]
     return mode_classes
-
-def mod_key_info(key_function):
-    """Qt swaps control/meta on Mac, so centralize that knowledge here.
-    The possible "key_functions" are: alt, control, command, and shift
-
-    Returns the Qt modifier bit (e.g. Qt.AltModifier) and name of the actual key
-    """
-    from PyQt5.QtCore import Qt
-    import sys
-    if sys.platform == "win32" or sys.platform == "linux":
-        command_name = "windows"
-        alt_name = "alt"
-    elif sys.platform == "darwin":
-        command_name = "command"
-        alt_name = "option"
-    if key_function == "shift":
-        return Qt.ShiftModifier, "shift"
-    elif key_function == "alt":
-        return Qt.AltModifier, alt_name
-    elif key_function == "control":
-        if sys.platform == "darwin":
-            return Qt.MetaModifier, command_name
-        return Qt.ControlModifier, "control"
-    elif key_function == "command":
-        if sys.platform == "darwin":
-            return Qt.ControlModifier, "control"
-        return Qt.MetaModifier, command_name
-
-class SelectContextMenuAction:
-    '''Methods implementing a context-menu entry shown when double-clicking in select mode.'''
-    def label(self, session):
-        '''Returns the text of the menu entry.'''
-        return 'unknown'
-    def criteria(self, session):
-        '''
-        Return a boolean that indicates whether the menu should include this entry
-        (usually based on the current contents of the selection).
-        '''
-        return False
-    def callback(self, session):
-        '''Perform the entry's action.'''
-        pass
-    dangerous = False
-    '''If a menu is hazardous to click accidentally, 'dangerous' should be True.
-    Such entries will be organized at the bottom of the menu after a separator.
-    '''

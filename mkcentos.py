@@ -69,7 +69,7 @@ CENTOS_DEPENDENCIES = {
         "mesa-libEGL": "17.2.3",
         "mesa-libGL": "17.2.3",
         "mesa-libGLU": "9.0.0",
-        "mesa-libOSMesa": "17.2.3",
+        "mesa-private-llvm": "3.9.1",
         # "mysql-community-libs": "5.6.40", or "mariadb-libs": "5.5.56", use: "mysql-libs"
         "mysql-libs": "",
         "nspr": "4.19.0",

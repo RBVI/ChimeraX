@@ -351,7 +351,7 @@ class Play_Series:
             uncolor_zone(model)
             delattr(model, 'series_zone_coloring')
 
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 class PlaySeriesMouseMode(MouseMode):
 
   name = 'play map series'

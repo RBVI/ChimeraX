@@ -41,8 +41,8 @@ class CrosslinksPlot(Graph):
     def fill_context_menu(self, menu, item):
         add = lambda *args: self.add_menu_entry(menu, *args)
         if item:
-            add('Select ' + item.description().title(), lambda i=item: i.select())
-        add('Lay out to match structure', self.draw_graph)
+            add('Select ' + item.description(), lambda i=item: i.select())
+        add('Lay Out to Match Structure', self.draw_graph)
 
 # ------------------------------------------------------------------------------
 #

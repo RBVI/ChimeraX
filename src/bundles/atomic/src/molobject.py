@@ -811,6 +811,13 @@ class Sequence(State):
         seq.set_state_from_snapshot(session, data)
         return seq
 
+    def search(self, pattern, case_sensitive = False):
+        """Search sequence for an egrep-style pattern.  Return a list of (index, length) tuples.
+           The search ignores gap characters but returns values for the full sequence, including gaps."""
+        f = c_function('sequence_search', args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_bool),
+            ret = ctypes.py_object)
+        return f(self._c_pointer, pattern.encode('utf-8'), case_sensitive)
+
     def __setitem__(self, key, val):
         chars = self.characters
         if isinstance(key, slice):

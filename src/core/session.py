@@ -944,7 +944,7 @@ def common_startup(sess):
 
     try:
         from .core_settings import settings
-        sess.main_view.background_color = settings.bg_color.rgba
+        sess.main_view.background_color = settings.background_color.rgba
     except ImportError:
         pass
 

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui import SelectContextMenuAction
+from chimerax.mouse_modes import SelectContextMenuAction
 
 # Add hide and delete atoms/bonds/pseudobonds to double-click selection context menu
 class HideObjectsMenuEntry(SelectContextMenuAction):
@@ -54,7 +54,7 @@ def _num_selected_objects(ses, type):
     return len(sel_objects(ses))
 
 def add_selection_context_menu_items(session):
-    from chimerax.ui import SelectMouseMode
+    from chimerax.mouse_modes import SelectMouseMode
     for type in ('atom', 'bond', 'pseudobond'):
         SelectMouseMode.register_menu_entry(HideObjectsMenuEntry(type))
         SelectMouseMode.register_menu_entry(DeleteObjectsMenuEntry(type))
