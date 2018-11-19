@@ -197,7 +197,7 @@ class SettingsPanelBase(QWidget):
             restore_val = self.settings.saved_value(setting)
             # '==' on numpy objects doesn't return a boolean
             import numpy
-            if not numpy.array_equal(opt.get(), default_val):
+            if not numpy.array_equal(opt.get(), restore_val):
                 opt.set(restore_val)
                 opt.make_callback()
 

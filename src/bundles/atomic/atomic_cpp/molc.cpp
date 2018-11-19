@@ -1560,10 +1560,11 @@ extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
 
 extern "C" EXPORT void bond_delete(void *bonds, size_t n)
 {
+    auto db = DestructionBatcher(bonds); // don't use structure since delete_bond internally batches on that
     Bond **b = static_cast<Bond **>(bonds);
     try {
         for (size_t i = 0; i != n; ++i)
-	    b[i]->structure()->delete_bond(b[i]);
+            b[i]->structure()->delete_bond(b[i]);
     } catch (...) {
         molc_error();
     }

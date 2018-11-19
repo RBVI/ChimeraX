@@ -302,7 +302,8 @@ class View:
         self._background_rgba = color
         self.redraw_needed = True
         if self.triggers:
-            self.triggers.activate_trigger("background color changed", self)
+            from chimerax.core.core_settings import settings
+            settings.background_color = color
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
 

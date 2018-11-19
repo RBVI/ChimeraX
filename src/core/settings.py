@@ -142,6 +142,10 @@ class Settings(ConfigFile):
         Class dictionary containing setting names and default values.
         Such settings will be saved to disk only when the :py:meth:`save`
         method is called.
+    triggers: TriggerSet
+        When a setting changes its current value, the 'setting changed'
+        trigger will be activated with (attr_name, prev_val, new_val)
+        as the data provided with the trigger.
 
     Methods
     -------
@@ -164,6 +168,9 @@ class Settings(ConfigFile):
                 raise ValueError("setting name cannot start with underscore")
             self._cur_settings[attr_name] = getattr(self, attr_name)
         object.__setattr__(self, '_settings_initialized', True)
+        from .triggerset import TriggerSet
+        object.__setattr__(self, 'triggers', TriggerSet())
+        self.triggers.add_trigger('setting changed')
 
     def __getattr__(self, name):
         if only_use_defaults or not self._settings_initialized:
@@ -174,11 +181,14 @@ class Settings(ConfigFile):
             raise AttributeError(name)
 
     def __setattr__(self, name, value):
-        if (self._settings_initialized and name[0] != '_'
-        and name in self._cur_settings):
-            self._cur_settings[name] = value
-            if name in self.__class__.AUTO_SAVE:
-                ConfigFile.__setattr__(self, name, value)
+        if (self._settings_initialized and name[0] != '_' and name in self._cur_settings):
+            cur_val = self._cur_settings[name]
+            from numpy import array_equal
+            if not array_equal(cur_val, value):
+                self._cur_settings[name] = value
+                if name in self.__class__.AUTO_SAVE:
+                    ConfigFile.__setattr__(self, name, value)
+                self.triggers.activate_trigger('setting changed', (name, cur_val, value))
         else:
             ConfigFile.__setattr__(self, name, value)
 

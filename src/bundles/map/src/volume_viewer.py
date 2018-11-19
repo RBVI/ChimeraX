@@ -1884,10 +1884,10 @@ class Histogram_Pane:
       menu = QMenu(self.frame)
       ro = v.rendering_options
       add = self.add_menu_entry
-      add(menu, 'Show outline box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show full region', lambda checked, e=event, self=self: self.show_full_region())
-      add(menu, 'New threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
-      add(menu, 'Delete threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
+      add(menu, 'Show Outline Box', self.show_outline_box, checked = ro.show_outline_box)
+      add(menu, 'Show Full Region', lambda checked, e=event, self=self: self.show_full_region())
+      add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
+      add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
       menu.exec(event.globalPos())
 
