@@ -1042,12 +1042,13 @@ def unused_file_name(directory, basename, suffix):
     n = max(nums, default = 0) + 1
     filename = '%s%d%s' % (basename, n, suffix)
     p = path.join(directory, filename)
+    if ' ' in p:
+        p = '"' + p + '"'
     return p
 
 def default_save_directory():
-    dir = '~/Desktop'
     from os import path, getcwd
-    d = path.expanduser(dir)
+    d = path.join(path.expanduser('~'), 'Desktop')
     if not path.isdir(d):
         d = getcwd()
     return d
