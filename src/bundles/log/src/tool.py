@@ -332,7 +332,6 @@ class Log(ToolInstance, HtmlLog):
                     f = lambda dlg=self.error_dialog, msg=dlg_msg: (dlg.report_bug_button.hide(),
                         dlg.showMessage(msg))
                 self.session.ui.thread_safe(f)
-                return
             if not is_html:
                 from html import escape
                 msg = escape(msg)

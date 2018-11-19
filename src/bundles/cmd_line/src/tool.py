@@ -203,11 +203,16 @@ class CommandLine(ToolInstance):
         def processing_command(line_edit, cmd_text):
             line_edit.blockSignals(True)
             self._processing_command = True
-            yield
-            line_edit.blockSignals(False)
-            line_edit.setText(cmd_text)
-            line_edit.selectAll()
-            self._processing_command = False
+            # as per the docs for contextmanager, the yield needs
+            # to be in a try/except if the exit code is to execute
+            # after errors
+            try:
+                yield
+            finally:
+                line_edit.blockSignals(False)
+                line_edit.setText(cmd_text)
+                line_edit.selectAll()
+                self._processing_command = False
         session = self.session
         logger = session.logger
         text = self.text.lineEdit().text()
