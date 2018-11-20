@@ -84,7 +84,7 @@ class ChainCrosslinks(Edge):
             a1.selected = True
             a2.selected = True
     def description(self):
-        return '%d pseudobonds' % len(self.pseudobonds)
+        return '%d Pseudobonds' % len(self.pseudobonds)
 
 # ------------------------------------------------------------------------------
 #

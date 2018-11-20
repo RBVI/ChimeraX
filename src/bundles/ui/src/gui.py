@@ -1114,7 +1114,7 @@ class ToolWindow(StatusLogger):
         self.__toolkit = _Qt(self, title, statusbar, mw)
         self.ui_area = self.__toolkit.ui_area
         # forward unused keystrokes (to the command line by default)
-        self.ui_area.keyPressEvent = ui.forward_keystroke
+        self.ui_area.keyPressEvent = self._forward_keystroke
         mw._new_tool_window(self)
         self._kludge = self.__toolkit
 
@@ -1236,6 +1236,13 @@ class ToolWindow(StatusLogger):
     @property
     def _dock_widget(self):
         return self.__toolkit.dock_widget
+
+    def _forward_keystroke(self, event):
+        # QLineEdits don't eat Return keys, so they may propagate to the
+        # top widget; don't forward keys if the focus widget is a QLineEdit
+        from PyQt5.QtWidgets import QLineEdit, QComboBox
+        if not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)):
+            self.tool_instance.session.ui.forward_keystroke(event)
 
     def _mw_set_dockable(self, dockable):
         self.__toolkit.dockable = dockable
