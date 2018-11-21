@@ -31,7 +31,6 @@ class CommandLine(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
-        delattr(parent, 'keyPressEvent')
         self.tool_window.fill_context_menu = self.fill_context_menu
         self.history_dialog = _HistoryDialog(self, self.settings.typed_only)
         from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel

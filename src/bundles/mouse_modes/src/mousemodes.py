@@ -383,7 +383,7 @@ class MouseModes:
 
         # Mac-specific remappings...
         import sys
-        if sys.platform == "darwin":
+        if sys.platform == 'darwin':
             if button == 'left':
                 # Emulate additional buttons for one-button mice/trackpads
                 if 'command' in modifiers and not self._have_mode('left','command'):
@@ -398,6 +398,16 @@ class MouseModes:
                 # but more important to have control-left!
                 if 'control' in modifiers:
                     button = 'left'
+        elif sys.platform == 'win32':
+            # Emulate right mouse using Alt key for Windows trackpads
+                if button == 'left':
+                    if 'alt' in modifiers and not self._have_mode('left','alt'):
+                        if 'control' in modifiers:
+                            button = 'middle'
+                            modifiers.remove('control')
+                        else:
+                            button = 'right'
+                            modifiers.remove('alt')
         return button, modifiers
 
     def _have_mode(self, button, modifier):
