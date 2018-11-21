@@ -40,12 +40,12 @@ def median_grid(volume, bin_size = 3, iterations = 1,
   for i in range(iterations):
     m = median_array(m, bin_size)
 
-  from ..data import Array_Grid_Data
+  from ..data import ArrayGridData
   d = v.data
   if v.name.endswith('median'): name = v.name
   else:                         name = '%s median' % v.name
-  mg = Array_Grid_Data(m, origin, step, d.cell_angles, d.rotation,
-                       name = name)
+  mg = ArrayGridData(m, origin, step, d.cell_angles, d.rotation,
+                     name = name)
   return mg
 
 # -----------------------------------------------------------------------------
@@ -93,8 +93,8 @@ def sphere_volume(session, n, r, noise = 1.0):
     from numpy.random import normal
     a += normal(0, noise, a.shape)
 
-  from ..data import Array_Grid_Data
-  g = Array_Grid_Data(a, origin = (-o,-o,-o), step = (1,1,1), name = 'sphere')
+  from ..data import ArrayGridData
+  g = ArrayGridData(a, origin = (-o,-o,-o), step = (1,1,1), name = 'sphere')
   from .. import volume_from_grid_data
   v = volume_from_grid_data(g, session)
   return v

@@ -19,7 +19,7 @@ Architecture
 ------------
 
 There are modules with the core data structures for each
-native data type: :doc:`molecular data <core/atomic/atomic>`,
+native data type: :doc:`molecular data <bundles/atomic/src/atomic>`,
 sequence data, and volume data.
 
 I/O is managed by the :py:mod:`chimerax.core.io` module.
@@ -56,9 +56,9 @@ Structure-related Modules
 .. toctree::
     :maxdepth: 2
 
-    core/atomic/mmcif.rst
+    bundles/mmcif/src/mmcif.rst
 
-    core/atomic/pdbio.rst
+    bundles/atomic/src/pdbio.rst
 
 Graphics-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,11 +78,9 @@ C++ helper Modules
 
     core/appdirs_cpp/appdirs_cpp.rst
 
-    core/atomic/connectivity.rst
-
 .. seealso::
 
-    :doc:`Readcif <core/atomic/readcif_cpp/docs/api>`
+    :doc:`Readcif <bundles/mmcif/mmcif_cpp/readcif_cpp/docs/api>`
         C++ library for reading mmCIF files.
 
 Builtin Data formats

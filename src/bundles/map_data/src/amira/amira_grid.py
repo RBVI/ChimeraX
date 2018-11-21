@@ -12,11 +12,11 @@
 # -----------------------------------------------------------------------------
 # Wrap AmiraMesh data as grid data for displaying surface, meshes, and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class Amira_Grid(Grid_Data):
+class AmiraGrid(GridData):
 
   def __init__(self, path):
 
@@ -25,8 +25,8 @@ class Amira_Grid(Grid_Data):
 
     self.amira_data = d
 
-    Grid_Data.__init__(self, d.matrix_size, d.element_type, step = d.step,
-                       path = path, file_type = 'amira')
+    GridData.__init__(self, d.matrix_size, d.element_type, step = d.step,
+                      path = path, file_type = 'amira')
   
   # ---------------------------------------------------------------------------
   #

@@ -14,11 +14,11 @@
 # usual extension .omap) as grid data for displaying surface, meshes, and
 # volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class DSN6_Grid(Grid_Data):
+class DSN6Grid(GridData):
 
   def __init__(self, path):
 
@@ -33,8 +33,8 @@ class DSN6_Grid(Grid_Data):
     origin = scale_and_skew(dm.origin, step, cell_angles)
     from numpy import float32
 
-    Grid_Data.__init__(self, size, float32, origin, step, cell_angles,
-                       path = path, file_type = 'dsn6')
+    GridData.__init__(self, size, float32, origin, step, cell_angles,
+                      path = path, file_type = 'dsn6')
   
   # ---------------------------------------------------------------------------
   #

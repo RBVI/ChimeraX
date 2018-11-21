@@ -395,12 +395,27 @@ class Render:
         Currently this call is only supported on Windows. Returns true if
         the setting can be changed, otherwise false.
         '''
-        try:
-            from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
-            i = 1 if wait else 0
-            return True if wglSwapIntervalEXT(i) else False
-        except:
-            return False
+        from sys import platform
+        if platform == 'win32':
+            try:
+                from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
+                i = 1 if wait else 0
+                success = wglSwapIntervalEXT(i)
+                return True if success else False
+            except:
+                return False
+        elif platform == 'darwin':
+            sync = 1 if wait else 0
+            from ._graphics import set_mac_swap_interval
+            success = set_mac_swap_interval(sync)
+            return success
+        elif platform == 'linux':
+            sync = 1 if wait else 0
+            from ._graphics import set_linux_swap_interval
+            success = set_linux_swap_interval(sync)
+            return success
+
+        return False
 
     def use_shared_context(self, window, width, height):
         '''
@@ -624,6 +639,7 @@ class Render:
                 cmm = self.current_model_matrix
                 if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
+                    self.set_clip_parameters()
             if self.SHADER_STEREO_360 & p.capabilities:
                 cmm = self.current_model_matrix
                 cvm = self.current_view_matrix
@@ -755,7 +771,7 @@ class Render:
         from ..geometry import normalize_vector
         kld = normalize_vector(lp.key_light_direction)
         if move:
-            kld = move.apply_without_translation(kld)
+            kld = move.transform_vector(kld)
         params["key_light_direction"] = kld
         ds = mp.diffuse_reflectivity * lp.key_light_intensity
         kdc = tuple(ds * c for c in lp.key_light_color)
@@ -770,7 +786,7 @@ class Render:
         # Fill light
         fld = normalize_vector(lp.fill_light_direction)
         if move:
-            fld = move.apply_without_translation(fld)
+            fld = move.transform_vector(fld)
         params["fill_light_direction"] = fld
         ds = mp.diffuse_reflectivity * lp.fill_light_intensity
         fdc = tuple(ds * c for c in lp.fill_light_color)
@@ -868,7 +884,7 @@ class Render:
                  'renderer: %s' % GL.glGetString(GL.GL_RENDERER).decode('utf-8'),
                  'version: %s' % GL.glGetString(GL.GL_VERSION).decode('utf-8'),
                  'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8')]
-        ne = GL.glGetInteger(GL.GL_NUM_EXTENSIONS)
+        ne = GL.glGetIntegerv(GL.GL_NUM_EXTENSIONS)
         for e in range(ne):
             lines.append('extension: %s' % GL.glGetStringi(GL.GL_EXTENSIONS,e).decode('utf-8'))
         return '\n'.join(lines)
@@ -1160,9 +1176,9 @@ class Shadow:
         # Compute light direction in scene coords.
         kl = lp.key_light_direction
         if r.recording_opengl:
-            light_direction = lambda c=camera, kl=kl: c.position.apply_without_translation(kl)
+            light_direction = lambda c=camera, kl=kl: c.position.transform_vector(kl)
         else:
-            light_direction = camera.position.apply_without_translation(kl)
+            light_direction = camera.position.transform_vector(kl)
 
         # Compute drawing bounds so shadow map can cover all drawings.
         center, radius, sdrawings = shadow_bounds(drawings)
@@ -1215,8 +1231,7 @@ class Shadow:
         fb = r.pop_framebuffer()
         return fb.depth_texture
 
-    def _shadow_transforms(self, light_direction, center, radius, depth_bias=0.005,
-                           out_lvinv = None, out_stf = None):
+    def _shadow_transforms(self, light_direction, center, radius, depth_bias=0.005):
 
         r = self._render
         if r.recording_opengl:
@@ -1225,25 +1240,14 @@ class Shadow:
             return (s.lvinv, s.stf)
 
         # Compute the view matrix looking along the light direction.
-        from ..geometry import normalize_vector, orthonormal_frame
+        from ..geometry import normalize_vector, orthonormal_frame, translation, scale
         ld = normalize_vector(light_direction)
         # Light view frame:
-        if out_lvinv is None:
-            lvinv = orthonormal_frame(-ld)
-        else:
-            lvinv = out_lvinv
-            orthonormal_frame(-ld, result = lvinv)
-        lvinv.translate(center - radius * ld)
-        lvinv.inverse_orthonormal(result = lvinv)  # Scene to light view coordinates
+        lv = translation(center - radius * ld) * orthonormal_frame(-ld)
+        lvinv = lv.inverse(is_orthonormal = True)  # Scene to light view coordinates
 
         # Project orthographic along z to (0, 1) texture coords.
-        if out_stf is None:
-            stf = lvinv.copy()
-        else:
-            stf = out_stf
-            stf.set_matrix(lvinv.matrix)
-        stf.scale((0.5/radius, 0.5/radius, -0.5/radius))
-        stf.translate((0.5, 0.5, -depth_bias))
+        stf = translation((0.5, 0.5, -depth_bias)) * scale((0.5/radius, 0.5/radius, -0.5/radius)) * lvinv
         
         fb = r.current_framebuffer()
         w, h = fb.width, fb.height
@@ -1251,8 +1255,7 @@ class Shadow:
             # Using a subregion of shadow map to handle multiple shadows in
             # one texture.  Map scene coordinates to subtexture.
             x, y, vw, vh = r.current_viewport
-            stf.scale((vw / w, vh / h, 1))
-            stf.translate((x / w, y / w, 0))
+            stf = translation((x / w, y / w, 0)) * scale((vw / w, vh / h, 1)) * stf
 
         return lvinv, stf
 
@@ -1340,14 +1343,10 @@ class Multishadow:
         s = size // d               # Subtexture size.
         bias = lp.multishadow_depth_bias
 
-        from ..geometry import Place
-        lvinv = Place()
-        tf = Place()
         for l in range(nl):
             x, y = (l % d), (l // d)
             r.set_viewport(x * s, y * s, s, s)
-            r.shadow._shadow_transforms(light_directions[l], center, radius, bias,
-                                        out_lvinv = lvinv, out_stf = tf)
+            lvinv, tf = r.shadow._shadow_transforms(light_directions[l], center, radius, bias)
             r.set_view_matrix(lvinv)
             mstf_array[l,:,:] = tf.matrix
             draw_depth(r, sdrawings, opaque_only = not mat.transparent_cast_shadows)
@@ -2718,55 +2717,29 @@ class OffScreenRenderingContext:
     def __init__(self, width = 512, height = 512):
         self.width = width
         self.height = height
-        from OpenGL import GL, arrays, platform
+        import ctypes
+        import OpenGL
         from OpenGL import osmesa
+        from OpenGL import GL, arrays, platform, error
         # To use OSMesa with PyOpenGL requires environment variable PYOPENGL_PLATFORM=osmesa
         # Also will need libOSMesa in dlopen library path.
-        import ctypes
-        if not hasattr(osmesa, 'OSMesaCreateContextAttribs'):
-            from OpenGL.raw.osmesa import mesa
-            # monkey patch mesa to be able to create Core contexts
-            @mesa._f
-            @mesa._p.types(mesa.OSMesaContext, ctypes.POINTER(ctypes.c_int), mesa.OSMesaContext)
-            def OSMesaCreateContextAttribs(attribList, sharelist): pass
-            # TODO: figure out why load() is needed
-            OSMesaCreateContextAttribs.load()
-            mesa.OSMesaCreateContextAttribs = OSMesaCreateContextAttribs
-            mesa.OSMESA_DEPTH_BITS = mesa._C('OSMESA_DEPTH_BITS', 0x30)
-            mesa.OSMESA_STENCIL_BITS = mesa._C('OSMESA_STENCIL_BITS', 0x31)
-            mesa.OSMESA_ACCUM_BITS = mesa._C('OSMESA_ACCUM_BITS', 0x32)
-            mesa.OSMESA_PROFILE = mesa._C('OSMESA_PROFILE', 0x33)
-            mesa.OSMESA_CORE_PROFILE = mesa._C('OSMESA_CORE_PROFILE', 0x34)
-            mesa.OSMESA_COMPAT_PROFILE = mesa._C('OSMESA_COMPAT_PROFILE', 0x35)
-            mesa.OSMESA_CONTEXT_MAJOR_VERSION = mesa._C('OSMESA_CONTEXT_MAJOR_VERSION', 0x36)
-            mesa.OSMESA_CONTEXT_MINOR_VERSION = mesa._C('OSMESA_CONTEXT_MINOR_VERSION', 0x37)
-            # do osmesa/__init__'s "from OpenGL.raw.osmesa.mesa import *"
-            osmesa.OSMesaCreateContextAttribs = mesa.OSMesaCreateContextAttribs
-            osmesa.OSMESA_DEPTH_BITS = mesa.OSMESA_DEPTH_BITS
-            osmesa.OSMESA_STENCIL_BITS = mesa.OSMESA_STENCIL_BITS
-            osmesa.OSMESA_ACCUM_BITS = mesa.OSMESA_ACCUM_BITS
-            osmesa.OSMESA_PROFILE = mesa.OSMESA_PROFILE
-            osmesa.OSMESA_CORE_PROFILE = mesa.OSMESA_CORE_PROFILE
-            osmesa.OSMESA_COMPAT_PROFILE = mesa.OSMESA_COMPAT_PROFILE
-            osmesa.OSMESA_CONTEXT_MAJOR_VERSION = mesa.OSMESA_CONTEXT_MAJOR_VERSION
-            osmesa.OSMESA_CONTEXT_MINOR_VERSION = mesa.OSMESA_CONTEXT_MINOR_VERSION
-
-        # if not bool(osmesa.OSMesaCreateContextAttribs):
-        #     raise RuntimeError('Need Mesa version 12.0 or newer for offscreen rendering')
-
         attribs = [
             osmesa.OSMESA_FORMAT, osmesa.OSMESA_RGBA,
             osmesa.OSMESA_DEPTH_BITS, 32,
             # osmesa.OSMESA_STENCIL_BITS, 8,
-            osmesa.OSMESA_PROFILE, mesa.OSMESA_CORE_PROFILE,
+            osmesa.OSMESA_PROFILE, osmesa.OSMESA_CORE_PROFILE,
             osmesa.OSMESA_CONTEXT_MAJOR_VERSION, 3,
             osmesa.OSMESA_CONTEXT_MINOR_VERSION, 3,
             0  # must end with zero
         ]
         attribs = (ctypes.c_int * len(attribs))(*attribs)
-        self.context = osmesa.OSMesaCreateContextAttribs(attribs, None)
+        try:
+            self.context = osmesa.OSMesaCreateContextAttribs(attribs, None)
+        except error.NullFunctionError:
+            raise RuntimeError('Need OSMesa version 12.0 or newer for OpenGL Core Context API.')
+        if not self.context:
+            raise RuntimeError('OSMesa needs to be configured with --enable-gallium-osmesa for OpenGL Core Context support.')
         buf = arrays.GLubyteArray.zeros((height, width, 4))
-        #p = arrays.ArrayDatatype.dataPointer(buf)
         self.buffer = buf
         # call make_current to induce exception if an older Mesa
         self.make_current()
@@ -2776,6 +2749,7 @@ class OffScreenRenderingContext:
         from OpenGL import osmesa
         assert(osmesa.OSMesaMakeCurrent(self.context, self.buffer, GL.GL_UNSIGNED_BYTE, self.width, self.height))
         assert(platform.CurrentContextIsValid())
+        return True
 
     def swap_buffers(self):
         pass

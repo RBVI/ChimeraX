@@ -34,12 +34,12 @@ def ridge_grid(volume, level = None, step = 1, subregion = None):
   m = v.region_matrix(region)
   rm = ridge_matrix(m, level)
 
-  from ..data import Array_Grid_Data
+  from ..data import ArrayGridData
   d = v.data
   name = '%s ridges' % v.name
   origin, step = v.region_origin_and_step(region)
-  rg = Array_Grid_Data(rm, origin, step, d.cell_angles, d.rotation,
-                       name = name)
+  rg = ArrayGridData(rm, origin, step, d.cell_angles, d.rotation,
+                     name = name)
   return rg
 
 # -----------------------------------------------------------------------------

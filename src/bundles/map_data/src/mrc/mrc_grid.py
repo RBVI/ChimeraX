@@ -12,11 +12,11 @@
 # -----------------------------------------------------------------------------
 # Wrap MRC image data as grid data for displaying surface, meshes, and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class MRC_Grid(Grid_Data):
+class MRCGrid(GridData):
 
   def __init__(self, path, file_type = 'mrc'):
 
@@ -25,9 +25,9 @@ class MRC_Grid(Grid_Data):
 
     self.mrc_data = d
 
-    Grid_Data.__init__(self, d.data_size, d.element_type,
-                       d.data_origin, d.data_step, d.cell_angles, d.rotation,
-                       path = path, file_type = file_type)
+    GridData.__init__(self, d.data_size, d.element_type,
+                      d.data_origin, d.data_step, d.cell_angles, d.rotation,
+                      path = path, file_type = file_type)
 
     self.unit_cell_size = d.unit_cell_size
     self.file_header = d.header

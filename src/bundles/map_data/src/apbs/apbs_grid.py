@@ -14,11 +14,11 @@
 # opendx file as grid data for displaying surface, meshes,
 # and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class APBS_Grid(Grid_Data):
+class APBSGrid(GridData):
 
   def __init__(self, path):
 
@@ -26,9 +26,9 @@ class APBS_Grid(Grid_Data):
     ad = apbs_format.APBS_Data(path)
     self.apbs_data = ad
 
-    Grid_Data.__init__(self, ad.grid_size,
-                       origin = ad.xyz_origin, step = ad.xyz_step,
-                       path = path, file_type = 'apbs')
+    GridData.__init__(self, ad.grid_size,
+                      origin = ad.xyz_origin, step = ad.xyz_step,
+                      path = path, file_type = 'apbs')
 
     self.polar_values = True
 

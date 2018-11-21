@@ -14,6 +14,7 @@
  */
 
 #include <algorithm>
+#include <exception>
 #include <list>
 #include <map>
 #include <string>
@@ -26,6 +27,13 @@
 #include "AtomicStructure.h"
 #include "Coord.h"
 #include "Residue.h"
+
+class bad_coords_error: public std::exception {
+public:
+	const char* what() const noexcept {
+		return "Structure has degenerate atomic coordinates; assigning all 'turn' secondary structure";
+	}
+};
 
 namespace atomstruct {
 
@@ -639,7 +647,11 @@ compute_chain(KsdsspParams& params)
         hbonds.resize(num_res);
 
     // Compute secondary structure
-    add_imide_hydrogens(params);
+	try {
+		add_imide_hydrogens(params);
+	} catch (std::domain_error&) {
+		throw bad_coords_error();
+	}
     find_hbonds(params);
 
     find_turns(params, 3);
@@ -743,7 +755,15 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
             delete crd;
         for (auto ih: params.imide_Hs)
             delete ih;
+    } catch (bad_coords_error& e) {
+		set_ss_assigned(true); // leave as all-turn; don't try again
+        for (auto crd: params.coords)
+            delete crd;
+        for (auto ih: params.imide_Hs)
+            delete ih;
+		logger::error(logger(), e.what());
     } catch (...) {
+		set_ss_assigned(true); // leave as all-turn; don't try again
         for (auto crd: params.coords)
             delete crd;
         for (auto ih: params.imide_Hs)

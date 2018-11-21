@@ -13,11 +13,11 @@
 # Wrap EMAN HDF image data as grid data for displaying surface, meshes,
 #  and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class EMAN_HDF_Grid(Grid_Data):
+class EMANHDFGrid(GridData):
 
   def __init__(self, eman_hdf_data, size, value_type,
                origin, step, array_path):
@@ -25,10 +25,10 @@ class EMAN_HDF_Grid(Grid_Data):
     self.eman_hdf_data = eman_hdf_data
     self.array_path = array_path
 
-    Grid_Data.__init__(self, size, value_type,
-                       origin, step,
-                       path = eman_hdf_data.path, file_type = 'emanhdf',
-                       grid_id = array_path)
+    GridData.__init__(self, size, value_type,
+                      origin, step,
+                      path = eman_hdf_data.path, file_type = 'emanhdf',
+                      grid_id = array_path)
   
   # ---------------------------------------------------------------------------
   #
@@ -49,7 +49,7 @@ def read_eman_hdf5(path):
 
   glist = []
   for i in d.images:
-    g = EMAN_HDF_Grid(d, i.size, i.value_type, i.origin, i.step, i.array_path)
+    g = EMANHDFGrid(d, i.size, i.value_type, i.origin, i.step, i.array_path)
     glist.append(g)
 
   return glist

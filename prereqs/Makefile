@@ -40,6 +40,7 @@ endif
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
+NEED_MESA=1
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
 NEED_EXPAT=1
@@ -68,11 +69,24 @@ ffmpeg.install:
 ffmpeg.app-install:
 endif
 
-ifdef NEED_OFFSCREEN
-SUBDIRS += llvm mesa
+ifdef NEED_MESA
+SUBDIRS += mesa
 ifeq ($(OS),Darwin)
 NEED_PKGCONFIG=1
 endif
+else
+mesa.install:
+mesa.app-install:
+endif
+
+ifdef NEED_LLVM
+SUBDIRS += llvm
+ifeq ($(OS),Darwin)
+NEED_PKGCONFIG=1
+endif
+else
+llvm.install:
+llvm.app-install:
 endif
 
 ifdef NEED_LIBTOOL
@@ -128,7 +142,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= imex msgpack numpy openmm \
+SUBDIRS	+= imex numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
 	   scipy
@@ -203,12 +217,14 @@ hdf5.app-install: zlib.app-install chrpath.app-install
 hdf5.install: zlib.install chrpath.install
 leapmotion.app-install: Python.app-install
 leapmotion.install: Python.install
-llvm.install: py7zip.install
-mesa.install: py7zip.install llvm.install pkgconfig.install
+llvm.install: p7zip.install
+mesa.install: p7zip.install llvm.install pkgconfig.install
 msgpack.app-install: Python.app-install pips.app-install
 msgpack.install: Python.install pips.install
 numexpr.app-install: Python.app-install numpy.app-install pips.app-install
 numexpr.install: Python.install numpy.install pips.install
+numpy.app-install: Python.app-install numpy.app-install pips.app-install
+numpy.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
 openmm.install: Python.install numpy.install pips.install
 openssl.app-install: chrpath.app-install

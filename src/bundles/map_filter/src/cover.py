@@ -48,8 +48,8 @@ def map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, symmetries, step):
     log.status('%d grid points not covered' % nnc)
 
   origin = d.ijk_to_xyz(ijk_min)
-  from ..data import Array_Grid_Data
-  g = Array_Grid_Data(m, origin, d.step, d.cell_angles, name = v.name + ' extended')
+  from ..data import ArrayGridData
+  g = ArrayGridData(m, origin, d.step, d.cell_angles, name = v.name + ' extended')
 
   return g
 

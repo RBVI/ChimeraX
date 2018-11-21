@@ -13,11 +13,11 @@
 # Wrap SITUS density maps as grid data for displaying surface, meshes,
 # and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class SITUS_Grid(Grid_Data):
+class SITUSGrid(GridData):
 
   def __init__(self, path):
 
@@ -27,8 +27,8 @@ class SITUS_Grid(Grid_Data):
 
     step = (sm.voxel_size, sm.voxel_size, sm.voxel_size)
 
-    Grid_Data.__init__(self, sm.grid_size, origin = sm.origin, step = step,
-                       path = path, file_type = 'situs')
+    GridData.__init__(self, sm.grid_size, origin = sm.origin, step = step,
+                      path = path, file_type = 'situs')
   
   # ---------------------------------------------------------------------------
   #

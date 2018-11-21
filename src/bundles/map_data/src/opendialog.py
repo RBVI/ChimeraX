@@ -18,7 +18,7 @@ def open_grid_files(paths_and_types, stack_images = True):
   grids = []
   error_message = ''
   unknown_type_paths = []
-  from .fileformats import open_file, File_Format_Error
+  from .fileformats import open_file, FileFormatError
   if stack_images:
     paths_and_types = batch_paths(paths_and_types)
   for path, file_type in paths_and_types:
@@ -26,7 +26,7 @@ def open_grid_files(paths_and_types, stack_images = True):
       try:
         glist = open_file(path, file_type)
         grids.extend(glist)
-      except (IOError, SyntaxError, File_Format_Error) as e:
+      except (IOError, SyntaxError, FileFormatError) as e:
         from os.path import basename
         if isinstance(path, (list,tuple)):
           descrip = '%s ... (%d files)' % (basename(path[0]), len(path))

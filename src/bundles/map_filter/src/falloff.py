@@ -44,12 +44,12 @@ def falloff_grid(volume, iterations = 10, step = 1, subregion = None):
     m = v.region_matrix(region).astype(float32)
     falloff_matrix(m, iterations)
 
-    from ..data import Array_Grid_Data
+    from ..data import ArrayGridData
     d = v.data
     name = '%s falloff' % v.name
     forigin, fstep = v.region_origin_and_step(region)
-    fg = Array_Grid_Data(m, forigin, fstep, d.cell_angles, d.rotation,
-                         name = name)
+    fg = ArrayGridData(m, forigin, fstep, d.cell_angles, d.rotation,
+                       name = name)
     return fg
 
 # -----------------------------------------------------------------------------

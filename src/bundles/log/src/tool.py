@@ -130,8 +130,6 @@ class Log(ToolInstance, HtmlLog):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        self.warning_shows_dialog = False
-        self.error_shows_dialog = True
         from .settings import LogSettings
         self.settings = LogSettings(session, tool_name)
         from chimerax.ui import MainToolWindow
@@ -140,16 +138,16 @@ class Log(ToolInstance, HtmlLog):
                 def save_image(ses=session):
                     from chimerax.core.commands import run
                     run(ses, "log thumbnail")
-                menu.addAction("Insert image", save_image)
+                menu.addAction("Insert Image", save_image)
                 log_window = self.tool_instance.log_window
-                menu.addAction("Save as...", log_window.cm_save)
+                menu.addAction("Save As...", log_window.cm_save)
                 menu.addAction("Clear", self.tool_instance.clear)
-                menu.addAction("Copy selection", lambda:
+                menu.addAction("Copy Selection", lambda:
                     log_window.page().triggerAction(log_window.page().Copy))
-                menu.addAction("Select all", lambda:
+                menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
                 from PyQt5.QtWidgets import QAction
-                link_action = QAction("Executable command links", menu)
+                link_action = QAction("Executable Command Links", menu)
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
                 link_action.triggered.connect(self.tool_instance.cm_set_cmd_links)
@@ -305,8 +303,9 @@ class Log(ToolInstance, HtmlLog):
             if image_break:
                 self.page_source += "<br>\n"
         else:
-            if ((level >= self.LEVEL_ERROR and self.error_shows_dialog) or
-                    (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
+            from chimerax.core.core_settings import settings as core_settings
+            if ((level >= self.LEVEL_ERROR and core_settings.errors_raise_dialog) or
+                    (level == self.LEVEL_WARNING and core_settings.warnings_raise_dialog)):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
                 else:
@@ -387,11 +386,35 @@ class Log(ToolInstance, HtmlLog):
             lw.load(QUrl.fromLocalFile(self._tf_name))
         lw.setEnabled(True)
 
+    def plain_text(self):
+        """Convert HTML to plain text"""
+        import html2text
+        h = html2text.HTML2Text()
+        h.unicode_snob = True
+        h.ignore_links = True
+        h.ignore_emphasis = True
+        # html2text doesn't understand css style display:None
+        # so remove "duplicate" of command and add leading '> '
+        import lxml.html
+        html = lxml.html.fromstring(self.page_source)
+        for node in html.find_class("cxcmd"):
+            for child in node:
+                if (child.tag != 'div' or child.attrib.get('class', None)
+                        not in (None, 'cxcmd_as_cmd')):
+                    node.remove(child)
+                    continue
+                child.text = '> '
+                break
+        src = lxml.html.tostring(html, encoding='unicode')
+        return h.handle(src)
+
     def clear(self):
         self.page_source = ""
         self.show_page_source()
 
-    def save(self, path):
+    def save(self, path, *, executable_links=None):
+        if executable_links is None:
+            executable_links = self.settings.exec_cmd_links
         from os.path import expanduser
         path = expanduser(path)
         with open(path, 'w') as f:
@@ -403,14 +426,13 @@ class Log(ToolInstance, HtmlLog):
                     "%s"
                     "</script>\n"
                     "</head>\n"
-                    '<body onload="cxlinks_init()">\n'
                     "<h1> ChimeraX Log </h1>\n"
                     "<style>\n"
                     "%s"
                     "%s"
                     "</style>\n" % (
                         self._get_cxcmd_script(), cxcmd_css,
-                        cxcmd_as_cmd_css if self.settings.exec_cmd_links else cxcmd_as_doc_css,
+                        cxcmd_as_cmd_css if executable_links else cxcmd_as_doc_css,
                     )
             )
             f.write(self.page_source)

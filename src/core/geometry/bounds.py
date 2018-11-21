@@ -23,36 +23,38 @@ The bounds of no object is represented as None rather than a Bounds object.
 class Bounds:
     '''Bounding box specified by minimum and maximum x,y,z coordinates.'''
     def __init__(self, xyz_min, xyz_max):
+        '''Supported API. Define a bounding box using two corner points.'''
         # Make sure bounds are numpy arrays
         from numpy import ndarray, array, float32
         xmin = xyz_min if isinstance(xyz_min, ndarray) else array(xyz_min, float32)
         xmax = xyz_max if isinstance(xyz_max, ndarray) else array(xyz_max, float32)
 
         self.xyz_min = xmin
-        "Minimum x,y,z bounds as numpy float32 array."
+        "Supported API. Minimum x,y,z bounds as numpy float32 array."
         self.xyz_max = xmax
-        "Maximum x,y,z bounds as numpy float32 array."
+        "Supported API. Maximum x,y,z bounds as numpy float32 array."
 
     def center(self):
-        "Center of bounding box."
+        "Supported API. Center of bounding box."
         return 0.5 * (self.xyz_min + self.xyz_max)
 
     def size(self):
-        "Size of box along x,y,z axes."
+        "Supported API. Size of box along x,y,z axes. Returns 3 values."
         return self.xyz_max - self.xyz_min
 
     def width(self):
-        "Maximum of size of box x,y,z axes."
+        "Supported API. Maximum of size of box x,y,z axes."
         return (self.xyz_max - self.xyz_min).max()
 
     def radius(self):
-        "Radius of sphere containing bounding box."
+        "Supported API. Radius of sphere containing bounding box."
         size = self.xyz_max - self.xyz_min
         from math import sqrt
         r = 0.5*sqrt((size*size).sum())
         return r
 
     def box_corners(self):
+        '''Supported API. Return a float32 numpy array of the 8 corners of the bounding box.'''
         (x0, y0, z0), (x1, y1, z1) = self.xyz_min, self.xyz_max
         corners = ((x0, y0, z0), (x1, y0, z0), (x0, y1, z0), (x1, y1, z0),
                    (x0, y0, z1), (x1, y0, z1), (x0, y1, z1), (x1, y1, z1))
@@ -63,6 +65,7 @@ class Bounds:
 
 def point_bounds(xyz, placements=None):
     '''
+    Supported API.
     Return :py:class:`.Bounds` for a set of points, optionally
     multiple positions given by a :py:class:`.Places` instance.
     '''
@@ -81,6 +84,7 @@ def point_bounds(xyz, placements=None):
 
 def union_bounds(blist):
     '''
+    Supported API.
     Return :py:class:`.Bounds` that is the union of a list
     of :py:class:`.Bounds`. The list can contain None elements
     which are ignored.  If the list contains no :py:class:`.Bounds`
@@ -102,6 +106,7 @@ def union_bounds(blist):
 
 def copies_bounding_box(bounds, positions):
     '''
+    Supported API.
     Return :py:class:`.Bounds` that covers a specified bounding
     box replicated at :py:class:`.Places`.
     '''
@@ -130,6 +135,7 @@ def copy_tree_bounds(bounds, positions_list):
 
 def sphere_bounds(centers, radii):
     '''
+    Supported API.
     Return :py:class:`.Bounds` containing a set of spheres.
     '''
     if len(centers) == 0:
@@ -139,7 +145,10 @@ def sphere_bounds(centers, radii):
     return Bounds(b[0], b[1])
 
 def clip_bounds(b, planes):
-    '''Clip a bounding box using planes each given as a plane point and normal.'''
+    '''
+    Supported API.
+    Clip a bounding box using planes each given as a plane point and normal.
+    '''
     if len(planes) == 0:
         return b
     from . import inner_product

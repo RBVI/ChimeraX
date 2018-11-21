@@ -26,6 +26,12 @@ class _SeqViewerBundleAPI(BundleAPI):
         if class_name == "SequenceViewer":
             from .tool import SequenceViewer
             return SequenceViewer
+        if class_name == "Consensus":
+            from chimerax.seqalign.headers import Consensus
+            return Consensus
+        if class_name == "Conservation":
+            from chimerax.seqalign.headers import Conservation
+            return Conservation
 
     @staticmethod
     def initialize(session, bundle_info):

@@ -16,5 +16,6 @@ from  chimerax.core.settings import Settings
 
 class CmdLineSettings(Settings):
     AUTO_SAVE = {
+        "num_remembered": 500,
         "typed_only": False,
     }

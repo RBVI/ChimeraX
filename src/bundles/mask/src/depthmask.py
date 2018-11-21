@@ -154,8 +154,7 @@ def surface_projection_coordinates(surfaces, projection_axis, volume):
   zsurf = []
   tcount = 0
   for vertices, triangles in surfaces:
-    varray = vertices.copy()
-    tfrs.move(varray)
+    varray = tfrs.transform_points(varray)
     zsurf.append((varray, triangles))
     tcount += len(triangles)
   if tcount == 0:
@@ -252,10 +251,10 @@ def project_and_mask(zsurf, size, mvol, mijk_to_dijk, sandwich, fill_overlap):
 def array_to_model(mvol, volume, ijk_origin, model_id):
 
   # Create masked volume grid object.
-  from chimerax.map.data import Array_Grid_Data
+  from chimerax.map.data import ArrayGridData
   g = volume.data
   morigin = g.ijk_to_xyz_transform * ijk_origin
-  m = Array_Grid_Data(mvol, morigin, g.step, cell_angles = g.cell_angles,
+  m = ArrayGridData(mvol, morigin, g.step, cell_angles = g.cell_angles,
                       rotation = g.rotation, name = g.name + ' masked')
 
   # Create masked volume object.
@@ -298,8 +297,7 @@ def bounding_box(surfaces, tf = None):
     if tf is None:
       v = vertices
     else:
-      v = vertices.copy()
-      tf.move(v)
+      v = tf.transform_points(v)
     v = v.take(triangles.ravel(), axis = 0)
     vmin = v.min(axis = 0)
     if smin is None:      smin = vmin
@@ -331,8 +329,7 @@ def surface_geometry(plist, tf, pad):
     if not tf is None:
       vtf = tf * p.scene_position
       if not vtf.is_identity(tolerance = 0):
-        varray = varray.copy()
-        vtf.move(varray)
+        varray = vtf.transform_points(varray)
 
     surfaces.append((varray, tarray))
 

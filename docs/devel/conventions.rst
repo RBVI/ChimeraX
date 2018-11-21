@@ -12,11 +12,11 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-Code Conventions
-================
+Obtaining Code
+==============
 
-Code Repository
----------------
+Git Repository
+--------------
 
 ChimeraX uses `git <http://git-scm.com/>`_ for source code management.
 

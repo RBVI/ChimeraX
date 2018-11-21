@@ -19,6 +19,7 @@
 
 #define PDB_CONNECT_EXPORT
 #include "connect.h"
+#include <atomstruct/backbone.h>
 #include <atomstruct/Bond.h>
 #include <atomstruct/Coord.h>
 #include <atomstruct/destruct.h>
@@ -609,7 +610,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             Residue *r = *ri;
             if (polymeric_res_names.find(r->name()) != polymeric_res_names.end())
                 continue;
-            if (het_res.find(r) != het_res.end()) {
+            if (het_res.find(r) == het_res.end()) {
                 break_long = true;
                 break;
             }

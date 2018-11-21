@@ -16,8 +16,8 @@
 # This is not the same as inverting the z axis if cell angles are not
 # 90 degrees.  Does not change rotation or symmetries.
 #
-from ..data import Grid_Data
-class Flip_Grid(Grid_Data):
+from ..data import GridData
+class FlipGrid(GridData):
 
     def __init__(self, grid_data, axes = 'z'):
 
@@ -26,7 +26,7 @@ class Flip_Grid(Grid_Data):
         self.axes = axes
 
         settings = d.settings(name = '%s %s flip' % (d.name, axes))
-        Grid_Data.__init__(self, file_type = d.file_type, **settings)
+        GridData.__init__(self, file_type = d.file_type, **settings)
         self.data_cache = None      # Caching done by underlying grid.
         
     # -------------------------------------------------------------------------

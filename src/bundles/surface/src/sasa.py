@@ -343,7 +343,7 @@ def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
     va, ta = sphere_band_arc(circle.angle, arc, width)
     from chimerax.core.geometry import orthonormal_frame
     f = orthonormal_frame(circle.center, xdir = p1)
-    f.move(va)
+    f.transform_points(va, in_place = True)
     na = va.copy()
     c, r = sphere
     va *= r + offset
@@ -364,8 +364,8 @@ def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
         va, ta = sphere_band_geometry(c.angle, width = width)
         na = va.copy()
         va *= r + offset
-        f.move(va)
-        f.move(na)
+        f.transform_points(va, in_place = True)
+        f.transform_vectors(na, in_place = True)
         va += cs
         p = s.new_drawing('circles')
         p.set_geometry(va, na, ta)

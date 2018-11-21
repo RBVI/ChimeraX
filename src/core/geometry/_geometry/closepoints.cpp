@@ -1259,6 +1259,7 @@ static bool boxes_are_close(const Box &box1, const Box &box2, float distance)
 const char *find_close_points_doc =
   "find_close_points(xyz1, xyz2, max_distance) -> i1, i2\n"
   "\n"
+  "Supported API\n"
   "Find close points between two sets of points, returning indices\n"
   "for each point that is close to some point in the other set.\n"
   "It does not report all pairs of close points, only which points\n"
@@ -1312,6 +1313,7 @@ extern "C" PyObject *find_close_points(PyObject *, PyObject *args, PyObject *key
 const char *find_closest_points_doc =
   "find_closest_points(xyz1, xyz2, max_distance [, scale2]) -> i1, i2, near1\n"
   "\n"
+  "Supported API\n"
   "Find close points between two sets of points, returning indices\n"
   "for each point that is close to some point in the other set, and\n"
   "also return the closest point in set 2 for each point in set 1.\n"
@@ -1471,6 +1473,7 @@ static PyObject *index_lists(const vector<Index_List> &i)
 const char *find_close_points_sets_doc =
   "find_close_points_sets(tp1, tp2, max_distance) -> i1, i2\n"
   "\n"
+  "Supported API\n"
   "Find close points between two sets of points, returning indices\n"
   "for each point that is close to some point in the other set.\n"
   "Each set of points is defined by a list of pairs, each pair being an\n"

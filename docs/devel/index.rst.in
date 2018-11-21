@@ -18,89 +18,55 @@
 ChimeraX Programming Manual
 ***************************
 
-This manual covers programming APIs for the :ref:`core`, tools and libraries.
+This manual covers programming APIs for ChimeraX.
 They are implemented in `Python <http://www.python.org/>`_
 with routines that need to run fast implemented in C++.
-This code is free for non-commercial use, see the
-:doc:`license <license>` for details.
 
 User documentation for the ChimeraX application is in the `User's Manual`_.
+
+Tutorials and Examples
+======================
 
 .. toctree::
    :maxdepth: 1
 
    tutorials/introduction.rst
 
+Developer Guide
+===============
+
 .. toctree::
    :maxdepth: 1
 
+   conventions.rst
+   apps/ChimeraX/ChimeraX.rst
    writing_bundles.rst
-
-.. toctree::
-   :maxdepth: 1
-
-   mmcif.rst
-   mmcif_writing.rst
-
-.. toctree::
-   :maxdepth: 1
-
-   core/commands/commands.rst
-
-.. toctree::
-   :maxdepth: 1
-
-   core/commands/user_commands.rst
-
-.. toctree::
-   :maxdepth: 2
-
-   modules.rst
-
-.. include:: classes.rst
-
-.. toctree::
-   :maxdepth: 2
-
-   cpplibs.rst
-
-.. toctree::
-   :maxdepth: 1
-
+   core.rst
    building.rst
 
-**********
-API Status
-**********
-
-.. _supported-api:
-
-Supported API
+API Reference
 =============
 
-Items marked as **Supported API** are guaranteed to continue to
-work in subsequent ChimeraX releases with the same major version number.
+.. toctree::
+   :maxdepth: 1
 
-.. _experimental-api:
+   supported_api.rst	      
+   modules.rst
+   core/commands/user_commands.rst
+   classes.rst
+   cpplibs.rst
+   prereqs.rst
 
-Experimental API
-================
-
-Items marked as **Experimental API** are likely to be added as
-**Supported API** in the future but the exact arguments, return
-values, and even functionality may still change.
-
-******************
-Indices and Tables
-******************
+Index
+=====
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
 
-********
 License
-********
-:doc:`Non-Commercial Software License Agreement <license>`
+=======
+
+This code is free for non-commercial use, see the :doc:`license <license>` for details.
 
 COPYRIGHT_NOTICE

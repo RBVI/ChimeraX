@@ -282,7 +282,6 @@ def surface_cap(session, enable = None, offset = None):
             from . import remove_clip_caps
             drawings = session.main_view.drawing.all_drawings()
             remove_clip_caps(drawings)
-        session.triggers.activate_trigger('clipping caps changed', enable)
 
     if offset is not None:
         settings.clipping_cap_offset = offset
@@ -349,10 +348,6 @@ def register_command(logger):
     # Register surface operation subcommands.
     from . import sop
     sop.register_surface_subcommands(logger)
-
-    # Register "measure sasa" command
-    from . import measure_sasacmd
-    measure_sasacmd.register_command(logger)
     
 def check_atoms(atoms, session):
     if atoms is None:

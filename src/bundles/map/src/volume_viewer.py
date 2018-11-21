@@ -1036,11 +1036,11 @@ class Precomputed_Subsamples_Panel(PopupPanel):
   #
   def open_subsamples(self, data, grid_object, cell_size):
     
-    from VolumeData import Subsampled_Grid
-    if isinstance(data, Subsampled_Grid):
+    from VolumeData import SubsampledGrid
+    if isinstance(data, SubsampledGrid):
       ssdata = data
     else:
-      ssdata = Subsampled_Grid(data)
+      ssdata = SubsampledGrid(data)
       import volume
       volume.replace_data(data, ssdata)
     
@@ -1430,6 +1430,13 @@ class Thresholds_Panel(PopupPanel):
 
     PopupPanel.__init__(self, parent, scrollable = True)
 
+    import sys
+    if sys.platform == 'darwin':
+        # Make scrollbar always shown on Mac
+        from PyQt5.QtWidgets import QStyleFactory
+        style = QStyleFactory.create("Windows")
+        self.frame.verticalScrollBar().setStyle(style)
+    
     self.histogram_height = 64
     self.histogram_panes = []
     self.histogram_table = {}           # maps Volume to Histogram_Pane
@@ -1441,9 +1448,10 @@ class Thresholds_Panel(PopupPanel):
 
     frame = self.frame
     frame.resizeEvent = lambda e, self=self: self.panel_resized(e)
+    frame.setWidgetResizable(True)
+    self._allow_panel_height_increase = False
     
-    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QLabel
-    from PyQt5.QtCore import Qt, QSize
+    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy
 
     # Histograms frame
     self.histograms_frame = hf = QFrame(frame)
@@ -1451,10 +1459,7 @@ class Thresholds_Panel(PopupPanel):
 
     self.histograms_layout = hl = QVBoxLayout(hf)
     hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
-    # On macOS 10.13 provide room on right for scrollbar.
-    import sys
-    right_margin = 12 if sys.platform == 'darwin' else 5
-    left_margin = 5
+    right_margin = left_margin = 5
     hl.setContentsMargins(left_margin,0,right_margin,0)
     hl.setSpacing(0)
     hl.addStretch(1)
@@ -1515,23 +1520,30 @@ class Thresholds_Panel(PopupPanel):
     hptable[v] = hp
     self.set_active_histogram(hp)
 
-    self.resize_panel()
+    self._allow_panel_height_increase = True
 
   # ---------------------------------------------------------------------------
   # The scrolled area containing the histograms resized, so resize the histograms
   # to match the width of the scrolled area.
   #
   def panel_resized(self, e):
-      f = self.frame
+      vp = self.frame.viewport()
       hf = self.histograms_frame
-      w = f.width() - 2*hf.lineWidth()
-      hf.resize(w, hf.height())
+      if hf.width() != vp.width():
+          hf.resize(vp.width(), hf.height())
+      
+      from PyQt5.QtWidgets import QScrollArea
+      QScrollArea.resizeEvent(self.frame, e)
       
   # ---------------------------------------------------------------------------
   # Resize thresholds panel to fit more histograms up to 350 pixels total height.
   #
   def resize_panel(self, max_height = 350):
 
+    if not self._allow_panel_height_increase:
+        return
+    self._allow_panel_height_increase = False
+    
     hpanes = self.histogram_panes
     n = len(hpanes)
     if n == 0:
@@ -1884,10 +1896,10 @@ class Histogram_Pane:
       menu = QMenu(self.frame)
       ro = v.rendering_options
       add = self.add_menu_entry
-      add(menu, 'Show outline box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show full region', lambda checked, e=event, self=self: self.show_full_region())
-      add(menu, 'New threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
-      add(menu, 'Delete threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
+      add(menu, 'Show Outline Box', self.show_outline_box, checked = ro.show_outline_box)
+      add(menu, 'Show Full Region', lambda checked, e=event, self=self: self.show_full_region())
+      add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
+      add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
       menu.exec(event.globalPos())
 
@@ -4899,5 +4911,6 @@ def volume_dialog(session, create=False):
 #
 def show_volume_dialog(session):
     vv = volume_dialog(session, create = True)
-    vv.show()
+    if vv:		# In nogui mode vv = None.
+        vv.show()
     return vv

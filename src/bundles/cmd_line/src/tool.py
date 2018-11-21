@@ -57,6 +57,13 @@ class CommandLine(ToolInstance):
                 self.lineEdit().insert(text)
                 event.acceptProposedAction()
 
+            def focusOutEvent(self, event):
+                le = self.lineEdit()
+                sel_start, sel_length = le.selectionStart(), len(le.selectedText())
+                QComboBox.focusOutEvent(self, event)
+                if sel_start >= 0:
+                    le.setSelection(sel_start, sel_length)
+
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
                 from PyQt5.QtCore import Qt
@@ -93,19 +100,9 @@ class CommandLine(ToolInstance):
                     QComboBox.keyPressEvent(self, event)
                 if want_focus:
                     # Give command line the focus, so that up/down arrow work as
-                    # exepcted rather than changing the selection level
+                    # expected rather than changing the selection level
                     self.setFocus()
                 self._processing_key = False
-
-            def retain_sel_on_focus_out(self):
-                # if a full command has been selected, retain that selection on
-                # focus out so that it is easy to type a new command
-                if self._processing_key:
-                    return
-                le = self.lineEdit()
-                if not le.hasFocus() and not le.selectedText() \
-                        and self.count() > 0 and self.itemText(0) == self.currentText():
-                    le.selectAll()
 
             def sizeHint(self):
                 # prevent super-long commands from making the whole interface super wide
@@ -121,17 +118,21 @@ class CommandLine(ToolInstance):
         layout.addWidget(self.text, 1)
         parent.setLayout(layout)
         # lineEdit() seems to be None during entire CmdText constructor, so connect here...
-        self.text.lineEdit().selectionChanged.connect(self.text.retain_sel_on_focus_out)
         self.text.lineEdit().returnPressed.connect(self.execute)
         self.text.currentTextChanged.connect(self.text_changed)
         self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e, forwarded=True)
         session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
-        self._just_typed_command = False
+        self._just_typed_command = None
         self._command_started_handler = session.triggers.add_handler("command started",
             self._command_started_cb)
         self.tool_window.manage(placement="bottom")
         self._in_init = False
+        self._processing_command = False
+        from chimerax.core.core_settings import settings as core_settings
+        if core_settings.startup_commands:
+            # prevent the startup command output from being summarized into 'startup messages' table
+            session.ui.triggers.add_handler('ready', self._run_startup_commands)
 
     def cmd_clear(self):
         self.text.lineEdit().clear()
@@ -155,7 +156,7 @@ class CommandLine(ToolInstance):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
-        filter_action = QAction("Typed commands only", menu)
+        filter_action = QAction("Typed Commands Only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.settings.typed_only)
         filter_action.toggled.connect(lambda arg, f=self._set_typed_only: f(arg))
@@ -200,12 +201,17 @@ class CommandLine(ToolInstance):
         @contextmanager
         def processing_command(line_edit, cmd_text):
             line_edit.blockSignals(True)
+            self._processing_command = True
+            # as per the docs for contextmanager, the yield needs
+            # to be in a try/except if the exit code is to execute
+            # after errors
             try:
                 yield
             finally:
                 line_edit.blockSignals(False)
                 line_edit.setText(cmd_text)
                 line_edit.selectAll()
+                self._processing_command = False
         session = self.session
         logger = session.logger
         text = self.text.lineEdit().text()
@@ -218,7 +224,7 @@ class CommandLine(ToolInstance):
                 continue
             with processing_command(self.text.lineEdit(), cmd_text):
                 try:
-                    self._just_typed_command = True
+                    self._just_typed_command = cmd_text
                     cmd = Command(session)
                     cmd.run(cmd_text)
                 except SystemExit:
@@ -240,9 +246,31 @@ class CommandLine(ToolInstance):
         return tools.get_singleton(session, CommandLine, 'Command Line Interface', **kw)
 
     def _command_started_cb(self, trig_name, cmd_text):
-        self.history_dialog.add(cmd_text, typed=self._just_typed_command)
-        self.text.lineEdit().selectAll()
-        self._just_typed_command = False
+        # the self._processing_command test is necessary when multiple commands
+        # separated by semicolons are typed in order to prevent putting the 
+        # second and later commands into the command history, since we will get 
+        # triggers for each command in the line
+        if self._just_typed_command or not self._processing_command:
+            self.history_dialog.add(self._just_typed_command or cmd_text,
+                typed=self._just_typed_command is not None)
+            self.text.lineEdit().selectAll()
+            self._just_typed_command = None
+
+    def _run_startup_commands(self, *args):
+        # log the commands; but prevent them from going into command history...
+        self._processing_command = True
+        from chimerax.core.commands import run
+        from chimerax.core.errors import UserError
+        from chimerax.core.core_settings import settings as core_settings
+        try:
+            for cmd_text in core_settings.startup_commands:
+                run(self.session, cmd_text)
+        except UserError as err:
+            session.logger.status(str(err), color="crimson")
+        except:
+            self._process_command = False
+            raise
+        self._processing_command = False
 
     def _set_typed_only(self, typed_only):
         self.settings.typed_only = typed_only
@@ -252,8 +280,6 @@ class _HistoryDialog:
 
     record_label = "Save..."
     execute_label = "Execute"
-
-    NUM_REMEMBERED = 500
 
     def __init__(self, controller, typed_only):
         # make dialog hidden initially
@@ -265,15 +291,43 @@ class _HistoryDialog:
         self.window.fill_context_menu = self.fill_context_menu
 
         parent = self.window.ui_area
-        from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
+        from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QLabel
         self.listbox = QListWidget(parent)
         self.listbox.setSelectionMode(QListWidget.ExtendedSelection)
         self.listbox.itemSelectionChanged.connect(self.select)
         main_layout = QVBoxLayout(parent)
+        main_layout.setContentsMargins(0,0,0,0)
         main_layout.addWidget(self.listbox)
+        num_cmd_frame = QFrame(parent)
+        main_layout.addWidget(num_cmd_frame)
+        num_cmd_layout = QHBoxLayout(num_cmd_frame)
+        num_cmd_layout.setContentsMargins(0,0,0,0)
+        remem_label = QLabel("Remember")
+        from PyQt5.QtCore import Qt
+        remem_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        num_cmd_layout.addWidget(remem_label, 1)
+        from PyQt5.QtWidgets import QSpinBox, QSizePolicy
+        class ShorterQSpinBox(QSpinBox):
+            max_val = 1000000
+            def textFromValue(self, val):
+                # kludge to make the damn entry field shorter
+                if val == self.max_val:
+                    return "1 mil"
+                return str(val)
+
+        spin_box = ShorterQSpinBox()
+        spin_box.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        spin_box.setRange(100, spin_box.max_val)
+        spin_box.setSingleStep(100)
+        spin_box.setValue(controller.settings.num_remembered)
+        spin_box.valueChanged.connect(self._num_remembered_changed)
+        num_cmd_layout.addWidget(spin_box, 0)
+        num_cmd_layout.addWidget(QLabel("commands"), 1)
+        num_cmd_frame.setLayout(num_cmd_layout)
         button_frame = QFrame(parent)
         main_layout.addWidget(button_frame)
         button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0,0,0,0)
         for but_name in [self.record_label, self.execute_label, "Delete", "Copy", "Help"]:
             but = QPushButton(but_name, button_frame)
             but.setAutoDefault(False)
@@ -283,13 +337,13 @@ class _HistoryDialog:
         self.window.manage(placement=None)
         self.window.shown = False
         from chimerax.core.history import FIFOHistory
-        self._history = FIFOHistory(self.NUM_REMEMBERED, controller.session, "commands")
+        self._history = FIFOHistory(controller.settings.num_remembered, controller.session, "commands")
         self._record_dialog = None
         self._search_cache = None
         self._suspend_handler = False
 
     def add(self, item, *, typed=False):
-        if len(self._history) >= self.NUM_REMEMBERED:
+        if len(self._history) >= self.controller.settings.num_remembered:
             if not self.typed_only or self._history[0][1]:
                 self.listbox.takeItem(0)
         if typed or not self.typed_only:
@@ -506,3 +560,10 @@ class _HistoryDialog:
         if not self._suspend_handler:
             self._search_cache = None
         event.Skip()
+
+    def _num_remembered_changed(self, new_hist_len):
+        if len(self._history) > new_hist_len:
+            self._history.replace(self._history[-new_hist_len:])
+            self.populate()
+        self.controller.settings.num_remembered = new_hist_len
+

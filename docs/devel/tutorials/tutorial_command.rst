@@ -257,7 +257,7 @@ of the coordinates (line 141); if a weighted calculation is required,
 
 For performance, ChimeraX makes use of `NumPy`_ arrays in many contexts.
 The container for atoms is typically a
-:py:class:`chimerax.core.atomic.molarray.Collection`
+:py:class:`chimerax.atomic.molarray.Collection`
 instance, as are those for bonds, residues, and atomic structures.
 Fetching the same attribute, e.g., coordinates, from a collection
 of molecular data, e.g., atoms, usually results in a NumPy array.

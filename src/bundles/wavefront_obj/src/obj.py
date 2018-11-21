@@ -284,7 +284,7 @@ def combine_geometry(geom):
         n, nv, nt = len(pos), len(va), len(ta)
         for p in pos:
             varray[v:v+nv,:] = va if p.is_identity() else p*va
-            narray[v:v+nv,:] = na if p.is_identity() else p.apply_without_translation(na)
+            narray[v:v+nv,:] = na if p.is_identity() else p.transform_vectors(na)
             if tex_coord:
                 tcarray[v:v+nv,:] = tca
             tarray[t:t+nt,:] = ta

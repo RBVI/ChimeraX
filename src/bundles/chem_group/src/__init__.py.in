@@ -36,7 +36,7 @@ class ChemGroupAPI(BundleAPI):
     @staticmethod
     def _add_select_menu_entries(session):
         from chimerax.core.commands import run
-        parent_menus = ['Che&mistry', '&functional group']
+        parent_menus = ['Che&mistry', '&Functional Group']
         add_submenu = session.ui.main_window.add_select_submenu
         existing_menus = { None: add_submenu(parent_menus[:-1], parent_menus[-1]) }
         add_selector = session.ui.main_window.add_menu_selector
@@ -47,9 +47,13 @@ class ChemGroupAPI(BundleAPI):
                 if label in existing_menus:
                     menu = existing_menus[label]
                 else:
-                    menu = existing_menus[label] = add_submenu(parent_menus, label)
+                    if label[0] == '&':
+                        cap_label = '&' + label[1:].title()
+                    else:
+                        cap_label = label.title()
+                    menu = existing_menus[label] = add_submenu(parent_menus, cap_label)
             if submenu is None:
-                add_selector(menu, label, label.replace(' ', '-'))
+                add_selector(menu, label.title(), label.replace(' ', '-'))
             else:
                 amine = False
                 for sublabel in submenu:
@@ -60,8 +64,8 @@ class ChemGroupAPI(BundleAPI):
                         selector = sublabel + " amine"
                     else:
                         selector = sublabel
-                    add_selector(menu, sublabel, selector.replace(' ', '-'))
+                    add_selector(menu, sublabel.title(), selector.replace(' ', '-'))
                 if not amine:
-                    add_selector(menu, "all the above",
+                    add_selector(menu, "All the Above",
                         "|".join([e.replace(' ', '-') for e in submenu]))
 bundle_api = ChemGroupAPI()

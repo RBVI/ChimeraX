@@ -14,6 +14,7 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
+#include "enablemultitouch.h"		// use enable_multitouch
 #include "setfileicon.h"		// use set_file_icon
 
 namespace Mac_Util_Cpp
@@ -23,6 +24,9 @@ namespace Mac_Util_Cpp
 //
 static struct PyMethodDef mac_util_cpp_methods[] =
 {
+  /* enablemultitouch.h */
+  {const_cast<char*>("enable_multitouch"), (PyCFunction)enable_multitouch, METH_VARARGS|METH_KEYWORDS, NULL},
+
   /* setfileicon.h */
   {const_cast<char*>("set_file_icon"), (PyCFunction)set_file_icon, METH_VARARGS|METH_KEYWORDS, NULL},
 

@@ -109,12 +109,9 @@ class UI:
         from chimerax import core
         requested_offscreen = hasattr(core, 'offscreen_rendering')
         if requested_offscreen:
-            self.has_graphics = self.initialize_offscreen_rendering(session.main_view)
-            if not self.has_graphics and not session.silent:
-                session.logger.info('Offscreen rendering is not available.')
-                session.logger.info('Need OSMesa library from Mesa version 12.0 or newer for offscreen rendering.')
+            self.has_graphics = self.initialize_offscreen_rendering(session)
 
-    def initialize_offscreen_rendering(self, view):
+    def initialize_offscreen_rendering(self, session):
         from . import graphics
         try:
             c = graphics.OffScreenRenderingContext()
@@ -122,8 +119,11 @@ class UI:
             # OSMesa library was not found, or old version
             from chimerax import core
             del core.offscreen_rendering
+            if not session.silent:
+                session.logger.info('Offscreen rendering is not available.')
+                session.logger.info(str(e))
             return False
-        view.initialize_rendering(c)
+        session.main_view.initialize_rendering(c)
         return True
 
     def splash_info(self, message, splash_step, num_splash_steps):

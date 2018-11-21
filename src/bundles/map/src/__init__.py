@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Create and show a volume madel from a Grid_Data object as defined by the
+# Create and show a volume madel from a GridData object as defined by the
 # data module.
 #
 from .volume import volume_from_grid_data
@@ -83,6 +83,9 @@ class _MapBundle(BundleAPI):
             map.register_volume_command(logger)
         elif command_name == 'molmap':
             map.register_molmap_command(logger)
+        elif command_name == 'measure mapstats':
+            from . import measure
+            measure.register_measure_mapstats_command(logger)
 
     @staticmethod
     def initialize(session, bundle_info):

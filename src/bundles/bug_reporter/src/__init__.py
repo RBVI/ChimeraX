@@ -16,21 +16,15 @@ from chimerax.core.toolshed import BundleAPI
 class _BugReporterAPI(BundleAPI):
 
     @staticmethod
-    def start_tool(session, tool_name):
-        from .bug_reporter_gui import BugReporter
-        tool = BugReporter(session, tool_name)
-        return tool
-
-    @staticmethod
     def initialize(session, bundle_info):
         '''Check if for Mac crash logs after startup.'''
         from . import mac_crash_report
         mac_crash_report.register_mac_crash_checker(session)
 
+        # Add Report a Bug to Help menu
+        from . import bug_reporter_gui
+        bug_reporter_gui.add_help_menu_entry(session)
+
 bundle_api = _BugReporterAPI()
 
-def show_bug_reporter(session):
-    ts = session.toolshed
-    bi, tool_name = ts.find_bundle_for_tool('Bug Reporter')
-    tool = bi.start_tool(session, tool_name)
-    return tool
+from .bug_reporter_gui import show_bug_reporter

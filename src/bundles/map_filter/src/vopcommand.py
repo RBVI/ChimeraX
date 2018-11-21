@@ -645,9 +645,9 @@ def volume_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,
         from numpy import float32
         value_type = float32
     a = zeros(shape, dtype = value_type)
-    from ..data import Array_Grid_Data
-    grid = Array_Grid_Data(a, origin = origin, step = grid_spacing,
-                           cell_angles = cell_angles, name = name)
+    from ..data import ArrayGridData
+    grid = ArrayGridData(a, origin = origin, step = grid_spacing,
+                         cell_angles = cell_angles, name = name)
     from .. import volume_from_grid_data
     v = volume_from_grid_data(grid, session, model_id = model_id)
     return v
@@ -859,7 +859,7 @@ def axis_and_center(axis, center, coordinate_system, to_coords):
     c = (0,0,0)
     if axis:
         asc = axis.scene_coordinates(coordinate_system or to_coords)
-        a = to_coords.inverse().apply_without_translation(asc)
+        a = to_coords.inverse().transform_vector(asc)
     if center:
         csc = center.scene_coordinates(coordinate_system or to_coords)
         c = to_coords.position.inverse() * csc
@@ -925,7 +925,7 @@ def flip_operation(v, axes, subregion, step, in_place, model_id):
         flip.flip_in_place(m, axes)
         v.data.values_changed()
     else:
-        fg = flip.Flip_Grid(g, axes)
+        fg = flip.FlipGrid(g, axes)
         from .. import volume_from_grid_data
         fv = volume_from_grid_data(fg, v.session, model_id = model_id)
         fv.copy_settings_from(v, copy_region = False)

@@ -12,7 +12,6 @@
   <DataFiles>
     <DataFile>about.html</DataFile>
     <DataFile>icons/*.png</DataFile>
-    <DataFile>mousemode_icons/*.png</DataFile>
     <DataFile>widgets/icons/*.png</DataFile>
   </DataFiles>
 
@@ -28,7 +27,6 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: ui :: User interface :: control user interface behavior</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: mousemode :: User interface :: set/list mouse modes</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

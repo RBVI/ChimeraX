@@ -15,48 +15,43 @@
 
 from .header_sequence import DynamicHeaderSequence
 from chimerax.seqalign import clustal_strong_groups, clustal_weak_groups
-from .settings import ALIGNMENT_PREFIX, CSV_AL2CO, CSV_PERCENT, CSV_CLUSTAL_HIST, CSV_CLUSTAL_CHARS
-#from prefs import CONSERVATION_STYLE, \
-#        CSV_AL2CO, CSV_PERCENT, CSV_CLUSTAL_HIST, CSV_CLUSTAL_CHARS, \
-#        AL2CO_FREQ, AL2CO_CONS, AL2CO_WINDOW, AL2CO_GAP, AL2CO_MATRIX, \
-#        AL2CO_TRANSFORM
 
 class Conservation(DynamicHeaderSequence):
     name = "Conservation"
     sort_val = 1.7
-    def align_change(self, left, right):
-        if getattr(self.sv.settings, ALIGNMENT_PREFIX + "conservation_style") == CSV_AL2CO:
-            self.reevaluate()
-        else:
-            DynamicHeaderSequence.align_change(self, left, right)
-    
+
+    CSV_PERCENT = "identity histogram"
+    CSV_CLUSTAL_CHARS = "Clustal characters"
+    CSV_AL2CO = "AL2CO"
+    styles = (CSV_PERCENT, CSV_CLUSTAL_CHARS)
+
+    def __init__(self, *args, style=CSV_PERCENT, **kw):
+        self._style = style
+        self._set_update_vars(style)
+        super().__init__(*args, **kw)
+
     def evaluate(self, pos):
-        if self.style == CSV_PERCENT:
+        # this will never get called if style is CSV_AL2CO
+        if self.style == self.CSV_PERCENT:
             return self.percent_identity(pos)
-        if self.style == CSV_CLUSTAL_HIST:
-            values = [0.0, 0.33, 0.67, 1.0]
-        else:
-            values = [' ', '.', ':', '*']
+        values = [' ', '.', ':', '*']
         return values[self.clustal_type(pos)]
 
-    def fast_update(self):
-        return self.style != CSV_AL2CO
-
     def reevaluate(self):
-        if self.style == CSV_AL2CO:
+        if self.style == self.CSV_AL2CO:
             self.depiction_val = self.hist_infinity
-        elif self.style == CSV_PERCENT:
+        elif self.style == self.CSV_PERCENT:
             self.depiction_val = self._hist_percent
         else:
             if hasattr(self, 'depiction_val'):
                 delattr(self, 'depiction_val')
-        if self.style != CSV_AL2CO:
+        if self.style != self.CSV_AL2CO:
             return DynamicHeaderSequence.reevaluate(self)
-        if len(self.sv.alignment.seqs) == 1:
-            if self.style == CSV_AL2CO:
-                self[:] = [100.0] * len(self.sv.alignment.seqs[0])
+        if len(self.alignment.seqs) == 1:
+            if self.style == self.CSV_AL2CO:
+                self[:] = [100.0] * len(self.alignment.seqs[0])
             else:
-                self[:] = [1.0] * len(self.sv.alignment.seqs[0])
+                self[:] = [1.0] * len(self.alignment.seqs[0])
             return
         """TODO
         self[:] = []
@@ -108,13 +103,13 @@ class Conservation(DynamicHeaderSequence):
         """
 
     def position_color(self, pos):
-        return 'black' if self.style == CSV_CLUSTAL_CHARS else 'dark gray'
+        return 'black' if self.style == self.CSV_CLUSTAL_CHARS else 'dark gray'
 
     def percent_identity(self, pos, for_histogram=False):
         """actually returns a fraction"""
         occur = {}
-        for i in range(len(self.sv.alignment.seqs)):
-            let = self.sv.alignment.seqs[i][pos]
+        for i in range(len(self.alignment.seqs)):
+            let = self.alignment.seqs[i][pos]
             try:
                 occur[let] += 1
             except KeyError:
@@ -128,17 +123,28 @@ class Conservation(DynamicHeaderSequence):
         if best == 0:
             return 0.0
         if for_histogram:
-            return (best - 1) / (len(self.sv.alignment.seqs) - 1)
-        return best / len(self.sv.alignment.seqs)
+            return (best - 1) / (len(self.alignment.seqs) - 1)
+        return best / len(self.alignment.seqs)
 
     @property
     def style(self):
-        return getattr(self.sv.settings, ALIGNMENT_PREFIX + "conservation_style")
+        return self._style
+
+    @style.setter
+    def style(self, style):
+        if self._style == style:
+            return
+        self._style = style
+        self._set_update_vars(style)
+        if self.visible or self.update_while_hidden:
+            self.reevaluate()
+        else:
+            self._update_needed = True
 
     def clustal_type(self, pos):
         conserve = None
-        for i in range(len(self.sv.alignment.seqs)):
-            char = self.sv.alignment.seqs[i][pos].upper()
+        for i in range(len(self.alignment.seqs)):
+            char = self.alignment.seqs[i][pos].upper()
             if conserve is None:
                 conserve = char
                 continue
@@ -148,16 +154,16 @@ class Conservation(DynamicHeaderSequence):
             return 3
 
         for group in clustal_strong_groups:
-            for i in range(len(self.sv.alignment.seqs)):
-                char = self.sv.alignment.seqs[i][pos].upper()
+            for i in range(len(self.alignment.seqs)):
+                char = self.alignment.seqs[i][pos].upper()
                 if char not in group:
                     break
             else:
                 return 2
 
         for group in clustal_weak_groups:
-            for i in range(len(self.sv.alignment.seqs)):
-                char = self.sv.alignment.seqs[i][pos].upper()
+            for i in range(len(self.alignment.seqs)):
+                char = self.alignment.seqs[i][pos].upper()
                 if char not in group:
                     break
             else:
@@ -167,3 +173,7 @@ class Conservation(DynamicHeaderSequence):
 
     def _hist_percent(self, pos):
         return self.percent_identity(pos, for_histogram=True)
+
+    def _set_update_vars(self, style):
+        self.single_column_updateable, self.fast_update = (False, False) \
+            if style == self.CSV_AL2CO else (True, True)

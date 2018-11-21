@@ -9,6 +9,11 @@
   <Synopsis>Provide right button mouse mode tool</Synopsis>
   <Description>Provide a series of icons for changing the assigment of the right mouse button.</Description>
 
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
+
   <Categories>
     <Category name="Toolbar"/>
   </Categories>
@@ -21,6 +26,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: ui mousemode :: User interface :: set/list mouse modes</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Mouse Modes for Right Button :: Toolbar :: Choose mouse right button mode</ChimeraXClassifier>
   </Classifiers>
 

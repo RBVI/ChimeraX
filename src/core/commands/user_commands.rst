@@ -10,8 +10,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-Functions for User Commands
-***************************
+Python Functions implementing User Commands
+*******************************************
 
 The *chimerax.std_commands* and *chimerax.core.commands* modules contain Python functions for the
 standard commands available from the ChimeraX command-line.  Tools define additional commands noted with a (*)
@@ -65,7 +65,6 @@ and their code location is described with the function descriptions.
 | `resfit`_ * - Show density around residues
 | `roll`_ - Rotate models
 | `run`_ - Run a user command string
-| `rungs`_ - Display nucleotides as cylinders
 | `save`_ - Save sessions, images, density maps...
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
@@ -329,10 +328,6 @@ run
 .. autofunction:: chimerax.core.commands.run.run
     :noindex:
 
-rungs
-=====
-.. autofunction:: chimerax.std_commands.rungs.rungs
-
 save
 ====
 .. autofunction:: chimerax.core.commands.save.save
@@ -417,7 +412,7 @@ ui
 ==
 .. autofunction:: chimerax.ui.cmd.ui_autostart
 .. autofunction:: chimerax.ui.cmd.ui_dockable
-.. autofunction:: chimerax.ui.cmd.ui_mousemode
+.. autofunction:: chimerax.mouse_modes.cmd.ui_mousemode
 
 
 view

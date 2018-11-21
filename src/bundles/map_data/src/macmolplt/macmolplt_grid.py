@@ -13,11 +13,11 @@
 # Wrap MacMolPlt "3D surface" format used for quantum mechanical density and
 # electrostatics calculations with Gamess.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class MacMolPlt_Grid(Grid_Data):
+class MacMolPltGrid(GridData):
 
   def __init__(self, path):
 
@@ -25,9 +25,9 @@ class MacMolPlt_Grid(Grid_Data):
     md = macmolplt_format.MacMolPlt_Data(path)
     self.macmolplt_data = md
 
-    Grid_Data.__init__(self, md.grid_size,
-                       origin = md.origin, step = md.step,
-                       path = path, file_type = 'macmolplt')
+    GridData.__init__(self, md.grid_size,
+                      origin = md.origin, step = md.step,
+                      path = path, file_type = 'macmolplt')
 
   # ---------------------------------------------------------------------------
   #

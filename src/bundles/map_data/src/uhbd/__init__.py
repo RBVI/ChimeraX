@@ -15,5 +15,5 @@
 #
 def open(path):
 
-  from .uhbd_grid import UHBD_Grid
-  return [UHBD_Grid(path)]
+  from .uhbd_grid import UHBDGrid
+  return [UHBDGrid(path)]

@@ -61,6 +61,8 @@ class Drawing:
         self.name = name
         "Name of this drawing."
 
+        self.parent = None
+        
         from ..geometry import Places
         # Copies of drawing are placed at these positions:
         self._positions = Places()
@@ -77,8 +79,8 @@ class Drawing:
         self._highlighted_triangles_mask = None  # bool numpy array
         self._child_drawings = []
 
-        self._cached_geometry_bounds = None	# Triangles, positions not included.
-        self._cached_position_bounds = None	# Triangles including positions, children not included
+        self._cached_geometry_bounds = None	# Triangles, positions not included. Local coords.
+        self._cached_position_bounds = None	# Triangles including positions, children not included. Scene coords.
 
         # Geometry and colors
         self._vertices = None		# N x 3 float32 numpy array
@@ -257,7 +259,7 @@ class Drawing:
         d.set_redraw_callback(self._redraw_needed)
         cd = self._child_drawings
         cd.append(d)
-        if hasattr(d, 'parent') and d.parent is not None:
+        if d.parent is not None:
             # Reparent drawing.
             d.parent.remove_drawing(d, delete=False)
         d.parent = self
@@ -267,7 +269,7 @@ class Drawing:
     def remove_drawing(self, d, delete=True):
         '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
-        del d.parent
+        d.parent = None
         if delete:
             d.delete()
         self.redraw_needed(shape_changed=True, highlight_changed=True)
@@ -278,7 +280,7 @@ class Drawing:
         self._child_drawings = [d for d in self._child_drawings
                                 if d not in dset]
         for d in drawings:
-            del d.parent
+            d.parent = None
         if delete:
             for d in drawings:
                 d.delete()
@@ -293,7 +295,7 @@ class Drawing:
     @property
     def drawing_lineage(self):
         '''Return a sequence of drawings from the root down to the current drawing.'''
-        if hasattr(self, 'parent'):
+        if self.parent is not None:
             return self.parent.drawing_lineage + [self]
         else:
             return [self]
@@ -451,6 +453,7 @@ class Drawing:
 
     def _scene_positions_changed(self):
         self._displayed_scene_positions = None
+        self._cached_position_bounds = None
         for c in self.child_drawings():
             c._scene_positions_changed()
         
@@ -1368,12 +1371,13 @@ def _draw_multiple(drawings, renderer, draw_pass):
 def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
+    dc = r.disable_capabilities
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
-                                  r.SHADER_DEPTH_CUE | r.SHADER_VERTEX_COLORS | r.SHADER_TEXTURE_2D)
-    draw_opaque(renderer, drawings)
+                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D)
+    draw_opaque(r, drawings)
     if not opaque_only:
         draw_transparent(r, drawings)
-    r.disable_shader_capabilities(0)
+    r.disable_shader_capabilities(dc)
 
 
 def draw_overlays(drawings, renderer):
@@ -1753,7 +1757,7 @@ class PickedTriangle(Pick):
             if hasattr(d, 'id') and d.id is not None:
                 s = '#' + '.'.join(('%d' % id) for id in d.id)
                 return s
-            if hasattr(d, 'parent') and not d.parent is None:
+            if d.parent is not None:
                 d = d.parent
             else:
                 break
@@ -1977,10 +1981,10 @@ def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, yp
     # Determine image size.
     weight = QFont.Bold if bold else QFont.Normal
     if pixels:
-        f = QFont(font, weight=weight, italic=italic)
+        f = QFont(font, weight=weight, italic=bool(italic))
         f.setPixelSize(size-2*ypad)
     else:
-        f = QFont(font, size, weight=weight, italic=italic)  # Size in points.
+        f = QFont(font, size, weight=weight, italic=bool(italic))  # Size in points.
 
     # Use font metrics to determine image width
     fm = QFontMetrics(f)

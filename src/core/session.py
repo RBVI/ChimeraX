@@ -591,7 +591,7 @@ class Session:
                     mgr.add_reference(name, obj)
         except:
             import traceback
-            self.logger.error("Unable to restore session, resetting.\n\n%s"
+            self.logger.bug("Unable to restore session, resetting.\n\n%s"
                               % traceback.format_exc())
             self.reset()
         finally:
@@ -944,7 +944,7 @@ def common_startup(sess):
 
     try:
         from .core_settings import settings
-        sess.main_view.background_color = settings.bg_color.rgba
+        sess.main_view.background_color = settings.background_color.rgba
     except ImportError:
         pass
 

@@ -14,11 +14,11 @@
 # (usual extension .phi) as grid data for displaying surface, meshes,
 # and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class DelPhi_Grid(Grid_Data):
+class DelPhiGrid(GridData):
 
   def __init__(self, path):
 
@@ -26,9 +26,9 @@ class DelPhi_Grid(Grid_Data):
     dd = delphi_format.DelPhi_Data(path)
     self.delphi_data = dd
 
-    Grid_Data.__init__(self, dd.size, dd.value_type,
-                       origin = dd.xyz_origin, step = dd.xyz_step,
-                       path = path, file_type = 'delphi')
+    GridData.__init__(self, dd.size, dd.value_type,
+                      origin = dd.xyz_origin, step = dd.xyz_step,
+                      path = path, file_type = 'delphi')
 
     self.polar_values = True
   

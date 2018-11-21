@@ -56,7 +56,10 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         lambda name, session=session: _get_template(session, name))
     categories = _additional_categories + tuple(extra_categories)
     log = session.logger if log_info else None
-    pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic)
+    try:
+        pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic)
+    except _mmcif.error as e:
+        raise UserError('mmCIF parsing error: %s' % e)
 
     if file_name is None:
         from os.path import basename
@@ -98,12 +101,14 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         from chimerax.atomic.pdb import process_chem_name
         model.html_title = process_chem_name(title, sentences=True)
         model.has_formatted_metadata = lambda ses: True
-        model.get_formatted_metadata = lambda ses, *, m=model, verbose=False, **kw: \
-            _get_formatted_metadata(m, ses, verbose)
+        # use proxy to avoid circular ref
+        from weakref import proxy
+        from types import MethodType
+        model.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(model))
         break
     return models, info
 
-def _get_formatted_metadata(model, session, verbose):
+def _get_formatted_metadata(model, session, *, verbose=False):
     from chimerax.core.logger import html_table_params
     from chimerax.atomic.pdb import process_chem_name
     html = "<table %s>\n" % html_table_params

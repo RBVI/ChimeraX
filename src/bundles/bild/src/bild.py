@@ -571,8 +571,8 @@ def get_sphere(radius, center, xform=None, pure=False):
     vertices, normals, triangles = surface.sphere_geometry2(200)
     vertices = vertices * radius + center
     if xform is not None:
-        xform.move(vertices)
-        xform.update_normals(normals, pure=pure)
+        xform.transform_points(vertices, in_place=True)
+        xform.transform_normals(normals, in_place=True, is_rotation=pure)
     return vertices, normals, triangles
 
 
@@ -583,10 +583,10 @@ def get_cylinder(radius, p0, p1, closed=True, xform=None, pure=False):
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
-    inverse.update_normals(normals, pure=True)
+    inverse.transform_normals(normals, in_place=True, is_rotation=True)
     if xform is not None:
-        xform.move(vertices)
-        xform.update_normals(normals, pure=pure)
+        xform.transform_points(vertices, in_place=True)
+        xform.tranform_normals(normals, in_place=True, is_rotation=pure)
     return vertices, normals, triangles
 
 
@@ -598,18 +598,18 @@ def get_dashed_cylinder(count, radius, p0, p1, closed=True, xform=None, pure=Fal
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
-    inverse.update_normals(normals, pure=True)
+    inverse.transform_normals(normals, in_place=True, is_rotation=True)
     if xform is not None:
-        xform.move(vertices)
-        xform.update_normals(normals, pure=pure)
+        xform.transform_points(vertices, in_place=True)
+        xform.transform_normals(normals, in_place=True, is_rotation=pure)
     return vertices, normals, triangles
 
 
 def get_box(llb, urf, xform=None, pure=False):
     vertices, normals, triangles = surface.box_geometry(llb, urf)
     if xform is not None:
-        xform.move(vertices)
-        xform.update_normals(normals, pure=pure)
+        xform.transform_points(vertices, in_place=True)
+        xform.transform_normals(normals, in_place=True, is_rotation=pure)
     return vertices, normals, triangles
 
 
@@ -620,8 +620,8 @@ def get_cone(radius, p0, p1, bottom=False, xform=None, pure=False):
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * vertices
-    inverse.update_normals(normals, pure=True)
+    inverse.transform_normals(normals, in_place=True, is_rotation=True)
     if xform is not None:
-        xform.move(vertices)
-        xform.update_normals(normals, pure=pure)
+        xform.transform_points(vertices, in_place=True)
+        xform.transform_normals(normals, in_place=True, is_rotation=pure)
     return vertices, normals, triangles

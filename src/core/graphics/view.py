@@ -201,7 +201,7 @@ class View:
                 cp = gllist.ViewMatrixFunc(self, vnum)
             else:
                 cp = camera.get_position(vnum)
-            vm = cp.inverse_orthonormal(result = self._view_matrix)
+            self._view_matrix = vm = cp.inverse(is_orthonormal = True)
             r.set_view_matrix(vm)
             if shadow:
                 r.shadow.set_shadow_view(cp)
@@ -302,7 +302,8 @@ class View:
         self._background_rgba = color
         self.redraw_needed = True
         if self.triggers:
-            self.triggers.activate_trigger("background color changed", self)
+            from chimerax.core.core_settings import settings
+            settings.background_color = color
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
 
@@ -950,7 +951,7 @@ class ClipPlanes:
             p.plane_point = point
         elif name in ('near', 'far'):
             camera_normal = (0,0,(-1 if name == 'near' else 1))
-            normal = camera.position.apply_without_translation(camera_normal)
+            normal = camera.position.transform_vector(camera_normal)
             p = ClipPlane(name, normal, point, camera_normal)
             self.add_plane(p)
         else:
@@ -1008,7 +1009,7 @@ class ClipPlane:
         cn = self.camera_normal
         if cn is None:
             return
-        vd = camera_position.apply_without_translation(cn)
+        vd = camera_position.transform_vector(cn)
         cp = camera_position.origin()
         p, lvd = self.plane_point, self.normal
         from numpy import array_equal

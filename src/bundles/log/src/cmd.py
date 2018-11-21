@@ -18,9 +18,8 @@ def get_singleton(session, create=False):
     from .tool import Log
     return tools.get_singleton(session, Log, 'Log', create=create)
 
-def log(session, save_path = None,
-        thumbnail = False, text = None, html = None, width = 100, height = 100,
-        warning_dialog = None, error_dialog = None, for_demo = False):
+def log(session, thumbnail = False, text = None, html = None, width = 100, height = 100,
+        warning_dialog = None, error_dialog = None):
     '''Operations on the Log window.
 
     Parameters
@@ -42,16 +41,11 @@ def log(session, save_path = None,
     '''
     log = get_singleton(session, create = False)
     if log is not None:
-        if not save_path is None:
-            if for_demo:
-                log.demo_save(save_path)
-            else:
-                log.save(save_path)
         if thumbnail:
             im = session.main_view.image(width, height)
             log.log(log.LEVEL_INFO, 'graphics image', (im, True), True)
         if text:
-            log.log(log.LEVEL_INFO, text, (None, False), False)
+            log.log(log.LEVEL_INFO, text + '\n', (None, False), False)
         if html:
             log.log(log.LEVEL_INFO, html, (None, False), True)
         if not warning_dialog is None:
@@ -60,8 +54,6 @@ def log(session, save_path = None,
             log.error_shows_dialog = error_dialog
     else:
         log = session.logger
-        if not save_path is None:
-            log.warning("no log tool to save")
         if thumbnail:
             log.warning("no log tool for thumbnail")
         if text:
@@ -90,6 +82,40 @@ def log_clear(session):
     if log:
         log.clear()
 
+def log_save(session, file_name, executable_links = None):
+    '''Save the log window
+
+    Parameters
+    ----------
+    file_name : string
+      Save log contents as html to a file.
+    executable_links: bool or None
+      Whether links should execute command or show command help.  If None, use current log setting.
+    '''
+    log = get_singleton(session, create = False)
+    if log is not None:
+        log.save(file_name, executable_links=executable_links)
+    else:
+        log = session.logger
+        log.warning("no log tool to save")
+
+def log_settings(session, error_dialog = None, warning_dialog = None):
+    '''Save the log window
+
+    Parameters
+    ----------
+    error_dialog : bool
+      Whether to show errors in a separate dialog (for the remainder of this session)
+    warning_dialog : bool
+      Whether to show warnings in a separate dialog (for the remainder of this session)
+    '''
+    from chimerax.core.core_settings import settings as core_settings
+    if error_dialog is not None:
+        core_settings.errors_raise_dialog = error_dialog
+
+    if warning_dialog is not None:
+        core_settings.warnings_raise_dialog = warning_dialog
+
 def log_metadata(session, models=None, verbose=False):
     if models is None:
         models = session.models
@@ -117,19 +143,24 @@ def register_log_command(logger):
                                   ('text', RestOfLine),
                                   ('html', RestOfLine),
                                   ('width', IntArg),
-                                  ('height', IntArg),
-                                  ('save_path', SaveFileNameArg),
-                                  ('warning_dialog', BoolArg),
-                                  ('error_dialog', BoolArg),
-                                  ('metadata', ModelsArg),
-                                  ('verbose', BoolArg),
-                                  ('for_demo', BoolArg)],
+                                  ('height', IntArg)],
                        synopsis = 'Add text or thumbnail images to the log'
     )
     register('log', log_desc, log, logger=logger)
     register('log show', CmdDesc(synopsis='Show log panel'), log_show, logger=logger)
     register('log hide', CmdDesc(synopsis='Hide log panel'), log_hide, logger=logger)
     register('log clear', CmdDesc(synopsis='Clear log panel'), log_clear, logger=logger)
+    save_desc = CmdDesc(
+                        required = [('file_name', SaveFileNameArg)],
+                        keyword = [('executable_links', BoolArg)],
+                        synopsis = 'Save log to file'
+    )
+    register('log save', save_desc, log_save, logger=logger)
+    settings_desc = CmdDesc(
+                        keyword = [('warning_dialog', BoolArg), ('error_dialog', BoolArg)],
+                        synopsis = 'Temporarily change log settings'
+    )
+    register('log settings', settings_desc, log_settings, logger=logger)
     metadata_desc = CmdDesc(
                         optional = [('models', ModelsArg)],
                         keyword = [('verbose', BoolArg)],

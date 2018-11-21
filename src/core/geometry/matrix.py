@@ -348,6 +348,7 @@ def vector_rotation_transform(n0, n1):
 # -----------------------------------------------------------------------------
 #
 def inner_product(u, v):
+    '''Supported API.  Inner product of two vectors.'''
     import numpy
     return numpy.dot(u, v)
 
@@ -355,6 +356,7 @@ def inner_product(u, v):
 # -----------------------------------------------------------------------------
 #
 def inner_product_64(u, v):
+    '''Experimental API.  Inner product of two vectors returning 64-bit float result.'''
     from ._geometry import inner_product_64
     return inner_product_64(u, v)
 
@@ -362,8 +364,10 @@ def inner_product_64(u, v):
 # -----------------------------------------------------------------------------
 #
 def cross_product(u, v):
-    '''Return the cross-product of two vectors.
-    Vectors must be 3-dimensonal.'''
+    '''
+    Supported API. 
+    Return the cross-product of two vectors. Vectors must be 3-dimensonal.
+    '''
     from numpy import array
     return array((u[1] * v[2] - u[2] * v[1],
                   u[2] * v[0] - u[0] * v[2],
@@ -419,7 +423,7 @@ def vector_angle_radians(u, v):
 # -----------------------------------------------------------------------------
 #
 def normalize_vector(v):
-    '''Return a unit vector in the same direction as v.'''
+    '''Supported API. Return a unit vector in the same direction as v.'''
     d = length(v)
     if d == 0:
         d = 1
@@ -430,7 +434,7 @@ def normalize_vector(v):
 # -----------------------------------------------------------------------------
 #
 def normalize_vectors(v):
-    '''Modify an array of vectors, making each have unit length.'''
+    '''Supported API. Modify an array of vectors, making each have unit length.'''
     if len(v) == 0:
         return v
     from numpy import multiply, sum, sqrt
@@ -446,6 +450,7 @@ def normalize_vectors(v):
 # -----------------------------------------------------------------------------
 #
 def length(v):
+    '''Supported API.  Length of a vector.'''
     d = sqrt(sum([e * e for e in v]))
     return d
 
@@ -453,6 +458,7 @@ def length(v):
 # -----------------------------------------------------------------------------
 #
 def distance(u, v):
+    '''Supported API.  Distance between two points.'''
     duv = [a - b for a, b in zip(u, v)]
     return length(duv)
 
@@ -605,7 +611,7 @@ def maximum_norm(v):
 # -----------------------------------------------------------------------------
 #
 def norm(u):
-    '''Return the length of a vector.'''
+    '''Supported API. Return the length of a vector.'''
     n = sqrt(sum(x * x for x in u))
     return n
 
@@ -818,8 +824,11 @@ def linear_combination_3(a, u, b, v, c, w):
 # Accumulate sum in 64-bit to avoid limited precision errors.
 #
 def vector_sum(weights, vectors):
-    '''Return a vector which is a linear combination of vectors with
-    specified weights.'''
+    '''
+    Supported API. 
+    Return a vector which is a linear combination of vectors with
+    specified weights.
+    '''
     d = vectors.shape[1]
     from numpy import zeros, float64, float32
     vsum = zeros((d,), float64)

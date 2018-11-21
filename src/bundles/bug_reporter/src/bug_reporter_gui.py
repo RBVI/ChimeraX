@@ -202,8 +202,7 @@ class BugReporter(ToolInstance):
             from chimerax.log.cmd import get_singleton
             log = get_singleton(self._ses)
             if log:
-                log_plain = html_to_plain(log.page_source)
-                log_text = "\n\nLog:\n%s\n" % log_plain
+                log_text = "\n\nLog:\n%s\n" % log.plain_text()
                 entry_values['description'] += log_text
 
         # Include info field in description
@@ -334,11 +333,18 @@ class BugReporter(ToolInstance):
         }
         return values
 
-def html_to_plain(html):
-    """'best effort' to convert HTML to plain text"""
-    import html2text
-    h = html2text.HTML2Text()
-    h.unicode_snob = True
-    h.ignore_links = True
-    h.ignore_emphasis = True
-    return h.handle(html)
+def show_bug_reporter(session):
+    tool_name = 'Bug Reporter'
+    tool = BugReporter(session, tool_name)
+    return tool
+
+def add_help_menu_entry(session):
+    ui = session.ui
+    if ui.is_gui:
+        def main_window_created(tname, tdata):
+            mw = ui.main_window
+            mw.add_menu_entry(['Help'], 'Report a Bug', lambda: show_bug_reporter(session),
+                insertion_point = "Contact Us")
+            return "delete handler"
+    
+        ui.triggers.add_handler('ready', main_window_created)

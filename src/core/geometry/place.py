@@ -58,7 +58,9 @@ class Place:
     point values.
     '''
     def __init__(self, matrix=None, axes=None, origin=None):
-        '''Coordinate axes and origin can be specified as a 3 by 4 array
+        '''
+        Supported API.
+        Coordinate axes and origin can be specified as a 3 by 4 array
         where the first 3 columns are the axes vectors and the fourth
         column is the origin.  Alternatively axes can be specified as
         a list of axes vectors and the origin can be specifed as a vector.
@@ -71,35 +73,39 @@ class Place:
             if origin is not None:
                 m[:, 3] = origin
         else:
-            m = array(matrix, float64)
+            m = array(matrix, float64, order = 'C')
 
         self.matrix = m
-        '''3 by 4 numpy array, first 3 columns are axes, last column
-        is origin.'''
+        '''
+        Supported API.
+        3 by 4 numpy 64-bit float array, first 3 columns are axes, last column is origin.
+        '''
 
-        self._is_identity = (matrix is None and axes is None
-                             and origin is None)
+        self._is_identity = None # Cached boolean value whether matrix is identity
         self._inverse = None    # Cached inverse.
         self._m44 = None	# Cached 4x4 opengl matrix
         
     def copy(self):
         return Place(self.matrix)
-
-    def set_matrix(self, matrix):
-        self.matrix[:] = matrix
-        self._matrix_changed()
         
     def __eq__(self, p):
+        '''Supported API.  Are matrix values of this Place equal to matrix values of another Place.'''
         return p is self or _geometry.same_matrix(p.matrix, self.matrix)
 
     def __mul__(self, p):
-        '''Multiplication of a Place and a point transforms from local
+        '''
+        Supported API.
+        Multiplication of a Place and a point transforms from local
         point coordinates to global coordinates, the result being a
         new point.  Multiplication of a Place by another Place composes
         the coordinate transforms acting in right to left order producing
-        a new Place object.'''
+        a new Place object.
+        '''
+        
         if isinstance(p, Place):
-            return Place(_geometry.multiply_matrices(self.matrix, p.matrix))
+            sp = _reuse_place()
+            _geometry.multiply_matrices(self.matrix, p.matrix, sp.matrix)
+            return sp
         elif isinstance(p, Places):
             return Places([self]) * p
 
@@ -110,21 +116,15 @@ class Place:
 
         raise TypeError('Cannot multiply Place times "%s"' % str(p))
 
-    def apply_without_translation(self, v):
-        '''Transform a vector.  This applies the linear part of the
-        transform without the shift.  If the linear part is a rotation,
-        then tangent and normal vectors are rotated.
+    def transform_points(self, xyz, in_place = False):
         '''
-        return m34.apply_matrix_without_translation(self.matrix, v)
-
-    def move(self, xyz):
-        '''Apply transform to an array of points, modifying the points
-        in place.'''
-        m34.transform_points(xyz, self.matrix)
-
-    def moved(self, xyz):
-        '''Returned transformed array of points. Makes a copy of points
-        if place is not identity.'''
+        Supported API.
+        Returned transformed array of points. Makes a copy of points
+        if place is not identity or in_place is False.
+        '''
+        if in_place:
+            m34.transform_points(xyz, self.matrix)
+            return xyz
         if self.is_identity():
             return xyz
         else:
@@ -132,42 +132,67 @@ class Place:
             m34.transform_points(cxyz, self.matrix)
             return cxyz
 
-    def update_vectors(self, xyz):
-        '''Apply transform with zero shift to an array of vectors,
-        modifying the vectors in place.'''
-        m34.transform_vectors(xyz, self.matrix)
+    def transform_vector(self, v):
+        '''
+        Supported API.
+        Apply the linear part (3x3 matrix) of the transform without the shift.
+        '''
+        return m34.apply_matrix_without_translation(self.matrix, v)
+    apply_without_translation = transform_vector
+    
+    def transform_vectors(self, v, in_place = False):
+        '''
+        Supported API.
+        Apply the linear part (3x3 matrix) of the transform without the shift.
+        A new copy of the numpy Nx3 array of vectors is returned unless in_place = True.
+        '''
+        if in_place:
+            m34.transform_vectors(v, self.matrix)
+            return v
 
-    def update_normals(self, xyz, pure=False):
-        '''Apply inverse transpose of transform with zero shift to an array of normal vectors,
-        modifying the vectors in place.  Optimize if pure rotation.'''
-        if pure:
+        return m34.apply_matrix_without_translation(self.matrix, v)
+
+    def transform_normals(self, xyz, in_place = False, is_rotation = False):
+        '''
+        Supported API.
+        Apply inverse transpose of transform with zero shift to an array of normal vectors,
+        modifying the vectors in place.  If is_rotation is true then the transform is assumed
+        to be a rotation with no scaling or skewing so that the inverse transpose is the same
+        as the original transform, allowing for faster computation.
+        '''
+        if not in_place:
+            xyz = xyz.copy()
+        if is_rotation:
             m34.transform_vectors(xyz, self.matrix)
         else:
             m34.transform_normals(xyz, self.matrix)
+        return xyz
 
-    def inverse(self):
-        '''Return the inverse transform.'''
+    def inverse(self, is_orthonormal = False):
+        '''
+        Supported API.
+        Return the inverse transform. If is_orthonormal  is True then the transform
+        is assumed to be orthonormal so the inverse is the transpose, allowing faster computation.
+        '''
         if self._inverse is None:
-            self._inverse = Place(m34.invert_matrix(self.matrix))
+            if is_orthonormal:
+                self._inverse = result = _reuse_place()
+                _geometry.invert_orthonormal(self.matrix, result.matrix)
+            else:
+                self._inverse = Place(m34.invert_matrix(self.matrix))
         return self._inverse
 
-    def inverse_orthonormal(self, result = None):
-        '''Invert this transform assuming it is orthonormal, so the 3x3 transpose is the inverse.'''
-        if result is None:
-            result = Place(_geometry.invert_orthonormal(self.matrix))
-        else:
-            _geometry.invert_orthonormal(self.matrix, result.matrix)
-            result._matrix_changed()
-        return result
-
     def transpose(self):
-        '''Return a copy of the transform with the linear part transposed.'''
+        '''
+        Supported API.
+        Return a copy of the transform with the linear part transposed.
+        '''
         m = self.matrix.copy()
         m[:, :3] = self.matrix[:, :3].transpose()
         return Place(m)
 
     def zero_translation(self):
-        '''Return a copy of the transform with zero shift.'''
+        '''Supported API. Return a copy of the transform with zero shift.'''
         m = self.matrix.copy()
         m[:, 3] = 0
         return Place(m)
@@ -177,29 +202,22 @@ class Place:
         m = self.matrix.copy()
         m[:, 3] *= s
         return Place(m)
-
-    def translate(self, shift):
-        '''Modify this Place shifting by the specified 3-vector.'''
-        self.matrix[:,3] += shift
-        self._matrix_changed()
-
-    def scale(self, scale):
-        '''Modify this transform by scaling on the left by this 3-vector.'''
-        m = self.matrix
-        for r in (0,1,2):
-            m[r,:] *= scale[r]
-        self._matrix_changed()
         
     def opengl_matrix(self):
-        '''Return a numpy 4x4 array which is the transformation matrix
-        in OpenGL order (columns major).'''
+        '''
+        Supported API.
+        Return a numpy float32 4x4 array which is the transformation matrix
+        in OpenGL order (columns major).
+        '''
         m = self._m44
         if m is None:
             self._m44 = m = _geometry.opengl_matrix(self.matrix)  # float32
         return m
 
     def interpolate(self, tf, center, frac):
-        '''Interpolate from this transform to the specified one by
+        '''
+        Supported API.
+        Interpolate from this transform to the specified one by
         a specified fraction.  A fraction of 0 gives this transform
         while a fraction 1 gives transform tf.  The interpolation is
         done by finding the transform mapping to tf, treating it as a
@@ -207,11 +225,14 @@ class Place:
         then perform the specified fraction of the full rotation, and
         specified fraction of the shift.  When the interpolated places
         are thought of as coordinate systems positions, the center
-        point is in local coordinates.'''
+        point is in local coordinates.
+        '''
         return Place(m34.interpolate_transforms(self.matrix, center, tf.matrix, frac))
 
     def rotation_angle(self):
-        '''Return the rotation angle of the transform, or equivalently
+        '''
+        Supported API.
+        Return the rotation angle of the transform, or equivalently
         the rotation of the coordinate axes from the global axes.
         The return values is in radians from 0 to pi.  The rotation is
         about the unique axis that takes the local to global coordinates.
@@ -230,18 +251,23 @@ class Place:
         return a
 
     def rotation_axis_and_angle(self):
-        '''Return the rotation axis and angle (degrees) of the transform.'''
+        '''Supported API. Return the rotation axis and angle (degrees) of the transform.'''
         return m34.rotation_axis_angle(self.matrix)
 
     def shift_and_angle(self, center):
-        '''Return the shift distance and rotation angle for the transform.
+        '''
+        Supported API.
+        Return the shift distance and rotation angle for the transform.
         The rotation angle is in radians the same as returned by
         rotation_angle(), and the shift is the distance the given center
-        point is moved by the transformation.'''
+        point is moved by the transformation.
+        '''
         return m34.shift_and_angle(self.matrix, center)
 
     def axis_center_angle_shift(self):
-        '''Parameterize the transform as a rotation about a point around
+        '''
+        Supported API.
+        Parameterize the transform as a rotation about a point around
         an axis and shift along that axis.  Return the rotation axis,
         a point on the axis, rotation angle (in degrees), and shift
         distance parallel to the axis.  This assumes the transformation
@@ -250,25 +276,31 @@ class Place:
         return m34.axis_center_angle_shift(self.matrix)
 
     def translation(self):
-        '''Return the transformation shift vector, or equivalently the
-        coordinate system origin.'''
+        '''
+        Supported API.
+        Return the transformation shift vector, or equivalently the
+        coordinate system origin.
+        '''
         return self.matrix[:, 3]
 
     def origin(self):
-        '''Return the transformation shift vector, or equivalently the
-        coordinate system origin.'''
+        '''
+        Supported API.
+        Return the transformation shift vector, or equivalently the
+        coordinate system origin.
+        '''
         return self.matrix[:, 3]
 
     def axes(self):
-        '''Return the coordinate system axes.'''
+        '''Supported API. Return the coordinate system axes.'''
         return self.matrix[:, :3].transpose()
 
     def z_axis(self):
-        '''Return the coordinate system z axis.'''
+        '''Supported API. Return the coordinate system z axis.'''
         return self.matrix[:, 2]
 
     def determinant(self):
-        '''Return the determinant of the linear part of the transformation.'''
+        '''Supported API. Return the determinant of the linear part of the transformation.'''
         return m34.determinant(self.matrix)
 
     def _polar_decomposition(self):
@@ -292,33 +324,42 @@ class Place:
         return t, r, s, ot
         
     def description(self):
-        '''Return a text description of the transformation including
+        '''
+        Supported API.
+        Return a text description of the transformation including
         the 3 by 4 matrix, and the decomposition as a rotation about a
         point through an axis and shift along that axis.
         '''
         return m34.transformation_description(self.matrix)
 
     def same(self, p, angle_tolerance=0, shift_tolerance=0):
-        '''Is this transform the same as the given one to within a
+        '''
+        Supported API.
+        Is this transform the same as the given one to within a
         rotation angle tolerance (degrees), and shift tolerance (distance)
         '''
         return m34.same_transform(self.matrix, p.matrix,
                                   angle_tolerance, shift_tolerance)
 
     def is_identity(self, tolerance=0):
-        '''Is the transform the identity transformation?  Tests if each
+        '''
+        Supported API.
+        Is the transform the identity transformation?  Tests if each
         of the 3 by 4 matrix elements is within the specified tolerance
         of the identity transform.
         '''
-        return (self._is_identity
-                or _geometry.is_identity_matrix(self.matrix, tolerance))
+        if tolerance == 0:
+            ii = self._is_identity
+            if ii is None:
+                self._is_identity = ii = _geometry.is_identity_matrix(self.matrix, tolerance)
+        else:
+            ii = _geometry.is_identity_matrix(self.matrix, tolerance)
+        return ii
 
-    def _matrix_changed(self):
-        self._is_identity = False
+    def _reuse(self):
+        self._is_identity = None
         self._inverse = None
-        m44 = self._m44
-        if m44 is not None:
-            _geometry.opengl_matrix(self.matrix, m44)
+        self._m44 = None
 
 
 '''
@@ -326,63 +367,79 @@ The following routines create Place objects representing specific
 transformations.
 '''
 
-
 def translation(v):
-    '''Return a transform which is a shift by vector v.'''
-    return Place(origin=v)
+    '''Supported API. Return a transform which is a shift by vector v.'''
+    p = _reuse_place(create = False)
+    if p:
+        _geometry.set_translation_matrix(v, p.matrix)
+    else:
+        p = Place(origin=v)
+    return p
 
 
 def rotation(axis, angle, center=(0, 0, 0)):
-    '''Return a transform which is a rotation about the specified center
-    and axis by the given angle (degrees).'''
+    '''
+    Supported API.
+    Return a transform which is a rotation about the specified center
+    and axis by the given angle (degrees).
+    '''
     return Place(m34.rotation_transform(axis, angle, center))
 
 
 def vector_rotation(u, v):
-    '''Return a rotation transform taking vector u to vector v by rotation
+    '''
+    Supported API. 
+    Return a rotation transform taking vector u to vector v by rotation
     about an axis perpendicular to u and v.  The vectors can have any
     length and the transform maps the direction of u to the direction
-    of v.'''
+    of v.
+    '''
     return Place(m34.vector_rotation_transform(u, v))
 
 
 def scale(s):
-    '''Return a transform which is a scale by factor s.'''
-    if isinstance(s, (float, int)):
-        return Place(((s, 0, 0, 0), (0, s, 0, 0), (0, 0, s, 0)))
-    return Place(((s[0], 0, 0, 0), (0, s[1], 0, 0), (0, 0, s[2], 0)))
+    '''Supported API. Return a transform which is a scale by factor s.'''
+    p = _reuse_place()
+    v = (s,s,s) if isinstance(s, (float, int)) else s
+    _geometry.set_scale_matrix(v, p.matrix)
+    return p
 
 
-def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None, result=None):
-    '''Return a Place object with the specified z axis.  Any rotation
+def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None):
+    '''
+    Supported API. 
+    Return a Place object with the specified z axis.  Any rotation
     about that z axis is allowed, unless a vector ydir is given in which
     case the y axis will be in the plane define by the z axis and ydir.
     '''
     axes = m34.orthonormal_frame(zaxis, ydir, xdir)
-    if result is None:
-        result = Place(axes=axes, origin=origin)
-    else:
-        o0,o1,o2 = (0,0,0) if origin is None else origin
-        result.set_matrix(((axes[0][0], axes[1][0], axes[2][0], o0),
-                           (axes[0][1], axes[1][1], axes[2][1], o1),
-                           (axes[0][2], axes[1][2], axes[2][2], o2)))
+    result = _reuse_place()
+    o0,o1,o2 = (0,0,0) if origin is None else origin
+    result.matrix[:] = ((axes[0][0], axes[1][0], axes[2][0], o0),
+                        (axes[0][1], axes[1][1], axes[2][1], o1),
+                        (axes[0][2], axes[1][2], axes[2][2], o2))
     return result
 
 
 def skew_axes(cell_angles):
-    '''Return a Place object representing the skewing with cell angles
+    '''
+    Supported API. 
+    Return a Place object representing the skewing with cell angles
     alpha, beta and gamma (degrees).  The first axis is (1, 0, 0), the
     second axis makes angle gamma with the first and is in the xy plane,
     and the third axis makes angle beta with the first and angle alpha
     with the second axes.  The axes are unit length and form a right
     handed coordinate system.  The angles alpha, beta and gamma are the
-    angles between yz, xz, and xy axes.'''
+    angles between yz, xz, and xy axes.
+    '''
     return Place(axes=m34.skew_axes(cell_angles))
 
 
-def cross_product(u):
-    '''Return the transform representing vector crossproduct with vector u
-    (on the left) and zero shift.'''
+def cross_product_matrix(u):
+    '''
+    Return the transform representing vector crossproduct with vector u
+    (on the left) and zero shift.
+    '''
     return Place(((0, -u[2], u[1], 0),
                   (u[2], 0, -u[0], 0),
                   (-u[1], u[0], 0, 0)))
@@ -390,14 +447,14 @@ def cross_product(u):
 
 _identity_place = None
 def identity():
-    '''Return the identity transform.'''
+    '''Supported API. Return the identity transform.'''
     global _identity_place
     if _identity_place is None:
         _identity_place = Place()
     return _identity_place
 
 def product(plist):
-    '''Product of a sequence of Place transforms.'''
+    '''Supported API. Product of a sequence of Place transforms.'''
     p = plist[0]
     for p2 in plist[1:]:
         p = p*p2
@@ -405,6 +462,7 @@ def product(plist):
 
 def interpolate_rotation(place1, place2, fraction):
     '''
+    Supported API. 
     Interpolate the rotation parts of place1 and place2.
     The rotation axis taking one coordinate frame to the other
     is linearly interpolated. The translations are ignored
@@ -419,6 +477,7 @@ def interpolate_rotation(place1, place2, fraction):
 from ._geometry import look_at as  c_look_at
 def look_at(from_pt, to_pt, up):
     '''
+    Supported API. 
     Return a Place object that represents looking from 'from_pt' to 'to_pt'
     with 'up' pointing up.
     '''
@@ -426,6 +485,7 @@ def look_at(from_pt, to_pt, up):
 
 def z_align(pt1, pt2):
     '''
+    Supported API. 
     Return a Place object that puts the pt1->pt2 vector on the Z axis
     '''
     a, b, c = pt2 - pt1
@@ -467,12 +527,37 @@ def transform_planes(coord_sys, planes):
     t = coord_sys.translation()
     for p in range(len(planes)):
         v = planes[p,:3]
-        cp[p,:3] = ct.apply_without_translation(v)
+        cp[p,:3] = ct.transform_vector(v)
         cp[p,3] = planes[p,3] + (t * v).sum()
     return cp
 
+from sys import getrefcount
+_recent_place_instances = []
+_max_recent_place_instances = 10
+def _reuse_place(create = True):
+    '''
+    Keep a cache of Place instances and reuse them if they are no longer used.
+    This is to improve performance when using many temporary matrices, so it is not
+    required to allocate to numpy arrays and Place instances.
+    '''
+    global _recent_place_instances
+    for p in _recent_place_instances:
+        if getrefcount(p) == 3:
+            p._reuse()
+            return p
+    if create:
+        p = Place()
+        _recent_place_instances.insert(0, p)
+        if len(_recent_place_instances) > _max_recent_place_instances:
+            _recent_place_instances = _recent_place_instances[:_max_recent_place_instances]
+    else:
+        p = None
+    return p
+
+    
 class Places:
-    ''' The Places class represents a list of 0 or more Place objects.
+    '''
+    The Places class represents a list of 0 or more Place objects.
     The advantage of Places over using a list of Place objects is that
     it doesn't need to create a separate Python Place object for each
     position, instead it is able to represent for example 10,000 atom
@@ -481,6 +566,11 @@ class Places:
     '''
     def __init__(self, places=None, place_array=None, shift_and_scale=None,
                  opengl_array=None):
+        '''
+        Supported API. 
+        Places can be specified as a list of Place instances, or a numpy N x 3 x 4 array,
+        or a shift and scale N x 4 array, or a 4 x 4 numpy array (opengl format).
+        '''
         if (place_array is not None or shift_and_scale is not None
                 or opengl_array is not None):
             pl = None
@@ -493,7 +583,26 @@ class Places:
         self._opengl_array = opengl_array
         self._shift_and_scale = shift_and_scale
 
+        # Check that arrays are the right type.
+        if place_array is not None:
+            self._check_array('place_array', place_array, double=True)
+        if opengl_array is not None:
+            self._check_array('opengl_array', opengl_array)
+        if shift_and_scale is not None:
+            self._check_array('shift_and_scale', shift_and_scale)
+
+    def _check_array(self, name, array, double = False, contiguous = True):
+        from numpy import ndarray, float32, float64
+        dtype = float64 if double else float32
+        if not isinstance(array, ndarray):
+            raise ValueError('Places %s argument must be a numpy array, got %s' % (name, str(type(array))))
+        if array.dtype != dtype:
+            raise ValueError('Places %s argument must have type %s, got %s' % (name, str(dtype), str(array.dtype)))
+        if contiguous and not array.flags['C_CONTIGUOUS']:
+            raise ValueError('Places %s argument must be contiguous' % name)
+        
     def place_list(self):
+        '''Supported API. Return a list of Place instances.'''
         pl = self._place_list
         if pl is None:
             if self._place_array is not None:
@@ -512,6 +621,7 @@ class Places:
         return pl
 
     def array(self):
+        '''Supported API. Return a numpy float64 N x 3 x 4 array.'''
         pa = self._place_array
         if pa is None:
             from numpy import empty, float64
@@ -521,6 +631,7 @@ class Places:
                     pa[i,:,:] = p.matrix
             elif self._shift_and_scale is not None:
                 sas = self._shift_and_scale
+                pa[:] = 0
                 pa[:,:,3] = sas[:,:3]
                 pa[:,0,0] = pa[:,1,1] = pa[:,2,2] = sas[:,3]
             elif self._opengl_array is not None:
@@ -529,6 +640,12 @@ class Places:
         return pa
 
     def masked(self, mask):
+        '''
+        Supported API.
+        Return a Places instance containing only the places
+        where boolean mask array is true.  The mask array must have length equal
+        to the number of places.
+        '''
         if mask is None:
             return self
         sas = self._shift_and_scale
@@ -543,11 +660,17 @@ class Places:
         return p
 
     def shift_and_scale_array(self):
+        '''
+        Supported API.
+        Only valid if this Places was specified using a shift and scale matrix,
+        otherwise None is returned.
+        '''
         return self._shift_and_scale
 
     def opengl_matrices(self):
         '''
-        Return array of 4x4 matrices with column-major order.
+        Supported API.
+        Return array of 4x4 float32 matrices with column-major order.
         '''
         m = self._opengl_array
         if m is None:
@@ -562,6 +685,7 @@ class Places:
         self._place_list[i] = p
 
     def __len__(self):
+        '''Supported API. Number of places.'''
         if self._place_list is not None:
             n = len(self._place_list)
         elif self._place_array is not None:
@@ -573,9 +697,15 @@ class Places:
         return n
 
     def __iter__(self):
+        '''Supported API. Iterator returning Place instances.'''
         return self.place_list().__iter__()
 
     def __mul__(self, places_or_vector):
+        '''
+        Supported API.
+        Can multiply by another Places which produces all-by-all products of matrices,
+        or can multiply by a single Place, or can multiply by a single vector or array of vectors.
+        '''
         if isinstance(places_or_vector, Places):
             places = places_or_vector
             r = _geometry.multiply_matrix_lists(self.array(), len(self),
@@ -605,10 +735,18 @@ class Places:
             return pv
 
     def is_identity(self):
+        '''
+        Supported API.
+        Whether this Places contains just one place which is the identity.
+        '''
         return len(self) == 1 and self[0].is_identity()
 
     def transform_coordinates(self, csys):
-        "csys maps new coordinates to old coordinates."
+        '''
+        Supported API.
+        Transform these places to a new coordinate system.
+        Argument csys maps new coordinates to old coordinates.
+        '''
         if csys.is_identity():
             return self
         csys_inv = csys.inverse()
@@ -632,13 +770,21 @@ class Places:
 
     
 def multiply_transforms(tf1, tf2, result = None):
+    '''
+    Experimental API.
+    Multiply Place or Places times another Place or Places.
+    Returns tf1 * tf2.  If the result argument is specified (Place or Places)
+    it modifies the matrices of that instance. This violates the assumption that
+    Place and Places are immutable, and is only done for optimization purposes.
+    Use of this method is discouraged.  Instead use tf1 * tf2.
+    '''
     if result is None:
         return tf1 * tf2
 
     # Set result transform.
     if isinstance(tf1, Place) and isinstance(tf2, Place):
         _geometry.multiply_matrices(tf1.matrix, tf2.matrix, result.matrix)
-        result._matrix_changed()
+        result._reuse()
     elif isinstance(tf1, Places) and isinstance(tf2, Place):
         n = len(tf1)
         result._resize(n)

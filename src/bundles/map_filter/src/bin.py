@@ -32,13 +32,13 @@ def bin_grid(v, bin_size = (2,2,2), step = 1, subregion = None, region = None):
 
   d = v.grid_data(subregion, step, mask_zone = False)
   bin_size = [min(a,b) for a,b in zip(bin_size, d.size)]
-  g = Binned_Grid(d, bin_size)
+  g = BinnedGrid(d, bin_size)
   return g
 
 # -----------------------------------------------------------------------------
 #
-from ..data import Grid_Data
-class Binned_Grid(Grid_Data):
+from ..data import GridData
+class BinnedGrid(GridData):
   
   def __init__(self, grid_data, bin_size):
 
@@ -48,7 +48,7 @@ class Binned_Grid(Grid_Data):
     step = [s*b for s,b in zip(g.step, bin_size)]
     origin = [o+0.5*(s-gs) for o,s,gs in zip(g.origin, step, g.step)]
     settings = g.settings(size=size, origin=origin, step=step, name = g.name + ' binned')
-    Grid_Data.__init__(self, **settings)
+    GridData.__init__(self, **settings)
     
   # ---------------------------------------------------------------------------
   #

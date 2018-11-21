@@ -528,17 +528,19 @@ class CollatingLog(PlainTextLog):
 
     def __init__(self):
         self.msgs = []
-        for _ in range(len(self.LEVEL_DESCRIPTS)):
+        for _ in range(self.LEVEL_ERROR+1):
             self.msgs.append([])
 
     def log(self, level, msg):
-        self.msgs[level].append(msg)
-        return True
+        if level <= self.LEVEL_ERROR:
+            self.msgs[level].append(msg)
+            return True
+        return False
 
     def log_summary(self, logger, summary_title, collapse_similar=True):
         # note that this handling of the summary (only calling logger,info
         # at the end and not calling the individual log-level functions)
-        # will never raise an error dialog
+        # will not raise an error dialog except for 'bug'-level log entries
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
         summary += '    <tr>\n'
@@ -666,7 +668,7 @@ class _EarlyCollator(CollatingLog):
     excludes_other_logs = False
 
     def log_summary(self, logger):
-        if self.msgs[self.LEVEL_ERROR] or self.msgs[self.LEVEL_BUG]:
+        if self.msgs[self.LEVEL_ERROR]:
             title = "Startup Errors"
         else:
             title = "Startup Messages"

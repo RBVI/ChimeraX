@@ -383,7 +383,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
     me = fitting_metric(metric)
     if v is None:
         points = atoms.scene_coords
-        volume.position.inverse().move(points)
+        volume.position.inverse().transform_points(points, in_place = True)
         point_weights = None
     else:
         points, point_weights = map_fitting_points(v, envelope)

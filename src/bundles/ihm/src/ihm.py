@@ -1320,10 +1320,10 @@ class FileDataSet(DataSet):
         image_path = finfo.path(session)
         if image_path:
             from chimerax.map.volume import open_map
-            from chimerax.map.data import Unknown_File_Type
+            from chimerax.map.data import UnknownFileType
             try:
                 maps,msg = open_map(session, image_path)
-            except Unknown_File_Type:
+            except UnknownFileType:
                 return None
             v = maps[0]
             return v
@@ -1507,8 +1507,8 @@ def probability_grid(wcc, voxel_size = 5, cutoff_sigmas = 3):
         cov *= 1/(voxel_size*voxel_size)
         add_gaussian(weight, acenter, cov, a)
 
-    from chimerax.map.data import Array_Grid_Data
-    g = Array_Grid_Data(a, origin = xyz0, step = vsize)
+    from chimerax.map.data import ArrayGridData
+    g = ArrayGridData(a, origin = xyz0, step = vsize)
     return g
 
 # -----------------------------------------------------------------------------

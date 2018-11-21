@@ -45,6 +45,7 @@ static bool closest_cylinder_intercept(const float *base1, int n, int b1stride0,
 const char *closest_triangle_intercept_doc = 
   "closest_triangle_intercept(vertices, tarray, xyz1, xyz2) -> f, tnum\n"
   "\n"
+  "Supported API\n"
   "Find first triangle intercept along line segment from xyz1 to xyz2.\n"
   "Implemented in C++.\n"
   "\n"
@@ -188,6 +189,7 @@ static bool triangle_intercept(const float *va, const float *vb,
 const char *closest_sphere_intercept_doc =
   "closest_sphere_intercept(centers, radii, xyz1, xyz2) -> f, snum\n"
   "\n"
+  "Supported API\n"
   "Find first sphere intercept along line segment from xyz1 to xyz2.\n"
   "Implemented in C++.\n"
   "\n"
@@ -300,6 +302,7 @@ static bool closest_sphere_intercept(const float *centers, int n, int cstride0, 
 const char *segment_intercepts_spheres_doc =
   "segment_intercepts_spheres(centers, radius, xyz1, xyz2) -> mask array\n"
   "\n"
+  "Supported API\n"
   "Find which spheres intercept a line segment from xyz1 to xyz2.\n"
   "Implemented in C++.\n"
   "\n"
@@ -389,6 +392,7 @@ static int segment_intercepts_spheres(const float *centers, int n, int cstride0,
 const char *closest_cylinder_intercept_doc =
   "closest_cylinder_intercept(base1, base2, radii, xyz1, xyz2) -> f, cnum\n"
   "\n"
+  "Supported API\n"
   "Find first cylinder intercept along line segment from xyz1 to xyz2.\n"
   "Cylinder endcaps are not considered. Implemented in C++.\n"
   "\n"

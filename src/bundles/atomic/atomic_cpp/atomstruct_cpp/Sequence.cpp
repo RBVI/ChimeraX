@@ -17,6 +17,7 @@
 #include <exception>
 #include <iostream>
 #include <Python.h>
+#include <regex>
 
 #define ATOMSTRUCT_EXPORT
 #define PYINSTANCE_EXPORT
@@ -172,7 +173,7 @@ Sequence::rname3to1(const ResName& rn)
         _init_rname_map();
 
     // MMTF only knows the one-letter code for residues in SEQRES;
-    // as a kludge to allow that, simply return an alredy-one-letter 
+    // as a kludge to allow that, simply return an already-one-letter 
     // res name
     if (rn.size() == 1)
         return rn.c_str()[0];
@@ -181,6 +182,42 @@ Sequence::rname3to1(const ResName& rn)
         return 'X';
     }
     return (*l1i).second;
+}
+
+std::vector<std::pair<int,int>>
+Sequence::search(const std::string& pattern, bool case_sensitive) const
+{
+    // always ignores gap characters
+
+    // C++ regex support doesn't handle overlapping matches, so
+    // have to do that part "by hand"
+    std::cmatch m;
+    auto regex_flags = std::regex_constants::egrep;
+    if (!case_sensitive)
+        regex_flags |= std::regex_constants::icase;
+    std::regex expr(pattern.c_str(), regex_flags);
+    std::vector<std::pair<int,int>> results;
+    Contents::size_type offset = 0;
+    std::smatch match;
+    auto& search_contents = ungapped();
+    while (offset < search_contents.size()) {
+        auto string_seq = std::string(search_contents.begin()+offset, search_contents.end());
+        if (std::regex_search(string_seq, match, expr, std::regex_constants::match_not_null)) {
+            results.emplace_back(match.position()+offset, match.length());
+           offset += match.position()+1;
+        } else {
+            break;
+        }
+    }
+    // remap to ungapped indices
+    decltype(results) gapped_results;
+    for (auto start_len: results) {
+        auto ungapped_start = start_len.first;
+        auto gapped_start  = ungapped_to_gapped(ungapped_start);
+        auto gapped_end = ungapped_to_gapped(ungapped_start + start_len.second);
+        gapped_results.emplace_back(gapped_start, gapped_end - gapped_start);
+    }
+    return gapped_results;
 }
 
 void

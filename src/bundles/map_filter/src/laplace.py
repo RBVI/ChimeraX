@@ -41,8 +41,8 @@ def laplacian(v, step = None, subregion = None, model_id = None):
 
   origin, step = v.data_origin_and_step(subregion = subregion, step = step)
   d = v.data
-  from ..data import Array_Grid_Data
-  ld = Array_Grid_Data(lm, origin, step, d.cell_angles, d.rotation,
+  from ..data import ArrayGridData
+  ld = ArrayGridData(lm, origin, step, d.cell_angles, d.rotation,
                        name = v.name + ' Laplacian')
   ld.polar_values = True
   from .. import volume_from_grid_data

@@ -25,7 +25,7 @@ def zone_operation(v, atoms, radius, bond_point_spacing = None,
         from numpy import concatenate
         points = concatenate((points, bpoints))
 
-    v.position.inverse().move(points)   # Convert points to map coordinates.
+    v.position.inverse().transform_points(points, in_place = True)   # Convert points to map coordinates.
 
     if new_map:
         vz = zone_volume(v, points, radius, minimal_bounds, invert,
@@ -55,7 +55,7 @@ def zone_volume(volume, points, radius,
 
     region = volume.subregion(step, subregion)
     from .. import data
-    sg = data.Grid_Subregion(volume.data, *region)
+    sg = data.GridSubregion(volume.data, *region)
 
     mg = data.zone_masked_grid_data(sg, points, radius, invert, minimal_bounds)
     mg.name = volume.name + ' zone'

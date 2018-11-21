@@ -14,22 +14,21 @@
 """Show consensus sequence"""
 
 from .header_sequence import DynamicHeaderSequence
-from .settings import CSN_MAJ_NOGAP, ALIGNMENT_PREFIX
 
 class Consensus(DynamicHeaderSequence):
     name = "Consensus"
     sort_val = 1.3
-    def __init__(self, sv, capitalize_at=0.8):
+    def __init__(self, alignment, *, ignore_gaps=False, capitalize_at=0.8):
         self.capitalize_at = capitalize_at
-        self.conserved = [False] * len(sv.alignment.seqs[0])
-        super().__init__(sv)
+        self.conserved = [False] * len(alignment.seqs[0])
+        self._ignore_gaps = ignore_gaps
+        super().__init__(alignment)
 
     def evaluate(self, pos):
         occur = {}
-        for i in range(len(self.sv.alignment.seqs)):
-            let = self.sv.alignment.seqs[i][pos]
-            if getattr(self.sv.settings, ALIGNMENT_PREFIX + "consensus_style") == CSN_MAJ_NOGAP \
-            and not let.isalpha():
+        for i in range(len(self.alignment.seqs)):
+            let = self.alignment.seqs[i][pos]
+            if self._ignore_gaps and not let.isalpha():
                 continue
             try:
                 occur[let] += 1
@@ -46,13 +45,26 @@ class Consensus(DynamicHeaderSequence):
         self.conserved[pos] = False
         if let is None:
             return ' '
-        if num / len(self.sv.alignment.seqs) >= self.capitalize_at:
+        if num / len(self.alignment.seqs) >= self.capitalize_at:
             retlet = let.upper()
-            if num == len(self.sv.alignment.seqs):
+            if num == len(self.alignment.seqs):
                 self.conserved[pos] = True
         else:
             retlet = let.lower()
         return retlet
+
+    @property
+    def ignore_gaps(self):
+        return self._ignore_gaps
+
+    @ignore_gaps.setter
+    def ignore_gaps(self, ignore_gaps):
+        if ignore_gaps != self._ignore_gaps:
+            self._ignore_gaps = ignore_gaps
+            if self.visible or self.evaluate_while_hidden:
+                self.reevaluate()
+            else:
+                self._update_needed = True
 
     def position_color(self, pos):
         if self[pos].isupper():
@@ -63,5 +75,5 @@ class Consensus(DynamicHeaderSequence):
 
     def reevaluate(self):
         """sequences changed, possibly including length"""
-        self.conserved = [0] * len(self.sv.alignment.seqs[0])
+        self.conserved = [False] * len(self.alignment.seqs[0])
         super().reevaluate()

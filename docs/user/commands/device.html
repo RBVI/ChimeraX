@@ -37,7 +37,7 @@ where the <i>device-type</i> can be:
 <li><a href="#snav"><b>snav</b></a> 
 - SpaceNavigator<sup>&reg;</sup> 3D mouse
 <li><a href="#vr"><b>vr</b></a>
-- HTC Vive, Oculus Rift virtual reality systems
+- HTC Vive, Oculus Rift, Samsung Odyssey virtual reality systems
 </ul>
 <p>
 <a name="status"></a>
@@ -85,9 +85,10 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 <blockquote>
 <p>
 The <b>vr</b> command (same as <b>device vr</b>)
-enables a virtual reality mode for HTC Vive and Oculus Rift systems.
-The mode uses <a href="http://store.steampowered.com/about/"
-target="_blank">SteamVR</a>, which must be installed separately by the user
+enables a virtual reality mode for systems supported by
+<a href="http://store.steampowered.com/about/"
+target="_blank">SteamVR</a>, including HTC Vive, Oculus Rift,
+and Samsung Odyssey. SteamVR must be installed separately by the user
 and started before the mode is enabled.
 In addition, Oculus Rift users should start the Oculus runtime 
 before starting SteamVR. For details and related issues, 
@@ -100,7 +101,10 @@ See also: <a href="camera.html"><b>camera</b></a>,
 The <b>display</b> option indicates what to show in the ChimeraX graphics
 window on the desktop:
 <ul>
-<li><b>mirror</b> (default) - the right-eye view seen in the VR headset
+<li><b>mirror</b> (default) - the right-eye view seen in the VR headset,
+with <a href="graphics.html#waitForVsync"><b>graphics waitForVsync</b></a>
+automatically set to false so that VR rendering will not slow down
+to the desktop rendering rate
 <li><b>independent</b> - a separate camera view
 fixed in the VR room coordinates, set to match the viewpoint of
 the VR headset when the command is issued
@@ -183,5 +187,5 @@ menu button which shows the standard ChimeraX user interface in VR.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+November 2018</address>
 </body></html>

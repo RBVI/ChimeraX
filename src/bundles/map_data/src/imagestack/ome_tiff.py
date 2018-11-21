@@ -18,7 +18,7 @@ def ome_image_grids(path, found_paths = None):
         print (i.description())
         for c in range(i.nchannels):
             for t in range(i.ntimes):
-                g = OME_Image_Grid(i, c, t, gid)
+                g = OMEImageGrid(i, c, t, gid)
                 if i.ntimes > 1:
                     g.series_index = t
                 grids.append(g)
@@ -29,8 +29,8 @@ def ome_image_grids(path, found_paths = None):
 
 # -----------------------------------------------------------------------------
 #
-from .. import Grid_Data
-class OME_Image_Grid(Grid_Data):
+from .. import GridData
+class OMEImageGrid(GridData):
 
   def __init__(self, ome_pixels, channel, time, grid_id):
 
@@ -49,11 +49,11 @@ class OME_Image_Grid(Grid_Data):
         name += tformat % time
 
     origin = (0,0,0)    # TODO: Is there an OME XML origin parameter?
-    Grid_Data.__init__(self, d.grid_size, d.value_type,
-                       origin, d.grid_spacing,
-                       name = name, path = d.path,
-                       file_type = 'imagestack', grid_id = grid_id,
-                       channel = channel, time = time)
+    GridData.__init__(self, d.grid_size, d.value_type,
+                      origin, d.grid_spacing,
+                      name = name, path = d.path,
+                      file_type = 'imagestack', grid_id = grid_id,
+                      channel = channel, time = time)
 
     if channel in d.channel_colors:
         self.rgba = d.channel_colors[channel]

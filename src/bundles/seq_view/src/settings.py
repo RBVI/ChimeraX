@@ -27,12 +27,11 @@ class ConsensusStyleOption(EnumOption):
     values = (CSN_MAJ_GAP, CSN_MAJ_NOGAP)
 
 CSV_PERCENT = "identity histogram"
-CSV_CLUSTAL_HIST = "Clustal histogram"
 CSV_CLUSTAL_CHARS = "Clustal characters"
 CSV_AL2CO = "AL2CO"
+from chimerax.seqalign.headers import Conservation
 class ConservationStyleOption(EnumOption):
-    #values = (CSV_PERCENT, CSV_CLUSTAL_HIST, CSV_CLUSTAL_CHARS, CSV_AL2CO)
-    values = (CSV_PERCENT, CSV_CLUSTAL_HIST, CSV_CLUSTAL_CHARS)
+    values = Conservation.styles
 
 LINE_WRAP_BALLOON = 'Only applies if wrapping is on.\n' \
             'Fit into window size and wrap at a multiple of the given value.'
@@ -48,7 +47,7 @@ defaults = {
     ALIGNMENT_PREFIX + "consensus_style": (HEADERS, "Consensus style", 1,
         ConsensusStyleOption, {}, CSN_MAJ_GAP),
     ALIGNMENT_PREFIX + "conservation_style": (HEADERS, "Conservation style", 1,
-        ConservationStyleOption, {}, CSV_CLUSTAL_CHARS),
+        ConservationStyleOption, {}, Conservation.CSV_PERCENT),
     "error_region_shown": (REGIONS,
         "Show structure-mismatch regions", 9, BooleanOption, {}, True),
     "error_region_borders": (REGIONS, "Structure-mismatch border", 10,

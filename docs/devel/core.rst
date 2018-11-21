@@ -14,8 +14,8 @@
 
 .. _core:
 
-ChimeraX Core
-=============
+Intro to ChimeraX Design
+========================
 
 There are three major components of the ChimeraX core:
 the :doc:`user interface <user_interface>` modules,
@@ -35,7 +35,7 @@ and the :doc:`applications` that use the functionality.
     The following modules are in the process of being reorganzied.
 
 Contents
-========
+--------
 
 .. toctree::
     :maxdepth: 2

@@ -20,20 +20,18 @@
 from chimerax.core.models import Model
 class Volume(Model):
   '''
-  A Volume is a rendering of a 3-d image Grid_Data object.  It includes
+  A Volume is a rendering of a 3-d image GridData object.  It includes
   color, display styles including surface, mesh and grayscale, contouring levels,
   brightness and transparency for grayscale rendering, region bounds for display
   a subregion including single plane display, subsampled display of every Nth data
   value along each axis, outline box display.
   '''
-  def __init__(self, data, session, region = None, rendering_options = None,
-               model_id = None, open_model = True, message_cb = None):
-
+  def __init__(self, session, data, region = None, rendering_options = None):
+    '''Supported API. Create a volume model from a GridData instance.'''
+    
     Model.__init__(self, data.name, session)
 
     self.session = session
-    if not model_id is None:
-      self.id = model_id
 
     ds = default_settings(session)
     self.pickable = ds['pickable']
@@ -52,9 +50,7 @@ class Volume(Model):
       rendering_options = Rendering_Options()
     self.rendering_options = rendering_options
 
-    if message_cb is None:
-      message_cb = session.logger.status
-    self.message_cb = message_cb
+    self.message_cb = session.logger.status
     
     self.matrix_stats = None
     self.matrix_id = 1          # Incremented when shape or values change.
@@ -175,11 +171,13 @@ class Volume(Model):
   #
   @property
   def surfaces(self):
+    '''Supported API.  Return a list of VolumeSurface instances for this Volume.'''
     return self._surfaces
   
   # ---------------------------------------------------------------------------
   #
   def add_surface(self, level, rgba = None):
+    '''Supported API.  Create and add a new VolumeSurface with specified contour level and color.'''
     ses = self.session
     s = VolumeSurface(self, level, rgba)
     self._surfaces.append(s)
@@ -193,6 +191,10 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def remove_surfaces(self, surfaces = None):
+    '''
+    Supported API.  Remove a list of VolumeSurface instances from this Volume.
+    If surfaces is None then all current surfaces are removed.
+    '''
     surfs = self._surfaces if surfaces is None else surfaces
     if self.id is None:
       self.remove_drawings(surfs)
@@ -681,8 +683,7 @@ class Volume(Model):
   def surface_level_for_enclosed_volume(self, volume, tolerance = 1e-3,
                                         max_bisections = 30, rank_method = False):
 
-    sx,sy,sz = self.data.step
-    cell_volume = float(sx)*sy*sz
+    cell_volume = self.data.voxel_volume()
 
     if rank_method:
       ms = self.matrix_value_statistics()
@@ -939,8 +940,8 @@ class Volume(Model):
     from numpy import zeros
     m = zeros(shape, value_type)
     origin, step = self.region_origin_and_step(r)
-    from .data import Array_Grid_Data
-    g = Array_Grid_Data(m, origin, step, d.cell_angles, d.rotation)
+    from .data import ArrayGridData
+    g = ArrayGridData(m, origin, step, d.cell_angles, d.rotation)
     g.rgba = d.rgba           # Copy default data color.
     return g
 
@@ -1123,9 +1124,9 @@ class Volume(Model):
     origin, size, step = self.step_aligned_region(region)
     d = self.data
     operation = 'reading %s' % d.name
-    from .data import Progress_Reporter
-    progress = Progress_Reporter(operation, size, d.value_type.itemsize,
-                                 message = self.message_cb)
+    from .data import ProgressReporter
+    progress = ProgressReporter(operation, size, d.value_type.itemsize,
+                                message = self.message_cb)
     from_cache_only = not read_matrix
     m = d.matrix(origin, size, step, progress, from_cache_only)
     return m
@@ -1446,7 +1447,7 @@ class Volume(Model):
       points = grid_indices((size[0],size[1],1), float32)  # Single z plane.
       points[:,2] = zplane
     mt = transform_to_local_coords * self.model_transform() * data.ijk_to_xyz_transform
-    mt.move(points)
+    mt.transform_points(points, in_place = True)
     return points
   
   # ---------------------------------------------------------------------------
@@ -1483,8 +1484,8 @@ class Volume(Model):
       sg = self.data
     else:
       ijk_min, ijk_max, ijk_step = region
-      from .data import Grid_Subregion
-      sg = Grid_Subregion(self.data, ijk_min, ijk_max, ijk_step)
+      from .data import GridSubregion
+      sg = GridSubregion(self.data, ijk_min, ijk_max, ijk_step)
 
     if mask_zone:
       surf_model = self.surface_model()
@@ -1562,7 +1563,7 @@ class Volume(Model):
     if nvox >= min_status_message_voxels:
       self.message('Computing histogram for %s' % self.name)
     from . import data
-    self.matrix_stats = ms = data.Matrix_Value_Statistics(matrices)
+    self.matrix_stats = ms = data.MatrixValueStatistics(matrices)
     if nvox >= min_status_message_voxels:    
       self.message('')
 
@@ -1747,7 +1748,7 @@ class Volume(Model):
     grid_data = data['grid data state'].grid_data
     if grid_data is None:
       return None	# Map file not available.
-    v = Volume(grid_data, session)
+    v = Volume(session, grid_data)
     Model.set_state_from_snapshot(v, session, data['model state'])
     from .session import set_map_state
     set_map_state(data['volume state'], v)
@@ -1944,9 +1945,8 @@ class VolumeSurface(Surface):
       smooth_vertex_positions(narray, tarray, sf, si)
 
     # Transform vertices and normals from index coordinates to model coordinates
-    transform.move(varray)
-    tf = transform.inverse().transpose().zero_translation()
-    tf.move(narray)
+    transform.transform_points(varray, in_place = True)
+    transform.transform_normals(narray, in_place = True)
     from chimerax.core.geometry import normalize_vectors
     normalize_vectors(narray)
 
@@ -2742,7 +2742,7 @@ def transformed_points(points, tf):
 
   from numpy import array, single as floatc
   tf_points = array(points, floatc)
-  tf.move(tf_points)
+  tf.transform_points(tf_points, in_place = True)
   return tf_points
     
 # -----------------------------------------------------------------------------
@@ -2787,7 +2787,7 @@ def atom_bounds(atoms, pad, volume):
 
     # Transform atom coordinates to volume ijk indices.
     tf = volume.data.xyz_to_ijk_transform * volume.position.inverse()
-    tf.move(xyz)
+    tf.transform_points(xyz, in_place = True)
     ijk = xyz
 
     # Find integer bounds.
@@ -2826,9 +2826,9 @@ def map_from_periodic_map(grid, ijk_min, ijk_max):
 
     # Create volume data copy.
     xyz_min = grid.ijk_to_xyz(ijk_min)
-    from .data import Array_Grid_Data
-    g = Array_Grid_Data(m, xyz_min, grid.step, grid.cell_angles, grid.rotation,
-                        name = grid.name)
+    from .data import ArrayGridData
+    g = ArrayGridData(m, xyz_min, grid.step, grid.cell_angles, grid.rotation,
+                      name = grid.name)
     return g
 
 # -----------------------------------------------------------------------------
@@ -2841,7 +2841,7 @@ def open_volume_file(path, session, format = None, name = None, representation =
   from . import data
   try:
     glist = data.open_file(path, format)
-  except data.File_Format_Error as value:
+  except data.FileFormatError as value:
     raise
     from os.path import basename
     if isinstance(path, (list,tuple)):
@@ -2881,8 +2881,8 @@ def default_settings(session):
 # -----------------------------------------------------------------------------
 #
 def set_data_cache(grid_data, session):
-  from .data import Array_Grid_Data
-  if isinstance(grid_data, Array_Grid_Data):
+  from .data import ArrayGridData
+  if isinstance(grid_data, ArrayGridData):
     return	# No caching for in-memory maps
 
   grid_data.data_cache = data_cache(session)
@@ -2903,7 +2903,12 @@ def data_cache(session):
 #
 def volume_from_grid_data(grid_data, session, representation = None,
                           open_model = True, model_id = None, show_dialog = True):
-
+  '''
+  Supported API.
+  Create a new Volume model from a GridData instance and set its initial 
+  display style and color and add it to the session open models.
+  '''
+  
   set_data_cache(grid_data, session)
 
   ds = default_settings(session)
@@ -2914,9 +2919,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
   if d:
     grid_data = d
     
-  v = Volume(grid_data, session, rendering_options = ro,
-             model_id = model_id, open_model = open_model,
-             message_cb = session.logger.status)
+  v = Volume(session, grid_data, rendering_options = ro)
   
   # Set display style
   if representation is None:
@@ -2927,6 +2930,9 @@ def volume_from_grid_data(grid_data, session, representation = None,
   
   if grid_data.rgba is None:
     set_initial_volume_color(v, session)
+
+  if not model_id is None:
+    v.id = model_id
 
   if open_model:
     session.models.add([v])
@@ -3017,7 +3023,7 @@ def volume_list(session):
 #
 def open_map(session, stream, name = None, format = None, **kw):
     '''
-    Open a density map file having any of the known density map formats.
+    Supported API. Open a density map file having any of the known density map formats.
     '''
     if isinstance(stream, (str, list)):
       map_path = stream         # Batched paths

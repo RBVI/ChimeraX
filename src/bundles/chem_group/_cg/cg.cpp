@@ -1065,10 +1065,11 @@ initiate_find_ring_planar_NHR2(AtomicStructure::Atoms::const_iterator start,
 					groups_mutex->lock();
 					groups->emplace_back();
 					auto& back = groups->back();
-					groups_mutex->unlock();
+					back.reserve(3); // vector modification empirically not thread safe
 					back.push_back(ra);
 					back.push_back(ra->neighbors()[0]);
 					back.push_back(ra->neighbors()[1]);
+					groups_mutex->unlock();
 				}
 			}
 		}
@@ -1151,10 +1152,11 @@ initiate_find_5ring_OR2(AtomicStructure::Atoms::const_iterator start,
 			groups_mutex->lock();
 			groups->emplace_back();
 			auto& back = groups->back();
-			groups_mutex->unlock();
+			back.reserve(3); // vector modification empirically not thread safe
 			back.push_back(a);
 			for (auto nb: a->neighbors())
 				back.push_back(nb);
+			groups_mutex->unlock();
 		}
 	}
 }

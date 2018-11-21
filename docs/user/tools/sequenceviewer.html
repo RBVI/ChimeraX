@@ -67,12 +67,12 @@ Each <b>Sequence Viewer</b> window has a
 with choices including:
 <p>
 <ul>
-<li><b>Save as</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+<li><b>Save As</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
 [various <a href="../commands/save.html#seqformats">sequence file formats</a>]
 - save to file; see also <a href="../commands/save.html#sequence"><b>save</b></a>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
-<li><b>Load sequence coloring file...</b> open a
+<li><b>Load Sequence Coloring File...</b> open a
 <a href="../formats/scf.html">sequence coloring file</a>
 to create <a href="#regions">regions</a> and color 
 <a href="#association">associated</a> structure to match
@@ -268,6 +268,31 @@ one is chosen at random. When gaps are included, however,
 the consensus will show a gap at positions where a gap
 is the most prevalent or equally the most prevalent
 as one or more residue types.
+<li><b>Conservation style</b>
+  <ul>
+  <li><b>identity histogram</b> (initial default)
+- what proportion of the sequences
+have the most prevalent nongap character per alignment column.
+Histogram bar heights are proportional to (M-1)/(N-1), where
+M is the number of occurrences of the most prevalent residue type at
+a position in the alignment and N is the number of sequences in the
+alignment. Thus, if every sequence has a different residue at a
+given position, the bar height is zero, not 1/N.
+<!--
+However, M/N values (not the values used for display purposes) are
+used for the <a href="#mavAttributes"><b>mavConservation</b> attribute</a>
+and written out when conservation values are <a href="#saveheader">saved</a>.
+-->
+  <li><b>Clustal characters</b> - as in Clustal format, 
+     <ul class="none"> 
+     <li>* (asterisk) for complete identity
+     <li>: (colon) for 
+     <a href="../formats/clustgroups.html">strong group conservation</a> 
+     <li>. (period) for 
+     <a href="../formats/clustgroups.html">weak group conservation</a>
+     <li> blank otherwise
+     </ul>
+  </ul>
 </ul>
 
 <a name="settings-regions"></a>
@@ -360,5 +385,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+November 2018</address>
 </body></html>

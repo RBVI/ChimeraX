@@ -113,8 +113,7 @@ molecular surfaces
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
 <li><a name="bynucleotide"><b>bynucleotide</b></a>
 - a built-in scheme <a href="colortables.html#residue">by nucleotide base type</a>
-as in the 
-<a href="http://ndbserver.rutgers.edu/" target="_blank">Nucleic Acid Database</a>:
+<!--
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr style="line-height:10px">
 <td style="background:red;color:white">A</td>
@@ -123,6 +122,7 @@ style="display:inline-block; vertical-align:middle"><tr style="line-height:10px"
 <td bgcolor="lime">G</td>
 <td bgcolor="cyan">U</td>
 </tr></table>
+-->
 <li><a name="bychain"><b>bychain</b></a>
 - a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
 also used for the initial colors of per-chain
@@ -668,6 +668,9 @@ triangles to create sharp boundaries between the different colored regions.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
+</p><p>
+A map that has been colored by zone can be split accordingly with
+<a href="volume#splitbyzone"><b>volume splitbyzone</b></a>.
 </p>
 
 <a name="palette-options"></a>

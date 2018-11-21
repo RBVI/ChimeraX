@@ -40,6 +40,7 @@
 
 #include <functional>
 #include <map>
+#include <regex>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -135,6 +136,8 @@ molc_error()
         PyErr_SetString(PyExc_RuntimeError, e.what());
     } catch (std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
+    } catch (std::regex_error& e) {
+        PyErr_SetString(PyExc_ValueError, e.what());
     } catch (...) {
         PyErr_SetString(PyExc_RuntimeError, "unknown C++ exception");
     }
@@ -1557,10 +1560,11 @@ extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
 
 extern "C" EXPORT void bond_delete(void *bonds, size_t n)
 {
+    auto db = DestructionBatcher(bonds); // don't use structure since delete_bond internally batches on that
     Bond **b = static_cast<Bond **>(bonds);
     try {
         for (size_t i = 0; i != n; ++i)
-	    b[i]->structure()->delete_bond(b[i]);
+            b[i]->structure()->delete_bond(b[i]);
     } catch (...) {
         molc_error();
     }
@@ -3817,6 +3821,26 @@ extern "C" EXPORT char sequence_rname3to1(const char *rname)
     } catch (...) {
         molc_error();
         return 'X';
+    }
+}
+
+extern "C" EXPORT pyobject_t sequence_search(void *seq, const char *pattern, bool case_sensitive)
+{
+    Sequence *s = static_cast<Sequence *>(seq);
+    try {
+        auto matches = s->search(pattern, case_sensitive);
+        PyObject* py_matches = PyList_New(matches.size());
+        int j = 0;
+        for (auto index_len: matches) {
+            PyObject* match_tuple = PyTuple_New(2);
+            PyTuple_SET_ITEM(match_tuple, 0, PyLong_FromLong(index_len.first));
+            PyTuple_SET_ITEM(match_tuple, 1, PyLong_FromLong(index_len.second));
+            PyList_SetItem(py_matches, j++, match_tuple);
+        }
+        return py_matches;
+    } catch (...) {
+        molc_error();
+        Py_RETURN_NONE;
     }
 }
 

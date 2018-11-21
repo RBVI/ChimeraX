@@ -227,8 +227,8 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         ijk_min, ijk_max = full_region(d.size)[:2] if subregion is None else subregion
         ijk_step = (1,1,1) if step is None else step
         region = (ijk_min, ijk_max, ijk_step)
-        from ..data import Grid_Subregion
-        d = Grid_Subregion(d, ijk_min, ijk_max, ijk_step)
+        from ..data import GridSubregion
+        d = GridSubregion(d, ijk_min, ijk_max, ijk_step)
 
     if (value_type is None and threshold is None and not zero_mean and
         scale_factor is None and match_scale is None and align_to is None and
@@ -296,8 +296,8 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
     if not final_value_type is None:
         m = m.astype(final_value_type)
 
-    from ..data import Array_Grid_Data
-    d = Array_Grid_Data(m, d.origin, d.step, d.cell_angles, d.rotation)
+    from ..data import ArrayGridData
+    d = ArrayGridData(m, d.origin, d.step, d.cell_angles, d.rotation)
 
     return d
 

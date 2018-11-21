@@ -150,7 +150,7 @@ class AtomicShapeDrawing(Drawing):
         if self._selection_handler is not None:
             return
         from chimerax.atomic import Structure
-        if hasattr(self, 'parent') and isinstance(self.parent, Structure):
+        if isinstance(self.parent, Structure):
             return
         from chimerax.core.selection import SELECTION_CHANGED
         self.parent.session.triggers.add_handler(SELECTION_CHANGED, lambda *args, s=self: s.update_selection())

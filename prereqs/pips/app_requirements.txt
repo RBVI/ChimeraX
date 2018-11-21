@@ -2,23 +2,28 @@
 # Application runtime
 #
 appdirs==1.4.3
-colorama==0.3.9
+colorama==0.4.0
 comtypes==1.1.7
 Cython==0.28.5
 distlib==0.2.8
-filelock==3.0.9
+filelock==3.0.10
+grako==3.16.5
 html2text==2018.1.9
 line_profiler==2.1.2
 lxml==4.2.5
 matplotlib==2.2.3
+msgpack==0.5.6
 networkx==2.1
-openvr==1.0.1201
+openvr==1.0.1701
 Pillow==5.3.0
 pkginfo==1.4.2
-psutil==5.4.7
+psutil==5.4.8
 pycollada==0.6
-python-dateutil==2.7.3
-qtconsole==4.4.1
+python-dateutil==2.7.5
+# ipython7 / ipykernel 5 seem to stop working after an error; force use of older versions
+ipython==6.5.0
+ipykernel==4.9.0
+qtconsole==4.4.2
 six==1.11.0
 sortedcontainers==2.0.5
 suds-jurko==0.6

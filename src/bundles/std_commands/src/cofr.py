@@ -104,6 +104,9 @@ def show_cofr_indicator(session, show = True, axis_length = 2.0, axis_radius = 0
 from chimerax.core.graphics import Drawing
 class PivotIndicator(Drawing):
     skip_bounds = True
+    casts_shadows = False
+    pickable = False
+    
     def __init__(self, session, axis_length = 2.0, axis_radius = 0.05,
                  axis_colors = [(255,0,0,255),(0,255,0,255),(0,0,255,255)]):
         self._session = session
@@ -142,7 +145,7 @@ class PivotIndicator(Drawing):
                                         caps = True)
         from chimerax.core.geometry import Place
         vct = Place(origin = (0,0,axis_length/2))
-        vcz = vct.moved(vcz)
+        vcz = vct.transform_points(vcz)
         nv = len(vaz)
         tcz = tcz + nv
         from numpy import concatenate
@@ -151,9 +154,9 @@ class PivotIndicator(Drawing):
         taz = concatenate((taz, tcz))
         nv = len(vaz)
         tx = Place(axes = [[0,0,1],[0,-1,0],[1,0,0]])
-        vax, nax, tax = tx.moved(vaz), tx.apply_without_translation(naz), taz.copy() + nv
+        vax, nax, tax = tx.transform_points(vaz), tx.transform_vectors(naz), taz.copy() + nv
         ty = Place(axes = [[1,0,0],[0,0,-1],[0,1,0]])
-        vay, nay, tay = ty.moved(vaz), ty.apply_without_translation(naz), taz.copy() + 2*nv
+        vay, nay, tay = ty.transform_points(vaz), ty.transform_vectors(naz), taz.copy() + 2*nv
 
         vc = self.vertex_colors
         self.set_geometry(concatenate((vax,vay,vaz)),

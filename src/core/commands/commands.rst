@@ -12,8 +12,8 @@
 
 .. module:: chimerax.core.commands
 
-chimerax.core.commands: Application command line support
-========================================================
+commands: Register user commands
+================================
 
 .. automodule:: chimerax.core.commands.cli
     :members:
@@ -32,10 +32,6 @@ chimerax.core.commands: Application command line support
     :show-inheritance:
 
 .. automodule:: chimerax.core.commands.runscript
-    :members:
-    :show-inheritance:
-
-.. automodule:: chimerax.core.commands.commands
     :members:
     :show-inheritance:
 

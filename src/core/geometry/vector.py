@@ -50,7 +50,7 @@ from ._geometry import inner_product_64
 from math import sqrt, acos, degrees, radians, sin, cos
 
 def inner_product(u, v):
-    '''Return the inner product of two vectors.'''
+    '''Supported API. Return the inner product of two vectors.'''
     if len(u) == 3:
         # the below is considerably faster than even the C++ implementation,
         # as well as Python equivalents using zip() and sum()
@@ -58,7 +58,7 @@ def inner_product(u, v):
     return inner_product_64(u, v)
 
 def distance_squared(p, q):
-    '''Return the distance squared between two points.'''
+    '''Supported API. Return the distance squared between two points.'''
     if len(p) == 3:
         # Much faster than using numpy operations.
         dx,dy,dz = p[0]-q[0], p[1]-q[1], p[2]-q[2]
@@ -66,11 +66,11 @@ def distance_squared(p, q):
     return sum((pi-qi)*(pi-qi) for pi,qi in zip(p,q))
 
 def distance(p, q):
-    '''Return the distance between two points.'''
+    '''Supported API. Return the distance between two points.'''
     return sqrt(distance_squared(p, q))
 
 def interpolate_points(p1, p2, f):
-    '''Linearly interpolate from point p1 to p2 by fraction f (0 -> p1, 1 -> p2).'''
+    '''Supported API. Linearly interpolate from point p1 to p2 by fraction f (0 -> p1, 1 -> p2).'''
     return (1-f)*p1 + f*p2
 
 def ray_segment(origin, direction, clip_planes):
@@ -105,6 +105,12 @@ def planes_as_4_vectors(triangles):
     return p
 
 def angle(p0, p1, p2 = None):
+    '''
+    Supported API.
+    If p2 is not specified return the angle from origin spanned from point p0 to p1.
+    If p2 is specified, return the angle made by segments p1 to p0 and p1 to p2.
+    Returned angles are in degrees.
+    '''
     v0,v1 = (p0,p1) if p2 is None else (p0-p1,p2-p1)
     acc = inner_product(v0, v1)
     d0 = norm(v0)
@@ -119,6 +125,10 @@ def angle(p0, p1, p2 = None):
     return degrees(acos(acc))
 
 def dihedral(p0, p1, p2, p3):
+    '''
+    Supported API.
+    Return the dihedral angle defined by 4 points in degrees.
+    '''
     v10 = p1 - p0
     v12 = p1 - p2
     v23 = p2 - p3

@@ -337,7 +337,7 @@ private:
         // keywords
         T_DATA, T_GLOBAL, T_LOOP, T_SAVE, T_STOP,
         // other
-        T_TAG, T_VALUE, T_LEFT_BRACKET, T_RIGHT_BRACKET,
+        T_TAG, T_VALUE, T_LEFT_SQUARE_BRACKET, T_RIGHT_SQUARE_BRACKET,
         T_EOI /* End Of Input */
     };
     Token       current_token;

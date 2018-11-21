@@ -77,7 +77,7 @@ def transform_plane(plane, transform):
   inv_tf = transform.inverse()
   inv_tf_transpose = inv_tf.transpose()
   normal, offset = plane
-  n = inv_tf_transpose.apply_without_translation(normal)
+  n = inv_tf_transpose.transform_vector(normal)
   o = offset - (normal * (inv_tf * (0,0,0))).sum()
   return (n, o)
 

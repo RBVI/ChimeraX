@@ -87,12 +87,13 @@ The <b>frameRate</b> option indicates whether to report the average frame
 rate each second in the <a href="../window.html">status line</a>
 (initial default <b>false</b>).
 </p><p>
-The <b>waitForVsync</b> option, supported only on Windows,
+<a name="waitForVsync"></a>
+The <b>waitForVsync</b> option
 indicates whether to synchronize drawing to the display vertical 
 refresh rate, typically 60 Hz (initial default usually <b>true</b>, 
-but depends on the graphics driver settings). If the option is <b>false</b>,
-the frame rate can exceed the vertical refresh rate and the display can
-exhibit image tearing.
+but depends on the graphics driver settings). 
+Without synchronization, the frame rate can exceed the vertical refresh rate 
+and the display can exhibit image tearing.
 </p><p>
 Given without options, <b>graphics</b> reports the 
 current triangles per atom and bond, 
@@ -115,5 +116,5 @@ triangles, with breakdowns per model and per representation type within a model
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2018</address>
+November 2018</address>
 </body></html>

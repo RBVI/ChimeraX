@@ -12,10 +12,10 @@
 # -----------------------------------------------------------------------------
 # Wrap CCP4 image data as grid data for displaying surface, meshes, and volumes.
 #
-from ..mrc.mrc_grid import MRC_Grid
+from ..mrc.mrc_grid import MRCGrid
 
 # -----------------------------------------------------------------------------
 #
-class CCP4_Grid(MRC_Grid):
+class CCP4Grid(MRCGrid):
   def __init__(self, path):
-    MRC_Grid.__init__(self, path, file_type = 'ccp4')
+    MRCGrid.__init__(self, path, file_type = 'ccp4')

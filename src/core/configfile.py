@@ -236,7 +236,7 @@ only_use_defaults = False   # if True, do not read nor write configuration data
 
 
 class ConfigFile:
-    """In-memory handle to persistent configuration information.
+    """Supported API. In-memory handle to persistent configuration information.
 
     Parameters
     ----------
@@ -344,7 +344,8 @@ class ConfigFile:
             raise UserError("Custom configuration is disabled")
         # numpy has a retarded overload of __eq__, so...
         if type(value).__module__ == "numpy":
-            test = lambda default: (value == default).all()
+            from numpy import array_equal
+            test = lambda default, eq=array_equal: eq(value, default)
         else:
             test = lambda default: value == default
         if test(self.PROPERTY_INFO[name].default):

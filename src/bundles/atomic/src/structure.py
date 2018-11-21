@@ -125,7 +125,6 @@ class Structure(Model, StructureData):
     def added_to_session(self, session):
         if self._auto_style:
             self.apply_auto_styling(set_lighting = self._is_only_model())
-                
         self._start_change_tracking(session.change_tracker)
 
         # Setup handler to manage C++ data changes that require graphics updates.
@@ -238,7 +237,7 @@ class Structure(Model, StructureData):
         atoms = self.atoms
         het_atoms = atoms.filter(atoms.element_numbers != 6)
         het_atoms.colors = element_colors(het_atoms.element_numbers)
-        
+
     def set_color(self, color):
         from chimerax.core.colors import Color
         if isinstance(color, Color):
@@ -349,7 +348,7 @@ class Structure(Model, StructureData):
             p.visible_atoms = all_atoms[all_atoms.visibles]
 
         atoms = p.visible_atoms
-        
+
         if changes & self._SHAPE_CHANGE:
             # Set instanced sphere center position and radius
             n = len(atoms)
@@ -371,7 +370,7 @@ class Structure(Model, StructureData):
 
     def _atom_display_radii(self, atoms):
         return atoms.display_radii(self.ball_scale, self.bond_radius)
-    
+
     def _update_bond_graphics(self, changes = StructureData._ALL_CHANGE):
 
         p = self._bonds_drawing
@@ -396,10 +395,10 @@ class Structure(Model, StructureData):
 
         if changes & self._SHAPE_CHANGE:
             p.positions = bonds.halfbond_cylinder_placements(p.positions.opengl_matrices())
-            
+
         if changes & self._COLOR_CHANGE:
             p.colors = bonds.half_colors
-            
+
         if changes & self._SELECT_CHANGE:
             p.highlighted_positions = _selected_bond_cylinders(bonds)
 
@@ -419,8 +418,8 @@ class Structure(Model, StructureData):
             if updated_model == check_model:
                 need_update = True
                 break
-            check_model = getattr(check_model, 'parent', None)
-        
+            check_model = check_model.parent
+
         if need_update:
             self._cpp_notify_position(self.scene_position)
 
@@ -1287,7 +1286,7 @@ class Structure(Model, StructureData):
             # Debugging code to display guides of secondary structure
             self._ss_guide_display(p, str(self) + " helix guide " + str(start),
                                    coords[start:end], guides[start:end])
-    
+
 
     def _smooth_strand(self, rlist, coords, guides, xs_front, xs_back,
                        ribbon_adjusts, start, end, p):
@@ -1571,7 +1570,7 @@ class Structure(Model, StructureData):
         from chimerax.core.geometry import union_bounds
         b = union_bounds([d.bounds() for d in drawings if d is not None])
         return b
-        
+
     def _position_intercepts(self, place, mxyz1, mxyz2, exclude=None):
         # TODO: check intercept of bounding box as optimization
         xyz1, xyz2 = place.inverse() * (mxyz1, mxyz2)
@@ -1627,7 +1626,7 @@ class Structure(Model, StructureData):
                     if not c.get_selected(include_children=True, fully=True):
                         return False
             return True
-            
+
         if self.atoms.num_selected > 0 or self.bonds.num_selected > 0:
             return True
 
@@ -1650,7 +1649,7 @@ class Structure(Model, StructureData):
         self.bonds.selected = sel
         Model.set_highlighted_positions(self, spos)
     selected_positions = property(Model.selected_positions.fget, set_selected_positions)
-    
+
     def selected_items(self, itype):
         if itype == 'atoms':
             atoms = self.atoms
@@ -1746,35 +1745,20 @@ class Structure(Model, StructureData):
 
     def _atomspec_filter_chain(self, atoms, num_atoms, parts, attrs):
         # print("Structure._atomspec_filter_chain", num_atoms, parts, attrs)
-        chain_ids = atoms.residues.chain_ids
-        case_insensitive = not self.lower_case_chains
         import numpy
+        chain_ids = atoms.residues.chain_ids
         if not parts:
             selected = numpy.ones(num_atoms, dtype=numpy.bool_)
         else:
             selected = numpy.zeros(num_atoms, dtype=numpy.bool_)
             for part in parts:
-                if part.end is None:
-                    if case_insensitive:
-                        def choose(chain_id, v=part.start.lower()):
-                            return chain_id.lower() == v
-                    else:
-                        def choose(chain_id, v=part.start):
-                            return chain_id == v
-                else:
-                    if case_insensitive:
-                        def choose(chain_id, s=part.start.lower(), e=part.end.lower()):
-                            cid = chain_id.lower()
-                            return cid >= s and cid <= e
-                    else:
-                        def choose(chain_id, s=part.start, e=part.end):
-                            return chain_id >= s and chain_id <= e
+                choose = part.string_matcher(self.lower_case_chains)
                 s = numpy.vectorize(choose)(chain_ids)
                 selected = numpy.logical_or(selected, s)
         if attrs:
             chains = self.chains
             chain_selected = numpy.ones(len(chains), dtype=numpy.bool_)
-            self._atomspec_attr_filter(chains, chain_selected, attrs)
+            chain_selected = self._atomspec_attr_filter(chains, chain_selected, attrs)
             chain_map = dict(zip(chains, chain_selected))
             for i, a in enumerate(atoms):
                 if not selected[i]:
@@ -1789,33 +1773,13 @@ class Structure(Model, StructureData):
         return selected
 
     def _atomspec_attr_filter(self, objects, selected, attrs):
-        for i, o in enumerate(objects):
-            if not selected[i]:
-                continue
-            for attr in attrs:
-                try:
-                    v = getattr(o, attr.name)
-                except AttributeError:
-                    if not attr.no:
-                        selected[i] = False
-                        break
-                else:
-                    av = attr.value
-                    import operator
-                    if av is None:
-                        tv = attr.op(v)
-                    elif isinstance(av, str) and '*' in av and attr.op in (operator.eq, operator.ne):
-                        # Wildcard match
-                        import re
-                        avre = av.replace('*', '.*')
-                        tv = re.fullmatch(avre, v) is not None
-                        if attr.op == operator.ne:
-                            tv = not tv
-                    else:
-                        tv = attr.op(v, av)
-                    if not tv:
-                        selected[i] = False
-                        break
+        import numpy
+        for attr in attrs:
+            choose = attr.attr_matcher()
+            s = numpy.vectorize(choose)(objects)
+            selected = numpy.logical_and(selected, s)
+        return selected
+
 
     def _atomspec_filter_residue(self, atoms, num_atoms, parts, attrs):
         # print("Structure._atomspec_filter_residue", num_atoms, parts, attrs)
@@ -1829,75 +1793,18 @@ class Structure(Model, StructureData):
             res_ics = atoms.residues.insertion_codes
             selected = numpy.zeros(num_atoms, dtype=numpy.bool_)
             for part in parts:
-                start_number, start_ic = self._res_parse(part.start)
-                if part.end is None:
-                    end_number = None
-
-                    def choose_type(value, v=part.start.lower()):
-                        return value.lower() == v
-                else:
-                    end_number, end_ic = self._res_parse(part.end)
-
-                    def choose_type(value, s=part.start.lower(), e=part.end.lower()):
-                        v = value.lower()
-                        return v >= s and v <= e
-                if start_number is not None:
-                    if end_number is None:
-                        def choose_id(n, ic, test_val=str(start_number)+start_ic):
-                            return str(n)+ic == test_val
-                    else:
-                        def choose_id(n, ic, sn=start_number, sic=start_ic, en=end_number, eic=end_ic):
-                            if n < start_number or n > end_number:
-                                return False
-                            if n > start_number and n < end_number:
-                                return True
-                            if n == start_number:
-                                if not ic and not sic:
-                                    return True
-                                if ic and not sic:
-                                    # blank insertion code is before non-blanks
-                                    # res has insertion code, but test string doesn't...
-                                    return True
-                                if sic and not ic:
-                                    # blank insertion code is before non-blanks
-                                    # test string has insertion code, but res doesn't...
-                                    return False
-                                return sic <= ic
-                            if n == end_number:
-                                if not ic and not eic:
-                                    return True
-                                if ic and not eic:
-                                    # blank insertion code is before non-blanks
-                                    # res has insertion code, but test string doesn't...
-                                    return False
-                                if eic and not ic:
-                                    # blank insertion code is before non-blanks
-                                    # test string has insertion code, but res doesn't...
-                                    return True
-                                return eic >= ic
-                            return True
-                else:
-                    choose_id = None
-                s = numpy.vectorize(choose_type)(res_names)
-                selected = numpy.logical_or(selected, s)
+                choose_id = part.res_id_matcher()
                 if choose_id:
                     s = numpy.vectorize(choose_id)(res_numbers, res_ics)
                     selected = numpy.logical_or(selected, s)
+                else:
+                    choose_type = part.string_matcher(False)
+                    s = numpy.vectorize(choose_type)(res_names)
+                    selected = numpy.logical_or(selected, s)
         if attrs:
-            self._atomspec_attr_filter(atoms.residues, selected, attrs)
+            selected = self._atomspec_attr_filter(atoms.residues, selected, attrs)
         # print("AtomicStructure._atomspec_filter_residue", selected)
         return selected
-
-    def _res_parse(self, n):
-        try:
-            return int(n), ""
-        except ValueError:
-            if not n:
-                return None, ""
-            try:
-                return int(n[:-1]), n[-1]
-            except ValueError:
-                return None, ""
 
     def _atomspec_filter_atom(self, atoms, num_atoms, parts, attrs):
         # print("Structure._atomspec_filter_atom", num_atoms, parts, attrs)
@@ -1909,17 +1816,11 @@ class Structure(Model, StructureData):
             names = numpy.array(atoms.names)
             selected = numpy.zeros(num_atoms, dtype=numpy.bool_)
             for part in parts:
-                if part.end is None:
-                    def choose(name, v=part.start.lower()):
-                        return name.lower() == v
-                else:
-                    def choose(name, s=part.start.lower(), e=part.end.lower()):
-                        n = name.lower()
-                        return n >= s and n <= e
+                choose = part.string_matcher(False)
                 s = numpy.vectorize(choose)(names)
                 selected = numpy.logical_or(selected, s)
         if attrs:
-            self._atomspec_attr_filter(atoms, selected, attrs)
+            selected = self._atomspec_attr_filter(atoms, selected, attrs)
         # print("AtomicStructure._atomspec_filter_atom", selected)
         return selected
 
@@ -1993,7 +1894,7 @@ class AtomsDrawing(Drawing):
         spos = self.parent.get_scene_positions(displayed_only=True)
         b = sb if spos.is_identity() else copies_bounding_box(sb, spos)
         self._cached_position_bounds = b
-        
+
         return b
 
     def add_drawing(self, d):
@@ -2084,7 +1985,7 @@ class BondsDrawing(Drawing):
         spos = self.parent.get_scene_positions(displayed_only=True)
         b = cb if spos.is_identity() else copies_bounding_box(cb, spos)
         self._cached_position_bounds = b
-        
+
         return b
 
     def add_drawing(self, d):
@@ -2560,7 +2461,7 @@ class StructureGraphicsChangeManager:
 
     def need_update(self):
         self._need_update = True
-        
+
     def _model_display_changed(self, tname, model):
         if isinstance(model, Structure) or _has_structure_descendant(model):
             self._need_update = True
@@ -2591,7 +2492,7 @@ class StructureGraphicsChangeManager:
         ribbon_changed = (lod.ribbon_divisions != self._last_ribbon_divisions)
         if ribbon_changed:
             self._last_ribbon_divisions = lod.ribbon_divisions
-            
+
         for m in self._structures:
             if m.display:
                 m._update_level_of_detail(n)
@@ -2668,7 +2569,7 @@ class LevelOfDetail(State):
     def _set_total_bond_triangles(self, ntri):
         self._bond_max_total_triangles = ntri
     total_bond_triangles = property(_get_total_bond_triangles, _set_total_bond_triangles)
-    
+
     @staticmethod
     def restore_snapshot(session, data):
         lod = LevelOfDetail()
@@ -2707,7 +2608,7 @@ class LevelOfDetail(State):
             ntri = self.clamp_geometric(ntri, nmin, nmax)
         ntri = 2*(ntri//2)	# Require multiple of 2.
         return ntri
-    
+
     def clamp_geometric(self, n, nmin, nmax):
         f = self._step_factor
         from math import log, pow
@@ -2821,7 +2722,7 @@ def select_atoms(a, mode = 'add'):
         from numpy import logical_not
         s = logical_not(a.selected)
     a.selected = s
-    
+
 # -----------------------------------------------------------------------------
 # Handles bonds and pseudobonds.
 #
@@ -3018,7 +2919,7 @@ def _halfbond_cylinder_placements(axyz0, axyz1, radii, parray = None):
       p = empty((2*n,4,4), float32)
   else:
       p = parray
-      
+
   from chimerax.core.geometry import half_cylinder_rotations
   half_cylinder_rotations(axyz0, axyz1, radii, p)
 

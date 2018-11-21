@@ -455,8 +455,7 @@ class SequenceViewer(ToolInstance):
             for aseq in assoc_aseqs:
                 self.seq_canvas.assoc_mod(aseq)
                 self._update_errors_gaps(aseq)
-            from .header_sequence import DynamicStructureHeaderSequence
-            self.seq_canvas.refresh_headers(header_class=DynamicStructureHeaderSequence)
+            self.seq_canvas.refresh_headers(note_name)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)
         elif note_name == "destroyed":
@@ -465,8 +464,23 @@ class SequenceViewer(ToolInstance):
             from .cmd import run
             run(self.session, self, note_data)
         elif note_name == "add or remove sequences":
-            from .header_sequence import DynamicHeaderSequence
-            self.seq_canvas.refresh_headers(header_class=DynamicHeaderSequence)
+            self.seq_canvas.refresh_headers(note_name)
+
+    @property
+    def consensus_ignores_gaps(self):
+        return self.seq_canvas.consensus_ignores_gaps
+
+    @consensus_ignores_gaps.setter
+    def consensus_ignores_gaps(self, ignores_gaps):
+        self.seq_canvas.consensus_ignores_gaps = ignores_gaps
+
+    @property
+    def conservation_style(self):
+        return self.seq_canvas.conservation_style
+
+    @conservation_style.setter
+    def conservation_style(self, style):
+        self.seq_canvas.conservation_style = style
 
     def delete(self):
         self.region_browser.destroy()
@@ -485,7 +499,7 @@ class SequenceViewer(ToolInstance):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
-        save_as_menu = menu.addMenu("Save as")
+        save_as_menu = menu.addMenu("Save As")
         from chimerax.core import io
         from chimerax.core.commands import run, quote_if_necessary
         for fmt in io.formats(open=False):
@@ -499,7 +513,7 @@ class SequenceViewer(ToolInstance):
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
-        scf_action = QAction("Load sequence coloring file...", menu)
+        scf_action = QAction("Load Sequence Coloring File...", menu)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
         menu.addAction(scf_action)
 
@@ -539,9 +553,6 @@ class SequenceViewer(ToolInstance):
             kw['blocks'] = blocks
             del kw['columns']
         return self.region_browser.new_region(**kw)
-
-    def refresh_headers(self, *, header_class=None):
-        self.seq_canvas.refresh_headers(header_class=header_class)
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):

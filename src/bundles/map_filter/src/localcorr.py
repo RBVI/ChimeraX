@@ -29,9 +29,9 @@ def local_correlation(map1, map2, window_size, subtract_mean, model_id = None):
 
     hs = 0.5*(window_size-1)
     origin = tuple(o+hs*s for o,s in zip(d1.origin, d1.step))
-    from ..data import Array_Grid_Data
-    g = Array_Grid_Data(mc, origin, d1.step, d1.cell_angles, d2.rotation,
-                        name = 'local correlation')
+    from ..data import ArrayGridData
+    g = ArrayGridData(mc, origin, d1.step, d1.cell_angles, d2.rotation,
+                      name = 'local correlation')
 
     from .. import volume_from_grid_data
     mapc = volume_from_grid_data(g, map1.session, model_id = model_id)

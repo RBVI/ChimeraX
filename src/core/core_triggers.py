@@ -21,17 +21,10 @@ Some core triggers are registered elsewhere, such as in the View constructor.
 
 trigger_info = {
     "app quit": True,
-    "background color changed": True,
     "begin restore session": False,
     "begin save session": False,
-    "clipping caps changed": False,
     "command finished": False,
     "command started": False,
-    "distance color changed": False,
-    "distance dashes changed": False,
-    "distance decimal places changed": False,
-    "distance radius changed": False,
-    "distance show units changed": False,
     "end restore session": False,
     "end save session": False,
     "frame drawn": True,

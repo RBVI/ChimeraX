@@ -178,7 +178,7 @@ def molecule_grid_data(atoms, resolution, step, pad, on_grid,
         # Or if on_grid give transform to grid coordinates.
         xyz = atoms.scene_coords
         tf = on_grid.position if on_grid else atoms[0].structure.position
-        tf.inverse().move(xyz)
+        tf.inverse().transform_points(xyz, in_place = True)
 
     if transforms:
         # Adjust transforms to correct coordinate system
@@ -212,8 +212,8 @@ def bounding_grid(xyz, step, pad, transforms = None):
              for a in (2,1,0)]
     from numpy import zeros, float32
     matrix = zeros(shape, float32)
-    from .data import Array_Grid_Data
-    grid = Array_Grid_Data(matrix, origin, (step,step,step))
+    from .data import ArrayGridData
+    grid = ArrayGridData(matrix, origin, (step,step,step))
     return grid
 
 # -----------------------------------------------------------------------------
@@ -234,7 +234,7 @@ def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = None,
     matrix = grid.matrix()
     for tf in transforms:
         ijk[:] = xyz
-        (grid.xyz_to_ijk_transform * tf).move(ijk)
+        (grid.xyz_to_ijk_transform * tf).transform_points(ijk, in_place = True)
         sum_of_gaussians(ijk, weights, sdevs, cutoff_range, matrix)
 
     if normalize:
@@ -256,5 +256,5 @@ def add_balls(grid, xyz, radii, sdev, cutoff_range, transforms = None):
     from ._map import sum_of_balls
     for tf in transforms:
         ijk[:] = xyz
-        (grid.xyz_to_ijk_transform * tf).move(ijk)
+        (grid.xyz_to_ijk_transform * tf).transform_points(ijk, in_place = True)
         sum_of_balls(ijk, r, sdev, cutoff_range, matrix)

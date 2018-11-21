@@ -44,13 +44,14 @@ class GraphicsWindow(QWindow):
 
         self.popup = Popup(self)        # For display of atom spec balloons
 
-        ui.mouse_modes.set_graphics_window(self)
-
     def event(self, event):
         # QWindow does not have drag and drop methods to handle file dropped on app
         # so we detect the drag and drop events here and pass them to the main window.
         if self.handle_drag_and_drop(event):
             return True
+        from PyQt5.QtCore import QEvent
+        if event.type() == QEvent.Show:
+            self.session.ui.mouse_modes.set_graphics_window(self)
         return QWindow.event(self, event)
 
     def handle_drag_and_drop(self, event):

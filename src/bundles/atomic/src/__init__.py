@@ -92,4 +92,7 @@ class _AtomicBundleAPI(BundleAPI):
         from .selectors import add_select_menu_items
         add_select_menu_items(session)
 
+        from .contextmenu import add_selection_context_menu_items
+        add_selection_context_menu_items(session)
+        
 bundle_api = _AtomicBundleAPI()

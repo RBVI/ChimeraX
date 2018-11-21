@@ -13,9 +13,9 @@
 # Wrap plt maps (used by gOpenMol, usual extension .plt)
 # as grid data for displaying surface, meshes, and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
-class Plt_Grid(Grid_Data):
+class PltGrid(GridData):
 
 	def __init__(self, path):
 		from . import plt_format
@@ -24,9 +24,9 @@ class Plt_Grid(Grid_Data):
 
 		size = dm.extent
 
-		Grid_Data.__init__(self, size,
-				   origin = dm.origin, step = dm.grid,
-				   path = path, file_type = 'gopenmol')
+		GridData.__init__(self, size,
+			          origin = dm.origin, step = dm.grid,
+			          path = path, file_type = 'gopenmol')
 
 		self.polar_values = True
 

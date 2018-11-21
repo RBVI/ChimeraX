@@ -12,18 +12,18 @@
 # -----------------------------------------------------------------------------
 # Wrap DeltaVision image data as grid data for displaying surface, meshes, and volumes.
 #
-from .. import Grid_Data
+from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-class DeltaVision_Grid(Grid_Data):
+class DeltaVisionGrid(GridData):
 
   def __init__(self, data, channel, time):
     d = data
     self.dv_data = d
-    Grid_Data.__init__(self, d.data_size, d.element_type,
-                       d.data_origin, d.data_step, d.cell_angles,
-                       channel=channel, time=time, path = d.path)
+    GridData.__init__(self, d.data_size, d.element_type,
+                      d.data_origin, d.data_step, d.cell_angles,
+                      channel=channel, time=time, path = d.path)
     self.series_index = time
   
   # ---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ class DeltaVision_Grid(Grid_Data):
 def read_deltavision_grids(path):
     from .deltavision_format import DeltaVision_Data
     d = DeltaVision_Data(path)
-    grids = [DeltaVision_Grid(d, c, t) for c in range(d.nchannels) for t in range(d.ntimes)]
+    grids = [DeltaVisionGrid(d, c, t) for c in range(d.nchannels) for t in range(d.ntimes)]
 
     # Set default channel colors for multichannel data.
     if d.nchannels > 1:

@@ -14,5 +14,5 @@
 #
 def open(path):
 
-  from .profec_grid import PROFEC_Grid
-  return [PROFEC_Grid(path)]
+  from .profec_grid import PROFECGrid
+  return [PROFECGrid(path)]
