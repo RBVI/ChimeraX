@@ -939,7 +939,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if toolbar.windowTitle() in self._checkbutton_tools:
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
-    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None):
+    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None):
         '''Supported API.
         Add a main menu entry.  Adding entries to the Select menu should normally be done via
         the add_select_submenu method instead.  For details, see the doc string for that method.
@@ -948,6 +948,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         be created.  The menu names (and entry name) can contain appropriate keyboard navigation
         markup.  Callback function takes no arguments.  This method cannot be used to add entries
         to menus that are updated dynamically, such as Tools.
+
+        If 'insertion_point is specified, then the entry will be inserted before it.
+        'insertion_point' can be a QAction, a string (menu item text with navigation markup removed)
+        or an integer indicating a particular separator (top to bottom, numbering starting at 1).
         '''
         menu = self._get_target_menu(self.menuBar(), menu_names)
         from PyQt5.QtWidgets import QAction
@@ -955,7 +959,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda arg, cb = callback: cb())
         if tool_tip is not None:
             action.setToolTip(tool_tip)
-        menu.addAction(action)
+        if insertion_point is None:
+            menu.addAction(action)
+        else:
+            menu.insertAction(self._get_menu_action(menu, insertion_point), action)
+        return action
 
     def add_select_submenu(self, parent_menu_names, submenu_name):
         '''Supported API.
@@ -988,7 +996,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         method) which will make a selection using the given selector text (which should just
         be the text of the selector, not a full command) while honoring the current selection
         mode set in the Select menu.  If 'selector_text' is not given, it defaults to be the
-        same as 'label'.  The label can have keyboard navigation markup.
+        same as 'label'.  The label can have keyboard navigation markup.  If 'insertion_point'
+        is specified, then the item will be inserted before it.  'insertion_point' can be a
+        QAction, a string (menu item text with navigation markup removed) or an integer
+        indicating a particular separator (top to bottom, numbering starting at 1).
         '''
         if selector_text is None:
             selector_text = remove_keyboard_navigation(label)
@@ -998,8 +1009,23 @@ class MainWindow(QMainWindow, PlainTextLog):
         if insertion_point is None:
             menu.addAction(action)
         else:
-            menu.insertAction(insertion_point, action)
+            menu.insertAction(self._get_menu_action(menu, insertion_point), action)
         return action
+
+    def _get_menu_action(self, menu, insertion_point):
+        from PyQt5.QtWidgets import QAction
+        if isinstance(insertion_point, QAction):
+            return insertion_point
+        sep_count = 0
+        for menu_action in menu.actions():
+            if menu_action.isSeparator():
+                sep_count += 1
+                if insertion_point == sep_count:
+                    return menu_action
+            elif isinstance(insertion_point, str) \
+            and menu_action.text().lower().replace('&', '', 1) == insertion_point.lower():
+                return menu_action
+        raise ValueError("Requested menu insertion point (%s) not found" % str(insertion_point))
 
     def _get_target_menu(self, parent_menu, menu_names, *, insert_positions=None):
         from PyQt5.QtWidgets import QMenu

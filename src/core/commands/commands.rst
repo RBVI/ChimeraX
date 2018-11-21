@@ -35,10 +35,6 @@ commands: Register user commands
     :members:
     :show-inheritance:
 
-.. automodule:: chimerax.core.commands.commands
-    :members:
-    :show-inheritance:
-
 .. automodule:: chimerax.core.commands.selectors
     :members:
     :show-inheritance:

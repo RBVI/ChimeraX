@@ -121,7 +121,7 @@ class CategorizedOptionsPanel(QTabWidget):
 
 class SettingsPanelBase(QWidget):
     def __init__(self, settings, owner_description, parent, option_sorting, multicategory,
-            category_sorting=None, **kw):
+            *, category_sorting=None, help_cb=None, **kw):
         QWidget.__init__(self, parent, **kw)
         self.settings = settings
         self.multicategory = multicategory
@@ -141,13 +141,14 @@ class SettingsPanelBase(QWidget):
         bc_layout.setContentsMargins(0, 0, 0, 0)
         bc_layout.setVerticalSpacing(5)
         if multicategory:
-            self.current_check = QCheckBox("Buttons below apply to current section only")
+            self.current_check = QCheckBox("%s below apply to current section only"
+                % ("Buttons" if help_cb is None else "Non-help buttons"))
             self.current_check.setToolTip("If checked, buttons only affect current section")
             self.current_check.setChecked(True)
             from .. import shrink_font
             shrink_font(self.current_check)
             from PyQt5.QtCore import Qt
-            bc_layout.addWidget(self.current_check, 0, 0, 1, 3, Qt.AlignRight)
+            bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignRight)
         save_button = QPushButton("Save")
         save_button.clicked.connect(self._save)
         save_button.setToolTip("Save as startup defaults")
@@ -160,6 +161,12 @@ class SettingsPanelBase(QWidget):
         restore_button.clicked.connect(self._restore)
         restore_button.setToolTip("Restore from saved defaults")
         bc_layout.addWidget(restore_button, 1, 2)
+        if help_cb is not None:
+            help_button = QPushButton("Help")
+            from chimerax.core.commands import run
+            help_button.clicked.connect(lambda unneeded_bool, hcb=help_cb: hcb())
+            help_button.setToolTip("Show help")
+            bc_layout.addWidget(help_button, 1, 3)
 
         button_container.setLayout(bc_layout)
         layout.addWidget(button_container, 0)
@@ -178,7 +185,7 @@ class SettingsPanelBase(QWidget):
             options = self.options_panel.options()
         return options
 
-    def _reset(self):
+    def _reset(self, *args):
         from chimerax.core.configfile import Value
         for opt in self._get_actionable_options():
             setting = opt.attr_name

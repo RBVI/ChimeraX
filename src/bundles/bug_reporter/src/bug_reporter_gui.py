@@ -343,7 +343,8 @@ def add_help_menu_entry(session):
     if ui.is_gui:
         def main_window_created(tname, tdata):
             mw = ui.main_window
-            mw.add_menu_entry(['Help'], 'Report a Bug', lambda: show_bug_reporter(session))
+            mw.add_menu_entry(['Help'], 'Report a Bug', lambda: show_bug_reporter(session),
+                insertion_point = "Contact Us")
             return "delete handler"
     
         ui.triggers.add_handler('ready', main_window_created)

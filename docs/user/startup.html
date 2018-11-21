@@ -27,6 +27,9 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 At graphical startup, a ChimeraX splash screen appears, to be replaced in a 
 few seconds by the <a href="window.html">ChimeraX window</a>.
+See also: 
+<a href="preferences.html#startup"><b>Startup</b> preferences</a>,
+<a href="preferences.html#window"><b>Window</b> preferences</a>
 </p>
 On <b>Windows</b>,
 <blockquote>
@@ -80,13 +83,9 @@ of the same ChimeraX installation on Mac.
 <p class="nav">
 [<a href="#top">back to top: Startup</a>]
 </p>
-<h3>System Command-Line Input</h3>
+<h3>Startup Input and Commands</h3>
 </a><p>
 Input files may contain data to be displayed or commands or code to be executed.
-If ChimeraX is started in <a href="options.html#nogui">nogui mode</a> 
-without command/script file input,
-a prompt will be supplied in the system shell for entering
-<a href="index.html#commands">ChimeraX commands</a> on standard input.
 </p><p>
 Any of the <a href="commands/open.html#formats">known file types</a>
 can be opened from the system command line at the time of
@@ -99,6 +98,19 @@ a <a href="commands/open.html#fetch-table">source prefix</a>
 followed by a colon, for example: <b>emdb:1024</b><br>
 The default source prefix <b>pdb:</b> can be omitted if a valid 
 4-character identifier is supplied.
+</p><p>
+Python files in the directory 
+<b>~/chimerax_start</b> (where <b>~</b> is the user's home directory)
+are imported automatically at startup.
+</p><p>
+<a href="index.html#commands">ChimeraX commands</a> to execute at 
+startup of the <a href="tools/cli.html"><b>Command Line Interface</b></a>
+can be specified in the
+<a href="preferences.html#startup"><b>Startup</b> preferences</a>.
+If ChimeraX is started in <a href="options.html#nogui">nogui mode</a> 
+without command/script file input,
+a prompt will be supplied in the system shell for entering
+<a href="index.html#commands">commands</a> on standard input.
 </p>
 
 <h3>Exit from ChimeraX</h3>
@@ -110,5 +122,5 @@ using the ChimeraX menu to <b>Quit</b>, or by entering
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2018</address>
+November 2018</address>
 </body></html>
