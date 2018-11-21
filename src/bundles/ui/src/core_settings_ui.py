@@ -401,8 +401,10 @@ class CoreSettingsPanel:
     def __init__(self, session, ui_area):
         from PyQt5.QtWidgets import QBoxLayout
         self.session = session
+        from chimerax.core.commands import run
         from .options import CategorizedSettingsPanel
-        self.options_widget = CategorizedSettingsPanel(core_settings, "ChimeraX core")
+        self.options_widget = CategorizedSettingsPanel(core_settings, "ChimeraX core",
+            help_cb=lambda ses=session, run=run: run(ses, "help help:preferences"))
         self.options = {}
 
         for setting, setting_info in self.settings_info.items():
