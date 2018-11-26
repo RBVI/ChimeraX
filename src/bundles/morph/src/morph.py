@@ -27,7 +27,7 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         configurations are inserted between every pair of structures given.
     rate : 'linear', 'ramp down', 'ramp up' or 'sinusoidal'
         The rate of morphing from one state to the next.
-    method : 'corkscrew', 'independent', 'linear'
+    method : 'corkscrew', 'linear'
         How hinged groups of atoms are morphed.
     cartesian : bool
         Whether to interpolate x,y,z atom coordinates or use internal coordinates
@@ -114,7 +114,7 @@ def register_morph_command(logger):
         required = [('structures', StructuresArg)],
         keyword = [('frames', IntArg),
                    ('rate', EnumOf(('linear', 'ramp up', 'ramp down', 'sinusoidal'))),
-                   ('method', EnumOf(('corkscrew', 'independent', 'linear'))),
+                   ('method', EnumOf(('corkscrew', 'linear'))),
                    ('cartesian', BoolArg),
                    ('same', BoolArg),
                    ('core_fraction', FloatArg),
