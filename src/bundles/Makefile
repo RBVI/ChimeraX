@@ -32,7 +32,7 @@ include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax
 
-dir:
+dir:	Makefile.dependencies
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
 $(SUBDIR_INSTALL): dir bundle_builder.install
@@ -43,65 +43,9 @@ ifneq (,$(PYSRCS))
 endif
 
 clean:
-	rm -rf __pycache__
+	rm -rf __pycache__ Makefile.dependencies
 
-# These dependencies should the same as the dependences in the bundle bundle_info.xml files
-addh.install: atomic.install hbonds.install
-align_algs.install: alignments.install
-alignment_hdrs.install: alignments.install
-alignments.install: atomic.install
-atom_search.install: atomic.install
-atomic.install: mouse_modes.install
-bild.install: atomic.install surface.install
-basic_actions.install: ui.install
-blastprotein.install: ui.install
-bond_rot.install: ui.install mouse_modes.install
-bug_reporter.install: ui.install
-bumps.install: markers.install
-cage_builder.install: ui.install
-chem_group.install: atomic.install
-clashes.install: atom_search.install atomic.install
-cmd_line.install: ui.install
-connect_structure.install: atom_search.install atomic.install
-crosslinks.install: interfaces.install
-dist_monitor.install: atomic.install
-dist_ui.install: ui.install mouse_modes.install
-dssp.install: atomic.install
-file_history.install: ui.install
-help_viewer.install: ui.install
-hbonds.install: atom_search.install atomic.install chem_group.install
-ihm.install: atomic.install map.install
-interfaces.install: ui.install
-label.install: mouse_modes.install
-log.install: ui.install
-map.install: map_data.install mouse_modes.install ui.install
-map_filter.install: map.install
-map_fit.install: map.install
-map_series.install: map.install mouse_modes.install ui.install
-markers.install: atomic.install mouse_modes.install ui.install
-match_maker.install: align_algs.install sim_matrices.install
-md_crds.install: atomic.install
-mmcif.install: atomic.install pdb.install
-mmtf.install: atomic.install pdb.install
-model_panel.install: ui.install
-model_series.install: ui.install
-modeller.install: alignments.install
-mol2.install: atomic.install chem_group.install
-mouse_modes.install:  ui.install
-nucleotides.install: atomic.install ui.install
-pdb.install: atomic.install
-read_pbonds.install: atomic.install
-registration.install: ui.install
-residue_fit.install: ui.install
-seq_view.install: alignment_hdrs.install alignments.install ui.install
-shell.install: ui.install
-shortcuts.install: ui.install
-sideview.install: ui.install
-signal_viewer.install: ui.install
-sim_matrices.install: alignments.install
-std_commands.install: atomic.install
-swapaa.install: mouse_modes.install ui.install
-tug.install: mouse_modes.install ui.install
-ui.clean: map.clean
-viewdockx.install: atomic.install mol2.install ui.install
-zone.install: mouse_modes.install ui.install
+Makefile.dependencies: */bundle_info.xml*
+	$(APP_PYTHON_EXE) Make_dependencies.py
+
+include Makefile.dependencies
