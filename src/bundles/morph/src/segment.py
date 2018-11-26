@@ -139,19 +139,9 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         m0seqs = m0.chains
         m1seqs = m1.chains
         if len(m0seqs) != len(m1seqs):
-                raise ValueError("models have different number of chains")
-        resCount0 = len(m0.residues)
-        matchCount0 = 0
-        for seq0 in m0seqs:
-                matchCount0 += len(seq0.residues)
-#        print ("Aligning %d of %d residues from molecule %s" % (
-#                        matchCount0, resCount0, m0.name))
-        resCount1 = len(m1.residues)
-        matchCount1 = 0
-        for seq1 in m1seqs:
-                matchCount1 += len(seq1.residues)
-#        print ("Aligning %d of %d residues from molecule %s" % (
-#                        matchCount1, resCount1, m1.name))
+                raise ValueError("models have different number of chains, %d (%s) and %d (%s)"
+                                 % (len(m0seqs), ','.join(str(c) for c in m0seqs),
+                                    len(m1seqs), ','.join(str(c) for c in m1seqs)))
 
         #
         # Try to find the best matches for sequences.
@@ -159,8 +149,8 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         # chains with the same ids match.  Otherwise, assume the chains
         # match in input order.
         #
-        m0map = dict((s.chain, s) for s in m0seqs)
-        m1map = dict((s.chain, s) for s in m1seqs)
+        m0map = dict((s.chain.chain_id, s) for s in m0seqs)
+        m1map = dict((s.chain.chain_id, s) for s in m1seqs)
         if set(m0map.keys()) == set(m1map.keys()):
                 seqPairs = [ (m0map[k], m1map[k]) for k in m0map.keys() ]
         else:
