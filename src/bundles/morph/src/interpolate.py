@@ -178,7 +178,14 @@ def apply_rigid_motion_py(coordset, atom_indices, axis, angle, center, shift, f)
 from ._morph import apply_rigid_motion
 
 def interpolate_corkscrew(xf, c0, c1):
-        'Decompose transform as a rotation about an axis and shift along that axis.'
+        '''
+        Rotate and move along a circular arc perpendicular to the rotation axis and
+        translate parallel the rotation axis.  This makes the initial geometric center c0
+        traverse a helical path to the final center c1.  The circular arc spans an angle
+        equal to the rotation angle so it is nearly a straight segment for small angles,
+        and for the largest possible rotation angle of 180 degrees it is a half circle
+        centered half-way between c0 and c1 in the plane perpendicular to the rotation axis.
+        '''
         from chimerax.core.geometry import inner_product, cross_product, identity, norm
         from chimerax.core.geometry import normalize_vector
         dc = c1 - c0
@@ -203,7 +210,11 @@ def interpolate_linear(xf, c0, c1):
         return vr, a, c0, c1-c0
 
 def interpolate_independent(xf, c0, c1):
-        'Rotate about 0,0,0 and translate that point linearly to destination.'
+        '''
+        Rotate about 0,0,0 and translate c0 to c1.  This makes little sense
+        since 0,0,0 is an arbitrary point in the structure coordinate system,
+        often the origin of the crystal cell.
+        '''
         vr, a = xf.rotation_axis_and_angle()                # a is in degrees
         shift = xf.translation()
         from numpy import zeros, float64
@@ -212,6 +223,6 @@ def interpolate_independent(xf, c0, c1):
 
 segment_motion_methods = {
         "corkscrew": interpolate_corkscrew,
-        "independent": interpolate_independent,
+#        "independent": interpolate_independent,
         "linear": interpolate_linear,
         }

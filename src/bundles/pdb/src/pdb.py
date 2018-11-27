@@ -61,8 +61,9 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
             text = collate_records_text(title_recs)
             m.html_title = process_chem_name(text.strip(), sentences=True)
             m.has_formatted_metadata = lambda ses: True
-            m.get_formatted_metadata = lambda ses, *, m=m, verbose=False, **kw:\
-                _get_formatted_metadata(m, ses, verbose)
+            from types import MethodType
+            from weakref import proxy
+            m.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(m))
 
     return models, info
 
@@ -326,7 +327,7 @@ def _process_chem_word(word, use_greek, probable_abbrs):
             segs.append(word)
     return '-'.join(segs)
 
-def _get_formatted_metadata(model, session, verbose):
+def _get_formatted_metadata(model, session, *, verbose=False):
     from chimerax.core.logger import html_table_params
     html = "<table %s>\n" % html_table_params
     html += ' <thead>\n'
