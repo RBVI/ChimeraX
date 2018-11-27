@@ -14,10 +14,10 @@
 class ModelingError(ValueError):
     pass
 
-def model(session, targets, combined_templates=False, custom_script=None,
+def model(session, targets, *, block=True, combined_templates=False, custom_script=None,
     dist_restraints_path=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
-    water_preserve=False):
+    hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
+    thorough_opt=False, water_preserve=False):
     """
     Generate comparitive models for the target sequences.
 
@@ -26,13 +26,16 @@ def model(session, targets, combined_templates=False, custom_script=None,
         current session
     targets
         list of (alignment, sequence) tuples.  Each sequence will be modelled.
+    block
+        If True, wait for modelling job to finish before returning and return list of
+        (opened) models.  Otherwise return immediately.  Also see 'show_gui' option.
     combined_templates
         If True, all associated chains are used together as templates to generate a single set
         of models for the target sequence.  If False, the associated chains are used individually
         to generate chains in the resulting models (i.e. the models will be multimers).
     custom_script
         If provided, the location of a custom Modeller script to use instead of the
-        one we would otherwise generate.
+        one we would otherwise generate.  Only used when executing locally.
     dist_restraints_path
         If provided, the path to a file containing additional distance restraints
     executable_location
@@ -48,6 +51,8 @@ def model(session, targets, combined_templates=False, custom_script=None,
         Modeller license key.  If not provided, try to use settings to find one.
     num_models
         Number of models to generate for each template sequence
+    show_gui
+        If True, show user interface for Modeller results (if ChimeraX is in gui mode).
     temp_path
         If provided, folder to use for temporary files
     thorough_opt
@@ -78,7 +83,7 @@ def model(session, targets, combined_templates=False, custom_script=None,
             target_templates.append((regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
 
     from .common import write_modeller_scripts
-    scripts_path, config_path, temp_dir = write_modeller_scripts(license_key, num_models, het_preserve,
+    script_path, config_path, temp_dir = write_modeller_scripts(license_key, num_models, het_preserve,
         water_preserve, hydrogens, fast, None, custom_script, temp_path, thorough_opt, dist_restraints_path)
 
     input_file_map = {}
@@ -177,6 +182,9 @@ def model(session, targets, combined_templates=False, custom_script=None,
     session.alignments.destroy_alignment(aln)
     input_file_map["alignment.ali"] = pir_file
 
+    config_name = os.path.basename(config_path)
+    input_file_map[config_name] = config_path
+
     # save structure files
     import os
     struct_dir = os.path.join(temp_dir.name, "template_struc")
@@ -195,7 +203,19 @@ def model(session, targets, combined_templates=False, custom_script=None,
         save_pdb(session, pdb_file_name, polymeric_res_names=ATOM_res_names)
         delattr(structure, 'in_seq_hets')
 
+    # a custom script [only used when executing locally] needs to be copied into the tmp dir...
+    if os.path.exists(script_path) \
+    and os.path.normpath(temp_dir.name) != os.path.normpath(os.path.dirname(script_path):
+        import shutil
+        shutil.copy(script_path, temp_dir.name)
+
     #TODO...
+    if executable_location is None:
+        job_runner = ModellerWebService(structures_to_save, num_models, pir_target.name, input_file_map,
+            config_name)
+    else:
+        pass #TODO: job_runner = ModellerLocal(...)
+    return job_runner.run(block=block)
 
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]
@@ -229,3 +249,9 @@ def structure_save_name(s):
 
 def chain_save_name(chain):
     return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')
+
+from .common import RunModeller
+class ModellerWebService(RunModeller):
+
+    def __init__(self, template_structures, num_models, target_seq_name, input_file_map, config_name):
+        pass #TODO: need to pass in the target info so that the results can associate with the right seq(s)
