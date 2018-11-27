@@ -404,7 +404,8 @@ class CoreSettingsPanel:
         from chimerax.core.commands import run
         from .options import CategorizedSettingsPanel
         self.options_widget = CategorizedSettingsPanel(core_settings, "ChimeraX core",
-            help_cb=lambda ses=session, run=run: run(ses, "help help:user/preferences.html"))
+            help_cb=lambda category, ses=session, run=run:
+            run(ses, "help help:user/preferences.html#" + category.replace(' ', '').lower()))
         self.options = {}
 
         for setting, setting_info in self.settings_info.items():
