@@ -263,10 +263,12 @@ class ObjectLabels(Model):
         self._visibility_needs_update = True		# Does an atom hide require a label to hide?
         
     def delete(self):
-        for hattr in ('_update_graphics_handler', '_background_color_handler'):
+        import chimerax
+        for triggerset, hattr in ((self.session.triggers, '_update_graphics_handler'),
+                (chimerax.core.core_settings.settings.triggers, '_background_color_handler')):
             h = getattr(self, hattr)
             if h is not None:
-                self.session.triggers.remove_handler(h)
+                triggerset.remove_handler(h)
                 setattr(self, hattr, None)
             
         h = self._structure_change_handler
