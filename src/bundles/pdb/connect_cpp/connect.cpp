@@ -618,6 +618,7 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
     }
     auto notifications_off = DestructionNotificationsOff();
     if (break_long) {
+        bool missing_structure = false;
         std::vector<Bond *> break_these;
         for (Structure::Bonds::const_iterator bi = as->bonds().begin();
         bi != as->bonds().end(); ++bi) {
@@ -628,8 +629,10 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             if (r1 == r2)
                 continue;
             if (polymeric_res_names.find(r1->name()) != polymeric_res_names.end()
-            && polymeric_res_names.find(r2->name()) != polymeric_res_names.end())
+            && polymeric_res_names.find(r2->name()) != polymeric_res_names.end()) {
+                missing_structure = true;
                 continue;
+            }
             // break if non-physical
             float criteria = 1.5 * Element::bond_length(atoms[0]->element(),
                 atoms[1]->element());
@@ -642,6 +645,8 @@ connect_structure(Structure* as, std::vector<Residue *>* start_residues,
             as->delete_bond(b);
         }
         find_and_add_metal_coordination_bonds(as);
+        if (missing_structure)
+            find_missing_structure_bonds(as);
     } else {
         // turn long inter-residue bonds into "missing structure" pseudobonds
         find_and_add_metal_coordination_bonds(as);

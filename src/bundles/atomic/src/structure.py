@@ -2105,12 +2105,15 @@ class AtomicStructure(Structure):
                 if len(set([s.name for s in sibs])) > 1:
                     # not an NMR ensemble
                     self._report_chain_descriptions(session)
+                    self._report_res_info(session)
                 else:
                     sibs.sort(key=lambda m: m.id)
                     if sibs[-1] == self:
                         self._report_ensemble_chain_descriptions(session, sibs)
+                        self._report_res_info(session)
             else:
                 self._report_chain_descriptions(session)
+                self._report_res_info(session)
             self._report_assemblies(session)
 
     def apply_auto_styling(self, set_lighting = False, style=None):
@@ -2354,6 +2357,12 @@ class AtomicStructure(Structure):
                 chain.structure.id_string, chain.chain_id,
                 chain.structure.id_string, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
+
+    def _report_res_info(self, session):
+        if hasattr(self, 'get_formatted_res_info'):
+            res_info = self.get_formatted_res_info(standalone=True)
+            if res_info:
+                session.logger.info(res_info, is_html=True)
 
     def _report_chain_summary(self, session, descripts, chain_text):
         def descript_text(description, chains):
