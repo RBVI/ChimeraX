@@ -633,8 +633,9 @@ class _CompiledCode:
         ts = toolshed.get_toolshed()
         bundle = ts.find_bundle(req.project_name, logger)
         if not bundle:
-            raise RuntimeError("bundle not found: %s" % req)
-            # return None, None
+            # The requirement is satisfied but is not recognized
+            # as a bundle.  Probably just a regular Python package.
+            return None, None
         inc = bundle.include_dir()
         lib = bundle.library_dir()
         return inc, lib

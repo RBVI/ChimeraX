@@ -14,10 +14,10 @@
  */
 
 #ifdef __linux__
-#include <GL/glx.h>			// Use CGLSetParameter
+#include <GL/glx.h>			// Use glXGetProcAddress()
 #endif
 
-#include <arrays/pythonarray.h>		// use parse_uint8_n_array()
+#include <arrays/pythonarray.h>		// use python_bool()
 
 // ----------------------------------------------------------------------------
 //

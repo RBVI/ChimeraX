@@ -22,7 +22,7 @@ which are made available through the following equivalent Python classes:
  * :class:`.Atom`
  * :class:`.Bond`
  * :class:`.Residue`
- * :class:`.Chain`
+ * :class:`.Chain`, which is based on :class:`.StructureSeq` which is in turn based on :class:`.Sequence`
 
 Also lines between atoms depicting distances or missing segments of a protein backbone are
 represented as pseudobonds:

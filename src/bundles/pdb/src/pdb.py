@@ -62,7 +62,8 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
             m.html_title = process_chem_name(text.strip(), sentences=True)
             m.has_formatted_metadata = lambda ses: True
             from types import MethodType
-            m.get_formatted_metadata = MethodType(_get_formatted_metadata, m, m.__class__)
+            from weakref import proxy
+            m.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(m))
 
     return models, info
 

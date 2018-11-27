@@ -531,46 +531,46 @@ def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m.bind_mouse_mode(button, series.PlaySeriesMouseMode(m.session))
 
 def enable_move_selected_mouse_mode(mouse_modes):
-    from chimerax.core import ui
+    from chimerax.mouse_modes import RotateSelectedMouseMode, TranslateSelectedMouseMode
     m = mouse_modes
-    m.bind_mouse_mode('left', ui.RotateSelectedMouseMode(m.session))
-    m.bind_mouse_mode('middle', ui.TranslateSelectedMouseMode(m.session))
+    m.bind_mouse_mode('left', RotateSelectedMouseMode(m.session))
+    m.bind_mouse_mode('middle', TranslateSelectedMouseMode(m.session))
 
 def enable_translate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.core import ui
+    from chimerax.mouse_modes import TranslateSelectedMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, ui.TranslateSelectedMouseMode(m.session))
+    m.bind_mouse_mode(button, TranslateSelectedMouseMode(m.session))
 
 def enable_rotate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.core import ui
+    from chimerax.mouse_modes import RotateSelectedMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, ui.RotateSelectedMouseMode(m.session))
+    m.bind_mouse_mode(button, RotateSelectedMouseMode(m.session))
 
 def enable_move_mouse_mode(mouse_modes):
-    from chimerax.core import ui
+    from chimerax.mouse_modes import RotateMouseMode, TranslateMouseMode
     m = mouse_modes
-    m.bind_mouse_mode('left', ui.RotateMouseMode(m.session))
-    m.bind_mouse_mode('middle', ui.TranslateMouseMode(m.session))
+    m.bind_mouse_mode('left', RotateMouseMode(m.session))
+    m.bind_mouse_mode('middle', TranslateMouseMode(m.session))
 
 def enable_select_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.core import ui
+    from chimerax.mouse_modes import SelectMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, ui.SelectMouseMode(m.session))
+    m.bind_mouse_mode(button, SelectMouseMode(m.session))
 
 def enable_rotate_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.core import ui
+    from chimerax.mouse_modes import RotateMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, ui.RotateMouseMode(m.session))
+    m.bind_mouse_mode(button, RotateMouseMode(m.session))
 
 def enable_translate_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.core import ui
+    from chimerax.mouse_modes import TranslateMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, ui.TranslateMouseMode(m.session))
+    m.bind_mouse_mode(button, TranslateMouseMode(m.session))
 
 def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.core import ui
+    from chimerax.mouse_modes import ZoomMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, ui.ZoomMouseMode(m.session))
+    m.bind_mouse_mode(button, ZoomMouseMode(m.session))
 
 def fit_molecule_in_map(session):
     mols, maps = shortcut_molecules(session), shortcut_maps(session)
@@ -1042,12 +1042,13 @@ def unused_file_name(directory, basename, suffix):
     n = max(nums, default = 0) + 1
     filename = '%s%d%s' % (basename, n, suffix)
     p = path.join(directory, filename)
+    if ' ' in p:
+        p = '"' + p + '"'
     return p
 
 def default_save_directory():
-    dir = '~/Desktop'
     from os import path, getcwd
-    d = path.expanduser(dir)
+    d = path.join(path.expanduser('~'), 'Desktop')
     if not path.isdir(d):
         d = getcwd()
     return d

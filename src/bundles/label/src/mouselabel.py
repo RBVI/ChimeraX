@@ -1,4 +1,4 @@
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 
 class LabelMouseMode(MouseMode):
     '''Click an atom,ribbon,pseudobond or bond to label or unlabel it with default label.'''
@@ -8,7 +8,7 @@ class LabelMouseMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
-        from chimerax.ui.mousemodes import picked_object
+        from chimerax.mouse_modes import picked_object
         pick = picked_object(x, y, self.session.main_view)
         self._label_pick(pick)
 
@@ -49,7 +49,7 @@ class LabelMouseMode(MouseMode):
             log_equivalent_command(ses, 'label %s %s' % (rspec, opts))
 
     def laser_click(self, xyz1, xyz2):
-        from chimerax.ui.mousemodes import picked_object_on_segment
+        from chimerax.mouse_modes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         from chimerax.core.colors import BuiltinColors
         self._label_pick(pick,

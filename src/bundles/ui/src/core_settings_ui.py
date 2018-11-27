@@ -20,7 +20,7 @@ TODO
 
 from chimerax.core.core_settings import set_proxies, settings as core_settings
 from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, FloatOption
-from .options import StringOption, HostPortOption, Option, EnumOption
+from .options import StringOption, HostPortOption, Option, EnumOption, StringsOption
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
@@ -211,16 +211,11 @@ class InitWindowSizeOption(Option):
                 int(100.0 * window_width / screen_width),
                 int(100.0 * window_height / screen_height)))
 
-# next two variables needed so that log can notify interface about setting change
-log_error_cb = log_warning_cb = None
+def _enable_trackpad_multitouch(session, enable):
+    session.ui.mouse_modes.trackpad.enable_multitouch(enable)
 
-def _set_error_cb(ses, cb):
-    global log_error_cb
-    log_error_cb = cb
-
-def _set_warning_cb(ses, cb):
-    global log_warning_cb
-    log_warning_cb = cb
+def _set_trackpad_sensitivity(session, value):
+    session.ui.mouse_modes.trackpad.trackpad_speed = value
 
 class CoreSettingsPanel:
 
@@ -238,13 +233,8 @@ class CoreSettingsPanel:
     #     If the updater is a command, then the converted value will be as the right
     #     side of the '%' string-formatting operator; otherwise it will be the second arg
     #     provided to the function call (session will be the first).
-    # 6) Change notifier.  Function that accepts a session and a trigger-handler-style callback
-    #     as a arg and calls it when the setting changes. Can be None if not relevant.
-    # 7) Function that fetches the setting value in a form that can be used to set the option.
-    #     The session is provided as an argument to the function.  Should be None if and only
-    #     if #6 is None.
-    # 8) Balloon help for option.  Can be None.
-    # 9) Whether to automatically set the core setting.  If True, the setting will be changed
+    # 6) Balloon help for option.  Can be None.
+    # 7) Whether to automatically set the core setting.  If True, the setting will be changed
     #     before any updater is called.  Otherwise, the updater is in charge of setting the
     #     setting.  Usually only set to False if the updater needs to examine the old value.
     settings_info = {
@@ -254,8 +244,6 @@ class CoreSettingsPanel:
             AtomSpecOption,
             None,
             None,
-            None,
-            None,
             """How to format display of atomic data<br>
             <table>
             <tr><td>simple</td><td>&nbsp;</td><td>Simple readable form</td></tr>
@@ -263,14 +251,12 @@ class CoreSettingsPanel:
             <tr><td>serial number</td><td>&nbsp;</td><td>Atom serial number</td></tr>
             </table>""",
             True),
-        'bg_color': (
+        'background_color': (
             "Background color",
             "Background",
             ColorOption,
             "set bgColor %s",
             hex_color_name,
-            lambda ses, cb: ses.triggers.add_handler("background color changed", cb),
-            lambda ses: ses.main_view.background_color,
             "Background color of main graphics window",
             True),
         'clipping_surface_caps': (
@@ -279,16 +265,12 @@ class CoreSettingsPanel:
             BooleanOption,
             'surface cap %s',
             None,
-            lambda ses, cb: ses.triggers.add_handler("clipping caps changed", cb),
-            lambda ses: core_settings.clipping_surface_caps,
             'Whether to cap surface holes created by clipping',
             False),
         'default_tool_window_side': (
             "Default tool side",
             "Window",
             ToolSideOption,
-            None,
-            None,
             None,
             None,
             "Which side of main window that new tool windows appear on by default.",
@@ -299,8 +281,6 @@ class CoreSettingsPanel:
             ColorOption,
             "distance style color %s",
             hex_color_name,
-            lambda ses, cb: ses.triggers.add_handler("distance color changed", cb),
-            lambda ses: core_settings.distance_color,
             "Color of atomic distance monitors",
             False),
         'distance_dashes': (
@@ -309,8 +289,6 @@ class CoreSettingsPanel:
             (IntOption, {'min': 0 }),
             "distance style dashes %d",
             None,
-            lambda ses, cb: ses.triggers.add_handler("distance dashes changed", cb),
-            lambda ses: core_settings.distance_dashes,
             "How many dashes when drawing distance monitor.  Zero means solid line.  "
             "Currently, even numbers act the same as the next odd number.",
             False),
@@ -320,8 +298,6 @@ class CoreSettingsPanel:
             (IntOption, {'min': 0 }),
             "distance style decimalPlaces %d",
             None,
-            lambda ses, cb: ses.triggers.add_handler("distance decimal places changed", cb),
-            lambda ses: ses.pb_dist_monitor.decimal_places,
             "How many digits after the decimal point to show for distances",
             False),
         'distance_radius': (
@@ -330,8 +306,6 @@ class CoreSettingsPanel:
             (FloatOption, {'min': 'positive', 'decimal_places': 3 }),
             "distance style radius %g",
             None,
-            lambda ses, cb: ses.triggers.add_handler("distance radius changed", cb),
-            lambda ses: core_settings.distance_radius,
             "Radial line thickness of distance",
             False),
         'distance_show_units': (
@@ -340,8 +314,6 @@ class CoreSettingsPanel:
             BooleanOption,
             'distance style symbol  %s',
             None,
-            lambda ses, cb: ses.triggers.add_handler("distance show units changed", cb),
-            lambda ses: ses.pb_dist_monitor.show_units,
             'Whether to show angstrom symbol after the distancee',
             False),
         'errors_raise_dialog': (
@@ -350,8 +322,6 @@ class CoreSettingsPanel:
             BooleanOption,
             None,
             None,
-            _set_error_cb,
-            lambda ses: core_settings.errors_raise_dialog,
             'Should error messages be shown in a separate dialog as well as being logged',
             True),
         'http_proxy': (
@@ -359,8 +329,6 @@ class CoreSettingsPanel:
             'Web Access',
             HostPortOption,
             lambda ses, val: set_proxies(),
-            None,
-            None,
             None,
             'HTTP proxy for ChimeraX to use when trying to reach web sites',
             True),
@@ -370,16 +338,12 @@ class CoreSettingsPanel:
             HostPortOption,
             lambda ses, val: set_proxies(),
             None,
-            None,
-            None,
             'HTTPS proxy for ChimeraX to use when trying to reach web sites',
             True),
         'initial_window_size': (
             "Initial overall window size",
             "Window",
             (InitWindowSizeOption, {'session': None}),
-            None,
-            None,
             None,
             None,
             """Initial overall size of ChimeraX window""",
@@ -390,9 +354,15 @@ class CoreSettingsPanel:
             BooleanOption,
             None,
             None,
-            None,
-            None,
             'Whether to resize main window when restoring a session to the size it had when the session was saved.',
+            True),
+        'startup_commands': (
+            "Execute these commands at startup",
+            "Startup",
+            StringsOption,
+            None,
+            None,
+            "List of commands to execute when ChimeraX command-line tool starts",
             True),
         'toolshed_update_interval': (
             "Toolshed update interval",
@@ -400,9 +370,23 @@ class CoreSettingsPanel:
             UpdateIntervalOption,
             None,
             None,
-            None,
-            None,
             'How frequently to check toolshed for new updates<br>',
+            True),
+        'trackpad_multitouch': (
+            'Trackpad gestures to rotate and move',
+            'Trackpad',
+            BooleanOption,
+            _enable_trackpad_multitouch,
+            None,
+            'Whether to enable 2 and 3 finger trackpad drags to rotate and move.',
+            True),
+        'trackpad_sensitivity': (
+            'Trackpad sensitivity',
+            'Trackpad',
+            (FloatOption, {'decimal_places': 2 }),
+            _set_trackpad_sensitivity,
+            None,
+            'How fast models move in response to multitouch trackpad gestures',
             True),
         'warnings_raise_dialog': (
             'Warnings shown in dialog',
@@ -410,8 +394,6 @@ class CoreSettingsPanel:
             BooleanOption,
             None,
             None,
-            _set_warning_cb,
-            lambda ses: core_settings.warnings_raise_dialog,
             'Should warning messages be shown in a separate dialog as well as being logged',
             True),
     }
@@ -419,12 +401,14 @@ class CoreSettingsPanel:
     def __init__(self, session, ui_area):
         from PyQt5.QtWidgets import QBoxLayout
         self.session = session
+        from chimerax.core.commands import run
         from .options import CategorizedSettingsPanel
-        self.options_widget = CategorizedSettingsPanel(core_settings, "ChimeraX core")
+        self.options_widget = CategorizedSettingsPanel(core_settings, "ChimeraX core",
+            help_cb=lambda ses=session, run=run: run(ses, "help help:user/preferences.html"))
+        self.options = {}
 
         for setting, setting_info in self.settings_info.items():
-            opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon, \
-                set_setting = setting_info
+            opt_name, category, opt_class, updater, converter, balloon, set_setting = setting_info
             if isinstance(opt_class, tuple):
                 opt_class, kw = opt_class
                 if 'session' in kw:
@@ -434,13 +418,9 @@ class CoreSettingsPanel:
             opt = opt_class(opt_name, getattr(core_settings, setting), self._opt_cb,
                 attr_name=setting, balloon=balloon, **kw)
             self.options_widget.add_option(category, opt)
-            """
             self.options[setting] = opt
-            """
-            if notifier is not None:
-                notifier(session,
-                    lambda tn, data, *, fetch=fetcher, ses=session, opt=opt: opt.set(fetch(ses)))
 
+        core_settings.triggers.add_handler('setting changed', self._core_setting_changed)
         layout = QBoxLayout(QBoxLayout.TopToBottom)
         layout.setSpacing(5)
         layout.addWidget(self.options_widget, 1)
@@ -448,11 +428,15 @@ class CoreSettingsPanel:
 
         ui_area.setLayout(layout)
 
+    def _core_setting_changed(self, trig_name, info):
+        setting_name, old_val, new_val = info
+        if setting_name in self.options:
+            self.options[setting_name].set(new_val)
+
     def _opt_cb(self, opt):
 
         setting = opt.attr_name
-        opt_name, category, opt_class, updater, converter, notifier, fetcher, balloon, set_setting \
-            = self.settings_info[setting]
+        opt_name, category, opt_class, updater, converter, balloon, set_setting = self.settings_info[setting]
         if set_setting:
             opt.set_attribute(core_settings)
         if updater is None:

@@ -42,7 +42,7 @@ class CrosslinksPlot(Graph):
         add = lambda *args: self.add_menu_entry(menu, *args)
         if item:
             add('Select ' + item.description(), lambda i=item: i.select())
-        add('Lay out to match structure', self.draw_graph)
+        add('Lay Out to Match Structure', self.draw_graph)
 
 # ------------------------------------------------------------------------------
 #
@@ -84,7 +84,7 @@ class ChainCrosslinks(Edge):
             a1.selected = True
             a2.selected = True
     def description(self):
-        return '%d pseudobonds' % len(self.pseudobonds)
+        return '%d Pseudobonds' % len(self.pseudobonds)
 
 # ------------------------------------------------------------------------------
 #

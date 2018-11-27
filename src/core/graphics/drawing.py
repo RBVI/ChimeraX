@@ -1981,10 +1981,10 @@ def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, yp
     # Determine image size.
     weight = QFont.Bold if bold else QFont.Normal
     if pixels:
-        f = QFont(font, weight=weight, italic=italic)
+        f = QFont(font, weight=weight, italic=bool(italic))
         f.setPixelSize(size-2*ypad)
     else:
-        f = QFont(font, size, weight=weight, italic=italic)  # Size in points.
+        f = QFont(font, size, weight=weight, italic=bool(italic))  # Size in points.
 
     # Use font metrics to determine image width
     fm = QFontMetrics(f)

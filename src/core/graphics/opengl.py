@@ -639,6 +639,7 @@ class Render:
                 cmm = self.current_model_matrix
                 if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
+                    self.set_clip_parameters()
             if self.SHADER_STEREO_360 & p.capabilities:
                 cmm = self.current_model_matrix
                 cvm = self.current_view_matrix
@@ -2716,55 +2717,29 @@ class OffScreenRenderingContext:
     def __init__(self, width = 512, height = 512):
         self.width = width
         self.height = height
-        from OpenGL import GL, arrays, platform
+        import ctypes
+        import OpenGL
         from OpenGL import osmesa
+        from OpenGL import GL, arrays, platform, error
         # To use OSMesa with PyOpenGL requires environment variable PYOPENGL_PLATFORM=osmesa
         # Also will need libOSMesa in dlopen library path.
-        import ctypes
-        if not hasattr(osmesa, 'OSMesaCreateContextAttribs'):
-            from OpenGL.raw.osmesa import mesa
-            # monkey patch mesa to be able to create Core contexts
-            @mesa._f
-            @mesa._p.types(mesa.OSMesaContext, ctypes.POINTER(ctypes.c_int), mesa.OSMesaContext)
-            def OSMesaCreateContextAttribs(attribList, sharelist): pass
-            # TODO: figure out why load() is needed
-            OSMesaCreateContextAttribs.load()
-            mesa.OSMesaCreateContextAttribs = OSMesaCreateContextAttribs
-            mesa.OSMESA_DEPTH_BITS = mesa._C('OSMESA_DEPTH_BITS', 0x30)
-            mesa.OSMESA_STENCIL_BITS = mesa._C('OSMESA_STENCIL_BITS', 0x31)
-            mesa.OSMESA_ACCUM_BITS = mesa._C('OSMESA_ACCUM_BITS', 0x32)
-            mesa.OSMESA_PROFILE = mesa._C('OSMESA_PROFILE', 0x33)
-            mesa.OSMESA_CORE_PROFILE = mesa._C('OSMESA_CORE_PROFILE', 0x34)
-            mesa.OSMESA_COMPAT_PROFILE = mesa._C('OSMESA_COMPAT_PROFILE', 0x35)
-            mesa.OSMESA_CONTEXT_MAJOR_VERSION = mesa._C('OSMESA_CONTEXT_MAJOR_VERSION', 0x36)
-            mesa.OSMESA_CONTEXT_MINOR_VERSION = mesa._C('OSMESA_CONTEXT_MINOR_VERSION', 0x37)
-            # do osmesa/__init__'s "from OpenGL.raw.osmesa.mesa import *"
-            osmesa.OSMesaCreateContextAttribs = mesa.OSMesaCreateContextAttribs
-            osmesa.OSMESA_DEPTH_BITS = mesa.OSMESA_DEPTH_BITS
-            osmesa.OSMESA_STENCIL_BITS = mesa.OSMESA_STENCIL_BITS
-            osmesa.OSMESA_ACCUM_BITS = mesa.OSMESA_ACCUM_BITS
-            osmesa.OSMESA_PROFILE = mesa.OSMESA_PROFILE
-            osmesa.OSMESA_CORE_PROFILE = mesa.OSMESA_CORE_PROFILE
-            osmesa.OSMESA_COMPAT_PROFILE = mesa.OSMESA_COMPAT_PROFILE
-            osmesa.OSMESA_CONTEXT_MAJOR_VERSION = mesa.OSMESA_CONTEXT_MAJOR_VERSION
-            osmesa.OSMESA_CONTEXT_MINOR_VERSION = mesa.OSMESA_CONTEXT_MINOR_VERSION
-
-        # if not bool(osmesa.OSMesaCreateContextAttribs):
-        #     raise RuntimeError('Need Mesa version 12.0 or newer for offscreen rendering')
-
         attribs = [
             osmesa.OSMESA_FORMAT, osmesa.OSMESA_RGBA,
             osmesa.OSMESA_DEPTH_BITS, 32,
             # osmesa.OSMESA_STENCIL_BITS, 8,
-            osmesa.OSMESA_PROFILE, mesa.OSMESA_CORE_PROFILE,
+            osmesa.OSMESA_PROFILE, osmesa.OSMESA_CORE_PROFILE,
             osmesa.OSMESA_CONTEXT_MAJOR_VERSION, 3,
             osmesa.OSMESA_CONTEXT_MINOR_VERSION, 3,
             0  # must end with zero
         ]
         attribs = (ctypes.c_int * len(attribs))(*attribs)
-        self.context = osmesa.OSMesaCreateContextAttribs(attribs, None)
+        try:
+            self.context = osmesa.OSMesaCreateContextAttribs(attribs, None)
+        except error.NullFunctionError:
+            raise RuntimeError('Need OSMesa version 12.0 or newer for OpenGL Core Context API.')
+        if not self.context:
+            raise RuntimeError('OSMesa needs to be configured with --enable-gallium-osmesa for OpenGL Core Context support.')
         buf = arrays.GLubyteArray.zeros((height, width, 4))
-        #p = arrays.ArrayDatatype.dataPointer(buf)
         self.buffer = buf
         # call make_current to induce exception if an older Mesa
         self.make_current()
@@ -2774,6 +2749,7 @@ class OffScreenRenderingContext:
         from OpenGL import osmesa
         assert(osmesa.OSMesaMakeCurrent(self.context, self.buffer, GL.GL_UNSIGNED_BYTE, self.width, self.height))
         assert(platform.CurrentContextIsValid())
+        return True
 
     def swap_buffers(self):
         pass

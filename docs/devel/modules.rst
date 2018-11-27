@@ -62,8 +62,6 @@ Files
 .. toctree::
     :maxdepth: 1
 
-    core/configfile.rst
-
     core/fetch.rst
 
     core/history.rst
@@ -109,8 +107,6 @@ Surfaces
     
 User Interface
 --------------
-
-These modules are in chimerax.ui.
 
 .. toctree::
     :maxdepth: 1

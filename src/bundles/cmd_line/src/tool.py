@@ -31,7 +31,6 @@ class CommandLine(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
-        delattr(parent, 'keyPressEvent')
         self.tool_window.fill_context_menu = self.fill_context_menu
         self.history_dialog = _HistoryDialog(self, self.settings.typed_only)
         from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel
@@ -62,7 +61,8 @@ class CommandLine(ToolInstance):
                 le = self.lineEdit()
                 sel_start, sel_length = le.selectionStart(), len(le.selectedText())
                 QComboBox.focusOutEvent(self, event)
-                le.setSelection(sel_start, sel_length)
+                if sel_start >= 0:
+                    le.setSelection(sel_start, sel_length)
 
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
@@ -128,6 +128,11 @@ class CommandLine(ToolInstance):
             self._command_started_cb)
         self.tool_window.manage(placement="bottom")
         self._in_init = False
+        self._processing_command = False
+        from chimerax.core.core_settings import settings as core_settings
+        if core_settings.startup_commands:
+            # prevent the startup command output from being summarized into 'startup messages' table
+            session.ui.triggers.add_handler('ready', self._run_startup_commands)
 
     def cmd_clear(self):
         self.text.lineEdit().clear()
@@ -151,7 +156,7 @@ class CommandLine(ToolInstance):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
-        filter_action = QAction("Typed commands only", menu)
+        filter_action = QAction("Typed Commands Only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.settings.typed_only)
         filter_action.toggled.connect(lambda arg, f=self._set_typed_only: f(arg))
@@ -196,12 +201,17 @@ class CommandLine(ToolInstance):
         @contextmanager
         def processing_command(line_edit, cmd_text):
             line_edit.blockSignals(True)
+            self._processing_command = True
+            # as per the docs for contextmanager, the yield needs
+            # to be in a try/except if the exit code is to execute
+            # after errors
             try:
                 yield
             finally:
                 line_edit.blockSignals(False)
                 line_edit.setText(cmd_text)
                 line_edit.selectAll()
+                self._processing_command = False
         session = self.session
         logger = session.logger
         text = self.text.lineEdit().text()
@@ -236,10 +246,31 @@ class CommandLine(ToolInstance):
         return tools.get_singleton(session, CommandLine, 'Command Line Interface', **kw)
 
     def _command_started_cb(self, trig_name, cmd_text):
-        self.history_dialog.add(self._just_typed_command or cmd_text,
-            typed=self._just_typed_command is not None)
-        self.text.lineEdit().selectAll()
-        self._just_typed_command = None
+        # the self._processing_command test is necessary when multiple commands
+        # separated by semicolons are typed in order to prevent putting the 
+        # second and later commands into the command history, since we will get 
+        # triggers for each command in the line
+        if self._just_typed_command or not self._processing_command:
+            self.history_dialog.add(self._just_typed_command or cmd_text,
+                typed=self._just_typed_command is not None)
+            self.text.lineEdit().selectAll()
+            self._just_typed_command = None
+
+    def _run_startup_commands(self, *args):
+        # log the commands; but prevent them from going into command history...
+        self._processing_command = True
+        from chimerax.core.commands import run
+        from chimerax.core.errors import UserError
+        from chimerax.core.core_settings import settings as core_settings
+        try:
+            for cmd_text in core_settings.startup_commands:
+                run(self.session, cmd_text)
+        except UserError as err:
+            session.logger.status(str(err), color="crimson")
+        except:
+            self._process_command = False
+            raise
+        self._processing_command = False
 
     def _set_typed_only(self, typed_only):
         self.settings.typed_only = typed_only

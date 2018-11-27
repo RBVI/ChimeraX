@@ -242,7 +242,9 @@ class ObjectLabels(Model):
 
         t = session.triggers
         self._update_graphics_handler = t.add_handler('graphics update', self._update_graphics_if_needed)
-        self._background_color_handler = t.add_handler('background color changed', self._background_changed_cb)
+        from chimerax.core.core_settings import settings as core_settings
+        self._background_color_handler = core_settings.triggers.add_handler(
+            'setting changed', self._background_changed_cb)
 
         from chimerax.atomic import get_triggers
         ta = get_triggers(session)
@@ -261,12 +263,17 @@ class ObjectLabels(Model):
         self._visibility_needs_update = True		# Does an atom hide require a label to hide?
         
     def delete(self):
-        for hattr in ('_update_graphics_handler', '_background_color_handler'):
-            h = getattr(self, hattr)
-            if h is not None:
-                self.session.triggers.remove_handler(h)
-                setattr(self, hattr, None)
-            
+        h = self._update_graphics_handler
+        if h is not None:
+            self.session.triggers.remove_handler(h)
+            self._update_graphics_handler = None
+
+        h = self._background_color_handler
+        if h is not None:
+            from chimerax.core.core_settings import settings as core_settings
+            core_settings.triggers.remove_handler(h)
+            self._background_color_handler = None
+
         h = self._structure_change_handler
         if h is not None:
             from chimerax.atomic import get_triggers
@@ -334,8 +341,10 @@ class ObjectLabels(Model):
             self.delete_labels([l.object for l in self._labels if l.object_deleted])
         self.redraw_needed()
 
-    def _background_changed_cb(self, *_):
-        self._texture_needs_update = True
+    def _background_changed_cb(self, trig_name, info):
+        setting_name, old_val, new_val = info
+        if setting_name == "background_color":
+            self._texture_needs_update = True
             
     def _update_graphics_if_needed(self, *_):
         if not self.visible:
@@ -678,7 +687,7 @@ class EdgeLabel(ObjectLabel):
             return None
         a1,a2 = pb.atoms
         sxyz = 0.5 * (a1.scene_coord + a2.scene_coord)	# Midpoint
-        xyz = scene_position.inverse() * sxyz
+        xyz = scene_position.inverse() * sxyz if scene_position else sxyz
         return xyz
     def visible(self):
         pb = self.pseudobond

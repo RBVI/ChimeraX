@@ -19,7 +19,7 @@ DOCDIR = $(app_datadir)/docs/user/tools
 SRCS = $(wildcard *.html)
 IMAGES = $(wildcard *.png)
 
-MOUSEICONS = $(TOP)/src/bundles/ui/src/mousemode_icons/*.png \
+MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/bond_rot/src/bondrot.png \
 		$(TOP)/src/bundles/dist_ui/src/distance.png \
 		$(TOP)/src/bundles/label/src/label.png \

@@ -106,7 +106,6 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
                     settings={ 'color': color.uint8x4() })
         if set_defaults and settings.distance_color != color:
             settings.distance_color = color
-            session.triggers.activate_trigger("distance color changed", color)
 
     if dashes is not None:
         if not grp:
@@ -114,7 +113,6 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
         grp.dashes = dashes
         if set_defaults and settings.distance_dashes != dashes:
             settings.distance_dashes = dashes
-            session.triggers.activate_trigger("distance dashes changed", dashes)
 
     if decimal_places is not None:
         session.pb_dist_monitor.decimal_places = decimal_places
@@ -124,7 +122,6 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
             pb.radius = radius
         if settings.distance_radius != radius:
             settings.distance_radius = radius
-            session.triggers.activate_trigger("distance radius changed", radius)
 
     if symbol is not None:
         session.pb_dist_monitor.show_units = symbol

@@ -10,7 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # Mouse mode to move map planes or move faces of bounding box.
-from chimerax.ui import MouseMode
+from chimerax.mouse_modes import MouseMode
 class PlanesMouseMode(MouseMode):
     name = 'move planes'
     icon_file = 'moveplanes.png'

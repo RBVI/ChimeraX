@@ -96,7 +96,7 @@ class UI(QApplication):
         from .settings import UI_Settings
         self.settings = UI_Settings(session, "ui")
 
-        from .mousemodes import MouseModes
+        from chimerax.mouse_modes import MouseModes
         self.mouse_modes = MouseModes(session)
 
         # for whatever reason, QtWebEngineWidgets has to be imported before a
@@ -279,7 +279,7 @@ class UI(QApplication):
         QApplication.quit()
 
     def thread_safe(self, func, *args, **kw):
-        """Call function 'func' in a thread-safe manner
+        """Supported API.  Call function 'func' in a thread-safe manner
         """
         import threading
         if threading.main_thread() == threading.current_thread():
@@ -581,10 +581,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             action.setText("%s %s" % (label, name))
             action.setEnabled(True)
 
-    def _get_hide_tools(self):
+    @property
+    def hide_tools(self):
         return self._hide_tools
 
-    def _set_hide_tools(self, ht):
+    @hide_tools.setter
+    def hide_tools(self, ht):
         if ht == self._hide_tools:
             return
 
@@ -620,9 +622,6 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         self._global_hide_button.setIcon(icon)
 
-
-    hide_tools = property(_get_hide_tools, _set_hide_tools)
-
     def log(self, *args, **kw):
         return False
 
@@ -639,10 +638,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         if tool_windows:
             tool_windows[0].shown = shown
 
-    def _get_rapid_access_shown(self):
+    @property
+    def rapid_access_shown(self):
         return self._stack.currentWidget() == self.rapid_access
 
-    def _set_rapid_access_shown(self, show):
+    @rapid_access_shown.setter
+    def rapid_access_shown(self, show):
         if show == (self._stack.currentWidget() == self.rapid_access):
             return
 
@@ -662,8 +663,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         but.setChecked(show)
         but.defaultAction().setChecked(show)
         but.setIcon(icon)
-
-    rapid_access_shown = property(_get_rapid_access_shown, _set_rapid_access_shown)
 
     def _check_rapid_access(self, *args):
         self.rapid_access_shown = len(self.session.models) == 0
@@ -843,13 +842,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._select_mode_reminders = {k:v for k,v in zip(mode_names, 
             ["", " (+)", " (-)", " (\N{INTERSECTION})"])}
         for mode in mode_names:
-            action = QAction(mode + self._select_mode_reminders[mode], self)
+            action = QAction(mode.title() + self._select_mode_reminders[mode], self)
             self.select_mode_menu.addAction(action)
             action.triggered.connect(
                 lambda arg, s=self, m=mode: s._set_select_mode(m))
         self._set_select_mode("replace")
 
     def select_by_mode(self, selector_text):
+        """Supported API.  Select based on the selector 'selector_text' but honoring the current
+           selection mode chosen in the Select menu.  Typically used by callbacks off the Selection menu"""
         mode = self.select_menu_mode
         if mode == "replace":
             cmd = "sel"
@@ -864,7 +865,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _set_select_mode(self, mode_text):
         self.select_menu_mode = mode_text
-        self.select_mode_menu.setTitle("Menu mode: %s" % mode_text)
+        self.select_mode_menu.setTitle("Menu Mode: %s" % mode_text.title())
         mb = self.menuBar()
         from PyQt5.QtWidgets import QMenu
         from PyQt5.QtCore import Qt
@@ -938,8 +939,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         if toolbar.windowTitle() in self._checkbutton_tools:
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
-    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None):
-        '''
+    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None):
+        '''Supported API.
         Add a main menu entry.  Adding entries to the Select menu should normally be done via
         the add_select_submenu method instead.  For details, see the doc string for that method.
 
@@ -947,6 +948,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         be created.  The menu names (and entry name) can contain appropriate keyboard navigation
         markup.  Callback function takes no arguments.  This method cannot be used to add entries
         to menus that are updated dynamically, such as Tools.
+
+        If 'insertion_point is specified, then the entry will be inserted before it.
+        'insertion_point' can be a QAction, a string (menu item text with navigation markup removed)
+        or an integer indicating a particular separator (top to bottom, numbering starting at 1).
         '''
         menu = self._get_target_menu(self.menuBar(), menu_names)
         from PyQt5.QtWidgets import QAction
@@ -954,10 +959,14 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda arg, cb = callback: cb())
         if tool_tip is not None:
             action.setToolTip(tool_tip)
-        menu.addAction(action)
+        if insertion_point is None:
+            menu.addAction(action)
+        else:
+            menu.insertAction(self._get_menu_action(menu, insertion_point), action)
+        return action
 
     def add_select_submenu(self, parent_menu_names, submenu_name):
-        '''
+        '''Supported API.
         Add a submenu (or get it if it already exists).  Any parent menus will be created as
         needed.  Menu names can contain keyboard navigation markup (the '&' character).
         'parent_menu_names' should not contain the Select menu itself.
@@ -982,12 +991,15 @@ class MainWindow(QMainWindow, PlainTextLog):
             insert_positions=insert_positions)
 
     def add_menu_selector(self, menu, label, selector_text=None, *, insertion_point=None):
-        '''
+        '''Supported API.
         Add an item to the given menu (which was probably obtained with the add_select_submenu
         method) which will make a selection using the given selector text (which should just
         be the text of the selector, not a full command) while honoring the current selection
         mode set in the Select menu.  If 'selector_text' is not given, it defaults to be the
-        same as 'label'.  The label can have keyboard navigation markup.
+        same as 'label'.  The label can have keyboard navigation markup.  If 'insertion_point'
+        is specified, then the item will be inserted before it.  'insertion_point' can be a
+        QAction, a string (menu item text with navigation markup removed) or an integer
+        indicating a particular separator (top to bottom, numbering starting at 1).
         '''
         if selector_text is None:
             selector_text = remove_keyboard_navigation(label)
@@ -997,8 +1009,23 @@ class MainWindow(QMainWindow, PlainTextLog):
         if insertion_point is None:
             menu.addAction(action)
         else:
-            menu.insertAction(insertion_point, action)
+            menu.insertAction(self._get_menu_action(menu, insertion_point), action)
         return action
+
+    def _get_menu_action(self, menu, insertion_point):
+        from PyQt5.QtWidgets import QAction
+        if isinstance(insertion_point, QAction):
+            return insertion_point
+        sep_count = 0
+        for menu_action in menu.actions():
+            if menu_action.isSeparator():
+                sep_count += 1
+                if insertion_point == sep_count:
+                    return menu_action
+            elif isinstance(insertion_point, str) \
+            and menu_action.text().lower().replace('&', '', 1) == insertion_point.lower():
+                return menu_action
+        raise ValueError("Requested menu insertion point (%s) not found" % str(insertion_point))
 
     def _get_target_menu(self, parent_menu, menu_names, *, insert_positions=None):
         from PyQt5.QtWidgets import QMenu
@@ -1075,7 +1102,7 @@ def _open_dropped_file(session, path):
 
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):
-    """An area that a tool can populate with widgets.
+    """Supported API. An area that a tool can populate with widgets.
 
     This class is not used directly.  Instead, a tool makes its main
     window by instantiating the :py:class:`MainToolWindow` class
@@ -1098,7 +1125,6 @@ class ToolWindow(StatusLogger):
     The resulting QStatusBar widget (or None if statusbar was False) will be
     available from the ToolWindow's "statusbar" in case you need to add widgets to it
     or otherwise customize it.
-
     """
 
     #: Where the window can be placed in the main interface;
@@ -1114,19 +1140,19 @@ class ToolWindow(StatusLogger):
         self.__toolkit = _Qt(self, title, statusbar, mw)
         self.ui_area = self.__toolkit.ui_area
         # forward unused keystrokes (to the command line by default)
-        self.ui_area.keyPressEvent = ui.forward_keystroke
+        self.ui_area.keyPressEvent = self._forward_keystroke
         mw._new_tool_window(self)
         self._kludge = self.__toolkit
 
     def cleanup(self):
-        """Perform tool-specific cleanup
+        """Supported API. Perform tool-specific cleanup
 
         Override this method to perform additional actions needed when
         the window is destroyed"""
         pass
 
     def destroy(self):
-        """Called to destroy the window (from non-UI code)
+        """Supported API. Called to destroy the window (from non-UI code)
 
         Destroying a tool's main window will also destroy all its
         child windows.
@@ -1134,7 +1160,7 @@ class ToolWindow(StatusLogger):
         self.session.ui.main_window._tool_window_destroy(self)
 
     def fill_context_menu(self, menu, x, y):
-        """Add items to this tool window's context menu,
+        """Supported API. Add items to this tool window's context menu,
         whose downclick occurred at position (x,y)
 
         Override to add items to any context menu popped up over this window.
@@ -1157,11 +1183,12 @@ class ToolWindow(StatusLogger):
         Qt.BottomDockWidgetArea: "bottom"
     }
     def manage(self, placement, fixed_size=False, allowed_areas=Qt.AllDockWidgetAreas):
-        """Show this tool window in the interface
+        """Supported API. Show this tool window in the interface
 
         Tool will be docked into main window on the side indicated by
-        `placement` (which should be a value from :py:attr:`placements`
-        or None, or another tool window).  If `placement` is None, the tool will
+        `placement` (which should be a value from :py:attr:`placements` or 'side'
+        or None, or another tool window).  If `placement` is "side", then the user-preferred
+        side will be used.  If `placement` is None, the tool will
         be detached from the main window.  If `placement` is another tool window,
         then those tools will be tabbed together.
 
@@ -1183,23 +1210,24 @@ class ToolWindow(StatusLogger):
                 geometry = QRect(*geom_info)
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
 
-    def _get_shown(self):
+    @property
+    def shown(self):
         """Whether this window is hidden or shown"""
         return self.__toolkit.shown
 
-    def _set_shown(self, shown):
+    @shown.setter
+    def shown(self, shown):
         self.session.ui.main_window._tool_window_request_shown(self, shown)
 
-    shown = property(_get_shown, _set_shown)
-
     def shown_changed(self, shown):
-        """Perform actions when window hidden/shown
+        """Supported API. Perform actions when window hidden/shown
 
         Override to perform any actions you want done when the window
         is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
         pass
 
     def status(self, *args, **kw):
+        """Supported API.  Show a status message for the tool."""
         if self._have_statusbar:
             StatusLogger.status(self, *args, **kw)
         else:
@@ -1211,18 +1239,18 @@ class ToolWindow(StatusLogger):
         tk = self.__toolkit
         return tk is not None and tk.status_bar is not None
 
-    def _get_title(self):
+    @property
+    def title(self):
+        """Supported API.  Get/change window title."""
         if self.__toolkit is None:
             return ""
         return self.__toolkit.title
 
-    def _set_title(self, title):
+    @title.setter
+    def title(self, title):
         if self.__toolkit is None:
             return
         self.__toolkit.set_title(title)
-    set_title = _set_title
-
-    title = property(_get_title, _set_title)
 
     def _destroy(self):
         self.cleanup()
@@ -1234,6 +1262,13 @@ class ToolWindow(StatusLogger):
     @property
     def _dock_widget(self):
         return self.__toolkit.dock_widget
+
+    def _forward_keystroke(self, event):
+        # QLineEdits don't eat Return keys, so they may propagate to the
+        # top widget; don't forward keys if the focus widget is a QLineEdit
+        from PyQt5.QtWidgets import QLineEdit, QComboBox
+        if not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)):
+            self.tool_instance.session.ui.forward_keystroke(event)
 
     def _mw_set_dockable(self, dockable):
         self.__toolkit.dockable = dockable
@@ -1251,7 +1286,7 @@ class ToolWindow(StatusLogger):
         self.__toolkit.show_context_menu(event)
 
 class MainToolWindow(ToolWindow):
-    """Class used to generate tool's main UI window.
+    """Supported API. Class used to generate tool's main UI window.
 
     The window's :py:attr:`ui_area` attribute is the parent to all the tool's
     widgets for this window.  Call :py:meth:`manage` once the widgets
@@ -1266,7 +1301,7 @@ class MainToolWindow(ToolWindow):
         super().__init__(tool_instance, tool_instance.display_name, **kw)
 
     def create_child_window(self, title, *, window_class=None, **kw):
-        """Make additional tool window
+        """Supported API. Make additional tool window
 
         Parameters
         ----------
@@ -1288,7 +1323,7 @@ class MainToolWindow(ToolWindow):
         return window_class(self.tool_instance, title, **kw)
 
 class ChildToolWindow(ToolWindow):
-    """Child (*i.e.* additional) tool window
+    """Supported API. Child (*i.e.* additional) tool window
 
     Only created through use of
     :py:meth:`MainToolWindow.create_child_window` method.
@@ -1338,18 +1373,18 @@ class _Qt:
             self.status_bar = None
         self.dock_widget.destroy()
 
-    def _get_dockable(self):
+    @property
+    def dockable(self):
         from PyQt5.QtCore import Qt
         return self.dock_widget.allowedAreas() != Qt.NoDockWidgetArea
 
-    def _set_dockable(self, dockable):
+    @dockable.setter
+    def dockable(self, dockable):
         from PyQt5.QtCore import Qt
         areas = Qt.AllDockWidgetAreas if dockable else Qt.NoDockWidgetArea
         self.dock_widget.setAllowedAreas(areas)
         if not dockable and not self.dock_widget.isFloating():
             self.dock_widget.setFloating(True)
-
-    dockable = property(_get_dockable, _set_dockable)
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
         # map 'side' to the user's preferred side
@@ -1400,10 +1435,12 @@ class _Qt:
             self.tool_window.tool_instance.tool_info in self.main_window._tools_cache,
             self.dock_widget if isinstance(self.tool_window, MainToolWindow) else None)
 
-    def _get_shown(self):
+    @property
+    def shown(self):
         return not self.dock_widget.isHidden()
 
-    def _set_shown(self, shown):
+    @shown.setter
+    def shown(self, shown):
         # isHidden() is not to be trusted before the main window is shown
         # since it will return True even though the window _will_ be shown
         # once the main window shows, so comment out the optimization
@@ -1422,8 +1459,6 @@ class _Qt:
             self.dock_widget.raise_()
         else:
             self.dock_widget.hide()
-
-    shown = property(_get_shown, _set_shown)
 
     def set_title(self, title):
         self.dock_widget.setWindowTitle(title)
@@ -1470,7 +1505,7 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
     if not menu.isEmpty():
         menu.addSeparator()
     ti = tool_instance
-    hide_tool_action = QAction("Hide tool")
+    hide_tool_action = QAction("Hide Tool")
     hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
     if ti.help is not None:
@@ -1479,13 +1514,13 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
         help_action.triggered.connect(lambda arg, ti=ti: ti.display_help())
         menu.addAction(help_action)
     else:
-        no_help_action = QAction("No help available")
+        no_help_action = QAction("No Help Available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
     session = ti.session
     if autostartable:
         autostart = ti.tool_name in session.ui.settings.autostart
-        auto_action = QAction("Start at ChimeraX startup")
+        auto_action = QAction("Start at ChimeraX Startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
         from chimerax.core.commands import run, quote_if_necessary
@@ -1495,7 +1530,7 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
             quote_if_necessary(ti.tool_name))))
         menu.addAction(auto_action)
     undockable = ti.tool_name in session.ui.settings.undockable
-    dock_action = QAction("Dockable tool")
+    dock_action = QAction("Dockable Tool")
     dock_action.setCheckable(True)
     dock_action.setChecked(not undockable)
     from chimerax.core.commands import run, quote_if_necessary
@@ -1505,7 +1540,7 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
         quote_if_necessary(ti.tool_name))))
     menu.addAction(dock_action)
     if memorable:
-        position_action = QAction("Save tool position")
+        position_action = QAction("Save Tool Position")
         position_action.setStatusTip("Use current docked side,"
             " or undocked size/position as default")
         from chimerax.core.commands import run, quote_if_necessary

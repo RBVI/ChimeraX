@@ -39,6 +39,7 @@ See also:
 <a href="clashes.html"><b>clashes/contacts</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="distance.html"><b>distance</b></a>,
+<a href="interfaces.html"><b>interfaces</b></a>,
 <a href="label.html"><b>label</b></a>
 </p><p>
 The top-level command sets pseudobond stick <b>radius</b>,
@@ -124,19 +125,29 @@ Clicking a node <a href="../selection.html">selects</a> the corresponding atoms.
 </p><p>
 Various parts of the diagram have different 
 <a href="../window.html#context-menu">context menus</a>.
-The <b>node</b> context menu includes:
+The <b>background</b> context menu includes:
+</p>
+<ul>
+<li><b>Lay Out to Match Structure</b>
+- redraw diagram with orientation similar to the current 3D structure
+(including repulsion to prevent node overlaps in the diagram)
+</ul>
+<p>
+The <b>node</b> context menu also includes:
 </p>
 <ul>
 <li><b>Select [<i>chain</i>]</b>
 - <a href="../selection.html">select</a> the corresponding chain
 (same as simply clicking the node)
-<li><b>Lay out to match structure</b>
-- redraw diagram with orientation similar to the current 3D structure
-(including repulsion to prevent node overlaps in the diagram)
 </ul>
 <p>
-The <b>background</b> context menu contains the layout option.
-</p>
+...whereas the <b>edge</b> context menu includes:
+<p>
+<ul>
+<li><b>Select [<i>N</i>] Pseudobonds</b>
+- <a href="../selection.html">select</a> the corresponding pseudobonds
+(same as simply clicking the edge)
+</ul>
 
 <a name="minimize"></a>
 <p class="nav">
@@ -167,5 +178,5 @@ Intra-model crosslinks are not affected.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+November 2018</address>
 </body></html>
