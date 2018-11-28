@@ -306,6 +306,9 @@ void Structure::_copy(Structure* g) const
         cr->set_mmcif_chain_id(r->mmcif_chain_id());
         cr->set_ribbon_display(r->ribbon_display());
         cr->set_ribbon_color(r->ribbon_color());
+        cr->set_ring_display(r->ring_display());
+        cr->set_ring_color(r->ring_color());
+        cr->set_thin_rings(r->thin_rings());
         cr->set_ss_id(r->ss_id());
         cr->set_ss_type(r->ss_type());
         cr->_alt_loc = r->_alt_loc;
@@ -1612,8 +1615,10 @@ Structure::set_color(const Rgba& rgba)
         a->set_color(rgba);
     for (auto b: _bonds)
         b->set_color(rgba);
-    for (auto r: _residues)
+    for (auto r: _residues) {
         r->set_ribbon_color(rgba);
+        r->set_ring_color(rgba);
+    }
 }
 
 void
