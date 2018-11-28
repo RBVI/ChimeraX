@@ -930,6 +930,38 @@ cdef class CyResidue:
         self.cpp_res.set_ribbon_color(rgba[0], rgba[1], rgba[2], rgba[3])
 
     @property
+    def ring_display(self):
+        "Whether to display the residue's rings as filled. Boolean value."
+        return self.cpp_res.ring_display()
+
+    @ring_display.setter
+    def ring_display(self, rd):
+        self.cpp_res.set_ring_display(rd)
+
+    @property
+    def ring_color(self):
+        "Ring color RGBA length 4 sequence/array. Values in range 0-255"
+        color = self.cpp_res.ring_color()
+        return array([color.r, color.g, color.b, color.a])
+
+    @ring_color.setter
+    @cython.boundscheck(False)  # turn off bounds checking
+    @cython.wraparound(False)  # turn off negative index wrapping
+    def ring_color(self, rgba):
+        if len(rgba) != 4:
+            raise ValueError("Residue.ring_color = rgba: 'rgba' must be length 4")
+        self.cpp_res.set_ring_color(rgba[0], rgba[1], rgba[2], rgba[3])
+
+    @property
+    def thin_rings(self):
+        "Whether to display the residue's rings as filled. Boolean value."
+        return self.cpp_res.thin_rings()
+
+    @thin_rings.setter
+    def thin_rings(self, rd):
+        self.cpp_res.set_thin_rings(rd)
+
+    @property
     def session(self):
         return self.structure.session
 

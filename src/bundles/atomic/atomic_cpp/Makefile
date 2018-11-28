@@ -62,7 +62,7 @@ ifeq ($(OS),Darwin)
 endif
 
 clean:
-	rm -rf __pycache__ $(OBJS) $(SHLIB) cymol.$(PYMOD_EXT) lib include data
+	rm -rf __pycache__ $(OBJS) $(SHLIB) cymol.cpp cymol.$(PYMOD_EXT) lib include data
 ifdef WIN32
 	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
 endif

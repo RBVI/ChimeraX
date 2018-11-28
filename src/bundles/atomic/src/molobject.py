@@ -455,7 +455,8 @@ class PseudobondGroupData:
     _RIBBON_CHANGE = 0x8
     _ADDDEL_CHANGE = 0x10
     _DISPLAY_CHANGE = 0x20
-    _ALL_CHANGE = 0x2f
+    _RING_CHANGE = 0x40
+    _ALL_CHANGE = 0x6f  # not _ADDDEL_CHANGE
     _graphics_changed = c_property('pseudobond_group_graphics_change', int32)
 
 
@@ -1307,6 +1308,8 @@ class StructureData:
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     RIBBON_MODE_WRAP = 2
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
+    ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
+        doc = "Return number of residues with ring display set. Integer.")
 
     def ribbon_orients(self, residues=None):
         '''Return array of orientation values for given residues.'''
@@ -1629,7 +1632,8 @@ class StructureData:
     _RIBBON_CHANGE = 0x8
     _ADDDEL_CHANGE = 0x10
     _DISPLAY_CHANGE = 0x20
-    _ALL_CHANGE = 0x2f
+    _RING_CHANGE = 0x40
+    _ALL_CHANGE = 0x6f  # not _ADDDEL_CHANGE
     _graphics_changed = c_property('structure_graphics_change', int32)
 
 # -----------------------------------------------------------------------------
