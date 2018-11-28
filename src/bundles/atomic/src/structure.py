@@ -264,7 +264,9 @@ class Structure(Model, StructureData):
 
     def _set_single_color(self, color):
         self.atoms.colors = color
-        self.residues.ribbon_colors = color
+        residues = self.residues
+        residues.ribbon_colors = color
+        residues.ring_colors = color
 
     single_color = property(_get_single_color, _set_single_color)
 
@@ -2268,7 +2270,7 @@ class AtomicStructure(Structure):
             lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
             from .colors import chain_colors, element_colors
             residues = self.residues
-            residues.ribbon_colors = chain_colors(residues.chain_ids)
+            residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
             atoms.colors = chain_colors(atoms.residues.chain_ids)
             from .molobject import Atom
             ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
