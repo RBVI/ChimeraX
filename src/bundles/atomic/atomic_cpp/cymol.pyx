@@ -866,6 +866,30 @@ cdef class CyResidue:
         "Supported API. Integer sequence position number from input data file. Read only."
         return self.cpp_res.number()
 
+    @property
+    def phi(self):
+        '''Supported API. Get/set phi angle.  If not an amino acid (or missing needed backbone atoms),
+           setting is a no-op and getting returns None.'''
+        n = self.find_atom("N")
+        if n is None:
+            return None
+        ca = self.find_atom("CA")
+        if ca is None:
+            return None
+        c = self.find_atom("C")
+        if c is None:
+            return None
+        for nb in n.neighbors:
+            if nb.residue == self:
+                continue
+            if nb.name == "C":
+                prev_c = nb
+                break
+        else:
+            return None
+        from chimerax.core.geometry import dihedral
+        return dihedral(prev_c.coord, n.coord, ca.coord, c.coord)
+
     PT_NONE, PT_AMINO, PT_NUCLEIC = range(3)
     @property
     def polymer_type(self):
