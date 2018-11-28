@@ -55,7 +55,7 @@ def show(session, objects=None, what=None, target=None, only=False, thin_rings=F
 def what_objects(target, what, objects):
     what_to_show = set() if target is None else set(target)
     if what is not None:
-        what_to_show.update([what])
+        what_to_show.update(what)
     if len(what_to_show) == 0:
         if objects.atoms:
             what_to_show.add('atoms')
@@ -204,9 +204,9 @@ def show_rings(session, objects, only, thin_rings, undo_state):
         undo_state.add(other_res, "ribbon_displays", other_res.ribbon_displays, False)
         other_res.ribbon_displays = False
 
-from chimerax.core.commands import EnumOf, Annotation
-WhatArg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons',
-                  'surfaces', 'models', 'rings'))
+from chimerax.core.commands import ListOf, EnumOf, Annotation
+WhatArg = ListOf(EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons',
+                  'surfaces', 'models', 'rings')))
 
 class TargetArg(Annotation):
     '''
