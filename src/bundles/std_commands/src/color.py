@@ -133,7 +133,7 @@ def color(session, objects, color=None, what=None, target=None,
         _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state)
         items.append('%d residues' % len(residues))
 
-    if 'f' in target:
+    if 'f' in target and color is not None:
         if residues is None:
             residues = atoms.unique_residues
         _set_ring_colors(residues, color, opacity, bgcolor, undo_state)
