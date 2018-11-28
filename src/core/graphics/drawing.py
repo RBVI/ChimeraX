@@ -248,9 +248,11 @@ class Drawing:
             dlist.extend(d.all_drawings(displayed_only))
         return dlist
 
-    def new_drawing(self, name):
+    def new_drawing(self, name, *, subclass=None):
         '''Create a new empty child drawing.'''
-        d = Drawing(name)
+        if subclass is None:
+            subclass = Drawing
+        d = subclass(name)
         self.add_drawing(d)
         return d
 
