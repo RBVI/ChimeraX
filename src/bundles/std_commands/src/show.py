@@ -201,8 +201,8 @@ def show_rings(session, objects, only, thin_rings, undo_state):
     if only:
         from chimerax.atomic import structure_residues
         other_res = structure_residues(atoms.unique_structures) - res
-        undo_state.add(other_res, "ribbon_displays", other_res.ribbon_displays, False)
-        other_res.ribbon_displays = False
+        undo_state.add(other_res, "ring_displays", other_res.ring_displays, False)
+        other_res.ring_displays = False
 
 from chimerax.core.commands import ListOf, EnumOf, Annotation
 WhatArg = ListOf(EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons',
