@@ -226,17 +226,17 @@ offset_fill(float offset, VertexList* vertices, VertexList* normals, IndexList* 
     // copy and permute vertices, and copy and invert normals
     // to make opposite facing triangles
     auto size = vertices->size();
+    auto base_coord = size / 3;
     for (auto i = 0u; i < size; ++i) {
 	vertices->push_back((*vertices)[i]);
 	normals->push_back(-(*normals)[i]);
     }
     // make new triangles, and permute indices to maintain handedness
-    auto base_coord = size / 3;
     auto num_indices = triangles->size();
     for (auto i = 0u; i < num_indices; i += 3) {
-	triangles->push_back(base_coord + i + 1);
-	triangles->push_back(base_coord + i + 0);
-	triangles->push_back(base_coord + i + 2);
+	triangles->push_back(base_coord + (*triangles)[i + 1]);
+	triangles->push_back(base_coord + (*triangles)[i + 0]);
+	triangles->push_back(base_coord + (*triangles)[i + 2]);
     }
 
     // offset vertices
@@ -451,13 +451,11 @@ fill_6ring(const Vector* pts, float offset, size_t anchor, VertexList* vertices,
     for (auto i = 0; i < 4; ++i)
 	add_triangle(pts[t[i][0]], pts[t[i][1]], pts[t[i][2]], 
 		     vertices, normals, triangles);
-#if 0
     if (thick) {
-	add_quad(t[][], t[][], t[][], t[][], indices);
-	add_quad(t[][], t[][], t[][], t[][], indices);
-	add_quad(t[][], t[][], t[][], t[][], indices);
+	add_quad(0, 1, 7, 8, triangles);
+	add_quad(6, 7, 11, 9, triangles);
+	add_quad(9, 10, 5, 3, triangles);
     }
-#endif
 
     if (thick)
 	offset_fill(offset, vertices, normals, triangles);
