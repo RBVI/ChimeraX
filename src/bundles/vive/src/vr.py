@@ -326,8 +326,10 @@ class SteamVRCamera(Camera):
         x,y,z = tf.matrix[:,0]
         from math import sqrt
         s = 1/sqrt(x*x + y*y + z*z)
-        mpos.matrix[:3,:3] *= s
-        self._desktop_camera_position = mpos
+        m = mpos.matrix
+        m[:3,:3] *= s
+        from chimerax.core.geometry import Place
+        self._desktop_camera_position = Place(m)
     
     def _move_camera_in_room(self, position):
         '''Move camera to given scene position without changing scene position in room.'''
