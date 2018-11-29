@@ -61,7 +61,8 @@ Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int n
     _mmcif_chain_id(chain), _name(name), _polymer_type(PT_NONE),
     _number(num), _ribbon_adjust(-1.0), _ribbon_display(false),
     _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
-    _ss_id(-1), _ss_type(SS_COIL), _structure(as)
+    _ss_id(-1), _ss_type(SS_COIL), _structure(as),
+    _ring_display(false), _rings_are_thin(false)
 {
     change_tracker()->add_created(_structure, this);
 }
