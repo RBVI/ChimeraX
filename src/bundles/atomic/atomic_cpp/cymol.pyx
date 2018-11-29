@@ -890,6 +890,56 @@ cdef class CyResidue:
         from chimerax.core.geometry import dihedral
         return dihedral(prev_c.coord, n.coord, ca.coord, c.coord)
 
+    @phi.setter
+    def phi(self, val):
+        cur_phi = self.phi
+        if cur_phi is None:
+            return
+        n = self.find_atom("N")
+        ca = self.find_atom("CA")
+        try:
+            i = n.neighbors.index(ca)
+        except IndexError:
+            return
+        _set_angle(self.session, n, n.bonds[i], val, cur_phi, "phi")
+
+    @property
+    def psi(self):
+        '''Supported API. Get/set psi angle.  If not an amino acid (or missing needed backbone atoms),
+           setting is a no-op and getting returns None.'''
+        n = self.find_atom("N")
+        if n is None:
+            return None
+        ca = self.find_atom("CA")
+        if ca is None:
+            return None
+        c = self.find_atom("C")
+        if c is None:
+            return None
+        for nb in c.neighbors:
+            if nb.residue == self:
+                continue
+            if nb.name == "N":
+                next_n = nb
+                break
+        else:
+            return None
+        from chimerax.core.geometry import dihedral
+        return dihedral(n.coord, ca.coord, c.coord, next_n.coord)
+
+    @psi.setter
+    def psi(self, val):
+        cur_psi = self.psi
+        if cur_psi is None:
+            return
+        ca = self.find_atom("CA")
+        c = self.find_atom("C")
+        try:
+            i = ca.neighbors.index(c)
+        except IndexError:
+            return
+        _set_angle(self.session, ca, ca.bonds[i], val, cur_psi, "psi")
+
     PT_NONE, PT_AMINO, PT_NUCLEIC = range(3)
     @property
     def polymer_type(self):
@@ -1104,4 +1154,13 @@ cdef class CyResidue:
     @staticmethod
     def set_templates_dir(tmpl_dir):
         cydecl.Residue.set_templates_dir(tmpl_dir.encode())
+
+def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name):
+    br = session.bond_rotations.new_rotation(bond)
+    if bond.smaller_side == torsion_atom2:
+        br.angle += new_angle - cur_angle
+    else:
+        br.angle -= new_angle - cur_angle
+    res = bond.atoms[0].residue
+    res.structure.change_tracker.add_modified(res, attr_name + " changed")
 
