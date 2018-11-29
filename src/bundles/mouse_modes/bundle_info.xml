@@ -26,6 +26,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: ui mousemode :: User interface :: set/list mouse modes</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Command :: mousemode :: User interface :: set/list mouse modes</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Mouse Modes for Right Button :: Toolbar :: Choose mouse right button mode</ChimeraXClassifier>
   </Classifiers>
 

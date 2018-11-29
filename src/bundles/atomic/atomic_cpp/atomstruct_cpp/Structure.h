@@ -68,6 +68,7 @@ public:
       RIBBON_CHANGE = (1 << 3),
       ADDDEL_CHANGE = (1 << 4),
       DISPLAY_CHANGE = (1 << 5),
+      RING_CHANGE = (1 << 6),
     };
 
     GraphicsChanges(): _gc_changes(0) {}
@@ -78,6 +79,7 @@ public:
     virtual void  set_gc_select() { set_graphics_change(SELECT_CHANGE); }
     virtual void  set_gc_shape() { set_graphics_change(SHAPE_CHANGE); }
     virtual void  set_gc_ribbon() { set_graphics_change(RIBBON_CHANGE); }
+    virtual void  set_gc_ring() { set_graphics_change(RING_CHANGE); }
     virtual void  set_gc_adddel() { set_graphics_change(ADDDEL_CHANGE); }
     virtual void  set_gc_display() { set_graphics_change(DISPLAY_CHANGE); }
     virtual void  set_graphics_changes(int change) { _gc_changes = change; }
@@ -149,6 +151,7 @@ protected:
     float  _ribbon_tether_scale = 1.0;
     TetherShape  _ribbon_tether_shape = RIBBON_TETHER_CONE;
     int  _ribbon_tether_sides = 4;
+    int _ring_display_count = 0;
     mutable Rings  _rings;
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
@@ -331,6 +334,9 @@ public:
     void  set_ribbon_orientation(RibbonOrientation o);
     void  set_ribbon_mode_helix(RibbonMode m);
     void  set_ribbon_mode_strand(RibbonMode m);
+
+    // filled ring stuff
+    int  ring_display_count() const { return _ring_display_count; }
 
     // graphics changes including pseudobond group changes.
     int   get_all_graphics_changes() const;

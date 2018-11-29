@@ -82,6 +82,9 @@ private:
     int  _ss_id;
     SSType _ss_type;
     Structure *  _structure;
+    bool  _ring_display;
+    bool  _rings_are_thin;
+    Rgba  _ring_rgba;
 public:
     void  add_atom(Atom*);
     const Atoms&  atoms() const { return _atoms; }
@@ -167,6 +170,16 @@ public:
     void  set_ribbon_hide_backbone(bool d);
     void  set_ribbon_selected(bool s);
     void  ribbon_clear_hide();
+
+    const Rgba&  ring_color() const { return _ring_rgba; }
+    bool  ring_display() const { return _ring_display; }
+    bool  thin_rings() const { return _rings_are_thin; }
+    void  set_ring_color(const Rgba& rgba);
+    void  set_ring_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
+        set_ring_color(Rgba({r, g, b, a}));
+    }
+    void  set_ring_display(bool d);
+    void  set_thin_rings(bool d);
 };
 
 }  // namespace atomstruct
@@ -308,6 +321,39 @@ Residue::set_ribbon_hide_backbone(bool d) {
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_HIDE_BACKBONE);
     _structure->set_gc_ribbon();
     _ribbon_hide_backbone = d;
+}
+
+inline void
+Residue::set_ring_color(const Rgba& rgba) {
+    if (rgba == _ring_rgba)
+        return;
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RING_COLOR);
+    _structure->set_gc_ring();
+    _ring_rgba = rgba;
+}
+
+inline void
+Residue::set_ring_display(bool d) {
+    if (d == _ring_display)
+        return;
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RING_DISPLAY);
+    _structure->set_gc_ring();
+    _ring_display = d;
+    if (d)
+        _structure->_ring_display_count += 1;
+    else {
+        _structure->_ring_display_count -= 1;
+    }
+}
+
+inline void
+Residue::set_thin_rings(bool thin)
+{
+    if (thin == _rings_are_thin)
+        return;
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RING_MODE);
+    _structure->set_gc_ring();
+    _rings_are_thin = thin;
 }
 
 inline int

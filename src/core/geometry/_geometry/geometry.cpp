@@ -25,6 +25,7 @@
 #include "transform.h"			// use affine_transform_vertices, ...
 #include "vector_ops.h"			// use inner_product_64
 #include "matrix.h"		        // defines look_at
+#include "fill_ring.h"		        // defines fill_small_ring and fill_6ring
 
 namespace Geometry_Cpp
 {
@@ -107,6 +108,13 @@ static struct PyMethodDef geometry_cpp_methods[] =
   /* vector_ops.h */
   {const_cast<char*>("inner_product_64"), (PyCFunction)inner_product_64,
    METH_VARARGS|METH_KEYWORDS, inner_product_64_doc},
+
+  /* fill_ring.h */
+  // defines fill_small_ring and fill_6ring
+  {const_cast<char*>("fill_small_ring"), (PyCFunction)fill_small_ring,
+   METH_VARARGS|METH_KEYWORDS, fill_small_ring_doc},
+  {const_cast<char*>("fill_6ring"), (PyCFunction)fill_6ring,
+   METH_VARARGS|METH_KEYWORDS, fill_6ring_doc},
 
   {NULL, NULL, 0, NULL}
 };

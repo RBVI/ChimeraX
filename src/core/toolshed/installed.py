@@ -57,7 +57,7 @@ class InstalledBundleCache(list):
         # The ordering of the bundles is important because we want
         # to call the initialize() method in the correct order.
         #
-        self.extend(self._order_bundles(dist_bundle_map))
+        self.extend(self._order_bundles(dist_bundle_map, logger))
 
         #
         # Save all our hard work
@@ -215,7 +215,7 @@ class InstalledBundleCache(list):
             self._help_directories = hd
         return self._help_directories
 
-    def _order_bundles(self, dist_bundle_map):
+    def _order_bundles(self, dist_bundle_map, logger):
         # First we build a list of distribution names that
         # map to bundles.  This is so we can ignore dependencies
         # that are not bundles.
