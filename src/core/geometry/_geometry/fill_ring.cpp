@@ -18,7 +18,7 @@ static const size_t Z = 2;
 static const size_t D = 3;
 
 // Note that Vector is a typedef of an array, which is not a first-class type
-// so modifyable Vector arguments are missing the & that a class instance
+// so modifiable Vector arguments are missing the & that a class instance
 // would have.
 typedef float Vector[3];
 typedef Vector Point;
@@ -31,7 +31,7 @@ vzero(Vector v)
 }
 
 inline float 
-vnorm(Vector v)
+vnorm(const Vector v)
 {
     return sqrtf(v[X] * v[X] + v[Y] * v[Y] + v[Z] * v[Z]);
 }
@@ -110,9 +110,9 @@ void
 add_triangle(const Vector v0, const Vector v1, const Vector v2, VertexList *vertices, VertexList* normals, IndexList *indices)
 {
     Vector d0, d1, n;
-    vsubtract(d0, v1, v0);
-    vsubtract(d1, v1, v2);
-    vcross(n, d0, d1);
+    vsubtract(d0, v0, v1);
+    vsubtract(d1, v2, v1);
+    vcross(n, d1, d0);
     float len = vnorm(n);
     if (len < 1e-6) {
 	// skip degenerate triangle
@@ -201,32 +201,38 @@ Plane::Plane(const Vector* verts, Py_ssize_t nverts)
 } // namespace
 
 static void
-finish_fill(float offset, VertexList* vertices, VertexList* normals, IndexList* triangles)
+offset_fill(float offset, VertexList* vertices, VertexList* normals, IndexList* triangles)
 {
     // Double number of triangles and move vertices by offset along the normal.
     // If offset is greater than zero, it forms a thick filling.
+    // TODO: offset introduces gaps between triangles where there are creases
+    // need to add cylinder or triangles
 
     // copy and permute vertices, and copy and invert normals
     // to make opposite facing triangles
-    auto count = vertices->size();
-    for (auto i = 0u; i < count; i += 3) {
-	vertices->push_back((*vertices)[i + 1]);
-	vertices->push_back((*vertices)[i + 0]);
-	vertices->push_back((*vertices)[i + 2]);
+    auto num_coords = vertices->size() / 3;
+    Vector* coords = reinterpret_cast<Vector*>(vertices->data());
+    Normal* norms = reinterpret_cast<Normal*>(normals->data());
+    for (auto i = 0u; i < num_coords; i += 3) {
+	push_vector(vertices, coords[i + 1]);
+	push_vector(vertices, coords[i + 0]);
+	push_vector(vertices, coords[i + 2]);
 	// one normal per-triangle
-	normals->push_back(-(*normals)[i]);
-	normals->push_back(-(*normals)[i]);
-	normals->push_back(-(*normals)[i]);
+	Normal n;
+	n[X] = -norms[i][X];
+	n[Y] = -norms[i][Y];
+	n[Z] = -norms[i][Z];
+	push_vector(normals, n);
+	push_vector(normals, n);
+	push_vector(normals, n);
     }
     // make new triangles
-    auto base = count / 3;
+    auto base = num_coords;
     for (auto i = 0u; i < base; ++i)
 	triangles->push_back(base + i);
 
-    if (offset == 0)
-	return;
-
     // offset vertices
+    auto count = vertices->size();
     for (auto i = 0u; i < count; ++i) {
 	(*vertices)[i] = (*vertices)[i] + offset * (*normals)[i];
     }
@@ -238,17 +244,18 @@ fill_small_ring(const Vector* pts, Py_ssize_t n, float offset, VertexList* verti
     // normals are per-vertex in ChimeraX so replicate vertex for each triangle it is in
 
     // 3-, 4-, and 5- membered rings
+    unsigned twice = (offset > 0) ? 2 : 1;
     switch (n) {
       case 3: {
-	triangles->reserve(1 * 3 * 2);  // 1 triangles with 3 indices, double-sided
-	vertices->reserve(3 * 3 * 2);	// 3 vertices with xyz values, doubled
-	normals->reserve(3 * 3 * 2);	// 3 normals with xyz values, doubled
+	triangles->reserve(1 * 3 * twice);	// 1 triangles with 3 indices
+	vertices->reserve(3 * 3 * twice);	// 3 vertices with xyz values
+	normals->reserve(3 * 3 * twice);	// 3 normals with xyz values
 	add_triangle(pts[0], pts[1], pts[2], vertices, normals, triangles);
 	break;
       }
       case 4: {
-	triangles->reserve(2 * 3 * 2);
-	vertices->reserve(6 * 3 * 2);
+	triangles->reserve(2 * 3 * twice);
+	vertices->reserve(6 * 3 * twice);
 	Vector pa, pb;
 	pa[0] = pts[2][X] - pts[0][X];
 	pa[1] = pts[2][Y] - pts[0][Y];
@@ -285,9 +292,9 @@ fill_small_ring(const Vector* pts, Py_ssize_t n, float offset, VertexList* verti
 	//   fill the ring (i.e., every two adjacent atoms and the projected
 	//   point).  Two of the triangles will form the plane and the other
 	//   three will accent the twist.
-	triangles->reserve(5 * 3 * 2);	// 5 triangles with 3 indices each, double-sided
-	vertices->reserve(15 * 3 * 2);	// 15 vertices with xyz values, doubled
-	normals->reserve(15 * 3 * 2);	// 15 normals with xyz values, doubled
+	triangles->reserve(5 * 3 * twice);	// 5 triangles with 3 indices each
+	vertices->reserve(15 * 3 * twice);	// 15 vertices with xyz values
+	normals->reserve(15 * 3 * twice);	// 15 normals with xyz values
 
 	static const float PLANAR_CUTOFF = 0.1f;
 	static const float ENVELOPE_RATIO = 3.0f;
@@ -344,59 +351,65 @@ fill_small_ring(const Vector* pts, Py_ssize_t n, float offset, VertexList* verti
       }
     }
 
-    finish_fill(offset, vertices, normals, triangles);
+    if (offset > 0)
+	offset_fill(offset, vertices, normals, triangles);
 }
 
 void
 fill_6ring(const Vector* pts, float offset, size_t anchor, VertexList* vertices, VertexList* normals, IndexList* triangles)
 {
-	/* 6-membered rings
-	 *
-	 * Try to pick a triangulation that would show chair/boat confirmations.
-	 * Start by selecting outside triangle (0), and making the opposite
-	 * size a triangle too (1).  And triangulate the middle quad (2) and
-	 * (3).  So each area has it's own normal.
-	 *
-	 *    /\
-	 *   /0 \
-	 *  +----+
-	 *  |2  /|
-	 *  |  / |
-	 *  | /  |
-	 *  |/  3|
-	 *  +----+
-	 *   \1 /
-	 *    \/
-	 *
-	 * Selecting triangle (0) can be done in many ways.  
-	 */
+    /* 6-membered rings
+     *
+     * Try to pick a triangulation that would show chair/boat confirmations.
+     * Start by selecting outside triangle (0), and making the opposite
+     * size a triangle too (1).  And triangulate the middle quad (2) and
+     * (3).  So each area has it's own normal.
+     *
+     *    /\
+     *   /0 \
+     *  +----+
+     *  |2  /|
+     *  |  / |
+     *  | /  |
+     *  |/  3|
+     *  +----+
+     *   \1 /
+     *    \/
+     *
+     * Selecting triangle (0) can be done in many ways.  
+     */
 
-	// assemble the 4 triangles in the diagram
-	size_t t[4][3];
-	t[0][0] = (anchor + 5) % 6;
-	t[0][1] = anchor;
-	t[0][2] = (anchor + 1) % 6;
-	if (anchor < 3)
-		anchor += 3;
-	else
-		anchor -= 3;
-	t[1][0] = (anchor + 5) % 6;
-	t[1][1] = anchor;
-	t[1][2] = (anchor + 1) % 6;
+    // assemble the 4 triangles in the diagram
+    size_t t[4][3];
+    t[0][0] = (anchor + 5) % 6;
+    t[0][1] = (anchor + 1) % 6;
+    t[0][2] = anchor;
+    if (anchor < 3)
+	anchor += 3;
+    else
+	anchor -= 3;
+    t[1][0] = (anchor + 1) % 6;
+    t[1][1] = anchor;
+    t[1][2] = (anchor + 5) % 6;
 
-	t[2][0] = t[0][0];
-	t[2][1] = t[0][2];
-	t[2][2] = t[1][2];
+    t[2][0] = t[0][0];
+    t[2][1] = t[1][0];
+    t[2][2] = t[0][1];
 
-	t[3][0] = t[1][0];
-	t[3][1] = t[1][2];
-	t[3][2] = t[0][2];
+    t[3][0] = t[1][0];
+    t[3][1] = t[1][2];
+    t[3][2] = t[0][1];
 
-	for (auto i = 0; i < 4; ++i)
-	    add_triangle(pts[t[i][0]], pts[t[i][1]], pts[t[i][2]], 
-			 vertices, normals, triangles);
+    unsigned twice = (offset > 0) ? 2 : 1;
+    triangles->reserve(4 * 3 * twice);	// 4 triangles with 3 indices each
+    vertices->reserve(12 * 3 * twice);	// 12 vertices with xyz values
+    normals->reserve(12 * 3 * twice);	// 12 normals with xyz values
+    for (auto i = 0; i < 4; ++i)
+	add_triangle(pts[t[i][0]], pts[t[i][1]], pts[t[i][2]], 
+		     vertices, normals, triangles);
 
-	finish_fill(offset, vertices, normals, triangles);
+    if (offset > 0)
+	offset_fill(offset, vertices, normals, triangles);
 }
 
 const char *fill_small_ring_doc = 
@@ -438,7 +451,7 @@ fill_small_ring(PyObject *, PyObject *args, PyObject *keywds)
     IndexList triangles;
     Py_BEGIN_ALLOW_THREADS
     fill_small_ring(reinterpret_cast<const Vector*>(cvertices_in.values()),
-	    cvertices_in.size(), offset, &vertices, &normals, &triangles);
+	    cvertices_in.size() / 3, offset, &vertices, &normals, &triangles);
     Py_END_ALLOW_THREADS
 
     return python_tuple(
