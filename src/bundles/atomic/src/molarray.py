@@ -1074,6 +1074,16 @@ class Residues(Collection):
     ribbon_hide_backbones = cvec_property('residue_ribbon_hide_backbone', npy_bool, doc =
     '''A :mod:`numpy` array of booleans. Whether a ribbon automatically hides
     the residue backbone atoms.''')
+    ring_displays = cvec_property('residue_ring_display', npy_bool, doc =
+    '''A numpy bool array whether to fill rings in each residue.''')
+    ring_colors = cvec_property('residue_ring_color', uint8, 4, doc =
+    '''
+    A :mod:`numpy` Nx4 array of uint8 RGBA values.  Can be
+    set with such an array (or equivalent sequence), or with a single
+    RGBA value.
+    ''')
+    thin_rings = cvec_property('residue_thin_rings', npy_bool, doc =
+    '''A numpy bool array whether to filled rings are thin in each residue.''')
     secondary_structure_ids = cvec_property('residue_secondary_structure_id', int32,
         read_only = True, doc =
     '''

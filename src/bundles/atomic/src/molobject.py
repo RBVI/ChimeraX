@@ -455,7 +455,8 @@ class PseudobondGroupData:
     _RIBBON_CHANGE = 0x8
     _ADDDEL_CHANGE = 0x10
     _DISPLAY_CHANGE = 0x20
-    _ALL_CHANGE = 0x2f
+    _RING_CHANGE = 0x40
+    _ALL_CHANGE = 0x6f  # not _ADDDEL_CHANGE
     _graphics_changed = c_property('pseudobond_group_graphics_change', int32)
 
 
@@ -698,6 +699,11 @@ class Sequence(State):
     amino3to1 = protein3to1
     rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
         ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
+
+    protein1to3 = { 'A':'ALA', 'B':'ASX', 'C':'CYS', 'D':'ASP', 'E':'GLU', 'F':'PHE',
+        'G':'GLY', 'H':'HIS', 'I':'ILE', 'K':'LYS', 'L':'LEU', 'M':'MET', 'N':'ASN',
+        'O':'HYP', 'P':'PRO', 'Q':'GLN', 'R':'ARG', 'S':'SER', 'T':'THR', 'V':'VAL',
+        'W':'TRP', 'Y':'TYR', 'Z':'GLX' }
 
     # the following colors for use by alignment/sequence viewers
     default_helix_fill_color = (1.0, 1.0, 0.8)
@@ -1307,6 +1313,8 @@ class StructureData:
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     RIBBON_MODE_WRAP = 2
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
+    ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
+        doc = "Return number of residues with ring display set. Integer.")
 
     def ribbon_orients(self, residues=None):
         '''Return array of orientation values for given residues.'''
@@ -1629,7 +1637,8 @@ class StructureData:
     _RIBBON_CHANGE = 0x8
     _ADDDEL_CHANGE = 0x10
     _DISPLAY_CHANGE = 0x20
-    _ALL_CHANGE = 0x2f
+    _RING_CHANGE = 0x40
+    _ALL_CHANGE = 0x6f  # not _ADDDEL_CHANGE
     _graphics_changed = c_property('structure_graphics_change', int32)
 
 # -----------------------------------------------------------------------------

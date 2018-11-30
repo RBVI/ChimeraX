@@ -16,6 +16,9 @@
 #ifndef atomstruct_session
 #define atomstruct_session
 
-#define CURRENT_SESSION_VERSION 14
+// Each class's SESSION_NUM... methods yield the number of those types that don't vary on
+// a per-instance basis and are directly saved/restored by that class and not by a contained
+// class such as Rgba.
+#define CURRENT_SESSION_VERSION 15
 
 #endif  // atomstruct_session

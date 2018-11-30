@@ -269,7 +269,7 @@ class MouseModes:
             ('left', ['control', 'shift'], 'select toggle'),
             ('left', [], 'rotate'),
             ('middle', [], 'translate'),
-            ('right', [], 'zoom'),
+            ('right', [], 'translate'),
             ('right', ['shift'], 'pivot'),
             ('wheel', [], 'zoom'),
             ('pause', [], 'identify object'),
@@ -441,7 +441,7 @@ class MouseModes:
         self.trackpad.set_graphics_window(gw)
 
     def _wheel_event(self, event):
-        if self.trackpad.is_trackpad_wheel_event(event):
+        if self.trackpad.discard_trackpad_wheel_event(event):
             return	# Trackpad processing handled this event
         f = self.mode('wheel', self._key_modifiers(event))
         if f:

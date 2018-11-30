@@ -104,6 +104,9 @@ public:
     static const std::string  REASON_RIBBON_TETHER;
     static const std::string  REASON_RIBBON_ORIENTATION;
     static const std::string  REASON_RIBBON_MODE;
+    static const std::string  REASON_RING_COLOR;
+    static const std::string  REASON_RING_DISPLAY;
+    static const std::string  REASON_RING_MODE;
     static const std::string  REASON_SELECTED;
     static const std::string  REASON_SEQUENCE;
     static const std::string  REASON_SERIAL_NUMBER;

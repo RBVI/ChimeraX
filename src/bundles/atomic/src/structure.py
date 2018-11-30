@@ -60,6 +60,7 @@ class Structure(Model, StructureData):
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         self._ribbon_spline_backbone = {}     # backbone atom positions on ribbon
+        self._ring_drawing = None
 
         self._ses_handlers = []
         t = self.session.triggers
@@ -191,7 +192,7 @@ class Structure(Model, StructureData):
 
         # TODO: For some reason ribbon drawing does not update automatically.
         # TODO: Also marker atoms do not draw without this.
-        self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
+        self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE | self._RING_CHANGE)
 
         from .molobject import set_custom_attrs
         set_custom_attrs(self, data)
@@ -263,7 +264,9 @@ class Structure(Model, StructureData):
 
     def _set_single_color(self, color):
         self.atoms.colors = color
-        self.residues.ribbon_colors = color
+        residues = self.residues
+        residues.ribbon_colors = color
+        residues.ring_colors = color
 
     single_color = property(_get_single_color, _set_single_color)
 
@@ -304,6 +307,9 @@ class Structure(Model, StructureData):
             self._create_ribbon_graphics()
             # Displaying ribbon can set backbone atom hide bits producing shape change.
             gc |= self._graphics_changed
+
+        if gc & self._RING_CHANGE:
+            self._create_ring_graphics()
 
         # Update graphics
         self._graphics_changed = 0
@@ -422,6 +428,81 @@ class Structure(Model, StructureData):
 
         if need_update:
             self._cpp_notify_position(self.scene_position)
+
+    def _create_ring_graphics(self):
+        p = self._ring_drawing
+        if p is not None:
+            self.remove_drawing(p)
+            self._ring_drawing = None
+        if self.ring_display_count == 0:
+            return
+
+        from .shapedrawing import AtomicShapeDrawing
+        self._ring_drawing = p = self.new_drawing('rings', subclass=AtomicShapeDrawing)
+
+        # TODO:
+        #   find all residue rings
+        #   limit to 3, 4, 5 and 6 member rings
+        #   check if all atoms are shown (displayed and not hidden)
+        #   if thin, will only use one two-sided fill
+        #   if thick, use stick radius to separate fills
+        ring_count = 0
+        all_rings = self.rings(all_size_threshold=6)
+        for ring in all_rings:
+            atoms = ring.ordered_atoms
+            residue = atoms[0].residue
+            if not residue.ring_display or not all(atoms.visibles):
+                continue
+            ring_count += 1
+            if residue.thin_rings:
+                offset = 0
+            else:
+                offset = min(self._atom_display_radii(atoms))
+            if len(atoms) < 6:
+                self.fill_small_ring(atoms, offset, residue.ring_color)
+            else:
+                self.fill_6ring(atoms, offset, residue.ring_color)
+
+        if ring_count:
+            self._graphics_changed |= self._SHAPE_CHANGE
+
+    def fill_small_ring(self, atoms, offset, color):
+        # 3-, 4-, and 5- membered rings
+        from chimerax.core.geometry import fill_small_ring
+        vertices, normals, triangles = fill_small_ring(atoms.coords, offset)
+        self._ring_drawing.add_shape(vertices, normals, triangles, color, atoms)
+
+    def fill_6ring(self, atoms, offset, color):
+        # 6-membered rings
+        from chimerax.core.geometry import fill_6ring
+        # Picking the "best" orientation to show chair/boat configuration is hard
+        # so choose anchor the ring using atom nomenclature.
+        # Find index of atom with lowest element with lowest number (C1 < C6).
+        # Cheat and do lexicographical comparison of name.
+        # TODO: compare speed of algorithms
+        # Algorithm1:
+        # choices = [(a.element.number, a.name, i) for i, a in enumerate(atoms)]
+        # choices.sort()
+        # anchor = choices[0][2]
+        # Algorithm2:
+        # choices = zip(atoms.elements.numbers, atoms.names, range(len(atoms)))
+        # choices.sort()
+        # anchor = choices[0][2]
+        # Algorithm3:
+        anchor = 0
+        anchor_element = atoms[0].element.number
+        anchor_name = atoms[0].name
+        for i, a in enumerate(atoms[1:], 1):
+            e = a.element.number
+            if e > anchor_element:
+                continue
+            if e == anchor_element and a.name >= anchor_name:
+                continue
+            anchor = i
+            anchor_element = e
+            anchor_name = a.name
+        vertices, normals, triangles = fill_6ring(atoms.coords, offset, anchor)
+        self._ring_drawing.add_shape(vertices, normals, triangles, color, atoms)
 
     def _add_r2t(self, r, tr):
         try:
@@ -2105,12 +2186,15 @@ class AtomicStructure(Structure):
                 if len(set([s.name for s in sibs])) > 1:
                     # not an NMR ensemble
                     self._report_chain_descriptions(session)
+                    self._report_res_info(session)
                 else:
                     sibs.sort(key=lambda m: m.id)
                     if sibs[-1] == self:
                         self._report_ensemble_chain_descriptions(session, sibs)
+                        self._report_res_info(session)
             else:
                 self._report_chain_descriptions(session)
+                self._report_res_info(session)
             self._report_assemblies(session)
 
     def apply_auto_styling(self, set_lighting = False, style=None):
@@ -2185,7 +2269,7 @@ class AtomicStructure(Structure):
             lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
             from .colors import chain_colors, element_colors
             residues = self.residues
-            residues.ribbon_colors = chain_colors(residues.chain_ids)
+            residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
             atoms.colors = chain_colors(atoms.residues.chain_ids)
             from .molobject import Atom
             ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
@@ -2354,6 +2438,12 @@ class AtomicStructure(Structure):
                 chain.structure.id_string, chain.chain_id,
                 chain.structure.id_string, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text)
+
+    def _report_res_info(self, session):
+        if hasattr(self, 'get_formatted_res_info'):
+            res_info = self.get_formatted_res_info(standalone=True)
+            if res_info:
+                session.logger.info(res_info, is_html=True)
 
     def _report_chain_summary(self, session, descripts, chain_text):
         def descript_text(description, chains):

@@ -3263,6 +3263,63 @@ extern "C" EXPORT bool ring_less_than(void *ring, void *other)
     return lt;
 }
 
+extern "C" EXPORT void residue_ring_color(void *residues, size_t n, uint8_t *rgba)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Rgba &c = r[i]->ring_color();
+            *rgba++ = c.r;
+            *rgba++ = c.g;
+            *rgba++ = c.b;
+            *rgba++ = c.a;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_residue_ring_color(void *residues, size_t n, uint8_t *rgba)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        Rgba c;
+        for (size_t i = 0; i != n; ++i) {
+            c.r = *rgba++;
+            c.g = *rgba++;
+            c.b = *rgba++;
+            c.a = *rgba++;
+            r[i]->set_ring_color(c);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void residue_ring_display(void *residues, size_t n, npy_bool *ring_display)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::ring_display, ring_display);
+}
+
+extern "C" EXPORT void set_residue_ring_display(void *residues, size_t n, npy_bool *ring_display)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_ring_display, ring_display);
+}
+
+extern "C" EXPORT void residue_thin_rings(void *residues, size_t n, npy_bool *thin_rings)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::thin_rings, thin_rings);
+}
+
+extern "C" EXPORT void set_residue_thin_rings(void *residues, size_t n, npy_bool *thin_rings)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_thin_rings, thin_rings);
+}
+
 
 // -------------------------------------------------------------------------
 // structure sequence functions
@@ -4384,6 +4441,12 @@ extern "C" EXPORT void structure_ribbon_display_count(void *mols, size_t n, int3
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ribbon_display_count, ribbon_display_count);
+}
+
+extern "C" EXPORT void structure_ring_display_count(void *mols, size_t n, int32_t *ring_display_count)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ring_display_count, ring_display_count);
 }
 
 extern "C" EXPORT void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)

@@ -368,9 +368,10 @@ def init(argv, event_loop=True):
         configinfo.only_use_defaults = True
 
     from chimerax import core
-    if not opts.gui and opts.offscreen:
+    if opts.offscreen:
         # Flag to configure off-screen rendering before PyOpenGL imported
         core.offscreen_rendering = True
+        opts.gui = False
 
     if not opts.gui and opts.load_tools:
         # only load tools if we have a GUI
