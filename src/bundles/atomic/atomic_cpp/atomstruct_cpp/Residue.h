@@ -61,7 +61,7 @@ private:
     friend class Bond;
 
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version < 6 ? 10 : (version < 10 ? 9 : (version < 14 ? 8 : 7));
+        return version < 6 ? 10 : (version < 10 ? 9 : (version < 14 ? 8 : (version < 15 ? 7 : 9)));
     }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 1; }
 
@@ -114,7 +114,7 @@ public:
         return SESSION_NUM_FLOATS(version) + Rgba::session_num_floats();
     }
     int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
-        return SESSION_NUM_INTS(version) + Rgba::session_num_ints() + atoms().size();
+        return SESSION_NUM_INTS(version) + (version < 15 ? 1 : 2) * Rgba::session_num_ints() + atoms().size();
     }
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
