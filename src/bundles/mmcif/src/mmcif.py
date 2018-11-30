@@ -105,6 +105,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         from weakref import proxy
         from types import MethodType
         model.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(model))
+        model.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(model))
         break
     return models, info
 
@@ -142,39 +143,7 @@ def _get_formatted_metadata(model, session, *, verbose=False):
             html += '  </tr>\n'
 
     # non-standard residues
-    nonstd_res_names = model.nonstandard_residue_names
-    if nonstd_res_names:
-        nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
-        chem_comp = get_mmcif_tables_from_metadata(model, ["chem_comp"])[0]
-        if chem_comp:
-            raw_rows = chem_comp.fields(['id', 'name', 'pdbx_synonyms'], allow_missing_fields=True)
-            for raw_row in raw_rows:
-                if raw_row[0] not in nonstd_info:
-                    continue
-                row = substitute_none_for_unspecified(raw_row)
-                if row[1] or row[2]:
-                    nonstd_info[row[0]] = (row[0], row[1], row[2])
-        def fmt_component(abbr, name, syns):
-            text = '<a href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
-            if name:
-                text += '<a href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
-                    process_chem_name(name))
-                if syns:
-                    text += " (%s)" % process_chem_name(syns)
-            else:
-                text += process_chem_name(syns)
-            return text
-        for i, info in enumerate(nonstd_info.values()):
-            abbr, name, synonyms = info
-            html += '  <tr>\n'
-            formatted = fmt_component(abbr, name, synonyms)
-            if i == 0:
-                if len(nonstd_info) > 1:
-                    html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(nonstd_info)
-                else:
-                    html += '   <th>Non-standard residue</th>\n'
-            html += '   <td>%s</td>\n' % formatted
-            html += '  </tr>\n'
+    html += model.get_formatted_res_info(standalone=False)
 
     # source
     nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"])
@@ -224,6 +193,58 @@ def _get_formatted_metadata(model, session, *, verbose=False):
     html += ' </tbody>\n'
     html += "</table>"
 
+    return html
+
+def _get_formatted_res_info(model, *, standalone=True):
+    from chimerax.atomic.pdb import process_chem_name
+    html = ""
+    nonstd_res_names = model.nonstandard_residue_names
+    if nonstd_res_names:
+        nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
+        chem_comp = get_mmcif_tables_from_metadata(model, ["chem_comp"])[0]
+        if chem_comp:
+            raw_rows = chem_comp.fields(['id', 'name', 'pdbx_synonyms'], allow_missing_fields=True)
+            for raw_row in raw_rows:
+                if raw_row[0] not in nonstd_info:
+                    continue
+                row = substitute_none_for_unspecified(raw_row)
+                if row[1] or row[2]:
+                    nonstd_info[row[0]] = (row[0], row[1], row[2])
+        def fmt_component(abbr, name, syns):
+            text = '<a href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
+            if name:
+                text += '<a href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
+                    process_chem_name(name))
+                if syns:
+                    text += " (%s)" % process_chem_name(syns)
+            else:
+                text += process_chem_name(syns)
+            return text
+        if standalone:
+            from chimerax.core.logger import html_table_params
+            html = "<table %s>\n" % html_table_params
+            html += ' <thead>\n'
+            html += '  <tr>\n'
+            html += '   <th>Non-standard residues in %s</th>\n' % model
+            html += '  </tr>\n'
+            html += ' </thead>\n'
+            html += ' <tbody>\n'
+
+        for i, info in enumerate(nonstd_info.values()):
+            abbr, name, synonyms = info
+            html += '  <tr>\n'
+            formatted = fmt_component(abbr, name, synonyms)
+            if i == 0 and not standalone:
+                if len(nonstd_info) > 1:
+                    html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(nonstd_info)
+                else:
+                    html += '   <th>Non-standard residue</th>\n'
+            html += '   <td>%s</td>\n' % formatted
+            html += '  </tr>\n'
+
+        if standalone:
+            html += ' </tbody>\n'
+            html += "</table>"
     return html
 
 def _process_src(src, caption, field_names):

@@ -141,8 +141,7 @@ class SettingsPanelBase(QWidget):
         bc_layout.setContentsMargins(0, 0, 0, 0)
         bc_layout.setVerticalSpacing(5)
         if multicategory:
-            self.current_check = QCheckBox("%s below apply to current section only"
-                % ("Buttons" if help_cb is None else "Non-help buttons"))
+            self.current_check = QCheckBox("Buttons below apply to current section only")
             self.current_check.setToolTip("If checked, buttons only affect current section")
             self.current_check.setChecked(True)
             from .. import shrink_font
@@ -162,9 +161,10 @@ class SettingsPanelBase(QWidget):
         restore_button.setToolTip("Restore from saved defaults")
         bc_layout.addWidget(restore_button, 1, 2)
         if help_cb is not None:
+            self._help_cb = help_cb
             help_button = QPushButton("Help")
             from chimerax.core.commands import run
-            help_button.clicked.connect(lambda unneeded_bool, hcb=help_cb: hcb())
+            help_button.clicked.connect(self._help)
             help_button.setToolTip("Show help")
             bc_layout.addWidget(help_button, 1, 3)
 
@@ -185,7 +185,13 @@ class SettingsPanelBase(QWidget):
             options = self.options_panel.options()
         return options
 
-    def _reset(self, *args):
+    def _help(self):
+        if self.multicategory and self.current_check.isChecked():
+            self._help_cb(category=self.options_panel.current_category())
+        else:
+            self._help_cb()
+
+    def _reset(self):
         from chimerax.core.configfile import Value
         for opt in self._get_actionable_options():
             setting = opt.attr_name

@@ -1282,6 +1282,7 @@ Atom::set_display(bool d)
         return;
     graphics_changes()->set_gc_shape();
     graphics_changes()->set_gc_display();
+    graphics_changes()->set_gc_ring();
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_DISPLAY);
     _display = d;
 }
@@ -1293,6 +1294,7 @@ Atom::set_draw_mode(DrawMode dm)
         return;
     graphics_changes()->set_gc_shape();
     graphics_changes()->set_gc_display();	// Sphere style can effect if bonds are shown.
+    graphics_changes()->set_gc_ring();
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_DRAW_MODE);
     _draw_mode = dm;
 }
@@ -1304,6 +1306,7 @@ Atom::set_hide(int h)
         return;
     graphics_changes()->set_gc_shape();
     graphics_changes()->set_gc_display();
+    graphics_changes()->set_gc_ring();
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_HIDE);
     _hide = h;
 }

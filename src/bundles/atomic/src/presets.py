@@ -31,7 +31,9 @@ def add_presets_menu(session):
             atoms = s.atoms
             atoms.displays = True
             atoms.draw_modes = Atom.SPHERE_STYLE
-            s.residues.ribbon_displays = False
+            residues = s.residues
+            residues.ribbon_displays = False
+            residues.ring_displays = False
             s.apply_auto_styling(**kw)
     for label in ['Original Look'] + sorted(list(name_mapping.keys())):
         session.ui.main_window.add_menu_entry(['Presets'], label,

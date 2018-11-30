@@ -63,7 +63,7 @@ def read(session, f):
             if markup_type == "GF":
                 tag, val = try_split(1)
                 tag = tag.replace("_", " ")
-                tag = generic_file_attrs.gets(tag, "Stockholm " + tag)
+                tag = generic_file_attrs.get(tag, "Stockholm " + tag)
                 if tag in file_attrs:
                     file_attrs[tag] += '\n' + val
                 else:

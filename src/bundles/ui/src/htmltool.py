@@ -4,21 +4,25 @@ from chimerax.core.tools import ToolInstance
 
 
 class HtmlToolInstance(ToolInstance):
-    """Class used to generate an HTML widget as the tool's main UI.
+    """Base class for creating a ChimeraX tool using HTML
+    as its main user interface.  `HtmlToolInstance` takes care of
+    creating the ChimeraX tool instance, main window, and HTML
+    widget.  Derived classes can also define methods that are
+    called when hyperlinks in the HTML widget are clicked, or
+    when ChimeraX models are added or removed.
 
     The :py:attr:`tool_window` instance attribute refers to the
-    :py:class:`~chimerax.ui.MainToolWindow` instance
+    :py:class:`~chimerax.ui.gui.MainToolWindow` instance
     for the tool.
 
     The :py:attr:`html_view` instance attribute refers to the
-    :py:class:`~chimerax.ui.widgets.HtmlView` instance
+    :py:class:`~chimerax.ui.widgets.htmlview.HtmlView` instance
     for managing HTML content and link actions.
 
-    To facilitate customizing the HTML view, if the
-    `HtmlToolInstance` subclass has an attribute
-    :py:attr:`CUSTOM_SCHEME` and a method :py:meth:`handle_scheme`,
-    then the `HtmlView` instance will be configured to support
-    the custom scheme.
+    To facilitate customizing the HTML view, if the derived class
+    has an attribute :py:attr:`CUSTOM_SCHEME` and a method
+    :py:meth:`handle_scheme`, then the `HtmlView` instance will
+    be configured to support the custom scheme.
 
     If the `HtmlToolInstance` has a method :py:meth:`update_models`,
     then it will be called as a handler to model addition and
@@ -83,6 +87,7 @@ class HtmlToolInstance(ToolInstance):
             self._remove_handler = t.add_handler(REMOVE_MODELS, update_models)
 
     def delete(self):
+        """Supported API. Delete this HtmlToolInstance."""
         t = self.session.triggers
         if self._add_handler:
             t.remove_handler(self._add_handler)
