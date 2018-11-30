@@ -61,6 +61,8 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
         session.logger.status(msg, log = True)
     elif host == 'start':
         s = meeting_server(session, create = True)
+        if copy_scene is None:
+            s.copy_scene(True)
         s.listen(port)
         msg = "Meeting at %s" % s.listen_host_info()
         session.logger.status(msg, log = True)
@@ -161,11 +163,16 @@ class MeetingServer:
         self._trackers = []
         self._mouse_tracker = None
         self._vr_tracker = None
-        self._copy_scene = True
+        self._copy_scene = False
 
         self._command_relay_handler = None	# Send commands to peers
         self._running_received_command = False
         self.relay_commands()
+
+        self._status_report_interval = 0.5
+        self._status_start_time = None
+        self._last_status_time = None
+        self._last_status_bytes = None
 
     def set_color(self, color):
         self._color = color
@@ -237,6 +244,7 @@ class MeetingServer:
         socket.error.connect(socket_error)
         socket.connectToHost(host, port)
         self._add_connection(socket)
+        self._session.logger.status('Waiting for scene data from meeting host')
 
     def close_all_connections(self):
         if self._trackers:
@@ -302,13 +310,19 @@ class MeetingServer:
         return sbytes
 
     def _restore_session(self, base64_sbytes):
+        ses = self._session
+        ses.logger.status('Opening scene (%.1f Mbytes)' % (len(base64_sbytes)/2**20,))
+        from time import time
+        t1 = time()
         from base64 import b64decode
         sbytes = b64decode(base64_sbytes)
         from io import BytesIO
         stream = BytesIO(sbytes)
-        ses = self._session
         restore_camera = (ses.main_view.camera.name != 'vr')
         ses.restore(stream, resize_window = False, restore_camera = restore_camera)
+        t2 = time()
+        ses.logger.status('Opened scene %.1f Mbytes, %.1f seconds'
+                          % (len(sbytes)/2**20, (t2-t1)))
 
     def relay_commands(self, relay=True):
         h = self._command_relay_handler
@@ -411,6 +425,7 @@ class MeetingServer:
 
         from numpy import frombuffer, uint32
         msg_len = frombuffer(msg_bytes[:4], uint32)[0]
+        self._report_message_status(len(msg_bytes), msg_len+4)
         if len(msg_bytes) < msg_len + 4:
             return None
 
@@ -420,6 +435,33 @@ class MeetingServer:
         msg_data = ast.literal_eval(msg)
         return msg_data
 
+    def _report_message_status(self, bytes_received, message_bytes):
+        '''Report progress receiving session from a peer.'''
+        if bytes_received >= message_bytes:
+            if self._last_status_time > self._status_start_time:
+                from time import time
+                t = time()
+                msg = ('Received %.1f Mbytes in %.1f seconds'
+                       % (message_bytes / 2**20, t - self._status_start_time))
+                self._session.logger.status(msg)
+            self._last_status_time = None
+            return
+        from time import time
+        t = time()
+        lt = self._last_status_time
+        if lt is None:
+            self._status_start_time = t
+            self._last_status_time = t
+            self._last_status_bytes = bytes_received
+        elif t - lt > self._status_report_interval:
+            percent = 100 * bytes_received/message_bytes
+            rate = ((bytes_received - self._last_status_bytes) / 2**20) / (t - lt)
+            msg = ('Receiving data %.0f%% of %.1f Mbytes, (%.1f Mbytes/sec)'
+                   % (percent, message_bytes / 2**20, rate))
+            self._session.logger.status(msg)
+            self._last_status_time = t
+            self._last_status_bytes = bytes_received
+                                    
     def _relay_message(self, msg):
         if len(self._connections) <= 1 or self._server is None:
             return
