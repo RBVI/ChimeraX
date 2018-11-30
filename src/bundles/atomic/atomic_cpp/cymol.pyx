@@ -941,6 +941,50 @@ cdef class CyResidue:
         return self.cpp_res.number()
 
     @property
+    def omega(self):
+        '''Supported API. Get/set omega angle.  If not an amino acid (or missing needed backbone atoms),
+           setting is a no-op and getting returns None.'''
+        n = self.find_atom("N")
+        if n is None:
+            return None
+        ca = self.find_atom("CA")
+        if ca is None:
+            return None
+        for nb in n.neighbors:
+            if nb.residue == self:
+                continue
+            if nb.name == "C":
+                prev_c = nb
+                break
+        else:
+            return None
+        prev_ca = prev_c.residue.find_atom("CA")
+        if prev_ca is None:
+            return None
+        from chimerax.core.geometry import dihedral
+        return dihedral(prev_ca.coord, prev_c.coord, n.coord, ca.coord)
+
+    @omega.setter
+    def omega(self, val):
+        cur_omega = self.omega
+        if cur_omega is None:
+            return
+        n = self.find_atom("N")
+        for nb in n.neighbors:
+            if nb.residue == self:
+                continue
+            if nb.name == "C":
+                prev_c = nb
+                break
+        else:
+            return
+        try:
+            i = prev_c.neighbors.index(n)
+        except IndexError:
+            return
+        _set_angle(self.session, prev_c, prev_c.bonds[i], val, cur_omega, "omega")
+
+    @property
     def phi(self):
         '''Supported API. Get/set phi angle.  If not an amino acid (or missing needed backbone atoms),
            setting is a no-op and getting returns None.'''
