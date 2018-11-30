@@ -93,6 +93,9 @@ class OpenGLContext:
         from weakref import WeakSet
         self._framebuffers = WeakSet()		# Set of Framebuffer objects
         self._bindings = WeakSet()		# Set of Bindings objects
+
+        # Draw target for default framebuffer
+        self.default_draw_target = GL.GL_BACK
         
     def __del__(self):
         if not self._deleted:
@@ -1675,7 +1678,7 @@ class Framebuffer:
         self._fbo = None
         if w is None:
             self._fbo = 0	# Default framebuffer
-            self._draw_buffer = GL.GL_BACK
+            self._draw_buffer = opengl_context.default_draw_target
 
         self._opengl_context = opengl_context
         
@@ -2743,6 +2746,14 @@ class OffScreenRenderingContext:
         self.buffer = buf
         # call make_current to induce exception if an older Mesa
         self.make_current()
+
+        # Keep track of allocated framebuffers and vertex array objects.
+        from weakref import WeakSet
+        self._framebuffers = WeakSet()		# Set of Framebuffer objects
+        self._bindings = WeakSet()		# Set of Bindings objects
+
+        # Draw target for default framebuffer
+        self.default_draw_target = GL.GL_FRONT
         
     def make_current(self):
         from OpenGL import GL, arrays, platform
