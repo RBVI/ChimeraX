@@ -700,6 +700,11 @@ class Sequence(State):
     rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
         ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
 
+    protein1to3 = { 'A':'ALA', 'B':'ASX', 'C':'CYS', 'D':'ASP', 'E':'GLU', 'F':'PHE',
+        'G':'GLY', 'H':'HIS', 'I':'ILE', 'K':'LYS', 'L':'LEU', 'M':'MET', 'N':'ASN',
+        'O':'HYP', 'P':'PRO', 'Q':'GLN', 'R':'ARG', 'S':'SER', 'T':'THR', 'V':'VAL',
+        'W':'TRP', 'Y':'TYR', 'Z':'GLX' }
+
     # the following colors for use by alignment/sequence viewers
     default_helix_fill_color = (1.0, 1.0, 0.8)
     default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod

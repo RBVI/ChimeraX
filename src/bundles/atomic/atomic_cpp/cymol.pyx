@@ -789,6 +789,52 @@ cdef class CyResidue:
         "Supported API. PDB chain identifier. Limited to 4 characters. Read only string."
         return self.cpp_res.chain_id().decode()
 
+    chi_info = {
+        'ARG': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD"),
+            ("CB", "CG", "CD", "NE"),
+            ("CG", "CD", "NE", "CZ")],
+        'LYS': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD"),
+            ("CB", "CG", "CD", "CE"),
+            ("CG", "CD", "CE", "NZ")],
+        'MET': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "SD"),
+            ("CB", "CG", "SD", "CE")],
+        'GLU': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD"),
+            ("CB", "CG", "CD", "OE1")],
+        'GLN': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD"),
+            ("CB", "CG", "CD", "OE1")],
+        'ASP': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "OD1")],
+        'ASN': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "OD1")],
+        'ILE': [("N", "CA", "CB", "CG1"),
+            ("CA", "CB", "CG1", "CD1")],
+        'LEU': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD1")],
+        'HIS': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "ND1")],
+        'TRP': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD1")],
+        'TYR': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD1")],
+        'PHE': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD1")],
+        'PRO': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD")],
+        'THR': [("N", "CA", "CB", "OG1")],
+        'VAL': [("N", "CA", "CB", "CG1")],
+        'SER': [("N", "CA", "CB", "OG")],
+        'CYS': [("N", "CA", "CB", "SG")],
+    }
+
+    @property
+    def chi1(self):
+        return self.get_chi(1)
+
     @property
     def center(self):
         "Average of atom positions as a length 3 array, 64-bit float values."
@@ -1027,6 +1073,14 @@ cdef class CyResidue:
         self.cpp_res.set_ring_color(rgba[0], rgba[1], rgba[2], rgba[3])
 
     @property
+    def standard_aa_name(self):
+        '''If this is a standard amino acid or modified amino acid, return the 3-letter
+        name of the corresponding standard amino acid.  Otherwise return None.  The
+        ability to determine the standard name of a modified amino acid may depend on 
+        the presence of MODRES records or their equivalent in the original input.'''
+        return self.__class__.get_standard_aa_name(self.name)
+
+    @property
     def thin_rings(self):
         "Whether to display the residue's rings as filled. Boolean value."
         return self.cpp_res.thin_rings()
@@ -1102,6 +1156,29 @@ cdef class CyResidue:
             return fa_ptr.py_instance(True)
         return None
 
+    def get_chi(self, chi_num):
+        # Don't need to explicitly check that the standard name is not None,
+        # since sending None will return None -- just the same as GLX or ALA will
+        chi_atoms = self.get_chi_atoms(self.standard_aa_name, chi_num)
+        if chi_atoms is None:
+            return None
+        from chimerax.core.geometry import dihedral
+        return dihedral(*[a.coord for a in chi_atoms])
+
+    def get_chi_atoms(self, std_type, chi_num):
+        try:
+            chi_atom_names = self.chi_info[std_type][chi_num-1]
+        except (KeyError, IndexError):
+            return None
+        chi_atoms = []
+        for name in chi_atom_names:
+            a = self.find_atom(name)
+            if a:
+                chi_atoms.append(a)
+            else:
+                return None
+        return chi_atoms
+
     def set_alt_loc(self, loc):
         "Set the appropriate atoms in the residue to the given (existing) alt loc"
         if not loc:
@@ -1136,7 +1213,6 @@ cdef class CyResidue:
             return struct_string + chain_str + res_str
         return struct_string
 
-
     # static methods...
 
     @staticmethod
@@ -1154,6 +1230,18 @@ cdef class CyResidue:
     @staticmethod
     def set_templates_dir(tmpl_dir):
         cydecl.Residue.set_templates_dir(tmpl_dir.encode())
+
+    @staticmethod
+    def get_standard_aa_name(res_name):
+        '''If 'res_name' is a standard amino acid or modified amino acid 3-letter name, return
+        the 3-letter name of the corresponding standard amino acid.  Otherwise return None.
+        The ability to determine the standard name of a modified amino acid may depend on
+        the presence of MODRES records or their equivalent in the original input.'''
+        from chimerax.atomic import Sequence
+        try:
+            return Sequence.protein1to3[Sequence.protein3to1(res_name)]
+        except KeyError:
+            return None
 
 def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name):
     br = session.bond_rotations.new_rotation(bond)
