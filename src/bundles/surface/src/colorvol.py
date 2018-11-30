@@ -181,7 +181,7 @@ class VolumeColor(State):
         cmap = self.colormap
         rgba = cmap.interpolated_rgba(values)
         if len(outside) > 0:
-            from chimerax.core import map
+            from chimerax import map
             map.set_outside_volume_colors(outside, cmap.color_no_value, rgba)
 
         from numpy import uint8

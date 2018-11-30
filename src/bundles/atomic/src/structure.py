@@ -438,8 +438,7 @@ class Structure(Model, StructureData):
             return
 
         from .shapedrawing import AtomicShapeDrawing
-        self._ring_drawing = p = AtomicShapeDrawing('rings')
-        self.add_drawing(p)
+        self._ring_drawing = p = self.new_drawing('rings', subclass=AtomicShapeDrawing)
 
         # TODO:
         #   find all residue rings
@@ -450,7 +449,7 @@ class Structure(Model, StructureData):
         ring_count = 0
         all_rings = self.rings(all_size_threshold=6)
         for ring in all_rings:
-            atoms = ring.atoms
+            atoms = ring.ordered_atoms
             residue = atoms[0].residue
             if not residue.ring_display or not all(atoms.visibles):
                 continue

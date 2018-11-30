@@ -75,7 +75,7 @@ class Place:
         else:
             m = array(matrix, float64, order = 'C')
 
-        self.matrix = m
+        self._matrix = m
         '''
         Supported API.
         3 by 4 numpy 64-bit float array, first 3 columns are axes, last column is origin.
@@ -86,11 +86,16 @@ class Place:
         self._m44 = None	# Cached 4x4 opengl matrix
         
     def copy(self):
-        return Place(self.matrix)
-        
+        return Place(self._matrix)
+
+    @property
+    def matrix(self):
+        '''Supported API. Returns a copy of the 3x4 float64 transformation matrix as a numpy array.'''
+        return self._matrix.copy()
+    
     def __eq__(self, p):
         '''Supported API.  Are matrix values of this Place equal to matrix values of another Place.'''
-        return p is self or _geometry.same_matrix(p.matrix, self.matrix)
+        return p is self or _geometry.same_matrix(p._matrix, self._matrix)
 
     def __mul__(self, p):
         '''
@@ -104,7 +109,7 @@ class Place:
         
         if isinstance(p, Place):
             sp = _reuse_place()
-            _geometry.multiply_matrices(self.matrix, p.matrix, sp.matrix)
+            _geometry.multiply_matrices(self._matrix, p._matrix, sp._matrix)
             return sp
         elif isinstance(p, Places):
             return Places([self]) * p
@@ -112,7 +117,7 @@ class Place:
         from numpy import ndarray
         from tinyarray import ndarray_int, ndarray_float
         if isinstance(p, (ndarray_float, ndarray, tuple, list, ndarray_int)):
-            return m34.apply_matrix(self.matrix, p)
+            return m34.apply_matrix(self._matrix, p)
 
         raise TypeError('Cannot multiply Place times "%s"' % str(p))
 
@@ -123,13 +128,13 @@ class Place:
         if place is not identity or in_place is False.
         '''
         if in_place:
-            m34.transform_points(xyz, self.matrix)
+            m34.transform_points(xyz, self._matrix)
             return xyz
         if self.is_identity():
             return xyz
         else:
             cxyz = xyz.copy()
-            m34.transform_points(cxyz, self.matrix)
+            m34.transform_points(cxyz, self._matrix)
             return cxyz
 
     def transform_vector(self, v):
@@ -137,7 +142,7 @@ class Place:
         Supported API.
         Apply the linear part (3x3 matrix) of the transform without the shift.
         '''
-        return m34.apply_matrix_without_translation(self.matrix, v)
+        return m34.apply_matrix_without_translation(self._matrix, v)
     apply_without_translation = transform_vector
     
     def transform_vectors(self, v, in_place = False):
@@ -147,10 +152,10 @@ class Place:
         A new copy of the numpy Nx3 array of vectors is returned unless in_place = True.
         '''
         if in_place:
-            m34.transform_vectors(v, self.matrix)
+            m34.transform_vectors(v, self._matrix)
             return v
 
-        return m34.apply_matrix_without_translation(self.matrix, v)
+        return m34.apply_matrix_without_translation(self._matrix, v)
 
     def transform_normals(self, xyz, in_place = False, is_rotation = False):
         '''
@@ -163,9 +168,9 @@ class Place:
         if not in_place:
             xyz = xyz.copy()
         if is_rotation:
-            m34.transform_vectors(xyz, self.matrix)
+            m34.transform_vectors(xyz, self._matrix)
         else:
-            m34.transform_normals(xyz, self.matrix)
+            m34.transform_normals(xyz, self._matrix)
         return xyz
 
     def inverse(self, is_orthonormal = False):
@@ -177,9 +182,9 @@ class Place:
         if self._inverse is None:
             if is_orthonormal:
                 self._inverse = result = _reuse_place()
-                _geometry.invert_orthonormal(self.matrix, result.matrix)
+                _geometry.invert_orthonormal(self._matrix, result._matrix)
             else:
-                self._inverse = Place(m34.invert_matrix(self.matrix))
+                self._inverse = Place(m34.invert_matrix(self._matrix))
         return self._inverse
 
     def transpose(self):
@@ -187,19 +192,19 @@ class Place:
         Supported API.
         Return a copy of the transform with the linear part transposed.
         '''
-        m = self.matrix.copy()
-        m[:, :3] = self.matrix[:, :3].transpose()
+        m = self._matrix.copy()
+        m[:, :3] = self._matrix[:, :3].transpose()
         return Place(m)
 
     def zero_translation(self):
         '''Supported API. Return a copy of the transform with zero shift.'''
-        m = self.matrix.copy()
+        m = self._matrix.copy()
         m[:, 3] = 0
         return Place(m)
 
     def scale_translation(self, s):
         '''Return a copy of the transform with scaled shift.'''
-        m = self.matrix.copy()
+        m = self._matrix.copy()
         m[:, 3] *= s
         return Place(m)
         
@@ -211,7 +216,7 @@ class Place:
         '''
         m = self._m44
         if m is None:
-            self._m44 = m = _geometry.opengl_matrix(self.matrix)  # float32
+            self._m44 = m = _geometry.opengl_matrix(self._matrix)  # float32
         return m
 
     def interpolate(self, tf, center, frac):
@@ -227,7 +232,7 @@ class Place:
         are thought of as coordinate systems positions, the center
         point is in local coordinates.
         '''
-        return Place(m34.interpolate_transforms(self.matrix, center, tf.matrix, frac))
+        return Place(m34.interpolate_transforms(self._matrix, center, tf._matrix, frac))
 
     def rotation_angle(self):
         '''
@@ -239,7 +244,7 @@ class Place:
         This assumes the transform is a rotation, or equivalently that
         the coordinate axes are orthonormal and right handed.
         '''
-        m = self.matrix
+        m = self._matrix
         tr = m[0][0] + m[1][1] + m[2][2]
         cosa = .5 * (tr - 1)
         if cosa > 1:
@@ -252,7 +257,7 @@ class Place:
 
     def rotation_axis_and_angle(self):
         '''Supported API. Return the rotation axis and angle (degrees) of the transform.'''
-        return m34.rotation_axis_angle(self.matrix)
+        return m34.rotation_axis_angle(self._matrix)
 
     def shift_and_angle(self, center):
         '''
@@ -262,7 +267,7 @@ class Place:
         rotation_angle(), and the shift is the distance the given center
         point is moved by the transformation.
         '''
-        return m34.shift_and_angle(self.matrix, center)
+        return m34.shift_and_angle(self._matrix, center)
 
     def axis_center_angle_shift(self):
         '''
@@ -273,7 +278,7 @@ class Place:
         distance parallel to the axis.  This assumes the transformation
         linear part is a rotation.
         '''
-        return m34.axis_center_angle_shift(self.matrix)
+        return m34.axis_center_angle_shift(self._matrix)
 
     def translation(self):
         '''
@@ -281,7 +286,7 @@ class Place:
         Return the transformation shift vector, or equivalently the
         coordinate system origin.
         '''
-        return self.matrix[:, 3]
+        return self._matrix[:, 3].copy()
 
     def origin(self):
         '''
@@ -289,19 +294,19 @@ class Place:
         Return the transformation shift vector, or equivalently the
         coordinate system origin.
         '''
-        return self.matrix[:, 3]
+        return self._matrix[:, 3].copy()
 
     def axes(self):
         '''Supported API. Return the coordinate system axes.'''
-        return self.matrix[:, :3].transpose()
+        return self._matrix[:, :3].transpose().copy()
 
     def z_axis(self):
         '''Supported API. Return the coordinate system z axis.'''
-        return self.matrix[:, 2]
+        return self._matrix[:, 2].copy()
 
     def determinant(self):
         '''Supported API. Return the determinant of the linear part of the transformation.'''
-        return m34.determinant(self.matrix)
+        return m34.determinant(self._matrix)
 
     def _polar_decomposition(self):
         '''
@@ -313,7 +318,7 @@ class Place:
         a = self.zero_translation()
         at = a.transpose()
         ata = at*a
-        eval, evect = linalg.eigh(ata.matrix[:3,:3])
+        eval, evect = linalg.eigh(ata._matrix[:3,:3])
         from math import sqrt
         s = scale([sqrt(e) for e in eval])
         sinv = s.inverse()
@@ -330,7 +335,7 @@ class Place:
         the 3 by 4 matrix, and the decomposition as a rotation about a
         point through an axis and shift along that axis.
         '''
-        return m34.transformation_description(self.matrix)
+        return m34.transformation_description(self._matrix)
 
     def same(self, p, angle_tolerance=0, shift_tolerance=0):
         '''
@@ -338,7 +343,7 @@ class Place:
         Is this transform the same as the given one to within a
         rotation angle tolerance (degrees), and shift tolerance (distance)
         '''
-        return m34.same_transform(self.matrix, p.matrix,
+        return m34.same_transform(self._matrix, p._matrix,
                                   angle_tolerance, shift_tolerance)
 
     def is_identity(self, tolerance=0):
@@ -351,9 +356,9 @@ class Place:
         if tolerance == 0:
             ii = self._is_identity
             if ii is None:
-                self._is_identity = ii = _geometry.is_identity_matrix(self.matrix, tolerance)
+                self._is_identity = ii = _geometry.is_identity_matrix(self._matrix, tolerance)
         else:
-            ii = _geometry.is_identity_matrix(self.matrix, tolerance)
+            ii = _geometry.is_identity_matrix(self._matrix, tolerance)
         return ii
 
     def _reuse(self):
@@ -371,7 +376,7 @@ def translation(v):
     '''Supported API. Return a transform which is a shift by vector v.'''
     p = _reuse_place(create = False)
     if p:
-        _geometry.set_translation_matrix(v, p.matrix)
+        _geometry.set_translation_matrix(v, p._matrix)
     else:
         p = Place(origin=v)
     return p
@@ -401,7 +406,7 @@ def scale(s):
     '''Supported API. Return a transform which is a scale by factor s.'''
     p = _reuse_place()
     v = (s,s,s) if isinstance(s, (float, int)) else s
-    _geometry.set_scale_matrix(v, p.matrix)
+    _geometry.set_scale_matrix(v, p._matrix)
     return p
 
 
@@ -415,7 +420,7 @@ def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None):
     axes = m34.orthonormal_frame(zaxis, ydir, xdir)
     result = _reuse_place()
     o0,o1,o2 = (0,0,0) if origin is None else origin
-    result.matrix[:] = ((axes[0][0], axes[1][0], axes[2][0], o0),
+    result._matrix[:] = ((axes[0][0], axes[1][0], axes[2][0], o0),
                         (axes[0][1], axes[1][1], axes[2][1], o1),
                         (axes[0][2], axes[1][2], axes[2][2], o2))
     return result
@@ -628,7 +633,7 @@ class Places:
             pa = empty((len(self),3,4), float64)
             if self._place_list is not None:
                 for i,p in enumerate(self._place_list):
-                    pa[i,:,:] = p.matrix
+                    pa[i,:,:] = p._matrix
             elif self._shift_and_scale is not None:
                 sas = self._shift_and_scale
                 pa[:] = 0
@@ -714,7 +719,7 @@ class Places:
         elif isinstance(places_or_vector, Place):
             place = places_or_vector
             r = _geometry.multiply_matrix_lists(self.array(), len(self),
-                                                place.matrix.reshape((1,3,4)), 1)
+                                                place._matrix.reshape((1,3,4)), 1)
             return Places(place_array = r)
         else:
             from numpy import array, float32, dot, empty
@@ -783,17 +788,17 @@ def multiply_transforms(tf1, tf2, result = None):
 
     # Set result transform.
     if isinstance(tf1, Place) and isinstance(tf2, Place):
-        _geometry.multiply_matrices(tf1.matrix, tf2.matrix, result.matrix)
+        _geometry.multiply_matrices(tf1._matrix, tf2._matrix, result._matrix)
         result._reuse()
     elif isinstance(tf1, Places) and isinstance(tf2, Place):
         n = len(tf1)
         result._resize(n)
-        _geometry.multiply_matrix_lists(tf1.array(), n, tf2.matrix.reshape((1,3,4)), 1, result.array())
+        _geometry.multiply_matrix_lists(tf1.array(), n, tf2._matrix.reshape((1,3,4)), 1, result.array())
         result._matrices_changed()
     elif isinstance(tf1, Place) and isinstance(tf2, Places):
         n = len(tf2)
         result._resize(n)
-        _geometry.multiply_matrix_lists(tf1.matrix.reshape((1,3,4)), 1, tf2.array(), n, result.array())
+        _geometry.multiply_matrix_lists(tf1._matrix.reshape((1,3,4)), 1, tf2.array(), n, result.array())
         result._matrices_changed()
     elif isinstance(tf1, Places) and isinstance(tf2, Places):
         n1, n2 = len(tf1), len(tf2)

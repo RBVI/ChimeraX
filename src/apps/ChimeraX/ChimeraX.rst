@@ -24,11 +24,20 @@ Command Line Options
 
 In particular, the follow command line arguments are useful:
 
+``-c command``
+    Only recognized if it is the first argument.
+    Act like the Python interpreter and run the command
+    with the rest of the arguments in :py:obj:`sys.argv`.
+    Implies ``--nogui`` and ``--silent``.
+    This is done after ChimeraX has started up, so a ChimeraX session
+    is available in the global variable ``session``.
+
+``--cmd command``
+
+    Run the ChimeraX command at startup after starting tools.
+
 ``--debug``
     Turn on debugging code.  Accessing within ChimeraX with ``session.debug``.
-    
-``--nogui``
-    Turn off the gui.  Access with ChimeraX with ``session.ui.is_gui``.
 
 ``--lineprofile``
     Turn on line profiling.  See `Line Profiling`_ for details.
@@ -36,15 +45,38 @@ In particular, the follow command line arguments are useful:
 ``--listioformats``
     Show all recognized file suffixes and if they can be opened or saved.
 
-``--silent``
-    Don't output startup splash text and otherwise refrain from being
-    verbose.
+``-m module``
+    Only recognized if it is the first argument.
+    Act like the Python interpreter and run the module as the main module
+    and the rest of the arguments are in :py:obj:`sys.argv`.
+    Implies ``--nogui`` and ``--silent``.
+    This is done after ChimeraX has started up, so a ChimeraX session
+    is available in the global variable ``session``.
+    The module name is ``__main__`` instead of a sandbox name that
+    is used for normal :py:mod:`~chimerax.core.scripting`.
+    
+``--nogui``
+    Turn off the gui.  Access with ChimeraX with ``session.ui.is_gui``.
 
 ``--nostatus``
     Don't output to status line.
 
 ``--notools``
     Do not autostart any tools at startup.
+
+``--offscreen``
+    Run without a gui but allow rendering images that can be saved to
+    files.  This uses OSMesa for rendering which will not make use of
+    a GPU so rendering can be slow. But it can run on a server without
+    a display.
+    
+``--silent``
+    Don't output startup splash text and otherwise refrain from being
+    verbose.
+
+``--start_tool tool_name``
+
+    Start the named tool during ChimeraX startup after the autostart tools.
 
 ``--uninstall``
     If needed, deregister any icons or mime types,
@@ -59,32 +91,6 @@ In particular, the follow command line arguments are useful:
     then all of installed ChimeraX tools verions are listed.
     If given three times,
     then all of installed Python package versions are listed.
-
-``--start_tool tool_name``
-
-    Start the named tool during ChimeraX startup after the autostart tools.
-
-``--cmd command``
-
-    Run the ChimeraX command at startup after starting tools.
-
-``-m module``
-    Only recognized if it is the first argument.
-    Act like the Python interpreter and run the module as the main module
-    and the rest of the arguments are in :py:obj:`sys.argv`.
-    Implies ``--nogui`` and ``--silent``.
-    This is done after ChimeraX has started up, so a ChimeraX session
-    is available in the global variable ``session``.
-    The module name is ``__main__`` instead of a sandbox name that
-    is used for normal :py:mod:`~chimerax.core.scripting`.
-
-``-c command``
-    Only recognized if it is the first argument.
-    Act like the Python interpreter and run the command
-    with the rest of the arguments in :py:obj:`sys.argv`.
-    Implies ``--nogui`` and ``--silent``.
-    This is done after ChimeraX has started up, so a ChimeraX session
-    is available in the global variable ``session``.
 
 Run Custom Python Code at Start Up
 ==================================
