@@ -789,6 +789,80 @@ cdef class CyResidue:
         "Supported API. PDB chain identifier. Limited to 4 characters. Read only string."
         return self.cpp_res.chain_id().decode()
 
+    chi_info = {
+        'ARG': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD"),
+            ("CB", "CG", "CD", "NE"),
+            ("CG", "CD", "NE", "CZ")],
+        'LYS': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD"),
+            ("CB", "CG", "CD", "CE"),
+            ("CG", "CD", "CE", "NZ")],
+        'MET': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "SD"),
+            ("CB", "CG", "SD", "CE")],
+        'GLU': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD"),
+            ("CB", "CG", "CD", "OE1")],
+        'GLN': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD"),
+            ("CB", "CG", "CD", "OE1")],
+        'ASP': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "OD1")],
+        'ASN': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "OD1")],
+        'ILE': [("N", "CA", "CB", "CG1"),
+            ("CA", "CB", "CG1", "CD1")],
+        'LEU': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD1")],
+        'HIS': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "ND1")],
+        'TRP': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD1")],
+        'TYR': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD1")],
+        'PHE': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD1")],
+        'PRO': [("N", "CA", "CB", "CG"),
+            ("CA", "CB", "CG", "CD")],
+        'THR': [("N", "CA", "CB", "OG1")],
+        'VAL': [("N", "CA", "CB", "CG1")],
+        'SER': [("N", "CA", "CB", "OG")],
+        'CYS': [("N", "CA", "CB", "SG")],
+    }
+
+    @property
+    def chi1(self):
+        return self.get_chi(1)
+
+    @chi1.setter
+    def chi1(self, val):
+        self.set_chi(1, val)
+
+    @property
+    def chi2(self):
+        return self.get_chi(2)
+
+    @chi2.setter
+    def chi2(self, val):
+        self.set_chi(2, val)
+
+    @property
+    def chi3(self):
+        return self.get_chi(3)
+
+    @chi3.setter
+    def chi3(self, val):
+        self.set_chi(3, val)
+
+    @property
+    def chi4(self):
+        return self.get_chi(4)
+
+    @chi4.setter
+    def chi4(self, val):
+        self.set_chi(4, val)
+
     @property
     def center(self):
         "Average of atom positions as a length 3 array, 64-bit float values."
@@ -865,6 +939,124 @@ cdef class CyResidue:
     def number(self):
         "Supported API. Integer sequence position number from input data file. Read only."
         return self.cpp_res.number()
+
+    @property
+    def omega(self):
+        '''Supported API. Get/set omega angle.  If not an amino acid (or missing needed backbone atoms),
+           setting is a no-op and getting returns None.'''
+        n = self.find_atom("N")
+        if n is None:
+            return None
+        ca = self.find_atom("CA")
+        if ca is None:
+            return None
+        for nb in n.neighbors:
+            if nb.residue == self:
+                continue
+            if nb.name == "C":
+                prev_c = nb
+                break
+        else:
+            return None
+        prev_ca = prev_c.residue.find_atom("CA")
+        if prev_ca is None:
+            return None
+        from chimerax.core.geometry import dihedral
+        return dihedral(prev_ca.coord, prev_c.coord, n.coord, ca.coord)
+
+    @omega.setter
+    def omega(self, val):
+        cur_omega = self.omega
+        if cur_omega is None:
+            return
+        n = self.find_atom("N")
+        for nb in n.neighbors:
+            if nb.residue == self:
+                continue
+            if nb.name == "C":
+                prev_c = nb
+                break
+        else:
+            return
+        try:
+            i = prev_c.neighbors.index(n)
+        except IndexError:
+            return
+        _set_angle(self.session, prev_c, prev_c.bonds[i], val, cur_omega, "omega")
+
+    @property
+    def phi(self):
+        '''Supported API. Get/set phi angle.  If not an amino acid (or missing needed backbone atoms),
+           setting is a no-op and getting returns None.'''
+        n = self.find_atom("N")
+        if n is None:
+            return None
+        ca = self.find_atom("CA")
+        if ca is None:
+            return None
+        c = self.find_atom("C")
+        if c is None:
+            return None
+        for nb in n.neighbors:
+            if nb.residue == self:
+                continue
+            if nb.name == "C":
+                prev_c = nb
+                break
+        else:
+            return None
+        from chimerax.core.geometry import dihedral
+        return dihedral(prev_c.coord, n.coord, ca.coord, c.coord)
+
+    @phi.setter
+    def phi(self, val):
+        cur_phi = self.phi
+        if cur_phi is None:
+            return
+        n = self.find_atom("N")
+        ca = self.find_atom("CA")
+        try:
+            i = n.neighbors.index(ca)
+        except IndexError:
+            return
+        _set_angle(self.session, n, n.bonds[i], val, cur_phi, "phi")
+
+    @property
+    def psi(self):
+        '''Supported API. Get/set psi angle.  If not an amino acid (or missing needed backbone atoms),
+           setting is a no-op and getting returns None.'''
+        n = self.find_atom("N")
+        if n is None:
+            return None
+        ca = self.find_atom("CA")
+        if ca is None:
+            return None
+        c = self.find_atom("C")
+        if c is None:
+            return None
+        for nb in c.neighbors:
+            if nb.residue == self:
+                continue
+            if nb.name == "N":
+                next_n = nb
+                break
+        else:
+            return None
+        from chimerax.core.geometry import dihedral
+        return dihedral(n.coord, ca.coord, c.coord, next_n.coord)
+
+    @psi.setter
+    def psi(self, val):
+        cur_psi = self.psi
+        if cur_psi is None:
+            return
+        ca = self.find_atom("CA")
+        c = self.find_atom("C")
+        try:
+            i = ca.neighbors.index(c)
+        except IndexError:
+            return
+        _set_angle(self.session, ca, ca.bonds[i], val, cur_psi, "psi")
 
     PT_NONE, PT_AMINO, PT_NUCLEIC = range(3)
     @property
@@ -953,6 +1145,14 @@ cdef class CyResidue:
         self.cpp_res.set_ring_color(rgba[0], rgba[1], rgba[2], rgba[3])
 
     @property
+    def standard_aa_name(self):
+        '''If this is a standard amino acid or modified amino acid, return the 3-letter
+        name of the corresponding standard amino acid.  Otherwise return None.  The
+        ability to determine the standard name of a modified amino acid may depend on 
+        the presence of MODRES records or their equivalent in the original input.'''
+        return self.__class__.get_standard_aa_name(self.name)
+
+    @property
     def thin_rings(self):
         "Whether to display the residue's rings as filled. Boolean value."
         return self.cpp_res.thin_rings()
@@ -1028,11 +1228,45 @@ cdef class CyResidue:
             return fa_ptr.py_instance(True)
         return None
 
+    def get_chi(self, chi_num):
+        # Don't need to explicitly check that the standard name is not None,
+        # since sending None will return None -- just the same as GLX or ALA will
+        chi_atoms = self.get_chi_atoms(self.standard_aa_name, chi_num)
+        if chi_atoms is None:
+            return None
+        from chimerax.core.geometry import dihedral
+        return dihedral(*[a.coord for a in chi_atoms])
+
+    def get_chi_atoms(self, std_type, chi_num):
+        try:
+            chi_atom_names = self.chi_info[std_type][chi_num-1]
+        except (KeyError, IndexError):
+            return None
+        chi_atoms = []
+        for name in chi_atom_names:
+            a = self.find_atom(name)
+            if a:
+                chi_atoms.append(a)
+            else:
+                return None
+        return chi_atoms
+
     def set_alt_loc(self, loc):
         "Set the appropriate atoms in the residue to the given (existing) alt loc"
         if not loc:
             loc = ' '
         self.cpp_res.set_alt_loc(ord(loc[0]))
+
+    def set_chi(self, chi_num, val):
+        cur_chi = self.get_chi(chi_num)
+        if cur_chi is None:
+            return
+        a1, a2, a3, a4 = self.get_chi_atoms(self.standard_aa_name, chi_num)
+        try:
+            i = a3.neighbors.index(a2)
+        except IndexError:
+            return
+        _set_angle(self.session, a3, a3.bonds[i], val, cur_chi, "chi%s" % chi_num)
 
     def string(self, residue_only = False, omit_structure = False, style = None):
         "Supported API.  Get text representation of Residue"
@@ -1062,7 +1296,6 @@ cdef class CyResidue:
             return struct_string + chain_str + res_str
         return struct_string
 
-
     # static methods...
 
     @staticmethod
@@ -1080,4 +1313,25 @@ cdef class CyResidue:
     @staticmethod
     def set_templates_dir(tmpl_dir):
         cydecl.Residue.set_templates_dir(tmpl_dir.encode())
+
+    @staticmethod
+    def get_standard_aa_name(res_name):
+        '''If 'res_name' is a standard amino acid or modified amino acid 3-letter name, return
+        the 3-letter name of the corresponding standard amino acid.  Otherwise return None.
+        The ability to determine the standard name of a modified amino acid may depend on
+        the presence of MODRES records or their equivalent in the original input.'''
+        from chimerax.atomic import Sequence
+        try:
+            return Sequence.protein1to3[Sequence.protein3to1(res_name)]
+        except KeyError:
+            return None
+
+def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name):
+    br = session.bond_rotations.new_rotation(bond)
+    if bond.smaller_side == torsion_atom2:
+        br.angle += new_angle - cur_angle
+    else:
+        br.angle -= new_angle - cur_angle
+    res = bond.atoms[0].residue
+    res.structure.change_tracker.add_modified(res, attr_name + " changed")
 
