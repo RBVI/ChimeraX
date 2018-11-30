@@ -835,6 +835,34 @@ cdef class CyResidue:
     def chi1(self):
         return self.get_chi(1)
 
+    @chi1.setter
+    def chi1(self, val):
+        self.set_chi(1, val)
+
+    @property
+    def chi2(self):
+        return self.get_chi(2)
+
+    @chi2.setter
+    def chi2(self, val):
+        self.set_chi(2, val)
+
+    @property
+    def chi3(self):
+        return self.get_chi(3)
+
+    @chi3.setter
+    def chi3(self, val):
+        self.set_chi(3, val)
+
+    @property
+    def chi4(self):
+        return self.get_chi(4)
+
+    @chi4.setter
+    def chi4(self, val):
+        self.set_chi(4, val)
+
     @property
     def center(self):
         "Average of atom positions as a length 3 array, 64-bit float values."
@@ -1184,6 +1212,17 @@ cdef class CyResidue:
         if not loc:
             loc = ' '
         self.cpp_res.set_alt_loc(ord(loc[0]))
+
+    def set_chi(self, chi_num, val):
+        cur_chi = self.get_chi(chi_num)
+        if cur_chi is None:
+            return
+        a1, a2, a3, a4 = self.get_chi_atoms(self.standard_aa_name, chi_num)
+        try:
+            i = a3.neighbors.index(a2)
+        except IndexError:
+            return
+        _set_angle(self.session, a3, a3.bonds[i], val, cur_chi, "chi%s" % chi_num)
 
     def string(self, residue_only = False, omit_structure = False, style = None):
         "Supported API.  Get text representation of Residue"
