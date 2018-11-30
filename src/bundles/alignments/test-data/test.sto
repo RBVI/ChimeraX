@@ -1,0 +1,62 @@
+# STOCKHOLM 1.0
+
+#=GF AC   RF00165
+#=GF ID   Corona_pk3
+#=GF DE   Coronavirus 3' UTR pseudoknot
+#=GF AU   Griffiths-Jones SR
+#=GF SE   Griffiths-Jones SR
+#=GF GA   40.00
+#=GF TC   41.19
+#=GF NC   20.12
+#=GF TP   Site
+#=GF BM   cmbuild --rf CM SEED
+#=GF BM   cmsearch -W 100 CM SEQDB
+#=GF RN   [1]
+#=GF RM   10482585
+#=GF RT   A phylogenetically conserved hairpin-type 3' untranslated region
+#=GF RT   pseudoknot functions in coronavirus RNA replication.
+#=GF RA   Williams GD, Chang RY, Brian DA;
+#=GF RL   J Virol 1999;73:8349-8355.
+#=GF CC   Coronaviruses are plus-strand RNA viruses with ~30kb genomes.
+#=GF CC   The 3' UTR region of coronavirus genomes contains a conserved
+#=GF CC   ~55nt pseudoknot structure which has been shown to be necessary
+#=GF CC   for viral genome replication [1].  The mechanism of
+#=GF CC   cis-regulation is unclear, but this element is postulated to
+#=GF CC   function in the plus-strand.
+#=GF SQ   15
+
+X00509/2201-2262                 ACACUCUCUAUCAGAAUGGAUGUCUUGCUG.UCAUAACA.GAUA.GAGAA
+AF207902/31022-31083             ACACUCUCUAUCAGAAUGGAUGUCUUGCUG.UCAUAACA.GAUA.GAGAA
+AF058944/9309-9370               GCACUCUCUAUCAGAUUGGAUGUCUUGCUG.CUAUAAUA.GAUA.GAGAA
+M16620/2222-2283                 GCACUCUCUAUCAGAAUGGAUGUCUUGCUG.CUAUAAUA.GAUA.GAGAA
+M36656/1479-1540                 GCAUUCUCUAUCAGAAUGGAUGUCUUGCUG.CUAUAAUA.GAUA.GAGAA
+X90577/1000-1062                 CUACUCUUGUACAGAAUGGUAAAC.ACGUG.UAAUAGGAGGUAC.AAGCA
+X66717/2272-2334                 CUACUCUUGUACAGAAUGGUAAGC.ACGUG.UAAUAGGAGGUAC.AAGCC
+X90576/809-871                   CUACUCUUGUACAGAAUGGUAAGC.ACGUG.UAAUAGGAGGUAC.AAGCA
+D13096/9359-9422                 CUACUCUUGUACAGAAUGGUAAGCCAAGUGUCAAUAGGAGGUAC.AAGCA
+X90572/1000-1062                 CUACUCUUGUACAGAAUGGUAAGC.ACGUG.UAGUAGGAGGUAC.AAGCA
+X90578/1000-1062                 CUACUCUUGUACAGAAUGGUAAGC.ACGUG.UGAUGGGAGGUAC.AAGCA
+X66718/795-857                   CUACUCUUGUACAGAAUGGUAAGC.ACGUG.UAAUGGGAGGUAC.AAGCA
+Z35758/8161-8224                 CUACUCUUAUACAGAAUGGUAAGC.ACGUG.UAAUAGGAGGUAAUAAGCA
+X51325/1443-1505                 CUAGUCUUAUACACAAUGGUAAGC.CAGUGGUAGUAAAG.GUAU.AAGAA
+AF353511/27820-27882             UUGGUCUUGCACACAACGGUAAGC.CAGUGGUAAUGUCA.GUGC.AAGAA
+#=GC SS_cons                     ....AAAAAAAA...............<<<.<<<<<<<..aaaa.aaaa.
+#=GC RF                          xxxxxxxxxxxxxxxxxxxxxxxx.xxxxx.xxxxxxxxxxxxx.xxxxx
+
+X00509/2201-2262                 G.GUUGUGG.CUGCCCU
+AF207902/31022-31083             G.GUUGUGG.CAGACCC
+AF058944/9309-9370               G.GUUAUAG.CAGACUA
+M16620/2222-2283                 G.GUUAUAG.CAGACUA
+M36656/1479-1540                 G.GUUAUAG.CAGACUA
+X90577/1000-1062                 ACCCUAUUG.CAUAUUA
+X66717/2272-2334                 ACCCUAUUG.CAUAUUA
+X90576/809-871                   ACCCUAUUG.CAUAUUA
+D13096/9359-9422                 A.CCUAUUG.CAUAUUA
+X90572/1000-1062                 ACCCUAUUG.CAUAUUA
+X90578/1000-1062                 ACCCCAUUA.CAUAUUA
+X66718/795-857                   ACCCCAUUG.CAUAUUA
+Z35758/8161-8224                 ACCCUAUUG.CAUAUUA
+X51325/1443-1505                 A.UUUGCUACUAUGUUA
+AF353511/27820-27882             G.GAUAUUACCAUAGCA
+#=GC SS_cons                     ..>>>>>>>.>>>....
+#=GC RF                          x.xxxxxxx.xxxxxxx
