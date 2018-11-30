@@ -452,8 +452,8 @@ fill_6ring(const Vector* pts, float offset, size_t anchor, VertexList* vertices,
 	add_triangle(pts[t[i][0]], pts[t[i][1]], pts[t[i][2]], 
 		     vertices, normals, triangles);
     if (thick) {
-	add_quad(0, 1, 7, 8, triangles);
-	add_quad(6, 7, 11, 9, triangles);
+	add_quad(0, 1, 8, 6, triangles);
+	add_quad(7, 8, 11, 9, triangles);
 	add_quad(9, 10, 5, 3, triangles);
     }
 
