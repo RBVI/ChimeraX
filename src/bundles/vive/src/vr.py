@@ -1083,9 +1083,12 @@ class HandControllerModel(Model):
                 else:
                     ui.press(window_xy)
                     ui.button_down = (self, b)
-            elif released and ui.button_down == (self, b):
-                ui.release(window_xy)
-                ui.button_down = None
+            elif released:
+                if ui.button_down == (self, b):
+                    ui.release(window_xy)
+                    ui.button_down = None
+                else:
+                    return False # Button released on panel but not pressed on panel
         else:
             return False
         return True
