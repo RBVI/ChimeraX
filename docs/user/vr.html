@@ -247,6 +247,16 @@ as this can easily and suddenly induce nausea that could last as long as
 if you feel any motion sickness, stop using the headset.
 Progression from slight nausea to needing to throw up can happen quickly.
 </p>
+
+<p>
+<b>Operating systems</b>. 
+We have tested ChimeraX VR on Windows 10 with an Nvidia Geforce GTX 1080 
+graphics card and with an AMD Radeon RX 480 graphics card.
+As of November 2018, SteamVR works well on Windows on Windows 10,
+has <a href="http://www.cgl.ucsf.edu/chimera/data/mac-vr-nov2018/mac-vr.html">some support on macOS</a> High Sierra and Mojave,
+and can <a href="http://www.cgl.ucsf.edu/chimera/data/linux-vr-oct2018/linuxvr.html">work on Linux</a>.
+</p>
+
 <p>
 <b>Small models only</b>.
 Large molecular structures (more than a few thousand atoms) render too slowly
@@ -278,25 +288,23 @@ SteamVR menu entry &ldquo;Mirror Display.&rdquo;
 The ChimeraX <a href="tools/sideview.html"><b>Side View</b></a> tool 
 will slow headset rendering and cause stuttering, so it
 should be closed during VR viewing.
-</p><p>
-<b>Operating systems</b>. 
-We have tested ChimeraX VR on Windows 10 with an Nvidia Geforce GTX 1080 
-graphics card and with an AMD Radeon RX 480 graphics card.
-As of April 2018, SteamVR works well on Windows, has some support on macOS High Sierra,
-and is not usable on Linux.
-</p><p>
+</p>
+
+<p>
 <b>Difficult to change model display</b>.
-Changing molecule or map display can be done by removing the headset and using
-the ChimeraX  interface in the conventional display with mouse and keyboard.
-Alternatively, the desktop can be displayed in the headset 
-using the Vive controller
+Changing molecule or map display can be done by displaying the desktop
+in the headset  using the Vive controller
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
 target="_blank">menu button</a>.
 Then use the hand controllers to &ldquo;click&rdquo;  icons in the ChimeraX
 <a href="tools/moldisplay.html"><b>Molecule Display</b></a>
 and <a href="tools/densitymaps.html"><b>Density Maps</b></a> toolbars
 to change the display.
-</p><p>
+Alternatively the display can be changed by removing the headset and using
+the ChimeraX  interface on the conventional display with mouse and keyboard.
+</p>
+
+<p>
 <b>Clipping when models far away</b>.
 If models are scaled to a very large size, parts more than 
 500 meters away (in physical room dimensions) will be clipped.  
@@ -307,7 +315,9 @@ As parts of the model get both larger and farther away at the same rate,
 the change in size is not evident.
 To gauge model size, it can be useful to move a hand controller near 
 a physical wall so that the blue mesh will provide a reference distance.
-</p><p>
+</p>
+
+<p>
 <b>Dynamic scenes may render too slowly.</b>
 Dynamic (time-varying) scenes are more interesting to view than static scenes.
 We have successfully displayed 3D optical microscopy time series of crawling 
@@ -324,6 +334,18 @@ A molecular dynamics trajectories can be played with the
 <a href="commands/coordset.html"><b>coordset</b></a> command.  Use the
 coordset <b>pauseFrames 9</b> option to slow the playback rate from the
 90 frames per second of the headset to 10 frames per second.
+</p>
+
+<p>
+  <b>SteamVR room boundaries wrong.</b>
+  Sometimes tracing room boundaries using room-scale room setup in SteamVR produces
+  incorrect results (November 2018).
+  We have observed this when the traced space is not a simple rectangle because of a desk
+  against one wall.  Tracing around the desk joins the 6 corners of the bounds in
+  the wrong order -- a different order than they were traced.  It is unclear what is wrong
+  with the SteamVR room setup algorithm.  But we have found that clicking the room tracing
+  "Advanced Mode" checkbutton which allows you to click at each corner of the room reliably
+  produces the correct SteamVR bounds.
 </p>
 
 <hr>
