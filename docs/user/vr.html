@@ -41,21 +41,26 @@ alt="using HTC Vive VR system" title="click to enlarge..."></a>
 </td></tr>
 </table>
 
+<p>
+  ChimeraX allows display and analysis of structures and density maps using virtual reality headsets such as HTC Vive,
+  Vive Pro, Oculus Rift, Samsung Odyssey and Windows Mixed Reality.
+  For multi-person VR sessions see the <a href="commands/meeting.html">meeting</a> command.
+  ChimeraX can also <a href="vrphone.html">record 360 degree movies</a>.
+</p>
+
 <ul class="none">
 <li><a href="#starting"><b>Starting VR Mode</b></a>
 <li><a href="#mousemodes"><b>Hand Controller Modes</b></a>
 <li><a href="#handproblems"><b>Hand Controller Problems</b></a>
 <li><a href="#interactive"><b>Limitations of Interactive Viewing</b></a>
-<li><a href="#movies"><b>Recording Movies for Cellphone VR</b></a>
-<li><a href="#movie-details"><b>Movie Details</b></a>
 </ul>
 
 See also the <a href="http://vr.ucsf.edu/" target="_blank">VR at UCSF</a> website
 and the following reference:
 <blockquote>
 <a href="https://www.sciencedirect.com/science/article/pii/S002228361830696X"
-target="_blank">Molecular visualization on the holodeck.</a>
-Goddard TD, Brilliant AA, Skillman TL, Vergenz S, Tyrwhitt-Drake J, Meng EC, Ferrin TE.
+target="_blank">Molecular visualization on the holodeck.</a><br>
+Goddard TD, Brilliant AA, Skillman TL, Vergenz S, Tyrwhitt-Drake J, Meng EC, Ferrin TE.<br>
 <i>J Mol Biol.</i> 2018 Oct 19;430(21):3982-3996.
 </blockquote>
 
@@ -242,6 +247,16 @@ as this can easily and suddenly induce nausea that could last as long as
 if you feel any motion sickness, stop using the headset.
 Progression from slight nausea to needing to throw up can happen quickly.
 </p>
+
+<p>
+<b>Operating systems</b>. 
+We have tested ChimeraX VR on Windows 10 with an Nvidia Geforce GTX 1080 
+graphics card and with an AMD Radeon RX 480 graphics card.
+As of November 2018, SteamVR works well on Windows on Windows 10,
+has <a href="http://www.cgl.ucsf.edu/chimera/data/mac-vr-nov2018/mac-vr.html">some support on macOS</a> High Sierra and Mojave,
+and can <a href="http://www.cgl.ucsf.edu/chimera/data/linux-vr-oct2018/linuxvr.html">work on Linux</a>.
+</p>
+
 <p>
 <b>Small models only</b>.
 Large molecular structures (more than a few thousand atoms) render too slowly
@@ -273,25 +288,23 @@ SteamVR menu entry &ldquo;Mirror Display.&rdquo;
 The ChimeraX <a href="tools/sideview.html"><b>Side View</b></a> tool 
 will slow headset rendering and cause stuttering, so it
 should be closed during VR viewing.
-</p><p>
-<b>Operating systems</b>. 
-We have tested ChimeraX VR on Windows 10 with an Nvidia Geforce GTX 1080 
-graphics card and with an AMD Radeon RX 480 graphics card.
-As of April 2018, SteamVR works well on Windows, has some support on macOS High Sierra,
-and is not usable on Linux.
-</p><p>
+</p>
+
+<p>
 <b>Difficult to change model display</b>.
-Changing molecule or map display can be done by removing the headset and using
-the ChimeraX  interface in the conventional display with mouse and keyboard.
-Alternatively, the desktop can be displayed in the headset 
-using the Vive controller
+Changing molecule or map display can be done by displaying the desktop
+in the headset  using the Vive controller
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
 target="_blank">menu button</a>.
 Then use the hand controllers to &ldquo;click&rdquo;  icons in the ChimeraX
 <a href="tools/moldisplay.html"><b>Molecule Display</b></a>
 and <a href="tools/densitymaps.html"><b>Density Maps</b></a> toolbars
 to change the display.
-</p><p>
+Alternatively the display can be changed by removing the headset and using
+the ChimeraX  interface on the conventional display with mouse and keyboard.
+</p>
+
+<p>
 <b>Clipping when models far away</b>.
 If models are scaled to a very large size, parts more than 
 500 meters away (in physical room dimensions) will be clipped.  
@@ -302,7 +315,9 @@ As parts of the model get both larger and farther away at the same rate,
 the change in size is not evident.
 To gauge model size, it can be useful to move a hand controller near 
 a physical wall so that the blue mesh will provide a reference distance.
-</p><p>
+</p>
+
+<p>
 <b>Dynamic scenes may render too slowly.</b>
 Dynamic (time-varying) scenes are more interesting to view than static scenes.
 We have successfully displayed 3D optical microscopy time series of crawling 
@@ -321,171 +336,16 @@ coordset <b>pauseFrames 9</b> option to slow the playback rate from the
 90 frames per second of the headset to 10 frames per second.
 </p>
 
-<a name="movies"></a>
-<p class="nav">
-[<a href="#top">back to top: Virtual Reality</a>]
-</p>
-<h3>Recording Movies for Cellphone VR</h3>
-
 <p>
-In addition to interactive rendering of molecules, ChimeraX can record 360&deg; movies for
-playback in less powerful VR headsets, such as those powered by cellphones.
-</p>
-
-<p>
-ChimeraX can record 360&deg; immersive movies that can be played back on 
-virtual reality headsets. An advantage of movies is that they can be
-played back even on basic cell-phone VR headsets such as the Samsumg GearVR;
-a scene that is too complex to render interactively can be recorded
-over a longer period of time and encoded into a movie file.
-A drawback of movies is that the viewer cannot move around in the scene &ndash; 
-the movie is recorded from one vantage point that may move, but is not 
-under the viewer's control (although the viewer can look in any direction
-from that vantage point).
-</p><p>
-To record a 360&deg; movie in ChimeraX, set the 
-camera mode to a 360&deg; format (for example, with
-command <a href="commands/camera.html"><b>camera 360sbs</b></a>).
-For stereoscopic movies, two eye views are recorded and the image frames 
-for the two eyes are placed side by side 
-(<a href="commands/camera.html"><b>360sbs</b></a>)
-or left eye on top of right eye 
-(<a href="commands/camera.html"><b>360tb</b></a>).
-There is also a monoscopic 360&deg; format
-(<a href="commands/camera.html"><b>360</b></a>),
-although it does not provide direct depth perception
-when the movie is played back in a headset.
-The ChimeraX <a href="commands/movie.html#record"><b>movie record</b></a> and 
-<a href="commands/movie.html#encode"><b>movie encode</b></a> commands 
-are used to record the movie frames and assemble them into a single movie file.
-Other ChimeraX commands can be used to change the viewpoint,
-display styles, and colors during recording
-(see <a href="images.html">making images</a> and
-<a href="movies.html">making movies</a>).
-</p>
-<a href="flypore.png">
-<img class="outline" width="600px" style="margin:4px" src="flypore.png" 
-alt="nuclear pore 360-degree view" title="click to enlarge..."></a>
-
-<p>
-The following ChimeraX command script (<a href="flypore.cxc">flypore.cxc</a>)
-loads a density map of the human nuclear pore,
-sets the camera mode, and records a movie flying through the pore.
-The data coordinates are in &Aring;, so the commands also use those units.
-The viewpoint moves 2000 &Aring; (200 nm)
-towards the pore in increments of 1 &Aring;.
-</p>
-<pre>
-      # Open human nuclear pore density map.
-      open 3103 from emdb
-
-      # Set contour level for density map surface
-      vol #1 level 2.5
-
-      # Move 1500 Angstroms closer before starting movie
-      move z 1500
-
-      # Set stereoscopic side-by-side 360 degree camera mode with eye separation to 25 Angstroms
-      camera 360sbs eyeSeparation 25
-
-      # Start capturing movie frames 4800 by 1200 pixels
-      movie record size 4800,1200
-
-      # Move into pore with 2000 steps each 1 Angstrom
-      move z 1 2000
-      wait 2000
-
-      # Write H.264 encoded movie
-      movie encode ~/Desktop/flypore.mp4 framerate 90
-</pre>
-
-<a name="movie-details"></a>
-<p class="nav">
-[<a href="#top">back to top: Virtual Reality</a>]
-</p>
-<h3>Movie Details</h3>
-<p>
-Movie file 
-<!-- #374 cx help viewer doesn't play the movie -->
-(not shown in the <a href="tools/browser.html">ChimeraX browser</a>; 
-copy link to a standard browser to view):
-<a href="http://www.rbvi.ucsf.edu/chimera/data/vr-dec2016/images/flypore.mp4"
-target="_blank">flypore.mp4</a>
-</p><p>
-<b>Movie duration</b>.
-The movie is 2000 frames at 90 frames per second, for a running 
-time of 22 seconds. It is encoded in H.264 format, and the file
-size of 27 Mbytes gives a data rate of about 100 Mbytes/minute or 
-6 Gbytes/hour; however, compression is better than usual 
-because the motion in the movie is very slow.
-The disk space used by the uncompressed (ppm format) image frames before 
-the movie was encoded was about 33 Gbytes, about 1000x the final size 
-&ndash; recording a long movie requires a lot of disk space.
-Rendering the movie took about 15 minutes, or 30x slower than real time.
-</p><p>
-<b>Eye separation / physical scale</b>.
-In recording a stereoscopic (two-eye) movie, 
-it is important to choose an appropriate eye separation
-in the units of the scene, typically &Aring;.
-This controls how large and nearby the models will appear in the headset.
-For the nuclear pore, which is 1000 &Aring; in diameter with
-a channel diameter of about 500 &Aring;, the script sets the eye separation 
-to 25 &Aring;. Thus, the channel diameter will appear to be 20x
-(500/25) the actual eye separation.  For example,
-if a viewer's eyes are actually two inches apart, 
-the channel diameter will appear to be 40 inches.
-</p><p>
-<b>Lighting and shadows</b>.
-Lighting is problematic in 360&deg; modes. Simple lighting 
-(command <a href="commands/lighting.html"><b>light simple</b></a>)
-provides one directional light and one fill light, both positioned for 
-viewing along &ndash;Z in scene coordinates.  
-When viewed from the opposite direction, models will not have any 
-diffuse or specular lighting highlights, just flat coloring.
-The same is true of <b>full</b> lighting.  With <b>soft</b> lighting
-(command <a href="commands/lighting.html"><b>light soft</b></a>)
-ambient lighting from all directions with shadowing is used,
-but there is no directional light.
-</p><p>
-<b>Only default model locations</b>.
-The stereoscopic 360&deg; mode does not work correctly 
-(scene depth is wrong) for models that have been moved within the scene. 
-This is a bug in OpenGL shaders.
-The mode does work correctly for camera motions 
-(moving the whole scene collectively), as in the above script.
-</p><p>
-<b>Movie resolution and format</b>.
-It is desirable to at least match the resolution of the headset.
-Current headsets have 1200 pixels in the vertical dimension. 
-Recording at a higher resolution can be advantageous because the VR headset 
-distorts the image to correct for lens optics, making some image pixels larger.
-The width of the side-by-side video should be four times the height.
-The left- and right-eye images are each an equirectangular projection where
-longitude angle goes from 0 to 360&deg; along the horizontal axis
-and latitude angle goes from &ndash;90 to 90&deg; along the vertical axis.
-To make image pixels have equal angular height and width, the movie should
-have a 4:1 aspect ratio. 
-The ChimeraX graphics window need not have this aspect ratio,
-as the pixel dimensions can be specified in the
-<a href="commands/movie.html#record"><b>movie record</b></a> command.
-</p><p>
-<b>Stereoscopic eye positions</b>.
-The movie includes views from two side-by-side cameras representing 
-a viewer's eyes.
-In (nonvirtual) reality, eye positions depend on the direction of viewing.
-Since the movie is recorded without knowing the viewing direction,
-each vertical strip (meridian) is rendered as if one were looking directly
-at that strip, with eye-to-eye line perpendicular to view direction.
-The resulting movie provides good stereoscopic perception when viewed
-360&deg; along the equator, although it is strictly only correct at the 
-central vertical strip in the field of view.
-The north- and south-pole directions (where the meridians meet) 
-will not provide good stereoscopic depth perception.
-</p><p>
-<b>Movie frame rate</b>.
-To minimize flickering during fast object motion,
-it is best to encode the movie for playback at a frame rate matching
-that of the headset, 90 frames per second with current VR headsets.
+  <b>SteamVR room boundaries wrong.</b>
+  Sometimes tracing room boundaries using room-scale room setup in SteamVR produces
+  incorrect results (November 2018).
+  We have observed this when the traced space is not a simple rectangle because of a desk
+  against one wall.  Tracing around the desk joins the 6 corners of the bounds in
+  the wrong order -- a different order than they were traced.  It is unclear what is wrong
+  with the SteamVR room setup algorithm.  But we have found that clicking the room tracing
+  "Advanced Mode" checkbutton which allows you to click at each corner of the room reliably
+  produces the correct SteamVR bounds.
 </p>
 
 <hr>
