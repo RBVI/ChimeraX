@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def style(session, objects=None, atom_style=None, dashes=None):
+def style(session, objects=None, atom_style=None, dashes=None, ring_fill=None):
     '''Set the atom and bond display styles.
 
     Parameters
@@ -22,7 +22,8 @@ def style(session, objects=None, atom_style=None, dashes=None):
     atom_style : "sphere", "ball" or "stick"
         Controls how atoms and bonds are depicted.
     dashes : int
-      Number of dashes shown for pseudobonds.
+        Number of dashes shown for pseudobonds.
+    ring_fill : thick | thin
     '''
     if objects is None:
         from chimerax.core.commands import all_objects
@@ -50,6 +51,11 @@ def style(session, objects=None, atom_style=None, dashes=None):
             pbg.dashes = dashes
         what.append('%d pseudobond dashes' % len(pbgs))
 
+    if ring_fill is not None:
+        atoms = objects.atoms
+        res = atoms.unique_residues
+        res.thin_rings = ring_fill == 'thin'
+
     if what:
         msg = 'Changed %s' % ', '.join(what)
         log = session.logger
@@ -64,6 +70,7 @@ def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, ObjectsArg, EmptyArg, EnumOf, Or, IntArg
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg)),
                                ('atom_style', Or(EnumOf(('sphere', 'ball', 'stick')), EmptyArg))],
-                   keyword = [('dashes', IntArg)],
+                   keyword = [('dashes', IntArg),
+                              ('ring_fill', EnumOf(['thick', 'thin']))],
                    synopsis='change atom and bond depiction')
     register('style', desc, style, logger=logger)
