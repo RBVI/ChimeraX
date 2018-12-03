@@ -275,9 +275,9 @@ class _AtomSpecSemantics:
         return _ModelRange(ast.start, ast.end)
 
     def model_spec_any(self, ast):
-        if ast.number:
+        if ast.number is not None:
             return ast.number
-        elif ast.word:
+        elif ast.word is not None:
             return ast.word
         else:
             return None
