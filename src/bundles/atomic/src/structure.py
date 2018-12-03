@@ -923,6 +923,10 @@ class Structure(Model, StructureData):
             from .molarray import Atoms
             tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
             spline_coords = array(list(self._ribbon_spline_backbone.values()))
+            # Add fix from Tristan, #1486
+            mask = tether_atoms.indices(atoms)
+            tether_atoms = tether_atoms[mask]
+            spline_coords = spline_coords[mask]
             if len(spline_coords) == 0:
                 spline_coords = spline_coords.reshape((0,3))
             atom_coords = tether_atoms.coords
