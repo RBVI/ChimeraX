@@ -303,6 +303,9 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
             session.logger.info("Fetching mmCIF %s from system cache: %s" % (pdb_id, filename))
         else:
             filename = None
+        cache = 'PDB'
+    else:
+        cache = fetch_source
     if filename is None:
         base_url = _mmcif_sources.get(fetch_source, None)
         if base_url is None:
@@ -310,8 +313,8 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
         url = base_url % pdb_id
         pdb_name = "%s.cif" % pdb_id
         from chimerax.core.fetch import fetch_file
-        filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
-                              ignore_cache=ignore_cache)
+        filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name,
+                              cache, ignore_cache=ignore_cache)
         # double check that a mmCIF file was downloaded instead of an
         # HTML error message saying the ID does not exist
         with open(filename, 'U') as f:
