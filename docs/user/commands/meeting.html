@@ -157,20 +157,33 @@ the position is only displayed to others when it hovers over an atom.
 </p>
 <h3>Limitations and Potential Developments</h3>
 <p>
-After the initial scene is shared, the only changes 
-that are automatically propagated are moving and scaling 
-the displayed structures and (by <a href="#relayCommands">default</a>) 
-executing <a href="../index.html#commands">commands</a>.
-If a participant makes any unshared changes or
-introduces data for which the input file is not directly accessible 
-to others (<i>i.e.</i>, the same <a href="open.html"><b>open</b></a>
-command will not work for everyone), <b>meeting send</b> 
-is needed to share the updated session.
-This may be slow for large amounts of data.
-</p><p>
+  <b>Synchronizing changes.</b>
+  After the initial scene is shared not all changes made by one participant will
+  be propagated to other participants.  Changes that are propagated
+  include moving and scaling the displayed structures and (by <a href="#relayCommands">default</a>) 
+  executing <a href="../index.html#commands">commands</a>.
+  If a participant makes any unshared changes or
+  introduces data for which the input file is not directly accessible 
+  to others (<i>i.e.</i>, the same <a href="open.html"><b>open</b></a>
+  command will not work for everyone), <b>meeting send</b> 
+  is needed to share the updated session.
+  This may be slow for large amounts of data.
+</p>
+
+<p>
+  <b>More than two participants.</b>
+  The meeting command has had very limited testing with more than 2 participants.
+  Multiple participants may cause errors or slow display updating.
+</p>
+
+<p>
+  <b>No audio chat support.</b>
 An audio connection is not provided,
 so it is necessary to set up a separate audio link for remote participants.
-</p><p>
+</p>
+
+<p>
+  <b>Firewalls block connections.</b>
 Most academic institutions have firewalls that block incoming network 
 connections, and require administrative requests to open up network ports.
 A more usable design for shared ChimeraX sessions
@@ -180,6 +193,29 @@ ChimeraX could start a cloud-based server on demand using a commercial service
 that accepts the connections and forwards changes to all participants. 
 However, this is a complex undertaking that would require 
 accounts and payment for commercial services.
+</p>
+
+<p>
+  <b>Aligning two VR headsets in one room.</b>
+  Two Vive or Vive Pro VR headsets can be used in the same room each connected
+  to its own computer.  Each headset uses the same pair of base stations.  A problem
+  sometimes arises that the two headsets do not see the ChimeraX structures displayed
+  at the same location in the room.  Specifically one headset may see the structure
+  positions as if the room is rotated 180 degrees relative to the other headset.
+  This happens because the SteamVR room setup is run separately on each computer
+  and produces a different coordinate system.  In order for structures to have the same
+  room position in both headsets the room boundaries traced using SteamVR room
+  setup should be the same for both computers.  The first step of SteamVR room
+  setup where you are asked to point the hand controller at the screen and click
+  is the key to avoiding 180 degree mis-orientation.  When doing that step it
+  is important to point in a direction parallel to the short axis of the rectangle
+  defining the room bounds (that will be traced in a later step).  SteamVR
+  only chooses between two coordinate systems orientations rotated 180 degrees
+  from each other based on the direction you point in.  If you point along the
+  long axis of the rectangle bounds, a slight tilt toward the left or right
+  of the long axis produces opposite coordinate system orientations.  So for
+  reliably making both computers use the same orientation point along the short
+  axis.  (The computer screen position is irrelavent.)
 </p>
 
 <hr>
