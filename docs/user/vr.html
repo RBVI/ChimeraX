@@ -42,10 +42,12 @@ alt="using HTC Vive VR system" title="click to enlarge..."></a>
 </table>
 
 <p>
-  ChimeraX allows display and analysis of structures and density maps using virtual reality headsets such as HTC Vive,
-  Vive Pro, Oculus Rift, Samsung Odyssey and Windows Mixed Reality.
-  For multi-person VR sessions see the <a href="commands/meeting.html">meeting</a> command.
-  ChimeraX can also <a href="vrphone.html">record 360 degree movies</a>.
+ChimeraX allows display and analysis of structures and density maps 
+using virtual reality headsets such as HTC Vive,
+Vive Pro, Oculus Rift, Samsung Odyssey and Windows Mixed Reality.
+For multi-person VR sessions, see the 
+<a href="commands/meeting.html"><b>meeting</b></a> command.
+ChimeraX can also <a href="vrphone.html">record 360&deg; movies</a>.
 </p>
 
 <ul class="none">
@@ -124,11 +126,6 @@ desktop display, use the ChimeraX command:
 <blockquote>
 <a href="commands/device.html#vr"><b>vr off</b></a>
 </blockquote>
-<p>
-The <a href="commands/meeting.html"><b>meeting</b></a> command
-allows shared VR sessions. See also:
-<a href="commands/graphics.html"><b>graphics</b></a>
-</p>
 
 <a name="mousemodes"></a>
 <p class="nav">
@@ -279,8 +276,9 @@ The ChimeraX graphics on your normal computer display will show what the user
 sees in the VR headset. Rendering to the conventional display
 (generally 60 frames per second) can slow the VR rendering if ChimeraX is not
 able to switch to a mode where graphics is not synchronized to vertical refresh.
-To test if this is the cause of stuttering you can use the vr command option
-<b>mirror false</b> to prevent graphics from updating on the desktop display.
+To test if this is the cause of stuttering you can use the 
+<a href="commands/device.html#vr"><b>vr</b></a> command option
+<b>display blank</b> to prevent graphics from updating on the desktop display.
 An alternative mirroring can be done by the SteamVR runtime using
 SteamVR menu entry &ldquo;Mirror Display.&rdquo;
 </p><p>
@@ -350,5 +348,5 @@ coordset <b>pauseFrames 9</b> option to slow the playback rate from the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2018</address>
+December 2018</address>
 </body></html> 

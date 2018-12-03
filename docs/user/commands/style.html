@@ -27,10 +27,11 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>style</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;<b>sphere</b>&nbsp;|&nbsp;<b>stick</b>&nbsp;|&nbsp;<b>ball</b>&nbsp;]
+[&nbsp;<b>ringfill</b>&nbsp;&nbsp;on&nbsp;|&nbsp;off&nbsp;|&nbsp;thick&nbsp;|&nbsp;thin&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </h3>
 <p>
-The <b>style</b> command sets display style of atoms and bonds
+The <b>style</b> command sets atom/bond display styles
 and the number of dashes per <a href="../pseudobonds.html">pseudobond</a>.
 The style can be one of the following:
 </p>
@@ -54,6 +55,12 @@ atomic <a href="../radii.html">VDW radii</a>
 <b>stick</b> radii, and the scale factor for <b>ball</b> display
 can be adjusted with the <a href="size.html"><b>size</b></a> command.
 </p><p>
+The <b>ringfill</b> option sets per residue whether rings are filled, 
+and if so, whether the fill should be <b>thick</b> to match the stick width
+or <b>thin</b>.  Rings of up to six members can be filled.
+The <a href="color.html#simple"><b>color</b></a> command
+allows coloring ring fill separately from the ring atoms.
+</p><p>
 The <b>style</b> command can also set 
 <a href="../pseudobonds.html">pseudobond</a> number of <b>dashes</b> <i>N</i>.
 Only whole numbers of dashes are accepted, with 0
@@ -66,6 +73,7 @@ if only part of the model is specified.
 See also: 
 <a href="show.html"><b>show</b></a>,
 <a href="cartoon.html#style"><b>cartoon style</b></a>,
+<a href="nucleotides.html"><b>nucleotides</b></a>,
 <a href="set.html#subdivision"><b>set subdivision</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="crosslinks.html"><b>crosslinks</b></a>,
@@ -75,5 +83,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+December 2018</address>
 </body></html>
