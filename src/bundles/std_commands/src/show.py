@@ -47,8 +47,6 @@ def show(session, objects=None, what=None, target=None, only=False):
         show_surfaces(session, objects, only, undo_state)
     if 'models' in what_to_show:
         show_models(session, objects, only, undo_state)
-    if 'rings' in what_to_show:
-        show_rings(session, objects, only, undo_state)
 
     session.undo.register(undo_state)
 
@@ -192,20 +190,9 @@ def show_models(session, objects, only, undo_state):
                 undo_state.add(m, "display", m.display, False)
                 m.display = False
 
-def show_rings(session, objects, only, undo_state):
-    atoms = objects.atoms
-    res = atoms.unique_residues
-    undo_state.add(res, "ring_displays", res.ring_displays, True)
-    res.ring_displays = True
-    if only:
-        from chimerax.atomic import structure_residues
-        other_res = structure_residues(atoms.unique_structures) - res
-        undo_state.add(other_res, "ring_displays", other_res.ring_displays, False)
-        other_res.ring_displays = False
-
 from chimerax.core.commands import ListOf, EnumOf, Annotation
 WhatArg = ListOf(EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons',
-                  'surfaces', 'models', 'rings')))
+                  'surfaces', 'models')))
 
 class TargetArg(Annotation):
     '''
@@ -219,7 +206,7 @@ class TargetArg(Annotation):
         from chimerax.core.commands import StringArg
         token, text, rest = StringArg.parse(text, session)
         target_chars = {'a':'atoms', 'b':'bonds', 'p':'pseudobonds', 'c':'cartoons', 'r':'cartoons',
-                        's':'surfaces', 'm':'models', 'f':'rings'}
+                        's':'surfaces', 'm':'models'}
         for c in token:
             if c not in target_chars:
                 from chimerax.core.commands import AnnotationError

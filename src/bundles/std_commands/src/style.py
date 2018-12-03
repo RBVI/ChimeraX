@@ -22,14 +22,15 @@ def style(session, objects=None, atom_style=None, dashes=None, ring_fill=None):
     atom_style : "sphere", "ball" or "stick"
         Controls how atoms and bonds are depicted.
     dashes : int
-        Number of dashes shown for pseudobonds.
-    ring_fill : thick | thin
+        Optional number of dashes shown for pseudobonds.
+    ring_fill : Optional "thick", "thin", or "off".
     '''
     if objects is None:
         from chimerax.core.commands import all_objects
         objects = all_objects(session)
     atoms = objects.atoms
 
+    from chimerax.core.commands import plural_form
     from chimerax.core.undo import UndoState
     undo_state = UndoState("style")
     what = []
@@ -42,19 +43,35 @@ def style(session, objects=None, atom_style=None, dashes=None, ring_fill=None):
         }[atom_style.lower()]
         undo_state.add(atoms, "draw_modes", atoms.draw_modes, s)
         atoms.draw_modes = s
-        what.append('%d atom styles' % len(atoms))
+        what.append('%d %s' % (len(atoms), plural_form(atoms, 'atom style')))
 
     if dashes is not None:
         pbgs = objects.pseudobonds.unique_groups
         for pbg in pbgs:
             undo_state.add(pbg, "dashes", pbg.dashes, dashes)
             pbg.dashes = dashes
-        what.append('%d pseudobond dashes' % len(pbgs))
+        what.append('%d %s' % (len(pbgs), plural_form(pbgs, 'pseudobond dash')))
 
     if ring_fill is not None:
         atoms = objects.atoms
         res = atoms.unique_residues
-        res.thin_rings = ring_fill == 'thin'
+        if ring_fill == 'on':
+            undo_state.add(res, "ring_displays", res.ring_displays, True)
+            res.ring_displays = True
+        elif ring_fill == 'off':
+            undo_state.add(res, "ring_displays", res.ring_displays, False)
+            res.ring_displays = False
+        elif ring_fill == 'thin':
+            undo_state.add(res, "ring_displays", res.ring_displays, True)
+            undo_state.add(res, "thin_rings", res.thin_rings, True)
+            res.ring_displays = True
+            res.thin_rings = True
+        elif ring_fill == 'thick':
+            undo_state.add(res, "ring_displays", res.ring_displays, True)
+            undo_state.add(res, "thin_rings", res.thin_rings, False)
+            res.ring_displays = True
+            res.thin_rings = False
+        what.append('%d %s' % (len(res), plural_form(res, 'residue ring style')))
 
     if what:
         msg = 'Changed %s' % ', '.join(what)
@@ -71,6 +88,6 @@ def register_command(logger):
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg)),
                                ('atom_style', Or(EnumOf(('sphere', 'ball', 'stick')), EmptyArg))],
                    keyword = [('dashes', IntArg),
-                              ('ring_fill', EnumOf(['thick', 'thin']))],
+                              ('ring_fill', EnumOf(['on', 'off', 'thick', 'thin']))],
                    synopsis='change atom and bond depiction')
     register('style', desc, style, logger=logger)
