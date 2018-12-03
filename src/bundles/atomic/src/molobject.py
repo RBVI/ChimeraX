@@ -619,6 +619,8 @@ class Ring:
     A ring in the structure.
     '''
 
+    has_custom_attrs = False
+
     def __init__(self, ring_pointer):
         set_c_pointer(self, ring_pointer)
 
