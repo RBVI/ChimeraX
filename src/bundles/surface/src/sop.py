@@ -398,7 +398,7 @@ def surface_zone(session, surfaces, near_atoms = None, distance = 2,
       Show at most this number of connected surface patches, hiding the smaller ones.
       The limit applies for each surface model.
     bond_point_spacing : float
-      Include distances from points along bonds between the given atoms at this spacing.
+      Include points along bonds between the given atoms at this spacing.
     update : bool
       Whether to recompute the zone when the surface geometry changes.
     '''
