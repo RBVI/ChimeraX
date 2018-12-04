@@ -31,9 +31,9 @@ def path_points(atoms, bonds, bond_point_spacing = None):
 
     points = atoms.scene_coords
 
-    if bonds is not None:
+    if bonds is not None and len(bonds) > 0:
         from .bondzone import bond_points, concatenate_points
-        bpoints = bond_points(bonds, xform_to_surface, bond_point_spacing)
+        bpoints = bond_points(bonds, bond_point_spacing)
         if len(bpoints) > 0:
             points = concatenate_points(points, bpoints)
 

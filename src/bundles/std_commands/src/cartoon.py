@@ -294,14 +294,14 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             old_arrow_scale = None
             if width is not None or thickness is not None:
                 w, h = mgr.scale_helix
+                aw, ah = mgr.scale_helix_arrow[0]
+                old_arrow_scale = aw / w
                 if width is not None:
                     w = width
                 if thickness is not None:
                     h = thickness
                 undo_state.add(mgr, "set_helix_scale", mgr.scale_helix, (w, h), "MA")
                 mgr.set_helix_scale(w, h)
-                aw, ah = mgr.scale_helix_arrow[0]
-                old_arrow_scale = aw / w
             if arrow_scale is not None or old_arrow_scale is not None:
                 w, h = mgr.scale_helix
                 if arrow_scale is not None:
@@ -402,14 +402,14 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             old_arrow_scale = None
             if width is not None or thickness is not None:
                 w, h = mgr.scale_sheet
+                aw, ah = mgr.scale_sheet_arrow[0]
+                old_arrow_scale = aw / w
                 if width is not None:
                     w = width
                 if thickness is not None:
                     h = thickness
                 undo_state.add(mgr, "set_sheet_scale", mgr.scale_sheet, (w, h), "MA")
                 mgr.set_sheet_scale(w, h)
-                aw, ah = mgr.scale_sheet_arrow[0]
-                old_arrow_scale = aw / w
             if arrow_scale is not None or old_arrow_scale is not None:
                 w, h = mgr.scale_sheet
                 if arrow_scale is not None:
@@ -621,7 +621,7 @@ def register_command(logger):
                             ("thickness", FloatArg),
                             ("arrows", BoolArg),
                             ("arrows_helix", BoolArg),
-                            ("arrow_scale", Bounded(FloatArg, 1.0, 3.0)),
+                            ("arrow_scale", Bounded(FloatArg, 1.0, 5.0)),
                             ("xsection", EnumOf(_XSectionMap.keys())),
                             ("sides", Bounded(EvenIntArg, 3, 24)),
                             ("divisions", Bounded(IntArg, 2, 40)),

@@ -28,7 +28,7 @@ ifeq ($(OS),Darwin)
 LIBS	+= -larrays $(PYTHON_LIB) -framework OpenGL
 else
 ifeq ($(OS),Linux)
-LIBS	+= -larrays $(PYTHON_LIB) -lGLX
+LIBS	+= -larrays $(PYTHON_LIB) -lGL
 else
 LIBS	+= -larrays $(PYTHON_LIB)
 endif

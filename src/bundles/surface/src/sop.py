@@ -398,7 +398,7 @@ def surface_zone(session, surfaces, near_atoms = None, distance = 2,
       Show at most this number of connected surface patches, hiding the smaller ones.
       The limit applies for each surface model.
     bond_point_spacing : float
-      Include distances from points along bonds between the given atoms at this spacing.
+      Include points along bonds between the given atoms at this spacing.
     update : bool
       Whether to recompute the zone when the surface geometry changes.
     '''
@@ -413,7 +413,7 @@ def surface_zone(session, surfaces, near_atoms = None, distance = 2,
     from chimerax.surface import zone
     for s in surfaces:
         points = zone.path_points(atoms, bonds, bond_point_spacing)
-        spoints = s.position.inverse() * points
+        spoints = s.scene_position.inverse() * points
         zone.surface_zone(s, spoints, distance, auto_update = update,
                           max_components = max_components)
 

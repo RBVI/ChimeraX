@@ -44,15 +44,20 @@ and contains sections:
 <br><a href="#window">Window</a>
 </b></blockquote>
 <p>
+The buttons at the bottom of the dialog can apply to just the currently shown
+section or to all sections of the <b>Preferences</b> dialog 
+(depending on the <b>Buttons below...</b>&nbsp; option):
+</p>
+<ul>
+<li><b>Save</b> - save the current settings
+<li><b>Reset</b> - replace the current settings with the 
+initial (&ldquo;factory&rdquo;) defaults
+<li><b>Restore</b> - restore values that were saved previously
+<li><b>Help</b> - show documentation
+</ul>
+<p>
 Several <a href="#other">other preferences</a> do not appear in this 
-dialog, but in separate interfaces.
-</p><p>
-<b>Save</b> saves the current settings, <b>Reset</b> replaces the 
-current settings with the initial (&ldquo;factory&rdquo;) defaults,
-and <b>Restore</b> restores values that were saved previously.
-The <b>Buttons below...</b> option indicates 
-whether these buttons should apply only to the currently shown section
-or to all sections of the <b>Preferences</b> dialog.
+dialog, but in separate interfaces. 
 </p><p>
 ChimeraX preferences are stored as multiple files
 in a standard platform-dependent location (for example, under
@@ -234,7 +239,9 @@ Trackpad</h3>
 <li><b>Trackpad gestures to rotate and move</b> (initial default <b>on</b>)
 - whether to respond to trackpad multitouch gestures 
 (currently <b>Mac</b> only):
-two-finger rotation, three-finger translation, pinch-zoom, four-finger zoom
+two-finger rotation, three-finger translation, pinch-zoom, and four-finger zoom.
+For scrolling with a Magic Mouse to work properly when a trackpad is also
+present, this option should be turned off.
 <p>
 Otherwise and on other platforms' multitouch trackpads, 
 two-finger drag performs the &ldquo;scrolling&rdquo; action
@@ -342,5 +349,5 @@ autostart, panel dockability, panel position
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2018</address>
+December 2018</address>
 </body></html> 

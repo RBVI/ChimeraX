@@ -56,10 +56,6 @@ def hide(session, objects=None, what=None, target=None):
         molsurf.hide_surface_atom_patches(objects.atoms)
     if 'models' in what_to_hide:
         hide_models(objects, undo_state)
-    if 'rings' in what_to_hide:
-        res = objects.atoms.unique_residues
-        undo_state.add(res, "ring_displays", res.ring_displays, False)
-        res.ring_displays = False
 
     session.undo.register(undo_state)
 

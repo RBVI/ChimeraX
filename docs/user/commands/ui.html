@@ -93,7 +93,7 @@ Initial defaults include:
 <ul>
 <li>left: rotate
 <li>middle: translate
-<li>right: zoom
+<li>right: translate
 <li>wheel (scrolling): zoom
 <li>Ctrl-left: new <a href="../selection.html">selection</a>
 <li>Shift-Ctrl-left: toggle <a href="../selection.html">selection</a>
@@ -135,13 +135,13 @@ see also <a href="turn.html"><b>turn</b></a>,
 <a href="roll.html"><b>roll</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/rotate.png" width="35px"></td>
 </tr><tr>
-<td align="center"><b>translate</b><br>(middle)</td>
+<td align="center"><b>translate</b><br>(middle, right)</td>
 <td align="center" class="text">XY-translate
 (<a href="view.html#screencoords">screen coordinates</a>),
 except if wheel, Z-translate; see also <a href="move.html"><b>move</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/translate.png" width="35px"></td>
 </tr><tr>
-<td align="center"><b>zoom</b><br>(right, wheel)</td>
+<td align="center"><b>zoom</b><br>(wheel)</td>
 <td align="center" class="text">zoom the view;
 see also <a href="zoom.html"><b>zoom</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/zoom.png" width="35px"></td>
@@ -324,7 +324,12 @@ if multitouch is turned off, a two-finger drag is interpreted as scrolling
 (<b>wheel</b>, default assignment zoom). Regardless of the multitouch setting,
 if &ldquo;secondary click&rdquo; is enabled in the Trackpad system preferences,
 a two-finger click-and-drag performs the right-button action.
-<br><br>
+<p>
+Magic Mouse issue: if a trackpad is also present, scrolling with 
+the Magic Mouse will not work unless multitouch actions are disabled 
+in the <a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>
+(the <b>Trackpad gestures</b> option is unchecked).
+</p>
 <li>On Windows, the modifier keys to emulate middle and right are 
 <b>control alt</b> and <b>alt</b>, respectively.
 In addition, on many Windows 10 laptops, a click in the 
