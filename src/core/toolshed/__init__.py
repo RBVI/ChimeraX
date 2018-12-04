@@ -621,10 +621,13 @@ class Toolshed:
             container = self._get_available_bundles(logger)
         from pkg_resources import parse_version
         lc_name = name.lower().replace('_', '-')
+        lc_names = [lc_name]
+        if not lc_name.startswith("chimerax-"):
+            lc_names.append("chimerax-" + lc_name)
         best_bi = None
         best_version = None
         for bi in container:
-            if lc_name != bi.name.lower():
+            if bi.name.lower() not in lc_names:
                 continue
             #if bi.name != name and name not in bi.supercedes:
             #    continue
