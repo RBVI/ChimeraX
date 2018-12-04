@@ -413,7 +413,7 @@ def surface_zone(session, surfaces, near_atoms = None, distance = 2,
     from chimerax.surface import zone
     for s in surfaces:
         points = zone.path_points(atoms, bonds, bond_point_spacing)
-        spoints = s.position.inverse() * points
+        spoints = s.scene_position.inverse() * points
         zone.surface_zone(s, spoints, distance, auto_update = update,
                           max_components = max_components)
 
