@@ -315,9 +315,8 @@ fill_small_ring(const Vector* pts, Py_ssize_t n, float offset, VertexList* verti
 	//   three will accent the twist.
 
 	if (thick) {
-	    // TODO: add triangles to fill center hole
-	    // (5 triangles + 5 quads) * 2 sides
-	    triangles->reserve(30 * 3);	// 30 triangles with 3 indices each
+	    // (5 triangles + 5 quads + 3 center hole triangles) * 2 sides
+	    triangles->reserve(40 * 3);	// 36 triangles with 3 indices each
 	    vertices->reserve(30 * 3);	// 30 vertices with xyz values
 	    normals->reserve(30 * 3);	// 30 normals with xyz values
 	} else {
@@ -383,6 +382,16 @@ fill_small_ring(const Vector* pts, Py_ssize_t n, float offset, VertexList* verti
 		add_quad(7, 8, 11, 9, triangles);
 		add_quad(10, 11, 14, 12, triangles);
 		add_quad(13, 14, 2, 0, triangles);
+		// fill tiny hole between translated centers
+		triangles->push_back(2);
+		triangles->push_back(8);
+		triangles->push_back(5);
+		triangles->push_back(2);
+		triangles->push_back(11);
+		triangles->push_back(8);
+		triangles->push_back(2);
+		triangles->push_back(14);
+		triangles->push_back(11);
 	}
 	break;
       }
