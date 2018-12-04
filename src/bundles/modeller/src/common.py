@@ -268,3 +268,14 @@ def _process_dist_restraints(filename):
 
     # concatenate and return output code:
     return headcode + maincode
+
+from chimerax.core.session import State
+class RunModeller(State):
+
+    def __init__(self, session, template_structures, num_models, target_seq_name, targets, show_gui):
+        self.session = session
+        self.template_structures = template_structures
+        self.num_models = num_models
+        self.target_seq_name = target_seq_name
+        self.targets = targets
+        self.show_gui = show_gui

@@ -81,12 +81,14 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
                 target_templates = []
                 template_info.append((target, target_templates))
             target_templates.append((regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
+    if not combined_templates:
+        template_info.sort(key=lambda x: (x[1][0][1].structure.id, x[1][0][1].chain_id))
 
     from .common import write_modeller_scripts
     script_path, config_path, temp_dir = write_modeller_scripts(license_key, num_models, het_preserve,
         water_preserve, hydrogens, fast, None, custom_script, temp_path, thorough_opt, dist_restraints_path)
 
-    input_file_map = {}
+    input_file_map = []
 
     # collate the template info in series of strings that can be joined with '/'
     target_strings = []
@@ -167,7 +169,7 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
     # write the namelist.dat file, target seq name on first line, templates on remaining lines
     import os.path
     name_file = os.path.join(temp_dir.name, "namelist.dat")
-    input_file_map["namelist.dat"] = name_file
+    input_file_map.append(("namelist.dat", "text_file", name_file))
     with open(name_file, 'w') as f:
         print(pir_target.name, file=f)
         for template_seq in pir_seqs:
@@ -180,10 +182,10 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
     aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False)
     aln.save(pir_file, format_name="pir")
     session.alignments.destroy_alignment(aln)
-    input_file_map["alignment.ali"] = pir_file
+    input_file_map.append(("alignment.ali", "text_file", pir_file))
 
     config_name = os.path.basename(config_path)
-    input_file_map[config_name] = config_path
+    input_file_map.append((config_name, "text_file", config_path))
 
     # save structure files
     import os
@@ -197,22 +199,22 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
     for structure in structures_to_save:
         base_name = structure_save_name(structure) + '.pdb'
         pdb_file_name = os.path.join(struct_dir, base_name)
-        input_file_map[base_name] = pdb_file_name
+        input_file_map.append((base_name, "text_file",  pdb_file_name))
         ATOM_res_names = structure.in_seq_hets
         ATOM_res_names.update(std_res_names)
-        save_pdb(session, pdb_file_name, polymeric_res_names=ATOM_res_names)
+        save_pdb(session, pdb_file_name, models=[structure], polymeric_res_names=ATOM_res_names)
         delattr(structure, 'in_seq_hets')
 
     # a custom script [only used when executing locally] needs to be copied into the tmp dir...
     if os.path.exists(script_path) \
-    and os.path.normpath(temp_dir.name) != os.path.normpath(os.path.dirname(script_path):
+    and os.path.normpath(temp_dir.name) != os.path.normpath(os.path.dirname(script_path)):
         import shutil
         shutil.copy(script_path, temp_dir.name)
 
     #TODO...
     if executable_location is None:
-        job_runner = ModellerWebService(structures_to_save, num_models, pir_target.name, input_file_map,
-            config_name)
+        job_runner = ModellerWebService(session, structures_to_save, num_models, pir_target.name,
+            input_file_map, config_name, targets, show_gui)
     else:
         pass #TODO: job_runner = ModellerLocal(...)
     return job_runner.run(block=block)
@@ -221,7 +223,7 @@ def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]
     from .common import modeller_copy
     rseq = modeller_copy(aseq)
-    rseq.descript = "structure:" + chain_save_name(chain)
+    rseq.description = "structure:" + chain_save_name(chain)
     seq_chars = list(rseq.characters)
     from chimerax.atomic import Sequence
     from chimerax.atomic.pdb import standard_polymeric_res_names as std_res_names
@@ -253,5 +255,54 @@ def chain_save_name(chain):
 from .common import RunModeller
 class ModellerWebService(RunModeller):
 
-    def __init__(self, template_structures, num_models, target_seq_name, input_file_map, config_name):
-        pass #TODO: need to pass in the target info so that the results can associate with the right seq(s)
+    def __init__(self, session, template_structures, num_models, target_seq_name, input_file_map, config_name,
+            targets, show_gui):
+
+        super().__init__(session, template_structures, num_models, target_seq_name, targets, show_gui)
+        self.input_file_map = input_file_map
+        self.config_name = config_name
+
+        self.job = None
+
+    def run(self, *, block=False):
+        if block:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError("Blocking web service Modeller jobs not yet implemented")
+        self.job = ModellerJob(self.session, self.config_name, self.input_file_map)
+
+from chimerax.core.webservices.opal_job import OpalJob
+class ModellerJob(OpalJob):
+
+    OPAL_SERVICE = "Modeller9v8Service"
+
+    def __init__(self, session, command, input_file_map):
+        super().__init__(session)
+        self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map)
+
+    def on_finish(self):
+        logger = self.session.logger
+        logger.info("Modeller job ID %s finished" % self.job_id)
+        if not self.exited_normally():
+            err = self.get_file("stderr.txt")
+            if self.fail_callback:
+                self.fail_callback(self, err)
+                return
+            if err:
+                raise RuntimeError("Modeller failure; standard error:\n" + err.decode("utf-8"))
+            else:
+                raise RuntimeError("Modeller failure with no error output")
+        model_info = self.get_file("ok_models.dat")
+        if not model_info:
+            raise RuntimeError("No output models from Modeller")
+        #TODO: actually do the stuff in _parseOKModels instead of the below
+        from chimerax.atomic.pdb import open_pdb
+        from io import StringIO
+        structures = []
+        for line in model_info.decode('utf-8').split('\n'):
+            if '.pdb' in line:
+                pdb_fname, ga341, zdope = line.split()
+                structures.append(open_pdb(self.session,
+                    StringIO(self.get_file(pdb_fname).decode('utf-8')), pdb_fname)[0][0])
+                structures[-1].ga341 = ga341
+                structures[-1].zdope = zdope
+        self.session.models.add(structures)

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 #
-def sequence_model(session, targets, combined_templates=False, custom_script=None,
+def sequence_model(session, targets, block=True, combined_templates=False, custom_script=None,
     dist_restraints_path=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
     water_preserve=False):
@@ -29,7 +29,7 @@ def sequence_model(session, targets, combined_templates=False, custom_script=Non
     #TODO: if license_key given, save in settings; otherwise try to retrieve from settings
     from . import comparitive
     try:
-        comparitive.model(session, targets, combined_templates=combined_templates,
+        comparitive.model(session, targets, block=block, combined_templates=combined_templates,
             custom_script=custom_script, dist_restraints_path=dist_restraints_path,
             executable_location=executable_location, fast=fast, het_preserve=het_preserve,
             hydrogens=hydrogens, license_key=license_key, num_models=num_models,
@@ -38,12 +38,13 @@ def sequence_model(session, targets, combined_templates=False, custom_script=Non
         raise UserError(e)
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg
+    from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg, PasswordArg, IntArg
     from chimerax.seqalign import AlignSeqPairArg
     #TODO: all the other args; make sure license_key uses PasswordArg
     desc = CmdDesc(
         required = [('targets', ListOf(AlignSeqPairArg))],
-        keyword = [('combined_templates', BoolArg)],
+        keyword = [('block', BoolArg), ('combined_templates', BoolArg), ('license_key', PasswordArg),
+            ('num_models', IntArg)],
         synopsis = 'Use Modeller to generate comparitive model'
     )
     register('modeller comparitive', desc, sequence_model, logger=logger)
