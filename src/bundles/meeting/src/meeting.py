@@ -438,7 +438,8 @@ class MeetingServer:
     def _report_message_status(self, bytes_received, message_bytes):
         '''Report progress receiving session from a peer.'''
         if bytes_received >= message_bytes:
-            if self._last_status_time > self._status_start_time:
+            lt = self._last_status_time
+            if lt is not None and lt > self._status_start_time:
                 from time import time
                 t = time()
                 msg = ('Received %.1f Mbytes in %.1f seconds'
