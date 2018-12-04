@@ -153,7 +153,7 @@ def meeting_server(session, create = False):
 class MeetingServer:
     def __init__(self, session):
         self._session = session
-        self._name = 'remote'
+        self._name = 'Remote'
         self._color = (0,255,0,255)	# Tracking model color
         self._server = None
         self._connections = []		# List of QTcpSocket
@@ -526,7 +526,8 @@ class PointerModels:
                 return m
 
         m = self.make_pointer_model(self._session)
-        self._session.models.add([m])
+        models = self._session.models
+        models.add([m], minimum_id = 100)
         pm[peer_id] = m
         return m
 
@@ -656,7 +657,7 @@ class VRTracking(PointerModels):
             PointerModels.update_model(self, msg)
 
     def make_pointer_model(self, session):
-        return VRPointerModel(self._session, 'vr head and hands', self._last_room_to_scene)
+        return VRPointerModel(self._session, 'VR', self._last_room_to_scene)
 
     def new_head_image(self, path):
         self._new_head_image = path
@@ -724,6 +725,7 @@ class VRPointerModel(Model):
     pickable = False
     skip_bounds = True
     SESSION_SAVE = False
+    model_panel_show_expanded = False
     
     def __init__(self, session, name, room_to_scene, color = (0,255,0,255)):
         Model.__init__(self, name, session)
@@ -737,7 +739,7 @@ class VRPointerModel(Model):
         self._room_to_scene = room_to_scene
 
     def _hand_models(self, nhands):
-        new_hands = [VRHandModel(self.session, 'hand %d' % (i+1), color=self._color)
+        new_hands = [VRHandModel(self.session, 'Hand %d' % (i+1), color=self._color)
                      for i in range(len(self._hands), nhands)]
         if new_hands:
             self.add(new_hands)
@@ -754,7 +756,7 @@ class VRPointerModel(Model):
     def update_pointer(self, msg):
         if 'name' in msg:
             if 'id' in msg:  # If id not in msg leave name as "my pointer".
-                self.name = '%s vr head and hands' % msg['name']
+                self.name = '%s VR' % msg['name']
         if 'color' in msg:
             for h in self._hands:
                 h.color = msg['color']
@@ -797,7 +799,7 @@ class VRHeadModel(Model):
     skip_bounds = True
     SESSION_SAVE = False
     default_face_file = 'face.png'
-    def __init__(self, session, name = 'head', size = 0.3, image_file = None):
+    def __init__(self, session, name = 'Head', size = 0.3, image_file = None):
         Model.__init__(self, name, session)
         self.room_position = None
         
