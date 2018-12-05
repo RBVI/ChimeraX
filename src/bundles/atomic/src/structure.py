@@ -2186,7 +2186,8 @@ class AtomicStructure(Structure):
         if self._log_info:
             # don't report models in an NMR ensemble individually...
             if len(self.id) > 1:
-                sibs = [m for m in session.models if m.id[:-1] == self.id[:-1]]
+                sibs = [m for m in session.models
+                        if isinstance(m, AtomicStructure) and m.id[:-1] == self.id[:-1]]
                 if len(set([s.name for s in sibs])) > 1:
                     # not an NMR ensemble
                     self._report_chain_descriptions(session)
