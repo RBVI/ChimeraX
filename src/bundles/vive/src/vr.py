@@ -966,7 +966,8 @@ class HandControllerModel(Model):
 
         self._pose = None
         self._previous_pose = None
-        self.room_position = None	# Hand controller position in room coordinates.
+        from chimerax.core.geometry import Place
+        self.room_position = Place()	# Hand controller position in room coordinates.
 
         # Assign actions bound to controller buttons
         import openvr
