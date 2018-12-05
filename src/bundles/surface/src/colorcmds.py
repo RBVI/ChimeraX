@@ -8,7 +8,6 @@ def register_color_subcommand(command_name, logger):
 
     from .colorvol import color_electrostatic, color_sample, color_gradient
     from .colorgeom import color_radial, color_cylindrical, color_height
-    from .colorzone import color_zone
     
     map_args = [('map', MapArg),
                 ('palette', ColormapArg),

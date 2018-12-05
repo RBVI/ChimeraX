@@ -62,11 +62,20 @@ class OpalJob(Job):
         # Initialize Opal request state
         self.reset_state()
 
+    def start(self, *args, input_file_map=None, **kw):
+        # override Job.start so that we can process the input_file_map
+        # before start returns, since the files may be temporary
+        if input_file_map is None:
+            self.input_files = None
+        else:
+            self.input_files = [self._make_input_file(name, value_type, value)
+                           for name, value_type, value in input_file_map]
+        super().start(*args, **kw)
+
     #
     # Define chimerax.core.tasks.Job ABC methods
     #
-    def launch(self, service_name, cmd, opal_url=None,
-               input_file_map=None, **kw):
+    def launch(self, service_name, cmd, opal_url=None, **kw):
         """Launch the background process.
 
         Arguments
@@ -78,6 +87,7 @@ class OpalJob(Job):
         opal_url : str
             URL of Opal server.  If None, DEFAULT_OPAL_URL is used.
         input_file_map : list of tuples
+            (actually arg to self.start(), which calls launch())
             List of file names and contents.  Each tuple consists of
             the file name, the type of content, and the content.
             Supported content types include: "text_file", "binary_file"
@@ -117,11 +127,9 @@ class OpalJob(Job):
         # Add job keywords
         job_kw = dict([(k[1:], v) for k, v in kw.items() if k.startswith('_')])
 
-        # Create input file map if necessary
-        if input_file_map is not None:
-            input_files = [self._make_input_file(name, value_type, value)
-                           for name, value_type, value in input_file_map]
-            job_kw["inputFile"] = input_files
+        # Create input files if necessary
+        if self.input_files is not None:
+            job_kw["inputFile"] = self.input_files
 
         # Launch job
         from suds import WebFault

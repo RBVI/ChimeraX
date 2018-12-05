@@ -1073,7 +1073,8 @@ def _value_colors(palette, range, values):
     colors = cmap.interpolated_rgba8(values)
     return colors
         
-def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update = True):
+def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
+               bond_point_spacing = None, update = True):
     '''
     Color surfaces to match nearby atom colors.
 
@@ -1087,13 +1088,15 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
       If true change the surface to add cut lines exactly at color zone the boundaries. This makes sharp
       color transitions at the boundaries between different color patches.  If false, or zone option is not
       used then the surface is not changed.
+    bond_point_spacing : float
+      Include points along bonds between the given atoms at this spacing.
     update : bool
       Whether to update surface color when surface shape changes.  Default true.
     '''
     atoms = near
-    bonds = None
+    bonds = near.intra_bonds if bond_point_spacing is not None else None
     from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
-    points, colors = points_and_colors(atoms, bonds)
+    points, colors = points_and_colors(atoms, bonds, bond_point_spacing)
     for s in surfaces:
         # TODO: save undo data
         spoints = s.scene_position.inverse() * points	# Transform points to surface coordinates
@@ -1180,6 +1183,7 @@ def register_command(logger):
                    keyword=[('near', AtomsArg),
                             ('distance', FloatArg),
                             ('sharp_edges', BoolArg),
+                            ('bond_point_spacing', FloatArg),
                             ('update', BoolArg),
                        ],
                    required_arguments = ['near'],

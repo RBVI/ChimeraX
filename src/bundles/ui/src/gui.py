@@ -541,9 +541,15 @@ class MainWindow(QMainWindow, PlainTextLog):
             if len(paths) == 1:
                 run(session, "open " + quote_if_necessary(paths[0]))
             else:
-                # Open multiple files as a single batch.
                 # TODO: Make open command handle this including saving in file history.
-                session.models.open(paths)
+                suffixes = set(p[p.rfind('.'):] for p in paths)
+                if len(suffixes) == 1:
+                    # Files have same suffix, open as a single group
+                    session.models.open(paths)
+                else:
+                    # Files have more than one suffix, open each at top-level model.
+                    for p in paths:
+                        session.models.open([p])
 
         # Opening the model directly adversely affects Qt interfaces that show
         # as a result.  In particular, Multalign Viewer no longer gets hover
