@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 #
-def sequence_model(session, targets, block=True, combined_templates=False, custom_script=None,
+def sequence_model(session, targets, block=None, combined_templates=False, custom_script=None,
     dist_restraints_path=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
     water_preserve=False):
@@ -26,6 +26,8 @@ def sequence_model(session, targets, block=True, combined_templates=False, custo
             raise UserError("Only one target sequence per alignent allowed;"
                 " multiple targets chosen in alignment %s" % alignment)
         seen.add(alignment)
+    if block is None:
+        block = not session.ui.is_gui
     #TODO: if license_key given, save in settings; otherwise try to retrieve from settings
     from . import comparitive
     try:

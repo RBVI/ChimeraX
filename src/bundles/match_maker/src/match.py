@@ -181,7 +181,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
 
 def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *,
         cutoff_distance=None, show_alignment=False, align=align, domain_residues=(None, None),
-        bring=None, verbose=False, always_raise_errors=False, **align_kw):
+        bring=None, verbose=None, always_raise_errors=False, **align_kw):
     """Superimpose structures based on sequence alignment
        
        Returns a list of tuples, one per chain pairing.  The tuples are:
@@ -226,7 +226,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
        'bring' specifies other structures that should be transformed along with the
        match structure (so, there must be only one match structure in such a case).
 
-       'verbose', if True, produces additional output to the log.
+       'verbose', if True, produces additional output to the log, If None, the parameter
+       table will not be logged.
 
        If 'always_raise_errors' is True, then an iteration that goes to too few
        matched atoms will immediately raise an error instead of noting the
@@ -372,7 +373,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             except KeyError:
                 ss_fraction = defaults["ss_mixture"]
 
-            if not logged_params:
+            if not logged_params and verbose is not None:
                 if ss_fraction is None or ss_fraction is False:
                     ss_rows="""
                         <tr>

@@ -14,7 +14,7 @@
 #--- public API ---
 from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
 from .match import AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN
-from .match import match
+from .match import match, defaults
 
 #--- toolshed/session-init funcs ---
 

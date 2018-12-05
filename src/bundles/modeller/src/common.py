@@ -257,7 +257,7 @@ def _process_dist_restraints(filename):
                         atom = pseudodict[(resA, resB)]
                 else: # hopefully, a single residue was specified -> verify    
                     res = verify_residue(residues)
-                    atom = "atm['CA:" + str(res) +"']"    
+                    atom = "atm['CA:" + str(res) +"']"
                 atoms.append(atom)
 
             # add restraints line to output
@@ -272,10 +272,50 @@ def _process_dist_restraints(filename):
 from chimerax.core.session import State
 class RunModeller(State):
 
-    def __init__(self, session, template_structures, num_models, target_seq_name, targets, show_gui):
+    def __init__(self, session, template_chains, num_models, target_seq_name, targets, show_gui):
         self.session = session
-        self.template_structures = template_structures
+        self.template_chains = template_chains
         self.num_models = num_models
         self.target_seq_name = target_seq_name
         self.targets = targets
         self.show_gui = show_gui
+
+    def process_ok_models(self, ok_models_text, stdout_text, get_pdb_model):
+        ok_models_lines = ok_models_text.rstrip().split('\n')
+        headers = [h.strip() for h in ok_models_lines[0].split('\t')][1:]
+        for i, hdr in enumerate(headers):
+            if hdr.endswith(" score"):
+                headers[i] = hdr[:-6]
+        from chimerax.core.utils import string_to_attr
+        attr_names = [string_to_attr(hdr, prefix="modeller_") for hdr in headers]
+        from chimerax.atomic import AtomicStructure
+        for attr_name in attr_names:
+            AtomicStructure.register_attr(self.session, attr_name, "Modeller", attr_type=float)
+
+        from chimerax import match_maker as mm
+        models = []
+        for i, line in enumerate(ok_models_lines[1:]):
+            fields = line.strip().split()
+            pdb_name, scores = fields[0], [float(f) for f in fields[1:]]
+            model = get_pdb_model(pdb_name)
+            for attr_name, val in zip(attr_names, scores):
+                setattr(model, attr_name, val)
+            model.name = self.target_seq_name
+            if model.num_chains == len(self.template_chains):
+                pairings = zip(model.chains, self.template_chains)
+            else:
+                chain_map = { chain.chain_id:chain for chain in model_chains}
+                pairings = []
+                for tmpl_chain in self.template_chains:
+                    if tmpl_chain.chain_id in chain_map:
+                        pairings.append((chain_map[tmpl_chain.chain_id], tmpl_chain))
+            if pairings:
+                mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
+                    mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
+                    cutoff_distance=mm.defaults['iter_cutoff'])
+            elif i == 0:
+                self.session.logger.warning("Could not determine which model chains to superimpose on template")
+            models.append(model)
+        self.session.models.add_group(models, name=self.target_seq_name + " models")
+
+

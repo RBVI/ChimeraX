@@ -213,8 +213,8 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
 
     #TODO...
     if executable_location is None:
-        job_runner = ModellerWebService(session, structures_to_save, num_models, pir_target.name,
-            input_file_map, config_name, targets, show_gui)
+        job_runner = ModellerWebService(session, [info[1][0][1] for info in template_info], num_models,
+            pir_target.name, input_file_map, config_name, targets, show_gui)
     else:
         pass #TODO: job_runner = ModellerLocal(...)
     return job_runner.run(block=block)
@@ -255,10 +255,10 @@ def chain_save_name(chain):
 from .common import RunModeller
 class ModellerWebService(RunModeller):
 
-    def __init__(self, session, template_structures, num_models, target_seq_name, input_file_map, config_name,
+    def __init__(self, session, align_chains, num_models, target_seq_name, input_file_map, config_name,
             targets, show_gui):
 
-        super().__init__(session, template_structures, num_models, target_seq_name, targets, show_gui)
+        super().__init__(session, align_chains, num_models, target_seq_name, targets, show_gui)
         self.input_file_map = input_file_map
         self.config_name = config_name
 
@@ -268,15 +268,16 @@ class ModellerWebService(RunModeller):
         if block:
             from chimerax.core.errors import LimitationError
             raise LimitationError("Blocking web service Modeller jobs not yet implemented")
-        self.job = ModellerJob(self.session, self.config_name, self.input_file_map)
+        self.job = ModellerJob(self.session, self, self.config_name, self.input_file_map)
 
 from chimerax.core.webservices.opal_job import OpalJob
 class ModellerJob(OpalJob):
 
     OPAL_SERVICE = "Modeller9v8Service"
 
-    def __init__(self, session, command, input_file_map):
+    def __init__(self, session, caller, command, input_file_map):
         super().__init__(session)
+        self.caller = caller
         self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map)
 
     def on_finish(self):
@@ -291,9 +292,25 @@ class ModellerJob(OpalJob):
                 raise RuntimeError("Modeller failure; standard error:\n" + err.decode("utf-8"))
             else:
                 raise RuntimeError("Modeller failure with no error output")
-        model_info = self.get_file("ok_models.dat")
-        if not model_info:
+        try:
+            model_info = self.get_file("ok_models.dat")
+        except KeyError:
             raise RuntimeError("No output models from Modeller")
+        try:
+            stdout = self.get_file("stdout.txt")
+        except KeyError:
+            raise RuntimeError("No standard output from Modeller job")
+        def get_pdb_model(fname):
+            from io import StringIO
+            try:
+                pdb_text = self.get_file(fname)
+            except KeyError:
+                raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
+            from chimerax.atomic.pdb import open_pdb
+            return open_pdb(self.session, StringIO(pdb_text.decode('utf-8')), fname)[0][0]
+        self.caller.process_ok_models(model_info.decode('utf-8'), stdout.decode('utf-8'), get_pdb_model)
+        self.caller = None
+        return
         #TODO: actually do the stuff in _parseOKModels instead of the below
         from chimerax.atomic.pdb import open_pdb
         from io import StringIO
