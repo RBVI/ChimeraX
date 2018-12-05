@@ -452,9 +452,9 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
     status_lines = []
     import os.path
     for fmt, paths in batch.items():
-        name = os.path.basename(paths[0]) if name is None else name
+        mname = os.path.basename(paths[0]) if name is None else name
         open_func = fmt.open_func
-        models, status = open_func(session, paths, name, **kw)
+        models, status = open_func(session, paths, mname, **kw)
         mlist.extend(models)
         status_lines.append(status)
     for fspec in unbatched:
