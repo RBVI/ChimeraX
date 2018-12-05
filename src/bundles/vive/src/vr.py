@@ -1148,8 +1148,9 @@ class HandControllerModel(Model):
         ui = camera.user_interface
         if ui.button_down and ui.button_down[0] == self:
             window_xy, on_panel = ui.click_position(self.room_position.origin())
-            ui.drag(window_xy)
-            return
+            if window_xy is not None:
+                ui.drag(window_xy)
+                return
 
         # Do hand controller drag when buttons pressed
         if previous_pose is not None:
