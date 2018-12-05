@@ -375,7 +375,7 @@ class Models(StateManager):
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
-        self._models = {}
+        self._models = {}				# Map id to Model
         self.drawing = r = Model("root", session)
         r.id = ()
 
@@ -427,11 +427,9 @@ class Models(StateManager):
             if m.parent is None or m.parent is not d:
                 d.add_drawing(m)
 
-        # Clear model ids if they are not subids of parent id.
-        #~ if _notify:
-            #~ need_fire_id_trigger = []
+        # Handle already added models being moved to a new parent.
         for model in models:
-            if model.id and model.id[:-1] != d.id:
+            if model.id and model.id[:-1] != d.id and model.id in self._models:
                 # Model has id that is not a subid of parent, so assign new id.
                 _need_fire_id_trigger.append(model)
                 del self._models[model.id]

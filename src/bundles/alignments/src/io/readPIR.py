@@ -35,10 +35,10 @@ def read(session, f):
             else:
                 sequences[-1].nucleic = False
             sequences[-1].pir_type = pir_type
-            want = 'descript'
-        elif want == 'descript':
-            sequences[-1].descript = line
-            sequences[-1].pir_descript = line
+            want = 'description'
+        elif want == 'description':
+            sequences[-1].description = line
+            sequences[-1].pir_description = line
             want = 'sequence'
         elif want == 'sequence':
             if not line:

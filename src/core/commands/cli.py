@@ -908,7 +908,7 @@ class PasswordArg(StringArg):
     @staticmethod
     def parse(text, session):
         token, text, rest = StringArg.parse(text, session)
-        return token, "******", rest
+        return token, "\N{BULLET}\N{BULLET}\N{BULLET}\N{BULLET}\N{BULLET}\N{BULLET}", rest
 
 
 class AttrNameArg(StringArg):
