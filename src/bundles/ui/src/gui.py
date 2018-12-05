@@ -570,10 +570,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.ui.quit()
 
     def edit_undo_cb(self, session):
-        session.undo.undo()
+        from chimerax.core.commands import run
+        run(session, 'undo')
 
     def edit_redo_cb(self, session):
-        session.undo.redo()
+        from chimerax.core.commands import run
+        run(session, 'redo')
 
     def update_undo(self, undo_manager):
         self._set_undo(self.undo_action, "Undo", undo_manager.top_undo_name())
