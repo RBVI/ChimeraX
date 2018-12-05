@@ -656,6 +656,7 @@ when they are given as coordinates
 <b>near</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
@@ -665,6 +666,9 @@ The <i>cutoff</i> is specified in physical units of distance,
 typically &Aring; (default <b>2.0</b>).
 When multiple specified atoms fall within the cutoff distance of a 
 surface vertex, the vertex will be colored to match the closest one.
+If <b>bondPointSpacing</b> is specified, points
+spaced <i>s</i> &Aring; apart along bonds will be used
+in addition to the atoms to define the zone.
 Vertices not within the cutoff of any of the atoms are assigned 
 the default color of the surface model (single-color mode).
 The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
