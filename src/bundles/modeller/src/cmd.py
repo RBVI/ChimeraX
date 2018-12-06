@@ -12,8 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 #
-def sequence_model(session, targets, block=None, combined_templates=False, custom_script=None,
-    dist_restraints_path=None, executable_location=None, fast=False, het_preserve=False,
+def sequence_model(session, targets, *, block=None, combined_templates=False, custom_script=None,
+    dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
     water_preserve=False):
     '''
@@ -37,7 +37,7 @@ def sequence_model(session, targets, block=None, combined_templates=False, custo
     from . import comparitive
     try:
         comparitive.model(session, targets, block=block, combined_templates=combined_templates,
-            custom_script=custom_script, dist_restraints_path=dist_restraints_path,
+            custom_script=custom_script, dist_restraints=dist_restraints,
             executable_location=executable_location, fast=fast, het_preserve=het_preserve,
             hydrogens=hydrogens, license_key=license_key, num_models=num_models,
             temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
@@ -46,12 +46,16 @@ def sequence_model(session, targets, block=None, combined_templates=False, custo
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg, PasswordArg, IntArg
+    from chimerax.core.commands import OpenFileNameArg, OpenFolderNameArg
     from chimerax.seqalign import AlignSeqPairArg
-    #TODO: all the other args; make sure license_key uses PasswordArg
     desc = CmdDesc(
         required = [('targets', ListOf(AlignSeqPairArg))],
-        keyword = [('block', BoolArg), ('combined_templates', BoolArg), ('license_key', PasswordArg),
-            ('num_models', IntArg)],
+        keyword = [('block', BoolArg), ('combined_templates', BoolArg), ('custom_script', OpenFileNameArg),
+            ('dist_restraints', OpenFileNameArg), ('executable_location', OpenFileNameArg), ('fast', BoolArg),
+            ('het_preserve', BoolArg), ('hydrogens', BoolArg), ('license_key', PasswordArg),
+            ('num_models', IntArg), ('temp_path', OpenFolderNameArg), ('thorough_opt', BoolArg),
+            ('water_preserve', BoolArg)
+        ],
         synopsis = 'Use Modeller to generate comparitive model'
     )
     register('modeller comparitive', desc, sequence_model, logger=logger)

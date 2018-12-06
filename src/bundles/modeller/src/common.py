@@ -105,7 +105,7 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
     #code overrides the special_patches method.
     # e.g. to include the addtional disulfides.
     #def special_patches(self, aln):
-    """	% process_dist_restraints(dist_restraints_path)
+    """	% _process_dist_restraints(dist_restraints_path)
         else:	# put in a commented-out line for special restraints
             body += """
     def customised_function(self): pass
@@ -184,6 +184,7 @@ def _process_dist_restraints(filename):
     pseudoatom will be created by Modeller.
     """
 
+    from chimerax.core.errors import UserError
     # this function will check whether a residue number is valid
     def verify_residue(value):
         try:
@@ -199,8 +200,8 @@ def _process_dist_restraints(filename):
     # check whether the specified path is a file:
     from os.path import isfile
     if not isfile(filename):
-        raise UserError('The user-specified additional distance restraints file "%s" does not exist.'
-            % filename)
+        raise UserError('The user-specified additional distance restraints file "%s" does not exist'
+            " (or isn't a file)." % filename)
 
     # initialize code that will be returned:
     headcode = """
@@ -302,13 +303,13 @@ class RunModeller(State):
                 setattr(model, attr_name, val)
             model.name = self.target_seq_name
             if model.num_chains == len(self.template_chains):
-                pairings = zip(model.chains, self.template_chains)
+                pairings = zip(self.template_chains, model.chains)
             else:
                 chain_map = { chain.chain_id:chain for chain in model_chains}
                 pairings = []
                 for tmpl_chain in self.template_chains:
                     if tmpl_chain.chain_id in chain_map:
-                        pairings.append((chain_map[tmpl_chain.chain_id], tmpl_chain))
+                        pairings.append((tmpl_chain, chain_map[tmpl_chain.chain_id]))
             if pairings:
                 mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
                     mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
