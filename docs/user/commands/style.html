@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>style</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;<b>sphere</b>&nbsp;|&nbsp;<b>stick</b>&nbsp;|&nbsp;<b>ball</b>&nbsp;]
-[&nbsp;<b>ringFill</b>&nbsp;&nbsp;on&nbsp;|&nbsp;off&nbsp;|&nbsp;thick&nbsp;|&nbsp;thin&nbsp;]
+[&nbsp;<b>ringFill</b>&nbsp;&nbsp;thick&nbsp;|&nbsp;thin&nbsp;|&nbsp;off&nbsp;|&nbsp;on&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </h3>
 <p>
@@ -55,10 +55,14 @@ atomic <a href="../radii.html">VDW radii</a>
 <b>stick</b> radii, and the scale factor for <b>ball</b> display
 can be adjusted with the <a href="size.html"><b>size</b></a> command.
 </p><p>
-The <b>ringFill</b> option sets per residue whether rings are filled
-(<b>on</b> or <b>off</b>),
-and if so, whether the fill should be <b>thick</b> to match the stick width
-or <b>thin</b>.  Rings of up to six members can be filled.
+The <b>ringFill</b> option sets the ring-fill style per residue:
+<ul>
+<li><b>thick</b> (to match stick width)
+<li><b>thin</b>  
+<li><b>off</b> - rings not filled
+<li><b>on</b> - thick or thin as set previously, thick if not set previously
+</ul>
+Rings of up to six members can be filled.
 The <a href="color.html#simple"><b>color</b></a> command
 allows coloring ring fill separately from the ring atoms.
 </p><p>

@@ -117,9 +117,13 @@ def set_exception_reporter(f):
 class _TriggerHandler:
     """Describes callback routine registered with _Trigger"""
 
-    def __init__(self, name, func):
+    def __init__(self, name, func, trigger_set):
         self._name = name
         self._func = func
+        self._trigger_set = trigger_set
+
+    def remove(self):
+        self._trigger_set.remove_handler(self)
 
     def invoke(self, data, remove_if_error):
         try:
@@ -360,7 +364,7 @@ class TriggerSet:
         """
         if name not in self._triggers:
             raise KeyError("No trigger named '%s'" % name)
-        handler = _TriggerHandler(name, func)
+        handler = _TriggerHandler(name, func, self)
         self._triggers[name].add(handler)
         return handler
 
