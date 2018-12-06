@@ -316,8 +316,14 @@ class RunModeller(State):
             elif i == 0:
                 self.session.logger.warning("Could not determine which model chains to superimpose on template")
             models.append(model)
+        reset_alignments = []
         for alignment, target_seq in self.targets:
             alignment.associate(models, seq=target_seq)
+            if alignment.auto_associate:
+                alignment.auto_associate = False
+                reset_alignments.append(alignment)
         self.session.models.add_group(models, name=self.target_seq_name + " models")
+        for alignment in reset_alignments:
+            alignment.auto_associate = True
 
 

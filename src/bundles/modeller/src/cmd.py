@@ -28,7 +28,12 @@ def sequence_model(session, targets, block=None, combined_templates=False, custo
         seen.add(alignment)
     if block is None:
         block = not session.ui.is_gui
-    #TODO: if license_key given, save in settings; otherwise try to retrieve from settings
+    from .settings import get_settings
+    settings = get_settings(session)
+    if license_key is None:
+        license_key = settings.license_key
+    else:
+        settings.license_key = license_key
     from . import comparitive
     try:
         comparitive.model(session, targets, block=block, combined_templates=combined_templates,
