@@ -654,6 +654,7 @@ class VRTracking(PointerModels):
             c = _vr_camera(self._session)
             if c:
                 c.room_to_scene = rts
+                self._reposition_vr_head_and_hands(c)
 
         if 'vr head' in msg:
             PointerModels.update_model(self, msg)
