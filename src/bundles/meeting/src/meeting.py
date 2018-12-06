@@ -627,6 +627,8 @@ class VRTracking(PointerModels):
         self._last_vr_camera = c = _vr_camera(self._session)
         self._last_room_to_scene = c.room_to_scene if c else None
         self._new_head_image = None	# Path to image file
+        self._head_image = None		# Encoded image
+        self._send_head_image = False
 
     def delete(self):
         t = self._session.triggers
@@ -657,7 +659,11 @@ class VRTracking(PointerModels):
             PointerModels.update_model(self, msg)
 
     def make_pointer_model(self, session):
-        return VRPointerModel(self._session, 'VR', self._last_room_to_scene)
+        # Make sure new meeting participant gets my head image.
+        self._send_head_image = True
+        
+        pm = VRPointerModel(self._session, 'VR', self._last_room_to_scene)
+        return pm
 
     def new_head_image(self, path):
         self._new_head_image = path
@@ -691,8 +697,15 @@ class VRTracking(PointerModels):
             self._last_room_to_scene = c.room_to_scene
 
         if self._new_head_image:
-            msg['vr head image'] = _encode_head_image(self._new_head_image)
+            image = _encode_head_image(self._new_head_image)
+            self._head_image = image
+            msg['vr head image'] = image
             self._new_head_image = None
+            self._send_head_image = False
+        elif self._send_head_image:
+            self._send_head_image = False
+            if self._head_image is not None:
+                msg['vr head image'] = self._head_image
             
         # Tell connected peers my new vr state
         self._meeting._send_message(msg)
