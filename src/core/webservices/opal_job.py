@@ -139,7 +139,7 @@ class OpalJob(Job):
             from ..tasks import JobLaunchError
             raise JobLaunchError(str(e))
         else:
-            self.job_id = r.jobID
+            self.job_id = str(r.jobID)
             def _notify(logger=logger, self=self, r=r):
                 logger.info("Opal service URL: %s" % self.service_url)
                 logger.info("Opal job id: %s" % self.job_id)

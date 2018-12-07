@@ -16,6 +16,11 @@ from chimerax.core.toolshed import BundleAPI
 class ModellerAPI(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        from . import comparitive
+        return getattr(comparitive, class_name)
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(logger)

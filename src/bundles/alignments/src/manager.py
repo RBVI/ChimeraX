@@ -199,8 +199,6 @@ class AlignmentsManager(StateManager):
         mgr._ses_restore(data)
         return mgr
 
-    SESSION_SAVE = True
-    
     def take_snapshot(self, session, flags):
         # viewer_info is "session independent"
         return {

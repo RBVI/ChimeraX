@@ -327,4 +327,19 @@ class RunModeller(State):
         for alignment in reset_alignments:
             alignment.auto_associate = True
 
+    def take_snapshot(self, session, flags):
+        """For session/scene saving"""
+        return {
+            'template_chains': self.template_chains,
+            'num_models': self.num_models,
+            'target_seq_name': self.target_seq_name,
+            'targets': self.targets,
+            'show_gui': self.show_gui
+        }
 
+    def set_state_from_snapshot(self, data):
+        self.template_chains = data['template_chains']
+        self.num_models = data['num_models']
+        self.target_seq_name = data['target_seq_name']
+        self.target = data['targets']
+        self.show_gui = data['show_gui']
