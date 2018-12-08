@@ -1190,7 +1190,6 @@ class _CallBundleAPIv0:
     @classmethod
     def register_command(cls, api, bi, ci, logger):
         return cls._get_func(api, "register_command")(ci.name, logger)
-        return api.register_command(ci.name, logger)
 
     @classmethod
     def register_selector(cls, api, bi, si, logger):
