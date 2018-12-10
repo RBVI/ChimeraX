@@ -267,7 +267,7 @@ def colors_to_uint8(vc):
 # -----------------------------------------------------------------------------
 #
 def write_gltf(session, filename, models, center = None, size = None, short_vertex_indices = False,
-               float_colors = False, transparency = True):
+               float_colors = False, preserve_transparency = True):
     if models is None:
         models = session.models.list()
 
@@ -278,7 +278,8 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     app_ver  = "%s %s version: %s" % (ad.appauthor, ad.appname, ad.version)
 
     b = Buffers()
-    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors, transparency)
+    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors,
+                                     preserve_transparency)
     node_index = {d:di for di,d in enumerate(drawings)}
     shown_models = [m for m in models if m in node_index]
     child_nodes = set(sum([n.get('children',[]) for n in nodes], []))
@@ -361,7 +362,8 @@ def any_triangles_shown(d, drawings, ts):
 
 # -----------------------------------------------------------------------------
 #
-def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colors = False, transparency = True):
+def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colors = False,
+                     preserve_transparency = True):
     nodes = []
     meshes = []
     b = buffers
@@ -396,11 +398,11 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colo
                 # TODO: Ribbon normals were normalized, bug #829.  Normalize to work around.
                 from numpy import sqrt, newaxis
                 lengths = sqrt((pna*pna).sum(axis=1))
-                pna /= lengths[..., newaxis]
-                attr['NORMAL'] = b.add_array(pna)
+                pnna = pna / lengths[..., newaxis]
+                attr['NORMAL'] = b.add_array(pnna)
             if pvc is None:
                 pvc = single_vertex_color(len(pva), d.color)
-            if not transparency:
+            if not preserve_transparency:
                 pvc = pvc[:,:3]
             if float_colors:
                 pvc = pvc.astype(float32)
