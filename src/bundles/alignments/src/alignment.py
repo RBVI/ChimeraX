@@ -32,7 +32,6 @@ class Alignment(State):
         self.file_attrs = file_attrs
         self.file_markups = file_markups
         self.auto_destroy = auto_destroy
-        self.auto_associate = auto_associate
         self.description = description
         self.viewers = []
         self.viewers_by_subcommand = {}
@@ -48,19 +47,22 @@ class Alignment(State):
                 from copy import copy
                 seqs[i] = copy(seq)
             seqs[i].match_maps = {}
-        if self.auto_associate is None:
+        self._assoc_handler = None
+        if auto_associate is None:
+            # Create association for alignment's StructureSeqs, no auto-assoc
             self.associate(None, keep_intrinsic=True)
-            self.auto_associate = False
-        elif self.auto_associate:
-            from chimerax.atomic import AtomicStructure
-            if self.auto_associate == "session":
-                self.auto_associate = True
-            else:
-                self.associate([s for s in session.models
-                    if isinstance(s, AtomicStructure)], force=False)
-            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
-            self.session.triggers.add_handler(ADD_MODELS, lambda tname, models:
-                self.associate([s for s in models if isinstance(s, AtomicStructure)], force=False))
+            self._auto_associate = False
+        elif auto_associate:
+            # if "session", don't associate with currently open structures (session restore
+            # will do that), but allow future auto-association
+            if auto_associate == "session":
+                from chimerax.atomic import AtomicStructure
+                self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
+            # get the auto-association working...
+            self._auto_associate = False
+            self.auto_associate = True
+        else:
+            self._auto_associate = False
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
             keep_intrinsic=False):
@@ -281,6 +283,24 @@ class Alignment(State):
             self.viewers_by_subcommand.setdefault(subcommand_name, []).append(viewer)
             self.viewer_to_subcommand[viewer] = subcommand_name
 
+    @property
+    def auto_associate(self):
+        return self._auto_associate
+
+    @auto_associate.setter
+    def auto_associate(self, assoc):
+        if assoc == self._auto_associate:
+            return
+        if assoc:
+            from chimerax.core.models import ADD_MODELS
+            from chimerax.atomic import AtomicStructure
+            self._assoc_handler = self.session.triggers.add_handler(ADD_MODELS, lambda tname, models:
+                self.associate([s for s in models if isinstance(s, AtomicStructure)], force=False))
+        else:
+            self._assoc_handler.remove()
+            self._assoc_handler = None
+        self._auto_associate = assoc
+
     def detach_viewer(self, viewer):
         """Called when a viewer is done with the alignment (see attach_viewer)"""
         self.viewers.remove(viewer)
@@ -453,8 +473,9 @@ class Alignment(State):
         self._notify_viewers("destroyed", None)
         self.viewers = []
         for sseq, aseq in self.associations.items():
-            mmap = aseq.match_maps[sseq]
-            sseq.triggers.remove_handler(mmap.del_handler)
+            aseq.match_maps[sseq].del_handler.remove()
+        if self._assoc_handler:
+            self._assoc_handler.remove()
 
     def _dispatch_viewer_command(self, session, viewer_keyword, subcommand_text):
         from chimerax.core.errors import UserError

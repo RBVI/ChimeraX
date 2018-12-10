@@ -1328,10 +1328,7 @@ cdef class CyResidue:
 
 def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name):
     br = session.bond_rotations.new_rotation(bond)
-    if bond.smaller_side == torsion_atom2:
-        br.angle += new_angle - cur_angle
-    else:
-        br.angle -= new_angle - cur_angle
+    br.angle += new_angle - cur_angle
     res = bond.atoms[0].residue
     res.structure.change_tracker.add_modified(res, attr_name + " changed")
 

@@ -177,23 +177,17 @@ class SideViewCanvas(QWindow):
                     button.setChecked(True)
             if not self.moving:
                 main_axes = main_pos.axes()
-                camera_pos = Place()
-                camera_axes = camera_pos.axes()
                 if self.side == self.TOP_SIDE:
-                    camera_axes[0] = -main_axes[2]
-                    camera_axes[1] = -main_axes[0]
-                    camera_axes[2] = main_axes[1]
+                    axes = (-main_axes[2], -main_axes[0], main_axes[1])
                 else:
-                    camera_axes[0] = -main_axes[2]
-                    camera_axes[1] = main_axes[1]
-                    camera_axes[2] = main_axes[0]
+                    axes = (-main_axes[2], main_axes[1], main_axes[0])
                 center = main_pos.origin() + (.5 * far) * \
                     main_camera.view_direction()
                 main_view_width = main_camera.view_width(center)
                 if main_view_width is None:
                     main_view_width = far
-                camera_pos.origin()[:] = center + camera_axes[2] * \
-                    main_view_width * 5
+                origin = center + axes[2] * main_view_width * 5
+                camera_pos = Place(axes = axes, origin= origin)
                 camera.position = camera_pos
 
             # figure out how big to make applique
