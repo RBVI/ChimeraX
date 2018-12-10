@@ -13,7 +13,7 @@
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.commands import Annotation, AtomSpecArg, ObjectsArg, ModelArg
+from chimerax.core.commands import Annotation, AnnotaionError, AtomSpecArg, ObjectsArg, ModelArg
 
 class AtomsArg(AtomSpecArg):
     """Parse command atoms specifier"""
