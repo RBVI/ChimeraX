@@ -514,6 +514,7 @@ def get_mmcif_tables_from_metadata(model, table_names):
 
 
 class TableMissingFieldsError(ValueError):
+    """Required field is missing"""
     pass
 
 class MMCIFTable:
@@ -535,10 +536,10 @@ class MMCIFTable:
             assert len(self._data) % n == 0
 
     def __bool__(self):
+        """True if not empty"""
         return len(self._tags) != 0 and len(self._data) != 0
 
     def __eq__(self, other):
-        # for debugging
         return self._tags == other._tags and self._data == other._data
 
     def __repr__(self):
@@ -713,7 +714,18 @@ class MMCIFTable:
         return len(self._data) // len(self._tags)
 
     def print(self, file=None, *, fixed_width=False):
-        """Print contents of table to given file"""
+        """Print contents of table to given file
+
+        Parameters
+        ----------
+        file : MMCIFTable to add on to current table
+        fixed_width : true if fixed width columns should be used
+
+        The fixed width column output matches the PDBx/mmCIF style syntax.
+        If fixed_width is asked for and it is not possible to have
+        fixed width columns (e.g., there is a newline in a string field),
+        then the first row is broken up into multiple lines.
+        """
         if len(self._data) == 0:
             return
         n = len(self._tags)

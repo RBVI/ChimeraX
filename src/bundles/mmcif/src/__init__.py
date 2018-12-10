@@ -13,8 +13,11 @@
 
 # get PDB shared lib loaded...
 import chimerax.atomic.pdb
-from .mmcif import get_mmcif_tables, get_mmcif_tables_from_metadata
-from .mmcif import open_mmcif, fetch_mmcif, citations
+from .mmcif import (
+    get_mmcif_tables, get_mmcif_tables_from_metadata,
+    open_mmcif, fetch_mmcif, citations,
+    TableMissingFieldsError, MMCIFTable
+)
 
 from chimerax.core.toolshed import BundleAPI
 
