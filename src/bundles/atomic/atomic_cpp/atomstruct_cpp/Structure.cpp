@@ -280,29 +280,33 @@ _copy_pseudobonds(Proxy_PBGroup* pbgc, const Proxy_PBGroup::Pseudobonds& pbs,
         pbc->set_color(pb->color());
         pbc->set_halfbond(pb->halfbond());
         pbc->set_radius(pb->radius());
+        pbc->set_shown_when_atoms_hidden(pb->shown_when_atoms_hidden());
     }
 }
 
-void Structure::_copy(Structure* g) const
+void Structure::_copy(Structure* s) const
 {
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
-        g->metadata[h->first] = h->second;
-    g->pdb_version = pdb_version;
-    g->lower_case_chains = lower_case_chains;
-    g->set_ss_assigned(ss_assigned());
-    g->set_ribbon_tether_scale(ribbon_tether_scale());
-    g->set_ribbon_tether_shape(ribbon_tether_shape());
-    g->set_ribbon_tether_sides(ribbon_tether_sides());
-    g->set_ribbon_tether_opacity(ribbon_tether_opacity());
-    g->set_ribbon_show_spine(ribbon_show_spine());
-    g->set_ribbon_orientation(ribbon_orientation());
-    g->set_ribbon_mode_helix(ribbon_mode_helix());
-    g->set_ribbon_mode_strand(ribbon_mode_strand());
+        s->metadata[h->first] = h->second;
+    s->pdb_version = pdb_version;
+    s->lower_case_chains = lower_case_chains;
+    s->set_ss_assigned(ss_assigned());
+    s->set_ribbon_tether_scale(ribbon_tether_scale());
+    s->set_ribbon_tether_shape(ribbon_tether_shape());
+    s->set_ribbon_tether_sides(ribbon_tether_sides());
+    s->set_ribbon_tether_opacity(ribbon_tether_opacity());
+    s->set_ribbon_show_spine(ribbon_show_spine());
+    s->set_ribbon_orientation(ribbon_orientation());
+    s->set_ribbon_mode_helix(ribbon_mode_helix());
+    s->set_ribbon_mode_strand(ribbon_mode_strand());
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 4; ++j)
+            s->_position[i][j] = _position[i][j];
 
     std::map<Residue*, Residue*> rmap;
     for (auto ri = residues().begin() ; ri != residues().end() ; ++ri) {
         Residue* r = *ri;
-        Residue* cr = g->new_residue(r->name(), r->chain_id(), r->number(), r->insertion_code());
+        Residue* cr = s->new_residue(r->name(), r->chain_id(), r->number(), r->insertion_code());
         cr->set_mmcif_chain_id(r->mmcif_chain_id());
         cr->set_ribbon_display(r->ribbon_display());
         cr->set_ribbon_color(r->ribbon_color());
@@ -313,22 +317,21 @@ void Structure::_copy(Structure* g) const
         cr->set_ss_type(r->ss_type());
         cr->_alt_loc = r->_alt_loc;
         cr->_ribbon_hide_backbone = r->_ribbon_hide_backbone;
-        cr->_ribbon_selected = r->_ribbon_selected;
         cr->_ribbon_adjust = r->_ribbon_adjust;
         rmap[r] = cr;
     }
     std::map<CoordSet*, CoordSet*> cs_map;
     for (auto cs: coord_sets()) {
-        auto new_cs = g->new_coord_set(cs->id());
+        auto new_cs = s->new_coord_set(cs->id());
         *new_cs = *cs;
         cs_map[cs] = new_cs;
     }
-    g->set_active_coord_set(cs_map[active_coord_set()]);
+    s->set_active_coord_set(cs_map[active_coord_set()]);
 
     std::map<Atom*, Atom*> amap;
     for (auto ai = atoms().begin() ; ai != atoms().end() ; ++ai) {
         Atom* a = *ai;
-        Atom* ca = g->new_atom(a->name(), a->element());
+        Atom* ca = s->new_atom(a->name(), a->element());
         Residue *cr = rmap[a->residue()];
         cr->add_atom(ca);	// Must set residue before setting alt locs
         ca->_coord_index = a->coord_index();
@@ -356,7 +359,7 @@ void Structure::_copy(Structure* g) const
     for (auto bi = bonds().begin() ; bi != bonds().end() ; ++bi) {
         Bond* b = *bi;
         const Bond::Atoms& a = b->atoms();
-        Bond* cb = g->new_bond(amap[a[0]], amap[a[1]]);
+        Bond* cb = s->new_bond(amap[a[0]], amap[a[1]]);
         cb->set_display(b->display());
         cb->set_color(b->color());
         cb->set_halfbond(b->halfbond());
@@ -368,7 +371,7 @@ void Structure::_copy(Structure* g) const
     for (auto gi = gm.begin() ; gi != gm.end() ; ++gi) {
         Proxy_PBGroup *pbg = gi->second;
         auto group_type = pbg->group_type();
-        Proxy_PBGroup *pbgc = g->pb_mgr().get_group(gi->first, group_type);
+        Proxy_PBGroup *pbgc = s->pb_mgr().get_group(gi->first, group_type);
         if (group_type == AS_PBManager::GRP_NORMAL) {
             _copy_pseudobonds(pbgc, pbg->pseudobonds(), amap);
         } else {
@@ -383,9 +386,9 @@ void Structure::_copy(Structure* g) const
 Structure*
 Structure::copy() const
 {
-    Structure* g = new Structure(_logger);
-    _copy(g);
-    return g;
+    Structure* s = new Structure(_logger);
+    _copy(s);
+    return s;
 }
 
 void

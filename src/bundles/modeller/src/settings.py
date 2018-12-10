@@ -11,20 +11,17 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#--- public API ---
-from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
-from .match import AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN
-from .match import match, defaults
+from chimerax.core.settings import Settings
 
-#--- toolshed/session-init funcs ---
+class _ModellerSettings(Settings):
 
-from chimerax.core.toolshed import BundleAPI
+    AUTO_SAVE = {
+        'license_key': None,
+    }
 
-class _MyAPI(BundleAPI):
-
-    @staticmethod
-    def register_command(command_name, logger):
-        from .match import register_command
-        register_command(logger)
-
-bundle_api = _MyAPI()
+settings = None
+def get_settings(session):
+    global settings
+    if settings is None:
+        settings = _ModellerSettings(session, "modeller")
+    return settings

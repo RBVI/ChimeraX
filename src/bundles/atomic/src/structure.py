@@ -2425,7 +2425,7 @@ class AtomicStructure(Structure):
         def chain_text(chain):
             return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s</a>' % (
                 chain.structure.id_string, chain.chain_id, chain.chain_id)
-        self._report_chain_summary(session, descripts, chain_text)
+        self._report_chain_summary(session, descripts, chain_text, False)
 
     def _report_ensemble_chain_descriptions(self, session, ensemble):
         from .molarray import AtomicStructures
@@ -2442,7 +2442,7 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s/%s</a>' % (
                 chain.structure.id_string, chain.chain_id,
                 chain.structure.id_string, chain.chain_id)
-        self._report_chain_summary(session, descripts, chain_text)
+        self._report_chain_summary(session, descripts, chain_text, True)
 
     def _report_res_info(self, session):
         if hasattr(self, 'get_formatted_res_info'):
@@ -2450,7 +2450,7 @@ class AtomicStructure(Structure):
             if res_info:
                 session.logger.info(res_info, is_html=True)
 
-    def _report_chain_summary(self, session, descripts, chain_text):
+    def _report_chain_summary(self, session, descripts, chain_text, is_ensemble):
         def descript_text(description, chains):
             from html import escape
             if len(chains) == 1:
@@ -2462,7 +2462,8 @@ class AtomicStructure(Structure):
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
         summary += '    <tr>\n'
-        summary += '      <th colspan="2">Chain information for %s</th>\n' % self
+        summary += '      <th colspan="2">Chain information for %s</th>\n' % (
+            self.name if is_ensemble else self)
         summary += '    </tr>\n'
         summary += '    <tr>\n'
         summary += '      <th>Chain</th>\n'

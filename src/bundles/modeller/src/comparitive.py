@@ -15,7 +15,7 @@ class ModelingError(ValueError):
     pass
 
 def model(session, targets, *, block=True, combined_templates=False, custom_script=None,
-    dist_restraints_path=None, executable_location=None, fast=False, het_preserve=False,
+    dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
     thorough_opt=False, water_preserve=False):
     """
@@ -36,8 +36,8 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
     custom_script
         If provided, the location of a custom Modeller script to use instead of the
         one we would otherwise generate.  Only used when executing locally.
-    dist_restraints_path
-        If provided, the path to a file containing additional distance restraints
+    dist_restraints
+        If provided, the location of a file containing additional distance restraints
     executable_location
         If provided, the path to the locally installed Modeller executable.  If not
         provided, use the web service.
@@ -86,7 +86,7 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
 
     from .common import write_modeller_scripts
     script_path, config_path, temp_dir = write_modeller_scripts(license_key, num_models, het_preserve,
-        water_preserve, hydrogens, fast, None, custom_script, temp_path, thorough_opt, dist_restraints_path)
+        water_preserve, hydrogens, fast, None, custom_script, temp_path, thorough_opt, dist_restraints)
 
     input_file_map = []
 
@@ -205,18 +205,25 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
         save_pdb(session, pdb_file_name, models=[structure], polymeric_res_names=ATOM_res_names)
         delattr(structure, 'in_seq_hets')
 
-    # a custom script [only used when executing locally] needs to be copied into the tmp dir...
-    if os.path.exists(script_path) \
-    and os.path.normpath(temp_dir.name) != os.path.normpath(os.path.dirname(script_path)):
-        import shutil
-        shutil.copy(script_path, temp_dir.name)
-
-    #TODO...
     if executable_location is None:
-        job_runner = ModellerWebService(session, structures_to_save, num_models, pir_target.name,
-            input_file_map, config_name, targets, show_gui)
+        if custom_script is not None:
+            raise LimitationError("Custom Modeller scripts only supported when executing locally")
+        if dist_restraints is not None:
+            raise LimitationError("Distance restraints only supported when executing locally")
+        if thorough_opt:
+            raise LimitationError("Thorough optimization only supported when executing locally")
+        job_runner = ModellerWebService(session, [info[1][0][1] for info in template_info], num_models,
+            pir_target.name, input_file_map, config_name, targets, show_gui)
     else:
-        pass #TODO: job_runner = ModellerLocal(...)
+        #TODO: job_runner = ModellerLocal(...)
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Local Modeller execution not yet implemented")
+        # a custom script [only used when executing locally] needs to be copied into the tmp dir...
+        if os.path.exists(script_path) \
+        and os.path.normpath(temp_dir.name) != os.path.normpath(os.path.dirname(script_path)):
+            import shutil
+            shutil.copy(script_path, temp_dir.name)
+
     return job_runner.run(block=block)
 
 def regularized_seq(aseq, chain):
@@ -255,10 +262,10 @@ def chain_save_name(chain):
 from .common import RunModeller
 class ModellerWebService(RunModeller):
 
-    def __init__(self, session, template_structures, num_models, target_seq_name, input_file_map, config_name,
+    def __init__(self, session, align_chains, num_models, target_seq_name, input_file_map, config_name,
             targets, show_gui):
 
-        super().__init__(session, template_structures, num_models, target_seq_name, targets, show_gui)
+        super().__init__(session, align_chains, num_models, target_seq_name, targets, show_gui)
         self.input_file_map = input_file_map
         self.config_name = config_name
 
@@ -268,15 +275,16 @@ class ModellerWebService(RunModeller):
         if block:
             from chimerax.core.errors import LimitationError
             raise LimitationError("Blocking web service Modeller jobs not yet implemented")
-        self.job = ModellerJob(self.session, self.config_name, self.input_file_map)
+        self.job = ModellerJob(self.session, self, self.config_name, self.input_file_map)
 
 from chimerax.core.webservices.opal_job import OpalJob
 class ModellerJob(OpalJob):
 
     OPAL_SERVICE = "Modeller9v8Service"
 
-    def __init__(self, session, command, input_file_map):
+    def __init__(self, session, caller, command, input_file_map):
         super().__init__(session)
+        self.caller = caller
         self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map)
 
     def on_finish(self):
@@ -291,9 +299,25 @@ class ModellerJob(OpalJob):
                 raise RuntimeError("Modeller failure; standard error:\n" + err.decode("utf-8"))
             else:
                 raise RuntimeError("Modeller failure with no error output")
-        model_info = self.get_file("ok_models.dat")
-        if not model_info:
+        try:
+            model_info = self.get_file("ok_models.dat")
+        except KeyError:
             raise RuntimeError("No output models from Modeller")
+        try:
+            stdout = self.get_file("stdout.txt")
+        except KeyError:
+            raise RuntimeError("No standard output from Modeller job")
+        def get_pdb_model(fname):
+            from io import StringIO
+            try:
+                pdb_text = self.get_file(fname)
+            except KeyError:
+                raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
+            from chimerax.atomic.pdb import open_pdb
+            return open_pdb(self.session, StringIO(pdb_text.decode('utf-8')), fname)[0][0]
+        self.caller.process_ok_models(model_info.decode('utf-8'), stdout.decode('utf-8'), get_pdb_model)
+        self.caller = None
+        return
         #TODO: actually do the stuff in _parseOKModels instead of the below
         from chimerax.atomic.pdb import open_pdb
         from io import StringIO

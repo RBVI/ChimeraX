@@ -45,7 +45,7 @@ def __getattr__(self, attr_name, look_in_class=None):
             raise
 
 @classmethod
-def register_attr(cls, session, attr_name, registerer, default_value=NO_DEFAULT, attr_type=None):
+def register_attr(cls, session, attr_name, registerer, *, default_value=NO_DEFAULT, attr_type=None):
     cls._attr_registration.register(session, attr_name, registerer, default_value, attr_type)
 
 # used within the class to hold the registration info
