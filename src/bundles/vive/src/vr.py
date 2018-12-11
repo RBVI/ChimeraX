@@ -398,6 +398,7 @@ class SteamVRCamera(Camera):
         # if VR has not been shutdown.
         import openvr
         openvr.shutdown()
+        self._close = True	# Make sure openvr is not used any more.
         
     def _delayed_close(self):
         # Apparently OpenVR doesn't make its OpenGL context current
@@ -441,10 +442,12 @@ class SteamVRCamera(Camera):
         return self._session.main_view.render
     
     def _start_frame(self):
-        import openvr
-        c = self.compositor
-        if c is None or self._close:
+        if self._close:
             return
+        c = self.compositor
+        if c is None:
+            return
+        import openvr
         c.waitGetPoses(self._poses, openvr.k_unMaxTrackedDeviceCount, None, 0)
         self._frame_started = True
 
