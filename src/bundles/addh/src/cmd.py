@@ -442,8 +442,6 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
             if atom.element.number == 0:
                 res = atom.residue
                 struct.delete_atom(atom)
-                if not res.atoms:
-                    struct.delete_residue(res)
         for atom in struct.atoms:
             idatm_type[atom] = atom.idatm_type
             if atom.idatm_type in type_info:
