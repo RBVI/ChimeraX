@@ -54,7 +54,7 @@
     <ChimeraXClassifier>ChimeraX :: Fetch :: pdb :: PDB :: :: 1a0m ::</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Fetch :: pdbe :: PDB :: :: 1a0m ::</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: PDB :: PDB :: false :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Save :: PDB :: PDB :: false :: models:Models,selected_only:Bool,displayed_only:Bool,all_coordsets:Bool,pqr:Bool,rel_model:Model,serial_numering:SerialNumbering</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Save :: PDB :: PDB :: false :: models:Models,selected_only:Bool,displayed_only:Bool,all_coordsets:Bool,pqr:Bool,rel_model:Model,serial_numbering:SerialNumbering</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
