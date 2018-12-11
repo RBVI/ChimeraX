@@ -1397,6 +1397,16 @@ class StructureData:
         f = c_function('structure_delete_bond', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, bond._c_pointer)
 
+    """
+    # Deleting atoms will delete residues as needed, so there probably is no need to expose this
+    # method, particularly since ported Chimera1 code -- which had to delete empty residues "by
+    # hand" -- may wind up deleting an already-deleted residue
+    def delete_residue(self, res):
+        '''Supported API. Delete the specified Residue.'''
+        f = c_function('structure_delete_residue', args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, res._c_pointer)
+    """
+
     @property
     def molecules(self):
         '''Return a tuple of :class:`.Atoms` objects each containing atoms for one molecule.
