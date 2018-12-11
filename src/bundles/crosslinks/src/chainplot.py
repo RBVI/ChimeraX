@@ -78,11 +78,13 @@ class ChainCrosslinks(Edge):
         self.weight = n
         self.label = '%d' % n
     def select(self):
-        a1,a2 = self.pseudobonds.atoms
-        if a1:
+        pb = self.pseudobonds
+        if len(pb) > 0:
+            a1,a2 = pb.atoms
             a1[0].structure.session.selection.clear()
             a1.selected = True
             a2.selected = True
+            pb.selected = True
     def description(self):
         return '%d Pseudobonds' % len(self.pseudobonds)
 
