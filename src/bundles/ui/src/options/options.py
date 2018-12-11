@@ -19,7 +19,8 @@ class Option(metaclass=ABCMeta):
     multiple_value = "-- multiple --"
     read_only = False
 
-    def __init__(self, name, default, callback, *, balloon=None, attr_name=None, **kw):
+    def __init__(self, name, default, callback, *, balloon=None, attr_name=None, settings=None,
+            auto_set_attr=True, **kw):
         """'callback' can be None"""
 
         # non-empty name overrides any default name
@@ -33,6 +34,18 @@ class Option(metaclass=ABCMeta):
                 self.attr_name = self.name
             else:
                 self.attr_name = None
+
+        if settings is None:
+            self.settings_handler = self.settings = None
+        else:
+            if self.attr_name is None:
+                raise ValueError("'settings' specified but not 'attr_name' (required for 'settings')")
+            from weakref import proxy
+            self.settings = proxy(settings)
+            self.settings_handler = self.settings.triggers.add_handler('setting changed',
+                lambda trig_name, data, *, pself=proxy(self):
+                data[0] == pself.attr_name and pself.set(pself.get_attribute()))
+        self.auto_set_attr = auto_set_attr
 
         if default is not None or not hasattr(self, 'default'):
             self.default = default
@@ -87,6 +100,11 @@ class Option(metaclass=ABCMeta):
         if self.read_only:
             self.disable()
 
+    def __del__(self):
+        if self.settings_handler:
+            self.settings_handler.remove()
+            self.settings_handler = None
+
     @abstractmethod
     def get(self):
         """Supported API. Return the option's value"""
@@ -97,21 +115,25 @@ class Option(metaclass=ABCMeta):
         """Supported API. Set the option's value; should NOT invoke the callback"""
         pass
 
-    def get_attribute(self, obj):
+    def get_attribute(self):
         """Supported API. Get the attribute associated with this option ('attr_name' in constructor)
-           from the provided 'obj'"""
+        from the option's settings attribute"""
         if not self.attr_name:
             raise ValueError("No attribute associated with %s" % repr(self))
-        fetcher = recurse_getattr if '.' in self.attr_name else getattr
-        return fetcher(obj, self.attr_name)
+        if self.settings is None:
+            raise ValueError("No settings/object known to fetch attribute %s from, via option %s"
+                    % (self.attr_name, repr(self)))
+        return getattr(self.settings, self.attr_name)
 
-    def set_attribute(self, obj):
+    def set_attribute(self):
         """Supported API. Set the attribute associated with this option ('attr_name' in constructor)
-           in the provided 'obj'"""
+        from the option's settings attribute"""
         if not self.attr_name:
             raise ValueError("No attribute associated with %s" % repr(self))
-        setter = recurse_setattr if '.' in self.attr_name else setattr
-        setter(obj, self.attr_name, self.get())
+        if self.settings is None:
+            raise ValueError("No settings/object known to set attribute %s in, via option %s"
+                    % (self.attr_name, repr(self)))
+        setattr(self.settings, self.attr_name, self.get())
 
     @abstractmethod
     def set_multiple(self):
@@ -140,6 +162,8 @@ class Option(metaclass=ABCMeta):
 
     def make_callback(self):
         """Supported API. Called (usually by GUI) to propagate changes back to program"""
+        if self.attr_name and self.settings and self.auto_set_attr:
+            self.set_attribute()
         if self._callback:
             self._callback(self)
 
@@ -147,18 +171,6 @@ class Option(metaclass=ABCMeta):
     def _make_widget(self):
         # create (as self.widget) the widget to display the option value
         pass
-
-def recurse_getattr(obj, attr_name):
-    attrs = attr_name.split('.')
-    for a in attrs:
-        obj = getattr(obj, a)
-    return obj
-
-def recurse_setattr(obj, attr_name, val):
-    attrs = attr_name.split('.')
-    for a in attrs[:-1]:
-        obj = getattr(obj, a)
-    setattr(obj, attrs[-1], val)
 
 class BooleanOption(Option):
     """Supported API. Option for true/false values"""

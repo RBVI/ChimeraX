@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 #
 def meeting(session, host = None, port = 52194, name = None, color = None,
-            head_image = None, copy_scene = None, relay_commands = None,
+            face_image = None, copy_scene = None, relay_commands = None,
             update_interval = None):
     '''Allow two or more ChimeraX instances to show each others' VR hand-controller
     and headset positions or mouse positions.
@@ -32,8 +32,8 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
       Name to identify this ChimeraX on remote machines.
     color : Color
       Color for my mouse pointer shown on other machines
-    head_image : string
-      Path to PNG or JPG image file for image to use for VR head depiction.
+    face_image : string
+      Path to PNG or JPG image file for image to use for VR face depiction.
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
@@ -80,10 +80,17 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
         if s:
             s.set_color(color.uint8x4())
 
-    if head_image is not None:
-        s = meeting_server(session)
-        if s:
-            s.vr_tracker.new_head_image(head_image)
+    if face_image is not None:
+        from os.path import isfile
+        if isfile(face_image):
+            s = meeting_server(session)
+            if s:
+                s.vr_tracker.new_face_image(face_image)
+        else:
+            msg = 'Face image file "%s" does not exist' % face_image
+            log = session.logger
+            log.warning(msg)
+            log.status(msg, color = 'red')
 
     if copy_scene is not None:
         s = meeting_server(session)
@@ -126,7 +133,7 @@ def register_meeting_command(logger):
                    keyword = [('port', IntArg),
                               ('name', StringArg),
                               ('color', ColorArg),
-                              ('head_image', OpenFileNameArg),
+                              ('face_image', OpenFileNameArg),
                               ('copy_scene', BoolArg),
                               ('relay_commands', BoolArg),
                               ('update_interval', IntArg)],
@@ -626,9 +633,9 @@ class VRTracking(PointerModels):
         self._update_interval = update_interval	# Send vr position every N frames.
         self._last_vr_camera = c = _vr_camera(self._session)
         self._last_room_to_scene = c.room_to_scene if c else None
-        self._new_head_image = None	# Path to image file
-        self._head_image = None		# Encoded image
-        self._send_head_image = False
+        self._new_face_image = None	# Path to image file
+        self._face_image = None		# Encoded image
+        self._send_face_image = False
 
     def delete(self):
         t = self._session.triggers
@@ -661,13 +668,13 @@ class VRTracking(PointerModels):
 
     def make_pointer_model(self, session):
         # Make sure new meeting participant gets my head image.
-        self._send_head_image = True
+        self._send_face_image = True
         
         pm = VRPointerModel(self._session, 'VR', self._last_room_to_scene)
         return pm
 
-    def new_head_image(self, path):
-        self._new_head_image = path
+    def new_face_image(self, path):
+        self._new_face_image = path
         
     def _vr_tracking_cb(self, trigger_name, camera):
         c = camera
@@ -697,16 +704,16 @@ class VRTracking(PointerModels):
             msg['vr coords'] = _place_matrix(c.room_to_scene)
             self._last_room_to_scene = c.room_to_scene
 
-        if self._new_head_image:
-            image = _encode_head_image(self._new_head_image)
-            self._head_image = image
+        if self._new_face_image:
+            image = _encode_face_image(self._new_face_image)
+            self._face_image = image
             msg['vr head image'] = image
-            self._new_head_image = None
-            self._send_head_image = False
-        elif self._send_head_image:
-            self._send_head_image = False
-            if self._head_image is not None:
-                msg['vr head image'] = self._head_image
+            self._new_face_image = None
+            self._send_face_image = False
+        elif self._send_face_image:
+            self._send_face_image = False
+            if self._face_image is not None:
+                msg['vr head image'] = self._face_image
             
         # Tell connected peers my new vr state
         self._meeting._send_message(msg)
@@ -841,7 +848,7 @@ class VRHeadModel(Model):
         self.texture_coordinates = tc
 
     def update_image(self, base64_image_bytes):
-        image_bytes = _decode_head_image(base64_image_bytes)
+        image_bytes = _decode_face_image(base64_image_bytes)
         from PyQt5.QtGui import QImage
         qi = QImage()
         qi.loadFromData(image_bytes)
@@ -870,14 +877,14 @@ def _matrix_place(m):
     from chimerax.core.geometry import Place
     return Place(matrix = m)
 
-def _encode_head_image(path):
+def _encode_face_image(path):
     from base64 import b64encode
     hf = open(path, 'rb')
     he = b64encode(hf.read())
     hf.close()
     return he
 
-def _decode_head_image(bytes):
+def _decode_face_image(bytes):
     from base64 import b64decode
     image_bytes = b64decode(bytes)
     return image_bytes
