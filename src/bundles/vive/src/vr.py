@@ -681,7 +681,7 @@ class SteamVRCamera(Camera):
 
     def _vr_control_model_group(self):
         g = self._vr_model_group
-        if g is None:
+        if g is None or g.deleted:
             session = self._session
             g = Model('VR', session)
             g.SESSION_SAVE = False
