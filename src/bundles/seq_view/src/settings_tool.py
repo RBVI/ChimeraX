@@ -29,8 +29,7 @@ class SettingsTool:
                     return options
                 return super().options(category)
         opt_sort_f = lambda opt: opt.sv_sort_val
-        settings_panel = CategorizedSettingsPanel(sv.settings, "Sequence Viewer",
-            option_sorting=opt_sort_f)
+        settings_panel = CategorizedSettingsPanel("Sequence Viewer", option_sorting=opt_sort_f)
         appearance_panel = AppearanceOptionsPanel(category_sorting=lambda cat: ["Single Sequence",
             "Alignment", "All"].index(cat), option_sorting=opt_sort_f)
         settings_panel.add_tab(APPEARANCE, appearance_panel)
@@ -43,7 +42,7 @@ class SettingsTool:
                 continue
             val = getattr(sv.settings, attr_name)
             opt = option_class(description, val, lambda o, s=self, cat=category:
-                self._setting_change_cb(cat, o), attr_name=attr_name, **ctor_keywords)
+                self._setting_change_cb(cat, o), attr_name=attr_name, settings=sv.settings, **ctor_keywords)
             opt.sv_sort_val = sort_val
             if category == APPEARANCE:
                 if attr_name.startswith(SINGLE_PREFIX):
@@ -62,7 +61,7 @@ class SettingsTool:
         tool_window.ui_area.setLayout(layout)
 
     def _setting_change_cb(self, category, opt):
-        opt.set_attribute(self.sv.settings)
+        opt.set_attribute()
         from .settings import APPEARANCE, REGIONS, HEADERS
         if category == APPEARANCE:
             self.sv.seq_canvas._reformat()
