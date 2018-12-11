@@ -167,9 +167,16 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
     try:
         mv.camera = SteamVRCamera(session)
     except openvr.OpenVRError as e:
+        if 'error number 108' in str(e):
+            msg = ('The VR headset was not detected.\n' +
+                   'Possibly a cable to the VR headset is not plugged in.\n' +
+                   'If the headset is a Vive Pro, the link box may be turned off.\n' +
+                   'If using a Vive Pro wireless adapter it may not be powered on.')
+        else:
+            msg = ('Failed to initialize OpenVR.\n' +
+                   'Possibly SteamVR is not installed or it failed to start.')
         from chimerax.core.errors import UserError
-        raise UserError('Failed to initialize OpenVR.\n'
-                        'Either SteamVR is not installed or it failed to start.\n%s' % str(e))
+        raise UserError('%s\n%s' % (msg, str(e)))
         
     
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
