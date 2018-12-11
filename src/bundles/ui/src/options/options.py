@@ -19,7 +19,8 @@ class Option(metaclass=ABCMeta):
     multiple_value = "-- multiple --"
     read_only = False
 
-    def __init__(self, name, default, callback, *, balloon=None, attr_name=None, settings=None, **kw):
+    def __init__(self, name, default, callback, *, balloon=None, attr_name=None, settings=None,
+            auto_set_attr=True, **kw):
         """'callback' can be None"""
 
         # non-empty name overrides any default name
@@ -43,7 +44,8 @@ class Option(metaclass=ABCMeta):
             self.settings = proxy(settings)
             self.settings_handler = self.settings.triggers.add_handler('setting changed',
                 lambda trig_name, data, *, pself=proxy(self):
-                data[0] == pself.attr_name and pself.set(getattr(pself.settings, pself.attr_name)))
+                data[0] == pself.attr_name and pself.set(pself.get_attribute()))
+        self.auto_set_attr = auto_set_attr
 
         if default is not None or not hasattr(self, 'default'):
             self.default = default
@@ -160,6 +162,8 @@ class Option(metaclass=ABCMeta):
 
     def make_callback(self):
         """Supported API. Called (usually by GUI) to propagate changes back to program"""
+        if self.attr_name and self.settings and self.auto_set_attr:
+            self.set_attribute()
         if self._callback:
             self._callback(self)
 

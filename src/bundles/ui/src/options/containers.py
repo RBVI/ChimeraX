@@ -226,9 +226,6 @@ class SettingsPanel(SettingsPanelBase):
     """Supported API. SettingsPanel is a container for remember-able Options that work in conjunction with
        Options that have Settings instances (found in chimerax.core.settings) specified via their
        'settings' constructor arg.
-
-       The callback function for each option will have to call option.set_attribute(settings)
-       in order to update the "current" value of the attribute in settings.
     """
 
     def __init__(self, owner_description, parent=None, *, sorting=True, **kw):

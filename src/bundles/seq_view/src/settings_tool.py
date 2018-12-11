@@ -61,7 +61,6 @@ class SettingsTool:
         tool_window.ui_area.setLayout(layout)
 
     def _setting_change_cb(self, category, opt):
-        opt.set_attribute()
         from .settings import APPEARANCE, REGIONS, HEADERS
         if category == APPEARANCE:
             self.sv.seq_canvas._reformat()
