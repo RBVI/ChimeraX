@@ -1387,15 +1387,16 @@ class CrossLinkModel(Model):
 
     def add_pseudobond_models(self, pbgs):
         self._pseudobond_groups.extend(pbgs)
-        
+
     def _get_display(self):
         for pbg in self._pseudobond_groups:
-            if pbg.display:
+            if not pbg.deleted and pbg.display:
                 return True
         return False
     def _set_display(self, display):
         for pbg in self._pseudobond_groups:
-            pbg.display = display
+            if not pbg.deleted:
+                pbg.display = display
     display = property(_get_display, _set_display)
 
     def _get_single_color(self):
@@ -1403,7 +1404,8 @@ class CrossLinkModel(Model):
     def _set_single_color(self, color):
         self.color = color
         for pbg in self._pseudobond_groups:
-            pbg.single_color = color
+            if not pbg.deleted:
+                pbg.single_color = color
     single_color = property(_get_single_color, _set_single_color)
 
 # -----------------------------------------------------------------------------

@@ -2972,13 +2972,18 @@ def registered_commands(multiword=False, _start=None):
         return words
 
     def cmds(parent_cmd, parent_info):
+        skip_list = []
         for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
-                if parent_cmd:
-                    word_info.lazy_register('%s %s' % (parent_cmd, word))
-                else:
-                    word_info.lazy_register(word)
-        words = list(parent_info.subcommands.keys())
+                try:
+                    if parent_cmd:
+                        word_info.lazy_register('%s %s' % (parent_cmd, word))
+                    else:
+                        word_info.lazy_register(word)
+                except RuntimeError:
+                    skip_list.append(word)
+        words = [word for word in parent_info.subcommands.keys()
+                 if word not in skip_list]
         words.sort(key=lambda x: x[x[0] == '~':].lower())
         for word in words:
             word_info = parent_info.subcommands[word]
