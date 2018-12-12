@@ -2262,8 +2262,8 @@ class AtomicStructure(Structure):
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords
                     mol_points = atoms.coords
-                    from chimerax.core.geometry import find_closest_points
-                    close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
+                    from chimerax.core.geometry import find_close_points
+                    close_indices = find_close_points(lig_points, mol_points, 3.6)[1]
                     display |= atoms.filter(close_indices).residues
                 display_atoms = display.atoms
                 if self.num_residues > 1:
