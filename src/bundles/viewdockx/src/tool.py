@@ -50,7 +50,8 @@ class _BaseTool(HtmlToolInstance):
                           if hasattr(s, "viewdockx_data") and s.viewdockx_data]
 
         if not structures:
-            raise ValueError("No suitable models found for ViewDockX")
+            from chimerax.core.errors import UserError
+            raise UserError("No suitable models found for ViewDockX")
         self.structures = structures
         t = session.triggers
         from chimerax.core.models import REMOVE_MODELS, MODEL_DISPLAY_CHANGED
