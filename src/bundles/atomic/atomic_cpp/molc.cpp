@@ -1977,6 +1977,27 @@ extern "C" EXPORT PyObject *pseudobond_group_new_pseudobond(void *pbgroup, void 
     }
 }
 
+extern "C" EXPORT PyObject *pseudobond_group_new_pseudobonds(void *pbgroup, void *atoms1, void *atoms2, int natoms)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    Atom **a1 = static_cast<Atom **>(atoms1), **a2 = static_cast<Atom **>(atoms2);
+    std::vector<Pseudobond *> pbonds;
+    try {
+      for (int i = 0 ; i < natoms ; ++i) {
+        Pseudobond *b = pbg->new_pseudobond(a1[i], a2[i]);
+        pbonds.push_back(b);
+      }
+      Pseudobond **pbp;
+      PyObject *pb = python_voidp_array(pbonds.size(), (void***)&pbp);
+      for (size_t i = 0 ; i < pbonds.size() ; ++i)
+	pbp[i] = pbonds[i];
+      return pb;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT PyObject *pseudobond_group_new_pseudobond_csid(void *pbgroup,
     void *atom1, void *atom2, int cs_id)
 {
@@ -4781,6 +4802,66 @@ extern "C" EXPORT PyObject *structure_polymers(void *mol, int missing_structure_
         molc_error();
         return nullptr;
     }
+}
+
+inline static bool chain_trace_connection(const Residue *r0, const Residue *r1, PolymerType ptype,
+					  const AtomName &trace_atom, const AtomName &connect_atom_0,
+					  const AtomName &connect_atom_1, Atom **atom0, Atom **atom1)
+{
+  if (r0->polymer_type() != ptype || r1->polymer_type() != ptype || !r0->connects_to(r1))
+    return false;
+  Atom *ta0 = r0->find_atom(trace_atom);
+  if (ta0 == NULL || !ta0->display() || ta0->hide())
+    return false;
+  Atom *c0 = r0->find_atom(connect_atom_0);
+  if (c0 && c0->display())
+    return false;
+  Atom *c1 = (ptype == PT_AMINO ? r1 : r0)->find_atom(connect_atom_1);
+  if (c1 && c1->display())
+    return false;
+  Atom *ta1 = r1->find_atom(trace_atom);
+  if (ta1 == NULL || !ta1->display() || ta1->hide())
+    return false;
+  *atom0 = ta0;
+  *atom1 = ta1;
+  return true;
+}
+
+extern "C" EXPORT PyObject *structure_chain_trace_atoms(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    PyObject *atom_pairs;
+    try {
+      // Find neighbor CA that are shown but intervening C and N are not shown.
+      const Structure::Residues &res = m->residues();
+      size_t nr = res.size();
+      std::vector<Atom *> cta0, cta1;
+      Atom *ta0, *ta1;
+      for (size_t i = 0 ; i < nr ; ++i) {
+	Residue *r0 = res[i], *r1 = res[i+1];
+	if (chain_trace_connection(r0, r1, PT_AMINO, "CA", "C", "N", &ta0, &ta1) ||
+	    chain_trace_connection(r0, r1, PT_NUCLEIC, "P", "O5'", "O3'", &ta0, &ta1)) {
+	  cta0.push_back(ta0);
+	  cta1.push_back(ta1);
+	}
+      }
+      int na = cta0.size();
+      if (na == 0)
+	atom_pairs = python_none();
+      else {
+	void **ap0, **ap1;
+	PyObject *a0 = python_voidp_array(cta0.size(), &ap0);
+	PyObject *a1 = python_voidp_array(cta1.size(), &ap1);
+	for (int i = 0 ; i < na ; ++i) {
+	  ap0[i] = static_cast<void *>(cta0[i]);
+	  ap1[i] = static_cast<void *>(cta1[i]);
+	}
+	atom_pairs = python_tuple(a0, a1);
+      }
+    } catch (...) {
+        molc_error();
+    }
+    return atom_pairs;
 }
 
 extern "C" EXPORT void *structure_new(PyObject* logger)
