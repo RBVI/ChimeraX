@@ -11,8 +11,13 @@ class _MyAPI(BundleAPI):
     def start_tool(session, bi, ti):
         if ti.name == "ViewDockX":
             from .tool import TableTool
-            tool = TableTool(session, ti.name)
-            tool.setup()
+            from chimerax.core.errors import UserError
+            try:
+                tool = TableTool(session, ti.name)
+                tool.setup()
+            except UserError as e:
+                session.logger.error(str(e))
+                return None
             return tool
         else:
             raise ValueError("trying to start unknown tool: %s" % ti.name)
