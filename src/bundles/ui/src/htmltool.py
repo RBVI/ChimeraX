@@ -41,7 +41,8 @@ class HtmlToolInstance(ToolInstance):
         The suggested initial widget size in pixels.
     """
 
-    def __init__(self, session, tool_name, size_hint=None, log_errors=False):
+    def __init__(self, session, tool_name, size_hint=None,
+                 show_http_in_help=True, log_errors=False):
         from PyQt5.QtWidgets import QGridLayout
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         from . import MainToolWindow
@@ -58,6 +59,7 @@ class HtmlToolInstance(ToolInstance):
               "log_errors": log_errors}
         if size_hint is not None:
             kw["size_hint"] = size_hint
+        self.__show_http_in_help = show_http_in_help
         try:
             scheme = getattr(self, "CUSTOM_SCHEME")
             handle_scheme = getattr(self, "handle_scheme")
@@ -101,7 +103,13 @@ class HtmlToolInstance(ToolInstance):
         # Called when link is clicked
         # "info" is an instance of QWebEngineUrlRequestInfo
         url = info.requestUrl()
-        if url.scheme() in self.__schemes:
+        scheme = url.scheme()
+        if scheme in self.__schemes:
             # Intercept our custom schemes and call the handler
             # method in the main thread where it can make UI calls.
             self.session.ui.thread_safe(self.handle_scheme, url)
+        if self.__show_http_in_help and scheme in ["http", "https"]:
+            self.html_view.stop()
+            from chimerax.help_viewer import show_url
+            self.session.ui.thread_safe(show_url, self.session,
+                                        url.toString(), new_tab=True)

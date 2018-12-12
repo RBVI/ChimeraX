@@ -20,9 +20,9 @@ class ToolUI(HtmlToolInstance):
     SESSION_SAVE = False
     CUSTOM_SCHEME = "blastprotein"
 
-    def __init__(self, session, ti):
+    def __init__(self, session, tool_name, blast_results=None, atomspec=None):
         # ``session`` - ``chimerax.core.session.Session`` instance
-        # ``ti``      - ``chimerax.core.toolshed.ToolInfo`` instance
+        # ``tool_name`` - ``str`` instance
 
         # Set name displayed on title bar
         self.display_name = "Blast Protein"
@@ -31,10 +31,11 @@ class ToolUI(HtmlToolInstance):
         # initial tool size in pixels.  For debugging, add
         # "log_errors=True" to get Javascript errors logged
         # to the ChimeraX log window.
-        super().__init__(session, ti.name, size_hint=(575, 400),
+        super().__init__(session, tool_name, size_hint=(575, 400),
                          log_errors=True)
         self._chain_map = {}
-        self._ref_atomspec = None
+        self._ref_atomspec = atomspec
+        self._blast_results = blast_results
         self._build_ui()
 
     def _build_ui(self):
@@ -50,20 +51,18 @@ class ToolUI(HtmlToolInstance):
 
         # First check that the path is a real command
         command = url.path()
-        if command == "update_models":
-            self.update_models()
+        if command == "initialize":
+            self.initialize()
         elif command == "search":
             self.blast(url)
         elif command == "load":
             self.load_pdb(url)
+        elif command == "update_models":
+            self.update_models()
         else:
             from chimerax.core.errors import UserError
             raise UserError("unknown blastprotein command: %s" % command)
 
-
-    #
-    # Code for updating GUI when models are opened or closed
-    #
 
     def update_models(self, trigger=None, trigger_data=None):
         # Update the <select> options in the web form with current
@@ -85,6 +84,18 @@ class ToolUI(HtmlToolInstance):
         import json
         js = "chains_update(%s);" % json.dumps(chain_labels)
         self.html_view.runJavaScript(js)
+
+
+    #
+    # Initialize after GUI is ready
+    #
+
+
+    def initialize(self):
+        self.update_models()
+        if self._blast_results:
+            self._show_results(self._ref_atomspec, self._blast_results)
+            self._blast_results = None
 
 
     #
@@ -148,8 +159,11 @@ class ToolUI(HtmlToolInstance):
     #
 
     def job_finished(self, job, blast_results):
+        self._show_results(job.atomspec, blast_results)
+
+    def _show_results(self, atomspec, blast_results):
         # blast_results is either None or a blastp_parser.Parser
-        atomspec = self._ref_atomspec = job.atomspec
+        self._ref_atomspec = atomspec
         hits = []
         if blast_results is not None:
             import re

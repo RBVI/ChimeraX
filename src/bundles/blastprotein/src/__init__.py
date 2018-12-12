@@ -29,7 +29,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def start_tool(session, bi, ti):
         from .tool import ToolUI
-        return ToolUI(session, ti)
+        return ToolUI(session, ti.name)
 
     @staticmethod
     def register_command(bi, ci, logger):
