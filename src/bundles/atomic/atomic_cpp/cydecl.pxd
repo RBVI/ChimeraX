@@ -115,7 +115,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         const Rgba&  ring_color()
         bool  ring_display()
         bool  thin_rings()
-        void set_alt_loc(char)
+        void set_alt_loc(char) except +
         void set_insertion_code(char)
         void set_is_helix(bool)
         void set_is_strand(bool)
@@ -168,9 +168,9 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void clear_hide_bits(int)
         const Rgba& color()
         bool connects_to(Atom*)
-        const Coord& coord()
+        const Coord& coord() except +
         const Coord& coord(char)
-        const Coord& coord(CoordSet*)
+        const Coord& coord(CoordSet*) except +
         int coord_index()
         float default_radius()
         bool display()
@@ -197,7 +197,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         Coord scene_coord(CoordSet*)
         bool selected()
         int serial_number()
-        void set_alt_loc(char)
+        void set_alt_loc(char) except +
         void set_alt_loc(char, bool, bool)
         void set_aniso_u(float, float, float, float, float, float)
         void set_bfactor(float)
@@ -211,7 +211,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_idatm_type(const char*)
         void set_name(const char*)
         void set_occupancy(float)
-        void set_radius(float)
+        void set_radius(float) except +
         void set_selected(bool)
         void set_serial_number(int)
         Structure* structure()
