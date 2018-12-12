@@ -991,9 +991,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         '''
 
         insert_positions = [None, "mode"] + [None] * len(parent_menu_names)
-        menu = self._get_target_menu(self.menuBar(),
-            ["Select"] + parent_menu_names + [submenu_name],
-            insert_positions=insert_positions)
         return self._get_target_menu(self.menuBar(),
             ["Select"] + parent_menu_names + [submenu_name],
             insert_positions=insert_positions)
