@@ -132,12 +132,12 @@ molc_error()
         PyErr_SetString(PyExc_ValueError, e.what());
     } catch (std::ios_base::failure& e) {
         PyErr_SetString(PyExc_IOError, e.what());
+    } catch (std::regex_error& e) {
+        PyErr_SetString(PyExc_ValueError, e.what());
     } catch (std::runtime_error& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
     } catch (std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
-    } catch (std::regex_error& e) {
-        PyErr_SetString(PyExc_ValueError, e.what());
     } catch (...) {
         PyErr_SetString(PyExc_RuntimeError, "unknown C++ exception");
     }
