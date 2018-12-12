@@ -4837,7 +4837,7 @@ extern "C" EXPORT PyObject *structure_chain_trace_atoms(void *mol)
       size_t nr = res.size();
       std::vector<Atom *> cta0, cta1;
       Atom *ta0, *ta1;
-      for (size_t i = 0 ; i < nr ; ++i) {
+      for (size_t i = 0 ; i < nr-1 ; ++i) {
 	Residue *r0 = res[i], *r1 = res[i+1];
 	if (chain_trace_connection(r0, r1, PT_AMINO, "CA", "C", "N", &ta0, &ta1) ||
 	    chain_trace_connection(r0, r1, PT_NUCLEIC, "P", "O5'", "O3'", &ta0, &ta1)) {
