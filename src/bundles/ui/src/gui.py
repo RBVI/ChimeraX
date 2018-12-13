@@ -394,6 +394,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._hide_tools = False
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
+        self._select_seq_dialog = None
 
         self._build_status()
         self._populate_menus(session)
@@ -683,6 +684,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         core_settings.last_window_size = wh
         self.triggers.activate_trigger('resized', wh)
 
+    def show_select_seq_dialog(self, *args):
+        if self._select_seq_dialog is None:
+            self._select_seq_dialog = SelSeqDialog(self.session)
+        self._select_seq_dialog.show()
+
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
         _show_context_menu(event, tool, fill_cb, True, tb)
@@ -844,15 +850,19 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
+        sel_seq_action = QAction("Sequence...", self)
+        select_menu.addAction(sel_seq_action)
+        sel_seq_action.triggered.connect(self.show_select_seq_dialog)
+
         self.select_mode_menu = select_menu.addMenu("mode")
         self.select_mode_menu.setObjectName("mode")
         mode_names =  ["replace", "add", "subtract", "intersect"]
-        self._select_mode_reminders = {k:v for k,v in zip(mode_names, 
+        self._select_mode_reminders = {k:v for k,v in zip(mode_names,
             ["", " (+)", " (-)", " (\N{INTERSECTION})"])}
         for mode in mode_names:
-            action = QAction(mode.title() + self._select_mode_reminders[mode], self)
-            self.select_mode_menu.addAction(action)
-            action.triggered.connect(
+            mode_action = QAction(mode.title() + self._select_mode_reminders[mode], self)
+            self.select_mode_menu.addAction(mode_action)
+            mode_action.triggered.connect(
                 lambda arg, s=self, m=mode: s._set_select_mode(m))
         self._set_select_mode("replace")
 
@@ -973,11 +983,13 @@ class MainWindow(QMainWindow, PlainTextLog):
             menu.insertAction(self._get_menu_action(menu, insertion_point), action)
         return action
 
-    def add_select_submenu(self, parent_menu_names, submenu_name):
+    def add_select_submenu(self, parent_menu_names, submenu_name, *, append=True):
         '''Supported API.
         Add a submenu (or get it if it already exists).  Any parent menus will be created as
         needed.  Menu names can contain keyboard navigation markup (the '&' character).
-        'parent_menu_names' should not contain the Select menu itself.
+        'parent_menu_names' should not contain the Select menu itself. If 'append' is True then
+        the menu will be appended at the end of any existing items, otherwise it will be
+        alphabetized into them.
 
         The caller is responsible for filling out the menu with entries, separators, etc.
         Any further submenus should again use this call.  Entry or menu callbacks that
@@ -990,7 +1002,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         to the menu.
         '''
 
-        insert_positions = [None, "mode"] + [None] * len(parent_menu_names)
+        insert_positions = [None, "Sequence..."] + [None] * (len(parent_menu_names)-1) + [
+            False if append else None]
         return self._get_target_menu(self.menuBar(),
             ["Select"] + parent_menu_names + [submenu_name],
             insert_positions=insert_positions)
@@ -1042,27 +1055,44 @@ class MainWindow(QMainWindow, PlainTextLog):
             menu = parent_menu.findChild(QMenu, obj_name, Qt.FindDirectChildrenOnly)
             add = (menu is None)
             if add:
-                menu = QMenu(menu_name, parent_menu)
-                menu.setToolTipsVisible(True)
-                menu.setObjectName(obj_name)	# Needed for findChild() above to work.
                 if parent_menu == self.menuBar() and insert_pos is None:
                     insert_pos = "Help"
                 if insert_pos is None:
                     # try to alphabetize; use an insert_pos of False to prevent this
-                    existing_menus = parent_menu.findChildren(QMenu, None, Qt.FindDirectChildrenOnly)
-                    names = [em.objectName() for em in existing_menus]
-                    names.sort(key=lambda n: n.lower())
-                    i = names.index(obj_name)
+                    existing_actions = parent_menu.actions()
+                    names = [(obj_name, None)]
+                    for ea in existing_actions:
+                        names.append((remove_keyboard_navigation(ea.text()), ea))
+                    names.sort(key=lambda n: n[0].lower())
+                    i = names.index((obj_name, None))
                     if i < len(names) - 1:
-                        insert_pos = names[i+1]
+                        insert_action = names[i+1][1]
                     else:
                         insert_pos = False
+                elif insert_pos is not False:
+                    simple_text_insert_pos = remove_keyboard_navigation(insert_pos)
+                    for action in parent_menu.actions():
+                        if remove_keyboard_navigation(action.text()) == simple_text_insert_pos:
+                            insert_action = action
+                            break
+                    else:
+                        # look for obj name
+                        for child in parent_menu.children():
+                            if child.objectName() == simple_text_insert_pos:
+                                insert_action = child.menuAction()
+                                break
+                        else:
+                            raise ValueError("Could not find insert point '%s' in %s" %
+                                (insert_pos, ("menu %s" % parent_menu.title()
+                                if isinstance(parent_menu, QMenu) else "main menubar")))
+                # create here rather than earlier so that's it's not included in parent_menu.children()
+                menu = QMenu(menu_name, parent_menu)
+                menu.setToolTipsVisible(True)
+                menu.setObjectName(obj_name)	# Needed for findChild() above to work.
                 if insert_pos is False:
                     parent_menu.addMenu(menu)
                 else:
-                    parent_menu.insertMenu(
-                        parent_menu.findChild(QMenu,
-                            remove_keyboard_navigation(insert_pos)).menuAction(), menu)
+                    parent_menu.insertMenu(insert_action, menu)
             parent_menu = menu
         return parent_menu
 
@@ -1585,3 +1615,17 @@ def remove_keyboard_navigation(menu_label):
     if menu_label.count('&') == 1:
         return menu_label.replace('&', '')
     return menu_label.replace('&&', '&')
+
+from PyQt5.QtWidgets import QDialog
+class SelSeqDialog(QDialog):
+    def __init__(self, session, *args, **kw):
+        super().__init__(*args, **kw)
+        self.session = session
+        self.setSizeGripEnabled(True)
+        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
+        layout = QVBoxLayout()
+        bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Apply | qbbox.Help)
+        layout.addWidget(bbox)
+        self.setLayout(layout)
+
+
