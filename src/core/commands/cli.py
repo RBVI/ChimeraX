@@ -1988,7 +1988,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
     else:
         _parent_info = registry.commands
     for word in words[:-1]:
-        _parent_info.add_subcommand(word, name)
+        _parent_info.add_subcommand(word, name, logger=logger)
         _parent_info = _parent_info.subcommands[word]
 
     if isinstance(function, _Defer):
@@ -2001,7 +2001,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
                 print(msg)
             else:
                 logger.warning(msg)
-    _parent_info.add_subcommand(words[-1], name, cmd_desc)
+    _parent_info.add_subcommand(words[-1], name, cmd_desc, logger=logger)
     return function     # needed when used as a decorator
 
 
