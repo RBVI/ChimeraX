@@ -1927,7 +1927,7 @@ class _WordInfo:
                 self.registry.aliased_commands[name] = _WordInfo(self.registry, cmd_desc)
         else:
             if logger is not None:
-                logger.info("FYI: command is replacing existing command" %
+                logger.info("FYI: command is replacing existing command: %s" %
                             dq_repr(name))
             word_info.cmd_desc = cmd_desc
 
