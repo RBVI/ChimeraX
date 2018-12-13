@@ -52,7 +52,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         # Accept 4 character filename without prefix as pdb id.
         from os.path import splitext
         base, ext = splitext(filename)
-        if not ext and len(filename) == 4 and filename[0].isdigit():
+        if not ext and len(filename) == 4 and filename[0].isdigit() and filename[1:].isalnum():
             from_database = 'pdb'
             if format is None:
                 format = 'mmcif'

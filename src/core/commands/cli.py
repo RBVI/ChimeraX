@@ -1892,11 +1892,12 @@ class _WordInfo:
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
             _check_autocomplete(word, self.subcommands, name)
-        except ValueError:
-            if cmd_desc is None or not isinstance(cmd_desc.function, Alias):
-                raise
-            if logger is not None:
-                logger.warning("alias %s hides existing command" % dq_repr(name))
+        except ValueError as e:
+            if isinstance(cmd_desc, CmdDesc) and isinstance(cmd_desc.function, Alias):
+                if logger is not None:
+                    logger.warning("Alias %s hides existing command" % dq_repr(name))
+            elif logger is not None:
+                logger.warning("Unable to add subcommand %s: %s" % (name, str(e)))
         if word not in self.subcommands:
             w = self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
             w.parent = self

@@ -31,12 +31,13 @@ They are also used to
 identify <a href="commands/clashes.html">clashes and contacts</a>
 and to calculate
 <a href="commands/surface.html">molecular surfaces</a> and surface areas.
-VDW radii are assigned default values
-according to <a href="atomtypes.html">atom type</a> and can be changed
+VDW radii are assigned automatically based on
+<a href="atomtypes.html">atom types</a>
+(or read directly from the input file, if
+<a href="commands/open.html#atomic">PQR</a>) and can be changed
 with the <a href="commands/size.html"><b>size</b></a> command.
-<!--
-The values are stored as the atom attribute <b>radius</b>.
--->
+The values are stored as the atom <a href="attributes">attribute</a>
+named <b>radius</b>.
 See also:
 <a href="commands/surface.html"><b>surface</b></a>,
 <a href="commands/measure.html"><b>measure</b></a>,
@@ -409,5 +410,5 @@ ions) are also used as defaults in ChimeraX, but not listed above.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2018</address>
+December 2018</address>
 </body></html>

@@ -448,6 +448,15 @@ class PseudobondGroupData:
             pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer, cs_id)
         return pb
 
+    def new_pseudobonds(self, atoms1, atoms2):
+        "Create new pseudobonds between the specified :class:`Atoms` atoms. "
+        f = c_function('pseudobond_group_new_pseudobonds',
+                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int),
+                       ret = ctypes.py_object)
+        ptrs = f(self._c_pointer, atoms1._c_pointers, atoms2._c_pointers, len(atoms1))
+        from .molarray import Pseudobonds
+        return Pseudobonds(ptrs)
+
     # Graphics changed flags used by rendering code.  Private.
     _SHAPE_CHANGE = 0x1
     _COLOR_CHANGE = 0x2
@@ -1334,6 +1343,26 @@ class StructureData:
         p = f(self._c_pointer)
         return p
 
+    def chain_trace_atoms(self):
+        '''
+        Find pairs of atoms that should be connected in a chain trace.
+        Returns None or a 2-tuple of two Atoms instances where corresponding atoms
+        should be connected.  A chain trace connects two adjacent CA atoms if both
+        atoms are shown but the intervening C and N atoms are not shown.  Adjacent
+        means that there is a bond between the two residues.  So for instance CA-only
+        structures has no bond between the residues and those do not show a chain trace
+        connection, instead they show a "missing structure" connection.  For nucleic
+        acid chains adjacent displayed P atoms with undisplayed intervening O3' and O5'
+        atoms are part of a chain trace.
+        '''
+        f = c_function('structure_chain_trace_atoms', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        ap = f(self._c_pointer)
+        if ap is None:
+            return None
+        else:
+            from .molarray import Atoms
+            return (Atoms(ap[0]), Atoms(ap[1]))
+        
     def add_coordset(self, id, xyz):
         '''Supported API. Add a coordinate set with the given id.'''
         if xyz.dtype != float64:

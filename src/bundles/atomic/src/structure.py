@@ -37,6 +37,7 @@ class Structure(Model, StructureData):
 
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
+            '_auto_chain_trace': False,
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
             '_use_spline_normals': False,
@@ -55,6 +56,7 @@ class Structure(Model, StructureData):
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
         self._bonds_drawing = None
+        self._chain_trace_pbgroup = None
         self._ribbon_drawing = None
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
@@ -332,6 +334,8 @@ class Structure(Model, StructureData):
     def _update_graphics(self, changes = StructureData._ALL_CHANGE):
         self._update_atom_graphics(changes)
         self._update_bond_graphics(changes)
+        if self._auto_chain_trace:
+            self._update_chain_trace_graphics(changes)
         for pbg in self.pbg_map.values():
             pbg._update_graphics(changes)
         self._update_ribbon_graphics()
@@ -407,6 +411,50 @@ class Structure(Model, StructureData):
 
         if changes & self._SELECT_CHANGE:
             p.highlighted_positions = _selected_bond_cylinders(bonds)
+
+    def _get_autochain(self):
+        return self._auto_chain_trace
+    def _set_autochain(self, autochain):
+        if autochain != self._auto_chain_trace:
+            self._auto_chain_trace = autochain
+            if autochain:
+                self._update_chain_trace_graphics()
+            else:
+                self._close_chain_trace()
+    autochain = property(_get_autochain, _set_autochain)
+    '''Whether chain trace between principal residue atoms is shown when only those atoms are displayed.'''
+    
+    def _update_chain_trace_graphics(self, changes = StructureData._ALL_CHANGE):
+
+        if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
+            changes |= self._ALL_CHANGE
+
+        if changes & self._DISPLAY_CHANGE:
+            cta = self.chain_trace_atoms()
+
+            pbg = self._chain_trace_pbgroup
+            if pbg is None or pbg.deleted:
+                if cta is None:
+                    return
+                changes = self._ALL_CHANGE
+                self._chain_trace_pbgroup = pbg = self.pseudobond_group('chain trace')
+                pbg._chain_atoms = None
+                pbg.dashes = 0
+            elif cta is None:
+                self._close_chain_trace()
+                return
+
+            if cta != pbg._chain_atoms:
+                pbg.pseudobonds.delete()
+                pbonds = pbg.new_pseudobonds(cta[0], cta[1])
+                pbonds.halfbonds = True
+                pbg._chain_atoms = cta
+
+    def _close_chain_trace(self):
+        pbg = self._chain_trace_pbgroup
+        if pbg:
+            self.session.models.close([pbg])
+            self._chain_trace_pbgroup = None
 
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail

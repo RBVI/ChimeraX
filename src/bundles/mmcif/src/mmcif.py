@@ -377,7 +377,7 @@ def quote(s):
             sing_quote = True
         elif examine[0] == '\n':
             line_break = True
-        elif examine[0] == ' ':
+        elif examine[0].isspace() or examine[0] in '"\'':
             special = True
     if line_break or (sing_quote and dbl_quote):
         return '\n;' + s + '\n;\n'
