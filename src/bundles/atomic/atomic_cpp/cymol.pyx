@@ -1059,6 +1059,7 @@ cdef class CyResidue:
         _set_angle(self.session, ca, ca.bonds[i], val, cur_psi, "psi")
 
     PT_NONE, PT_AMINO, PT_NUCLEIC = range(3)
+    PT_PROTEIN = PT_AMINO
     @property
     def polymer_type(self):
         '''Supported API.  Polymer type of residue. Values are:

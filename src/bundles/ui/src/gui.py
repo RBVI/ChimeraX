@@ -1620,11 +1620,49 @@ class SelSeqDialog(QDialog):
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
         self.session = session
+        self.setWindowTitle("Select Sequence")
         self.setSizeGripEnabled(True)
-        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
+        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel
         layout = QVBoxLayout()
-        bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Apply | qbbox.Help)
-        layout.addWidget(bbox)
+        edit_layout = QHBoxLayout()
+        edit_layout.addWidget(QLabel("Sequence:"))
+        self.edit = QLineEdit()
+        self.edit.textChanged.connect(self._update_button_states)
+        edit_layout.addWidget(self.edit)
+        layout.addLayout(edit_layout)
+
+        self.bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Apply | qbbox.Help)
+        self.bbox.accepted.connect(self.search)
+        self.bbox.accepted.connect(self.accept)
+        self.bbox.rejected.connect(self.reject)
+        self.bbox.button(qbbox.Apply).clicked.connect(self.search)
+        self.bbox.button(qbbox.Help).setEnabled(False)
+        self._update_button_states(self.edit.text())
+        layout.addWidget(self.bbox)
         self.setLayout(layout)
 
+    def search(self, *args):
+        from chimerax.atomic import all_atomic_structures, Residues, Residue
+        sel_residues = set()
+        base_search_string = self.edit.text().strip().upper()
+        protein_search_string = base_search_string.replace('B', '[DN]').replace('Z', '[EQ]')
+        nucleic_search_string = base_search_string.replace('R', '[AG]').replace('Y', '[CTU]').replace(
+            'N', '[ACGTU]')
+        for s in all_atomic_structures(self.session):
+            for chain in s.chains:
+                search_string = protein_search_string \
+                    if chain.polymer_type == Residue.PT_PROTEIN else nucleic_search_string
+                try:
+                    ranges = chain.search(search_string)
+                except ValueError as e:
+                    from chimerax.core.errors import UserError
+                    raise UserError(e)
+                for start, length in ranges:
+                    sel_residues.update([r for r in chain.residues[start:start+length] if r])
+        self.session.selection.clear()
+        Residues(sel_residues).atoms.selecteds = True
 
+    def _update_button_states(self, text):
+        enable = bool(text.strip())
+        for button in [self.bbox.button(x) for x in [self.bbox.Ok, self.bbox.Apply]]:
+            button.setEnabled(enable)
