@@ -1002,8 +1002,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         to the menu.
         '''
 
-        insert_positions = [None, "Sequence..."] + [None] * (len(parent_menu_names)-1) + [
-            False if append else None]
+        insert_positions = [None, "Sequence..."] + [False if append else None] * len(parent_menu_names)
         return self._get_target_menu(self.menuBar(),
             ["Select"] + parent_menu_names + [submenu_name],
             insert_positions=insert_positions)
