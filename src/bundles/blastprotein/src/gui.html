@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+<head>
+    <title>ChimeraX Blast Protein Tool</title>
+    <script type="text/javascript" src="lib/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="lib/bootstrap.js"></script>
+    <script type="text/javascript" src="lib/jquery.bootgrid.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap.css"></script>
+    <link rel="stylesheet" type="text/css" href="lib/jquery.bootgrid.min.css"></script>
+    <style>
+        .opt-grid { margin: 0px; padding: 0px;
+		    list-style-type: none; width: 100%; }
+        .opt-grid li { float: left; width: 33%; }
+	.bootgrid-table { width: 100%; }
+	.bootgrid-table th:nth-child(4) { width: 30%; }
+	.bootgrid-table th { width: 10%; }
+	.bootgrid-table td:nth-child(4) { white-space: normal; }
+    </style>
+    <script>
+        var bootgrid_table = null;
+        var table_data = null;
+        var column_headers = [
+            [ "Name",
+                { "data-column-id": "name",
+                  "data-formatter": "link" } ],
+            [ "E-Value",
+                { "data-column-id": "evalue",
+                  "data-type": "numeric" } ],
+            [ "Score",
+                { "data-column-id": "score", 
+                  "data-type": "numeric" } ],
+            [ "Description",
+                { "data-column-id": "description" } ],
+            [ "URL",
+                { "data-column-id": "url",
+                  "data-visible": false } ],
+        ]
+        function chains_update(chain_labels) {
+            var $chain = $("#chain").empty();
+            $.each(chain_labels, function(key, value) {
+                $chain.append($("<option/>", {value:value}).text(value));
+            });
+            var disabled = chain_labels.length > 0 ? false : true;
+            $(".submit").prop("disabled", disabled);
+        }
+        function table_update(data) {
+            var $div = $("#table_div");
+            if (bootgrid_table) {
+                bootgrid_table.destroy();
+                bootgrid_table = null;
+                table_data = null;
+                $div.empty();
+            }
+            if (!data)
+                return;
+            var $table = table_create(column_headers, data);
+            $div.append($table);
+            $("#bootgrid_table").bootgrid({
+                "formatters": {
+                    "link": function(column, row) {
+                        return '<a href="' + row.url + '">' +
+                               row.name + '</a>';
+                    }
+                }
+            });
+        }
+        function table_create(headers, data) {
+            var $table = $("<table/>", {id:"bootgrid_table"});
+            var $thead = $("<thead/>");
+            var $tr = $("<tr/>").append($.map(headers, function(value) {
+                return $("<th/>", value[1]).text(value[0]);
+            }));
+            $thead.append($tr);
+            $table.append($thead);
+            var $tbody = $("<tbody/>");
+            $.each(data, function(index, row) {
+                var $tr = $("<tr/>");
+                // Data must be added in same order as column listing
+                var $td = $("<td/>");
+                // Name
+                $tr.append($("<td/>").text(row["name"]));
+                // E-Value
+                $tr.append($("<td/>").text(row["evalue"]));
+                // Score
+                $tr.append($("<td/>").text(row["score"]));
+                // Description
+                $tr.append($("<td/>").text(row["description"]));
+                // URL (default hidden)
+                $tr.append($("<td/>").text(row["url"]));
+                $tbody.append($tr);
+            });
+            $table.append($tbody);
+            return $table;
+        }
+        function init() {
+            // setting window location causes tool to receive URL
+            window.location='blastprotein:initialize';
+        }
+    </script>
+</head>
+<body onload="init();">
+<h2>Blast Protein <small>(an <a href="http://www.rbvi.ucsf.edu">RBVI</a>
+    web service)</small></h2>
+<fieldset>
+<legend>Search Parameters</legend>
+    <form method="get">
+    <ul class="opt-grid">
+        <li>
+        <label for="chain">Chain:</label>
+        <select name="chain" id="chain">
+            <option value="none" selected="selected">None</option>
+        </select>
+        </li>
+        <li>
+        <label for="database">Database:</label>
+        <select name="database" id="database">
+            <option value="pdb" selected="selected">PDB</option>
+            <option value="nr">NR</option>
+        </select>
+        </li>
+        <li>
+        <label for="max_hits"># Hits:</label>
+        <input name="max_hits" id="max_hits" type="number"
+               min="10" max="1000" step="10" value="100"/>
+        </li>
+        <li>
+        <label for="matrix">Matrix:</label>
+        <select name="matrix" id="matrix">
+            <option value="BLOSUM45">BLOSUM45</option>
+            <option value="BLOSUM62" selected="selected">BLOSUM62</option>
+            <option value="BLOSUM80">BLOSUM80</option>
+            <option value="BLOSUM90">BLOSUM90</option>
+            <option value="BLOSUM100">BLOSUM100</option>
+            <option value="PAM30">PAM30</option>
+            <option value="PAM70">PAM70</option>
+        </select>
+        </li>
+        <li>
+        <label for="cutoff_value">Cutoff:</label>
+        <span name="cutoff_value">
+            1e
+            <input name="cutoff" id="cutoff" type="number"
+                   min="-100" max="-1" step="1" value="-3"/>
+        </span>
+        </li>
+        <li>
+        <input class="submit" type="submit" formaction="blastprotein:search"
+               disabled="true" value="Blast"/>
+        </li>
+    </ul>
+    </form>
+</fieldset>
+<fieldset>
+<legend></legend>
+    <div id="table_div"></div>
+</fieldset>
+</body>
+</html>

@@ -11,208 +11,222 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# ToolUI classes may also override
-#   "delete" - called to clean up before instance is deleted
-#
-from chimerax.core.tools import ToolInstance
-
-_EmptyPage = "<h2>Please select a chain and press <b>BLAST</b></h2>"
-_InProgressPage = "<h2>BLAST search in progress&hellip;</h2>"
+from chimerax.ui import HtmlToolInstance
 
 
-class ToolUI(ToolInstance):
+class ToolUI(HtmlToolInstance):
 
     SESSION_ENDURING = False
+    SESSION_SAVE = False
     CUSTOM_SCHEME = "blastprotein"
-    REF_ID_URL = "https://www.ncbi.nlm.nih.gov/protein/%s"
-    KNOWN_IDS = ["ref","gi"]
 
     def __init__(self, session, tool_name, blast_results=None, atomspec=None):
-        # Standard template stuff
-        ToolInstance.__init__(self, session, tool_name)
+        # ``session`` - ``chimerax.core.session.Session`` instance
+        # ``tool_name`` - ``str`` instance
+
+        # Set name displayed on title bar
         self.display_name = "Blast Protein"
-        from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self)
-        self.tool_window.manage(placement="side")
-        parent = self.tool_window.ui_area
 
-        # UI consists of a chain selector and search button on top
-        # and HTML widget below for displaying results.
-        # Layout all the widgets
-        from PyQt5.QtWidgets import QGridLayout, QLabel, QComboBox, QPushButton
-        from chimerax.ui.widgets import HtmlView
-        layout = QGridLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel("Chain:")
-        layout.addWidget(label, 0, 0)
-        self.chain_combobox = QComboBox()
-        layout.addWidget(self.chain_combobox, 0, 1)
-        button = QPushButton("BLAST")
-        button.clicked.connect(self._blast_cb)
-        layout.addWidget(button, 0, 2)
-        self.results_view = HtmlView(parent, size_hint=(575, 300),
-                                     interceptor=self._navigate,
-                                     schemes=[self.CUSTOM_SCHEME])
-        layout.addWidget(self.results_view, 1, 0, 1, 3)
-        layout.setColumnStretch(0, 0)
-        layout.setColumnStretch(1, 10)
-        layout.setColumnStretch(2, 0)
-        layout.setRowStretch(0, 0)
-        layout.setRowStretch(1, 10)
-        parent.setLayout(layout)
+        # Initialize base class.  ``size_hint`` is the suggested
+        # initial tool size in pixels.  For debugging, add
+        # "log_errors=True" to get Javascript errors logged
+        # to the ChimeraX log window.
+        super().__init__(session, tool_name, size_hint=(575, 400),
+                         log_errors=True)
+        self._chain_map = {}
+        self._ref_atomspec = atomspec
+        self._blast_results = blast_results
+        self._build_ui()
 
-        # Register for model addition/removal so we can update chain list
-        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
-        t = session.triggers
-        self._add_handler = t.add_handler(ADD_MODELS, self._update_chains)
-        self._remove_handler = t.add_handler(REMOVE_MODELS, self._update_chains)
+    def _build_ui(self):
+        # Fill in html viewer with initial page in the module
+        import os.path
+        html_file = os.path.join(os.path.dirname(__file__), "gui.html")
+        import pathlib
+        self.html_view.setUrl(pathlib.Path(html_file).as_uri())
 
-        # Set widget values and go
-        self._update_chains()
-        self._update_blast_results(blast_results, atomspec)
+    def handle_scheme(self, url):
+        # Called when GUI sets browser URL location.
+        # ``url`` - ``PyQt5.QtCore.QUrl`` instance
 
-    def _blast_cb(self, _):
-        from .job import BlastProteinJob
-        n = self.chain_combobox.currentIndex()
-        if n < 0:
-            return
-        chain = self.chain_combobox.itemData(n)
-        BlastProteinJob(self.session, chain.characters, self._chain_spec(chain),
-                        finish_callback=self._blast_job_finished)
-        self.results_view.setHtml(_InProgressPage)
+        # First check that the path is a real command
+        command = url.path()
+        if command == "initialize":
+            self.initialize()
+        elif command == "search":
+            self.blast(url)
+        elif command == "load":
+            self.load_pdb(url)
+        elif command == "update_models":
+            self.update_models()
+        else:
+            from chimerax.core.errors import UserError
+            raise UserError("unknown blastprotein command: %s" % command)
 
-    def _update_chains(self, trigger=None, trigger_data=None):
+
+    def update_models(self, trigger=None, trigger_data=None):
+        # Update the <select> options in the web form with current
+        # list of chains in all atomic structures.  Also enable/disable
+        # submit buttons depending on whether there are any structures open.
+
+        # Get the list of atomic structures
         from chimerax.atomic import AtomicStructure
-        n = self.chain_combobox.currentIndex()
-        selected_chain = None if n == -1 else self.chain_combobox.itemData(n)
         all_chains = []
         for m in self.session.models.list(type=AtomicStructure):
             all_chains.extend(m.chains)
-        all_chains.sort(key=str)
-        self.chain_combobox.clear()
-        for chain in all_chains:
-            self.chain_combobox.addItem(str(chain), userData=chain)
-        if selected_chain:
-            n = self.chain_combobox.findData(selected_chain)
-            self.chain_combobox.setCurrentIndex(n)
+        self._chain_map = {str(chain):chain for chain in all_chains}
 
-    def _chain_spec(self, chain):
-        spec = chain.atomspec
-        if spec[0] == '/':
-            # Make sure we have a structure spec in there so
-            # the atomspec remains unique when we load structures later
-            spec = chain.structure.atomspec + spec
-        return spec
-
-    def _blast_job_finished(self, blast_results, job):
-        self._update_blast_results(blast_results, job.atomspec)
-
-    def _update_blast_results(self, blast_results, atomspec):
-        # blast_results is either None or a blastp_parser.Parser
-        self.ref_atomspec = atomspec
-        if atomspec:
-            from chimerax.core.commands import AtomSpecArg
-            arg = AtomSpecArg.parse(atomspec, self.session)[0]
-            s = arg.evaluate(self.session)
-            chains = s.atoms.residues.unique_chains
-            if len(chains) == 1:
-                n = self.chain_combobox.findData(chains[0])
-                self.chain_combobox.setCurrentIndex(n)
-        if blast_results is None:
-            self.results_view.setHtml(_EmptyPage)
+        # Construct Javascript for updating <select> and submit buttons
+        if not self._chain_map:
+            chain_labels = []
         else:
-            html = ["<h2>Blast Protein ",
-                    "<small>(an <a href=\"http://www.rbvi.ucsf.edu\">RBVI</a> "
-                    "web service)</small> Results</h2>",
-                    "<table><tr>"
-                    "<th>Name</th>"
-                    "<th>E&#8209;Value</th>"
-                    "<th>Score</th>"
-                    "<th>Description</th>"
-                    "</tr>"]
+            chain_labels = list(sorted(self._chain_map.keys()))
+        import json
+        js = "chains_update(%s);" % json.dumps(chain_labels)
+        self.html_view.runJavaScript(js)
+
+
+    #
+    # Initialize after GUI is ready
+    #
+
+
+    def initialize(self):
+        self.update_models()
+        if self._blast_results:
+            self._show_results(self._ref_atomspec, self._blast_results)
+            self._blast_results = None
+
+
+    #
+    # Code for running BLAST search
+    #
+
+    def blast(self, url):
+        # Collect the optional parameters from URL query parameters
+        # and construct a command to execute
+        from urllib.parse import parse_qs
+        query = parse_qs(url.query())
+        chain = self._arg_chain(query["chain"])
+        print("blast", chain)
+        database = self._arg_database(query["database"])
+        cutoff = self._arg_cutoff(query["cutoff"])
+        matrix = self._arg_matrix(query["matrix"])
+        max_hits = self._arg_max_hits(query["max_hits"])
+        cmd_text = ["blastprotein", chain,
+                    "database", database,
+                    "cutoff", cutoff,
+                    "matrix", matrix,
+                    "max_hits", max_hits,
+                    "tool_id", str(self.id)]
+        cmd = ' '.join(cmd_text)
+        from chimerax.core.commands import run
+        run(self.session, cmd)
+
+    def _arg_chain(self, chains):
+        if len(chains) != 1:
+            from chimerax.core.errors import UserError
+            raise UserError("BlastProtein is limited to one chain only.")
+        chain = self._chain_map[chains[0]]
+        return chain.atomspec
+
+    def _arg_database(self, databases):
+        if len(databases) != 1:
+            from chimerax.core.errors import UserError
+            raise UserError("BlastProtein is limited to one database only.")
+        return databases[0]
+
+    def _arg_cutoff(self, cutoffs):
+        if len(cutoffs) != 1:
+            from chimerax.core.errors import UserError
+            raise UserError("BlastProtein is limited to one cutoff only.")
+        return "1e" + cutoffs[0]
+
+    def _arg_matrix(self, matrices):
+        if len(matrices) != 1:
+            from chimerax.core.errors import UserError
+            raise UserError("BlastProtein is limited to one matrix only.")
+        return matrices[0]
+
+    def _arg_max_hits(self, max_hits):
+        if len(max_hits) != 1:
+            from chimerax.core.errors import UserError
+            raise UserError("BlastProtein is limited to one hit limit only.")
+        return max_hits[0]
+
+    #
+    # Callbacks for BlastProteinJob
+    #
+
+    def job_finished(self, job, blast_results):
+        self._show_results(job.atomspec, blast_results)
+
+    def _show_results(self, atomspec, blast_results):
+        # blast_results is either None or a blastp_parser.Parser
+        self._ref_atomspec = atomspec
+        hits = []
+        if blast_results is not None:
+            import re
+            NCBI_IDS = ["ref","gi"]
+            NCBI_ID_URL = "https://www.ncbi.nlm.nih.gov/protein/%s"
+            id_pat = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
             for m in blast_results.matches[1:]:
+                hit = {"evalue":m.evalue, "score":m.score,
+                       "description":m.description}
                 if m.pdb:
-                    name = "<a href=\"%s:%s\">%s</a>" % (self.CUSTOM_SCHEME,
-                                                         m.pdb, m.pdb)
+                    hit["name"] = m.pdb
+                    hit["url"] = "%s:load?pdb=%s" % (self.CUSTOM_SCHEME, m.pdb)
                 else:
-                    import re
                     mdb = None
                     mid = None
-                    for known in self.KNOWN_IDS:
-                        match = re.search(r"\b%s\|([^|]+)\|" % known, m.name)
-                        if match is not None:
-                            mdb = known
-                            mid = match.group(1)
-                            break
-                    if match is None:
-                        name = m.name
+                    match = id_pat.search(m.name)
+                    if match is not None:
+                        mdb = match.group(1)
+                        mid = match.group(2)
+                        hit["name"] = "%s (%s)" % (mid, mdb)
+                        hit["url"] = NCBI_ID_URL % mid
                     else:
-                        url = self.REF_ID_URL % mid
-                        name = "<a href=\"%s\">%s (%s)</a>" % (url, mid, mdb)
-                html.append("<tr><td>%s</td><td>%s</td>"
-                            "<td>%s</td><td>%s</td></tr>" %
-                            (name, "%.3g" % m.evalue,
-                             str(m.score), m.description))
-            html.append("</table>")
-            self.results_view.setHtml('\n'.join(html))
+                        hit["name"] = m.name
+                        hit["url"] = ""
+                hits.append(hit)
+        import json
+        js = "table_update(%s);" % json.dumps(hits)
+        self.html_view.runJavaScript(js)
 
-    def _navigate(self, info):
-        # "info" is an instance of QWebEngineUrlRequestInfo
-        url = info.requestUrl()
-        scheme = url.scheme()
-        if scheme == self.CUSTOM_SCHEME:
-            # self._load_pdb(url.path())
-            self.session.ui.thread_safe(self._load_pdb, url.path())
-        elif scheme == "http" or scheme == "https":
-            self.results_view.stop()
-            from chimerax.help_viewer import show_url
-            self.session.ui.thread_safe(show_url, self.session,
-                                        url.toString(), new_tab=True)
-        # For now, we only intercept our custom scheme and redirect
-        # web links to the help viewer.  All other requests are
-        # processed normally.
 
-    def _load_pdb(self, code):
+    def job_failed(self, job, error):
+        from chimerax.core.errors import UserError
+        raise UserError("BlastProtein failed: %s" % error)
+
+
+    #
+    # Code for loading (and matching) a PDB entry
+    #
+
+    def load_pdb(self, url):
         from chimerax.core.commands import run
         from chimerax.atomic import AtomicStructure
-        parts = code.split("_", 1)
-        if len(parts) == 1:
-            pdb_id = parts[0]
-            chain_id = None
-        else:
-            pdb_id, chain_id = parts
-        models = run(self.session, "open pdb:%s" % pdb_id)[0]
-        if isinstance(models, AtomicStructure):
-            models = [models]
-        if not self.ref_atomspec:
-            run(self.session, "select clear")
-        for m in models:
-            if chain_id:
-                spec = m.atomspec + '/' + chain_id
+        from urllib.parse import parse_qs
+        query = parse_qs(url.query())
+        for code in query["pdb"]:
+            parts = code.split('_', 1)
+            if len(parts) == 1:
+                pdb_id = parts[0]
+                chain_id = None
             else:
-                spec = m.atomspec
-            if self.ref_atomspec:
-                run(self.session, "matchmaker %s to %s" % (spec,
-                                                           self.ref_atomspec))
+                pdb_id, chain_id = parts
+            models = run(self.session, "open pdb:%s" % pdb_id)[0]
+            if isinstance(models, AtomicStructure):
+                models = [models]
+            if not self._ref_atomspec:
+                run(self.session, "select clear")
             else:
-                run(self.session, "select add %s" % spec)
-
-    def delete(self):
-        t = self.session.triggers
-        t.remove_handler(self._add_handler)
-        t.remove_handler(self._remove_handler)
-        super().delete()
-
-    SESSION_SAVE = False
-    
-    def take_snapshot(self, session, flags):
-        # For now, do not save anything in session.
-        # Need to figure out which attributes (like UI widgets)
-        # should start with _ so that they are not saved in sessions.
-        # And add addition data to superclass data.
-        return super().take_snapshot(session, flags)
-
-    @classmethod
-    def restore_snapshot(cls, session, data):
-        # For now do nothing.  Should unpack data and restart tool.
-        return None
+                for m in models:
+                    spec = m.atomspec
+                    if chain_id:
+                        spec += '/' + chain_id
+                    if self._ref_atomspec:
+                        run(self.session, "matchmaker %s to %s" %
+                                          (spec, self._ref_atomspec))
+                    else:
+                        run(self.session, "select add %s" % spec)

@@ -609,13 +609,24 @@ static void find_close_points_boxes(const Point_List &p1, const Point_List &p2,
     // Optimization for d large compared to size of point sets.
     return;
 
-  if (!np1 && maximum_separation_squared(box1, box2) <= d2)
+  if (maximum_separation_squared(box1, box2) <= d2)
     {
       // Optimization for d large compared to size of point sets.
       // All points of both sets are in contact.
-      add_points_to_set(p1, is1);
-      add_points_to_set(p2, is2);
-      return;
+      if (np1 == NULL)
+	{
+	  add_points_to_set(p1, is1);
+	  add_points_to_set(p2, is2);
+	  return;
+	}
+      else if (box2.size(0) == 0 && box2.size(1) == 0 && box2.size(2) == 0 && p2.size() > 0)
+	{
+	  // If lots of identical points are in list 2 avoid recursing forever.
+	  int i2 = p2.index(0);
+	  Point_List p20(p2.xyz, p2.index_range(), &i2, 1);
+	  find_close_points_all_pairs(p1, p20, d, is1, is2, np1);
+	  return;
+	}
     }
 
   Box ebox1, ebox2;

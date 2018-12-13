@@ -168,9 +168,9 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void clear_hide_bits(int)
         const Rgba& color()
         bool connects_to(Atom*)
-        const Coord& coord() except +
-        const Coord& coord(char)
-        const Coord& coord(CoordSet*) except +
+        Coord coord() except +
+        Coord coord(char)
+        Coord coord(CoordSet*) except +
         int coord_index()
         float default_radius()
         bool display()

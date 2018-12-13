@@ -11,6 +11,12 @@
 using BLAST.  Results are shown in a tool when a graphical
 interface is available; otherwise, the results are logged.</Description>
 
+  <DataFiles>
+    <DataDir>lib</DataDir>
+    <DataDir>fonts</DataDir>
+    <DataFile>gui.html</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="Sequence"/>
   </Categories>
