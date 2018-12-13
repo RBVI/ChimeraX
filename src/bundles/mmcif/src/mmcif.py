@@ -211,9 +211,9 @@ def _get_formatted_res_info(model, *, standalone=True):
                 if row[1] or row[2]:
                     nonstd_info[row[0]] = (row[0], row[1], row[2])
         def fmt_component(abbr, name, syns):
-            text = '<a href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
+            text = '<a title="select residue" href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
             if name:
-                text += '<a href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
+                text += '<a title="show residue info" href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
                     process_chem_name(name))
                 if syns:
                     text += " (%s)" % process_chem_name(syns)
