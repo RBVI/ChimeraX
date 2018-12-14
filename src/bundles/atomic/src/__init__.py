@@ -41,8 +41,8 @@ class _AtomicBundleAPI(BundleAPI):
     def get_class(class_name):
         if class_name in ["Atom", "AtomicStructure", "AtomicStructures", "Atoms", "Bond", "Bonds",
                 "Chain", "Chains", "CoordSet", "LevelOfDetail", "MolecularSurface",
-                "PseudobondGroup", "PseudobondManager", "Pseudobond", "Pseudobonds", "Residue",
-                "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq"]:
+                "PseudobondGroup", "PseudobondGroups", "PseudobondManager", "Pseudobond", "Pseudobonds",
+                "Residue", "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq"]:
             import importlib
             this_mod = importlib.import_module(".", __package__)
             return getattr(this_mod, class_name)

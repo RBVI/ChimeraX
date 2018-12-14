@@ -25,12 +25,14 @@ _log_level = {
     PlainTextLog.LEVEL_INFO: 'info',
     PlainTextLog.LEVEL_WARNING: 'warning',
     PlainTextLog.LEVEL_ERROR: 'error',
+    PlainTextLog.LEVEL_BUG: 'bug',
 }
 
 _colors = {
     "info": "",
     "warning": "",
     "error": "",
+    "bug": "",
     "status": "",
     "normal": "",
     "background": "",
@@ -86,6 +88,7 @@ class UI:
                 _colors["info"] = colorama.Fore.GREEN
                 _colors["warning"] = colorama.Fore.YELLOW
                 _colors["error"] = colorama.Fore.RED
+                _colors["bug"] = colorama.Fore.RED + colorama.Style.BRIGHT
                 _colors["status"] = colorama.Fore.MAGENTA
                 _colors["normal"] = colorama.Fore.WHITE
                 _colors["background"] = colorama.Back.BLACK

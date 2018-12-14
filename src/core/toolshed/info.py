@@ -233,18 +233,9 @@ class BundleInfo:
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Where to log error messages.
         """
-        try:
-            self._register_commands(logger)
-        except Exception as e:
-            logger.warning(str(e))
-        try:
-            self._register_file_types(logger)
-        except Exception as e:
-            logger.warning(str(e))
-        try:
-            self._register_selectors(logger)
-        except Exception as e:
-            logger.warning(str(e))
+        self._register_commands(logger)
+        self._register_file_types(logger)
+        self._register_selectors(logger)
 
     def deregister(self, logger):
         """Supported API. Deregister bundle commands, tools, data formats, selectors, etc.
@@ -264,7 +255,10 @@ class BundleInfo:
             def cb(s=self, ci=ci, l=logger):
                 s._register_cmd(ci, l)
             _debug("delay_registration", ci.name)
-            cli.delay_registration(ci.name, cb, logger=logger)
+            try:
+                cli.delay_registration(ci.name, cb, logger=logger)
+            except Exception as e:
+                logger.warning("Unable to register command %s: %s" % (ci.name, str(e)))
 
     def _register_cmd(self, ci, logger):
         try:
@@ -339,7 +333,7 @@ class BundleInfo:
                                 % (self.name, str(e)))
         for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
             if io.format_from_name(format_name) is None:
-                print('warning: unknown format %r given for database %r' % (format_name, database_name))
+                logger.warning('Unknown format %r given for database %r' % (format_name, database_name))
 
             def fetch_cb(session, identifier, database_name=database_name, format_name=format_name, **kw):
                 try:
@@ -356,9 +350,13 @@ class BundleInfo:
                     return f(session, identifier, database_name=database_name, format_name=format_name, **kw)
                 fetch.register_fetch(database_name, fetch_shim, format_name)
                 return fetch_shim(session, identifier, **kw)
-            fetch.register_fetch(
-                database_name, fetch_cb, format_name, prefixes=prefixes,
-                is_default_format=is_default, example_id=example_id)
+            try:
+                fetch.register_fetch(
+                    database_name, fetch_cb, format_name, prefixes=prefixes,
+                    is_default_format=is_default, example_id=example_id)
+            except Exception as e:
+                logger.warning("Unable to register fetch function for format %t in database %r: %s" % (
+                               format_name, database_name, str(e)))
 
     def _deregister_file_types(self, logger):
         from chimerax.core import io, fetch
@@ -384,8 +382,11 @@ class BundleInfo:
                     return sel(session, models, results)
                 else:
                     return sel
-            register_selector(si.name, selector_cb, logger,
-                              desc=si.synopsis, atomic=si.atomic)
+            try:
+                register_selector(si.name, selector_cb, logger,
+                                  desc=si.synopsis, atomic=si.atomic)
+            except Exception as e:
+                logger.warning("Unable to register selector %r: %s" % (si.name, str(e)))
 
     def _deregister_selectors(self, logger):
         from ..commands import deregister_selector
@@ -399,7 +400,10 @@ class BundleInfo:
             cd = CmdDesc(synopsis=ci.synopsis)
             def cb(session, s=self, n=ci.name, l=logger):
                 s._available_cmd(n, l)
-            cli.register_available(ci.name, cd, function=cb, logger=logger)
+            try:
+                cli.register_available(ci.name, cd, function=cb, logger=logger)
+            except Exception as e:
+                logger.warning("Unable to register available command %s: %s" % (ci.name, str(e)))
 
     def _available_cmd(self, name, logger):
         msg = ("\"%s\" is provided by the uninstalled bundle \"%s\""

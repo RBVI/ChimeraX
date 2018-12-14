@@ -211,9 +211,9 @@ def _get_formatted_res_info(model, *, standalone=True):
                 if row[1] or row[2]:
                     nonstd_info[row[0]] = (row[0], row[1], row[2])
         def fmt_component(abbr, name, syns):
-            text = '<a href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
+            text = '<a title="select residue" href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
             if name:
-                text += '<a href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
+                text += '<a title="show residue info" href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
                     process_chem_name(name))
                 if syns:
                     text += " (%s)" % process_chem_name(syns)
@@ -370,15 +370,25 @@ def quote(s):
         cf = s[0:8].casefold()
         special = cf.startswith(('data_', 'save_')) or cf in _reserved_words
     for i in range(1, len(s)):
-        examine = s[i:i + 1]
-        if examine == '" ':
-            dbl_quote = True
-        elif examine == "' ":
-            sing_quote = True
-        elif examine[0] == '\n':
-            line_break = True
-        elif examine[0].isspace() or examine[0] in '"\'':
-            special = True
+        examine = s[i:i + 2]
+        if len(examine) == 2:
+            if examine[0] == '"':
+                if examine[1].isspace():
+                    dbl_quote = True
+                else:
+                    special = True
+                continue
+            elif examine[0] == "'":
+                if examine[1].isspace():
+                    sing_quote = True
+                else:
+                    special = True
+                continue
+        if examine[0].isspace():
+            if examine[0] == '\n':
+                line_break = True
+            else:
+                special = True
     if line_break or (sing_quote and dbl_quote):
         return '\n;' + s + '\n;\n'
     if sing_quote:
@@ -386,7 +396,7 @@ def quote(s):
     if dbl_quote:
         return "'%s'" % s
     if special:
-        return "'%s'" % s
+        return '"%s"' % s
     return s
 
 

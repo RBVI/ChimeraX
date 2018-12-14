@@ -29,12 +29,23 @@ class _MyAPI(BundleAPI):
         from chimerax.core.commands import register
         register(ci.name, desc, func)
 
+    @staticmethod
+    def initialize(session, bi):
+        from .statemgr import BasicActions
+        session.basic_actions = BasicActions(session)
+
+    @staticmethod
+    def finish(session, bi):
+        pass
 
     @staticmethod
     def get_class(class_name):
         if class_name in ["BasicActionsTool"]:
             from . import tool
             return getattr(tool, class_name, None)
+        elif class_name in ["BasicActions"]:
+            from . import statemgr
+            return getattr(statemgr, class_name, None)
         else:
             return None
 

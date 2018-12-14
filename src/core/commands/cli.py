@@ -1892,11 +1892,12 @@ class _WordInfo:
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
             _check_autocomplete(word, self.subcommands, name)
-        except ValueError:
-            if cmd_desc is None or not isinstance(cmd_desc.function, Alias):
-                raise
-            if logger is not None:
-                logger.warning("alias %s hides existing command" % dq_repr(name))
+        except ValueError as e:
+            if isinstance(cmd_desc, CmdDesc) and isinstance(cmd_desc.function, Alias):
+                if logger is not None:
+                    logger.warning("Alias %s hides existing command" % dq_repr(name))
+            elif logger is not None:
+                logger.warning("Unable to add subcommand %s: %s" % (name, str(e)))
         if word not in self.subcommands:
             w = self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
             w.parent = self
@@ -1925,8 +1926,8 @@ class _WordInfo:
             else:
                 self.registry.aliased_commands[name] = _WordInfo(self.registry, cmd_desc)
         else:
-            if logger is not None:
-                logger.info("FYI: command is replacing existing command" %
+            if logger is not None and not isinstance(cmd_desc, _Defer):
+                logger.info("FYI: command is replacing existing command: %s" %
                             dq_repr(name))
             word_info.cmd_desc = cmd_desc
 
@@ -1987,7 +1988,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
     else:
         _parent_info = registry.commands
     for word in words[:-1]:
-        _parent_info.add_subcommand(word, name)
+        _parent_info.add_subcommand(word, name, logger=logger)
         _parent_info = _parent_info.subcommands[word]
 
     if isinstance(function, _Defer):
@@ -2000,7 +2001,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
                 print(msg)
             else:
                 logger.warning(msg)
-    _parent_info.add_subcommand(words[-1], name, cmd_desc)
+    _parent_info.add_subcommand(words[-1], name, cmd_desc, logger=logger)
     return function     # needed when used as a decorator
 
 

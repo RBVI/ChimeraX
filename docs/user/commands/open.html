@@ -55,6 +55,10 @@ or a running instance of ChimeraX.
 On a Mac, ChimeraX-associated file types can also be opened by 
 double-clicking them in a Finder window or using &ldquo;open&rdquo; 
 in a Terminal window.
+</p><p>
+For some types of files,
+<a href="../modelinfo.html">associated information</a> is automatically
+shown in the <a href="../tools/log.html"><b>Log</b></a> when the file is read.
 See also: 
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -97,7 +101,6 @@ File types can be categorized as:
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
 <li><a href="#trajectory">Trajectory Coordinates</a>
-<li><a href="#docking">Docking Results</a>
 <li><a href="#volume">Volume Data and Related</a>
 <li><a href="#object">Other 3D Objects</a>
 <li><a href="#sequence">Sequences</a>
@@ -123,7 +126,8 @@ File types can be categorized as:
 target="_blank">PDB (Protein Data Bank)</a></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">.pdb, .pdb1<br>.ent, .pqr</td>
-<td align="center">atomic coordinates and associated annotations</td>
+<td align="center">atomic coordinates and associated annotations;
+if PQR, sets atomic <a href="../radii.html">radius</a></td>
 </tr><tr>
 <td align="center"><a href="http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
 target="_blank">PDBx/mmCIF</a></td>
@@ -140,19 +144,16 @@ target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <td align="center"><b>mmtf</b></td>
 <td align="center">.mmtf</td>
 <td align="center">atomic coordinates and associated annotations</td>
-<!--
 </tr><tr>
 <td align="center">Sybyl Mol2</td>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
 <td align="center" class="text">atomic coordinates
 <br>
-(if docking results from
-<a href="http://dock.compbio.ucsf.edu/">UCSF DOCK</a> v4-6,
-see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
-for viewing with associated scores)
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from <a href="http://dock.compbio.ucsf.edu/" 
+target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6)
 </td>
--->
 </tr><tr>
 <td align="center"><a href="../pseudobonds.html">Pseudobond</a> file</td>
 <td align="center"><b>pseudobonds</b></td>
@@ -185,6 +186,7 @@ target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center"><b>trr</b></td>
 <td align="center">.trr</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<!--
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="docking"></a>
@@ -197,6 +199,7 @@ target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center">.mol2</td>
 <td align="center">Mol2 format from 
 <a href="http://dock.compbio.ucsf.edu/">UCSF DOCK</a> versions 4, 5, 6</td>
+-->
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="volume"></a>
@@ -791,10 +794,6 @@ for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
 can be specified with the <b>format</b> option.
 Specifying multiple identifiers is equivalent to using the <b>open</b> command
 multiple times with the same options for each identifier.
-</p><p>
-Opening a structure in mmCIF format automatically shows a clickable table of
-<a href="sym.html#assembly">assembly information</a>
-in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
 <a name="ignoreCache"></a>
 Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 

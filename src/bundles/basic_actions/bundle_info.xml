@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-BasicActions" version="0.1"
-            package="chimerax.basic_actions"
+            package="chimerax.basic_actions" customInit="true"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

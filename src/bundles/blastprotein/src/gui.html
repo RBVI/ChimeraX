@@ -12,9 +12,11 @@
 		    list-style-type: none; width: 100%; }
         .opt-grid li { float: left; width: 33%; }
 	.bootgrid-table { width: 100%; }
-	.bootgrid-table th:nth-child(4) { width: 30%; }
+	.bootgrid-table th[data-column-id="description"] { width: 30%; }
+	.bootgrid-table th[data-column-id="title"] { width: 30%; }
+	.bootgrid-table th[data-column-id="citation_authors"] { width: 30%; }
 	.bootgrid-table th { width: 10%; }
-	.bootgrid-table td:nth-child(4) { white-space: normal; }
+	.bootgrid-table td { white-space: normal; }
     </style>
     <script>
         var bootgrid_table = null;
@@ -30,10 +32,74 @@
                 { "data-column-id": "score", 
                   "data-type": "numeric" } ],
             [ "Description",
-                { "data-column-id": "description" } ],
+                { "data-column-id": "description",
+                  "data-visible": false } ],
             [ "URL",
                 { "data-column-id": "url",
                   "data-visible": false } ],
+            [ "Date",
+                { "data-column-id": "deposition_date",
+                  "title": "PDB structure publication date" } ],
+            [ "Title", 
+                { "data-column-id": "title",
+                  "title": "PDB entry title" } ],
+            [ "Method", 
+                { "data-column-id": "expMethod",
+                  "title": "PDB experiment type used\n" +
+                           "for structure determination" } ],
+            [ "Resolution", 
+                { "data-column-id": "resolution",
+                  "title": "PDB resolution in Angstroms" } ],
+            [ "Authors",
+                { "data-column-id": "citation_authors",
+                  "data-visible": false,
+                  "title": "PDB authors of deposited structure" } ],
+            [ "PubMed", 
+                { "data-column-id": "pubmedId",
+                  "data-visible": false,
+                  "title": "PDB PubMed literature reference for structure" } ],
+            [ "Total atoms", 
+                { "data-column-id": "nr_atoms",
+                  "data-type": "numeric",
+                  "data-visible": false,
+                  "title": "PDB total number of atoms\n" +
+                           "in structure (all chains)" } ],
+            [ "Total residues", 
+                { "data-column-id": "nr_residues",
+                  "data-visible": false,
+                  "data-type": "numeric",
+                  "title": "PDB total number of residues\n" +
+                           "in structure (all chains)" } ],
+            [ "Chain names",
+                { "data-column-id": "chain_names",
+                  "title": "PDB chain names" } ],
+            [ "Copies", 
+                { "data-column-id": "chain_copies",
+                  "data-visible": false,
+                  "data-type": "numeric",
+                  "title": "PDB number of copies\nof matched chain" } ],
+            [ "Polymers", 
+                { "data-column-id": "npolymers",
+                  "data-visible": false,
+                  "data-type": "numeric",
+                  "title": "PDB number of different\npolymers in structure" } ],
+            [ "Residues", 
+                { "data-column-id": "chain_residues",
+                  "data-type": "numeric",
+                  "title": "PDB number of residues\nin matched chain" } ],
+            [ "Species", 
+                { "data-column-id": "chain_species",
+                  "title": "PDB chain taxonomy" } ], 
+            [ "UniProt", 
+                { "data-column-id": "chain_sequence_id",
+                  "title": "Uniprot sequence identifier\n" +
+                           "of matched PDB chain" } ],
+            [ "Weight", 
+                { "data-column-id": "chain_weight",
+                  "data-visible": false,
+                  "data-type": "numeric",
+                  "title": "PDB molecular weight (Daltons)\n" +
+                           "of matched chain" } ],
         ]
         function chains_update(chain_labels) {
             var $chain = $("#chain").empty();
@@ -74,19 +140,10 @@
             $table.append($thead);
             var $tbody = $("<tbody/>");
             $.each(data, function(index, row) {
-                var $tr = $("<tr/>");
-                // Data must be added in same order as column listing
-                var $td = $("<td/>");
-                // Name
-                $tr.append($("<td/>").text(row["name"]));
-                // E-Value
-                $tr.append($("<td/>").text(row["evalue"]));
-                // Score
-                $tr.append($("<td/>").text(row["score"]));
-                // Description
-                $tr.append($("<td/>").text(row["description"]));
-                // URL (default hidden)
-                $tr.append($("<td/>").text(row["url"]));
+                var $tr = $("<tr/>").append($.map(headers, function(value) {
+                    var key = value[1]["data-column-id"];
+                    return $("<td/>").text(row[key]);
+                }));
                 $tbody.append($tr);
             });
             $table.append($tbody);
@@ -155,4 +212,6 @@
     <div id="table_div"></div>
 </fieldset>
 </body>
+
 </html>
+<!-- vim: set expandtab shiftwidth=4 softtabstop=4: -->

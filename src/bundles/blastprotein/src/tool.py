@@ -26,6 +26,9 @@ class ToolUI(HtmlToolInstance):
 
         # Set name displayed on title bar
         self.display_name = "Blast Protein"
+        from . import pdbinfo
+        self._pdbinfo_list = (pdbinfo.entry_info, pdbinfo.chain_info,
+                              pdbinfo.ligand_info)
 
         # Initialize base class.  ``size_hint`` is the suggested
         # initial tool size in pixels.  For debugging, add
@@ -108,7 +111,6 @@ class ToolUI(HtmlToolInstance):
         from urllib.parse import parse_qs
         query = parse_qs(url.query())
         chain = self._arg_chain(query["chain"])
-        print("blast", chain)
         database = self._arg_database(query["database"])
         cutoff = self._arg_cutoff(query["cutoff"])
         matrix = self._arg_matrix(query["matrix"])
@@ -170,12 +172,14 @@ class ToolUI(HtmlToolInstance):
             NCBI_IDS = ["ref","gi"]
             NCBI_ID_URL = "https://www.ncbi.nlm.nih.gov/protein/%s"
             id_pat = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
+            pdb_chains = {}
             for m in blast_results.matches[1:]:
                 hit = {"evalue":m.evalue, "score":m.score,
                        "description":m.description}
                 if m.pdb:
                     hit["name"] = m.pdb
                     hit["url"] = "%s:load?pdb=%s" % (self.CUSTOM_SCHEME, m.pdb)
+                    pdb_chains[m.pdb] = hit
                 else:
                     mdb = None
                     mid = None
@@ -189,9 +193,20 @@ class ToolUI(HtmlToolInstance):
                         hit["name"] = m.name
                         hit["url"] = ""
                 hits.append(hit)
+            self._add_pdbinfo(pdb_chains)
         import json
         js = "table_update(%s);" % json.dumps(hits)
         self.html_view.runJavaScript(js)
+
+    def _add_pdbinfo(self, pdb_chains):
+        chain_ids = pdb_chains.keys()
+        for info in self._pdbinfo_list:
+            data = info.fetch_info(self.session, chain_ids)
+            for chain_id, hit in pdb_chains.items():
+                try:
+                    hit.update(data[chain_id])
+                except KeyError:
+                    pass
 
 
     def job_failed(self, job, error):
