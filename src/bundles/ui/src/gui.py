@@ -1636,7 +1636,8 @@ class SelSeqDialog(QDialog):
         self.bbox.accepted.connect(self.accept)
         self.bbox.rejected.connect(self.reject)
         self.bbox.button(qbbox.Apply).clicked.connect(self.search)
-        self.bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        self.bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help help:user/findseq.html"))
         self._update_button_states(self.edit.text())
         layout.addWidget(self.bbox)
         self.setLayout(layout)

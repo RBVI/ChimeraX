@@ -87,7 +87,7 @@ def _select_sequence(objects, sequence):
         search_string = protein_search_string \
             if chain.polymer_type == Residue.PT_PROTEIN else nucleic_search_string
         try:
-            ranges = chain.search(search_string)
+            ranges = chain.search(search_string, case_sensitive=True)
         except ValueError as e:
             from chimerax.core.errors import UserError
             raise UserError(e)
