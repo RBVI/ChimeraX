@@ -688,6 +688,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if self._select_seq_dialog is None:
             self._select_seq_dialog = SelSeqDialog(self.session)
         self._select_seq_dialog.show()
+        self._select_seq_dialog.raise_()
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
