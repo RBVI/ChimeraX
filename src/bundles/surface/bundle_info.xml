@@ -23,6 +23,7 @@
     <SourceFile>_surface/patches.cpp</SourceFile>
     <SourceFile>_surface/refinemesh.cpp</SourceFile>
     <SourceFile>_surface/sasa.cpp</SourceFile>
+    <SourceFile>_surface/smooth.cpp</SourceFile>
     <SourceFile>_surface/subdivide.cpp</SourceFile>
     <SourceFile>_surface/surface.cpp</SourceFile>
     <SourceFile>_surface/triangulate.cpp</SourceFile>
