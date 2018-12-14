@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def select(session, objects=None, polymer=None, residues=False, minimum_length=None, maximum_length=None):
+def select(session, objects=None, polymer=None, residues=False, minimum_length=None, maximum_length=None,
+        sequence=None):
     '''Select specified objects.
 
     Parameters
@@ -28,26 +29,32 @@ def select(session, objects=None, polymer=None, residues=False, minimum_length=N
       Exclude pseudobonds shorter than the specified length.
     maximum_length : float or None
       Exclude pseudobonds longer than the specified length.
+    sequence : string or None
+      Regular expression of sequence to match.  Will be automatically upcased.
     '''
 
     if objects is None:
         from chimerax.core.commands import all_objects
         objects = all_objects(session)
 
-    
+
     from chimerax.core.undo import UndoState
     undo_state = UndoState("select")
-    if objects is not None:
+    if sequence is None:
         objects = _filter_pseudobonds_by_length(objects, minimum_length, maximum_length)
         clear_selection(session, undo_state)
         modify_selection(objects, 'add', undo_state, full_residues = residues)
 
-    if polymer is not None:
-        polymer_selection(polymer, session, undo_state)
-        
+        if polymer is not None:
+            polymer_selection(polymer, session, undo_state)
+    else:
+        clear_selection(session, undo_state)
+        objects = _select_sequence(objects, sequence)
+        modify_selection(objects, 'add', undo_state, full_residues = residues)
+
     session.undo.register(undo_state)
     report_selection(session)
-                
+
 def _filter_pseudobonds_by_length(objects, minimum_length, maximum_length):
     if (minimum_length is None and maximum_length is None) or objects.num_pseudobonds == 0:
         return objects
@@ -66,6 +73,31 @@ def _filter_pseudobonds_by_length(objects, minimum_length, maximum_length):
     fobj = Objects(atoms = objects.atoms, bonds = objects.bonds,
                    pseudobonds = pbonds.filter(keep),
                    models = objects.models)
+    return fobj
+
+def _select_sequence(objects, sequence):
+    from chimerax.atomic import Residues, Residue
+    sel_residues = set()
+    base_search_string = sequence.upper()
+    protein_search_string = base_search_string.replace('B', '[DN]').replace('Z', '[EQ]')
+    nucleic_search_string = base_search_string.replace('R', '[AG]').replace('Y', '[CTU]').replace(
+        'N', '[ACGTU]')
+    orig_atoms = objects.atoms
+    for chain in orig_atoms.residues.chains.unique():
+        search_string = protein_search_string \
+            if chain.polymer_type == Residue.PT_PROTEIN else nucleic_search_string
+        try:
+            ranges = chain.search(search_string, case_sensitive=True)
+        except ValueError as e:
+            from chimerax.core.errors import UserError
+            raise UserError(e)
+        for start, length in ranges:
+            sel_residues.update([r for r in chain.residues[start:start+length] if r])
+    residues = Residues(sel_residues)
+    atoms = residues.atoms.intersect(orig_atoms)
+    from chimerax.core.objects import Objects
+    fobj = Objects(atoms = atoms, bonds = atoms.intra_bonds, pseudobonds = atoms.intra_pseudobonds,
+        models = atoms.structures.unique())
     return fobj
     
 def select_add(session, objects=None, residues=False):
@@ -231,13 +263,15 @@ def _atoms_bonds_models(objects, full_residues = False):
     return atoms, bonds, pbonds, models
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, ObjectsArg, NoArg, create_alias, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, ObjectsArg, NoArg, create_alias, \
+        BoolArg, FloatArg, StringArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
                    keyword=[('residues', BoolArg),
                             ('polymer', AtomsArg),
                             ('minimum_length', FloatArg),
-                            ('maximum_length', FloatArg)],
+                            ('maximum_length', FloatArg),
+                            ('sequence', StringArg)],
                    synopsis='select specified objects')
     register('select', desc, select, logger=logger)
 

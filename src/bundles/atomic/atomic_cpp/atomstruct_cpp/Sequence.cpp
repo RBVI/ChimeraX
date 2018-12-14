@@ -214,7 +214,9 @@ Sequence::search(const std::string& pattern, bool case_sensitive) const
     for (auto start_len: results) {
         auto ungapped_start = start_len.first;
         auto gapped_start  = ungapped_to_gapped(ungapped_start);
-        auto gapped_end = ungapped_to_gapped(ungapped_start + start_len.second);
+        size_t ungapped_end_index = ungapped_start + start_len.second;
+        decltype(gapped_start) gapped_end = ungapped_end_index < search_contents.size() ?
+            ungapped_to_gapped(ungapped_end_index) : size();
         gapped_results.emplace_back(gapped_start, gapped_end - gapped_start);
     }
     return gapped_results;
