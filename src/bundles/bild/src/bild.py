@@ -586,7 +586,7 @@ def get_cylinder(radius, p0, p1, closed=True, xform=None, pure=False):
     inverse.transform_normals(normals, in_place=True, is_rotation=True)
     if xform is not None:
         xform.transform_points(vertices, in_place=True)
-        xform.tranform_normals(normals, in_place=True, is_rotation=pure)
+        xform.transform_normals(normals, in_place=True, is_rotation=pure)
     return vertices, normals, triangles
 
 
