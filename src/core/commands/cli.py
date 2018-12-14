@@ -1701,12 +1701,15 @@ class SameSize(Postcondition):
 
 def _check_autocomplete(word, mapping, name):
     # This is a primary debugging aid for developers,
-    # but it prevents existing abbreviated commands from changing
+    # but it warns about existing abbreviated commands from changing
     # what command they correspond to.
     if word not in mapping:
         for key in mapping:
             if key.startswith(word) and key != word:
-                raise ValueError("'%s' in '%s' is a prefix of an existing command '%s'" % (word, name, key))
+                if word != name:
+                    raise ValueError("'%s' in '%s' is a prefix of an existing command '%s'" % (word, name, key))
+                else:
+                    raise ValueError("'%s' is a prefix of an existing command '%s'" % (word, key))
 
 
 class CmdDesc:
@@ -1897,7 +1900,7 @@ class _WordInfo:
                 if logger is not None:
                     logger.warning("Alias %s hides existing command" % dq_repr(name))
             elif logger is not None:
-                logger.warning("Unable to add subcommand %s: %s" % (name, str(e)))
+                logger.warning(str(e))
         if word not in self.subcommands:
             w = self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
             w.parent = self
