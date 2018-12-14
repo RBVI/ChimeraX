@@ -1578,7 +1578,6 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
         position_action = QAction("Save Tool Position")
         position_action.setStatusTip("Use current docked side,"
             " or undocked size/position as default")
-        from chimerax.core.commands import run, quote_if_necessary
         position_action.triggered.connect(lambda arg, ui=session.ui, widget=memorable, ti=ti:
             _remember_tool_pos(ui, ti, widget))
         menu.addAction(position_action)
@@ -1643,25 +1642,8 @@ class SelSeqDialog(QDialog):
         self.setLayout(layout)
 
     def search(self, *args):
-        from chimerax.atomic import all_atomic_structures, Residues, Residue
-        sel_residues = set()
-        base_search_string = self.edit.text().strip().upper()
-        protein_search_string = base_search_string.replace('B', '[DN]').replace('Z', '[EQ]')
-        nucleic_search_string = base_search_string.replace('R', '[AG]').replace('Y', '[CTU]').replace(
-            'N', '[ACGTU]')
-        for s in all_atomic_structures(self.session):
-            for chain in s.chains:
-                search_string = protein_search_string \
-                    if chain.polymer_type == Residue.PT_PROTEIN else nucleic_search_string
-                try:
-                    ranges = chain.search(search_string)
-                except ValueError as e:
-                    from chimerax.core.errors import UserError
-                    raise UserError(e)
-                for start, length in ranges:
-                    sel_residues.update([r for r in chain.residues[start:start+length] if r])
-        self.session.selection.clear()
-        Residues(sel_residues).atoms.selecteds = True
+        from chimerax.core.commands import run, quote_if_necessary
+        run(self.session, "sel seq %s" % quote_if_necessary(self.edit.text().strip()))
 
     def _update_button_states(self, text):
         enable = bool(text.strip())
