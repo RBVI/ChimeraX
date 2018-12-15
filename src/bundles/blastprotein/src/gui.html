@@ -22,6 +22,7 @@
         var bootgrid_table = null;
         var table_data = null;
         var column_headers = [
+            // From BLAST
             [ "Name",
                 { "data-column-id": "name",
                   "data-formatter": "link" } ],
@@ -34,21 +35,22 @@
             [ "Description",
                 { "data-column-id": "description",
                   "data-visible": false } ],
-            [ "URL",
-                { "data-column-id": "url",
-                  "data-visible": false } ],
+            // From pdb_entry
             [ "Date",
                 { "data-column-id": "deposition_date",
+                  "data-visible": false,
                   "title": "PDB structure publication date" } ],
             [ "Title", 
                 { "data-column-id": "title",
                   "title": "PDB entry title" } ],
             [ "Method", 
                 { "data-column-id": "expMethod",
+                  "data-visible": false,
                   "title": "PDB experiment type used\n" +
                            "for structure determination" } ],
             [ "Resolution", 
                 { "data-column-id": "resolution",
+                  "data-visible": false,
                   "title": "PDB resolution in Angstroms" } ],
             [ "Authors",
                 { "data-column-id": "citation_authors",
@@ -70,8 +72,10 @@
                   "data-type": "numeric",
                   "title": "PDB total number of residues\n" +
                            "in structure (all chains)" } ],
+            // From pdb_chains
             [ "Chain names",
                 { "data-column-id": "chain_names",
+                  "data-visible": false,
                   "title": "PDB chain names" } ],
             [ "Copies", 
                 { "data-column-id": "chain_copies",
@@ -85,13 +89,16 @@
                   "title": "PDB number of different\npolymers in structure" } ],
             [ "Residues", 
                 { "data-column-id": "chain_residues",
+                  "data-visible": false,
                   "data-type": "numeric",
                   "title": "PDB number of residues\nin matched chain" } ],
             [ "Species", 
                 { "data-column-id": "chain_species",
+                  "data-visible": false,
                   "title": "PDB chain taxonomy" } ], 
             [ "UniProt", 
                 { "data-column-id": "chain_sequence_id",
+                  "data-visible": false,
                   "title": "Uniprot sequence identifier\n" +
                            "of matched PDB chain" } ],
             [ "Weight", 
@@ -100,6 +107,31 @@
                   "data-type": "numeric",
                   "title": "PDB molecular weight (Daltons)\n" +
                            "of matched chain" } ],
+            // From pdb_ligands
+            [ "Ligand formulas",
+                { "data-column-id": "ligandFormulas",
+                  "data-visible": false,
+                  "title": "PDB ligand chemical formulas." } ],
+            [ "Ligand names",
+                { "data-column-id": "ligandNames",
+                  "data-visible": false,
+                  "title": "PDB ligand chemical names." } ],
+            [ "Ligand smiles",
+                { "data-column-id": "ligandSmiles",
+                  "data-visible": false,
+                  "title": "PDB ligand smile strings." } ],
+            [ "Ligand symbols",
+                { "data-column-id": "ligandSymbols",
+                  "data-visible": false,
+                  "title": "PDB ligand symbols." } ],
+            [ "Ligand weights",
+                { "data-column-id": "ligandWeights",
+                  "data-visible": false,
+                  "title": "PDB ligand weights (Daltons)." } ],
+            // From BLAST
+            [ "URL",
+                { "data-column-id": "url",
+                  "data-visible": false } ],
         ]
         function chains_update(chain_labels) {
             var $chain = $("#chain").empty();

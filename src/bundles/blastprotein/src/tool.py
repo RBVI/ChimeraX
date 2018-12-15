@@ -12,12 +12,13 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.ui import HtmlToolInstance
+import sys
 
 
 class ToolUI(HtmlToolInstance):
 
     SESSION_ENDURING = False
-    SESSION_SAVE = False
+    SESSION_SAVE = True
     CUSTOM_SCHEME = "blastprotein"
 
     def __init__(self, session, tool_name, blast_results=None, atomspec=None):
@@ -36,7 +37,9 @@ class ToolUI(HtmlToolInstance):
         # to the ChimeraX log window.
         super().__init__(session, tool_name, size_hint=(575, 400),
                          log_errors=True)
+        self._initialized = False
         self._chain_map = {}
+        self._hits = None
         self._ref_atomspec = atomspec
         self._blast_results = blast_results
         self._build_ui()
@@ -73,6 +76,8 @@ class ToolUI(HtmlToolInstance):
         # submit buttons depending on whether there are any structures open.
 
         # Get the list of atomic structures
+        if not self._initialized:
+            return
         from chimerax.atomic import AtomicStructure
         all_chains = []
         for m in self.session.models.list(type=AtomicStructure):
@@ -95,7 +100,10 @@ class ToolUI(HtmlToolInstance):
 
 
     def initialize(self):
+        self._initialized = True
         self.update_models()
+        if self._hits:
+            self._show_hits()
         if self._blast_results:
             self._show_results(self._ref_atomspec, self._blast_results)
             self._blast_results = None
@@ -194,8 +202,12 @@ class ToolUI(HtmlToolInstance):
                         hit["url"] = ""
                 hits.append(hit)
             self._add_pdbinfo(pdb_chains)
+        self._hits = hits
+        self._show_hits()
+
+    def _show_hits(self):
         import json
-        js = "table_update(%s);" % json.dumps(hits)
+        js = "table_update(%s);" % json.dumps(self._hits)
         self.html_view.runJavaScript(js)
 
     def _add_pdbinfo(self, pdb_chains):
@@ -245,3 +257,30 @@ class ToolUI(HtmlToolInstance):
                                           (spec, self._ref_atomspec))
                     else:
                         run(self.session, "select add %s" % spec)
+
+
+    #
+    # Code for saving and restoring session
+    #
+
+    def take_snapshot(self, session, flags):
+        data = {
+            "version": 1,
+            "_super": super().take_snapshot(session, flags),
+            "_chain_map": self._chain_map,
+            "_hits": self._hits,
+            "_ref_atomspec": self._ref_atomspec,
+        }
+        return data
+
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = super().restore_snapshot(session, data["_super"])
+        inst._initialized = False
+        inst._chain_map = data["_chain_map"]
+        inst._hits = data["_hits"]
+        inst._ref_atomspec = data["_ref_atomspec"]
+        inst._blast_results = None
+        inst._build_ui()
+        return inst
