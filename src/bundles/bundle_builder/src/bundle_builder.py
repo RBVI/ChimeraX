@@ -329,7 +329,10 @@ class BundleBuilder:
             self.chimerax_classifiers.append(
                 "ChimeraX :: LibraryDir :: " + self.installed_library_dir)
         for e in self._get_elements(cls, "ChimeraXClassifier"):
-            self.chimerax_classifiers.append(self._get_element_text(e))
+            classifier = self._get_element_text(e)
+            if not classifier.startswith("ChimeraX"):
+                classifier = "ChimeraX :: " + classifier
+            self.chimerax_classifiers.append(classifier)
 
     def _is_pure_python(self):
         return (not self.c_modules and not self.c_libraries
