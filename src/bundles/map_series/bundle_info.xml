@@ -26,8 +26,8 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: vseries :: Volume data :: volume series</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: measure motion :: Volume data :: volume series cactus prickles</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: vseries :: Volume data :: volume series</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure motion :: Volume data :: volume series cactus prickles</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

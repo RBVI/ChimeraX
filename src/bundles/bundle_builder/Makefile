@@ -24,6 +24,7 @@ ifeq ($(OS),Linux)
 PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.6
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
+PYLINT = $(PYTHON_EXE) -I -m flake8
 
 BUNDLE_NAME = ChimeraX-BundleBuilder
 BUNDLE_VERSION = 1.0

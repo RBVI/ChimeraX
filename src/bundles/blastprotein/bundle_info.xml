@@ -29,9 +29,9 @@ interface is available; otherwise, the results are logged.</Description>
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Blast Protein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: blastprotein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: blastpdb :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Blast Protein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: blastprotein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: blastpdb :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

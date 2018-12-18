@@ -31,9 +31,7 @@ and the generated output is returned as the response.
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-]
-    <ChimeraXClassifier>ChimeraX :: Command :: remotecontrol rest :: General :: Control REST server</ChimeraXClassifier>
-]
+    <ChimeraXClassifier>Command :: remotecontrol rest :: General :: Control REST server</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -21,7 +21,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: buttonpanel :: General :: Create custom user interface panels</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: buttonpanel :: General :: Create custom user interface panels</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

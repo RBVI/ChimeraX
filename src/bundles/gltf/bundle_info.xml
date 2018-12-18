@@ -21,9 +21,9 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: glTF :: gltf :: Generic 3D objects :: .glb :: :: https://github.com/KhronosGroup/glTF :: :: :: Surface format used in 3D modeling </ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: glTF :: gltf ::</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Save :: glTF :: gltf :: true :: models:Models,center:Float3,size:Float,short_vertex_indices:Bool,float_colors:Bool,preserve_transparency:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: glTF :: gltf :: Generic 3D objects :: .glb :: :: https://github.com/KhronosGroup/glTF :: :: :: Surface format used in 3D modeling </ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: glTF :: gltf ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Save :: glTF :: gltf :: true :: models:Models,center:Float3,size:Float,short_vertex_indices:Bool,float_colors:Bool,preserve_transparency:Bool</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

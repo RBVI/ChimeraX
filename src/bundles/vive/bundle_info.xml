@@ -20,8 +20,8 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: device vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: device vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

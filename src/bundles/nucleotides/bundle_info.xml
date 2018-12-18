@@ -33,15 +33,15 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <!--
-    <ChimeraXClassifier>ChimeraX :: Tool :: Nucleotides Tool :: General :: Manipulate nucleotide representations</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Nucleotides Tool :: General :: Manipulate nucleotide representations</ChimeraXClassifier>
     -->
-    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides :: General :: Manipulate nucleotide representations</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: ~nucleotides :: General :: Undo nucleotide representations</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: nucleotides :: General :: Manipulate nucleotide representations</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~nucleotides :: General :: Undo nucleotide representations</ChimeraXClassifier>
     <!--
-    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides style :: General :: Create custom nucleotide style</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides style list :: General :: List custom nucleotide styles </ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides style delete :: General :: Delete custom nucleotide style </ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: nucleotides ndbcolor :: General :: Color residues according to NDB conventions </ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: nucleotides style :: General :: Create custom nucleotide style</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: nucleotides style list :: General :: List custom nucleotide styles </ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: nucleotides style delete :: General :: Delete custom nucleotide style </ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: nucleotides ndbcolor :: General :: Color residues according to NDB conventions </ChimeraXClassifier>
     -->
   </Classifiers>
 

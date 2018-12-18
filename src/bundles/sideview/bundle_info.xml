@@ -21,7 +21,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Side View :: General :: Show side view interface</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Side View :: General :: Show side view interface</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

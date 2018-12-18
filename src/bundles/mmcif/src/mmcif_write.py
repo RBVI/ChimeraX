@@ -248,7 +248,7 @@ def save_structure(session, file, models, used_data_names):
         # and same kinds of HET residues
         tmp = list(models)
         tmp.sort(key=lambda m: m.num_atoms)
-        best_m = tmp[0]
+        best_m = tmp[-1]
     name = ''.join(best_m.name.split())  # Remove all whitespace from name
     name = name.encode('ascii', errors='ignore').decode('ascii')  # Drop non-ascii characters
     if name in used_data_names:
@@ -389,6 +389,7 @@ def save_structure(session, file, models, used_data_names):
         label_asym_id = get_asym_id(mcid)
         chars = c.characters
         chain_id = c.chain_id
+        print('1:', id(c), chain_id, chars, file=sys.__stderr__)
         eid, _1to3, _ = seq_entities[chars]
         asym_info[(chain_id, chars)] = (label_asym_id, eid)
 
@@ -396,6 +397,7 @@ def save_structure(session, file, models, used_data_names):
         for name, label_seq_id, seq_num, ins_code in tmp:
             pdbx_poly_info.append((eid, label_asym_id, name, label_seq_id, chain_id, seq_num, ins_code))
     del pdbx_poly_tmp
+    print('2: asym_info:', asym_info, file=sys.__stderr__)
 
     het_entities = {}   # { het_name: { 'entity': entity_id, chain: (label_entity_id, label_asym_id) } }
     residues = best_m.residues
@@ -499,12 +501,14 @@ def save_structure(session, file, models, used_data_names):
             if alt_loc is not '.':
                 atom.set_alt_loc(original_alt_loc, False)
 
+    print('3: asym_info:', asym_info, file=sys.__stderr__)
     for m, model_num in zip(models, range(1, sys.maxsize)):
         residues = m.residues
         het_residues = residues.filter(residues.polymer_types == Residue.PT_NONE)
         for c in m.chains:
             chain_id = c.chain_id
             chars = c.characters
+            print('4:', id(c), chain_id, chars, file=sys.__stderr__)
             asym_id, entity_id = asym_info[(chain_id, chars)]
             for seq_id, r in zip(range(1, sys.maxsize), c.residues):
                 if r is None:

@@ -22,43 +22,29 @@
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
   </Dependencies>
 
-  <!-- Python and ChimeraX-specific classifiers
-       From https://pypi.python.org/pypi?%3Aaction=list_classifiers
-       Some Python classifiers are always inserted by the build process.
-       These include the Environment and Operating System classifiers
-       as well as:
-         Framework :: ChimeraX
-         Intended Audience :: Science/Research
-         Programming Language :: Python :: 3
-         Topic :: Scientific/Engineering :: Visualization
-         Topic :: Scientific/Engineering :: Chemistry
-         Topic :: Scientific/Engineering :: Bio-Informatics
-       The "ChimeraX :: Bundle" classifier is also supplied automatically.  -->
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-]
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: FASTA :: :: Sequence alignment :: .fa,.fasta,.afasta,.afa :: :: https://en.wikipedia.org/wiki/FASTA_format :: :: :: FASTA format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: MSF :: :: Sequence alignment :: .msf :: :: :: :: :: GCG MSF (multiple sequence file) format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: PIR :: :: Sequence alignment :: .ali,.pir :: :: http://www.bioinformatics.nl/tools/crab_pir.html :: :: :: PIR (NBRF) format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: ALN :: :: Sequence alignment :: .aln,.clustal,.clustalw,.clustalx :: :: :: :: :: Clustal ALN format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: HSSP :: :: Sequence alignment :: .hssp :: :: :: :: :: HSSP format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: Pfam :: :: Sequence alignment :: .selex,.slx,.pfam :: :: :: :: :: Selex (Pfam) format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: RSF :: :: Sequence alignment :: .rsf :: :: :: :: :: GCG RSF format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: DataFormat :: Stockholm :: :: Sequence alignment :: .sth,.sto :: :: https://en.wikipedia.org/wiki/Stockholm_format :: :: :: Stockholm format :: utf-8</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: FASTA :: fasta :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: MSF :: msf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: PIR :: pir :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: ALN :: clustal :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: HSSP :: hssp :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: Pfam :: selex :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: RSF :: rsf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Open :: Stockholm :: stockholm :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Save :: FASTA :: fasta :: true :: alignment:Alignment</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Save :: PIR :: pir :: true :: alignment:Alignment</ChimeraXClassifier>
-	<ChimeraXClassifier>ChimeraX :: Command :: sequence :: Sequence alignment :: control/open sequence alignments</ChimeraXClassifier>
-]
+    <ChimeraXClassifier>DataFormat :: FASTA :: :: Sequence alignment :: .fa,.fasta,.afasta,.afa :: :: https://en.wikipedia.org/wiki/FASTA_format :: :: :: FASTA format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: MSF :: :: Sequence alignment :: .msf :: :: :: :: :: GCG MSF (multiple sequence file) format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: PIR :: :: Sequence alignment :: .ali,.pir :: :: http://www.bioinformatics.nl/tools/crab_pir.html :: :: :: PIR (NBRF) format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: ALN :: :: Sequence alignment :: .aln,.clustal,.clustalw,.clustalx :: :: :: :: :: Clustal ALN format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: HSSP :: :: Sequence alignment :: .hssp :: :: :: :: :: HSSP format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: Pfam :: :: Sequence alignment :: .selex,.slx,.pfam :: :: :: :: :: Selex (Pfam) format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: RSF :: :: Sequence alignment :: .rsf :: :: :: :: :: GCG RSF format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: Stockholm :: :: Sequence alignment :: .sth,.sto :: :: https://en.wikipedia.org/wiki/Stockholm_format :: :: :: Stockholm format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: FASTA :: fasta :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: MSF :: msf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: PIR :: pir :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: ALN :: clustal :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: HSSP :: hssp :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: Pfam :: selex :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: RSF :: rsf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: Stockholm :: stockholm :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Save :: FASTA :: fasta :: true :: alignment:Alignment</ChimeraXClassifier>
+    <ChimeraXClassifier>Save :: PIR :: pir :: true :: alignment:Alignment</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: sequence :: Sequence alignment :: control/open sequence alignments</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
