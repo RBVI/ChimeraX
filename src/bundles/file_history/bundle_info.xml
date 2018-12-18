@@ -21,7 +21,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: File History :: General :: Show recently opened files</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: File History :: General :: Show recently opened files</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

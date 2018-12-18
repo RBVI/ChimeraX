@@ -31,8 +31,8 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: volume mask :: Volume data :: Mask a map to a surface</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: volume onesmask :: Volume data :: Create a onesmask inside a surface</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume mask :: Volume data :: Mask a map to a surface</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume onesmask :: Volume data :: Create a onesmask inside a surface</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

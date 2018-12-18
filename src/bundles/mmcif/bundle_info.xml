@@ -38,13 +38,13 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: mmCIF :: :: Molecular structure :: .cif,.mmcif :: :: http://mmcif.wwpdb.org/ :: :: :: Macromolecular CIF</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Fetch :: pdb :: mmCIF :: pdb :: 1a0m :: true</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Fetch :: pdbe :: mmCIF :: pdbe:: 1a0m :: false</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Fetch :: pdbe_updated :: mmCIF :: pdbe_updated :: 1a0m :: false</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Fetch :: pdbj :: mmCIF :: pdbj :: 1a0m :: false</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: mmCIF :: mmcif :: true :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Save :: mmCIF :: mmcif :: true :: models:Models</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: mmCIF :: :: Molecular structure :: .cif,.mmcif :: :: http://mmcif.wwpdb.org/ :: :: :: Macromolecular CIF</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: pdb :: mmCIF :: pdb :: 1a0m :: true</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: pdbe :: mmCIF :: pdbe:: 1a0m :: false</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: pdbe_updated :: mmCIF :: pdbe_updated :: 1a0m :: false</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: pdbj :: mmCIF :: pdbj :: 1a0m :: false</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: mmCIF :: mmcif :: true :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Save :: mmCIF :: mmcif :: true :: models:Models</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

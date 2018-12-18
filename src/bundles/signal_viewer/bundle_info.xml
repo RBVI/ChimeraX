@@ -22,9 +22,9 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: Point signals :: signal :: Generic 3D objects :: .npz :: :: https://github.com/KhronosGroup/glTF :: :: :: Signal time series at 3D points (e.g. fluorescence in cells) </ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: Point signals :: signal ::</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: signal :: Higher-Order Structure :: show signals and points in space</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: Point signals :: signal :: Generic 3D objects :: .npz :: :: https://github.com/KhronosGroup/glTF :: :: :: Signal time series at 3D points (e.g. fluorescence in cells) </ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: Point signals :: signal ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: signal :: Higher-Order Structure :: show signals and points in space</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

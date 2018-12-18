@@ -57,8 +57,8 @@ Implementation Notes
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: MMTF :: :: Molecular structure :: .mmtf :: :: http://mmtf.rcsb.org/ :: :: :: Macromolecular Transmission Format (MMTF)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Fetch :: pdb :: MMTF :: :: 1a0m ::</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: MMTF :: :: Molecular structure :: .mmtf :: :: http://mmtf.rcsb.org/ :: :: :: Macromolecular Transmission Format (MMTF)</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: pdb :: MMTF :: :: 1a0m ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -20,7 +20,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: info :: General :: Report attributes for models and atomic data</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: info :: General :: Report attributes for models and atomic data</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

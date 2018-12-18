@@ -20,12 +20,12 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: ribbon :: General :: show cartoon for selected residues</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: ribbon hide :: General :: hide cartoon for selected residues</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: ~ribbon :: General :: hide cartoon for selected residues</ChimeraXClassifier>
-    <!-- <ChimeraXClassifier>ChimeraX :: Command :: findclash :: General :: find clashes between atom pairs</ChimeraXClassifier> -->
-    <ChimeraXClassifier>ChimeraX :: Command :: getcrd :: General :: report atomic coordinates</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: debug dumpspec :: General :: report what a specifier matches</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ribbon :: General :: show cartoon for selected residues</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ribbon hide :: General :: hide cartoon for selected residues</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~ribbon :: General :: hide cartoon for selected residues</ChimeraXClassifier>
+    <!-- <ChimeraXClassifier>Command :: findclash :: General :: find clashes between atom pairs</ChimeraXClassifier> -->
+    <ChimeraXClassifier>Command :: getcrd :: General :: report atomic coordinates</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: debug dumpspec :: General :: report what a specifier matches</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -19,7 +19,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Bogus Toolshed-demo Tool :: General :: Bogus tool for demonstrating toolshed functionality</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Bogus Toolshed-demo Tool :: General :: Bogus tool for demonstrating toolshed functionality</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: bogus :: General :: Bogus commands for demonstrating toolshed functionality</ChimeraXClassifier>
   </Classifiers>
 

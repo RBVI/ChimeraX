@@ -23,8 +23,8 @@ The cages can be decorated with atomic models to create oligomeric molecular ass
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Cage Builder :: Higher-Order Structure :: Build polygonal meshes</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: cage :: Higher-Order Structure :: Place copies of model on polygons of cage</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Cage Builder :: Higher-Order Structure :: Build polygonal meshes</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: cage :: Higher-Order Structure :: Place copies of model on polygons of cage</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

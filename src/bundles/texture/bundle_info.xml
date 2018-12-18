@@ -20,7 +20,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: texture :: General :: Color surfaces using images</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: texture :: General :: Color surfaces using images</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

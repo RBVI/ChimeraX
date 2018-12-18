@@ -27,8 +27,8 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: 2dlabels :: General :: add text labels to graphics</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: label :: General :: add 3d labels to graphics</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: 2dlabels :: General :: add text labels to graphics</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: label :: General :: add 3d labels to graphics</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

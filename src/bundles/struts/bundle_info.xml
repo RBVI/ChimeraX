@@ -20,7 +20,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: struts :: Molecular structure :: provide struts for 3D printing</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: struts :: Molecular structure :: provide struts for 3D printing</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

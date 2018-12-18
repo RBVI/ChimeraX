@@ -22,7 +22,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Shell :: General :: Python shell</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Shell :: General :: Python shell</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -21,7 +21,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: mseries :: General :: Display sequence of models one by one</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mseries :: General :: Display sequence of models one by one</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
