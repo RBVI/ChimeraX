@@ -1921,9 +1921,9 @@ class _WordInfo:
                 # only save/restore "system" version of command
                 self.registry.aliased_commands[name] = word_info
                 self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
-                if logger is not None:
-                    logger.info("FYI: alias is hiding existing command" %
-                                dq_repr(name))
+                #if logger is not None:
+                #    logger.info("FYI: alias is hiding existing command" %
+                #                dq_repr(name))
         elif word_info.is_user_alias():
             # command is aliased, but new one isn't, so replaced saved version
             if name in self.registry.aliased_commands:
@@ -1931,9 +1931,9 @@ class _WordInfo:
             else:
                 self.registry.aliased_commands[name] = _WordInfo(self.registry, cmd_desc)
         else:
-            if logger is not None and not word_info.is_deferred():
-                logger.info("FYI: command is replacing existing command: %s" %
-                            dq_repr(name))
+            #if logger is not None and not word_info.is_deferred():
+            #    logger.info("FYI: command is replacing existing command: %s" %
+            #                dq_repr(name))
             word_info.cmd_desc = cmd_desc
 
 
