@@ -977,7 +977,7 @@ Atom::is_missing_heavy_template_neighbors(bool chain_start, bool chain_end, bool
     for (auto tnb: tmpl_atom->neighbors())
         if (tnb->element().number() > 1)
             ++tmpl_heavys;
-    return heavys != tmpl_heavys;
+    return heavys < tmpl_heavys;
 }
 
 Atom::Bonds::size_type
