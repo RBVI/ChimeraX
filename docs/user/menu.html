@@ -73,30 +73,33 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   in currently open structures, sorted into nonstandard residues, 
   standard nucleic acids, and standard amino acids
   <li><b>Structure</b> 
-  <ul>
-  <li><b>Backbone</b> - biopolymer backbone atoms: peptide N, CA, C, O, 
-  nucleic acid phosphoribosyl backbone, and any directly attached hydrogens 
-  <li><b>Ions</b> - <a href="commands/atomspec.html#surfcats">ions</a>
-  <li><b>Ligand</b> - <a href="commands/atomspec.html#surfcats">ligand</a>
-  <li><b>Main</b> - <a href="commands/atomspec.html#surfcats">main</a>
-  <li><b>Nucleic Acid</b> - nucleosides, nucleotides, RNA, and DNA
-  <li><b>Protein</b> - amino acids, peptides, and proteins
-  <li><b>Ribose</b> - nucleic-acid backbone ribose and doxyribose moieties
-  <li><b>Secondary Structure</b> - protein/peptide secondary structure types:
     <ul>
-    <li><b>Coil</b> - amino acid residues not in helix or strand
-    <li><b>Helix</b> - amino acid residues in helices
-    <li><b>Strand</b> - amino acid residues in strands
+    <li><b>Backbone</b> - biopolymer backbone atoms: peptide N, CA, C, O, 
+    nucleic acid phosphoribosyl backbone, and any directly attached hydrogens 
+    <li><b>Ions</b> - <a href="commands/atomspec.html#surfcats">ions</a>
+    <li><b>Ligand</b> - <a href="commands/atomspec.html#surfcats">ligand</a>
+    <li><b>Main</b> - <a href="commands/atomspec.html#surfcats">main</a>
+    <li><b>Nucleic Acid</b> - nucleosides, nucleotides, RNA, and DNA
+    <li><b>Protein</b> - amino acids, peptides, and proteins
+    <li><b>Ribose</b> - nucleic-acid backbone ribose and doxyribose moieties
+    <li><b>Secondary Structure</b> - protein/peptide secondary structure types:
+      <ul>
+      <li><b>Coil</b> - amino acid residues not in helix or strand
+      <li><b>Helix</b> - amino acid residues in helices
+      <li><b>Strand</b> - amino acid residues in strands
+      </ul>
+    <li><b>Sidechain + Connector</b>
+     - amino acid sidechain + CA (for connectivity to 
+     <a href="commands/cartoon.html">cartoon</a>), nucleic acid base + ribose,
+    and any directly attached hydrogens
+    <li><b>Sidechain Only</b>
+     - amino acid sidechain, nucleic acid base, 
+    and any directly attached hydrogens
+    <li><b>Solvent</b> - <a href="commands/atomspec.html#surfcats">solvent</a>
     </ul>
-  <li><b>Sidechain + Connector</b>
-   - amino acid sidechain + CA (for connectivity to 
-   <a href="commands/cartoon.html">cartoon</a>), nucleic acid base + ribose,
-  and any directly attached hydrogens
-  <li><b>Sidechain Only</b>
-   - amino acid sidechain, nucleic acid base, 
-  and any directly attached hydrogens
-  <li><b>Solvent</b> - <a href="commands/atomspec.html#surfcats">solvent</a>
-  </ul>
+  <a name="selectseq"></a>
+  <li><b>Sequence...</b> <a href="findseq.html">find and select</a>
+  a specified amino acid or nucleotide sequence or sequence pattern
   <li><b>Menu Mode: <i>mode</i></b>
     <ul>
     <li><b>Replace</b> (initial default <i>mode</i>)

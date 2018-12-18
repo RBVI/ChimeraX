@@ -22,9 +22,9 @@ Wavefront OBJ files.</Description>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: Wavefront OBJ :: obj :: Generic 3D objects :: .obj :: :: https://en.wikipedia.org/wiki/Wavefront_.obj_file :: :: :: Surface format used in 3D modeling :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: Wavefront OBJ :: ::</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Save :: Wavefront OBJ :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: Wavefront OBJ :: obj :: Generic 3D objects :: .obj :: :: https://en.wikipedia.org/wiki/Wavefront_.obj_file :: :: :: Surface format used in 3D modeling :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: Wavefront OBJ :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Save :: Wavefront OBJ :: ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

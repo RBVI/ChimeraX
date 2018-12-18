@@ -37,7 +37,7 @@ Based on:
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: mlp :: Molecular structure :: Molecular lipophilicity calculation</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mlp :: Molecular structure :: Molecular lipophilicity calculation</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

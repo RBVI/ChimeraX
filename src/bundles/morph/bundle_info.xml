@@ -25,7 +25,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: morph :: Molecular structure :: morph atomic structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: morph :: Molecular structure :: morph atomic structures</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

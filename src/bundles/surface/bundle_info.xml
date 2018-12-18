@@ -43,21 +43,21 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: Collada :: collada :: Generic 3D objects :: .dae :: :: https://www.khronos.org/collada :: :: :: 3D scene format</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: Collada :: ::</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: color electrostatic :: Surfaces :: color surface by electrostatic potential map</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: color sample :: Surfaces :: color surface by map value</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: color gradient :: Surfaces :: color surface by map gradient norm</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: color radial :: Surfaces :: color surface by distance from a point</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: color cylindrical :: Surfaces :: color surface by distance from an axis</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: color height :: Surfaces :: color surface by distance from a plane</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: surface :: Surfaces :: create/modify surfaces</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: ~surface :: Surfaces :: delete surface</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: volume splitbyzone :: Volume Data :: split volume by color zone</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: sop :: Surfaces :: surface operation</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: measure sasa :: Surfaces :: measure solvent-accessible surface area</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: measure volume :: Surfaces :: measure enclosed surface volume</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: measure area :: Surfaces :: measure surface area</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: Collada :: collada :: Generic 3D objects :: .dae :: :: https://www.khronos.org/collada :: :: :: 3D scene format</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: Collada :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color electrostatic :: Surfaces :: color surface by electrostatic potential map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color sample :: Surfaces :: color surface by map value</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color gradient :: Surfaces :: color surface by map gradient norm</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color radial :: Surfaces :: color surface by distance from a point</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color cylindrical :: Surfaces :: color surface by distance from an axis</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color height :: Surfaces :: color surface by distance from a plane</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface :: Surfaces :: create/modify surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~surface :: Surfaces :: delete surface</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume splitbyzone :: Volume Data :: split volume by color zone</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: sop :: Surfaces :: surface operation</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure sasa :: Surfaces :: measure solvent-accessible surface area</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure volume :: Surfaces :: measure enclosed surface volume</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure area :: Surfaces :: measure surface area</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

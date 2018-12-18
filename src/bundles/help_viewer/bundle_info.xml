@@ -25,9 +25,9 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: help :: Documentation :: Display ChimeraX help</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: HTML :: :: Documentation :: .html,.htm,.xhtml,.xht,.xml :: text/html,application/xhtml+xml :: http://en.wikipedia.org/wiki/Html :: :: :: HyperText Markup Language (HTML)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: HTML :: help ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: help :: Documentation :: Display ChimeraX help</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: HTML :: :: Documentation :: .html,.htm,.xhtml,.xht,.xml :: text/html,application/xhtml+xml :: http://en.wikipedia.org/wiki/Html :: :: :: HyperText Markup Language (HTML)</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: HTML :: help ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -1701,12 +1701,15 @@ class SameSize(Postcondition):
 
 def _check_autocomplete(word, mapping, name):
     # This is a primary debugging aid for developers,
-    # but it prevents existing abbreviated commands from changing
+    # but it warns about existing abbreviated commands from changing
     # what command they correspond to.
     if word not in mapping:
         for key in mapping:
             if key.startswith(word) and key != word:
-                raise ValueError("'%s' in '%s' is a prefix of an existing command '%s'" % (word, name, key))
+                if word != name:
+                    raise ValueError("'%s' in '%s' is a prefix of an existing command '%s'" % (word, name, key))
+                else:
+                    raise ValueError("'%s' is a prefix of an existing command '%s'" % (word, key))
 
 
 class CmdDesc:
@@ -1881,13 +1884,15 @@ class _WordInfo:
     def lazy_register(self, cmd_name):
         deferred = self.cmd_desc
         assert(isinstance(deferred, _Defer))
-        self.cmd_desc = None  # prevent recursion
         try:
             deferred.call()
         except Exception as e:
             raise RuntimeError("delayed command registration for %r failed (%s)" % (cmd_name, e))
         if self.cmd_desc is None and not self.has_subcommands():
             raise RuntimeError("delayed command registration for %r didn't register the command" % cmd_name)
+        if isinstance(self.cmd_desc, _Defer):
+            self.cmd_desc = None  # prevent reuse
+
 
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
@@ -1897,7 +1902,7 @@ class _WordInfo:
                 if logger is not None:
                     logger.warning("Alias %s hides existing command" % dq_repr(name))
             elif logger is not None:
-                logger.warning("Unable to add subcommand %s: %s" % (name, str(e)))
+                logger.warning(str(e))
         if word not in self.subcommands:
             w = self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
             w.parent = self
@@ -1916,9 +1921,9 @@ class _WordInfo:
                 # only save/restore "system" version of command
                 self.registry.aliased_commands[name] = word_info
                 self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
-                if logger is not None:
-                    logger.info("FYI: alias is hiding existing command" %
-                                dq_repr(name))
+                #if logger is not None:
+                #    logger.info("FYI: alias is hiding existing command" %
+                #                dq_repr(name))
         elif word_info.is_user_alias():
             # command is aliased, but new one isn't, so replaced saved version
             if name in self.registry.aliased_commands:
@@ -1926,9 +1931,9 @@ class _WordInfo:
             else:
                 self.registry.aliased_commands[name] = _WordInfo(self.registry, cmd_desc)
         else:
-            if logger is not None and not isinstance(cmd_desc, _Defer):
-                logger.info("FYI: command is replacing existing command: %s" %
-                            dq_repr(name))
+            #if logger is not None and not word_info.is_deferred():
+            #    logger.info("FYI: command is replacing existing command: %s" %
+            #                dq_repr(name))
             word_info.cmd_desc = cmd_desc
 
 

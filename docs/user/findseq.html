@@ -1,0 +1,63 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<title>Select Sequence</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h2>Select Sequence</h2>
+<p>
+Choosing <a href="menu.html#selectseq"><b>Select... Sequence</b></a>
+from the menu opens a dialog to find and 
+<a href="selection.html">select</a> 
+a specified sequence in amino acid or nucleotide chains.
+Sequence patterns to select can also be specified with the
+<a href="commands/select.html#new"><b>select</b></a> command.
+<a name="pattern"></a>
+The exact sequence or a pattern can be specified:
+</p>
+<ul>
+<li>lowercase letters are automatically uppercased
+<li>regular expressions (as explained for
+<a href="https://www.gnu.org/software/findutils/manual/html_node/find_html/egrep-regular-expression-syntax.html" target="_blank">egrep</a>)
+can be used
+<li>ambiguity codes are automatically expanded as follows:
+  <ul>
+  <li>protein:
+  B matches aspartic acid (D) and asparagine (N),
+  Z matches glutamic acid (E) and glutamine (Q)
+  <li>nucleic acid:
+  R matches the standard purine nucleotides (A, G), Y matches the
+  standard pyrimidine nucleotides (C, T, U), and N matches any of the five
+  (A, C, G, T, U)
+  </ul>
+</ul>
+<p>
+To instead display the entire sequence of a chain
+and then select parts of it with the mouse, use the
+<a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+December 2018</address>
+</body></html> 

@@ -22,9 +22,9 @@ the user has done.</Description>
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Log :: General :: Log of information and output</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: echo :: General :: Log a line of text</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: log :: General :: manipulate the Log tool</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Log :: General :: Log of information and output</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: echo :: General :: Log a line of text</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: log :: General :: manipulate the Log tool</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
