@@ -51,7 +51,8 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3
     from chimerax.atomic import Atom
     Atom._addh_coord = Atom.coord if in_isolation else Atom.scene_coord
     from chimerax.core.logger import Collator
-    with Collator(session.logger, "Summary of feedback from adding hydrogens"):
+    with Collator(session.logger, "Summary of feedback from adding hydrogens to %s"
+            % ("multiple structures" if len(structures) > 1 else structures[0])):
         session.logger.status("Adding hydrogens")
         try:
             add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
