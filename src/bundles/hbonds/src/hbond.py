@@ -642,7 +642,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                             bad_connectivities += 1
                             continue
                         except AtomTypeError as e:
-                            _problem = ("atom type", donor_atom, str(v), None)
+                            _problem = ("atom type", donor_atom, str(e), None)
                             continue
                         if verbose:
                             session.logger.info("\t%s satisfies donor criteria" % donor_atom)

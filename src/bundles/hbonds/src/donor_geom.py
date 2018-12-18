@@ -234,9 +234,8 @@ def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsil
             return True
 
     if 2 * len(bonded_pos) != tau_sym:
-        raise AtomTypeError("Unexpected tau symmetry (%d,"
-                " should be %d) for donor %s" % (
-                2 * len(bonded_pos), tau_sym, donor.oslIdent()))
+        raise AtomTypeError("Unexpected tau symmetry (%d, should be %d) for donor %s" % (
+                2 * len(bonded_pos), tau_sym, donor))
 
     normal = normalize_vector(heavys[0]._hb_coord - dp)
 
