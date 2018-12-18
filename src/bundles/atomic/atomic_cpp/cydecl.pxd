@@ -180,6 +180,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         int hide()
         const char* idatm_type()
         bool is_backbone(BackboneExtent)
+        bool is_missing_heavy_template_neighbors(bool, bool, bool)
         bool is_ribose()
         bool is_side_connector()
         bool is_side_chain(bool)

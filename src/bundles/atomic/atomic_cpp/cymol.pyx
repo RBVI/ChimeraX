@@ -486,6 +486,10 @@ cdef class CyAtom:
         "    The backbone atoms that a ribbon depiction hides"
         return self.cpp_atom.is_backbone(<cydecl.BackboneExtent>bb_extent)
 
+    def is_missing_heavy_template_neighbors(self, *, chain_start = False, chain_end = False,
+            no_template_okay=False):
+        return self.cpp_atom.is_missing_heavy_template_neighbors(chain_start, chain_end, no_template_okay)
+
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.
 

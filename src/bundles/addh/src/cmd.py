@@ -449,6 +449,9 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
                 # of hydrogen-adding loop (since that will
                 # force a recomp), so remember here
                 type_info_for_atom[atom] = type_info[atom.idatm_type]
+                # if atom is in standard residue but has missing bonds to
+                # heavy atoms, skip it instead of incorrectly protonating
+                # (or possibly throwing an error if e.g. it's planar)
                 atoms.append(atom)
                 # sulfonamide nitrogens coordinating a metal
                 # get an additional hydrogen stripped

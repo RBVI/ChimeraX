@@ -29,6 +29,8 @@
 #include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
+#include "tmpl/residues.h"
+#include "tmpl/TAexcept.h"
 
 #include <pyinstance/PythonInstance.instantiate.h>
 #include <pysupport/convert.h>
@@ -950,6 +952,32 @@ Atom::maximum_bond_radius(float default_radius) const {
     bcount += 1;
     }
     return (bcount > 0 ? rmax : default_radius);
+}
+
+bool
+Atom::is_missing_heavy_template_neighbors(bool chain_start, bool chain_end, bool no_template_okay) const
+{
+    auto tmpl_res = tmpl::find_template_residue(residue()->name(), chain_start, chain_end);
+    if (tmpl_res == nullptr) {
+        if (no_template_okay)
+            return false;
+        std::ostringstream os;
+        os << "No residue template found for " << residue()->name();
+        throw tmpl::TA_NoTemplate(os.str());
+    }
+    auto nm_ptr_i = tmpl_res->atoms_map().find(name());
+    if (nm_ptr_i == tmpl_res->atoms_map().end())
+        return false;
+    auto tmpl_atom = nm_ptr_i->second;
+    // non-standard input may not match the template atom names; just count bonded heavies
+    int heavys = 0, tmpl_heavys = 0;
+    for (auto nb: neighbors())
+        if (nb->element().number() > 1 && nb->residue() == residue())
+            ++heavys;
+    for (auto tnb: tmpl_atom->neighbors())
+        if (tnb->element().number() > 1)
+            ++tmpl_heavys;
+    return heavys != tmpl_heavys;
 }
 
 Atom::Bonds::size_type
