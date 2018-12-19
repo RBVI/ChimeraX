@@ -77,7 +77,7 @@ def transparency(session, objects, percent, what=None, target=None):
         what.append('nothing')
 
     from chimerax.core.commands import commas
-    session.logger.status('Set transparency of %s' % commas(what, ' and'))
+    session.logger.status('Set transparency of %s' % commas(what, 'and'))
 
 def _set_surface_transparency(atoms, objects, session, alpha):
 

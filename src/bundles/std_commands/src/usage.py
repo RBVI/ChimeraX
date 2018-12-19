@@ -30,7 +30,7 @@ def usage(session, command_name=None, option=None):
         info("Use 'help <command>' to learn more about a command.")
         cmds = cli.registered_commands(multiword=True)
         if len(cmds) > 0:
-            text = cli.commas(cmds, ' and')
+            text = cli.commas(cmds, 'and')
             noun = cli.plural_form(cmds, 'command')
             verb = cli.plural_form(cmds, 'is', 'are')
             info("The following %s %s available: %s" % (noun, verb, text))

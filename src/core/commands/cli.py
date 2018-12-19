@@ -209,11 +209,11 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
-def commas(text_seq, conjunction=' or'):
+def commas(text_seq, conjunction='or'):
     """Return comma separated list of words
 
     :param text_seq: a sequence of text strings
-    :param conjunction: a word with a leading space
+    :param conjunction: a word to put for last item (default 'or')
     """
     if not isinstance(text_seq, (list, tuple)):
         text_seq = tuple(text_seq)
@@ -224,7 +224,7 @@ def commas(text_seq, conjunction=' or'):
         return text_seq[0]
     if seq_len == 2:
         return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
-    text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
+    text = '%s, %s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
     return text
 
 
@@ -2558,7 +2558,7 @@ class Command:
             missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
             if missing:
                 arg_names = ['"%s"' % m for m in missing]
-                msg = commas(arg_names, ' and')
+                msg = commas(arg_names, 'and')
                 noun = plural_form(arg_names, 'argument')
                 self._error = "Missing required %s %s" % (msg, noun)
                 if log:

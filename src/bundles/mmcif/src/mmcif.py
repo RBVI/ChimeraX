@@ -592,7 +592,7 @@ class MMCIFTable:
         for name in chain(key_names, value_names, foreach_names):
             if name.casefold() not in t:
                 from chimerax.core.commands.cli import commas, plural_form
-                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have = commas(['"%s"' % t for t in self._tags], 'and')
                 have_noun = plural_form(self._tags, 'field')
                 raise TableMissingFieldsError(
                     'Field "%s" not in table "%s", have %s %s'
@@ -651,10 +651,10 @@ class MMCIFTable:
             missing = [n for n in field_names if n.casefold() not in t]
             if missing:
                 from chimerax.core.commands.cli import commas, plural_form
-                missed = commas(['"%s"' % m for m in missing], ' and')
+                missed = commas(['"%s"' % m for m in missing], 'and')
                 missed_noun = plural_form(missing, 'Field')
                 missed_verb = plural_form(missing, 'is', 'are')
-                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have = commas(['"%s"' % t for t in self._tags], 'and')
                 have_noun = plural_form(self._tags, 'field')
                 raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
                     missed_noun, missed, missed_verb, self.table_name, have_noun,

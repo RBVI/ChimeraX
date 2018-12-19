@@ -82,7 +82,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                 from chimerax.core.commands import commas, plural_form
                 raise UserError(
                     'Only %s %s can be fetched from %s database'
-                    % (commas(['"%s"' % f for f in db_formats], ' and '),
+                    % (commas(['"%s"' % f for f in db_formats], 'and'),
                        plural_form(db_formats, "format"), from_database))
         models, status = handle_unknown_kw(fetch.fetch_from_database, session, from_database,
             filename, format=format, name=name, ignore_cache=ignore_cache, **kw)

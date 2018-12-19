@@ -46,7 +46,7 @@ th.bundle {
                 info += "<dd>\n"
                 info += "%s: %s<p>" % (
                     plural_form(bi.categories, "Category"),
-                    commas(bi.categories, ' and '))
+                    commas(bi.categories, 'and'))
                 # TODO: convert description's rst text to HTML
                 info += escape(bi.description).replace('\n\n', '<p>\n')
                 if bi.tools or bi.commands or bi.formats:
