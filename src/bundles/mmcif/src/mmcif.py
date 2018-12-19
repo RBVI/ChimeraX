@@ -48,7 +48,7 @@ _reserved_words = {
 
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
-               max_models=None, log_info=True, extra_categories=()):
+               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True):
     # mmCIF parsing requires an uncompressed file
 
     from . import _mmcif
@@ -78,6 +78,8 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
 
     for m in models:
         m.filename = path
+        if combine_sym_atoms:
+            m.combine_sym_atoms()
 
     info = ''
     if coordsets:

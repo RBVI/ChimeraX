@@ -19,7 +19,7 @@ Read Protein DataBank (PDB) files.
 """
 
 def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, atomic=True,
-             max_models=None, log_info=True):
+             max_models=None, log_info=True, combine_sym_atoms=True):
 
     path = stream.name if hasattr(stream, 'name') else None
 
@@ -42,6 +42,9 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
     if path:
         for m in models:
             m.filename = path
+    if combine_sym_atoms:
+        for m in models:
+            m.combine_sym_atoms()
 
     info = ''
     if coordsets:
