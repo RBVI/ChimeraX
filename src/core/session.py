@@ -314,11 +314,11 @@ class _RestoreManager:
             if missing_bundles:
                 msg += "; missing %s: %s" % (
                     plural_form(missing_bundles, 'bundle'),
-                    commas(missing_bundles, ' and'))
+                    commas(missing_bundles, 'and'))
             if out_of_date_bundles:
                 msg += "; out of date %s: %s" % (
                     plural_form(out_of_date_bundles, 'bundle'),
-                    commas(out_of_date_bundles, ' and'))
+                    commas(out_of_date_bundles, 'and'))
             raise UserError(msg)
         self.bundle_infos = bundle_infos
 

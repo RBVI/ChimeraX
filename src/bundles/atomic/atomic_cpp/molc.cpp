@@ -4886,6 +4886,16 @@ extern "C" EXPORT void *atomic_structure_new(PyObject* logger)
     }
 }
 
+extern "C" EXPORT void structure_combine_sym_atoms(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->combine_sym_atoms();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_delete_alt_locs(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);

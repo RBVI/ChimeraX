@@ -165,6 +165,12 @@ class BondRotationManager(StateManager):
 
     def _ses_restore(self, data):
         self.clear()
+        if 'bond_rots' in data:
+            # old, non-backwards compatible, session data
+            if data['bond_rots']:
+                self.session.logger.warning('Bond-rotation data in session is obsolete and not restorable;'
+                    " skipping")
+            return
         self.bond_rotations = data['rotations']
         self.bond_rotaters = data['rotaters']
         if self.bond_rotations:

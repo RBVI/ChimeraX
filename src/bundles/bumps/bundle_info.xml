@@ -14,15 +14,15 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Markers" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: bumps :: Volume Data :: find protrusions in density maps</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: cbumps :: Volume Data :: find convex surface patches</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: bumps :: Volume Data :: find protrusions in density maps</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: cbumps :: Volume Data :: find convex surface patches</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

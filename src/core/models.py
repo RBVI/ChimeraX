@@ -144,18 +144,27 @@ class Model(State, Drawing):
             if not self.highlighted and not self.empty_drawing():
                 return False
             if include_children:
-                for m in self.child_models():
-                    if not m.get_selected(include_children=True, fully=True):
-                        return False
+                for d in self.child_drawings():
+                    if isinstance(d, Model):
+                        if not d.get_selected(include_children=True, fully=True):
+                            return False
+                    else:
+                        if not d.highlighted and not d.empty_drawing():
+                            return False
+
             return True
 
         if self.highlighted:
             return True
 
         if include_children:
-            for m in self.child_models():
-                if m.get_selected(include_children=True):
-                    return True
+            for d in self.child_drawings():
+                if isinstance(d, Model):
+                    if d.get_selected(include_children=True):
+                        return True
+                    else:
+                        if d.highlighted:
+                            return True
 
         return False
     

@@ -35,6 +35,6 @@ public:
     TA_NoTemplate(const std::string &msg) : TA_exception(msg) {}
 };
 
-#endif  // templates_TAexcept
-
 }  // namespace tmpl
+
+#endif  // templates_TAexcept

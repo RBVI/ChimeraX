@@ -209,11 +209,11 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
-def commas(text_seq, conjunction=' or'):
+def commas(text_seq, conjunction='or'):
     """Return comma separated list of words
 
     :param text_seq: a sequence of text strings
-    :param conjunction: a word with a leading space
+    :param conjunction: a word to put for last item (default 'or')
     """
     if not isinstance(text_seq, (list, tuple)):
         text_seq = tuple(text_seq)
@@ -224,7 +224,7 @@ def commas(text_seq, conjunction=' or'):
         return text_seq[0]
     if seq_len == 2:
         return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
-    text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
+    text = '%s, %s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
     return text
 
 
@@ -1884,13 +1884,15 @@ class _WordInfo:
     def lazy_register(self, cmd_name):
         deferred = self.cmd_desc
         assert(isinstance(deferred, _Defer))
-        self.cmd_desc = None  # prevent recursion
         try:
             deferred.call()
         except Exception as e:
             raise RuntimeError("delayed command registration for %r failed (%s)" % (cmd_name, e))
         if self.cmd_desc is None and not self.has_subcommands():
             raise RuntimeError("delayed command registration for %r didn't register the command" % cmd_name)
+        if isinstance(self.cmd_desc, _Defer):
+            self.cmd_desc = None  # prevent reuse
+
 
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
@@ -1919,9 +1921,9 @@ class _WordInfo:
                 # only save/restore "system" version of command
                 self.registry.aliased_commands[name] = word_info
                 self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
-                if logger is not None:
-                    logger.info("FYI: alias is hiding existing command" %
-                                dq_repr(name))
+                #if logger is not None:
+                #    logger.info("FYI: alias is hiding existing command" %
+                #                dq_repr(name))
         elif word_info.is_user_alias():
             # command is aliased, but new one isn't, so replaced saved version
             if name in self.registry.aliased_commands:
@@ -1929,9 +1931,9 @@ class _WordInfo:
             else:
                 self.registry.aliased_commands[name] = _WordInfo(self.registry, cmd_desc)
         else:
-            if logger is not None and not isinstance(cmd_desc, _Defer):
-                logger.info("FYI: command is replacing existing command: %s" %
-                            dq_repr(name))
+            #if logger is not None and not word_info.is_deferred():
+            #    logger.info("FYI: command is replacing existing command: %s" %
+            #                dq_repr(name))
             word_info.cmd_desc = cmd_desc
 
 
@@ -2556,7 +2558,7 @@ class Command:
             missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
             if missing:
                 arg_names = ['"%s"' % m for m in missing]
-                msg = commas(arg_names, ' and')
+                msg = commas(arg_names, 'and')
                 noun = plural_form(arg_names, 'argument')
                 self._error = "Missing required %s %s" % (msg, noun)
                 if log:

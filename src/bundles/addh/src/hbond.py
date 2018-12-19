@@ -1431,4 +1431,3 @@ def _do_prune(hbond, pruned, rel_bond, processed, pruned_by):
                     print("pruned hbond (tet check)", [str(a) for a in rel])
                 processed.add(rel)
                 pruned_by.setdefault(hbond, []).append(rel)
-

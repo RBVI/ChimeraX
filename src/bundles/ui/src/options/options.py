@@ -40,8 +40,11 @@ class Option(metaclass=ABCMeta):
         else:
             if self.attr_name is None:
                 raise ValueError("'settings' specified but not 'attr_name' (required for 'settings')")
+            # weakrefs are unhashable, which causes a problem in the container code that
+            # tries to organize options by settings before saving, so just use a strong
+            # reference to settings for now; if that proves problematic then revisit.
+            self.settings = settings
             from weakref import proxy
-            self.settings = proxy(settings)
             self.settings_handler = self.settings.triggers.add_handler('setting changed',
                 lambda trig_name, data, *, pself=proxy(self):
                 data[0] == pself.attr_name and pself.set(pself.get_attribute()))

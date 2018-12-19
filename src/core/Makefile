@@ -27,7 +27,7 @@ endif
 include $(TOP)/mk/subdir.make
 
 BUNDLE_NAME = ChimeraX-Core
-BUNDLE_VERSION = 0.8
+BUNDLE_VERSION = 0.9
 PKG_NAME = chimerax.core
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
@@ -79,7 +79,7 @@ SETUP_SED_ARGS += -e 's,\# WINDEBUG,,'
 endif
 endif
 
-setup.py: setup.py.in _serialize.cpp
+setup.py: setup.py.in _serialize.cpp Makefile
 	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
 
 $(SUBDIR_INSTALL): dir

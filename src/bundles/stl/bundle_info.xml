@@ -20,16 +20,16 @@ StereoLithography (STL) files.</Description>
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: StereoLithography :: stl :: Generic 3D objects :: .stl :: :: http://en.wikipedia.org/wiki/STL_(file_format)#Binary_STL :: :: :: Simple triangle format used by 3D printers</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: StereoLithography :: ::</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Save :: StereoLithography :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: StereoLithography :: stl :: Generic 3D objects :: .stl :: :: http://en.wikipedia.org/wiki/STL_(file_format)#Binary_STL :: :: :: Simple triangle format used by 3D printers</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: StereoLithography :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Save :: StereoLithography :: ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

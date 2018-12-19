@@ -67,7 +67,7 @@ group_info["aromatic"] = group_info["aromatic ring"]
 
 # classifiers
 selectors = ["<ChimeraXClassifier>"
-             "ChimeraX :: Selector :: %s :: %s"
+             "Selector :: %s :: %s"
              "</ChimeraXClassifier>\n" %
              (group_name.replace(' ', '-'), alt_name)
              for group_name, alt_name in group_info.items()]

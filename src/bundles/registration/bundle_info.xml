@@ -17,7 +17,7 @@ summary statistics to NIH.</Description>
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
@@ -28,13 +28,13 @@ summary statistics to NIH.</Description>
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Registration :: Utilities :: Register ChimeraX with RBVI</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Registration :: Utilities :: Register ChimeraX with RBVI</ChimeraXClassifier>
     <!-- do not register since the command is probably too complicated
 	 to use manually and we probably do not want robo-registration
 	 anyway
-    <ChimeraXClassifier>ChimeraX :: Command :: register :: Utilities :: Register ChimeraX with RBVI</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: register :: Utilities :: Register ChimeraX with RBVI</ChimeraXClassifier>
     -->
-    <ChimeraXClassifier>ChimeraX :: Command :: registration status :: Utilities :: Report registration status</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: registration status :: Utilities :: Report registration status</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -418,7 +418,7 @@ class _HistoryDialog:
             retain = []
             listbox_index = 0
             for h_item in self._history:
-                if self.typed_only and not h[1]:
+                if self.typed_only and not h_item[1]:
                     retain.append(h_item)
                     continue
                 if not self.listbox.item(listbox_index).isSelected():

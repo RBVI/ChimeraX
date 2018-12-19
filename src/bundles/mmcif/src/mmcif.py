@@ -48,7 +48,7 @@ _reserved_words = {
 
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
-               max_models=None, log_info=True, extra_categories=()):
+               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True):
     # mmCIF parsing requires an uncompressed file
 
     from . import _mmcif
@@ -78,6 +78,8 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
 
     for m in models:
         m.filename = path
+        if combine_sym_atoms:
+            m.combine_sym_atoms()
 
     info = ''
     if coordsets:
@@ -590,7 +592,7 @@ class MMCIFTable:
         for name in chain(key_names, value_names, foreach_names):
             if name.casefold() not in t:
                 from chimerax.core.commands.cli import commas, plural_form
-                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have = commas(['"%s"' % t for t in self._tags], 'and')
                 have_noun = plural_form(self._tags, 'field')
                 raise TableMissingFieldsError(
                     'Field "%s" not in table "%s", have %s %s'
@@ -649,10 +651,10 @@ class MMCIFTable:
             missing = [n for n in field_names if n.casefold() not in t]
             if missing:
                 from chimerax.core.commands.cli import commas, plural_form
-                missed = commas(['"%s"' % m for m in missing], ' and')
+                missed = commas(['"%s"' % m for m in missing], 'and')
                 missed_noun = plural_form(missing, 'Field')
                 missed_verb = plural_form(missing, 'is', 'are')
-                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have = commas(['"%s"' % t for t in self._tags], 'and')
                 have_noun = plural_form(self._tags, 'field')
                 raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
                     missed_noun, missed, missed_verb, self.table_name, have_noun,

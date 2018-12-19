@@ -233,6 +233,7 @@ class BundleInfo:
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Where to log error messages.
         """
+        _debug("register bundle", self._name, self._version)
         self._register_commands(logger)
         self._register_file_types(logger)
         self._register_selectors(logger)

@@ -532,7 +532,7 @@ data formats, and selectors.
 
 *Bundle Metadata*
 
-    ``ChimeraX`` :: ``Bundle`` :: *categories* :: *session_versions* :: *api_module_name* :: *supercedes* :: *custom_init*
+    ``Bundle`` :: *categories* :: *session_versions* :: *api_module_name* :: *supercedes* :: *custom_init*
 
     - *categories* is a comma separated list of category names.
       (Category names are the names that appear under the ``Tools``
@@ -553,7 +553,7 @@ data formats, and selectors.
 
     For example::
 
-      ChimeraX :: Bundle :: Volume data :: 1,1 ::
+      Bundle :: Volume data :: 1,1 ::
 
     This classifier is automatically generated when using the ``devel``
     command and **bundle_info.xml**.
@@ -561,7 +561,7 @@ data formats, and selectors.
 
 *Tool Metadata*
 
-    ``ChimeraX`` :: ``Tool`` :: *tool_name* :: *categories* :: *synopsis*
+    ``Tool`` :: *tool_name* :: *categories* :: *synopsis*
 
     - *tool_name* is a string that uniquely identifies the tool.
     - *categories* is a comma separated list of category names under
@@ -572,7 +572,7 @@ data formats, and selectors.
 
     For example::
 
-      ChimeraX :: Tool :: Help Viewer :: General :: Show help
+      Tool :: Help Viewer :: General :: Show help
 
     Notes:
 
@@ -581,7 +581,7 @@ data formats, and selectors.
 
 *Command Metadata*
 
-    ``ChimeraX`` :: ``Command`` :: *name* :: *categories* :: *synopsis*
+    ``Command`` :: *name* :: *categories* :: *synopsis*
 
     - *name* is a string and may have spaces in it.
     - *categories* should be a subset of the bundle's categories. 
@@ -591,7 +591,7 @@ data formats, and selectors.
 
     For example::
 
-      ChimeraX :: Command :: exit :: General :: terminate ChimeraX
+      Command :: exit :: General :: terminate ChimeraX
 
     Notes:
 
@@ -604,7 +604,7 @@ data formats, and selectors.
 
 *Data Format Metadata*
 
-    ``ChimeraX`` :: ``DataFormat`` :: *format_name* :: *nicknames* :: *category* :: *suffixes* :: *mime_types* :: *url* :: *dangerous* :: *icon* :: *synopsis* :: *encoding*
+    ``DataFormat`` :: *format_name* :: *nicknames* :: *category* :: *suffixes* :: *mime_types* :: *url* :: *dangerous* :: *icon* :: *synopsis* :: *encoding*
 
     - *format_name* is a string.
     - *nicknames* is an optional comma-separated list of strings.
@@ -627,20 +627,19 @@ data formats, and selectors.
 
     For example::
 
-      ChimeraX :: DataFormat :: PDB :: :: Molecular Structure :: .pdb, .ent :: chemical/x-pdb :: http://www.pdb.org/ :: :: :: Protein DataBank file
-      ChimeraX :: DataFormat :: mmCIF :: :: Molecular Structure :: .mmcif, .cif :: chemical/x-mmcif :: http://www.pdb.org/ :: :: :: MacroMolecular CIF
+      DataFormat :: PDB :: :: Molecular Structure :: .pdb, .ent :: chemical/x-pdb :: http://www.pdb.org/ :: :: :: Protein DataBank file
+      DataFormat :: mmCIF :: :: Molecular Structure :: .mmcif, .cif :: chemical/x-mmcif :: http://www.pdb.org/ :: :: :: MacroMolecular CIF
 
     In addition to describing the format, the bundle should say how if it
     can fetch, open or save data in that format.
 
-        ``ChimeraX`` :: ``Open`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
+        ``Open`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
 
-        ``ChimeraX`` :: ``Save`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
+        ``Save`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
 
-        ``ChimeraX`` :: ``Fetch`` :: *database_name* :: *format_name* :: *prefixes* :: *example_id* :: *is_default*
+        ``Fetch`` :: *database_name* :: *format_name* :: *prefixes* :: *example_id* :: *is_default*
 
-    - *format_name* is a format previously given in a ChimeraX :: DataFormat
-      line.
+    - *format_name* is a format previously given in a DataFormat line.
     - *prefixes* is a comma-separated list of strings associated with the
       (database_name, format_name).
     - *tag* is a string is disambiguate multiple readers or writers.
@@ -657,10 +656,10 @@ data formats, and selectors.
 
     For example::
     
-      ChimeraX :: Open :: PDB :: PDB ::
-      ChimeraX :: Save :: PDB :: PDB ::
-      ChimeraX :: Fetch :: PDB :: mmcif :: pdb :: 1a0m ::
-      ChimeraX :: Fetch :: PDB :: PDB :: :: 1a0m ::
+      Open :: PDB :: PDB ::
+      Save :: PDB :: PDB ::
+      Fetch :: PDB :: mmcif :: pdb :: 1a0m ::
+      Fetch :: PDB :: PDB :: :: 1a0m ::
 
     Notes:
 
@@ -674,7 +673,7 @@ data formats, and selectors.
 
 *Selector Metadata*
 
-    ``ChimeraX`` :: ``Selector`` :: *name* :: *synopsis*
+    ``Selector`` :: *name* :: *synopsis*
 
     - *name* is a string and may have spaces in it.
     - *synopsis* is a short description of the selector.  It is here for
@@ -683,7 +682,7 @@ data formats, and selectors.
 
     For example::
     
-      ChimeraX :: Selector :: helix :: Helical regions in proteins
+      Selector :: helix :: Helical regions in proteins
 
     Notes:
 

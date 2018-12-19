@@ -162,7 +162,7 @@ def color(session, objects, color=None, what=None, target=None,
         items.append('nothing')
 
     from chimerax.core.commands import commas
-    session.logger.status('Colored %s' % commas(items, ' and'))
+    session.logger.status('Colored %s' % commas(items, 'and'))
     session.undo.register(undo_state)
 
 
@@ -540,7 +540,7 @@ def color_func(session, objects, what=None, target=None, func=None, func_text='C
         what.append('nothing')
 
     from chimerax.core.commands import commas
-    session.logger.status('%s %s' % (func_text, commas(what, ' and')))
+    session.logger.status('%s %s' % (func_text, commas(what, 'and')))
     session.undo.register(undo_state)
 
 def _set_surface_color_func(atoms, objects, session, func, undo_state=None):

@@ -130,7 +130,7 @@ def _list_colors(session, colors_dict, kind, url=None):
         label = "%d %s %s: " % (len(colors), kind, noun)
     else:
         label = "%d <a href=\"%s\">%s %s</a>: " % (len(colors), url, kind, noun)
-    logger.info(label + commas(colors, ' and') + '.', is_html=is_html)
+    logger.info(label + commas(colors, 'and') + '.', is_html=is_html)
 
 
 # -----------------------------------------------------------------------------

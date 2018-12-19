@@ -43,18 +43,18 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: PDB :: :: Molecular structure :: .pdb,.pdb1,.ent,.pqr :: :: http://www.wwpdb.org/documentation/file-format :: :: :: Protein Databank Format (PDB)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Fetch :: pdb :: PDB :: :: 1a0m ::</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Fetch :: pdbe :: PDB :: :: 1a0m ::</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: PDB :: PDB :: false :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Save :: PDB :: PDB :: false :: models:Models,selected_only:Bool,displayed_only:Bool,all_coordsets:Bool,pqr:Bool,rel_model:Model,serial_numbering:SerialNumbering</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: PDB :: :: Molecular structure :: .pdb,.pdb1,.ent,.pqr :: :: http://www.wwpdb.org/documentation/file-format :: :: :: Protein Databank Format (PDB)</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: pdb :: PDB :: :: 1a0m ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: pdbe :: PDB :: :: 1a0m ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: PDB :: PDB :: false :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool,combine_sym_atoms:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Save :: PDB :: PDB :: false :: models:Models,selected_only:Bool,displayed_only:Bool,all_coordsets:Bool,pqr:Bool,rel_model:Model,serial_numbering:SerialNumbering</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
