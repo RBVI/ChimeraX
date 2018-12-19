@@ -342,25 +342,29 @@ class Toolshed:
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously if necessary
+            from . import available
             from ..core_settings import settings
             from datetime import datetime, timedelta
             now = datetime.now()
-            interval = settings.toolshed_update_interval
-            last_check = settings.toolshed_last_check
-            if not last_check:
+            if not available.has_cache_file(self._cache_dir):
                 need_check = True
             else:
-                last_check = datetime.strptime(settings.toolshed_last_check,
-                                               "%Y-%m-%dT%H:%M:%S.%f")
-                delta = now - last_check
-                max_delta = timedelta(days=1)
-                if interval == "week":
-                    max_delta = timedelta(days=7)
-                elif interval == "day":
+                last_check = settings.toolshed_last_check
+                if not last_check:
+                    need_check = True
+                else:
+                    interval = settings.toolshed_update_interval
+                    last_check = datetime.strptime(settings.toolshed_last_check,
+                                                   "%Y-%m-%dT%H:%M:%S.%f")
+                    delta = now - last_check
                     max_delta = timedelta(days=1)
-                elif interval == "month":
-                    max_delta = timedelta(days=30)
-                need_check = delta > max_delta
+                    if interval == "week":
+                        max_delta = timedelta(days=7)
+                    elif interval == "day":
+                        max_delta = timedelta(days=1)
+                    elif interval == "month":
+                        max_delta = timedelta(days=30)
+                    need_check = delta > max_delta
             if need_check:
                 self.async_reload_available(logger)
                 settings.toolshed_last_check = now.isoformat()
