@@ -24,7 +24,7 @@ and the generated output is returned as the response.
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>
 
   <Classifiers>
