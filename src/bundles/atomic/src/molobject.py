@@ -1327,13 +1327,6 @@ class StructureData:
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
 
-    def ribbon_orients(self, residues=None):
-        '''Return array of orientation values for given residues.'''
-        if residues is None:
-            residues = self.residues
-        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
-        return f(self._c_pointer, residues._c_pointers, len(residues))
-
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
@@ -1362,7 +1355,12 @@ class StructureData:
         else:
             from .molarray import Atoms
             return (Atoms(ap[0]), Atoms(ap[1]))
-        
+
+    def combine_sym_atoms(self):
+        '''Combine "symmetry" atoms, which for this purpose is atoms with the same element type
+           on the exact same 3D position'''
+        f = c_function('structure_combine_sym_atoms', args = (ctypes.c_void_p,))(self._c_pointer)
+
     def add_coordset(self, id, xyz):
         '''Supported API. Add a coordinate set with the given id.'''
         if xyz.dtype != float64:
@@ -1549,6 +1547,13 @@ class StructureData:
         g = StructureData(logger=session.logger)
         g.set_state_from_snapshot(session, data)
         return g
+
+    def ribbon_orients(self, residues=None):
+        '''Return array of orientation values for given residues.'''
+        if residues is None:
+            residues = self.residues
+        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
+        return f(self._c_pointer, residues._c_pointers, len(residues))
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings found in this Structure.

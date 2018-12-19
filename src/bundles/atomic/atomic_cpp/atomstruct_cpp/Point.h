@@ -65,6 +65,12 @@ public:
     }
     Real&  operator[](int index) { return _xyz[index]; }
     const Real&  operator[](int index) const { return _xyz[index]; }
+    // Need operator< so that sorted containers work
+    bool  operator<(const Point &pt) const {
+        return _xyz[0] < pt._xyz[0] || 
+            (_xyz[0] == pt._xyz[0] && (_xyz[1] < pt._xyz[1] ||
+            (_xyz[1] == pt._xyz[1] && _xyz[2] < pt._xyz[2])));
+    }
     std::string  str() const;
 };
 
