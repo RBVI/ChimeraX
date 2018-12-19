@@ -552,6 +552,9 @@ class Volume(Model):
                              (0,ilow), (vmid,imid), (vmax,imax))
         neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
         self.solid_colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
+      elif getattr(self.data, 'initial_thresholds_linear', False):
+        self.solid_levels = ((s.minimum,0), (s.maximum,1))
+        self.solid_colors = [rgba, rgba]
       else:
         if vlow < vmid and vmid < vmax:
           self.solid_levels = ((vlow,ilow), (vmid,imid), (vmax,imax))
