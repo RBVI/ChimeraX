@@ -220,7 +220,7 @@ def _debug(*args, file=None, flush=True, **kw):
 
 # Default URL of remote toolshed
 # If testing, use
-#_RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
+# _RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
 # But BE SURE TO CHANGE IT BACK BEFORE COMMITTING !!!
 _RemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
@@ -518,7 +518,9 @@ class Toolshed:
         _debug("install_bundle", bundle)
         # Make sure that our install location is on chimerax module.__path__
         # so that newly installed modules may be found
-        import importlib, os.path, re
+        import importlib
+        import os.path
+        import re
         cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
         m = importlib.import_module(_ChimeraNamespace)
         if cx_dir not in m.__path__:
@@ -550,7 +552,7 @@ class Toolshed:
             per_user = True
         try:
             results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
-        except PermissionError as e:
+        except PermissionError:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
                          (bundle, who))
@@ -633,8 +635,8 @@ class Toolshed:
         for bi in container:
             if bi.name.lower() not in lc_names:
                 continue
-            #if bi.name != name and name not in bi.supercedes:
-            #    continue
+            # if bi.name != name and name not in bi.supercedes:
+            #     continue
             if version == bi.version:
                 return bi
             if version is None:
@@ -672,7 +674,7 @@ class Toolshed:
 
     def find_bundle_for_command(self, cmd):
         """Supported API. Find bundle registering given command
-        
+
         `cmd` must be the full command name, not an abbreviation."""
         for bi in self._installed_bundle_info:
             for ci in bi.commands:
@@ -747,10 +749,9 @@ class Toolshed:
             raise ImportError("bundle %r not found" % bundle_name)
         return self._install_module(bundle, logger, install, session)
 
-
     def import_package(self, package_name, logger,
                        install=None, session=None):
-        """Supported API. Return package of given name if it is associated with a bundle.
+        """Return package of given name if it is associated with a bundle.
 
         Parameters
         ----------
@@ -775,11 +776,10 @@ class Toolshed:
             if bi.package_name == package_name:
                 module = bi.get_module()
                 if module is None:
-                    raise ImportError("bundle %r has no module" % bundle_name)
+                    raise ImportError("bundle %r has no module" % package_name)
                 return module
         # No installed bundle matches
         from pkg_resources import parse_version
-        lc_name = name.lower().replace('_', '-')
         best_bi = None
         best_version = None
         for bi in self._get_available_bundles(logger):
@@ -796,7 +796,7 @@ class Toolshed:
                     best_bi = bi
                     best_version = v
         if best_bi is None:
-            raise ImportError("bundle %r not found" % bundle_name)
+            raise ImportError("bundle %r not found" % package_name)
         return self._install_module(best_bi, logger, install, session)
 
     #
@@ -833,7 +833,6 @@ class Toolshed:
         # strategy, etc) plus the given arguments.  Return standard
         # output as string.  If there was an error, raise RuntimeError
         # with stderr as parameter.
-        import sys
         command = ["install", "--upgrade",
                    "--extra-index-url", self.remote_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed",
@@ -853,12 +852,12 @@ class Toolshed:
     def _pip_uninstall(self, bundle_name):
         # Run "pip" and return standard output as string.  If there
         # was an error, raise RuntimeError with stderr as parameter.
-        import sys
         command = ["uninstall", "--yes", bundle_name]
         return self._run_pip(command)
 
     def _run_pip(self, command):
-        import sys, subprocess
+        import sys
+        import subprocess
         _debug("_run_pip command:", command)
         cp = subprocess.run([sys.executable, "-m", "pip"] + command,
                             stdout=subprocess.PIPE,
@@ -882,7 +881,8 @@ class Toolshed:
         # remove pip installed scripts since they have hardcoded paths to
         # python and thus don't work when ChimeraX is installed elsewhere
         from chimerax import app_bin_dir
-        import sys, os
+        import os
+        import sys
         if sys.platform.startswith('win'):
             # Windows
             script_dir = os.path.join(app_bin_dir, 'Scripts')
@@ -901,7 +901,7 @@ class Toolshed:
                     line = f.readline()
                     if line[0:2] != b'#!' or b'/bin/python' not in line:
                         continue
-                #print('removing (pip installed)', path)
+                # print('removing (pip installed)', path)
                 os.remove(path)
 
     def _install_module(self, bundle, logger, install, session):
@@ -914,7 +914,7 @@ class Toolshed:
                 raise ImportError("bundle %r is not installed" % bundle.name)
             from chimerax.ui.ask import ask
             answer = ask(session, "Install bundle %r?" % bundle.name,
-                         buttons = ["just me", "all users", "cancel"])
+                         buttons=["just me", "all users", "cancel"])
             if answer == "cancel":
                 raise ImportError("user canceled installation of bundle %r" % bundle.name)
             elif answer == "just me":
@@ -1169,7 +1169,7 @@ class BundleAPI:
         try:
             return _CallBundleAPI[self.api_version]
         except KeyError:
-            raise ToolshedError("bundle uses unsupport bundle API version %s" % api.api_version)
+            raise ToolshedError("bundle uses unsupport bundle API version %s" % self.api_version)
 
 
 #
