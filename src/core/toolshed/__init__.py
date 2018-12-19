@@ -453,8 +453,59 @@ class Toolshed:
             self._available_bundle_info = abc
 
     def register_available_commands(self, logger):
+        from sortedcontainers import SortedDict
+        available = SortedDict()
         for bi in self._get_available_bundles(logger):
-            bi.register_available_commands(logger)
+            #bi.register_available_commands(logger)
+            for ci in bi.commands:
+                a = available.get(ci.name, None)
+                if a is None:
+                    available[ci.name] = (set([(bi.name, bi.version)]), ci.synopsis)
+                else:
+                    bundles, synopsis = available[ci.name]
+                    b = (bi.name, bi.version)
+                    bundles.add(b)
+                    # TODO: update synopsis if newer version of bundle
+        from chimerax.core.commands import cli, CmdDesc
+        for name in available:
+            bundles, synopsis = available[ci.name]
+            cd = CmdDesc(synopsis=synopsis)
+            def cb(session, s=self, n=name, b=bundles, l=logger):
+                s._available_cmd(n, b, l)
+            try:
+                cli.register_available(name, cd, function=cb, logger=logger)
+            except Exception as e:
+                logger.warning("Unable to register available command %s: %s" % (ci.name, str(e)))
+
+    def _available_cmd(self, name, bundles, logger):
+        from chimerax.core.commands import commas, plural_form
+        bundle_names = set()
+        bundle_refs = []
+        for b in bundles:
+            bname = b[0]
+            if bname.startswith('ChimeraX-'):
+                bname = bname[len('ChimeraX-'):]
+            if bname in bundle_names:
+                continue
+            bundle_names.add(bname)
+            # TODO: what are the app store rules for toolshed names?
+            toolshed_name = b[0].casefold().replace('-', '')
+            ref = '<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/%s">%s</a>' % (
+                    toolshed_name, bname
+            )
+            bundle_refs.append(ref)
+        log_msg = "<b>%s</b> is provided by the uninstalled %s %s" % (
+           name, plural_form(bundle_refs, "bundle"),
+           commas(bundle_refs, 'and')
+        )
+        logger.info(log_msg, is_html=True)
+        # TODO: if not self.session.ui.is_gui:
+        #     return
+        status_msg = '"%s" is provided by the uninstalled %s %s' % (
+           name, plural_form(bundle_names, "bundle"),
+           commas(['"%s"' % b for b in bundle_names], 'and')
+        )
+        logger.status(status_msg)
 
     def set_install_timestamp(self, per_user=False):
         _debug("set_install_timestamp")
