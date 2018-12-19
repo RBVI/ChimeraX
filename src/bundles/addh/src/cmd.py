@@ -458,9 +458,9 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
                 if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
                     session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
                         " bond partners" % atom)
+                    type_info_for_atom[atom] = type_info_class(4, atom.num_bonds, atom.name)
                 else:
                     atoms.append(atom)
-                    type_info_for_atom[atom] = type_info_class(4, atom.num_bonds, atom.name)
                 # sulfonamide nitrogens coordinating a metal
                 # get an additional hydrogen stripped
                 if coordinations.get(atom, []) and atom.element.name == "N":
