@@ -38,7 +38,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
     <Dependency name="ChimeraX-Mol2" version=">=1.0"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
