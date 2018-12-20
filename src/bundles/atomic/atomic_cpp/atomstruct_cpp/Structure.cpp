@@ -383,6 +383,27 @@ void Structure::_copy(Structure* s) const
     }
 }
 
+void
+Structure::combine_sym_atoms()
+{
+    std::map<std::pair<Coord, int>, std::vector<Atom*>> sym_info;
+    for (auto a: atoms()) {
+        if (a->neighbors().size() == 0)
+            sym_info[std::make_pair(a->coord(), a->element().number())].push_back(a);
+    }
+    std::vector<Atom*> extras;
+    for (auto key_atoms: sym_info) {
+        auto& sym_atoms = key_atoms.second;
+        if (sym_atoms.size() == 1)
+            continue;
+        logger::info(_logger,
+                "Combining ", sym_atoms.size(), " symmetry atoms into ", sym_atoms.front()->str());
+        extras.insert(extras.end(), sym_atoms.begin()+1, sym_atoms.end());
+    }
+    if (extras.size() > 0)
+        delete_atoms(extras);
+}
+
 Structure*
 Structure::copy() const
 {

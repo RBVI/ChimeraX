@@ -552,6 +552,9 @@ class Volume(Model):
                              (0,ilow), (vmid,imid), (vmax,imax))
         neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
         self.solid_colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
+      elif getattr(self.data, 'initial_thresholds_linear', False):
+        self.solid_levels = ((s.minimum,0), (s.maximum,1))
+        self.solid_colors = [rgba, rgba]
       else:
         if vlow < vmid and vmid < vmax:
           self.solid_levels = ((vlow,ilow), (vmid,imid), (vmax,imax))
@@ -1562,8 +1565,10 @@ class Volume(Model):
     nvox = sum(m.size for m in matrices)
     if nvox >= min_status_message_voxels:
       self.message('Computing histogram for %s' % self.name)
-    from . import data
-    self.matrix_stats = ms = data.MatrixValueStatistics(matrices)
+    ipv = getattr(self.data, 'ignore_pad_value', None)
+    print ('vol ignore padd value', ipv)
+    from .data import MatrixValueStatistics
+    self.matrix_stats = ms = MatrixValueStatistics(matrices, ignore_pad_value = ipv)
     if nvox >= min_status_message_voxels:    
       self.message('')
 
@@ -2836,11 +2841,11 @@ def map_from_periodic_map(grid, ijk_min, ijk_max):
 #
 def open_volume_file(path, session, format = None, name = None, representation = None,
                      open_models = True, model_id = None,
-                     show_data = True, show_dialog = True):
+                     show_data = True, show_dialog = True, verbose = False):
 
   from . import data
   try:
-    glist = data.open_file(path, format)
+    glist = data.open_file(path, format, verbose = verbose)
   except data.FileFormatError as value:
     raise
     from os.path import basename
@@ -3034,7 +3039,7 @@ def open_map(session, stream, name = None, format = None, **kw):
     name = basename(map_path if isinstance(map_path, str) else map_path[0])
 
     from . import data
-    grids = data.open_file(map_path, file_type = format)
+    grids = data.open_file(map_path, file_type = format, verbose = kw.get('verbose'))
 
     if grids and isinstance(grids[0], (tuple, list)):
       # handle multiple channels.
@@ -3154,18 +3159,20 @@ def set_initial_region_and_style(v):
     v.display = False
  
   ro = v.rendering_options
-  if getattr(v.data, 'polar_values', False):
+  data = v.data
+  if getattr(data, 'polar_values', False):
     ro.flip_normals = True
     ro.cap_faces = False
 
-  one_plane = show_one_plane(v.data.size, ds['show_plane'], ds['voxel_limit_for_plane'])
+  one_plane = (getattr(data, 'initial_plane_display', False)
+               or show_one_plane(data.size, ds['show_plane'], ds['voxel_limit_for_plane']))
   if one_plane:
     v.set_representation('solid')
     
   # Determine initial region bounds and step.
   region = v.full_region()[:2]
   if one_plane:
-    region[0][2] = region[1][2] = v.data.size[2]//2
+    region[0][2] = region[1][2] = data.size[2]//2
     
   fpa = faces_per_axis(v.representation, ro.box_faces, ro.any_orthoplanes_shown())
   ijk_step = ijk_step_for_voxel_limit(region[0], region[1], (1,1,1), fpa,
@@ -3403,7 +3410,7 @@ def register_map_file_formats(session):
     # Add keywords to open command for maps
     from chimerax.core.commands import BoolArg, IntArg
     from chimerax.core.commands.cli import add_keyword_arguments
-    add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg})
+    add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg, 'verbose':BoolArg})
 
     # Add keywords to save command for maps
     from chimerax.core.commands import BoolArg, ListOf, EnumOf, IntArg

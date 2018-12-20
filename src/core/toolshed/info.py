@@ -233,6 +233,7 @@ class BundleInfo:
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Where to log error messages.
         """
+        _debug("register bundle", self._name, self._version)
         self._register_commands(logger)
         self._register_file_types(logger)
         self._register_selectors(logger)
@@ -392,23 +393,6 @@ class BundleInfo:
         from ..commands import deregister_selector
         for si in self.selectors:
             deregister_selector(si.name, logger)
-
-    def register_available_commands(self, logger):
-        """Supported API. Register available commands with cli."""
-        from chimerax.core.commands import cli, CmdDesc
-        for ci in self.commands:
-            cd = CmdDesc(synopsis=ci.synopsis)
-            def cb(session, s=self, n=ci.name, l=logger):
-                s._available_cmd(n, l)
-            try:
-                cli.register_available(ci.name, cd, function=cb, logger=logger)
-            except Exception as e:
-                logger.warning("Unable to register available command %s: %s" % (ci.name, str(e)))
-
-    def _available_cmd(self, name, logger):
-        msg = ("\"%s\" is provided by the uninstalled bundle \"%s\""
-               % (name, self.name))
-        logger.status(msg, log=True)
 
     def initialize(self, session):
         """Supported API. Initialize bundle by calling custom initialization code if needed."""

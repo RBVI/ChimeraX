@@ -43,7 +43,7 @@ def _list(session, colormaps, kind, url=None):
         label = "%d %s %s: " % (len(palettes), kind, noun)
     else:
         label = "%d <a href=\"%s\">%s %s</a>: " % (len(palettes), url, kind, noun)
-    logger.info(label + commas(palettes, " and") + '.', is_html=is_html)
+    logger.info(label + commas(palettes, "and") + '.', is_html=is_html)
 
 # -----------------------------------------------------------------------------
 #

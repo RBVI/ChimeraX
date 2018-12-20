@@ -220,7 +220,7 @@ def _debug(*args, file=None, flush=True, **kw):
 
 # Default URL of remote toolshed
 # If testing, use
-#_RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
+# _RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
 # But BE SURE TO CHANGE IT BACK BEFORE COMMITTING !!!
 _RemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
@@ -342,25 +342,29 @@ class Toolshed:
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously if necessary
+            from . import available
             from ..core_settings import settings
             from datetime import datetime, timedelta
             now = datetime.now()
-            interval = settings.toolshed_update_interval
-            last_check = settings.toolshed_last_check
-            if not last_check:
+            if not available.has_cache_file(self._cache_dir):
                 need_check = True
             else:
-                last_check = datetime.strptime(settings.toolshed_last_check,
-                                               "%Y-%m-%dT%H:%M:%S.%f")
-                delta = now - last_check
-                max_delta = timedelta(days=1)
-                if interval == "week":
-                    max_delta = timedelta(days=7)
-                elif interval == "day":
+                last_check = settings.toolshed_last_check
+                if not last_check:
+                    need_check = True
+                else:
+                    interval = settings.toolshed_update_interval
+                    last_check = datetime.strptime(settings.toolshed_last_check,
+                                                   "%Y-%m-%dT%H:%M:%S.%f")
+                    delta = now - last_check
                     max_delta = timedelta(days=1)
-                elif interval == "month":
-                    max_delta = timedelta(days=30)
-                need_check = delta > max_delta
+                    if interval == "week":
+                        max_delta = timedelta(days=7)
+                    elif interval == "day":
+                        max_delta = timedelta(days=1)
+                    elif interval == "month":
+                        max_delta = timedelta(days=30)
+                    need_check = delta > max_delta
             if need_check:
                 self.async_reload_available(logger)
                 settings.toolshed_last_check = now.isoformat()
@@ -449,8 +453,59 @@ class Toolshed:
             self._available_bundle_info = abc
 
     def register_available_commands(self, logger):
+        from sortedcontainers import SortedDict
+        available = SortedDict()
         for bi in self._get_available_bundles(logger):
-            bi.register_available_commands(logger)
+            #bi.register_available_commands(logger)
+            for ci in bi.commands:
+                a = available.get(ci.name, None)
+                if a is None:
+                    available[ci.name] = (set([(bi.name, bi.version)]), ci.synopsis)
+                else:
+                    bundles, synopsis = available[ci.name]
+                    b = (bi.name, bi.version)
+                    bundles.add(b)
+                    # TODO: update synopsis if newer version of bundle
+        from chimerax.core.commands import cli, CmdDesc
+        for name in available:
+            bundles, synopsis = available[ci.name]
+            cd = CmdDesc(synopsis=synopsis)
+            def cb(session, s=self, n=name, b=bundles, l=logger):
+                s._available_cmd(n, b, l)
+            try:
+                cli.register_available(name, cd, function=cb, logger=logger)
+            except Exception as e:
+                logger.warning("Unable to register available command %s: %s" % (ci.name, str(e)))
+
+    def _available_cmd(self, name, bundles, logger):
+        from chimerax.core.commands import commas, plural_form
+        bundle_names = set()
+        bundle_refs = []
+        for b in bundles:
+            bname = b[0]
+            if bname.startswith('ChimeraX-'):
+                bname = bname[len('ChimeraX-'):]
+            if bname in bundle_names:
+                continue
+            bundle_names.add(bname)
+            # TODO: what are the app store rules for toolshed names?
+            toolshed_name = b[0].casefold().replace('-', '')
+            ref = '<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/%s">%s</a>' % (
+                    toolshed_name, bname
+            )
+            bundle_refs.append(ref)
+        log_msg = "<b>%s</b> is provided by the uninstalled %s %s" % (
+           name, plural_form(bundle_refs, "bundle"),
+           commas(bundle_refs, 'and')
+        )
+        logger.info(log_msg, is_html=True)
+        # TODO: if not self.session.ui.is_gui:
+        #     return
+        status_msg = '"%s" is provided by the uninstalled %s %s' % (
+           name, plural_form(bundle_names, "bundle"),
+           commas(['"%s"' % b for b in bundle_names], 'and')
+        )
+        logger.status(status_msg)
 
     def set_install_timestamp(self, per_user=False):
         _debug("set_install_timestamp")
@@ -514,7 +569,9 @@ class Toolshed:
         _debug("install_bundle", bundle)
         # Make sure that our install location is on chimerax module.__path__
         # so that newly installed modules may be found
-        import importlib, os.path, re
+        import importlib
+        import os.path
+        import re
         cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
         m = importlib.import_module(_ChimeraNamespace)
         if cx_dir not in m.__path__:
@@ -546,7 +603,7 @@ class Toolshed:
             per_user = True
         try:
             results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
-        except PermissionError as e:
+        except PermissionError:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
                          (bundle, who))
@@ -629,8 +686,8 @@ class Toolshed:
         for bi in container:
             if bi.name.lower() not in lc_names:
                 continue
-            #if bi.name != name and name not in bi.supercedes:
-            #    continue
+            # if bi.name != name and name not in bi.supercedes:
+            #     continue
             if version == bi.version:
                 return bi
             if version is None:
@@ -668,7 +725,7 @@ class Toolshed:
 
     def find_bundle_for_command(self, cmd):
         """Supported API. Find bundle registering given command
-        
+
         `cmd` must be the full command name, not an abbreviation."""
         for bi in self._installed_bundle_info:
             for ci in bi.commands:
@@ -743,10 +800,9 @@ class Toolshed:
             raise ImportError("bundle %r not found" % bundle_name)
         return self._install_module(bundle, logger, install, session)
 
-
     def import_package(self, package_name, logger,
                        install=None, session=None):
-        """Supported API. Return package of given name if it is associated with a bundle.
+        """Return package of given name if it is associated with a bundle.
 
         Parameters
         ----------
@@ -771,11 +827,10 @@ class Toolshed:
             if bi.package_name == package_name:
                 module = bi.get_module()
                 if module is None:
-                    raise ImportError("bundle %r has no module" % bundle_name)
+                    raise ImportError("bundle %r has no module" % package_name)
                 return module
         # No installed bundle matches
         from pkg_resources import parse_version
-        lc_name = name.lower().replace('_', '-')
         best_bi = None
         best_version = None
         for bi in self._get_available_bundles(logger):
@@ -792,7 +847,7 @@ class Toolshed:
                     best_bi = bi
                     best_version = v
         if best_bi is None:
-            raise ImportError("bundle %r not found" % bundle_name)
+            raise ImportError("bundle %r not found" % package_name)
         return self._install_module(best_bi, logger, install, session)
 
     #
@@ -829,7 +884,6 @@ class Toolshed:
         # strategy, etc) plus the given arguments.  Return standard
         # output as string.  If there was an error, raise RuntimeError
         # with stderr as parameter.
-        import sys
         command = ["install", "--upgrade",
                    "--extra-index-url", self.remote_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed",
@@ -849,12 +903,12 @@ class Toolshed:
     def _pip_uninstall(self, bundle_name):
         # Run "pip" and return standard output as string.  If there
         # was an error, raise RuntimeError with stderr as parameter.
-        import sys
         command = ["uninstall", "--yes", bundle_name]
         return self._run_pip(command)
 
     def _run_pip(self, command):
-        import sys, subprocess
+        import sys
+        import subprocess
         _debug("_run_pip command:", command)
         cp = subprocess.run([sys.executable, "-m", "pip"] + command,
                             stdout=subprocess.PIPE,
@@ -878,7 +932,8 @@ class Toolshed:
         # remove pip installed scripts since they have hardcoded paths to
         # python and thus don't work when ChimeraX is installed elsewhere
         from chimerax import app_bin_dir
-        import sys, os
+        import os
+        import sys
         if sys.platform.startswith('win'):
             # Windows
             script_dir = os.path.join(app_bin_dir, 'Scripts')
@@ -897,7 +952,7 @@ class Toolshed:
                     line = f.readline()
                     if line[0:2] != b'#!' or b'/bin/python' not in line:
                         continue
-                #print('removing (pip installed)', path)
+                # print('removing (pip installed)', path)
                 os.remove(path)
 
     def _install_module(self, bundle, logger, install, session):
@@ -910,7 +965,7 @@ class Toolshed:
                 raise ImportError("bundle %r is not installed" % bundle.name)
             from chimerax.ui.ask import ask
             answer = ask(session, "Install bundle %r?" % bundle.name,
-                         buttons = ["just me", "all users", "cancel"])
+                         buttons=["just me", "all users", "cancel"])
             if answer == "cancel":
                 raise ImportError("user canceled installation of bundle %r" % bundle.name)
             elif answer == "just me":
@@ -1165,7 +1220,7 @@ class BundleAPI:
         try:
             return _CallBundleAPI[self.api_version]
         except KeyError:
-            raise ToolshedError("bundle uses unsupport bundle API version %s" % api.api_version)
+            raise ToolshedError("bundle uses unsupport bundle API version %s" % self.api_version)
 
 
 #

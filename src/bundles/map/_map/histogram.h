@@ -21,7 +21,7 @@
 extern "C" {
 
 PyObject *minimum_and_maximum(PyObject *s, PyObject *args, PyObject *keywds);
-PyObject *bin_counts_py(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *bin_counts(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *high_count_py(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *high_indices_py(PyObject *s, PyObject *args, PyObject *keywds);
 

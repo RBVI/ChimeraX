@@ -30,7 +30,7 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
     <Dependency name="ChimeraX-PDB" version=">=1.0"/>
   </Dependencies>
@@ -43,7 +43,7 @@
     <ChimeraXClassifier>Fetch :: pdbe :: mmCIF :: pdbe:: 1a0m :: false</ChimeraXClassifier>
     <ChimeraXClassifier>Fetch :: pdbe_updated :: mmCIF :: pdbe_updated :: 1a0m :: false</ChimeraXClassifier>
     <ChimeraXClassifier>Fetch :: pdbj :: mmCIF :: pdbj :: 1a0m :: false</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: mmCIF :: mmcif :: true :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: mmCIF :: mmcif :: true :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool,combine_sym_atoms:Bool</ChimeraXClassifier>
     <ChimeraXClassifier>Save :: mmCIF :: mmcif :: true :: models:Models</ChimeraXClassifier>
   </Classifiers>
 

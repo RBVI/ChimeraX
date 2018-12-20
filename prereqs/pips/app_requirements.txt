@@ -19,6 +19,7 @@ Pillow==5.3.0
 pkginfo==1.4.2
 psutil==5.4.8
 pycollada==0.6
+pydicom==1.2.1
 python-dateutil==2.7.5
 # ipython7 / ipykernel 5 seem to stop working after an error; force use of older versions
 ipython==6.5.0

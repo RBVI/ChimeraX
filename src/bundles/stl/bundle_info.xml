@@ -20,7 +20,7 @@ StereoLithography (STL) files.</Description>
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>
 
   <Classifiers>

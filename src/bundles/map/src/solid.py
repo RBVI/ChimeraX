@@ -306,6 +306,13 @@ class Solid:
       if planes == 0:
         alpha[:] = 1
       else:
+        # TODO: In order to handle non-isotropic grid spacing, the colormap
+        # transparency should depend on whether x, y, or z planes are used.
+        # Currently there is no dependency on the plane axis. Larger plane
+        # spacing should result it increased opacity.  This could be achieved
+        # by multiplying the planes value by (min plane spacing / plane spacing).
+        # If 3d texture rendering is used, the transparency should depend on
+        # the plane spacing being used.
         trans = (alpha < 1)         # Avoid divide by zero for alpha == 1.
         atrans = alpha[trans]
         alpha[trans] = 1.0 - (1.0-atrans) ** (1.0/(planes*(1-atrans)))
@@ -422,7 +429,10 @@ class Solid:
 
     pm = self.projection_mode
     if pm == 'auto':
-      s = self.size
+      sz = self.size
+      from chimerax.core.geometry import norm
+      spacing = [norm(a) for a in self.transform.axes()]
+      s = [n*sp for n,sp in zip(sz, spacing)]
       smin, smid = sorted(s)[:2]
       aspect_cutoff = 4
       if smin > 0 and aspect_cutoff*smin <= smid:

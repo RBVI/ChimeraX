@@ -40,7 +40,7 @@ def list_aliases(session, internal=False):
     logger = session.logger
     aliases = cli.list_aliases(all=internal, logger=logger)
     aliases.sort(key=lambda x: x[x[0] == '~':])
-    names = cli.commas(aliases, ' and')
+    names = cli.commas(aliases, 'and')
     noun = cli.plural_form(aliases, 'alias')
     if names:
         logger.info('%d %s: %s' % (len(aliases), noun, names))
