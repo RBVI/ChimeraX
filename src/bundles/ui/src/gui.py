@@ -1299,10 +1299,14 @@ class ToolWindow(StatusLogger):
         return self.__toolkit.dock_widget
 
     def _forward_keystroke(self, event):
+        # Exclude floating windows because they don't forward all keystrokes (e.g. Delete)
+        # and because the Google sign-on (via the typically floating Help Viewer) forwards
+        # _just_ the Return key (well, and shift/control/other non-printable)
+        #
         # QLineEdits don't eat Return keys, so they may propagate to the
         # top widget; don't forward keys if the focus widget is a QLineEdit
         from PyQt5.QtWidgets import QLineEdit, QComboBox
-        if not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)):
+        if not self.floating and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)):
             self.tool_instance.session.ui.forward_keystroke(event)
 
     def _mw_set_dockable(self, dockable):
