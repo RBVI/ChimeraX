@@ -2471,8 +2471,8 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s</a>' % (
-                chain.structure.id_string, chain.chain_id, chain.chain_id)
+            return '<a title="Select chain" href="cxcmd:select %s">%s</a>' % (
+               chain_res_range(chain), chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text, False)
 
     def _report_ensemble_chain_descriptions(self, session, ensemble):
@@ -2487,9 +2487,8 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s/%s</a>' % (
-                chain.structure.id_string, chain.chain_id,
-                chain.structure.id_string, chain.chain_id)
+            return '<a title="Select chain" href="cxcmd:select %s">%s/%s</a>' % (
+                chain_res_range(chain), chain.structure.id_string, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text, True)
 
     def _report_res_info(self, session):
@@ -2501,8 +2500,6 @@ class AtomicStructure(Structure):
     def _report_chain_summary(self, session, descripts, chain_text, is_ensemble):
         def descript_text(description, chains):
             from html import escape
-            if len(chains) == 1:
-                return escape(description)
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join(["#%s/%s" % (chain.structure.id_string, chain.chain_id)
                     for chain in chains]), escape(description))
@@ -2568,6 +2565,13 @@ def assembly_html_table(mol):
     lines.append('</table>')
     html = '\n'.join(lines)
     return html
+
+def chain_res_range(chain):
+    existing = chain.existing_residues
+    if len(existing) == 1:
+        return existing[0].string(style="command")
+    first, last = existing[0], existing[-1]
+    return "%s-%s" % (first.string(style="command"), last.string(residue_only=True, style="command")[1:])
 
 
 # -----------------------------------------------------------------------------
