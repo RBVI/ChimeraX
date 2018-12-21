@@ -1566,7 +1566,6 @@ class Volume(Model):
     if nvox >= min_status_message_voxels:
       self.message('Computing histogram for %s' % self.name)
     ipv = getattr(self.data, 'ignore_pad_value', None)
-    print ('vol ignore padd value', ipv)
     from .data import MatrixValueStatistics
     self.matrix_stats = ms = MatrixValueStatistics(matrices, ignore_pad_value = ipv)
     if nvox >= min_status_message_voxels:    
