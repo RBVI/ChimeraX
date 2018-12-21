@@ -198,11 +198,7 @@ def _get_formatted_metadata(model, session, *, verbose=False):
     return html
 
 def _get_formatted_res_info(model, *, standalone=True):
-    from chimerax.atomic.pdb import process_chem_name
-    html = ""
-    nonstd_res_names = model.nonstandard_residue_names
-    if nonstd_res_names:
-        nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
+    def update_nonstd(model, nonstd_info):
         chem_comp = get_mmcif_tables_from_metadata(model, ["chem_comp"])[0]
         if chem_comp:
             raw_rows = chem_comp.fields(['id', 'name', 'pdbx_synonyms'], allow_missing_fields=True)
@@ -212,42 +208,8 @@ def _get_formatted_res_info(model, *, standalone=True):
                 row = substitute_none_for_unspecified(raw_row)
                 if row[1] or row[2]:
                     nonstd_info[row[0]] = (row[0], row[1], row[2])
-        def fmt_component(abbr, name, syns):
-            text = '<a title="select residue" href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
-            if name:
-                text += '<a title="show residue info" href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
-                    process_chem_name(name))
-                if syns:
-                    text += " (%s)" % process_chem_name(syns)
-            else:
-                text += process_chem_name(syns)
-            return text
-        if standalone:
-            from chimerax.core.logger import html_table_params
-            html = "<table %s>\n" % html_table_params
-            html += ' <thead>\n'
-            html += '  <tr>\n'
-            html += '   <th>Non-standard residues in %s</th>\n' % model
-            html += '  </tr>\n'
-            html += ' </thead>\n'
-            html += ' <tbody>\n'
-
-        for i, info in enumerate(nonstd_info.values()):
-            abbr, name, synonyms = info
-            html += '  <tr>\n'
-            formatted = fmt_component(abbr, name, synonyms)
-            if i == 0 and not standalone:
-                if len(nonstd_info) > 1:
-                    html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(nonstd_info)
-                else:
-                    html += '   <th>Non-standard residue</th>\n'
-            html += '   <td>%s</td>\n' % formatted
-            html += '  </tr>\n'
-
-        if standalone:
-            html += ' </tbody>\n'
-            html += "</table>"
-    return html
+    from chimerax.atomic.pdb import format_nonstd_res_info
+    return format_nonstd_res_info(model, update_nonstd, standalone)
 
 def _process_src(src, caption, field_names):
     raw_rows = src.fields(field_names, allow_missing_fields=True)

@@ -67,6 +67,7 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
             from types import MethodType
             from weakref import proxy
             m.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(m))
+            m.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(m))
 
     return models, info
 
@@ -199,6 +200,80 @@ def collate_records_text(records, multiple_results=False):
     for record in records:
         text += " " + record[10:].strip()
     return text
+
+def collate_het_records(records):
+    return collate_subtyped_records(records, 8, 10, 11, 14, 15)
+
+def collate_jrnl_records(records):
+    return collate_subtyped_records(records, 16, 18, 12, 16, 19)
+
+def collate_subtyped_records(records, cont_start, cont_end, type_start, type_end, data_start):
+    collated = {}
+    for rec in records:
+        if rec[cont_start:cont_end].strip():
+            # continuation
+            collated[subtype] = collated[subtype] + rec[data_start:].strip()
+        else:
+            subtype = rec[type_start:type_end].strip()
+            collated[subtype] = rec[data_start:].strip()
+    return collated
+
+def _get_formatted_res_info(model, *, standalone=True):
+    def update_nonstd(model, nonstd_info):
+        names = collate_het_records(model.metadata.get('HETNAM', {}))
+        syns = collate_het_records(model.metadata.get('HETSYN', {}))
+        for het, info in list(nonstd_info.items()):
+            if het not in names and het not in syns:
+                continue
+            name = process_chem_name(names[het]) if het in names else info[1]
+            syn = process_chem_name(syns[het]) if het in syns else info[2]
+            nonstd_info[het] = (info[0], name, syn)
+    return format_nonstd_res_info(model, update_nonstd, standalone)
+
+# also used by mmcif
+def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
+    from chimerax.atomic.pdb import process_chem_name
+    html = ""
+    nonstd_res_names = model.nonstandard_residue_names
+    if nonstd_res_names:
+        nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
+        update_nonstd_res_info(model, nonstd_info)
+        def fmt_component(abbr, name, syns):
+            text = '<a title="select residue" href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
+            if name:
+                text += '<a title="show residue info" href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
+                    process_chem_name(name))
+                if syns:
+                    text += " (%s)" % process_chem_name(syns)
+            else:
+                text += process_chem_name(syns)
+            return text
+        if standalone:
+            from chimerax.core.logger import html_table_params
+            html = "<table %s>\n" % html_table_params
+            html += ' <thead>\n'
+            html += '  <tr>\n'
+            html += '   <th>Non-standard residues in %s</th>\n' % model
+            html += '  </tr>\n'
+            html += ' </thead>\n'
+            html += ' <tbody>\n'
+
+        for i, info in enumerate(nonstd_info.values()):
+            abbr, name, synonyms = info
+            html += '  <tr>\n'
+            formatted = fmt_component(abbr, name, synonyms)
+            if i == 0 and not standalone:
+                if len(nonstd_info) > 1:
+                    html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(nonstd_info)
+                else:
+                    html += '   <th>Non-standard residue</th>\n'
+            html += '   <td>%s</td>\n' % formatted
+            html += '  </tr>\n'
+
+        if standalone:
+            html += ' </tbody>\n'
+            html += "</table>"
+    return html
 
 # also used by mmcif
 def format_source_name(common_name, scientific_name, genus, species, ncbi_id):
@@ -347,22 +422,23 @@ def _get_formatted_metadata(model, session, *, verbose=False):
         html += '   <td>%s</td>\n' % model.html_title
         html += '  </tr>\n'
 
-    """
-    # citations
-    cites = citations(model)
-    if cites:
+    # citation
+    cite = collate_jrnl_records(model.metadata.get('JRNL', []))
+    if 'TITL' in cite:
+        cite_text = process_chem_name(cite['TITL'], sentences=True)
+        if 'DOI' in cite:
+            cite_text = '<a href="http://dx.doi.org/%s">%s</a>' % (cite['DOI'], cite_text)
+        if 'PMID' in cite:
+            cite_text += ' PMID: <a href="http://www.ncbi.nlm.nih.gov/pubmed/%s">%s</a>' % (
+                cite['PMID'], cite['PMID'])
         html += '  <tr>\n'
-        if len(cites) > 1:
-            html += '   <th rowspan="%d">Citations</th>\n' % len(cites)
-        else:
-            html += '   <th>Citation</th>\n'
-        html += '   <td>%s</td>\n' % cites[0]
+        html += '   <th>Citation</th>\n'
+        html += '   <td>%s</td>\n' % cite_text
         html += '  </tr>\n'
-        for cite in cites[1:]:
-            html += '  <tr>\n'
-            html += '   <td>%s</td>\n' % cite
-            html += '  </tr>\n'
-    """
+
+    # non-standard residues
+    html += model.get_formatted_res_info(standalone=False)
+
     # source
     engineered = None
     genes = set()
