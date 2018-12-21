@@ -53,7 +53,6 @@ class MatrixValueStatistics:
             for m in matrices]
     self.minimum = min(mn for mn,mx in mm)
     self.maximum = max(mx for mn,mx in mm)
-    print ('m stats', ignore_pad_value, self.minimum, self.maximum)
 
     # Determine center values for first and last bins, and bin size.
     fbc, lbc, bsize = self.bin_range(bins)
