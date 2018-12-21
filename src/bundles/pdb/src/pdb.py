@@ -201,21 +201,27 @@ def collate_records_text(records, multiple_results=False):
         text += " " + record[10:].strip()
     return text
 
-def compose_het_records(records):
-    composed = {}
+def collate_het_records(records):
+    return collate_subtyped_records(records, 8, 10, 11, 14, 15)
+
+def collate_jrnl_records(records):
+    return collate_subtyped_records(records, 16, 18, 12, 16, 19)
+
+def collate_subtyped_records(records, cont_start, cont_end, type_start, type_end, data_start):
+    collated = {}
     for rec in records:
-        if rec[8:10].strip():
+        if rec[cont_start:cont_end].strip():
             # continuation
-            composed[het] = composed[het] + rec[15:].strip()
+            collated[subtype] = collated[subtype] + rec[data_start:].strip()
         else:
-            het = rec[11:14].strip()
-            composed[het] = rec[15:].strip()
-    return composed
+            subtype = rec[type_start:type_end].strip()
+            collated[subtype] = rec[data_start:].strip()
+    return collated
 
 def _get_formatted_res_info(model, *, standalone=True):
     def update_nonstd(model, nonstd_info):
-        names = compose_het_records(model.metadata.get('HETNAM', {}))
-        syns = compose_het_records(model.metadata.get('HETSYN', {}))
+        names = collate_het_records(model.metadata.get('HETNAM', {}))
+        syns = collate_het_records(model.metadata.get('HETSYN', {}))
         for het, info in list(nonstd_info.items()):
             if het not in names and het not in syns:
                 continue
@@ -416,22 +422,19 @@ def _get_formatted_metadata(model, session, *, verbose=False):
         html += '   <td>%s</td>\n' % model.html_title
         html += '  </tr>\n'
 
-    """
-    # citations
-    cites = citations(model)
-    if cites:
+    # citation
+    cite = collate_jrnl_records(model.metadata.get('JRNL', []))
+    if 'TITL' in cite:
+        cite_text = process_chem_name(cite['TITL'], sentences=True)
+        if 'DOI' in cite:
+            cite_text = '<a href="http://dx.doi.org/%s">%s</a>' % (cite['DOI'], cite_text)
+        if 'PMID' in cite:
+            cite_text += ' PMID: <a href="http://www.ncbi.nlm.nih.gov/pubmed/%s">%s</a>' % (
+                cite['PMID'], cite['PMID'])
         html += '  <tr>\n'
-        if len(cites) > 1:
-            html += '   <th rowspan="%d">Citations</th>\n' % len(cites)
-        else:
-            html += '   <th>Citation</th>\n'
-        html += '   <td>%s</td>\n' % cites[0]
+        html += '   <th>Citation</th>\n'
+        html += '   <td>%s</td>\n' % cite_text
         html += '  </tr>\n'
-        for cite in cites[1:]:
-            html += '  <tr>\n'
-            html += '   <td>%s</td>\n' % cite
-            html += '  </tr>\n'
-    """
 
     # non-standard residues
     html += model.get_formatted_res_info(standalone=False)
