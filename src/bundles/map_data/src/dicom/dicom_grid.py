@@ -17,15 +17,21 @@ from .. import GridData
 # -----------------------------------------------------------------------------
 #
 def dicom_grids(paths, verbose = False):
-  from .dicom_format import DicomData
-  d = DicomData(paths, verbose = verbose)
-  if d.mode == 'RGB':
-    grids = [DicomGrid(d, channel) for channel in (0,1,2)]
-    colors = [(1,0,0,1), (0,1,0,1), (0,0,1,1)]
-    for g,rgba in zip(grids,colors):
-      g.rgba = rgba
-  else:
-    grids = [DicomGrid(d)]
+  from .dicom_format import find_dicom_series, DicomData
+  series = find_dicom_series(paths, verbose = verbose)
+  grids = []
+  for s in series:
+    d = DicomData(s)
+    if d.mode == 'RGB':
+      cgrids = [DicomGrid(d, channel) for channel in (0,1,2)]
+      colors = [(1,0,0,1), (0,1,0,1), (0,0,1,1)]
+      suffixes = [' red', ' green', ' blue']
+      for g,rgba,cname in zip(cgrids,colors,suffixes):
+        g.name += cname
+        g.rgba = rgba
+      grids.extend(cgrids)
+    else:
+      grids.append(DicomGrid(d))
   return grids
 
 # -----------------------------------------------------------------------------
@@ -38,7 +44,8 @@ class DicomGrid(GridData):
 
     GridData.__init__(self, d.data_size, d.value_type,
                       d.data_origin, d.data_step,
-                      path = d.paths, file_type = 'imagestack', channel = channel)
+                      path = d.paths, name = d.name,
+                      file_type = 'dicom', channel = channel)
 
     self.initial_plane_display = True
     self.initial_thresholds_linear = True

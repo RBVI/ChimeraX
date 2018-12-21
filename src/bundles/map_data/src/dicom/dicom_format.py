@@ -10,84 +10,176 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Read stack of images representing a density map.  The image filename
-# suffix gives the image number.  Images are stacked increasing order of
-# image number.  Gaps in numbering are allowed but do not create a gap in
-# the volume.
+# Look through directories to find dicom files (.dcm) and group the ones
+# that belong to the same study and image series.  Also determine the order
+# of the 2D images (one per file) in the 3D stack.  A series must be in a single
+# directory.  If the same study and series is found in two directories, they
+# are treated as two different series.
 #
+def find_dicom_series(paths, search_directories = True, search_subdirectories = True, verbose = False):
+  dfiles = files_by_directory(paths, search_directories = search_directories,
+                              search_subdirectories = search_subdirectories)
+  series = []
+  for dpaths in dfiles.values():
+    series.extend(dicom_file_series(dpaths, verbose = verbose))
+  return series
 
+# -----------------------------------------------------------------------------
+# Group dicom files into series.
+#
+def dicom_file_series(paths, verbose = False):
+  series = {}
+  from pydicom import dcmread
+  for path in paths:
+    d = dcmread(path)
+    if hasattr(d, 'SeriesInstanceUID'):
+      series_id = d.SeriesInstanceUID
+      if series_id in series:
+        s = series[series_id]
+      else:
+        series[series_id] = s = Series()
+        if verbose:
+          print ('Data set: %s\n%s\n' % (path, d))
+      s.add(path, d)
+  series = tuple(series.values())
+  for s in series:
+    s.order_slices()
+  return series
+
+# -----------------------------------------------------------------------------
+# Set of dicom files (.dcm suffix) that have the same series unique identifer (UID).
+#
+class Series:
+  dicom_attributes = ['BitsAllocated', 'Columns', 'Modality',
+                      'PatientID', 'PhotometricInterpretation',
+                      'PixelPaddingValue', 'PixelRepresentation', 'PixelSpacing',
+                      'RescaleIntercept', 'RescaleSlope', 'Rows',
+                      'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID',
+                      'StudyDate']
+  def __init__(self):
+    self.paths = []
+    self.positions = []
+    self.nums = []
+    self.attributes = {}
+  def add(self, path, data):
+    if len(self.paths) == 0:
+      attrs = self.attributes
+      for attr in self.dicom_attributes:
+        if hasattr(data, attr):
+          attrs[attr] = getattr(data, attr)
+
+    self.paths.append(path)
+
+    pos = getattr(data, 'ImagePositionPatient', None)
+    xyz = tuple(float(p) for p in pos) if pos else None
+    self.positions.append(xyz)
+    
+    num = getattr(data, 'InstanceNumber', None)
+    n = int(num) if num else None
+    self.nums.append(n)
+    
+  def order_slices(self):
+    paths = self.paths
+    if len(paths) <= 1:
+      return paths
+    
+    for path,num in zip(paths, self.nums):
+      if num is None:
+        raise ValueError("Missing dicom InstanceNumber, can't order slice %s" % path)
+
+    from numpy import argsort
+    si = argsort(self.nums)
+    # TODO: Slices are not necessarily stacked in z.
+    z0, z1 = self.nums[si[0]], self.nums[si[1]]
+    if z0 > z1:
+      from numpy import flip
+      flip(si, axis=0)
+    self.paths = tuple(paths[i] for i in si)
+    self.positions = tuple(self.positions[i] for i in si)
+    self.nums = tuple(self.nums[i] for i in si)
+
+  def z_plane_spacing(self):
+    pos = self.positions
+    if len(pos) < 2:
+      dz = None
+    else:
+      dz = pos[1][2] - pos[0][2]
+    return dz
+  
+# -----------------------------------------------------------------------------
+# Find all dicom files (suffix .dcm) in directories and subdirectories and
+# group them by directory.
+#
+def files_by_directory(paths, search_directories = True, search_subdirectories = True,
+                       suffix = '.dcm', _dfiles = None):
+  dfiles = {} if _dfiles is None else _dfiles
+  from os.path import isfile, isdir, dirname, join
+  from os import listdir
+  for p in paths:
+    if isfile(p) and p.endswith(suffix):
+      d = dirname(p)
+      if d in dfiles:
+        dfiles[d].add(p)
+      else:
+        dfiles[d] = set([p])
+    elif search_directories and isdir(p):
+      ppaths = [join(p,fname) for fname in listdir(p)]
+      files_by_directory(ppaths, search_directories=search_subdirectories,
+                         search_subdirectories=search_subdirectories, _dfiles=dfiles)
+  return dfiles
+  
 # -----------------------------------------------------------------------------
 #
 class DicomData:
 
-  def __init__(self, paths, verbose = False):
+  def __init__(self, series):
 
-    if isinstance(paths, str):
-      paths = indexed_files(paths)
-      if not paths:
-        raise SyntaxError('No files found %s' % path)
-    self.paths = tuple(ordered_paths(paths))
+    self.paths = series.paths
 
-    import pydicom
-    d = pydicom.dcmread(self.paths[0])
+    attrs = series.attributes
+    name = '%s %s %s' % (attrs.get('PatientID', '')[:4],
+                         attrs.get('SeriesDescription', ''),
+                         attrs.get('StudyDate', ''))
+    self.name = name
 
-#    for attr in ['AccessionNumber', 'BitsAllocated', 'BitsStored', 'Columns', 'HighBit', 'ImageOrientationPatient', 'ImagePositionPatient', 'ImageType', 'InstanceCreationDate', 'InstanceCreationTime', 'InstanceNumber', 'Modality', 'PatientBirthDate', 'PatientID', 'PatientName', 'PatientSex', 'PhotometricInterpretation', 'PixelRepresentation', 'PixelSpacing', 'ReferringPhysicianName', 'RescaleIntercept', 'RescaleSlope', 'RescaleType', 'Rows', 'SOPClassUID', 'SOPInstanceUID', 'SamplesPerPixel', 'SeriesDate', 'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber', 'SeriesTime', 'StudyDate', 'StudyID', 'StudyInstanceUID', 'StudyTime']:
-#      print (attr, getattr(d, attr, 'no value'))
-    if verbose:
-      print(d)
-
-#      print ('spacing', d.SpacingBetweenSlices)
-#    print('dicom file dir', dir(d))
-
-    rsi = float(getattr(d, 'RescaleIntercept', 0))
+    
+    rsi = float(attrs.get('RescaleIntercept', 0))
     if rsi == int(rsi):
       rsi = int(rsi)
     self.rescale_intercept = rsi
-    self.rescale_slope = float(getattr(d, 'RescaleSlope', 1))
+    self.rescale_slope = float(attrs.get('RescaleSlope', 1))
 
-    self.value_type = numpy_value_type(d.BitsAllocated, d.PixelRepresentation,
+    self.value_type = numpy_value_type(attrs['BitsAllocated'], attrs['PixelRepresentation'],
                                        self.rescale_slope, self.rescale_intercept)
-    if d.SamplesPerPixel == 1:
+    ns = attrs['SamplesPerPixel']
+    if ns == 1:
       mode = 'grayscale'
-    elif d.SamplesPerPixel == 3:
+    elif ns == 3:
       mode = 'RGB'
     else:
-      raise ValueError('Only 1 or 3 samples per pixel supported, got', d.SamplesPerPixel)
+      raise ValueError('Only 1 or 3 samples per pixel supported, got', ns)
     self.mode = mode
     self.channel = 0
-    if d.PhotometricInterpretation == 'MONOCHROME1':
+    pi = attrs['PhotometricInterpretation']
+    if pi == 'MONOCHROME1':
       pass # Bright to dark values.
-    if d.PhotometricInterpretation == 'MONOCHROME2':
+    if pi == 'MONOCHROME2':
       pass # Dark to bright values.
 
-    if hasattr(d, 'PixelPaddingValue'):
-      self.pad_value = self.rescale_slope * d.PixelPaddingValue + self.rescale_intercept
+    ppv = attrs.get('PixelPaddingValue')
+    if ppv is not None:
+      self.pad_value = self.rescale_slope * ppv + self.rescale_intercept
       print('padding value', self.pad_value)
     else:
       self.pad_value = None
 
-    self.reverse_stack = False
-    n = int(d.InstanceNumber)
-    x,y,z = [float(p) for p in d.ImagePositionPatient]
-    zs = 1
-    if len(self.paths) > 1:
-      # TODO: Need to read every image because file numbering may
-      # not match image number and image position.  Also need to
-      # check that images are uniformly spaced.
-      d2 = pydicom.dcmread(self.paths[1])
-      n2 = int(d2.InstanceNumber)
-      x2,y2,z2 = [float(p) for p in d2.ImagePositionPatient]
-      if n2 == n + 1 or n2 == n - 1:
-        zs = abs(z2 - z)
-        if z2 < z:
-          self.reverse_stack = True
-      else:
-        print('Did not get z spacing, first two images were not consecutive', n, n2)
-
-    xsize, ysize = d.Columns, d.Rows
+    xsize, ysize = attrs['Columns'], attrs['Rows']
 
     self.data_size = (xsize, ysize, len(self.paths))
-    xs, ys = [float(s) for s in d.PixelSpacing]
+    xs, ys = [float(s) for s in attrs['PixelSpacing']]
+    zs = series.z_plane_spacing()
+    if zs is None:
+      zs = 1 # Single plane image
     self.data_step = (xs, ys, zs)
     self.data_origin = (0.0, 0.0, 0.0)
 
@@ -115,70 +207,12 @@ class DicomData:
   # ---------------------------------------------------------------------------
   #
   def read_plane(self, k, channel = None):
-    p = self.data_size[2]-1-k if self.reverse_stack else k
     import pydicom
-    d = pydicom.dcmread(self.paths[p])
+    d = pydicom.dcmread(self.paths[k])
     data = d.pixel_array
     if channel is not None:
       data = data[:,:,channel]
     return data
-
-# -----------------------------------------------------------------------------
-# Find files matching wildcard pattern.
-#
-def indexed_files(path):
-
-  if '*' in path or '?' in path:
-    import glob
-    paths = glob.glob(path)
-    return paths
-
-  return [path]
-
-# -----------------------------------------------------------------------------
-#
-def ordered_paths(paths):
-  opaths = list(paths)
-  prefix, suffix = common_prefix_and_suffix(opaths)
-#  print('common prefix, suffix', prefix, suffix)
-  pi = len(prefix)
-  si = len(suffix)
-  if integer_sequence([p[pi:-si] for p in opaths]):
-#    print ('int seq')
-    # Sort by integer in filename that may not be zero padded.
-    opaths.sort(key = lambda p: int(p[pi:-si]))
-  else:
-    # Sort alphabetically
-    opaths.sort()
-  return opaths
-
-# -----------------------------------------------------------------------------
-#
-def common_prefix_and_suffix(strings):
-  prefix = suffix = strings[0]
-  for s in strings[1:]:
-    if not s.startswith(prefix):
-      for i in range(min(len(prefix), len(s))):
-        if s[i] != prefix[i]:
-          prefix = prefix[:i]
-          break
-    if not s.endswith(suffix):
-      for i in range(min(len(suffix), len(s))):
-        if s[-1-i] != suffix[-1-i]:
-          suffix = suffix[len(suffix)-i:]
-          break
-  return prefix, suffix
-
-# -----------------------------------------------------------------------------
-# Are all strings integers.
-#
-def integer_sequence(strings):
-  try:
-    for s in strings:
-      int(s)
-  except ValueError:
-    return False
-  return True
 
 # -----------------------------------------------------------------------------
 # PixelRepresentation 0 = unsigned, 1 = signed
