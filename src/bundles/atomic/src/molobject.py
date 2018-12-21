@@ -448,6 +448,15 @@ class PseudobondGroupData:
             pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer, cs_id)
         return pb
 
+    def new_pseudobonds(self, atoms1, atoms2):
+        "Create new pseudobonds between the specified :class:`Atoms` atoms. "
+        f = c_function('pseudobond_group_new_pseudobonds',
+                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int),
+                       ret = ctypes.py_object)
+        ptrs = f(self._c_pointer, atoms1._c_pointers, atoms2._c_pointers, len(atoms1))
+        from .molarray import Pseudobonds
+        return Pseudobonds(ptrs)
+
     # Graphics changed flags used by rendering code.  Private.
     _SHAPE_CHANGE = 0x1
     _COLOR_CHANGE = 0x2
@@ -455,7 +464,8 @@ class PseudobondGroupData:
     _RIBBON_CHANGE = 0x8
     _ADDDEL_CHANGE = 0x10
     _DISPLAY_CHANGE = 0x20
-    _ALL_CHANGE = 0x2f
+    _RING_CHANGE = 0x40
+    _ALL_CHANGE = 0x6f  # not _ADDDEL_CHANGE
     _graphics_changed = c_property('pseudobond_group_graphics_change', int32)
 
 
@@ -618,6 +628,8 @@ class Ring:
     A ring in the structure.
     '''
 
+    has_custom_attrs = False
+
     def __init__(self, ring_pointer):
         set_c_pointer(self, ring_pointer)
 
@@ -698,6 +710,11 @@ class Sequence(State):
     amino3to1 = protein3to1
     rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
         ret = ctypes.c_char)(rn.encode('utf-8')).decode('utf-8')
+
+    protein1to3 = { 'A':'ALA', 'B':'ASX', 'C':'CYS', 'D':'ASP', 'E':'GLU', 'F':'PHE',
+        'G':'GLY', 'H':'HIS', 'I':'ILE', 'K':'LYS', 'L':'LEU', 'M':'MET', 'N':'ASN',
+        'O':'HYP', 'P':'PRO', 'Q':'GLN', 'R':'ARG', 'S':'SER', 'T':'THR', 'V':'VAL',
+        'W':'TRP', 'Y':'TYR', 'Z':'GLX' }
 
     # the following colors for use by alignment/sequence viewers
     default_helix_fill_color = (1.0, 1.0, 0.8)
@@ -1307,13 +1324,8 @@ class StructureData:
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     RIBBON_MODE_WRAP = 2
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
-
-    def ribbon_orients(self, residues=None):
-        '''Return array of orientation values for given residues.'''
-        if residues is None:
-            residues = self.residues
-        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
-        return f(self._c_pointer, residues._c_pointers, len(residues))
+    ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
+        doc = "Return number of residues with ring display set. Integer.")
 
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
@@ -1323,6 +1335,31 @@ class StructureData:
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         p = f(self._c_pointer)
         return p
+
+    def chain_trace_atoms(self):
+        '''
+        Find pairs of atoms that should be connected in a chain trace.
+        Returns None or a 2-tuple of two Atoms instances where corresponding atoms
+        should be connected.  A chain trace connects two adjacent CA atoms if both
+        atoms are shown but the intervening C and N atoms are not shown.  Adjacent
+        means that there is a bond between the two residues.  So for instance CA-only
+        structures has no bond between the residues and those do not show a chain trace
+        connection, instead they show a "missing structure" connection.  For nucleic
+        acid chains adjacent displayed P atoms with undisplayed intervening O3' and O5'
+        atoms are part of a chain trace.
+        '''
+        f = c_function('structure_chain_trace_atoms', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        ap = f(self._c_pointer)
+        if ap is None:
+            return None
+        else:
+            from .molarray import Atoms
+            return (Atoms(ap[0]), Atoms(ap[1]))
+
+    def combine_sym_atoms(self):
+        '''Combine "symmetry" atoms, which for this purpose is atoms with the same element type
+           on the exact same 3D position'''
+        f = c_function('structure_combine_sym_atoms', args = (ctypes.c_void_p,))(self._c_pointer)
 
     def add_coordset(self, id, xyz):
         '''Supported API. Add a coordinate set with the given id.'''
@@ -1386,6 +1423,16 @@ class StructureData:
         '''Supported API. Delete the specified Bond.'''
         f = c_function('structure_delete_bond', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, bond._c_pointer)
+
+    """
+    # Deleting atoms will delete residues as needed, so there probably is no need to expose this
+    # method, particularly since ported Chimera1 code -- which had to delete empty residues "by
+    # hand" -- may wind up deleting an already-deleted residue
+    def delete_residue(self, res):
+        '''Supported API. Delete the specified Residue.'''
+        f = c_function('structure_delete_residue', args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, res._c_pointer)
+    """
 
     @property
     def molecules(self):
@@ -1500,6 +1547,13 @@ class StructureData:
         g = StructureData(logger=session.logger)
         g.set_state_from_snapshot(session, data)
         return g
+
+    def ribbon_orients(self, residues=None):
+        '''Return array of orientation values for given residues.'''
+        if residues is None:
+            residues = self.residues
+        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
+        return f(self._c_pointer, residues._c_pointers, len(residues))
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings found in this Structure.
@@ -1629,7 +1683,8 @@ class StructureData:
     _RIBBON_CHANGE = 0x8
     _ADDDEL_CHANGE = 0x10
     _DISPLAY_CHANGE = 0x20
-    _ALL_CHANGE = 0x2f
+    _RING_CHANGE = 0x40
+    _ALL_CHANGE = 0x6f  # not _ADDDEL_CHANGE
     _graphics_changed = c_property('structure_graphics_change', int32)
 
 # -----------------------------------------------------------------------------

@@ -634,7 +634,7 @@ class Collator:
     surround the code whose messages you want collated with a 'with' context
     using an instance of this class, e.g.::
 
-        from chimera.core.logger import Collator
+        from chimerax.core.logger import Collator
         with Collator(session.logger, "Problems found while doing X"):
             ...code to collate...
 

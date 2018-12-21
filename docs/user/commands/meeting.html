@@ -29,14 +29,14 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>meeting</b> &nbsp;<b>start</b>&nbsp;
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;] 
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>&nbsp;] 
-[&nbsp;<b>headImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
+[&nbsp;<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
 <span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<i>host</i>&nbsp;
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;] 
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>&nbsp;] 
-[&nbsp;<b>headImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
+[&nbsp;<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
 <span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -51,7 +51,7 @@ two or more ChimeraX instances running on different computers.
 Its main purpose is to allow multi-person
 <a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX, 
 although it can also be used without VR. 
-Each participant is represented by a head image and 
+Each participant is represented by an image and 
 hand-controller pointers (or if not using VR, the mouse pointer)
 so that participants can see each other pointing at atoms in the scene.
 See also: <a href="vr.html"><b>vr</b></a>
@@ -63,7 +63,7 @@ where <i>host</i> is the hostname or IP address of the starting instance
 (<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>).
 </p><p>
 Each participant can specify a <b>name</b> to serve as an identifier 
-within the shared environment, a <b>headImage</b> file, 
+within the shared environment, a <b>faceImage</b> file, 
 and a pointer-cone <b>color</b>.
 </p><p>
 Aside from synchronizing pointers, the <b>meeting</b> command will 
@@ -94,7 +94,7 @@ and has several <a href="#limitations">limitations</a>.
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>participant-name</i>
 <br>
-Name to show for a participant's pointer and head-image models
+Name to show for a participant's pointer and image models
 in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
 </blockquote>
 <blockquote>
@@ -104,7 +104,7 @@ Color for the cones representing a VR participant's hand-controller pointers
 (or non-VR participant's mouse pointer).
 </blockquote>
 <blockquote>
-<b>headImage</b>&nbsp;&nbsp;<i>image-file</i>
+<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>
 <br>
 Image to represent a VR participant's headset position,
 where <i>image-file</i> is the pathname of a JPG or PNG file.
@@ -157,20 +157,33 @@ the position is only displayed to others when it hovers over an atom.
 </p>
 <h3>Limitations and Potential Developments</h3>
 <p>
-After the initial scene is shared, the only changes 
-that are automatically propagated are moving and scaling 
-the displayed structures and (by <a href="#relayCommands">default</a>) 
-executing <a href="../index.html#commands">commands</a>.
-If a participant makes any unshared changes or
-introduces data for which the input file is not directly accessible 
-to others (<i>i.e.</i>, the same <a href="open.html"><b>open</b></a>
-command will not work for everyone), <b>meeting send</b> 
-is needed to share the updated session.
-This may be slow for large amounts of data.
-</p><p>
+  <b>Synchronizing changes.</b>
+  After the initial scene is shared not all changes made by one participant will
+  be propagated to other participants.  Changes that are propagated
+  include moving and scaling the displayed structures and (by <a href="#relayCommands">default</a>) 
+  executing <a href="../index.html#commands">commands</a>.
+  If a participant makes any unshared changes or
+  introduces data for which the input file is not directly accessible 
+  to others (<i>i.e.</i>, the same <a href="open.html"><b>open</b></a>
+  command will not work for everyone), <b>meeting send</b> 
+  is needed to share the updated session.
+  This may be slow for large amounts of data.
+</p>
+
+<p>
+  <b>More than two participants.</b>
+  The meeting command has had very limited testing with more than 2 participants.
+  Multiple participants may cause errors or slow display updating.
+</p>
+
+<p>
+  <b>No audio chat support.</b>
 An audio connection is not provided,
 so it is necessary to set up a separate audio link for remote participants.
-</p><p>
+</p>
+
+<p>
+  <b>Firewalls block connections.</b>
 Most academic institutions have firewalls that block incoming network 
 connections, and require administrative requests to open up network ports.
 A more usable design for shared ChimeraX sessions
@@ -182,7 +195,32 @@ However, this is a complex undertaking that would require
 accounts and payment for commercial services.
 </p>
 
+<p>
+<b>Aligning two VR headsets in one room.</b>
+Two Vive or Vive Pro VR headsets can be used in the same room, each connected
+to its own computer. Each headset uses the same pair of base stations.
+A problem sometimes arises that the two headsets do not see the 
+ChimeraX structures displayed at the same location in the room.
+Specifically, one headset may see the structure positions 
+as if the room is rotated 180&deg; relative to the other headset.
+This happens because the SteamVR room setup is run separately on each computer
+and produces a different coordinate system. For structures to have the same
+room position in both headsets, the room boundaries traced using SteamVR room
+setup should be the same for both computers. The first step of SteamVR room
+setup in which users are asked to point the hand controller at the screen 
+and click is the key to avoiding 180&deg; misorientation. At that step, it
+is important to point along the short axis of the 
+rectangle defining the room bounds (that will be traced in a later step).
+SteamVR chooses between two coordinate system orientations
+rotated 180&deg; from each other based on the direction of pointing.
+If pointing is along the long axis of the rectangle bounds, a slight tilt 
+toward the left or right of the long axis produces opposite coordinate 
+system orientations. Pointing along the short axis instead is a reliable
+way to make both computers use the same orientation.
+(The computer screen position is irrelevant.)
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+December 2018</address>
 </body></html>

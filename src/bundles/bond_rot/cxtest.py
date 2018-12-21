@@ -6,6 +6,7 @@ dist_atoms = []
 torsion_atoms = []
 for r in session.models[0].residues:
 	if r.number == 17:
+		r17 = r
 		nh1 = r.find_atom('NH1')
 		dist_atoms.append(nh1)
 	elif r.number == 24:
@@ -18,3 +19,7 @@ run(session, "torsion :17@nh1,cg,cd,cb 50")
 d = distance(nh1.coord, oe1.coord)
 if d < 9.96 or d > 9.97:
 	raise SystemExit("Distance between %s and %s after torsion change not 9.963!" % (nh1, oe1))
+
+run(session, "setattr :17 r phi -120")
+if r17.phi < -120.1 or r17.phi > -119.9:
+	raise SystemExit("Setting phi to -120 didn't work! (%g instead)" % r17.phi)

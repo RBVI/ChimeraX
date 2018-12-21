@@ -17,14 +17,15 @@ _SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "by
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
 
-DEFAULT_TARGETS = 'acsbp'
-ALL_TARGETS = 'acrsbp'
+DEFAULT_TARGETS = 'acsbpf'
+ALL_TARGETS = 'acrsbpf'
 WHAT_TARGETS = {
     'atoms': 'a',
     'cartoons': 'c', 'ribbons': 'c',
     'surfaces': 's',
     'bonds': 'b',
     'pseudobonds': 'p',
+    'rings': 'f',
     'All': ALL_TARGETS
 }
 
@@ -57,10 +58,10 @@ def color(session, objects, color=None, what=None, target=None,
       Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
-    target : string containing letters 'a', 'b', 'c', 'p', 'r', 's'
+    target : string containing letters 'a', 'b', 'c', 'p', 'r', 's', 'f'
       Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
-      b = bonds, p = pseudobonds
+      b = bonds, p = pseudobonds, f = (filled) rings
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
@@ -126,10 +127,17 @@ def color(session, objects, color=None, what=None, target=None,
             ns += len(mlist)
         items.append('%d surfaces' % ns)
 
+    residues = None
     if 'c' in target and color is not None:
         residues = atoms.unique_residues
         _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state)
         items.append('%d residues' % len(residues))
+
+    if 'f' in target and color is not None:
+        if residues is None:
+            residues = atoms.unique_residues
+        _set_ring_colors(residues, color, opacity, bgcolor, undo_state)
+        items.append('rings')  # not sure how many
 
     if 'b' in target:
         if color not in _SpecialColors and color is not None:
@@ -154,7 +162,7 @@ def color(session, objects, color=None, what=None, target=None,
         items.append('nothing')
 
     from chimerax.core.commands import commas
-    session.logger.status('Colored %s' % commas(items, ' and'))
+    session.logger.status('Colored %s' % commas(items, 'and'))
     session.undo.register(undo_state)
 
 
@@ -261,6 +269,50 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
         residues.ribbon_colors = c
 
 
+def _set_ring_colors(residues, color, opacity, bgcolor, undo_state):
+    if color not in _SpecialColors:
+        c = residues.ring_colors
+        c[:, :3] = color.uint8x4()[:3]    # Preserve transparency
+        if opacity is not None:
+            c[:, 3] = opacity
+        undo_state.add(residues, "ring_colors", residues.ring_colors, c)
+        residues.ring_colors = c
+    elif color == 'bychain':
+        from chimerax.atomic.colors import chain_colors
+        c = chain_colors(residues.chain_ids)
+        c[:, 3] = residues.ring_colors[:, 3] if opacity is None else opacity
+        undo_state.add(residues, "ring_colors", residues.ring_colors, c)
+        residues.ring_colors = c
+    elif color == "bypolymer":
+        from chimerax.atomic.colors import polymer_colors
+        c,rmask = polymer_colors(residues)
+        c[rmask, 3] = residues.ring_colors[rmask, 3] if opacity is None else opacity
+        masked_residues = residues.filter(rmask)
+        undo_state.add(masked_residues, "ring_colors", masked_residues.ring_colors, c[rmask,:])
+        masked_residues.ring_colors = c[rmask,:]
+    elif color == "bynucleotide":
+        from chimerax.atomic.colors import nucleotide_colors
+        c,rmask = nucleotide_colors(residues)
+        c[rmask, 3] = residues.ring_colors[rmask, 3] if opacity is None else opacity
+        masked_residues = residues.filter(rmask)
+        undo_state.add(masked_residues, "ring_colors", masked_residues.ring_colors, c[rmask, :])
+        masked_residues.ring_colors = c[rmask, :]
+    elif color == 'bymodel':
+        for m, res in residues.by_structure:
+            c = res.ring_colors
+            c[:, :3] = m.initial_color(bgcolor).uint8x4()[:3]
+            if opacity is not None:
+                c[:, 3] = opacity
+            undo_state.add(res, "ring_colors", res.ring_colors, c)
+            res.ring_colors = c
+    elif color == 'random':
+        from numpy import random, uint8
+        c = random.randint(0, 255, (len(residues), 4)).astype(uint8)
+        c[:, 3] = 255   # No transparency
+        undo_state.add(residues, "ring_colors", residues.ring_colors, c)
+        residues.ring_colors = c
+
+
 def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state=None):
     # TODO: save undo data
     if color in _SpecialColors:
@@ -309,6 +361,9 @@ def _set_sequential_chain(session, selected, cmap, opacity, target, undo_state):
             if target is None or 'c' in target:
                 res = atoms.unique_residues
                 _set_ribbon_colors(res, c, opacity, None, undo_state)
+            if target is None or 'f' in target:
+                res = atoms.unique_residues
+                _set_ring_colors(res, c, opacity, None, undo_state)
             if target is None or 's' in target:
                 _set_surface_colors(session, atoms, c, opacity, undo_state=undo_state)
 
@@ -341,6 +396,9 @@ def _set_sequential_polymer(session, objects, cmap, opacity, target, undo_state)
                 if target is None or 'c' in target:
                     res = atoms.unique_residues
                     _set_ribbon_colors(res, c, opacity, None, undo_state)
+                if target is None or 'f' in target:
+                    res = atoms.unique_residues
+                    _set_ring_colors(res, c, opacity, None, undo_state)
                 if target is None or 's' in target:
                     _set_surface_colors(session, atoms, c, opacity, undo_state=undo_state)
 
@@ -406,6 +464,8 @@ def _set_sequential_structures(session, selected, cmap, opacity, target, undo_st
             _set_atom_colors(m.atoms, c, opacity, None, undo_state)
         if 'c' in target:
             _set_ribbon_colors(m.residues, c, opacity, None, undo_state)
+        if 'f' in target:
+            _set_ring_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
             # TODO: save surface undo data
             color_surfaces_at_atoms(m.atoms, c)
@@ -452,6 +512,13 @@ def color_func(session, objects, what=None, target=None, func=None, func_text='C
         residues.ribbon_colors = c
         what.append('%d residues' % len(residues))
 
+    if 'f' in target:
+        residues = atoms.unique_residues
+        c = func(residues.ring_colors)
+        undo_state.add(residues, "ring_colors", residues.ring_colors, c)
+        residues.ring_colors = c
+        # TODO: what.append('%d residues' % len(residues))
+
     if 'b' in target:
         bonds = objects.bonds
         if len(bonds) > 0:
@@ -473,7 +540,7 @@ def color_func(session, objects, what=None, target=None, func=None, func_text='C
         what.append('nothing')
 
     from chimerax.core.commands import commas
-    session.logger.status('%s %s' % (func_text, commas(what, ' and')))
+    session.logger.status('%s %s' % (func_text, commas(what, 'and')))
     session.undo.register(undo_state)
 
 def _set_surface_color_func(atoms, objects, session, func, undo_state=None):
@@ -956,6 +1023,15 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
         residues.ribbon_colors = rcolors
         msg.append('%d residues' % len(residues))
 
+    if 'f' in target:
+        residues = atoms.unique_residues
+        rbf = [r.atoms.bfactors.mean() for r in residues]
+        rcolors = _value_colors(palette, range, rbf)
+        rcolors[:, 3] = residues.ring_colors[:, 3] if opacity is None else opacity
+        undo_state.add(residues, "ring_colors", residues.ring_colors, rcolors)
+        residues.ring_colors = rcolors
+        # TODO: msg.append('%d residues' % len(residues))
+
     if 's' in target:
         ns = color_surfaces_at_atoms(atoms, per_atom_colors = acolors)
         if ns > 0:
@@ -997,7 +1073,8 @@ def _value_colors(palette, range, values):
     colors = cmap.interpolated_rgba8(values)
     return colors
         
-def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update = True):
+def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
+               bond_point_spacing = None, update = True):
     '''
     Color surfaces to match nearby atom colors.
 
@@ -1011,13 +1088,15 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False, update 
       If true change the surface to add cut lines exactly at color zone the boundaries. This makes sharp
       color transitions at the boundaries between different color patches.  If false, or zone option is not
       used then the surface is not changed.
+    bond_point_spacing : float
+      Include points along bonds between the given atoms at this spacing.
     update : bool
       Whether to update surface color when surface shape changes.  Default true.
     '''
     atoms = near
-    bonds = None
+    bonds = near.intra_bonds if bond_point_spacing is not None else None
     from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
-    points, colors = points_and_colors(atoms, bonds)
+    points, colors = points_and_colors(atoms, bonds, bond_point_spacing)
     for s in surfaces:
         # TODO: save undo data
         spoints = s.scene_position.inverse() * points	# Transform points to surface coordinates
@@ -1104,6 +1183,7 @@ def register_command(logger):
                    keyword=[('near', AtomsArg),
                             ('distance', FloatArg),
                             ('sharp_edges', BoolArg),
+                            ('bond_point_spacing', FloatArg),
                             ('update', BoolArg),
                        ],
                    required_arguments = ['near'],

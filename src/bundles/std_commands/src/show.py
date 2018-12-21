@@ -53,7 +53,7 @@ def show(session, objects=None, what=None, target=None, only=False):
 def what_objects(target, what, objects):
     what_to_show = set() if target is None else set(target)
     if what is not None:
-        what_to_show.update([what])
+        what_to_show.update(what)
     if len(what_to_show) == 0:
         if objects.atoms:
             what_to_show.add('atoms')
@@ -190,9 +190,9 @@ def show_models(session, objects, only, undo_state):
                 undo_state.add(m, "display", m.display, False)
                 m.display = False
 
-from chimerax.core.commands import EnumOf, Annotation
-WhatArg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons',
-                  'surfaces', 'models'))
+from chimerax.core.commands import ListOf, EnumOf, Annotation
+WhatArg = ListOf(EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons',
+                  'surfaces', 'models')))
 
 class TargetArg(Annotation):
     '''
@@ -218,7 +218,7 @@ class TargetArg(Annotation):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, \
-        NoArg, create_alias
+        NoArg, BoolArg, create_alias
     desc = CmdDesc(optional=[('objects', Or(ObjectsArg, EmptyArg)),
                              ('what', WhatArg)],
                    keyword=[('target', TargetArg),

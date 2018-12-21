@@ -219,4 +219,4 @@ class DynamicStructureHeaderSequence(DynamicHeaderSequence):
 
 registered_headers = []
 def register_header(header_class, default_on=True):
-    registered_headers.append(header_class, default_on)
+    registered_headers.append((header_class, default_on))

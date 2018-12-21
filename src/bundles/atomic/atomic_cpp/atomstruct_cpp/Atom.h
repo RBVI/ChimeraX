@@ -168,6 +168,8 @@ public:
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
     bool  is_backbone(BackboneExtent bbe) const;
+    bool  is_missing_heavy_template_neighbors(bool chain_start = false, bool chain_end = false,
+        bool no_template_okay = false) const;
     bool  is_ribose() const;
     bool  is_side_connector() const;
     bool  is_side_chain(bool only) const;

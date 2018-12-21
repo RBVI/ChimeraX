@@ -92,7 +92,7 @@ class _HelpWebView(ChimeraXHtmlView):
                 from .cmd import _generate_index
                 from chimerax import app_data_dir
                 path = os.path.join(app_data_dir, 'docs', 'user', 'index.html')
-                new_path = _generate_index(path)
+                new_path = _generate_index(path, self.session.logger)
                 if new_path is not None:
                     if sys.platform == 'win32':
                         new_path = new_path.replace(os.path.sep, '/')

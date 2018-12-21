@@ -132,12 +132,12 @@ molc_error()
         PyErr_SetString(PyExc_ValueError, e.what());
     } catch (std::ios_base::failure& e) {
         PyErr_SetString(PyExc_IOError, e.what());
+    } catch (std::regex_error& e) {
+        PyErr_SetString(PyExc_ValueError, e.what());
     } catch (std::runtime_error& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
     } catch (std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
-    } catch (std::regex_error& e) {
-        PyErr_SetString(PyExc_ValueError, e.what());
     } catch (...) {
         PyErr_SetString(PyExc_RuntimeError, "unknown C++ exception");
     }
@@ -1977,6 +1977,27 @@ extern "C" EXPORT PyObject *pseudobond_group_new_pseudobond(void *pbgroup, void 
     }
 }
 
+extern "C" EXPORT PyObject *pseudobond_group_new_pseudobonds(void *pbgroup, void *atoms1, void *atoms2, int natoms)
+{
+    Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+    Atom **a1 = static_cast<Atom **>(atoms1), **a2 = static_cast<Atom **>(atoms2);
+    std::vector<Pseudobond *> pbonds;
+    try {
+      for (int i = 0 ; i < natoms ; ++i) {
+        Pseudobond *b = pbg->new_pseudobond(a1[i], a2[i]);
+        pbonds.push_back(b);
+      }
+      Pseudobond **pbp;
+      PyObject *pb = python_voidp_array(pbonds.size(), (void***)&pbp);
+      for (size_t i = 0 ; i < pbonds.size() ; ++i)
+	pbp[i] = pbonds[i];
+      return pb;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT PyObject *pseudobond_group_new_pseudobond_csid(void *pbgroup,
     void *atom1, void *atom2, int cs_id)
 {
@@ -3263,6 +3284,63 @@ extern "C" EXPORT bool ring_less_than(void *ring, void *other)
     return lt;
 }
 
+extern "C" EXPORT void residue_ring_color(void *residues, size_t n, uint8_t *rgba)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Rgba &c = r[i]->ring_color();
+            *rgba++ = c.r;
+            *rgba++ = c.g;
+            *rgba++ = c.b;
+            *rgba++ = c.a;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_residue_ring_color(void *residues, size_t n, uint8_t *rgba)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        Rgba c;
+        for (size_t i = 0; i != n; ++i) {
+            c.r = *rgba++;
+            c.g = *rgba++;
+            c.b = *rgba++;
+            c.a = *rgba++;
+            r[i]->set_ring_color(c);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void residue_ring_display(void *residues, size_t n, npy_bool *ring_display)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::ring_display, ring_display);
+}
+
+extern "C" EXPORT void set_residue_ring_display(void *residues, size_t n, npy_bool *ring_display)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_ring_display, ring_display);
+}
+
+extern "C" EXPORT void residue_thin_rings(void *residues, size_t n, npy_bool *thin_rings)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::thin_rings, thin_rings);
+}
+
+extern "C" EXPORT void set_residue_thin_rings(void *residues, size_t n, npy_bool *thin_rings)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_thin_rings, thin_rings);
+}
+
 
 // -------------------------------------------------------------------------
 // structure sequence functions
@@ -4386,6 +4464,12 @@ extern "C" EXPORT void structure_ribbon_display_count(void *mols, size_t n, int3
     error_wrap_array_get(m, n, &Structure::ribbon_display_count, ribbon_display_count);
 }
 
+extern "C" EXPORT void structure_ring_display_count(void *mols, size_t n, int32_t *ring_display_count)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ring_display_count, ring_display_count);
+}
+
 extern "C" EXPORT void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -4720,6 +4804,66 @@ extern "C" EXPORT PyObject *structure_polymers(void *mol, int missing_structure_
     }
 }
 
+inline static bool chain_trace_connection(const Residue *r0, const Residue *r1, PolymerType ptype,
+					  const AtomName &trace_atom, const AtomName &connect_atom_0,
+					  const AtomName &connect_atom_1, Atom **atom0, Atom **atom1)
+{
+  if (r0->polymer_type() != ptype || r1->polymer_type() != ptype || !r0->connects_to(r1))
+    return false;
+  Atom *ta0 = r0->find_atom(trace_atom);
+  if (ta0 == NULL || !ta0->display() || ta0->hide())
+    return false;
+  Atom *c0 = r0->find_atom(connect_atom_0);
+  if (c0 && c0->display())
+    return false;
+  Atom *c1 = (ptype == PT_AMINO ? r1 : r0)->find_atom(connect_atom_1);
+  if (c1 && c1->display())
+    return false;
+  Atom *ta1 = r1->find_atom(trace_atom);
+  if (ta1 == NULL || !ta1->display() || ta1->hide())
+    return false;
+  *atom0 = ta0;
+  *atom1 = ta1;
+  return true;
+}
+
+extern "C" EXPORT PyObject *structure_chain_trace_atoms(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    PyObject *atom_pairs;
+    try {
+      // Find neighbor CA that are shown but intervening C and N are not shown.
+      const Structure::Residues &res = m->residues();
+      size_t nr = res.size();
+      std::vector<Atom *> cta0, cta1;
+      Atom *ta0, *ta1;
+      for (size_t i = 0 ; i < nr-1 ; ++i) {
+	Residue *r0 = res[i], *r1 = res[i+1];
+	if (chain_trace_connection(r0, r1, PT_AMINO, "CA", "C", "N", &ta0, &ta1) ||
+	    chain_trace_connection(r0, r1, PT_NUCLEIC, "P", "O5'", "O3'", &ta0, &ta1)) {
+	  cta0.push_back(ta0);
+	  cta1.push_back(ta1);
+	}
+      }
+      int na = cta0.size();
+      if (na == 0)
+	atom_pairs = python_none();
+      else {
+	void **ap0, **ap1;
+	PyObject *a0 = python_voidp_array(cta0.size(), &ap0);
+	PyObject *a1 = python_voidp_array(cta1.size(), &ap1);
+	for (int i = 0 ; i < na ; ++i) {
+	  ap0[i] = static_cast<void *>(cta0[i]);
+	  ap1[i] = static_cast<void *>(cta1[i]);
+	}
+	atom_pairs = python_tuple(a0, a1);
+      }
+    } catch (...) {
+        molc_error();
+    }
+    return atom_pairs;
+}
+
 extern "C" EXPORT void *structure_new(PyObject* logger)
 {
     try {
@@ -4739,6 +4883,16 @@ extern "C" EXPORT void *atomic_structure_new(PyObject* logger)
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" EXPORT void structure_combine_sym_atoms(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->combine_sym_atoms();
+    } catch (...) {
+        molc_error();
     }
 }
 
@@ -4790,6 +4944,19 @@ extern "C" EXPORT void structure_delete_bond(void *mol, void *bond)
     Structure *m = static_cast<Structure *>(mol);
     try {
         m->delete_bond(static_cast<Bond *>(bond));
+    } catch (...) {
+        molc_error();
+    }
+}
+
+
+extern "C" EXPORT void structure_delete_residue(void *mol, void *res)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+std::cerr << "Calling delete_residue\n";
+        m->delete_residue(static_cast<Residue *>(res));
+std::cerr << "Called delete_residue\n";
     } catch (...) {
         molc_error();
     }

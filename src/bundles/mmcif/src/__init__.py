@@ -13,8 +13,11 @@
 
 # get PDB shared lib loaded...
 import chimerax.atomic.pdb
-from .mmcif import get_mmcif_tables, get_mmcif_tables_from_metadata
-from .mmcif import open_mmcif, fetch_mmcif, citations
+from .mmcif import (
+    get_mmcif_tables, get_mmcif_tables_from_metadata,
+    open_mmcif, fetch_mmcif, citations,
+    TableMissingFieldsError, MMCIFTable
+)
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -43,13 +46,13 @@ class _PDBioAPI(BundleAPI):
 
     @staticmethod
     def open_file(session, path, file_name, *, auto_style=True, coordsets=False, atomic=True,
-                  max_models=None, log_info=True):
+                  max_models=None, log_info=True, combine_sym_atoms=True):
         # 'open_file' is called by session code to open a file
         # returns (list of models, status message)
         from . import mmcif
         return mmcif.open_mmcif(session, path, file_name, auto_style=auto_style,
                                 coordsets=coordsets, atomic=atomic, max_models=max_models,
-                                log_info=log_info)
+                                log_info=log_info, combine_sym_atoms=combine_sym_atoms)
 
     @staticmethod
     def save_file(session, path, *, models=None):

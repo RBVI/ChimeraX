@@ -16,6 +16,9 @@ from .job import BlastProteinJob
 
 
 class _MyAPI(BundleAPI):
+
+    api_version = 1
+
     @staticmethod
     def get_class(class_name):
         if class_name == 'ToolUI':
@@ -24,16 +27,18 @@ class _MyAPI(BundleAPI):
         return None
 
     @staticmethod
-    def start_tool(session, tool_name, **kw):
+    def start_tool(session, bi, ti):
         from .tool import ToolUI
-        return ToolUI(session, tool_name, **kw)
+        return ToolUI(session, ti.name)
 
     @staticmethod
-    def register_command(command_name, logger):
+    def register_command(bi, ci, logger):
+        command_name = ci.name
         from . import cmd
         if command_name == "blastprotein":
             from chimerax.core.commands import register
-            register(command_name, cmd.blastprotein_desc, cmd.blastprotein, logger=logger)
+            register(command_name, cmd.blastprotein_desc,
+                     cmd.blastprotein, logger=logger)
         elif command_name == "blastpdb":
             from chimerax.core.commands import create_alias
             create_alias(command_name, "blastprotein $*", logger=logger)

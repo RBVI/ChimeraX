@@ -37,6 +37,7 @@ class Structure(Model, StructureData):
 
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
+            '_auto_chain_trace': False,
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
             '_use_spline_normals': False,
@@ -55,11 +56,13 @@ class Structure(Model, StructureData):
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
         self._bonds_drawing = None
+        self._chain_trace_pbgroup = None
         self._ribbon_drawing = None
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         self._ribbon_spline_backbone = {}     # backbone atom positions on ribbon
+        self._ring_drawing = None
 
         self._ses_handlers = []
         t = self.session.triggers
@@ -191,7 +194,7 @@ class Structure(Model, StructureData):
 
         # TODO: For some reason ribbon drawing does not update automatically.
         # TODO: Also marker atoms do not draw without this.
-        self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
+        self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE | self._RING_CHANGE)
 
         from .molobject import set_custom_attrs
         set_custom_attrs(self, data)
@@ -263,7 +266,9 @@ class Structure(Model, StructureData):
 
     def _set_single_color(self, color):
         self.atoms.colors = color
-        self.residues.ribbon_colors = color
+        residues = self.residues
+        residues.ribbon_colors = color
+        residues.ring_colors = color
 
     single_color = property(_get_single_color, _set_single_color)
 
@@ -305,6 +310,9 @@ class Structure(Model, StructureData):
             # Displaying ribbon can set backbone atom hide bits producing shape change.
             gc |= self._graphics_changed
 
+        if gc & self._RING_CHANGE:
+            self._create_ring_graphics()
+
         # Update graphics
         self._graphics_changed = 0
         self._graphics_updater.need_update()
@@ -326,6 +334,8 @@ class Structure(Model, StructureData):
     def _update_graphics(self, changes = StructureData._ALL_CHANGE):
         self._update_atom_graphics(changes)
         self._update_bond_graphics(changes)
+        if self._auto_chain_trace:
+            self._update_chain_trace_graphics(changes)
         for pbg in self.pbg_map.values():
             pbg._update_graphics(changes)
         self._update_ribbon_graphics()
@@ -402,6 +412,50 @@ class Structure(Model, StructureData):
         if changes & self._SELECT_CHANGE:
             p.highlighted_positions = _selected_bond_cylinders(bonds)
 
+    def _get_autochain(self):
+        return self._auto_chain_trace
+    def _set_autochain(self, autochain):
+        if autochain != self._auto_chain_trace:
+            self._auto_chain_trace = autochain
+            if autochain:
+                self._update_chain_trace_graphics()
+            else:
+                self._close_chain_trace()
+    autochain = property(_get_autochain, _set_autochain)
+    '''Whether chain trace between principal residue atoms is shown when only those atoms are displayed.'''
+    
+    def _update_chain_trace_graphics(self, changes = StructureData._ALL_CHANGE):
+
+        if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
+            changes |= self._ALL_CHANGE
+
+        if changes & self._DISPLAY_CHANGE:
+            cta = self.chain_trace_atoms()
+
+            pbg = self._chain_trace_pbgroup
+            if pbg is None or pbg.deleted:
+                if cta is None:
+                    return
+                changes = self._ALL_CHANGE
+                self._chain_trace_pbgroup = pbg = self.pseudobond_group('chain trace')
+                pbg._chain_atoms = None
+                pbg.dashes = 0
+            elif cta is None:
+                self._close_chain_trace()
+                return
+
+            if cta != pbg._chain_atoms:
+                pbg.pseudobonds.delete()
+                pbonds = pbg.new_pseudobonds(cta[0], cta[1])
+                pbonds.halfbonds = True
+                pbg._chain_atoms = cta
+
+    def _close_chain_trace(self):
+        pbg = self._chain_trace_pbgroup
+        if pbg:
+            self.session.models.close([pbg])
+            self._chain_trace_pbgroup = None
+
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
         bd = self._bonds_drawing
@@ -422,6 +476,81 @@ class Structure(Model, StructureData):
 
         if need_update:
             self._cpp_notify_position(self.scene_position)
+
+    def _create_ring_graphics(self):
+        p = self._ring_drawing
+        if p is not None:
+            self.remove_drawing(p)
+            self._ring_drawing = None
+        if self.ring_display_count == 0:
+            return
+
+        from .shapedrawing import AtomicShapeDrawing
+        self._ring_drawing = p = self.new_drawing('rings', subclass=AtomicShapeDrawing)
+
+        # TODO:
+        #   find all residue rings
+        #   limit to 3, 4, 5 and 6 member rings
+        #   check if all atoms are shown (displayed and not hidden)
+        #   if thin, will only use one two-sided fill
+        #   if thick, use stick radius to separate fills
+        ring_count = 0
+        all_rings = self.rings(all_size_threshold=6)
+        for ring in all_rings:
+            atoms = ring.ordered_atoms
+            residue = atoms[0].residue
+            if not residue.ring_display or not all(atoms.visibles):
+                continue
+            ring_count += 1
+            if residue.thin_rings:
+                offset = 0
+            else:
+                offset = min(self._atom_display_radii(atoms))
+            if len(atoms) < 6:
+                self.fill_small_ring(atoms, offset, residue.ring_color)
+            else:
+                self.fill_6ring(atoms, offset, residue.ring_color)
+
+        if ring_count:
+            self._graphics_changed |= self._SHAPE_CHANGE
+
+    def fill_small_ring(self, atoms, offset, color):
+        # 3-, 4-, and 5- membered rings
+        from chimerax.core.geometry import fill_small_ring
+        vertices, normals, triangles = fill_small_ring(atoms.coords, offset)
+        self._ring_drawing.add_shape(vertices, normals, triangles, color, atoms)
+
+    def fill_6ring(self, atoms, offset, color):
+        # 6-membered rings
+        from chimerax.core.geometry import fill_6ring
+        # Picking the "best" orientation to show chair/boat configuration is hard
+        # so choose anchor the ring using atom nomenclature.
+        # Find index of atom with lowest element with lowest number (C1 < C6).
+        # Cheat and do lexicographical comparison of name.
+        # TODO: compare speed of algorithms
+        # Algorithm1:
+        # choices = [(a.element.number, a.name, i) for i, a in enumerate(atoms)]
+        # choices.sort()
+        # anchor = choices[0][2]
+        # Algorithm2:
+        # choices = zip(atoms.elements.numbers, atoms.names, range(len(atoms)))
+        # choices.sort()
+        # anchor = choices[0][2]
+        # Algorithm3:
+        anchor = 0
+        anchor_element = atoms[0].element.number
+        anchor_name = atoms[0].name
+        for i, a in enumerate(atoms[1:], 1):
+            e = a.element.number
+            if e > anchor_element:
+                continue
+            if e == anchor_element and a.name >= anchor_name:
+                continue
+            anchor = i
+            anchor_element = e
+            anchor_name = a.name
+        vertices, normals, triangles = fill_6ring(atoms.coords, offset, anchor)
+        self._ring_drawing.add_shape(vertices, normals, triangles, color, atoms)
 
     def _add_r2t(self, r, tr):
         try:
@@ -842,6 +971,10 @@ class Structure(Model, StructureData):
             from .molarray import Atoms
             tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
             spline_coords = array(list(self._ribbon_spline_backbone.values()))
+            # Add fix from Tristan, #1486
+            mask = tether_atoms.indices(atoms)
+            tether_atoms = tether_atoms[mask]
+            spline_coords = spline_coords[mask]
             if len(spline_coords) == 0:
                 spline_coords = spline_coords.reshape((0,3))
             atom_coords = tether_atoms.coords
@@ -2101,7 +2234,8 @@ class AtomicStructure(Structure):
         if self._log_info:
             # don't report models in an NMR ensemble individually...
             if len(self.id) > 1:
-                sibs = [m for m in session.models if m.id[:-1] == self.id[:-1]]
+                sibs = [m for m in session.models
+                        if isinstance(m, AtomicStructure) and m.id[:-1] == self.id[:-1]]
                 if len(set([s.name for s in sibs])) > 1:
                     # not an NMR ensemble
                     self._report_chain_descriptions(session)
@@ -2176,8 +2310,8 @@ class AtomicStructure(Structure):
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords
                     mol_points = atoms.coords
-                    from chimerax.core.geometry import find_closest_points
-                    close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
+                    from chimerax.core.geometry import find_close_points
+                    close_indices = find_close_points(lig_points, mol_points, 3.6)[1]
                     display |= atoms.filter(close_indices).residues
                 display_atoms = display.atoms
                 if self.num_residues > 1:
@@ -2188,7 +2322,7 @@ class AtomicStructure(Structure):
             lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
             from .colors import chain_colors, element_colors
             residues = self.residues
-            residues.ribbon_colors = chain_colors(residues.chain_ids)
+            residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
             atoms.colors = chain_colors(atoms.residues.chain_ids)
             from .molobject import Atom
             ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
@@ -2337,9 +2471,9 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s</a>' % (
-                chain.structure.id_string, chain.chain_id, chain.chain_id)
-        self._report_chain_summary(session, descripts, chain_text)
+            return '<a title="Select chain" href="cxcmd:select %s">%s</a>' % (
+               chain_res_range(chain), chain.chain_id)
+        self._report_chain_summary(session, descripts, chain_text, False)
 
     def _report_ensemble_chain_descriptions(self, session, ensemble):
         from .molarray import AtomicStructures
@@ -2353,10 +2487,9 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s/%s</a>' % (
-                chain.structure.id_string, chain.chain_id,
-                chain.structure.id_string, chain.chain_id)
-        self._report_chain_summary(session, descripts, chain_text)
+            return '<a title="Select chain" href="cxcmd:select %s">%s/%s</a>' % (
+                chain_res_range(chain), chain.structure.id_string, chain.chain_id)
+        self._report_chain_summary(session, descripts, chain_text, True)
 
     def _report_res_info(self, session):
         if hasattr(self, 'get_formatted_res_info'):
@@ -2364,11 +2497,9 @@ class AtomicStructure(Structure):
             if res_info:
                 session.logger.info(res_info, is_html=True)
 
-    def _report_chain_summary(self, session, descripts, chain_text):
+    def _report_chain_summary(self, session, descripts, chain_text, is_ensemble):
         def descript_text(description, chains):
             from html import escape
-            if len(chains) == 1:
-                return escape(description)
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join(["#%s/%s" % (chain.structure.id_string, chain.chain_id)
                     for chain in chains]), escape(description))
@@ -2376,7 +2507,8 @@ class AtomicStructure(Structure):
         summary = '\n<table %s>\n' % html_table_params
         summary += '  <thead>\n'
         summary += '    <tr>\n'
-        summary += '      <th colspan="2">Chain information for %s</th>\n' % self
+        summary += '      <th colspan="2">Chain information for %s</th>\n' % (
+            self.name if is_ensemble else self)
         summary += '    </tr>\n'
         summary += '    <tr>\n'
         summary += '      <th>Chain</th>\n'
@@ -2433,6 +2565,13 @@ def assembly_html_table(mol):
     lines.append('</table>')
     html = '\n'.join(lines)
     return html
+
+def chain_res_range(chain):
+    existing = chain.existing_residues
+    if len(existing) == 1:
+        return existing[0].string(style="command")
+    first, last = existing[0], existing[-1]
+    return "%s-%s" % (first.string(style="command"), last.string(residue_only=True, style="command")[1:])
 
 
 # -----------------------------------------------------------------------------

@@ -55,6 +55,10 @@ or a running instance of ChimeraX.
 On a Mac, ChimeraX-associated file types can also be opened by 
 double-clicking them in a Finder window or using &ldquo;open&rdquo; 
 in a Terminal window.
+</p><p>
+For some types of files,
+<a href="../modelinfo.html">associated information</a> is automatically
+shown in the <a href="../tools/log.html"><b>Log</b></a> when the file is read.
 See also: 
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -97,7 +101,6 @@ File types can be categorized as:
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
 <li><a href="#trajectory">Trajectory Coordinates</a>
-<li><a href="#docking">Docking Results</a>
 <li><a href="#volume">Volume Data and Related</a>
 <li><a href="#object">Other 3D Objects</a>
 <li><a href="#sequence">Sequences</a>
@@ -123,7 +126,8 @@ File types can be categorized as:
 target="_blank">PDB (Protein Data Bank)</a></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">.pdb, .pdb1<br>.ent, .pqr</td>
-<td align="center">atomic coordinates and associated annotations</td>
+<td align="center">atomic coordinates and associated annotations;
+if PQR, sets atomic <a href="../radii.html">radius</a></td>
 </tr><tr>
 <td align="center"><a href="http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
 target="_blank">PDBx/mmCIF</a></td>
@@ -135,10 +139,26 @@ target="_blank">PDBx/mmCIF</a></td>
 <br><a href="../../devel/mmcif.html"
 target="_blank">ChimeraX Fast mmCIF Guidelines</a>)</td>
 </tr><tr>
+<td align="center" class="text"><a href="http://mmtf.rcsb.org/"
+target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
+<td align="center"><b>mmtf</b></td>
+<td align="center">.mmtf</td>
+<td align="center">atomic coordinates and associated annotations</td>
+</tr><tr>
+<td align="center">Sybyl Mol2</td>
+<td align="center"><b>mol2</b></td>
+<td align="center">.mol2</td>
+<td align="center" class="text">atomic coordinates
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from <a href="http://dock.compbio.ucsf.edu/" 
+target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6)
+</td>
+</tr><tr>
 <td align="center"><a href="../pseudobonds.html">Pseudobond</a> file</td>
 <td align="center"><b>pseudobonds</b></td>
 <td align="center">.pb</td>
-<td align="center">
+<td align="center" class="text">
 plain text file with each line <a href="atomspec.html">specifying</a>
 a pair of atoms (already open in ChimeraX)
 to connect with <a href="../pseudobonds.html">pseudobonds</a></td>
@@ -166,6 +186,7 @@ target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center"><b>trr</b></td>
 <td align="center">.trr</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<!--
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="docking"></a>
@@ -178,6 +199,7 @@ target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center">.mol2</td>
 <td align="center">Mol2 format from 
 <a href="http://dock.compbio.ucsf.edu/">UCSF DOCK</a> versions 4, 5, 6</td>
+-->
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="volume"></a>
@@ -365,12 +387,13 @@ target="_blank">SPIDER</a> map</td>
 <td align="center">.spi, .vol</td>
 <td align="center">electron density map</td>
 </tr><tr>
-<td align="center">STORM data</td>
+<td align="center">
+<a href="http://huanglab.ucsf.edu/STORM.html"
+target="_blank">STORM (STochastic Optical Reconstruction Microscopy)</a>
+</td>
 <td align="center"><b>storm</b></td>
 <td align="center">.storm</td>
-<td align="center">super-resolution data from
-<a href="http://huanglab.ucsf.edu/STORM.html"
-target="_blank">STochastic Optical Reconstruction Microscopy</a></td>
+<td align="center">super-resolution microscopy data</td>
 </tr><tr>
 <td align="center"><a href="https://www.biochem.mpg.de/tom"
 target="_blank">TOM toolbox</a> map</td>
@@ -423,11 +446,12 @@ target="_blank">STereoLithography</a> (binary)</td>
 <td align="center">triangle-based format
 native to stereolithography CAD software</td>
 </tr><tr>
-<td align="center">VTK PolyData</td>
+<td align="center">
+<a href="http://vtk.org/" target="_blank">VTK (Visualization ToolKit)</a>
+PolyData</td>
 <td align="center"><b>vtk</b></td>
 <td align="center">.vtk</td>
-<td align="center">lines, polygons from 
-<a href="http://vtk.org/" target="_blank">Visualization ToolKit</a>
+<td align="center">lines, polygons
 [documentation
 <a href="http://vtk.org/VTK/img/file-formats.pdf" target="_blank">PDF</a>]</td>
 </tr><tr>
@@ -498,7 +522,7 @@ target="_blank">Stockholm</a></td>
 <b>Composite</b></td>
 </tr><tr>
 <td align="center"><a href="save.html#session">ChimeraX session file</a></td>
-<td align="center"><b>ses</b></td>
+<td align="center"><b>session</b></td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session; see the
 <a href="../preferences.html#window"><b>Window</b> preferences</a></td>
@@ -532,7 +556,7 @@ command file</a></td>
 <td align="center">Python code</td>
 </tr><tr>
 <td align="center">HTML, XHTML</td>
-<td align="center"></td>
+<td align="center"><b>html</b></td>
 <td align="center">.html, .htm<br>.xhtml,&nbsp;.xht,&nbsp;.xml</td>
 <td align="center">
 hypertext to render in the 
@@ -771,10 +795,6 @@ can be specified with the <b>format</b> option.
 Specifying multiple identifiers is equivalent to using the <b>open</b> command
 multiple times with the same options for each identifier.
 </p><p>
-Opening a structure in mmCIF format automatically shows a clickable table of
-<a href="sym.html#assembly">assembly information</a>
-in the <a href="../tools/log.html"><b>Log</b></a>.
-</p><p>
 <a name="ignoreCache"></a>
 Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
 (where ~ indicates a user's home directory), with subdirectories
@@ -936,5 +956,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2018</address>
+December 2018</address>
 </body></html>

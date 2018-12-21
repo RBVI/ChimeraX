@@ -24,6 +24,7 @@
 #include "patches.h"			// use sharp_edge_patches
 #include "refinemesh.h"			// use refine_mesh
 #include "sasa.h"			// use surface_area_of_spheres
+#include "smooth.h"			// use smooth_vertex_positions
 #include "subdivide.h"			// use subdivide_triangles
 #include "triangulate.h"		// use triangulate_polygon
 #include "tube.h"			// use tube_geometry
@@ -192,6 +193,16 @@ static struct PyMethodDef surface_cpp_methods[] =
    "Use points on sphere, count how many are inside other spheres\n"
    "to estimate surface area of union of solid spheres.\n"
    "Third argument areas contains areas contributed by each sphere\n"
+   "Implemented in C++.\n"
+  },
+
+  /* smooth.h */
+  {const_cast<char*>("smooth_vertex_positions"), (PyCFunction)smooth_vertex_positions,
+   METH_VARARGS|METH_KEYWORDS,
+   "smooth_vertex_positions(vertices, triangles, smoothing_factor, smoothing_iterations)\n"
+   "Move surface vertices towards the average of neighboring vertices\n"
+   "to give the surface a smoother appearance.  Modifies vertices numpy array.\n"
+   "\n"
    "Implemented in C++.\n"
   },
 

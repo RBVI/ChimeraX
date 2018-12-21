@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
   </Dependencies>
 
@@ -22,8 +22,8 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: Pseudobonds :: pseudobonds :: Generic 3D objects :: .pb :: :: :: :: :: Inter-atomic pseudobonds :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: Pseudobonds :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: Pseudobonds :: pseudobonds :: Generic 3D objects :: .pb :: :: :: :: :: Inter-atomic pseudobonds :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: Pseudobonds :: ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

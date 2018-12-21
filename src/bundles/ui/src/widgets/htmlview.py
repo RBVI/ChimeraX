@@ -95,6 +95,7 @@ class HtmlView(QWebEngineView):
         self.setAcceptDrops(False)
 
     def deleteLater(self):  # noqa
+        """Supported API.  Schedule HtmlView instance for deletion at a safe time."""
         if self._private_profile:
             p = self._profile
             p.downloadRequested.disconnect()
@@ -107,6 +108,7 @@ class HtmlView(QWebEngineView):
         return self._profile
 
     def sizeHint(self):  # noqa
+        """Supported API.  Returns size hint as a :py:class:PyQt5.QtCore.QSize instance."""
         if self._size_hint:
             from PyQt5.QtCore import QSize
             return QSize(*self._size_hint)
@@ -114,12 +116,20 @@ class HtmlView(QWebEngineView):
             return super().sizeHint()
 
     def contextMenuEvent(self, event):
+        """Private API. Send event to context menu handler."""
         if self._tool_window:
             self._tool_window._show_context_menu(event)
         else:
             super().contextMenuEvent(event)
 
     def setHtml(self, html, url=None):  # noqa
+        """Supported API. Replace widget content.
+
+        Parameters
+        ----------
+        html :   a string containing new HTML content.
+        url :    a string containing URL corresponding to content.
+        """
         from PyQt5.QtCore import QUrl
         self.setEnabled(False)
         if len(html) < 1000000:
@@ -151,14 +161,27 @@ class HtmlView(QWebEngineView):
         self.setEnabled(True)
 
     def setUrl(self, url):  # noqa
+        """Supported API. Replace widget content.
+
+        Parameters
+        ----------
+        url :    a string containing URL to new content.
+        """
         if isinstance(url, str):
             from PyQt5.QtCore import QUrl
             url = QUrl(url)
         super().setUrl(url)
 
-    def runJavaScript(self, *args):    # noqa
-        self.page().runJavaScript(*args)
+    def runJavaScript(self, script, *args):    # noqa
+        """Supported API.  Run JavaScript using currently displayed HTML page.
 
+        Parameters
+        ----------
+        script :    a string containing URL to new content.
+        args :      additional arguments supported by
+                    :py:method:`PyQt5.QtWebEngineWidgets.QWebEnginePage.runJavaScript`.
+        """
+        self.page().runJavaScript(script, *args)
 
 class _LoggingPage(QWebEnginePage):
 
@@ -179,7 +202,6 @@ class _LoggingPage(QWebEnginePage):
         filename = os.path.basename(sourceId)
         print("JS console(%s:%d:%s): %s" % (filename, lineNumber,
                                             self.Levels[level], msg))
-
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):
 

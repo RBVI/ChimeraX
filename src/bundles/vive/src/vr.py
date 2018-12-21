@@ -167,9 +167,16 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
     try:
         mv.camera = SteamVRCamera(session)
     except openvr.OpenVRError as e:
+        if 'error number 108' in str(e):
+            msg = ('The VR headset was not detected.\n' +
+                   'Possibly a cable to the VR headset is not plugged in.\n' +
+                   'If the headset is a Vive Pro, the link box may be turned off.\n' +
+                   'If using a Vive Pro wireless adapter it may not be powered on.')
+        else:
+            msg = ('Failed to initialize OpenVR.\n' +
+                   'Possibly SteamVR is not installed or it failed to start.')
         from chimerax.core.errors import UserError
-        raise UserError('Failed to initialize OpenVR.\n'
-                        'Either SteamVR is not installed or it failed to start.\n%s' % str(e))
+        raise UserError('%s\n%s' % (msg, str(e)))
         
     
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
@@ -240,6 +247,8 @@ class SteamVRCamera(Camera):
         self._controller_show = True	# Whether to show hand controllers
         self._controller_next_id = 0	# Used when searching for controllers.
         self.user_interface = UserInterface(self, session)
+        self._vr_model_group = None	# Grouping model for hand controllers and UI models
+        self._vr_model_group_id = 100	# Keep VR model group at bottom of model panel
 
         self.desktop_display = 'mirror'	# What to show in desktop graphics window, 'mirror', 'independent' or 'blank'.
         self._desktop_camera_position = Place()	#  Used only for desktop_display = "independent" mode.
@@ -326,8 +335,10 @@ class SteamVRCamera(Camera):
         x,y,z = tf.matrix[:,0]
         from math import sqrt
         s = 1/sqrt(x*x + y*y + z*z)
-        mpos.matrix[:3,:3] *= s
-        self._desktop_camera_position = mpos
+        m = mpos.matrix
+        m[:3,:3] *= s
+        from chimerax.core.geometry import Place
+        self._desktop_camera_position = Place(m)
     
     def _move_camera_in_room(self, position):
         '''Move camera to given scene position without changing scene position in room.'''
@@ -387,6 +398,7 @@ class SteamVRCamera(Camera):
         # if VR has not been shutdown.
         import openvr
         openvr.shutdown()
+        self._close = True	# Make sure openvr is not used any more.
         
     def _delayed_close(self):
         # Apparently OpenVR doesn't make its OpenGL context current
@@ -430,10 +442,12 @@ class SteamVRCamera(Camera):
         return self._session.main_view.render
     
     def _start_frame(self):
-        import openvr
-        c = self.compositor
-        if c is None or self._close:
+        if self._close:
             return
+        c = self.compositor
+        if c is None:
+            return
+        import openvr
         c.waitGetPoses(self._poses, openvr.k_unMaxTrackedDeviceCount, None, 0)
         self._frame_started = True
 
@@ -650,19 +664,35 @@ class SteamVRCamera(Camera):
     def hand_controllers(self):
         cm = self._controller_models
         if len(cm) < 2:
-            # Check if a controller has been turned on.
-            # Only check one controller id per-call to minimize performance penalty.
-            import openvr
-            d = self._controller_next_id
-            self._controller_next_id = (d+1) % openvr.k_unMaxTrackedDeviceCount
-            vrs = self.vr_system
-            if (vrs.getTrackedDeviceClass(d) == openvr.TrackedDeviceClass_Controller
-                and vrs.isTrackedDeviceConnected(d)
-                and d not in tuple(hc.device_index for hc in cm)):
-                hc = HandControllerModel(d, self._session, vrs, self._controllers_show)
-                cm.append(hc)
+            self._find_new_hand_controllers()
         return cm
 
+    def _find_new_hand_controllers(self):
+        # Check if a controller has been turned on.
+        # Only check one controller id per-call to minimize performance penalty.
+        import openvr
+        d = self._controller_next_id
+        self._controller_next_id = (d+1) % openvr.k_unMaxTrackedDeviceCount
+        vrs = self.vr_system
+        cm = self._controller_models
+        if (vrs.getTrackedDeviceClass(d) == openvr.TrackedDeviceClass_Controller
+            and vrs.isTrackedDeviceConnected(d)
+            and d not in tuple(hc.device_index for hc in cm)):
+            parent = self._vr_control_model_group() if self._controllers_show else None
+            hc = HandControllerModel(d, self._session, vrs, parent=parent)
+            cm.append(hc)
+
+    def _vr_control_model_group(self):
+        g = self._vr_model_group
+        if g is None or g.deleted:
+            session = self._session
+            g = Model('VR', session)
+            g.SESSION_SAVE = False
+            g.model_panel_show_expanded = False
+            session.models.add([g], minimum_id = self._vr_model_group_id)
+            self._vr_model_group = g
+        return g
+        
     def other_controller(self, controller):
         for hc in self.hand_controllers():
             if hc != controller:
@@ -722,10 +752,10 @@ class UserInterface:
             return False
         return ui.display
     
-    def show(self, room_position):
+    def show(self, room_position, parent_model):
         ui = self._ui_drawing
         if ui is None:
-            self._ui_drawing = ui = self._create_ui_drawing()
+            self._ui_drawing = ui = self._create_ui_drawing(parent_model)
         self._update_ui_image()
         ui.room_position = room_position
         ui.position = self._camera.room_to_scene * room_position
@@ -838,11 +868,11 @@ class UserInterface:
         wpos = QPointF(w.mapFromGlobal(gp)) if w else None
         return w, wpos
 
-    def _create_ui_drawing(self):
+    def _create_ui_drawing(self, parent):
         ses = self._session
         from chimerax.core.models import Model
-        m = Model('vr user interface', ses)
-        ses.models.add([m])
+        m = Model('User interface', ses)
+        ses.models.add([m], parent = parent)
         return m
 
     def _update_ui_image(self):
@@ -904,7 +934,8 @@ class UserInterface:
                 from chimerax.core.geometry import orthonormal_frame, translation
                 p = orthonormal_frame(view_axis, (0,1,0), origin = rp.origin())
                 p = translation(0.5 * self._width * p.axes()[1]) * p
-                self.show(p)
+                parent = self._camera._vr_control_model_group()
+                self.show(p, parent)
         else:
             # End UI move, or hide.
             stime = self._start_ui_move_time
@@ -936,7 +967,8 @@ class HandControllerModel(Model):
     _controller_colors = ((200,200,0,255), (0,200,200,255))
     SESSION_SAVE = False
 
-    def __init__(self, device_index, session, vr_system, show = True, size = 0.20, aspect = 0.2):
+    def __init__(self, device_index, session, vr_system,
+                 size = 0.20, aspect = 0.2, parent = None):
         name = 'Hand %s' % device_index
         Model.__init__(self, name, session)
         self.device_index = device_index
@@ -944,7 +976,8 @@ class HandControllerModel(Model):
 
         self._pose = None
         self._previous_pose = None
-        self.room_position = None	# Hand controller position in room coordinates.
+        from chimerax.core.geometry import Place
+        self.room_position = Place()	# Hand controller position in room coordinates.
 
         # Assign actions bound to controller buttons
         import openvr
@@ -958,9 +991,9 @@ class HandControllerModel(Model):
         # Draw controller as a cone.
         self._create_model_geometry(size, aspect)
 
-        self._shown_in_scene = show
-        if show:
-            session.models.add([self])
+        self._shown_in_scene = (parent is not None)
+        if parent:
+            session.models.add([self], parent = parent)
 
     def _create_model_geometry(self, size, aspect):
         from chimerax.surface.shapes import cone_geometry
@@ -1081,9 +1114,12 @@ class HandControllerModel(Model):
                 else:
                     ui.press(window_xy)
                     ui.button_down = (self, b)
-            elif released and ui.button_down == (self, b):
-                ui.release(window_xy)
-                ui.button_down = None
+            elif released:
+                if ui.button_down == (self, b):
+                    ui.release(window_xy)
+                    ui.button_down = None
+                else:
+                    return False # Button released on panel but not pressed on panel
         else:
             return False
         return True
@@ -1123,8 +1159,9 @@ class HandControllerModel(Model):
         ui = camera.user_interface
         if ui.button_down and ui.button_down[0] == self:
             window_xy, on_panel = ui.click_position(self.room_position.origin())
-            ui.drag(window_xy)
-            return
+            if window_xy is not None:
+                ui.drag(window_xy)
+                return
 
         # Do hand controller drag when buttons pressed
         if previous_pose is not None:

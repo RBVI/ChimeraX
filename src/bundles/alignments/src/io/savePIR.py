@@ -34,8 +34,8 @@ def save(session, alignment, stream):
             else:
                 pir_type = "P1"
         print(">%2s;%s" % (pir_type, seq.name), file=stream)
-        descript = getattr(seq, "descript", seq.name)
-        print(descript, file=stream)
+        description = getattr(seq, "description", seq.name)
+        print(description, file=stream)
         for i in range(0, len(seq), LINELEN):
             print(seq[i:i+LINELEN], file=stream)
         print("*", file=stream)

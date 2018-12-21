@@ -117,7 +117,7 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">Portable PixMap</td>
 </tr><tr id="sesformat">
 <td align="center"><a href="#session"><b>session</b></a></td>
-<td align="center"><b>ses</b></td>
+<td align="center"><b>session</b></td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr><tr id="mapformats">
@@ -170,8 +170,9 @@ coordinates,<br>DCD (binary)</td>
 </tr><tr>
 <td align="center"><b>gltf</b></td>
 <td align="center">.glb</td>
-<td align="center">3D objects, <a href="https://www.khronos.org/gltf"
-target="_blank">GL Transmission Format</a></td>
+<td align="center" class="text">3D objects, <a href="https://www.khronos.org/gltf"
+target="_blank">GL Transmission Format</a>
+<br>(see <a href="#gltf">glTF options</a>)</td>
 </tr><tr>
 <td align="center"><b>stl</b></td>
 <td align="center">.stl</td>
@@ -293,8 +294,9 @@ A <b><i>ChimeraX session file</i></b> encodes most aspects of a
 modeling session in ChimeraX, including atomic and other models, sequences,
 <a href="view.html#name">camera views</a>, coloring, display styles, lighting,
 labels (<a href="2dlabels.html">2D</a> and <a href="label.html">3D</a>),
-<a href="../attributes.html">attributes</a>, and
-<a href="color.html#name">custom colors</a>.
+<a href="../attributes.html">attributes</a>,
+<a href="color.html#name">custom colors</a>,
+and <a href="name.html">defined targets</a>.
 Saving and later opening a session file 
 restores the session and allows resuming work in ChimeraX.
 A common use is to store setups for 
@@ -649,7 +651,56 @@ Example:
 <b>save example.pir alignment 1.A</b>
 </blockquote> 
 
+<a name="gltf"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>Save GLTF</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b>&nbsp;&nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;gltf&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
+<p>
+Several options apply only to saving
+<a href="https://www.khronos.org/gltf" target="_blank">GL Transmission Format</a>
+(.glb):
+</p>
+<blockquote>
+<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>
+<br>
+Origin coordinates for the exported objects.
+</blockquote>
+<blockquote>
+<b>size</b>&nbsp;&nbsp;<i>s</i>
+<br>
+Bounding size for the exported objects.
+The coordinates are scaled so that the longest edge of the bounding box 
+becomes the specified size.
+</blockquote>
+<blockquote>
+<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether vertex indices in the exported file must fit within 16 bits
+(0-65535).
+</blockquote>
+<blockquote>
+<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to use floating-point color values.
+</blockquote>
+<blockquote>
+<b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to include any transparency of the objects. 
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+December 2018</address>
 </body></html>

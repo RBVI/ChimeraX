@@ -29,26 +29,26 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>
 
   <Classifiers>
     ELEMENT_AND_IDATM_SELECTOR_CLASSIFIERS
-    <ChimeraXClassifier>ChimeraX :: Selector :: backbone :: backbone atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: mainchain :: backbone atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: ions :: ions</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: ligand :: ligands</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: main :: main structure</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: solvent :: solvent</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: protein :: proteins</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: nucleic :: nucleic acids</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: nucleic-acid :: nucleic acids</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: strand :: beta sheet strands</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: helix :: protein helices</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: coil :: protein coils</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: sidechain :: side-chain atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: sideonly :: side-chain atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: ribose :: ribose</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: backbone :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: mainchain :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: ions :: ions</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: ligand :: ligands</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: main :: main structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: solvent :: solvent</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: protein :: proteins</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: nucleic :: nucleic acids</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: nucleic-acid :: nucleic acids</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: strand :: beta sheet strands</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: helix :: protein helices</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: coil :: protein coils</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: sidechain :: side-chain atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: sideonly :: side-chain atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: ribose :: ribose</ChimeraXClassifier>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
   </Classifiers>

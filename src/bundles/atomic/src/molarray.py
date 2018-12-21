@@ -95,7 +95,8 @@ class Collection(State):
     Base class of all molecular data collections that provides common
     methods such as length, iteration, indexing with square brackets,
     intersection, union, subtracting, and filtering.  By design, a
-    Collection is immutable.
+    Collection is immutable except that deleted items are automatically
+    removed.
     '''
     def __init__(self, items, object_class, objects_class):
         import numpy
@@ -132,7 +133,7 @@ class Collection(State):
         Objects are automatically deleted from the collection when the C++ object is deleted.
         So this hash value will not be valid if the collection changes.  This is not the __hash__
         special Python method and it is not supported to use collections as keys of dictionaries
-        or elements of sets since they are mutable.
+        or elements of sets since they are mutable (deletions automatically remove items).
         '''
         from hashlib import sha1
         return sha1(self._pointers.view(uint8)).digest()
@@ -1074,6 +1075,16 @@ class Residues(Collection):
     ribbon_hide_backbones = cvec_property('residue_ribbon_hide_backbone', npy_bool, doc =
     '''A :mod:`numpy` array of booleans. Whether a ribbon automatically hides
     the residue backbone atoms.''')
+    ring_displays = cvec_property('residue_ring_display', npy_bool, doc =
+    '''A numpy bool array whether to fill rings in each residue.''')
+    ring_colors = cvec_property('residue_ring_color', uint8, 4, doc =
+    '''
+    A :mod:`numpy` Nx4 array of uint8 RGBA values.  Can be
+    set with such an array (or equivalent sequence), or with a single
+    RGBA value.
+    ''')
+    thin_rings = cvec_property('residue_thin_rings', npy_bool, doc =
+    '''A numpy bool array whether to filled rings are thin in each residue.''')
     secondary_structure_ids = cvec_property('residue_secondary_structure_id', int32,
         read_only = True, doc =
     '''

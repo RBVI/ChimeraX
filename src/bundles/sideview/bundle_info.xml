@@ -14,14 +14,14 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Side View :: General :: Show side view interface</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Side View :: General :: Show side view interface</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

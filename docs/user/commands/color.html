@@ -172,13 +172,15 @@ molecular surfaces can be colored to match with the command:
  <li><b>p</b> - pseudobonds-only
  (coloring shown for <a href="../pseudobonds.html">pseudobonds</a>
  not in <a href="#halfbond">halfbond mode</a>)
+ <li><b>f</b> - <a href="style.html">ring fill</a>
+<!-- and <a href="nucleotides.html">nucleotide slabs</a> -->
 <!--
  <li><b>n</b> - nonmolecular models (model-level color)
  <li><b>m</b> - molecular models (model-level color)
  <li><b>d</b> - distances and other pseudobond labels
 -->
  </ul>
-The default is all of the above (<b>target abcsp</b>), plus  
+The default is all of the above (<b>target abcspf</b>), plus  
 <a href="label.html">3D labels</a>
 in the case of <a href="#simple">simple coloring</a>
 using any <a href="colornames.html">color name</a> that specifies a single color.
@@ -196,7 +198,9 @@ as a comma-separated list:
 or <b>target r</b>
 <li><b>surfaces</b> - equivalent to <b>target s</b>
 <li><b>pseudobonds</b> - equivalent to <b>target p</b>
-<li><b>All</b> - equivalent to <b>target abcsp</b>
+<li><b>rings</b> - <a href="style.html">ring fill</a>
+<!-- and <a href="nucleotides.html">nucleotide slabs</a> -->
+<li><b>All</b> - equivalent to <b>target abcspf</b>
 </ul>
 These target keywords must be given in the right place in the command:
 <ul>
@@ -652,6 +656,7 @@ when they are given as coordinates
 <b>near</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
@@ -661,6 +666,9 @@ The <i>cutoff</i> is specified in physical units of distance,
 typically &Aring; (default <b>2.0</b>).
 When multiple specified atoms fall within the cutoff distance of a 
 surface vertex, the vertex will be colored to match the closest one.
+If <b>bondPointSpacing</b> is specified, points
+spaced <i>s</i> &Aring; apart along bonds will be used
+in addition to the atoms to define the zone.
 Vertices not within the cutoff of any of the atoms are assigned 
 the default color of the surface model (single-color mode).
 The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
@@ -927,5 +935,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+December 2018</address>
 </body></html>

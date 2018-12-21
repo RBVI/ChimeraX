@@ -144,18 +144,27 @@ class Model(State, Drawing):
             if not self.highlighted and not self.empty_drawing():
                 return False
             if include_children:
-                for m in self.child_models():
-                    if not m.get_selected(include_children=True, fully=True):
-                        return False
+                for d in self.child_drawings():
+                    if isinstance(d, Model):
+                        if not d.get_selected(include_children=True, fully=True):
+                            return False
+                    else:
+                        if not d.highlighted and not d.empty_drawing():
+                            return False
+
             return True
 
         if self.highlighted:
             return True
 
         if include_children:
-            for m in self.child_models():
-                if m.get_selected(include_children=True):
-                    return True
+            for d in self.child_drawings():
+                if isinstance(d, Model):
+                    if d.get_selected(include_children=True):
+                        return True
+                    else:
+                        if d.highlighted:
+                            return True
 
         return False
     
@@ -375,7 +384,7 @@ class Models(StateManager):
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
-        self._models = {}
+        self._models = {}				# Map id to Model
         self.drawing = r = Model("root", session)
         r.id = ()
 
@@ -416,7 +425,8 @@ class Models(StateManager):
     def empty(self):
         return len(self._models) == 0
 
-    def add(self, models, parent=None, _notify=True, _need_fire_id_trigger=None, _from_session=False):
+    def add(self, models, parent=None, minimum_id = 1,
+            _notify=True, _need_fire_id_trigger=None, _from_session=False):
         if _need_fire_id_trigger is None:
             _need_fire_id_trigger = []
         start_count = len(self._models)
@@ -426,11 +436,9 @@ class Models(StateManager):
             if m.parent is None or m.parent is not d:
                 d.add_drawing(m)
 
-        # Clear model ids if they are not subids of parent id.
-        #~ if _notify:
-            #~ need_fire_id_trigger = []
+        # Handle already added models being moved to a new parent.
         for model in models:
-            if model.id and model.id[:-1] != d.id:
+            if model.id and model.id[:-1] != d.id and model.id in self._models:
                 # Model has id that is not a subid of parent, so assign new id.
                 _need_fire_id_trigger.append(model)
                 del self._models[model.id]
@@ -441,7 +449,7 @@ class Models(StateManager):
         # Assign new model ids
         for model in models:
             if model.id is None:
-                model.id = self._next_child_id(d)
+                model.id = self.next_id(parent = d, minimum_id = minimum_id)
             self._models[model.id] = model
             children = model.child_models()
             if children:
@@ -493,22 +501,27 @@ class Models(StateManager):
         '''number of models'''
         return len(self._models)
 
-    def _next_child_id(self, parent):
+    def next_id(self, parent = None, minimum_id = 1):
         # Find lowest unused id.  Typically all ids 1,...,N are used with no gaps
         # and then it is fast to assign N+1 to the next model.  But if there are
         # gaps it can take O(N**2) time to figure out ids to assign for N models.
         # This code handles the common case of no gaps quickly.
+        if parent is None:
+            parent = self.drawing
         nid = getattr(parent, '_next_unused_id', None)
         if nid is None:
             # Find next unused id.
             cids = set(m.id[-1] for m in parent.child_models() if m.id is not None)
-            for nid in range(1, len(cids) + 2):
+            for nid in range(minimum_id, minimum_id + len(cids) + 1):
                 if nid not in cids:
                     break
-            if nid == len(cids) + 1:
+            if nid == minimum_id + len(cids):
                 parent._next_unused_id = nid + 1        # No gaps in ids
-        else:
+        elif nid+1 >= minimum_id:
             parent._next_unused_id = nid + 1            # No gaps in ids
+        else:
+            nid = minimum_id
+            parent._next_unused_id = None               # Have gaps in ids
         id = parent.id + (nid,)
         return id
 

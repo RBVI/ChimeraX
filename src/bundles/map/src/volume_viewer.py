@@ -2357,8 +2357,11 @@ class Histogram_Pane:
   #
   def representation_changed_cb(self, style):
 
-      self.style.setText(style)
       v = self.volume
+      if v is None:
+          return
+      
+      self.style.setText(style)
 
       self.set_map_style(v, style)
       for vc in v.other_channels():

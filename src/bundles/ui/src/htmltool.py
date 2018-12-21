@@ -4,21 +4,25 @@ from chimerax.core.tools import ToolInstance
 
 
 class HtmlToolInstance(ToolInstance):
-    """Class used to generate an HTML widget as the tool's main UI.
+    """Base class for creating a ChimeraX tool using HTML
+    as its main user interface.  `HtmlToolInstance` takes care of
+    creating the ChimeraX tool instance, main window, and HTML
+    widget.  Derived classes can also define methods that are
+    called when hyperlinks in the HTML widget are clicked, or
+    when ChimeraX models are added or removed.
 
     The :py:attr:`tool_window` instance attribute refers to the
-    :py:class:`~chimerax.ui.MainToolWindow` instance
+    :py:class:`~chimerax.ui.gui.MainToolWindow` instance
     for the tool.
 
     The :py:attr:`html_view` instance attribute refers to the
-    :py:class:`~chimerax.ui.widgets.HtmlView` instance
+    :py:class:`~chimerax.ui.widgets.htmlview.HtmlView` instance
     for managing HTML content and link actions.
 
-    To facilitate customizing the HTML view, if the
-    `HtmlToolInstance` subclass has an attribute
-    :py:attr:`CUSTOM_SCHEME` and a method :py:meth:`handle_scheme`,
-    then the `HtmlView` instance will be configured to support
-    the custom scheme.
+    To facilitate customizing the HTML view, if the derived class
+    has an attribute :py:attr:`CUSTOM_SCHEME` and a method
+    :py:meth:`handle_scheme`, then the `HtmlView` instance will
+    be configured to support the custom scheme.
 
     If the `HtmlToolInstance` has a method :py:meth:`update_models`,
     then it will be called as a handler to model addition and
@@ -37,7 +41,8 @@ class HtmlToolInstance(ToolInstance):
         The suggested initial widget size in pixels.
     """
 
-    def __init__(self, session, tool_name, size_hint=None, log_errors=False):
+    def __init__(self, session, tool_name, size_hint=None,
+                 show_http_in_help=True, log_errors=False):
         from PyQt5.QtWidgets import QGridLayout
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         from . import MainToolWindow
@@ -54,6 +59,7 @@ class HtmlToolInstance(ToolInstance):
               "log_errors": log_errors}
         if size_hint is not None:
             kw["size_hint"] = size_hint
+        self.__show_http_in_help = show_http_in_help
         try:
             scheme = getattr(self, "CUSTOM_SCHEME")
             handle_scheme = getattr(self, "handle_scheme")
@@ -83,6 +89,7 @@ class HtmlToolInstance(ToolInstance):
             self._remove_handler = t.add_handler(REMOVE_MODELS, update_models)
 
     def delete(self):
+        """Supported API. Delete this HtmlToolInstance."""
         t = self.session.triggers
         if self._add_handler:
             t.remove_handler(self._add_handler)
@@ -96,7 +103,13 @@ class HtmlToolInstance(ToolInstance):
         # Called when link is clicked
         # "info" is an instance of QWebEngineUrlRequestInfo
         url = info.requestUrl()
-        if url.scheme() in self.__schemes:
+        scheme = url.scheme()
+        if scheme in self.__schemes:
             # Intercept our custom schemes and call the handler
             # method in the main thread where it can make UI calls.
             self.session.ui.thread_safe(self.handle_scheme, url)
+        if self.__show_http_in_help and scheme in ["http", "https"]:
+            self.html_view.stop()
+            from chimerax.help_viewer import show_url
+            self.session.ui.thread_safe(show_url, self.session,
+                                        url.toString(), new_tab=True)

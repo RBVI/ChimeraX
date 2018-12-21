@@ -403,8 +403,10 @@ class CoreSettingsPanel:
         self.session = session
         from chimerax.core.commands import run
         from .options import CategorizedSettingsPanel
-        self.options_widget = CategorizedSettingsPanel(core_settings, "ChimeraX core",
-            help_cb=lambda ses=session, run=run: run(ses, "help help:user/preferences.html"))
+        self.options_widget = CategorizedSettingsPanel("ChimeraX core",
+            help_cb=lambda *, category=None, ses=session, run=run:
+            run(ses, "help help:user/preferences.html"
+            + ("" if category is None else "#" + category.replace(' ', '').lower())))
         self.options = {}
 
         for setting, setting_info in self.settings_info.items():
@@ -416,7 +418,7 @@ class CoreSettingsPanel:
             else:
                 kw = {}
             opt = opt_class(opt_name, getattr(core_settings, setting), self._opt_cb,
-                attr_name=setting, balloon=balloon, **kw)
+                attr_name=setting, settings=core_settings, balloon=balloon, auto_set_attr=set_setting, **kw)
             self.options_widget.add_option(category, opt)
             self.options[setting] = opt
 
@@ -437,8 +439,6 @@ class CoreSettingsPanel:
 
         setting = opt.attr_name
         opt_name, category, opt_class, updater, converter, balloon, set_setting = self.settings_info[setting]
-        if set_setting:
-            opt.set_attribute(core_settings)
         if updater is None:
             return
 

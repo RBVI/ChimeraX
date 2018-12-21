@@ -194,7 +194,12 @@ class ModelPanel(ToolInstance):
             item.setText(self.NAME_COLUMN, name)
             if not update:
                 # Expand new top-level displayed models, or if previously expanded
-                expand_default = (model.display and len(model.id) <= 1 and len(model.child_models()) <= 10)
+                if hasattr(model, 'model_panel_show_expanded'):
+                    expand_default = model.model_panel_show_expanded
+                else:
+                    expand_default = (model.display
+                                      and len(model.id) <= 1
+                                      and len(model.child_models()) <= 10)
                 expand = expanded_models.get(model, expand_default)
                 if expand:
                     self.tree.expandItem(item)

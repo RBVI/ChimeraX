@@ -53,7 +53,7 @@ nucleotides_dimensions_list_desc = CmdDesc(
 def nucleotides_dimensions_list(session):
     dimensions = NA.list_dimensions()
     from chimerax.core.commands import commas
-    session.logger.info("Nucleotides dimensions: " + commas(dimensions, ' and'))
+    session.logger.info("Nucleotides dimensions: " + commas(dimensions, 'and'))
 
 
 nucleotides_dimensions_delete_desc = CmdDesc(

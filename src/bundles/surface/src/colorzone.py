@@ -27,13 +27,13 @@ def points_and_colors(atoms, bonds, bond_point_spacing = None):
     points = atoms.scene_coords
     colors = atoms.colors
 
-    if bonds is not None:
-        raise ValueError('bond points currently not supported')
-        from .bondzone import bond_points_and_colors, concatenate_points
+    if bonds is not None and len(bonds) > 0:
+        from .bondzone import bond_points_and_colors
         bpoints, bcolors = bond_points_and_colors(bonds, bond_point_spacing)
         if not bpoints is None:
-            points = concatenate_points(points, bpoints)
-            colors.extend(bcolors)
+            from numpy import concatenate
+            points = concatenate((points, bpoints))
+            colors = concatenate((colors, bcolors))
 
     return points, colors
 

@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 #
 def meeting(session, host = None, port = 52194, name = None, color = None,
-            head_image = None, copy_scene = None, relay_commands = None,
+            face_image = None, copy_scene = None, relay_commands = None,
             update_interval = None):
     '''Allow two or more ChimeraX instances to show each others' VR hand-controller
     and headset positions or mouse positions.
@@ -32,8 +32,8 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
       Name to identify this ChimeraX on remote machines.
     color : Color
       Color for my mouse pointer shown on other machines
-    head_image : string
-      Path to PNG or JPG image file for image to use for VR head depiction.
+    face_image : string
+      Path to PNG or JPG image file for image to use for VR face depiction.
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
@@ -61,6 +61,8 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
         session.logger.status(msg, log = True)
     elif host == 'start':
         s = meeting_server(session, create = True)
+        if copy_scene is None:
+            s.copy_scene(True)
         s.listen(port)
         msg = "Meeting at %s" % s.listen_host_info()
         session.logger.status(msg, log = True)
@@ -78,10 +80,17 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
         if s:
             s.set_color(color.uint8x4())
 
-    if head_image is not None:
-        s = meeting_server(session)
-        if s:
-            s.vr_tracker.new_head_image(head_image)
+    if face_image is not None:
+        from os.path import isfile
+        if isfile(face_image):
+            s = meeting_server(session)
+            if s:
+                s.vr_tracker.new_face_image(face_image)
+        else:
+            msg = 'Face image file "%s" does not exist' % face_image
+            log = session.logger
+            log.warning(msg)
+            log.status(msg, color = 'red')
 
     if copy_scene is not None:
         s = meeting_server(session)
@@ -124,7 +133,7 @@ def register_meeting_command(logger):
                    keyword = [('port', IntArg),
                               ('name', StringArg),
                               ('color', ColorArg),
-                              ('head_image', OpenFileNameArg),
+                              ('face_image', OpenFileNameArg),
                               ('copy_scene', BoolArg),
                               ('relay_commands', BoolArg),
                               ('update_interval', IntArg)],
@@ -151,7 +160,7 @@ def meeting_server(session, create = False):
 class MeetingServer:
     def __init__(self, session):
         self._session = session
-        self._name = 'remote'
+        self._name = 'Remote'
         self._color = (0,255,0,255)	# Tracking model color
         self._server = None
         self._connections = []		# List of QTcpSocket
@@ -161,11 +170,16 @@ class MeetingServer:
         self._trackers = []
         self._mouse_tracker = None
         self._vr_tracker = None
-        self._copy_scene = True
+        self._copy_scene = False
 
         self._command_relay_handler = None	# Send commands to peers
         self._running_received_command = False
         self.relay_commands()
+
+        self._status_report_interval = 0.5
+        self._status_start_time = None
+        self._last_status_time = None
+        self._last_status_bytes = None
 
     def set_color(self, color):
         self._color = color
@@ -237,6 +251,7 @@ class MeetingServer:
         socket.error.connect(socket_error)
         socket.connectToHost(host, port)
         self._add_connection(socket)
+        self._session.logger.status('Waiting for scene data from meeting host')
 
     def close_all_connections(self):
         if self._trackers:
@@ -302,13 +317,19 @@ class MeetingServer:
         return sbytes
 
     def _restore_session(self, base64_sbytes):
+        ses = self._session
+        ses.logger.status('Opening scene (%.1f Mbytes)' % (len(base64_sbytes)/2**20,))
+        from time import time
+        t1 = time()
         from base64 import b64decode
         sbytes = b64decode(base64_sbytes)
         from io import BytesIO
         stream = BytesIO(sbytes)
-        ses = self._session
         restore_camera = (ses.main_view.camera.name != 'vr')
         ses.restore(stream, resize_window = False, restore_camera = restore_camera)
+        t2 = time()
+        ses.logger.status('Opened scene %.1f Mbytes, %.1f seconds'
+                          % (len(sbytes)/2**20, (t2-t1)))
 
     def relay_commands(self, relay=True):
         h = self._command_relay_handler
@@ -411,6 +432,7 @@ class MeetingServer:
 
         from numpy import frombuffer, uint32
         msg_len = frombuffer(msg_bytes[:4], uint32)[0]
+        self._report_message_status(len(msg_bytes), msg_len+4)
         if len(msg_bytes) < msg_len + 4:
             return None
 
@@ -420,6 +442,34 @@ class MeetingServer:
         msg_data = ast.literal_eval(msg)
         return msg_data
 
+    def _report_message_status(self, bytes_received, message_bytes):
+        '''Report progress receiving session from a peer.'''
+        if bytes_received >= message_bytes:
+            lt = self._last_status_time
+            if lt is not None and lt > self._status_start_time:
+                from time import time
+                t = time()
+                msg = ('Received %.1f Mbytes in %.1f seconds'
+                       % (message_bytes / 2**20, t - self._status_start_time))
+                self._session.logger.status(msg)
+            self._last_status_time = None
+            return
+        from time import time
+        t = time()
+        lt = self._last_status_time
+        if lt is None:
+            self._status_start_time = t
+            self._last_status_time = t
+            self._last_status_bytes = bytes_received
+        elif t - lt > self._status_report_interval:
+            percent = 100 * bytes_received/message_bytes
+            rate = ((bytes_received - self._last_status_bytes) / 2**20) / (t - lt)
+            msg = ('Receiving data %.0f%% of %.1f Mbytes, (%.1f Mbytes/sec)'
+                   % (percent, message_bytes / 2**20, rate))
+            self._session.logger.status(msg)
+            self._last_status_time = t
+            self._last_status_bytes = bytes_received
+                                    
     def _relay_message(self, msg):
         if len(self._connections) <= 1 or self._server is None:
             return
@@ -483,7 +533,8 @@ class PointerModels:
                 return m
 
         m = self.make_pointer_model(self._session)
-        self._session.models.add([m])
+        models = self._session.models
+        models.add([m], minimum_id = 100)
         pm[peer_id] = m
         return m
 
@@ -582,7 +633,9 @@ class VRTracking(PointerModels):
         self._update_interval = update_interval	# Send vr position every N frames.
         self._last_vr_camera = c = _vr_camera(self._session)
         self._last_room_to_scene = c.room_to_scene if c else None
-        self._new_head_image = None	# Path to image file
+        self._new_face_image = None	# Path to image file
+        self._face_image = None		# Encoded image
+        self._send_face_image = False
 
     def delete(self):
         t = self._session.triggers
@@ -608,15 +661,20 @@ class VRTracking(PointerModels):
             c = _vr_camera(self._session)
             if c:
                 c.room_to_scene = rts
+                self._reposition_vr_head_and_hands(c)
 
         if 'vr head' in msg:
             PointerModels.update_model(self, msg)
 
     def make_pointer_model(self, session):
-        return VRPointerModel(self._session, 'vr head and hands', self._last_room_to_scene)
+        # Make sure new meeting participant gets my head image.
+        self._send_face_image = True
+        
+        pm = VRPointerModel(self._session, 'VR', self._last_room_to_scene)
+        return pm
 
-    def new_head_image(self, path):
-        self._new_head_image = path
+    def new_face_image(self, path):
+        self._new_face_image = path
         
     def _vr_tracking_cb(self, trigger_name, camera):
         c = camera
@@ -646,9 +704,16 @@ class VRTracking(PointerModels):
             msg['vr coords'] = _place_matrix(c.room_to_scene)
             self._last_room_to_scene = c.room_to_scene
 
-        if self._new_head_image:
-            msg['vr head image'] = _encode_head_image(self._new_head_image)
-            self._new_head_image = None
+        if self._new_face_image:
+            image = _encode_face_image(self._new_face_image)
+            self._face_image = image
+            msg['vr head image'] = image
+            self._new_face_image = None
+            self._send_face_image = False
+        elif self._send_face_image:
+            self._send_face_image = False
+            if self._face_image is not None:
+                msg['vr head image'] = self._face_image
             
         # Tell connected peers my new vr state
         self._meeting._send_message(msg)
@@ -681,6 +746,7 @@ class VRPointerModel(Model):
     pickable = False
     skip_bounds = True
     SESSION_SAVE = False
+    model_panel_show_expanded = False
     
     def __init__(self, session, name, room_to_scene, color = (0,255,0,255)):
         Model.__init__(self, name, session)
@@ -694,7 +760,7 @@ class VRPointerModel(Model):
         self._room_to_scene = room_to_scene
 
     def _hand_models(self, nhands):
-        new_hands = [VRHandModel(self.session, 'hand %d' % (i+1), color=self._color)
+        new_hands = [VRHandModel(self.session, 'Hand %d' % (i+1), color=self._color)
                      for i in range(len(self._hands), nhands)]
         if new_hands:
             self.add(new_hands)
@@ -711,7 +777,7 @@ class VRPointerModel(Model):
     def update_pointer(self, msg):
         if 'name' in msg:
             if 'id' in msg:  # If id not in msg leave name as "my pointer".
-                self.name = '%s vr head and hands' % msg['name']
+                self.name = '%s VR' % msg['name']
         if 'color' in msg:
             for h in self._hands:
                 h.color = msg['color']
@@ -754,7 +820,7 @@ class VRHeadModel(Model):
     skip_bounds = True
     SESSION_SAVE = False
     default_face_file = 'face.png'
-    def __init__(self, session, name = 'head', size = 0.3, image_file = None):
+    def __init__(self, session, name = 'Head', size = 0.3, image_file = None):
         Model.__init__(self, name, session)
         self.room_position = None
         
@@ -782,7 +848,7 @@ class VRHeadModel(Model):
         self.texture_coordinates = tc
 
     def update_image(self, base64_image_bytes):
-        image_bytes = _decode_head_image(base64_image_bytes)
+        image_bytes = _decode_face_image(base64_image_bytes)
         from PyQt5.QtGui import QImage
         qi = QImage()
         qi.loadFromData(image_bytes)
@@ -811,14 +877,14 @@ def _matrix_place(m):
     from chimerax.core.geometry import Place
     return Place(matrix = m)
 
-def _encode_head_image(path):
+def _encode_face_image(path):
     from base64 import b64encode
     hf = open(path, 'rb')
     he = b64encode(hf.read())
     hf.close()
     return he
 
-def _decode_head_image(bytes):
+def _decode_face_image(bytes):
     from base64 import b64decode
     image_bytes = b64decode(bytes)
     return image_bytes

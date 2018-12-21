@@ -232,10 +232,11 @@ class AtomicShapeDrawing(Drawing):
             colors = color.asarray(color, dtype=numpy.uint8)
             assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
         offset = self.vertices.shape[0]
+        new_vertex_colors = concat((self.vertex_colors, colors))
         self.set_geometry(asarray(concat((self.vertices, vertices)), dtype=numpy.float32),
                           asarray(concat((self.normals, normals)), dtype=numpy.float32),
                           asarray(concat((self.triangles, triangles + offset)), dtype=numpy.int32))
-        self.vertex_colors = concat((self.vertex_colors, colors))
+        self.vertex_colors = new_vertex_colors
         s = self._shapes[-1]
         s.triangle_range = range(s.triangle_range.start, self.triangles.shape[0])
 

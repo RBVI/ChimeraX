@@ -314,11 +314,11 @@ class _RestoreManager:
             if missing_bundles:
                 msg += "; missing %s: %s" % (
                     plural_form(missing_bundles, 'bundle'),
-                    commas(missing_bundles, ' and'))
+                    commas(missing_bundles, 'and'))
             if out_of_date_bundles:
                 msg += "; out of date %s: %s" % (
                     plural_form(out_of_date_bundles, 'bundle'),
-                    commas(out_of_date_bundles, ' and'))
+                    commas(out_of_date_bundles, 'and'))
             raise UserError(msg)
         self.bundle_infos = bundle_infos
 
@@ -331,7 +331,7 @@ class _RestoreManager:
 
 
 class Session:
-    """Session management
+    """Supported API. Session management
 
     The metadata attribute should be a dictionary with information about
     the session, e.g., a thumbnail, a description, the author, etc.
@@ -347,12 +347,14 @@ class Session:
     Attributes
     ----------
     logger : An instance of :py:class:`~chimerax.core.logger.Logger`
-        Use to log information, warning, errors.
+        Used to log information, warning, errors.
     metadata : dict
         Information kept at beginning of session file, eg., a thumbnail
     models : Instance of :py:class:`~chimerax.core.models.Models`.
     triggers : An instance of :py:class:`~chimerax.core.triggerset.TriggerSet`
         Starts with session triggers.
+    main_view : An instance of :py:class:`~chimerax.core.graphics.View`
+        Default view.
     """
 
     def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
@@ -395,9 +397,10 @@ class Session:
         self._state_containers['main_view'] = view
     view = property(_get_view, _set_view)
 
-    @property
-    def scenes(self):
-        return self._state_containers['scenes']
+    # TODO:
+    # @property
+    # def scenes(self):
+    #     return self._state_containers['scenes']
 
     def reset(self):
         """Reset session to data-less state"""
@@ -626,20 +629,21 @@ def standard_metadata(previous_metadata={}):
     The standard metadata consists of:
 
     generator :
-        HTML user agent (app name version (os))
+        Application that created file in HTML User Agent format
+        (app name version (os))
     created :
-        date first created
+        Date first created
     modified :
-        date last modified after being created
+        Date last modified after being created
     creator :
-        user name(s)
+        User name(s)
     dateCopyrighted :
-        copyright(s)
+        Copyright(s)
 
     creator and dateCopyrighted can be lists if there
     is previous metadata with different values.
 
-    dates are in ISO 8601 UTC time.  Also see
+    Dates are in ISO 8601 UTC time.  Also see
     <http://www.w3.org/TR/NOTE-datetime>.
 
     Metadata names are inspired by the HTML5 metadata,

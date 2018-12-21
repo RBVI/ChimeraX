@@ -439,17 +439,16 @@ def shortcut_atoms(session):
 def shortcut_surfaces(session):
     sel = session.selection
     models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
-    # Avoid group nodes by only taking non-empty models.
-    surfs = [m for m in models if not m.empty_drawing()]
-    # TODO: Need a Surface base class.
+    from chimerax.core.models import Surface
+    surfs = [m for m in models if isinstance(m, Surface)]
     return surfs
 
 def shortcut_surfaces_and_maps(session):
     sel = session.selection
     models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
-    # Avoid group nodes by only taking non-empty models.
     from chimerax.map import Volume
-    sm = [m for m in models if isinstance(m,Volume) or not m.empty_drawing()]
+    from chimerax.core.models import Surface
+    sm = [m for m in models if isinstance(m,Volume) or isinstance(m, Surface)]
     return sm
 
 def show_mesh(session):
