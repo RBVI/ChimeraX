@@ -592,11 +592,13 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         }
     }
     if (res_removals.size() > 0) {
-        for (auto r: res_removals)
-            if (r->chain() != nullptr) {
-                r->chain()->remove_residue(r);
-                set_gc_ribbon();
-            }
+        if (_chains != nullptr) {
+            for (auto r: res_removals)
+                if (r->chain() != nullptr) {
+                    r->chain()->remove_residue(r);
+                    set_gc_ribbon();
+                }
+        }
         // remove_if apparently doesn't guarantee that the _back_ of
         // the vector is all the removed items -- there could be second
         // copies of the retained values in there, so do the delete as
