@@ -394,7 +394,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._hide_tools = False
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
-        self._select_seq_dialog = None
+        self._select_seq_dialog = self._select_zone_dialog = None
 
         self._build_status()
         self._populate_menus(session)
@@ -690,6 +690,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._select_seq_dialog.show()
         self._select_seq_dialog.raise_()
 
+    def show_select_zone_dialog(self, *args):
+        if self._select_zone_dialog is None:
+            self._select_zone_dialog = SelZoneDialog(self.session)
+        self._select_zone_dialog.show()
+        self._select_zone_dialog.raise_()
+
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
         _show_context_menu(event, tool, fill_cb, True, tb)
@@ -854,6 +860,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_seq_action = QAction("Sequence...", self)
         select_menu.addAction(sel_seq_action)
         sel_seq_action.triggered.connect(self.show_select_seq_dialog)
+        sel_zone_action = QAction("&Zone...", self)
+        select_menu.addAction(sel_zone_action)
+        sel_zone_action.triggered.connect(self.show_select_zone_dialog)
 
         self.select_mode_menu = select_menu.addMenu("mode")
         self.select_mode_menu.setObjectName("mode")
@@ -1654,3 +1663,70 @@ class SelSeqDialog(QDialog):
         enable = bool(text.strip())
         for button in [self.bbox.button(x) for x in [self.bbox.Ok, self.bbox.Apply]]:
             button.setEnabled(enable)
+
+class SelZoneDialog(QDialog):
+    def __init__(self, session, *args, **kw):
+        super().__init__(*args, **kw)
+        self.session = session
+        self.setWindowTitle("Select Zone")
+        self.setSizeGripEnabled(True)
+        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
+            QCheckBox, QDoubleSpinBox
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Select all atoms/bonds that meet the chosen criteria below:"))
+        less_layout = QHBoxLayout()
+        self.less_checkbox = QCheckBox("<")
+        self.less_checkbox.setChecked(True)
+        self.less_checkbox.stateChanged.connect(self._update_button_states)
+        less_layout.addWidget(self.less_checkbox)
+        self.less_spinbox = QDoubleSpinBox()
+        self.less_spinbox.setValue(5.0)
+        self.less_spinbox.setDecimals(3)
+        self.less_spinbox.setMaximum(9999.999)
+        less_layout.addWidget(self.less_spinbox)
+        less_layout.addWidget(QLabel("angstroms from the currently selected atoms"))
+        layout.addLayout(less_layout)
+        more_layout = QHBoxLayout()
+        self.more_checkbox = QCheckBox(">")
+        self.more_checkbox.stateChanged.connect(self._update_button_states)
+        more_layout.addWidget(self.more_checkbox)
+        self.more_spinbox = QDoubleSpinBox()
+        self.more_spinbox.setValue(5.0)
+        self.more_spinbox.setDecimals(3)
+        self.more_spinbox.setMaximum(9999.999)
+        more_layout.addWidget(self.more_spinbox)
+        more_layout.addWidget(QLabel("angstroms from the currently selected atoms"))
+        layout.addLayout(more_layout)
+        res_layout = QHBoxLayout()
+        self.res_checkbox = QCheckBox("Select all atoms/bonds of any residue in selection zone")
+        res_layout.addWidget(self.res_checkbox)
+        layout.addLayout(res_layout)
+
+        self.bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        self.bbox.accepted.connect(self.zone)
+        self.bbox.accepted.connect(self.accept)
+        self.bbox.rejected.connect(self.reject)
+        self.bbox.button(self.bbox.Help).setEnabled(False)
+        """
+        from chimerax.core.commands import run
+        self.bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help help:user/findseq.html"))
+        """
+        self._update_button_states()
+        layout.addWidget(self.bbox)
+        self.setLayout(layout)
+
+    def zone(self, *args):
+        cmd = "select "
+        char = ':' if self.res_checkbox.isChecked() else '@'
+        if self.less_checkbox.isChecked():
+            cmd += "sel %s< %g" % (char, self.less_spinbox.value())
+            if self.more_checkbox.isChecked():
+                cmd += ' & '
+        if self.more_checkbox.isChecked():
+            cmd += "sel %s> %g" % (char, self.more_spinbox.value())
+        from chimerax.core.commands import run
+        run(self.session, cmd)
+
+    def _update_button_states(self, *args):
+        self.bbox.button(self.bbox.Ok).setEnabled(
+            self.less_checkbox.isChecked() or self.more_checkbox.isChecked())
