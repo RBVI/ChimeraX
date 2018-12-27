@@ -577,9 +577,11 @@ hypertext to render in the
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>resizeWindow</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
@@ -605,9 +607,6 @@ The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
-</p><p>
-Opening a Chimera session file automatically runs
-<a href="close.html"><b>close session</b></a> first.
 </p><p>
 Further command options:
 </p>
@@ -637,6 +636,7 @@ separate submodels that can be shown/hidden/specified independently
 or collectively (for example, using #1).
 </blockquote>
 <blockquote>
+<a name="vseries"></a>
 <b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
 When multiple maps with the same grid dimensions are opened 
@@ -685,6 +685,17 @@ so that it can be saved along with other datasets in a single (multichannel)
 <a href="save.html#chimap">Chimera map</a> file.
 </blockquote>
 <blockquote>
+<a name="resizeWindow"></a>
+<b>resizeWindow</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+When opening a <a href="save.html#session">session</a>,
+whether to restore its window size along with its contents; 
+overrides the corresponding
+<a href="../preferences.html#window"><b>Window</b> preference</a>.
+Opening a ChimeraX <a href="save.html#session">session</a>
+automatically runs <a href="close.html"><b>close session</b></a> first.
+</blockquote>
+<blockquote>
 <b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to interpret a multi-sequence file as an alignment 
@@ -720,6 +731,15 @@ bypassing chemical perception steps like identifying
 <a href="../atomtypes.html">atom types</a>.
 </blockquote>
 <blockquote>
+<b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Nonstandard PDB or mmCIF files may contain duplicate copies of atoms
+at symmetry positions; this option indicates whether to merge
+multiple singleton atoms of the same element at the same 3D position 
+into one (default <b>true</b>) to prevent errors in subsequent
+calculations such as <a href="addh.html">adding hydrogens</a>.
+</blockquote>
+<blockquote>
 <b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to fetch ensembles associated with an IHM dataset 
@@ -747,9 +767,11 @@ Whether to open an HTML file in a new tab of the
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>resizeWindow</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
@@ -915,6 +937,13 @@ If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
 Model number is also assigned automatically, starting with the lowest available
 number. Model name and number can be changed with the
 <a href="rename.html"><b>rename</b></a> command.
+</blockquote>
+<blockquote>
+<a name="logInfo"></a>
+<b>logInfo</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show available <a href="../modelinfo.html">model information</a>
+(other than structure title) in the <a href="../tools/log.html"><b>Log</b></a>.
 </blockquote>
 <blockquote>
 <b>autoStyle</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
