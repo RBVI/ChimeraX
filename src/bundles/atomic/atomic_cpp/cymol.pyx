@@ -1283,9 +1283,9 @@ cdef class CyResidue:
             res_str = self.name + " " + str(self.number) + ic
         else:
             res_str = ":" + str(self.number) + ic
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         if residue_only:
             return res_str
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         if omit_structure:
             return '%s %s' % (chain_str, res_str)
         from .structure import Structure

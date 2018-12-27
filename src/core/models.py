@@ -304,7 +304,7 @@ class Model(State, Drawing):
         if self.has_formatted_metadata(session):
             fmt += ' <a href="cxcmd:log metadata #%s">[more&nbsp;info...]</a>' % self.id_string
         fmt += '<br>'
-        session.logger.info(fmt % (self.name, self.html_title) , is_html=True)
+        session.logger.info(fmt % (self.name, html_title) , is_html=True)
 
     def removed_from_session(self, session):
         pass

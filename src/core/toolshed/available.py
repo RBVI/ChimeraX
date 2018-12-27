@@ -13,6 +13,9 @@
 
 
 from . import _debug
+import re
+
+_CACHE_FILE = "available.json"
 
 
 class AvailableBundleCache(list):
@@ -35,7 +38,7 @@ class AvailableBundleCache(list):
             import json
             data = json.loads(f.read())
         import os
-        with open(os.path.join(self.cache_dir, 'available.json'), 'w') as f:
+        with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w') as f:
             import json
             json.dump(data, f, indent=0)
         try:
@@ -54,7 +57,7 @@ class AvailableBundleCache(list):
         if self.cache_dir is None:
             return FileNotFoundError("no cache")
         import os
-        with open(os.path.join(self.cache_dir, 'available.json')) as f:
+        with open(os.path.join(self.cache_dir, _CACHE_FILE)) as f:
             import json
             data = json.load(f)
         for d in data:
@@ -71,6 +74,11 @@ class AvailableBundleCache(list):
         name = getuser()
         dn = "CN=%s, L=%s" % (name, node)
         return uuid.uuid5(uuid.NAMESPACE_X500, dn)
+
+
+def has_cache_file(cache_dir):
+    import os
+    return os.path.exists(os.path.join(cache_dir, _CACHE_FILE))
 
 
 def _build_bundle(d):
@@ -235,7 +243,6 @@ def _build_bundle(d):
                 fi = format_map[fmt_name]
             except KeyError:
                 continue
-            tag = fd.get("tag", "")
             is_default = fd.get("is_default", "") == "true"
             keywords = fd.get("keywords", None)
             if keywords:
@@ -258,7 +265,6 @@ def _build_bundle(d):
                 fi = format_map[fmt_name]
             except KeyError:
                 continue
-            tag = fd.get("tag", "")
             is_default = fd.get("is_default", "") == "true"
             keywords = fd.get("keywords", None)
             if keywords:
@@ -270,6 +276,7 @@ def _build_bundle(d):
     # Finished.  Return BundleInfo instance.
     #
     return bi
+
 
 def _set_value(kw, d, key, post_process=None):
     try:
@@ -284,6 +291,7 @@ def _set_value(kw, d, key, post_process=None):
     else:
         kw[key] = v
 
+
 def _parse_session_versions(sv):
     vs = [v.strip() for v in sv.split(',')]
     if len(vs) != 2:
@@ -292,10 +300,11 @@ def _parse_session_versions(sv):
     hi = int(vs[1])
     if lo > hi:
         raise ValueError("bad session version values: %s" % repr(sv))
-    return range(lo, hi+1)
+    return range(lo, hi + 1)
 
-import re
-_REReq = re.compile("""(?P<bundle>\S+)\s*\(>=(?P<version>\S+)\)""")
+
+_REReq = re.compile(r"""(?P<bundle>\S+)\s*\(>=(?P<version>\S+)\)""")
+
 
 def _parse_requires(r):
     # Only handle requirements of form "bundle (>=version)" for now

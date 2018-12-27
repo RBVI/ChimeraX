@@ -23,7 +23,7 @@
 #include "fittingpy.h"			// use py_correlation_gradient, ...
 #include "distgrid.h"			// use py_sphere_surface_distance
 #include "gaussian.h"			// use py_sum_of_gaussians
-#include "histogram.h"			// use bin_counts_py, ...
+#include "histogram.h"			// use bin_counts, ...
 #include "interpolatepy.h"		// use interpolate_volume_data, ...
 #include "localcorr.h"			// use local_correlation
 #include "moments.h"			// use moments_py, affine_scale_py
@@ -88,7 +88,7 @@ static struct PyMethodDef map_cpp_methods[] =
   /* histogram.h */
   {const_cast<char*>("minimum_and_maximum"), (PyCFunction)minimum_and_maximum,
    METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("bin_counts"), (PyCFunction)bin_counts_py,
+  {const_cast<char*>("bin_counts"), (PyCFunction)bin_counts,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("high_count"), (PyCFunction)high_count_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
