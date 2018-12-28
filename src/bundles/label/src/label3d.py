@@ -196,7 +196,7 @@ def labels_model(parent, create = False):
 #
 def register_label_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, ObjectsArg, StringArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, create_alias, ObjectsArg, StringArg, FloatArg
     from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
@@ -222,6 +222,7 @@ def register_label_command(logger):
     desc = CmdDesc(synopsis = 'List available fonts')
     from .label2d import label_listfonts
     register('label listfonts', desc, label_listfonts, logger=logger)
+    create_alias('~label', 'label delete $*', logger=logger)
 
 # -----------------------------------------------------------------------------
 #
@@ -265,19 +266,17 @@ class ObjectLabels(Model):
     def delete(self):
         h = self._update_graphics_handler
         if h is not None:
-            self.session.triggers.remove_handler(h)
+            h.remove()
             self._update_graphics_handler = None
 
         h = self._background_color_handler
         if h is not None:
-            from chimerax.core.core_settings import settings as core_settings
-            core_settings.triggers.remove_handler(h)
+            h.remove()
             self._background_color_handler = None
 
         h = self._structure_change_handler
         if h is not None:
-            from chimerax.atomic import get_triggers
-            get_triggers(self.session).remove_handler(h)
+            h.remove()
             self._structure_change_handler = None
         
         Model.delete(self)
