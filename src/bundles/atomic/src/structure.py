@@ -37,7 +37,7 @@ class Structure(Model, StructureData):
 
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
-            '_auto_chain_trace': False,
+            '_auto_chain_trace': isinstance(self, AtomicStructure),
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
             '_use_spline_normals': False,
