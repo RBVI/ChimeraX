@@ -539,6 +539,9 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         def _qt_safe(session=session, paths=paths):
             from chimerax.core.commands import run, quote_if_necessary
+            ## The following commented-out open command doesn't get multiple volume-plane files
+            ## to open as a single volume, whereas the uncommented code does
+            #run(session, "open " + " ".join([quote_if_necessary(p) for p in paths]))
             if len(paths) == 1:
                 run(session, "open " + quote_if_necessary(paths[0]))
             else:
