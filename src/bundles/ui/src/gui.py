@@ -539,6 +539,9 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         def _qt_safe(session=session, paths=paths):
             from chimerax.core.commands import run, quote_if_necessary
+            ## The following commented-out open command doesn't get multiple volume-plane files
+            ## to open as a single volume, whereas the uncommented code does
+            #run(session, "open " + " ".join([quote_if_necessary(p) for p in paths]))
             if len(paths) == 1:
                 run(session, "open " + quote_if_necessary(paths[0]))
             else:
@@ -1673,7 +1676,7 @@ class SelZoneDialog(QDialog):
         from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
             QCheckBox, QDoubleSpinBox
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Select all atoms/bonds that meet the chosen criteria below:"))
+        layout.addWidget(QLabel("Select atoms/bonds that meet all chosen distance criteria:"))
         less_layout = QHBoxLayout()
         self.less_checkbox = QCheckBox("<")
         self.less_checkbox.setChecked(True)
@@ -1682,9 +1685,10 @@ class SelZoneDialog(QDialog):
         self.less_spinbox = QDoubleSpinBox()
         self.less_spinbox.setValue(5.0)
         self.less_spinbox.setDecimals(3)
+        self.less_spinbox.setSuffix("\N{ANGSTROM SIGN}")
         self.less_spinbox.setMaximum(9999.999)
         less_layout.addWidget(self.less_spinbox)
-        less_layout.addWidget(QLabel("angstroms from the currently selected atoms"))
+        less_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(less_layout)
         more_layout = QHBoxLayout()
         self.more_checkbox = QCheckBox(">")
@@ -1693,12 +1697,13 @@ class SelZoneDialog(QDialog):
         self.more_spinbox = QDoubleSpinBox()
         self.more_spinbox.setValue(5.0)
         self.more_spinbox.setDecimals(3)
+        self.more_spinbox.setSuffix("\N{ANGSTROM SIGN}")
         self.more_spinbox.setMaximum(9999.999)
         more_layout.addWidget(self.more_spinbox)
-        more_layout.addWidget(QLabel("angstroms from the currently selected atoms"))
+        more_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(more_layout)
         res_layout = QHBoxLayout()
-        self.res_checkbox = QCheckBox("Select all atoms/bonds of any residue in selection zone")
+        self.res_checkbox = QCheckBox("Promote atoms/bond selection to whole residues")
         res_layout.addWidget(self.res_checkbox)
         layout.addLayout(res_layout)
 
