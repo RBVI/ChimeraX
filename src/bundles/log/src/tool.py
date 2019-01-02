@@ -289,19 +289,9 @@ class Log(ToolInstance, HtmlLog):
         Parameters documented in HtmlLog base class
         """
 
-        image, image_break = image_info
-        if image:
-            import io
-            img_io = io.BytesIO()
-            image.save(img_io, format='PNG')
-            png_data = img_io.getvalue()
-            import codecs
-            bitmap = codecs.encode(png_data, 'base64')
-            width, height = image.size
-            img_src = '<img src="data:image/png;base64,%s" width=%d height=%d style="vertical-align:middle">' % (bitmap.decode('utf-8'), width, height)
-            self.page_source += img_src
-            if image_break:
-                self.page_source += "<br>\n"
+        if image_info[0] is not None:
+            from chimerax.core.logger import image_info_to_html
+            self.page_source += image_info_to_html(msg, image_info)
         else:
             from chimerax.core.core_settings import settings as core_settings
             if ((level >= self.LEVEL_ERROR and core_settings.errors_raise_dialog) or
