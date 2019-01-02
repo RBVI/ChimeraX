@@ -514,7 +514,7 @@ class Logger(StatusLogger):
 
 html_table_params = 'border=1 cellpadding=4 cellspacing=0'
 
-class CollatingLog(PlainTextLog):
+class CollatingLog(HtmlLog):
     """Collates log messages
 
     This class is designed to be used via the :py:class:`Collator` context manager.
@@ -531,9 +531,9 @@ class CollatingLog(PlainTextLog):
         for _ in range(self.LEVEL_ERROR+1):
             self.msgs.append([])
 
-    def log(self, level, msg):
+    def log(self, level, msg, image_info, is_html):
         if level <= self.LEVEL_ERROR:
-            self.msgs[level].append(msg)
+            self.msgs[level].append((msg, image_info, is_html))
             return True
         return False
 
@@ -565,18 +565,27 @@ class CollatingLog(PlainTextLog):
             logger.info(summary, is_html=True)
 
     def summarize_msgs(self, msgs, collapse_similar):
-        # Each message is plain text so escape < and > otherwise <stuff between angle brackets>
+        # For plain text messages, escape < and > otherwise <stuff between angle brackets>
         # disappears in html output.
         import html
-        msgs = [html.escape(m) for m in msgs]
-        
+        msgs = [(m if is_html else html.escape(m), image_info) for m, image_info, is_html in msgs]
+
         import sys
         if collapse_similar:
             summarized = []
             prev_msg = sim_info = None
-            for msg in msgs:
+            for msg, image_info in msgs:
                 # Judge similarity to preceding messages and perhaps collapse...
-                if sim_info:
+                if image_info[0] is not None:
+                    # always log images
+                    if sim_info:
+                        sim_reps = sim_info[0]
+                        if sim_reps > self.sim_collapse_after:
+                            summarized.append("{} messages similar to the above omitted\n".format(
+                                sim_reps - self.sim_collapse_after))
+                    prev_msg = sim_info = None
+                    summarized.append(image_info_to_html(msg, image_info))
+                elif sim_info:
                     sim_reps, sim_type, sim_data = sim_info
                     st = self.sim_test_size
                     if sim_type == "front":
@@ -682,6 +691,21 @@ def html_to_plain(html):
     # h.pad_tables = True  # 2018.1.9 is confused by multiline data in td
     # h.body_width = ?  # TODO: track terminal size changes
     return h.handle(html)
+
+def image_info_to_html(msg, image_info):
+    image, image_break = image_info
+    import io
+    img_io = io.BytesIO()
+    image.save(img_io, format='PNG')
+    png_data = img_io.getvalue()
+    import codecs
+    bitmap = codecs.encode(png_data, 'base64')
+    width, height = image.size
+    img_src = '<img src="data:image/png;base64,%s" width=%d height=%d style="vertical-align:middle">'  % (
+        bitmap.decode('utf-8'), width, height)
+    if image_break:
+        img_src += "<br>\n"
+    return img_src
 
 def log_version(logger):
     '''Show version information.'''
