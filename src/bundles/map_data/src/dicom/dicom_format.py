@@ -169,7 +169,6 @@ class DicomData:
     ppv = attrs.get('PixelPaddingValue')
     if ppv is not None:
       self.pad_value = self.rescale_slope * ppv + self.rescale_intercept
-      print('padding value', self.pad_value)
     else:
       self.pad_value = None
 
@@ -220,7 +219,9 @@ class DicomData:
 def numpy_value_type(bits_allocated, pixel_representation, rescale_slope, rescale_intercept):
 
   from numpy import int8, uint8, int16, uint16, float32
-  if rescale_slope != 1 or int(rescale_intercept) != rescale_intercept:
+  if (rescale_slope != 1 or
+      int(rescale_intercept) != rescale_intercept or
+      rescale_intercept < 0 and pixel_representation == 0):  # unsigned with negative offset
     return float32
 
   types = {(8,0): uint8,
