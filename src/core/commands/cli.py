@@ -946,7 +946,7 @@ class FileNameArg(Annotation):
 _browse_string = "browse"
 
 
-def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode):
+def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
     if path == _browse_string:
         if not session.ui.is_gui:
@@ -964,12 +964,12 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
             paths = dlg.selectedFiles()
             if not paths:
                 raise AnnotationError("No %s selected by browsing" % item_kind)
-            path = paths[0]
         else:
             from chimerax.core.errors import CancelOperation
             raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
-        text = path
-    return path, text, rest
+    else:
+        paths = [path]
+    return (paths if return_list else paths[0]), " ".join([quote_if_necessary(p) for p in paths]), rest
 
 
 class OpenFileNameArg(FileNameArg):
@@ -985,6 +985,24 @@ class OpenFileNameArg(FileNameArg):
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
 
+class OpenFileNamesArg(Annotation):
+    """Annotation for opening one or more files"""
+    name = "file names to open"
+    # name_filter should be a string compatible with QFileDialog.setNameFilter(),
+    # or None (which means all ChimeraX-openable types)
+    name_filter = None
+    allow_repeat = "expand"
+
+    @classmethod
+    def parse(cls, text, session):
+        # horrible hack to get repeatable-parsing to work when 'browse' could return multiple files
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFiles
+        else:
+            accept_mode = dialog_mode = None
+        return  _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
+            return_list=True)
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
@@ -2337,7 +2355,11 @@ class Command:
                 self._error = ""
                 last_anno = anno
                 if hasattr(anno, 'allow_repeat') and anno.allow_repeat:
-                    self._kw_args[kwn] = values = [value]
+                    expand = anno.allow_repeat == "expand"
+                    if expand and isinstance(value, list):
+                        self._kw_args[kwn] = values = value
+                    else:
+                        self._kw_args[kwn] = values = [value]
                     while True:
                         text = self._skip_white_space(text)
                         if self._start_of_keywords(text):
@@ -2346,7 +2368,10 @@ class Command:
                             value, text = self._parse_arg(anno, text, session, False)
                         except:
                             break
-                        values.append(value)
+                        if expand and isinstance(value, list):
+                            values.extend(value)
+                        else:
+                            values.append(value)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
