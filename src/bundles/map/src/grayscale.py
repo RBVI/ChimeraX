@@ -263,9 +263,14 @@ class GrayScaleDrawing(Drawing):
       r.blend_max(True)
     if dtransp:
       r.write_depth(False)
+    blend1 = (dtransp and self.transparency_blend_mode == self.SRC_1_DST_1_MINUS_ALPHA)
+    if blend1:
+      r.blend_alpha(False)
 
     pd.draw(r, draw_pass)
 
+    if blend1:
+      r.blend_alpha(True)
     if dtransp:
       r.write_depth(True)
     if max_proj:

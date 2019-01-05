@@ -178,9 +178,11 @@ class Model(State, Drawing):
     selected = property(get_selected, set_selected)
     '''selected indicates if this model has any part selected but does not include children.'''
         
-    @property
-    def selected_positions(self):
+    def _get_selected_positions(self):
         return self.highlighted_positions
+    def _set_selected_positions(self, positions):
+        self.highlighted_positions = positions
+    selected_positions = property(_get_selected_positions, _set_selected_positions)
     
     def _model_set_position(self, pos):
         if pos != self.position:
