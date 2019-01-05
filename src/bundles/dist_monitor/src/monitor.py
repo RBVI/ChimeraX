@@ -52,10 +52,14 @@ class DistancesMonitor(StateManager):
     decimal_places = property(_get_decimal_places, _set_decimal_places)
 
     @property
-    def distance_format(self):
+    def distance_format(self, *, decimal_places=None, show_units=None):
         from chimerax.core.core_settings import settings
-        fmt = "%%.%df" % settings.distance_decimal_places
-        if settings.distance_show_units:
+        if decimal_places is None:
+            decimal_places = settings.distance_decimal_places
+        if show_units is None:
+            show_units = settings.distance_show_units
+        fmt = "%%.%df" % decimal_places
+        if show_units:
             fmt += u'\u00C5'
         return fmt
 
@@ -129,7 +133,7 @@ class DistancesMonitor(StateManager):
                 lm.add_labels(pbs, PseudobondLabel, self.session.main_view,
                     settings=label_settings)
             if grp in self.update_callbacks:
-                self.update_callbacks[group]()
+                self.update_callbacks[grp]()
 
     # session methods
     def reset_state(self, session):

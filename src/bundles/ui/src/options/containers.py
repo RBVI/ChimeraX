@@ -120,7 +120,7 @@ class CategorizedOptionsPanel(QTabWidget):
         return self._category_to_panel[category].options()
 
 class SettingsPanelBase(QWidget):
-    def __init__(self, owner_description, parent, option_sorting, multicategory,
+    def __init__(self, parent, option_sorting, multicategory,
             *, category_sorting=None, help_cb=None, **kw):
         QWidget.__init__(self, parent, **kw)
         self.multicategory = multicategory
@@ -228,11 +228,11 @@ class SettingsPanel(SettingsPanelBase):
        'settings' constructor arg.
     """
 
-    def __init__(self, owner_description, parent=None, *, sorting=True, **kw):
+    def __init__(self, parent=None, *, sorting=True, **kw):
         """'settings' is a Settings instance.  The remaining arguments are the same as
             for OptionsPanel
         """
-        SettingsPanelBase.__init__(self, owner_description, parent, sorting, multicategory=False, **kw)
+        SettingsPanelBase.__init__(self, parent, sorting, multicategory=False, **kw)
 
     def add_option(self, option):
         """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
@@ -244,11 +244,11 @@ class CategorizedSettingsPanel(SettingsPanelBase):
        'settings' constructor arg, and that are presented in categories.
     """
 
-    def __init__(self, owner_description, parent=None, *, category_sorting=True, option_sorting=True, **kw):
+    def __init__(self, parent=None, *, category_sorting=True, option_sorting=True, **kw):
         """'settings' is a Settings instance.  The remaining arguments are the same as
             for CategorizedOptionsPanel
         """
-        SettingsPanelBase.__init__(self, owner_description, parent, option_sorting, multicategory=True,
+        SettingsPanelBase.__init__(self, parent, option_sorting, multicategory=True,
             category_sorting=category_sorting, **kw)
 
     def add_option(self, category, option):
