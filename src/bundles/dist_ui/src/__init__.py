@@ -39,4 +39,9 @@ class _DistUIBundleAPI(BundleAPI):
                     run(session, command)
             SelectMouseMode.register_menu_entry(DistanceContextMenuEntry())
 
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import DistanceTool
+        return DistanceTool(session, tool_name)
+
 bundle_api = _DistUIBundleAPI()

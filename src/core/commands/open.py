@@ -191,8 +191,7 @@ def open_formats(session):
 
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, DynamicEnum, StringArg, BoolArg, \
-        OpenFileNameArg, RepeatOf
+    from chimerax.core.commands import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNamesArg
 
     def formats():
         from chimerax.core import io, fetch
@@ -209,7 +208,7 @@ def register_command(logger):
         from chimerax.core import fetch
         return [f.database_name for f in fetch.fetch_databases().values()]
     desc = CmdDesc(
-        required=[('filename', RepeatOf(OpenFileNameArg))],
+        required=[('filename', OpenFileNamesArg)],
         keyword=[
             ('format', DynamicEnum(formats)),
             ('name', StringArg),

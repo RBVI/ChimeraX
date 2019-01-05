@@ -306,7 +306,8 @@ class OrthographicCamera(Camera):
         w = max(xsize, ysize * window_size[0] / window_size[1]) if window_size else xsize
         w *= 1/max(0.01, 1-pad)
         self.field_width = w if w > 0 else 1.0
-        ca = bounds.center() - zsize*self.view_direction()
+        zoffset = 2*b.radius()
+        ca = bounds.center() - zoffset*self.view_direction()
         shift = ca - self.position.origin()
         from ..geometry import translation
         self.position = translation(shift) * self.position

@@ -986,6 +986,11 @@ class Render:
         else:
             GL.glDisable(GL.GL_BLEND)
 
+    def blend_alpha(self, alpha_factor = True):
+        'Control whether or not brightness is multiplied by alpha value.'
+        src = GL.GL_SRC_ALPHA if alpha_factor else GL.GL_ONE
+        GL.glBlendFunc(src, GL.GL_ONE_MINUS_SRC_ALPHA)
+
     def blend_add(self, f):
         GL.glBlendColor(f, f, f, f)
         GL.glBlendFunc(GL.GL_CONSTANT_COLOR, GL.GL_ONE)

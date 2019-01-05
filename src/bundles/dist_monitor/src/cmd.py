@@ -11,6 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.triggerset import TriggerSet
+group_triggers = TriggerSet()
+group_triggers.add_trigger("update")
+group_triggers.add_trigger("delete")
+
 def distance(session, atoms, *, color=None, dashes=None,
         decimal_places=None, radius=None, symbol=None):
     '''
@@ -31,7 +36,7 @@ def distance(session, atoms, *, color=None, dashes=None,
             grp.radius = settings.distance_radius
         grp.dashes = settings.distance_dashes
         session.models.add([grp])
-        session.pb_dist_monitor.add_group(grp)
+        session.pb_dist_monitor.add_group(grp, update_callback=_notify_updates)
     a1, a2 = atoms
     for pb in grp.pseudobonds:
         pa1, pa2 = pb.atoms
@@ -89,7 +94,7 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
     '''
     grp = session.pb_manager.get_group("distances", create=False)
     if pbonds is not None:
-        pbs = [pb for pb in pbonds if pb.name == "distances"]
+        pbs = [pb for pb in pbonds if pb.group.name == "distances"]
     elif grp:
         pbs = grp.pseudobonds
     else:
@@ -104,27 +109,36 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
             if lm:
                 lm.add_labels(pbs, PseudobondLabel, session.main_view,
                     settings={ 'color': color.uint8x4() })
-        if set_defaults and settings.distance_color != color:
-            settings.distance_color = color
+        settings.distance_color = color
+        if set_defaults:
+            settings.save('distance_color')
 
     if dashes is not None:
         if not grp:
             grp = session.pb_manager.get_group("distances", create=True)
         grp.dashes = dashes
-        if set_defaults and settings.distance_dashes != dashes:
-            settings.distance_dashes = dashes
+        settings.distance_dashes = dashes
+        if set_defaults:
+            settings.save('distance_dashes')
 
     if decimal_places is not None:
         session.pb_dist_monitor.decimal_places = decimal_places
+        settings.distance_decimal_places = decimal_places
+        if set_defaults:
+            settings.save('distance_decimal_places')
 
     if radius is not None:
         for pb in pbs:
             pb.radius = radius
-        if settings.distance_radius != radius:
-            settings.distance_radius = radius
+        settings.distance_radius = radius
+        if set_defaults:
+            settings.save('distance_radius')
 
     if symbol is not None:
         session.pb_dist_monitor.show_units = symbol
+        settings.distance_show_units = symbol
+        if set_defaults:
+            settings.save('distance_show_units')
 
 def xdistance(session, pbonds=None):
     pbg = session.pb_manager.get_group("distances", create=False)
@@ -133,9 +147,14 @@ def xdistance(session, pbonds=None):
     dist_pbonds = pbonds.with_group(pbg) if pbonds != None else None
     if pbonds == None or len(dist_pbonds) == pbg.num_pseudobonds:
         session.models.close([pbg])
+        group_triggers.activate_trigger('delete', None)
         return
     for pb in dist_pbonds:
         pbg.delete_pseudobond(pb)
+    group_triggers.activate_trigger('delete', None)
+
+def _notify_updates():
+    group_triggers.activate_trigger('update', None)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AnnotationError, \

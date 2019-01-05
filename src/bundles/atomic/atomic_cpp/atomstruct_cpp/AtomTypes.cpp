@@ -521,6 +521,24 @@ clock_t start_t = clock();
     for (auto& r: residues()) {
         try {
 #ifdef TRACK_UNTYPED
+            // Don't template-type residues with unexpected cross-residue 
+            // bonds (e.g. residues bonded to PTD in 3kch)
+            if (r->polymer_type() != PT_NONE) {
+                for (auto ra: r->atoms()) {
+                    if (ra->is_backbone(BBE_MIN))
+                        continue;
+                    for (auto nb: ra->neighbors()) {
+                        if (nb->residue() != ra->residue()) {
+                            // cysteine SG cross-residue bond okay...
+                            if (nb->name() == "SG" && ra->name() == "SG"
+                            && (nb->residue()->name() == "CYS" || nb->residue()->name() == "CYX")
+                            && (ra->residue()->name() == "CYS" || ra->residue()->name() == "CYX"))
+                                continue;
+                            throw tmpl::TA_NoTemplate("Non-standard cross-residue bond");
+                        }
+                    }
+                }
+            }
             auto templated_atoms = r->template_assign(
                 &Atom::set_computed_idatm_type,
                 "idatm", "templates", "idatmres");
