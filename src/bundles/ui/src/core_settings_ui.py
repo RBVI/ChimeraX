@@ -312,7 +312,7 @@ class CoreSettingsPanel:
             'Show angstrom symbol (\N{ANGSTROM SIGN})',
             'Distances',
             BooleanOption,
-            'distance style symbol  %s',
+            'distance style symbol %s',
             None,
             'Whether to show angstrom symbol after the distancee',
             False),
@@ -403,8 +403,7 @@ class CoreSettingsPanel:
         self.session = session
         from chimerax.core.commands import run
         from .options import CategorizedSettingsPanel
-        self.options_widget = CategorizedSettingsPanel("ChimeraX core",
-            help_cb=lambda *, category=None, ses=session, run=run:
+        self.options_widget = CategorizedSettingsPanel(help_cb=lambda *, category=None, ses=session, run=run:
             run(ses, "help help:user/preferences.html"
             + ("" if category is None else "#" + category.replace(' ', '').lower())))
         self.options = {}

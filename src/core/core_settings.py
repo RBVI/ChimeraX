@@ -33,6 +33,11 @@ class _CoreSettings(Settings):
         'clipping_surface_caps': True,
         'clipping_cap_offset': 0.01,
         'default_tool_window_side': "right",
+        'distance_color': configfile.Value(BuiltinColors['gold'], commands.ColorArg, Color.hex_with_alpha),
+        'distance_dashes': 9,
+        'distance_decimal_places': 3,
+        'distance_radius': 0.1,
+        'distance_show_units': True,
         'errors_raise_dialog': True,
         'http_proxy': ("", 80),
         'https_proxy': ("", 443),
@@ -44,11 +49,6 @@ class _CoreSettings(Settings):
         'warnings_raise_dialog': False,
     }
     AUTO_SAVE = {
-        'distance_color': configfile.Value(BuiltinColors['gold'], commands.ColorArg, Color.hex_with_alpha),
-        'distance_dashes': 9,
-        'distance_decimal_places': 3,
-        'distance_radius': 0.1,
-        'distance_show_units': True,
         'last_window_size': None,
         'toolshed_update_interval': 'week',
         'toolshed_last_check': '',

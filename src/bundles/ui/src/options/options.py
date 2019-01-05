@@ -50,6 +50,8 @@ class Option(metaclass=ABCMeta):
                 data[0] == pself.attr_name and pself.set(pself.get_attribute()))
         self.auto_set_attr = auto_set_attr
 
+        if default is None and attr_name and settings:
+            self.default = getattr(settings, attr_name)
         if default is not None or not hasattr(self, 'default'):
             self.default = default
 

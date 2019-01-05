@@ -29,7 +29,7 @@ class SettingsTool:
                     return options
                 return super().options(category)
         opt_sort_f = lambda opt: opt.sv_sort_val
-        settings_panel = CategorizedSettingsPanel("Sequence Viewer", option_sorting=opt_sort_f)
+        settings_panel = CategorizedSettingsPanel(option_sorting=opt_sort_f)
         appearance_panel = AppearanceOptionsPanel(category_sorting=lambda cat: ["Single Sequence",
             "Alignment", "All"].index(cat), option_sorting=opt_sort_f)
         settings_panel.add_tab(APPEARANCE, appearance_panel)
