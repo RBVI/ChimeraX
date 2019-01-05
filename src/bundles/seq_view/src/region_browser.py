@@ -1539,9 +1539,8 @@ class RegionBrowser:
                 if col is not None:
                     residues = self._residues_in_block((self.seq_canvas.alignment.seqs[0],
                         self.seq_canvas.alignment.seqs[-1], col, col))
-                    sel = ItemizedSelection()
-                    sel.add(residues)
-                    selectionOperation(sel)
+                    self.tool_window.session.ui.main_window.select_by_mode(
+                        " ".join([r.string(style="command") for r in sorted(residues)]))
         else:
             self._select_on_structures()
             self._prev_drag = self._drag_region
