@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
     <Dependency name="ChimeraX-Map" version=">=1.0"/>
   </Dependencies>
@@ -22,9 +22,9 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: IHM :: :: Higher-Order Structure :: .ihm :: :: https://pdb-dev.wwpdb.org/about/ :: :: :: Integrative Hybrid Models data</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: IHM :: ihm :: true :: ensembles:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Fetch :: pdbdev :: IHM :: pdbdev :: 10 :: true</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: IHM :: :: Higher-Order Structure :: .ihm :: :: https://pdb-dev.wwpdb.org/about/ :: :: :: Integrative Hybrid Models data</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: IHM :: ihm :: true :: ensembles:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: pdbdev :: IHM :: pdbdev :: 10 :: true</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

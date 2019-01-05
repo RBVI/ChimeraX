@@ -26,7 +26,7 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
     <Dependency name="ChimeraX-PDB" version=">=1.0"/>
   </Dependencies>
@@ -34,9 +34,9 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: MMTF :: :: Molecular structure :: .mmtf :: :: http://mmtf.rcsb.org/ :: :: :: Macromolecular Transmission Format (MMTF)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Fetch :: pdb :: MMTF :: :: 1a0m ::</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: MMTF :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: MMTF :: :: Molecular structure :: .mmtf :: :: http://mmtf.rcsb.org/ :: :: :: Macromolecular Transmission Format (MMTF)</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: pdb :: MMTF :: :: 1a0m ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: MMTF :: ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

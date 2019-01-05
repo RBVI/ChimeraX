@@ -31,6 +31,7 @@ def name(session, name, text=None):
             results.combine(objects)
         from chimerax.core.commands import register_selector
         register_selector(name, selector, session.logger, user=True, desc=text)
+        session.basic_actions.define(name, text)
 name_desc = CmdDesc(required=[("name", StringArg)],
                     optional=[("text", RestOfLine)],
                     non_keyword=["text"])
@@ -51,6 +52,7 @@ def name_frozen(session, name, objects):
         raise UserError("nothing is selected by specifier")
     from chimerax.core.commands import register_selector
     register_selector(name, objects, session.logger, user=True)
+    session.basic_actions.define(name, objects)
 name_frozen_desc = CmdDesc(required=[("name", StringArg),
                                      ("objects", ObjectsArg)])
 
@@ -66,6 +68,7 @@ def name_delete(session, name):
         for name in list(list_selectors()):
             if not _is_reserved(name):
                 deregister_selector(name, session.logger)
+    session.basic_actions.remove(name)
 name_delete_desc = CmdDesc(required=[("name", StringArg)])
 
 

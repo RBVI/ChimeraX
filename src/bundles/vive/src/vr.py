@@ -167,9 +167,16 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
     try:
         mv.camera = SteamVRCamera(session)
     except openvr.OpenVRError as e:
+        if 'error number 108' in str(e):
+            msg = ('The VR headset was not detected.\n' +
+                   'Possibly a cable to the VR headset is not plugged in.\n' +
+                   'If the headset is a Vive Pro, the link box may be turned off.\n' +
+                   'If using a Vive Pro wireless adapter it may not be powered on.')
+        else:
+            msg = ('Failed to initialize OpenVR.\n' +
+                   'Possibly SteamVR is not installed or it failed to start.')
         from chimerax.core.errors import UserError
-        raise UserError('Failed to initialize OpenVR.\n'
-                        'Either SteamVR is not installed or it failed to start.\n%s' % str(e))
+        raise UserError('%s\n%s' % (msg, str(e)))
         
     
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
@@ -391,6 +398,7 @@ class SteamVRCamera(Camera):
         # if VR has not been shutdown.
         import openvr
         openvr.shutdown()
+        self._close = True	# Make sure openvr is not used any more.
         
     def _delayed_close(self):
         # Apparently OpenVR doesn't make its OpenGL context current
@@ -434,10 +442,12 @@ class SteamVRCamera(Camera):
         return self._session.main_view.render
     
     def _start_frame(self):
-        import openvr
-        c = self.compositor
-        if c is None or self._close:
+        if self._close:
             return
+        c = self.compositor
+        if c is None:
+            return
+        import openvr
         c.waitGetPoses(self._poses, openvr.k_unMaxTrackedDeviceCount, None, 0)
         self._frame_started = True
 
@@ -674,7 +684,7 @@ class SteamVRCamera(Camera):
 
     def _vr_control_model_group(self):
         g = self._vr_model_group
-        if g is None:
+        if g is None or g.deleted:
             session = self._session
             g = Model('VR', session)
             g.SESSION_SAVE = False

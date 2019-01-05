@@ -48,7 +48,7 @@ _reserved_words = {
 
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
-               max_models=None, log_info=True, extra_categories=()):
+               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True):
     # mmCIF parsing requires an uncompressed file
 
     from . import _mmcif
@@ -78,6 +78,8 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
 
     for m in models:
         m.filename = path
+        if combine_sym_atoms:
+            m.combine_sym_atoms()
 
     info = ''
     if coordsets:
@@ -196,11 +198,7 @@ def _get_formatted_metadata(model, session, *, verbose=False):
     return html
 
 def _get_formatted_res_info(model, *, standalone=True):
-    from chimerax.atomic.pdb import process_chem_name
-    html = ""
-    nonstd_res_names = model.nonstandard_residue_names
-    if nonstd_res_names:
-        nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
+    def update_nonstd(model, nonstd_info):
         chem_comp = get_mmcif_tables_from_metadata(model, ["chem_comp"])[0]
         if chem_comp:
             raw_rows = chem_comp.fields(['id', 'name', 'pdbx_synonyms'], allow_missing_fields=True)
@@ -210,42 +208,8 @@ def _get_formatted_res_info(model, *, standalone=True):
                 row = substitute_none_for_unspecified(raw_row)
                 if row[1] or row[2]:
                     nonstd_info[row[0]] = (row[0], row[1], row[2])
-        def fmt_component(abbr, name, syns):
-            text = '<a href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
-            if name:
-                text += '<a href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
-                    process_chem_name(name))
-                if syns:
-                    text += " (%s)" % process_chem_name(syns)
-            else:
-                text += process_chem_name(syns)
-            return text
-        if standalone:
-            from chimerax.core.logger import html_table_params
-            html = "<table %s>\n" % html_table_params
-            html += ' <thead>\n'
-            html += '  <tr>\n'
-            html += '   <th>Non-standard residues in %s</th>\n' % model
-            html += '  </tr>\n'
-            html += ' </thead>\n'
-            html += ' <tbody>\n'
-
-        for i, info in enumerate(nonstd_info.values()):
-            abbr, name, synonyms = info
-            html += '  <tr>\n'
-            formatted = fmt_component(abbr, name, synonyms)
-            if i == 0 and not standalone:
-                if len(nonstd_info) > 1:
-                    html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(nonstd_info)
-                else:
-                    html += '   <th>Non-standard residue</th>\n'
-            html += '   <td>%s</td>\n' % formatted
-            html += '  </tr>\n'
-
-        if standalone:
-            html += ' </tbody>\n'
-            html += "</table>"
-    return html
+    from chimerax.atomic.pdb import format_nonstd_res_info
+    return format_nonstd_res_info(model, update_nonstd, standalone)
 
 def _process_src(src, caption, field_names):
     raw_rows = src.fields(field_names, allow_missing_fields=True)
@@ -370,15 +334,25 @@ def quote(s):
         cf = s[0:8].casefold()
         special = cf.startswith(('data_', 'save_')) or cf in _reserved_words
     for i in range(1, len(s)):
-        examine = s[i:i + 1]
-        if examine == '" ':
-            dbl_quote = True
-        elif examine == "' ":
-            sing_quote = True
-        elif examine[0] == '\n':
-            line_break = True
-        elif examine[0] == ' ':
-            special = True
+        examine = s[i:i + 2]
+        if len(examine) == 2:
+            if examine[0] == '"':
+                if examine[1].isspace():
+                    dbl_quote = True
+                else:
+                    special = True
+                continue
+            elif examine[0] == "'":
+                if examine[1].isspace():
+                    sing_quote = True
+                else:
+                    special = True
+                continue
+        if examine[0].isspace():
+            if examine[0] == '\n':
+                line_break = True
+            else:
+                special = True
     if line_break or (sing_quote and dbl_quote):
         return '\n;' + s + '\n;\n'
     if sing_quote:
@@ -386,7 +360,7 @@ def quote(s):
     if dbl_quote:
         return "'%s'" % s
     if special:
-        return "'%s'" % s
+        return '"%s"' % s
     return s
 
 
@@ -514,6 +488,7 @@ def get_mmcif_tables_from_metadata(model, table_names):
 
 
 class TableMissingFieldsError(ValueError):
+    """Required field is missing"""
     pass
 
 class MMCIFTable:
@@ -535,10 +510,10 @@ class MMCIFTable:
             assert len(self._data) % n == 0
 
     def __bool__(self):
+        """True if not empty"""
         return len(self._tags) != 0 and len(self._data) != 0
 
     def __eq__(self, other):
-        # for debugging
         return self._tags == other._tags and self._data == other._data
 
     def __repr__(self):
@@ -579,7 +554,7 @@ class MMCIFTable:
         for name in chain(key_names, value_names, foreach_names):
             if name.casefold() not in t:
                 from chimerax.core.commands.cli import commas, plural_form
-                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have = commas(['"%s"' % t for t in self._tags], 'and')
                 have_noun = plural_form(self._tags, 'field')
                 raise TableMissingFieldsError(
                     'Field "%s" not in table "%s", have %s %s'
@@ -638,10 +613,10 @@ class MMCIFTable:
             missing = [n for n in field_names if n.casefold() not in t]
             if missing:
                 from chimerax.core.commands.cli import commas, plural_form
-                missed = commas(['"%s"' % m for m in missing], ' and')
+                missed = commas(['"%s"' % m for m in missing], 'and')
                 missed_noun = plural_form(missing, 'Field')
                 missed_verb = plural_form(missing, 'is', 'are')
-                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have = commas(['"%s"' % t for t in self._tags], 'and')
                 have_noun = plural_form(self._tags, 'field')
                 raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
                     missed_noun, missed, missed_verb, self.table_name, have_noun,
@@ -713,7 +688,18 @@ class MMCIFTable:
         return len(self._data) // len(self._tags)
 
     def print(self, file=None, *, fixed_width=False):
-        """Print contents of table to given file"""
+        """Print contents of table to given file
+
+        Parameters
+        ----------
+        file : MMCIFTable to add on to current table
+        fixed_width : true if fixed width columns should be used
+
+        The fixed width column output matches the PDBx/mmCIF style syntax.
+        If fixed_width is asked for and it is not possible to have
+        fixed width columns (e.g., there is a newline in a string field),
+        then the first row is broken up into multiple lines.
+        """
         if len(self._data) == 0:
             return
         n = len(self._tags)

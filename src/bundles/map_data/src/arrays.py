@@ -40,13 +40,17 @@ def interpolate_volume_gradient(vertices, v2m_transform, array,
 #
 class MatrixValueStatistics:
 
-  def __init__(self, matrix, bins = 10000):
+  def __init__(self, matrix, bins = 10000, ignore_pad_value = None):
 
     matrices = matrix if isinstance(matrix, (list, tuple)) else [matrix]
       
     # Determine minimum and maximum data values.
     from .. import _map
-    mm = [_map.minimum_and_maximum(m) for m in matrices]
+    if ignore_pad_value is None:
+      mm = [_map.minimum_and_maximum(m) for m in matrices]
+    else:
+      mm = [_map.minimum_and_maximum(m, ignore_pad_value=ignore_pad_value)
+            for m in matrices]
     self.minimum = min(mn for mn,mx in mm)
     self.maximum = max(mx for mn,mx in mm)
 
@@ -58,8 +62,13 @@ class MatrixValueStatistics:
     bins_end = lbc + .5*bsize
     from numpy import zeros, int32
     counts = zeros((bins,), int32)
-    for m in matrices:
-      _map.bin_counts(m, bins_start, bins_end, counts)
+    if ignore_pad_value is None:
+      for m in matrices:
+        _map.bin_counts(m, bins_start, bins_end, counts)
+    else:
+      for m in matrices:
+        _map.bin_counts(m, bins_start, bins_end, counts,
+                        ignore_pad_value=ignore_pad_value)
     self.counts = counts
     self.bins = bins
     self.ccounts = None         # Cumulative counts

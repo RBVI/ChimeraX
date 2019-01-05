@@ -662,8 +662,8 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
             }
             // TODO: worth checking if there is a metal coordination bond?
             if (!connected) {
-                logger::warning(_logger, "Found disconnected atom ", a->name(),
-                                " that is not in residue template for ",
+                logger::warning(_logger, "Atom ", a->name(),
+                                " is not in the residue template for ",
                                 residue_str(r));
                 pdb_connect::connect_residue_by_distance(r);
                 return;

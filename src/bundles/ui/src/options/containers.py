@@ -120,10 +120,9 @@ class CategorizedOptionsPanel(QTabWidget):
         return self._category_to_panel[category].options()
 
 class SettingsPanelBase(QWidget):
-    def __init__(self, settings, owner_description, parent, option_sorting, multicategory,
+    def __init__(self, parent, option_sorting, multicategory,
             *, category_sorting=None, help_cb=None, **kw):
         QWidget.__init__(self, parent, **kw)
-        self.settings = settings
         self.multicategory = multicategory
         if multicategory:
             self.options_panel = CategorizedOptionsPanel(option_sorting=option_sorting,
@@ -194,8 +193,7 @@ class SettingsPanelBase(QWidget):
     def _reset(self):
         from chimerax.core.configfile import Value
         for opt in self._get_actionable_options():
-            setting = opt.attr_name
-            default_val = self.settings.PROPERTY_INFO[setting]
+            default_val = opt.settings.PROPERTY_INFO[opt.attr_name]
             if isinstance(default_val, Value):
                 default_val = default_val.default
             # '==' on numpy objects doesn't return a boolean
@@ -206,8 +204,7 @@ class SettingsPanelBase(QWidget):
 
     def _restore(self):
         for opt in self._get_actionable_options():
-            setting = opt.attr_name
-            restore_val = self.settings.saved_value(setting)
+            restore_val = opt.settings.saved_value(opt.attr_name)
             # '==' on numpy objects doesn't return a boolean
             import numpy
             if not numpy.array_equal(opt.get(), restore_val):
@@ -215,29 +212,27 @@ class SettingsPanelBase(QWidget):
                 opt.make_callback()
 
     def _save(self):
-        save_settings = []
+        save_info = {}
         for opt in self._get_actionable_options():
-            setting = opt.attr_name
             # need to ensure "current value" is up to date before saving...
-            setattr(self.settings, setting, opt.get())
-            save_settings.append(setting)
+            setattr(opt.settings, opt.attr_name, opt.get())
+            save_info.setdefault(opt.settings, []).append(opt.attr_name)
         # We don't simply use settings.save() when all options are being saved
         # since there may be settings that aren't presented in the GUI
-        self.settings.save(settings=save_settings)
+        for settings, save_settings in save_info.items():
+            settings.save(settings=save_settings)
 
 class SettingsPanel(SettingsPanelBase):
-    """Supported API. SettingsPanel is a container for remember-able Options that work in conjunction with a
-       Settings instance (found in chimerax.core.settings).
-
-       The callback function for each option will have to call option.set_attribute(settings)
-       in order to update the "current" value of the attribute in settings.
+    """Supported API. SettingsPanel is a container for remember-able Options that work in conjunction with
+       Options that have Settings instances (found in chimerax.core.settings) specified via their
+       'settings' constructor arg.
     """
 
-    def __init__(self, settings, owner_description, parent=None, *, sorting=True, **kw):
+    def __init__(self, parent=None, *, sorting=True, **kw):
         """'settings' is a Settings instance.  The remaining arguments are the same as
             for OptionsPanel
         """
-        SettingsPanelBase.__init__(self, settings, owner_description, parent, sorting, multicategory=False, **kw)
+        SettingsPanelBase.__init__(self, parent, sorting, multicategory=False, **kw)
 
     def add_option(self, option):
         """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
@@ -245,15 +240,15 @@ class SettingsPanel(SettingsPanelBase):
 
 class CategorizedSettingsPanel(SettingsPanelBase):
     """Supported API. CategorizedSettingsPanel is a container for remember-able Options that work in conjunction
-       with a Settings instance (found in chimerax.core.settings) and that are presented in
-       categories.
+       with Options that have Settings instances (found in chimerax.core.settings) specified via their
+       'settings' constructor arg, and that are presented in categories.
     """
 
-    def __init__(self, settings, owner_description, parent=None, *, category_sorting=True, option_sorting=True, **kw):
+    def __init__(self, parent=None, *, category_sorting=True, option_sorting=True, **kw):
         """'settings' is a Settings instance.  The remaining arguments are the same as
             for CategorizedOptionsPanel
         """
-        SettingsPanelBase.__init__(self, settings, owner_description, parent, option_sorting, multicategory=True,
+        SettingsPanelBase.__init__(self, parent, option_sorting, multicategory=True,
             category_sorting=category_sorting, **kw)
 
     def add_option(self, category, option):

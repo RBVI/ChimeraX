@@ -1,0 +1,249 @@
+<!doctype html>
+<html>
+<head>
+    <title>ChimeraX Blast Protein Tool</title>
+    <script type="text/javascript" src="lib/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="lib/bootstrap.js"></script>
+    <script type="text/javascript" src="lib/jquery.bootgrid.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap.css"></script>
+    <link rel="stylesheet" type="text/css" href="lib/jquery.bootgrid.min.css"></script>
+    <style>
+        .opt-grid { margin: 0px; padding: 0px;
+		    list-style-type: none; width: 100%; }
+        .opt-grid li { float: left; width: 33%; }
+	.bootgrid-table { width: 100%; }
+	.bootgrid-table th[data-column-id="description"] { width: 30%; }
+	.bootgrid-table th[data-column-id="title"] { width: 30%; }
+	.bootgrid-table th[data-column-id="citation_authors"] { width: 30%; }
+	.bootgrid-table th { width: 10%; }
+	.bootgrid-table td { white-space: normal; }
+    </style>
+    <script>
+        var bootgrid_table = null;
+        var table_data = null;
+        var column_headers = [
+            // From BLAST
+            [ "Name",
+                { "data-column-id": "name",
+                  "data-formatter": "link" } ],
+            [ "E-Value",
+                { "data-column-id": "evalue",
+                  "data-type": "numeric" } ],
+            [ "Score",
+                { "data-column-id": "score", 
+                  "data-type": "numeric" } ],
+            [ "Description",
+                { "data-column-id": "description",
+                  "data-visible": false } ],
+            // From pdb_entry
+            [ "Date",
+                { "data-column-id": "deposition_date",
+                  "data-visible": false,
+                  "title": "PDB structure publication date" } ],
+            [ "Title", 
+                { "data-column-id": "title",
+                  "title": "PDB entry title" } ],
+            [ "Method", 
+                { "data-column-id": "expMethod",
+                  "data-visible": false,
+                  "title": "PDB experiment type used\n" +
+                           "for structure determination" } ],
+            [ "Resolution", 
+                { "data-column-id": "resolution",
+                  "data-visible": false,
+                  "title": "PDB resolution in Angstroms" } ],
+            [ "Authors",
+                { "data-column-id": "citation_authors",
+                  "data-visible": false,
+                  "title": "PDB authors of deposited structure" } ],
+            [ "PubMed", 
+                { "data-column-id": "pubmedId",
+                  "data-visible": false,
+                  "title": "PDB PubMed literature reference for structure" } ],
+            [ "Total atoms", 
+                { "data-column-id": "nr_atoms",
+                  "data-type": "numeric",
+                  "data-visible": false,
+                  "title": "PDB total number of atoms\n" +
+                           "in structure (all chains)" } ],
+            [ "Total residues", 
+                { "data-column-id": "nr_residues",
+                  "data-visible": false,
+                  "data-type": "numeric",
+                  "title": "PDB total number of residues\n" +
+                           "in structure (all chains)" } ],
+            // From pdb_chains
+            [ "Chain names",
+                { "data-column-id": "chain_names",
+                  "data-visible": false,
+                  "title": "PDB chain names" } ],
+            [ "Copies", 
+                { "data-column-id": "chain_copies",
+                  "data-visible": false,
+                  "data-type": "numeric",
+                  "title": "PDB number of copies\nof matched chain" } ],
+            [ "Polymers", 
+                { "data-column-id": "npolymers",
+                  "data-visible": false,
+                  "data-type": "numeric",
+                  "title": "PDB number of different\npolymers in structure" } ],
+            [ "Residues", 
+                { "data-column-id": "chain_residues",
+                  "data-visible": false,
+                  "data-type": "numeric",
+                  "title": "PDB number of residues\nin matched chain" } ],
+            [ "Species", 
+                { "data-column-id": "chain_species",
+                  "data-visible": false,
+                  "title": "PDB chain taxonomy" } ], 
+            [ "UniProt", 
+                { "data-column-id": "chain_sequence_id",
+                  "data-visible": false,
+                  "title": "Uniprot sequence identifier\n" +
+                           "of matched PDB chain" } ],
+            [ "Weight", 
+                { "data-column-id": "chain_weight",
+                  "data-visible": false,
+                  "data-type": "numeric",
+                  "title": "PDB molecular weight (Daltons)\n" +
+                           "of matched chain" } ],
+            // From pdb_ligands
+            [ "Ligand formulas",
+                { "data-column-id": "ligandFormulas",
+                  "data-visible": false,
+                  "title": "PDB ligand chemical formulas." } ],
+            [ "Ligand names",
+                { "data-column-id": "ligandNames",
+                  "data-visible": false,
+                  "title": "PDB ligand chemical names." } ],
+            [ "Ligand smiles",
+                { "data-column-id": "ligandSmiles",
+                  "data-visible": false,
+                  "title": "PDB ligand smile strings." } ],
+            [ "Ligand symbols",
+                { "data-column-id": "ligandSymbols",
+                  "data-visible": false,
+                  "title": "PDB ligand symbols." } ],
+            [ "Ligand weights",
+                { "data-column-id": "ligandWeights",
+                  "data-visible": false,
+                  "title": "PDB ligand weights (Daltons)." } ],
+            // From BLAST
+            [ "URL",
+                { "data-column-id": "url",
+                  "data-visible": false } ],
+        ]
+        function chains_update(chain_labels) {
+            var $chain = $("#chain").empty();
+            $.each(chain_labels, function(key, value) {
+                $chain.append($("<option/>", {value:value}).text(value));
+            });
+            var disabled = chain_labels.length > 0 ? false : true;
+            $(".submit").prop("disabled", disabled);
+        }
+        function table_update(data) {
+            var $div = $("#table_div");
+            if (bootgrid_table) {
+                bootgrid_table.destroy();
+                bootgrid_table = null;
+                table_data = null;
+                $div.empty();
+            }
+            if (!data)
+                return;
+            var $table = table_create(column_headers, data);
+            $div.append($table);
+            $("#bootgrid_table").bootgrid({
+                "formatters": {
+                    "link": function(column, row) {
+                        return '<a href="' + row.url + '">' +
+                               row.name + '</a>';
+                    }
+                }
+            });
+        }
+        function table_create(headers, data) {
+            var $table = $("<table/>", {id:"bootgrid_table"});
+            var $thead = $("<thead/>");
+            var $tr = $("<tr/>").append($.map(headers, function(value) {
+                return $("<th/>", value[1]).text(value[0]);
+            }));
+            $thead.append($tr);
+            $table.append($thead);
+            var $tbody = $("<tbody/>");
+            $.each(data, function(index, row) {
+                var $tr = $("<tr/>").append($.map(headers, function(value) {
+                    var key = value[1]["data-column-id"];
+                    return $("<td/>").text(row[key]);
+                }));
+                $tbody.append($tr);
+            });
+            $table.append($tbody);
+            return $table;
+        }
+        function init() {
+            // setting window location causes tool to receive URL
+            window.location='blastprotein:initialize';
+        }
+    </script>
+</head>
+<body onload="init();">
+<h2>Blast Protein <small>(an <a href="http://www.rbvi.ucsf.edu">RBVI</a>
+    web service)</small></h2>
+<fieldset>
+<legend>Search Parameters</legend>
+    <form method="get">
+    <ul class="opt-grid">
+        <li>
+        <label for="chain">Chain:</label>
+        <select name="chain" id="chain">
+            <option value="none" selected="selected">None</option>
+        </select>
+        </li>
+        <li>
+        <label for="database">Database:</label>
+        <select name="database" id="database">
+            <option value="pdb" selected="selected">PDB</option>
+            <option value="nr">NR</option>
+        </select>
+        </li>
+        <li>
+        <label for="max_hits"># Hits:</label>
+        <input name="max_hits" id="max_hits" type="number"
+               min="10" max="1000" step="10" value="100"/>
+        </li>
+        <li>
+        <label for="matrix">Matrix:</label>
+        <select name="matrix" id="matrix">
+            <option value="BLOSUM45">BLOSUM45</option>
+            <option value="BLOSUM62" selected="selected">BLOSUM62</option>
+            <option value="BLOSUM80">BLOSUM80</option>
+            <option value="BLOSUM90">BLOSUM90</option>
+            <option value="BLOSUM100">BLOSUM100</option>
+            <option value="PAM30">PAM30</option>
+            <option value="PAM70">PAM70</option>
+        </select>
+        </li>
+        <li>
+        <label for="cutoff_value">Cutoff:</label>
+        <span name="cutoff_value">
+            1e
+            <input name="cutoff" id="cutoff" type="number"
+                   min="-100" max="-1" step="1" value="-3"/>
+        </span>
+        </li>
+        <li>
+        <input class="submit" type="submit" formaction="blastprotein:search"
+               disabled="true" value="Blast"/>
+        </li>
+    </ul>
+    </form>
+</fieldset>
+<fieldset>
+<legend></legend>
+    <div id="table_div"></div>
+</fieldset>
+</body>
+
+</html>
+<!-- vim: set expandtab shiftwidth=4 softtabstop=4: -->

@@ -34,6 +34,6 @@ class _IHMAPI(BundleAPI):
     def fetch_from_database(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
         # 'fetch_from_database' is called by session code to fetch data with give identifier
         from .fetch_ihm import fetch_ihm
-        return fetch_ihm(session, identifier, ignore_cache=ignore_cache)
+        return fetch_ihm(session, identifier, ignore_cache=ignore_cache, **kw)
 
 bundle_api = _IHMAPI()

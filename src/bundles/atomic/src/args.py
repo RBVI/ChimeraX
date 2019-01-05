@@ -13,7 +13,7 @@
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.commands import Annotation, AtomSpecArg, ObjectsArg, ModelArg
+from chimerax.core.commands import Annotation, AnnotationError, AtomSpecArg, ObjectsArg, ModelArg
 
 class AtomsArg(AtomSpecArg):
     """Parse command atoms specifier"""
@@ -111,6 +111,7 @@ class BondArg(BondsArg):
     def parse(cls, text, session):
         bonds, used, rest = super().parse(text, session)
         if len(bonds) != 1:
+            from chimerax.core.commands import AnnotationError
             raise AnnotationError("Must specify exactly one bond (specified %d)" % len(bonds))
         return bonds[0], used, rest
 
@@ -122,9 +123,11 @@ class StructureArg(ModelArg):
     def parse(cls, text, session):
         m, text, rest = super().parse(text, session)
         from . import Structure
-        if not isinstance(m, Structure):
-            raise AnnotationError('Specified model is not a Structure')
-        return m, text, rest
+        models = [s for s in m.all_models() if isinstance(s, Structure)]
+        if len(models) != 1:
+            from chimerax.core.commands import AnnotationError
+            raise AnnotationError('Must specify 1 structure, got %d for "%s"' % (len(models), text))
+        return models[0], text, rest
 
 
 class SymmetryArg(Annotation):

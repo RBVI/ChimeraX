@@ -183,7 +183,6 @@ class HtmlView(QWebEngineView):
         """
         self.page().runJavaScript(script, *args)
 
-
 class _LoggingPage(QWebEnginePage):
 
     Levels = {
@@ -203,7 +202,6 @@ class _LoggingPage(QWebEnginePage):
         filename = os.path.basename(sourceId)
         print("JS console(%s:%d:%s): %s" % (filename, lineNumber,
                                             self.Levels[level], msg))
-
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):
 

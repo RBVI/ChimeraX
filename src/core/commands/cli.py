@@ -209,11 +209,11 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
-def commas(text_seq, conjunction=' or'):
+def commas(text_seq, conjunction='or'):
     """Return comma separated list of words
 
     :param text_seq: a sequence of text strings
-    :param conjunction: a word with a leading space
+    :param conjunction: a word to put for last item (default 'or')
     """
     if not isinstance(text_seq, (list, tuple)):
         text_seq = tuple(text_seq)
@@ -224,7 +224,7 @@ def commas(text_seq, conjunction=' or'):
         return text_seq[0]
     if seq_len == 2:
         return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
-    text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
+    text = '%s, %s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
     return text
 
 
@@ -946,7 +946,7 @@ class FileNameArg(Annotation):
 _browse_string = "browse"
 
 
-def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode):
+def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
     if path == _browse_string:
         if not session.ui.is_gui:
@@ -964,12 +964,12 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
             paths = dlg.selectedFiles()
             if not paths:
                 raise AnnotationError("No %s selected by browsing" % item_kind)
-            path = paths[0]
         else:
             from chimerax.core.errors import CancelOperation
             raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
-        text = path
-    return path, text, rest
+    else:
+        paths = [path]
+    return (paths if return_list else paths[0]), " ".join([quote_if_necessary(p) for p in paths]), rest
 
 
 class OpenFileNameArg(FileNameArg):
@@ -985,6 +985,24 @@ class OpenFileNameArg(FileNameArg):
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
 
+class OpenFileNamesArg(Annotation):
+    """Annotation for opening one or more files"""
+    name = "file names to open"
+    # name_filter should be a string compatible with QFileDialog.setNameFilter(),
+    # or None (which means all ChimeraX-openable types)
+    name_filter = None
+    allow_repeat = "expand"
+
+    @classmethod
+    def parse(cls, text, session):
+        # horrible hack to get repeatable-parsing to work when 'browse' could return multiple files
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFiles
+        else:
+            accept_mode = dialog_mode = None
+        return  _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
+            return_list=True)
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
@@ -1701,12 +1719,15 @@ class SameSize(Postcondition):
 
 def _check_autocomplete(word, mapping, name):
     # This is a primary debugging aid for developers,
-    # but it prevents existing abbreviated commands from changing
+    # but it warns about existing abbreviated commands from changing
     # what command they correspond to.
     if word not in mapping:
         for key in mapping:
             if key.startswith(word) and key != word:
-                raise ValueError("'%s' in '%s' is a prefix of an existing command '%s'" % (word, name, key))
+                if word != name:
+                    raise ValueError("'%s' in '%s' is a prefix of an existing command '%s'" % (word, name, key))
+                else:
+                    raise ValueError("'%s' is a prefix of an existing command '%s'" % (word, key))
 
 
 class CmdDesc:
@@ -1881,22 +1902,25 @@ class _WordInfo:
     def lazy_register(self, cmd_name):
         deferred = self.cmd_desc
         assert(isinstance(deferred, _Defer))
-        self.cmd_desc = None  # prevent recursion
         try:
             deferred.call()
         except Exception as e:
             raise RuntimeError("delayed command registration for %r failed (%s)" % (cmd_name, e))
         if self.cmd_desc is None and not self.has_subcommands():
             raise RuntimeError("delayed command registration for %r didn't register the command" % cmd_name)
+        if isinstance(self.cmd_desc, _Defer):
+            self.cmd_desc = None  # prevent reuse
+
 
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
             _check_autocomplete(word, self.subcommands, name)
-        except ValueError:
-            if cmd_desc is None or not isinstance(cmd_desc.function, Alias):
-                raise
-            if logger is not None:
-                logger.warning("alias %s hides existing command" % dq_repr(name))
+        except ValueError as e:
+            if isinstance(cmd_desc, CmdDesc) and isinstance(cmd_desc.function, Alias):
+                if logger is not None:
+                    logger.warning("Alias %s hides existing command" % dq_repr(name))
+            elif logger is not None:
+                logger.warning(str(e))
         if word not in self.subcommands:
             w = self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
             w.parent = self
@@ -1925,8 +1949,8 @@ class _WordInfo:
             else:
                 self.registry.aliased_commands[name] = _WordInfo(self.registry, cmd_desc)
         else:
-            if logger is not None:
-                logger.info("FYI: command is replacing existing command" %
+            if logger is not None and not word_info.is_deferred():
+                logger.info("FYI: command is replacing existing command: %s" %
                             dq_repr(name))
             word_info.cmd_desc = cmd_desc
 
@@ -1987,7 +2011,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
     else:
         _parent_info = registry.commands
     for word in words[:-1]:
-        _parent_info.add_subcommand(word, name)
+        _parent_info.add_subcommand(word, name, logger=logger)
         _parent_info = _parent_info.subcommands[word]
 
     if isinstance(function, _Defer):
@@ -2000,7 +2024,7 @@ def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
                 print(msg)
             else:
                 logger.warning(msg)
-    _parent_info.add_subcommand(words[-1], name, cmd_desc)
+    _parent_info.add_subcommand(words[-1], name, cmd_desc, logger=logger)
     return function     # needed when used as a decorator
 
 
@@ -2331,7 +2355,11 @@ class Command:
                 self._error = ""
                 last_anno = anno
                 if hasattr(anno, 'allow_repeat') and anno.allow_repeat:
-                    self._kw_args[kwn] = values = [value]
+                    expand = anno.allow_repeat == "expand"
+                    if expand and isinstance(value, list):
+                        self._kw_args[kwn] = values = value
+                    else:
+                        self._kw_args[kwn] = values = [value]
                     while True:
                         text = self._skip_white_space(text)
                         if self._start_of_keywords(text):
@@ -2340,7 +2368,10 @@ class Command:
                             value, text = self._parse_arg(anno, text, session, False)
                         except:
                             break
-                        values.append(value)
+                        if expand and isinstance(value, list):
+                            values.extend(value)
+                        else:
+                            values.append(value)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
@@ -2552,7 +2583,7 @@ class Command:
             missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
             if missing:
                 arg_names = ['"%s"' % m for m in missing]
-                msg = commas(arg_names, ' and')
+                msg = commas(arg_names, 'and')
                 noun = plural_form(arg_names, 'argument')
                 self._error = "Missing required %s %s" % (msg, noun)
                 if log:
@@ -2972,13 +3003,18 @@ def registered_commands(multiword=False, _start=None):
         return words
 
     def cmds(parent_cmd, parent_info):
+        skip_list = []
         for word, word_info in list(parent_info.subcommands.items()):
             if word_info.is_deferred():
-                if parent_cmd:
-                    word_info.lazy_register('%s %s' % (parent_cmd, word))
-                else:
-                    word_info.lazy_register(word)
-        words = list(parent_info.subcommands.keys())
+                try:
+                    if parent_cmd:
+                        word_info.lazy_register('%s %s' % (parent_cmd, word))
+                    else:
+                        word_info.lazy_register(word)
+                except RuntimeError:
+                    skip_list.append(word)
+        words = [word for word in parent_info.subcommands.keys()
+                 if word not in skip_list]
         words.sort(key=lambda x: x[x[0] == '~':].lower())
         for word in words:
             word_info = parent_info.subcommands[word]

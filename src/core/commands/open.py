@@ -52,7 +52,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         # Accept 4 character filename without prefix as pdb id.
         from os.path import splitext
         base, ext = splitext(filename)
-        if not ext and len(filename) == 4:
+        if not ext and len(filename) == 4 and filename[0].isdigit() and filename[1:].isalnum():
             from_database = 'pdb'
             if format is None:
                 format = 'mmcif'
@@ -82,7 +82,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                 from chimerax.core.commands import commas, plural_form
                 raise UserError(
                     'Only %s %s can be fetched from %s database'
-                    % (commas(['"%s"' % f for f in db_formats], ' and '),
+                    % (commas(['"%s"' % f for f in db_formats], 'and'),
                        plural_form(db_formats, "format"), from_database))
         models, status = handle_unknown_kw(fetch.fetch_from_database, session, from_database,
             filename, format=format, name=name, ignore_cache=ignore_cache, **kw)
@@ -191,8 +191,7 @@ def open_formats(session):
 
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, DynamicEnum, StringArg, BoolArg, \
-        OpenFileNameArg, RepeatOf
+    from chimerax.core.commands import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNamesArg
 
     def formats():
         from chimerax.core import io, fetch
@@ -209,7 +208,7 @@ def register_command(logger):
         from chimerax.core import fetch
         return [f.database_name for f in fetch.fetch_databases().values()]
     desc = CmdDesc(
-        required=[('filename', RepeatOf(OpenFileNameArg))],
+        required=[('filename', OpenFileNamesArg)],
         keyword=[
             ('format', DynamicEnum(formats)),
             ('name', StringArg),

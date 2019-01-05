@@ -34,12 +34,15 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>cartoon hide</b>&nbsp;|&nbsp;<b>ribbon hide</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<br>&ndash; or &ndash;</br>
+(&nbsp;<b>~cartoon</b>&nbsp;|&nbsp;<b>~ribbon</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
 <p>
 The <b>cartoon</b> or <b>ribbon</b> command shows a simplified backbone 
 representation of the specified biopolymer residues.
-The command <b>cartoon hide</b> (<b>ribbon hide</b>) hides cartoon
-for the specified residues.
+The command <b>cartoon hide</b> or <b>~cartoon</b>
+(<b>ribbon hide</b> or <b>~ribbon</b>) hides cartoon for the specified residues.
 The commands <a href="show.html"><b>hide</b></a> and 
 <a href="show.html"><b>show</b></a> can also be used to control cartoon display.
 Protein secondary structure (helix and strand)
@@ -84,7 +87,7 @@ Connecting <a href="#tether">tethers</a> are drawn
 where displayed backbone atoms are offset from the cartoon.
 </blockquote>
 <p>
-The <a href="#subcommands">subcommands</a> of <b>cartoon</b>, however,
+The <b>cartoon</b> <a href="#subcommands">subcommands</a>, however,
 control per-model settings:
 </p>
 <ul>
@@ -143,9 +146,16 @@ modeh tube rad 2 sides 24
 &nbsp;<a href="atomspec.html#builtin">protein</a> 
 modeh default arrows f xsect oval width 1 thick 1
 </b><br>
-(...of course, the <a href="#style"><b>cartoon style</b></a> commands 
+(...of course, the <a href="#style"><b>cartoon style</b></a> commands
 aliased above could also be used directly)
-<br><br>
+<p>
+The following returns to default cartoons after any of the custom settings
+above have been applied:
+<br>
+<b><a href="#style">car style</a>
+modeh def arrows t wid 2 thick 0.4; car style (<a href="atomspec.html#builtin">nucleic</a>&nbsp;|&nbsp;<a href="atomspec.html#builtin">strand</a>) x rect</b>
+</p>
+<br>
 <table cellpadding="0px" cellspacing="0px">
 <tr>
 <td><img class="outline" src="style1.png" width="200px"
@@ -189,7 +199,7 @@ alt="6cmn licorice" title="6cmn licorice"></td>
 <p>
 The <b>cartoon style</b> command controls 
 secondary structure representations, width, thickness, and shape
-(see the example images <a href="#subcommands">above</a>).
+(see examples <a href="#subcommands">above</a>).
 Given without options, it reports the current settings for each atomic model. 
 </p><p>
 The following options can have different values for
@@ -358,5 +368,5 @@ Tethers can be hidden using <b>opacity 0</b>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2018</address>
+January 2019</address>
 </body></html>

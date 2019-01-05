@@ -27,7 +27,7 @@ def close(session, models=None):
     # Avoid closing grouping models if not all child models are closed.
     # This is so that "close ~#1.1" does not close grouping model #1.
     hc = have_all_child_models(models)
-    cmodels = [m for m in models if m in hc]
+    cmodels = [cm for cm in models if cm in hc]
 
     m.close(cmodels)
 

@@ -50,24 +50,27 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3
     # that we use this hack to use .coord if possible
     from chimerax.atomic import Atom
     Atom._addh_coord = Atom.coord if in_isolation else Atom.scene_coord
-    session.logger.status("Adding hydrogens")
-    try:
-        add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
-    except:
-        session.logger.status("")
-        raise
-    finally:
-        delattr(Atom, "_addh_coord")
-        for structure in structures:
-            structure.alt_loc_change_notify = True
-    session.logger.status("Hydrogens added")
-    atoms = struct_collection.atoms
-    # If side chains are displayed, then the CA is _not_ hidden, so we
-    # need to let the ribbon code update the hide bits so that the CA's
-    # hydrogen gets hidden...
-    atoms.update_ribbon_visibility()
-    session.logger.info("%s hydrogens added" %
-        (len(atoms.filter(atoms.elements.numbers == 1)) - num_pre_hs))
+    from chimerax.core.logger import Collator
+    with Collator(session.logger, "Summary of feedback from adding hydrogens to %s"
+            % ("multiple structures" if len(structures) > 1 else structures[0])):
+        session.logger.status("Adding hydrogens")
+        try:
+            add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
+        except:
+            session.logger.status("")
+            raise
+        finally:
+            delattr(Atom, "_addh_coord")
+            for structure in structures:
+                structure.alt_loc_change_notify = True
+        session.logger.status("Hydrogens added")
+        atoms = struct_collection.atoms
+        # If side chains are displayed, then the CA is _not_ hidden, so we
+        # need to let the ribbon code update the hide bits so that the CA's
+        # hydrogen gets hidden...
+        atoms.update_ribbon_visibility()
+        session.logger.info("%s hydrogens added" %
+            (len(atoms.filter(atoms.elements.numbers == 1)) - num_pre_hs))
 #TODO: initiate_add_hyd
 
 def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=False,
@@ -442,8 +445,6 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
             if atom.element.number == 0:
                 res = atom.residue
                 struct.delete_atom(atom)
-                if not res.atoms:
-                    struct.delete_residue(res)
         for atom in struct.atoms:
             idatm_type[atom] = atom.idatm_type
             if atom.idatm_type in type_info:
@@ -451,7 +452,15 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
                 # of hydrogen-adding loop (since that will
                 # force a recomp), so remember here
                 type_info_for_atom[atom] = type_info[atom.idatm_type]
-                atoms.append(atom)
+                # if atom is in standard residue but has missing bonds to
+                # heavy atoms, skip it instead of incorrectly protonating
+                # (or possibly throwing an error if e.g. it's planar)
+                if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                    session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
+                        " bond partners" % atom)
+                    type_info_for_atom[atom] = type_info_class(4, atom.num_bonds, atom.name)
+                else:
+                    atoms.append(atom)
                 # sulfonamide nitrogens coordinating a metal
                 # get an additional hydrogen stripped
                 if coordinations.get(atom, []) and atom.element.name == "N":

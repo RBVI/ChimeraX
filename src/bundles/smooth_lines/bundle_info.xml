@@ -14,13 +14,13 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: smoothlines :: General :: Smooth networks of lines</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: smoothlines :: General :: Smooth networks of lines</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -29,6 +29,7 @@ file_types = (
   ('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi'], False),
   ('DeltaVision map', 'deltavision', ['dv'], ['dv'], False),
   ('DSN6 density map', 'dsn6', ['dsn6'], ['omap'], False),
+  ('DICOM map', 'dicom', ['dicom'], ['dcm'], True),
   ('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg'], False),
   ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
   ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
@@ -112,7 +113,7 @@ def suffix_warning(paths):
   
 # -----------------------------------------------------------------------------
 #
-def open_file(path, file_type = None):
+def open_file(path, file_type = None, verbose = False):
 
   if file_type is None:
     p = path if isinstance(path, str) else path[0]
@@ -128,13 +129,18 @@ def open_file(path, file_type = None):
 
   apath = absolute_path(path) if isinstance(path,str) else [absolute_path(p) for p in path]
 
+  kw = {}
+  if verbose:
+    from inspect import getargspec
+    if 'verbose' in getargspec(module.open).args:
+      kw['verbose'] = verbose
   try:
     if batched or isinstance(apath,str):
-      data = module.open(apath)
+      data = module.open(apath, **kw)
     else:
       data = []
       for p in apath:
-        data.extend(module.open(p))
+        data.extend(module.open(p, **kw))
   except SyntaxError as value:
     raise FileFormatError(value)
   

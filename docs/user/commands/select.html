@@ -51,6 +51,7 @@ the <a href="../menu.html#select"><b>Select</b> menu</a>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>sequence</b>&nbsp;&nbsp;<a href="../findseq.html#pattern"><i>pattern</i></a>&nbsp;]
 [&nbsp;<b>polymer</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
 [&nbsp;<b>minimumLength</b>&nbsp;&nbsp;<i>min</i>&nbsp;]
 [&nbsp;<b>maximumLength</b>&nbsp;&nbsp;<i>max</i>&nbsp;]
@@ -62,6 +63,15 @@ with a new one containing the specified items
 (<a href="atomspec.html"><i>spec</i></a>).
 The <b>residues</b> option (default <b>false</b>) promotes any
 specified atoms to whole residues. 
+</p><p>
+The <b>sequence</b> option restricts the selection to
+biopolymer sequence segments that match the specified <i>pattern</i>, 
+which can be an exact sequence of one-letter codes, or contain ambiguity codes 
+or regular expressions (<a href="../findseq.html#pattern">details...</a>). 
+Case is not important, as lowercase letters will be uppercased 
+automatically for comparison. If the <b>sequence</b> option is used, 
+other keyword options are ignored.
+</p><p>
 The <b>polymer</b> option restricts the result to only the biopolymer chains 
 with the same sequences as the chains in 
 <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
@@ -143,6 +153,10 @@ The <b>extend</b> option (default <b>false</b>)
 indicates whether the reference items should also be selected.
 The <b>residues</b> option (default <b>false</b>) indicates whether to 
 select all atoms of a residue if any atom in the residue is within the zone.
+</p><p>
+<a href="../menu.html#selectzone"><b>Select...&nbsp;Zone</b></a> in the menu
+selects a zone based on the current <a href="../selection.html">selection</a>,
+and further allows specifying both upper and lower distance bounds.
 See also: <a href="surface.html#zone"><b>surface zone</b></a>,
 <a href="volume.html#zone"><b>volume zone</b></a>,
 <a href="zone.html"><b>zone</b></a>
@@ -175,5 +189,5 @@ non-atomic model types.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+December 2018</address>
 </body></html>

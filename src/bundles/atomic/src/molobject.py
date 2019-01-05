@@ -448,6 +448,15 @@ class PseudobondGroupData:
             pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer, cs_id)
         return pb
 
+    def new_pseudobonds(self, atoms1, atoms2):
+        "Create new pseudobonds between the specified :class:`Atoms` atoms. "
+        f = c_function('pseudobond_group_new_pseudobonds',
+                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int),
+                       ret = ctypes.py_object)
+        ptrs = f(self._c_pointer, atoms1._c_pointers, atoms2._c_pointers, len(atoms1))
+        from .molarray import Pseudobonds
+        return Pseudobonds(ptrs)
+
     # Graphics changed flags used by rendering code.  Private.
     _SHAPE_CHANGE = 0x1
     _COLOR_CHANGE = 0x2
@@ -1318,13 +1327,6 @@ class StructureData:
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
 
-    def ribbon_orients(self, residues=None):
-        '''Return array of orientation values for given residues.'''
-        if residues is None:
-            residues = self.residues
-        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
-        return f(self._c_pointer, residues._c_pointers, len(residues))
-
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
@@ -1333,6 +1335,31 @@ class StructureData:
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         p = f(self._c_pointer)
         return p
+
+    def chain_trace_atoms(self):
+        '''
+        Find pairs of atoms that should be connected in a chain trace.
+        Returns None or a 2-tuple of two Atoms instances where corresponding atoms
+        should be connected.  A chain trace connects two adjacent CA atoms if both
+        atoms are shown but the intervening C and N atoms are not shown.  Adjacent
+        means that there is a bond between the two residues.  So for instance CA-only
+        structures has no bond between the residues and those do not show a chain trace
+        connection, instead they show a "missing structure" connection.  For nucleic
+        acid chains adjacent displayed P atoms with undisplayed intervening O3' and O5'
+        atoms are part of a chain trace.
+        '''
+        f = c_function('structure_chain_trace_atoms', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        ap = f(self._c_pointer)
+        if ap is None:
+            return None
+        else:
+            from .molarray import Atoms
+            return (Atoms(ap[0]), Atoms(ap[1]))
+
+    def combine_sym_atoms(self):
+        '''Combine "symmetry" atoms, which for this purpose is atoms with the same element type
+           on the exact same 3D position'''
+        f = c_function('structure_combine_sym_atoms', args = (ctypes.c_void_p,))(self._c_pointer)
 
     def add_coordset(self, id, xyz):
         '''Supported API. Add a coordinate set with the given id.'''
@@ -1396,6 +1423,16 @@ class StructureData:
         '''Supported API. Delete the specified Bond.'''
         f = c_function('structure_delete_bond', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, bond._c_pointer)
+
+    """
+    # Deleting atoms will delete residues as needed, so there probably is no need to expose this
+    # method, particularly since ported Chimera1 code -- which had to delete empty residues "by
+    # hand" -- may wind up deleting an already-deleted residue
+    def delete_residue(self, res):
+        '''Supported API. Delete the specified Residue.'''
+        f = c_function('structure_delete_residue', args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, res._c_pointer)
+    """
 
     @property
     def molecules(self):
@@ -1510,6 +1547,13 @@ class StructureData:
         g = StructureData(logger=session.logger)
         g.set_state_from_snapshot(session, data)
         return g
+
+    def ribbon_orients(self, residues=None):
+        '''Return array of orientation values for given residues.'''
+        if residues is None:
+            residues = self.residues
+        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
+        return f(self._c_pointer, residues._c_pointers, len(residues))
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings found in this Structure.

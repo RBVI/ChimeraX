@@ -36,9 +36,18 @@ See also: the <a href="window.html">ChimeraX window</a>,
 <a href="tools/basicactions.html"><b>Basic Actions</b></a>,
 the <a href="tools/cli.html"><b>Command Line</b></a>
 </p>
-<ul>
+<ul class="none">
+<li><a href="#file"><b>File</b></a>
+<li><a href="#edit"><b>Edit</b></a>
+<li><a href="#select"><b>Select</b></a>
+<li><a href="#tools"><b>Tools</b></a>
+<li><a href="#presets"><b>Presets</b></a>
+<li><a href="#help"><b>Help</b></a>
+</ul>
+
 <a name="file"></a>
-<li><b>File</b>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>File</b>
   <ul>
   <li><b>Open...</b> a subset of <a href="commands/open.html"><b>open</b></a>
   command functionality
@@ -47,17 +56,20 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   <li><b>Close Session</b> &ndash; same as the command
   <a href="commands/close.html"><b>close session</b></a> 
   </ul>
-<br>
+
 <a name="edit"></a>
-<li><b>Edit</b> &ndash; limited <a href="commands/undo.html">undo/redo</a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Edit</b> &ndash; limited <a href="commands/undo.html">undo/redo</a>
   <ul>
   <li><b>Undo</b>
   <li><b>Redo</b>
   </ul>
-<br>
+
 <a name="select"></a>
-<li><b>Select</b> 
-&ndash; what or how to <a href="selection.html">select</a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Select</b> 
+&ndash; what or how to <a href="selection.html">select</a>; see also the
+<a href="commands/select.html"><b>select</b></a> command
   <ul>
   <li><b>Chains</b>
   &ndash; <a href="commands/atomspec.html#hierarchy">chains</a>
@@ -73,30 +85,39 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   in currently open structures, sorted into nonstandard residues, 
   standard nucleic acids, and standard amino acids
   <li><b>Structure</b> 
-  <ul>
-  <li><b>Backbone</b> - biopolymer backbone atoms: peptide N, CA, C, O, 
-  nucleic acid phosphoribosyl backbone, and any directly attached hydrogens 
-  <li><b>Ions</b> - <a href="commands/atomspec.html#surfcats">ions</a>
-  <li><b>Ligand</b> - <a href="commands/atomspec.html#surfcats">ligand</a>
-  <li><b>Main</b> - <a href="commands/atomspec.html#surfcats">main</a>
-  <li><b>Nucleic Acid</b> - nucleosides, nucleotides, RNA, and DNA
-  <li><b>Protein</b> - amino acids, peptides, and proteins
-  <li><b>Ribose</b> - nucleic-acid backbone ribose and doxyribose moieties
-  <li><b>Secondary Structure</b> - protein/peptide secondary structure types:
     <ul>
-    <li><b>Coil</b> - amino acid residues not in helix or strand
-    <li><b>Helix</b> - amino acid residues in helices
-    <li><b>Strand</b> - amino acid residues in strands
+    <li><b>Backbone</b> - biopolymer backbone atoms: peptide N, CA, C, O, 
+    nucleic acid phosphoribosyl backbone, and any directly attached hydrogens 
+    <li><b>Ions</b> - <a href="commands/atomspec.html#surfcats">ions</a>
+    <li><b>Ligand</b> - <a href="commands/atomspec.html#surfcats">ligand</a>
+    <li><b>Main</b> - <a href="commands/atomspec.html#surfcats">main</a>
+    <li><b>Nucleic Acid</b> - nucleosides, nucleotides, RNA, and DNA
+    <li><b>Protein</b> - amino acids, peptides, and proteins
+    <li><b>Ribose</b> - nucleic-acid backbone ribose and doxyribose moieties
+    <li><b>Secondary Structure</b> - protein/peptide secondary structure types:
+      <ul>
+      <li><b>Coil</b> - amino acid residues not in helix or strand
+      <li><b>Helix</b> - amino acid residues in helices
+      <li><b>Strand</b> - amino acid residues in strands
+      </ul>
+    <li><b>Sidechain + Connector</b>
+     - amino acid sidechain + CA (for connectivity to 
+     <a href="commands/cartoon.html">cartoon</a>), nucleic acid base + ribose,
+    and any directly attached hydrogens
+    <li><b>Sidechain Only</b>
+     - amino acid sidechain, nucleic acid base, 
+    and any directly attached hydrogens
+    <li><b>Solvent</b> - <a href="commands/atomspec.html#surfcats">solvent</a>
     </ul>
-  <li><b>Sidechain + Connector</b>
-   - amino acid sidechain + CA (for connectivity to 
-   <a href="commands/cartoon.html">cartoon</a>), nucleic acid base + ribose,
-  and any directly attached hydrogens
-  <li><b>Sidechain Only</b>
-   - amino acid sidechain, nucleic acid base, 
-  and any directly attached hydrogens
-  <li><b>Solvent</b> - <a href="commands/atomspec.html#surfcats">solvent</a>
-  </ul>
+  <li><a name="selectseq"></a>
+  <b>Sequence...</b> <a href="findseq.html">find and select</a>
+  a specified amino acid or nucleotide sequence or sequence pattern
+  <li><a name="selectzone"></a>
+  <b>Zone...</b> select atoms and bonds within a distance zone from the 
+currently selected atoms, optionally promoting the result to whole residues.
+If both the within (&lt;) and beyond (&gt;) options are checked, 
+atoms/bonds must meet both criteria, for example, fall within 12 &Aring; of
+but farther away than 8 &Aring; from the current selection.
   <li><b>Menu Mode: <i>mode</i></b>
     <ul>
     <li><b>Replace</b> (initial default <i>mode</i>)
@@ -105,17 +126,21 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
     <li><b>Intersect (&cap;)</b>
     </ul>
   </ul>
-<br>
+
 <a name="tools"></a>
-<li><b>Tools</b>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Tools</b>
 &ndash; <a href="index.html#tools">tools</a> grouped by category
 <br><br>
+
 <a name="presets"></a>
-<li><b>Presets</b>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Presets</b>
 &ndash; predefined combinations of display settings;
 the current set of presets is based directly on 
 <a href="autostyle.html">automatic styling</a> and is likely to change.
-<br><br>
+Render-intensive presets such as <b>Cartoon</b>
+may exhibit slow performance on very large structures.
 <ul>
 <li><b>Original Look</b> - initial appearance from
 <a href="autostyle.html">automatic styling</a>,
@@ -146,12 +171,10 @@ ambient-only lighting, <i>etc.</i> (as for
 <a href="commands/lighting.html">simple lighting</a>, <i>etc.</i> (as for
 <a href="autostyle.html">automatic styling</a> of structures with 0 chains)
 </ul>
-<p>
-More render-intensive presets such as <b>Cartoon</b>
-may exhibit slow performance on very large structures.
-</p>
+
 <a name="help"></a>
-<li><b>Help</b>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Help</b>
   <ul>
   <li><a href="index.html"><b>User Guide</b></a>
   <li><a href="../quickstart/index.html"><b>Quick Start Guide</b></a>
@@ -160,10 +183,8 @@ may exhibit slow performance on very large structures.
   <li><a href="../contact.html"><b>Contact Us</b></a>
   <li><b>Report a Bug</b>
   </ul>
-</ul>
-<p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2018</address>
+December 2018</address>
 </body></html> 

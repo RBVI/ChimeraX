@@ -486,6 +486,10 @@ cdef class CyAtom:
         "    The backbone atoms that a ribbon depiction hides"
         return self.cpp_atom.is_backbone(<cydecl.BackboneExtent>bb_extent)
 
+    def is_missing_heavy_template_neighbors(self, *, chain_start = False, chain_end = False,
+            no_template_okay=False):
+        return self.cpp_atom.is_missing_heavy_template_neighbors(chain_start, chain_end, no_template_okay)
+
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.
 
@@ -1059,6 +1063,7 @@ cdef class CyResidue:
         _set_angle(self.session, ca, ca.bonds[i], val, cur_psi, "psi")
 
     PT_NONE, PT_AMINO, PT_NUCLEIC = range(3)
+    PT_PROTEIN = PT_AMINO
     @property
     def polymer_type(self):
         '''Supported API.  Polymer type of residue. Values are:
@@ -1278,9 +1283,9 @@ cdef class CyResidue:
             res_str = self.name + " " + str(self.number) + ic
         else:
             res_str = ":" + str(self.number) + ic
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         if residue_only:
             return res_str
+        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         if omit_structure:
             return '%s %s' % (chain_str, res_str)
         from .structure import Structure
@@ -1328,10 +1333,7 @@ cdef class CyResidue:
 
 def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name):
     br = session.bond_rotations.new_rotation(bond)
-    if bond.smaller_side == torsion_atom2:
-        br.angle += new_angle - cur_angle
-    else:
-        br.angle -= new_angle - cur_angle
+    br.angle += new_angle - cur_angle
     res = bond.atoms[0].residue
     res.structure.change_tracker.add_modified(res, attr_name + " changed")
 
