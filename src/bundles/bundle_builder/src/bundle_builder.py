@@ -157,6 +157,7 @@ class BundleBuilder:
         self.package = bi.getAttribute("package")
         self.min_session = bi.getAttribute("minSessionVersion")
         self.max_session = bi.getAttribute("maxSessionVersion")
+        self.supercedes = bi.getAttribute("supercedes")
         self.custom_init = bi.getAttribute("customInit")
         self.pure_python = bi.getAttribute("purePython")
         self.installed_data_dir = bi.getAttribute("installedDataDir")
@@ -317,7 +318,8 @@ class BundleBuilder:
         self.chimerax_classifiers = [
             ("ChimeraX :: Bundle :: " + ','.join(self.categories) +
              " :: " + self.min_session + "," + self.max_session +
-             " :: " + self.package + " :: :: " + self.custom_init)
+             " :: " + self.package + " :: " + self.supercedes +
+             " :: " + self.custom_init)
         ]
         if self.installed_data_dir:
             self.chimerax_classifiers.append(
