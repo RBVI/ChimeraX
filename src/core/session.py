@@ -559,6 +559,8 @@ class Session:
         self.restore_options['restore camera'] = restore_camera
         
         self.triggers.activate_trigger("begin restore session", self)
+        is_gui = hasattr(self, 'ui') and self.ui.is_gui
+        from .tools import ToolInstance
         try:
             self.reset()
             self.session_file_path = path
@@ -583,6 +585,9 @@ class Session:
                     if name.uid[1] == 0:
                         obj = cls
                     else:
+                        if not is_gui and issubclass(cls, ToolInstance):
+                            mgr.add_reference(name, None)
+                            continue
                         sm = self.snapshot_methods(cls, instance=False)
                         if sm is None:
                             obj = None
