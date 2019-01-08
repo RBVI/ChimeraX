@@ -1,0 +1,4 @@
+open 3fx2
+log thumbnail
+log text test
+close
