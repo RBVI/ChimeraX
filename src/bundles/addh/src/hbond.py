@@ -70,6 +70,8 @@ def add_hydrogens(session, atom_list, *args):
     hbond_info = {}
     for a, crds in coordinations.items():
         hbond_info[a] = [(True, crd) for crd in crds]
+        for crd in crds:
+            hbond_info.setdefault(crd, []).append((False, a))
     for atom in atom_list:
         bonding_info = type_info_for_atom[atom]
         num_bonds = atom.num_bonds
@@ -1367,7 +1369,7 @@ def _tet_check(tet, partner, hbond_info, tet_acc):
             return False
         if angle_group == 0:
             if debug:
-                print("tetCheck for; pointing towards %s returning %s" % (tet, other, result))
+                print("tetCheck for %s; pointing towards %s returning %s" % (tet, other, result))
             return result
         towards.append(other._addh_coord)
     # further tests only for 2 of 4 filled...
