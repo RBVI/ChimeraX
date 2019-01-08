@@ -310,6 +310,7 @@ of ``mac``.
     - **purePython**: set to ``false`` if bundle should be treated as
       binary, *i.e.*, includes a compiled module; omit otherwise
     - **version**: bundle version
+    - **supercedes**: comma separated list of names that the bundle was previously released as
 
   - Child elements:
 
@@ -545,7 +546,7 @@ data formats, and selectors.
     - *api_module_name* is a string with the name of the module that
       has the bundle_api in it.
     - *supercedes* is an optional comma separated list of names that
-      under which the bundle was previously released.
+      the bundle was previously released as.
     - *custom_init* is a string.  If not set to ``true``, the
       bundle is not imported until actually invoked.  If set to
       ``true``, the ``bundle_api.initialize`` method for the bundle
