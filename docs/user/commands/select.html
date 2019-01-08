@@ -53,6 +53,9 @@ the <a href="../menu.html#select"><b>Select</b> menu</a>
 [&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>sequence</b>&nbsp;&nbsp;<a href="../findseq.html#pattern"><i>pattern</i></a>&nbsp;]
 [&nbsp;<b>polymer</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;<b>minimumLength</b>&nbsp;&nbsp;<i>min</i>&nbsp;]
 [&nbsp;<b>maximumLength</b>&nbsp;&nbsp;<i>max</i>&nbsp;]
 </blockquote>
@@ -63,6 +66,15 @@ with a new one containing the specified items
 (<a href="atomspec.html"><i>spec</i></a>).
 The <b>residues</b> option (default <b>false</b>) promotes any
 specified atoms to whole residues. 
+</p><p>
+The <b>minimumLength</b> and <b>maximumLength</b> filters apply only to
+<a href="../pseudobonds.html">pseudobonds</a>.
+<!--
+The <b>minimumLength</b> and/or <b>maximumLength</b> options indicate 
+selecting only <a href="../pseudobonds.html">pseudobonds</a> by length.
+Atomic structures and other types of models are automatically excluded
+when either of these options is used.
+-->
 </p><p>
 The <b>sequence</b> option restricts the selection to
 biopolymer sequence segments that match the specified <i>pattern</i>, 
@@ -82,10 +94,6 @@ with the same sequences as the chains in
 </blockquote>
 &ndash; select biopolymer chains in model 2 that have the same sequence
 as chain A of model 1
-<p>
-The <b>minimumLength</b> and <b>maximumLength</b> filters apply only 
-to <a href="../pseudobonds.html">pseudobonds</a>.
-</p>
 
 <a name="modify"></a>
 <p class="nav">

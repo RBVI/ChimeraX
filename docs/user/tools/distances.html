@@ -1,0 +1,93 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Distances</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Distances</h3>
+<p>
+<b>Distances</b> is a table of <i><b>distance monitors</b></i>
+(measurements that update if there are changes). 
+The tool also allows adding and deleting distance monitors, 
+adjusting their appearance, and saving the information to a file. 
+</p><p>
+Distance monitors are <a href="../pseudobonds.html">pseudobonds</a>.
+They can also be added with the
+<a href="../commands/distance.html"><b>distance</b></a> command,
+<a href="../selection.html#context">selection context menus</a> 
+(when two atoms are <a href="../selection.html">selected</a>),
+and the <b>distances</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/distance.png"></a>
+See also:
+<a href="../commands/hbonds.html"><b>hbonds</b></a>,
+<a href="../commands/label.html"><b>label</b></a>,
+<a href="../commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>,
+<a href="../commands/select.html#new"><b>select</b> by pseudobond length</a>,
+<a href="../measurements.html">measurements</a>
+</p><p>
+<a name="appearance"></a>
+Appearance options:
+</p>
+<ul>
+<li><b>Color</b>
+&ndash; a color well that can be clicked
+to choose the color interactively (initial default
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="gold" width="10px"></td> </tr></table>);
+see also <a href="../commands/color.html#simple"><b>color</b></a>
+<li><b>Decimal places</b>
+&ndash; distance-label places after the decimal (initial default <b>3</b>)
+<li><b>Number of dashes</b> (initial default <b>9</b>)
+&ndash; see also <a href="../commands/style.html"><b>style</b></a>
+<li><b>Radius</b> (initial default <b>0.1</b> &Aring;)
+&ndash; see also <a href="../commands/size.html"><b>size</b></a>
+<li><b>Show &Aring; symbol</b>
+&ndash; whether to include the &Aring; symbol in the distance label
+(initial default <b>true</b>)
+</ul>
+<p>
+Buttons:
+</p>
+<ul>
+<li><b>Create</b>
+&ndash; add a distance monitor between two atoms
+that have been <a href="../selection.html">selected</a>
+<li><b>Delete</b>
+&ndash; remove distance monitor(s) chosen in the table
+<li><b>Save Info...</b>
+write all distances (sorted from shortest to longest) to a text file
+<li><b>Save</b>
+&ndash; save <a href="#appearance">appearance settings</a> as
+<a href="../preferences.html#distances"><b>Distances</b> preferences</a>
+<li><b>Reset</b>
+&ndash; restore <a href="#appearance">appearance settings</a> to
+initial (&ldquo;factory&rdquo;) defaults
+<li><b>Restore</b>
+&ndash; restore <a href="#appearance">appearance settings</a> from previously
+saved <a href="../preferences.html#distances"><b>Distances</b> preferences</a>
+</ul>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+January 2019</address>
+</body></html>
