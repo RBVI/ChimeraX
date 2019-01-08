@@ -26,9 +26,11 @@ def select(session, objects=None, polymer=None, residues=False, minimum_length=N
       Reduce the selection to include only atoms belonging to chains having a sequence that is the
       same as one of the sequences specified by the polymer option.
     minimum_length : float or None
-      Exclude pseudobonds shorter than the specified length.
+      Exclude pseudobonds shorter than the specified length.  If this option is specified
+      all non-pseudobond objects are also excluded.
     maximum_length : float or None
-      Exclude pseudobonds longer than the specified length.
+      Exclude pseudobonds longer than the specified length.  If this option is specified
+      all non-pseudobond objects are also excluded.
     sequence : string or None
       Regular expression of sequence to match.  Will be automatically upcased.
     '''
@@ -70,9 +72,7 @@ def _filter_pseudobonds_by_length(objects, minimum_length, maximum_length):
         keep = (lengths <= maximum_length)
         
     from chimerax.core.objects import Objects
-    fobj = Objects(atoms = objects.atoms, bonds = objects.bonds,
-                   pseudobonds = pbonds.filter(keep),
-                   models = objects.models)
+    fobj = Objects(pseudobonds = pbonds.filter(keep))
     return fobj
 
 def _select_sequence(objects, sequence):
