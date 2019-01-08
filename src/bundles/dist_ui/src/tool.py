@@ -16,7 +16,7 @@ from chimerax.core.tools import ToolInstance
 
 class DistanceTool(ToolInstance):
 
-    #help = "help:user/tools/modelpanel.html"
+    help = "help:user/tools/distances.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -49,7 +49,9 @@ class DistanceTool(ToolInstance):
         button_layout = QHBoxLayout()
         create_button = QPushButton("Create")
         create_button.clicked.connect(self._create_distance)
-        create_button.setToolTip("Create distance monitor between two (currently selected) atoms")
+        create_button.setToolTip("Create distance monitor between two (currently selected) atoms;\n"
+            "Alternatively, control-click one atom in graphics view and control-shift-\n"
+            "double-click another to bring up context menu with 'Distance' entry")
         button_layout.addWidget(create_button)
         delete_button = QPushButton("Delete")
         delete_button.clicked.connect(self._delete_distance)
@@ -111,8 +113,7 @@ class DistanceTool(ToolInstance):
             raise UserError("No distances to delete!")
         rows = set([index.row() for index in self.table.selectedIndexes()])
         if not rows:
-            run(self.session, "~distance")
-            return
+            raise UserError("Must select one or more distances in the table")
         del_pbs = []
         for i, pb in enumerate(pbs):
             if i in rows:
