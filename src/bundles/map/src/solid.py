@@ -315,7 +315,7 @@ class Solid:
         # the plane spacing being used.
         trans = (alpha < 1)         # Avoid divide by zero for alpha == 1.
         atrans = alpha[trans]
-        alpha[trans] = 1.0 - (1.0-atrans) ** (1.0/(planes*(1-atrans)))
+        alpha[trans] = 1.0 - (1.0-atrans) ** (1.0/planes)
 
     # Use only needed color components (e.g. rgba, la, l).
     cmap = self.rgba_to_colormap(tfcmap)

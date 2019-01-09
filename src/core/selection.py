@@ -207,12 +207,12 @@ class SelectionPromotion:
     def demote(self):
         pass
 
-class ModelSelectionPromotion:
+class ModelSelectionPromotion(SelectionPromotion):
     def __init__(self, model, level):
         SelectionPromotion.__init__(self, level)
         self.model = model
         spos = model.selected_positions
-        self._prev_selected = None if spos is None else spos.copy() 
+        self._prev_selected = None if spos is None else spos.copy()
     def promote(self):
         self.model.selected = True
     def demote(self):

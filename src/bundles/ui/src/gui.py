@@ -1703,12 +1703,13 @@ class SelZoneDialog(QDialog):
         more_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(more_layout)
         res_layout = QHBoxLayout()
-        self.res_checkbox = QCheckBox("Promote atom/bond selection to whole residues")
+        self.res_checkbox = QCheckBox("Apply criteria to whole residues")
         res_layout.addWidget(self.res_checkbox)
         layout.addLayout(res_layout)
 
-        self.bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        self.bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         self.bbox.accepted.connect(self.zone)
+        self.bbox.button(qbbox.Apply).clicked.connect(self.zone)
         self.bbox.accepted.connect(self.accept)
         self.bbox.rejected.connect(self.reject)
         from chimerax.core.commands import run

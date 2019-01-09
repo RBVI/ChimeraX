@@ -300,8 +300,6 @@ class _RestoreManager:
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
             # put the below kludge in to allow sessions saved before the seq_view
             # bundle name change to restore; remove on or after 1.0 release
-            if bundle_name == "ChimeraX-SEQ-VIEW":
-                bundle_name = "ChimeraX-SeqView"
             bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
                 missing_bundles.append(bundle_name)
@@ -561,6 +559,8 @@ class Session:
         self.restore_options['restore camera'] = restore_camera
         
         self.triggers.activate_trigger("begin restore session", self)
+        is_gui = hasattr(self, 'ui') and self.ui.is_gui
+        from .tools import ToolInstance
         try:
             self.reset()
             self.session_file_path = path
@@ -585,6 +585,9 @@ class Session:
                     if name.uid[1] == 0:
                         obj = cls
                     else:
+                        if not is_gui and issubclass(cls, ToolInstance):
+                            mgr.add_reference(name, None)
+                            continue
                         sm = self.snapshot_methods(cls, instance=False)
                         if sm is None:
                             obj = None

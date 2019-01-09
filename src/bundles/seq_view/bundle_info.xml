@@ -1,5 +1,6 @@
 <BundleInfo name="ChimeraX-SeqView" version="1.0"
 	    package="chimerax.seq-view"
+	    supercedes="ChimeraX-SEQ-VIEW"
   	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
   <Author>UCSF RBVI</Author>
