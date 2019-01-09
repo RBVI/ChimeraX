@@ -92,6 +92,8 @@ StructureSeq::demote_to_sequence()
     auto inst = py_instance(false);
     if (inst != Py_None) {
         auto gil = pyinstance::AcquireGIL();
+        if (is_chain())
+            _structure->change_tracker()->add_deleted(_structure, dynamic_cast<Chain*>(this));
         _structure = nullptr;
         auto ret = PyObject_CallMethod(inst, "_cpp_demotion", nullptr);
         if (ret == nullptr) {
