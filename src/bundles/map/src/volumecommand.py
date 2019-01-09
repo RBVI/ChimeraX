@@ -20,6 +20,7 @@ def register_volume_command(logger):
     from chimerax.core.commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, RepeatOf
     from chimerax.atomic import SymmetryArg
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
+    from .colortables import appearance_names
 
     from .volume import Rendering_Options
     ro = Rendering_Options()
@@ -39,6 +40,7 @@ def register_volume_command(logger):
                ('color', RepeatOf(ColorArg)),
                ('brightness', FloatArg),
                ('transparency', FloatArg),
+               ('appearance', EnumOf(appearance_names())),
                ('step', MapStepArg),
                ('region', MapRegionArg),
                ('name_region', StringArg),
@@ -114,6 +116,7 @@ def volume(session,
            color = None,
            brightness = None,
            transparency = None,
+           appearance = None,
            step = None,
            region = None,
            name_region = None,
@@ -300,7 +303,7 @@ def volume(session,
     # Apply volume settings.
     dopt = ('style', 'show', 'hide', 'toggle', 'level', 'rms_level', 'sd_level',
             'enclose_volume', 'fast_enclose_volume',
-            'color', 'brightness', 'transparency',
+            'color', 'brightness', 'transparency', 'appearance',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
             'origin_index', 'voxel_size', 'planes',
             'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header', 'pickable')
@@ -511,6 +514,11 @@ def level_and_color_settings(v, options):
         else:
             kw['transparency_depth'] = options['transparency']
 
+    if 'appearance' in options:
+        from . import colortables
+        akw = colortables.appearance_settings(options['appearance'])
+        kw.update(akw)
+                              
     return kw
 
 # -----------------------------------------------------------------------------
