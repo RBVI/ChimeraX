@@ -158,6 +158,10 @@ cdef class CyAtom:
         self.cpp_atom.set_aniso_u(u6[0], u6[3], u6[4], u6[1], u6[5], u6[2])
 
     @property
+    def atomspec(self):
+        return self.string(style="command")
+
+    @property
     def bfactor(self):
         "Supported API. B-factor, floating point value."
         return self.cpp_atom.bfactor()
@@ -423,10 +427,6 @@ cdef class CyAtom:
         return self.cpp_atom.visible()
 
     # instance methods...
-
-    @property
-    def atomspec(self):
-        return self.string(style="command")
 
     def clear_hide_bits(self, bit_mask):
         '''Set the hide bits 'off' that are 'on' in "bitmask"'''
@@ -1153,7 +1153,7 @@ cdef class CyResidue:
     def standard_aa_name(self):
         '''If this is a standard amino acid or modified amino acid, return the 3-letter
         name of the corresponding standard amino acid.  Otherwise return None.  The
-        ability to determine the standard name of a modified amino acid may depend on 
+        ability to determine the standard name of a modified amino acid may depend on
         the presence of MODRES records or their equivalent in the original input.'''
         return self.__class__.get_standard_aa_name(self.name)
 

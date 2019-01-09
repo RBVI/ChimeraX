@@ -51,9 +51,20 @@ def all_python_instances():
     f = c_function('all_python_instances', args = (), ret = ctypes.py_object)
     return f()
 
+# delay .cymol import until 'CFunctions' call above establishes lib path
 from .cymol import CyAtom
 class Atom(CyAtom, State):
     '''An atom in a (chemical) structure'''
+
+    # So that attr-registration API can provide return-type info; provide that data here
+    # [because Cython properties use immutable getset_descriptor slots, and the final address of a
+    # property isn't obtainable until the end of the class definition, using this inelegant solution]
+    _cython_property_return_info = [
+        ('alt_loc', (str,)), ('bfactor', (float,)), ('display', (bool,)), ('idatm_type', (str,)),
+        ('is_side_connector', (bool,)), ('is_side_chain', (bool,)), ('is_side_only', (bool,)),
+        ('name', (str,)), ('num_alt_locs', (int,)), ('num_bonds', (int,)), ('num_explicit_bonds', (int,)),
+        ('occupancy', (float,)), ('radius', (float,)), ('selected', (bool,)), ('visible', (bool,)),
+    ]
 
     # used by custom-attr registration code
     @property
@@ -601,6 +612,15 @@ class Residue(CyResidue, State):
 
     To create a Residue use the :class:`.AtomicStructure` new_residue() method.
     '''
+
+    # So that attr-registration API can provide return-type info; provide that data here
+    # [because Cython properties use immutable getset_descriptor slots, and the final address of a
+    # property isn't obtainable until the end of the class definition, using this inelegant solution]
+    _cython_property_return_info = [
+        ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
+        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('omega', (float, None)),
+        ('phi', (float, None)), ('psi', (float, None)),
+    ]
 
     # used by custom-attr registration code
     @property
