@@ -17,12 +17,12 @@ class ModellerResultsViewer(ToolInstance):
 
     #help = "help:user/tools/sequenceviewer.html"
 
-    def __init__(self, session, models=None, attr_names=None):
+    def __init__(self, session, tool_name, models=None, attr_names=None):
         """ if 'models' is None, then we are being restored from a session and
             set_state_from_snapshot will be called later.
         """
 
-        ToolInstance.__init__(self, session, "Modeller Results")
+        ToolInstance.__init__(self, session, tool_name)
         if models is None:
             return
         self._finalize_init(session, models, attr_names)
@@ -48,9 +48,9 @@ class ModellerResultsViewer(ToolInstance):
         self.table.setSortingEnabled(True)
         self.table.keyPressEvent = session.ui.forward_keystroke
         self.table.setHorizontalHeaderLabels(["Model"] + [attr_name[9:] for attr_name in attr_names])
-        self.table.itemClicked.connect(self._table_selection_cb)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.itemSelectionChanged.connect(self._table_selection_cb)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         layout.addWidget(self.table)
         layout.setStretchFactor(self.table, 1)
@@ -85,25 +85,19 @@ class ModellerResultsViewer(ToolInstance):
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
         menu.addAction(scf_action)
 
-    #TODO
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(session, data['alignment'])
-        inst.region_browser.restore_state(data['region browser'])
-        if 'seq canvas' in data:
-            inst.seq_canvas.restore_state(session, data['seq canvas'])
+        inst._finalize_init(session, data['models'], data['attr_names'])
         return inst
 
     SESSION_SAVE = True
 
-    #TODO
     def take_snapshot(self, session, flags):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
-            'alignment': self.alignment,
-            'region browser': self.region_browser.save_state(),
-            'seq canvas': self.seq_canvas.save_state()
+            'models': self.models,
+            'attr_names': self.attr_names
         }
         return data
 
@@ -111,10 +105,8 @@ class ModellerResultsViewer(ToolInstance):
         self.table.clearContents()
         self.table.setRowCount(len(self.models))
         from PyQt5.QtWidgets import QTableWidgetItem
-        self.row_item_lookup = {}
         for row, m in enumerate(self.models):
             item = QTableWidgetItem('#' + m.id_string)
-            self.row_item_lookup[id(item)] = m
             self.table.setItem(row, 0, item)
             for c, attr_name in enumerate(self.attr_names):
                 self.table.setItem(row, c+1, QTableWidgetItem("%g" % getattr(m, attr_name, "")))
@@ -133,4 +125,6 @@ class ModellerResultsViewer(ToolInstance):
 
     def _table_selection_cb(self):
         rows = set([index.row() for index in self.table.selectedIndexes()])
-        print(rows, "maps to", [str(self.row_item_lookup[id(self.table.itemAt(r, 0))]) for r in rows])
+        sel_ids = set([self.table.item(r, 0).text() for r in rows])
+        for m in self.models:
+            m.display = ('#' + m.id_string) in sel_ids or not sel_ids
