@@ -86,8 +86,7 @@ for the <a href="#threshold">threshold</a> most recently moved or clicked
 <li>dimensions in grid units of the <a href="#region">display region</a>
 <li>the <a href="#step">step size</a> (subsampling)
 <li>the level of the <a href="#threshold">threshold</a>
-most recently moved or clicked (see also the <b>contour level</b> 
-<a href="../commands/ui.html#mousemode">mouse mode</a>)
+most recently moved or clicked
 <li>the range of values in the <a href="#region">display region</a>
 <li>a pulldown menu with display settings:
   <ul>
@@ -102,11 +101,21 @@ most recently moved or clicked (see also the <b>contour level</b>
   <li><b>maximum</b> - solid volume style,
  <a href="../commands/volume.html#maximumintensity">maximum intensity projection</a>
   <li><b>plane</b> - solid volume style,
- a <a href="../commands/volume.html#planes">single plane</a> perpendicular to Z;
- the <b>move planes</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
- is useful with this or orthoplanes
+a <a href="../commands/volume.html#planes">single plane</a> perpendicular to Z;
+a slider interface is shown below the histogram 
+(note planes along X, Y, or Z can be displayed
+with the <a href="../commands/volume.html"><b>volume</b></a> command
+<a href="../commands/volume.html#planes"><b>planes</b></a> option 
+and adjusted with the
+<b>move planes</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>)
   <li><b>orthoplanes</b> - solid volume style,
- <a href="../commands/volume.html#orthoplanes">orthoplanes</a>
+  <a href="../commands/volume.html#orthoplanes">orthoplanes</a>;
+  can be adjusted with the
+<b>move planes</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
   <li><b>box</b> - solid volume style, 
  <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>
   </ul>
@@ -161,7 +170,19 @@ that maps data values to colors and intensities.
 The rightmost threshold does not have to be at the far right of the histogram,
 and a threshold at a lower data value can be higher (vertically)
 than a threshold at a higher data value.
+<p>
+Threshold levels can be adjusted interactively by dragging in the
+<b>Volume Viewer</b> histogram
+or by using the <a href="../commands/ui.html#mousemode">mouse mode</a> for
+<b>contour level</b>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/contour.png"></a>
+or <b>windowing</b>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/windowing.png"></a>
+in the graphics window.
 </blockquote>
+<a name="context"></a>
 <p>
 The <b>Volume Viewer</b> <a href="../window.html#context-menu">context menu</a>
 includes:
@@ -188,10 +209,6 @@ Histogram ranges and threshold levels are given in the same units as the
 data. The <a href="../commands/volume.html"><b>volume</b></a>
 command also allows specifying threshold levels in units of
 root-mean-square deviations from zero or standard deviations from the mean.
-</p><p>
-See also the <b>contour level</b> and <b>move planes</b>
-<a href="../commands/ui.html#mousemode">mouse modes</a> for
-adjusting the display by dragging within the graphics window.
 </p>
 
 <a name="multichannel"></a>

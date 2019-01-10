@@ -29,7 +29,10 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>open</b> (&nbsp;<i>filename</i>&nbsp;|&nbsp;<i>URL</i>&nbsp;|&nbsp;[&nbsp;<a href="#fetch-table"><i>prefix</i></a>:]<i>identifier</i>&nbsp;)
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-&nbsp;<i>other-options</i>
+&nbsp;<a href="#options"><i>options</i></a>&nbsp;
+<!--
+&nbsp;<a href="#options2"><i>general-options</i></a>&nbsp;
+-->
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
 </h3>
@@ -580,18 +583,23 @@ hypertext to render in the
 <b>open</b> &nbsp;<i>filename</i>&nbsp;
 [&nbsp;<i>filename2</i>...&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>maxModels</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#vseries"><b>vseries</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#resizeWindow"><b>resizeWindow</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+<!--
 [&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>resizeWindow</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
+-->
+&nbsp;<a href="#options"><i>options</i></a>&nbsp;
+<!--
+&nbsp;<a href="#options2"><i>general-options</i></a>&nbsp;
+-->
 </blockquote>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
@@ -614,57 +622,72 @@ The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
-</p><p>
-Further command options:
 </p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h4>Options</h4>
 <blockquote>
-<a name="maxModels"></a>
-<b>maxModels</b>&nbsp;&nbsp;<i>M</i>
+<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Maximum number of models to keep when opening a multi-model file 
-in mmCIF or PDB format as multiple models in ChimeraX
-(<b><a href="#coordsets">coordsets</a> false</b>).
+Whether to interpret a multi-sequence file as an alignment 
+(default, all sequences in one <b>Multalign Viewer</b> window).
+Otherwise, each sequence will be opened in a separate window. 
+If the sequences (including any gap characters) are of differing lengths,
+the option must be set to <b>false</b>. 
 </blockquote>
 <blockquote>
-<a name="coordsets"></a>
-<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<a name="atomic"></a>
+<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Whether to open a multi-model file in mmCIF or PDB format as a
-<a href="../trajectories.html">trajectory</a> and show a
-<a href="coordset.html#slider">slider</a> graphical interface.
-Only one frame (coordinate set) of a trajectory can be viewed at a time;
-different frames can be accessed or played back sequentially with the
-<a href="coordset.html"><b>coordset</b></a> command or
-the <a href="coordset.html#slider">slider interface</a>.
-By default, the multiple models in the file will be opened not as a
-<a href="../trajectories.html">trajectory</a> but as
-separate submodels that can be shown/hidden/specified independently 
-(for example, using #1.1, #1.2, #1.3...) 
-or collectively (for example, using #1).
+Whether to interpret coordinates read from mmCIF or PDB format as an atomic model 
+(<b>true</b>, default).
+Setting the option to <b>false</b> is appropriate for data such as SAXS models 
+that are simply collections of points 
+(possibly with connecting &ldquo;bonds&rdquo;)
+rather than realistically spaced atoms;
+it classifies the models as Structure rather than atomicStructure, 
+bypassing chemical perception steps like identifying
+<a href="../atomtypes.html">atom types</a>.
 </blockquote>
 <blockquote>
-<a name="vseries"></a>
-<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
-When multiple maps with the same grid dimensions are opened 
-in a single command (multiple files specified with wild cards or globbing, 
-or a single multi-map file), this option can be used to enforce 
-loading them as a <a href="../trajectories.html#vseries">volume series</a>
-for playback with 
-<a href="vseries.html"><b>vseries</b></a> or the associated slider
-(if <b>true</b>), or as independent models (if <b>false</b>).
-If the option is not used, 3D TIFF images and
-<a href="save.html#chimap">Chimera map</a> files containing five or more
-same-sized maps are automatically interpreted as series, if possible.
-When multiple maps are opened in a single command (multiple files specified with 
-wild cards or globbing), time ordering is automatically discerned from the
-filenames, if possible: for example, a file will be identified as time point 12 
-if its name contains either of the following:
-<ul class="none">
-<li>_stack0012_
-<li>_0012stack_
-</ul>
-(and 0012 could be any integer).
+Whether structure-chain sequences should be compared to sequences in 
+<b>Multalign Viewer</b> and automatically associated if the number of
+mismatches is no more than 1/10 the number of residues in the structure chain.
+Unlike the other options of <b>open</b>, this sets a state that persists 
+within the ChimeraX session unless explicitly changed. 
+The initial setting is <b>true</b>.
+<p>
+For automatic association, the sequence and structure files
+can be opened in either order.
+Gaps in the structure sequence relative to the sequence in the alignment file 
+can only occur where residues are missing from the structure (for example, 
+a flexible loop with insufficient density to determine coordinates).
+Associations are reported in the <a href="../window.html">status line</a>
+and the <a href="../tools/log.html"><b>Log</b></a>.
+A structure (even if it has multiple chains) cannot be associated with more
+than one sequence, but a single sequence can be associated with
+more than one structure.
+If more than one sequence matches a given structure chain,
+the single best-matching sequence is associated. 
+</p>
+</blockquote>
+<blockquote>
+<b>autoStyle</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Setting <b>autoStyle</b> to <b>false</b> bypasses 
+<a href="../autostyle.html">automatic styling</a>, <i>i.e.</i>,
+automatically adjusting the appearance of a newly opened atomic model
+based on its contents.
+Bypassing this calculation shows all atoms as white spheres, and may be 
+useful in rare cases where generating the rule-based representation is slow
+(such as drawing cartoons for very large numbers of models) or 
+when chemical perception is inappropriate (such as for a SAXS bead model). 
+See also: <a href="../markers.html">markers and links</a>
 </blockquote>
 <blockquote>
 <a name="channel"></a>
@@ -692,6 +715,72 @@ so that it can be saved along with other datasets in a single (multichannel)
 <a href="save.html#chimap">Chimera map</a> file.
 </blockquote>
 <blockquote>
+<b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Nonstandard PDB or mmCIF files may contain duplicate copies of atoms
+at symmetry positions; this option indicates whether to merge
+multiple singleton atoms of the same element at the same 3D position 
+into one (default <b>true</b>) to prevent errors in subsequent
+calculations such as <a href="addh.html">adding hydrogens</a>.
+</blockquote>
+<blockquote>
+<a name="coordsets"></a>
+<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to open a multi-model file in mmCIF or PDB format as a
+<a href="../trajectories.html">trajectory</a> and show a
+<a href="coordset.html#slider">slider</a> graphical interface.
+Only one frame (coordinate set) of a trajectory can be viewed at a time;
+different frames can be accessed or played back sequentially with the
+<a href="coordset.html"><b>coordset</b></a> command or
+the <a href="coordset.html#slider">slider interface</a>.
+By default, the multiple models in the file will be opened not as a
+<a href="../trajectories.html">trajectory</a> but as
+separate submodels that can be shown/hidden/specified independently 
+(for example, using #1.1, #1.2, #1.3...) 
+or collectively (for example, using #1).
+</blockquote>
+<blockquote>
+<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to fetch ensembles associated with an IHM dataset 
+(default <b>false</b>, as these can be quite large).
+</blockquote>
+<blockquote>
+<a name="logInfo"></a>
+<b>logInfo</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show available <a href="../modelinfo.html">model information</a>
+(other than structure title) in the <a href="../tools/log.html"><b>Log</b></a>.
+See also: <a href="log.html#metadata"><b>log metadata</b></a>
+</blockquote>
+<blockquote>
+<a name="maxModels"></a>
+<b>maxModels</b>&nbsp;&nbsp;<i>M</i>
+<br>
+Maximum number of models to keep when opening a multi-model file 
+in mmCIF or PDB format as multiple models in ChimeraX
+(<b><a href="#coordsets">coordsets</a> false</b>).
+</blockquote>
+<blockquote>
+<b>name</b>&nbsp;&nbsp;<i>model-name</i>
+<br>
+The name of the model (shown in the <b>Model Panel</b>) will be generated 
+automatically from the input <i>filename</i> or database <i>identifier</i>
+unless another name is given with the <b>name</b> option.
+If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
+Model number is also assigned automatically, starting with the lowest available
+number. Model name and number can be changed with the
+<a href="rename.html"><b>rename</b></a> command.
+</blockquote>
+<blockquote>
+<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to open an HTML file in a new tab of the
+<a href="../tools/browser.html">ChimeraX browser</a>
+(default <b>false</b>, replace any current page).
+</blockquote>
+<blockquote>
 <a name="resizeWindow"></a>
 <b>resizeWindow</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -701,15 +790,6 @@ overrides the corresponding
 <a href="../preferences.html#window"><b>Window</b> preference</a>.
 Opening a ChimeraX <a href="save.html#session">session</a>
 automatically runs <a href="close.html"><b>close session</b></a> first.
-</blockquote>
-<blockquote>
-<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
-<br>
-Whether to interpret a multi-sequence file as an alignment 
-(default, all sequences in one <b>Multalign Viewer</b> window).
-Otherwise, each sequence will be opened in a separate window. 
-If the sequences (including any gap characters) are of differing lengths,
-the option must be set to <b>false</b>. 
 </blockquote>
 <blockquote>
 <a name="structureModel"></a>
@@ -724,40 +804,34 @@ The coordinates of the existing model will be replaced with the new,
 unless <b>replace false</b> is used to indicate appending the new frames instead.
 </blockquote>
 <blockquote>
-<a name="atomicStructure"></a>
-<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<a name="vseries"></a>
+<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
-Whether to interpret coordinates read from mmCIF or PDB format as an atomic model 
-(<b>true</b>, default).
-Setting the option to <b>false</b> is appropriate for data such as SAXS models 
-that are simply collections of points 
-(possibly with connecting &ldquo;bonds&rdquo;)
-rather than realistically spaced atoms;
-it classifies the models as Structure rather than atomicStructure, 
-bypassing chemical perception steps like identifying
-<a href="../atomtypes.html">atom types</a>.
+When multiple maps with the same grid dimensions are opened 
+in a single command (multiple files specified with wild cards or globbing, 
+or a single multi-map file), this option can be used to enforce 
+loading them as a <a href="../trajectories.html#vseries">volume series</a>
+for playback with 
+<a href="vseries.html"><b>vseries</b></a> or the associated slider
+(if <b>true</b>), or as independent models (if <b>false</b>).
+If the option is not used, 3D TIFF images and
+<a href="save.html#chimap">Chimera map</a> files containing five or more
+same-sized maps are automatically interpreted as series, if possible.
+When multiple maps are opened in a single command (multiple files specified with 
+wild cards or globbing), time ordering is automatically discerned from the
+filenames, if possible: for example, a file will be identified as time point 12 
+if its name contains either of the following:
+<ul class="none">
+<li>_stack0012_
+<li>_0012stack_
+</ul>
+(and 0012 could be any integer).
 </blockquote>
 <blockquote>
-<b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<a name="verbose"></a>
+<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
-Nonstandard PDB or mmCIF files may contain duplicate copies of atoms
-at symmetry positions; this option indicates whether to merge
-multiple singleton atoms of the same element at the same 3D position 
-into one (default <b>true</b>) to prevent errors in subsequent
-calculations such as <a href="addh.html">adding hydrogens</a>.
-</blockquote>
-<blockquote>
-<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>
-Whether to fetch ensembles associated with an IHM dataset 
-(default <b>false</b>, as these can be quite large).
-</blockquote>
-<blockquote>
-<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>
-Whether to open an HTML file in a new tab of the
-<a href="../tools/browser.html">ChimeraX browser</a>
-(default <b>false</b>, replace any current page).
+Whether to show detailed debugging information for DICOM input.
 </blockquote>
 
 <a name="url"></a>
@@ -770,23 +844,19 @@ Whether to open an HTML file in a new tab of the
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>URL</i>&nbsp;
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
-[&nbsp;<b>maxModels</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>resizeWindow</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>&nbsp;
+[&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#vseries"><b>vseries</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#resizeWindow"><b>resizeWindow</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#options"><i>options</i></a>&nbsp;
+<!--
+&nbsp;<a href="#options2"><i>general-options</i></a>&nbsp;
+-->
 </blockquote>
 <p>
 Uniform Resource Locators (URLs) starting with
 <b>http:</b>, <b>https:</b>, and <b>ftp:</b> are handled.
-File types and command options are as described
+File types and command options are the same as described 
 <a href="#local">above</a> for local files.
 The file type can be indicated by suffix, MIME type, or the <b>format</b> option.
 </p><p>
@@ -810,7 +880,10 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-&nbsp;<a href="#options"><i>general-options</i></a>
+&nbsp;<a href="#options"><i>options</i></a>&nbsp;
+<!--
+&nbsp;<a href="#options2"><i>general-options</i></a>
+-->
 </blockquote>
 <p>
 An entry can be fetched from a database if its <i>identifier</i> is supplied.
@@ -929,7 +1002,8 @@ Chimera instructions</a> for available identifiers</td>
 <td align="center"><b>cellpack</b></td>
 </tr></table>
 
-<a name="options"></a>
+<!--
+<a name="options2"></a>
 <p class="nav">
 [<a href="#top">back to top: open</a>]
 </p>
@@ -990,6 +1064,7 @@ If more than one sequence matches a given structure chain,
 the single best-matching sequence is associated. 
 </p>
 </blockquote>
+-->
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
