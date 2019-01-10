@@ -1086,6 +1086,7 @@ class HandControllerModel(Model):
             elif m in adm:
                 m.released(camera, self)
                 adm.remove(m)
+                camera.user_interface.redraw_ui()
 
     def _process_ui_event(self, ui, b, pressed, released):
         if b not in ui.buttons:

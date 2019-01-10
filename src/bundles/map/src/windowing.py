@@ -60,12 +60,17 @@ class WindowingMouseMode(MouseMode):
         self._maps = self._visible_maps()
 
     def drag_3d(self, position, move, delta_z):
-        if delta_z is not None:
-            xshift,yshift,zshift = move.translation()	# Hand controller axes
-            if abs(xshift) > abs(yshift):
-                translate_levels(self._maps, xshift)
+        if move is not None:
+            c = self.session.main_view.camera
+            # Get hand controller motion in room in meters
+            p = position.origin()
+            motion = move*p - p
+            hand_motion = position.inverse().transform_vector(motion)
+            horz_shift, vert_shift = hand_motion[0], hand_motion[1]
+            if abs(horz_shift) > abs(vert_shift):
+                translate_levels(self._maps, horz_shift)
             else:
-                scale_levels(self._maps, yshift)
+                scale_levels(self._maps, vert_shift)
         else:
             self.log_volume_command()
             self._maps = []

@@ -1014,7 +1014,12 @@ class Render:
         GL.glFinish()
 
     def draw_front_buffer(self, front):
-        GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
+        try:
+            GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
+        except:
+            print(len(self.framebuffer_stack), 'framebuffers',
+                  ', '.join([fb.name for fb in self.framebuffer_stack]))
+            raise
 
     def draw_transparent(self, draw_depth, draw):
         '''
