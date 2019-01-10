@@ -327,6 +327,10 @@ class RunModeller(State):
         for alignment in reset_alignments:
             alignment.auto_associate = True
 
+        if self.show_gui and self.session.ui.is_gui:
+            from .tool import ModellerResultsViewer
+            ModellerResultsViewer(self.session, models, attr_names)
+
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return {
