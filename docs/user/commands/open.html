@@ -275,7 +275,8 @@ target="_blank">DeltaVision</a> map</td>
 target="_blank">DICOM</a> map</td>
 <td align="center"><b>dicom</b></td>
 <td align="center">.dcm</td>
-<td align="center">medical image stack</td>
+<td align="center">medical image stack; 
+see the <a href="#verbose"><b>verbose</b></a> option</td>
 </tr><tr>
 <td align="center">Directional FSC (Fourier shell correlation)</td>
 <td align="center"><b>dres</b></td>
@@ -832,6 +833,20 @@ if its name contains either of the following:
 <b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to show detailed debugging information for DICOM input.
+If <b>format dicom</b> is specified explicitly,
+all of the DICOM files in a directory and its subdirectories 
+can be opened with a single <b>open</b> command, for example:
+</p>
+<blockquote>
+<b>open "~/Desktop/2-CT 5.0 H30s-55580" format dicom</b>
+</blockquote>
+<p>
+Each stack that is found will be opened as a separate model.
+Alternatively, the multiple files of a stack can be specified 
+with filename globbing as described <a href="#local">above</a>.
+The option to specify a directory rather than filenames
+is only available for this format.
+</p>
 </blockquote>
 
 <a name="url"></a>
