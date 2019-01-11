@@ -960,12 +960,13 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
 
     session.undo.register(undo_state)
 
-def color_bfactor(session, atoms=None, what=None, target=None, average=None,
+def color_by_attr(session, attr_name, atoms=None, what=None, target=None, average=None,
                   palette=None, range='full',
                   transparency=None, undo_name="color bfactor"):
     '''
-    Color atoms by bfactor using a color palette.
+    Color atoms by attribute value using a color palette.
 
+    attr_name : string (actual Python name or ChimeraX command-line "camel case" both acceptable
     atoms : Atoms
     what : list of 'atoms', 'cartoons', 'ribbons', 'surface'
       What to color.  Cartoon and ribbon use average bfactor for each residue.
@@ -982,6 +983,23 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
     '''
+
+    input_attr_name = attr_name
+    if '_' not in attr_name and attr_name[1:].lower() != attr_name[1:]:
+        # apparently camel case
+        attr_name = ""
+        for c in input_attr_name:
+            if c.isupper():
+                attr_name += '_' + c.lower()
+            else:
+                attr_name += c
+
+    from chimerax.core.errors import UserError
+    from chimerax.atomic import Atom
+    numeric_attrs = session.attr_registration.attributes_returning(Atom, [int, float])
+    if attr_name not in numeric_attrs:
+        raise UserError("Unknown/unregistered Atom attribute %s%s" % (attr_name,
+            "" if attr_name == input_attr_name else " (typed as %s)" % input_attr_name))
 
     if atoms is None:
         from chimerax.atomic import all_atoms
@@ -1000,11 +1018,21 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
     if transparency is not None:
         opacity = min(255, max(0, int(2.56 * (100 - transparency))))
 
+    from chimerax.core.commands import plural_of
+    attr_names = plural_of(attr_name)
+    if hasattr(atoms, attr_names):
+        atom_attrs = getattr(atoms, attr_names)
+        res_attrs = lambda r: getattr(r.atoms, attr_names)
+    else:
+        import numpy
+        atom_attrs = numpy.array([getattr(a, attr_name) for a in atoms])
+        res_attrs = lambda r: numpy.array([getattr(a, attr_name) for a in r.atoms])
+
     if average == 'residues':
-        rbf = {r:r.atoms.bfactors.mean() for r in atoms.unique_residues}
+        rbf = {r:res_attrs(r).mean() for r in atoms.unique_residues}
         abf = [rbf[r] for r in atoms.residues]
     else:
-        abf = atoms.bfactors
+        abf = atom_attrs
     acolors = _value_colors(palette, range, abf)
     acolors[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
     
@@ -1016,7 +1044,7 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
 
     if 'c' in target:
         residues = atoms.unique_residues
-        rbf = [r.atoms.bfactors.mean() for r in residues]
+        rbf = [res_attrs(r).mean() for r in residues]
         rcolors = _value_colors(palette, range, rbf)
         rcolors[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
         undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, rcolors)
@@ -1025,7 +1053,7 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
 
     if 'f' in target:
         residues = atoms.unique_residues
-        rbf = [r.atoms.bfactors.mean() for r in residues]
+        rbf = [res_attrs(r).mean() for r in residues]
         rcolors = _value_colors(palette, range, rbf)
         rcolors[:, 3] = residues.ring_colors[:, 3] if opacity is None else opacity
         undo_state.add(residues, "ring_colors", residues.ring_colors, rcolors)
@@ -1039,8 +1067,8 @@ def color_bfactor(session, atoms=None, what=None, target=None, average=None,
 
     session.undo.register(undo_state)
     if msg:
-        r = 'atom bfactor range' if average is None else 'residue average bfactor range'
-        m = ', '.join(msg) + ', %s %.3g to %.3g' % (r, min(abf), max(abf))
+        r = 'atom %s range' if average is None else 'residue average %s range'
+        m = ', '.join(msg) + ', %s %.3g to %.3g' % (r % attr_name, min(abf), max(abf))
         session.logger.status(m, log=True)
 
 # -----------------------------------------------------------------------------
@@ -1129,7 +1157,7 @@ class TargetArg(StringArg):
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg
     from chimerax.core.commands import ObjectsArg, create_alias, EmptyArg, Or, EnumOf
-    from chimerax.core.commands import ListOf, FloatArg, BoolArg, SurfacesArg
+    from chimerax.core.commands import ListOf, FloatArg, BoolArg, SurfacesArg, StringArg
     from chimerax.core.commands import create_alias
     from chimerax.atomic import AtomsArg
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
@@ -1167,8 +1195,9 @@ def register_command(logger):
                    synopsis="color a sequence of atomic objects using a palette")
     register('color sequential', desc, color_sequential, logger=logger)
 
-    # color atoms by bfactor
-    desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
+    # color atoms by attribute
+    desc = CmdDesc(required=[('attr_name', StringArg),
+                            ('atoms', Or(AtomsArg, EmptyArg))],
                    optional=[('what', ListOf(EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces'))))],
                    keyword=[('target', TargetArg),
                             ('average', EnumOf(('residues',))),
@@ -1176,7 +1205,8 @@ def register_command(logger):
                             ('range', ColormapRangeArg),
                             ('transparency', FloatArg)],
                    synopsis="color atoms by bfactor")
-    register('color bfactor', desc, color_bfactor, logger=logger)
+    register('color byattr', desc, color_by_attr, logger=logger)
+    create_alias('color bfactor', 'color byattr bfactor $*', logger=logger)
 
     # color by nearby atoms
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
