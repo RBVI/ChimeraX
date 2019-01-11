@@ -43,8 +43,16 @@ namely <a href="#pickable"><b>pickable</b></a> and several of the
 </p><p>
 The corresponding graphical interface,
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>,
-allows adjusting contour levels and some of the other settings
-interactively.  Volume data can be opened with the command
+allows adjusting contour levels and some of the other settings interactively. 
+Contour levels can also be changed interactively with the
+<a href="ui.html#mousemode">mouse mode</a> for <b>contour level</b>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
+or <b>windowing</b> 
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>.
+</p><p>
+Volume data can be opened with the command
 <a href="open.html"><b>open</b></a> (which automatically starts 
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)
 and saved to a file with <a href="save.html"><b>save</b></a>.
@@ -179,9 +187,13 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   </ul>
   Threshold levels can be adjusted interactively by dragging in the
   <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram
-  or using the <b>contour level</b> <a href="ui.html#mousemode">mouse mode</a>
+  or by using the <a href="ui.html#mousemode">mouse mode</a> for
+  <b>contour level</b>
   <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
+  or <b>windowing</b> 
+  <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>
   in the graphics window.
 </blockquote>
 <blockquote>
@@ -679,6 +691,10 @@ regardless of which are specified:
   although these can be overriden with the corresponding command options. 
   Turning orthogonal planes <b>off</b> restores the <b>auto8</b>
   <a href="#dispsolid">color mode</a>.
+  See also:
+  the <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -931,6 +947,23 @@ both depict isosurfaces.
   between voxels in solid displays.
   Turning interpolation off may yield a pixelated appearance
   but speed up rendering, depending on the graphics hardware.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="appearance"></a>
+  <b>appearance</b> &nbsp;<i>preset-name</i>
+<br>
+Apply an initial approximation of the settings in a
+<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
+target="_blank">Horos 3D preset</a> to the solid display. 
+(<a href="https://horosproject.org/about/"
+target="_blank">Horos</a> is a program for medical image 
+visualization and analysis.)
+The <i>preset-name</i> should be enclosed in quotation marks if it
+contains any spaces. This initial approximation may not reproduce the appearance 
+in Horos very faithfully, as there is not a one-to-one correspondence
+between the settings in the two programs, and some parts of the preset
+definition files may have been ignored or misinterpreted.
 </blockquote>
 
 <a name="vop"></a>
@@ -2130,5 +2163,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+January 2019</address>
 </body></html>

@@ -39,11 +39,6 @@ class _SeqViewerBundleAPI(BundleAPI):
         session.alignments.register_viewer("Sequence Viewer", _show_alignment,
             synonyms=["sv", "view"], subcommand_name=subcommand_name)
 
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import _start_seq_viewer
-        return _start_seq_viewer(session, tool_name)
-
 
 bundle_api = _SeqViewerBundleAPI()
 
