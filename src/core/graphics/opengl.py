@@ -1014,7 +1014,12 @@ class Render:
         GL.glFinish()
 
     def draw_front_buffer(self, front):
-        GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
+        try:
+            GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
+        except:
+            print(len(self.framebuffer_stack), 'framebuffers',
+                  ', '.join([fb.name for fb in self.framebuffer_stack]))
+            raise
 
     def draw_transparent(self, draw_depth, draw):
         '''
@@ -2607,14 +2612,18 @@ class Texture:
         # luminance texture formats are not in opengl 3.
         format = {1: GL.GL_RED, 2: GL.GL_RG,
                   3: GL.GL_RGB, 4: GL.GL_RGBA}[ncomp]
-        iformat = {1: GL.GL_RED, 2: GL.GL_RG,
-                   3: GL.GL_RGB8, 4: GL.GL_RGBA8}[ncomp]
         if dtype == uint8:
             tdtype = GL.GL_UNSIGNED_BYTE
+            iformat = {1: GL.GL_R8, 2: GL.GL_RG8,
+                       3: GL.GL_RGB8, 4: GL.GL_RGBA8}[ncomp]
         elif dtype == uint16:
             tdtype = GL.GL_UNSIGNED_SHORT
+            iformat = {1: GL.GL_R16, 2: GL.GL_RG16,
+                       3: GL.GL_RGB16, 4: GL.GL_RGBA16}[ncomp]
         elif dtype == float32:
             tdtype = GL.GL_FLOAT
+            iformat = {1: GL.GL_R32F, 2: GL.GL_RG32F,
+                       3: GL.GL_RGB32F, 4: GL.GL_RGBA32F}[ncomp]
         else:
             raise TypeError('Texture value type %s not supported' % str(dtype))
         return format, iformat, tdtype, ncomp

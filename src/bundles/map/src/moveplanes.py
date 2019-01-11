@@ -68,7 +68,7 @@ class PlanesMouseMode(MouseMode):
     def _move_plane(self, istep):
         # Remember fractional grid step for next move.
         istep += self.frac_istep
-        rstep = round(istep)
+        rstep = int(round(istep))
         if rstep == 0:
             self.frac_istep = istep
             return

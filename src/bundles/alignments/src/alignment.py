@@ -519,8 +519,6 @@ class Alignment(State):
     def __str__(self):
         return self.ident
 
-    SESSION_SAVE = True
-    
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return { 'version': 1, 'seqs': self.seqs, 'ident': self.ident,

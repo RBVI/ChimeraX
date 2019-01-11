@@ -289,10 +289,10 @@ def register_command(command_name, logger):
                 ('show_dist', BoolArg), ('dashes', NonNegativeIntArg),
                 ('summary', BoolArg), ('test', Or(EnumOf(('others', 'self')), AtomsArg))], }
         register('clashes', CmdDesc(**kw, synopsis="Find clashes"), cmd_clashes, logger=logger)
-        register('contacts', CmdDesc(**kw, synopsis="Find contacts"), cmd_contacts, logger=logger)
+        register('contacts', CmdDesc(**kw, synopsis="Find contacts", url="help:user/commands/clashes.html"),
+            cmd_contacts, logger=logger)
     else:
         kw = { 'keyword': [('name', StringArg)] }
-        register('~clashes', CmdDesc(synopsis="Remove clash pseudobonds", **kw), cmd_xclashes,
-            logger=logger)
-        register('~contacts', CmdDesc(synopsis="Remove contact pseudobonds", **kw), cmd_xcontacts,
-            logger=logger)
+        register('~clashes', CmdDesc(synopsis="Remove clash pseudobonds", **kw), cmd_xclashes, logger=logger)
+        register('~contacts', CmdDesc(synopsis="Remove contact pseudobonds",
+            url="help:user/commands/clashes.html", **kw), cmd_xcontacts, logger=logger)

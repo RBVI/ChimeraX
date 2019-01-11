@@ -33,9 +33,7 @@ class DistanceTool(ToolInstance):
         self.table.setColumnCount(3)
         self.table.keyPressEvent = session.ui.forward_keystroke
         self.table.setHorizontalHeaderLabels(["Atom 1", "Atom 2", "Distance"])
-        self.table.setHorizontalHeaderLabels(["Atom 1", "Atom 2", "Distance"])
         #self.table.itemClicked.connect(self._table_change_cb)
-        from chimerax.ui.icons import get_qt_icon
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -84,13 +82,16 @@ class DistanceTool(ToolInstance):
         layout.addWidget(panel)
 
         from chimerax.dist_monitor.cmd import group_triggers
-        self.update_handler = group_triggers.add_handler("update", self._fill_table)
-        self.update_handler = group_triggers.add_handler("delete", self._fill_table)
+        self.handlers = [
+            group_triggers.add_handler("update", self._fill_table),
+            group_triggers.add_handler("delete", self._fill_table)
+        ]
         self._fill_table()
         tw.manage(placement="side")
 
     def delete(self):
-        self.update_handler.remove()
+        for handler in self.handlers:
+            handler.remove()
         super().delete()
 
     def _create_distance(self):

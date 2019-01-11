@@ -87,13 +87,13 @@ class Series:
       if num is None:
         raise ValueError("Missing dicom InstanceNumber, can't order slice %s" % path)
 
+    # Order slices by number, but flip if z values are decreasing.
     from numpy import argsort
     si = argsort(self.nums)
-    # TODO: Slices are not necessarily stacked in z.
-    z0, z1 = self.nums[si[0]], self.nums[si[1]]
+    z0, z1 = self.positions[si[0]][2], self.positions[si[1]][2]
     if z0 > z1:
       from numpy import flip
-      flip(si, axis=0)
+      si = flip(si, axis=0)
     self.paths = tuple(paths[i] for i in si)
     self.positions = tuple(self.positions[i] for i in si)
     self.nums = tuple(self.nums[i] for i in si)

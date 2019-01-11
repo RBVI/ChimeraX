@@ -12,6 +12,9 @@
   <DataFiles>
     <DataFile>contour.png</DataFile>
     <DataFile>moveplanes.png</DataFile>
+    <DataFile>windowing.png</DataFile>
+    <DataFile>colortables/presets/*.plist</DataFile>
+    <DataFile>colortables/cluts/*.plist</DataFile>
   </DataFiles>
 
   <Categories>
