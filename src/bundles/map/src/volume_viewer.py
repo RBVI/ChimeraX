@@ -1965,13 +1965,13 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def show_one_plane(self, v, show_volume = True):
+  def show_one_plane(self, v, show_volume = True, axis = 2):
 
       # Switch to showing a single plane
       ijk_min, ijk_max, ijk_step = v.region
-      s = ijk_step[2]
-      k = ((ijk_min[2] + ijk_max[2])//(2*s))*s
-      self._update_plane(k)
+      s = ijk_step[axis]
+      k = ((ijk_min[axis] + ijk_max[axis])//(2*s))*s
+      self._update_plane(k, axis = axis)
       v.set_representation('solid')
       if show_volume or v.shown():
           v.show()
@@ -2046,17 +2046,17 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def _update_plane(self, k):
+  def _update_plane(self, k, axis = 2):
       self._planes_spinbox.setValue(k)
       self._planes_slider.setValue(k)
       v = self.volume
       ijk_min, ijk_max, ijk_step = v.region
-      if ijk_min[2] == k and ijk_max[2] == k:
+      if ijk_min[axis] == k and ijk_max[axis] == k:
           return	# Already showing this plane.
       nijk_min = list(ijk_min)
-      nijk_min[2] = k
+      nijk_min[axis] = k
       nijk_max = list(ijk_max)
-      nijk_max[2] = k
+      nijk_max[axis] = k
       v.new_region(nijk_min, nijk_max, ijk_step)
       for vc in v.other_channels():
           vc.new_region(nijk_min, nijk_max, ijk_step)
@@ -2374,7 +2374,7 @@ class Histogram_Pane:
       if style != 'plane':
           if v is self.volume:
               self.show_plane_slider(False, show_volume = False)
-          elif v.showing_one_plane:
+          if v.showing_one_plane:
               self.show_full_region(v, show_volume = False)
               
       if style != 'box' and v.showing_box_faces():
