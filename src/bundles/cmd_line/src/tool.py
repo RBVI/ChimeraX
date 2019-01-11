@@ -45,6 +45,7 @@ class CommandLine(ToolInstance):
                 # defer context menu to parent
                 self.setContextMenuPolicy(Qt.NoContextMenu)
                 self.setAcceptDrops(True)
+                self._out_selection = None
 
             def dragEnterEvent(self, event):
                 if event.mimeData().text():
@@ -57,9 +58,14 @@ class CommandLine(ToolInstance):
                 self.lineEdit().insert(text)
                 event.acceptProposedAction()
 
+            def focusInEvent(self, event):
+                self._out_selection = None
+                QComboBox.focusInEvent(self, event)
+
             def focusOutEvent(self, event):
                 le = self.lineEdit()
-                sel_start, sel_length = le.selectionStart(), len(le.selectedText())
+                self._out_selection = (sel_start, sel_length, txt) = (le.selectionStart(),
+                    len(le.selectedText()), le.text())
                 QComboBox.focusOutEvent(self, event)
                 if sel_start >= 0:
                     le.setSelection(sel_start, sel_length)
@@ -111,6 +117,17 @@ class CommandLine(ToolInstance):
         self.text = CmdText(parent, self)
         self.text.setEditable(True)
         self.text.setCompleter(None)
+        def sel_change_correction():
+            # don't allow selection to change while focus is out
+            if self.text._out_selection is not None:
+                start, length, text = self.text._out_selection
+                le = self.text.lineEdit()
+                if text != le.text():
+                    self.text._out_selection = (le.selectionStart(), len(le.selectedText()), le.text())
+                    return
+                if (start, length) != (le.selectionStart(), len(le.selectedText())):
+                    le.setSelection(start, length)
+        self.text.lineEdit().selectionChanged.connect(sel_change_correction)
         layout = QHBoxLayout(parent)
         layout.setSpacing(1)
         layout.setContentsMargins(2, 0, 0, 0)
