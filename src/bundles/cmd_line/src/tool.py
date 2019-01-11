@@ -125,9 +125,15 @@ class CommandLine(ToolInstance):
                 if text != le.text():
                     self.text._out_selection = (le.selectionStart(), len(le.selectedText()), le.text())
                     return
-                if (start, length) != (le.selectionStart(), len(le.selectedText())):
+                if start >= 0 and (start, length) != (le.selectionStart(), len(le.selectedText())):
                     le.setSelection(start, length)
         self.text.lineEdit().selectionChanged.connect(sel_change_correction)
+        def text_change(*args):
+            # if text changes while focus is out, remember new selection
+            if self.text._out_selection is not None:
+                le = self.text.lineEdit()
+                self.text._out_selection = (le.selectionStart(), len(le.selectedText()), le.text())
+        self.text.lineEdit().selectionChanged.connect(text_change)
         layout = QHBoxLayout(parent)
         layout.setSpacing(1)
         layout.setContentsMargins(2, 0, 0, 0)
