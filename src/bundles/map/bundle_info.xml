@@ -22,6 +22,7 @@
   </Categories>
 
   <CModule name="_map">
+    <SourceFile>_map/boxcut.cpp</SourceFile>
     <SourceFile>_map/colors.cpp</SourceFile>
     <SourceFile>_map/contourpy.cpp</SourceFile>
     <SourceFile>_map/fittingpy.cpp</SourceFile>
