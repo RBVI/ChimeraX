@@ -523,6 +523,8 @@ def _make_bundle_info(d, installed, logger):
             bi.installed_include_dir = parts[2]
         elif parts[1] == 'LibraryDir':
             bi.installed_library_dir = parts[2]
+        elif parts[1] == 'ExecutableDir':
+            bi.installed_executable_dir = parts[2]
     if bi is None:
         _debug("InstalledBundleCache._make_bundle_info: no ChimeraX bundle in %s" % d)
         return None

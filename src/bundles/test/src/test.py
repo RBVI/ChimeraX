@@ -123,6 +123,7 @@ commands = [
     'vop gaussian #3 sdev 2',
     'vop subtract #3,4',
     'view',
+    'debug exectest',
     'echo finished test',
 ]
 def run_commands(session, commands = commands, stderr = False):
@@ -134,3 +135,25 @@ def run_commands(session, commands = commands, stderr = False):
             print(c, file=sys.__stderr__)
         log.info('> ' + c)
         run(session, c)
+
+
+def run_exectest(session, bi):
+    exec_dir = bi.executable_dir()
+    if not exec_dir:
+        raise RuntimeError("no executable directory in module %r" % bi.name)
+    import os.path, subprocess
+    log = session.logger
+    executable = os.path.join(exec_dir, "exectest.exe")
+    command = [executable]
+    log.info("executing %s" % command)
+    result = subprocess.run(command, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    result.check_returncode()
+    if result.stdout:
+        log.info("Output on stdout:\n%s\n-----" % result.stdout)
+    else:
+        log.info("No output on stdout")
+    if result.stderr:
+        log.warning("Output on stderr:\n%s\n-----" % result.stderr)
+    else:
+        log.info("No output on stderr")

@@ -13,13 +13,21 @@ from chimerax.core.toolshed import BundleAPI
 
 class _MyAPI(BundleAPI):
 
+    api_version = 1
+
     @staticmethod
-    def register_command(command_name, logger):
+    def register_command(bi, ci, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import test
         from chimerax.core.commands import register, CmdDesc, BoolArg
-        desc = CmdDesc(synopsis = 'Run through test sequence of commands to check for errors',
-			keyword = [('stderr', BoolArg)])
-        register(command_name, desc, test.run_commands, logger=logger)
+        if ci.name == "debug test":
+            desc = CmdDesc(synopsis = ci.synopsis,
+			   keyword = [('stderr', BoolArg)])
+            register(ci.name, desc, test.run_commands, logger=logger)
+        elif ci.name == "debug exectest":
+            desc = CmdDesc(synopsis = ci.synopsis)
+            def func(session, bi=bi):
+                test.run_exectest(session, bi)
+            register(ci.name, desc, func, logger=logger)
 
 bundle_api = _MyAPI()
