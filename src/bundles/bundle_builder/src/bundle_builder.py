@@ -397,7 +397,7 @@ class BundleBuilder:
             if value:
                 self.setup_arguments[name] = value
         # Make sure C/C++ libraries (DLLs, shared objects or dynamic
-        # libraries) are on the install list
+        # libraries) and executables are on the install list
         binary_files = []
         for lib in self.c_libraries:
             for lib_path in lib.paths():
@@ -683,12 +683,6 @@ class _CompiledCode:
         except ValueError:
             print("Error when compiling %s" % self.name)
             return None
-        if self.install_dir:
-            output_dir = os.path.join("src", self.install_dir)
-            install_dir = '/' + self.install_dir
-        else:
-            output_dir = "src"
-            install_dir = ''
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:

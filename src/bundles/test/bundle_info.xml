@@ -16,6 +16,7 @@
 
   <CExecutable name="exectest.exe">
     <SourceFile>exectest/exectest.cpp</SourceFile>
+    <LinkArgument platform="mac">-lstdc++</LinkArgument>
   </CExecutable>
 
   <Dependencies>
