@@ -16,11 +16,16 @@ from .. import GridData
 
 # -----------------------------------------------------------------------------
 #
-def dicom_grids(paths, verbose = False):
+def dicom_grids(paths, log = None, verbose = False):
   from .dicom_format import find_dicom_series, DicomData
   series = find_dicom_series(paths, verbose = verbose)
   grids = []
   for s in series:
+    if s.num_times != 1:
+      if log:
+        log.warning('DICOM time series are not yet supported, %s... (%d files, %d times)'
+                    % (s.paths[0], len(s.paths), s.num_times))
+      continue
     d = DicomData(s)
     if d.mode == 'RGB':
       cgrids = [DicomGrid(d, channel) for channel in (0,1,2)]
@@ -31,7 +36,8 @@ def dicom_grids(paths, verbose = False):
         g.rgba = rgba
       grids.extend(cgrids)
     else:
-      grids.append(DicomGrid(d))
+      g = DicomGrid(d)
+      grids.append(g)
   return grids
 
 # -----------------------------------------------------------------------------
