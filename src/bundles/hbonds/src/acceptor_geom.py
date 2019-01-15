@@ -92,7 +92,7 @@ def acc_theta_tau(donor, donor_hyds, acceptor, upsilon_partner, r2,
     if donor.element.name == "S":
         r2 = sulphur_compensate(r2)
     if hbond.verbose:
-        print("distance: %g, cut off: %g" % (distance(dp, p), sqrt(r2)))
+        print("distance: %g, cut off: %g" % (distance(dp, ap), sqrt(r2)))
     if distance_squared(dp, ap) > r2:
         if hbond.verbose:
             print("dist criteria failed")
