@@ -12,9 +12,9 @@
 # -----------------------------------------------------------------------------
 # DICOM map file reader.
 #
-def open(paths, verbose = False):
+def open(paths, log = None, verbose = False):
 
   if isinstance(paths, str):
     paths = [paths]
   from .dicom_grid import dicom_grids
-  return dicom_grids(paths, verbose = verbose)
+  return dicom_grids(paths, log = log, verbose = verbose)

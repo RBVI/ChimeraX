@@ -61,6 +61,7 @@ class Series:
     self.positions = []
     self.nums = []
     self.attributes = {}
+    self.num_times = 1
   def add(self, path, data):
     if len(self.paths) == 0:
       attrs = self.attributes
@@ -77,7 +78,11 @@ class Series:
     num = getattr(data, 'InstanceNumber', None)
     n = int(num) if num else None
     self.nums.append(n)
-    
+
+    nt = getattr(data, 'NumberOfTemporalPositions', None)
+    if nt is not None:
+      self.num_times = int(nt)
+      
   def order_slices(self):
     paths = self.paths
     if len(paths) <= 1:

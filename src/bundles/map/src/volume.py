@@ -2844,7 +2844,7 @@ def open_volume_file(path, session, format = None, name = None, representation =
 
   from . import data
   try:
-    glist = data.open_file(path, format, verbose = verbose)
+    glist = data.open_file(path, format, log = session.logger, verbose = verbose)
   except data.FileFormatError as value:
     raise
     from os.path import basename
@@ -3038,7 +3038,8 @@ def open_map(session, stream, name = None, format = None, **kw):
     name = basename(map_path if isinstance(map_path, str) else map_path[0])
 
     from . import data
-    grids = data.open_file(map_path, file_type = format, verbose = kw.get('verbose'))
+    grids = data.open_file(map_path, file_type = format, log = session.logger,
+                           verbose = kw.get('verbose'))
 
     if grids and isinstance(grids[0], (tuple, list)):
       # handle multiple channels.
@@ -3124,6 +3125,11 @@ def open_grids(session, grids, name, **kw):
       mc.show_n_channels(3)
       msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
       models = [mc]
+    elif len(maps) == 0:
+      msg = 'No map data opened'
+      session.logger.warning(msg)
+      models = maps
+      return models, msg
     else:
       # TODO: Handle multi-times and multi-channels.
       msg = 'Opened %s' % maps[0].name
