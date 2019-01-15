@@ -1,5 +1,6 @@
 <BundleInfo name="ChimeraX-ChemGroup" version="1.0"
 	    package="chimerax.atomic.chem_group" customInit="true"
+		purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
