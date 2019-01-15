@@ -3,6 +3,7 @@
 
 from numpy import zeros, dot
 from chimerax.core.geometry import angle, cross_product, normalize_vector
+from .hydpos import hyd_positions
 from . import hbond
 
 SULFUR_COMP = 0.35
@@ -72,6 +73,67 @@ def get_phi_plane_params(acceptor, bonded1, bonded2):
 def project(point, normal, D):
     # project point into plane defined by normal and D.
     return point - normal * (dot(normal, point) - D)
+
+def test_tau(tau, tau_sym, don_acc, dap, op):
+    if tau is None:
+        if hbond.verbose:
+            print("tau test irrelevant")
+        return True
+
+    # sulfonamides and phosphonamides can have bonded NH2 groups that are planar enough
+    # to be declared Npl, so use the hydrogen positions to determine planarity if possible
+    if tau_sym == 4:
+        bonded_pos = hyd_positions(don_acc)
+    else:
+        # since we expect tetrahedral hydrogens to be oppositely aligned from the attached
+        # tetrahedral center, we can't use their positions for tau testing
+        bonded_pos = []
+    heavys = [a for a in don_acc.neighbors if a.element.number > 1]
+    if 2 * len(bonded_pos) != tau_sym:
+        bonded_pos = hyd_positions(heavys[0], include_lone_pairs=True)
+        for b in heavys[0].neighbors:
+            if b == don_acc or b.element.number < 2:
+                continue
+            bonded_pos.append(b._hb_coord)
+        if not bonded_pos:
+            if hbond.verbose:
+                print("tau indeterminate; default okay")
+            return True
+
+    if 2 * len(bonded_pos) != tau_sym:
+        raise AtomTypeError("Unexpected tau symmetry (%d, should be %d) for donor/acceptor %s" % (
+                2 * len(bonded_pos), tau_sym, don_acc))
+
+    normal = normalize_vector(heavys[0]._hb_coord - dap)
+
+    if tau < 0.0:
+        test = lambda ang, t=tau: ang <= 0.0 - t
+    else:
+        test = lambda ang, t=tau: ang >= t
+
+    proj_other_pos = project(op, normal, 0.0)
+    proj_da_pos = project(dap, normal, 0.0)
+    for bpos in bonded_pos:
+        proj_bpos = project(bpos, normal, 0.0)
+        ang = angle(proj_other_pos, proj_da_pos, proj_bpos)
+        if test(ang):
+            if tau < 0.0:
+                if hbond.verbose:
+                    print("tau okay (%g < %g)" % (ang, -tau))
+                return True
+        else:
+            if tau > 0.0:
+                if hbond.verbose:
+                    print("tau too small (%g < %g)" % (ang, tau))
+                return False
+    if tau < 0.0:
+        if hbond.verbose:
+            print("all taus too big (> %g)" % -tau)
+        return False
+
+    if hbond.verbose:
+        print("all taus acceptable (> %g)" % tau)
+    return True
 
 def test_theta(dp, donor_hyds, ap, theta):
     if len(donor_hyds) == 0:

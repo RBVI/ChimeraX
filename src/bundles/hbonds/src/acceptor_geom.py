@@ -6,7 +6,7 @@ from chimerax.core.geometry import look_at, angle, distance_squared, distance
 from chimerax.atomic.bond_geom import bond_positions
 from chimerax.atomic.idatm import tetrahedral
 from . import hbond
-from .common_geom import test_phi, test_theta, sulphur_compensate, get_phi_plane_params
+from .common_geom import test_phi, test_theta, sulphur_compensate, get_phi_plane_params, test_tau
 from math import sqrt
 
 def acc_syn_anti(donor, donor_hyds, acceptor, syn_atom, plane_atom, syn_r2, syn_phi,
@@ -83,7 +83,7 @@ def test_phi_psi(dp, donor_hyds, ap, bp, phi_plane, r2, phi, theta):
     return test_theta(dp, donor_hyds, ap, theta)
 
 def acc_theta_tau(donor, donor_hyds, acceptor, upsilon_partner, r2,
-                        upsilon_low, upsilon_high, theta):
+                        upsilon_low, upsilon_high, theta, *, tau=None, tau_sym=None):
     if hbond.verbose:
         print("acc_theta_tau")
     dp = donor._hb_coord
@@ -116,11 +116,11 @@ def acc_theta_tau(donor, donor_hyds, acceptor, upsilon_partner, r2,
         for bs in bisectors[1:]:
             if hbond.verbose:
                 print("Testing 'extra' lone pair")
-            if test_theta_tau(dp, donor_hyds, ap, bs, upsilon_low, upsilon_high, theta):
+            if test_theta_tau(acceptor, dp, donor_hyds, ap, bs, upsilon_low, upsilon_high, theta, tau, tau_sym):
                 return True
-    return test_theta_tau(dp, donor_hyds, ap, up_pos, upsilon_low, upsilon_high, theta)
+    return test_theta_tau(acceptor, dp, donor_hyds, ap, up_pos, upsilon_low, upsilon_high, theta, tau, tau_sym)
 
-def test_theta_tau(dp, donor_hyds, ap, pp, upsilon_low, upsilon_high, theta):
+def test_theta_tau(acc, dp, donor_hyds, ap, pp, upsilon_low, upsilon_high, theta, tau, tau_sym):
     upsilon_high = 0 - upsilon_high
     upsilon = angle(pp, ap, dp)
     if upsilon < upsilon_low or upsilon > upsilon_high:
@@ -129,7 +129,7 @@ def test_theta_tau(dp, donor_hyds, ap, pp, upsilon_low, upsilon_high, theta):
         return False
     if hbond.verbose:
         print("upsilon okay")
-    return test_theta(dp, donor_hyds, ap, theta)
+    return test_theta(dp, donor_hyds, ap, theta) and test_tau(tau, tau_sym, acc, ap, dp)
 
 def acc_generic(donor, donor_hyds, acceptor, r2, min_angle):
     if hbond.verbose:
