@@ -60,7 +60,17 @@ class Conservation(DynamicHeaderSequence):
         file_name = temp_stream.name
         temp_stream.close()
         try:
+            import subprocess
+            import os.path
             #TODO
+            """
+            result = subprocess.run([os.path.join(os.path.dirname(__file__), "bin", "al2co.exe"),
+                "-i", file_name,
+                "-f", str(self.mav.prefs[AL2CO_FREQ]),
+                "-c", str(self.mav.prefs[AL2CO_CONS]),
+                "-w", str(self.mav.prefs[AL2CO_WINDOW]),
+                "-g", str(self.mav.prefs[AL2CO_GAP]) ]
+            """
         finally:
             import os
             os.unlink(file_name)
