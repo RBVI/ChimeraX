@@ -53,17 +53,18 @@ class Conservation(DynamicHeaderSequence):
             else:
                 self[:] = [1.0] * len(self.alignment.seqs[0])
             return
-        """TODO
         self[:] = []
-        from formatters.saveALN import save, extension
-        from tempfile import mkstemp
-        tfHandle, tfName = mkstemp(extension)
-        import os
-        os.close(tfHandle)
-        import codecs
-        tf = codecs.open(tfName, "w", "utf8")
-        save(tf, None, self.mav.seqs, None)
-        tf.close()
+        from tempfile import NamedTemporaryFile
+        temp_stream = NamedTemporaryFile(mode='w', encoding='utf8', suffix=".aln", delete=False)
+        self.alignment.save(temp_stream, format_name="aln")
+        file_name = temp_stream.name
+        temp_stream.close()
+        try:
+            #TODO
+        finally:
+            import os
+            os.unlink(file_name)
+        """TODO
         import os, os.path
         chimeraRoot = os.environ.get("CHIMERA")
         command =  [ os.path.join(chimeraRoot, 'bin', 'al2co'),
