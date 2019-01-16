@@ -51,6 +51,7 @@ def dicom_file_series(paths, verbose = False):
 #
 class Series:
   dicom_attributes = ['BitsAllocated', 'Columns', 'Modality',
+                      'NumberOfTemporalPositions',
                       'PatientID', 'PhotometricInterpretation',
                       'PixelPaddingValue', 'PixelRepresentation', 'PixelSpacing',
                       'RescaleIntercept', 'RescaleSlope', 'Rows',
@@ -58,11 +59,11 @@ class Series:
                       'StudyDate']
   def __init__(self):
     self.paths = []
-    self.positions = []
-    self.nums = []
     self.attributes = {}
-    self.num_times = 1
+    self._images = []
+
   def add(self, path, data):
+    # Read attributes that should be the same for all planes.
     if len(self.paths) == 0:
       attrs = self.attributes
       for attr in self.dicom_attributes:
@@ -71,46 +72,84 @@ class Series:
 
     self.paths.append(path)
 
-    pos = getattr(data, 'ImagePositionPatient', None)
-    xyz = tuple(float(p) for p in pos) if pos else None
-    self.positions.append(xyz)
-    
-    num = getattr(data, 'InstanceNumber', None)
-    n = int(num) if num else None
-    self.nums.append(n)
+    # Read attributes used for ordering the images.
+    self._images.append(SeriesImage(path, data))
 
-    nt = getattr(data, 'NumberOfTemporalPositions', None)
-    if nt is not None:
-      self.num_times = int(nt)
+  @property
+  def num_times(self):
+    return int(self.attributes.get('NumberOfTemporalPositions', 1))
       
   def order_slices(self):
     paths = self.paths
     if len(paths) <= 1:
       return paths
-    
-    for path,num in zip(paths, self.nums):
-      if num is None:
-        raise ValueError("Missing dicom InstanceNumber, can't order slice %s" % path)
 
-    # Order slices by number, but flip if z values are decreasing.
-    from numpy import argsort
-    si = argsort(self.nums)
-    z0, z1 = self.positions[si[0]][2], self.positions[si[1]][2]
-    if z0 > z1:
-      from numpy import flip
-      si = flip(si, axis=0)
-    self.paths = tuple(paths[i] for i in si)
-    self.positions = tuple(self.positions[i] for i in si)
-    self.nums = tuple(self.nums[i] for i in si)
+    # Check that all images have an instance number for ordering.
+    images = self._images
+    for im in images:
+      if im._num is None:
+        raise ValueError("Missing dicom InstanceNumber, can't order slice %s" % im.path)
 
+    # Check that time series images all have time value, and all times are found
+    self._validate_time_series()
+
+    images.sort()
+
+    self.paths = tuple(im.path for im in images)
+
+  def _validate_time_series(self):
+    if self.num_times == 1:
+      return
+
+    images = self._images
+    for im in images:
+      if im._time is None:
+        raise ValueError('Missing dicom TemporalPositionIdentifier for image %s' % im.path)
+
+    tset = set(im._time for im in images)
+    if len(tset) != self.num_times:
+      raise ValueError('DICOM series says it has %d times but %d found, %s... %d files.'
+                       % (self.num_times, len(tset), images[0].path, len(images)))
+
+    tcount = {t:0 for t in tset}
+    for im in images:
+      tcount[im._time] += 1
+    nz = len(images) / self.num_times
+    for t,c in tcount.items():
+      if c != nz:
+        raise ValueError('DICOM time series time %d has %d images, expected %d'
+                         % (t, c, nz))
+      
   def z_plane_spacing(self):
-    pos = self.positions
-    if len(pos) < 2:
+    images = self._images
+    if len(images) < 2:
       dz = None
     else:
-      dz = pos[1][2] - pos[0][2]
+      dz = images[1]._position[2] - images[0]._position[2]
     return dz
-  
+
+# -----------------------------------------------------------------------------
+#
+class SeriesImage:
+  def __init__(self, path, data):
+    self.path = path
+
+    pos = getattr(data, 'ImagePositionPatient', None)
+    self._position = tuple(float(p) for p in pos) if pos else None
+    
+    num = getattr(data, 'InstanceNumber', None)
+    self._num = int(num) if num else None
+
+    t = getattr(data, 'TemporalPositionIdentifier', None)
+    self._time = int(t) if t else None
+
+  def __lt__(self, im):
+    if  self._time == im._time:
+      # Use z position instead of image number to assure right-handed coordinates.
+      return self._position[2] < im._position[2]
+    else:
+      return self._time < im._time
+
 # -----------------------------------------------------------------------------
 # Find all dicom files (suffix .dcm) in directories and subdirectories and
 # group them by directory.
@@ -178,8 +217,9 @@ class DicomData:
       self.pad_value = None
 
     xsize, ysize = attrs['Columns'], attrs['Rows']
+    zsize = len(self.paths) // series.num_times
 
-    self.data_size = (xsize, ysize, len(self.paths))
+    self.data_size = (xsize, ysize, zsize)
     xs, ys = [float(s) for s in attrs['PixelSpacing']]
     zs = series.z_plane_spacing()
     if zs is None:
@@ -190,7 +230,7 @@ class DicomData:
   # ---------------------------------------------------------------------------
   # Reads a submatrix and returns 3D NumPy matrix with zyx index order.
   #
-  def read_matrix(self, ijk_origin, ijk_size, ijk_step, channel, array, progress):
+  def read_matrix(self, ijk_origin, ijk_size, ijk_step, time, channel, array, progress):
 
     i0, j0, k0 = ijk_origin
     isz, jsz, ksz = ijk_size
@@ -199,7 +239,7 @@ class DicomData:
     for k in range(k0, k0+ksz, kstep):
       if progress:
         progress.plane((k-k0)//kstep)
-      p = self.read_plane(k, channel)
+      p = self.read_plane(k, time, channel)
       array[(k-k0)//kstep,:,:] = p[j0:j0+jsz:jstep,i0:i0+isz:istep]
 
     if self.rescale_slope != 1:
@@ -210,9 +250,10 @@ class DicomData:
 
   # ---------------------------------------------------------------------------
   #
-  def read_plane(self, k, channel = None):
+  def read_plane(self, k, time = None, channel = None):
+    p = k if time is None else (k + self.data_size[2]*time)
     import pydicom
-    d = pydicom.dcmread(self.paths[k])
+    d = pydicom.dcmread(self.paths[p])
     data = d.pixel_array
     if channel is not None:
       data = data[:,:,channel]

@@ -3041,14 +3041,28 @@ def open_map(session, stream, name = None, format = None, **kw):
     grids = data.open_file(map_path, file_type = format, log = session.logger,
                            verbose = kw.get('verbose'))
 
-    if grids and isinstance(grids[0], (tuple, list)):
-      # handle multiple channels.
-      models = []
-      for cgrids in grids:
-        cmodels, msg = open_grids(session, cgrids, name, **kw)
-        models.extend(cmodels)
-    else:
-      models, msg = open_grids(session, grids, name, **kw)
+    models = []
+    msg_lines = []
+    sgrids = []
+    for grid_group in grids:
+      if isinstance(grid_group, (tuple, list)):
+        # Handle multiple channels or time series
+        from os.path import commonprefix
+        gname = commonprefix([g.name for g in grid_group])
+        if len(gname) == 0:
+          gname = name
+        gmodels, gmsg = open_grids(session, grid_group, gname, **kw)
+        models.extend(gmodels)
+        msg_lines.append(gmsg)
+      else:
+        sgrids.append(grid_group)
+
+    smodels, smsg = open_grids(session, sgrids, name, **kw)
+    models.extend(smodels)
+    msg_lines.append(smsg)
+
+    msg = '\n'.join(msg_lines)
+
     return models, msg
 
 # -----------------------------------------------------------------------------
