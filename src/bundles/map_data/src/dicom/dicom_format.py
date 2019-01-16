@@ -50,6 +50,11 @@ def dicom_file_series(paths, verbose = False):
 # Set of dicom files (.dcm suffix) that have the same series unique identifer (UID).
 #
 class Series:
+  #
+  # Code assumes each file for the same SeriesInstanceUID will have the same
+  # value for these parameters.  So they are only read for the first file.
+  # Not sure if this is a valid assumption.
+  #
   dicom_attributes = ['BitsAllocated', 'Columns', 'Modality',
                       'NumberOfTemporalPositions',
                       'PatientID', 'PhotometricInterpretation',
@@ -60,7 +65,8 @@ class Series:
   def __init__(self):
     self.paths = []
     self.attributes = {}
-    self._images = []
+    self._file_info = []
+    self._multiframe = None
 
   def add(self, path, data):
     # Read attributes that should be the same for all planes.
@@ -73,64 +79,130 @@ class Series:
     self.paths.append(path)
 
     # Read attributes used for ordering the images.
-    self._images.append(SeriesImage(path, data))
+    self._file_info.append(SeriesFile(path, data))
+
+  def _dump_data(self, data):
+    for elem in data:
+      print(elem)
+      if elem.VR == 'SQ':
+        print ('seq element')
+        for ds in elem:
+          for e2 in ds:
+            print('>>>   ', e2)
 
   @property
   def num_times(self):
     return int(self.attributes.get('NumberOfTemporalPositions', 1))
-      
+
+  @property
+  def multiframe(self):
+    mf = self._multiframe
+    if mf is None:
+      mf = False
+      for fi in self._file_info:
+        if fi.multiframe:
+          self._multiframe = mf = True
+          break
+      self._multiframe = mf
+    return mf
+
   def order_slices(self):
     paths = self.paths
     if len(paths) <= 1:
       return paths
 
     # Check that all images have an instance number for ordering.
-    images = self._images
-    for im in images:
-      if im._num is None:
-        raise ValueError("Missing dicom InstanceNumber, can't order slice %s" % im.path)
+    files = self._file_info
+    for fi in files:
+      if fi._num is None:
+        raise ValueError("Missing dicom InstanceNumber, can't order slice %s" % fi.path)
 
     # Check that time series images all have time value, and all times are found
     self._validate_time_series()
 
-    images.sort()
+    files.sort()
 
-    self.paths = tuple(im.path for im in images)
+    self.paths = tuple(fi.path for fi in files)
 
   def _validate_time_series(self):
     if self.num_times == 1:
       return
 
-    images = self._images
-    for im in images:
-      if im._time is None:
-        raise ValueError('Missing dicom TemporalPositionIdentifier for image %s' % im.path)
+    files = self._file_info
+    for fi in files:
+      if fi._time is None:
+        raise ValueError('Missing dicom TemporalPositionIdentifier for image %s' % fi.path)
 
-    tset = set(im._time for im in images)
+    tset = set(fi._time for fi in files)
     if len(tset) != self.num_times:
       raise ValueError('DICOM series says it has %d times but %d found, %s... %d files.'
-                       % (self.num_times, len(tset), images[0].path, len(images)))
+                       % (self.num_times, len(tset), files[0].path, len(files)))
 
     tcount = {t:0 for t in tset}
-    for im in images:
-      tcount[im._time] += 1
-    nz = len(images) / self.num_times
+    for fi in files:
+      tcount[fi._time] += 1
+    nz = len(files) / self.num_times
     for t,c in tcount.items():
       if c != nz:
         raise ValueError('DICOM time series time %d has %d images, expected %d'
                          % (t, c, nz))
-      
+
+  def grid_size(self):
+
+    attrs = self.attributes
+    xsize, ysize = attrs['Columns'], attrs['Rows']
+    files = self._file_info
+    if self.multiframe:
+      if len(files) == 1:
+        zsize = self._file_info[0]._num_frames
+      else:
+        maxf = max(fi._num_frames for fi in files)
+        raise ValueError('DICOM multiple paths (%d), with multiple frames (%d) not supported, %s'
+                         % (npaths, maxf, files[0].path))
+    else:
+      zsize = len(files) // self.num_times
+
+    return (xsize, ysize, zsize)
+
+  def pixel_spacing(self):
+
+    if self.multiframe:
+      pspacing = self._file_info[0]._pixel_spacing
+    else:
+      pspacing = self.attributes.get('PixelSpacing')
+
+    if pspacing is None:
+      xs = ys = 1
+      print('Missing PixelSpacing, using value 1, %s' % self.paths[0])
+    else:
+      xs, ys = [float(s) for s in pspacing]
+    zs = self.z_plane_spacing()
+    if zs is None:
+      if len(self._file_info) > 1:
+        print('Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
+              % self.paths[0])
+      zs = 1 # Single plane image
+
+    return (xs,ys,zs)
+
   def z_plane_spacing(self):
-    images = self._images
-    if len(images) < 2:
+    files = self._file_info
+    if self.multiframe:
+      fpos = files[0]._frame_positions
+      if fpos is None:
+        dz = None
+      else:
+        # TODO: Need to reverse order if z decrease as frame number increases
+        dz = fpos[1][2] - fpos[0][2]
+    elif len(files) < 2:
       dz = None
     else:
-      dz = images[1]._position[2] - images[0]._position[2]
+      dz = files[1]._position[2] - files[0]._position[2]
     return dz
 
 # -----------------------------------------------------------------------------
 #
-class SeriesImage:
+class SeriesFile:
   def __init__(self, path, data):
     self.path = path
 
@@ -143,12 +215,72 @@ class SeriesImage:
     t = getattr(data, 'TemporalPositionIdentifier', None)
     self._time = int(t) if t else None
 
+    nf = getattr(data, 'NumberOfFrames', None)
+    self._num_frames = int(nf) if nf is not None else None
+
+    self._pixel_spacing = None
+    self._frame_positions = None
+    if nf is not None:
+      def floats(s):
+        return [float(x) for x in s]
+      self._pixel_spacing = self._sequence_elements(data,
+                                                   (('SharedFunctionalGroupsSequence', 1),
+                                                    ('PixelMeasuresSequence', 1)),
+                                                   'PixelSpacing', floats)
+      self._frame_positions = self._sequence_elements(data,
+                                                     (('PerFrameFunctionalGroupsSequence', 'all'),
+                                                      ('PlanePositionSequence', 1)),
+                                                     'ImagePositionPatient', floats)
+
   def __lt__(self, im):
     if  self._time == im._time:
       # Use z position instead of image number to assure right-handed coordinates.
       return self._position[2] < im._position[2]
     else:
       return self._time < im._time
+
+  @property
+  def multiframe(self):
+    nf = self._num_frames
+    return nf is not None and nf > 1
+
+  def _sequence_elements(self, data, seq_names, element_name, convert):
+    if len(seq_names) == 0:
+      value = getattr(data, element_name, None)
+      if value is not None:
+        value = convert(value)
+      return value
+    else:
+      name, count = seq_names[0]
+      seq = getattr(data, name, None)
+      if seq is None:
+        return None
+      if count == 'all':
+        values = [self._sequence_elements(e, seq_names[1:], element_name, convert)
+                  for e in seq]
+      else:
+        values = self._sequence_elements(seq[0], seq_names[1:], element_name, convert)
+      return values
+
+# Old stuff
+    sfgs = getattr(data, 'SharedFunctionalGroupsSequence', None)
+    if sfgs is not None:
+      sfgds = sfgs[0]
+      pms = getattr(sfgds, 'PixelMeasuresSequence', None)
+      if pms is not None:
+        ps = getattr(pms[0], 'PixelSpacing', None)
+        if ps is not None:
+          print('pixel spacing', ps)
+
+    pffgs = getattr(data, 'PerFrameFunctionalGroupsSequence', None)
+    if pffgs is not None:
+      for f,ffg in enumerate(pffgs):  # one item for each frame
+        pps = getattr(ffg, 'PlanePositionSequence', None)
+        if pps is not None:
+          ipp = getattr(pps[0], 'ImagePositionPatient', None)
+          if ipp is not None:
+            print('Frame', f, 'position', ipp)
+
 
 # -----------------------------------------------------------------------------
 # Find all dicom files (suffix .dcm) in directories and subdirectories and
@@ -179,6 +311,7 @@ class DicomData:
   def __init__(self, series):
 
     self.paths = series.paths
+    npaths = len(series.paths)
 
     attrs = series.attributes
     name = '%s %s %s' % (attrs.get('PatientID', '')[:4],
@@ -201,7 +334,7 @@ class DicomData:
     elif ns == 3:
       mode = 'RGB'
     else:
-      raise ValueError('Only 1 or 3 samples per pixel supported, got', ns)
+      raise ValueError('Only 1 or 3 samples per pixel supported, got %d' % ns)
     self.mode = mode
     self.channel = 0
     pi = attrs['PhotometricInterpretation']
@@ -216,15 +349,9 @@ class DicomData:
     else:
       self.pad_value = None
 
-    xsize, ysize = attrs['Columns'], attrs['Rows']
-    zsize = len(self.paths) // series.num_times
-
-    self.data_size = (xsize, ysize, zsize)
-    xs, ys = [float(s) for s in attrs['PixelSpacing']]
-    zs = series.z_plane_spacing()
-    if zs is None:
-      zs = 1 # Single plane image
-    self.data_step = (xs, ys, zs)
+    self._files_are_3d = series.multiframe
+    self.data_size = series.grid_size()
+    self.data_step = series.pixel_spacing()
     self.data_origin = (0.0, 0.0, 0.0)
 
   # ---------------------------------------------------------------------------
@@ -236,11 +363,15 @@ class DicomData:
     isz, jsz, ksz = ijk_size
     istep, jstep, kstep = ijk_step
     dsize = self.data_size
-    for k in range(k0, k0+ksz, kstep):
-      if progress:
-        progress.plane((k-k0)//kstep)
-      p = self.read_plane(k, time, channel)
-      array[(k-k0)//kstep,:,:] = p[j0:j0+jsz:jstep,i0:i0+isz:istep]
+    if self._files_are_3d:
+      a = self.read_frames(time, channel)
+      array[:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
+    else:
+      for k in range(k0, k0+ksz, kstep):
+        if progress:
+          progress.plane((k-k0)//kstep)
+        p = self.read_plane(k, time, channel)
+        array[(k-k0)//kstep,:,:] = p[j0:j0+jsz:jstep,i0:i0+isz:istep]
 
     if self.rescale_slope != 1:
       array *= self.rescale_slope
@@ -259,6 +390,16 @@ class DicomData:
       data = data[:,:,channel]
     return data
 
+  # ---------------------------------------------------------------------------
+  #
+  def read_frames(self, time = None, channel = None):
+    import pydicom
+    d = pydicom.dcmread(self.paths[0])
+    data = d.pixel_array
+    if channel is not None:
+      data = data[:,:,:,channel]
+    return data
+
 # -----------------------------------------------------------------------------
 # PixelRepresentation 0 = unsigned, 1 = signed
 #
@@ -270,11 +411,13 @@ def numpy_value_type(bits_allocated, pixel_representation, rescale_slope, rescal
       rescale_intercept < 0 and pixel_representation == 0):  # unsigned with negative offset
     return float32
 
-  types = {(8,0): uint8,
+  types = {(1,0): uint8,
+           (1,1): int8,
+           (8,0): uint8,
            (8,1): int8,
            (16,0): uint16,
            (16,1): int16}
   if (bits_allocated, pixel_representation) in types:
     return types[(bits_allocated, pixel_representation)]
 
-  raise ValueError('Unsupported value type, bits_allocated = ', bits_allocated)
+  raise ValueError('Unsupported value type, bits_allocated = %d' % bits_allocated)
