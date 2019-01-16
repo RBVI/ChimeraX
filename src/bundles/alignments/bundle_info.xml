@@ -42,6 +42,7 @@
     <ChimeraXClassifier>Open :: Pfam :: selex :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
     <ChimeraXClassifier>Open :: RSF :: rsf :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
     <ChimeraXClassifier>Open :: Stockholm :: stockholm :: true :: alignment:Bool,auto_associate:Bool</ChimeraXClassifier>
+    <ChimeraXClassifier>Save :: ALN :: aln :: true :: alignment:Alignment</ChimeraXClassifier>
     <ChimeraXClassifier>Save :: FASTA :: fasta :: true :: alignment:Alignment</ChimeraXClassifier>
     <ChimeraXClassifier>Save :: PIR :: pir :: true :: alignment:Alignment</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: sequence :: Sequence alignment :: control/open sequence alignments</ChimeraXClassifier>
