@@ -3057,9 +3057,10 @@ def open_map(session, stream, name = None, format = None, **kw):
       else:
         sgrids.append(grid_group)
 
-    smodels, smsg = open_grids(session, sgrids, name, **kw)
-    models.extend(smodels)
-    msg_lines.append(smsg)
+    if sgrids:
+      smodels, smsg = open_grids(session, sgrids, name, **kw)
+      models.extend(smodels)
+      msg_lines.append(smsg)
 
     msg = '\n'.join(msg_lines)
 
