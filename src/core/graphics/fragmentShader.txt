@@ -119,6 +119,11 @@ in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
 #endif
 
+#ifdef USE_TEXTURE_3D
+in vec3 tex_coord_3d;
+uniform sampler3D tex3d;
+#endif
+
 #ifdef USE_DEPTH_TEXTURE
 uniform vec2 tex_depth_projection;	// near, far/(far-near)
 uniform vec3 tex_depth_scale;		// tex coord xscale, yscale and value zscale
@@ -152,6 +157,9 @@ void main (void)
 #ifdef USE_TEXTURE_2D
   vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
 #else
+#ifdef USE_TEXTURE_3D
+  vec4 fcolor = texture(tex3d, tex_coord_3d) * color;
+#else
 #ifdef USE_TEXTURE_CUBEMAP
   vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;
 #else
@@ -159,6 +167,7 @@ void main (void)
   vec4 fcolor = vec4(1,1,1,1);
 #else
   vec4 fcolor = color;
+#endif
 #endif
 #endif
 #endif
