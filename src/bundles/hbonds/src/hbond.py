@@ -121,7 +121,7 @@ acceptor_params = [
         (0,), acc_theta_tau, ((1,), 3.17, 100, -153, 150)],
     # anilene
     [[[('Npl', 'N3'), ['Car', H, H]], [1,1,1,1]],
-        (0,), acc_theta_tau, ((1,), 3.42, 90, -137, 140)],
+        (0,), lambda *args: acc_theta_tau(*args, tau=37.5, tau_sym=4), ((1,), 3.42, 90, -137, 140)],
     # waddah
     [[[O, [H, H]], [1,0,0]], (0,), acc_phi_psi,
                 ((None, None), 3.03, 120, 145)],

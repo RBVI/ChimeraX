@@ -113,7 +113,7 @@ def suffix_warning(paths):
   
 # -----------------------------------------------------------------------------
 #
-def open_file(path, file_type = None, verbose = False):
+def open_file(path, file_type = None, log = None, verbose = False):
 
   if file_type is None:
     p = path if isinstance(path, str) else path[0]
@@ -130,8 +130,10 @@ def open_file(path, file_type = None, verbose = False):
   apath = absolute_path(path) if isinstance(path,str) else [absolute_path(p) for p in path]
 
   kw = {}
+  from inspect import getargspec
+  if log is not None and 'log' in getargspec(module.open).args:
+    kw['log'] = log
   if verbose:
-    from inspect import getargspec
     if 'verbose' in getargspec(module.open).args:
       kw['verbose'] = verbose
   try:

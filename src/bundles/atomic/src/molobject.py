@@ -897,7 +897,7 @@ class Sequence(State):
         return data
 
     def ungapped(self):
-        """Supported APU. String of sequence without gap characters"""
+        """Supported API. String of sequence without gap characters"""
         f = c_function('sequence_ungapped', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 

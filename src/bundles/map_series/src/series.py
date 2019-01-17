@@ -30,6 +30,9 @@ class MapSeries(Model):
 
     self._timer = None		# Timer for updating volume viewer dialog
 
+    h = session.triggers.add_handler('remove models', self._model_closed)
+    self._close_handler = h
+
   # ---------------------------------------------------------------------------
   #
   def set_maps(self, maps):
@@ -63,16 +66,30 @@ class MapSeries(Model):
   #
   def grid_size(self):
 
-    return self.maps[0].data.size if self.maps else (0,0,0)
+    v = self.first_map()
+    return v.data.size if v else (0,0,0)
 
   # ---------------------------------------------------------------------------
   #
   def _get_single_color(self):
-    return self.maps[0].single_color if self.maps else None
+    v = self.first_map()
+    return v.single_color if v else None
   def _set_single_color(self, color):
     for m in self.maps:
       m.single_color = color
   single_color = property(_get_single_color, _set_single_color)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _model_closed(self, trigger_name, models):
+    if self.deleted:
+      self._close_handler.remove()
+      self._close_handler = None
+      return
+
+    for m in models:
+      if hasattr(m, 'series') and m.series is self:
+        self.volume_closed(m)
 
   # ---------------------------------------------------------------------------
   #
@@ -173,7 +190,7 @@ class MapSeries(Model):
 
     v1 = self.maps[t1]
     v2 = self.maps[t2]
-    if v1 is None or v2 == None:
+    if v1 is None or v2 is None:
       return
 
     v2.data.set_step(v1.data.step)

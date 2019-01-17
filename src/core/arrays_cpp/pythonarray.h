@@ -153,6 +153,8 @@ ARRAYS_IMEX PyObject *python_double_array(int size1, int size2, int size3, doubl
 ARRAYS_IMEX PyObject *python_voidp_array(int size, void ***data = NULL);
 ARRAYS_IMEX PyObject *python_object_array(int size, PyObject **data = NULL);
 
+ARRAYS_IMEX PyObject *resized_2d_array(PyObject *array, int size0, int size1);
+
 ARRAYS_IMEX PyObject *python_none();
 ARRAYS_IMEX PyObject *python_bool(bool b);
 

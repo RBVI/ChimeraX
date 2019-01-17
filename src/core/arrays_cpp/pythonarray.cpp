@@ -1491,3 +1491,16 @@ bool check_array_size(FArray &a, int n, bool require_contiguous)
     }
   return true;
 }
+
+// ----------------------------------------------------------------------------
+//
+PyObject *resized_2d_array(PyObject *array, int size0, int size1)
+{
+  npy_intp dim[2] = {size0, size1};
+  PyArray_Dims shape;
+  shape.ptr = dim;
+  shape.len = 2;
+  PyArrayObject *a = reinterpret_cast<PyArrayObject *>(array);
+  PyObject *ra = PyArray_Newshape(a, &shape, NPY_KEEPORDER);
+  return ra;
+}

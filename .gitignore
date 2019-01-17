@@ -38,6 +38,7 @@ src/apps/structcomp/structcomp.sh
 src/apps/ChimeraX/ChimeraX-tool.png
 src/apps/ChimeraX/ChimeraX.ico
 src/apps/ChimeraX/icon.rc
+src/bundles/Makefile.dependencies
 src/bundles/atomic/atomic_cpp/cymol.cpp
 src/bundles/atomic/atomic_cpp/data/
 src/bundles/atomic/atomic_cpp/include/
@@ -73,4 +74,5 @@ docs/license.html
 docs/license.txt
 docs/embedded.html
 docs/devel/index.rst
+docs/devel/_static
 docs/licenses
