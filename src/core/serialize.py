@@ -176,8 +176,15 @@ def _decode_pairs_v2(pairs):
 
 
 def msgpack_deserialize_stream_v2(stream):
+    # default maximum lenth is 1024*1024 in msgpack
+    MSGPACK_MAX_LEN = 2 ** 32 - 1
     unpacker = msgpack.Unpacker(
         stream, object_pairs_hook=_decode_pairs_v2, encoding='utf-8',
+        max_str_len=MSGPACK_MAX_LEN,
+        max_bin_len=MSGPACK_MAX_LEN,
+        max_array_len=MSGPACK_MAX_LEN,
+        max_map_len=MSGPACK_MAX_LEN,
+        max_ext_len=MSGPACK_MAX_LEN,
         use_list=False)
     return unpacker
 

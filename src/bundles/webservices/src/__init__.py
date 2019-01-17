@@ -9,24 +9,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP= ../../..
-include $(TOP)/mk/config.make
+from chimerax.core.toolshed import BundleAPI
 
-PYSRCS= $(wildcard *.py)
-PKG_DIR= $(PYSITEDIR)/chimerax/core/webservices
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/webservices
+class _MyAPI(BundleAPI):
+	pass
 
-all: $(PYOBJS)
-
-install: all dir
-	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
-
-dir:
-	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
-	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
-
-clean:
-	rm -rf __pycache__
-
-pylint:
-	$(PYLINT) $(PYSRCS)
+bundle_api = _MyAPI()
