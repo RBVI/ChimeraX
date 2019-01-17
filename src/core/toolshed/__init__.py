@@ -1202,6 +1202,22 @@ class BundleAPI:
         return None
 
     @staticmethod
+    def executable_dir(bundle_info):
+        """Returns path to directory of compiled executables.
+
+        Used to get directory path to executables at run-time.
+
+        Parameters
+        ----------
+        bundle_info : :py:class:`BundleInfo` instance.
+
+        Returns
+        -------
+        str or None
+        """
+        return None
+
+    @staticmethod
     def data_dir(bundle_info):
         """Supported API. Returns path to directory of bundle-specific data.
 
@@ -1267,6 +1283,10 @@ class _CallBundleAPIv0:
     @classmethod
     def library_dir(cls, api, bi):
         return cls._get_func(api, "library_dir", default_okay=True)(bi)
+
+    @classmethod
+    def executable_dir(cls, api, bi):
+        return cls._get_func(api, "executable_dir", default_okay=True)(bi)
 
     @classmethod
     def data_dir(cls, api, bi):

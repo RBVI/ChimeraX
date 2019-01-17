@@ -112,6 +112,22 @@ of ``mac``.
     - **name**: name of category (see **Tools** menu in ChimeraX for
       a list of well-known category names)
 
+- **CExecutable**
+
+  - Compiled executable in the current bundle
+  - Attribute:
+
+    - **name**: name of executable file
+
+  - Child elements:
+
+    - **FrameworkDir** (zero or more)
+    - **IncludeDir** (zero or more)
+    - **Library** (zero or more)
+    - **LibraryDir** (zero or more)
+    - **Requires** (zero or more)
+    - **SourceFile** (one or more)
+
 - **ChimeraXClassifier**
 
   - Lines similar to Python classifiers but containing
@@ -129,6 +145,27 @@ of ``mac``.
     - **ChimeraXClassifier** (zero or more)
     - **PythonClassifier** (zero or more)
 
+- **CLibrary**
+
+  - Compile library or shared object in the current bundle
+  - Attribute:
+
+    - **name**: name of library or shared object
+    - **usesNumpy**: whether library requires ``numpy`` headers.
+      If set to ``true``, ``numpy`` header directories (folders)
+      are included on the compilation command.
+    - **static**: whether to build a static (``true``) or
+      dynamic (``false``) library
+
+  - Child elements:
+
+    - **FrameworkDir** (zero or more)
+    - **IncludeDir** (zero or more)
+    - **Library** (zero or more)
+    - **LibraryDir** (zero or more)
+    - **Requires** (zero or more)
+    - **SourceFile** (one or more)
+
 - **CModule**
 
   - List of compiled modules in the current bundle.
@@ -140,7 +177,7 @@ of ``mac``.
       file suffixes, as they vary across platforms.  The compiled
       module will appear as a submodule of the Python package
       corresponding to the bundle.
-    - **usesNumpy**: whether module required ``numpy`` headers.
+    - **usesNumpy**: whether module requires ``numpy`` headers.
       If set to ``true``, ``numpy`` header directories (folders)
       are included on the compilation command.
 
@@ -342,7 +379,7 @@ of ``mac``.
 
 - **SourceFile**
 
-  - Child element of **CModule**.
+  - Child element of **CExecutable**, **CLibrary**, or **CModule**.
   - Element text:
 
     - Name of source file in a compiled module.  The path should be

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import cli, atomspec
-from chimerax.core.webservices.opal_job import OpalJob
+from chimerax.webservices.opal_job import OpalJob
 from .psize import Psize
 
 

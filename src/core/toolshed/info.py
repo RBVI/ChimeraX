@@ -53,6 +53,8 @@ class BundleInfo:
         Path (relative to bundle root) of directory of compilation include files
     library_dir:
         Path (relative to bundle root) of directory of link libraries
+    executable_dir:
+        Path (relative to bundle root) of directory of executables
     """
 
     def __init__(self, name, installed,
@@ -66,6 +68,7 @@ class BundleInfo:
                  data_dir=None,
                  include_dir=None,
                  library_dir=None,
+                 executable_dir=None,
                  packages=[], supercedes=[]):
         """Initialize instance.
 
@@ -93,6 +96,8 @@ class BundleInfo:
             Path (relative to bundle root) of directory of compilation include files.
         library_dir:
             Path (relative to bundle root) of directory of link libraries.
+        executable_dir:
+            Path (relative to bundle root) of directory of executables.
         """
         # Public attributes
         self.installed = installed
@@ -112,6 +117,7 @@ class BundleInfo:
         self.installed_data_dir = data_dir
         self.installed_include_dir = include_dir
         self.installed_library_dir = library_dir
+        self.installed_executable_dir = executable_dir
 
         # Private attributes
         self._name = name
@@ -176,6 +182,7 @@ class BundleInfo:
             "data_dir": self.installed_data_dir,
             "include_dir": self.installed_include_dir,
             "library_dir": self.installed_library_dir,
+            "executable_dir": self.installed_executable_dir,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
@@ -211,6 +218,8 @@ class BundleInfo:
             bi.installed_include_dir = more['include_dir']
         if 'library_dir' in more:
             bi.installed_library_dir = more['library_dir']
+        if 'executable_dir' in more:
+            bi.installed_executable_dir = more['executable_dir']
         if 'fetches' in more:
             bi.fetches = more['fetches']
         return bi
@@ -425,6 +434,10 @@ class BundleInfo:
     def library_dir(self):
         """Supported API. Return bundle library directory."""
         return self._bundle_path(self.installed_library_dir)
+
+    def executable_dir(self):
+        """Supported API. Return bundle executable directory."""
+        return self._bundle_path(self.installed_executable_dir)
 
     def data_dir(self):
         """Supported API. Return bundle data directory."""

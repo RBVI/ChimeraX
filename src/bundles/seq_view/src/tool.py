@@ -667,10 +667,6 @@ class SequenceViewer(ToolInstance):
                     self.region_browser.new_region(region_name, blocks=blocks, fill=fill,
                         outline=outline, sequence=aseq, cover_gaps=False)
 
-def _start_seq_viewer(session, tool_name, alignment=None):
-    if alignment is None:
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("Running MAV from tools menu not implemented; instead, open"
-            " alignment using 'open' command or File->Open")
+def _start_seq_viewer(session, tool_name):
     return SequenceViewer(session, tool_name, alignment)
 

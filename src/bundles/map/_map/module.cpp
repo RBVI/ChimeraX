@@ -16,6 +16,7 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
+#include "boxcut.h"			// use box_cuts, offset_range
 #include "colors.h"			// use blend_la_to_rgba, ...
 #include "combine.h"			// use linear_combination
 #include "contourpy.h"			// use surface_py, ...
@@ -38,6 +39,12 @@ namespace Map_Cpp
 //
 static struct PyMethodDef map_cpp_methods[] =
 {
+  /* boxcut.h */
+  {const_cast<char*>("box_cuts"), (PyCFunction)box_cuts,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("offset_range"), (PyCFunction)offset_range,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
   /* colors.h */
   {const_cast<char*>("copy_la_to_rgba"), (PyCFunction)copy_la_to_rgba,
    METH_VARARGS|METH_KEYWORDS, NULL},

@@ -63,10 +63,12 @@ class BundleBuilder:
             pass
         # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
-        # Build C libraries
+        # Build C libraries and executables
         import os.path
         for lib in self.c_libraries:
             lib.compile(self.logger, self.dependencies, debug=debug)
+        for executable in self.c_executables:
+            executable.compile(self.logger, self.dependencies, debug=debug)
         setup_args = ["--no-user-cfg", "build"]
         if debug:
             setup_args.append("--debug")
@@ -147,6 +149,7 @@ class BundleBuilder:
         self._get_dependencies(bi)
         self._get_c_modules(bi)
         self._get_c_libraries(bi)
+        self._get_c_executables(bi)
         self._get_packages(bi)
         self._get_classifiers(bi)
         self._check_unused_elements(bi)
@@ -163,6 +166,7 @@ class BundleBuilder:
         self.installed_data_dir = bi.getAttribute("installedDataDir")
         self.installed_include_dir = bi.getAttribute("installedIncludeDir")
         self.installed_library_dir = bi.getAttribute("installedLibraryDir")
+        self.installed_executable_dir = bi.getAttribute("installedExecutableDir")
 
     def _get_categories(self, bi):
         self.categories = []
@@ -261,6 +265,14 @@ class BundleBuilder:
             self._add_c_options(c, lib)
             self.c_libraries.append(c)
 
+    def _get_c_executables(self, bi):
+        self.c_executables = []
+        for lib in self._get_elements(bi, "CExecutable"):
+            c = _CExecutable(lib.getAttribute("name"),
+                             self.installed_executable_dir)
+            self._add_c_options(c, lib)
+            self.c_executables.append(c)
+
     def _add_c_options(self, c, ce):
             for e in self._get_elements(ce, "Requires"):
                 c.add_require(self._get_element_text(e))
@@ -330,6 +342,9 @@ class BundleBuilder:
         if self.installed_library_dir:
             self.chimerax_classifiers.append(
                 "ChimeraX :: LibraryDir :: " + self.installed_library_dir)
+        if self.installed_executable_dir:
+            self.chimerax_classifiers.append(
+                "ChimeraX :: ExecutableDir :: " + self.installed_executable_dir)
         for e in self._get_elements(cls, "ChimeraXClassifier"):
             classifier = self._get_element_text(e)
             if not classifier.startswith("ChimeraX"):
@@ -337,7 +352,9 @@ class BundleBuilder:
             self.chimerax_classifiers.append(classifier)
 
     def _is_pure_python(self):
-        return (not self.c_modules and not self.c_libraries
+        return (not self.c_modules
+                and not self.c_libraries
+                and not self.c_executables
                 and self.pure_python != "false")
 
     def _copy_extrafiles(self, files):
@@ -380,10 +397,20 @@ class BundleBuilder:
             if value:
                 self.setup_arguments[name] = value
         # Make sure C/C++ libraries (DLLs, shared objects or dynamic
-        # libraries) are on the install list
+        # libraries) and executables are on the install list
+        binary_files = []
         for lib in self.c_libraries:
             for lib_path in lib.paths():
-                self.datafiles[self.package].append(("file", lib_path))
+                binary_files.append(("file", lib_path))
+        for executable in self.c_executables:
+            binary_files.append(("file", executable.path()))
+        if binary_files:
+            try:
+                data_files = self.datafiles[self.package]
+            except KeyError:
+                self.datafiles[self.package] = binary_files
+            else:
+                data_files.extend(binary_files)
         self.setup_arguments = {"name": self.name,
                                 "python_requires": ">= 3.6"}
         add_argument("version", self.version)
@@ -528,7 +555,7 @@ class BundleBuilder:
 
 class _CompiledCode:
 
-    def __init__(self, name, uses_numpy):
+    def __init__(self, name, uses_numpy, install_dir):
         self.name = name
         self.uses_numpy = uses_numpy
         self.requires = []
@@ -541,6 +568,7 @@ class _CompiledCode:
         self.library_dirs = []
         self.framework_dirs = []
         self.macros = []
+        self.install_dir = install_dir
 
     def add_require(self, req):
         self.requires.append(req)
@@ -645,51 +673,7 @@ class _CompiledCode:
         lib = bundle.library_dir()
         return inc, lib
 
-
-class _CModule(_CompiledCode):
-
-    def __init__(self, name, uses_numpy, major, minor, libdir):
-        super().__init__(name, uses_numpy)
-        self.major = major
-        self.minor = minor
-        self.installed_library_dir = libdir
-
-    def ext_mod(self, logger, package, dependencies):
-        from setuptools import Extension
-        try:
-            (inc_dirs, lib_dirs, macros, extra_link_args,
-             libraries, cpp_flags) = self._compile_options(logger, dependencies)
-            macros.extend([("MAJOR_VERSION", self.major),
-                           ("MINOR_VERSION", self.minor)])
-        except ValueError:
-            return None
-        import sys
-        if self.installed_library_dir:
-            install_dir = '/' + self.installed_library_dir
-        else:
-            install_dir = ''
-        if sys.platform == "linux":
-            extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
-        elif sys.platform == "darwin":
-            extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
-        return Extension(package + '.' + self.name,
-                         define_macros=macros,
-                         extra_compile_args=cpp_flags+self.compile_arguments,
-                         include_dirs=inc_dirs,
-                         library_dirs=lib_dirs,
-                         libraries=libraries,
-                         extra_link_args=extra_link_args,
-                         sources=self.source_files)
-
-
-class _CLibrary(_CompiledCode):
-
-    def __init__(self, name, uses_numpy, static, libdir):
-        super().__init__(name, uses_numpy)
-        self.static = static
-        self.installed_library_dir = libdir
-
-    def compile(self, logger, dependencies, debug=False):
+    def compile_objects(self, logger, dependencies, static, debug):
         import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
         import distutils.log
         distutils.log.set_verbosity(1)
@@ -699,12 +683,6 @@ class _CLibrary(_CompiledCode):
         except ValueError:
             print("Error when compiling %s" % self.name)
             return None
-        if self.installed_library_dir:
-            output_dir = os.path.join("src", self.installed_library_dir)
-            install_dir = '/' + self.installed_library_dir
-        else:
-            output_dir = "src"
-            install_dir = ''
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         if inc_dirs:
@@ -717,10 +695,7 @@ class _CLibrary(_CompiledCode):
         if sys.platform == "win32":
             # Link library directory for Python on Windows
             compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
-            lib_name = "lib" + self.name
-        else:
-            lib_name = self.name
-        if not self.static:
+        if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
         if sys.platform == "darwin":
             # We need to manually separate out C from C++ code here, since clang
@@ -743,7 +718,74 @@ class _CLibrary(_CompiledCode):
             compiler.compile(self.source_files, extra_preargs=cpp_flags,
                              macros=macros, debug=debug)
         objs = compiler.object_filenames(self.source_files)
+        return compiler, objs, extra_link_args
+
+    def install_locations(self):
+        if self.install_dir:
+            import os.path
+            output_dir = os.path.join("src", self.install_dir)
+            install_dir = '/' + self.install_dir
+        else:
+            output_dir = "src"
+            install_dir = ''
+        return output_dir, install_dir
+
+
+class _CModule(_CompiledCode):
+
+    def __init__(self, name, uses_numpy, major, minor, libdir):
+        super().__init__(name, uses_numpy, libdir)
+        self.major = major
+        self.minor = minor
+
+    def ext_mod(self, logger, package, dependencies):
+        from setuptools import Extension
+        try:
+            (inc_dirs, lib_dirs, macros, extra_link_args,
+             libraries, cpp_flags) = self._compile_options(logger, dependencies)
+            macros.extend([("MAJOR_VERSION", self.major),
+                           ("MINOR_VERSION", self.minor)])
+        except ValueError:
+            return None
+        import sys
+        if self.install_dir:
+            install_dir = '/' + self.install_dir
+        else:
+            install_dir = ''
+        if sys.platform == "linux":
+            extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
+        elif sys.platform == "darwin":
+            extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
+        return Extension(package + '.' + self.name,
+                         define_macros=macros,
+                         extra_compile_args=cpp_flags+self.compile_arguments,
+                         include_dirs=inc_dirs,
+                         library_dirs=lib_dirs,
+                         libraries=libraries,
+                         extra_link_args=extra_link_args,
+                         sources=self.source_files)
+
+
+class _CLibrary(_CompiledCode):
+
+    def __init__(self, name, uses_numpy, static, libdir):
+        super().__init__(name, uses_numpy, libdir)
+        self.static = static
+
+    def compile(self, logger, dependencies, debug=False):
+        import sys, os.path
+        compiler, objs, extra_link_args = self.compile_objects(logger,
+                                                               dependencies,
+                                                               self.static,
+                                                               debug)
+        output_dir, install_dir = self.install_locations()
         compiler.mkpath(output_dir)
+        if sys.platform == "win32":
+            # # Link library directory for Python on Windows
+            # compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
+            lib_name = "lib" + self.name
+        else:
+            lib_name = self.name
         if self.static:
             lib = compiler.library_filename(lib_name, lib_type="static")
             compiler.create_static_lib(objs, lib_name, output_dir=output_dir,
@@ -789,8 +831,8 @@ class _CLibrary(_CompiledCode):
             lib_name = "lib" + self.name
         else:
             lib_name = self.name
-        if self.installed_library_dir:
-            lib_name = os.path.join(self.installed_library_dir, lib_name)
+        if self.install_dir:
+            lib_name = os.path.join(self.install_dir, lib_name)
         paths = []
         if self.static:
             paths.append(compiler.library_filename(lib_name, lib_type="static"))
@@ -807,6 +849,47 @@ class _CLibrary(_CompiledCode):
                 paths.append(compiler.library_filename(lib_name,
                                                        lib_type="shared"))
         return paths
+
+
+class _CExecutable(_CompiledCode):
+
+    def __init__(self, name, execdir):
+        import sys
+        if sys.platform == "win32":
+            # Remove .exe suffix because it will be added
+            if name.endswith(".exe"):
+                name = name[:-4]
+        super().__init__(name, False, execdir)
+
+    def compile(self, logger, dependencies, debug=False):
+        import sys
+        compiler, objs, extra_link_args = self.compile_objects(logger,
+                                                               dependencies,
+                                                               False,
+                                                               debug)
+        output_dir, install_dir = self.install_locations()
+        compiler.mkpath(output_dir)
+        if sys.platform == "darwin":
+            extra_link_args.append("-Wl,-rpath,@loader_path")
+        elif sys.platform == "win32":
+            # Remove .exe suffix because it will be added
+            if self.name.endswith(".exe"):
+                self.name = self.name[:-4]
+        else:
+            extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
+        compiler.link_executable(objs, self.name, output_dir=output_dir,
+                                 extra_preargs=extra_link_args,
+                                 debug=debug)
+        return compiler.executable_filename(self.name)
+
+    def path(self):
+        import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
+        compiler = distutils.ccompiler.new_compiler()
+        distutils.sysconfig.customize_compiler(compiler)
+        exec_name = self.name
+        if self.install_dir:
+            exec_name = os.path.join(self.install_dir, exec_name)
+        return compiler.executable_filename(exec_name)
 
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):

@@ -211,7 +211,7 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
         if dist_restraints is not None:
             raise LimitationError("Distance restraints only supported when executing locally")
         if thorough_opt:
-            raise LimitationError("Thorough optimization only supported when executing locally")
+            session.logger.warning("Thorough optimization only supported when executing locally")
         job_runner = ModellerWebService(session, [info[1][0][1] for info in template_info], num_models,
             pir_target.name, input_file_map, config_name, targets, show_gui)
     else:
@@ -277,10 +277,25 @@ class ModellerWebService(RunModeller):
             raise LimitationError("Blocking web service Modeller jobs not yet implemented")
         self.job = ModellerJob(self.session, self, self.config_name, self.input_file_map)
 
-from chimerax.core.webservices.opal_job import OpalJob
+    def take_snapshot(self, session, flags):
+        """For session/scene saving"""
+        return {
+            'base data': super().take_snapshot(session, flags),
+            'input_file_map': self.input_file_map,
+            'config_name': self.config_name,
+        }
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        inst = ModellerWebService(session, None, None, None, data['input_file_map'], data['config_name'],
+            None, None)
+        inst.set_state_from_snapshot(data['base data'])
+
+from chimerax.webservices.opal_job import OpalJob
 class ModellerJob(OpalJob):
 
     OPAL_SERVICE = "Modeller9v8Service"
+    SESSION_SAVE = True
 
     def __init__(self, session, caller, command, input_file_map):
         super().__init__(session)

@@ -33,9 +33,7 @@ class DistanceTool(ToolInstance):
         self.table.setColumnCount(3)
         self.table.keyPressEvent = session.ui.forward_keystroke
         self.table.setHorizontalHeaderLabels(["Atom 1", "Atom 2", "Distance"])
-        self.table.setHorizontalHeaderLabels(["Atom 1", "Atom 2", "Distance"])
         #self.table.itemClicked.connect(self._table_change_cb)
-        from chimerax.ui.icons import get_qt_icon
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
