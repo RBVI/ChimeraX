@@ -527,8 +527,11 @@ class ViewAlignedPlanes(Drawing):
     from . import box_cuts
     cva, ta = box_cuts(cube_corners, cube_axis, offset, spacing, n)
     va = cube_to_scene * cva
-    # TODO: Texture coords should range [1/2n,1-1/2n], not [0,1].
-    tc = cva
+    # Use texture coord range [1/2n,1-1/2n], not [0,1].
+    o = 0.5/n
+    from chimerax.core.geometry.place import translation
+    inset = translation((o,o,o)) * scale((n-1)/n)
+    tc = inset * cva
     return va, tc, ta
 
   def load_texture(self, grid_size, color_plane):
