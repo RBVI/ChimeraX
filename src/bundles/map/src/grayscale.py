@@ -31,6 +31,7 @@ class GrayScaleDrawing(Drawing):
       blend_manager.add_drawing(self)
     self._planes_drawings = [None, None, None]	# For x, y, z axis projection
     self._planes_drawing = None			# For ortho and box mode display
+    self._perp_planes_drawing = None		# For perpendicular planes projection
 
     # Mode names rgba4, rgba8, rgba12, rgba16, rgb4, rgb8, rgb12, rgb16,
     #   la4, la8, la12, la16, l4, l8, l12, l16
@@ -228,36 +229,16 @@ class GrayScaleDrawing(Drawing):
     if not dopaq and not dtransp:
       return
 
-    # Create or update the planes.
-    r = renderer
-    axis, rev = self.projection_axis(r.current_view_matrix)
-    pd = self._planes_drawing if axis is None else self._planes_drawings[axis]
-    if pd is None:
-      sc = self.shape_changed
-      pd = self.make_planes(axis)
-      if axis is None:
-        self._planes_drawing = pd
-      else:
-        if tuple(self._planes_drawings) != (None, None, None):
-          # Reset shape change flag since this is the same shape.
-          self.shape_changed = sc
-        self._planes_drawings[axis] = pd
-    elif self.update_colors:
+    pd = self._update_planes(renderer)
+
+    if self.update_colors:
       self.reload_textures()
     self.update_colors = False
-    if axis is not None:
-      # Reverse drawing order if needed to draw back to front
-      pd.multitexture_reverse_order = rev
-      sc = self.shape_changed
-      for d in self._planes_drawings:
-        disp = (d is pd)
-        if d and d.display != disp:
-          # TODO: Make drawing not cause redraw if display value does not change.
-          d.display = disp
-      # When switching planes, do not set shape change flag since that causes center of rotation update
-      # with front center rotation method, which messes up spin movies.
-      self.shape_changed = sc
 
+    self._draw_planes(renderer, draw_pass, dtransp, pd)
+
+  def _draw_planes(self, renderer, draw_pass, dtransp, drawing):
+    r = renderer
     max_proj = dtransp and self.maximum_intensity_projection
     if max_proj:
       r.blend_max(True)
@@ -267,7 +248,7 @@ class GrayScaleDrawing(Drawing):
     if blend1:
       r.blend_alpha(False)
 
-    pd.draw(r, draw_pass)
+    drawing.draw(r, draw_pass)
 
     if blend1:
       r.blend_alpha(True)
@@ -276,6 +257,48 @@ class GrayScaleDrawing(Drawing):
     if max_proj:
       r.blend_max(False)
 
+  def _update_planes(self, renderer):
+    # Create or update the planes.
+    view_dir = self.view_direction(renderer)
+    if self.projection_mode == '3d':
+      pd = self._perp_planes_drawing
+      if pd is None:
+        self._perp_planes_drawing = pd = self._make_perp_planes(view_dir)
+        self.update_colors = False
+      else:
+        self._update_perp_planes_geometry(pd, view_dir)
+    else:
+      # Render grid aligned planes
+      axis, rev = self.projection_axis(view_dir)
+      pd = self._planes_drawing if axis is None else self._planes_drawings[axis]
+      if pd is None:
+        sc = self.shape_changed
+        pd = self.make_planes(axis)
+        self.update_colors = False
+        if axis is None:
+          self._planes_drawing = pd
+        else:
+          if tuple(self._planes_drawings) != (None, None, None):
+            # Reset shape change flag since this is the same shape.
+            self.shape_changed = sc
+          self._planes_drawings[axis] = pd
+
+      if axis is not None:
+        # Reverse drawing order if needed to draw back to front
+        pd.multitexture_reverse_order = rev
+        sc = self.shape_changed
+        for d in self._planes_drawings:
+          disp = (d is pd)
+          if d and d.display != disp:
+            # TODO: Make drawing not cause redraw if display value does not change.
+            d.display = disp
+        # When switching planes, do not set shape change flag
+        # since that causes center of rotation update with
+        # front center rotation method, which messes up spin movies.
+        self.shape_changed = sc
+
+    return pd
+
   def remove_planes(self):
 
     self.texture_planes = {}
@@ -283,10 +306,16 @@ class GrayScaleDrawing(Drawing):
     if pd:
       self.remove_drawing(pd)
       self._planes_drawing = None
+
     for pd in self._planes_drawings:
       if pd:
         self.remove_drawing(pd)
     self._planes_drawings = [None,None,None]
+
+    pd = self._perp_planes_drawing
+    if pd:
+      self.remove_drawing(pd)
+      self._perp_planes_drawing = None
 
   def make_planes(self, axis):
 
@@ -298,13 +327,16 @@ class GrayScaleDrawing(Drawing):
       d = self.make_ortho_planes()
     return d
 
-  def projection_axis(self, view_matrix):
-    if self._show_box_faces or self._show_ortho_planes:
+  def view_direction(self, render):
+    return -render.current_view_matrix.inverse().z_axis()	# View direction, scene coords
+
+  def projection_axis(self, view_direction):
+    # View matrix maps scene to camera coordinates.
+    v = view_direction
+    if self._show_box_faces or self._show_ortho_planes or self.projection_mode == '3d':
       return None, False
 
     # Determine which axis has box planes with largest projected area.
-    # View matrix maps scene to camera coordinates.
-    v = -view_matrix.inverse().z_axis()	# View direction, scene coords
     bx,by,bz = (self.scene_position * self.ijk_to_xyz).axes()	# Box axes, scene coordinates
     # Scale axes to length of box so that plane axis chosen maximizes plane view area for box.
     gs = self.grid_size
@@ -396,6 +428,80 @@ class GrayScaleDrawing(Drawing):
       self.texture_planes[(k,axis)] = t
     return t
 
+  def _make_perp_planes(self, view_dir):
+
+    va, tc, ta = self._perp_planes_geometry(view_dir)
+    d = self.new_drawing('grayscale box planes')
+    d.color = tuple(int(255*r) for r in self.modulation_rgba())
+    d.use_lighting = False
+    d.set_geometry(va, None, ta)
+    d.texture_coordinates = tc
+    d.texture = self._texture_3d()
+    d.opaque_texture = (not 'a' in self.color_mode)
+    return d
+
+  def _update_perp_planes_geometry(self, drawing, view_dir):
+    va, tc, ta = self._perp_planes_geometry(view_dir)
+    drawing.set_geometry(va, None, ta)
+    drawing.texture_coordinates = tc
+
+  def _perp_planes_geometry(self, view_dir):
+
+    cube_corners = ((0,0,0),(1,0,0),(0,1,0),(1,1,0),(0,0,1),(1,0,1),(0,1,1),(1,1,1))
+    ei,ej,ek = [i-1 for i in self.grid_size]
+    from chimerax.core.geometry.place import scale
+    cube_to_volume = self.ijk_to_xyz * scale((ei,ej,ek))
+    cube_to_scene = self.scene_position * cube_to_volume
+    # Convert view direction scene coordinates to volume coordinates
+    cube_axis = cube_to_scene.transpose().transform_vector(view_dir)
+    from . import offset_range
+    omin, omax = offset_range(cube_corners, cube_axis)
+    n = max(self.grid_size)
+    spacing = (omax - omin) / n
+    # Reduce Moire patterns as volume rotated.
+    from math import ceil
+    offset = ceil(omin / spacing) * spacing;
+    from . import box_cuts
+    cva, ta = box_cuts(cube_corners, cube_axis, offset, spacing, n)
+    va = cube_to_scene * cva
+    # TODO: Texture coords should range [1/2n,1-1/2n], not [0,1].
+    tc = cva
+    return va, tc, ta
+
+  def _texture_3d(self):
+    d3d = self._texture_3d_data()
+    from chimerax.core.graphics import Texture
+    t = Texture(d3d, dimension = 3)
+    t.linear_interpolation = self.linear_interpolation
+    return t
+
+  def _texture_3d_data(self):
+    z_axis = 2
+    p = self.color_plane(0, z_axis)
+    sz = self.grid_size[z_axis]
+    if sz == 1:
+      d3d = p
+    else:
+      from numpy import empty
+      d3d = empty((sz,) + tuple(p.shape), p.dtype)
+      d3d[0,:] = p
+      for k in range(1,sz):
+        d3d[k,:] = self.color_plane(k, z_axis)
+    return d3d
+
+  def reload_textures(self):
+
+    pd = self._perp_planes_drawing
+    if pd:
+      pd.texture.reload_texture(self._texture_3d_data(), now = True)
+
+    for pd in self._planes_drawings + [self._planes_drawing]:
+      if pd:
+        mtex = pd.multitexture
+        for t,(k,axis) in enumerate(pd.planes):
+          data = self.color_plane(k,axis)
+          mtex[t].reload_texture(data, now = True)
+
   def color_plane(self, k, axis):
 
     if not self.color_grid is None:
@@ -411,15 +517,6 @@ class GrayScaleDrawing(Drawing):
       p = None
 
     return p
-
-  def reload_textures(self):
-
-    for pd in self._planes_drawings + [self._planes_drawing]:
-      if pd:
-        mtex = pd.multitexture
-        for t,(k,axis) in enumerate(pd.planes):
-          data = self.color_plane(k,axis)
-          mtex[t].reload_texture(data, now = True)
 
 # ---------------------------------------------------------------------------
 #
