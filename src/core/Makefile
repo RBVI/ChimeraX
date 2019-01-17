@@ -17,8 +17,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp \
 	   chutil_cpp commands \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
-	   pysupport_cpp toolshed \
-	   webservices
+	   pysupport_cpp toolshed
 
 ifeq ($(OS),Darwin)
 SUBDIRS += mac_util_cpp
