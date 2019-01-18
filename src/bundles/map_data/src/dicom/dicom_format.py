@@ -20,11 +20,9 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
   dfiles = files_by_directory(paths, search_directories = search_directories,
                               search_subdirectories = search_subdirectories)
   series = []
-  ddirs = list(dfiles.keys())
-  ddirs.sort()		# Order series alphabetically by full directory path
-  for ddir in ddirs:
-    dpaths = dfiles[ddir]
+  for dpaths in dfiles.values():
     series.extend(dicom_file_series(dpaths, verbose = verbose))
+  series.sort(key = lambda s: (s.name, s.paths[0]))
   return series
 
 # -----------------------------------------------------------------------------
@@ -83,6 +81,14 @@ class Series:
 
     # Read attributes used for ordering the images.
     self._file_info.append(SeriesFile(path, data))
+
+  @property
+  def name(self):
+    attrs = self.attributes
+    name = '%s %s %s' % (attrs.get('PatientID', '')[:4],
+                         attrs.get('SeriesDescription', ''),
+                         attrs.get('StudyDate', ''))
+    return name
 
   def _dump_data(self, data):
     for elem in data:
@@ -316,13 +322,9 @@ class DicomData:
     self.paths = series.paths
     npaths = len(series.paths)
 
-    attrs = series.attributes
-    name = '%s %s %s' % (attrs.get('PatientID', '')[:4],
-                         attrs.get('SeriesDescription', ''),
-                         attrs.get('StudyDate', ''))
-    self.name = name
+    self.name = series.name
 
-    
+    attrs = series.attributes
     rsi = float(attrs.get('RescaleIntercept', 0))
     if rsi == int(rsi):
       rsi = int(rsi)
