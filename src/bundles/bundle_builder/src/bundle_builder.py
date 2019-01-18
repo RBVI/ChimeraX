@@ -156,6 +156,10 @@ class BundleBuilder:
 
     def _get_identifiers(self, bi):
         self.name = bi.getAttribute("name")
+        if '_' in self.name:
+            self.name = self.name.replace('_', '-')
+            self.logger.warning("Bundle renamed to %r after replacing "
+                                "underscores with hyphens." % self.name)
         self.version = bi.getAttribute("version")
         self.package = bi.getAttribute("package")
         self.min_session = bi.getAttribute("minSessionVersion")
@@ -482,7 +486,7 @@ class BundleBuilder:
         from .wheel_tag import tag
         self.tag = tag(self._is_pure_python())
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
-        bundle_wheel_name = self.name.replace("-", "_")
+        bundle_wheel_name = self.name.replace('-', '_')
         wheel = "%s-%s-%s.whl" % (bundle_wheel_name, self.version, self.tag)
         self.wheel_path = os.path.join(self.path, "dist", wheel)
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
@@ -697,25 +701,24 @@ class _CompiledCode:
             compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
         if not static:
             macros.append(("DYNAMIC_LIBRARY", 1))
-        if sys.platform == "darwin":
-            # We need to manually separate out C from C++ code here, since clang
-            # crashes if -std=c++11 is given as a switch while compiling C code
-            c_files = []
-            cpp_files = []
-            for f in self.source_files:
-                l = compiler.detect_language(f)
-                if l == 'c':
-                    c_files.append(f)
-                elif l == 'c++':
-                    cpp_files.append(f)
-                else:
-                    raise RuntimeError("Unsupported language for %s" % f)
+        # We need to manually separate out C from C++ code here, since clang
+        # crashes if -std=c++11 is given as a switch while compiling C code
+        c_files = []
+        cpp_files = []
+        for f in self.source_files:
+            l = compiler.detect_language(f)
+            if l == 'c':
+                c_files.append(f)
+            elif l == 'c++':
+                cpp_files.append(f)
+            else:
+                raise RuntimeError("Unsupported language for %s" % f)
+        if cpp_files:
             compiler.compile(cpp_files, extra_preargs=cpp_flags,
                              macros=macros, debug=debug)
+            self.target_lang = "c++"
+        if c_files:
             compiler.compile(c_files, extra_preargs=[],
-                             macros=macros, debug=debug)
-        else:
-            compiler.compile(self.source_files, extra_preargs=cpp_flags,
                              macros=macros, debug=debug)
         objs = compiler.object_filenames(self.source_files)
         return compiler, objs, extra_link_args
@@ -789,6 +792,7 @@ class _CLibrary(_CompiledCode):
         if self.static:
             lib = compiler.library_filename(lib_name, lib_type="static")
             compiler.create_static_lib(objs, lib_name, output_dir=output_dir,
+                                       target_lang=self.target_lang,
                                        debug=debug)
         else:
             if sys.platform == "darwin":
@@ -805,6 +809,7 @@ class _CLibrary(_CompiledCode):
                                         "-Wl,-install_name,@rpath/%s" % lib])
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_preargs=extra_link_args,
+                                            target_lang=self.target_lang,
                                             debug=debug)
             elif sys.platform == "win32":
                 # On Windows, we need both .dll and .lib
@@ -813,6 +818,7 @@ class _CLibrary(_CompiledCode):
                 lib = compiler.shared_object_filename(lib_name)
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_preargs=extra_link_args,
+                                            target_lang=self.target_lang,
                                             debug=debug)
             else:
                 # On Linux, we only need the .so
@@ -820,6 +826,7 @@ class _CLibrary(_CompiledCode):
                 extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_preargs=extra_link_args,
+                                            target_lang=self.target_lang,
                                             debug=debug)
         return lib
 
@@ -879,6 +886,7 @@ class _CExecutable(_CompiledCode):
             extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
         compiler.link_executable(objs, self.name, output_dir=output_dir,
                                  extra_preargs=extra_link_args,
+                                 target_lang=self.target_lang,
                                  debug=debug)
         return compiler.executable_filename(self.name)
 

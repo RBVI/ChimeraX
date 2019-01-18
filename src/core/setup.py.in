@@ -64,7 +64,6 @@ setup(
         "PKG_NAME.geometry",
         "PKG_NAME.graphics",
         "PKG_NAME.toolshed",
-        "PKG_NAME.webservices",
     ],
     package_data={
         # *.pdb files are Windows debugging files

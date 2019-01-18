@@ -33,6 +33,9 @@ from cpython.ref cimport (
 
 from libcpp.string cimport string
 
+# default maximum lenth is 1024*1024 in msgpack
+MSGPACK_MAX_LEN = 2 ** 32 - 1
+
 #
 # Encoding and decoding msgpack extension types using in serialization
 
@@ -304,7 +307,12 @@ _packer_args = {
 
 _unpacker_args = {
     'ext_hook': _decode_ext,
-    'raw': False
+    'raw': False,
+    'max_str_len': MSGPACK_MAX_LEN,
+    'max_bin_len': MSGPACK_MAX_LEN,
+    'max_array_len': MSGPACK_MAX_LEN,
+    'max_map_len': MSGPACK_MAX_LEN,
+    'max_ext_len': MSGPACK_MAX_LEN,
 }
 
 

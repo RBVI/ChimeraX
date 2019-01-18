@@ -190,11 +190,12 @@ class View:
         from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
+            if no_drawings:
+                r.draw_background()
+                continue
             if silhouette.enabled:
                 silhouette.start_silhouette_drawing(r)
             r.draw_background()
-            if no_drawings:
-                continue
             self._update_projection(camera, vnum)
             if r.recording_opengl:
                 from . import gllist
