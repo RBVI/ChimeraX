@@ -79,7 +79,7 @@ class ModellerLauncher(ToolInstance):
 
     def _refresh_alignments(self):
         self.alignment_list.blockSignals(True)
-        current_alignments = list(self.session.alignments.alignments.values())
+        current_alignments = self.session.alignments.alignments
         row_order_alignments = []
         for old_alignment in self.alignments:
             if old_alignment not in current_alignments:
