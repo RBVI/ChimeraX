@@ -156,6 +156,10 @@ class BundleBuilder:
 
     def _get_identifiers(self, bi):
         self.name = bi.getAttribute("name")
+        if '_' in self.name:
+            self.name = self.name.replace('_', '-')
+            self.logger.warning("Bundle renamed to %r after replacing "
+                                "underscores with hyphens." % self.name)
         self.version = bi.getAttribute("version")
         self.package = bi.getAttribute("package")
         self.min_session = bi.getAttribute("minSessionVersion")
@@ -482,7 +486,7 @@ class BundleBuilder:
         from .wheel_tag import tag
         self.tag = tag(self._is_pure_python())
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
-        bundle_wheel_name = self.name.replace("-", "_")
+        bundle_wheel_name = self.name.replace('-', '_')
         wheel = "%s-%s-%s.whl" % (bundle_wheel_name, self.version, self.tag)
         self.wheel_path = os.path.join(self.path, "dist", wheel)
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
