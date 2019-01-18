@@ -503,9 +503,15 @@ class ViewAlignedPlanes(Drawing):
     self.use_lighting = False
     self.opaque_texture = opaque
     self.linear_interpolation = linear_interpolation
+    self._last_view_direction = None
 
-  def update_geometry(self, view_dir, grid_size, ijk_to_xyz, scene_position):
-    va, tc, ta = self._perp_planes_geometry(view_dir, grid_size, ijk_to_xyz, scene_position)
+  def update_geometry(self, view_direction, grid_size, ijk_to_xyz, scene_position):
+    tvd = tuple(view_direction)
+    if tvd == self._last_view_direction:
+      return
+    self._last_view_direction = tvd
+    
+    va, tc, ta = self._perp_planes_geometry(view_direction, grid_size, ijk_to_xyz, scene_position)
     self.set_geometry(va, None, ta)
     self.texture_coordinates = tc
 
