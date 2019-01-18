@@ -522,14 +522,15 @@ class ViewAlignedPlanes(Drawing):
     cube_to_volume = ijk_to_xyz * scale((ei,ej,ek))
     cube_to_scene = scene_position * cube_to_volume
     # Convert view direction scene coordinates to volume coordinates
-    cube_axis = cube_to_scene.transpose().transform_vector(view_dir)
+    cube_axis = -cube_to_scene.transpose().transform_vector(view_dir)
     from . import offset_range
     omin, omax = offset_range(cube_corners, cube_axis)
-    n = max(grid_size)
-    spacing = (omax - omin) / n
-    # Reduce Moire patterns as volume rotated.
+    spacing = min(ijk_to_xyz.axes_lengths())
     from math import ceil
-    offset = ceil(omin / spacing) * spacing;
+    n = int(ceil((omax - omin) / spacing))
+    # Reduce Moire patterns as volume rotated by making center cut plane always intercept box center.
+    omid = 0.5*(omin + omax)
+    offset = omin + (ceil(omid/spacing)*spacing - omid)
     from . import box_cuts
     cva, ta = box_cuts(cube_corners, cube_axis, offset, spacing, n)
     va = cube_to_scene * cva
