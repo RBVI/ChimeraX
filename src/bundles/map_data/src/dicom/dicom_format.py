@@ -20,7 +20,10 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
   dfiles = files_by_directory(paths, search_directories = search_directories,
                               search_subdirectories = search_subdirectories)
   series = []
-  for dpaths in dfiles.values():
+  ddirs = list(dfiles.keys())
+  ddirs.sort()		# Order series alphabetically by full directory path
+  for ddir in ddirs:
+    dpaths = dfiles[ddir]
     series.extend(dicom_file_series(dpaths, verbose = verbose))
   return series
 
