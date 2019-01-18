@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.webservices.opal_job import OpalJob
+from chimerax.webservices.opal_job import OpalJob
 
 
 class CCDJob(OpalJob):

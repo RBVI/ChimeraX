@@ -300,6 +300,12 @@ class Place:
         '''Supported API. Return the coordinate system axes.'''
         return self._matrix[:, :3].transpose().copy()
 
+    def axes_lengths(self):
+        '''Supported API. Return the lengths of the axes vectors.'''
+        m = self._matrix
+        from . import norm
+        return [norm(m[:,a]) for a in (0,1,2)]
+
     def z_axis(self):
         '''Supported API. Return the coordinate system z axis.'''
         return self._matrix[:, 2].copy()

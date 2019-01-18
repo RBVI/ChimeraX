@@ -3,12 +3,11 @@
 """donor geometry testing functions"""
 
 from chimerax.atomic.idatm import type_info, planar, tetrahedral
-from chimerax.core.geometry import angle, distance_squared, normalize_vector
+from chimerax.core.geometry import angle, distance_squared
 from chimerax.atomic.bond_geom import bond_positions
 from . import hbond
 from .common_geom import AtomTypeError, get_phi_plane_params, \
-        test_phi, project, test_theta, sulphur_compensate
-from .hydpos import hyd_positions
+        test_phi, test_theta, sulphur_compensate, test_tau
 from math import sqrt
 
 def don_theta_tau(donor, donor_hyds, acceptor, sp2_O_rp2, sp2_O_theta, sp3_O_rp2, sp3_O_theta,
@@ -209,64 +208,7 @@ def test_upsion_tau_acceptor(donor, donor_hyds, acceptor, r2, upsilon_low, upsil
     if not test_theta(dp, donor_hyds, ap, theta):
         return False
 
-    if tau is None:
-        if hbond.verbose:
-            print("tau test irrelevant")
-        return True
-
-    # sulfonamides and phosphonamides can have bonded NH2 groups that are planar enough
-    # to be declared Npl, so use the hydrogen positions to determine planarity if possible
-    if tau_sym == 4:
-        bonded_pos = hyd_positions(donor)
-    else:
-        # since we expect tetrahedral hydrogens to be oppositely aligned from the attached
-        # tetrahedral center, we can't use their positions for tau testing
-        bonded_pos = []
-    if 2 * len(bonded_pos) != tau_sym:
-        bonded_pos = hyd_positions(heavys[0], include_lone_pairs=True)
-        for b in heavys[0].neighbors:
-            if b == donor or b.element.number < 2:
-                continue
-            bonded_pos.append(b._hb_coord)
-        if not bonded_pos:
-            if hbond.verbose:
-                print("tau indeterminate; default okay")
-            return True
-
-    if 2 * len(bonded_pos) != tau_sym:
-        raise AtomTypeError("Unexpected tau symmetry (%d, should be %d) for donor %s" % (
-                2 * len(bonded_pos), tau_sym, donor))
-
-    normal = normalize_vector(heavys[0]._hb_coord - dp)
-
-    if tau < 0.0:
-        test = lambda ang, t=tau: ang <= 0.0 - t
-    else:
-        test = lambda ang, t=tau: ang >= t
-
-    proj_acc_pos = project(ap, normal, 0.0)
-    proj_don_pos = project(dp, normal, 0.0)
-    for bpos in bonded_pos:
-        proj_bpos = project(bpos, normal, 0.0)
-        ang = angle(proj_acc_pos, proj_don_pos, proj_bpos)
-        if test(ang):
-            if tau < 0.0:
-                if hbond.verbose:
-                    print("tau okay (%g < %g)" % (ang, -tau))
-                return True
-        else:
-            if tau > 0.0:
-                if hbond.verbose:
-                    print("tau too small (%g < %g)" % (ang, tau))
-                return False
-    if tau < 0.0:
-        if hbond.verbose:
-            print("all taus too big (> %g)" % -tau)
-        return False
-
-    if hbond.verbose:
-        print("all taus acceptable (> %g)" % tau)
-    return True
+    return test_tau(tau, tau_sym, donor, dp, ap)
 
 def don_generic(donor, donor_hyds, acceptor, sp2_O_rp2, sp3_O_rp2, sp3_N_rp2,
     sp2_O_r2, sp3_O_r2, sp3_N_r2, gen_rp2, gen_r2, min_hyd_angle, min_bonded_angle):

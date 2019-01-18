@@ -454,7 +454,7 @@ box_cuts(PyObject *, PyObject *args, PyObject *keywds)
       return NULL;
     }
 
-  if (triangles.dimension() == 2 and triangles.size(0) < 6*num_cuts)
+  if (triangles.dimension() == 2 && triangles.size(0) < 6*num_cuts)
     {
       PyErr_Format(PyExc_TypeError,
                    "Triangle array must be at least size 6 * num_cuts (%d) = %d, got %d",

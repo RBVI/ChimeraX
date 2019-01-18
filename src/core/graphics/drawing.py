@@ -765,11 +765,18 @@ class Drawing:
             if (self.vertex_colors is not None) or len(self._colors) > 1:
                 sopt |= Render.SHADER_VERTEX_COLORS
             t = self.texture
-            if t or self.multitexture:
-                if t and t.is_cubemap:
+            if t:
+                if t.is_cubemap:
                     sopt |= Render.SHADER_TEXTURE_CUBEMAP
-                else:
+                elif t.dimension == 2:
                     sopt |= Render.SHADER_TEXTURE_2D
+                elif t.dimension == 3:
+                    sopt |= Render.SHADER_TEXTURE_3D
+                else:
+                    raise ValueError('Only 2D and 3D texture rendering supported, got %dD'
+                                     % t.dimension)
+            if self.multitexture:
+                sopt |= Render.SHADER_TEXTURE_2D
             if self.ambient_texture is not None:
                 sopt |= Render.SHADER_TEXTURE_3D_AMBIENT
             if self.positions.shift_and_scale_array() is not None:
@@ -1375,7 +1382,7 @@ def draw_depth(renderer, drawings, opaque_only = True):
     r = renderer
     dc = r.disable_capabilities
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
-                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D)
+                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D)
     draw_opaque(r, drawings)
     if not opaque_only:
         draw_transparent(r, drawings)

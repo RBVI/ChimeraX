@@ -25,7 +25,7 @@ DEFAULT_OPAL_URL : str
 
 """
 
-from ..tasks import Job
+from chimerax.core.tasks import Job
 
 # Trailing slash required
 DEFAULT_OPAL_URL = "http://webservices.rbvi.ucsf.edu/opal2/services/"
@@ -108,7 +108,7 @@ class OpalJob(Job):
 
         """
         if self.job_id is not None:
-            from ..tasks import JobError
+            from chimerax.core.tasks import JobError
             raise JobError("Opal job has already been launched")
         logger = self.session.logger
         # TODO: Get proxy host from preferences
@@ -136,14 +136,16 @@ class OpalJob(Job):
         try:
             r = self._suds.service.launchJob(cmd, **job_kw)
         except WebFault as e:
-            from ..tasks import JobLaunchError
+            from chimerax.core.tasks import JobLaunchError
             raise JobLaunchError(str(e))
         else:
             self.job_id = str(r.jobID)
             def _notify(logger=logger, self=self, r=r):
                 logger.info("Opal service URL: %s" % self.service_url)
                 logger.info("Opal job id: %s" % self.job_id)
-                logger.info("Opal status URL: %s" % r.status[2])
+                logger.info("Opal status URL prefix: %s" % r.status[2])
+                logger.info("  stdout.txt = standard output")
+                logger.info("  stderr.txt = standard error")
             self.session.ui.thread_safe(_notify)
             import time
             self.start_time = time.time()
@@ -175,7 +177,7 @@ class OpalJob(Job):
         try:
             r = self._suds.service.queryStatus(self.job_id)
         except WebFault as e:
-            from ..tasks import JobMonitorError
+            from chimerax.core.tasks import JobMonitorError
             raise JobMonitorError(str(e))
         else:
             self._save_status(r)
@@ -262,7 +264,7 @@ class OpalJob(Job):
         try:
             r = self._suds.service.getOutputs(self.job_id)
         except WebFault as e:
-            from ..tasks import JobError
+            from chimerax.core.tasks import JobError
             raise JobError(str(e))
         self._outputs = {
             "stdout.txt": r.stdOut,

@@ -2384,7 +2384,7 @@ class Rendering_Options:
       'l4', 'l8', 'l12', 'l16')
     self.color_mode = 'auto8'         # solid rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
-    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z')
+    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self.bt_correction = False              # brightness and transparency
     self.minimal_texture_memory = False
@@ -2844,7 +2844,7 @@ def open_volume_file(path, session, format = None, name = None, representation =
 
   from . import data
   try:
-    glist = data.open_file(path, format, verbose = verbose)
+    glist = data.open_file(path, format, log = session.logger, verbose = verbose)
   except data.FileFormatError as value:
     raise
     from os.path import basename
@@ -3038,16 +3038,32 @@ def open_map(session, stream, name = None, format = None, **kw):
     name = basename(map_path if isinstance(map_path, str) else map_path[0])
 
     from . import data
-    grids = data.open_file(map_path, file_type = format, verbose = kw.get('verbose'))
+    grids = data.open_file(map_path, file_type = format, log = session.logger,
+                           verbose = kw.get('verbose'))
 
-    if grids and isinstance(grids[0], (tuple, list)):
-      # handle multiple channels.
-      models = []
-      for cgrids in grids:
-        cmodels, msg = open_grids(session, cgrids, name, **kw)
-        models.extend(cmodels)
-    else:
-      models, msg = open_grids(session, grids, name, **kw)
+    models = []
+    msg_lines = []
+    sgrids = []
+    for grid_group in grids:
+      if isinstance(grid_group, (tuple, list)):
+        # Handle multiple channels or time series
+        from os.path import commonprefix
+        gname = commonprefix([g.name for g in grid_group])
+        if len(gname) == 0:
+          gname = name
+        gmodels, gmsg = open_grids(session, grid_group, gname, **kw)
+        models.extend(gmodels)
+        msg_lines.append(gmsg)
+      else:
+        sgrids.append(grid_group)
+
+    if sgrids:
+      smodels, smsg = open_grids(session, sgrids, name, **kw)
+      models.extend(smodels)
+      msg_lines.append(smsg)
+
+    msg = '\n'.join(msg_lines)
+
     return models, msg
 
 # -----------------------------------------------------------------------------
@@ -3124,6 +3140,11 @@ def open_grids(session, grids, name, **kw):
       mc.show_n_channels(3)
       msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
       models = [mc]
+    elif len(maps) == 0:
+      msg = 'No map data opened'
+      session.logger.warning(msg)
+      models = maps
+      return models, msg
     else:
       # TODO: Handle multi-times and multi-channels.
       msg = 'Opened %s' % maps[0].name

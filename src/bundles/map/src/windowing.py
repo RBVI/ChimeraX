@@ -35,9 +35,9 @@ class WindowingMouseMode(MouseMode):
 
         dx, dy = self.mouse_motion(event)
         if abs(dx) > abs(dy):
-            translate_levels(self._maps, 0.001 * dx)
+            scale_levels(self._maps, 0.002 * dx)
         else:
-            scale_levels(self._maps, -0.002 * dy)
+            translate_levels(self._maps, -0.001 * dy)
 
         # Make sure new level is shown before another mouse event causes another level change.
         self.session.update_loop.update_graphics_now()
@@ -68,9 +68,9 @@ class WindowingMouseMode(MouseMode):
             hand_motion = position.inverse().transform_vector(motion)
             horz_shift, vert_shift = hand_motion[0], hand_motion[1]
             if abs(horz_shift) > abs(vert_shift):
-                translate_levels(self._maps, horz_shift)
+                scale_levels(self._maps, horz_shift)
             else:
-                scale_levels(self._maps, vert_shift)
+                translate_levels(self._maps, vert_shift)
         else:
             self.log_volume_command()
             self._maps = []
