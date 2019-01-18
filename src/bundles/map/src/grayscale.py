@@ -516,15 +516,12 @@ class ViewAlignedPlanes(Drawing):
     self.texture_coordinates = tc
 
   def _perp_planes_geometry(self, view_dir, grid_size, ijk_to_xyz, scene_position):
-    cube_corners = ((0,0,0),(1,0,0),(0,1,0),(1,1,0),(0,0,1),(1,0,1),(0,1,1),(1,1,1))
     ei,ej,ek = [i-1 for i in grid_size]
-    from chimerax.core.geometry.place import scale
-    cube_to_volume = ijk_to_xyz * scale((ei,ej,ek))
-    cube_to_scene = scene_position * cube_to_volume
-    # Convert view direction scene coordinates to volume coordinates
-    cube_axis = -cube_to_scene.transpose().transform_vector(view_dir)
+    grid_corners = ((0,0,0),(ei,0,0),(0,ej,0),(ei,ej,0),(0,0,ek),(ei,0,ek),(0,ej,ek),(ei,ej,ek))
+    corners = ijk_to_xyz * grid_corners	# in volume coords
+    axis = -scene_position.inverse().transform_vector(view_dir)
     from . import offset_range
-    omin, omax = offset_range(cube_corners, cube_axis)
+    omin, omax = offset_range(corners, axis)
     spacing = min(ijk_to_xyz.axes_lengths())
     from math import ceil
     n = int(ceil((omax - omin) / spacing))
@@ -532,13 +529,13 @@ class ViewAlignedPlanes(Drawing):
     omid = 0.5*(omin + omax)
     offset = omin + (ceil(omid/spacing)*spacing - omid)
     from . import box_cuts
-    cva, ta = box_cuts(cube_corners, cube_axis, offset, spacing, n)
-    va = cube_to_scene * cva
+    va, ta = box_cuts(corners, axis, offset, spacing, n)
+
     # Use texture coord range [1/2n,1-1/2n], not [0,1].
-    o = 0.5/n
-    from chimerax.core.geometry.place import translation
-    inset = translation((o,o,o)) * scale((n-1)/n)
-    tc = inset * cva
+    from chimerax.core.geometry.place import scale, translation
+    v_to_tc = scale((1/(ei+1), 1/(ej+1), 1/(ek+1))) * translation((0.5,0.5,0.5)) * ijk_to_xyz.inverse()
+    tc = v_to_tc * va
+    
     return va, tc, ta
 
   def load_texture(self, grid_size, color_plane):
