@@ -573,6 +573,7 @@ class _CompiledCode:
         self.framework_dirs = []
         self.macros = []
         self.install_dir = install_dir
+        self.target_lang = None
 
     def add_require(self, req):
         self.requires.append(req)
@@ -714,11 +715,12 @@ class _CompiledCode:
             else:
                 raise RuntimeError("Unsupported language for %s" % f)
         if cpp_files:
-            compiler.compile(cpp_files, extra_preargs=cpp_flags,
+            compiler.compile(cpp_files,
+                             extra_preargs=cpp_flags+self.compile_arguments,
                              macros=macros, debug=debug)
             self.target_lang = "c++"
         if c_files:
-            compiler.compile(c_files, extra_preargs=[],
+            compiler.compile(c_files, extra_preargs=self.compile_arguments,
                              macros=macros, debug=debug)
         objs = compiler.object_filenames(self.source_files)
         return compiler, objs, extra_link_args
