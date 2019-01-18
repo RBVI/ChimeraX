@@ -90,13 +90,13 @@ def get_alignment_by_id(session, align_id, *, multiple_okay=False):
             raise AnnotationError("No alignments open!")
         elif len(session.alignments.alignments) > 1:
             if multiple_okay:
-                return list(session.alignments.alignments.values())
+                return list(session.alignments.alignments)
             raise AnnotationError("More than one sequence alignment open;"
                 " need to specify an alignment ID")
-        alignment = list(session.alignments.alignments.values())[0]
+        alignment = session.alignments.alignments[0]
     else:
         try:
-            alignment = session.alignments.alignments[align_id]
+            alignment = session.alignments.alignments_map[align_id]
         except KeyError:
             raise AnnotationError("No known alignment with ID: '%s'" % align_id)
     if multiple_okay:
