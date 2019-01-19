@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.0.1u
+VERSION = 1.0.2q
 SHLIB_VERSION=$(shell awk '$$3 == "SHLIB_VERSION_NUMBER" { print $$4 }' $(SOURCE)/include/openssl/opensslv.h | sed s/\"//g)
 DISTRIBUTION = openssl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/openssl-$(VERSION)

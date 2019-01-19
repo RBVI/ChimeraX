@@ -9,7 +9,7 @@ distlib==0.2.8
 filelock==3.0.10
 grako==3.16.5
 html2text==2018.1.9
-line_profiler==2.1.2
+#line_profiler==2.1.2
 lxml==4.3.0
 matplotlib==3.0.2
 msgpack==0.6.0

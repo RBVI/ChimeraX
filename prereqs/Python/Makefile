@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).4
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).2
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -257,8 +257,8 @@ else
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
 endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
+	$(APP_PYTHON_EXE) -m pip install --upgrade pip
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
-		pip==$(PIP_VERSION) \
 		wheel==$(WHEEL_VERSION) \
 		setuptools==$(SETUPTOOLS_VERSION)
 

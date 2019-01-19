@@ -221,8 +221,6 @@ llvm.install: p7zip.install
 mesa.install: p7zip.install llvm.install pkgconfig.install
 msgpack.app-install: Python.app-install pips.app-install
 msgpack.install: Python.install pips.install
-numexpr.app-install: Python.app-install numpy.app-install pips.app-install
-numexpr.install: Python.install numpy.install pips.install
 numpy.app-install: Python.app-install numpy.app-install pips.app-install
 numpy.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install

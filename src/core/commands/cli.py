@@ -435,8 +435,8 @@ class Aggregate(Annotation):
 
     def __init__(self, annotation, min_size=None,
                  max_size=None, name=None, url=None, prefix=None):
-        if (not issubclass(annotation, Annotation) and
-                not isinstance(annotation, Annotation)):
+        if (not isinstance(annotation, Annotation) and (
+            not isinstance(annotation, type) or not issubclass(annotation, Annotation))):
             raise ValueError("need an annotation, not %s" % annotation)
         Annotation.__init__(self, name, url)
         self.annotation = annotation

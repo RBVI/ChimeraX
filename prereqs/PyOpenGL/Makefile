@@ -9,20 +9,22 @@ include $(TOP)/mk/config.make
 
 ifdef WIN32
 VERSION = 3.1.1
+ACCEL_VERSION = 3.1.1
 else
-VERSION = 3.1.0
+VERSION = 3.1.3b2
+ACCEL_VERSION = 3.1.3b1
 endif
 PYOPENGL_DISTRIBUTION = PyOpenGL-$(VERSION).tar.gz
 PYOPENGL_SOURCE = $(tmpdir)/PyOpenGL-$(VERSION)
-ACCELERATE_DISTRIBUTION = PyOpenGL-accelerate-$(VERSION).tar.gz
-ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-accelerate-$(VERSION)
+ACCELERATE_DISTRIBUTION = PyOpenGL-accelerate-$(ACCEL_VERSION).tar.gz
+ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-accelerate-$(ACCEL_VERSION)
 
 ALREADY_INSTALLED = grep -E "(already satisfied|not upgraded)"
 
 ifdef WIN32
 include ../pips/Makefile.pip
 WHEEL = PyOpenGL-$(VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl \
-	PyOpenGL_accelerate-$(VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl
+	PyOpenGL_accelerate-$(ACCEL_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl
 endif
 
 ifdef DEBUG
