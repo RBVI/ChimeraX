@@ -523,11 +523,11 @@ class ViewAlignedPlanes(Drawing):
     from . import offset_range
     omin, omax = offset_range(corners, axis)
     spacing = min(ijk_to_xyz.axes_lengths())
-    from math import ceil
-    n = int(ceil((omax - omin) / spacing))
-    # Reduce Moire patterns as volume rotated by making center cut plane always intercept box center.
+    from math import floor, fmod
+    n = int(floor((omax - omin) / spacing))
+    # Reduce Moire patterns as volume rotated by making a cut plane always intercept box center.
     omid = 0.5*(omin + omax)
-    offset = omin + (ceil(omid/spacing)*spacing - omid)
+    offset = omin + fmod(omid - omin, spacing)
     from . import box_cuts
     va, ta = box_cuts(corners, axis, offset, spacing, n)
 
