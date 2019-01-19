@@ -157,11 +157,16 @@ cdef class CyAtom:
     def aniso_u6(self, u6):
         "Set anisotropic temperature factors as a 6 element float array"
         " representing the unique elements of the symmetrix matrix"
-        " containing (u11, u22, u33, u12, u13, u23)."
+        " containing (u11, u22, u33, u12, u13, u23). If 'u6' arg is None,"
+        " then clear any aniso_u values."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if u6 is None:
+            self.cpp_atom.clear_aniso_u()
+            return
+
         if len(u6) != 6:
             raise ValueError("aniso_u6 array isn't length 6")
         # Note C++ layer holds the values in row major order
-        if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.set_aniso_u(u6[0], u6[3], u6[4], u6[1], u6[5], u6[2])
 
     @property
