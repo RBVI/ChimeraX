@@ -474,9 +474,11 @@ class MouseEvent:
     def position(self):
         '''
         Supported API.
-        Pair of integer x,y pixel coordinates relative to upper-left corner of graphics window.
+        Pair of floating point x,y pixel coordinates relative to upper-left corner of graphics window.
+        These values can be fractional if pointer device gives subpixel resolution.
         '''
-        return self._event.x(), self._event.y()
+        p = self._event.localPos()
+        return p.x(), p.y()
 
     def wheel_value(self):
         '''
