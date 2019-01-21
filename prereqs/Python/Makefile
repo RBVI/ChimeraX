@@ -55,6 +55,7 @@ ifeq ($(OS),Darwin)
 # the shared objects should get an explicit rpath (and hence should just use
 # the rpath from the ChimeraX/python executable).
 export DYLD_LIBRARY_PATH=$(libdir)
+ENV_CONFIGURE += PATH='$(bindir)':"$$PATH"
 ifndef USE_MAC_FRAMEWORKS
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 CONFIG_OPTIONS += --enable-shared
