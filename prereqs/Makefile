@@ -31,6 +31,7 @@ ifeq ($(OS),Darwin)
 NEED_EXPAT=1
 NEED_HDF5=1
 NEED_OPENSSL=1
+NEED_PKGCONFIG=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
 #SUBDIRS += leapmotion
@@ -226,7 +227,7 @@ numpy.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
 openmm.install: Python.install numpy.install pips.install
 openssl.app-install: chrpath.app-install
-openssl.install: chrpath.install
+openssl.install: chrpath.install pkgconfig.install
 pillow.app-install: Python.app-install zlib.app-install
 pillow.install: Python.install zlib.install
 pips.app-install: Python.app-install
