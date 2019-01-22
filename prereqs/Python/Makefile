@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).4
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).2
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -55,6 +55,7 @@ ifeq ($(OS),Darwin)
 # the shared objects should get an explicit rpath (and hence should just use
 # the rpath from the ChimeraX/python executable).
 export DYLD_LIBRARY_PATH=$(libdir)
+ENV_CONFIGURE += PATH='$(bindir)':"$$PATH"
 ifndef USE_MAC_FRAMEWORKS
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 CONFIG_OPTIONS += --enable-shared
@@ -257,8 +258,8 @@ else
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
 endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
+	$(APP_PYTHON_EXE) -m pip install --upgrade pip
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
-		pip==$(PIP_VERSION) \
 		wheel==$(WHEEL_VERSION) \
 		setuptools==$(SETUPTOOLS_VERSION)
 

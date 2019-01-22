@@ -143,7 +143,9 @@ class OpalJob(Job):
             def _notify(logger=logger, self=self, r=r):
                 logger.info("Opal service URL: %s" % self.service_url)
                 logger.info("Opal job id: %s" % self.job_id)
-                logger.info("Opal status URL: %s" % r.status[2])
+                logger.info("Opal status URL prefix: %s" % r.status[2])
+                logger.info("  stdout.txt = standard output")
+                logger.info("  stderr.txt = standard error")
             self.session.ui.thread_safe(_notify)
             import time
             self.start_time = time.time()

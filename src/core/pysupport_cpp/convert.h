@@ -234,7 +234,7 @@ PyObject* cmap_of_ptr_int_to_pydict(const std::map<Ptr, Int>& cmap,
     return pydict;
 }
 
-inline char* pystring_to_cchar(PyObject* string, const char* item_description) {
+inline const char* pystring_to_cchar(PyObject* string, const char* item_description) {
     if (!PyUnicode_Check(string))
         throw ErrListItemNotString(item_description);
     return PyUnicode_AsUTF8(string);

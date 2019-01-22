@@ -17,8 +17,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp \
 	   chutil_cpp commands \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
-	   pysupport_cpp toolshed \
-	   webservices
+	   pysupport_cpp toolshed
 
 ifeq ($(OS),Darwin)
 SUBDIRS += mac_util_cpp
@@ -42,7 +41,7 @@ WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp36-cp36m-$(BIN_PLATFORM).whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
 
 .FORCE: wheel
