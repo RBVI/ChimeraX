@@ -143,7 +143,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= imex numpy openmm \
+SUBDIRS	+= imex lineprofiler numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
 	   scipy tables
@@ -218,6 +218,8 @@ hdf5.app-install: zlib.app-install chrpath.app-install
 hdf5.install: zlib.install chrpath.install
 leapmotion.app-install: Python.app-install
 leapmotion.install: Python.install
+lineprofiler.install: pips.install
+lineprofiler.app-install: pips.app-install
 llvm.install: p7zip.install
 mesa.install: p7zip.install llvm.install pkgconfig.install
 msgpack.app-install: Python.app-install pips.app-install
