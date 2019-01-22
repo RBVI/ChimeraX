@@ -758,7 +758,7 @@ class _CModule(_CompiledCode):
         else:
             install_dir = ''
         if sys.platform == "linux":
-            extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
+            extra_link_args.append("-Wl,-rpath,$ORIGIN%s" % install_dir)
         elif sys.platform == "darwin":
             extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
         return Extension(package + '.' + self.name,
@@ -825,7 +825,7 @@ class _CLibrary(_CompiledCode):
             else:
                 # On Linux, we only need the .so
                 lib = compiler.library_filename(lib_name, lib_type="shared")
-                extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
+                extra_link_args.append("-Wl,-rpath,$ORIGIN%s" % install_dir)
                 compiler.link_shared_object(objs, lib, output_dir=output_dir,
                                             extra_preargs=extra_link_args,
                                             target_lang=self.target_lang,
@@ -885,7 +885,7 @@ class _CExecutable(_CompiledCode):
             if self.name.endswith(".exe"):
                 self.name = self.name[:-4]
         else:
-            extra_link_args.append("-Wl,-rpath,\$ORIGIN%s" % install_dir)
+            extra_link_args.append("-Wl,-rpath,$ORIGIN%s" % install_dir)
         compiler.link_executable(objs, self.name, output_dir=output_dir,
                                  extra_preargs=extra_link_args,
                                  target_lang=self.target_lang,

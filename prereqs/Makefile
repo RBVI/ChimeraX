@@ -31,6 +31,7 @@ ifeq ($(OS),Darwin)
 NEED_EXPAT=1
 NEED_HDF5=1
 NEED_OPENSSL=1
+NEED_PKGCONFIG=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
 #SUBDIRS += leapmotion
@@ -142,10 +143,10 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= imex numpy openmm \
+SUBDIRS	+= imex lineprofiler numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
-	   scipy
+	   scipy tables
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -217,18 +218,18 @@ hdf5.app-install: zlib.app-install chrpath.app-install
 hdf5.install: zlib.install chrpath.install
 leapmotion.app-install: Python.app-install
 leapmotion.install: Python.install
+lineprofiler.install: pips.install
+lineprofiler.app-install: pips.app-install
 llvm.install: p7zip.install
 mesa.install: p7zip.install llvm.install pkgconfig.install
 msgpack.app-install: Python.app-install pips.app-install
 msgpack.install: Python.install pips.install
-numexpr.app-install: Python.app-install numpy.app-install pips.app-install
-numexpr.install: Python.install numpy.install pips.install
 numpy.app-install: Python.app-install numpy.app-install pips.app-install
 numpy.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
 openmm.install: Python.install numpy.install pips.install
 openssl.app-install: chrpath.app-install
-openssl.install: chrpath.install
+openssl.install: chrpath.install pkgconfig.install
 pillow.app-install: Python.app-install zlib.app-install
 pillow.install: Python.install zlib.install
 pips.app-install: Python.app-install
@@ -243,6 +244,9 @@ Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpa
 Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
 scipy.app-install: Python.app-install numpy.app-install
 scipy.install: Python.install numpy.install
+# tables could also need Cython, numexpr, and c-blosc
+tables.install: hdf5.install pips.install numpy.install
+tables.app-install: hdf5.app-install pips.app-install numpy.app-install
 xml2.app-install: Python.app-install zlib.app-install
 xml2.install: Python.install zlib.install
 xslt.app-install: xml2.app-install
