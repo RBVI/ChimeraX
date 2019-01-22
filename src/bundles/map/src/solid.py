@@ -24,14 +24,14 @@ class Solid:
 
     self.name = name
 
-    self.size = size
-    self.value_type = value_type
+    self.size = size			# 3D matrix size
+    self.value_type = value_type	# Numpy dtype of matrix values
     self.matrix_id = matrix_id          # indicates if matrix changed
     self.matrix_plane = matrix_plane    # Callback to get matrix values
 
-    self.transform = transform
+    self.transform = transform		# Matrix indices to xyz
 
-    self.drawing = None                  # GrayScaleDrawing
+    self.drawing = None                 # GrayScaleDrawing
     self.add_handler = None
 
     self.attached_model = align
@@ -40,9 +40,10 @@ class Solid:
 
     self.transfer_function = ()
     self.brightness_factor = 1
-    self.transparency_depth = 0
+    self.transparency_thickness = 1	# In xyz space units.  Opacity values are for this thickness.
     self.colormap_size = 256
     self.clamp = False
+    self._colormaps = {}		# Maps axis to (cmap, cmap_range)
 
     self.color_mode = 'auto8'
     self.c_mode = 'rgba8'
@@ -91,15 +92,15 @@ class Solid:
   # ---------------------------------------------------------------------------
   #
   def set_colormap(self, transfer_function,
-                   brightness_factor, transparency_depth, clamp = False):
+                   brightness_factor, transparency_thickness, clamp = False):
 
     if (self.transfer_function != transfer_function or 
         self.brightness_factor != brightness_factor or
-        self.transparency_depth != transparency_depth or
+        self.transparency_thickness != transparency_thickness or
         self.clamp != clamp):
       self.transfer_function = transfer_function
       self.brightness_factor = brightness_factor
-      self.transparency_depth = transparency_depth
+      self.transparency_thickness = transparency_thickness
       self.clamp = clamp
       self.c_mode = self.auto_color_mode()              # update color mode
       self._update_colors = True
@@ -205,41 +206,36 @@ class Solid:
     self._update_colors = False
     
     if self.use_plane_callback:
-      cmap, cmap_range = self.colormap()
-      def get_color_plane(axis, plane,
-                          self = self, cmap = cmap, cmap_range = cmap_range):
-        return self.color_values(axis, plane, cmap, cmap_range)
+      self._colormaps.clear()
       d = self.drawing
-      d.set_color_plane_callback(self.size, get_color_plane)
+      d.set_color_plane_callback(self.size, self.color_plane)
       d.set_color_mode(self.c_mode)
     else:
-      colors = self.color_values()
+      colors = self.color_3d()
       self.drawing.set_volume_colors(colors)
 
   # ---------------------------------------------------------------------------
   #
-  def color_values(self, axis = None, plane = None,
-                   cmap = None, cmap_range = None):
+  def color_plane(self, plane, axis, view_aligned=False):
 
-    if cmap is None:
-      cmap, cmap_range = self.colormap()
+    cmaps = self._colormaps
+    av = (axis, view_aligned)
+    if av in cmaps:
+      cmap, cmap_range = cmaps[av]
+    else:
+      cmap, cmap_range = self.colormap() if view_aligned else self.colormap(axis)
+      cmaps[av] = cmap, cmap_range
     dmin, dmax = cmap_range
 
     m = self.matrix_plane(axis, plane)
 
     colors = self.color_array(cmap.dtype, tuple(m.shape) + (cmap.shape[1],))
     from . import _map
-    if axis is None:
-      for z in range(m.shape[0]):
-        _map.data_to_colors(m[z:z+1,:,:], dmin, dmax, cmap, self.clamp,
-                               colors[z:z+1,:,:])
-    else:
-      _map.data_to_colors(m, dmin, dmax, cmap, self.clamp, colors)
+    _map.data_to_colors(m, dmin, dmax, cmap, self.clamp, colors)
 
     if hasattr(self, 'mask_colors'):
       s = [slice(None), slice(None), slice(None)]
-      if not axis is None:
-        s[2-axis] = plane
+      s[2-axis] = plane
       self.mask_colors(colors, slice = s)
 
     return colors
@@ -270,8 +266,10 @@ class Solid:
   # Returned values are uint8 or uint16 with 4 (RGBA), 3 (RGB), 2 (LA), or 1 (L)
   # components per color depending on color mode.
   # Transparency and brightness adjustments are applied to transfer function.
+  # Color map is for a specific set of planes and depends on plane spacing.
+  # If axis is None then colormap for 3d projection is returned.
   #
-  def colormap(self):
+  def colormap(self, axis = None):
 
     tf = self.transfer_function
 
@@ -294,14 +292,25 @@ class Solid:
     from ._map import transfer_function_colormap
     transfer_function_colormap(tfa, dmin, dmax, tfcmap)
 
+    # For 3d projection use smallest plane spacing
+    if axis is None:
+      plane_spacings = self.transform.axes_lengths()
+      from numpy import argmin
+      axis = argmin(plane_spacings)
+      
     # Adjust brightness of RGB components.
     bf = self.brightness_factor
+    if not self.dim_transparent_voxels:
+      # Reduce brightness for closer spaced planes
+      # so brightness per unit thickness stays the same.
+      plane_spacings = self.transform.axes_lengths()
+      bf *= (plane_spacings[axis]/max(plane_spacings))
     tfcmap[:,:3] *= bf
 
     # Modify colormap transparency.
-    td = self.transparency_depth
-    if not td is None:
-      planes = td * min(self.size)
+    if self.transparency_thickness is not None:
+      plane_spacing = self.transform.axis_length(axis)
+      planes = self.transparency_thickness / plane_spacing
       alpha = tfcmap[:,3]
       if planes == 0:
         alpha[:] = 1
@@ -327,7 +336,27 @@ class Solid:
     _map.colors_float_to_uint(cmap, icmap)
 
     return icmap, drange
-  
+
+  # ---------------------------------------------------------------------------
+  # Colormaps for the 3 axes.  They can differ in opacity due to different
+  # plane spacing along each axis.
+  #
+  def colormaps(self):
+    if len(set(self.transform.axes_lengths())) == 1:
+      # Same transparency depth on all 3 axes.  Use one colormap.
+      cmap, cmap_range = self.colormap()
+      cmaps = (cmap, cmap, cmap)
+      cmap_ranges = (cmap_range, cmap_range, cmap_range)
+    else:
+      # Different transparency depths on some axes.  Use multiple colormaps.
+      cmaps = []
+      cmap_ranges = []
+      for axis in (0,1,2):
+        cmap, cmap_range = self.colormap(axis=axis)
+        cmaps.append(cmap)
+        cmap_ranges.append(cmap_range)
+    return cmaps, cmap_ranges
+
   # ---------------------------------------------------------------------------
   #
   def colormap_properties(self):
@@ -402,8 +431,7 @@ class Solid:
         single_color = colinear(tf[:,2:5], 0.99)
         m = 'l' if single_color else 'rgb'
         if not opaque:
-          td = self.transparency_depth
-          if td > 0 or td is None:
+          if self.transparency_thickness != 0:
             tfopaque = ((tf[:,5] == 1).all() and (tf[:,1] == 1).all())
             if not tfopaque:
               m += 'a'

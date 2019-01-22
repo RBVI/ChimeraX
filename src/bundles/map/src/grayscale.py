@@ -420,8 +420,8 @@ class GrayScaleDrawing(Drawing):
       if pd:
         pd.load_textures(self.color_plane)
 
-  def color_plane(self, k, axis):
-    if not self.color_grid is None:
+  def color_plane(self, k, axis, view_aligned=False):
+    if self.color_grid is not None:
       if axis == 2:
         p = self.color_grid[k,:,:,:]
       elif axis == 1:
@@ -429,7 +429,7 @@ class GrayScaleDrawing(Drawing):
       elif axis == 0:
         p = self.color_grid[:,:,k,:]
     elif self.get_color_plane:
-      p = self.get_color_plane(axis, k)
+      p = self.get_color_plane(k, axis, view_aligned=view_aligned)
     else:
       p = None
 
@@ -486,8 +486,8 @@ class AxisAlignedPlanes(Drawing):
 
   def load_textures(self, color_plane):
     mtex = self.multitexture
-    for t,(k,axis) in enumerate(pd.planes):
-      data = self.color_plane(k,axis)
+    for t,(k,axis) in enumerate(self.planes):
+      data = color_plane(k, axis)
       mtex[t].reload_texture(data, now = True)
 
 # ---------------------------------------------------------------------------
@@ -522,6 +522,7 @@ class ViewAlignedPlanes(Drawing):
     axis = -scene_position.inverse().transform_vector(view_dir)
     from . import offset_range
     omin, omax = offset_range(corners, axis)
+    # Use view aligned spacing equal to minimum grid spacing along 3 axes.
     spacing = min(ijk_to_xyz.axes_lengths())
     from math import floor, fmod
     n = int(floor((omax - omin) / spacing))
@@ -554,7 +555,7 @@ class ViewAlignedPlanes(Drawing):
 
   def _texture_3d_data(self, grid_size, color_plane):
     z_axis = 2
-    p = color_plane(0, z_axis)
+    p = color_plane(0, z_axis, view_aligned=True)
     sz = grid_size[z_axis]
     if sz == 1:
       td = p
@@ -563,7 +564,7 @@ class ViewAlignedPlanes(Drawing):
       td = empty((sz,) + tuple(p.shape), p.dtype)
       td[0,:] = p
       for k in range(1,sz):
-        td[k,:] = color_plane(k, z_axis)
+        td[k,:] = color_plane(k, z_axis, view_aligned=True)
     return td
 
 # ---------------------------------------------------------------------------
