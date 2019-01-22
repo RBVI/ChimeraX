@@ -28,7 +28,6 @@ qtconsole==4.4.3
 six==1.12.0
 sortedcontainers==2.1.0
 suds-jurko==0.6
-tables==3.4.4
 tinyarray==1.2.1
 webcolors==1.8.1
 #
