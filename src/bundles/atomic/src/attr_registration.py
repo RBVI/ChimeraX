@@ -32,7 +32,7 @@ class _NoDefault(State):
 NO_DEFAULT = _NoDefault()
 
 # methods that the manager will insert into the managed classes (inheritance won't work)
-def __getattr__(self, attr_name, look_in_class=None):
+def _getattr_(self, attr_name, look_in_class=None):
     if look_in_class is None:
         look_in_class = self.__class__
     try:
@@ -120,7 +120,7 @@ class RegAttrManager(StateManager):
         for reg_class in registerable_classes:
             if not hasattr(reg_class, '_attr_registration'):
                 reg_class._attr_registration = AttrRegistration(reg_class)
-                reg_class.__getattr__ = __getattr__
+                reg_class.__getattr__ = _getattr_
                 reg_class.register_attr = register_attr
 
     # session functions; there is one manager per session, and is only in charge of

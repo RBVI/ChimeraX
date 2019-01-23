@@ -474,7 +474,8 @@ def product(plist):
     '''Supported API. Product of a sequence of Place transforms.'''
     p = plist[0]
     for p2 in plist[1:]:
-        p = p*p2
+        if not p2.is_identity():
+            p = p*p2
     return p
 
 def interpolate_rotation(place1, place2, fraction):
