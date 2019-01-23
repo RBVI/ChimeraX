@@ -102,7 +102,7 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
     glu: GLU (unprotonated), GLH (carboxy oxygen 2 protonated)
     asp: ASP (unprotonated), ASH (carboxy oxygen 2 protonated)
     lys: LYS (positively charged), LYN (neutral)
-    cys: CYS (neutral), CYM (negatively charged)
+    cys: CYS (unspecified), CYM (negatively charged)
 
     For asp/glu, the dictionary values are either 0, 1, or 2: indicating
     no protonation or carboxy oxygen #1 or #2 protonation respectively.
