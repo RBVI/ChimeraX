@@ -2118,8 +2118,8 @@ clock_t start_t = clock();
         }
     }
 
-    // "pass 11":  another non-IDATM pass. Change sulfurs coordating 3+ metal ions
-    // to S3-, regardless of templating
+    // "pass 11":  another non-IDATM pass. Change S3 sulfurs with < 2 bonds and
+    // coordinating 3+ metal ions to S3-, regardless of templating
     //
     // First count coordinations
     auto pbg = pb_mgr().get_group(Structure::PBG_METAL_COORDINATION);
@@ -2127,7 +2127,7 @@ clock_t start_t = clock();
         std::map<Atom*,int> coord_count;
         for (auto pb: pbg->pseudobonds()) {
             for (auto a: pb->atoms()) {
-                if (a->element() == Element::S && a->idatm_type() != "S3-") {
+                if (a->idatm_type() == "S3" && a->bonds().size() < 2) {
                     if (++coord_count[a] > 2)
                         a->set_computed_idatm_type("S3-");
                 }
