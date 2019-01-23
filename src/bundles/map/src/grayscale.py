@@ -316,12 +316,13 @@ class GrayScaleDrawing(Drawing):
   def _update_view_aligned_planes(self, view_direction):
     pd = self._view_aligned_planes
     if pd is None:
-      pd = ViewAlignedPlanes(self.modulation_color, self.opaque, self.linear_interpolation)
+      pd = ViewAlignedPlanes(self.color_plane, self.grid_size, self.ijk_to_xyz,
+                             self.modulation_color, self.opaque, self.linear_interpolation)
       self.add_drawing(pd)
-      pd.load_texture(self.grid_size, self.color_plane)
+      pd.load_texture()
       self._view_aligned_planes = pd
       self.update_colors = False
-    pd.update_geometry(view_direction, self.grid_size, self.ijk_to_xyz, self.scene_position)
+    pd.update_geometry(view_direction, self.scene_position)
     return pd
 
   def remove_planes(self):
@@ -406,19 +407,19 @@ class GrayScaleDrawing(Drawing):
 
   # Each plane is an index position and axis (k,axis).
   def make_planes_drawing(self, planes):
-    pd = AxisAlignedPlanes(self.modulation_color, self.opaque, self.linear_interpolation)
-    pd.set_planes(planes, self.grid_size, self.ijk_to_xyz, self.color_plane)
+    pd = AxisAlignedPlanes(planes, self.grid_size, self.ijk_to_xyz, self.color_plane,
+                           self.modulation_color, self.opaque, self.linear_interpolation)
     self.add_drawing(pd)
     return pd
 
   def reload_textures(self):
     pd = self._view_aligned_planes
     if pd:
-      pd.load_texture(self.grid_size, self.color_plane)
+      pd.load_texture()
 
     for pd in self._multiaxis_planes + [self._planes_drawing]:
       if pd:
-        pd.load_textures(self.color_plane)
+        pd.load_textures()
 
   def color_plane(self, k, axis, view_aligned=False):
     if self.color_grid is not None:
@@ -439,7 +440,8 @@ class GrayScaleDrawing(Drawing):
 #
 class AxisAlignedPlanes(Drawing):
   
-  def __init__(self, modulation_color, opaque, linear_interpolation):
+  def __init__(self, planes, grid_size, ijk_to_xyz, color_plane,
+               modulation_color, opaque, linear_interpolation):
     name = 'grayscale axis aligned planes'
     Drawing.__init__(self, name)
 
@@ -448,7 +450,10 @@ class AxisAlignedPlanes(Drawing):
     self.opaque_texture = opaque
     self.linear_interpolation = linear_interpolation
 
-  def set_planes(self, planes, grid_size, ijk_to_xyz, color_plane):
+    self._color_plane = color_plane
+    self._set_planes(planes, grid_size, ijk_to_xyz, color_plane)
+    
+  def _set_planes(self, planes, grid_size, ijk_to_xyz, color_plane):
     gs = grid_size
     from numpy import array, float32, int32, empty
     tap = array(((0,1,2),(0,2,3)), int32)
@@ -484,79 +489,97 @@ class AxisAlignedPlanes(Drawing):
     t.linear_interpolation = self.linear_interpolation
     return t
 
-  def load_textures(self, color_plane):
+  def load_textures(self):
     mtex = self.multitexture
     for t,(k,axis) in enumerate(self.planes):
-      data = color_plane(k, axis)
+      data = self._color_plane(k, axis)
       mtex[t].reload_texture(data, now = True)
 
 # ---------------------------------------------------------------------------
 #
 class ViewAlignedPlanes(Drawing):
   
-  def __init__(self, modulation_color, opaque, linear_interpolation):
+  def __init__(self, color_plane, grid_size, ijk_to_xyz,
+               modulation_color, opaque, linear_interpolation):
 
     name = 'grayscale view aligned planes'
     Drawing.__init__(self, name)
 
+    self._color_plane = color_plane
+    self._grid_size = grid_size
+    self._ijk_to_xyz = ijk_to_xyz
+    self._compute_geometry_constants()
     self.color = modulation_color
     self.use_lighting = False
     self.opaque_texture = opaque
-    self.linear_interpolation = linear_interpolation
+    self._linear_interpolation = linear_interpolation
     self._last_view_direction = None
 
-  def update_geometry(self, view_direction, grid_size, ijk_to_xyz, scene_position):
+  def update_geometry(self, view_direction, scene_position):
     tvd = tuple(view_direction)
     if tvd == self._last_view_direction:
       return
     self._last_view_direction = tvd
     
-    va, tc, ta = self._perp_planes_geometry(view_direction, grid_size, ijk_to_xyz, scene_position)
+    va, tc, ta = self._perp_planes_geometry(view_direction, scene_position)
     self.set_geometry(va, None, ta)
     self.texture_coordinates = tc
 
-  def _perp_planes_geometry(self, view_dir, grid_size, ijk_to_xyz, scene_position):
-    ei,ej,ek = [i-1 for i in grid_size]
+  def _compute_geometry_constants(self):
+    ei,ej,ek = [i-1 for i in self._grid_size]
     grid_corners = ((0,0,0),(ei,0,0),(0,ej,0),(ei,ej,0),(0,0,ek),(ei,0,ek),(0,ej,ek),(ei,ej,ek))
-    corners = ijk_to_xyz * grid_corners	# in volume coords
-    axis = -scene_position.inverse().transform_vector(view_dir)
+    self._corners = self._ijk_to_xyz * grid_corners	# in volume coords
+    # Use view aligned spacing equal to minimum grid spacing along 3 axes.
+    self._plane_spacing = min(self._ijk_to_xyz.axes_lengths())
+    # Use texture coord range [1/2n,1-1/2n], not [0,1].
+    from chimerax.core.geometry.place import scale, translation
+    v_to_tc = scale((1/(ei+1), 1/(ej+1), 1/(ek+1))) * translation((0.5,0.5,0.5)) * self._ijk_to_xyz.inverse()
+    self._vertex_to_texcoord = v_to_tc
+    
+  def _perp_planes_geometry(self, view_direction, scene_position):
+
+    if scene_position.is_identity():
+      axis = -view_direction
+    else:
+      axis = -scene_position.transpose().transform_vector(view_direction)
+
+    # Find number of cut planes
+    corners = self._corners
     from . import offset_range
     omin, omax = offset_range(corners, axis)
-    # Use view aligned spacing equal to minimum grid spacing along 3 axes.
-    spacing = min(ijk_to_xyz.axes_lengths())
+    spacing = self._plane_spacing
     from math import floor, fmod
     n = int(floor((omax - omin) / spacing))
+    
     # Reduce Moire patterns as volume rotated by making a cut plane always intercept box center.
     omid = 0.5*(omin + omax)
     offset = omin + fmod(omid - omin, spacing)
+
+    # Triangulate planes intersecting with volume box
     from . import box_cuts
     va, ta = box_cuts(corners, axis, offset, spacing, n)
-
-    # Use texture coord range [1/2n,1-1/2n], not [0,1].
-    from chimerax.core.geometry.place import scale, translation
-    v_to_tc = scale((1/(ei+1), 1/(ej+1), 1/(ek+1))) * translation((0.5,0.5,0.5)) * ijk_to_xyz.inverse()
-    tc = v_to_tc * va
+    tc = self._vertex_to_texcoord * va
     
     return va, tc, ta
 
-  def load_texture(self, grid_size, color_plane):
+  def load_texture(self):
     t = self.texture
     if t is None:
-      self.texture = t = self._texture_3d(grid_size, color_plane)
-    td = self._texture_3d_data(grid_size, color_plane)
+      self.texture = t = self._texture_3d()
+    td = self._texture_3d_data()
     t.reload_texture(td, now = True)
 
-  def _texture_3d(self, grid_size, color_plane):
-    td = self._texture_3d_data(grid_size, color_plane)
+  def _texture_3d(self):
+    td = self._texture_3d_data()
     from chimerax.core.graphics import Texture
     t = Texture(td, dimension = 3)
-    t.linear_interpolation = self.linear_interpolation
+    t.linear_interpolation = self._linear_interpolation
     return t
 
-  def _texture_3d_data(self, grid_size, color_plane):
+  def _texture_3d_data(self):
     z_axis = 2
-    p = color_plane(0, z_axis, view_aligned=True)
-    sz = grid_size[z_axis]
+    p = self._color_plane(0, z_axis, view_aligned=True)
+    sz = self._grid_size[z_axis]
     if sz == 1:
       td = p
     else:
@@ -564,7 +587,7 @@ class ViewAlignedPlanes(Drawing):
       td = empty((sz,) + tuple(p.shape), p.dtype)
       td[0,:] = p
       for k in range(1,sz):
-        td[k,:] = color_plane(k, z_axis, view_aligned=True)
+        td[k,:] = self._color_plane(k, z_axis, view_aligned=True)
     return td
 
 # ---------------------------------------------------------------------------
