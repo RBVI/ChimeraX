@@ -59,7 +59,7 @@ make_matrix(PyObject *dict, Similarity &matrix, bool is_ss_matrix)
 			PyErr_SetString(PyExc_TypeError, BadKey);
 			return -1;
 		}
-		char *k0 = PyUnicode_AsUTF8(pk0);
+		const char *k0 = PyUnicode_AsUTF8(pk0);
 		if (strlen(k0) != 1) {
 			PyErr_SetString(PyExc_TypeError, BadKey);
 			return -1;
@@ -69,7 +69,7 @@ make_matrix(PyObject *dict, Similarity &matrix, bool is_ss_matrix)
 			PyErr_SetString(PyExc_TypeError, BadKey);
 			return -1;
 		}
-		char *k1 = PyUnicode_AsUTF8(pk1);
+		const char *k1 = PyUnicode_AsUTF8(pk1);
 		if (strlen(k1) != 1) {
 			PyErr_SetString(PyExc_TypeError, BadKey);
 			return -1;

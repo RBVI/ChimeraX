@@ -17,11 +17,11 @@ PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
 ifeq ($(OS),Darwin)
-PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.6
+PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.7
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.6
+PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.7
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 PYLINT = $(PYTHON_EXE) -I -m flake8
