@@ -926,7 +926,7 @@ class Toolshed:
                 raise PermissionError(s)
             else:
                 raise RuntimeError(s)
-        result = cp.stdout.decode("utf-8")
+        result = cp.stdout.decode("utf-8", "backslashreplace")
         _debug("_run_pip result:", result)
         return result
 
