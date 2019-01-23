@@ -94,8 +94,10 @@ def registration_status(session, verbose=False):
 
 def _get_registration(name, email, organization, research, research_other,
                       funding, funding_other, comment):
+    from chimerax.core.errors import UserError
     from urllib.parse import urlencode
     from urllib.request import urlopen
+    from urllib.error import HTTPError
     from xml.dom import minidom
     from xml.parsers.expat import ExpatError
     # Required fields
@@ -117,12 +119,16 @@ def _get_registration(name, email, organization, research, research_other,
         params.append(("funding_other", funding_other))
     if comment:
         params.append(("comment", comment))
-    with urlopen(RegistrationURL, urlencode(params).encode()) as f:
-        text = f.read()
+    try:
+        with urlopen(RegistrationURL, urlencode(params).encode()) as f:
+            text = f.read()
+    except HTTPError:
+        raise UserError("Registration server unavailable.  "
+                        "Please try again later.")
     try:
         dom = minidom.parseString(text)
     except ExpatError:
-        raise UserError("Registration failed.  Please try again later.")
+        raise UserError("Registration server error.  Please try again later.")
     registration = _get_tag_text(dom, "registration")
     if not registration:
         error = _get_tag_text(dom, "error")
