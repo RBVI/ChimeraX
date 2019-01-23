@@ -116,8 +116,14 @@ class GrayScaleDrawing(Drawing):
   show_box_faces = property(showing_box_faces, set_showing_box_faces)
 
   @property
+  def _single_plane(self):
+    si,sj,sk = self.grid_size
+    return si == 1 or sj == 1 or sk == 1
+
+  @property
   def _showing_view_aligned(self):
     return (self.projection_mode == '3d'
+            and not self._single_plane
             and not self._show_ortho_planes
             and not self._show_box_faces)
   
@@ -361,7 +367,7 @@ class GrayScaleDrawing(Drawing):
   def projection_axis(self, view_direction):
     # View matrix maps scene to camera coordinates.
     v = view_direction
-    if self._show_box_faces or self._show_ortho_planes or self.projection_mode == '3d':
+    if self._show_box_faces or self._show_ortho_planes or self._showing_view_aligned:
       return None, False
 
     # Determine which axis has box planes with largest projected area.
@@ -374,7 +380,7 @@ class GrayScaleDrawing(Drawing):
     from chimerax.core.geometry import cross_product, inner_product
     box_face_normals = [cross_product(by,bz), cross_product(bz,bx), cross_product(bx,by)]
     pmode = self.projection_mode
-    if pmode == '2d-xyz':
+    if pmode == '2d-xyz' or pmode == '3d':
       view_areas = [inner_product(v,bfn) for bfn in box_face_normals]
       from numpy import argmax, abs
       axis = argmax(abs(view_areas))
