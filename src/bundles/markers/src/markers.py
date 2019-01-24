@@ -18,13 +18,16 @@ class MarkerSet(Structure):
         Structure.__init__(self, session, name = name, auto_style = False)
         self.ball_scale = 1.0
 
-    def create_marker(self, xyz, rgba, radius, id):
+    def create_marker(self, xyz, rgba, radius, id = None):
         a = self.new_atom('', 'H')
         a.coord = xyz
         a.color = rgba	# 0-255 values
         a.radius = radius
         a.draw_mode = a.BALL_STYLE	# Sphere style hides bonds between markers, so use ball style.
         chain_id = 'M'
+        if id is None:
+            rnums = self.residues.numbers
+            id = 1 if len(rnums) == 0 else (rnums.max() + 1)
         r = self.new_residue('mark', chain_id, id)
         r.add_atom(a)
         return a
