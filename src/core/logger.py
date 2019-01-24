@@ -712,3 +712,4 @@ def log_version(logger):
     from chimerax.core import buildinfo
     from chimerax import app_dirs as ad
     logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, ad.version, buildinfo.date.split()[0]))
+    logger.info(buildinfo.copyright)
