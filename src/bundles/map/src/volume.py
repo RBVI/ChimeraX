@@ -751,7 +751,7 @@ class Volume(Model):
 
 
     tf = self.transfer_function()
-    s.set_colormap(tf, self.solid_brightness_factor, self.transparency_depth)
+    s.set_colormap(tf, self.solid_brightness_factor, self._transparency_thickness())
     s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id, self.matrix_plane)
 
     from . import grayscale
@@ -761,6 +761,15 @@ class Volume(Model):
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
     return s
+
+  # ---------------------------------------------------------------------------
+  #
+  def _transparency_thickness(self):
+    size = self.matrix_size()
+    step = self.data.step
+    thickness = self.transparency_depth * min(sz*st for sz,st in zip(size, step))
+    return thickness
+    
 
   # ---------------------------------------------------------------------------
   #
@@ -2384,7 +2393,7 @@ class Rendering_Options:
       'l4', 'l8', 'l12', 'l16')
     self.color_mode = 'auto8'         # solid rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
-    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z')
+    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self.bt_correction = False              # brightness and transparency
     self.minimal_texture_memory = False

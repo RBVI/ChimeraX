@@ -17,6 +17,7 @@ version = "VERSION" # Chimerax core version
 commit = "COMMIT"   # last commit
 date = "DAYTIME"    # date of last commit
 branch = "BRANCH"   # (modified) branch of last commit
+copyright = "COPYRIGHT"
 
 # general information
 

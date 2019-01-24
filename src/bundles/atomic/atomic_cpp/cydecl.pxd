@@ -165,6 +165,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         const vector[float]* aniso_u()
         float bfactor()
         Bonds bonds()
+        void clear_aniso_u()
         void clear_hide_bits(int)
         const Rgba& color()
         bool connects_to(Atom*)

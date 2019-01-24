@@ -148,6 +148,7 @@ public:
     float  bfactor() const;
     float  bfactor(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.bfactor; }
     const Bonds&  bonds() const { return _bonds; }
+    void  clear_aniso_u();
     bool  connects_to(const Atom* other) const {
         return std::find(_neighbors.begin(), _neighbors.end(), other) != _neighbors.end();
     }

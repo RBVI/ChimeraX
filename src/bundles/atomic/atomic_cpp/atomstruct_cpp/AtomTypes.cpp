@@ -25,6 +25,7 @@
 #include "AtomicStructure.h"
 #include "Bond.h"
 #include "Coord.h"
+#include "PBGroup.h"
 #include "Residue.h"
 #include "tmpl/TAexcept.h"
 
@@ -2116,6 +2117,24 @@ clock_t start_t = clock();
             }
         }
     }
+
+    // "pass 11":  another non-IDATM pass. Change S3 sulfurs with < 2 bonds and
+    // coordinating 3+ metal ions to S3-, regardless of templating
+    //
+    // First count coordinations
+    auto pbg = pb_mgr().get_group(Structure::PBG_METAL_COORDINATION);
+    if (pbg != nullptr) {
+        std::map<Atom*,int> coord_count;
+        for (auto pb: pbg->pseudobonds()) {
+            for (auto a: pb->atoms()) {
+                if (a->idatm_type() == "S3" && a->bonds().size() < 2) {
+                    if (++coord_count[a] > 2)
+                        a->set_computed_idatm_type("S3-");
+                }
+            }
+        }
+    }
+
     // since the rings() "ignore" arg pointed to a local variable, the
     // rings cannot be reused...
     _recompute_rings = true;

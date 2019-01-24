@@ -291,7 +291,7 @@ class ModellerWebService(RunModeller):
             None, None)
         inst.set_state_from_snapshot(data['base data'])
 
-from chimerax.core.webservices.opal_job import OpalJob
+from chimerax.webservices.opal_job import OpalJob
 class ModellerJob(OpalJob):
 
     OPAL_SERVICE = "Modeller9v8Service"

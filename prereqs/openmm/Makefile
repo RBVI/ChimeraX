@@ -3,8 +3,8 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # Using nightly OpenMM Mac and Linux builds from https://anaconda.org/omnia/openmm/files
-PYVER = py36_1
-VERSION = 7.2.2
+PYVER = py37_cuda92_rc_1
+VERSION = 7.3.0
 ifeq ($(OS),Darwin)
 PLATFORM = mac
 endif
@@ -12,6 +12,7 @@ ifeq ($(OS),Linux)
 PLATFORM = linux
 endif
 ifeq ($(OS),Windows)
+PYVER = py37_cuda92_rch39e3cac_1
 PLATFORM = windows
 endif
 
@@ -37,8 +38,8 @@ else
 
 install: $(SOURCE)
 	cd $(SOURCE) ; \
-	  $(RSYNC) lib/python3.6/site-packages/simtk $(PYSITEDIR) ; \
-	  $(RSYNC) lib/ --exclude python3.6 $(OPENMM_LIB_INSTALL)
+	  $(RSYNC) lib/python$(PYTHON_VERSION)/site-packages/simtk $(PYSITEDIR) ; \
+	  $(RSYNC) lib/ --exclude python$(PYTHON_VERSION) $(OPENMM_LIB_INSTALL)
 
 endif
 

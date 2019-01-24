@@ -898,7 +898,11 @@ class Toolshed:
             command.append("--force-reinstall")
         # bundle_name can be either a file path or a bundle name in repository
         command.append(bundle_name)
-        results = self._run_pip(command)
+        try:
+            results = self._run_pip(command)
+        except (RuntimeError, PermissionError) as e:
+            from ..errors import UserError
+            raise UserError(str(e))
         # self._remove_scripts()
         return results
 
@@ -916,8 +920,8 @@ class Toolshed:
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
         if cp.returncode != 0:
-            output = cp.stdout.decode("utf-8")
-            error = cp.stderr.decode("utf-8")
+            output = cp.stdout.decode("utf-8", "backslashreplace")
+            error = cp.stderr.decode("utf-8", "backslashreplace")
             _debug("_run_pip return code:", cp.returncode, file=sys.__stderr__)
             _debug("_run_pip output:", output, file=sys.__stderr__)
             _debug("_run_pip error:", error, file=sys.__stderr__)
@@ -926,7 +930,7 @@ class Toolshed:
                 raise PermissionError(s)
             else:
                 raise RuntimeError(s)
-        result = cp.stdout.decode("utf-8")
+        result = cp.stdout.decode("utf-8", "backslashreplace")
         _debug("_run_pip result:", result)
         return result
 

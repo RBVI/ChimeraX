@@ -887,12 +887,16 @@ both depict isosurfaces.
   <li><b>2d-y</b>
   <li><b>2d-z</b>
   <li><b>2d-xyz</b>
+  <li><b>3d</b>
   </ul>
   Displaying just the planes perpendicular to one data axis 
   (2d-x, 2d-y, or 2d-z) uses less memory than automatically switching
   to those along the data axis most perpendicular to the screen at a given 
-  time (2d-xyz).  The auto setting uses 2d-z for volumes with X or Y dimensions
+  time (2d-xyz). The auto setting uses 2d-z for volumes with X or Y dimensions
   at least 4 times greater than Z, otherwise 2d-xyz.
+  The 3d mode avoids jumps in brightness during rotation by continuously 
+  generating planes perpendicular to the line of sight, 
+  with spacing equal to the smallest spacing (along X, Y, or Z) of the data.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>

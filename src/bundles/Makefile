@@ -26,7 +26,7 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  registration remote_control rest_server \
 	  residue_fit seq_view sim_matrices shell shortcuts sideview \
 	  smooth_lines spacenavigator std_commands stl storm struts surface swapaa \
-	  test texture tug ui viewdockx vive vtk wavefront_obj zone
+	  test texture tug ui viewdockx vive vtk wavefront_obj webservices zone
 
 include $(TOP)/mk/subdir.make
 
@@ -46,6 +46,8 @@ clean:
 	rm -rf __pycache__ Makefile.dependencies
 
 Makefile.dependencies: */bundle_info.xml*
+ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
 
 include Makefile.dependencies
+endif

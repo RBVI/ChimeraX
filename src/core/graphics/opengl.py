@@ -495,7 +495,7 @@ class Render:
         Return a shader that supports the specified capabilities.
         Also activate the shader with glUseProgram().
         The capabilities are specified as at bit field of values from
-        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D,
+        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D,
         SHADER_DEPTH_TEXTURE, SHADER_TEXTURE_CUBEMAP,
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_OUTLINE,
@@ -534,6 +534,8 @@ class Render:
         if (self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_OUTLINE & c
             or self.SHADER_DEPTH_OUTLINE & c):
             shader.set_integer("tex2d", 0)    # Texture unit 0.
+        if self.SHADER_TEXTURE_3D & c:
+            shader.set_integer("tex3d", 0)
         if self.SHADER_DEPTH_TEXTURE & c:
             self._set_depth_texture_shader_variables(shader)
         if self.SHADER_TEXTURE_CUBEMAP & c:
@@ -1573,6 +1575,7 @@ class Outline:
         # Outline code requires non-zero red component.
         r.disable_shader_capabilities(r.SHADER_VERTEX_COLORS
                                       | r.SHADER_TEXTURE_2D
+                                      | r.SHADER_TEXTURE_3D
                                       | r.SHADER_TEXTURE_CUBEMAP
                                       | r.SHADER_LIGHTING)
         r.enable_capabilities |= r.SHADER_ALL_WHITE
@@ -1624,6 +1627,7 @@ shader_options = (
     'SHADER_LIGHTING',
     'SHADER_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
+    'SHADER_TEXTURE_3D',
     'SHADER_DEPTH_TEXTURE',
     'SHADER_TEXTURE_CUBEMAP',
     'SHADER_TEXTURE_3D_AMBIENT',
@@ -2138,7 +2142,10 @@ INSTANCE_COLOR_BUFFER = BufferType(
     requires_capabilities=Render.SHADER_VERTEX_COLORS)
 TEXTURE_COORDS_BUFFER = BufferType(
     'tex_coord',
-    requires_capabilities=Render.SHADER_TEXTURE_2D | Render.SHADER_TEXTURE_OUTLINE | Render.SHADER_DEPTH_OUTLINE)
+    requires_capabilities = (Render.SHADER_TEXTURE_2D |
+                             Render.SHADER_TEXTURE_3D |
+                             Render.SHADER_TEXTURE_OUTLINE |
+                             Render.SHADER_DEPTH_OUTLINE))
 ELEMENT_BUFFER = BufferType(None, buffer_type=GL.GL_ELEMENT_ARRAY_BUFFER,
                             value_type=uint32)
 
@@ -2579,14 +2586,17 @@ class Texture:
         format, iformat, tdtype, ncomp = self.texture_format(data)
         gl_target = self.gl_target
         GL.glBindTexture(gl_target, self.id)
+        level = 0
+        xoffset = yoffset = zoffset = 0
         if dim == 1:
-            GL.glTexSubImage2D(gl_target, 0, 0, 0, size[0], format, tdtype,
-                               data)
+            GL.glTexSubImage1D(gl_target, level, xoffset, size[0],
+                               format, tdtype, data)
         elif dim == 2:
-            GL.glTexSubImage2D(gl_target, 0, 0, 0, size[0], size[1], format,
-                               tdtype, data)
+            GL.glTexSubImage2D(gl_target, level, xoffset, yoffset, size[0], size[1],
+                               format, tdtype, data)
         elif dim == 3:
-            GL.glTexSubImage3D(gl_target, 0, 0, 0, size[0], size[1], size[2],
+            GL.glTexSubImage3D(gl_target, level, xoffset, yoffset, zoffset,
+                               size[0], size[1], size[2],
                                format, tdtype, data)
         GL.glBindTexture(gl_target, 0)
 
