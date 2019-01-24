@@ -447,7 +447,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def is_full_region(self, region = None):
+  def is_full_region(self, region = None, any_step = False):
 
     if region is None:
       region = self.region
@@ -457,7 +457,7 @@ class Volume(Model):
     dmax = tuple([s-1 for s in self.data.size])
     full = (tuple(ijk_min) == (0,0,0) and
             tuple(ijk_max) == dmax and
-            tuple(ijk_step) == (1,1,1))
+            (any_step or tuple(ijk_step) == (1,1,1)))
     return full
 
   # ---------------------------------------------------------------------------
