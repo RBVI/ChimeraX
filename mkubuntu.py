@@ -161,7 +161,7 @@ def main():
     dependencies = UBUNTU_DEPENDENCIES[os_version]
     full_version = subprocess.check_output([
         CHIMERAX_BIN, "--nocolor", "--version"], stderr=subprocess.DEVNULL).decode()
-    full_version = full_version.strip().split('\n')[-1]
+    full_version = full_version.strip().split('\n')[1]
     full_version = full_version.split(':', maxsplit=1)[1].strip()
     version_number, version_date = full_version.split(maxsplit=1)
     version_date = version_date[1:-1].replace('-', '.')
