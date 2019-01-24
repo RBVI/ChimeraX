@@ -25,6 +25,7 @@ def version(session, format=None):
     from chimerax.core import buildinfo
     from chimerax import app_dirs as ad
     session.logger.info("%s %s version: %s" % (ad.appauthor, ad.appname, ad.version))
+    session.logger.info("copyright: %s" % buildinfo.copyright)
     session.logger.info("date: %s" % buildinfo.date)
     session.logger.info("branch: %s" % buildinfo.branch)
     session.logger.info("commit: %s" % buildinfo.commit)
