@@ -13,6 +13,7 @@ import sys
 import copy
 from html import escape
 import os
+import pathlib
 import pkg_resources
 import shutil
 
@@ -32,7 +33,26 @@ See the <a href="http://www.gnu.org/gpl-faq.html" target="_blank">GPL FAQ</a> fo
 It can be found in the <code>bin</code> directory.
 """
 
+openmm_doc = """
+<p>
+<dt><a href="https://openmm.org/" target="_blank">OpenMM</a> version 7.3.0
+<dd>
+A high performance toolkit for molecular simulation.
+<br>
+License type: MIT and LGPL.
+<br>
+All licenses: <a href="licenses/openmm.txt" target="_blank">OpenMM licences</a>
+<p>
+Any work that uses OpenMM should cite the following publication:
+<blockquote>
+P. Eastman, J. Swails, J. D. Chodera, R. T. McGibbon, Y. Zhao, K. A. Beauchamp, L.-P. Wang, A. C. Simmonett, M. P. Harrigan, C. D. Stern, R. P. Wiewiora, B. R. Brooks, and V. S. Pande.
+<i>OpenMM 7: Rapid development of high performance algorithms for molecular dynamics.</i> PLOS Comp. Biol. 13(7): e1005659. (2017)
+</blockquote>
+"""
+
+
 def get_packages_info():
+    """Get information about installed python packages"""
     # based on http://stackoverflow.com/questions/19086030/can-pip-or-setuptools-distribute-etc-list-the-license-used-by-each-install
     # updated for Python3 and modified for use in ChimeraX
 
@@ -89,6 +109,7 @@ def get_packages_info():
 
     return infos
 
+
 def find_license_file(pkg):
     # return absolute path to a file with the license for a package if found
     import os
@@ -132,6 +153,7 @@ def find_license_file(pkg):
                         return license_file
     return license_file
 
+
 def html4_id(name):
     # must match [A-Za-z][-A-Za-z0-9_:.]*
     # Python package names must start with letter, so don't check
@@ -141,10 +163,8 @@ def html4_id(name):
         return '_'
     return ''.join(cvt(c) for c in name)
 
-def print_pkgs(out):
-    infos = get_packages_info()
-    infos.sort(key=(lambda item: item['name'].casefold()))
 
+def print_pkgs(infos, out):
     ids = [html4_id(info['name']) for info in infos]
     print('<p>Packages:', file=out)
     sep = ' '
@@ -173,18 +193,27 @@ def print_pkgs(out):
                 print('License type: <a href="%s">%s</a>' % (fn, escape(license)), file=out)
     print('</dl>', file=out)
 
-def ffmpeg_licenses():
-    ffmpeg_srcdir = os.path.join('..', 'prereqs', 'ffmpeg')
-    makefile = os.path.join(ffmpeg_srcdir, 'Makefile')
+
+def extract_version(srcdir, var_name):
+    makefile = os.path.join(srcdir, 'Makefile')
+    version_str = f"{var_name} ="
     with open(makefile) as f:
-        #FFMPEG_VERSION = 3.2.4
+        #var_name = 7.3.0
         for line in f.readlines():
-            if line.startswith('FFMPEG_VERSION = '):
+            if line.startswith(version_str):
                 version = line.split()[2]
                 break
         else:
-            print('Unable to find ffmpeg version')
-            return
+            return None
+        return version
+
+
+def ffmpeg_licenses():
+    ffmpeg_srcdir = pathlib.Path('..', 'prereqs', 'ffmpeg')
+    version = extract_version(ffmpeg_srcdir, "FFMPEG_VERSION")
+    if version is None:
+        print('Unable to find openmm version')
+        return
     import zipfile
     windist_dir = 'ffmpeg-%s-win64-static' % version
     zip_filename = os.path.join(ffmpeg_srcdir, '%s.zip' % windist_dir)
@@ -216,7 +245,39 @@ def ffmpeg_licenses():
 </html>
 """, file=f)
 
+
+def openmm_licenses():
+    openmm_srcdir = pathlib.Path('..', 'prereqs', 'openmm')
+    version = extract_version(openmm_srcdir, "VERSION")
+    if version is None:
+        print('Unable to find openmm version')
+        return
+    import tarfile
+    # openmm-7.3.0-linux-py37_cuda92_rc_1.tar.bz2
+    tarfiles = openmm_srcdir.glob(f'openmm-{version}-*.tar*')
+    for filename in tarfiles:
+        # TODO: select tarfile for our platform
+        part = filename.parts[-1]
+        with tarfile.open(filename) as f:
+            try:
+                member = f.getmember("licenses/Licenses.txt")
+            except KeyError:
+                continue
+            licenses = f.extractfile(member)
+            content = licenses.read()
+            if not content:
+                continue
+            out_filename = pathlib.Path('licenses', 'openmm.txt')
+            with open(out_filename, 'wb') as out:
+                out.write(content)
+            break
+
+infos = get_packages_info()
+infos.sort(key=(lambda info: info['name'].casefold()))
+
 include_ffmpeg = 'ffmpeg' in sys.argv
+# don't include openmm if it will be automatically included
+include_openmm = not any(info['name'].casefold() == 'openmm' for info in infos)
 
 os.makedirs('licenses', exist_ok=True)
 
@@ -224,16 +285,24 @@ with open('embedded.html.in') as src:
     with open('embedded.html', 'w') as out:
         for line in src.readlines():
             if line == 'PYTHON_PKGS\n':
-                print_pkgs(out)
+                print_pkgs(infos, out)
             elif line == '<!--ffmpeg-->\n':
                 if include_ffmpeg:
                     print(ffmpeg_doc, end='', file=out)
+            elif line == '<!--openmm-->\n':
+                if include_openmm:
+                    print(openmm_doc, end='', file=out)
             else:
                 print(line, end='', file=out)
 
 try:
     if include_ffmpeg:
         ffmpeg_licenses()
+except:
+    pass
+try:
+    if include_openmm:
+        openmm_licenses()
 except:
     pass
 
