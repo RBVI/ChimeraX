@@ -46,6 +46,8 @@ clean:
 	rm -rf __pycache__ Makefile.dependencies
 
 Makefile.dependencies: */bundle_info.xml*
+ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
 
 include Makefile.dependencies
+endif
