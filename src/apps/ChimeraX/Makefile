@@ -106,8 +106,8 @@ Info.plist: chimerax-icon.icns
 endif
 
 Info.plist: mkinfo.py
-#	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || rm Info.plist
-	$(PYTHON_EXE) mkinfo.py $(APP_NAME) || rm Info.plist
+#	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || (rm Info.plist ; exit 1)
+	$(PYTHON_EXE) mkinfo.py $(APP_NAME) || (rm Info.plist ; exit 1)
 
 chimerax-icon.icns:	ChimeraX-icon512.png
 	mkdir chimerax-icon.iconset

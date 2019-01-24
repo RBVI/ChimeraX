@@ -15,4 +15,4 @@ src/about.html:	src/about.html.in
 		$(TOP)/copyright.txt | \
 		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
 		$< > $@ \
-		|| (rm $@ && exit 1)
+		|| (rm $@ ; exit 1)

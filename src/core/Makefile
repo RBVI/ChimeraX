@@ -95,7 +95,7 @@ pylint:
 .PHONY: buildinfo.py
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py
-	$(PYTHON_EXE) mkbuildinfo $(TOP) $(BUNDLE_VERSION) > buildinfo.py || rm -f buildinfo.py
+	$(PYTHON_EXE) mkbuildinfo $(TOP) $(BUNDLE_VERSION) > buildinfo.py || (rm buildinfo.py ; exit 1)
 
 _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx
