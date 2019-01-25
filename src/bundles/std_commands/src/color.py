@@ -960,13 +960,30 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
 
     session.undo.register(undo_state)
 
+def _none_possible_colors(item_colors, attr_vals, non_none_colors, no_value_color):
+    ci = 0
+    colors = []
+    import sys
+    for item_color, val in zip(item_colors, attr_vals):
+        if val is None:
+            if no_value_color is None:
+                colors.append(item_color)
+            else:
+                colors.append(no_value_color.uint8x4())
+        else:
+            colors.append(non_none_colors[ci])
+            ci += 1
+    import numpy
+    return numpy.array(colors, dtype=numpy.uint8)
+
 def color_by_attr(session, attr_name, atoms=None, what=None, target=None, average=None,
-                  palette=None, range='full',
-                  transparency=None, undo_name="color bfactor"):
+                  palette=None, range='full', no_value_color=None,
+                  transparency=None, undo_name="color byattribute"):
     '''
     Color atoms by attribute value using a color palette.
 
-    attr_name : string (actual Python name or ChimeraX command-line "camel case" both acceptable
+    attr_name : string (actual Python name or ChimeraX command-line "camel case" both acceptable,
+      optionally prefixed by 'a:'/'r:'/'m:' for atom/residue/model attribute [default atom]
     atoms : Atoms
     what : list of 'atoms', 'cartoons', 'ribbons', 'surface'
       What to color.  Cartoon and ribbon use average bfactor for each residue.
@@ -975,7 +992,7 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
       Alternate way to specify what to color allows specifying more than one of atoms (a),
       cartoon (c), ribbon (r), surface (s).
     average : 'residues' or None
-      Whether to average b-factors over residues.
+      Whether to average attribute over residues.
     palette : :class:`.Colormap`
       Color map to use with sequential coloring.
     range : 2 comma-separated floats or "full"
@@ -984,6 +1001,14 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
       Percent transparency to use.  If not specified current transparency is preserved.
     '''
 
+    from chimerax.core.errors import UserError
+    if len(attr_name) > 1 and attr_name[1] == ':':
+        attr_level = attr_name[0]
+        if attr_level not in "arm":
+            raise UserError("Unknown attribute level: '%s'" % attr_level)
+        attr_name = attr_name[2:]
+    else:
+        attr_level = 'a'
     input_attr_name = attr_name
     if '_' not in attr_name and attr_name[1:].lower() != attr_name[1:]:
         # apparently camel case
@@ -994,11 +1019,11 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
             else:
                 attr_name += c
 
-    from chimerax.core.errors import UserError
-    from chimerax.atomic import Atom
-    numeric_attrs = session.attr_registration.attributes_returning(Atom, [int, float])
+    from chimerax.atomic import Atom, Residue, Structure
+    class_obj = {'a': Atom, 'r': Residue, 'm': Structure}[attr_level]
+    numeric_attrs = session.attr_registration.attributes_returning(class_obj, [int, float], none_okay=True)
     if attr_name not in numeric_attrs:
-        raise UserError("Unknown/unregistered Atom attribute %s%s" % (attr_name,
+        raise UserError("Unknown/unregistered %s attribute %s%s" % (class_obj.__name__, attr_name,
             "" if attr_name == input_attr_name else " (typed as %s)" % input_attr_name))
 
     if atoms is None:
@@ -1018,24 +1043,107 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
     if transparency is not None:
         opacity = min(255, max(0, int(2.56 * (100 - transparency))))
 
+    if class_obj == Atom:
+        attr_objs = atoms
+    elif class_obj == Residue:
+        attr_objs = atoms.residues
+    else:
+        attr_objs = atoms.structures
     from chimerax.core.commands import plural_of
     attr_names = plural_of(attr_name)
-    if hasattr(atoms, attr_names):
-        atom_attrs = getattr(atoms, attr_names)
-        res_attrs = lambda r: getattr(r.atoms, attr_names)
+    if hasattr(attr_objs, attr_names):
+        # attribute found in Collection; assume non-None values
+        # and try to maximize efficiency
+        if average == 'residues' and class_obj == Atom:
+            residues = atoms.unique_residues
+            res_average = { r: getattr(r.atoms, attr_names).mean() for r in residues }
+            attr_vals = [res_average[r] for r in atoms.residues]
+        else:
+            attr_vals = getattr(attr_objs, attr_names)
+        acolors = _value_colors(palette, range, attr_vals)
+        if 'c' in target or 'f' in target:
+            if class_obj == Atom:
+                if average != 'residues':
+                    # these vars already computed if average == 'residues'...
+                    residues = atoms.unique_residues
+                    res_average = { r: getattr(r.atoms, attr_names).mean() for r in residues }
+                res_attr_vals = [res_average[r] for r in residues]
+            else:
+                residues = atoms.unique_residues
+                if class_obj == Residue:
+                    res_attr_vals = getattr(attr_objs, attr_names)
+                else:
+                    res_attr_vals = getattr(residues.structures, attr_names)
+            rib_colors = ring_colors = _value_colors(palette, range, res_attr_vals)
     else:
-        import numpy
-        atom_attrs = numpy.array([getattr(a, attr_name) for a in atoms])
-        res_attrs = lambda r: numpy.array([getattr(a, attr_name) for a in r.atoms])
+        attr_vals = [getattr(o, attr_name, None) for o in attr_objs]
+        has_none = None in attr_vals
+        if has_none:
+            if average == 'residues' and class_obj == Atom:
+                residues = atoms.unique_residues
+                res_average = {}
+                for r in residues:
+                    vals = []
+                    for a in r.atoms:
+                        val = getattr(a, attr_name, None)
+                        if val is not None:
+                            vals.append(val)
+                    res_average[r] = sum(vals)/len(vals) if vals else None
+                attr_vals = [res_average[r] for r in atoms.residues]
+            non_none_attr_vals = [v for v in attr_vals if v is not None]
+            non_none_colors = _value_colors(palette, range, non_none_attr_vals)
+            acolors = _none_possible_colors(atoms.colors, attr_vals, non_none_colors, no_value_color)
+            if 'c' in target or 'f' in target:
+                if class_obj == Atom:
+                    if average != 'residues':
+                        # these vars already computed if average == 'residues'...
+                        residues = atoms.unique_residues
+                        res_average = {}
+                        for r in residues:
+                            vals = []
+                            for a in r.atoms:
+                                val = getattr(a, attr_name, None)
+                                if val is not None:
+                                    vals.append(val)
+                            res_average[r] = sum(vals)/len(vals) if vals else None
+                    res_attr_vals = [res_average[r] for r in atoms.residues]
+                else:
+                    residues = atoms.unique_residues
+                    if class_obj == Residue:
+                        res_attr_vals = attr_vals
+                    else:
+                        res_attr_vals = [getattr(r.structure, attr_name, None) for r in residues]
+                non_none_res_attr_vals = [v for v in res_attr_vals if v is not None]
+                non_none_res_colors = _value_colors(palette, range, non_none_res_attr_vals)
+                rib_colors = _none_possible_colors(residues.ribbon_colors, res_attr_vals,
+                    non_none_res_colors, no_value_color)
+                ring_colors = _none_possible_colors(residues.ring_colors, res_attr_vals,
+                    non_none_res_colors, no_value_color)
+            # for later min/max message...
+            attr_vals = non_none_attr_vals
+        else:
+            if average == 'residues' and class_obj == Atom:
+                residues = atoms.unique_residues
+                res_average = { r: sum([getattr(a, attr_name) for a in r.atoms])/r.num_atoms for r in residues }
+                attr_vals = [res_average[r] for r in atoms.residues]
+            acolors = _value_colors(palette, range, attr_vals)
+            if 'c' in target or 'f' in target:
+                if class_obj == Atom:
+                    if average != 'residues':
+                        # these vars already computed if average == 'residues'...
+                        residues = atoms.unique_residues
+                        res_average = { r: sum([getattr(a, attr_name)
+                            for a in r.atoms])/r.num_atoms for r in residues }
+                    res_attr_vals = [res_average[r] for r in residues]
+                else:
+                    residues = atoms.unique_residues
+                    if class_obj == Residue:
+                        res_attr_vals = attr_vals
+                    else:
+                        res_attr_vals = [getattr(r.structure, attr_name) for r in residues]
+                rib_colors = ring_colors = _value_colors(palette, range, res_attr_vals)
 
-    if average == 'residues':
-        rbf = {r:res_attrs(r).mean() for r in atoms.unique_residues}
-        abf = [rbf[r] for r in atoms.residues]
-    else:
-        abf = atom_attrs
-    acolors = _value_colors(palette, range, abf)
     acolors[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
-    
     msg = []
     if 'a' in target:
         undo_state.add(atoms, "colors", atoms.colors, acolors)
@@ -1043,32 +1151,26 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
         msg.append('%d atoms' % len(atoms))
 
     if 'c' in target:
-        residues = atoms.unique_residues
-        rbf = [res_attrs(r).mean() for r in residues]
-        rcolors = _value_colors(palette, range, rbf)
-        rcolors[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
-        undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, rcolors)
-        residues.ribbon_colors = rcolors
+        rib_colors[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
+        undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, rib_colors)
+        residues.ribbon_colors = rib_colors
         msg.append('%d residues' % len(residues))
 
     if 'f' in target:
-        residues = atoms.unique_residues
-        rbf = [res_attrs(r).mean() for r in residues]
-        rcolors = _value_colors(palette, range, rbf)
-        rcolors[:, 3] = residues.ring_colors[:, 3] if opacity is None else opacity
-        undo_state.add(residues, "ring_colors", residues.ring_colors, rcolors)
-        residues.ring_colors = rcolors
+        ring_colors[:, 3] = residues.ring_colors[:, 3] if opacity is None else opacity
+        undo_state.add(residues, "ring_colors", residues.ring_colors, ring_colors)
+        residues.ring_colors = ring_colors
         # TODO: msg.append('%d residues' % len(residues))
 
     if 's' in target:
-        ns = color_surfaces_at_atoms(atoms, per_atom_colors = acolors)
+        ns = color_surfaces_at_atoms(atoms, opacity = opacity, per_atom_colors = acolors)
         if ns > 0:
             msg.append('%d surfaces' % ns)
 
     session.undo.register(undo_state)
-    if msg:
+    if msg and len(attr_vals):
         r = 'atom %s range' if average is None else 'residue average %s range'
-        m = ', '.join(msg) + ', %s %.3g to %.3g' % (r % attr_name, min(abf), max(abf))
+        m = ', '.join(msg) + ', %s %.3g to %.3g' % (r % attr_name, min(attr_vals), max(attr_vals))
         session.logger.status(m, log=True)
 
 # -----------------------------------------------------------------------------
@@ -1134,9 +1236,9 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
 from chimerax.core.commands import StringArg
 class TargetArg(StringArg):
     """String containing characters indicating what to color:
-    a = atoms, c = cartoon, r = cartoon, s = surfaces, b = bonds, p = pseudobonds
+    a = atoms, c = cartoon, r = cartoon, s = surfaces, b = bonds, p = pseudobonds, f = (filled) rings
     """
-    name = "characters from 'abcprs'"
+    name = "characters from 'abcfprs'"
 
     @staticmethod
     def parse(text, session):
@@ -1203,10 +1305,11 @@ def register_command(logger):
                             ('average', EnumOf(('residues',))),
                             ('palette', ColormapArg),
                             ('range', ColormapRangeArg),
+                            ('no_value_color', ColorArg),
                             ('transparency', FloatArg)],
                    synopsis="color atoms by bfactor")
-    register('color byattr', desc, color_by_attr, logger=logger)
-    create_alias('color bfactor', 'color byattr bfactor $*', logger=logger)
+    register('color byattribute', desc, color_by_attr, logger=logger)
+    create_alias('color bfactor', 'color byattribute bfactor $*', logger=logger)
 
     # color by nearby atoms
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],

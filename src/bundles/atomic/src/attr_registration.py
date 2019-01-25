@@ -132,18 +132,18 @@ class RegAttrManager(StateManager):
                 reg_class.register_attr = register_attr
         self._class_builtin_types = {}
 
-    def attributes_returning(self, klass, return_types, *, none_okay=False):
-        """Return list of attribute names for class 'klass' whose return types
+    def attributes_returning(self, class_obj, return_types, *, none_okay=False):
+        """Return list of attribute names for class 'class_obj' whose return types
            are the same or a subset of 'return_types'.  If 'none_okay' is True,
            then it is okay for the attribute to also possibly be None.
         """
         # builtin properties
-        if klass not in self._class_builtin_types:
-            self._class_builtin_types[klass] = builtin_types = {}
-            for attr_name, attr_return_types in getattr(klass, '_cython_property_return_info', []):
+        if class_obj not in self._class_builtin_types:
+            self._class_builtin_types[class_obj] = builtin_types = {}
+            for attr_name, attr_return_types in getattr(class_obj, '_cython_property_return_info', []):
                 builtin_types[attr_name] = attr_return_types
         matching_attr_names = []
-        for attr_name, types in self._class_builtin_types[klass].items():
+        for attr_name, types in self._class_builtin_types[class_obj].items():
             matched_one = False
             for t in types:
                 if t in return_types:
@@ -156,8 +156,8 @@ class RegAttrManager(StateManager):
                     matching_attr_names.append(attr_name)
 
         # registered attributes
-        if hasattr(klass, '_attr_registration'):
-            for attr_name, attr_info in klass._attr_registration.reg_attr_info.items():
+        if hasattr(class_obj, '_attr_registration'):
+            for attr_name, attr_info in class_obj._attr_registration.reg_attr_info.items():
                 registrant, default_value, type_info = attr_info
                 attr_type, can_return_none = type_info
                 if attr_type not in return_types:
