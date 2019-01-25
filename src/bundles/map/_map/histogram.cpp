@@ -40,7 +40,7 @@ static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
 
   T *data = seq.values();
   double minimum = DBL_MAX;
-  double maximum = DBL_MIN;
+  double maximum = -DBL_MAX;
 
   int dim = seq.dimension();
   int m0 = 1, m1 = 1, m2 = 1;

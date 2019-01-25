@@ -1949,8 +1949,9 @@ class Histogram_Pane:
           if not self._planes_slider_shown:
               f = self._create_planes_slider()
               self._layout.addWidget(f)
-          k = (v.region[0][axis] + v.region[1][axis]) // 2
-          self._update_plane(k, axis)
+          if v.region[0][axis] == v.region[1][axis]:
+              k = v.region[0][axis]
+              self._update_plane(k, axis)
       else:
           if self._planes_slider_shown:
               f = self._create_planes_slider()
