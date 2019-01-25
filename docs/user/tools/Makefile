@@ -26,6 +26,7 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/label/src/movelabel.png \
 		$(TOP)/src/bundles/map/src/contour.png \
 		$(TOP)/src/bundles/map/src/moveplanes.png \
+		$(TOP)/src/bundles/map/src/crop.png \
 		$(TOP)/src/bundles/map/src/windowing.png \
 		$(TOP)/src/bundles/map_series/src/vseries.png \
 		$(TOP)/src/bundles/markers/src/icons/marker.png \

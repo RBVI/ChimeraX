@@ -32,7 +32,7 @@ class _NoDefault(State):
 NO_DEFAULT = _NoDefault()
 
 # methods that the manager will insert into the managed classes (inheritance won't work)
-def __getattr__(self, attr_name, look_in_class=None):
+def _getattr_(self, attr_name, look_in_class=None):
     if look_in_class is None:
         look_in_class = self.__class__
     try:
@@ -45,8 +45,9 @@ def __getattr__(self, attr_name, look_in_class=None):
             raise
 
 @classmethod
-def register_attr(cls, session, attr_name, registerer, *, default_value=NO_DEFAULT, attr_type=None):
-    cls._attr_registration.register(session, attr_name, registerer, default_value, attr_type)
+def register_attr(cls, session, attr_name, registerer, *, default_value=NO_DEFAULT, attr_type=None,
+        can_return_none=False):
+    cls._attr_registration.register(session, attr_name, registerer, default_value, (attr_type, can_return_none))
 
 # used within the class to hold the registration info
 class AttrRegistration:
@@ -58,7 +59,7 @@ class AttrRegistration:
 
     def get_attr(self, attr_name):
         try:
-            registrant, default_value, attr_type = self.reg_attr_info[attr_name]
+            registrant, default_value, type_info = self.reg_attr_info[attr_name]
         except KeyError:
             if attr_name in dir(self.class_):
                 raise AttributeError("Execution of '%s' object's '%s' property raised AttributeError" % (self.class_.__name__, attr_name)) from None
@@ -68,14 +69,14 @@ class AttrRegistration:
             raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
         return default_value
 
-    def register(self, session, attr_name, registrant, default_value, attr_type):
+    def register(self, session, attr_name, registrant, default_value, type_info):
         if attr_name in self.reg_attr_info:
-            prev_registrant, prev_default, prev_type = self.reg_attr_info[attr_name]
-            if prev_default == default_value and prev_type == attr_type:
+            prev_registrant, prev_default, prev_type_info = self.reg_attr_info[attr_name]
+            if prev_default == default_value and prev_type_info == type_info:
                 return
             raise ValueError("Registration of attr '%s' with %s by %s conflicts with previous"
                 " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
-        self.reg_attr_info[attr_name] = (registrant, default_value, attr_type)
+        self.reg_attr_info[attr_name] = (registrant, default_value, type_info)
         session_attrs = self._session_attrs.setdefault(session, set())
         if attr_name not in session_attrs:
             session_attrs.add(attr_name)
@@ -99,11 +100,18 @@ class AttrRegistration:
         attr_names = self._session_attrs.get(session, [])
         for attr_name in attr_names:
             ses_reg_attr_info[attr_name] = self.reg_attr_info[attr_name]
-        data = {'reg_attr_info': ses_reg_attr_info}
+        data = {'reg_attr_info': ses_reg_attr_info, 'version': 2}
         return data
 
     def restore_session_data(self, session, data):
-        for attr_name, reg_info in data['reg_attr_info'].items():
+        if data.get('version', 1) == 1:
+            reg_attr_info = {}
+            for attr_name, reg_info in data['reg_attr_info'].items():
+                registrant, default_value, attr_type = reg_info
+                reg_attr_info[attr_name] = (registrant, default_value, (attr_type, False))
+        else:
+            reg_attr_info = data['reg_attr_info']
+        for attr_name, reg_info in reg_attr_info.items():
             self.register(session, attr_name, *reg_info)
 
 # used in session so that registered attributes get saved/restored
@@ -120,8 +128,45 @@ class RegAttrManager(StateManager):
         for reg_class in registerable_classes:
             if not hasattr(reg_class, '_attr_registration'):
                 reg_class._attr_registration = AttrRegistration(reg_class)
-                reg_class.__getattr__ = __getattr__
+                reg_class.__getattr__ = _getattr_
                 reg_class.register_attr = register_attr
+        self._class_builtin_types = {}
+
+    def attributes_returning(self, class_obj, return_types, *, none_okay=False):
+        """Return list of attribute names for class 'class_obj' whose return types
+           are the same or a subset of 'return_types'.  If 'none_okay' is True,
+           then it is okay for the attribute to also possibly be None.
+        """
+        # builtin properties
+        if class_obj not in self._class_builtin_types:
+            self._class_builtin_types[class_obj] = builtin_types = {}
+            for attr_name, attr_return_types in getattr(class_obj, '_cython_property_return_info', []):
+                builtin_types[attr_name] = attr_return_types
+        matching_attr_names = []
+        for attr_name, types in self._class_builtin_types[class_obj].items():
+            matched_one = False
+            for t in types:
+                if t in return_types:
+                    matched_one = True
+                else:
+                    if not (t is None and none_okay):
+                        break
+            else:
+                if matched_one:
+                    matching_attr_names.append(attr_name)
+
+        # registered attributes
+        if hasattr(class_obj, '_attr_registration'):
+            for attr_name, attr_info in class_obj._attr_registration.reg_attr_info.items():
+                registrant, default_value, type_info = attr_info
+                attr_type, can_return_none = type_info
+                if attr_type not in return_types:
+                    # this will also catch attr_type of None
+                    continue
+                if can_return_none and not none_okay:
+                    continue
+                matching_attr_names.append(attr_name)
+        return matching_attr_names
 
     # session functions; there is one manager per session, and is only in charge of
     # remembering registrations from its session (atomic instances save their own

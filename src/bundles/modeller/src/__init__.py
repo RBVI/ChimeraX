@@ -20,6 +20,9 @@ class ModellerAPI(BundleAPI):
         if class_name == "ModellerResultsViewer":
             from .tool import ModellerResultsViewer
             return ModellerResultsViewer
+        elif class_name == "ModellerLauncher":
+            from .tool import ModellerLauncher
+            return ModellerLauncher
         from . import comparitive
         return getattr(comparitive, class_name)
 
@@ -27,5 +30,10 @@ class ModellerAPI(BundleAPI):
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(logger)
+
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import ModellerLauncher
+        return ModellerLauncher(session, tool_name)
 
 bundle_api = ModellerAPI()

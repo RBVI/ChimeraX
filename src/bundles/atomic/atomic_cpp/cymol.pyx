@@ -157,12 +157,21 @@ cdef class CyAtom:
     def aniso_u6(self, u6):
         "Set anisotropic temperature factors as a 6 element float array"
         " representing the unique elements of the symmetrix matrix"
-        " containing (u11, u22, u33, u12, u13, u23)."
+        " containing (u11, u22, u33, u12, u13, u23). If 'u6' arg is None,"
+        " then clear any aniso_u values."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if u6 is None:
+            self.cpp_atom.clear_aniso_u()
+            return
+
         if len(u6) != 6:
             raise ValueError("aniso_u6 array isn't length 6")
         # Note C++ layer holds the values in row major order
-        if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.set_aniso_u(u6[0], u6[3], u6[4], u6[1], u6[5], u6[2])
+
+    @property
+    def atomspec(self):
+        return self.string(style="command")
 
     @property
     def bfactor(self):
@@ -472,10 +481,6 @@ cdef class CyAtom:
         return self.cpp_atom.visible()
 
     # instance methods...
-
-    @property
-    def atomspec(self):
-        return self.string(style="command")
 
     def clear_hide_bits(self, bit_mask):
         '''Set the hide bits 'off' that are 'on' in "bitmask"'''
@@ -1245,7 +1250,7 @@ cdef class CyResidue:
     def standard_aa_name(self):
         '''If this is a standard amino acid or modified amino acid, return the 3-letter
         name of the corresponding standard amino acid.  Otherwise return None.  The
-        ability to determine the standard name of a modified amino acid may depend on 
+        ability to determine the standard name of a modified amino acid may depend on
         the presence of MODRES records or their equivalent in the original input.'''
         return self.__class__.get_standard_aa_name(self.name)
 

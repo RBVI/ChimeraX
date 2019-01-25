@@ -102,7 +102,7 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
     glu: GLU (unprotonated), GLH (carboxy oxygen 2 protonated)
     asp: ASP (unprotonated), ASH (carboxy oxygen 2 protonated)
     lys: LYS (positively charged), LYN (neutral)
-    cys: CYS (neutral), CYM (negatively charged)
+    cys: CYS (unspecified), CYM (negatively charged)
 
     For asp/glu, the dictionary values are either 0, 1, or 2: indicating
     no protonation or carboxy oxygen #1 or #2 protonation respectively.
@@ -388,10 +388,8 @@ def _delete_shared_data():
     global search_tree, _radii, _metals, ident_pos_model, _h_coloring
     search_tree = radii = _metals = ident_pos_models = _h_coloring = None
 
-asp_prot_names, asp_res_names = ["OD1", "OD2"], ["ASP", "ASH"]
-glu_prot_names, glu_res_names = ["OE1", "OE2"], ["GLU", "GLH"]
-lys_prot_names, lys_res_names = ["NZ"], ["LYS", "LYN"]
-cys_prot_names, cys_res_names = ["SG"], ["CYS", "CYM"]
+asp_res_names, asp_prot_names = ["ASP", "ASH"], ["OD1", "OD2"]
+glu_res_names, glu_prot_names = ["GLU", "GLH"], ["OE1", "OE2"]
 def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes):
     global _serial
     _serial = None
@@ -505,12 +503,13 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
         hydrogen_totals[atom] = total_hydrogens
 
     schemes = {}
+    # HIS and CYS treated as 'unspecified'; use built-in typing
     for scheme_type, res_names, res_check, typed_atoms in [
             ('his', ["HID", "HIE", "HIP"], None, []),
             ('asp', asp_res_names, _asp_check, asp_prot_names),
             ('glu', glu_res_names, _glu_check, glu_prot_names),
-            ('lys', lys_res_names, _lys_check, lys_prot_names),
-            ('cys', cys_res_names, _cys_check, cys_prot_names) ]:
+            ('lys', ["LYS", "LYN"], _lys_check, ["NZ"]),
+            ('cys', ["CYM"], _cys_check, ["SG"]) ]:
         scheme = prot_schemes.get(scheme_type + '_scheme', None)
         if scheme is None:
             by_name = True

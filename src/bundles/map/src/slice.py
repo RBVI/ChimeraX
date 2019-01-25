@@ -223,11 +223,11 @@ def box_face_axis_side(ijk, region):
     dmin = None
     axis_side = None
     for axis in (0,1,2):
-        for side in (0,1):
-            d = abs(ijk[axis] - region[side][axis])
-            if dmin is None or d < dmin:
-                dmin = d
-                axis_side = (axis, side)
+        side = 0 if ijk[axis] <= 0.5*(region[0][axis]+region[1][axis]) else 1
+        d = abs(ijk[axis] - region[side][axis])
+        if dmin is None or d < dmin:
+          dmin = d
+          axis_side = (axis, side)
     return axis_side
 
 # -----------------------------------------------------------------------------

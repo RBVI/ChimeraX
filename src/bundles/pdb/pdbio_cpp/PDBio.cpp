@@ -201,7 +201,7 @@ static clock_t cum_preloop_t, cum_loop_preswitch_t, cum_loop_switch_t, cum_loop_
 // return input if PDB records implying a structure encountered
 // return PyNone otherwise (e.g. only blank lines, MASTER records, etc.)
 static void *
-read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
+read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     void *input, Structure *as,
     int *line_num, std::unordered_map<int, Atom *> &asn,
     std::vector<Residue *> *start_residues,
@@ -245,8 +245,8 @@ cum_preloop_t += end_t - start_t;
 #ifdef CLOCK_PROFILING
 start_t = clock();
 #endif
-        std::pair<char *, PyObject *> read_vals = (*read_func)(input);
-        char *char_line = read_vals.first;
+        std::pair<const char *, PyObject *> read_vals = (*read_func)(input);
+        const char *char_line = read_vals.first;
         if (char_line[0] == '\0') {
             Py_XDECREF(read_vals.second);
             break;
@@ -1023,26 +1023,26 @@ link_up(PDB& link_ssbond, Structure *as, std::set<Atom *> *conect_atoms, PyObjec
     }
 }
 
-static std::pair<char *, PyObject *>
+static std::pair<const char *, PyObject *>
 read_no_fileno(void *py_file)
 {
-    char *line;
+    const char *line;
     PyObject *py_line = PyFile_GetLine((PyObject *)py_file, 0);
     if (PyBytes_Check(py_line)) {
         line = PyBytes_AS_STRING(py_line);
     } else {
         line = PyUnicode_AsUTF8(py_line);
     }
-    return std::pair<char*, PyObject *>(line, py_line);
+    return std::pair<const char*, PyObject *>(line, py_line);
 }
 
 static char read_fileno_buffer[1024];
-static std::pair<char *, PyObject *>
+static std::pair<const char *, PyObject *>
 read_fileno(void *f)
 {
     if (fgets(read_fileno_buffer, 1024, (FILE *)f) == nullptr)
         read_fileno_buffer[0] = '\0';
-    return std::pair<char *, PyObject *>(read_fileno_buffer, nullptr);
+    return std::pair<const char *, PyObject *>(read_fileno_buffer, nullptr);
 }
 
 static PyObject *
@@ -1065,7 +1065,7 @@ read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic)
     bool per_model_conects = false;
     int line_num = 0;
     bool eof;
-    std::pair<char *, PyObject *> (*read_func)(void *);
+    std::pair<const char *, PyObject *> (*read_func)(void *);
     void *input;
     std::vector<Structure *> *structs = new std::vector<Structure *>();
 #ifdef CLOCK_PROFILING

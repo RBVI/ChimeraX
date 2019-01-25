@@ -267,8 +267,9 @@ class InstalledBundleCache(list):
 
 def _extract_extra_keywords(kwds):
     result = {}
-    all_kwds = [k.strip() for k in kwds.split(',')]
-    for k in all_kwds:
+    if isinstance(kwds, str):
+        kwds = [k.strip() for k in kwds.split(',')]
+    for k in kwds:
         temp = [t.strip() for t in k.split(':', maxsplit=2)]
         if len(temp) == 1:
             result[temp[0]] = ('no description', 'String')

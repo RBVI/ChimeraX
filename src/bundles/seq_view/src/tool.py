@@ -667,6 +667,6 @@ class SequenceViewer(ToolInstance):
                     self.region_browser.new_region(region_name, blocks=blocks, fill=fill,
                         outline=outline, sequence=aseq, cover_gaps=False)
 
-def _start_seq_viewer(session, tool_name):
+def _start_seq_viewer(session, tool_name, alignment):
     return SequenceViewer(session, tool_name, alignment)
 

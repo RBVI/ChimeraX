@@ -27,7 +27,7 @@ class Alignment(State):
         self.session = session
         if isinstance(seqs, tuple):
             seqs = list(seqs)
-        self.seqs = seqs
+        self._seqs = seqs
         self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups
@@ -96,7 +96,7 @@ class Alignment(State):
         if isinstance(models, Chain):
             structures = [models]
         elif models is None:
-            for seq in self.seqs:
+            for seq in self._seqs:
                 if isinstance(seq, StructureSeq) \
                 and seq.existing_residues.chains[0] not in self.associations:
                     self.associate([], seq=seq, reassoc=reassoc, keep_intrinsic=keep_intrinsic)
@@ -123,7 +123,7 @@ class Alignment(State):
             else:
                 aseqs = [seq]
         else:
-            aseqs = self.seqs[:]
+            aseqs = self.seqs
             aseqs.sort(key=lambda s: len(s.ungapped()))
         if structures:
             forw_aseqs = aseqs
@@ -465,6 +465,10 @@ class Alignment(State):
         with stream:
             mod.save(self.session, self, stream)
 
+    @property
+    def seqs(self):
+        return self._seqs[:]
+
     def suspend_notify_viewers(self):
         self._viewer_notification_suspended += 1
 
@@ -521,9 +525,9 @@ class Alignment(State):
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
-        return { 'version': 1, 'seqs': self.seqs, 'ident': self.ident,
+        return { 'version': 1, 'seqs': self._seqs, 'ident': self.ident,
             'file attrs': self.file_attrs, 'file markups': self.file_markups,
-            'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs],
+            'associations': self.associations, 'match maps': [s.match_maps for s in self._seqs],
             'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate,
             'description' : self.description, 'intrinsic' : self.intrinsic }
 

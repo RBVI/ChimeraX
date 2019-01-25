@@ -114,6 +114,19 @@ Atom::bfactor() const
 }
 
 void
+Atom::clear_aniso_u()
+{
+    if (_alt_loc != ' ') {
+        _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
+        assert(i != _alt_loc_map.end());
+        (*i).second.aniso_u.reset();
+    } else if (_aniso_u != nullptr) {
+        delete _aniso_u;
+        _aniso_u = nullptr;
+    }
+}
+
+void
 Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
 {
     if (structure()->active_coord_set() == nullptr)

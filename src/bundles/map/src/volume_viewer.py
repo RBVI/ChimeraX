@@ -1940,24 +1940,30 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   # Show slider below histogram to control which plane of data is shown.
   #
-  def show_plane_slider(self, show, show_volume = True):
+  def show_plane_slider(self, show, axis = 2):
       v = self.volume
       if v is None:
-          return
-
-      if show == self._planes_slider_shown:
           return
 
       if show:
           if not self._planes_slider_shown:
               f = self._create_planes_slider()
               self._layout.addWidget(f)
+          if v.region[0][axis] == v.region[1][axis]:
+              k = v.region[0][axis]
+              self._update_plane(k, axis)
       else:
           if self._planes_slider_shown:
               f = self._create_planes_slider()
               self._layout.removeWidget(f)
       self._planes_slider_shown = show
 
+  # ---------------------------------------------------------------------------
+  #
+  def show_plane(self, show, show_volume = True):
+      v = self.volume
+      if v is None:
+          return
       if show:
           self.show_one_plane(v, show_volume)
       elif v.showing_one_plane:
@@ -2346,6 +2352,7 @@ class Histogram_Pane:
               style = 'plane'
           else:
               style = 'volume'
+          self.show_plane_slider(style == 'plane')
       elif repr in ('surface', 'mesh'):
           style = repr
       self.style.setText(style)
@@ -2373,7 +2380,8 @@ class Histogram_Pane:
 
       if style != 'plane':
           if v is self.volume:
-              self.show_plane_slider(False, show_volume = False)
+              self.show_plane_slider(False)
+              self.show_plane(False, show_volume = False)
           if v.showing_one_plane:
               self.show_full_region(v, show_volume = False)
               
@@ -2400,6 +2408,7 @@ class Histogram_Pane:
                            show_outline_box = True)
           if v is self.volume:
               self.show_plane_slider(True)
+              self.show_plane(True)
               self.enable_move_planes()
           else:
               self.show_one_plane(v, show_volume = False)

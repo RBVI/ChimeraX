@@ -33,7 +33,7 @@ from cpython.ref cimport (
 
 from libcpp.string cimport string
 
-# default maximum lenth is 1024*1024 in msgpack
+# default maximum lenth is 1024*1024 in Python msgpack package
 MSGPACK_MAX_LEN = 2 ** 32 - 1
 
 #
