@@ -91,7 +91,7 @@ else:
     extract(info.stdout)
 
 with open(template, 'r') as input:
-    with open(result, 'w') as output:
+    with open(result, 'w', encoding="utf-8") as output:
         for line in input:
             line = line.replace('VERSION', version)
             line = line.replace('BRANCH', branch)

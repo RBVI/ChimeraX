@@ -52,7 +52,6 @@ class RegionMouseMode(MouseMode):
         ijk_min[axis] = p
         ijk_max[axis] = p + ijk_step[axis] - 1
         v.new_region(ijk_min, ijk_max)
-        print ('show single', ijk_min, ijk_max, axis)
         v.set_representation('solid')
 
     def mouse_drag(self, event):
@@ -102,6 +101,7 @@ class RegionMouseMode(MouseMode):
             self._move_plane(d)
 
     def mouse_up(self, event = None):
+        self.log_volume_command()
         self.map = None
         self.ijk = None
         self.xy_last = None
@@ -123,6 +123,11 @@ class RegionMouseMode(MouseMode):
                 dijk = v.data.xyz_to_ijk_transform.transform_vector(dxyz)
                 istep = dijk[self.axis]
                 self._move_plane(istep)
+
+    def log_volume_command(self):
+        v = self.map
+        if v:
+            log_volume_region_command(v)
 
 class PlanesMouseMode(RegionMouseMode):
     name = 'move planes'
@@ -229,6 +234,13 @@ def drag_distance(v, ijk, axis, dx, dy, viewer, clamp_speed = 3):
 
 def sign(x):
     return 1 if x >= 0 else -1
+
+def log_volume_region_command(v):
+    ijk_min, ijk_max = v.region[:2]
+    region = 'region %d,%d,%d,%d,%d,%d' % (tuple(ijk_min)+tuple(ijk_max))
+    command = 'volume #%s %s' % (v.id_string, region)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(v.session, command)
 
 def register_mousemode(session):
     mm = session.ui.mouse_modes
