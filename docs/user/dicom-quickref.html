@@ -471,11 +471,29 @@ or <a href="commands/clip.html"><b>~clip</b></a>
 Virtual Reality</h3>
 <p>
 DICOM data can be viewed in <a href="vr.html">ChimeraX virtual reality</a>
-and adjusted, manipulated, <i>etc.</i> as described in the preceding sections.
+and adjusted, <a href="#manipulation">manipulated</a>, <i>etc.</i> 
+as described above. Major considerations in VR:
+</p>
+<ul>
+<li>Rendering speed must be fast: the system must be able to keep up with
+changes in the scene, particularly headset movements, or else the experience
+will be nauseating. With large volume data, techniques to 
+speed up rendering include subsampling (step size &gt 1) and
+<a href="#clipping">cropping</a>. 
+Work is ongoing to improve ChimeraX volume rendering performance.
+<br><br>
+<li>Entering commands is inconvenient:
+commands for setting up the display can be entered before the headset
+is donned, but with the headset on, it is more convenient to
+use the hand controllers to click icons (such as in the
+<a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>)
+and to perform other actions.
 All of the ChimeraX <a href="commands/ui.html#mousemode">mouse modes</a>
 are available for assignment to hand-controller buttons.
-Work is underway to improve volume rendering performance.
-</p><p>
+Clicking the Vive menu button (analogous for other systems)
+shows the ChimeraX user interface with icons in the headset.
+</ul>
+<p>
 See also:
 the <a href="http://vr.ucsf.edu/" target="_blank">VR at UCSF</a> website,
 VR setup advice and observations on different systems:
