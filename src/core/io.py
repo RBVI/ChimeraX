@@ -469,7 +469,6 @@ def model_name_from_path(path):
     if name.strip() == '':
         # Path is a directory with trailing "/".  Use directory name.
         name = basename(dirname(path))
-    print('modname', name)
     return name
 
 def export(session, filename, **kw):
