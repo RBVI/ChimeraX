@@ -24,7 +24,8 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
     series.extend(dicom_file_series(dpaths, verbose = verbose))
 
   # Include patient id in model name only if multiple patients found
-  use_patient_id_in_name = (len(set(s.attributes.get('PatientID') for s in series)) > 1)
+  pids = set(s.attributes['PatientID'] for s in series if 'PatientID' in s.attributes)
+  use_patient_id_in_name = unique_prefix_length(pids) if len(pids) > 1 else 0
   for s in series:
     s.use_patient_id_in_name = use_patient_id_in_name
     
@@ -80,7 +81,7 @@ class Series:
     self.attributes = {}
     self._file_info = []
     self._multiframe = None
-    self.use_patient_id_in_name = False
+    self.use_patient_id_in_name = 0
     
   def add(self, path, data):
     # Read attributes that should be the same for all planes.
@@ -100,7 +101,8 @@ class Series:
     attrs = self.attributes
     fields = []
     if self.use_patient_id_in_name and 'PatientID' in attrs:
-      fields.append(attrs['PatientID'])
+      n = self.use_patient_id_in_name
+      fields.append(attrs['PatientID'][:n])
     if 'SeriesDescription' in attrs:
       fields.append(attrs['SeriesDescription'])
     if 'StudyDate' in attrs:
@@ -444,3 +446,13 @@ def numpy_value_type(bits_allocated, pixel_representation, rescale_slope, rescal
     return types[(bits_allocated, pixel_representation)]
 
   raise ValueError('Unsupported value type, bits_allocated = %d' % bits_allocated)
+
+# -----------------------------------------------------------------------------
+#
+def unique_prefix_length(strings):
+  sset = set(strings)
+  maxlen = max(len(s) for s in sset)
+  for i in range(maxlen):
+    if len(set(s[:i] for s in sset)) == len(sset):
+      return i
+  return maxlen
