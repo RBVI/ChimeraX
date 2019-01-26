@@ -450,9 +450,8 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
 
     mlist = []
     status_lines = []
-    import os.path
     for fmt, paths in batch.items():
-        mname = os.path.basename(paths[0]) if name is None else name
+        mname = model_name_from_path(paths[0]) if name is None else name
         open_func = fmt.open_func
         models, status = open_func(session, paths, mname, **kw)
         mlist.extend(models)
@@ -464,6 +463,14 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
 
     return mlist, '\n'.join(status_lines)
 
+def model_name_from_path(path):
+    from os.path import basename, dirname
+    name = basename(path)
+    if name.strip() == '':
+        # Path is a directory with trailing "/".  Use directory name.
+        name = basename(dirname(path))
+    print('modname', name)
+    return name
 
 def export(session, filename, **kw):
     from .safesave import SaveBinaryFile, SaveTextFile, SaveFile
