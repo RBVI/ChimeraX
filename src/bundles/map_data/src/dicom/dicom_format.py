@@ -22,6 +22,13 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
   series = []
   for dpaths in dfiles.values():
     series.extend(dicom_file_series(dpaths, verbose = verbose))
+
+  # Include patient id in model name only if multiple patients found
+  pids = set(s.attributes['PatientID'] for s in series if 'PatientID' in s.attributes)
+  use_patient_id_in_name = unique_prefix_length(pids) if len(pids) > 1 else 0
+  for s in series:
+    s.use_patient_id_in_name = use_patient_id_in_name
+    
   series.sort(key = lambda s: (s.name, s.paths[0]))
   return series
 
@@ -39,12 +46,18 @@ def dicom_file_series(paths, verbose = False):
         s = series[series_id]
       else:
         series[series_id] = s = Series()
-        if verbose:
-          print ('Data set: %s\n%s\n' % (path, d))
       s.add(path, d)
+
   series = tuple(series.values())
   for s in series:
     s.order_slices()
+
+  if verbose:
+    for s in series:
+      path = s.paths[0]
+      d = dcmread(path)
+      print ('Data set: %s\n%s\n' % (path, d))
+
   return series
 
 # -----------------------------------------------------------------------------
@@ -68,7 +81,8 @@ class Series:
     self.attributes = {}
     self._file_info = []
     self._multiframe = None
-
+    self.use_patient_id_in_name = 0
+    
   def add(self, path, data):
     # Read attributes that should be the same for all planes.
     if len(self.paths) == 0:
@@ -85,9 +99,15 @@ class Series:
   @property
   def name(self):
     attrs = self.attributes
-    name = '%s %s %s' % (attrs.get('PatientID', '')[:4],
-                         attrs.get('SeriesDescription', ''),
-                         attrs.get('StudyDate', ''))
+    fields = []
+    if self.use_patient_id_in_name and 'PatientID' in attrs:
+      n = self.use_patient_id_in_name
+      fields.append(attrs['PatientID'][:n])
+    if 'SeriesDescription' in attrs:
+      fields.append(attrs['SeriesDescription'])
+    if 'StudyDate' in attrs:
+      fields.append(attrs['StudyDate'])
+    name = ' '.join(fields)
     return name
 
   def _dump_data(self, data):
@@ -426,3 +446,13 @@ def numpy_value_type(bits_allocated, pixel_representation, rescale_slope, rescal
     return types[(bits_allocated, pixel_representation)]
 
   raise ValueError('Unsupported value type, bits_allocated = %d' % bits_allocated)
+
+# -----------------------------------------------------------------------------
+#
+def unique_prefix_length(strings):
+  sset = set(strings)
+  maxlen = max(len(s) for s in sset)
+  for i in range(maxlen):
+    if len(set(s[:i] for s in sset)) == len(sset):
+      return i
+  return maxlen

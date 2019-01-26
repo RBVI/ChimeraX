@@ -41,7 +41,7 @@ def dicom_grids(paths, log = None, verbose = False):
       grids.append(tgrids)
     else:
       g = DicomGrid(d)
-      grids.append(g)
+      grids.append([g])
   return grids
 
 # -----------------------------------------------------------------------------

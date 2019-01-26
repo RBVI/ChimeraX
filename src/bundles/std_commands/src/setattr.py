@@ -88,7 +88,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         if hasattr(items, attr_names):
             attempt_set_attr(items, attr_names, value, attr_name, attr_value)
         elif create:
-            register_attr(session, items.object_class, attr_name)
+            register_attr(session, items.object_class, attr_name, type(value))
             for item in items:
                 setattr(item, attr_name, value)
         else:
@@ -102,7 +102,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
                 setattr(inst, attr_name, value)
     else:
         if create:
-            register_attr(session, items[0].__class__, attr_name)
+            register_attr(session, items[0].__class__, attr_name, type(value))
         else:
             # First check if they all have the attr
             for item in items:
@@ -122,12 +122,12 @@ def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
             from chimerax.core.errors import UserError
             raise UserError("Cannot set attribute '%s' to '%s'" % (orig_attr_name, value_string))
 
-def register_attr(session, klass, attr_name):
-    if hasattr(klass, 'register_attr'):
-        klass.register_attr(session, attr_name, "setattr command")
+def register_attr(session, class_obj, attr_name, attr_type):
+    if hasattr(class_obj, 'register_attr'):
+        class_obj.register_attr(session, attr_name, "setattr command", attr_type=attr_type)
     else:
         session.logger.warning("Class %s does not support attribute registration; '%s' attribute"
-            " will not be preserved in sessions." % (klass.__name__, attr_name))
+            " will not be preserved in sessions." % (class_obj.__name__, attr_name))
 
 # -----------------------------------------------------------------------------
 #
@@ -137,7 +137,7 @@ def register_command(logger):
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                             ('target', StringArg),
                             ('attr_name', StringArg),
-                            ('attr_value', Or(BoolArg, IntArg, FloatArg, StringArg))],
+                            ('attr_value', Or(IntArg, FloatArg, BoolArg, StringArg))],
                    keyword=[('create', BoolArg)],
                    synopsis="set attributes")
     register('setattr', desc, set_attr, logger=logger)

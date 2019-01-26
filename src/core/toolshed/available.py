@@ -104,9 +104,11 @@ def _build_bundle(d):
     kw = {}
     kw["name"] = d["bundle_name"].replace("_", "-")
     try:
-        # If the cache has references to deleted/uninstalled bundles,
-        # just ignore them
-        bundle_d = d["bundle"][bundle_name]
+        # The '_' vs '-' problem is everywhere, so just try both
+        try:
+            bundle_d = d["bundle"][bundle_name]
+        except KeyError:
+            bundle_d = d["bundle"][kw["name"]]
         kw["version"] = bundle_d["version"]
     except KeyError:
         return None

@@ -22,6 +22,7 @@ def appearance_names():
     dir = preset_directory()
     from os import listdir
     names = [filename[:-6] for filename in listdir(dir) if filename.endswith('.plist')]
+    names.append('initial')
     return names
      
 # -----------------------------------------------------------------------------
@@ -40,7 +41,9 @@ def clut_directory():
      
 # -----------------------------------------------------------------------------
 #
-def appearance_settings(name):
+def appearance_settings(name, v):
+    if name == 'initial':
+        return initial_settings(v)
     dir = preset_directory()
     from os.path import join
     path = join(dir, name + '.plist')
@@ -100,5 +103,11 @@ def appearance_settings(name):
             
     return kw
 
-            
-        
+def initial_settings(v):
+    levels, colors = v.initial_solid_levels()
+    kw = {'solid_levels': levels,
+          'solid_colors': colors,
+          'dim_transparent_voxels': True,
+          }
+    return kw
+
