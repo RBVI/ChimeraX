@@ -455,7 +455,6 @@ class SequenceViewer(ToolInstance):
             for aseq in assoc_aseqs:
                 self.seq_canvas.assoc_mod(aseq)
                 self._update_errors_gaps(aseq)
-            self.seq_canvas.refresh_headers(note_name)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)
         elif note_name == "destroyed":
@@ -463,8 +462,6 @@ class SequenceViewer(ToolInstance):
         elif note_name == "command":
             from .cmd import run
             run(self.session, self, note_data)
-        elif note_name == "add or remove sequences":
-            self.seq_canvas.refresh_headers(note_name)
 
     @property
     def consensus_ignores_gaps(self):

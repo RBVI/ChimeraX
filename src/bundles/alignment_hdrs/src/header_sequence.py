@@ -26,7 +26,7 @@ class HeaderSequence(list):
     fast_update = True # can header be updated quickly if only a few columns are changed?
     single_column_updateable = True # can a single column be updated, or only the entire header?
 
-    def __init__(self, alignment, name=None, eval_while_hidden=False):
+    def __init__(self, alignment, refresh_callback, name=None, eval_while_hidden=False):
         if name is None:
             if not hasattr(self, 'name'):
                 self.name = ""
@@ -34,27 +34,38 @@ class HeaderSequence(list):
             self.name = name
         from weakref import proxy
         self.alignment = proxy(alignment)
+        self.alignment.attach_viewer(self)
+        self.refresh_callback = refresh_callback
         self.visible = False
         self.eval_while_hidden = eval_while_hidden
         self._update_needed = True
         self._edit_bounds = None
+        self._alignment_being_edited = False
         if self.eval_while_hidden:
             self.reevaluate()
 
-    def align_change(self, left, right, *, edit=False):
+    def align_change(self, left, right):
         """alignment changed in positions from 'left' to 'right'"""
-        if edit and not self.fast_update:
+        if self._alignment_being_edited and not self.fast_update:
             if self._edit_bounds is None:
                 self._edit_bounds = (left, right)
             else:
                 self._edit_bounds = (min(left, self._edit_bounds[0]), max(right, self._edit_bounds[1]))
             return
         if single_column_updateable:
-            for pos in range(left, right+1):
-                self[pos] = self.evaluate(pos)
-            self._edit_bounds = None
+            self.reevaluate(left, right)
         else:
             self.reevaluate()
+
+    def alignment_notification(self, note_name, note_data):
+        if note_name == "editing started":
+            self._alignment_being_edited = True
+        if note_name == "editing finished":
+            self._alignment_being_edited = False
+
+    def destroy(self):
+        if not self.alignment.being_destroyed:
+            self.alignment.detach_viewer(self)
 
     def evaluate(self, pos):
         raise NotImplementedError("evaluate() method must be"
@@ -108,46 +119,33 @@ class HeaderSequence(list):
     def reason_requires_update(self, reason):
         return False
 
-    def reevaluate(self):
+    def reevaluate(self, pos1=0, pos2=None):
         """sequences changed, possibly including length"""
+        prev_vals = self[:]
         self[:] = []
-        for pos in range(len(self.alignment.seqs[0])):
+        if pos2 is None:
+            pos2 = len(self.alignment.seqs[0]) - 1
+        for pos in range(pos1, pos2+1):
             self.append(self.evaluate(pos))
         self._update_needed = False
         self._edit_bounds = None
-
-    def refresh(self, reason=None):
-        """Needs to be called from viewer when notified of alignment changes.
-
-        Returns True, False, or a two-tuple indicating whether the header changed.
-        If a two-tuple, it's the starting and ending changed positions (zero-based indexing)"""
-        if not self._update_needed:
-            if reason and self.reason_requires_update(reason):
-                self._update_needed = True
-        if not self.visible and not self.eval_while_hidden:
-            return False
-        if not self._update_needed:
-            if self._edit_bounds and reason == "editing finished":
-                bounds = self._edit_bounds
-                self.align_change(*bounds)
-                return bounds
-            return False
-        prev_vals = self[:]
-        self.reevaluate()
-        cur_vals = self[:]
-        if len(prev_vals) != len(cur_vals):
-            return True
-        if prev_vals == cur_vals:
-            return False
-        if prev_vals[0] != cur_vals[0] and prev_vals[-1] != cur_vals[-1]:
-            return True
-        first_mismatch = last_mismatch = None
-        for i, val in enumerate(prev_vals):
-            if val != cur_vals[i]:
-                last_mismatch = i
-                if first_mismatch is None:
-                    first_mismatch = i
-        return (first_mismatch, last_mismatch)
+        if self.visible and self.refresh_callback:
+            cur_vals = self[:]
+            if len(prev_vals) != len(cur_vals):
+                bounds = None
+            elif prev_vals == cur_vals:
+                return
+            elif prev_vals[0] != cur_vals[0] and prev_vals[-1] != cur_vals[-1]:
+                bounds = None
+            else:
+                first_mismatch = last_mismatch = None
+                for i, val in enumerate(prev_vals):
+                    if val != cur_vals[i]:
+                        last_mismatch = i
+                        if first_mismatch is None:
+                            first_mismatch = i
+                bounds = (first_mismatch, last_mismatch)
+            self.refresh_callback(self, bounds)
 
     @staticmethod
     def session_restore(session, alignment, state):
@@ -163,8 +161,10 @@ class HeaderSequence(list):
     def show(self):
         """Called when sequence shown"""
         self.visible = True
-        if self._update_needed or self._edit_bounds:
-            self.refresh()
+        if self._edit_bounds:
+            self.reevaluate(*self._edit_bounds)
+        elif self._update_needed:
+            self.reevaluate()
 
 class FixedHeaderSequence(HeaderSequence):
     # header relevant if alignment is a single sequence?
@@ -207,15 +207,16 @@ class DynamicHeaderSequence(HeaderSequence):
     # header relevant if alignment is a single sequence?
     single_sequence_relevant = False
 
-    def reason_requires_update(self, reason):
-        return not reason.endswith("association")
-
 class DynamicStructureHeaderSequence(DynamicHeaderSequence):
     single_sequence_relevant = True
     # class is refreshed on association changes by sequence viewer
 
-    def reason_requires_update(self, reason):
-        return True
+    def alignment_notification(self, note_name, note_data):
+        super().alignment_notification(note_name, note_data)
+        if note_name == "association modified":
+            self._update_needed = True
+            if self.visible or self.eval_while_hidden:
+                self.reevaluate()
 
 registered_headers = []
 def register_header(header_class, default_on=True):

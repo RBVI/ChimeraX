@@ -545,7 +545,8 @@ class SeqCanvas:
     """
 
     def destroy(self):
-        pass
+        for header in self.headers:
+            header.destroy()
     """
         chimera.triggers.deleteHandler('Molecule', self._trigID)
         from MAViewer import ADDDEL_SEQS, SEQ_RENAMED
@@ -684,9 +685,9 @@ class SeqCanvas:
         from .settings import CSN_MAJ_NOGAP
         settings = self.sv.settings
         from chimerax.seqalign.headers import Consensus, Conservation
-        self.consensus = Consensus(self.sv.alignment,
+        self.consensus = Consensus(self.sv.alignment, self.refresh_header,
             ignore_gaps=getattr(settings, ALIGNMENT_PREFIX + 'consensus_style') == CSN_MAJ_NOGAP)
-        self.conservation = Conservation(self.sv.alignment, eval_while_hidden=True,
+        self.conservation = Conservation(self.sv.alignment, self.refresh_header, eval_while_hidden=True,
             style=getattr(settings, ALIGNMENT_PREFIX + 'conservation_style'))
         self.headers = [self.consensus, self.conservation]
         startup_headers = settings.startup_headers
@@ -1044,15 +1045,11 @@ class SeqCanvas:
         """
         self.sv.status("Alignment reformatted")
 
-    def refresh_headers(self, notification):
-        update_main_scene = False
-        for hdr in self.headers:
-            refresh = hdr.refresh(notification)
-            if refresh:
-                update_main_scene = True
-                if refresh is True:
-                    refresh = (0, len(hdr)-1)
-                self.lead_block.refresh(hdr, *refresh)
+    def refresh_header(self, hdr, bounds):
+        if bounds is None:
+            bounds = (0, len(hdr)-1)
+        if hasattr(self, 'lead_block'):
+            self.lead_block.refresh(hdr, *bounds)
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.display_header and not self.display_header[seq]:
@@ -1079,29 +1076,29 @@ class SeqCanvas:
             if m in self.sv.associations:
                 self.recolor(self.sv.associations[m])
     """
-    
+
     """TODO
     def _resizescrollregion(self):
         left, top, right, bottom = self.mainCanvas.bbox("all")
-        vm = self.viewMargin
-        left -= vm
-        top -= vm
-        right += vm
-        bottom += vm
-        if self._labelCanvas(grid=0) == self.labelCanvas:
-            lbbox = self.labelCanvas.bbox("all")
-            if lbbox is not None:
-                ll, lt, lr, lb = lbbox
-                ll -= vm
-                lt -= vm
-                lr += vm
-                lb += vm
-                top = min(top, lt)
-                bottom = max(bottom, lb)
-                self.labelCanvas.configure(width=lr-ll,
-                        scrollregion=(ll, top, lr, bottom))
-        self.mainCanvas.configure(scrollregion=
-                        (left, top, right, bottom))
+            vm = self.viewMargin
+            left -= vm
+            top -= vm
+            right += vm
+            bottom += vm
+            if self._labelCanvas(grid=0) == self.labelCanvas:
+                lbbox = self.labelCanvas.bbox("all")
+                if lbbox is not None:
+                    ll, lt, lr, lb = lbbox
+                    ll -= vm
+                    lt -= vm
+                    lr += vm
+                    lb += vm
+                    top = min(top, lt)
+                    bottom = max(bottom, lb)
+                    self.labelCanvas.configure(width=lr-ll,
+                            scrollregion=(ll, top, lr, bottom))
+            self.mainCanvas.configure(scrollregion=
+                            (left, top, right, bottom))
     """
 
     def restore_state(self, session, state):

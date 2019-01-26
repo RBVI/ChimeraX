@@ -18,11 +18,11 @@ from .header_sequence import DynamicHeaderSequence
 class Consensus(DynamicHeaderSequence):
     name = "Consensus"
     sort_val = 1.3
-    def __init__(self, alignment, *, ignore_gaps=False, capitalize_at=0.8):
+    def __init__(self, alignment, refresh_callback, *, ignore_gaps=False, capitalize_at=0.8):
         self.capitalize_at = capitalize_at
         self.conserved = [False] * len(alignment.seqs[0])
         self._ignore_gaps = ignore_gaps
-        super().__init__(alignment)
+        super().__init__(alignment, refresh_callback)
 
     def evaluate(self, pos):
         occur = {}
