@@ -39,12 +39,18 @@ def dicom_file_series(paths, verbose = False):
         s = series[series_id]
       else:
         series[series_id] = s = Series()
-        if verbose:
-          print ('Data set: %s\n%s\n' % (path, d))
       s.add(path, d)
+
   series = tuple(series.values())
   for s in series:
     s.order_slices()
+
+  if verbose:
+    for s in series:
+      path = s.paths[0]
+      d = dcmread(path)
+      print ('Data set: %s\n%s\n' % (path, d))
+
   return series
 
 # -----------------------------------------------------------------------------
