@@ -22,6 +22,12 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
   series = []
   for dpaths in dfiles.values():
     series.extend(dicom_file_series(dpaths, verbose = verbose))
+
+  # Include patient id in model name only if multiple patients found
+  use_patient_id_in_name = (len(set(s.attributes.get('PatientID') for s in series)) > 1)
+  for s in series:
+    s.use_patient_id_in_name = use_patient_id_in_name
+    
   series.sort(key = lambda s: (s.name, s.paths[0]))
   return series
 
@@ -74,7 +80,8 @@ class Series:
     self.attributes = {}
     self._file_info = []
     self._multiframe = None
-
+    self.use_patient_id_in_name = False
+    
   def add(self, path, data):
     # Read attributes that should be the same for all planes.
     if len(self.paths) == 0:
@@ -91,9 +98,14 @@ class Series:
   @property
   def name(self):
     attrs = self.attributes
-    name = '%s %s %s' % (attrs.get('PatientID', '')[:4],
-                         attrs.get('SeriesDescription', ''),
-                         attrs.get('StudyDate', ''))
+    fields = []
+    if self.use_patient_id_in_name and 'PatientID' in attrs:
+      fields.append(attrs['PatientID'])
+    if 'SeriesDescription' in attrs:
+      fields.append(attrs['SeriesDescription'])
+    if 'StudyDate' in attrs:
+      fields.append(attrs['StudyDate'])
+    name = ' '.join(fields)
     return name
 
   def _dump_data(self, data):
