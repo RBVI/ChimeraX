@@ -3,13 +3,16 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-# pypi is missing binary version for macOS
+# Build tables from source on Mac and Linux because:
+# pypi is missing binary version for macOS,
+# and Linux binary links against libhdf5_serial.so.100
+# which is only on recent versions of Ubuntu
 
 VERSION = 3.4.4
 DISTRIBUTION = tables-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/tables-$(VERSION)
 
-ifeq ($(OS),Darwin)
+ifndef WIN32
 FROM_SOURCE = 1
 endif
 
