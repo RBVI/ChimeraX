@@ -512,62 +512,77 @@ class Volume(Model):
         self.initialized_thresholds = True
         return False
 
-#     from chimera import CancelOperation
     try:
       s = self.matrix_value_statistics()
     except CancelOperation:
       return False
 
-    polar = (hasattr(self.data, 'polar_values') and self.data.polar_values)
-
     if replace or len(self.surfaces) == 0:
-      if mfrac is None:
-        v = s.rank_data_value(1-vfrac[0])
-      else:
-        v = s.mass_rank_data_value(1-mfrac[0])
-      rgba = self.default_rgba
-      if polar:
-        levels = [-v,v]
-        neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
-        colors = [neg_rgba,rgba]
-      else:
-        levels = [v]
-        colors = [rgba]
+      levels, colors = self.initial_surface_levels(s, vfrac, mfrac)
       self.remove_surfaces()
       for lev, c in zip(levels, colors):
         self.add_surface(lev, rgba = c)
 
     if replace or len(self.solid_levels) == 0:
-      ilow, imid, imax = 0, 0.8, 1
-      if mfrac is None:
-        vlow = s.rank_data_value(1-vfrac[1])
-        vmid = s.rank_data_value(1-vfrac[0])
-      else:
-        vlow = s.mass_rank_data_value(1-mfrac[1])
-        vmid = s.mass_rank_data_value(1-mfrac[0])
-      vmax = s.maximum
-      rgba = saturate_rgba(self.default_rgba)
-      if polar:
-        self.solid_levels = ((s.minimum,imax), (max(-vmid,s.minimum),imid), (0,ilow),
-                             (0,ilow), (vmid,imid), (vmax,imax))
-        neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
-        self.solid_colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
-      elif getattr(self.data, 'initial_thresholds_linear', False):
-        self.solid_levels = ((s.minimum,0), (s.maximum,1))
-        self.solid_colors = [rgba, rgba]
-      else:
-        if vlow < vmid and vmid < vmax:
-          self.solid_levels = ((vlow,ilow), (vmid,imid), (vmax,imax))
-        else:
-          self.solid_levels = ((vlow,ilow), (0.9*vlow+0.1*vmax,imid), (vmax,imax))
-        self.solid_colors = [rgba]*len(self.solid_levels)
-
+      self.solid_levels, self.solid_colors = self.initial_solid_levels(s, vfrac, mfrac)
+      
     self.initialized_thresholds = True
     self._drawings_need_update()
 
     self.call_change_callbacks('thresholds changed')
 
     return True
+
+  # ---------------------------------------------------------------------------
+  #
+  def initial_surface_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+    if mstats is None:
+      mstats = self.matrix_value_statistics()
+    if mfrac is None:
+      v = mstats.rank_data_value(1-vfrac[0])
+    else:
+      v = mstats.mass_rank_data_value(1-mfrac[0])
+    rgba = self.default_rgba
+    polar = getattr(self.data, 'polar_values', False)
+    if polar:
+      levels = [-v,v]
+      neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+      colors = [neg_rgba,rgba]
+    else:
+      levels = [v]
+      colors = [rgba]
+    return levels, colors
+
+  # ---------------------------------------------------------------------------
+  #
+  def initial_solid_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+    if mstats is None:
+      mstats = self.matrix_value_statistics()
+    ilow, imid, imax = 0, 0.8, 1
+    if mfrac is None:
+      vlow = mstats.rank_data_value(1-vfrac[1])
+      vmid = mstats.rank_data_value(1-vfrac[0])
+    else:
+      vlow = mstats.mass_rank_data_value(1-mfrac[1])
+      vmid = mstats.mass_rank_data_value(1-mfrac[0])
+    vmax = mstats.maximum
+    rgba = saturate_rgba(self.default_rgba)
+    polar = getattr(self.data, 'polar_values', False)
+    if polar:
+      levels = ((mstats.minimum,imax), (max(-vmid,mstats.minimum),imid), (0,ilow),
+                (0,ilow), (vmid,imid), (vmax,imax))
+      neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+      colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
+    elif getattr(self.data, 'initial_thresholds_linear', False):
+      levels = ((mstats.minimum,0), (mstats.maximum,1))
+      colors = [rgba, rgba]
+    else:
+      if vlow < vmid and vmid < vmax:
+        levels = ((vlow,ilow), (vmid,imid), (vmax,imax))
+      else:
+        levels = ((vlow,ilow), (0.9*vlow+0.1*vmax,imid), (vmax,imax))
+      colors = [rgba]*len(levels)
+    return levels, colors
 
   # ---------------------------------------------------------------------------
   #

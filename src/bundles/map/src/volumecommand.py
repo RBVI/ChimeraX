@@ -516,7 +516,7 @@ def level_and_color_settings(v, options):
 
     if 'appearance' in options:
         from . import colortables
-        akw = colortables.appearance_settings(options['appearance'])
+        akw = colortables.appearance_settings(options['appearance'], v)
         kw.update(akw)
                               
     return kw

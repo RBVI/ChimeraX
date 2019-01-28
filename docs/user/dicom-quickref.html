@@ -75,8 +75,8 @@ if the format is specified explicitly:
 </blockquote>
 <p>
 Each stack or dataset that is found will be opened as a separate model.
-The <b>open</b> command option <b>verbose &nbsp;true</b> can be used to show
-DICOM details for debugging purposes.
+The <b>open</b> command <a href="commands/open.html#verbose"><b>verbose</b></a>
+option can be used to show DICOM details for debugging purposes.
 </p>
 
 <table>
@@ -281,7 +281,7 @@ They can be applied by name with the
 <a href="commands/volume.html"><b>volume</b></a> command, for example:
 </p>
 <blockquote>
-<b>volume #1 appearance "Airways II"</b>
+<b>volume #1 <a href="commands/volume.html#appearance">appearance</a> "Airways&nbsp;II"</b>
 </blockquote>
 <p>
 This is only an initial approximation and may not reproduce the
@@ -456,7 +456,7 @@ as described <a href="#manipulation">above</a>.
 The near/far planes can also be manipulated in the
 <a href="tools/sideview.html"><b>Side View</b></a> 
 (menu: <b>Tools... General... Side View</b>).
-</p><p>
+<br>
 To turn off all clipping: <a href="commands/clip.html"><b>clip off</b></a>
 or <a href="commands/clip.html"><b>~clip</b></a>
 </p>
@@ -471,11 +471,29 @@ or <a href="commands/clip.html"><b>~clip</b></a>
 Virtual Reality</h3>
 <p>
 DICOM data can be viewed in <a href="vr.html">ChimeraX virtual reality</a>
-and adjusted, manipulated, <i>etc.</i> as described in the preceding sections.
+and adjusted, <a href="#manipulation">manipulated</a>, <i>etc.</i> 
+as described above. Major considerations in VR:
+</p>
+<ul>
+<li>Rendering speed must be fast: the system must be able to keep up with
+changes in the scene, particularly headset movements, or else the experience
+will be nauseating. With large volume data, techniques to 
+speed up rendering include subsampling (step size &gt 1) and
+<a href="#clipping">cropping</a>. 
+Work is ongoing to improve ChimeraX volume rendering performance.
+<br><br>
+<li>Entering commands is inconvenient:
+commands for setting up the display can be entered before the headset
+is donned, but with the headset on, it is more convenient to
+use the hand controllers to click icons (such as in the
+<a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>)
+and to perform other actions.
 All of the ChimeraX <a href="commands/ui.html#mousemode">mouse modes</a>
 are available for assignment to hand-controller buttons.
-Work is underway to improve volume rendering performance.
-</p><p>
+Clicking the Vive menu button (analogous for other systems)
+shows the ChimeraX user interface with icons in the headset.
+</ul>
+<p>
 See also:
 the <a href="http://vr.ucsf.edu/" target="_blank">VR at UCSF</a> website,
 VR setup advice and observations on different systems:
@@ -496,7 +514,7 @@ target="_blank">Linux</a>
 <h3><a href="#top" class="nounder">&larr;</a>
 Sample Data</h3>
 <p>
-<a href="dicom/4-24533.zip">4-24533.zip</a> 
+<a href="http://www.cgl.ucsf.edu/home/meng/chimerax/docs/user/dicom/4-24533.zip">4-24533.zip</a> 
 &ndash; a DICOM stack representing one CT scan of many in the
 <a href="https://wiki.cancerimagingarchive.net/display/Public/RIDER+Lung+CT#73dc3a9f2e854316974bb0f766ae69ab" 
 target="_blank">RIDER Lung CT</a> collection 
