@@ -72,6 +72,8 @@ def clip(session, near=None, far=None, front=None, back=None, slab=None,
         elif back is not None:
             adjust_plane('back', -back, pos, normal, planes, v)
 
+        warn_on_zero_spacing(session, near, far, front, back)
+        
 def clip_off(session):
     '''
     Turn off all clip planes.
@@ -164,6 +166,17 @@ def report_clip_info(viewer, log):
     log.info(msg)
     log.status(msg)
 
+def warn_on_zero_spacing(session, near, far, front, back):
+    p = session.main_view.clip_planes
+    if near is not None and near != 'off' or far is not None and far != 'off':
+        np, fp = p.find_plane('near'), p.find_plane('far')
+        if np and fp and np.offset(fp.plane_point) >= 0:
+            session.logger.warning('clip far plane is in front of near plane')
+    if front is not None and front != 'off' or back is not None and back != 'off':
+        np, fp = p.find_plane('front'), p.find_plane('back')
+        if np and fp and np.offset(fp.plane_point) >= 0:
+            session.logger.warning('clip back plane is in front of front plane')
+        
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, AxisArg
     from chimerax.core.commands import CenterArg, CoordSysArg, Or, EnumOf, create_alias
