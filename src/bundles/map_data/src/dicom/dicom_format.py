@@ -27,7 +27,7 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
   for dpaths in dfiles.values():
     nsfiles += len(dpaths)
     log.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
-    series.extend(dicom_file_series(dpaths, verbose = verbose))
+    series.extend(dicom_file_series(dpaths, log = log, verbose = verbose))
 
   # Include patient id in model name only if multiple patients found
   pids = set(s.attributes['PatientID'] for s in series if 'PatientID' in s.attributes)
@@ -44,7 +44,7 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
 # -----------------------------------------------------------------------------
 # Group dicom files into series.
 #
-def dicom_file_series(paths, verbose = False):
+def dicom_file_series(paths, log = None, verbose = False):
   series = {}
   from pydicom import dcmread
   for path in paths:
@@ -54,18 +54,18 @@ def dicom_file_series(paths, verbose = False):
       if series_id in series:
         s = series[series_id]
       else:
-        series[series_id] = s = Series()
+        series[series_id] = s = Series(log = log)
       s.add(path, d)
 
   series = tuple(series.values())
   for s in series:
     s.order_slices()
 
-  if verbose:
+  if verbose and log:
     for s in series:
       path = s.paths[0]
       d = dcmread(path)
-      print ('Data set: %s\n%s\n' % (path, d))
+      log.info('Data set: %s\n%s\n' % (path, d))
 
   return series
 
@@ -85,12 +85,14 @@ class Series:
                       'RescaleIntercept', 'RescaleSlope', 'Rows',
                       'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID',
                       'StudyDate']
-  def __init__(self):
+  def __init__(self, log = None):
     self.paths = []
     self.attributes = {}
     self._file_info = []
     self._multiframe = None
+    self._num_times = None
     self.use_patient_id_in_name = 0
+    self._log = log
     
   def add(self, path, data):
     # Read attributes that should be the same for all planes.
@@ -130,18 +132,13 @@ class Series:
       return tuple(fis[0]._ref_instance_uids)
     return None
 
-  def _dump_data(self, data):
-    for elem in data:
-      print(elem)
-      if elem.VR == 'SQ':
-        print ('seq element')
-        for ds in elem:
-          for e2 in ds:
-            print('>>>   ', e2)
-
   @property
   def num_times(self):
-    return int(self.attributes.get('NumberOfTemporalPositions', 1))
+    if self._num_times is None:
+      nt = int(self.attributes.get('NumberOfTemporalPositions', 1))
+    else:
+      nt = self._num_times
+    return nt
 
   @property
   def multiframe(self):
@@ -184,8 +181,11 @@ class Series:
 
     tset = set(fi._time for fi in files)
     if len(tset) != self.num_times:
-      raise ValueError('DICOM series says it has %d times but %d found, %s... %d files.'
-                       % (self.num_times, len(tset), files[0].path, len(files)))
+      if self._log:
+        msg = ('DICOM series header says it has %d times but %d found, %s... %d files.'
+               % (self.num_times, len(tset), files[0].path, len(files)))
+        self._log.warning(msg)
+      self._num_times = len(tset)
 
     tcount = {t:0 for t in tset}
     for fi in files:
@@ -222,17 +222,20 @@ class Series:
 
     if pspacing is None:
       xs = ys = 1
-      print('Missing PixelSpacing, using value 1, %s' % self.paths[0])
+      if self._log:
+        self._log.warning('Missing PixelSpacing, using value 1, %s' % self.paths[0])
     else:
       xs, ys = [float(s) for s in pspacing]
     zs = self.z_plane_spacing()
     if zs is None:
       if len(self._file_info) > 1:
-        print('Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
-              % self.paths[0])
+        if self._log:
+          self._log.warning('Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
+                            % self.paths[0])
       zs = 1 # Single plane image
     elif zs == 0:
-      print('Error. Image planes are at same z-position.  Setting spacing to 1.')
+      if self._log:
+        self._log.warning('Error. Image planes are at same z-position.  Setting spacing to 1.')
       zs = 1
 
     return (xs,ys,zs)
@@ -249,13 +252,16 @@ class Series:
     elif len(files) < 2:
       dz = None
     else:
-      z = [f._position[2] for f in files]
+      nz = self.grid_size()[2]  # For time series just look at first time point.
+      z = [f._position[2] for f in files[:nz]]
       spacings = [(z1-z0) for z0,z1 in zip(z[:-1],z[1:])]
       dzmin, dzmax = min(spacings), max(spacings)
       if dzmax-dzmin > 1e-3*dzmax:
-        print('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.' % (dzmin, dzmax))
-        from os.path import basename
-        print('\n'.join(['%s %s' % (basename(f.path), f._position) for f in files]))
+        if self._log:
+          from os.path import basename
+          msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
+                 '\n'.join(['%s %s' % (basename(f.path), f._position) for f in files]))
+          self._log.warning(msg)
       dz = dzmax
         
     return dz
@@ -332,26 +338,6 @@ class SeriesFile:
       else:
         values = self._sequence_elements(seq[0], seq_names[1:], element_name, convert)
       return values
-
-# Old stuff
-    sfgs = getattr(data, 'SharedFunctionalGroupsSequence', None)
-    if sfgs is not None:
-      sfgds = sfgs[0]
-      pms = getattr(sfgds, 'PixelMeasuresSequence', None)
-      if pms is not None:
-        ps = getattr(pms[0], 'PixelSpacing', None)
-        if ps is not None:
-          print('pixel spacing', ps)
-
-    pffgs = getattr(data, 'PerFrameFunctionalGroupsSequence', None)
-    if pffgs is not None:
-      for f,ffg in enumerate(pffgs):  # one item for each frame
-        pps = getattr(ffg, 'PlanePositionSequence', None)
-        if pps is not None:
-          ipp = getattr(pps[0], 'ImagePositionPatient', None)
-          if ipp is not None:
-            print('Frame', f, 'position', ipp)
-
 
 # -----------------------------------------------------------------------------
 # Find all dicom files (suffix .dcm) in directories and subdirectories and
