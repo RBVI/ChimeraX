@@ -14,39 +14,47 @@
 # -----------------------------------------------------------------------------
 # Python readers for array file formats.
 #
-
+class MapFileFormat:
+  def __init__(self, description, name, prefixes, suffixes, *,
+               batch = False, allow_directory = False):
+    self.description = description
+    self.name = name
+    self.prefixes = prefixes
+    self.suffixes = suffixes
+    self.batch = batch
+    self.allow_directory = allow_directory
+    
 # -----------------------------------------------------------------------------
 # File description, file reader module name, file prefixes, and file suffixes.
 #
-# TODO: Add commented-out file readers.
-file_types = (
-  ('Amira mesh', 'amira', ['amira'], ['am'], False),
-  ('APBS potential', 'apbs', ['apbs'], ['dx'], False),
-  ('BRIX density map', 'dsn6', ['dsn6'], ['brix'], False),
-  ('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map'], False),
-  ('Chimera map', 'cmap', ['cmap'], ['cmp','cmap'], False),
-  ('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor'], False),
-  ('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi'], False),
-  ('DeltaVision map', 'deltavision', ['dv'], ['dv'], False),
-  ('DSN6 density map', 'dsn6', ['dsn6'], ['omap'], False),
-  ('DICOM map', 'dicom', ['dicom'], ['dcm'], True),
-  ('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg'], False),
-  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
-  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
-  ('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt'], False),
-  ('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], True),
-  ('Imaris map', 'ims', ['ims'], ['ims'], False),
-  ('IMOD map', 'imod', ['imodmap'], ['rec'], False),
-  ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
-  ('MRC density map', 'mrc', ['mrc'], ['mrc'], False),
-  ('NetCDF generic array', 'netcdf', ['netcdf'], ['nc'], False),
-  ('Priism microscope image', 'priism', ['priism'], ['xyzw', 'xyzt'], False),
-  ('PROFEC free energy grid', 'profec', ['profec'], ['profec'], False),
-  ('Purdue image format', 'pif', ['pif'], ['pif'], False),
-  ('SITUS map file', 'situs', ['situs'], ['sit','situs'], False),
-  ('SPIDER volume data', 'spider', ['spider'], ['spi','vol'], False),
-  ('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em'], False),
-  ('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd'], False),
+file_formats = (
+  MapFileFormat('Amira mesh', 'amira', ['amira'], ['am']),
+  MapFileFormat('APBS potential', 'apbs', ['apbs'], ['dx']),
+  MapFileFormat('BRIX density map', 'dsn6', ['dsn6'], ['brix']),
+  MapFileFormat('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map']),
+  MapFileFormat('Chimera map', 'cmap', ['cmap'], ['cmp','cmap']),
+  MapFileFormat('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor']),
+  MapFileFormat('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi']),
+  MapFileFormat('DeltaVision map', 'deltavision', ['dv'], ['dv']),
+  MapFileFormat('DSN6 density map', 'dsn6', ['dsn6'], ['omap']),
+  MapFileFormat('DICOM image', 'dicom', ['dicom'], ['dcm'], batch = True, allow_directory = True),
+  MapFileFormat('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg']),
+  MapFileFormat('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5']),
+  MapFileFormat('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub']),
+  MapFileFormat('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt']),
+  MapFileFormat('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], batch = True),
+  MapFileFormat('Imaris map', 'ims', ['ims'], ['ims']),
+  MapFileFormat('IMOD map', 'imod', ['imodmap'], ['rec']),
+  MapFileFormat('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp']),
+  MapFileFormat('MRC density map', 'mrc', ['mrc'], ['mrc']),
+  MapFileFormat('NetCDF generic array', 'netcdf', ['netcdf'], ['nc']),
+  MapFileFormat('Priism microscope image', 'priism', ['priism'], ['xyzw', 'xyzt']),
+  MapFileFormat('PROFEC free energy grid', 'profec', ['profec'], ['profec']),
+  MapFileFormat('Purdue image format', 'pif', ['pif'], ['pif']),
+  MapFileFormat('SITUS map file', 'situs', ['situs'], ['sit','situs']),
+  MapFileFormat('SPIDER volume data', 'spider', ['spider'], ['spi','vol']),
+  MapFileFormat('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em']),
+  MapFileFormat('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd']),
   )
 
 # -----------------------------------------------------------------------------
@@ -97,10 +105,10 @@ def suffix_warning(paths):
   else:
     pluralize = ''
     
-  suffixes = sum([s[3] for s in file_types], [])
+  suffixes = sum([f.suffixes for f in file_formats], [])
   suffix_string = ' '.join(['.'+s for s in suffixes])
 
-  prefixes = sum([s[2] for s in file_types], [])
+  prefixes = sum([f.prefixes for s in file_formats], [])
   prefix_string = ' '.join([s+':' for s in prefixes])
   
   msg = ('Warning: Unrecognized file suffix%s for %s.\n' %
@@ -152,8 +160,8 @@ def open_file(path, file_type = None, log = None, verbose = False):
 #
 def file_type_from_suffix(path):
     
-  for descrip, mname, prefix_list, suffix_list, batch in file_types:
-    for suffix in suffix_list:
+  for ff in file_formats:
+    for suffix in ff.suffixes:
       if has_suffix(path, suffix):
         return mname
   return None
@@ -170,7 +178,7 @@ def file_type_from_colon_specifier(path):
   first_part = path[:colon_position]
   last_part = path[colon_position+1:]
 
-  module_names = [s[1] for s in file_types]
+  module_names = [ff.name for ff in file_formats]
   if last_part in module_names:
     return last_part, first_part
 
@@ -179,9 +187,9 @@ def file_type_from_colon_specifier(path):
 # -----------------------------------------------------------------------------
 #
 def file_type_is_batched(file_type):
-  for descrip, mname, prefix_list, suffix_list, batch in file_types:
-    if mname == file_type:
-      return batch
+  for ff in file_formats:
+    if ff.name == file_type:
+      return ff.batch
   raise ValueError('Unknown file type %s' % file_type)
 
 # -----------------------------------------------------------------------------
