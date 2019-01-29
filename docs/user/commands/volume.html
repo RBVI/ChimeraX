@@ -960,19 +960,33 @@ both depict isosurfaces.
   <a href="#top" class="nounder">&bull;</a>
   <a name="appearance"></a>
   <b>appearance</b> &nbsp;<i>preset-name</i>
+  <br>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>appearance</b> &nbsp;<b>initial</b>
 <br>
 Apply an initial approximation of the settings in a
 <a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
-target="_blank">Horos 3D preset</a> to the solid display. 
+target="_blank">Horos 3D preset</a> to the solid display 
 (<a href="https://horosproject.org/about/"
 target="_blank">Horos</a> is a program for medical image 
-visualization and analysis.)
+visualization and analysis)
+and set <a href="#dimvox"><b>dimTransparentVoxels</b></a> to false.
 The <i>preset-name</i> should be enclosed in quotation marks if it
-contains any spaces. This initial approximation may not reproduce the appearance 
-in Horos very faithfully, as there is not a one-to-one correspondence
-between the settings in the two programs, and some parts of the preset
-definition files may have been ignored or misinterpreted.
+contains any spaces. This approximation may not reproduce 
+the appearance in Horos very faithfully, as there is not a 
+one-to-one correspondence between the settings in the two programs,
+and some parts of the preset definition files may have been 
+ignored or misinterpreted.
+<p>
+Besides a preset name, <b>initial</b> can be used to (re)set to the
+solid threshold values and colors that would have been chosen automatically 
+for the data when first shown as solid, with 
+<a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
+This is primarily useful for <a href="#planes">single-plane</a>
+or thin-slab display after a 3D preset had been used on
+the entire volume or a thick subregion.
 See also: <a href="../dicom-quickref.html">DICOM Quick Reference</a>
+</p>
 </blockquote>
 
 <a name="vop"></a>

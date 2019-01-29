@@ -87,6 +87,10 @@ class FileFormat:
         Sequence of filename extensions in lowercase
         starting with period (or empty)
 
+    ..attribute:: allow_directory
+
+        Whether format can be read from a directory.
+
     ..attribute:: nicknames
 
         Alternative names for format, usually includes a short abbreviation.
@@ -133,6 +137,7 @@ class FileFormat:
         self.name = format_name
         self.category = category
         self.extensions = extensions
+        self.allow_directory = False
         self.nicknames = nicknames
         self.mime_types = mime
         self.dangerous = dangerous
@@ -206,7 +211,7 @@ _file_formats = {}
 
 def register_format(format_name, category, extensions, nicknames=None,
                     *, mime=(), reference=None, dangerous=None, icon=None,
-                    encoding=None, synopsis=None, **kw):
+                    encoding=None, synopsis=None, allow_directory=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param format_name: format's name
@@ -246,6 +251,8 @@ def register_format(format_name, category, extensions, nicknames=None,
     ff = _file_formats[format_name] = FileFormat(
         format_name, category, exts, nicknames, mime, reference, dangerous,
         icon, encoding, synopsis)
+    if allow_directory is not None:
+        ff.allow_directory = allow_directory
     other_kws = set(['open_func', 'export_func', 'export_notes', 'batch'])
     for attr in kw:
         if attr in other_kws:

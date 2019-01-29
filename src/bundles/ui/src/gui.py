@@ -387,6 +387,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
 
+        from .open_folder import OpenFolderDialog
+        self._open_folder = OpenFolderDialog(self, session)
+
         from .save_dialog import MainSaveDialog, ImageSaver
         self.save_dialog = MainSaveDialog(self)
         ImageSaver(self.save_dialog).register()
@@ -562,6 +565,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         # Using session.ui.thread_safe() doesn't help either(!)
         from PyQt5.QtCore import QTimer
         QTimer.singleShot(0, _qt_safe)
+
+    def folder_open_cb(self, session):
+        self._open_folder.display(session)
 
     def file_save_cb(self, session):
         self.save_dialog.display(self, session)
@@ -794,6 +800,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         open_action.setToolTip("Open input file")
         open_action.triggered.connect(lambda arg, s=self, sess=session: s.file_open_cb(sess))
         file_menu.addAction(open_action)
+        open_folder_action = QAction("Open Folder...", self)
+        open_folder_action.setToolTip("Open data in folder")
+        open_folder_action.triggered.connect(lambda arg, s=self, sess=session: s.folder_open_cb(sess))
+        file_menu.addAction(open_folder_action)
         save_action = QAction("&Save...", self)
         save_action.setShortcut("Ctrl+S")
         save_action.setToolTip("Save output file")

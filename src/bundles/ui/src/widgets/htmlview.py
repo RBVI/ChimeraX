@@ -366,6 +366,9 @@ class ChimeraXHtmlView(HtmlView):
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
+            if not _installable(filename):
+                self.session.logger.info("Bundle saved as %s" % filename)
+                continue
             from chimerax.ui.ask import ask
             how = ask(self.session,
                       "Install %s for:" % filename,
@@ -382,6 +385,30 @@ class ChimeraXHtmlView(HtmlView):
                                                  self.session.logger,
                                                  per_user=per_user,
                                                  session=self.session)
+
+
+def _installable(filename):
+    import pkginfo, re
+    from distutils.version import LooseVersion as Version
+    import chimerax.core
+    try:
+        w = pkginfo.Wheel(filename)
+    except:
+        return False
+    pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
+    for req in w.requires_dist:
+        m = pat.match(req)
+        if m:
+            op = m.group("op")
+            version = m.group("version")
+            if op == ">=":
+                return Version(version) >= Version(chimerax.core.version)
+            elif op == "==":
+                return Version(version) == Version(chimerax.core.version)
+            elif op == "<=":
+                return Version(version) <= Version(chimerax.core.version)
+            return False
+    return True
 
 
 def cxcmd(session, url):

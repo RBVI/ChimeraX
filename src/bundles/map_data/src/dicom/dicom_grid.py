@@ -20,6 +20,8 @@ def dicom_grids(paths, log = None, verbose = False):
   from .dicom_format import find_dicom_series, DicomData
   series = find_dicom_series(paths, verbose = verbose)
   grids = []
+  derived = []	# For grouping derived series with original series
+  sgrids = {}
   for s in series:
     d = DicomData(s)
     if d.mode == 'RGB':
@@ -41,7 +43,26 @@ def dicom_grids(paths, log = None, verbose = False):
       grids.append(tgrids)
     else:
       g = DicomGrid(d)
-      grids.append([g])
+      if s.attributes.get('BitsAllocated') == 1:
+        print ('binary', s.name)
+        g.binary = True		# Use initial thresholds for binary segmentation
+      rs = getattr(s, 'refers_to_series', None)
+      if rs:
+        derived.append((g, rs))
+      else:
+        sgrids[s] = gg = [g]
+        grids.append(gg)
+
+  # Group derived series with the original series
+  channel_colors = [(1,0,0,1), (0,1,0,1), (0,0,1,1)]
+  for g,rs in derived:
+    sg = sgrids[rs]
+    if len(sg) == 1:
+      sg[0].channel = 1
+    sg.append(g)
+    g.channel = len(sg)
+    g.rgba = channel_colors[(g.channel-2) % len(channel_colors)]
+    
   return grids
 
 # -----------------------------------------------------------------------------
@@ -57,6 +78,8 @@ class DicomGrid(GridData):
                       path = d.paths, name = d.name,
                       file_type = 'dicom', time = time, channel = channel)
 
+    self.multichannel = (channel is not None)
+
     self.initial_plane_display = True
     self.initial_thresholds_linear = True
     self.ignore_pad_value = d.pad_value
@@ -67,6 +90,7 @@ class DicomGrid(GridData):
 
     from ..readarray import allocate_array
     m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
+    c = self.channel if self.multichannel else None
     self.dicom_data.read_matrix(ijk_origin, ijk_size, ijk_step,
-                                self.time, self.channel, m, progress)
+                                self.time, c, m, progress)
     return m
