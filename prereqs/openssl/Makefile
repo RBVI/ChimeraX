@@ -97,7 +97,7 @@ install: $(SOURCE)
 	    $(shlibdir)/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
 	    @rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
 	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT)
-	cd $(libdir)/engines; chmod ug+w *.dylib; for f in *.dylib; do \
+	cd $(libdir)/engines*; chmod ug+w *.dylib; for f in *.dylib; do \
 		install_name_tool -change \
 			$(shlibdir)/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
 			@rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
