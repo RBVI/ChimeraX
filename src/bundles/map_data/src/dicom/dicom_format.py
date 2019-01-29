@@ -225,6 +225,9 @@ class Series:
         print('Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
               % self.paths[0])
       zs = 1 # Single plane image
+    elif zs == 0:
+      print('Error. Image planes are at same z-position.  Setting spacing to 1.')
+      zs = 1
 
     return (xs,ys,zs)
 
@@ -240,7 +243,15 @@ class Series:
     elif len(files) < 2:
       dz = None
     else:
-      dz = files[1]._position[2] - files[0]._position[2]
+      z = [f._position[2] for f in files]
+      spacings = [(z1-z0) for z0,z1 in zip(z[:-1],z[1:])]
+      dzmin, dzmax = min(spacings), max(spacings)
+      if dzmax-dzmin > 1e-3*dzmax:
+        print('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.' % (dzmin, dzmax))
+        from os.path import basename
+        print('\n'.join(['%s %s' % (basename(f.path), f._position) for f in files]))
+      dz = dzmax
+        
     return dz
 
 # -----------------------------------------------------------------------------
