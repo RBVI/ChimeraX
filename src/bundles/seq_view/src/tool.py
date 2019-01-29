@@ -464,6 +464,14 @@ class SequenceViewer(ToolInstance):
             run(self.session, self, note_data)
 
     @property
+    def consensus_capitalize_theshold(self):
+        return self.seq_canvas.consensus_capitalize_theshold
+
+    @consensus_capitalize_theshold.setter
+    def consensus_capitalize_theshold(self, capitalize_theshold):
+        self.seq_canvas.consensus_capitalize_theshold = capitalize_theshold
+
+    @property
     def consensus_ignores_gaps(self):
         return self.seq_canvas.consensus_ignores_gaps
 

@@ -44,6 +44,9 @@ class HeaderSequence(list):
         if self.eval_while_hidden:
             self.reevaluate()
 
+    def add_options(self, options_container, *, category=None, verbose_labels=True):
+        pass
+
     def align_change(self, left, right):
         """alignment changed in positions from 'left' to 'right'"""
         if self._alignment_being_edited and not self.fast_update:
@@ -105,6 +108,9 @@ class HeaderSequence(list):
     def __lt__(self, other):
         return self.sort_val < other.sort_val
 
+    def num_options(self):
+        return 0
+
     def positive_hist_infinity(self, position):
         """Convenience function to map arbitrary positive number to 0-1 range
 
@@ -119,14 +125,20 @@ class HeaderSequence(list):
     def reason_requires_update(self, reason):
         return False
 
-    def reevaluate(self, pos1=0, pos2=None):
+    def reevaluate(self, pos1=0, pos2=None, *, evaluation_func=None):
         """sequences changed, possibly including length"""
+        if not self.visible and not self.eval_while_hidden:
+            self._update_needed = True
+            return
         prev_vals = self[:]
-        self[:] = []
         if pos2 is None:
             pos2 = len(self.alignment.seqs[0]) - 1
-        for pos in range(pos1, pos2+1):
-            self.append(self.evaluate(pos))
+        if evaluation_func is None:
+            self[:] = []
+            for pos in range(pos1, pos2+1):
+                self.append(self.evaluate(pos))
+        else:
+            evaluation_func(pos1, pos2)
         self._update_needed = False
         self._edit_bounds = None
         if self.visible and self.refresh_callback:
@@ -165,6 +177,20 @@ class HeaderSequence(list):
             self.reevaluate(*self._edit_bounds)
         elif self._update_needed:
             self.reevaluate()
+
+    def _add_options(self, options_container, category, verbose_labels, option_data):
+        for base_label, attr_name, opt_class, balloon in option_data:
+            option = opt_class(self._final_option_label(base_label, verbose_labels), None, None,
+                balloon=balloon, attr_name=attr_name, settings=self.settings)
+            if category is not None:
+                options_container.add_option(category, option)
+            else:
+                options_container.add_option(option)
+
+    def _final_option_label(self, base_label, verbose_labels):
+        if verbose_labels:
+            return "%s: %s" % (self.name, base_label)
+        return base_label[0].upper() + base_label[1:]
 
 class FixedHeaderSequence(HeaderSequence):
     # header relevant if alignment is a single sequence?
@@ -214,9 +240,7 @@ class DynamicStructureHeaderSequence(DynamicHeaderSequence):
     def alignment_notification(self, note_name, note_data):
         super().alignment_notification(note_name, note_data)
         if note_name == "association modified":
-            self._update_needed = True
-            if self.visible or self.eval_while_hidden:
-                self.reevaluate()
+            self.reevaluate()
 
 registered_headers = []
 def register_header(header_class, default_on=True):

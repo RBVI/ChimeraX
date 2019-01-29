@@ -394,6 +394,7 @@ class SeqCanvas:
             lastBlock=[line1, line2, pos1+motion, pos2+motion])
         self._checkPoint(offset=offset, left=left, right=right)
 
+    #TODO: also add them to settings Header category
     def addHeaders(self, headers):
         headers = [hd for hd in headers if hd not in self.headers]
         if not headers:
@@ -465,16 +466,20 @@ class SeqCanvas:
     """
 
     @property
+    def consensus_capitalize_threshold(self):
+        return self.consensus.capitalize_threshold
+
+    @consensus_capitalize_threshold.setter
+    def consensus_capitalize_threshold(self, capitalize_threshold):
+        self.consensus.capitalize_threshold = capitalize_threshold
+
+    @property
     def consensus_ignores_gaps(self):
         return self.consensus.ignore_gaps
 
     @consensus_ignores_gaps.setter
     def consensus_ignores_gaps(self, ignore_gaps):
-        if self.consensus.ignore_gaps == ignore_gaps:
-            return
         self.consensus.ignore_gaps = ignore_gaps
-        if self.consensus.visible:
-            self.lead_block.refresh(self.consensus, 0, len(self.consensus)-1)
 
     @property
     def conservation_style(self):
@@ -482,11 +487,7 @@ class SeqCanvas:
 
     @conservation_style.setter
     def conservation_style(self, style):
-        if self.conservation.style == style:
-            return
         self.conservation.style = style
-        if self.conservation.visible:
-            self.lead_block.refresh(self.conservation, 0, len(self.conservation)-1)
 
     """TODO
     def _copyCB(self, e):
@@ -527,6 +528,7 @@ class SeqCanvas:
     def dehighlightName(self):
         self.lead_block.dehighlightName()
 
+    #TODO: also remove them from settings Header category
     def deleteHeaders(self, headers):
         if not headers:
             return
@@ -682,13 +684,10 @@ class SeqCanvas:
         """
         
     def layout_alignment(self):
-        from .settings import CSN_MAJ_NOGAP
         settings = self.sv.settings
         from chimerax.seqalign.headers import Consensus, Conservation
-        self.consensus = Consensus(self.sv.alignment, self.refresh_header,
-            ignore_gaps=getattr(settings, ALIGNMENT_PREFIX + 'consensus_style') == CSN_MAJ_NOGAP)
-        self.conservation = Conservation(self.sv.alignment, self.refresh_header, eval_while_hidden=True,
-            style=getattr(settings, ALIGNMENT_PREFIX + 'conservation_style'))
+        self.consensus = Consensus(self.sv.alignment, self.refresh_header)
+        self.conservation = Conservation(self.sv.alignment, self.refresh_header)
         self.headers = [self.consensus, self.conservation]
         startup_headers = settings.startup_headers
         use_disp_default = startup_headers == None
