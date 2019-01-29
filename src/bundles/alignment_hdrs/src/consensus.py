@@ -18,17 +18,39 @@ from .header_sequence import DynamicHeaderSequence
 class Consensus(DynamicHeaderSequence):
     name = "Consensus"
     sort_val = 1.3
-    def __init__(self, alignment, *, ignore_gaps=False, capitalize_at=0.8):
-        self.capitalize_at = capitalize_at
+    def __init__(self, alignment, refresh_callback):
+        self.settings = get_settings(alignment.session)
+        self.handler_ID = self.settings.triggers.add_handler('setting changed', lambda *args: self.reevaluate())
         self.conserved = [False] * len(alignment.seqs[0])
-        self._ignore_gaps = ignore_gaps
-        super().__init__(alignment)
+        super().__init__(alignment, refresh_callback)
+
+    def add_options(self, options_container, *, category=None, verbose_labels=True):
+        from chimerax.ui.options import FloatOption, BooleanOption
+        option_data =[
+            ("capitalization threshold", 'capitalize_threshold', FloatOption,
+                "Capitalize consensus letter if at least this fraction of sequences are identical"),
+            ("ignore gap characters", 'ignore_gaps', BooleanOption,
+                "Whether gap characters are considered for the consensus character")
+        ]
+        self._add_options(options_container, category, verbose_labels, option_data)
+
+    @property
+    def capitalize_threshold(self):
+        return self.settings.capitalize_threshold
+
+    @capitalize_threshold.setter
+    def capitalize_threshold(self, capitalize_threshold):
+        self.settings.capitalize_threshold = capitalize_threshold
+
+    def destroy(self):
+        self.handler_ID.remove()
+        super().destroy()
 
     def evaluate(self, pos):
         occur = {}
         for i in range(len(self.alignment.seqs)):
             let = self.alignment.seqs[i][pos]
-            if self._ignore_gaps and not let.isalpha():
+            if self.settings.ignore_gaps and not let.isalpha():
                 continue
             try:
                 occur[let] += 1
@@ -45,7 +67,7 @@ class Consensus(DynamicHeaderSequence):
         self.conserved[pos] = False
         if let is None:
             return ' '
-        if num / len(self.alignment.seqs) >= self.capitalize_at:
+        if num / len(self.alignment.seqs) >= self.settings.capitalize_threshold:
             retlet = let.upper()
             if num == len(self.alignment.seqs):
                 self.conserved[pos] = True
@@ -55,16 +77,14 @@ class Consensus(DynamicHeaderSequence):
 
     @property
     def ignore_gaps(self):
-        return self._ignore_gaps
+        return self.settings.ignore_gaps
 
     @ignore_gaps.setter
     def ignore_gaps(self, ignore_gaps):
-        if ignore_gaps != self._ignore_gaps:
-            self._ignore_gaps = ignore_gaps
-            if self.visible or self.evaluate_while_hidden:
-                self.reevaluate()
-            else:
-                self._update_needed = True
+        self.settings.ignore_gaps = ignore_gaps
+
+    def num_options(self):
+        return 2
 
     def position_color(self, pos):
         if self[pos].isupper():
@@ -77,3 +97,17 @@ class Consensus(DynamicHeaderSequence):
         """sequences changed, possibly including length"""
         self.conserved = [False] * len(self.alignment.seqs[0])
         super().reevaluate()
+
+from chimerax.core.settings import Settings
+class ConsensusSettings(Settings):
+    EXPLICIT_SAVE = {
+        'capitalize_threshold': 0.8,
+        'ignore_gaps': False
+    }
+
+_settings = None
+def get_settings(session):
+    global _settings
+    if _settings is None:
+        _settings = ConsensusSettings(session, "consensus alignment header")
+    return _settings
