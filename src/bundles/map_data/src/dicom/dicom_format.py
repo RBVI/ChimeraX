@@ -30,6 +30,9 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
     s.use_patient_id_in_name = use_patient_id_in_name
     
   series.sort(key = lambda s: (s.name, s.paths[0]))
+
+  find_reference_series(series)
+      
   return series
 
 # -----------------------------------------------------------------------------
@@ -109,6 +112,17 @@ class Series:
       fields.append(attrs['StudyDate'])
     name = ' '.join(fields)
     return name
+
+  @property
+  def plane_uids(self):
+    return tuple(fi._instance_uid for fi in self._file_info)
+
+  @property
+  def ref_plane_uids(self):
+    fis = self._file_info
+    if len(fis) == 1 and hasattr(fis[0], '_ref_instance_uids'):
+      return tuple(fis[0]._ref_instance_uids)
+    return None
 
   def _dump_data(self, data):
     for elem in data:
@@ -247,6 +261,12 @@ class SeriesFile:
     nf = getattr(data, 'NumberOfFrames', None)
     self._num_frames = int(nf) if nf is not None else None
 
+    inst = getattr(data, 'SOPInstanceUID', None)
+    self._instance_uid = inst
+    
+    ref = getattr(data, 'ReferencedSOPInstanceUID', None)
+    self._ref_instance_uid = ref
+    
     self._pixel_spacing = None
     self._frame_positions = None
     if nf is not None:
@@ -260,6 +280,11 @@ class SeriesFile:
                                                      (('PerFrameFunctionalGroupsSequence', 'all'),
                                                       ('PlanePositionSequence', 1)),
                                                      'ImagePositionPatient', floats)
+      self._ref_instance_uids = self._sequence_elements(data,
+                                                        (('SharedFunctionalGroupsSequence', 1),
+                                                         ('DerivationImageSequence', 1),
+                                                         ('SourceImageSequence', 'all')),
+                                                        'ReferencedSOPInstanceUID')
 
   def __lt__(self, im):
     if  self._time == im._time:
@@ -273,10 +298,10 @@ class SeriesFile:
     nf = self._num_frames
     return nf is not None and nf > 1
 
-  def _sequence_elements(self, data, seq_names, element_name, convert):
+  def _sequence_elements(self, data, seq_names, element_name, convert = None):
     if len(seq_names) == 0:
       value = getattr(data, element_name, None)
-      if value is not None:
+      if value is not None and convert is not None:
         value = convert(value)
       return value
     else:
@@ -456,3 +481,12 @@ def unique_prefix_length(strings):
     if len(set(s[:i] for s in sset)) == len(sset):
       return i
   return maxlen
+
+# -----------------------------------------------------------------------------
+#
+def find_reference_series(series):
+  plane_ids = {s.plane_uids:s for s in series}
+  for s in series:
+    ref = s.ref_plane_uids
+    if ref and ref in plane_ids:
+        s.refers_to_series = plane_ids[ref]
