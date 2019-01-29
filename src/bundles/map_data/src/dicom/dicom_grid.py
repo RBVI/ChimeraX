@@ -18,13 +18,14 @@ from .. import GridData
 #
 def dicom_grids(paths, log = None, verbose = False):
   from .dicom_format import find_dicom_series, DicomData
-  series = find_dicom_series(paths, verbose = verbose)
+  series = find_dicom_series(paths, log = log, verbose = verbose)
   grids = []
   derived = []	# For grouping derived series with original series
   sgrids = {}
   for s in series:
     d = DicomData(s)
     if d.mode == 'RGB':
+      # Create 3-channels for RGB series
       cgrids = [ ]
       colors = [(1,0,0,1), (0,1,0,1), (0,0,1,1)]
       suffixes = [' red', ' green', ' blue']
@@ -35,6 +36,7 @@ def dicom_grids(paths, log = None, verbose = False):
         cgrids.append(g)
       grids.append(cgrids)
     elif s.num_times > 1:
+      # Create time series for series containing multiple times as frames
       tgrids = []
       for t in range(s.num_times):
         g = DicomGrid(d, time=t) 
@@ -42,11 +44,14 @@ def dicom_grids(paths, log = None, verbose = False):
         tgrids.append(g)
       grids.append(tgrids)
     else:
+      # Create single channel, single time series.
       g = DicomGrid(d)
       if s.attributes.get('BitsAllocated') == 1:
         g.binary = True		# Use initial thresholds for binary segmentation
       rs = getattr(s, 'refers_to_series', None)
       if rs:
+        # If this associated with another series (e.g. is a segmentation), make
+        # it a channel together with that associated series.
         derived.append((g, rs))
       else:
         sgrids[s] = gg = [g]

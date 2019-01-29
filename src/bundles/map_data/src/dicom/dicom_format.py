@@ -16,11 +16,17 @@
 # directory.  If the same study and series is found in two directories, they
 # are treated as two different series.
 #
-def find_dicom_series(paths, search_directories = True, search_subdirectories = True, verbose = False):
+def find_dicom_series(paths, search_directories = True, search_subdirectories = True,
+                      log = None, verbose = False):
   dfiles = files_by_directory(paths, search_directories = search_directories,
                               search_subdirectories = search_subdirectories)
+  nseries = len(dfiles)
+  nfiles = sum(len(dpaths) for dpaths in dfiles.values())
+  nsfiles = 0
   series = []
   for dpaths in dfiles.values():
+    nsfiles += len(dpaths)
+    log.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
     series.extend(dicom_file_series(dpaths, verbose = verbose))
 
   # Include patient id in model name only if multiple patients found
