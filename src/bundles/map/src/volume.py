@@ -3127,7 +3127,10 @@ def open_grids(session, grids, name, **kw):
             delattr(g, 'series_index')
 
     maps = []
-    show = kw.get('show', True)
+    if 'show' in kw:
+      show = kw['show']
+    else:
+      show = (len(grids) >= 1 and getattr(grids[0], 'show_on_open', True))
     si = [d.series_index for d in grids if hasattr(d, 'series_index')]
     is_series = (len(si) == len(grids) and len(set(si)) > 1)
     cn = [d.channel for d in grids if d.channel is not None]
@@ -3165,10 +3168,12 @@ def open_grids(session, grids, name, **kw):
     elif is_series:
       from .series import MapSeries
       ms = MapSeries(name, maps, session)
+      ms.display = show
       msg = 'Opened map series %s, %d images' % (name, len(maps))
       models = [ms]
     elif is_multichannel:
       mc = MapChannelsModel(name, maps, session)
+      mc.display = show
       mc.show_n_channels(3)
       msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
       models = [mc]
@@ -3178,7 +3183,6 @@ def open_grids(session, grids, name, **kw):
       models = maps
       return models, msg
     else:
-      # TODO: Handle multi-times and multi-channels.
       msg = 'Opened %s' % maps[0].name
       models = maps
 

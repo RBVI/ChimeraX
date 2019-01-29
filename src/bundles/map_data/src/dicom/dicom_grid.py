@@ -44,7 +44,6 @@ def dicom_grids(paths, log = None, verbose = False):
     else:
       g = DicomGrid(d)
       if s.attributes.get('BitsAllocated') == 1:
-        print ('binary', s.name)
         g.binary = True		# Use initial thresholds for binary segmentation
       rs = getattr(s, 'refers_to_series', None)
       if rs:
@@ -62,7 +61,12 @@ def dicom_grids(paths, log = None, verbose = False):
     sg.append(g)
     g.channel = len(sg)
     g.rgba = channel_colors[(g.channel-2) % len(channel_colors)]
-    
+
+  # Show only first group of grids
+  for gg in grids[1:]:
+    for g in gg:
+      g.show_on_open = False
+      
   return grids
 
 # -----------------------------------------------------------------------------
