@@ -90,7 +90,9 @@ class Series:
     self.attributes = {}
     self._file_info = []
     self._multiframe = None
+    self._reverse_frames = False
     self._num_times = None
+    self._z_spacing = None
     self.use_patient_id_in_name = 0
     self._log = log
     
@@ -156,18 +158,17 @@ class Series:
 
   def order_slices(self):
     paths = self.paths
+    if len(paths) == 1 and self.multiframe:
+      # Determination of whether frames reversed done in z_plane_spacing()
+      self.z_plane_spacing()
+    
     if len(paths) <= 1:
-      return paths
-
-    # Check that all images have an instance number for ordering.
-    files = self._file_info
-    for fi in files:
-      if fi._num is None:
-        raise ValueError("Missing dicom InstanceNumber, can't order slice %s" % fi.path)
+      return
 
     # Check that time series images all have time value, and all times are found
     self._validate_time_series()
 
+    files = self._file_info
     files.sort()
 
     self.paths = tuple(fi.path for fi in files)
@@ -199,7 +200,6 @@ class Series:
                          % (t, c, nz))
 
   def grid_size(self):
-
     attrs = self.attributes
     xsize, ysize = attrs['Columns'], attrs['Rows']
     files = self._file_info
@@ -215,8 +215,34 @@ class Series:
 
     return (xsize, ysize, zsize)
 
-  def pixel_spacing(self):
+  def origin(self):
+    files = self._file_info
+    if files:
+      pos = files[0]._position
+      if self.multiframe and self._reverse_frames:
+        zoffset = files[0]._num_frames * -self.z_plane_spacing()
+        zaxis = self._patient_axes()[2]
+        pos = tuple(a+zoffset*b for a,b in zip(pos, zaxis))
+      if pos is not None:
+        return pos
+    return (0,0,0)
 
+  def rotation(self):
+    (x0,y0,z0),(x1,y1,z1),(x2,y2,z2) = self._patient_axes()
+    return ((x0,x1,x2),(y0,y1,y2),(z0,z1,z2))
+
+  def _patient_axes(self):
+    files = self._file_info
+    if files:
+      orient = files[0]._orientation
+      if orient is not None:
+        x_axis, y_axis = orient[0:3], orient[3:6]
+        from chimerax.core.geometry import cross_product
+        z_axis = cross_product(x_axis, y_axis)
+        return (x_axis, y_axis, z_axis)
+    return ((1,0,0),(0,1,0),(0,0,1))
+    
+  def pixel_spacing(self):
     pspacing = self.attributes.get('PixelSpacing')
     if pspacing is None and self.multiframe:
       pspacing = self._file_info[0]._pixel_spacing
@@ -229,10 +255,10 @@ class Series:
       xs, ys = [float(s) for s in pspacing]
     zs = self.z_plane_spacing()
     if zs is None:
-      if len(self._file_info) > 1:
-        if self._log:
-          self._log.warning('Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
-                            % self.paths[0])
+      nz = self.grid_size()[2]
+      if nz > 1 and self._log:
+        self._log.warning('Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
+                          % self.paths[0])
       zs = 1 # Single plane image
     elif zs == 0:
       if self._log:
@@ -242,29 +268,46 @@ class Series:
     return (xs,ys,zs)
 
   def z_plane_spacing(self):
-    files = self._file_info
-    if self.multiframe:
-      fpos = files[0]._frame_positions
-      if fpos is None:
+    dz = self._z_spacing
+    if dz is None:
+      files = self._file_info
+      if self.multiframe:
+        f = files[0]
+        fpos = f._frame_positions
+        if fpos is None:
+          gfov = f._grid_frame_offset_vector
+          if gfov is None:
+            dz = None
+          else:
+            dz = self._spacing(gfov)
+        else:
+          # TODO: Need to reverse order if z decrease as frame number increases
+          z = [fp[2] for fp in fpos]
+          dz = self._spacing(z)
+        if dz is not None and dz < 0:
+          self._reverse_frames = True
+          dz = abs(dz)
+      elif len(files) < 2:
         dz = None
       else:
-        # TODO: Need to reverse order if z decrease as frame number increases
-        dz = fpos[1][2] - fpos[0][2]
-    elif len(files) < 2:
-      dz = None
-    else:
-      nz = self.grid_size()[2]  # For time series just look at first time point.
-      z = [f._position[2] for f in files[:nz]]
-      spacings = [(z1-z0) for z0,z1 in zip(z[:-1],z[1:])]
-      dzmin, dzmax = min(spacings), max(spacings)
-      if dzmax-dzmin > 1e-3*dzmax:
-        if self._log:
-          from os.path import basename
-          msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
-                 '\n'.join(['%s %s' % (basename(f.path), f._position) for f in files]))
-          self._log.warning(msg)
-      dz = dzmax
-        
+        nz = self.grid_size()[2]  # For time series just look at first time point.
+        z = [f._position[2] for f in files[:nz]]
+        dz = self._spacing(z)
+      self._z_spacing = dz
+      
+    return dz
+
+  def _spacing(self, z):
+    spacings = [(z1-z0) for z0,z1 in zip(z[:-1],z[1:])]
+    dzmin, dzmax = min(spacings), max(spacings)
+    tolerance = 1e-3 * max(abs(dzmax), abs(dzmin))
+    if dzmax-dzmin > tolerance:
+      if self._log:
+        from os.path import basename
+        msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
+               '\n'.join(['%s %s' % (basename(f.path), f._position) for f in self._file_info]))
+        self._log.warning(msg)
+    dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
     return dz
 
   @property
@@ -288,6 +331,9 @@ class SeriesFile:
 
     pos = getattr(data, 'ImagePositionPatient', None)
     self._position = tuple(float(p) for p in pos) if pos else None
+
+    orient = getattr(data, 'ImageOrientationPatient', None)	# horz and vertical image axes
+    self._orientation = tuple(float(p) for p in orient) if orient else None
     
     num = getattr(data, 'InstanceNumber', None)
     self._num = int(num) if num else None
@@ -298,6 +344,9 @@ class SeriesFile:
     nf = getattr(data, 'NumberOfFrames', None)
     self._num_frames = int(nf) if nf is not None else None
 
+    gfov = getattr(data, 'GridFrameOffsetVector', None)
+    self._grid_frame_offset_vector = [float(o) for o in gfov] if gfov is not None else None
+    
     cuid = getattr(data, 'SOPClassUID', None)
     self._class_uid = cuid
 
@@ -421,9 +470,11 @@ class DicomData:
       self.pad_value = None
 
     self._files_are_3d = series.multiframe
+    self._reverse_planes = (series.multiframe and series._reverse_frames)
     self.data_size = series.grid_size()
     self.data_step = series.pixel_spacing()
-    self.data_origin = (0.0, 0.0, 0.0)
+    self.data_origin = series.origin()
+    self.data_rotation = series.rotation()
 
   # ---------------------------------------------------------------------------
   # Reads a submatrix and returns 3D NumPy matrix with zyx index order.
@@ -453,6 +504,9 @@ class DicomData:
   # ---------------------------------------------------------------------------
   #
   def read_plane(self, k, time = None, channel = None):
+    if self._reverse_planes:
+      klast = self.data_size()[2]-1
+      k = klast-k
     p = k if time is None else (k + self.data_size[2]*time)
     import pydicom
     d = pydicom.dcmread(self.paths[p])

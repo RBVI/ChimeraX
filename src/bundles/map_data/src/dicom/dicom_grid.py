@@ -85,7 +85,7 @@ class DicomGrid(GridData):
     self.dicom_data = d
 
     GridData.__init__(self, d.data_size, d.value_type,
-                      d.data_origin, d.data_step,
+                      d.data_origin, d.data_step, rotation = d.data_rotation,
                       path = d.paths, name = d.name,
                       file_type = 'dicom', time = time, channel = channel)
 
