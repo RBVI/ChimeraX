@@ -23,6 +23,8 @@ def dicom_grids(paths, log = None, verbose = False):
   derived = []	# For grouping derived series with original series
   sgrids = {}
   for s in series:
+    if not s.has_image_data:
+        continue
     d = DicomData(s)
     if d.mode == 'RGB':
       # Create 3-channels for RGB series

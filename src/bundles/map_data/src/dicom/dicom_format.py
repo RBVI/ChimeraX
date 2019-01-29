@@ -84,7 +84,7 @@ class Series:
                       'PixelPaddingValue', 'PixelRepresentation', 'PixelSpacing',
                       'RescaleIntercept', 'RescaleSlope', 'Rows',
                       'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID',
-                      'StudyDate']
+                      'SOPClassUID', 'StudyDate']
   def __init__(self, log = None):
     self.paths = []
     self.attributes = {}
@@ -129,7 +129,9 @@ class Series:
   def ref_plane_uids(self):
     fis = self._file_info
     if len(fis) == 1 and hasattr(fis[0], '_ref_instance_uids'):
-      return tuple(fis[0]._ref_instance_uids)
+      uids = fis[0]._ref_instance_uids
+      if uids is not None:
+        return tuple(uids)
     return None
 
   @property
@@ -215,10 +217,9 @@ class Series:
 
   def pixel_spacing(self):
 
-    if self.multiframe:
+    pspacing = self.attributes.get('PixelSpacing')
+    if pspacing is None and self.multiframe:
       pspacing = self._file_info[0]._pixel_spacing
-    else:
-      pspacing = self.attributes.get('PixelSpacing')
 
     if pspacing is None:
       xs = ys = 1
@@ -266,6 +267,19 @@ class Series:
         
     return dz
 
+  @property
+  def has_image_data(self):
+    attrs = self.attributes
+    for attr in ('BitsAllocated', 'PixelRepresentation'):
+      if attrs.get(attr) is None:
+        if self._log:
+          cuid = attrs.get('SOPClassUID')
+          cname = cuid.name if cuid else 'unknown'
+          self._log.warning('Cannot read image data for series %s class %s because there is no %s header value'
+                            % (self.paths[0], cname, attr))
+        return False
+    return True
+
 # -----------------------------------------------------------------------------
 #
 class SeriesFile:
@@ -283,6 +297,9 @@ class SeriesFile:
 
     nf = getattr(data, 'NumberOfFrames', None)
     self._num_frames = int(nf) if nf is not None else None
+
+    cuid = getattr(data, 'SOPClassUID', None)
+    self._class_uid = cuid
 
     inst = getattr(data, 'SOPInstanceUID', None)
     self._instance_uid = inst
@@ -379,9 +396,10 @@ class DicomData:
     self.rescale_intercept = rsi
     self.rescale_slope = float(attrs.get('RescaleSlope', 1))
 
-    self.value_type = numpy_value_type(attrs['BitsAllocated'], attrs['PixelRepresentation'],
-                                       self.rescale_slope, self.rescale_intercept)
-    ns = attrs['SamplesPerPixel']
+    bits = attrs.get('BitsAllocated')
+    rep = attrs.get('PixelRepresentation')
+    self.value_type = numpy_value_type(bits, rep, self.rescale_slope, self.rescale_intercept)
+    ns = attrs.get('SamplesPerPixel')
     if ns == 1:
       mode = 'grayscale'
     elif ns == 3:
