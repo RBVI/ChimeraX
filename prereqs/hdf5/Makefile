@@ -3,23 +3,21 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 ifdef WIN32
-VERSION = 1.8.16
-else
-VERSION = 1.8.14
+$(error Windows uses binary version distributed with tables package)
 endif
-LIBHDF5_VER = 9
+VERSION = 1.10.4
+LIBHDF5_VER = 103
 DISTRIBUTION = hdf5-$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/hdf5-$(VERSION)
 
 CONFIG_ENV = env
-CONFIG_OPTS = --prefix='$(build_prefix)' --with-zlib='$(includedir),$(libdir)'
+CONFIG_OPTS = --prefix='$(build_prefix)' --with-zlib='$(includedir),$(libdir)' \
+	      --enable-threadsafe --disable-static --disable-hl
 
 all:
 
 install: $(SOURCE)
-ifndef WIN32
 	cd $(SOURCE) && $(CONFIG_ENV) ./configure $(CONFIG_OPTS) && $(MAKE) install
-endif
 ifeq ($(OS),Linux)
 	cd $(libdir) && chrpath -d libhdf5*.so
 	cd $(bindir) && for i in *h5*; do \
@@ -29,25 +27,19 @@ endif
 ifeq ($(OS),Darwin)
 	-cd $(shlibdir); \
 	libhdf5=libhdf5.$(LIBHDF5_VER).dylib; \
-	libhdf5_hl=libhdf5_hl.$(LIBHDF5_VER).dylib; \
 	install_name_tool -id "@rpath/$$libhdf5" $$libhdf5; \
-	install_name_tool -id "@rpath/$$libhdf5_hl" $$libhdf5_hl; \
-	install_name_tool -change $(shlibdir)/$$libhdf5 "@rpath/$$libhdf5" $$libhdf5_hl ; \
 	cd $(bindir); for f in *h5*; do \
 		install_name_tool -add_rpath '@executable_path/../lib' $$f ; \
 		install_name_tool -change $(shlibdir)/$$libhdf5 "@rpath/$$libhdf5" $$f ; \
-		install_name_tool -change $(shlibdir)/$$libhdf5_hl "@rpath/$$libhdf5_hl" $$f ; \
 	done
 endif
 
 app-install:;
 	$(RSYNC) $(includedir)/hdf5*.h $(includedir)/H5* $(app_includedir)
-	$(RSYNC) $(shlibdir)/libhdf5.*$(SHLIB_EXT)* $(app_shlibdir)
+	$(RSYNC) $(shlibdir)/libhdf5*.$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE):
-ifndef WIN32
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)
-endif
 
 clean:
 	rm -rf $(SOURCE)

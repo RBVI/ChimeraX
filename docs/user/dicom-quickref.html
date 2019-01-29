@@ -25,7 +25,8 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3>ChimeraX: DICOM Quick Reference</h3>
 
-Overview of ChimeraX features for working with DICOM medical imaging data:
+Overview of ChimeraX features for working with 
+<a href="dicom/dicom.html">DICOM medical imaging data</a>:
 <blockquote><b>
 <a href="#opening">Opening Data</a>
 <br><a href="#initial">Initial Display</a>
@@ -34,6 +35,7 @@ Overview of ChimeraX features for working with DICOM medical imaging data:
 <br><a href="#windowing">Thresholds and Windowing</a>
 <br><a href="#rendering">Volume Rendering Options</a>
 <br><a href="#clipping">Cropping and Clipping</a>
+<br><a href="#icons">Density Map Icons</a>
 <br><a href="#vr">Virtual Reality</a>
 <br><a href="#data">Sample Data</a>
 </b></blockquote>
@@ -75,8 +77,8 @@ if the format is specified explicitly:
 </blockquote>
 <p>
 Each stack or dataset that is found will be opened as a separate model.
-The <b>open</b> command option <b>verbose &nbsp;true</b> can be used to show
-DICOM details for debugging purposes.
+The <b>open</b> command <a href="commands/open.html#verbose"><b>verbose</b></a>
+option can be used to show DICOM details for debugging purposes.
 </p>
 
 <table>
@@ -148,17 +150,8 @@ they can be hidden or shown individually, such as with the
 &ldquo;eye&rdquo; icons above their histograms, the 
 <img class="iconbar" src="tools/eye.png" title="eye icon" alt="eye icon">
 checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>,
+<a href="#icons">density-map icons</a>,
 or the <a href="commands/volume.html"><b>volume</b></a> command.
-The <b>hide</b> <a href="tools/densitymaps.html" title="Density Map Toolbar...">
-<img class="icon" border=1 src="tools/shortcut-icons/hidemap.png"></a> and
-<b>show</b> <a href="tools/densitymaps.html" title="Density Map Toolbar...">
-<img class="icon" border=1 src="tools/shortcut-icons/showmap.png"></a>
-icons in the <a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-can also be used; these apply only to the volume models that are
-<a href="selection.html">selected</a>, such as with the
-<img class="iconbar" src="tools/hand.png" title="hand icon" alt="hand icon">
-checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>,
-or if none are selected, all volume models.
 </p><p>
 For orthographic projection, 
 command: <b><a href="commands/camera.html">camera ortho</a></b>
@@ -281,13 +274,17 @@ They can be applied by name with the
 <a href="commands/volume.html"><b>volume</b></a> command, for example:
 </p>
 <blockquote>
-<b>volume #1 appearance "Airways II"</b>
+<b>volume #1 <a href="commands/volume.html#appearance">appearance</a> "Airways&nbsp;II"</b>
 </blockquote>
 <p>
-This is only an initial approximation and may not reproduce the
-appearance in Horos very faithfully. 
-Not all Horos settings have a corresponding ChimeraX setting,
+This is only an approximation and may not reproduce the
+appearance in Horos very faithfully;
+not all Horos settings have a corresponding ChimeraX setting,
 and some parts of the definition files may have been ignored or misinterpreted.
+Besides a preset name, <b>appearance initial</b> can be used to (re)set to the
+colors and intensities that would have been chosen automatically
+for the data when first shown in the solid style.
+This is useful after going back to a single <b>plane</b> display.
 </p>
 
 <a name="windowing"></a>
@@ -349,6 +346,10 @@ Additional <a href="commands/volume.html"><b>volume</b></a> command options
 that may be useful:
 </p>
 <ul>
+<li><b>projectionMode &nbsp;3d</b>
+&ndash; to avoid jumps in brightness during the rotation of solid displays,
+automatically use planes perpendicular to the line of sight
+(<a href="commands/volume.html#pmode">details...</a>)
 <li><b>brightness</b> &nbsp;<i>value</i>
 &ndash; scale the intensity (initial default <b>1</b>)
 (<a href="commands/volume.html#brightness">details...</a>)
@@ -364,10 +365,6 @@ the opacity values shown by the threshold heights on the histogram
 voxels dimmer; if <b>false</b> (initial default <b>true</b>),
 the appearance is brighter because less light is blocked
 (<a href="commands/volume.html#dimvox">details...</a>)
-<li><b>projectionMode &nbsp;3d</b>
-&ndash; to avoid jumps in brightness during the rotation of solid displays,
-automatically use planes perpendicular to the line of sight
-(<a href="commands/volume.html#pmode">details...</a>)
 <li><b>maximumIntensityProjection &nbsp;true</b>
 &ndash; whether to display the the most intense color value underlying each
 pixel along the line of sight (initial default <b>false</b>);
@@ -456,9 +453,43 @@ as described <a href="#manipulation">above</a>.
 The near/far planes can also be manipulated in the
 <a href="tools/sideview.html"><b>Side View</b></a> 
 (menu: <b>Tools... General... Side View</b>).
-</p><p>
+<br>
 To turn off all clipping: <a href="commands/clip.html"><b>clip off</b></a>
 or <a href="commands/clip.html"><b>~clip</b></a>
+</p>
+
+<a name="icons"></a>
+<!--
+<p class="nav">
+[<a href="#top">back to top: DICOM Quick Ref</a>]
+</p>
+-->
+<h3><a href="#top" class="nounder">&larr;</a>
+Density Map Icons</h3>
+<p>
+The <a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+(menu: <b>Tools... Toolbar... Density Map Toolbar</b>)
+contains icons that can be clicked to perform some action
+on volume models, including:
+</p>
+<ul class="none">
+<li><img class="icon" border=1 src="tools/shortcut-icons/hidemap.png">
+&nbsp;<b>hide</b>
+<li><img class="icon" border=1 src="tools/shortcut-icons/showmap.png">
+&nbsp;<b>show</b>
+<li><img class="icon" border=1 src="tools/shortcut-icons/step1.png">
+&nbsp;<b>step 1</b>
+<li><img class="icon" border=1 src="tools/shortcut-icons/step2.png">
+&nbsp;<b>step 2</b> 
+<li><img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
+&nbsp;<b>toggle outline box</b> 
+</ul>
+<p>
+These icons act only on the volume models that are
+<a href="selection.html">selected</a>, such as with the
+<img class="iconbar" src="tools/hand.png" title="hand icon" alt="hand icon">
+checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>,
+or if none are selected, all volume models.
 </p>
 
 <a name="vr"></a>
@@ -471,11 +502,28 @@ or <a href="commands/clip.html"><b>~clip</b></a>
 Virtual Reality</h3>
 <p>
 DICOM data can be viewed in <a href="vr.html">ChimeraX virtual reality</a>
-and adjusted, manipulated, <i>etc.</i> as described in the preceding sections.
+and adjusted, <a href="#manipulation">manipulated</a>, <i>etc.</i> 
+as described above. Major considerations in VR:
+</p>
+<ul>
+<li>Rendering speed must be fast: the system must be able to keep up with
+changes in the scene, particularly headset movements, or else the experience
+will be nauseating. With large volume data, techniques to 
+speed up rendering include subsampling (step size &gt 1) and
+<a href="#clipping">cropping</a>. 
+Work is ongoing to improve ChimeraX volume rendering performance.
+<br><br>
+<li>Entering commands is inconvenient:
+commands for setting up the display can be entered before the headset
+is donned, but with the headset on, it is more convenient to
+use the hand controllers to click <a href="#icons">icons</a> 
+and to perform other actions.
 All of the ChimeraX <a href="commands/ui.html#mousemode">mouse modes</a>
 are available for assignment to hand-controller buttons.
-Work is underway to improve volume rendering performance.
-</p><p>
+Clicking the Vive menu button (analogous for other systems)
+shows the ChimeraX user interface with icons in the headset.
+</ul>
+<p>
 See also:
 the <a href="http://vr.ucsf.edu/" target="_blank">VR at UCSF</a> website,
 VR setup advice and observations on different systems:
@@ -496,7 +544,7 @@ target="_blank">Linux</a>
 <h3><a href="#top" class="nounder">&larr;</a>
 Sample Data</h3>
 <p>
-<a href="dicom/4-24533.zip">4-24533.zip</a> 
+<a href="http://www.cgl.ucsf.edu/home/meng/chimerax/docs/user/dicom/4-24533.zip">4-24533.zip</a> 
 &ndash; a DICOM stack representing one CT scan of many in the
 <a href="https://wiki.cancerimagingarchive.net/display/Public/RIDER+Lung+CT#73dc3a9f2e854316974bb0f766ae69ab" 
 target="_blank">RIDER Lung CT</a> collection 
