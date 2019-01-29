@@ -327,22 +327,16 @@ match(PyObject *, PyObject *args)
 		gap_open_1[0] = gap_open_2[0] = 0.0;
 	if (doing_ss && ss_specific_gaps) {
 		for (int si = 1; si <= 2 ; ++si) {
-			char* seq;
 			PyObject* py_gap_freqs;
 			char* ss_types;
-			size_t dim;
 			std::vector<double>* gap_opens;
 			if (si == 1) {
-				seq = seq1;
 				py_gap_freqs = gap_freqs1;
 				ss_types = ss_types1;
-				dim = rows;
 				gap_opens = &gap_open_1;
 			} else {
-				seq = seq2;
 				py_gap_freqs = gap_freqs2;
 				ss_types = ss_types2;
-				dim = cols;
 				gap_opens = &gap_open_2;
 			}
 			if (py_gap_freqs == Py_None) {
