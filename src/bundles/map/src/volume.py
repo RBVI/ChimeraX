@@ -543,11 +543,15 @@ class Volume(Model):
     else:
       v = mstats.mass_rank_data_value(1-mfrac[0])
     rgba = self.default_rgba
+    binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
     if polar:
       levels = [-v,v]
       neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
       colors = [neg_rgba,rgba]
+    elif binary:
+      levels = [0.5]
+      colors = [rgba]
     else:
       levels = [v]
       colors = [rgba]
@@ -567,12 +571,16 @@ class Volume(Model):
       vmid = mstats.mass_rank_data_value(1-mfrac[0])
     vmax = mstats.maximum
     rgba = saturate_rgba(self.default_rgba)
+    binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
     if polar:
       levels = ((mstats.minimum,imax), (max(-vmid,mstats.minimum),imid), (0,ilow),
                 (0,ilow), (vmid,imid), (vmax,imax))
       neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
       colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
+    elif binary:
+      levels = ((0.5,ilow),(1,imax))
+      colors = [rgba, rgba]
     elif getattr(self.data, 'initial_thresholds_linear', False):
       levels = ((mstats.minimum,0), (mstats.maximum,1))
       colors = [rgba, rgba]
@@ -3441,15 +3449,16 @@ def is_multifile_save(path):
 #
 def register_map_file_formats(session):
     from chimerax.core import io, toolshed
-    from .data.fileformats import file_types, file_writers
+    from .data.fileformats import file_formats, file_writers
     fwriters = set(fw[0] for fw in file_writers)
-    for d,t,nicknames,suffixes,batch in file_types:
-      suf = tuple('.' + s for s in suffixes)
-      save_func = save_map if d in fwriters else None
-      def open_map_format(session, stream, name = None, format = t, **kw):
+    for ff in file_formats:
+      suf = tuple('.' + s for s in ff.suffixes)
+      save_func = save_map if ff.description in fwriters else None
+      def open_map_format(session, stream, name = None, format = ff.name, **kw):
         return open_map(session, stream, name=name, format=format, **kw)
-      io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
-                         open_func=open_map_format, batch=True, export_func=save_func)
+      io.register_format(ff.description, toolshed.VOLUME, suf, nicknames=ff.prefixes,
+                         open_func=open_map_format, batch=True, allow_directory=ff.allow_directory,
+                         export_func=save_func)
 
     # Add keywords to open command for maps
     from chimerax.core.commands import BoolArg, IntArg
