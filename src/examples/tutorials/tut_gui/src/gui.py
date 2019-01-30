@@ -30,18 +30,18 @@ class TutorialGUI(HtmlToolInstance):
     SESSION_SAVE = False        # No session saving for now
     CUSTOM_SCHEME = "tutorial"  # Scheme used in HTML for callback into Python
 
-    def __init__(self, session, ti):
+    def __init__(self, session, tool_name):
         # ``session`` - ``chimerax.core.session.Session`` instance
-        # ``ti``      - ``chimerax.core.toolshed.ToolInfo`` instance
+        # ``tool_name``      - string
 
-        # Set name displayed on title bar
-        self.display_name = "Tutorial GUI"
+        # Set name displayed on title bar (defaults to tool_name)
+        self.display_name = "Tutorial Graphical Interface"
 
         # Initialize base class.  ``size_hint`` is the suggested
         # initial tool size in pixels.  For debugging, add
         # "log_errors=True" to get Javascript errors logged
         # to the ChimeraX log window.
-        super().__init__(session, ti.name, size_hint=(575, 400))
+        super().__init__(session, tool_name, size_hint=(575, 400))
         self._build_ui()
 
     def _build_ui(self):
@@ -54,8 +54,8 @@ class TutorialGUI(HtmlToolInstance):
     def handle_scheme(self, url):
         # ``url`` - ``PyQt5.QtCore.QUrl`` instance
 
-        # This method is called the user clicks a link on the HTML page
-        # with our custom scheme.  The URL path and query parameters
+        # This method is called when the user clicks a link on the HTML
+        # page with our custom scheme.  The URL path and query parameters
         # are controlled on the HTML side via Javascript.  Obviously,
         # we still do security checks in case the user somehow was
         # diverted to a malicious page specially crafted with links

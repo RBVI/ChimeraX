@@ -23,13 +23,12 @@ class _MyAPI(BundleAPI):
 
         # We check the name of the tool, which should match one of the
         # ones listed in bundle_info.xml (without the leading and
-        # trailing whitespace), and create an instance of the
+        # trailing whitespace), and create and return an instance of the
         # appropriate class from the ``gui`` module.
         from . import gui
         if ti.name == "Tutorial GUI":
-            func = gui.TutorialGUI(session, ti)
-        else:
-            raise ValueError("trying to start unknown tool: %s" % ti.name)
+            return gui.TutorialGUI(session, ti.name)
+        raise ValueError("trying to start unknown tool: %s" % ti.name)
 
 
 # Create the ``bundle_api`` object that ChimeraX expects.
