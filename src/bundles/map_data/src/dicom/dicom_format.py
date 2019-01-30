@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -16,12 +18,18 @@
 # directory.  If the same study and series is found in two directories, they
 # are treated as two different series.
 #
-def find_dicom_series(paths, search_directories = True, search_subdirectories = True, verbose = False):
+def find_dicom_series(paths, search_directories = True, search_subdirectories = True,
+                      log = None, verbose = False):
   dfiles = files_by_directory(paths, search_directories = search_directories,
                               search_subdirectories = search_subdirectories)
+  nseries = len(dfiles)
+  nfiles = sum(len(dpaths) for dpaths in dfiles.values())
+  nsfiles = 0
   series = []
   for dpaths in dfiles.values():
-    series.extend(dicom_file_series(dpaths, verbose = verbose))
+    nsfiles += len(dpaths)
+    log.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
+    series.extend(dicom_file_series(dpaths, log = log, verbose = verbose))
 
   # Include patient id in model name only if multiple patients found
   pids = set(s.attributes['PatientID'] for s in series if 'PatientID' in s.attributes)
@@ -38,7 +46,7 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
 # -----------------------------------------------------------------------------
 # Group dicom files into series.
 #
-def dicom_file_series(paths, verbose = False):
+def dicom_file_series(paths, log = None, verbose = False):
   series = {}
   from pydicom import dcmread
   for path in paths:
@@ -48,18 +56,18 @@ def dicom_file_series(paths, verbose = False):
       if series_id in series:
         s = series[series_id]
       else:
-        series[series_id] = s = Series()
+        series[series_id] = s = Series(log = log)
       s.add(path, d)
 
   series = tuple(series.values())
   for s in series:
     s.order_slices()
 
-  if verbose:
+  if verbose and log:
     for s in series:
       path = s.paths[0]
       d = dcmread(path)
-      print ('Data set: %s\n%s\n' % (path, d))
+      log.info('Data set: %s\n%s\n' % (path, d))
 
   return series
 
@@ -78,13 +86,17 @@ class Series:
                       'PixelPaddingValue', 'PixelRepresentation', 'PixelSpacing',
                       'RescaleIntercept', 'RescaleSlope', 'Rows',
                       'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID',
-                      'StudyDate']
-  def __init__(self):
+                      'SOPClassUID', 'StudyDate']
+  def __init__(self, log = None):
     self.paths = []
     self.attributes = {}
     self._file_info = []
     self._multiframe = None
+    self._reverse_frames = False
+    self._num_times = None
+    self._z_spacing = None
     self.use_patient_id_in_name = 0
+    self._log = log
     
   def add(self, path, data):
     # Read attributes that should be the same for all planes.
@@ -121,21 +133,18 @@ class Series:
   def ref_plane_uids(self):
     fis = self._file_info
     if len(fis) == 1 and hasattr(fis[0], '_ref_instance_uids'):
-      return tuple(fis[0]._ref_instance_uids)
+      uids = fis[0]._ref_instance_uids
+      if uids is not None:
+        return tuple(uids)
     return None
-
-  def _dump_data(self, data):
-    for elem in data:
-      print(elem)
-      if elem.VR == 'SQ':
-        print ('seq element')
-        for ds in elem:
-          for e2 in ds:
-            print('>>>   ', e2)
 
   @property
   def num_times(self):
-    return int(self.attributes.get('NumberOfTemporalPositions', 1))
+    if self._num_times is None:
+      nt = int(self.attributes.get('NumberOfTemporalPositions', 1))
+    else:
+      nt = self._num_times
+    return nt
 
   @property
   def multiframe(self):
@@ -151,18 +160,17 @@ class Series:
 
   def order_slices(self):
     paths = self.paths
+    if len(paths) == 1 and self.multiframe:
+      # Determination of whether frames reversed done in z_plane_spacing()
+      self.z_plane_spacing()
+    
     if len(paths) <= 1:
-      return paths
-
-    # Check that all images have an instance number for ordering.
-    files = self._file_info
-    for fi in files:
-      if fi._num is None:
-        raise ValueError("Missing dicom InstanceNumber, can't order slice %s" % fi.path)
+      return
 
     # Check that time series images all have time value, and all times are found
     self._validate_time_series()
 
+    files = self._file_info
     files.sort()
 
     self.paths = tuple(fi.path for fi in files)
@@ -178,8 +186,11 @@ class Series:
 
     tset = set(fi._time for fi in files)
     if len(tset) != self.num_times:
-      raise ValueError('DICOM series says it has %d times but %d found, %s... %d files.'
-                       % (self.num_times, len(tset), files[0].path, len(files)))
+      if self._log:
+        msg = ('DICOM series header says it has %d times but %d found, %s... %d files.'
+               % (self.num_times, len(tset), files[0].path, len(files)))
+        self._log.warning(msg)
+      self._num_times = len(tset)
 
     tcount = {t:0 for t in tset}
     for fi in files:
@@ -191,7 +202,6 @@ class Series:
                          % (t, c, nz))
 
   def grid_size(self):
-
     attrs = self.attributes
     xsize, ysize = attrs['Columns'], attrs['Rows']
     files = self._file_info
@@ -207,52 +217,113 @@ class Series:
 
     return (xsize, ysize, zsize)
 
-  def pixel_spacing(self):
+  def origin(self):
+    files = self._file_info
+    if files:
+      pos = files[0]._position
+      if self.multiframe and self._reverse_frames:
+        zoffset = files[0]._num_frames * -self.z_plane_spacing()
+        zaxis = self._patient_axes()[2]
+        pos = tuple(a+zoffset*b for a,b in zip(pos, zaxis))
+      if pos is not None:
+        return pos
+    return (0,0,0)
 
-    if self.multiframe:
+  def rotation(self):
+    (x0,y0,z0),(x1,y1,z1),(x2,y2,z2) = self._patient_axes()
+    return ((x0,x1,x2),(y0,y1,y2),(z0,z1,z2))
+
+  def _patient_axes(self):
+    files = self._file_info
+    if files:
+      orient = files[0]._orientation
+      if orient is not None:
+        x_axis, y_axis = orient[0:3], orient[3:6]
+        from chimerax.core.geometry import cross_product
+        z_axis = cross_product(x_axis, y_axis)
+        return (x_axis, y_axis, z_axis)
+    return ((1,0,0),(0,1,0),(0,0,1))
+    
+  def pixel_spacing(self):
+    pspacing = self.attributes.get('PixelSpacing')
+    if pspacing is None and self.multiframe:
       pspacing = self._file_info[0]._pixel_spacing
-    else:
-      pspacing = self.attributes.get('PixelSpacing')
 
     if pspacing is None:
       xs = ys = 1
-      print('Missing PixelSpacing, using value 1, %s' % self.paths[0])
+      if self._log:
+        self._log.warning('Missing PixelSpacing, using value 1, %s' % self.paths[0])
     else:
       xs, ys = [float(s) for s in pspacing]
     zs = self.z_plane_spacing()
     if zs is None:
-      if len(self._file_info) > 1:
-        print('Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
-              % self.paths[0])
+      nz = self.grid_size()[2]
+      if nz > 1 and self._log:
+        self._log.warning('Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
+                          % self.paths[0])
       zs = 1 # Single plane image
     elif zs == 0:
-      print('Error. Image planes are at same z-position.  Setting spacing to 1.')
+      if self._log:
+        self._log.warning('Error. Image planes are at same z-position.  Setting spacing to 1.')
       zs = 1
 
     return (xs,ys,zs)
 
   def z_plane_spacing(self):
-    files = self._file_info
-    if self.multiframe:
-      fpos = files[0]._frame_positions
-      if fpos is None:
+    dz = self._z_spacing
+    if dz is None:
+      files = self._file_info
+      if self.multiframe:
+        f = files[0]
+        fpos = f._frame_positions
+        if fpos is None:
+          gfov = f._grid_frame_offset_vector
+          if gfov is None:
+            dz = None
+          else:
+            dz = self._spacing(gfov)
+        else:
+          # TODO: Need to reverse order if z decrease as frame number increases
+          z = [fp[2] for fp in fpos]
+          dz = self._spacing(z)
+        if dz is not None and dz < 0:
+          self._reverse_frames = True
+          dz = abs(dz)
+      elif len(files) < 2:
         dz = None
       else:
-        # TODO: Need to reverse order if z decrease as frame number increases
-        dz = fpos[1][2] - fpos[0][2]
-    elif len(files) < 2:
-      dz = None
-    else:
-      z = [f._position[2] for f in files]
-      spacings = [(z1-z0) for z0,z1 in zip(z[:-1],z[1:])]
-      dzmin, dzmax = min(spacings), max(spacings)
-      if dzmax-dzmin > 1e-3*dzmax:
-        print('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.' % (dzmin, dzmax))
-        from os.path import basename
-        print('\n'.join(['%s %s' % (basename(f.path), f._position) for f in files]))
-      dz = dzmax
-        
+        nz = self.grid_size()[2]  # For time series just look at first time point.
+        z = [f._position[2] for f in files[:nz]]
+        dz = self._spacing(z)
+      self._z_spacing = dz
+      
     return dz
+
+  def _spacing(self, z):
+    spacings = [(z1-z0) for z0,z1 in zip(z[:-1],z[1:])]
+    dzmin, dzmax = min(spacings), max(spacings)
+    tolerance = 1e-3 * max(abs(dzmax), abs(dzmin))
+    if dzmax-dzmin > tolerance:
+      if self._log:
+        from os.path import basename
+        msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
+               '\n'.join(['%s %s' % (basename(f.path), f._position) for f in self._file_info]))
+        self._log.warning(msg)
+    dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
+    return dz
+
+  @property
+  def has_image_data(self):
+    attrs = self.attributes
+    for attr in ('BitsAllocated', 'PixelRepresentation'):
+      if attrs.get(attr) is None:
+        if self._log:
+          cuid = attrs.get('SOPClassUID')
+          cname = cuid.name if cuid else 'unknown'
+          self._log.warning('Cannot read image data for series %s class %s because there is no %s header value'
+                            % (self.paths[0], cname, attr))
+        return False
+    return True
 
 # -----------------------------------------------------------------------------
 #
@@ -262,6 +333,9 @@ class SeriesFile:
 
     pos = getattr(data, 'ImagePositionPatient', None)
     self._position = tuple(float(p) for p in pos) if pos else None
+
+    orient = getattr(data, 'ImageOrientationPatient', None)	# horz and vertical image axes
+    self._orientation = tuple(float(p) for p in orient) if orient else None
     
     num = getattr(data, 'InstanceNumber', None)
     self._num = int(num) if num else None
@@ -271,6 +345,12 @@ class SeriesFile:
 
     nf = getattr(data, 'NumberOfFrames', None)
     self._num_frames = int(nf) if nf is not None else None
+
+    gfov = getattr(data, 'GridFrameOffsetVector', None)
+    self._grid_frame_offset_vector = [float(o) for o in gfov] if gfov is not None else None
+    
+    cuid = getattr(data, 'SOPClassUID', None)
+    self._class_uid = cuid
 
     inst = getattr(data, 'SOPInstanceUID', None)
     self._instance_uid = inst
@@ -327,26 +407,6 @@ class SeriesFile:
         values = self._sequence_elements(seq[0], seq_names[1:], element_name, convert)
       return values
 
-# Old stuff
-    sfgs = getattr(data, 'SharedFunctionalGroupsSequence', None)
-    if sfgs is not None:
-      sfgds = sfgs[0]
-      pms = getattr(sfgds, 'PixelMeasuresSequence', None)
-      if pms is not None:
-        ps = getattr(pms[0], 'PixelSpacing', None)
-        if ps is not None:
-          print('pixel spacing', ps)
-
-    pffgs = getattr(data, 'PerFrameFunctionalGroupsSequence', None)
-    if pffgs is not None:
-      for f,ffg in enumerate(pffgs):  # one item for each frame
-        pps = getattr(ffg, 'PlanePositionSequence', None)
-        if pps is not None:
-          ipp = getattr(pps[0], 'ImagePositionPatient', None)
-          if ipp is not None:
-            print('Frame', f, 'position', ipp)
-
-
 # -----------------------------------------------------------------------------
 # Find all dicom files (suffix .dcm) in directories and subdirectories and
 # group them by directory.
@@ -387,9 +447,10 @@ class DicomData:
     self.rescale_intercept = rsi
     self.rescale_slope = float(attrs.get('RescaleSlope', 1))
 
-    self.value_type = numpy_value_type(attrs['BitsAllocated'], attrs['PixelRepresentation'],
-                                       self.rescale_slope, self.rescale_intercept)
-    ns = attrs['SamplesPerPixel']
+    bits = attrs.get('BitsAllocated')
+    rep = attrs.get('PixelRepresentation')
+    self.value_type = numpy_value_type(bits, rep, self.rescale_slope, self.rescale_intercept)
+    ns = attrs.get('SamplesPerPixel')
     if ns == 1:
       mode = 'grayscale'
     elif ns == 3:
@@ -411,9 +472,11 @@ class DicomData:
       self.pad_value = None
 
     self._files_are_3d = series.multiframe
+    self._reverse_planes = (series.multiframe and series._reverse_frames)
     self.data_size = series.grid_size()
     self.data_step = series.pixel_spacing()
-    self.data_origin = (0.0, 0.0, 0.0)
+    self.data_origin = series.origin()
+    self.data_rotation = series.rotation()
 
   # ---------------------------------------------------------------------------
   # Reads a submatrix and returns 3D NumPy matrix with zyx index order.
@@ -443,6 +506,9 @@ class DicomData:
   # ---------------------------------------------------------------------------
   #
   def read_plane(self, k, time = None, channel = None):
+    if self._reverse_planes:
+      klast = self.data_size()[2]-1
+      k = klast-k
     p = k if time is None else (k + self.data_size[2]*time)
     import pydicom
     d = pydicom.dcmread(self.paths[p])
