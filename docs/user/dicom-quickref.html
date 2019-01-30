@@ -68,12 +68,16 @@ spaces, for example:
 <b>open "~/Desktop/2-CT 5.0 H30s-55580/*dcm"</b>
 </blockquote>
 <p>
-It is also possible to open all of the DICOM files in a directory 
-and its subdirectories with a single <b>open</b> command 
-if the format is specified explicitly:
+It is also possible to open all of the DICOM files in a directory
+and its subdirectories in a single operation if the format is 
+specified explicitly, for example:
 </p>
 <blockquote>
 <b>open "~/Desktop/2-CT 5.0 H30s-55580" format dicom</b>
+<br>&ndash; or &ndash;
+<br>
+Menu: <b>File... Open Folder</b> (dialog shows Format: DICOM image), 
+browse to location, choose directory, click <b>Open</b> 
 </blockquote>
 <p>
 Each stack or dataset that is found will be opened as a separate model.
