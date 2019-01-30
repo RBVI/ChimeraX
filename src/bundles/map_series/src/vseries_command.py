@@ -209,7 +209,7 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
         d.name = '%04d' % i
         options = {'append': True, 'compress': compress}
         from ..data import cmap
-        cmap.write_grid_as_chimera_map(d, path, options)
+        cmap.save(d, path, options)
 
     if grid:
         grid.delete()

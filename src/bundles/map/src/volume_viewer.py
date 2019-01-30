@@ -1944,6 +1944,8 @@ class Histogram_Pane:
       v = self.volume
       if v is None:
           return
+      if show and not v.principal_channel():
+          return
 
       if show:
           if not self._planes_slider_shown:
@@ -2119,8 +2121,7 @@ class Histogram_Pane:
 
     ijk_min, ijk_max, ijk_step = volume.region
     if ijk_max[2]//ijk_step[2] == ijk_min[2]//ijk_step[2] and volume.data.size[2] > 1:
-        if volume.principal_channel():
-            self.show_plane_slider(True)
+        self.show_plane_slider(True)
 
   # ---------------------------------------------------------------------------
   #

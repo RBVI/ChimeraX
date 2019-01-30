@@ -543,11 +543,15 @@ class Volume(Model):
     else:
       v = mstats.mass_rank_data_value(1-mfrac[0])
     rgba = self.default_rgba
+    binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
     if polar:
       levels = [-v,v]
       neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
       colors = [neg_rgba,rgba]
+    elif binary:
+      levels = [0.5]
+      colors = [rgba]
     else:
       levels = [v]
       colors = [rgba]
@@ -567,12 +571,16 @@ class Volume(Model):
       vmid = mstats.mass_rank_data_value(1-mfrac[0])
     vmax = mstats.maximum
     rgba = saturate_rgba(self.default_rgba)
+    binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
     if polar:
       levels = ((mstats.minimum,imax), (max(-vmid,mstats.minimum),imid), (0,ilow),
                 (0,ilow), (vmid,imid), (vmax,imax))
       neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
       colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
+    elif binary:
+      levels = ((0.5,ilow),(1,imax))
+      colors = [rgba, rgba]
     elif getattr(self.data, 'initial_thresholds_linear', False):
       levels = ((mstats.minimum,0), (mstats.maximum,1))
       colors = [rgba, rgba]
@@ -3119,7 +3127,10 @@ def open_grids(session, grids, name, **kw):
             delattr(g, 'series_index')
 
     maps = []
-    show = kw.get('show', True)
+    if 'show' in kw:
+      show = kw['show']
+    else:
+      show = (len(grids) >= 1 and getattr(grids[0], 'show_on_open', True))
     si = [d.series_index for d in grids if hasattr(d, 'series_index')]
     is_series = (len(si) == len(grids) and len(set(si)) > 1)
     cn = [d.channel for d in grids if d.channel is not None]
@@ -3157,10 +3168,12 @@ def open_grids(session, grids, name, **kw):
     elif is_series:
       from .series import MapSeries
       ms = MapSeries(name, maps, session)
+      ms.display = show
       msg = 'Opened map series %s, %d images' % (name, len(maps))
       models = [ms]
     elif is_multichannel:
       mc = MapChannelsModel(name, maps, session)
+      mc.display = show
       mc.show_n_channels(3)
       msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
       models = [mc]
@@ -3170,7 +3183,6 @@ def open_grids(session, grids, name, **kw):
       models = maps
       return models, msg
     else:
-      # TODO: Handle multi-times and multi-channels.
       msg = 'Opened %s' % maps[0].name
       models = maps
 
@@ -3355,15 +3367,17 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
           raise UserError('Specified models are not volumes' + mstring)
 
       
-    from .data.fileformats import file_writer, file_writers
+    from .data.fileformats import file_writer, file_formats
     if file_writer(path, format_name) is None:
         from chimerax.core.errors import UserError
         if format_name is None:
+            suffixes = ', '.join(sum([ff.suffixes for ff in file_formats if ff.writable], []))
             msg = ('Unknown file suffix for "%s", known suffixes %s'
-                   % (path, ', '.join(sum([fw[2] for fw in file_writers], []))))
+                   % (path, suffixes))
         else:
+            fmt_names = ', '.join(ff.name for ff in file_formats if ff.writable)
             msg = ('Unknown file format "%s", known formats %s'
-                   % (format_name, ', '.join(fw[1] for fw in file_writers)))
+                   % (format_name, fmt_names))
         raise UserError(msg)
         
     options = {}
@@ -3439,17 +3453,31 @@ def is_multifile_save(path):
 
 # -----------------------------------------------------------------------------
 #
-def register_map_file_formats(session):
+def add_map_format(session, map_format, register_file_suffixes = True):
+  from .data import file_formats
+  file_formats.append(map_format)
+  if register_file_suffixes:
+    register_map_format(session, map_format)
+
+# -----------------------------------------------------------------------------
+#
+def register_map_format(session, map_format):
     from chimerax.core import io, toolshed
-    from .data.fileformats import file_types, file_writers
-    fwriters = set(fw[0] for fw in file_writers)
-    for d,t,nicknames,suffixes,batch in file_types:
-      suf = tuple('.' + s for s in suffixes)
-      save_func = save_map if d in fwriters else None
-      def open_map_format(session, stream, name = None, format = t, **kw):
-        return open_map(session, stream, name=name, format=format, **kw)
-      io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
-                         open_func=open_map_format, batch=True, export_func=save_func)
+    suf = tuple('.' + s for s in map_format.suffixes)
+    save_func = save_map if map_format.writable else None
+    def open_map_format(session, stream, name = None, format = map_format.name, **kw):
+      return open_map(session, stream, name=name, format=format, **kw)
+    io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
+                       open_func=open_map_format, batch=map_format.batch,
+                       allow_directory=map_format.allow_directory,
+                       export_func=save_func)
+
+# -----------------------------------------------------------------------------
+#
+def register_map_file_formats(session):
+    from .data.fileformats import file_formats
+    for ff in file_formats:
+      register_map_format(session, ff)
 
     # Add keywords to open command for maps
     from chimerax.core.commands import BoolArg, IntArg
