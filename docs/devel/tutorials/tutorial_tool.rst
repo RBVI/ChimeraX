@@ -113,7 +113,7 @@ The ``Dependency`` tags on lines 35 and 36 inform ChimeraX that the
 present when this bundle is installed.  If they are not, they are
 installed first.  The ``ChimeraX-UI`` bundle is needed to provide
 the :py:class:`chimerax.ui.htmltool.HtmlToolInstance` class used
-for building the user interface (see `gui.py`_ below) and the
+for building the user interface (see `gui.py`` below) and the
 ``ChimeraX-Tutorial_Command`` is needed to provide the ChimeraX
 commands that will be used for actually performing user actions.
 
@@ -323,7 +323,7 @@ script that updates the drop-down list of models.
 
 
 ``src/docs/user/commands/Tutorial_GUI.html``
-----------------------------------------
+--------------------------------------------
 
 The documentation for the graphical tool should be written
 in `HTML 5`_ and saved in a file whose name matches the command
@@ -386,16 +386,16 @@ understanding of how these new methods are used and should be implemented...
 
     When a session is saved, ChimeraX looks through the session object for
     attributes that inherit from :py:class:`chimerax.core.state.StateManager`.
-    For such attributes it calls their ``take_snapshot()`` method and stows the
+    For such attributes it calls their ``take_snapshot`` method and stows the
     result.  One of the state managers in the session is the tool manager.
-    The tool manager will in turn call ``take_snapshot()`` on all running tools
+    The tool manager will in turn call ``take_snapshot`` on all running tools
     that inherit from :py:class:`chimerax.core.state.State`.  (which should be
     all of them since :py:class:`~chimerax.core.tools.ToolInstance` inherits
     from :py:class:`~chimerax.core.state.State`) and stow the result.  On restore,
-    the class static method ``restore_snapshot()`` is called with the data that
-    ``take_snapshot()`` produced, and ``restore_snapshot`` needs to return a restored object.
+    the class static method ``restore_snapshot`` is called with the data that
+    ``take_snapshot`` produced, and ``restore_snapshot`` needs to return a restored object.
 
-    In practice, ``take_snapshot()`` typically returns a dictionary with descriptive
+    In practice, ``take_snapshot`` typically returns a dictionary with descriptive
     key names and associated values of various information that would be needed
     during restore.  Frequently one of the keys is ‘version’ so that restore_snapshot
     can do the right thing if the format of various session data items changes.
@@ -414,6 +414,24 @@ understanding of how these new methods are used and should be implemented...
     those classes from the bundle so therefore the bundle’s :py:class:`~chimerax.core.toolshed.BundleAPI`
     object needs to implement it’s ``get_class(class_name)`` static method to return the
     class object that corresponds to a string containing the class name.
+
+Now, the ``TutorialGUI`` class doesn't really have any state that would need to be
+saved into a session.  For the purpose of example, let's suppose that the tool's behavior
+somehow depended on the last command it had issued, and that command was saved in an attribute
+of ``TutorialGUI`` named ``prev_command``.  
+
+To save/restore the new and its ``prev_command`` attribute, we add ``take_snapshot`` and
+``restore_snaphot`` methods to the ``TutorialGUI`` class, as per the below:
+
+.. literalinclude:: gui_snippet.py
+    :language: python
+
+Finally, for the session-restore code to be able to find the ``TutorialGUI`` class, we must
+implement the :py:class:`~chimerax.core.toolshed.BundleAPI` ``get_class`` static method in
+our ``_MyAPI`` class, like so:
+
+.. literalinclude:: init_snippet.py
+    :language: python
 
 
 .. include:: build_test_distribute.rst
