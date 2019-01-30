@@ -26,9 +26,9 @@ def dicom_grids(paths, log = None, verbose = False):
   sgrids = {}
   for s in series:
     if not s.has_image_data:
-      if s.attributes.get('SOPClassUID').name == 'RT Structure Set Storage':
-        from .dicom_contours import DicomContours
-        DicomContours(log.session, s.paths[0])
+#      if s.attributes.get('SOPClassUID').name == 'RT Structure Set Storage':
+#        from .dicom_contours import DicomContours
+#        DicomContours(log.session, s.paths[0])
       continue
     d = DicomData(s)
     if d.mode == 'RGB':
