@@ -73,6 +73,9 @@ def dicom_grids(paths, log = None, verbose = False):
     sg.append(g)
     g.channel = len(sg)
     g.rgba = channel_colors[(g.channel-2) % len(channel_colors)]
+    if not g.dicom_data.origin_specified:
+      # Segmentation may not have specified an origin
+      g.set_origin(sg[0].origin)
 
   # Show only first group of grids
   for gg in grids[1:]:
