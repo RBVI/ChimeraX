@@ -219,15 +219,19 @@ class Series:
 
   def origin(self):
     files = self._file_info
-    if files:
-      pos = files[0]._position
-      if self.multiframe and self._reverse_frames:
-        zoffset = files[0]._num_frames * -self.z_plane_spacing()
-        zaxis = self._patient_axes()[2]
-        pos = tuple(a+zoffset*b for a,b in zip(pos, zaxis))
-      if pos is not None:
-        return pos
-    return (0,0,0)
+    if len(files) == 0:
+      return None
+    
+    pos = files[0]._position
+    if pos is None:
+      return None
+    
+    if self.multiframe and self._reverse_frames:
+      zoffset = files[0]._num_frames * -self.z_plane_spacing()
+      zaxis = self._patient_axes()[2]
+      pos = tuple(a+zoffset*b for a,b in zip(pos, zaxis))
+      
+    return pos
 
   def rotation(self):
     (x0,y0,z0),(x1,y1,z1),(x2,y2,z2) = self._patient_axes()
@@ -475,7 +479,12 @@ class DicomData:
     self._reverse_planes = (series.multiframe and series._reverse_frames)
     self.data_size = series.grid_size()
     self.data_step = series.pixel_spacing()
-    self.data_origin = series.origin()
+    self.data_origin = origin = series.origin()
+    if origin is None:
+      self.origin_specified = False
+      self.data_origin = (0,0,0)
+    else:
+      self.origin_specified = True
     self.data_rotation = series.rotation()
 
   # ---------------------------------------------------------------------------
