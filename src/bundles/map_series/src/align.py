@@ -54,7 +54,7 @@ def align_series(maps, path, align = True, zero_mean = True,
         v0.data.name = v.data.name
         options = {'append': True, 'compress': compress}
         from VolumeData import cmap
-        cmap.write_grid_as_chimera_map(v0.data, path, options)
+        cmap.save(v0.data, path, options)
 
 def alignseries_command(cmdname, args):
 

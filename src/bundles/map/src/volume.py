@@ -3367,15 +3367,17 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
           raise UserError('Specified models are not volumes' + mstring)
 
       
-    from .data.fileformats import file_writer, file_writers
+    from .data.fileformats import file_writer, file_formats
     if file_writer(path, format_name) is None:
         from chimerax.core.errors import UserError
         if format_name is None:
+            suffixes = ', '.join(sum([ff.suffixes for ff in file_formats if ff.writable], []))
             msg = ('Unknown file suffix for "%s", known suffixes %s'
-                   % (path, ', '.join(sum([fw[2] for fw in file_writers], []))))
+                   % (path, suffixes))
         else:
+            fmt_names = ', '.join(ff.name for ff in file_formats if ff.writable)
             msg = ('Unknown file format "%s", known formats %s'
-                   % (format_name, ', '.join(fw[1] for fw in file_writers)))
+                   % (format_name, fmt_names))
         raise UserError(msg)
         
     options = {}
@@ -3453,11 +3455,10 @@ def is_multifile_save(path):
 #
 def register_map_file_formats(session):
     from chimerax.core import io, toolshed
-    from .data.fileformats import file_formats, file_writers
-    fwriters = set(fw[0] for fw in file_writers)
+    from .data.fileformats import file_formats
     for ff in file_formats:
       suf = tuple('.' + s for s in ff.suffixes)
-      save_func = save_map if ff.description in fwriters else None
+      save_func = save_map if ff.writable else None
       def open_map_format(session, stream, name = None, format = ff.name, **kw):
         return open_map(session, stream, name=name, format=format, **kw)
       io.register_format(ff.description, toolshed.VOLUME, suf, nicknames=ff.prefixes,
