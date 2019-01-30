@@ -34,6 +34,8 @@ class MapFileFormat:
 
   @property
   def save_func(self):
+    if not self.writable:
+      return None
     module_name = self.name
     module = __import__(module_name, globals(), level = 1)
     return module.save
@@ -41,7 +43,7 @@ class MapFileFormat:
 # -----------------------------------------------------------------------------
 # File description, file reader module name, file prefixes, and file suffixes.
 #
-file_formats = (
+file_formats = [
   MapFileFormat('Amira mesh', 'amira', ['amira'], ['am']),
   MapFileFormat('APBS potential', 'apbs', ['apbs'], ['dx']),
   MapFileFormat('BRIX density map', 'dsn6', ['dsn6'], ['brix'], writable = True),
@@ -52,7 +54,6 @@ file_formats = (
   MapFileFormat('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi']),
   MapFileFormat('DeltaVision map', 'deltavision', ['dv'], ['dv']),
   MapFileFormat('DSN6 density map', 'dsn6', ['dsn6'], ['omap']),
-  MapFileFormat('DICOM image', 'dicom', ['dicom'], ['dcm'], batch = True, allow_directory = True),
   MapFileFormat('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg']),
   MapFileFormat('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5']),
   MapFileFormat('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub']),
@@ -70,7 +71,7 @@ file_formats = (
   MapFileFormat('SPIDER volume data', 'spider', ['spider'], ['spi','vol']),
   MapFileFormat('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em']),
   MapFileFormat('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd']),
-  )
+  ]
   
 # -----------------------------------------------------------------------------
 # The electrostatics file types are opened using a surface colormapping tool

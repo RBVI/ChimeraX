@@ -3453,17 +3453,31 @@ def is_multifile_save(path):
 
 # -----------------------------------------------------------------------------
 #
-def register_map_file_formats(session):
+def add_map_format(session, map_format, register_file_suffixes = True):
+  from .data import file_formats
+  file_formats.append(map_format)
+  if register_file_suffixes:
+    register_map_format(session, map_format)
+
+# -----------------------------------------------------------------------------
+#
+def register_map_format(session, map_format):
     from chimerax.core import io, toolshed
+    suf = tuple('.' + s for s in map_format.suffixes)
+    save_func = save_map if map_format.writable else None
+    def open_map_format(session, stream, name = None, format = map_format.name, **kw):
+      return open_map(session, stream, name=name, format=format, **kw)
+    io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
+                       open_func=open_map_format, batch=map_format.batch,
+                       allow_directory=map_format.allow_directory,
+                       export_func=save_func)
+
+# -----------------------------------------------------------------------------
+#
+def register_map_file_formats(session):
     from .data.fileformats import file_formats
     for ff in file_formats:
-      suf = tuple('.' + s for s in ff.suffixes)
-      save_func = save_map if ff.writable else None
-      def open_map_format(session, stream, name = None, format = ff.name, **kw):
-        return open_map(session, stream, name=name, format=format, **kw)
-      io.register_format(ff.description, toolshed.VOLUME, suf, nicknames=ff.prefixes,
-                         open_func=open_map_format, batch=True, allow_directory=ff.allow_directory,
-                         export_func=save_func)
+      register_map_format(session, ff)
 
     # Add keywords to open command for maps
     from chimerax.core.commands import BoolArg, IntArg

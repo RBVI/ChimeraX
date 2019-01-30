@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -12,7 +14,7 @@
 # -----------------------------------------------------------------------------
 # Wrap image data as grid data for displaying surface, meshes, and volumes.
 #
-from .. import GridData
+from chimerax.map.data import GridData
 
 # -----------------------------------------------------------------------------
 #
@@ -24,7 +26,10 @@ def dicom_grids(paths, log = None, verbose = False):
   sgrids = {}
   for s in series:
     if not s.has_image_data:
-        continue
+      if s.attributes.get('SOPClassUID').name == 'RT Structure Set Storage':
+        from .dicom_contours import DicomContours
+        DicomContours(log.session, s.paths[0])
+      continue
     d = DicomData(s)
     if d.mode == 'RGB':
       # Create 3-channels for RGB series
@@ -99,7 +104,7 @@ class DicomGrid(GridData):
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    from ..readarray import allocate_array
+    from chimerax.map.data.readarray import allocate_array
     m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
     c = self.channel if self.multichannel else None
     self.dicom_data.read_matrix(ijk_origin, ijk_size, ijk_step,
