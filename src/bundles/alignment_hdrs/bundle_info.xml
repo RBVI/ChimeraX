@@ -17,6 +17,7 @@
   <CExecutable name="al2co.exe">
     <SourceFile>al2co/al2co.c</SourceFile>
     <CompileArgument platform="mac">-Wno-logical-op-parentheses</CompileArgument>
+    <Library platform="linux">m</Library>
   </CExecutable>
 
   <Dependencies>
