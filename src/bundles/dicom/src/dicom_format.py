@@ -321,14 +321,14 @@ class Series:
     attrs = self.attributes
     for attr in ('BitsAllocated', 'PixelRepresentation'):
       if attrs.get(attr) is None:
-        if self._log:
-          cuid = attrs.get('SOPClassUID')
-          cname = cuid.name if cuid else 'unknown'
-          self._log.warning('Cannot read image data for series %s class %s because there is no %s header value'
-                            % (self.paths[0], cname, attr))
         return False
     return True
 
+  @property
+  def dicom_class(self):
+    cuid = self.attributes.get('SOPClassUID')
+    return 'unknown' if cuid is None else cuid.name
+  
 # -----------------------------------------------------------------------------
 #
 class SeriesFile:

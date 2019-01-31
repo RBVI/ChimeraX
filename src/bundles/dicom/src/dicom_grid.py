@@ -12,23 +12,22 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Wrap image data as grid data for displaying surface, meshes, and volumes.
 #
-from chimerax.map.data import GridData
+def dicom_grids(paths, log = None, verbose = False):
+  from .dicom_format import find_dicom_series
+  series = find_dicom_series(paths, log = log, verbose = verbose)
+  grids = dicom_grids_from_series(series)
+  return grids
 
 # -----------------------------------------------------------------------------
 #
-def dicom_grids(paths, log = None, verbose = False):
-  from .dicom_format import find_dicom_series, DicomData
-  series = find_dicom_series(paths, log = log, verbose = verbose)
+def dicom_grids_from_series(series):
   grids = []
   derived = []	# For grouping derived series with original series
   sgrids = {}
+  from .dicom_format import DicomData
   for s in series:
     if not s.has_image_data:
-#      if s.attributes.get('SOPClassUID').name == 'RT Structure Set Storage':
-#        from .dicom_contours import DicomContours
-#        DicomContours(log.session, s.paths[0])
       continue
     d = DicomData(s)
     if d.mode == 'RGB':
@@ -86,6 +85,7 @@ def dicom_grids(paths, log = None, verbose = False):
 
 # -----------------------------------------------------------------------------
 #
+from chimerax.map.data import GridData
 class DicomGrid(GridData):
 
   def __init__(self, d, time = None, channel = None):

@@ -19,13 +19,45 @@ def open_dicom(session, stream, name = None, format = 'dicom', **kw):
   else:
     map_path = stream.name
     stream.close()
-  from os.path import basename
-  name = basename(map_path if isinstance(map_path, str) else map_path[0])
 
-  from chimerax.map import data
-  grids = data.open_file(map_path, file_type = format, log = session.logger,
-                         verbose = kw.get('verbose'))
+  # Locate all series in subdirectories
+  from .dicom_format import find_dicom_series
+  series = find_dicom_series(map_path, log = session.logger, verbose = kw.get('verbose'))
 
+  # Open volume models for image series
+  image_series = []
+  contour_series = []
+  extra_series = []
+  for s in series:
+      if s.has_image_data:
+          image_series.append(s)
+      elif s.dicom_class == 'RT Structure Set Storage':
+          contour_series.append(s)
+      else:
+          extra_series.append(s)
+
+  models, msg = dicom_volumes(session, image_series, **kw)
+
+  # Open contour models for DICOM RT Structure Set series.
+  if contour_series:
+      contour_models = []
+      cmodels, cmsg = dicom_contours(session, contour_series)
+      models += cmodels
+      msg += '\n' + cmsg
+
+  # Warn about unrecognized series types.
+  if extra_series:
+      snames = ', '.join('%s (%s)' % (s.name, s.dicom_class) for s in extra_series)
+      session.logger.warning('Can only handle images and contours, got %d other series types: %s'
+                             % (len(extra_series), snames))
+
+  return models, msg
+
+# -----------------------------------------------------------------------------
+#
+def dicom_volumes(session, series, **kw):
+  from .dicom_grid import dicom_grids_from_series
+  grids = dicom_grids_from_series(series)
   models = []
   msg_lines = []
   sgrids = []
@@ -49,8 +81,15 @@ def open_dicom(session, stream, name = None, format = 'dicom', **kw):
     msg_lines.append(smsg)
 
   msg = '\n'.join(msg_lines)
-
   return models, msg
+
+# -----------------------------------------------------------------------------
+#
+def dicom_contours(session, contour_series):
+    from .dicom_contours import DicomContours
+    models = [DicomContours(session, s) for s in contour_series]
+    msg = 'Opened %d contour models' % len(models)
+    return models, msg
 
 # -----------------------------------------------------------------------------
 #
@@ -86,4 +125,4 @@ def register_dicom_format(session):
     
     # Add map grid format reader
     from chimerax.map import add_map_format
-    add_map_format(session, fmt)
+    add_map_format(session, fmt, register_file_suffixes = False)
