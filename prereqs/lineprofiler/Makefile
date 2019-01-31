@@ -8,14 +8,23 @@ include ../pips/Makefile.pip
 VERSION = 2.1.2
 DISTRIBUTION = line_profiler-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/line_profiler-$(VERSION)
+PIPINSTALL_ARGS = --upgrade-strategy only-if-needed
+
+ifdef WIN32
+WHEEL = `cygpath -m $(SOURCE)/dist/*.whl`
+else
+WHEEL = '$(SOURCE)/dist/*.whl'
+endif
 
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py $(SETUP_ARGS) build install
+	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_ARGS) bdist_wheel
+	$(PYTHON_EXE) -m pip install $(PIPINSTALL_ARGS) $(WHEEL)
 
 app-install: install
-	cd $(SOURCE) &&	$(APP_PYTHON_EXE) setup.py $(SETUP_ARGS) build install
+	cd $(SOURCE) && $(APP_PYTHON_EXE) setup.py $(SETUP_ARGS) bdist_wheel
+	$(APP_PYTHON_EXE) -m pip install $(PIPINSTALL_ARGS) $(WHEEL)
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
