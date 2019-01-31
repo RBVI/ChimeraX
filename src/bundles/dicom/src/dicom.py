@@ -44,6 +44,7 @@ def open_dicom(session, stream, name = None, format = 'dicom', **kw):
       cmodels, cmsg = dicom_contours(session, contour_series)
       models += cmodels
       msg += '\n' + cmsg
+      # TODO: Associate contour models with image data they were derived from.
 
   # Warn about unrecognized series types.
   if extra_series:
