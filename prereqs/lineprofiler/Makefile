@@ -13,7 +13,7 @@ PIPINSTALL_ARGS = --upgrade-strategy only-if-needed
 ifdef WIN32
 WHEEL = `cygpath -m $(SOURCE)/dist/*.whl`
 else
-WHEEL = '$(SOURCE)/dist/*.whl'
+WHEEL = $(SOURCE)/dist/*.whl
 endif
 
 all:
