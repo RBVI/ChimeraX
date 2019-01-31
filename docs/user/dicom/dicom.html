@@ -47,15 +47,28 @@ Command: <a href="../commands/open.html#local"><b>open</b></a>
 &nbsp;<i>pathname-glob</i>
 </blockquote>
 <p>
-...where <i>pathname-glob</i> specifies the name and location of multiple
-files, typically using * as wildcard and enclosed in quotes if it contains
-spaces. If <b>format dicom</b> is specified explicitly,
-a directory name can be given (instead of filenames)
-to open all of the DICOM files in that directory and its subdirectories.
+...where <i>pathname-glob</i> specifies the name and location of multiple files,
+typically using * as wildcard and enclosed in quotes if it contains spaces. 
+<p>
+It is also possible to open all of the DICOM files in a directory
+and its subdirectories in a single operation
+if the format is specified explicitly:
+</p>
+<blockquote>
+Menu: <b>File... Open Folder</b> (dialog shows Format: DICOM image), 
+browse to location, choose directory, click <b>Open</b>
+<br>&ndash; or &ndash;
+<br>
+Command: <a href="../commands/open.html#local"><b>open</b></a>
+<i>directory-pathname</i> <b>format dicom</b>
+</blockquote>
+<p>
+...where <i>directory-pathname</i> can also contain wildcards to lessen
+typing, and should be enclosed in quotes if it includes spaces.
 Each image stack that is found will be opened as a separate model.
 </p><p>
-The <b>open</b> command option
-<a href="../commands/open.html#verbose"><b>verbose</b></a>
+The <b>open</b> command
+<a href="../commands/open.html#verbose"><b>verbose</b></a> option
 shows detailed debugging information for DICOM input.
 </p><p>
 Some DICOM files contain <b><i>time series</i></b> that can be played with
