@@ -3458,6 +3458,9 @@ def add_map_format(session, map_format, register_file_suffixes = True):
   file_formats.append(map_format)
   if register_file_suffixes:
     register_map_format(session, map_format)
+  else:
+    # Prevent register_map_file_formats() from registering this format.
+    map_format._register_suffixes = False
 
 # -----------------------------------------------------------------------------
 #
@@ -3477,7 +3480,8 @@ def register_map_format(session, map_format):
 def register_map_file_formats(session):
     from .data.fileformats import file_formats
     for ff in file_formats:
-      register_map_format(session, ff)
+      if getattr(ff, '_register_suffixes', True):
+        register_map_format(session, ff)
 
     # Add keywords to open command for maps
     from chimerax.core.commands import BoolArg, IntArg
