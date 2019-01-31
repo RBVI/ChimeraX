@@ -37,7 +37,7 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
   for s in series:
     s.use_patient_id_in_name = use_patient_id_in_name
     
-  series.sort(key = lambda s: (s.name, s.paths[0]))
+  series.sort(key = lambda s: s.sort_key)
 
   find_reference_series(series)
       
@@ -80,12 +80,12 @@ class Series:
   # value for these parameters.  So they are only read for the first file.
   # Not sure if this is a valid assumption.
   #
-  dicom_attributes = ['BitsAllocated', 'Columns', 'Modality',
+  dicom_attributes = ['BitsAllocated', 'BodyPartExamined', 'Columns', 'Modality',
                       'NumberOfTemporalPositions',
                       'PatientID', 'PhotometricInterpretation',
                       'PixelPaddingValue', 'PixelRepresentation', 'PixelSpacing',
                       'RescaleIntercept', 'RescaleSlope', 'Rows',
-                      'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID',
+                      'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber',
                       'SOPClassUID', 'StudyDate']
   def __init__(self, log = None):
     self.paths = []
@@ -115,16 +115,31 @@ class Series:
   def name(self):
     attrs = self.attributes
     fields = []
-    if self.use_patient_id_in_name and 'PatientID' in attrs:
-      n = self.use_patient_id_in_name
-      fields.append(attrs['PatientID'][:n])
-    if 'SeriesDescription' in attrs:
-      fields.append(attrs['SeriesDescription'])
-    if 'StudyDate' in attrs:
-      fields.append(attrs['StudyDate'])
+#    if self.use_patient_id_in_name and 'PatientID' in attrs:
+#      n = self.use_patient_id_in_name
+#      fields.append(attrs['PatientID'][:n])
+    desc = attrs.get('SeriesDescription')
+    if desc:
+      fields.append(desc)
+    else:
+      if 'BodyPartExamined' in attrs:
+        fields.append(attrs['BodyPartExamined'])
+      if 'Modality' in attrs:
+        fields.append(attrs['Modality'])
+    if 'SeriesNumber' in attrs:
+      fields.append(str(attrs['SeriesNumber']))
+#    if 'StudyDate' in attrs:
+#      fields.append(attrs['StudyDate'])
+    if len(fields) == 0:
+      fields.append('unknown')
     name = ' '.join(fields)
     return name
 
+  @property
+  def sort_key(self):
+    attrs = self.attributes
+    return (attrs.get('PatientID',''), attrs.get('StudyDate',''), self.name, self.paths[0])
+    
   @property
   def plane_uids(self):
     return tuple(fi._instance_uid for fi in self._file_info)
@@ -439,6 +454,8 @@ class DicomData:
 
   def __init__(self, series):
 
+    self.dicom_series = series
+    
     self.paths = series.paths
     npaths = len(series.paths)
 

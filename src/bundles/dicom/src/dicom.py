@@ -40,7 +40,6 @@ def open_dicom(session, stream, name = None, format = 'dicom', **kw):
 
   # Open contour models for DICOM RT Structure Set series.
   if contour_series:
-      contour_models = []
       cmodels, cmsg = dicom_contours(session, contour_series)
       models += cmodels
       msg += '\n' + cmsg
@@ -52,8 +51,53 @@ def open_dicom(session, stream, name = None, format = 'dicom', **kw):
       session.logger.warning('Can only handle images and contours, got %d other series types: %s'
                              % (len(extra_series), snames))
 
-  return models, msg
+  gmodels = group_models(session, map_path, models)
+  
+  return gmodels, msg
 
+# -----------------------------------------------------------------------------
+# Group into a four level hierarchy: directory, patient id, date, series.
+#
+def group_models(session, paths, models):
+  from os.path import basename, dirname
+  dname = basename(paths[0]) if len(paths) == 1 else basename(dirname(paths[0]))
+  from chimerax.core.models import Model
+  top = Model(dname, session)
+  locations = []
+  for m in models:
+    s = model_series(m)
+    if s is None:
+      locations.append((m, ()))
+    else:
+      pid = s.attributes.get('PatientID', 'unknown')
+      date = s.attributes.get('StudyDate', 'date unknown')
+      locations.append((m, ('Patient %s' % pid, date)))
+
+  leaf = {():top}
+  for m, gnames in locations:
+    if gnames not in leaf:
+      for i in range(len(gnames)):
+        if gnames[:i+1] not in leaf:
+          leaf[gnames[:i+1]] = gm = Model(gnames[i], session)
+          leaf[gnames[:i]].add([gm])
+    leaf[gnames].add([m])
+      
+  return [top]
+
+
+# -----------------------------------------------------------------------------
+#
+def model_series(m):
+  s = getattr(m, 'dicom_series', None)
+  if s is None:
+    # Look at child models for multi-channel and time-series.
+    for c in m.child_models():
+      s = getattr(c, 'dicom_series', None)
+      if s:
+        break
+  return s
+
+  
 # -----------------------------------------------------------------------------
 #
 def dicom_volumes(session, series, **kw):
@@ -62,14 +106,14 @@ def dicom_volumes(session, series, **kw):
   models = []
   msg_lines = []
   sgrids = []
-  from chimerax.map.volume import open_grids
+  from chimerax.map.volume import open_grids, Volume
   for grid_group in grids:
     if isinstance(grid_group, (tuple, list)):
       # Handle multiple channels or time series
       from os.path import commonprefix
       gname = commonprefix([g.name for g in grid_group])
       if len(gname) == 0:
-        gname = name
+        gname = grid_group[0].name
       gmodels, gmsg = open_grids(session, grid_group, gname, **kw)
       models.extend(gmodels)
       msg_lines.append(gmsg)
@@ -81,6 +125,14 @@ def dicom_volumes(session, series, **kw):
     models.extend(smodels)
     msg_lines.append(smsg)
 
+  for v in models:
+    if isinstance(v, Volume):
+      v.dicom_series = v.data.dicom_data.dicom_series
+    else:
+      for cv in v.child_models():
+        if isinstance(cv, Volume):
+          cv.dicom_series = cv.data.dicom_data.dicom_series
+          
   msg = '\n'.join(msg_lines)
   return models, msg
 

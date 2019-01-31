@@ -15,6 +15,7 @@ from chimerax.core.models import Model
 class DicomContours(Model):
     def __init__(self, session, series):
 
+        self.dicom_series = series
         path = series.paths[0]
         if series.dicom_class != 'RT Structure Set Storage':
             raise ValueError('DICOM file has SOPClassUID, %s, expected "RT Structure Set Storage", file %s'
