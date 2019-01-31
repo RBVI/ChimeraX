@@ -38,6 +38,8 @@ Possible values of <i>property</i>:
 <li><a href="#buriedArea"><b>buriedArea</b></a> 
 - calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area buried between two sets of atoms
+<li><a href="#center"><b>center</b></a>
+- calculate center of mass of map and/or atoms
 <li><a href="#convexity"><b>convexity</b></a>
 - calculate convexity at each surface vertex, color the surface accordingly
 <li><a href="#length"><b>length</b></a>
@@ -128,6 +130,35 @@ Examples:
 buried between <a href="atomspec.html#builtin"><b>ligand</b></a> and
 <a href="atomspec.html#builtin"><b>protein</b></a>
 </blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="center"></a>
+<b>measure center</b> 
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>level</b>&nbsp;&nbsp;<i>contour-level</i>&nbsp;]
+[&nbsp;<b>mark</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>marker-radius</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<i>marker-color</i>&nbsp;]
+[&nbsp;<b>modelId</b>&nbsp;&nbsp;<i>model-number</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+<blockquote>
+Calculate the center of mass of each density map and/or set of atoms in 
+<a href="atomspec.html"><i>spec</i></a>.
+Map centers are reported in grid indices,
+atomic centers of mass in the atomic coordinate system.
+The <b>level</b> option indicates using only map regions
+above <i>contour-level</i>.
+If <b>mark</b> is <b>true</b>, a <a href="../markers.html">marker</a> 
+will be placed at at each computed center, with radius <i>marker-radius</i> 
+(default based on the contents of <a href="atomspec.html"><i>spec</i></a>)
+and color <i>marker-color</i> (default <b>gray</b>).
+The <i>marker-color</i> can be any
+<a href="color.html#colorname">color name</a> that specifies a single color.
+The marker model is opened as number <i>model-number</i>
+(default next unused number) with name <i>model-name</i>
+(default based on the contents of <a href="atomspec.html"><i>spec</i></a>).
+See also: <a href="cofr"><b>cofr</b></a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -297,5 +328,5 @@ or <a href="surface.html#zone"><b>surface zone</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+January 2019</address>
 </body></html>
