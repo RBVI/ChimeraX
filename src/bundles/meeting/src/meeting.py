@@ -723,16 +723,17 @@ class VRTracking(PointerModels):
         ui = c.user_interface
         shown = ui.shown()
         gui_state = self._gui_state
-        if shown != gui_state['shown']:
+        shown_changed = (shown != gui_state['shown'])
+        if shown_changed:
             msg['vr gui shown'] = gui_state['shown'] = shown
         if shown:
             size, rpos, rgba = ui.size(), ui.drawing.room_position, ui.panel_image_rgba()
-            if size != gui_state['size']:
+            if size != gui_state['size'] or shown_changed:
                 msg['vr gui size'] = gui_state['size'] = size
-            if rpos is not gui_state['room position']:
+            if rpos is not gui_state['room position'] or shown_changed:
                 gui_state['room position'] = rpos
                 msg['vr gui position'] = _place_matrix(rpos)
-            if rgba is not gui_state['image']:
+            if rgba is not gui_state['image'] or shown_changed:
                 gui_state['image'] = rgba
                 msg['vr gui image'] = _encode_numpy_array(rgba)
                 
@@ -789,6 +790,7 @@ class VRPointerModel(Model):
             self._hands.extend(new_hands)
         return self._hands[:nhands]
 
+    @property
     def _gui_panel(self):
         g = self._gui
         if g is None:
@@ -916,13 +918,15 @@ class VRGUIModel(Model):
         self._size = (1,1)		# Meters
 
     def set_size(self, size):
-        self._size = rw, rh, size
-        from chimerax.core.graphics.drawing import rgba_drawing
+        self._size = (rw, rh) = size
+        from chimerax.core.graphics.drawing import position_rgba_drawing
         position_rgba_drawing(self, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
         
     def update_image(self, encoded_rgba):
         rw, rh = self._size
         rgba = _decode_numpy_array(encoded_rgba)
+        r = self.session.main_view.render
+        r.make_current() # Required for deleting previous texture in rgba_drawing()
         from chimerax.core.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
 
