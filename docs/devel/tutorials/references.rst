@@ -12,6 +12,8 @@
 .. _Mozilla Firefox: https://www.mozilla.org/firefox/
 .. _NCBI: https://www.ncbi.nlm.nih.gov/
 .. _NumPy: https://docs.scipy.org/doc/numpy-dev/user/quickstart.html
+.. _Qt: https://doc.qt.io/qt-5/index.html
+.. _Qt 5: https://doc.qt.io/qt-5/index.html
 .. _Qt WebEngine: https://doc.qt.io/qt-5/qtwebengine-index.html
 .. _PyQt: https://riverbankcomputing.com/software/pyqt/intro
 .. _PyQt5: https://riverbankcomputing.com/software/pyqt/intro

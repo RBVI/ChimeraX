@@ -222,7 +222,7 @@ for building example bundles:
 
    tutorial_command
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    tutorial_tool
 .. toctree::
