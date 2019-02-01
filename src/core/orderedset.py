@@ -22,9 +22,9 @@ and Stephan Schroevers' `does python have an ordered set
 `stackoverflow.com <http://stackoverflow.com/>`_ postings.
 """
 
-import collections, weakref
+import collections, collections.abc, weakref
 
-class OrderedSet(collections.MutableSet):
+class OrderedSet(collections.abc.MutableSet):
     """Ordered set.
     
     Supports all of the operations that can happen on a :py:class:`set`."""
@@ -66,36 +66,36 @@ class OrderedSet(collections.MutableSet):
 
     def __eq__(self, other):
         if isinstance(other, collections.Set):
-            return collections.MutableSet.__eq__(self, other)
+            return collections.abc.MutableSet.__eq__(self, other)
         return False
 
     def __ne__(self, other):
         if isinstance(other, collections.Set):
-            return collections.MutableSet.__ne__(self, other)
+            return collections.abc.MutableSet.__ne__(self, other)
         return True
 
     __hash__ = None
 
-    difference = collections.MutableSet.__sub__
-    difference_update = collections.MutableSet.__isub__
-    intersection = collections.MutableSet.__and__
-    intersection_update = collections.MutableSet.__iand__
-    issubset = collections.MutableSet.__le__
-    issuperset = collections.MutableSet.__ge__
-    symmetric_difference = collections.MutableSet.__xor__
-    symmetric_difference_update = collections.MutableSet.__ixor__
-    union = collections.MutableSet.__or__
-    update = collections.MutableSet.__ior__
+    difference = collections.abc.MutableSet.__sub__
+    difference_update = collections.abc.MutableSet.__isub__
+    intersection = collections.abc.MutableSet.__and__
+    intersection_update = collections.abc.MutableSet.__iand__
+    issubset = collections.abc.MutableSet.__le__
+    issuperset = collections.abc.MutableSet.__ge__
+    symmetric_difference = collections.abc.MutableSet.__xor__
+    symmetric_difference_update = collections.abc.MutableSet.__ixor__
+    union = collections.abc.MutableSet.__or__
+    update = collections.abc.MutableSet.__ior__
 
-    __rand__ = collections.MutableSet.__and__
-    __ror__ = collections.MutableSet.__or__
+    __rand__ = collections.abc.MutableSet.__and__
+    __ror__ = collections.abc.MutableSet.__or__
 
     def __rsub__(self, other):
         # needed for generic xor
         return type(other)(iter(self)) - other
 
     def __rxor__(self, other):
-        collections.MutableSet.__xor__(self, other)
+        collections.abc.MutableSet.__xor__(self, other)
 
 #   isdisjoint, issubset, issuperset, pop, remove,
 

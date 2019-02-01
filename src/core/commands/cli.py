@@ -691,7 +691,7 @@ class EnumOf(Annotation):
     allow_truncated = True
 
     def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
-        from collections import Iterable
+        from collections.abc import Iterable
         if isinstance(values, Iterable):
             values = list(values)
         if ids is not None:
