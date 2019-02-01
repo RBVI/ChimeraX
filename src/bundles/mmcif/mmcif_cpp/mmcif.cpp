@@ -890,6 +890,11 @@ ExtractMolecule::finished_parse()
             copy_nmr_info(mol, m, _logger);
         }
         m->use_best_alt_locs();
+        if (m == mol) {
+            // Fixed #1548 by explicitly creating chains, so the
+            // right information is copied to subsequent NMR models
+            m->make_chains();
+        }
     }
     reset_parse();
 }
