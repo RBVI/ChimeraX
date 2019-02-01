@@ -37,8 +37,24 @@ See also:
 <a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
 </p><p>
-Generally multiple DICOM files comprise a single 3D image.
-These can be opened as follows:
+All of the DICOM files in a directory and its subdirectories 
+can be opened in a single operation if the format is specified explicitly:
+</p>
+<blockquote>
+Menu: <b>File... Open Folder</b> (dialog shows Format: DICOM image), 
+browse to location, choose directory, click <b>Open</b>
+<br>&ndash; or &ndash;
+<br>
+Command: <a href="../commands/open.html#local"><b>open</b></a>
+&nbsp;<i>directory-pathname</i>&nbsp; <b>format dicom</b>
+</blockquote>
+<p>
+...where <i>directory-pathname</i> may contain * as wildcard to lessen
+typing, and should be enclosed in quotation marks if it includes spaces.
+Each image stack that is found will be opened as a separate model.
+</p><p>
+Alternatively, multiple DICOM files comprising a single 3D image stack
+can be opened as follows:
 </p>
 <blockquote>
 Menu: <b>File... Open</b>, browse to location, click first file,
@@ -51,37 +67,41 @@ Command: <a href="../commands/open.html#local"><b>open</b></a>
 <p>
 ...where <i>pathname-glob</i> specifies the name and location of multiple files,
 typically using * as wildcard and enclosed in quotes if it contains spaces. 
-<p>
-It is also possible to open all of the DICOM files in a directory
-and its subdirectories in a single operation
-if the format is specified explicitly:
-</p>
-<blockquote>
-Menu: <b>File... Open Folder</b> (dialog shows Format: DICOM image), 
-browse to location, choose directory, click <b>Open</b>
-<br>&ndash; or &ndash;
-<br>
-Command: <a href="../commands/open.html#local"><b>open</b></a>
-<i>directory-pathname</i> <b>format dicom</b>
-</blockquote>
-<p>
-...where <i>directory-pathname</i> can also contain wildcards to lessen
-typing, and should be enclosed in quotes if it includes spaces.
-Each image stack that is found will be opened as a separate model.
 </p><p>
-The <b>open</b> command
-<a href="../commands/open.html#verbose"><b>verbose</b></a> option
+The <a href="../commands/open.html"><b>open</b></a> command
+<a href="../commands/open.html#verbose"><b>verbose</b></a> option 
 shows detailed debugging information for DICOM input.
 </p><p>
 Some DICOM files contain <b><i>time series</i></b> that can be played with
 the time slider shown automatically by ChimeraX or with
 the <a href="../commands/vseries.html"><b>vseries</b></a> command.
 </p><p>
-Some DICOM files contain <b><i>segmentations</i></b>
-in the form of binary maps (values 0,1);
-these can be displayed as an isosurface, for example:
-<a href="../commands/volume.html"><b>volume</b></a> #1.3 style surface level 1</b>
+Some DICOM files contain SEG objects (<b><i>segmentations</i></b>
+as binary maps), and these are automatically associated with the 
+corresponding image series to synchronize plane display.
+They can also be displayed as isosurfaces, for example:
+<b><a href="../commands/volume.html">volume</a> #1.1.1.1.5 show style surf 
+level 1 region all</b>
 </p>
+
+<a name="hierarchy"></a>
+<p class="nav">
+[<a href="#top">back to top: DICOM Files</a>]
+</p>
+<h3>DICOM Model Hierarchy</h3>
+<p>
+Models read from DICOM files are arranged in a hierarchy, as
+shown in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>:
+</p>
+<ol>
+<li>directory
+<li>patient ID
+<li>study date
+<li>series description and number, if available, or body part and modality
+<li>segmentations or other image series-dependent annotations
+(for example, segmentations of a particular CT scan)
+</ol>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 January 2019</address>
