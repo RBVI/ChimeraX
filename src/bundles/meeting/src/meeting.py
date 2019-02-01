@@ -636,6 +636,7 @@ class VRTracking(PointerModels):
         self._new_face_image = None	# Path to image file
         self._face_image = None		# Encoded image
         self._send_face_image = False
+        self._gui_state = {'shown':False, 'size':(0,0), 'room position':None, 'image':None}
 
     def delete(self):
         t = self._session.triggers
@@ -694,16 +695,19 @@ class VRTracking(PointerModels):
         if v.frame_number % self.update_interval != 0:
             return
 
+        # Report VR hand and head motions.
         msg = {'name': self._meeting._name,
                'color': tuple(self._meeting._color),
                'vr head': self._head_position(c),	# In room coordinates
                'vr hands': self._hand_positions(c),	# In room coordinates
                }
 
+        # Report scene moved in room
         if scene_moved:
             msg['vr coords'] = _place_matrix(c.room_to_scene)
             self._last_room_to_scene = c.room_to_scene
 
+        # Report VR face image change.
         if self._new_face_image:
             image = _encode_face_image(self._new_face_image)
             self._face_image = image
@@ -714,7 +718,24 @@ class VRTracking(PointerModels):
             self._send_face_image = False
             if self._face_image is not None:
                 msg['vr head image'] = self._face_image
-            
+
+        # Report changes in VR GUI panel
+        ui = c.user_interface
+        shown = ui.shown()
+        gui_state = self._gui_state
+        if shown != gui_state['shown']:
+            msg['vr gui shown'] = gui_state['shown'] = shown
+        if shown:
+            size, rpos, rgba = ui.size(), ui.drawing.room_position, ui.panel_image_rgba()
+            if size != gui_state['size']:
+                msg['vr gui size'] = gui_state['size'] = size
+            if rpos is not gui_state['room position']:
+                gui_state['room position'] = rpos
+                msg['vr gui position'] = _place_matrix(rpos)
+            if rgba is not gui_state['image']:
+                gui_state['image'] = rgba
+                msg['vr gui image'] = _encode_numpy_array(rgba)
+                
         # Tell connected peers my new vr state
         self._meeting._send_message(msg)
 
@@ -754,6 +775,7 @@ class VRPointerModel(Model):
         self.add([h])
         self._hands = []
         self._color = color
+        self._gui = None
 
 	# Last room to scene transformation for this peer.
         # Used if we are not using VR camera so have no room coordinates.
@@ -767,6 +789,13 @@ class VRPointerModel(Model):
             self._hands.extend(new_hands)
         return self._hands[:nhands]
 
+    def _gui_panel(self):
+        g = self._gui
+        if g is None:
+            self._gui = g = VRGUIModel(self.session)
+            self.add([g])
+        return g
+    
     def _get_room_to_scene(self):
         c = _vr_camera(self.session)
         return c.room_to_scene if c else self._room_to_scene
@@ -787,14 +816,24 @@ class VRPointerModel(Model):
             h = self._head
             h.room_position = rp = _matrix_place(msg['vr head'])
             h.position = self.room_to_scene * rp
+        if 'vr head image' in msg:
+            self._head.update_image(msg['vr head image'])
         if 'vr hands' in msg:
             hpos = msg['vr hands']
             rts = self.room_to_scene
             for h,hm in zip(self._hand_models(len(hpos)), hpos):
                 h.room_position = rp = _matrix_place(hm)
                 h.position = rts * rp
-        if 'vr head image' in msg:
-            self._head.update_image(msg['vr head image'])
+        if 'vr gui shown' in msg:
+            self._gui_panel.display = msg['vr gui shown']
+        if 'vr gui size' in msg:
+            self._gui_panel.set_size(msg['vr gui size'])
+        if 'vr gui position' in msg:
+            g = self._gui_panel
+            g.room_position = rp = _matrix_place(msg['vr gui position'])
+            g.position = self.room_to_scene * rp
+        if 'vr gui image' in msg:
+            self._gui_panel.update_image(msg['vr gui image'])
 
 class VRHandModel(Model):
     '''Radius and height in meters.'''
@@ -864,6 +903,29 @@ class VRHeadModel(Model):
         self.texture.delete_texture()
         self.texture = Texture(rgba)
 
+class VRGUIModel(Model):
+    '''Size in meters.'''
+    casts_shadows = False
+    pickable = False
+    skip_bounds = True
+    SESSION_SAVE = False
+
+    def __init__(self, session, name = 'GUI Panel'):
+        Model.__init__(self, name, session)
+        self.room_position = None
+        self._size = (1,1)		# Meters
+
+    def set_size(self, size):
+        self._size = rw, rh, size
+        from chimerax.core.graphics.drawing import rgba_drawing
+        position_rgba_drawing(self, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
+        
+    def update_image(self, encoded_rgba):
+        rw, rh = self._size
+        rgba = _decode_numpy_array(encoded_rgba)
+        from chimerax.core.graphics.drawing import rgba_drawing
+        rgba_drawing(self, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
+
 def _vr_camera(session):
     c = session.main_view.camera
     from chimerax.vive.vr import SteamVRCamera
@@ -888,3 +950,21 @@ def _decode_face_image(bytes):
     from base64 import b64decode
     image_bytes = b64decode(bytes)
     return image_bytes
+
+def _encode_numpy_array(array):
+    from base64 import b64encode
+    data = {
+        'shape': tuple(array.shape),
+        'dtype': array.dtype.str,
+        'data': b64encode(array.tobytes())
+    }
+    return data
+
+def _decode_numpy_array(array_data):
+    shape = array_data['shape']
+    dtype = array_data['dtype']
+    from base64 import b64decode
+    data = b64decode(array_data['data'])
+    import numpy
+    a = numpy.frombuffer(data, dtype).reshape(shape)
+    return a
