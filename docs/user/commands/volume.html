@@ -71,7 +71,8 @@ See also:
 <a href="sym.html"><b>sym</b></a>,
 <a href="smoothlines.html"><b>smoothlines</b></a>,
 <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>,
-<a href="../measurements.html">measurements</a>
+<a href="../measurements.html">measurements</a>,
+<a href="../dicom-quickref.html">DICOM Quick Reference</a>
 </p>
 <a name="examples">Examples</a>:
 <blockquote>
@@ -418,6 +419,9 @@ regardless of which are specified:
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.  
   Grid indices must be integers separated by commas but not spaces.
+  See also: the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/crop.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -887,12 +891,16 @@ both depict isosurfaces.
   <li><b>2d-y</b>
   <li><b>2d-z</b>
   <li><b>2d-xyz</b>
+  <li><b>3d</b>
   </ul>
   Displaying just the planes perpendicular to one data axis 
   (2d-x, 2d-y, or 2d-z) uses less memory than automatically switching
   to those along the data axis most perpendicular to the screen at a given 
-  time (2d-xyz).  The auto setting uses 2d-z for volumes with X or Y dimensions
+  time (2d-xyz). The auto setting uses 2d-z for volumes with X or Y dimensions
   at least 4 times greater than Z, otherwise 2d-xyz.
+  The 3d mode avoids jumps in brightness during rotation by continuously 
+  generating planes perpendicular to the line of sight, 
+  with spacing equal to the smallest spacing (along X, Y, or Z) of the data.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -952,18 +960,33 @@ both depict isosurfaces.
   <a href="#top" class="nounder">&bull;</a>
   <a name="appearance"></a>
   <b>appearance</b> &nbsp;<i>preset-name</i>
+  <br>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>appearance</b> &nbsp;<b>initial</b>
 <br>
 Apply an initial approximation of the settings in a
 <a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
-target="_blank">Horos 3D preset</a> to the solid display. 
+target="_blank">Horos 3D preset</a> to the solid display 
 (<a href="https://horosproject.org/about/"
 target="_blank">Horos</a> is a program for medical image 
-visualization and analysis.)
+visualization and analysis)
+and set <a href="#dimvox"><b>dimTransparentVoxels</b></a> to false.
 The <i>preset-name</i> should be enclosed in quotation marks if it
-contains any spaces. This initial approximation may not reproduce the appearance 
-in Horos very faithfully, as there is not a one-to-one correspondence
-between the settings in the two programs, and some parts of the preset
-definition files may have been ignored or misinterpreted.
+contains any spaces. This approximation may not reproduce 
+the appearance in Horos very faithfully, as there is not a 
+one-to-one correspondence between the settings in the two programs,
+and some parts of the preset definition files may have been 
+ignored or misinterpreted.
+<p>
+Besides a preset name, <b>initial</b> can be used to (re)set to the
+solid threshold values and colors that would have been chosen automatically 
+for the data when first shown as solid, with 
+<a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
+This is primarily useful for <a href="#planes">single-plane</a>
+or thin-slab display after a 3D preset had been used on
+the entire volume or a thick subregion.
+See also: <a href="../dicom-quickref.html">DICOM Quick Reference</a>
+</p>
 </blockquote>
 
 <a name="vop"></a>

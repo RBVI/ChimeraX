@@ -39,9 +39,10 @@ and <a href="../tools/volumeviewer.html">volume data</a> (map) displays:
 - lightening, hue shift, <i>etc.</i> for atomic models
 <li><b>Coloring by Value</b>:
   <ul>
-  <li><a href="#attribute"><b>Attribute</b></a>
-  - currently only <a href="#attribute"><b>color bfactor</b></a>
-  for atomic models
+  <li><a href="#byattribute"><b>Attribute</b></a>
+  - color by <a href="../attributes.html">attribute</a> values of atoms,
+   residues, or structures (atomic models);
+    <a href="#byattribute"><b>color bfactor</b></a>
   <li><a href="#map"><b>Map</b></a> (sample, electrostatic, gradient)
   - molecular and nonmolecular surfaces
   <li><a href="#distance"><b>Distance</b></a> (radial, cylindrical, height)
@@ -204,8 +205,8 @@ or <b>target r</b>
 </ul>
 These target keywords must be given in the right place in the command:
 <ul>
-<li>for <a href="#simple">simple</a> or
-<a href="#attribute">bfactor</a> coloring, before any other optional arguments
+<li>for <a href="#simple">simple</a> or <a href="#byattribute">attribute</a> 
+coloring, before any other optional arguments
 <li>for <a href="#modify">color modification</a>, at the end of the command
 </ul>
 <p>
@@ -407,7 +408,7 @@ Example image and script:
 target="_blank">Potassium Channel-Calmodulin Complex</a> 
 </p>
 
-<a name="attribute"></a>
+<a name="byattribute"></a>
 <a name="bfactor"></a>
 <p class="nav">
 [<a href="#top">back to top: color</a>]
@@ -415,17 +416,21 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <h3>Coloring by Attribute Value</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>color</b> &nbsp;<b>bfactor</b>
+<b>color</b> &nbsp;<b>byattribute</b>
+&nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<i>attribute-name</i>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
 </blockquote>
 <p>
-Coloring by <a href="../attributes.html">attribute</a> value is
-<font color="brown">not yet implemented</font>,
-except for coloring by atomic B-factor values read from mmCIF or PDB.
+Atomic models can be colored to show the values of numerical
+<a href="../attributes.html">attributes</a>.
+An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
+can be used to indicate the attribute level as atom, residue, or (atomic) model,
+but this is only needed when the name exists at multiple levels. 
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>
 (default <table border cellpadding="4" cellspacing="0"
@@ -436,19 +441,28 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table> over the full range),
 and <a href="#transparency"><b>transparency</b></a>
 can be set independently.
+Items without an assignment for the specified attribute
+will be left unchanged unless another color is specified
+with the <b>noValueColor</b> option.
 </p><p>
 The coloring applies to atomic models,
 including cartoons and molecular surfaces, but can be restricted
 to certain representations with the <a href="#target"><b>target</b></a> option.
-Cartoons are colored by the average B-factor of the atoms in each residue. 
+If an atom attribute is used,
+cartoons are colored by the average value of the atoms in each residue. 
 Atoms (and their corresponding molecular surface patches) are colored
 by the atomic values unless <b>average residue</b> is given to indicate
 they should be colored by the average per residue.
+</p><p>
+Like other keywords, <b>byattribute</b> can be truncated, and
+<b>color bfactor</b> is shorthand for <b>color byattribute bfactor</b>.
 For example, to color chain A atoms by B-factor 
 and cartoons by the average B-factor per residue, 
 spreading blue-white-red coloring across value range 2-30:
 </p>
 <blockquote>
+<b>color by bfactor /A range 2,30</b>
+<br>&ndash; or &ndash;<br>
 <b>color bfactor /A range 2,30</b>
 </blockquote>
 <p>
@@ -691,7 +705,7 @@ A <b><i>palette</i></b> is an ordered set of
 <a href="colornames.html">colors</a> or value,color pairs
 used for <a href="#sequential">sequential coloring</a> or coloring by value 
 (<a href="#map">map</a>, <a href="#distance">distance</a>,
-or <a href="#attribute">attribute</a>).
+or <a href="#byattribute">attribute</a>).
 See also: <a href="mlp.html"><b>mlp</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>
 <blockquote>
@@ -733,7 +747,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="30px" title="white"></td>
 <td bgcolor=red width="30px" title="red"></td>
 </tr></table>
-(default for <a href="#attribute">coloring by bfactor</a>)
+(default for <a href="#byattribute">coloring by attribute</a>)
   <li><b>cyan-white-maroon</b> or <b>cyanmaroon</b> 
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>

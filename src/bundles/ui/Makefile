@@ -1,6 +1,9 @@
 TOP= ../../..
 include ../Makefile.bundle
 
+# need bash for $'\n' to work
+SHELL = /bin/bash
+
 DATAFILES = $(wildcard src/icons/*.png src/mousemode_icons/*.png src/widgets/icons/*.png)
 CLEAN += src/about.html
 
@@ -12,4 +15,4 @@ src/about.html:	src/about.html.in
 		$(TOP)/copyright.txt | \
 		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
 		$< > $@ \
-		|| rm $@
+		|| (rm $@ ; exit 1)

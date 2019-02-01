@@ -14,53 +14,64 @@
 # -----------------------------------------------------------------------------
 # Python readers for array file formats.
 #
+class MapFileFormat:
+  def __init__(self, description, name, prefixes, suffixes, *,
+               writable = False, writer_options = (), batch = False, allow_directory = False):
+    self.description = description
+    self.name = name
+    self.prefixes = prefixes
+    self.suffixes = suffixes
+    self.writable = writable
+    self.writer_options = writer_options
+    self.batch = batch
+    self.allow_directory = allow_directory
 
+  @property
+  def open_func(self):
+    module_name = self.name
+    module = __import__(module_name, globals(), level = 1)
+    return module.open
+
+  @property
+  def save_func(self):
+    if not self.writable:
+      return None
+    module_name = self.name
+    module = __import__(module_name, globals(), level = 1)
+    return module.save
+    
 # -----------------------------------------------------------------------------
 # File description, file reader module name, file prefixes, and file suffixes.
 #
-# TODO: Add commented-out file readers.
-file_types = (
-  ('Amira mesh', 'amira', ['amira'], ['am'], False),
-  ('APBS potential', 'apbs', ['apbs'], ['dx'], False),
-  ('BRIX density map', 'dsn6', ['dsn6'], ['brix'], False),
-  ('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map'], False),
-  ('Chimera map', 'cmap', ['cmap'], ['cmp','cmap'], False),
-  ('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor'], False),
-  ('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi'], False),
-  ('DeltaVision map', 'deltavision', ['dv'], ['dv'], False),
-  ('DSN6 density map', 'dsn6', ['dsn6'], ['omap'], False),
-  ('DICOM map', 'dicom', ['dicom'], ['dcm'], True),
-  ('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg'], False),
-  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
-  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
-  ('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt'], False),
-  ('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], True),
-  ('Imaris map', 'ims', ['ims'], ['ims'], False),
-  ('IMOD map', 'imod', ['imodmap'], ['rec'], False),
-  ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
-  ('MRC density map', 'mrc', ['mrc'], ['mrc'], False),
-  ('NetCDF generic array', 'netcdf', ['netcdf'], ['nc'], False),
-  ('Priism microscope image', 'priism', ['priism'], ['xyzw', 'xyzt'], False),
-  ('PROFEC free energy grid', 'profec', ['profec'], ['profec'], False),
-  ('Purdue image format', 'pif', ['pif'], ['pif'], False),
-  ('SITUS map file', 'situs', ['situs'], ['sit','situs'], False),
-  ('SPIDER volume data', 'spider', ['spider'], ['spi','vol'], False),
-  ('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em'], False),
-  ('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd'], False),
-  )
-
-# -----------------------------------------------------------------------------
-#
-#from . import mrc, netcdf, cmap, dsn6
-from . import mrc, cmap, dsn6
-# Format name, module name, suffixes, file writer, option names
-file_writers = (
-  ('MRC density map', 'mrc', ['mrc'], mrc.write_mrc2000_grid_data, ()),
-#  ('NetCDF generic array', 'netcdf', ['nc'], netcdf.write_grid_as_netcdf, ()),
-  ('Chimera map', 'cmap', ['cmap', 'cmp'], cmap.write_grid_as_chimera_map,
-   ('chunk_shapes', 'append', 'compress', 'multigrid')),
-  ('BRIX density map', 'dsn6', ['brix'], dsn6.write_brix, ()),
-  )
+file_formats = [
+  MapFileFormat('Amira mesh', 'amira', ['amira'], ['am']),
+  MapFileFormat('APBS potential', 'apbs', ['apbs'], ['dx']),
+  MapFileFormat('BRIX density map', 'dsn6', ['dsn6'], ['brix'], writable = True),
+  MapFileFormat('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map']),
+  MapFileFormat('Chimera map', 'cmap', ['cmap'], ['cmap', 'cmp'], writable = True,
+                writer_options = ('chunk_shapes', 'append', 'compress', 'multigrid')),
+  MapFileFormat('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor']),
+  MapFileFormat('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi']),
+  MapFileFormat('DeltaVision map', 'deltavision', ['dv'], ['dv']),
+  MapFileFormat('DSN6 density map', 'dsn6', ['dsn6'], ['omap']),
+  MapFileFormat('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg']),
+  MapFileFormat('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5']),
+  MapFileFormat('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub']),
+  MapFileFormat('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt']),
+  MapFileFormat('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], batch = True),
+  MapFileFormat('Imaris map', 'ims', ['ims'], ['ims']),
+  MapFileFormat('IMOD map', 'imod', ['imodmap'], ['rec']),
+  MapFileFormat('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp']),
+  MapFileFormat('MRC density map', 'mrc', ['mrc'], ['mrc'], writable = True),
+  MapFileFormat('NetCDF generic array', 'netcdf', ['netcdf'], ['nc']),
+  MapFileFormat('Priism microscope image', 'priism', ['priism'], ['xyzw', 'xyzt']),
+  MapFileFormat('PROFEC free energy grid', 'profec', ['profec'], ['profec']),
+  MapFileFormat('Purdue image format', 'pif', ['pif'], ['pif']),
+  MapFileFormat('SITUS map file', 'situs', ['situs'], ['sit','situs']),
+  MapFileFormat('SPIDER volume data', 'spider', ['spider'], ['spi','vol']),
+  MapFileFormat('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em']),
+  MapFileFormat('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd']),
+  ]
   
 # -----------------------------------------------------------------------------
 # The electrostatics file types are opened using a surface colormapping tool
@@ -97,10 +108,10 @@ def suffix_warning(paths):
   else:
     pluralize = ''
     
-  suffixes = sum([s[3] for s in file_types], [])
+  suffixes = sum([f.suffixes for f in file_formats], [])
   suffix_string = ' '.join(['.'+s for s in suffixes])
 
-  prefixes = sum([s[2] for s in file_types], [])
+  prefixes = sum([f.prefixes for s in file_formats], [])
   prefix_string = ' '.join([s+':' for s in prefixes])
   
   msg = ('Warning: Unrecognized file suffix%s for %s.\n' %
@@ -123,26 +134,25 @@ def open_file(path, file_type = None, log = None, verbose = False):
       if file_type is None:
         raise UnknownFileType(p)
 
-  module_name = file_type
-  module = __import__(module_name, globals(), level = 1)
-  batched = file_type_is_batched(file_type)
+  fmt = file_format_by_name(file_type)
+  open_func = fmt.open_func
 
   apath = absolute_path(path) if isinstance(path,str) else [absolute_path(p) for p in path]
 
   kw = {}
   from inspect import getargspec
-  if log is not None and 'log' in getargspec(module.open).args:
+  if log is not None and 'log' in getargspec(open_func).args:
     kw['log'] = log
   if verbose:
-    if 'verbose' in getargspec(module.open).args:
+    if 'verbose' in getargspec(open_func).args:
       kw['verbose'] = verbose
   try:
-    if batched or isinstance(apath,str):
-      data = module.open(apath, **kw)
+    if fmt.batch or isinstance(apath,str):
+      data = open_func(apath, **kw)
     else:
       data = []
       for p in apath:
-        data.extend(module.open(p, **kw))
+        data.extend(open_func(p, **kw))
   except SyntaxError as value:
     raise FileFormatError(value)
   
@@ -152,8 +162,8 @@ def open_file(path, file_type = None, log = None, verbose = False):
 #
 def file_type_from_suffix(path):
     
-  for descrip, mname, prefix_list, suffix_list, batch in file_types:
-    for suffix in suffix_list:
+  for ff in file_formats:
+    for suffix in ff.suffixes:
       if has_suffix(path, suffix):
         return mname
   return None
@@ -170,7 +180,7 @@ def file_type_from_colon_specifier(path):
   first_part = path[:colon_position]
   last_part = path[colon_position+1:]
 
-  module_names = [s[1] for s in file_types]
+  module_names = [ff.name for ff in file_formats]
   if last_part in module_names:
     return last_part, first_part
 
@@ -178,11 +188,11 @@ def file_type_from_colon_specifier(path):
 
 # -----------------------------------------------------------------------------
 #
-def file_type_is_batched(file_type):
-  for descrip, mname, prefix_list, suffix_list, batch in file_types:
-    if mname == file_type:
-      return batch
-  raise ValueError('Unknown file type %s' % file_type)
+def file_format_by_name(name):
+  for ff in file_formats:
+    if ff.name == name:
+      return ff
+  raise ValueError('Unknown map file format %s' % file_type)
 
 # -----------------------------------------------------------------------------
 #
@@ -212,14 +222,14 @@ def absolute_path(path):
 def file_writer(path, format = None):
 
   if format is None:
-    for fw in file_writers:
-      for suffix in fw[2]:
+    for ff in file_formats:
+      for suffix in ff.suffixes:
         if path.endswith('.' + suffix):
-          return fw
+          return ff
   else:
-    for fw in file_writers:
-      if format == fw[1] or format == fw[0]:
-        return fw
+    for ff in file_formats:
+      if format == ff.name or format == ff.description:
+        return ff
   return None
   
 # -----------------------------------------------------------------------------
@@ -254,15 +264,14 @@ def save_grid_data(grids, path, session, format = None, options = {}):
   import os.path
   path = os.path.expanduser(path)
   
-  fw = file_writer(path, format)
-  if fw is None:
+  ff = file_writer(path, format)
+  if ff is None:
     raise ValueError('Unknown format "%s"' % (format or path))
 
-  descrip, format, suffix, write_data_file, allowed_options = fw
-  badopt = [k for k in options.keys() if not k in allowed_options]
+  badopt = [k for k in options.keys() if not k in ff.writer_options]
   if badopt:
     raise ValueError(('Unsupported options for format %s: %s'
-                      % (fw[1], ' ,'.join(badopt))))
+                      % (ff.name, ' ,'.join(badopt))))
 
   from .griddata import GridData
   if isinstance(grids, GridData):
@@ -270,16 +279,16 @@ def save_grid_data(grids, path, session, format = None, options = {}):
   else:
     glist = grids
 
-  if len(glist) > 1 and not ('multigrid' in allowed_options):
+  if len(glist) > 1 and not ('multigrid' in ff.writer_options):
     from chimerax.core.errors import UserError
-    raise UserError('Cannot write multiple volumes using format %s' % format)
+    raise UserError('Cannot write multiple volumes using format %s' % ff.name)
 
   # Use a temporary file if a source file is being overwritten.
   tpath = path
   if not ('append' in options):
     if matching_grid_path(glist, path):
       from tempfile import mkstemp
-      f, tpath = mkstemp(suffix[0])
+      f, tpath = mkstemp(ff.suffixes[0])
       from os import close, remove
       close(f)
       remove(tpath)  # Want new file to have normal, not secure, permissions.
@@ -290,11 +299,11 @@ def save_grid_data(grids, path, session, format = None, options = {}):
   from .progress import ProgressReporter
   p = ProgressReporter(operation, g.size, g.value_type.itemsize,
                        message = session.logger.status)
-  if 'multigrid' in allowed_options:
+  if 'multigrid' in ff.writer_options:
     garg = glist
   else:
     garg = g
-  write_data_file(garg, tpath, options = options, progress = p)
+  ff.save_func(garg, tpath, options = options, progress = p)
 
   if tpath != path:
     import os, os.path, shutil
@@ -304,7 +313,7 @@ def save_grid_data(grids, path, session, format = None, options = {}):
 
   # Update path in grid data object.
   for g in glist:
-    g.set_path(path, format)
+    g.set_path(path, ff.name)
 
   from os.path import basename
   p.message('Wrote file %s' % basename(path))

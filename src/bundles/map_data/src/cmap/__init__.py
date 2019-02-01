@@ -20,4 +20,4 @@ def open(path):
 # -----------------------------------------------------------------------------
 #
 from .cmap_format import copy_hdf5_array
-from .write_cmap import write_grid_as_chimera_map
+from .write_cmap import write_grid_as_chimera_map as save

@@ -87,6 +87,10 @@ class FileFormat:
         Sequence of filename extensions in lowercase
         starting with period (or empty)
 
+    ..attribute:: allow_directory
+
+        Whether format can be read from a directory.
+
     ..attribute:: nicknames
 
         Alternative names for format, usually includes a short abbreviation.
@@ -133,6 +137,7 @@ class FileFormat:
         self.name = format_name
         self.category = category
         self.extensions = extensions
+        self.allow_directory = False
         self.nicknames = nicknames
         self.mime_types = mime
         self.dangerous = dangerous
@@ -206,7 +211,7 @@ _file_formats = {}
 
 def register_format(format_name, category, extensions, nicknames=None,
                     *, mime=(), reference=None, dangerous=None, icon=None,
-                    encoding=None, synopsis=None, **kw):
+                    encoding=None, synopsis=None, allow_directory=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param format_name: format's name
@@ -246,6 +251,8 @@ def register_format(format_name, category, extensions, nicknames=None,
     ff = _file_formats[format_name] = FileFormat(
         format_name, category, exts, nicknames, mime, reference, dangerous,
         icon, encoding, synopsis)
+    if allow_directory is not None:
+        ff.allow_directory = allow_directory
     other_kws = set(['open_func', 'export_func', 'export_notes', 'batch'])
     for attr in kw:
         if attr in other_kws:
@@ -450,9 +457,8 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
 
     mlist = []
     status_lines = []
-    import os.path
     for fmt, paths in batch.items():
-        mname = os.path.basename(paths[0]) if name is None else name
+        mname = model_name_from_path(paths[0]) if name is None else name
         open_func = fmt.open_func
         models, status = open_func(session, paths, mname, **kw)
         mlist.extend(models)
@@ -464,6 +470,13 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
 
     return mlist, '\n'.join(status_lines)
 
+def model_name_from_path(path):
+    from os.path import basename, dirname
+    name = basename(path)
+    if name.strip() == '':
+        # Path is a directory with trailing "/".  Use directory name.
+        name = basename(dirname(path))
+    return name
 
 def export(session, filename, **kw):
     from .safesave import SaveBinaryFile, SaveTextFile, SaveFile

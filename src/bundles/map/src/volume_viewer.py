@@ -1944,13 +1944,16 @@ class Histogram_Pane:
       v = self.volume
       if v is None:
           return
+      if show and not v.principal_channel():
+          return
 
       if show:
           if not self._planes_slider_shown:
               f = self._create_planes_slider()
               self._layout.addWidget(f)
-          k = (v.region[0][axis] + v.region[1][axis]) // 2
-          self._update_plane(k, axis)
+          if v.region[0][axis] == v.region[1][axis]:
+              k = v.region[0][axis]
+              self._update_plane(k, axis)
       else:
           if self._planes_slider_shown:
               f = self._create_planes_slider()
@@ -2118,8 +2121,7 @@ class Histogram_Pane:
 
     ijk_min, ijk_max, ijk_step = volume.region
     if ijk_max[2]//ijk_step[2] == ijk_min[2]//ijk_step[2] and volume.data.size[2] > 1:
-        if volume.principal_channel():
-            self.show_plane_slider(True)
+        self.show_plane_slider(True)
 
   # ---------------------------------------------------------------------------
   #

@@ -17,7 +17,7 @@ mode_order = ('select', 'rotate', 'translate', 'zoom', 'rotate and select',
               'translate selected models', 'rotate selected models',
               'clip', 'clip rotate', 'distance', 'label', 'move label',
               'pivot', 'bond rotation',
-              'contour level', 'move planes', 'place marker', 'play map series',
+              'contour level', 'move planes', 'crop volume', 'place marker', 'play map series',
               'tug', 'minimize', 'swapaa', 'zone')
 
 # ------------------------------------------------------------------------------

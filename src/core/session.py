@@ -474,13 +474,12 @@ class Session:
         self.triggers.activate_trigger("begin save session", self)
         try:
             if version == 1:
-                fserialize = serialize.pickle_serialize
-                fserialize(stream, version)
+                raise UserError("Version 1 session files are no longer supported")
             elif version == 2:
                 raise UserError("Version 2 session files are no longer supported")
             else:
                 if version != 3:
-                    raise UserError("Only session file versions 1 and 3 are supported")
+                    raise UserError("Only version 3 session files are supported")
                 stream.write(b'# ChimeraX Session version 3\n')
                 stream = serialize.msgpack_serialize_stream(stream)
                 fserialize = serialize.msgpack_serialize
@@ -523,7 +522,7 @@ class Session:
             version = serialize.pickle_deserialize(stream)
             if version != 1:
                 raise UserError('Not a ChimeraX session file')
-            fdeserialize = serialize.pickle_deserialize
+            raise UserError("Session file format version 1 detected.  Convert using UCSF ChimeraX 0.8")
         else:
             line = stream.readline(256)   # limit line length to avoid DOS
             tokens = line.split()
@@ -531,8 +530,7 @@ class Session:
                 raise RuntimeError('Not a ChimeraX session file')
             version = int(tokens[4])
             if version == 2:
-                self.logger.error("Session file format version 2 detected.  DO NOT RESAVE.  Recreate session from scratch, and then save.")
-                stream = serialize.msgpack_deserialize_stream_v2(stream)
+                raise UserError("Session file format version 2 detected.  DO NOT USE.  Recreate session from scratch, and then save.")
             elif version == 3:
                 stream = serialize.msgpack_deserialize_stream(stream)
             else:
@@ -727,7 +725,6 @@ def save(session, path, version=3, uncompressed=False, include_maps=False):
             except IOError as e:
                 raise UserError(e)
 
-    session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     session.session_file_path = path
     try:
         session.save(output, version=version, include_maps=include_maps)
@@ -776,13 +773,12 @@ def sdump(session, session_file, output=None):
         else:
             use_pickle = stream.buffer.peek(1)[0] != ord(b'#')
         if use_pickle:
-            fdeserialize = serialize.pickle_deserialize
-            version = fdeserialize(stream)
+            raise UserError("Use UCSF ChimeraX 0.8 for Session file format version 1.")
         else:
             tokens = stream.readline().split()
             version = int(tokens[4])
             if version == 2:
-                stream = serialize.msgpack_deserialize_stream_v2(stream)
+                raise UserError("Use UCSF ChimeraX 0.8 for Session file format version 2.")
             else:
                 stream = serialize.msgpack_deserialize_stream(stream)
             fdeserialize = serialize.msgpack_deserialize

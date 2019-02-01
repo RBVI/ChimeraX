@@ -258,12 +258,15 @@ def plural_of(word):
         return word + 'es'
     if word.endswith('ius'):
         return word[:-2] + 'i'
-    if word.endswith(('sh', 'ch', 's', 'x')):
+    if word.endswith(('sh', 'ch', 'ss', 'x')):
         return word + 'es'
     if word.endswith('y'):
         if word[-2] not in 'aeiou' or word.endswith('quy'):
             return word[:-1] + 'ies'
         return word + 's'
+    if word.endswith('s'):
+        # 'ss' special-cased above; other special cases may be needed
+        return word
     # TODO: special case words, e.g. leaf -> leaves, hoof -> hooves
     return word + 's'
 

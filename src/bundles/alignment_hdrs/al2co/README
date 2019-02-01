@@ -1,0 +1,230 @@
+(obtained from ftp://iole.swmed.edu/pub/al2co/)
+=======================================================================
+
+      AL2CO - A Program to Calculate Positional Conservation in a
+		Protein Sequence Alignment (September, 2000)
+
+=======================================================================
+
+Please send bug reports, comments etc. to:
+	jpei@mednet.swmed.edu
+
+* =====================================================================
+*
+*                          PUBLIC DOMAIN NOTICE
+*                       Department of Biochemistry
+*               University of Texas Southwestern Medical Center at Dallas
+*
+*  This software is freely available to the public for use. We have not 
+*  placed any restriction on its use or reproduction.
+*
+*  Although all reasonable efforts have been taken to ensure the accuracy
+*  and reliability of the software and data, the University of Texas 
+*  Southwestern Medical Center does not and cannot warrant the performance
+*  or results that may be obtained by using this software or. The 
+*  University of Texas Southwestern Medical Center disclaims all warranties, 
+*  express or implied, including warranties of performance, merchantability 
+*  or fitness for any particular purpose.
+*
+*  Please cite the authors in any work or product based on this material.
+*
+* =====================================================================
+
+* Introduction
+  This directory contains the conservation index calculation program: al2co.c.
+The user provides a multiple sequence alignment (in ClustalW format) and 
+specifies the calculation method; and the program will give the conservation  
+index for each position in the alignment. Please refer to Pei & Grishin for  
+the detail of the algorithm (1).
+
+* Compilation
+  cc al2co.c -o al2co -lm
+  or
+  gcc al2co.c -o al2co -lm
+
+* Conservation calculation methods:
+  Two steps are performed to estimate conservation of a position in a 
+multiple sequence alignment. On the first step, amino acid frequencies
+at the position are estimated. On the second step, conservation index is
+calculated using the frequencies. An optional third step allows the user
+to average the conservation indices over a window.
+
+  The following Frequency estimation strategies are used.
+1.1. Unweighted amino acid frequencies.
+
+1.2. Weighted amino acid frequencies.
+     We use modified Henikoff-Henikoff weighting scheme (2) that is  
+applied in PSI-BLAST (3). The position is not used for weighting if it is 
+invariant or contains gaps in no less than 50% of sequences.
+
+1.3. Estimated independent counts.
+     We use modified strategy of Sunyeav (4) to estimate independent 
+counts of amino acids at a position (1).  
+
+  Conservation index is then calculated using the frequencies by one of 
+the following strategies:
+2.1.Entropy-based measure.
+  	C(i)=sum_{a=1}^{20}f_a(i)*ln[f_a(i)], where f_a(i) is the frequency
+of amino acid a at position i.
+
+2.2.Variance-based measure.
+	C(i)=sqrt[sum_{a=1}^{20}(f_a(i)-f_a)^2], where f_a is the overall
+frequency of amino acid a.
+
+2.3.Sum-of-pairs measure.
+	C(i)=sum_{a=1}^{20}sum_{b=1}^{20}f_a(i)*f_b(i)*S_{ab}, where
+S_{ab} is the element of a scoring matrix for amino acids a and b.
+If a reasonable amino acid substitution matrix S is applied,
+this method takes into account the similarities between different 
+amino acids. If the user want to make conservation indices the same for 
+all invariant positions, the scoring matrix can be normalized (see 
+-m option below). 
+
+* The effect of gaps
+  The presence of gaps at a position means that position is not necessary
+in some proteins in correct alignment. So positions with gaps tend to
+be less conserved (1). Gaps are not be treated the same way as amino acids  
+in conservation calculation. 
+  A gap fraction threshold is specified by the user (default value 0.5).
+Conservation indices are calculated only for positions with gap fraction
+less than that value. Then the mean value (mean) and standard deviation (sigma)
+is calculated for these indices. For all positions with gap fraction no less
+than the threshold, we set their conservation indices to be: mean-1.0*sigma.
+
+* Arguments of the AL2CO program
+
+  -i    Input alignment file [File in]
+        Format: ClustalW or simple alignment format
+        The title (first line) should begin with "CLUSTAL W", or
+        the title line should be deleted.
+
+  -o    Output file with conservation index for each position in the
+        alignment [File out] Optional
+	Default = STDOUT
+
+  -t	Output file with conservation index mapped to the alignment
+	[File out] Optional
+	Conservation indices are linearly rescaled to be from 0
+	to 9.99. C'=9.99*(C-MIN)/(MAX-MIN), where C and C' are the
+	the indices before and after rescaling respectively, MAX and 
+	MIN are the highest index and lowest index before rescaling 
+	respectively. The integer part of each rescaled index is 
+	written out along with the sequence alignment.
+	Default = no output
+
+  -b	Block size of the output alignment file with conservation
+	[Integer] Optional
+	Default = 60
+
+  -s    Input file with the scoring matrix [File in] Optional
+        Format: NCBI
+	Notice: Scoring matrix is only used for sum-of-pairs measure
+	with option -c 2.
+        Default = identity matrix
+
+  -m    Scoring matrix transformation [Integer] Optional
+        Options:
+        0=no transformation,
+        1=normalization S'(a,b)=S(a,b)/sqrt[S(a,a)*S(b,b)],
+        2=adjustment S"(a,b)=2*S(a,b)-(S(a,a)+S(b,b))/2
+        Default = 0
+
+  -f    Weighting scheme for amino acid frequency estimation [Integer] Optional
+        Options:
+        0=unweighted,
+        1=weighted by the modified method of Henikoff & Henikoff (2)(3),
+        2=independent-count based (1)(4)
+        Default = 2
+
+  -c    Conservation calculation method [Integer] Optional
+        Options:
+        0=entropy-based  C(i)=sum_{a=1}^{20}f_a(i)*ln[f_a(i)], where f_a(i) 
+	  is the frequency of amino acid a at position i,
+        1=variance-based C(i)=sqrt[sum_{a=1}^{20}(f_a(i)-f_a)^2], where f_a 
+	  is the overall frequency of amino acid a,
+        2=sum-of-pairs measure  C(i)=sum_{a=1}^{20}sum_{b=1}^{20}f_a(i)*f_b(i)*S_{ab}, 
+	  where	S_{ab} is the element of a scoring matrix for amino acids a and b
+        Default = 0
+
+  -w    Window size used for averaging [Integer] Optional
+        Default = 1
+        Recommended value for motif analysis: 3
+
+  -n    Normalization option [T/F] Optional
+	Subtract the mean from each conservation index and divide by the 
+	standard deviation.
+        Default = T
+
+  -a    All methods option [T/F] Optional
+        If set to true, the results of all 9 methods will be output.
+        1. unweighted entropy measure; 2. Henikoff entropy measure;
+        3. independent count entropy measure;
+        4. unweighted variance measure; 5. Henikoff variance measure;
+        6. independent count variance measure;
+        7. unweighted identity-matrix sum-of-pairs measure;
+        8. Henikoff identity-matrix sum-of-pairs measure;
+        9. independent count identity-matrix sum-of-pairs measure;
+        Default = F
+
+  -g    Gap fraction to suppress conservation calculation [Real] Optional
+        The value should be more than 0 and no more than 1. Conservation 
+	indices are calculated only for positions with gap fraction less 
+	than the specified value. Otherwise, conservation indices are
+	set to M-S, where M is the mean conservation value and S is
+	the standard deviation.
+        Default = 0.5
+
+  -p    Input pdb file [File in] Optional
+        The sequence in the pdb file should match exactly the first sequence 
+        of the alignment.
+
+  -d    Output pdb file [File Out] Optional
+        The B-factors are replaced by the conservation indices.
+        Default = STDOUT
+
+* Examples: (The files are in the directory examples/)
+
+  al2co -i 3RAB.aln -p 3RAB.pdb -d 3RAB.csv.pdb -o 3RAB.csv
+
+  al2co -i ybak.aln -w 3 -o ybak.csv
+
+  al2co -i ybak.aln -c 2 -s BLOSUM62
+ 
+  al2co -i Sec7.aln -a T
+
+  al2co -i Sec7.aln -n F -f 1
+
+  al2co -i Sec7.aln -t Sec7.csv.aln -b 70
+
+  input alignment format: ClustalW - Sec7.aln
+		          Simple alignment format - ybak.aln, 3RAB.aln
+  input matrix format: NCBI - BLOSUM62
+  input pdb file: 3RAB.pdb
+  output pdb file: 3RAB.csv.pdb
+  output conservation file: 3RAB.csv, ybak.csv
+  output alignment file with conservation: Sec7.csv.aln
+	
+  molscript file: 3RAB.in
+	In this file, the command line to color according to B-factor (in our
+	case replaced by conservation index) is:
+	"colour ss from blue via green to red by b-factor from -1.0 to 2"
+	The command to generate ps file with structure colored by conservation
+	is "bobscript<3RAB.in>3RAB.ps".
+
+References:
+
+(1) Pei, J., and Grishin, N.V. (submitted). AL2CO:  Calculation of 
+Positional Conservation in a Protein Sequence Alignment.
+
+(2) Henikoff, S., and Henikoff, J.G. (1994). Position-based sequence weights, 
+J Mol Biol 243, 574-578.
+
+(3) Altschul, S.F., Madden, T.L., Schaffer, A.A., Zhang, J., Zhang, Z., Miller, 
+W., and Lipman, D.J. (1997). Gapped BLAST and PSI-BLAST: a new generation 
+of protein database search programs, Nucleic Acids Res 25, 3389-3402.
+
+(4) Sunyaev, S.R., Eisenhaber, F., Rodchenkov, I.V., Eisenhaber, B., Tumanyan, 
+V.G., and Kuznetsov, E.N. (1999). PSIC: profile extraction from sequence 
+alignments with position- specific counts of independent observations, 
+Protein Eng 12, 387-394.
+

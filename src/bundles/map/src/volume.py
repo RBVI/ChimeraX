@@ -447,7 +447,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def is_full_region(self, region = None):
+  def is_full_region(self, region = None, any_step = False):
 
     if region is None:
       region = self.region
@@ -457,7 +457,7 @@ class Volume(Model):
     dmax = tuple([s-1 for s in self.data.size])
     full = (tuple(ijk_min) == (0,0,0) and
             tuple(ijk_max) == dmax and
-            tuple(ijk_step) == (1,1,1))
+            (any_step or tuple(ijk_step) == (1,1,1)))
     return full
 
   # ---------------------------------------------------------------------------
@@ -512,62 +512,85 @@ class Volume(Model):
         self.initialized_thresholds = True
         return False
 
-#     from chimera import CancelOperation
     try:
       s = self.matrix_value_statistics()
     except CancelOperation:
       return False
 
-    polar = (hasattr(self.data, 'polar_values') and self.data.polar_values)
-
     if replace or len(self.surfaces) == 0:
-      if mfrac is None:
-        v = s.rank_data_value(1-vfrac[0])
-      else:
-        v = s.mass_rank_data_value(1-mfrac[0])
-      rgba = self.default_rgba
-      if polar:
-        levels = [-v,v]
-        neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
-        colors = [neg_rgba,rgba]
-      else:
-        levels = [v]
-        colors = [rgba]
+      levels, colors = self.initial_surface_levels(s, vfrac, mfrac)
       self.remove_surfaces()
       for lev, c in zip(levels, colors):
         self.add_surface(lev, rgba = c)
 
     if replace or len(self.solid_levels) == 0:
-      ilow, imid, imax = 0, 0.8, 1
-      if mfrac is None:
-        vlow = s.rank_data_value(1-vfrac[1])
-        vmid = s.rank_data_value(1-vfrac[0])
-      else:
-        vlow = s.mass_rank_data_value(1-mfrac[1])
-        vmid = s.mass_rank_data_value(1-mfrac[0])
-      vmax = s.maximum
-      rgba = saturate_rgba(self.default_rgba)
-      if polar:
-        self.solid_levels = ((s.minimum,imax), (max(-vmid,s.minimum),imid), (0,ilow),
-                             (0,ilow), (vmid,imid), (vmax,imax))
-        neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
-        self.solid_colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
-      elif getattr(self.data, 'initial_thresholds_linear', False):
-        self.solid_levels = ((s.minimum,0), (s.maximum,1))
-        self.solid_colors = [rgba, rgba]
-      else:
-        if vlow < vmid and vmid < vmax:
-          self.solid_levels = ((vlow,ilow), (vmid,imid), (vmax,imax))
-        else:
-          self.solid_levels = ((vlow,ilow), (0.9*vlow+0.1*vmax,imid), (vmax,imax))
-        self.solid_colors = [rgba]*len(self.solid_levels)
-
+      self.solid_levels, self.solid_colors = self.initial_solid_levels(s, vfrac, mfrac)
+      
     self.initialized_thresholds = True
     self._drawings_need_update()
 
     self.call_change_callbacks('thresholds changed')
 
     return True
+
+  # ---------------------------------------------------------------------------
+  #
+  def initial_surface_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+    if mstats is None:
+      mstats = self.matrix_value_statistics()
+    if mfrac is None:
+      v = mstats.rank_data_value(1-vfrac[0])
+    else:
+      v = mstats.mass_rank_data_value(1-mfrac[0])
+    rgba = self.default_rgba
+    binary = getattr(self.data, 'binary', False)
+    polar = getattr(self.data, 'polar_values', False)
+    if polar:
+      levels = [-v,v]
+      neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+      colors = [neg_rgba,rgba]
+    elif binary:
+      levels = [0.5]
+      colors = [rgba]
+    else:
+      levels = [v]
+      colors = [rgba]
+    return levels, colors
+
+  # ---------------------------------------------------------------------------
+  #
+  def initial_solid_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+    if mstats is None:
+      mstats = self.matrix_value_statistics()
+    ilow, imid, imax = 0, 0.8, 1
+    if mfrac is None:
+      vlow = mstats.rank_data_value(1-vfrac[1])
+      vmid = mstats.rank_data_value(1-vfrac[0])
+    else:
+      vlow = mstats.mass_rank_data_value(1-mfrac[1])
+      vmid = mstats.mass_rank_data_value(1-mfrac[0])
+    vmax = mstats.maximum
+    rgba = saturate_rgba(self.default_rgba)
+    binary = getattr(self.data, 'binary', False)
+    polar = getattr(self.data, 'polar_values', False)
+    if polar:
+      levels = ((mstats.minimum,imax), (max(-vmid,mstats.minimum),imid), (0,ilow),
+                (0,ilow), (vmid,imid), (vmax,imax))
+      neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+      colors = (neg_rgba,neg_rgba,neg_rgba, rgba,rgba,rgba)
+    elif binary:
+      levels = ((0.5,ilow),(1,imax))
+      colors = [rgba, rgba]
+    elif getattr(self.data, 'initial_thresholds_linear', False):
+      levels = ((mstats.minimum,0), (mstats.maximum,1))
+      colors = [rgba, rgba]
+    else:
+      if vlow < vmid and vmid < vmax:
+        levels = ((vlow,ilow), (vmid,imid), (vmax,imax))
+      else:
+        levels = ((vlow,ilow), (0.9*vlow+0.1*vmax,imid), (vmax,imax))
+      colors = [rgba]*len(levels)
+    return levels, colors
 
   # ---------------------------------------------------------------------------
   #
@@ -3104,7 +3127,10 @@ def open_grids(session, grids, name, **kw):
             delattr(g, 'series_index')
 
     maps = []
-    show = kw.get('show', True)
+    if 'show' in kw:
+      show = kw['show']
+    else:
+      show = (len(grids) >= 1 and getattr(grids[0], 'show_on_open', True))
     si = [d.series_index for d in grids if hasattr(d, 'series_index')]
     is_series = (len(si) == len(grids) and len(set(si)) > 1)
     cn = [d.channel for d in grids if d.channel is not None]
@@ -3142,10 +3168,12 @@ def open_grids(session, grids, name, **kw):
     elif is_series:
       from .series import MapSeries
       ms = MapSeries(name, maps, session)
+      ms.display = show
       msg = 'Opened map series %s, %d images' % (name, len(maps))
       models = [ms]
     elif is_multichannel:
       mc = MapChannelsModel(name, maps, session)
+      mc.display = show
       mc.show_n_channels(3)
       msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
       models = [mc]
@@ -3155,7 +3183,6 @@ def open_grids(session, grids, name, **kw):
       models = maps
       return models, msg
     else:
-      # TODO: Handle multi-times and multi-channels.
       msg = 'Opened %s' % maps[0].name
       models = maps
 
@@ -3340,15 +3367,17 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
           raise UserError('Specified models are not volumes' + mstring)
 
       
-    from .data.fileformats import file_writer, file_writers
+    from .data.fileformats import file_writer, file_formats
     if file_writer(path, format_name) is None:
         from chimerax.core.errors import UserError
         if format_name is None:
+            suffixes = ', '.join(sum([ff.suffixes for ff in file_formats if ff.writable], []))
             msg = ('Unknown file suffix for "%s", known suffixes %s'
-                   % (path, ', '.join(sum([fw[2] for fw in file_writers], []))))
+                   % (path, suffixes))
         else:
+            fmt_names = ', '.join(ff.name for ff in file_formats if ff.writable)
             msg = ('Unknown file format "%s", known formats %s'
-                   % (format_name, ', '.join(fw[1] for fw in file_writers)))
+                   % (format_name, fmt_names))
         raise UserError(msg)
         
     options = {}
@@ -3424,17 +3453,35 @@ def is_multifile_save(path):
 
 # -----------------------------------------------------------------------------
 #
-def register_map_file_formats(session):
+def add_map_format(session, map_format, register_file_suffixes = True):
+  from .data import file_formats
+  file_formats.append(map_format)
+  if register_file_suffixes:
+    register_map_format(session, map_format)
+  else:
+    # Prevent register_map_file_formats() from registering this format.
+    map_format._register_suffixes = False
+
+# -----------------------------------------------------------------------------
+#
+def register_map_format(session, map_format):
     from chimerax.core import io, toolshed
-    from .data.fileformats import file_types, file_writers
-    fwriters = set(fw[0] for fw in file_writers)
-    for d,t,nicknames,suffixes,batch in file_types:
-      suf = tuple('.' + s for s in suffixes)
-      save_func = save_map if d in fwriters else None
-      def open_map_format(session, stream, name = None, format = t, **kw):
-        return open_map(session, stream, name=name, format=format, **kw)
-      io.register_format(d, toolshed.VOLUME, suf, nicknames=nicknames,
-                         open_func=open_map_format, batch=True, export_func=save_func)
+    suf = tuple('.' + s for s in map_format.suffixes)
+    save_func = save_map if map_format.writable else None
+    def open_map_format(session, stream, name = None, format = map_format.name, **kw):
+      return open_map(session, stream, name=name, format=format, **kw)
+    io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
+                       open_func=open_map_format, batch=map_format.batch,
+                       allow_directory=map_format.allow_directory,
+                       export_func=save_func)
+
+# -----------------------------------------------------------------------------
+#
+def register_map_file_formats(session):
+    from .data.fileformats import file_formats
+    for ff in file_formats:
+      if getattr(ff, '_register_suffixes', True):
+        register_map_format(session, ff)
 
     # Add keywords to open command for maps
     from chimerax.core.commands import BoolArg, IntArg

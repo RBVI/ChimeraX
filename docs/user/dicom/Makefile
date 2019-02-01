@@ -9,12 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-# DICOM map file reader.
+# Makefile for user guide
 #
-def open(paths, log = None, verbose = False):
+TOP	= ../../..
+include $(TOP)/mk/config.make
 
-  if isinstance(paths, str):
-    paths = [paths]
-  from .dicom_grid import dicom_grids
-  return dicom_grids(paths, log = log, verbose = verbose)
+DOCDIR = $(app_datadir)/docs/user/dicom
+
+SRCS = $(wildcard *.html)
+IMAGES = $(wildcard *.png)
+
+install:
+	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
+	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
+
+clean:

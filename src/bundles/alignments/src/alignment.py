@@ -301,6 +301,10 @@ class Alignment(State):
             self._assoc_handler = None
         self._auto_associate = assoc
 
+    @property
+    def being_destroyed(self):
+        return self._in_destroy
+
     def detach_viewer(self, viewer):
         """Called when a viewer is done with the alignment (see attach_viewer)"""
         self.viewers.remove(viewer)

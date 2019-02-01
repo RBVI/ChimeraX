@@ -20,4 +20,4 @@ def open(path):
 
 # -----------------------------------------------------------------------------
 #
-from .writebrix import write_brix
+from .writebrix import write_brix as save
