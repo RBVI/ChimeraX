@@ -75,7 +75,7 @@ The files in the ``tut_gui_html`` folder are:
     - ``src`` - source code to Python package for bundle
         - ``__init__.py`` - package initializer and interface to ChimeraX
         - ``gui.py`` - source code to implement ``Tutorial GUI`` tool
-        - ``docs/users/commands/Tutorial_GUI.html`` - help file describing
+        - ``docs/users/commands/TutorialGUI.html`` - help file describing
           the graphical tool
 
 The file contents are shown below.
@@ -121,7 +121,7 @@ The ``DataFiles`` tag on lines 40-43 informs ChimeraX to include
 non-Python files as part of the bundle when building.  In this case,
 ``gui.html`` (implicitly in the ``src`` folder) which provides the
 HTML component of our interface should be included.  Also, the
-help documentation for our tool, ``Tutorial_GUI.html``.  Note that
+help documentation for our tool, ``TutorialGUI.html``.  Note that
 
 as well as all documentation files in ``helpdir``.
 
@@ -325,14 +325,14 @@ The buttons are enabled or disabled in the same JavaScript
 script that updates the drop-down list of models.
 
 
-``src/docs/user/commands/Tutorial_GUI.html``
+``src/docs/user/commands/TutorialGUI.html``
 --------------------------------------------
 
 The documentation for the graphical tool should be written
-in `HTML 5`_ and saved in a file whose name matches the command
-name and has suffix ``.html``.  For our example, we named
-the tool ``Tutorial_GUI`` (see `bundle_info.xml` above), so
-the file name is ``Tutorial_GUI.html``.
+in `HTML 5`_ and saved in a file whose name matches the tool
+name (with spaces omitted) and has suffix ``.html``.  For our
+example, we named the tool ``Tutorial GUI`` (see `bundle_info.xml`
+above), so the file name is ``TutorialGUI.html``.
 When help files are included in bundles, documentation for
 the tools may be displayed using the **help** command,
 the same as built-in ChimeraX tools.

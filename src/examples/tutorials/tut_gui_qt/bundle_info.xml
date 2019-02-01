@@ -36,7 +36,7 @@ Implements tool "Tutorial GUI" to log typed user input.
 
   <!-- Non-Python files that are part of package -->
   <DataFiles>
-    <DataFile>docs/user/tools/Tutorial_GUI.html</DataFile>
+    <DataFile>docs/user/tools/TutorialGUI.html</DataFile>
   </DataFiles>
 
   <Classifiers>
