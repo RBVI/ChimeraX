@@ -9,6 +9,11 @@
   <Synopsis>mmCIF format read/write</Synopsis>
   <Description>This bundle provides the abiility to fetch and read Macromolecular CIF files.</Description>
 
+  <DataFiles>
+    <DataFile>stdresidues.cif</DataFile>
+  </DataFiles>
+
+
   <Categories>
     <Category name="Molecular structure"/>
   </Categories>

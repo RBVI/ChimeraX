@@ -728,6 +728,7 @@ class UserInterface:
         self._update_later = 0		# Redraw panel after this many frames
         self._update_delay = 10		# After click on panel, update after this number of frames
         self._ui_drawing = None
+        self._last_image_rgba = None
         self._start_ui_move_time = None
         self._last_ui_position = None
         self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
@@ -743,6 +744,10 @@ class UserInterface:
             self._session.models.close([ui])
             self._ui_drawing = None
 
+    @property
+    def drawing(self):
+        return self._ui_drawing
+    
     def shown(self):
         ui = self._ui_drawing
         if ui is None:
@@ -761,6 +766,9 @@ class UserInterface:
         ui.position = self._camera.room_to_scene * room_position
         ui.display = True
 
+    def size(self):
+        return (self._width, self._height)
+    
     def move(self, room_motion = None):
         ui = self._ui_drawing
         if ui and ui.display:
@@ -877,6 +885,7 @@ class UserInterface:
 
     def _update_ui_image(self):
         rgba = self._panel_image()
+        self._last_image_rgba = rgba
         h,w = rgba.shape[:2]
         aspect = h/w
         rw = self._width		# Billboard width in room coordinates
@@ -884,6 +893,9 @@ class UserInterface:
         self._session.main_view.render.make_current()	# Required OpenGL context for replacing texture.
         from chimerax.core.graphics.drawing import rgba_drawing
         rgba_drawing(self._ui_drawing, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
+
+    def panel_image_rgba(self):
+        return self._last_image_rgba
 
     def set_gui_tool_name(self, tool_name):
         self._gui_tool_name = tool_name

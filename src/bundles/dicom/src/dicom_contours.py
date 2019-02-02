@@ -13,28 +13,22 @@
 
 from chimerax.core.models import Model
 class DicomContours(Model):
-    def __init__(self, session, path):
+    def __init__(self, session, series):
+
+        self.dicom_series = series
+        path = series.paths[0]
+        if series.dicom_class != 'RT Structure Set Storage':
+            raise ValueError('DICOM file has SOPClassUID, %s, expected "RT Structure Set Storage", file %s'
+                             % (series.dicom_class, path))
+
+        if len(series.paths) > 1:
+            raise ValueError('DICOM series has %d files, can only handle one file for "RT Structure Set Storage", file %s' % (len(series.paths), path))
+
         from pydicom import dcmread
         d = dcmread(path)
 
         desc = d.get('SeriesDescription', '')
         Model.__init__(self, 'Regions %s' % desc, session)
-
-        cuid = d.get('SOPClassUID')
-        if cuid is None:
-            raise ValueError('DICOM file has no SOPClassUID, %s' % path)
-        if cuid.name != 'RT Structure Set Storage':
-            raise ValueError('DICOM file has SOPClassUID, %s, expected "RT Structure Set Storage", file %s'
-                             % (cuid.name, path))
-
-        def rgb_255(cs):
-            return tuple(int(c) for c in cs)
-
-        def xyz_list(xs):
-            a = tuple(float(x) for x in xs)
-            from numpy import array, float32
-            xyz = array(a, float32).reshape(len(a)//3, 3)
-            return xyz
         
         el = dicom_elements(d, {'StructureSetROISequence': {'ROINumber': int,
                                                             'ROIName': str},
@@ -46,9 +40,17 @@ class DicomContours(Model):
         for rs, rcs in zip(el['StructureSetROISequence'], el['ROIContourSequence']):
             r = ROIContourModel(session, rs['ROIName'], rs['ROINumber'], rcs['ROIDisplayColor'], rcs['ContourSequence'])
             regions.append(r)
+            
         self.add(regions)
 
-        session.models.add([self])
+def rgb_255(cs):
+    return tuple(int(c) for c in cs)
+
+def xyz_list(xs):
+    a = tuple(float(x) for x in xs)
+    from numpy import array, float32
+    xyz = array(a, float32).reshape(len(a)//3, 3)
+    return xyz
 
 from chimerax.core.models import Surface
 class ROIContourModel(Surface):

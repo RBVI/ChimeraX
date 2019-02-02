@@ -47,9 +47,22 @@ _reserved_words = {
 }
 
 
+def _initialize():
+    global _initialized
+    _initialized = True
+    from os.path import join, dirname, exists
+    from . import _mmcif
+    std_residues = join(dirname(__file__), "stdresidues.cif")
+    if exists(std_residues):
+        _mmcif.load_mmCIF_templates(std_residues)
+
+
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
                max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True):
     # mmCIF parsing requires an uncompressed file
+
+    if not _initialized:
+        _initialize()
 
     from . import _mmcif
     _mmcif.set_Python_locate_function(
@@ -150,16 +163,17 @@ def _get_formatted_metadata(model, session, *, verbose=False):
     # source
     nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"])
     if nat:
-        html += _process_src(nat, "Source%s (natural)", ['common_name', 'pdbx_organism_scientific',
+        html += _process_src(nat, "Source%s (natural)", [
+            'common_name', 'pdbx_organism_scientific',
             'genus', 'species', 'pdbx_ncbi_taxonomy_id'])
     if gen:
-        html += _process_src(gen, "Gene source%s", ['gene_src_common_name',
-            'pdbx_gene_src_scientific_name', 'gene_src_genus', 'gene_src_species',
-            'pdbx_gene_src_ncbi_taxonomy_id'])
+        html += _process_src(gen, "Gene source%s", [
+            'gene_src_common_name', 'pdbx_gene_src_scientific_name', 'gene_src_genus',
+            'gene_src_species', 'pdbx_gene_src_ncbi_taxonomy_id'])
         if verbose:
-            html += _process_src(gen, "Host organism%s", ['host_org_common_name',
-                'pdbx_host_org_scientific_name', 'host_org_genus', 'host_org_species',
-                'pdbx_host_org_ncbi_taxonomy_id'])
+            html += _process_src(gen, "Host organism%s", [
+                'host_org_common_name', 'pdbx_host_org_scientific_name', 'host_org_genus',
+                'host_org_species', 'pdbx_host_org_ncbi_taxonomy_id'])
 
     # experimental method; resolution
     experiment = get_mmcif_tables_from_metadata(model, ["exptl"])[0]
@@ -197,6 +211,7 @@ def _get_formatted_metadata(model, session, *, verbose=False):
 
     return html
 
+
 def _get_formatted_res_info(model, *, standalone=True):
     def update_nonstd(model, nonstd_info):
         chem_comp = get_mmcif_tables_from_metadata(model, ["chem_comp"])[0]
@@ -210,6 +225,7 @@ def _get_formatted_res_info(model, *, standalone=True):
                     nonstd_info[row[0]] = (row[0], row[1], row[2])
     from chimerax.atomic.pdb import format_nonstd_res_info
     return format_nonstd_res_info(model, update_nonstd, standalone)
+
 
 def _process_src(src, caption, field_names):
     raw_rows = src.fields(field_names, allow_missing_fields=True)
@@ -235,6 +251,7 @@ def _process_src(src, caption, field_names):
             html += '  </tr>\n'
     return html
 
+
 def substitute_none_for_unspecified(fields):
     substituted = []
     for field in fields:
@@ -243,6 +260,7 @@ def substitute_none_for_unspecified(fields):
         else:
             substituted.append(field)
     return substituted
+
 
 _mmcif_sources = {
     # "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
@@ -254,6 +272,10 @@ _mmcif_sources = {
 
 
 def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
+    """Get mmCIF file by PDB identifier via the Internet"""
+    if not _initialized:
+        _initialize()
+
     if len(pdb_id) != 4:
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     import os
@@ -490,6 +512,7 @@ def get_mmcif_tables_from_metadata(model, table_names):
 class TableMissingFieldsError(ValueError):
     """Required field is missing"""
     pass
+
 
 class MMCIFTable:
     """

@@ -258,22 +258,25 @@ Appearance</h4>
 <h4><a href="#settings" class="nounder"><b>&larr;</b></a>
 Headers</h4>
 <ul class="none">
-<li><b>Consensus style</b>
-  <ul>
-  <li><b>majority in column including gaps</b> (initial default)
-  <li><b>majority in column ignoring gaps</b>
-  </ul>
-The consensus sequence shows the residue type most prevalent
-(not necessarily >50%) at each position in the alignment;
-highly conserved types (&ge; 80%) are capitalized 
-and shown in purple, or red if 100% conserved.
-If several residue types are equally the most prevalent,
-one is chosen at random. When gaps are included, however,
-the consensus will show a gap at positions where a gap
-is the most prevalent or equally the most prevalent
-as one or more residue types.
-<li><b>Conservation style</b>
-  <ul>
+<li><b>Consensus: capitalization threshold</b> (initial default <b>0.8</b>)
+<li><b>Consensus: ignore gap characters</b> (initial default off)
+</ul>
+The consensus sequence shows the residue type that is most common
+at each position in the alignment, even if it appears in less than 0.5
+of the sequences; if a consensus type appears in at least the 
+<b>capitalization threshold</b> fraction of sequences, 
+it will be capitalized and shown in purple,
+or in red if all of the sequences have the same type.
+If several residue types are equally the most common,
+one is chosen at random. The consensus will show a gap at positions 
+where a gap is the most prevalent or equally the most prevalent
+as one or more residue types, unless <b>ignore gap characters</b>
+is turned on. Regardless of this option, however,
+gap positions are always included in the denominator
+for calculating the consensus fraction.
+<ul>
+<li><b>Conservation: style</b>
+ <ul>
   <li><b>identity histogram</b> (initial default)
 - what proportion of the sequences
 have the most prevalent nongap character per alignment column.
@@ -389,5 +392,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+January 2019</address>
 </body></html>

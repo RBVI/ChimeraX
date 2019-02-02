@@ -725,7 +725,6 @@ def save(session, path, version=3, uncompressed=False, include_maps=False):
             except IOError as e:
                 raise UserError(e)
 
-    session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     session.session_file_path = path
     try:
         session.save(output, version=version, include_maps=include_maps)

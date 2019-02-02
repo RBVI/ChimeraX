@@ -49,7 +49,29 @@ Overview of ChimeraX features for working with
 <h3><a href="#top" class="nounder">&larr;</a>
 Opening Data</h3>
 <p>
-In ChimeraX, a DICOM image stack can be opened as follows:
+In ChimeraX,
+all of the <a href="dicom/dicom.html">DICOM files</a>
+in a directory and its subdirectories
+can be opened in a single operation if the format is specified explicitly:
+</p>
+<blockquote>
+Menu: <b>File... Open Folder</b> (dialog shows Format: DICOM image),
+browse to location, choose directory, click <b>Open</b>
+<br>&ndash; or &ndash;
+<br>
+Command: <a href="commands/open.html#local"><b>open</b></a>
+&nbsp;<i>directory-pathname</i>&nbsp; <b>format dicom</b>
+</blockquote>
+<p>
+...where <i>directory-pathname</i> may contain * as wildcard to lessen
+typing, and should be enclosed in quotation marks if it includes spaces,
+for example:
+<blockquote>
+<b>open "~/Desktop/2-CT 5*" format dicom</b>
+</blockquote>
+<p>
+Each series that is found will be opened as a separate model.
+Alternatively, to open multiple DICOM files comprising a single 3D image stack:
 </p>
 <blockquote>
 Menu: <b>File... Open</b>, browse to location, click first file,
@@ -67,23 +89,6 @@ spaces, for example:
 <blockquote>
 <b>open "~/Desktop/2-CT 5.0 H30s-55580/*dcm"</b>
 </blockquote>
-<p>
-It is also possible to open all of the DICOM files in a directory
-and its subdirectories in a single operation if the format is 
-specified explicitly, for example:
-</p>
-<blockquote>
-<b>open "~/Desktop/2-CT 5.0 H30s-55580" format dicom</b>
-<br>&ndash; or &ndash;
-<br>
-Menu: <b>File... Open Folder</b> (dialog shows Format: DICOM image), 
-browse to location, choose directory, click <b>Open</b> 
-</blockquote>
-<p>
-Each stack or dataset that is found will be opened as a separate model.
-The <b>open</b> command <a href="commands/open.html#verbose"><b>verbose</b></a>
-option can be used to show DICOM details for debugging purposes.
-</p>
 
 <table>
 <tr><th align="center" class="shaded">
@@ -182,10 +187,12 @@ Some DICOM files contain <b><i>time series</i></b> that can be played with
 the time slider shown automatically by ChimeraX or with
 the <a href="commands/vseries.html"><b>vseries</b></a> command.
 </p><p>
-Some DICOM files contain <b><i>segmentations</i></b>
-in the form of binary maps (values 0,1);
-these can be displayed as a surface, for example:
-<b>volume #1.9 style surf level 1 step 1 color yellow</b>
+Some DICOM files contain SEG objects (<b><i>segmentations</i></b>
+as binary maps), and these are automatically associated with the
+corresponding image series to synchronize plane display.
+They can also be displayed as isosurfaces, for example:
+<b><a href="commands/volume.html">volume</a> #1.1.1.1.5 show style surf
+level 1 region all</b>
 </p>
 
 <a name="manipulation"></a>
@@ -506,7 +513,7 @@ or if none are selected, all volume models.
 Virtual Reality</h3>
 <p>
 DICOM data can be viewed in <a href="vr.html">ChimeraX virtual reality</a>
-and adjusted, <a href="#manipulation">manipulated</a>, <i>etc.</i> 
+and <a href="#manipulation">manipulated</a>, <i>etc.</i> 
 as described above. Major considerations in VR:
 </p>
 <ul>
