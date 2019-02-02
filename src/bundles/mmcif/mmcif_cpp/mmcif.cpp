@@ -893,7 +893,7 @@ ExtractMolecule::finished_parse()
         if (m == mol) {
             // Fixed #1548 by explicitly creating chains, so the
             // right information is copied to subsequent NMR models
-            m->make_chains();
+            (void)m->chains();
         }
     }
     reset_parse();
