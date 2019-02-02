@@ -557,16 +557,13 @@ class PlanesArg(Annotation):
     axis can be x, y, or z, and the other values are integers with the last 3
     being optional.
     '''
-    name = 'planes x|y|z,<start>[,<end>[,<increment>[,<depth>]]]'
+    name = 'planes x|y|z[,<start>[,<end>[,<increment>[,<depth>]]]]'
 
     @staticmethod
     def parse(text, session):
         from chimerax.core.commands import next_token, AnnotationError
         token, text, rest = next_token(text)
         fields = token.split(',')
-        if len(fields) < 2:
-            raise AnnotationError('Planes argument requires at least 2 comma-separated fields:'
-                                  ' axis,start,end,increment,depth')
         if fields[0] not in ('x', 'y', 'z'):
             raise AnnotationError('Planes argument first field must be x, y, or z, got "%s"' % fields[0])
         try:

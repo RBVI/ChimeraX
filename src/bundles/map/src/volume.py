@@ -2607,9 +2607,11 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = []):
 #
 class cycle_through_planes:
 
-  def __init__(self, v, session, axis, pstart, pend = None, pstep = 1, pdepth = 1):
+  def __init__(self, v, session, axis, pstart = None, pend = None, pstep = 1, pdepth = 1):
 
     axis = {'x':0, 'y':1, 'z':2}.get(axis, axis)
+    if pstart is None:
+      pstart = (v.region[0][axis] + v.region[1][axis])//2
     if pend is None:
       pend = pstart
     if pend < 0:
