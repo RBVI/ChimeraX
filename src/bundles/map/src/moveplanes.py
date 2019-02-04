@@ -237,7 +237,14 @@ def sign(x):
 
 def log_volume_region_command(v):
     ijk_min, ijk_max = v.region[:2]
-    region = 'region %d,%d,%d,%d,%d,%d' % (tuple(ijk_min)+tuple(ijk_max))
+    if v.showing_orthoplanes():
+        ro = v.rendering_options
+        planes = ''.join([n for n,s in zip(('x','y','z'),ro.orthoplanes_shown) if s])
+        region = ('orthoplanes %s' % planes
+                  + ' positionPlanes %d,%d,%d' % ro.orthoplane_positions)
+    else:
+        region = 'region %d,%d,%d,%d,%d,%d' % (tuple(ijk_min)+tuple(ijk_max))
+
     command = 'volume #%s %s' % (v.id_string, region)
     from chimerax.core.commands import log_equivalent_command
     log_equivalent_command(v.session, command)
