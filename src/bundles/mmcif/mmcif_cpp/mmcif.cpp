@@ -742,6 +742,7 @@ copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
     auto& info = from->input_seq_info();
     for (auto& i: info)
         to->set_input_seq_info(i.first, i.second);
+    to->input_seq_source = from->input_seq_source;
 
     // Secondary Structure:
     auto& residues = from->residues();
@@ -858,12 +859,14 @@ ExtractMolecule::finished_parse()
         }
         if (!previous.empty() && !current.empty())
             connect_polymer_pair(previous[0], current[0], gap, nstd);
-        if (entity_poly.ptype == PolymerType::PT_NONE)
-            mol->set_input_seq_info(auth_chain_id, seqres);
-        else
-            mol->set_input_seq_info(auth_chain_id, seqres, &residues, entity_poly.ptype);
-        if (mol->input_seq_source.empty())
-            mol->input_seq_source = "mmCIF entity_poly_seq table";
+        if (!missing_poly_seq) {
+            if (entity_poly.ptype == PolymerType::PT_NONE)
+                mol->set_input_seq_info(auth_chain_id, seqres);
+            else
+                mol->set_input_seq_info(auth_chain_id, seqres, &residues, entity_poly.ptype);
+            if (mol->input_seq_source.empty())
+                mol->input_seq_source = "mmCIF entity_poly_seq table";
+        }
     }
     if (has_ambiguous)
         pdb_connect::find_and_add_metal_coordination_bonds(mol);
@@ -891,9 +894,9 @@ ExtractMolecule::finished_parse()
         }
         m->use_best_alt_locs();
         if (m == mol) {
-            // Fixed #1548 by explicitly creating chains, so the
-            // right information is copied to subsequent NMR models
-            (void)m->chains();
+            // Explicitly creating chains if they don't already exist, so
+            // the right information is copied to subsequent NMR models
+            (void) m->chains();
         }
     }
     reset_parse();
@@ -1467,26 +1470,27 @@ ExtractMolecule::parse_atom_site()
                                         residue_name, "\" near line ", line_number());
                         // Bad data, don't try to reconstruct entity_poly_seq information
                         missing_poly_seq = false;
-                    }
-                    if (poly.find(entity_id) == poly.end()) {
-                        logger::warning(_logger, "Unknown polymer entity '", entity_id,
-                                        "' near line ", line_number());
-                        // fake polymer entity to cut down on secondary warnings
-                        poly.emplace(entity_id, false);
-                    }
-                    auto& entity_poly_seq = poly.at(entity_id).seq;
-                    PolySeq p(position, residue_name, false);
-                    auto pit = entity_poly_seq.equal_range(p);
-                    bool found = false;
-                    for (auto& i = pit.first; i != pit.second; ++i) {
-                        auto& p2 = *i;
-                        if (p2.mon_id == p.mon_id) {
-                            found = true;
-                            break;
+                    } else {
+                        if (poly.find(entity_id) == poly.end()) {
+                            logger::warning(_logger, "Unknown polymer entity '", entity_id,
+                                            "' near line ", line_number());
+                            // fake polymer entity to cut down on secondary warnings
+                            poly.emplace(entity_id, false);
                         }
+                        auto& entity_poly_seq = poly.at(entity_id).seq;
+                        PolySeq p(position, residue_name, false);
+                        auto pit = entity_poly_seq.equal_range(p);
+                        bool found = false;
+                        for (auto& i = pit.first; i != pit.second; ++i) {
+                            auto& p2 = *i;
+                            if (p2.mon_id == p.mon_id) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found)
+                            entity_poly_seq.emplace(p);
                     }
-                    if (!found)
-                        entity_poly_seq.emplace(p);
                 }
             }
             chain_entity_map[chain_id] = entity_id;
