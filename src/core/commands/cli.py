@@ -223,7 +223,7 @@ def commas(text_seq, conjunction='or'):
     if seq_len == 1:
         return text_seq[0]
     if seq_len == 2:
-        return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
+        return '%s %s %s' % (text_seq[0], conjunction, text_seq[1])
     text = '%s, %s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
     return text
 
