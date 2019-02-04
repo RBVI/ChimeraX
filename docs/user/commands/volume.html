@@ -659,7 +659,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>planes</b> &nbsp;<i>axis</i>],<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]]
+  <b>planes</b> &nbsp;<i>axis</i>[,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]]
   <br>Sequentially display slabs <i>depth</i> planes thick along the
   specified data <i>axis</i> (<b>x</b>,<b>y</b>, or <b>z</b>) starting from
   index <i>start</i> and repositioning the slab by <i>increment</i> 
@@ -1012,9 +1012,9 @@ Besides a preset name, <b>initial</b> can be used to (re)set to the
 solid threshold values and colors that would have been chosen automatically 
 for the data when first shown as solid, with 
 <a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
-This is primarily useful for <a href="#planes">single-plane</a>
-or thin-slab display after a 3D preset had been used on
-the entire volume or a thick subregion.
+The <b>initial</b> settings are particularly useful for 
+<a href="#planes">single-plane display</a>
+after using any of the 3D presets on a 3D region.
 See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
