@@ -223,7 +223,7 @@ def commas(text_seq, conjunction='or'):
     if seq_len == 1:
         return text_seq[0]
     if seq_len == 2:
-        return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
+        return '%s %s %s' % (text_seq[0], conjunction, text_seq[1])
     text = '%s, %s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
     return text
 
@@ -731,13 +731,13 @@ class EnumOf(Annotation):
         matches = []
         for i, ident in enumerate(self.ids):
             if ident.casefold() == folded:
-                return self.values[i], ident, rest
+                return self.values[i], quote_if_necessary(ident), rest
             elif self.allow_truncated:
                 if ident.casefold().startswith(folded):
                     matches.append((i, ident))
         if len(matches) == 1:
             i, ident = matches[0]
-            return self.values[i], ident, rest
+            return self.values[i], quote_if_necessary(ident), rest
         elif len(matches) > 1:
             ms = ', '.join(self.values[i] for i,ident in matches)
             raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
@@ -901,7 +901,7 @@ class StringArg(Annotation):
         if not text:
             raise AnnotationError("Expected %s" % StringArg.name)
         token, text, rest = next_token(text)
-        return token, text, rest
+        return token, quote_if_necessary(text), rest
 
 
 class PasswordArg(StringArg):
@@ -929,7 +929,7 @@ class AttrNameArg(StringArg):
                                   " characters and underscores")
         if text[0].isdigit():
             raise AnnotationError("Attribute names cannot start with a digit")
-        return token, text, rest
+        return token, quote_if_necessary(text), rest
 
 
 class FileNameArg(Annotation):
@@ -943,7 +943,7 @@ class FileNameArg(Annotation):
     def parse(cls, text, session):
         token, text, rest = StringArg.parse(text, session)
         import os.path
-        return os.path.expanduser(token), text, rest
+        return os.path.expanduser(token), quote_if_necessary(text), rest
 
 
 _browse_string = "browse"
