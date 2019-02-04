@@ -49,9 +49,9 @@ class RegionMouseMode(MouseMode):
     def _show_single_plane(self, v, axis):
         ijk_min, ijk_max, ijk_step = [list(b) for b in v.region]
         p = (ijk_min[axis] + ijk_max[axis])//2
-        ijk_min[axis] = p
-        ijk_max[axis] = p + ijk_step[axis] - 1
-        v.new_region(ijk_min, ijk_max)
+        ijk_min[axis] = ijk_max[axis] = p
+        ijk_step = (1,1,1)
+        v.new_region(ijk_min, ijk_max, ijk_step)
         v.set_representation('solid')
 
     def mouse_drag(self, event):
