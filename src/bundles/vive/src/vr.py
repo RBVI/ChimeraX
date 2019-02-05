@@ -1094,11 +1094,15 @@ class HandControllerModel(Model):
             adm = self._active_drag_modes
             if pressed:
                 m.pressed(camera, self)
+                m._button_down = b
                 adm.add(m)
             elif m in adm:
-                m.released(camera, self)
-                adm.remove(m)
-                camera.user_interface.redraw_ui()
+                self._drag_ended(m, camera)
+
+    def _drag_ended(self, mode, camera):
+        mode.released(camera, self)
+        self._active_drag_modes.remove(mode)
+        camera.user_interface.redraw_ui()
 
     def _process_ui_event(self, ui, b, pressed, released):
         if b not in ui.buttons:
@@ -1178,9 +1182,24 @@ class HandControllerModel(Model):
 
         # Do hand controller drag when buttons pressed
         if previous_pose is not None:
+            self._check_for_missing_button_release(camera)
             pose = self._pose
             for m in self._active_drag_modes:
                 m.drag(camera, self, previous_pose, pose)
+
+    def _check_for_missing_button_release(self, camera):
+        '''Cancel drag modes if button has been released even if we didn't get a button up event.'''
+        adm = self._active_drag_modes
+        if len(adm) == 0:
+            return
+        success, cstate = self.vr_system.getControllerState(self.device_index)
+        if success:
+            pressed_mask = cstate.ulButtonPressed
+            for m in tuple(adm):
+                # bm = openvr.ButtonMaskFromId(m._button_down)  # Routine is missing from pyopenvr
+                bm = 1 << m._button_down
+                if not pressed_mask & bm:
+                    self._drag_ended(m, camera)
 
 class HandMode:
     def pressed(self, camera, hand_controller):
@@ -1398,11 +1417,7 @@ class IconPanel(HandMode):
 
     def touchpad_position(self):
         vrs = self.vr_system
-        from ctypes import sizeof
-        # TODO: I think pyopenvr eliminated the size arg in Feb 2017.
-        import openvr
-        size = sizeof(openvr.VRControllerState_t)
-        success, cs = vrs.getControllerState(self.device_index, size)
+        success, cs = vrs.getControllerState(self.device_index)
         if success:
             a = cs.rAxis[0]
             return (a.x, a.y)
