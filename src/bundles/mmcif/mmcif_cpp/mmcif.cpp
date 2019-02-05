@@ -788,6 +788,7 @@ ExtractMolecule::finished_parse()
     // Connect residues in entity_poly_seq.
     // Because some positions are heterogeneous, delay connecting
     // until next group of residues is found.
+    bool no_polymer = true;
     for (auto& chain: all_residues) {
         ResidueMap& residue_map = chain.second;
         auto ri = residue_map.begin();
@@ -804,6 +805,7 @@ ExtractMolecule::finished_parse()
         vector<Residue *> residues;
         seqres.reserve(entity_poly.seq.size());
         residues.reserve(entity_poly.seq.size());
+        no_polymer = no_polymer && entity_poly.seq.empty();
         for (auto& p: entity_poly.seq) {
             auto ri = residue_map.find(ResidueKey(entity_id, p.seq_id, p.mon_id));
             if (ri == residue_map.end()) {
@@ -868,6 +870,8 @@ ExtractMolecule::finished_parse()
                 mol->input_seq_source = "mmCIF entity_poly_seq table";
         }
     }
+    if (missing_poly_seq && !no_polymer)
+        logger::warning(_logger, "Missing entity_poly_seq table.  Inferred polymer connectivity.");
     if (has_ambiguous)
         pdb_connect::find_and_add_metal_coordination_bonds(mol);
     if (missing_poly_seq)
@@ -1228,9 +1232,6 @@ ExtractMolecule::parse_atom_site()
 
     if (guess_fixed_width_categories)
         set_PDBx_fixed_width_columns("atom_site");
-
-    if (missing_poly_seq)
-        logger::warning(_logger, "Missing entity_poly_seq table.  Inferring polymer connectivity.");
 
     try {
         pv.emplace_back(get_column("id"),
