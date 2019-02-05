@@ -1,4 +1,3 @@
 include ../Makefile.bundle
 
-CLEAN += src/exectest*
-CLEAN_ALWAYS += exectest/exectest.o exectest/exectest.obj
+CLEAN_ALWAYS += exectest/exectest.o exectest/exectest.obj src/bin/exectest*

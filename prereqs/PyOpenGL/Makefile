@@ -87,4 +87,4 @@ ifneq (,$(ACCELERATE_PATCHES))
 endif
 
 clean:
-	rm -rf $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
+	rm -rf $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE) pip.log

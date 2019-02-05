@@ -50,7 +50,7 @@ endif
 
 clean:
 	cd readcif_cpp; make clean
-	rm -f $(PYMOD) $(OBJS)
+	rm -rf $(PYMOD) $(OBJS) include lib
 ifeq ($(WIN32),msvc)
 	rm -f $(PYMOD).manifest $(PYMOD_NAME).{lib,exp,ilk,pdb} vc*.pdb
 endif
