@@ -805,14 +805,18 @@ class UserInterface:
 
     def _click(self, type, window_xy):
         '''Type can be "press" or "release".'''
-        if self._post_mouse_event(type, window_xy) and type != 'move':
-            self.redraw_ui()
+        if self._post_mouse_event(type, window_xy):
+            if type == 'release':
+                self.redraw_ui()
             return True
         return False
 
-    def redraw_ui(self):
-        self._update_later = self._update_delay
-        self._update_ui_image()
+    def redraw_ui(self, delay = True):
+        if delay:
+            self._update_later = self._update_delay
+        else:
+            self._update_later = 0
+            self._update_ui_image()
 
     def update_if_needed(self):
         if self.shown() and self._update_later:
@@ -1102,7 +1106,8 @@ class HandControllerModel(Model):
     def _drag_ended(self, mode, camera):
         mode.released(camera, self)
         self._active_drag_modes.remove(mode)
-        camera.user_interface.redraw_ui()
+        if not isinstance(mode, (ShowUIMode, MoveSceneMode, ZoomMode)):
+            camera.user_interface.redraw_ui()
 
     def _process_ui_event(self, ui, b, pressed, released):
         if b not in ui.buttons:
