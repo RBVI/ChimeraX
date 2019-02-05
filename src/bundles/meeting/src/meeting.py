@@ -971,7 +971,7 @@ def _decode_numpy_array(array_data):
     dtype = array_data['dtype']
     from base64 import b64decode
     from zlib import decompress
-    data = b64decode(decompress(array_data['data']))
+    data = decompress(b64decode(array_data['data']))
     import numpy
     a = numpy.frombuffer(data, dtype).reshape(shape)
     return a
