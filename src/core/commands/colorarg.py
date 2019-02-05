@@ -60,7 +60,7 @@ class ColorArg(cli.Annotation):
                 name, color, rest = find_named_color(BuiltinColors, text)
             if color is None:
                 raise ValueError("Invalid color name or specifier")
-            return color, name, rest
+            return color, cli.quote_if_necessary(name), rest
         color_space = m.group(1)
         numbers = _parse_numbers(m.group(2))
         rest = text[m.end():]
@@ -77,7 +77,7 @@ class ColorArg(cli.Annotation):
                 raise
             c = Color([x, x, x, alpha])
             c.explicit_transparency = (len(numbers) == 2)
-            return c, m.group(), rest
+            return c, cli.quote_if_necessary(m.group()), rest
         if color_space == 'rgb' and len(numbers) == 3:
             # rgb( number [%], number [%], number [%])
             try:
@@ -89,7 +89,7 @@ class ColorArg(cli.Annotation):
                 raise
             c = Color([red, green, blue, 1])
             c.explicit_transparency = False
-            return c, m.group(), rest
+            return c, cli.quote_if_necessary(m.group()), rest
         if color_space == 'rgba' and len(numbers) == 4:
             # rgba( number [%], number [%], number [%], number [%])
             try:
@@ -102,7 +102,7 @@ class ColorArg(cli.Annotation):
                 raise
             c = Color([red, green, blue, alpha])
             c.explicit_transparency = True
-            return c, m.group(), rest
+            return c, cli.quote_if_necessary(m.group()), rest
         if color_space == 'hsl' and len(numbers) == 3:
             # hsl( number [%], number [%], number [%])
             try:
@@ -116,7 +116,7 @@ class ColorArg(cli.Annotation):
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             c = Color([red, green, blue, 1])
             c.explicit_transparency = False
-            return c, m.group(), rest
+            return c, cli.quote_if_necessary(m.group()), rest
         if color_space == 'hsla' and len(numbers) == 4:
             # hsla( number [%], number [%], number [%], number [%])
             try:
@@ -131,7 +131,7 @@ class ColorArg(cli.Annotation):
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             c = Color([red, green, blue, alpha])
             c.explicit_transparency = True
-            return c, m.group(), rest
+            return c, cli.quote_if_necessary(m.group()), rest
         raise cli.AnnotationError(
             "Wrong number of components for %s specifier" % color_space,
             offset=m.end())
