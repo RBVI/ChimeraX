@@ -1,6 +1,6 @@
 SUBDIRS = sample tutorials
 
-all install:
+all install test sync:
 
 clean:
 	for d in $(SUBDIRS); do make -C $$d clean ; done
