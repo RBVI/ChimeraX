@@ -52,6 +52,7 @@ app-upgrade:
 
 clean:
 	rm -f pip.log
+	make -C package_checker clean
 
 outdated:
 	$(PIP) list --outdated --format=columns
