@@ -45,7 +45,7 @@ imex.map.h: imex.h
 clean:
 	rm -f $(OBJS) $(SHLIB) imex.h imex.map.h
 ifdef WIN32
-	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
+	rm -f lib$(LIBNAME).{lib,exp,pdb} vc*.pdb
 endif
 
 PythonInstance.o: PythonInstance.declare.h PythonInstance.instantiate.h

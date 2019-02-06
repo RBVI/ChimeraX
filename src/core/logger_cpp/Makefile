@@ -49,5 +49,5 @@ endif
 clean:
 	rm -f $(OBJS) $(SHLIB) imex.h
 ifdef WIN32
-	rm -f lib$(LIBNAME).{pdb,exp} vc*.pdb
+	rm -f lib$(LIBNAME).{lib,pdb,exp} vc*.pdb
 endif

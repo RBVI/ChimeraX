@@ -957,10 +957,12 @@ def _decode_face_image(bytes):
 
 def _encode_numpy_array(array):
     from base64 import b64encode
+    from zlib import compress
+    data = b64encode(compress(array.tobytes(), level = 1))
     data = {
         'shape': tuple(array.shape),
         'dtype': array.dtype.str,
-        'data': b64encode(array.tobytes())
+        'data': data
     }
     return data
 
@@ -968,7 +970,8 @@ def _decode_numpy_array(array_data):
     shape = array_data['shape']
     dtype = array_data['dtype']
     from base64 import b64decode
-    data = b64decode(array_data['data'])
+    from zlib import decompress
+    data = decompress(b64decode(array_data['data']))
     import numpy
     a = numpy.frombuffer(data, dtype).reshape(shape)
     return a

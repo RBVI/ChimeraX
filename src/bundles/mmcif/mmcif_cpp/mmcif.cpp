@@ -1368,6 +1368,7 @@ ExtractMolecule::parse_atom_site()
     int cur_auth_seq_id = INT_MAX;
     ChainID cur_chain_id;
     ResName cur_comp_id;
+    bool missing_seq_id_warning = false;
     for (;;) {
         entity_id.clear();
         if (!parse_row(pv))
@@ -1466,11 +1467,12 @@ ExtractMolecule::parse_atom_site()
                 if (tr && !tr->description().empty()) {
                     // only save polymer residues
                     if (position == 0) {
-                        logger::warning(_logger, "Unable to infer polymer connectivity due to "
-                                        "unspecified label_seq_id for residue \"",
-                                        residue_name, "\" near line ", line_number());
-                        // Bad data, don't try to reconstruct entity_poly_seq information
-                        missing_poly_seq = false;
+                        if (!missing_seq_id_warning) {
+                            logger::warning(_logger, "Unable to infer polymer connectivity due to "
+                                            "unspecified label_seq_id for residue \"",
+                                            residue_name, "\" near line ", line_number());
+                           missing_seq_id_warning = true;
+                        }
                     } else {
                         if (poly.find(entity_id) == poly.end()) {
                             logger::warning(_logger, "Unknown polymer entity '", entity_id,
