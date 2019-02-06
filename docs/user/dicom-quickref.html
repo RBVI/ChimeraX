@@ -225,7 +225,7 @@ Manipulation</h3>
 Initial defaults:
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center" rowspan="3"><b>rotate</b>
-<br><img src="tools/mouse-icons/rotate.png" width="35px"></td>
+<br><img src="tools/mouse-icons/rotate.png" class="icon3"></td>
 <td>left mouse button</td>
 </tr><tr>
 <td class="text">trackpad click-drag
@@ -234,7 +234,7 @@ Initial defaults:
 <td class="text">rotate VR hand-controller with trigger pressed</td>
 </tr><tr>
 <td align="center" rowspan="3"><b>translate</b>
-<br><img src="tools/mouse-icons/translate.png" width="35px"></td>
+<br><img src="tools/mouse-icons/translate.png" class="icon3"></td>
 <td>middle or right mouse button</td>
 </tr><tr>
 <td class="text">
@@ -253,7 +253,7 @@ and on some systems, trackpad lower-right corner = right
 <td>move VR hand-controller with trigger pressed</td>
 </tr><tr>
 <td align="center" rowspan="3"><b>zoom</b>
-<br><img src="tools/mouse-icons/zoom.png" width="35px"></td>
+<br><img src="tools/mouse-icons/zoom.png" class="icon3"></td>
 <td>mouse scroll wheel</td>
 </tr><tr>
 <td class="text">
@@ -264,7 +264,7 @@ Windows: trackpad 2-finger drag
 </td>
 </tr><tr>
 <td class="text">move VR hand-controllers farther apart or closer
-together with trigger buttons pressed</td>
+together with both trigger buttons pressed</td>
 </tr></table>
 *Mac multitouch can be turned on and off in the ChimeraX
 <a href="preferences.html#trackpad">Trackpad preferences</a>
@@ -352,7 +352,7 @@ A <b>windowing</b> mouse mode has been added:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center"><b>windowing</b>
-<br><img src="tools/mouse-icons/windowing.png" width="35px"></td>
+<br><img src="tools/mouse-icons/windowing.png" class="icon3"></td>
 <td class="text">
 adjust <a href="tools/volumeviewer.html">volume data</a>
 thresholds collectively: vertical motion adjusts <b><i>window level</i></b>
@@ -471,7 +471,7 @@ or with the following mouse modes:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center"><b>clip</b>
-<br><img src="tools/mouse-icons/clip.png" width="35px"></td>
+<br><img src="tools/mouse-icons/clip.png" class="icon3"></td>
 <td class="text">
 activate and translate front clipping plane,
 +<b>Alt</b> back plane, +<b>Shift</b> slab (front and back in same direction),
@@ -480,7 +480,7 @@ if only near/far (fixed-orientation) planes already active, move those
 instead of front/back (rotatable) planes</td>
 </tr><tr>
 <td align="center"><b>clip rotate</b>
-<br><img src="tools/mouse-icons/cliprot.png" width="35px"></td>
+<br><img src="tools/mouse-icons/cliprot.png" class="icon3"></td>
 <td class="text">
 activate and rotate front/back clipping planes</td>
 </tr></table>
@@ -562,25 +562,39 @@ and <a href="#manipulation">manipulated</a>, <i>etc.</i>
 as described above. Major considerations in VR:
 </p>
 <ul>
-<li>Rendering speed must be fast: the system must be able to keep up with
-changes in the scene, particularly headset movements, or else the experience
-will be nauseating. With large volume data, techniques to 
+<li>Rendering speed must be fast enough to avoid nauseating lags
+in the display when the scene or headset position changes.
+With large volume data, techniques to 
 speed up rendering include subsampling (step size &gt 1) and
 <a href="#clipping">cropping</a>. 
 Work is ongoing to improve ChimeraX volume rendering performance.
 <br><br>
 <li>Entering commands is inconvenient:
-commands for setting up the display can be entered before the headset
-is donned, but with the headset on, it is more convenient to
+with the headset on, it is more convenient to
 use the hand controllers to click <a href="#icons">icons</a> 
 and to perform other actions.
-All of the ChimeraX <a href="commands/ui.html#mousemode">mouse modes</a>
-are available for assignment to hand-controller buttons.
 Clicking the Vive menu button (analogous for other systems)
 shows the ChimeraX user interface with icons in the headset.
+<p>
+Clicking a <a href="tools/mousemodes.html">mouse mode</a> icon 
+with a hand controller assigns
+<b><i>whichever button was clicked</i></b> to the corresponding function.
+In VR, it is recommended to leave the trigger buttons with their
+<a href="#manipulation">default assignments</a> (rotation, translation,
+zooming), but up to four other functions can be assigned,
+to the grip and trackpad buttons on each controller.
+Useful modes for DICOM in VR include
+<b>move planes</b>
+<img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">,
+<b>crop volume</b>
+<img class="icon" border=1 src="tools/mouse-icons/crop.png">,
+and <b>windowing</b>
+<img class="icon" border=1 src="tools/mouse-icons/windowing.png">.
+</p>
 </ul>
 <p>
 See also:
+<a href="tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
 the <a href="http://vr.ucsf.edu/" target="_blank">VR at UCSF</a> website,
 VR setup advice and observations on different systems:
 <a href="http://www.cgl.ucsf.edu/chimera/data/laptop-vr-nov2018/laptopvr.html"
