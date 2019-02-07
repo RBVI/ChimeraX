@@ -800,7 +800,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         open_action.setToolTip("Open input file")
         open_action.triggered.connect(lambda arg, s=self, sess=session: s.file_open_cb(sess))
         file_menu.addAction(open_action)
-        open_folder_action = QAction("Open Folder...", self)
+        open_folder_action = QAction("Open DICOM Folder...", self)
         open_folder_action.setToolTip("Open data in folder")
         open_folder_action.triggered.connect(lambda arg, s=self, sess=session: s.folder_open_cb(sess))
         file_menu.addAction(open_folder_action)
