@@ -173,6 +173,13 @@ class DensityMapPanel(ShortcutPanel):
         ('gf', 'smooth.png', 'Smooth map'),
         ('tt', 'icecube.png', 'Transparent surface'),
         ('ob', 'outlinebox.png', 'Show outline box'),
+        ('pl', 'plane.png', 'Show one plane'),
+        ('o3', 'orthoplanes.png', 'Orthogonal planes'),
+        ('pa', 'fullvolume.png', 'Show full volume'),
+        ('zs', 'xyzslice.png', 'Volume xyz slices'),
+        ('ps', 'perpslice.png', 'Volume perpendicular slices'),
+        ('aw', 'airways.png', 'Airways preset'),
+        ('dc', 'initialcurve.png', 'Default volume curve'),
     )
 
 panel_classes = {

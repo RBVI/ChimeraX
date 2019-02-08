@@ -14,7 +14,7 @@
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = tools dicom
+SUBDIRS = tools dicom tutorials
 
 DOCDIR = $(app_datadir)/docs/user
 

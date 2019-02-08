@@ -118,11 +118,16 @@ def standard_shortcuts(session):
         ('s2', 'volume selMaps step 2', 'Show map at step 2', mapcat, noarg, mmenu, sep),
         ('s4', 'volume selMaps step 4', 'Show map at step 4', mapcat, noarg, mmenu, sep),
 
-        ('pl', show_one_plane, 'Show one plane', mapcat, maparg, mmenu),
-        ('pa', show_all_planes, 'Show all planes', mapcat, maparg, mmenu),
-        ('o3', toggle_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
+        ('pl', 'volume selMaps plane z orthoplanes off style solid', 'Show one plane', mapcat, maparg, mmenu),
+        ('pa', 'volume selMaps region all orthoplanes off', 'Show all planes', mapcat, maparg, mmenu),
+        ('o3', show_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
+
+        ('aw', 'volume selMaps appearance "Airways II"', 'Airways preset', mapcat, maparg, mmenu),
+        ('dc', 'volume selMaps appearance initial', 'Default volume curve', mapcat, maparg, mmenu),
+        ('zs', 'volume selMaps projectionMode 2d-xyz', 'Volume xyz slices', mapcat, maparg, mmenu),
+        ('ps', 'volume selMaps projectionMode 3d', 'Volume perpendicular slices', mapcat, maparg, mmenu),
 
         # Molecules
         ('da', 'show selAtoms', 'Show atoms', molcat, noarg, mlmenu),
@@ -484,14 +489,12 @@ def show_all_planes(m):
   ijk_max = tuple(s-1 for s in m.data.size)
   m.new_region(ijk_min, ijk_max)
 
-def toggle_orthoplanes(m):
-  s = False in m.rendering_options.orthoplanes_shown
+def show_orthoplanes(m):
   p = tuple(s//2 for s in m.data.size)
-  m.set_parameters(orthoplanes_shown = (s,s,s),
-                   orthoplane_positions = p,
-                   color_mode = 'l8' if s else 'auto8',
-                   box_faces = False)
-  m.set_representation('solid')
+  cmd = ('volume #%s ' % m.id_string +
+         'orthoplanes xyz positionPlanes %d,%d,%d style solid region all' % p)
+  from chimerax.core.commands import run
+  run(m.session, cmd)
 
 def toggle_box_faces(m):
   s = not m.rendering_options.box_faces

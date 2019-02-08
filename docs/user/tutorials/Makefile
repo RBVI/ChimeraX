@@ -9,23 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Note: any software used should be mentioned in docs/embedded.html
-# with the appropriate license.
-
-TOP = ..
-NO_SUBDIR_ALL = 1
-
+# Makefile for user guide
+#
+TOP	= ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= core bundles apps examples
+DOCDIR = $(app_datadir)/docs/user/tutorials
 
-# All needed subdirectories must be set by now.
-include $(TOP)/mk/subdir.make
+SRCS = $(wildcard *.html)
+IMAGES = $(wildcard *.png)
 
-all:
+install:
+	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
+	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
 
-mainapp-install: core.install
-	$(MAKE) -C apps/$(APP_NAME) install
-
-bundles.install: core.install mainapp-install
-apps.install: bundles.install core.install
+clean:

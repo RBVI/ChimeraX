@@ -49,9 +49,9 @@ class RegionMouseMode(MouseMode):
     def _show_single_plane(self, v, axis):
         ijk_min, ijk_max, ijk_step = [list(b) for b in v.region]
         p = (ijk_min[axis] + ijk_max[axis])//2
-        ijk_min[axis] = p
-        ijk_max[axis] = p + ijk_step[axis] - 1
-        v.new_region(ijk_min, ijk_max)
+        ijk_min[axis] = ijk_max[axis] = p
+        ijk_step = (1,1,1)
+        v.new_region(ijk_min, ijk_max, ijk_step)
         v.set_representation('solid')
 
     def mouse_drag(self, event):
@@ -237,7 +237,14 @@ def sign(x):
 
 def log_volume_region_command(v):
     ijk_min, ijk_max = v.region[:2]
-    region = 'region %d,%d,%d,%d,%d,%d' % (tuple(ijk_min)+tuple(ijk_max))
+    if v.showing_orthoplanes():
+        ro = v.rendering_options
+        planes = ''.join([n for n,s in zip(('x','y','z'),ro.orthoplanes_shown) if s])
+        region = ('orthoplanes %s' % planes
+                  + ' positionPlanes %d,%d,%d' % ro.orthoplane_positions)
+    else:
+        region = 'region %d,%d,%d,%d,%d,%d' % (tuple(ijk_min)+tuple(ijk_max))
+
     command = 'volume #%s %s' % (v.id_string, region)
     from chimerax.core.commands import log_equivalent_command
     log_equivalent_command(v.session, command)

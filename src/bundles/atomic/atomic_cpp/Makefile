@@ -62,9 +62,11 @@ ifeq ($(OS),Darwin)
 endif
 
 clean:
-	rm -rf __pycache__ $(OBJS) $(SHLIB) cymol.cpp cymol.$(PYMOD_EXT) lib include data
+	rm -rf __pycache__ $(OBJS) $(SHLIB) \
+		cymol.cpp cymol.$(PYMOD_EXT) \
+		lib include data build
 ifdef WIN32
-	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
+	rm -f lib$(LIBNAME).{lib,exp,pdb} vc*.pdb
 endif
 
 pylint:

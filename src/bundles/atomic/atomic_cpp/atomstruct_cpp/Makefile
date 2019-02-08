@@ -49,7 +49,7 @@ endif
 clean:
 	rm -f $(OBJS) $(SHLIB) imex.h
 ifdef WIN32
-	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
+	rm -f lib$(LIBNAME).{lib,exp,pdb} vc*.pdb
 endif
 
 $(SUBDIR_INSTALL): imex.h

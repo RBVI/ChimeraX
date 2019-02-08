@@ -34,6 +34,8 @@ or the <b>format dicom</b> option in the
 <a href="../commands/open.html"><b>open</b></a> command.
 See also:
 <a href="../dicom-quickref.html">DICOM Quick Reference</a>,
+<a href="../tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+<a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 <a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
 </p><p>
@@ -41,7 +43,7 @@ All of the DICOM files in a directory and its subdirectories
 can be opened in a single operation if the format is specified explicitly:
 </p>
 <blockquote>
-Menu: <b>File... Open Folder</b> (dialog shows Format: DICOM image), 
+Menu: <b>File... Open DICOM Folder</b> (dialog shows Format: DICOM image), 
 browse to location, choose directory, click <b>Open</b>
 <br>&ndash; or &ndash;
 <br>
@@ -72,8 +74,11 @@ The <a href="../commands/open.html"><b>open</b></a> command
 <a href="../commands/open.html#verbose"><b>verbose</b></a> option 
 shows detailed debugging information for DICOM input.
 </p><p>
-Some DICOM files contain <b><i>time series</i></b> that can be played with
-the time slider shown automatically by ChimeraX or with
+In general, 3D maps described as image series are read (DICOM modalities
+CT, MR, RTDOSE, <i>etc.</i>).
+</p><p>
+Some DICOM files contain 4D data or <b><i>time series</i></b> 
+that can be played with the time slider shown automatically by ChimeraX or with
 the <a href="../commands/vseries.html"><b>vseries</b></a> command.
 </p><p>
 Some DICOM files contain SEG objects (<b><i>segmentations</i></b>
@@ -82,6 +87,8 @@ corresponding image series to synchronize plane display.
 They can also be displayed as isosurfaces, for example:
 <b><a href="../commands/volume.html">volume</a> #1.1.1.1.5 show style surf 
 level 1 region all</b>
+</p><p>
+Radiotherapy structure set (RTSTRUCT) contours are also read and displayed.
 </p>
 
 <a name="hierarchy"></a>
@@ -104,5 +111,5 @@ shown in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2019</address>
+February 2019</address>
 </body></html>

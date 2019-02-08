@@ -106,9 +106,23 @@ The <b>volume</b> command has many options, here grouped into categories:
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/step2.png"></a>
 <br><a href="#dimensions">Dimension and Scale Options</a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/fullvolume.png"></a>
 <br><a href="#planes">Planes Options</a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/plane.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/orthoplanes.png"></a>
 <br><a href="#dispsurf">Surface and Mesh Display Options</a>
 <br><a href="#dispsolid">Solid Display Options</a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
 <br><a href="#vop">Volume Operations (Map Editing)</a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
@@ -419,7 +433,10 @@ regardless of which are specified:
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.  
   Grid indices must be integers separated by commas but not spaces.
-  See also: the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
+See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/fullvolume.png"></a>,
+the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/crop.png"></a>
 </blockquote>
@@ -642,13 +659,15 @@ regardless of which are specified:
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>planes</b> &nbsp;<i>axis</i>,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]
+  <b>planes</b> &nbsp;<i>axis</i>[,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]]
   <br>Sequentially display slabs <i>depth</i> planes thick along the
   specified data <i>axis</i> (<b>x</b>,<b>y</b>, or <b>z</b>) starting from
   index <i>start</i> and repositioning the slab by <i>increment</i> 
   grid units per frame until the index at the next frame would 
-  exceed <i>end</i>.  
+  exceed <i>end</i>. 
   The indices refer to the first displayed plane along the axis.
+  If only the axis is given, a single plane at the center of the 
+  <a href="#dimensions">current region</a> will be shown.
   If no <i>end</i> is supplied, only a single slab will be shown.  
   The default <i>increment</i> and <i>depth</i> are both <b>1</b>.
   Only planes that are multiples of the <a href="#sampling">step size</a>
@@ -664,6 +683,9 @@ regardless of which are specified:
   For example, an <i>increment</i> of 0.25 with step size 1 will show each
   plane for 4 frames.
   See also: <a href="#tile"><b>volume tile</b></a>,
+<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/plane.png"></a>,
   the <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>
@@ -696,6 +718,9 @@ regardless of which are specified:
   Turning orthogonal planes <b>off</b> restores the <b>auto8</b>
   <a href="#dispsolid">color mode</a>.
   See also:
+<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/orthoplanes.png"></a>,
   the <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>
@@ -901,6 +926,11 @@ both depict isosurfaces.
   The 3d mode avoids jumps in brightness during rotation by continuously 
   generating planes perpendicular to the line of sight, 
   with spacing equal to the smallest spacing (along X, Y, or Z) of the data.
+See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -923,6 +953,7 @@ both depict isosurfaces.
   by a factor of (1&ndash;transparency).
   Otherwise, increasing the transparency also makes a volume
   appear brighter, because less light is blocked.
+  The <a href="#appearance"><b>appearance</b></a> option adjusts this setting.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -976,16 +1007,22 @@ contains any spaces. This approximation may not reproduce
 the appearance in Horos very faithfully, as there is not a 
 one-to-one correspondence between the settings in the two programs,
 and some parts of the preset definition files may have been 
-ignored or misinterpreted.
+ignored or misinterpreted. These presets are generally intended for
+3D rendering (not <a href="#planes">single-plane display</a>).
 <p>
 Besides a preset name, <b>initial</b> can be used to (re)set to the
 solid threshold values and colors that would have been chosen automatically 
 for the data when first shown as solid, with 
 <a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
-This is primarily useful for <a href="#planes">single-plane</a>
-or thin-slab display after a 3D preset had been used on
-the entire volume or a thick subregion.
-See also: <a href="../dicom-quickref.html">DICOM Quick Reference</a>
+The <b>initial</b> settings are particularly useful for 
+<a href="#planes">single-plane display</a>
+after using any of the 3D presets on a 3D region.
+See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>,
+<a href="../dicom-quickref.html">DICOM Quick Reference</a>
 </p>
 </blockquote>
 
@@ -2186,5 +2223,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2019</address>
+February 2019</address>
 </body></html>

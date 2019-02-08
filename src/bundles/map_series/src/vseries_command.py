@@ -180,9 +180,8 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
     Processing can normalize, align, mask and change the numeric value type of maps.
     '''
     if len(series) > 1:
-        from chimerax.core.commands.parse import CommandError
-        raise CommandError('vseries save: Can only save one series in a file, got %d'
-                           % len(series))
+        from chimerax.core.errors import UserError
+        raise UserError('vseries save: Can only save one series in a file, got %d' % len(series))
     s = series[0]
 
     from os.path import expanduser, basename
@@ -271,8 +270,8 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
     if not normalize_level is None:
         level = v.maximum_surface_level
         if level is None:
-            from chimerax.core.commands.parse import CommandError
-            raise CommandError('vseries save: normalize_level used but no level set for volume %s' % v.name)
+            from chimerax.core.errors import UserError
+            raise UserError('vseries save: normalize_level used but no level set for volume %s' % v.name)
         if zero_mean:
             level -= mean
         scale = normalize_level / level

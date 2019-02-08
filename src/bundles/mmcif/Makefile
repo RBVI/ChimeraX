@@ -6,7 +6,7 @@ wheel install app-install:	lib
 clean: lib-clean
 
 lib:
-	cd mmcif_cpp; $(MAKE) source
+	$(MAKE) -C mmcif_cpp source
 
 lib-clean:
-	cd mmcif_cpp; $(MAKE) clean
+	$(MAKE) -C mmcif_cpp clean

@@ -20,6 +20,8 @@ standard_residues = {
     # Other
     "HOH",      # water
     "UNL",      # unknown ligand
+    # other common residues (> 1000 in current PDB)
+    'MSE', 'MLY', 'ACE', 'SEP', 'PSU', 'NH2', 'HYP', 'TPO',
 }
 
 found = set()
