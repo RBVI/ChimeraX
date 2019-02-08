@@ -1,4 +1,4 @@
-class TutorialGUI(HtmlToolInstance):
+class TutorialTool(HtmlToolInstance):
 
     # previously implemented parts of the class here...
 
@@ -31,6 +31,6 @@ class TutorialGUI(HtmlToolInstance):
         #
         # 'data' is what take_snaphot returned.  At this time,
         # we have no need for the 'version' key of 'data'
-        inst = class_obj(session, "Tutorial GUI")
+        inst = class_obj(session, "Tutorial (HTML)")
         inst.prev_command = data['prev_command']
         return inst

@@ -1227,10 +1227,9 @@ class ToolWindow(StatusLogger):
 
         Override to add items to any context menu popped up over this window.
 
-        Note that you have to keep references to the actions you add to the
-        menu to avoid having then automatically destroyed and removed from the
-        menu when this method returns.  You can use the menu itself to store 
-        the reference, e.g. menu._ref1 = QAction(...)"""
+        Note that you need to specify the 'parent' argument of the QAction
+        constructor (as 'menu') to avoid having the action automatically destroyed
+        and removed from the menu when this method returns."""
         pass
 
     @property

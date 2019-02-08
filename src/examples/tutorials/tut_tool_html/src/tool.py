@@ -13,12 +13,11 @@
 
 from chimerax.ui import HtmlToolInstance
 
-
-class TutorialGUI(HtmlToolInstance):
+class TutorialTool(HtmlToolInstance):
 
     # Inheriting from HtmlToolInstance gets us the following attributes
     # after initialization:
-    #   self.tool_window: instance of chimerax.ui.gui.MainToolWindow
+    #   self.tool_window: instance of chimerax.ui.MainToolWindow
     #   self.html_view: instance of chimerax.ui.widgets.HtmlView
     # Defining methods in this subclass also trigger some automated callbacks:
     #   handle_scheme: called when custom-scheme link is visited
@@ -29,25 +28,30 @@ class TutorialGUI(HtmlToolInstance):
     SESSION_ENDURING = False    # Does this instance persist when session closes
     SESSION_SAVE = False        # No session saving for now
     CUSTOM_SCHEME = "tutorial"  # Scheme used in HTML for callback into Python
+    help = "help:user/tools/tutorial.html"
+                                # Let ChimeraX know about our help page
 
     def __init__(self, session, tool_name):
         # ``session`` - ``chimerax.core.session.Session`` instance
         # ``tool_name``      - string
-
-        # Set name displayed on title bar (defaults to tool_name)
-        self.display_name = "Tutorial Graphical Interface"
 
         # Initialize base class.  ``size_hint`` is the suggested
         # initial tool size in pixels.  For debugging, add
         # "log_errors=True" to get Javascript errors logged
         # to the ChimeraX log window.
         super().__init__(session, tool_name, size_hint=(575, 400))
+
+        # Set name displayed on title bar (defaults to tool_name)
+        # Must be after the superclass initialization in order
+        # to override the default
+        self.display_name = "Tutorial — HTML-based"
+
         self._build_ui()
 
     def _build_ui(self):
         # Fill in html viewer with initial page in the module
         import os.path
-        html_file = os.path.join(os.path.dirname(__file__), "gui.html")
+        html_file = os.path.join(os.path.dirname(__file__), "tool.html")
         import pathlib
         self.html_view.setUrl(pathlib.Path(html_file).as_uri())
 

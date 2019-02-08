@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Tool: Log</title>
+<title>Tool: Tutorial (Qt)</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,27 +23,29 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#tools">Tool</a>: Tutorial GUI</h3>
+<h3><a href="../index.html#tools">Tool</a>: Tutorial (Qt)</h3>
 <p>
-The <b>Tutorial GUI</b> is the graphical interface to
-the <a href="../commands/tutorial.html"><b>tutorial</b></a> commands.
+The <b>Tutorial (Qt)</b> tool demonstrates how to
+create a graphical tool interface using the
+<a href="https://riverbankcomputing.com/software/pyqt/intro">PyQt5</a>
+toolkit.
 </p>
 <p>
-The <b>Global Options</b> section is used to
-select which atoms are used for computing the center,
-whether the center calculation is weighted by atomic mass,
-and whether transformed or untransformed coordinates
-are used.  Clicking the <b>Report Center of Mass</b>
-button will report the center coordinates in the Reply Log.
+The tool displays a type-in field.  When the user hits the Return key,
+any text in the field will be shown in the log as its HTML equivalent.
+That means that the text:
+<pre>
+	&lt;a href="http://www.cgl.ucsf.edu/chimerax"&gt;ChimeraX home page&lt;/a&gt;
+</pre>
+will be logged as:
+<br><br>
+	<a href="http://www.cgl.ucsf.edu/chimerax">ChimeraX home page</a>
 </p>
 <p>
-The <b>Highlight Options</b> section is used to additionally
-select the number of atoms to color, and the color to apply.
-Clicking the <b>Highlight Center of Mass</b> button
-will set the color of the atoms nearest the center of mass.
+Choosing <b>Clear</b> from the tool context menu will clear the text field
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2018</address>
+February 2019</address>
 </body></html>
