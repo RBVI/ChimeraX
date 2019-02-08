@@ -25,9 +25,9 @@ class _MyAPI(BundleAPI):
         # ones listed in bundle_info.xml (without the leading and
         # trailing whitespace), and create and return an instance of the
         # appropriate class from the ``gui`` module.
-        from . import gui
-        if ti.name == "Tutorial GUI":
-            return gui.TutorialGUI(session, ti.name)
+        from . import tool
+        if ti.name == "Tutorial (HTML)":
+            return tool.TutorialTool(session, ti.name)
         raise ValueError("trying to start unknown tool: %s" % ti.name)
 
 

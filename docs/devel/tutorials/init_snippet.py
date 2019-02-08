@@ -5,7 +5,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def get_class(class_name):
         # class_name will be a string
-        if class_name == "TutorialGUI":
-            from . import gui
-            return gui.TutorialGUI
+        if class_name == "TutorialTool":
+            from . import tool
+            return tool.TutorialTool
         raise ValueError("Unknown class name '%s'" % class_name)

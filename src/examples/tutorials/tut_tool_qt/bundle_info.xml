@@ -5,8 +5,8 @@ When uploaded to the ChimeraX toolshed, the bundle
 will be displayed without the ChimeraX- prefix.
 -->
 
-<BundleInfo name="ChimeraX-Tutorial_GUI"
-	    version="0.1" package="chimerax.tut_gui_qt"
+<BundleInfo name="ChimeraX-Tutorial_Tool_Qt"
+	    version="0.1" package="chimerax.tut_tool_qt"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -19,7 +19,7 @@ will be displayed without the ChimeraX- prefix.
   <Synopsis>Example for adding a graphical interface tool</Synopsis>
   <Description>Example code for implementing ChimeraX bundle.
 
-Implements tool "Tutorial GUI" to log typed user input.
+Implements tool "Tutorial (Qt)" to log typed user input.
   </Description>
 
   <!-- Categories is a list where this bundle should appear -->
@@ -36,7 +36,7 @@ Implements tool "Tutorial GUI" to log typed user input.
 
   <!-- Non-Python files that are part of package -->
   <DataFiles>
-    <DataFile>docs/user/tools/TutorialGUI.html</DataFile>
+    <DataFile>docs/user/tools/tutorial.html</DataFile>
   </DataFiles>
 
   <Classifiers>
@@ -45,7 +45,7 @@ Implements tool "Tutorial GUI" to log typed user input.
     <PythonClassifier>License :: Freeware</PythonClassifier>
     <!-- ChimeraX classifiers describe supplied functionality -->
     <!-- Register a graphical interface tool -->
-    <ChimeraXClassifier>ChimeraX :: Tool :: Tutorial GUI (Qt) ::
+    <ChimeraXClassifier>ChimeraX :: Tool :: Tutorial (Qt) ::
       General :: Graphical interface example</ChimeraXClassifier>
   </Classifiers>
 
