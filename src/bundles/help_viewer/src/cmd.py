@@ -222,7 +222,7 @@ def _update_commands(toolshed, doc_ul, doc):
         i = all_names.index(name)
         href, synopsis = missing[name]
         if synopsis:
-            synopsis = " &ndash; " + synopsis
+            synopsis = " \N{En dash} " + synopsis
         doc_ul.insert(
             i, E.LI(E.A(E.B(name), href=href), synopsis))
 
@@ -247,6 +247,6 @@ def _update_tools(toolshed, doc_ul, doc):
         i = all_names.index(name)
         href, synopsis = missing[name]
         if synopsis:
-            synopsis = " &ndash; " + synopsis
+            synopsis = " \N{En dash} " + synopsis
         doc_ul.insert(
             i, E.LI(E.A(E.B(name), href=href), synopsis))
