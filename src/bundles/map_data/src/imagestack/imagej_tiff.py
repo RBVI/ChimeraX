@@ -12,6 +12,13 @@
 def imagej_grids(path):
 
     pi = imagej_pixels(path)
+    ns = pi.ntimes * pi.nchannels * pi.grid_size[2]
+    if ns > 1 and not pi.multiframe:
+        from chimerax.core.errors import UserError
+        raise UserError('ImageJ TIFF has %d slices (z = %d, nc = %d, nt = %d) but file as only 1 image.'
+                        % (ns, pi.grid_size[2], pi.nchannels, pi.ntimes) +
+                        '  Reader does not currently handle ImageJ packing of large data (> 4 Gbytes) as single plane.')
+
     nc = pi.nchannels * pi.ncolors
     if nc == 1 and pi.ntimes == 1:
         grids = [ImageJGrid(pi)]
@@ -144,14 +151,17 @@ def imagej_pixels(path):
     from . import imagestack_format
     value_type = imagestack_format.pillow_numpy_value_type(i.mode)
     ncolors = 3 if i.mode == 'RGB' else 1
+    from .imagestack_format import image_count
+    multiframe = (image_count(i, max=2) > 1)
 
-    pi = ImageJ_Pixels(path, name, value_type, grid_size, grid_spacing, ncolors, nc, nt)
+    pi = ImageJ_Pixels(path, name, value_type, grid_size, grid_spacing, ncolors, nc, nt, multiframe)
     return pi
 
 # -----------------------------------------------------------------------------
 #
 class ImageJ_Pixels:
-    def __init__(self, path, name, value_type, grid_size, grid_spacing, ncolors, nchannels, ntimes):
+    def __init__(self, path, name, value_type, grid_size, grid_spacing,
+                 ncolors, nchannels, ntimes, multiframe):
         self.path = path
         self.name = name
         self.value_type = value_type	# Numpy dtype
@@ -160,6 +170,7 @@ class ImageJ_Pixels:
         self.ncolors = ncolors		# 3 for RGB images, 1 for grayscale images
         self.nchannels = nchannels
         self.ntimes = ntimes
+        self.multiframe = multiframe
         self.image = None
         self._last_plane = 0
 
