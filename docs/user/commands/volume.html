@@ -2020,7 +2020,7 @@ Show the full extent of a map that was previously limited to a zone using
 [&nbsp;<b>invert</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>minimalBounds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>newMap</b>&nbsp;&nbsp;<b>true</b>&nbsp;]
+[&nbsp;<b>newMap</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 If <b>newMap</b> is <b>true</b> (default), create a new map in which the
@@ -2035,12 +2035,13 @@ If <b>bondPointSpacing</b> is specified, use points
 spaced <i>s</i> &Aring; apart along bonds
 in addition to the atoms to define the zone.
 <p>
-If <b>newMap</b> is <b>false</b>, instead of creating a new map,
-zone the surface display and restrict the 
+If <b>newMap</b> is false, instead of creating a new map,
+zone the surface display and restrict the
 <a href="#dimensions">current display region</a> of the map
-to the box containing the zoned surface.
+to the box containing the zoned surface. 
 The full extent of the map can be restored with
 <a href="#unzone"><b>volume unzone</b></a>.
+The <b>invert</b> option is not available with <b>newMap false</b>.
 See also:
 <a href="surface.html#zone"><b>surface zone</b></a>,
 <a href="zone.html"><b>zone</b></a>,
