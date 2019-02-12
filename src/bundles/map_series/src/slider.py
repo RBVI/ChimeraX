@@ -42,6 +42,7 @@ class MapSeriesSlider(ToolInstance):
         tl = QLabel('Time')
         layout.addWidget(tl)
         self.time = tv = QSpinBox()
+        tv.setKeyboardTracking(False)	# Don't update plane until return key pressed
         tv.setMaximum(n-1)
         tv.valueChanged.connect(self.time_changed_cb)
         layout.addWidget(tv)

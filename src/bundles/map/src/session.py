@@ -400,7 +400,9 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
     from .data import opendialog
     paths_and_types = [(path, file_type)]
     grids, error_message = opendialog.open_grid_files(paths_and_types,
-                                                      stack_images = False)
+                                                      stack_images = False,
+                                                      log = session.logger)
+    grids = _flatten_nested_lists(grids)
     if error_message:
       print ('Error opening map "%s":' % path, error_message)
       msg = error_message + '\nPlease select replacement file.'
@@ -435,6 +437,15 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
   dlist = [data]
 
   return dlist
+
+def _flatten_nested_lists(l):
+  fl = []
+  for e in l:
+    if isinstance(e, (list, tuple)):
+      fl.extend(_flatten_nested_lists(e))
+    else:
+      fl.append(e)
+  return fl
 
 # ---------------------------------------------------------------------------
 # Used for scene restore on existing grid data object.

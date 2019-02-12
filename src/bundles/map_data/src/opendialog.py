@@ -13,7 +13,7 @@
 
 # -----------------------------------------------------------------------------
 #
-def open_grid_files(paths_and_types, stack_images = True):
+def open_grid_files(paths_and_types, stack_images = True, log = None):
 
   grids = []
   error_message = ''
@@ -24,7 +24,7 @@ def open_grid_files(paths_and_types, stack_images = True):
   for path, file_type in paths_and_types:
     if file_type:
       try:
-        glist = open_file(path, file_type)
+        glist = open_file(path, file_type, log = log)
         grids.extend(glist)
       except (IOError, SyntaxError, FileFormatError) as e:
         from os.path import basename

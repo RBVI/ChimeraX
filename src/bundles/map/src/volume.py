@@ -3211,21 +3211,20 @@ def open_grids(session, grids, name, **kw):
 # -----------------------------------------------------------------------------
 #
 def set_initial_region_and_style(v):
-  ds = default_settings(v.session)
 
-  if not show_when_opened(v, ds['show_on_open'], ds['voxel_limit_for_open']):
-    v.display = False
- 
   ro = v.rendering_options
   data = v.data
   if getattr(data, 'polar_values', False):
     ro.flip_normals = True
     ro.cap_faces = False
 
+  ds = default_settings(v.session)
   one_plane = (getattr(data, 'initial_plane_display', False)
                or show_one_plane(data.size, ds['show_plane'], ds['voxel_limit_for_plane']))
   if one_plane:
     v.set_representation('solid')
+  elif not show_when_opened(v, ds['show_on_open'], ds['voxel_limit_for_open']):
+    v.display = False
     
   # Determine initial region bounds and step.
   region = v.full_region()[:2]
