@@ -636,10 +636,10 @@ class BlendedImage(GrayScaleDrawing):
   def master_drawing(self):
       return self.drawings[0]
 
-  def color_plane(self, k, axis):
+  def color_plane(self, k, axis, view_aligned=False):
     p = None
     for d in self.drawings:
-      dp = d.color_plane(k, axis)
+      dp = d.color_plane(k, axis, view_aligned=view_aligned)
       d.update_colors = False
       cmode = d.color_mode
       if p is None:
