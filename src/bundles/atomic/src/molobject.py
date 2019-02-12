@@ -926,11 +926,11 @@ class StructureSeq(Sequence):
     though associated residues may change to None if those residues are deleted/closed.
     '''
 
-    def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None):
+    def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None, polymer_type=Residue.PT_NONE):
         if sseq_pointer is None:
             sseq_pointer = c_function('sseq_new',
-                args = (ctypes.c_char_p, ctypes.c_void_p), ret = ctypes.c_void_p)(
-                    chain_id.encode('utf-8'), structure._c_pointer)
+                args = (ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int), ret = ctypes.c_void_p)(
+                    chain_id.encode('utf-8'), structure._c_pointer, polymer_type)
         super().__init__(sseq_pointer)
         self.triggers.add_trigger('delete')
         self.triggers.add_trigger('modify')

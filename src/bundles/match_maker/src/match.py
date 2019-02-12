@@ -683,7 +683,8 @@ def check_domain_matching(chains, sel_residues):
             if this_chain.issubset(sel_residues):
                 new_chains.append(chain)
                 continue
-            nc = StructureSeq(structure=chain.structure, chain_id=chain.chain_id)
+            nc = StructureSeq(structure=chain.structure, chain_id=chain.chain_id,
+                polymer_type=chain.polymer_type)
             nc._dm_rebuild_info = []
             _dm_cleanup.append(nc)
             new_chains.append(nc)
