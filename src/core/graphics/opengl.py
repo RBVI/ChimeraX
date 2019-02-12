@@ -2012,6 +2012,7 @@ class Bindings:
         self._vao_id = None
         self._bound_attr_ids = {}        # Maps buffer to list of ids
         self._bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
+        self._bound_element_buffer = None
         self._opengl_context = opengl_context
 
     def __del__(self):
@@ -2037,6 +2038,9 @@ class Bindings:
             GL.glBindVertexArray(self._vao_id)
             for buffer in tuple(self._bound_attr_buffers.values()):
                 self.bind_shader_variable(buffer)
+            eb = self._bound_element_buffer
+            if eb:
+                self.bind_shader_variable(eb)
         GL.glBindVertexArray(self._vao_id)
 
     def bind_shader_variable(self, buffer):
@@ -2063,6 +2067,7 @@ class Bindings:
             if btype == GL.GL_ELEMENT_ARRAY_BUFFER:
                 # Element array buffer binding is saved in VAO.
                 GL.glBindBuffer(btype, buf_id)
+                self._bound_element_buffer = buffer
             return
 
         attr_id = self.attribute_id[vname]
