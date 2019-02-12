@@ -25,8 +25,6 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3>ChimeraX Tutorial: DICOM in Virtual Reality</h3>
 
-<h4>** under construction **</h4>
-
 <blockquote><b>
 <a href="#data">Sample Data</a>
 <br><a href="#outside">Manipulation Outside of VR</a>
@@ -38,8 +36,8 @@ class="clRight" title="User Guide Index"/></a>
 
 <p>
 This tutorial covers basics of using
-<a href="vr.html">ChimeraX virtual reality</a> to view
-<a href="dicom/dicom.html">DICOM medical imaging data</a>.
+<a href="../vr.html">ChimeraX virtual reality</a> to view
+<a href="../dicom/dicom.html">DICOM medical imaging data</a>.
 It assumes you have the necessary equipment for virtual reality 
 already installed and set up for the room.
 ChimeraX works with virtual reality (VR) systems
@@ -48,7 +46,9 @@ such as HTC Vive, Oculus Rift and Samsung Odyssey headsets.
 Descriptions below are for Vive hand controllers, but other hand controllers 
 have buttons that are generally similar in position and function.
 </p><p>
-See also: <a href="../dicom-quickref.html">DICOM Quick Reference</a>
+See also: <a href="../dicom-quickref.html">DICOM Quick Reference</a>,
+<a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
+target="_blank">ChimeraX for Medical Image Analysis</a>
 </p>
 
 <a name="data"></a>
@@ -73,7 +73,19 @@ The data have been <a href="https://wiki.cancerimagingarchive.net/display/Public
 and are <a href="https://wiki.cancerimagingarchive.net/display/Public/Data+Usage+Policies+and+Restrictions" target="_blank">freely available</a>.
 This sample data  folder should be downloaded and unzipped 
 in some location you will be able to find later.
+Although this tutorial does not include clinical analysis,
+it should be noted that the chest scan shows a tumor in the right lung,
+at approximately Z-planes 146-185.
+<!-- within volume #1.1.1.1 region 105,310,139,210,413,188 -->
 </p>
+
+<table class="clRight">
+<tr><td>
+<a href="dicom-vr1.png">
+<img class="outline" src="dicom-vr1.png" title="click to enlarge..."
+alt="screenshot 1" width="500px"></a>
+</td></tr>
+</table>
 
 <a name="outside"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
@@ -84,7 +96,7 @@ After the ChimeraX window appears, open the sample data:
 </p>
 <blockquote>
 Menu: <b>File... Open DICOM Folder</b> (dialog shows Format: DICOM image),
-browse to location, choose directory, click <b>Open</b>
+browse to location, select directory, click <b>Choose</b>
 </blockquote>
 <p>
 Just one Z-plane is shown initially, even though all the planes have been read.
@@ -101,9 +113,12 @@ They can be moved by dragging in the
 and added and deleted using the
 <a href="../tools/volumeviewer.html#context">context menu</a>
 (right-click or <b>Ctrl</b>-click depending on platform).
-Add a new threshold somewhere in the middle of the histogram and
-see how the display changes as you drag it in any direction.
-</p><p>
+<p>
+<ul>
+<li>Add a &ldquo;New Threshold&rdquo; somewhere in the middle of the histogram 
+and see how the display changes as you drag it in any direction.
+</ul>
+<p>
 For 3D volume rendering, change from <b>plane</b> to <b>volume</b>
 in <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>.
 For full resolution, set the <b>step</b> value to <b>1</b>.
@@ -112,7 +127,17 @@ such as when you change from a single plane to the full volume, but it
 can still be adjusted manually. Increasing the step size 
 (decreasing the resolution) may help if rendering is slow.
 If the display seems too dark or light, move the thresholds to your liking.
-</p><p>
+</p>
+
+<table class="clRight">
+<tr><td>
+<a href="dicom-vr2.png">
+<img class="outline" src="dicom-vr2.png" title="click to enlarge..."
+alt="screenshot 1" width="500px"></a>
+</td></tr>
+</table>
+
+<p>
 Try moving the model around:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
@@ -122,7 +147,7 @@ Try moving the model around:
 </tr><tr>
 <td class="text">trackpad click-drag</td>
 </tr><tr>
-<td align="center" rowspan="2">translate
+<td align="center" rowspan="2">translate in 2D
 <br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
 <td>middle or right mouse button</td>
 </tr><tr>
@@ -141,10 +166,10 @@ trackpad 2-finger drag (except pinch on Mac if
 </tr></table>
 <p>
 Turn off perspective by entering the command: 
-<b><a href="commands/camera.html">camera ortho</a></b>
+<b><a href="../commands/camera.html">camera ortho</a></b>
 <br>
 One way to bring the whole display into view at any time is with the
-command: <b><a href="commands/view.html#initial">view</a></b>
+command: <b><a href="../commands/view.html#initial">view</a> clip false</b>
 </p>
 
 <a name="manipulation"></a>
@@ -162,6 +187,10 @@ of icons that act on volume models
 If the <a href="../tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
 toolbar isn't already shown, use the same menu to start it.
 <br><img class="iconbar" src="../mouse-icons.png">
+</p><p>
+Hide sets of icons not needed for this tutorial, <i>i.e.</i>, 
+in menu <b>Tools... Toolbar</b>, uncheck <b>Graphics Toolbar</b> and
+<b>Molecule Display Toolbar</b>.
 </p><p>
 Take a moment to look at the hand controllers:
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html" target="_blank">Vive controllers</a>
@@ -192,9 +221,7 @@ panels may have been vertically compressed; drag to make the
 tall enough to show the full height of the histogram.
 </p><p>
 Put on the headset, and try moving the model. 
-The hand-controller positions are shown in the headset as cones,
-and pressing the assigned button when the tip is near an object
-&ldquo;grabs&rdquo; it for manipulation:
+The hand-controller positions are shown in the headset as cones.
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center">rotate
@@ -202,16 +229,17 @@ and pressing the assigned button when the tip is near an object
 <td class="text">&nbsp;rotate hand controller 
 with <b><i>trigger</i></b> pressed</td>
 </tr><tr>
-<td align="center">translate
+<td align="center">translate in 3D
 <br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
 <td>&nbsp;move hand controller with <b><i>trigger</i></b> pressed</td>
 </tr><tr>
 <td align="center">zoom
 <br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
 <td class="text">&nbsp;move hand controllers farther apart or closer
-together with <b><i>triggers</i></b> pressed</td>
+together with <b><i>triggers</i></b> pressed&nbsp;</td>
 </tr><tr>
-<td align="center">center and rescale</td>
+<td align="center">center and rescale
+<br>(useful to recover a reasonable view)</td>
 <td class="text">&nbsp;click <b><i>grip</i></b> button</td>
 </tr><tr>
 <td align="center" class="text">
@@ -225,14 +253,13 @@ Continue moving the model as you wish throughout the tutorial.
 <a name="rendering"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
 Volume Rendering Options</h3>
-<ul>
-<li>Click the <b><i>menu</i></b> button to show the ChimeraX control panel
-in the headset. The control panel is just the same set of tool interfaces
-as displayed to the right of the graphics window in the desktop view.
+<p>
+Click the <b><i>menu</i></b> button to show the ChimeraX control panel
+in the headset. The control panel is just the set of tool windows
+to the right of the graphics window in the desktop view.
 In VR, it can be moved around with the
 <b><i>menu</i></b> button pressed, or hidden by just clicking the button again.
-</ul>
-<p>
+</p><p>
 You can click and drag thresholds in the
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram
 in the control panel with any button 
@@ -240,10 +267,32 @@ in the control panel with any button
 of either hand controller. To properly place the cone tip in 3D, 
 it may help to first pierce the panel, then draw back slightly.
 </p><p>
-** Any controller button (<b><i>trigger</i></b>, <b><i>trackpad</i></b>,
+As for icons, don't click them yet, but note:
+</p>
+<blockquote>
+<p>
+<font size="+2">*</font> 
+Any controller button (<b><i>trigger</i></b>, <b><i>trackpad</i></b>,
 <b><i>grip</i></b>) can be used to click a
-<a href="../tools/densitymaps.html"><b>Density Map</b></a> icon.**
+<a href="../tools/densitymaps.html"><b>Density Map</b></a> icon.
+<br><font size="+2">*</font> 
+Clicking a <a href="../tools/mousemodes.html"><b>Mouse Modes</b></a> icon
+with a controller button assigns <b><i>whichever button was clicked</i></b> 
+to the corresponding function.
 </p><p>
+Leaving <b><i>triggers</i></b> with their
+<a href="#manipulation">default mouse modes</a> (rotation, translation,
+zooming) is usually a good idea, but up to four other functions can be assigned,
+to the <b><i>grip</i></b> and <b><i>trackpad</i></b> on each controller.
+If a <b><i>trigger</i></b> is accidentally reassigned, using it to click 
+either the <b>rotate</b>
+&nbsp;<img class="icon" border=1 src="../tools/mouse-icons/rotate.png">&nbsp;
+or <b>translate</b>
+&nbsp;<img class="icon" border=1 src="../tools/mouse-icons/translate.png">&nbsp;
+mouse-mode icon returns it to the default behavior.
+</p>
+</blockquote>
+<p>
 When rotating the model, you may have noticed jumps in brightness as 
 rendering switches between using planes along the X, Y, or Z data axes. 
 This is the 2D projection mode
@@ -265,24 +314,6 @@ definitions in the <a href="https://horosproject.org/about/"
 target="_blank">Horos</a> program for medical image
 visualization and analysis. Several are available from the command line,
 but only &ldquo;Airways II&rdquo; is currently available as an icon.
-</p><p>
-** Clicking a <a href="../tools/mousemodes.html"><b>Mouse Mode</b></a> icon
-with a controller button assigns
-<b><i>whichever button was clicked</i></b> to the corresponding function.**
-</p><p>
-Nothing else happens at the moment the icon is clicked, 
-but later using that button
-(often while pointing at some part of the scene) performs the action.
-Leaving the <b><i>triggers</i></b> with their
-<a href="#manipulation">default assignments</a> (rotation, translation,
-zooming) is usually a good idea, but up to four other functions can be assigned,
-to the <b><i>grip</i></b> and <b><i>trackpad</i></b> buttons on each controller.
-If a <b><i>trigger</i></b> is accidentally reassigned, 
-clicking with it on either the <b>rotate</b>
-&nbsp;<img class="icon" border=1 src="../tools/mouse-icons/rotate.png">&nbsp;
-or <b>translate</b>
-&nbsp;<img class="icon" border=1 src="../tools/mouse-icons/translate.png">&nbsp;
-icon returns it to the default behavior.
 </p>
 <ul>
 <li>Click the <b>windowing</b> mouse-mode icon
@@ -298,6 +329,8 @@ vertical motions shift all the thresholds in parallel
 to higher or lower values (left &harr; right on the histogram) and 
 horizontal motions move the thresholds symmetrically farther apart
 or closer together (broadening or narrowing their range of values).
+If you want to return to the &ldquo;Airways II&rdquo; 3D preset values, click 
+<img class="icon3" border=1 src="../tools/shortcut-icons/airways.png">.
 </p>
 
 <a name="cropping"></a>
@@ -313,7 +346,14 @@ and for speeding up rendering.
 with the <b><i>trackpad</i></b> on one of the controllers.
 <br><br>
 <li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
-click and drag any face of the box with the <b><i>trackpad</i></b> to crop it.
+click and drag any face of the box with the <b><i>trackpad</i></b> to crop
+the volume. An outline box appears automatically when you start using
+this mode. You can switch between faces and drag in either direction
+(cropping or enlarging to original dimensions).
+<br><br>
+<li>Clicking
+<img class="icon3" border=1 src="../tools/shortcut-icons/outlinebox.png">
+toggles the outline box on and off.
 </ul>
 <p>
 (Besides cropping, another way to speed up rendering is by clicking
@@ -329,7 +369,7 @@ Viewing Planes</h3>
 <p>
 At first, a single Z plane was displayed. You could return to Z-planes
 by clicking <img class="icon" border=1 src="../tools/shortcut-icons/plane.png">,
-but instead, use a different method that can be used to view planes along
+but instead, use a different method that allows viewing planes along
 any of the data axes:
 </p>
 <ul>
@@ -337,17 +377,13 @@ any of the data axes:
 <img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
 to return to the full volume.
 <br><br>
+<!--
 <li>Click 
 <img class="icon3" border=1 src="../tools/shortcut-icons/step1.png">
 to return to full resolution, step 1 (the step size may have increased
 automatically when going from the cropped volume to the full region).
-<!--
 <br><br>
-<li>Click
-<img class="icon3" border=1 src="../tools/shortcut-icons/outlinebox.png">
-to toggle the outline box.
 -->
-<br><br>
 <li>Click the <b>move planes</b> mouse-mode icon
 <img class="icon3" border=1 src="../tools/mouse-icons/moveplanes.png">
 with the <b><i>trackpad</i></b> on one of the controllers.

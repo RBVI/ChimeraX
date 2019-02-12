@@ -955,12 +955,12 @@ def volume_zone(session, volumes, near_atoms = None, range = None, bond_point_sp
                 minimal_bounds = False, new_map = True, invert = False,
                 subregion = 'all', step = 1, model_id = None):
 
-# TODO: atoms and radius args are required, but cli.py requires default values since they are keywords params
-
     '''Mask a map keeping only parts close to specified atoms.'''
     if len(near_atoms) == 0:
         raise CommandError('no atoms specified for zone')
 
+    if invert and not new_map:
+        raise CommandError('volume zone command currently does not support invert True with newMap False')
     from .zone import zone_operation
     for v in volumes:
         zone_operation(v, near_atoms, range, bond_point_spacing,
