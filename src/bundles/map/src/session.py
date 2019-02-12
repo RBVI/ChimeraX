@@ -400,7 +400,8 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
     from .data import opendialog
     paths_and_types = [(path, file_type)]
     grids, error_message = opendialog.open_grid_files(paths_and_types,
-                                                      stack_images = False)
+                                                      stack_images = False,
+                                                      log = session.logger)
     if error_message:
       print ('Error opening map "%s":' % path, error_message)
       msg = error_message + '\nPlease select replacement file.'
