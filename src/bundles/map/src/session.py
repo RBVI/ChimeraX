@@ -127,7 +127,7 @@ def absolute_path(path, file_paths, ask = False, base_path = None):
   from os.path import abspath
   if isinstance(path, (tuple, list)):
     fpath = [full_path(p, base_path) for p in path]
-    apath = tuple(file_paths.find(p,ask) for p in fpath)
+    apath = file_paths.find_multiple(fpath,ask)
     apath = tuple(abspath(p) for p in apath if p)
   elif path == '':
     return path
@@ -225,14 +225,21 @@ class ReplacementFilePaths:
   def __init__(self, ui):
     self._ui = ui
     self._replaced_paths = {}
-  def find(self, path, ask = False):
+    self._replace_dirs = {}
+  def find(self, path, ask = False, replace_dir = True):
     replacements = self._replaced_paths
     from os.path import isfile
     if isfile(path):
       return path
     elif path in replacements:
       return replacements[path]
-    elif self._ui.is_gui:
+    elif replace_dir:
+      for pf, pt in self._replace_dirs.items():
+        if path.startswith(pf):
+          p = pt + path[len(pf):]
+          if isfile(p):
+            return p
+    if self._ui.is_gui:
       # If path doesn't exist show file dialog to let user enter new path to file.
       from chimerax.ui.open_save import OpenDialogWithMessage
       d = OpenDialogWithMessage(self._ui.main_window,
@@ -240,10 +247,25 @@ class ReplacementFilePaths:
                                 caption = 'Replace missing file',
                                 starting_directory = existing_directory(path))
       p = d.get_path()
+      if p is None:
+        return None
       replacements[path] = p
+      if replace_dir:
+        from os.path import dirname
+        self._replace_dirs[dirname(path)] = dirname(p)
       return p
     else:
       return path
+  def find_multiple(self, paths, ask = False, replace_dir = True):
+    # If user does not replace a path then don't ask about more paths.
+    # This is to handle image stacks where a map uses hundreds of 2d files.
+    npaths = []
+    for p in paths:
+      np = self.find(p, ask=ask, replace_dir=replace_dir)
+      if np is None:
+        return ()
+      npaths.append(np)
+    return tuple(npaths)
 
 # ---------------------------------------------------------------------------
 #
@@ -404,8 +426,8 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
                                                       log = session.logger)
     grids = _flatten_nested_lists(grids)
     if error_message:
-      print ('Error opening map "%s":' % path, error_message)
-      msg = error_message + '\nPlease select replacement file.'
+      print ('Error opening map "%s": %s' % (path, error_message))
+      msg = error_message
 # TODO: Show file dialog to locate map file.
 #      from chimera import tkgui
 #      grids = opendialog.select_grids(tkgui.app, 'Replace File', msg)
