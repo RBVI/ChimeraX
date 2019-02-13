@@ -1080,7 +1080,7 @@ class HandControllerModel(Model):
     SESSION_SAVE = False
 
     def __init__(self, device_index, session, vr_system,
-                 size = 0.20, aspect = 0.2, parent = None):
+                 length = 0.20, radius = 0.04, parent = None):
         name = 'Hand %s' % device_index
         Model.__init__(self, name, session)
         self.device_index = device_index
@@ -1090,38 +1090,59 @@ class HandControllerModel(Model):
         self._previous_pose = None
         from chimerax.core.geometry import Place
         self.room_position = Place()	# Hand controller position in room coordinates.
+        
+        # Draw controller as a cone.
+        self._create_model_geometry(length, radius)
 
         # Assign actions bound to controller buttons
-        import openvr
-        self._modes = {			# Maps button name to HandMode
-            openvr.k_EButton_SteamVR_Trigger: MoveSceneMode(),
-            openvr.k_EButton_Grip: RecenterMode(),
-            openvr.k_EButton_ApplicationMenu: ShowUIMode(),
-        }
+        self._modes = {}			# Maps button name to HandMode
         self._active_drag_modes = set() # Modes with an active drag (ie. button down and not yet released).
-
-        # Draw controller as a cone.
-        self._create_model_geometry(size, aspect)
+        import openvr
+        initial_modes = [(openvr.k_EButton_Grip, RecenterMode()),
+                         (openvr.k_EButton_ApplicationMenu, ShowUIMode()),
+                         (openvr.k_EButton_SteamVR_Trigger, MoveSceneMode()),
+                         (openvr.k_EButton_SteamVR_Touchpad, ZoomMode()),
+        ]
+        for button, mode in initial_modes:
+            self._set_hand_mode(button, mode)
 
         self._shown_in_scene = (parent is not None)
         if parent:
             session.models.add([self], parent = parent)
 
-    def _create_model_geometry(self, size, aspect):
+    def _create_model_geometry(self, length, radius, tex_size = 160):
         from chimerax.surface.shapes import cone_geometry
-        va, na, ta = cone_geometry(nc = 50, points_up = False)
-        va[:,:2] *= aspect
-        va[:,2] += 0.5		# Move tip to 0,0,0 for picking
-        va *= size
+        cva, cna, cta = cone_geometry(nc = 50, points_up = False)
+        self._num_cone_vertices = len(cva)
+        from numpy import empty, float32
+        ctc = empty((len(cva), 2), float32)
+        ctc[:] = .5/tex_size
+        cva[:,:2] *= radius
+        cva[:,2] += 0.5		# Move tip to 0,0,0 for picking
+        cva[:,2] *= length
+        geom = [(cva,cna,ctc,cta)]
+
+        self._buttons = b = HandButtons()
+        geom.extend(b.geometry(length, radius))
+        from chimerax.core.graphics import concatenate_geometry
+        va, na, tc, ta = concatenate_geometry(geom)
+        
+        self._cone_vertices = va
+        self._last_cone_scale = 1
+        self._cone_length = length
+        self.set_geometry(va, na, ta)
+        self.texture_coordinates = tc
+
+        # Button icons texture
+        button_color = (255,255,255,255)
+        self.texture = b.texture(self._cone_color(), button_color, tex_size)
+        self.color = (255,255,255,255)	# Texture modulation color
+    
+    def _cone_color(self):
         cc = self._controller_colors
         from numpy import array, uint8
         rgba8 = array(cc[self.device_index%len(cc)], uint8)
-
-        self._cone_vertices = va
-        self._last_cone_scale = 1
-        self._cone_length = size
-        self.set_geometry(va, na, ta)
-        self.color = array(rgba8, uint8)
+        return rgba8
             
     def close(self):
         if self._shown_in_scene:
@@ -1183,6 +1204,7 @@ class HandControllerModel(Model):
 
         # Check for click on user interface panel.
         b = e.data.controller.button
+        self._show_button_down(b, pressed)
         m = self._modes.get(b)
         if not isinstance(m, ShowUIMode):
             # Check for click on UI panel.
@@ -1225,7 +1247,7 @@ class HandControllerModel(Model):
                     if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
                         msg = 'No VR support for mouse mode %s' % hand_mode.name
                     else:
-                        self._modes[b] = hand_mode
+                        self._set_hand_mode(b, hand_mode)
                         msg = 'VR mode %s' % hand_mode.name
                     self.session.logger.info(msg)
                     ui.show_pressed(window_xy)
@@ -1243,6 +1265,16 @@ class HandControllerModel(Model):
         else:
             return False
         return True
+
+    def _show_button_down(self, b, pressed):
+        cv = self._cone_vertices
+        vbuttons = cv[self._num_cone_vertices:]
+        self._buttons.button_vertices(b, pressed, vbuttons)
+        self.set_geometry(cv/self._last_cone_scale, self.normals, self.triangles)
+        
+    def _set_hand_mode(self, button, hand_mode):
+        self._modes[button] = hand_mode
+        self._buttons.set_button_icon(button, hand_mode.icon_path)
 
     def _process_touch_event(self, e):
         t = e.eventType
@@ -1308,7 +1340,143 @@ class HandControllerModel(Model):
                 if not pressed_mask & bm:
                     self._drag_ended(m, camera)
 
+class HandButtons:
+    def __init__(self):
+        # Cone buttons
+        import openvr
+        buttons = [
+            ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.5, radius=.01, azimuth=270, tex_range=(.2,.4)),
+            ButtonGeometry(openvr.k_EButton_SteamVR_Touchpad, z=.5, radius=.01, azimuth=90, tex_range=(.4,.6)),
+            ButtonGeometry(openvr.k_EButton_Grip, z=.7, radius=.01, azimuth=0, tex_range=(.6,.8)),
+            ButtonGeometry(openvr.k_EButton_Grip, z=.7, radius=.01, azimuth=180, tex_range=(.6,.8)),
+            ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.35, radius=.006, azimuth=90, tex_range=(.8,1)),
+        ]
+        self._buttons = buttons
+        self._texture = None
+        self._icon_scale = .8	# Scaled image centered in square circumscribing circular button
+
+    def geometry(self, length, radius):
+        return [b.cone_button_geometry(length, radius) for b in self._buttons]
+
+    def texture(self, cone_color, button_color, tex_size):
+        nb = len(set([b.button for b in self._buttons]))
+        from numpy import empty, uint8
+        self._button_rgba = rgba = empty((tex_size, tex_size*(nb + 1),4), uint8)
+        rgba[:,0:tex_size,:] = cone_color
+        rgba[:,tex_size:,:] = button_color
+        from chimerax.core.graphics import Texture
+        self._texture = t = Texture(rgba)
+        return t
+
+    def _button_geometry(self, button):
+        for b in self._buttons:
+            if b.button == button:
+                return b
+        return None
+    
+    def set_button_icon(self, button, icon_path):
+        bg = self._button_geometry(button)
+        if bg:
+            rgba = self._button_rgba
+            icon_size = int(self._icon_scale * rgba.shape[0])
+            bg.set_icon_image(self._button_rgba, icon_path, icon_size)
+            self._texture.reload_texture(rgba)
+
+    def button_vertices(self, button, lowered, vertices):
+        voffset = 0
+        for b in self._buttons:
+            if b.button == button:
+                v = b.vertices_lowered if lowered else b.vertices_raised
+                vertices[voffset:voffset+len(v)] = v
+            voffset += b.num_vertices
+    
+class ButtonGeometry:
+    def __init__(self, button, z, radius, azimuth, tex_range, rise = 0.002, num_vertices = 30):
+        '''
+        z is button center position from cone tip at 0 to base at 1.
+        radius is in meters
+        azimuth is in degrees, 90 on top, 270 bottom.
+        tex_range is u texture coordinate range for mapping icon onto button.
+        rise is height above cone surface in meters.
+        '''
+        self.button = button
+        self.z = z
+        self.radius = radius
+        self.azimuth = azimuth
+        self.tex_range = tex_range
+        self.rise = rise
+        self.num_vertices = num_vertices
+
+    def cone_button_geometry(self, cone_length, cone_radius):
+        '''
+        Map circular disc onto cone surface.  Cone axis is z axis pointing down with tip at origin,
+        cone height 1, cone base radius, disc center fraction f from cone tip to base edge.
+        Disc is raised along normals above cone surface by rise.  Disc perimeter is defined
+        by n vertices (must be even).  Texture coordinates range is (umin, umax, vmin, vmax).
+        Return vertices, normals and triangles.
+        '''
+        cl,cr = cone_length, cone_radius
+        from math import sqrt, sin, cos, pi, atan2
+        e = sqrt(cr*cr+cl*cl)
+        sca = cr/e  # sin(cone_angle)
+        cca = cl/e  # cos(cone_angle)
+        y0 = self.z * e
+        aoffset = self.azimuth * pi/180
+        from numpy import empty, float32, int32
+        n = self.num_vertices
+        va = empty((n,3), float32)
+        na = empty((n,3), float32)
+        tc = empty((n,2), float32)
+        u0,u1 = self.tex_range[::-1]
+        v0,v1 = 1,0
+        for i in range(n):
+            a = 2*pi*i/n
+            ca, sa = cos(a), sin(a)
+            x,y = self.radius*ca, y0 + self.radius*sa
+            az = aoffset + atan2(x,y)/sca
+            r = sqrt(x*x + y*y)
+            va[i,:] = (r*sca*cos(az), r*sca*sin(az), r*cca)
+            na[i,:] = (cca*cos(az), cca*sin(az), -sca)
+            tc[i,:] = (u0+(u1-u0)*0.5*(1+ca), v0+(v1-v0)*0.5*(1+sa))
+
+        self.vertices_lowered = va + 0.1*self.rise*na
+        va += self.rise*na
+        self.vertices_raised = va.copy()
+
+        ta = empty((n-2,3), int32)
+        for i in range(n//2-1):
+            ta[2*i,:] = (i, i+1, n-1-i)
+            ta[2*i+1,:] = (i+1, n-2-i, n-1-i)
+
+        return va, na, tc, ta
+
+    def set_icon_image(self, tex_rgba, icon_path, image_size):
+        if icon_path is None:
+            return
+        from PyQt5.QtGui import QImage
+        qi = QImage(icon_path)
+        s = image_size
+        if qi.width() != s or qi.height() != s:
+            qi = qi.scaled(s,s)
+        from chimerax.core.graphics import qimage_to_numpy
+        rgba = qimage_to_numpy(qi)
+        # TODO: Need to alpha blend with button background.
+        transp = (rgba[:,:,3] == 0)
+        from numpy import putmask
+        for c in range(4):
+            putmask(rgba[:,:,c], transp, 255)
+        tsize = tex_rgba.shape[0]
+        inset = (tsize - rgba.shape[0]) // 2
+        i0 = inset
+        i1 = i0 + rgba.shape[0]
+        j0 = int(self.tex_range[0] * tex_rgba.shape[1]) + inset
+        j1 = j0+rgba.shape[1]
+        tex_rgba[i0:i1,j0:j1,:] = rgba
+    
 class HandMode:
+    @property
+    def icon_path(self):
+        return None
     def pressed(self, camera, hand_controller):
         pass
     def released(self, camera, hand_controller):
@@ -1322,6 +1490,10 @@ class HandMode:
         pass
 
 class ShowUIMode(HandMode):
+    @property
+    def icon_path(self):
+        from os.path import join, dirname
+        return join(dirname(__file__), 'menu_icon.png')
     def pressed(self, camera, hand_controller):
         camera.user_interface.display_ui(True, hand_controller.room_position, camera.room_position)
     def released(self, camera, hand_controller):
@@ -1342,6 +1514,12 @@ class ShowUIMode(HandMode):
 
 class MoveSceneMode(HandMode):
     name = 'move scene'
+
+    @property
+    def icon_path(self):
+        from chimerax.mouse_modes import TranslateMouseMode
+        return TranslateMouseMode.icon_location()
+
     def drag(self, camera, hand_controller, previous_pose, pose):
         oc = camera.other_controller(hand_controller)
         if oc and self._other_controller_move(oc):
@@ -1378,6 +1556,10 @@ class ZoomMode(HandMode):
     name = 'zoom'
     def __init__(self):
         self._zoom_center = None
+    @property
+    def icon_path(self):
+        from chimerax.mouse_modes import ZoomMouseMode
+        return ZoomMouseMode.icon_location()
     def pressed(self, camera, hand_controller):
         self._zoom_center = hand_controller._pose.origin()
     def drag(self, camera, hand_controller, previous_pose, pose):
@@ -1397,6 +1579,11 @@ class RecenterMode(HandMode):
     name = 'recenter'
     def pressed(self, camera, hand_controller):
         camera.fit_scene_to_room()
+    @property
+    def icon_path(self):
+        from os.path import join, dirname
+        from chimerax import shortcuts
+        return join(dirname(shortcuts.__file__), 'icons', 'viewall.png')
 
 class MouseMode(HandMode):
     name = 'mouse mode'
@@ -1411,6 +1598,10 @@ class MouseMode(HandMode):
     def has_vr_support(self):
         m = self._mouse_mode
         return hasattr(m, 'laser_click') or hasattr(m, 'drag_3d')
+
+    @property
+    def icon_path(self):
+        return self._mouse_mode.icon_path
     
     def pressed(self, camera, hand_controller):
         self._click(camera, hand_controller, True)

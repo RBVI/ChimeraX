@@ -173,7 +173,11 @@ class MouseMode:
 
     @property
     def icon_path(self):
-        file = self.icon_file
+        return self.icon_location()
+
+    @classmethod
+    def icon_location(cls):
+        file = cls.icon_file
         if file is None:
             return None
 
@@ -182,7 +186,7 @@ class MouseMode:
             return file
 
         import inspect
-        cfile = inspect.getfile(self.__class__)
+        cfile = inspect.getfile(cls)
         p = path.join(path.dirname(cfile), file)
         return p
     

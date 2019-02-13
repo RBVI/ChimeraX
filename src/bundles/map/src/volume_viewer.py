@@ -2017,6 +2017,7 @@ class Histogram_Pane:
       nz = self.volume.data.size[2]
       pv.setMaximum(nz-1)
       pv.valueChanged.connect(self._plane_changed_cb)
+      pv.setKeyboardTracking(False)	# Don't update plane until return key pressed
       layout.addWidget(pv)
       self._planes_slider = ps = QSlider(Qt.Horizontal, f)
       ps.setRange(0,nz-1)

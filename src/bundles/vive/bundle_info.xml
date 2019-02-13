@@ -9,6 +9,10 @@
   <Synopsis>Virtual reality headset support</Synopsis>
   <Description>Use virtual reality headsets with SteamVR.</Description>
 
+  <DataFiles>
+    <DataFile>menu_icon.png</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="General"/>
   </Categories>

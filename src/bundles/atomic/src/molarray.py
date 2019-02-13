@@ -699,8 +699,12 @@ class Atoms(Collection):
         '''Set anisotropic temperature factors as a Nx6 element numpy float32 array
         representing the unique elements of the symmetrix matrix
         containing (u11, u22, u33, u12, u13, u23) for each atom.'''
-        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         n = len(self)
+        if u6 is None:
+            f = c_function('clear_atom_aniso_u6', args = (ctypes.c_void_p,))
+            f(self._c_pointers, n)
+            return
+        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         from numpy import empty, float32
         ai = empty((n,6), float32)
         ai[:] = u6
@@ -1036,8 +1040,10 @@ class Residues(Collection):
     '''Returns a numpy array of insertion codes.  An empty string indicates no insertion code.''')
     is_helix = cvec_property('residue_is_helix', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein helix''')
+    is_helices = is_helix
     is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
+    is_strands = is_strand
     names = cvec_property('residue_name', string, doc =
     '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
