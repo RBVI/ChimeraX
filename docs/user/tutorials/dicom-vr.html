@@ -121,6 +121,7 @@ and see how the display changes as you drag it in any direction.
 <p>
 Try moving the model around:
 </p>
+<a name="default-mouse"></a>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center" rowspan="2">rotate
 <br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
@@ -214,6 +215,7 @@ tall enough to show the full height of the histogram.
 Put on the headset, and try moving the model. 
 The hand-controller positions are shown in the headset as cones.
 </p>
+<a name="default-controller"></a>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center">rotate
 <br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
@@ -289,7 +291,7 @@ to the corresponding function.
 </blockquote>
 <p>
 Leaving <b><i>triggers</i></b> with their
-<a href="#manipulation">default mouse modes</a> (rotation, translation,
+<a href="#default-controller">default mouse modes</a> (rotation, translation,
 zooming) is recommended, but up to four other functions can be assigned,
 to the <b><i>grip</i></b> and <b><i>trackpad</i></b> on each controller.
 If a <b><i>trigger</i></b> is accidentally reassigned, using it to click 
@@ -322,6 +324,9 @@ To view planes along X, Y, or Z:
 <li>Click
 <img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
 to show the full volume.
+Although you could return to Z-planes by clicking 
+<img class="icon" border=1 src="../tools/shortcut-icons/plane.png">,
+the following method works for all three axes.
 <br><br>
 <li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
 click with the <b><i>trackpad</i></b> button
@@ -355,6 +360,9 @@ distract from a region of interest.
 <img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
 to return to the full volume.
 <br><br>
+<li>Click &nbsp;<img class="icon3" border=1 
+src="../tools/shortcut-icons/step1.png">&nbsp; to use step 1, full resolution.
+<br><br>
 <li>Click <img class="icon3" border=1 src="../tools/shortcut-icons/airways.png">
 to apply the &ldquo;Airways II&rdquo; 3D preset (threshold settings) 
 for viewing lung tissue.
@@ -373,10 +381,10 @@ with the <b><i>trackpad</i></b> on one of the controllers.
 <br><br>
 <li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
 click and drag any face of the box with the same <b><i>trackpad</i></b> 
-button to crop the volume. For example, hide the surrounding tissues 
-to isolate the lungs, or crop to enclose just one lung.
+button to crop the volume. For example, crop away the chest wall for a
+clearer view of the lungs, or crop to enclose just one lung.
 You can click any box face and drag in either direction
-(making the box smaller or enlarging it to original size).
+(making the box smaller or enlarging it back to original size).
 This automatically shows an outline box.
 <br><br>
 <li>Clicking
@@ -384,26 +392,39 @@ This automatically shows an outline box.
 toggles the outline box on and off. 
 </ul>
 <p>
+When rotating the volume, you may notice jumps in brightness as 
+rendering switches between using planes along the X, Y, or Z data axes. 
+This is the 2D projection mode
+<img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png">.
+<ul>
+<li>Click <img class="icon3" border=1 src="../tools/shortcut-icons/perpslice.png">
+to use 3D projection instead. Now the rendering always uses planes
+perpendicular to the line of sight, avoiding brightness jumps during
+rotation but adding some blur along directions with interpolated values.
+</ul>
+<p>
 Similar to planes, you can move a slab along X, Y, or Z:
 </p>
 <ul>
-<li>Crop the volume to a slab shape, fairly thin along one dimension.
+<li>Crop the volume to a slab shape using the <b><i>trackpad</i></b>
+(still assigned to <b>crop volume</b>).
 <br><br>
-<li>Click the <b>move planes</b> mouse-mode icon
-<img class="icon3" border=1 src="../tools/mouse-icons/moveplanes.png">
-with the <b><i>trackpad</i></b> on one of the controllers.
+<li>Now reassign the <b><i>trackpad</i></b> 
+by using it to click the <b>move planes</b> mouse-mode icon
+<img class="icon3" border=1 src="../tools/mouse-icons/moveplanes.png">.
 <br><br>
 <li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
 click with the same <b><i>trackpad</i></b> button on the slab face and
 drag along the axis perpendicular to the face.
-<br>(Starting from the full volume instead of cropped would show single planes.)
+(Starting from the full volume rather than cropped would show single planes
+instead.)
 </ul>
 
 <a name="windowing"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
 Windowing</h3>
 <p>
-Applying a <a href="../commands/volume.html#appearance">3D preset</a>
+A <a href="../commands/volume.html#appearance">3D preset</a>
 like &ldquo;Airways II&rdquo; sets the thresholds to specific values.
 They can also be adjusted continuously by hand,
 either individually by dragging in the
@@ -411,10 +432,12 @@ either individually by dragging in the
 as described <a href="#vr-histogram">above</a>,
 or collectively with a mouse mode:
 <ul>
+<!--
 <li>Click
 <img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
-to return to the full volume.
+if you want to return to the full volume (optional).
 <br><br>
+-->
 <li>Click the <b>windowing</b> mouse-mode icon
 <img class="icon3" border=1 src="../tools/mouse-icons/windowing.png">
 with the <b><i>trackpad</i></b> on one of the controllers.
@@ -429,17 +452,7 @@ horizontal motions move the thresholds symmetrically farther apart
 or closer together (broadening or narrowing their range of values).
 If you want to return to the &ldquo;Airways II&rdquo; settings, click 
 <img class="icon3" border=1 src="../tools/shortcut-icons/airways.png">.
-</p><p>
-When rotating the volume, you may have noticed jumps in brightness as 
-rendering switches between using planes along the X, Y, or Z data axes. 
-This is the 2D projection mode
-<img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png">.
-<ul>
-<li>Click <img class="icon3" border=1 src="../tools/shortcut-icons/perpslice.png">
-to use 3D projection instead. Now the rendering always uses planes
-perpendicular to the line of sight, avoiding brightness jumps during
-rotation but adding some blur along directions with interpolated values.
-</ul>
+</p>
 <p>
 If you later go back to viewing planes or thin slabs,
 it may be helpful to restore the initial thresholds by clicking
