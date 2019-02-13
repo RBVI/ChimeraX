@@ -14,7 +14,6 @@
 
 TOP = ../../..
 NO_SUBDIR_ALL = 1
-NO_SUBDIR_CLEAN = 1
 
 include $(TOP)/mk/config.make
 
