@@ -510,8 +510,10 @@ class Drawing:
         c = empty((np, 4), uint8)
         c[:, :] = rgba
         self._colors = c
-        self._opaque_color_count = (np if rgba[3] == 255 else 0)
-        self.redraw_needed()
+        opc = (np if rgba[3] == 255 else 0)
+        tchange = (opc != self._opaque_color_count)
+        self._opaque_color_count = opc
+        self.redraw_needed(transparency_changed = tchange)
 
     color = property(get_color, set_color)
     '''Single color of drawing used when per-vertex coloring is not
