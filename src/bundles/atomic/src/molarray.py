@@ -1036,8 +1036,10 @@ class Residues(Collection):
     '''Returns a numpy array of insertion codes.  An empty string indicates no insertion code.''')
     is_helix = cvec_property('residue_is_helix', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein helix''')
+    is_helices = is_helix
     is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
+    is_strands = is_strand
     names = cvec_property('residue_name', string, doc =
     '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
