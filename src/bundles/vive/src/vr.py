@@ -116,7 +116,7 @@ def vr(session, enable = None, room_position = None, display = None,
         from chimerax.shortcuts.tool import ShortcutPanel
         toolbar_classes = (MouseModePanel, ShortcutPanel)
         for tb in session.tools.list():
-            if isinstance(tb, toolbar_classes):
+            if isinstance(tb, toolbar_classes) and tb.displayed():
                 tb.display(False)
                 tb.display_panel(True)
 
