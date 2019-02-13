@@ -29,9 +29,9 @@ class="clRight" title="User Guide Index"/></a>
 <a href="#data">Sample Data</a>
 <br><a href="#outside">Manipulation Outside of VR</a>
 <br><a href="#manipulation">Manipulation in VR</a>
-<br><a href="#rendering">Volume Rendering Options</a>
-<br><a href="#cropping">Cropping</a>
 <br><a href="#planes">Viewing Planes</a>
+<br><a href="#cropping">Cropping and Slabbing</a>
+<br><a href="#windowing">Windowing</a>
 </b></blockquote>
 
 <p>
@@ -119,25 +119,6 @@ and added and deleted using the
 and see how the display changes as you drag it in any direction.
 </ul>
 <p>
-For 3D volume rendering, change from <b>plane</b> to <b>volume</b>
-in <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>.
-For full resolution, set the <b>step</b> value to <b>1</b>.
-Step size may automatically increase when more of the data is displayed,
-such as when you change from a single plane to the full volume, but it
-can still be adjusted manually. Increasing the step size 
-(decreasing the resolution) may help if rendering is slow.
-If the display seems too dark or light, move the thresholds to your liking.
-</p>
-
-<table class="clRight">
-<tr><td>
-<a href="dicom-vr2.png">
-<img class="outline" src="dicom-vr2.png" title="click to enlarge..."
-alt="screenshot 1" width="500px"></a>
-</td></tr>
-</table>
-
-<p>
 Try moving the model around:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
@@ -168,8 +149,8 @@ trackpad 2-finger drag (except pinch on Mac if
 Turn off perspective by entering the command: 
 <b><a href="../commands/camera.html">camera ortho</a></b>
 <br>
-One way to bring the whole display into view at any time is with the
-command: <b><a href="../commands/view.html#initial">view</a> clip false</b>
+Bring the whole display into view with command:
+<b><a href="../commands/view.html#initial">view</a> clip false</b>
 </p>
 
 <a name="manipulation"></a>
@@ -189,7 +170,7 @@ toolbar isn't already shown, use the same menu to start it.
 <br><img class="iconbar" src="../mouse-icons.png">
 </p><p>
 Hide sets of icons not needed for this tutorial, <i>i.e.</i>, 
-in menu <b>Tools... Toolbar</b>, uncheck <b>Graphics Toolbar</b> and
+in menu: <b>Tools... Toolbar</b>, uncheck <b>Graphics Toolbar</b> and
 <b>Molecule Display Toolbar</b>.
 </p><p>
 Take a moment to look at the hand controllers:
@@ -197,13 +178,23 @@ Take a moment to look at the hand controllers:
 each have a <b><i>trigger</i></b>
 to &ldquo;pull&rdquo; with the index finger, 
 a <b><i>grip</i></b> button on the side, 
-and a larger <b><i>trackpad</i></b> on the top 
+and a larger round <b><i>trackpad</i></b> on the top surface
 that can be pressed with the thumb.
 Above the trackpad is a smaller <b><i>menu</i></b> button 
-with horizontal lines on it,
-and the button below the touchpad turns the controller on.
+marked with horizontal lines, and below it is a power button and
+a green light indicating when the controller is turned on.
 Buttons on other controllers are similar.
-</p><p>
+</p>
+
+<table class="clRight">
+<tr><td>
+<a href="dicom-vr3.jpg">
+<img class="outline" src="dicom-vr3.jpg" title="click to enlarge..."
+alt="screenshot 1" width="300px"></a>
+</td></tr>
+</table>
+
+<p>
 Verify that the hand controllers are turned on, then start VR:
 </p>
 <blockquote>
@@ -236,7 +227,8 @@ with <b><i>trigger</i></b> pressed</td>
 <td align="center">zoom
 <br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
 <td class="text">&nbsp;move hand controllers farther apart or closer
-together with <b><i>triggers</i></b> pressed&nbsp;</td>
+together with <b><i>triggers</i></b> pressed
+(works best when model is not too far away)</td>
 </tr><tr>
 <td align="center">center and rescale
 <br>(useful to recover a reasonable view)</td>
@@ -249,10 +241,23 @@ show, hide, move ChimeraX control panel</td>
 <p>
 Continue moving the model as you wish throughout the tutorial.
 </p>
-
-<a name="rendering"></a>
-<h3><a href="#top" class="nounder">&larr;</a>
-Volume Rendering Options</h3>
+<blockquote>
+<font size="+2">*</font> 
+It is important to avoid flickering in the VR headset, as this may cause
+severe and long-lasting nausea. Flickering generally indicates that rendering 
+is too slow to keep up with head movements or other changes in the scene.
+Rendering <a href="#planes">planes</a> or a
+<a href="#cropping">cropped</a> volume is faster than 
+rendering the full volume. Another way to decrease computational demands
+is to subsample the data; clicking 
+&nbsp;<img class="icon" border=1 src="../tools/shortcut-icons/step2.png">&nbsp;
+changes to step 2 (using half as many points in each dimension),
+whereas clicking &nbsp;<img class="icon" border=1 
+src="../tools/shortcut-icons/step1.png">&nbsp; returns to full resolution.
+Step size may increase automatically when the amount of data displayed
+increases, but it can still be adjusted manually. 
+</p>
+</blockquote>
 <p>
 Click the <b><i>menu</i></b> button to show the ChimeraX control panel
 in the headset. The control panel is just the set of tool windows
@@ -260,6 +265,7 @@ to the right of the graphics window in the desktop view.
 In VR, it can be moved around with the
 <b><i>menu</i></b> button pressed, or hidden by just clicking the button again.
 </p><p>
+<a name="vr-histogram"></a>
 You can click and drag thresholds in the
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram
 in the control panel with any button 
@@ -272,17 +278,19 @@ As for icons, don't click them yet, but note:
 <blockquote>
 <p>
 <font size="+2">*</font> 
-Any controller button (<b><i>trigger</i></b>, <b><i>trackpad</i></b>,
-<b><i>grip</i></b>) can be used to click a
-<a href="../tools/densitymaps.html"><b>Density Map</b></a> icon.
+A <a href="../tools/densitymaps.html"><b>Density Map</b></a> icon
+can be clicked with any controller button 
+(<b><i>trigger</i></b>, <b><i>trackpad</i></b>, or <b><i>grip</i></b>).
 <br><font size="+2">*</font> 
 Clicking a <a href="../tools/mousemodes.html"><b>Mouse Modes</b></a> icon
 with a controller button assigns <b><i>whichever button was clicked</i></b> 
 to the corresponding function.
-</p><p>
+</p>
+</blockquote>
+<p>
 Leaving <b><i>triggers</i></b> with their
 <a href="#manipulation">default mouse modes</a> (rotation, translation,
-zooming) is usually a good idea, but up to four other functions can be assigned,
+zooming) is recommended, but up to four other functions can be assigned,
 to the <b><i>grip</i></b> and <b><i>trackpad</i></b> on each controller.
 If a <b><i>trigger</i></b> is accidentally reassigned, using it to click 
 either the <b>rotate</b>
@@ -291,31 +299,123 @@ or <b>translate</b>
 &nbsp;<img class="icon" border=1 src="../tools/mouse-icons/translate.png">&nbsp;
 mouse-mode icon returns it to the default behavior.
 </p>
-</blockquote>
+
+<a name="planes"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Viewing Planes</h3>
 <p>
-When rotating the model, you may have noticed jumps in brightness as 
-rendering switches between using planes along the X, Y, or Z data axes. 
-This is the 2D projection mode
-<img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png">.
+A single Z-plane is displayed. To view different planes along Z:
+</p>
 <ul>
-<li>Click <img class="icon3" border=1 src="../tools/shortcut-icons/perpslice.png">
-to use 3D projection instead. Now the rendering always uses planes
-perpendicular to the line of sight, avoiding brightness jumps during
-rotation but adding some blur along directions with interpolated values.
+<li>Click the <b>move planes</b> mouse-mode icon
+<img class="icon3" border=1 src="../tools/mouse-icons/moveplanes.png">
+with the <b><i>trackpad</i></b> button on one of the controllers.
 <br><br>
-<li>Click <img class="icon3" border=1 src="../tools/shortcut-icons/airways.png">
-to apply the &ldquo;Airways II&rdquo; 
-<a href="../commands/volume.html#appearance">3D preset</a>
-(threshold settings) for viewing lung tissue.
+<li>Click and drag with the same <b><i>trackpad</i></b> button
+to show different planes along the axis.
+This automatically shows an outline box.
 </ul>
 <p>
-<a href="../commands/volume.html#appearance">3D presets</a> are based on
+To view planes along X, Y, or Z:
+</p>
+<ul>
+<li>Click
+<img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
+to show the full volume.
+<br><br>
+<li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
+click with the <b><i>trackpad</i></b> button
+(still assigned to <b>move planes</b>) on any face of the box and 
+drag to view planes along the axis perpendicular to that face.
+</ul>
+To view planes along X, Y, and Z at the same time:
+<ul>
+<li>Click
+<img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
+to return to the full volume.
+<br><br>
+<li>Click
+<img class="icon3" border=1 src="../tools/shortcut-icons/orthoplanes.png">
+to view &ldquo;orthoplanes.&rdquo;
+<br><br>
+<li>Now the same <b><i>trackpad</i></b> button
+(still assigned to <b>move planes</b>) works to view the different planes 
+along any of the axes, depending which plane is clicked and dragged.
+</ul>
+
+<a name="cropping"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Cropping and Slabbing</h3>
+<p>
+With 3D display, cropping is useful for hiding data that may obscure or
+distract from a region of interest.
+</p>
+<ul>
+<li>Click
+<img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
+to return to the full volume.
+<br><br>
+<li>Click <img class="icon3" border=1 src="../tools/shortcut-icons/airways.png">
+to apply the &ldquo;Airways II&rdquo; 3D preset (threshold settings) 
+for viewing lung tissue.
+</ul>
+<p>
+The <a href="../commands/volume.html#appearance">3D presets</a> are based on
 definitions in the <a href="https://horosproject.org/about/"
 target="_blank">Horos</a> program for medical image
 visualization and analysis. Several are available from the command line,
 but only &ldquo;Airways II&rdquo; is currently available as an icon.
 </p>
 <ul>
+<li>Click the <b>crop volume</b> mouse-mode icon
+<img class="icon3" border=1 src="../tools/mouse-icons/crop.png">
+with the <b><i>trackpad</i></b> on one of the controllers.
+<br><br>
+<li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
+click and drag any face of the box with the same <b><i>trackpad</i></b> 
+button to crop the volume. For example, hide the surrounding tissues 
+to isolate the lungs, or crop to enclose just one lung.
+You can click any box face and drag in either direction
+(making the box smaller or enlarging it to original size).
+This automatically shows an outline box.
+<br><br>
+<li>Clicking
+<img class="icon3" border=1 src="../tools/shortcut-icons/outlinebox.png">
+toggles the outline box on and off. 
+</ul>
+<p>
+Similar to planes, you can move a slab along the data axes:
+</p>
+<ul>
+<li>Click the <b>move planes</b> mouse-mode icon
+<img class="icon3" border=1 src="../tools/mouse-icons/moveplanes.png">
+with the <b><i>trackpad</i></b> on one of the controllers.
+<br><br>
+<li>Starting from a cropped volume and
+using the <b><i>triggers</i></b> to reorient the display as needed, 
+click with the same <b><i>trackpad</i></b> on any face of the box and 
+drag to move the slab at its current thickness
+along the axis perpendicular to that face.
+(Starting from the full volume instead of cropped
+shows a single plane instead.)
+</ul>
+
+<a name="windowing"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Windowing</h3>
+<p>
+Applying a <a href="../commands/volume.html#appearance">3D preset</a>
+like &ldquo;Airways II&rdquo; sets the thresholds to specific values.
+They can also be adjusted continuously by hand,
+either individually by dragging in the
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram
+as described <a href="#vr-histogram">above</a>,
+or collectively with a mouse mode:
+<ul>
+<li>Click
+<img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
+to return to the full volume.
+<br><br>
 <li>Click the <b>windowing</b> mouse-mode icon
 <img class="icon3" border=1 src="../tools/mouse-icons/windowing.png">
 with the <b><i>trackpad</i></b> on one of the controllers.
@@ -324,101 +424,28 @@ with the <b><i>trackpad</i></b> on one of the controllers.
 the <b><i>trackpad</i></b> pressed.
 </ul>
 <p>
-Windowing changes all of the thresholds collectively: 
-vertical motions shift all the thresholds in parallel
+Vertical motions shift all the thresholds in parallel
 to higher or lower values (left &harr; right on the histogram) and 
 horizontal motions move the thresholds symmetrically farther apart
 or closer together (broadening or narrowing their range of values).
-If you want to return to the &ldquo;Airways II&rdquo; 3D preset values, click 
+If you want to return to the &ldquo;Airways II&rdquo; settings, click 
 <img class="icon3" border=1 src="../tools/shortcut-icons/airways.png">.
-</p>
-
-<a name="cropping"></a>
-<h3><a href="#top" class="nounder">&larr;</a>
-Cropping</h3>
-<p>
-Cropping is useful for examining a smaller region of interest
-and for speeding up rendering.
-</p>
+</p><p>
+When rotating the volume, you may have noticed jumps in brightness as 
+rendering switches between using planes along the X, Y, or Z data axes. 
+This is the 2D projection mode
+<img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png">.
 <ul>
-<li>Click the <b>crop volume</b> mouse-mode icon
-<img class="icon3" border=1 src="../tools/mouse-icons/crop.png">
-with the <b><i>trackpad</i></b> on one of the controllers.
-<br><br>
-<li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
-click and drag any face of the box with the <b><i>trackpad</i></b> to crop
-the volume. An outline box appears automatically when you start using
-this mode. You can switch between faces and drag in either direction
-(cropping or enlarging to original dimensions).
-<br><br>
-<li>Clicking
-<img class="icon3" border=1 src="../tools/shortcut-icons/outlinebox.png">
-toggles the outline box on and off.
+<li>Click <img class="icon3" border=1 src="../tools/shortcut-icons/perpslice.png">
+to use 3D projection instead. Now the rendering always uses planes
+perpendicular to the line of sight, avoiding brightness jumps during
+rotation but adding some blur along directions with interpolated values.
 </ul>
 <p>
-(Besides cropping, another way to speed up rendering is by clicking
-&nbsp;<img class="icon" border=1 src="../tools/shortcut-icons/step2.png">&nbsp;
-to subsample the data at step 2. Clicking
-&nbsp;<img class="icon" border=1 src="../tools/shortcut-icons/step1.png">&nbsp;
-returns to full resolution.)
+If you later go back to viewing planes, it may be helpful to 
+restore the initial thresholds by clicking
+<img class="icon3" border=1 src="../tools/shortcut-icons/initialcurve.png">.
 </p>
-
-<a name="planes"></a>
-<h3><a href="#top" class="nounder">&larr;</a>
-Viewing Planes</h3>
-<p>
-At first, a single Z plane was displayed. You could return to Z-planes
-by clicking <img class="icon" border=1 src="../tools/shortcut-icons/plane.png">,
-but instead, use a different method that allows viewing planes along
-any of the data axes:
-</p>
-<ul>
-<li>Click
-<img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
-to return to the full volume.
-<br><br>
-<!--
-<li>Click 
-<img class="icon3" border=1 src="../tools/shortcut-icons/step1.png">
-to return to full resolution, step 1 (the step size may have increased
-automatically when going from the cropped volume to the full region).
-<br><br>
--->
-<li>Click the <b>move planes</b> mouse-mode icon
-<img class="icon3" border=1 src="../tools/mouse-icons/moveplanes.png">
-with the <b><i>trackpad</i></b> on one of the controllers.
-<br><br>
-<li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
-click with the <b><i>trackpad</i></b> on any face of the box and 
-drag to view planes along the axis perpendicular to that face.
-</ul>
-<p>
-The data may now be very dim or even invisible,
-because threshold settings that worked with the full volume are not 
-suitable for a single plane.
-</p>
-<ul>
-<li>Click 
-<img class="icon3" border=1 src="../tools/shortcut-icons/initialcurve.png">
-to reset the thresholds to a simple ramp more suitable for viewing
-individual planes.
-<br><br>
-<li>Use the <b><i>trackpad</i></b> button (still assigned to <b>move planes</b>)
-to view different planes along the axis.
-<br><br>
-<li>Click
-<img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
-to return to the full volume.
-<br><br>
-<li>Click
-<img class="icon3" border=1 src="../tools/shortcut-icons/orthoplanes.png">
-to view &ldquo;orthoplanes,&rdquo; single planes along all three axes
-at the same time.
-<br><br>
-<li>Now the <b><i>trackpad</i></b> button (still assigned to <b>move planes</b>) 
-works to view the different planes along any of the axes, depending which
-plane was clicked and dragged.
-</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /

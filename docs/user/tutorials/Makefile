@@ -17,7 +17,7 @@ include $(TOP)/mk/config.make
 DOCDIR = $(app_datadir)/docs/user/tutorials
 
 SRCS = $(wildcard *.html)
-IMAGES = $(wildcard *.png)
+IMAGES = $(wildcard *.png *.jpg)
 
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
