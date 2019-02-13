@@ -699,8 +699,12 @@ class Atoms(Collection):
         '''Set anisotropic temperature factors as a Nx6 element numpy float32 array
         representing the unique elements of the symmetrix matrix
         containing (u11, u22, u33, u12, u13, u23) for each atom.'''
-        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         n = len(self)
+        if u6 is None:
+            f = c_function('clear_atom_aniso_u6', args = (ctypes.c_void_p,))
+            f(self._c_pointers, n)
+            return
+        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         from numpy import empty, float32
         ai = empty((n,6), float32)
         ai[:] = u6

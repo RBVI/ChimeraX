@@ -338,6 +338,18 @@ extern "C" EXPORT void set_atom_aniso_u6(void *atoms, size_t n, float32_t *aniso
     }
 }
 
+extern "C" EXPORT void clear_atom_aniso_u6(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+          a[i]->clear_aniso_u();
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_occupancy(void *atoms, size_t n, float32_t *occupancies)
 {
     Atom **a = static_cast<Atom **>(atoms);
