@@ -1962,6 +1962,9 @@ def _draw_texture(texture, renderer):
     draw_overlays([d], renderer)
     
 def qimage_to_numpy(qi):
+    from PyQt5.QtGui import QImage
+    if qi.format() != QImage.Format_ARGB32:
+        qi = qi.convertToFormat(QImage.Format_ARGB32)
     shape = (qi.height(), qi.width(), 4)
     buf = qi.bits().asstring(qi.byteCount())
     from numpy import uint8, frombuffer
@@ -2061,3 +2064,31 @@ def text_image_rgba_pil(text, color, size, font, data_dir):
 #    print ('Text "%s" rgba array size %s' % (text, tuple(rgba.shape)))
     frgba = rgba[::-1,:,:]	# Flip so text is right side up.
     return frgba
+
+# -----------------------------------------------------------------------------
+#
+def concatenate_geometry(geom):
+    '''
+    Combine list of (vertices, normals, triangles) triples into a single
+    vertex, normal and triangle array triple.  Also can combine pairs
+    (vertices, triangles), or 4-tuples (vertices, normals, texcoords, triangles).
+    All list entries must be tuples of the same length.
+    '''
+    if len(geom) <= 1:
+        return geom
+
+    nva = len(geom[0]) - 1
+    from numpy import concatenate, float32, int32
+    va = [concatenate([g[i] for g in geom]).astype(float32, copy=False) for i in range(nva)]
+    ta = concatenate([g[-1] for g in geom]).astype(int32, copy=False)
+
+    # Fix triangle vertex indices
+    voffset = 0
+    ti = 0
+    for g in geom:
+        nt = len(g[-1])
+        ta[ti:ti+nt] += voffset
+        ti += nt
+        voffset += len(g[0])
+
+    return va + [ta]
