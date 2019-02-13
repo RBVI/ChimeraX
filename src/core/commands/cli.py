@@ -258,6 +258,8 @@ def plural_of(word):
         return word + 'es'
     if word.endswith('ius'):
         return word[:-2] + 'i'
+    if word.endswith('ix'):
+        return word[:-1] + 'ces'
     if word.endswith(('sh', 'ch', 'ss', 'x')):
         return word + 'es'
     if word.endswith('y'):
