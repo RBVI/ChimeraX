@@ -107,7 +107,7 @@ for this bundle to declare that:
 #. non-Python files need to be included in the bundle (lines 38-40), and
 #. a single graphical interface tool is provided in this bundle (lines 48-49).
 
-The ``Dependency`` tags on lines 35 and 36 inform ChimeraX that the
+The ``Dependency`` tag on line 34 informs ChimeraX that the
 ``ChimeraX-UI`` bundle must be present when this bundle is installed.
 If it is not, it is installed first.  The ``ChimeraX-UI`` bundle is
 needed for the :py:class:`chimerax.ui.gui.MainToolWindow` class
@@ -120,7 +120,7 @@ non-Python files as part of the bundle when building.  In this case,
 which provides the help documentation for our tool.
 
 The ``ChimeraXClassifier`` tag on lines 48-49 informs ChimeraX that
-there is one graphical interface *tool* named ``Tutorial (Qt)`` in
+there is one graphical interface tool named ``Tutorial (Qt)`` in
 the bundle.  The last two fields (separated by ``::``) are the tool
 category and the tool description.  ChimeraX will add a
 ``Tutorial (Qt)`` menu entry in its ``Tool`` submenu that matches
@@ -375,10 +375,10 @@ and create an instance of it with the text "Clear", and associated with the
 context menu, on line 101.
 
 When the action encapsulated by a `QAction <http://doc.qt.io/qt-5/qaction.html>`_
-occurs, its `triggered <http://doc.qt.io/qt-5/qaction.html#triggered>`_ signal is emitted.  In a similar fashion to the
-`returnPressed <http://doc.qt.io/qt-5/qlineedit.html#returnPressed>`_
-signal in the :ref:`interface` section above, we
-arrange for our text-input field to be cleared by connecting an anonymous lambda
+occurs, its `triggered <http://doc.qt.io/qt-5/qaction.html#triggered>`_ signal is emitted
+(in a similar fashion to the `returnPressed <http://doc.qt.io/qt-5/qlineedit.html#returnPressed>`_
+signal in the :ref:`interface` section above).
+We arrange for our text-input field to be cleared by connecting an anonymous lambda
 function (that calls `self.line_edit.clear() <https://doc.qt.io/qt-5/qlineedit.html#clear>`_) to the
 `triggered <http://doc.qt.io/qt-5/qaction.html#triggered>`_ signal, 
 shown on line 102.
@@ -400,7 +400,7 @@ We actually add the action/item to the menu on line 103.
 Help Documentation
 ++++++++++++++++++
 
-All tools with have a **HELP** context-menu entry,
+All tools will have a **HELP** context-menu entry,
 one of the "generic" context-menu items that ChimeraX
 adds to all tool context menus.  The **HELP** menu item
 will be disabled unless the tool specifies that it 

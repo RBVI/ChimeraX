@@ -456,7 +456,7 @@ class DicomData:
 
     self.dicom_series = series
     
-    self.paths = series.paths
+    self.paths = tuple(series.paths)
     npaths = len(series.paths)
 
     self.name = series.name
