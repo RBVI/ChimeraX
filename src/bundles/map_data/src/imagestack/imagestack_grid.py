@@ -32,6 +32,8 @@ def image_stack_grids(paths):
 #
 class ImageStackGrid(GridData):
 
+  must_read_full_xy_planes = True	# Hint to optimize caching performance
+
   def __init__(self, d, channel = None):
 
     self.image_stack = d

@@ -292,11 +292,11 @@ class Solid:
     from ._map import transfer_function_colormap
     transfer_function_colormap(tfa, dmin, dmax, tfcmap)
 
-    # For 3d projection use smallest plane spacing
+    # For 3d projection use largest plane spacing
     if axis is None:
       plane_spacings = self.transform.axes_lengths()
-      from numpy import argmin
-      axis = argmin(plane_spacings)
+      from numpy import argmax
+      axis = argmax(plane_spacings)
       
     # Adjust brightness of RGB components.
     bf = self.brightness_factor

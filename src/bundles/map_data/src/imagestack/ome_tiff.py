@@ -32,6 +32,8 @@ def ome_image_grids(path, found_paths = None):
 from .. import GridData
 class OMEImageGrid(GridData):
 
+  must_read_full_xy_planes = True	# Hint to optimize caching performance
+
   def __init__(self, ome_pixels, channel, time, grid_id):
 
     self.ome_pixels = d = ome_pixels

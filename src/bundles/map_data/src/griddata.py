@@ -245,9 +245,35 @@ class GridData:
 
     m = self.cached_data(ijk_origin, ijk_size, ijk_step)
     if m is None and not from_cache_only:
-      m = self.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
-      self.cache_data(m, ijk_origin, ijk_size, ijk_step)
+      if getattr(self, 'must_read_full_xy_planes', False):
+        m = self._read_full_planes(ijk_origin, ijk_size, ijk_step, progress)
+      else:
+        m = self.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+        self.cache_data(m, ijk_origin, ijk_size, ijk_step)
 
+    return m
+    
+  # ---------------------------------------------------------------------------
+  #
+  def _read_full_planes(self, ijk_origin, ijk_size, ijk_step, progress):
+    '''
+    Formats such as TIFF and DICOM image stacks require reading full xy planes.
+    If subsampled planes or a subregion are requested, cache the full planes.
+    An example where this makes a huge difference is in showing a single xz plane
+    where the full data will be read.  If only the plane is cached then moving
+    to show another xz plane requires another full read of the data.  This can
+    be extremely slow.  With this code the full data is cached.
+    '''
+    i1, j1, k1 = ijk_origin
+    i2, j2, k2 = [i+s for i,s in zip(ijk_origin, ijk_size)]
+    istep, jstep, kstep = ijk_step
+    f_ijk_origin = (0,0,k1)
+    xs,ys = self.size[:2]
+    f_ijk_size = (xs,ys,ijk_size[2])
+    f_ijk_step = (1,1,kstep)
+    fm = self.read_matrix(f_ijk_origin, f_ijk_size, f_ijk_step, progress)
+    self.cache_data(fm, f_ijk_origin, f_ijk_size, f_ijk_step)
+    m = fm[:, j1:j2:jstep, i1:i2:istep]
     return m
     
   # ---------------------------------------------------------------------------

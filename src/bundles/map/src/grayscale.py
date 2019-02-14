@@ -535,8 +535,10 @@ class ViewAlignedPlanes(Drawing):
     ei,ej,ek = [i-1 for i in self._grid_size]
     grid_corners = ((0,0,0),(ei,0,0),(0,ej,0),(ei,ej,0),(0,0,ek),(ei,0,ek),(0,ej,ek),(ei,ej,ek))
     self._corners = self._ijk_to_xyz * grid_corners	# in volume coords
-    # Use view aligned spacing equal to minimum grid spacing along 3 axes.
-    self._plane_spacing = min(self._ijk_to_xyz.axes_lengths())
+    # Use view aligned spacing equal to maximum grid spacing along 3 axes.
+    # This gives highest rendering speed.  Using minimum grid spacing may
+    # give higher quality appearance.
+    self._plane_spacing = max(self._ijk_to_xyz.axes_lengths())
     # Use texture coord range [1/2n,1-1/2n], not [0,1].
     from chimerax.core.geometry.place import scale, translation
     v_to_tc = scale((1/(ei+1), 1/(ej+1), 1/(ek+1))) * translation((0.5,0.5,0.5)) * self._ijk_to_xyz.inverse()

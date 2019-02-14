@@ -33,6 +33,8 @@ def imagej_grids(path):
 from .. import GridData
 class ImageJGrid(GridData):
 
+  must_read_full_xy_planes = True	# Hint to optimize caching performance
+
   def __init__(self, imagej_pixels, channel = None, time = None):
 
     self.imagej_pixels = d = imagej_pixels

@@ -7,7 +7,7 @@ PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).2
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
-PIP_VERSION = 18.1
+PIP_VERSION = 19.0.1
 WHEEL_VERSION = 0.32.3
 SETUPTOOLS_VERSION = 40.6.3
 
@@ -220,7 +220,7 @@ endif
 	# Since pip comes with Python 3.5, update it now so installs on
 	# Windows will work.  Wheel is needed so bdist_wheel will work.
 	$(PYTHON_EXE) -m ensurepip --upgrade
-	$(PYTHON_EXE) -m pip install --upgrade pip
+	$(PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade setuptools==$(SETUPTOOLS_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
 
@@ -258,7 +258,7 @@ else
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
 endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
-	$(APP_PYTHON_EXE) -m pip install --upgrade pip
+	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
 		wheel==$(WHEEL_VERSION) \
 		setuptools==$(SETUPTOOLS_VERSION)
