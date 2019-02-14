@@ -788,11 +788,9 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def _transparency_thickness(self):
-    size = self.matrix_size()
-    step = self.data.step
-    thickness = self.transparency_depth * min(sz*st for sz,st in zip(size, step))
+    box_size = [x1-x0 for x0,x1 in zip(*self.xyz_bounds())]
+    thickness = self.transparency_depth * min(box_size)
     return thickness
-    
 
   # ---------------------------------------------------------------------------
   #
