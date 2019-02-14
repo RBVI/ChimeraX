@@ -2951,6 +2951,9 @@ def volume_from_grid_data(grid_data, session, representation = None,
 
   ds = default_settings(session)
   ro = ds.rendering_option_defaults()
+  if hasattr(grid_data, 'initial_rendering_options'):
+    for oname, ovalue in grid_data.initial_rendering_options.items():
+      setattr(ro, oname, ovalue)
   
   # Create volume model
   d = data_already_opened(grid_data.path, grid_data.grid_id, session)

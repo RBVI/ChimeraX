@@ -88,6 +88,8 @@ def dicom_grids_from_series(series):
 from chimerax.map.data import GridData
 class DicomGrid(GridData):
 
+  initial_rendering_options = {'projection_mode': '3d'}
+
   def __init__(self, d, time = None, channel = None):
 
     self.dicom_data = d
