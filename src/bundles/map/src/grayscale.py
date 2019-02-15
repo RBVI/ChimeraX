@@ -499,7 +499,7 @@ class AxisAlignedPlanes(Drawing):
     mtex = self.multitexture
     for t,(k,axis) in enumerate(self.planes):
       data = self._color_plane(k, axis)
-      mtex[t]._reload_texture(data, now = True)
+      mtex[t].reload_texture(data, now = True)
 
 # ---------------------------------------------------------------------------
 #
@@ -575,7 +575,7 @@ class ViewAlignedPlanes(Drawing):
     if t is None:
       self.texture = t = self._texture_3d()
     td = self._texture_3d_data()
-    t._reload_texture(td, now = True)
+    t.reload_texture(td, now = True)
 
   def _texture_3d(self):
     td = self._texture_3d_data()
