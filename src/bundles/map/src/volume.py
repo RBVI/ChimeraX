@@ -53,7 +53,7 @@ class Volume(Model):
     self.message_cb = session.logger.status
     
     self.matrix_stats = None
-    self.matrix_id = 1          # Incremented when shape or values change.
+    self._matrix_id = 1          # Incremented when shape or values change.
 
     rlist = Region_List()
     ijk_min, ijk_max = self.region[:2]
@@ -466,7 +466,7 @@ class Volume(Model):
   def matrix_changed(self):
 
     self.matrix_stats = None
-    self.matrix_id += 1
+    self._matrix_id += 1
     self._drawings_need_update()
       
   # ---------------------------------------------------------------------------
@@ -775,7 +775,7 @@ class Volume(Model):
 
     tf = self.transfer_function()
     s.set_colormap(tf, self.solid_brightness_factor, self._transparency_thickness())
-    s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id, self.matrix_plane)
+    s.set_matrix(self.matrix_size(), self.data.value_type, self._matrix_id, self.matrix_plane)
 
     from . import grayscale
     bm = grayscale.blend_manager(self.session)
@@ -803,7 +803,7 @@ class Volume(Model):
 
     transform = self.matrix_indices_to_xyz_transform()
     align = self.surface_model()
-    s = solid.Solid(name, msize, value_type, self.matrix_id, self.matrix_plane,
+    s = solid.Solid(name, msize, value_type, self._matrix_id, self.matrix_plane,
                     transform, align, self.message)
     if hasattr(self, 'mask_colors'):
       s.mask_colors = self.mask_colors
@@ -2042,7 +2042,7 @@ class VolumeSurface(Surface):
     v = self.volume
     ro = rendering_options
     contour_settings = {'level': self.level,
-                        'matrix_id': v.matrix_id,
+                        'matrix_id': v._matrix_id,
                         'transform': v.matrix_indices_to_xyz_transform(),
                         'surface_smoothing': ro.surface_smoothing,
                         'smoothing_factor': ro.smoothing_factor,
