@@ -781,6 +781,17 @@ class Volume(Model):
     bm = grayscale.blend_manager(self.session)
     s.update_drawing(self, bm)
 
+    '''
+    Image3d
+    ro = self.rendering_options
+    s.set_options(ro)
+    s.set_region(self.region)
+    from .image3d import Colormap
+    cmap =  Colormap(self.transfer_function(), self.solid_brightness_factor,
+                     self._transparency_thickness())
+    s.set_colormap(cmap)
+    '''
+
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
     return s
@@ -805,8 +816,25 @@ class Volume(Model):
     align = self.surface_model()
     s = solid.Solid(name, msize, value_type, self._matrix_id, self.matrix_plane,
                     transform, align, self.message)
+    
+    '''
+    Image3d
+    from .image3d import blend_manager
+    bm = blend_manager(self.session)
+
+    from .image3d import Colormap
+    cmap = Colormap(self.transfer_function(), self.solid_brightness_factor,
+                  self._transparency_thickness())
+
+    from .image3d import ImageRender
+    s = ImageRender('image', self.data, self.region, cmap, self.rendering_options,
+                  self.session, bm)
+    self.add([s.model()])
+    '''
+
     if hasattr(self, 'mask_colors'):
       s.mask_colors = self.mask_colors
+
     return s
 
   # ---------------------------------------------------------------------------
@@ -814,7 +842,7 @@ class Volume(Model):
   def shown(self):
 
     surf_disp = len([s for s in self.surfaces if s.display]) > 0
-    solid_disp = (self.solid and self.solid.drawing.display)
+    solid_disp = (self.solid and self.solid.model().display)
     return self.display and (surf_disp or solid_disp)
     
   # ---------------------------------------------------------------------------
@@ -1738,6 +1766,10 @@ class Volume(Model):
     s = self.solid
     if s:
       s.close_model(self)
+      '''
+      Image3d
+      s.close_model()
+      '''
       self.solid = None
       
   # ---------------------------------------------------------------------------
