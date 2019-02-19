@@ -342,6 +342,7 @@ class Render:
         self.outline = Outline(self)
         
         self.single_color = (1, 1, 1, 1)
+        self._colormap_texture_unit = 4
 
         # Depth texture rendering parameters
         self.depth_texture_unit = 3
@@ -496,7 +497,7 @@ class Render:
         Also activate the shader with glUseProgram().
         The capabilities are specified as at bit field of values from
         SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D,
-        SHADER_DEPTH_TEXTURE, SHADER_TEXTURE_CUBEMAP,
+        SHADER_COLORMAP, SHADER_DEPTH_TEXTURE, SHADER_TEXTURE_CUBEMAP,
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_OUTLINE,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
@@ -536,6 +537,8 @@ class Render:
             shader.set_integer("tex2d", 0)    # Texture unit 0.
         if self.SHADER_TEXTURE_3D & c:
             shader.set_integer("tex3d", 0)
+        if self.SHADER_COLORMAP & c:
+            shader.set_integer("colormap", self._colormap_texture_unit)
         if self.SHADER_DEPTH_TEXTURE & c:
             self._set_depth_texture_shader_variables(shader)
         if self.SHADER_TEXTURE_CUBEMAP & c:
@@ -845,6 +848,15 @@ class Render:
         if p is not None:
             p.set_matrix("ambient_tex3d_transform", tf.opengl_matrix())
 
+    def set_colormap(self, colormap_texture, colormap_range, data_texture):
+        p = self.current_shader_program
+        if p is None:
+            raise OpenGLError('Render.set_colormap(): No current shader program.')
+        colormap_texture.bind_texture(tex_unit = self._colormap_texture_unit)
+        v0,v1 = colormap_range
+        s = data_texture.normalization()
+        p.set_vector2('colormap_range', (s*v0, 1/(s*(v1-v0))))
+
     def check_for_opengl_errors(self):
         # Clear previous errors.
         lines = []
@@ -1016,12 +1028,7 @@ class Render:
         GL.glFinish()
 
     def draw_front_buffer(self, front):
-        try:
-            GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
-        except:
-            print(len(self.framebuffer_stack), 'framebuffers',
-                  ', '.join([fb.name for fb in self.framebuffer_stack]))
-            raise
+        GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
 
     def draw_transparent(self, draw_depth, draw):
         '''
@@ -1628,6 +1635,7 @@ shader_options = (
     'SHADER_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
     'SHADER_TEXTURE_3D',
+    'SHADER_COLORMAP',
     'SHADER_DEPTH_TEXTURE',
     'SHADER_TEXTURE_CUBEMAP',
     'SHADER_TEXTURE_3D_AMBIENT',
@@ -2432,6 +2440,7 @@ class Texture:
         self.id = None
         self.dimension = dimension
         self.size = None
+        self._numpy_dtype = None
         self.gl_target = (GL.GL_TEXTURE_CUBE_MAP if cube_map else
                           (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
         self.linear_interpolation = True
@@ -2578,6 +2587,7 @@ class Texture:
             self.initialize_texture(size, format, iformat, tdtype, ncomp, data)
         else:
             self._fill_texture(data)
+        self._numpy_dtype = data.dtype
         
     def _fill_texture(self, data):
         '''
@@ -2613,7 +2623,7 @@ class Texture:
         '''
         dim = self.dimension
         dtype = data.dtype
-        from numpy import uint8, uint16, float32
+        from numpy import int8, uint8, int16, uint16, float32
         if dim == 2 and len(data.shape) == dim and dtype == uint32:
             format = GL.GL_RGBA
             iformat = GL.GL_RGBA8
@@ -2622,15 +2632,21 @@ class Texture:
             return format, iformat, tdtype, ncomp
 
         ncomp = data.shape[dim] if len(data.shape) > dim else 1
-        # TODO: Report pyopengl bug, GL_RG missing
-        GL.GL_RG = 0x8227
-        # luminance texture formats are not in opengl 3.
+
         format = {1: GL.GL_RED, 2: GL.GL_RG,
                   3: GL.GL_RGB, 4: GL.GL_RGBA}[ncomp]
-        if dtype == uint8:
+        if dtype == int8:
+            tdtype = GL.GL_BYTE
+            iformat = {1: GL.GL_R8_SNORM, 2: GL.GL_RG8_SNORM,
+                       3: GL.GL_RGB8_SNORM, 4: GL.GL_RGBA8_SNORM}[ncomp]
+        elif dtype == uint8:
             tdtype = GL.GL_UNSIGNED_BYTE
             iformat = {1: GL.GL_R8, 2: GL.GL_RG8,
                        3: GL.GL_RGB8, 4: GL.GL_RGBA8}[ncomp]
+        elif dtype == int16:
+            tdtype = GL.GL_SHORT
+            iformat = {1: GL.GL_R16_SNORM, 2: GL.GL_RG16_SNORM,
+                       3: GL.GL_RGB16_SNORM, 4: GL.GL_RGBA16_SNORM}[ncomp]
         elif dtype == uint16:
             tdtype = GL.GL_UNSIGNED_SHORT
             iformat = {1: GL.GL_R16, 2: GL.GL_RG16,
@@ -2642,6 +2658,23 @@ class Texture:
         else:
             raise TypeError('Texture value type %s not supported' % str(dtype))
         return format, iformat, tdtype, ncomp
+
+    def normalization(self):
+        '''
+        Scale factor for converting texture values to normalized values,
+        0-1 for unsigned integer, -1 to 1 for signed integer.
+        '''
+        if not hasattr(self, '_normalizations'):
+            from numpy import int8, uint8, int16, uint16, float32
+            self._normalizations = {
+                int8: 1/127,
+                uint8: 1/255,
+                int16: 1/32767,
+                uint16: 1/65535,
+                float32: 1
+                }
+        dtype = self._numpy_dtype if self.data is None else self.data.dtype
+        return self._normalizations[dtype.type]
 
 
 class TextureWindow:

@@ -37,7 +37,7 @@ class ImageRender:
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
     self._colormap_size = 256		# For other than 8 or 16-bit data types
-    self._update_colors = False
+    self._update_colors = True
     self._multiaxis_planes = [None, None, None]	# For x, y, z axis projection
     self._planes_drawing = None			# For ortho and box mode display
     self._view_aligned_planes = None		# ViewAlignedPlanes instance for 3d projection mode
@@ -72,7 +72,6 @@ class ImageRender:
           self._drawing.redraw_needed()
       
   # ---------------------------------------------------------------------------
-  # After setting options need to call update_drawing() update display.
   #
   def set_options(self, rendering_options):
 # TODO: Detect changes in grid data ijk_to_xyz_transform, matrix value changes...
@@ -162,25 +161,46 @@ class ImageRender:
     
   # ---------------------------------------------------------------------------
   #
-  def _update_coloring(self):
-    if self._update_colors:
+  def _update_coloring(self, drawing):
+    if not self._update_colors:
+      return
+
+    if self._rendering_options.colormap_on_gpu:
+      self._update_colormap_texture(drawing)
+    else:
       self._reload_textures()
-      self._update_colors = False
+    self._update_colors = False
+      
+  # ---------------------------------------------------------------------------
+  #
+  @property
+  def _use_gpu_colormap(self):
+    return self._rendering_options.colormap_on_gpu
+
+  # ---------------------------------------------------------------------------
+  #
+  def _update_colormap_texture(self, drawing):
+
+    cmap, cmap_range = self._color_table(drawing._axis)
+    t = drawing.colormap
+    if t is None:
+      from chimerax.core.graphics import Texture
+      drawing.colormap = Texture(cmap, dimension = 1)
+      drawing.colormap_range = cmap_range
+    else:
+      t.reload_texture(cmap)
+    from chimerax.core.graphics.opengl import Render
 
   # ---------------------------------------------------------------------------
   #
   def _color_plane(self, plane, axis, view_aligned=False):
 
-    ctables = self._color_tables
-    av = (axis, view_aligned)
-    if av in ctables:
-      cmap, cmap_range = ctables[av]
-    else:
-      cmap, cmap_range = self._color_table() if view_aligned else self._color_table(axis)
-      ctables[av] = cmap, cmap_range
-    dmin, dmax = cmap_range
-
     m = self._matrix_plane(plane, axis)
+    if self._rendering_options.colormap_on_gpu:
+      return m
+
+    cmap, cmap_range = self._color_table() if view_aligned else self._color_table(axis)
+    dmin, dmax = cmap_range
 
     colors = self._color_array(cmap.dtype, tuple(m.shape) + (cmap.shape[1],))
     from . import _map
@@ -223,6 +243,10 @@ class ImageRender:
   # If axis is None then colormap for 3d projection is returned.
   #
   def _color_table(self, axis = None):
+    ctables = self._color_tables
+    if axis in ctables:
+      cmap, cmap_range = ctables[axis]
+      return cmap, cmap_range
 
     cmap = self._colormap
     tf = cmap.transfer_function
@@ -237,6 +261,7 @@ class ImageRender:
       nc = len(self._colormap_components())
       from numpy import zeros
       icmap = zeros((size,nc), ctype)
+      ctables[axis] = icmap, drange
       return icmap, drange
 
     # Convert transfer function to a colormap.
@@ -289,6 +314,8 @@ class ImageRender:
     from . import _map
     _map.colors_float_to_uint(cmap, icmap)
 
+    ctables[axis] = icmap, drange
+
     return icmap, drange
 
   # ---------------------------------------------------------------------------
@@ -314,6 +341,8 @@ class ImageRender:
     if dtype in (uint8, int8, uint16, int16):
       drange = dmin, dmax = _value_type_range(dtype)
       size = (dmax - dmin + 1)
+      # TODO: Need to limit texture size to max 1d texture for gpu colormapping
+      size = 4096
       return size, drange, t
 
     size = min(self._colormap_size, 2 ** 16)
@@ -441,7 +470,7 @@ class ImageRender:
     if pd is None:
       sc = self._drawing.shape_changed
       pd = self._make_planes(axis)
-      self._update_colors = False
+      self._update_colors = self._use_gpu_colormap
       if axis is None:
         self._planes_drawing = pd
       else:
@@ -475,7 +504,7 @@ class ImageRender:
       self._drawing.add_drawing(pd)
       pd.load_texture()
       self._view_aligned_planes = pd
-      self._update_colors = False
+      self._update_colors = self._use_gpu_colormap
     pd.update_geometry(view_direction, self._drawing.scene_position)
     return pd
 
@@ -662,7 +691,7 @@ class ImageDrawing(Model):
 
     pd = ir._update_planes(renderer)
 
-    ir._update_coloring()
+    ir._update_coloring(pd)
 
     self._draw_planes(renderer, draw_pass, dtransp, pd)
 
@@ -719,6 +748,7 @@ class AxisAlignedPlanes(Drawing):
     tc = empty((4*np,2), float32)
     ta = empty((2*np,3), int32)
     textures = []
+    axes = set()
     for p, (k,axis) in enumerate(planes):
       vap = va[4*p:4*(p+1),:]
       vap[:,:] = vaa[axis]
@@ -728,11 +758,13 @@ class AxisAlignedPlanes(Drawing):
       d = color_plane(k, axis)
       textures.append(self._plane_texture(d))
       tc[4*p:4*(p+1),:] = tc1
+      axes.add(axis)
 
     self.set_geometry(va, None, ta)
     self.texture_coordinates = tc
     self.multitexture = textures
     self.planes = planes
+    self._axis = None if len(axes) != 1 else axes.pop()
 
   def _plane_texture(self, colors):
     dc = colors.copy()	# Data array may be reused before texture is filled so copy it.
@@ -766,6 +798,7 @@ class ViewAlignedPlanes(Drawing):
     self.opaque_texture = opaque
     self._linear_interpolation = linear_interpolation
     self._last_view_direction = None
+    self._axis = None
 
   def update_geometry(self, view_direction, scene_position):
     tvd = tuple(view_direction)
