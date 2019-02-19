@@ -36,7 +36,7 @@ class ImageRender:
     self._color_tables = {}		# Maps axis to (ctable, ctable_range)
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
-    self._colormap_size = 256		# For other than 8 or 16-bit data types
+    self._colormap_size = 256		# For GPU or other than 8 or 16-bit data types
     self._update_colors = True
     self._multiaxis_planes = [None, None, None]	# For x, y, z axis projection
     self._planes_drawing = None			# For ortho and box mode display
@@ -82,8 +82,8 @@ class ImageRender:
 
     # TODO: Don't delete textures unless attribute changes require it.
     change = False
-    for attr in ('color_mode', 'projection_mode', 'orthoplanes_shown',
-                 'orthoplane_positions', 'box_faces', 'linear_interpolation'):
+    for attr in ('color_mode', 'colormap_on_gpu', 'projection_mode', 'plane_spacing',
+                 'orthoplanes_shown', 'orthoplane_positions', 'box_faces', 'linear_interpolation'):
         if getattr(rendering_options, attr) != getattr(ro, attr):
             change = True
             break
@@ -186,17 +186,16 @@ class ImageRender:
     if t is None:
       from chimerax.core.graphics import Texture
       drawing.colormap = Texture(cmap, dimension = 1)
-      drawing.colormap_range = cmap_range
     else:
       t.reload_texture(cmap)
-    from chimerax.core.graphics.opengl import Render
+    drawing.colormap_range = cmap_range
 
   # ---------------------------------------------------------------------------
   #
-  def _color_plane(self, plane, axis, view_aligned=False):
+  def _color_plane(self, plane, axis, view_aligned=False, require_color=False):
 
     m = self._matrix_plane(plane, axis)
-    if self._rendering_options.colormap_on_gpu:
+    if self._rendering_options.colormap_on_gpu and not require_color:
       return m
 
     cmap, cmap_range = self._color_table() if view_aligned else self._color_table(axis)
@@ -271,25 +270,17 @@ class ImageRender:
     from ._map import transfer_function_colormap
     transfer_function_colormap(tfa, dmin, dmax, tfcmap)
 
-    # For 3d projection use largest plane spacing
-    if axis is None:
-      plane_spacings = self._plane_spacings()
-      from numpy import argmax
-      axis = argmax(plane_spacings)
-      
     # Adjust brightness of RGB components.
     bf = cmap.brightness_factor
     if not self._rendering_options.dim_transparent_voxels:
       # Reduce brightness for closer spaced planes
       # so brightness per unit thickness stays the same.
-      plane_spacings = self._plane_spacings()
-      bf *= (plane_spacings[axis]/max(plane_spacings))
+      bf *= (self._plane_spacing(axis)/max(self._plane_spacings()))
     tfcmap[:,:3] *= bf
 
     # Modify colormap transparency.
     if cmap.transparency_thickness is not None:
-      plane_spacing = self._plane_spacings()[axis]
-      planes = cmap.transparency_thickness / plane_spacing
+      planes = cmap.transparency_thickness / self._plane_spacing(axis)
       alpha = tfcmap[:,3]
       if planes == 0:
         alpha[:] = 1
@@ -320,6 +311,28 @@ class ImageRender:
 
   # ---------------------------------------------------------------------------
   #
+  def _plane_spacing(self, axis = None):
+    # Use view aligned spacing equal to maximum grid spacing along 3 axes.
+    # This gives highest rendering speed.  Using minimum grid spacing may
+    # give higher quality appearance.
+    spacings = _plane_spacings(self._region, self._ijk_to_xyz)
+    if axis is None:
+      ps = self._rendering_options.plane_spacing
+      if ps == 'max':
+        s = max(spacings)
+      elif ps == 'min':
+        s = min(spacings)
+      elif ps == 'mean':
+        from numpy import mean
+        s = mean(spacings)
+      else:
+        s = ps
+    else:
+      s = spacings[axis]
+    return s
+
+  # ---------------------------------------------------------------------------
+  #
   def _plane_spacings(self):
     '''Spacing of displayed planes.'''
     return _plane_spacings(self._region, self._ijk_to_xyz)
@@ -338,11 +351,9 @@ class ImageRender:
     # If data is 8-bit or 16-bit integer (signed or unsigned) then use data
     # full type range for colormap so data can be used as colormap index.
     dtype = self._data.value_type.type
-    if dtype in (uint8, int8, uint16, int16):
+    if dtype in (uint8, int8, uint16, int16) and not self._use_gpu_colormap:
       drange = dmin, dmax = _value_type_range(dtype)
       size = (dmax - dmin + 1)
-      # TODO: Need to limit texture size to max 1d texture for gpu colormapping
-      size = 4096
       return size, drange, t
 
     size = min(self._colormap_size, 2 ** 16)
@@ -499,7 +510,7 @@ class ImageRender:
     pd = self._view_aligned_planes
     if pd is None:
       pd = ViewAlignedPlanes(self._color_plane, self._region, self._ijk_to_xyz,
-                             self._modulation_color, self._opaque,
+                             self._plane_spacing(), self._modulation_color, self._opaque,
                              self._rendering_options.linear_interpolation)
       self._drawing.add_drawing(pd)
       pd.load_texture()
@@ -783,7 +794,7 @@ class AxisAlignedPlanes(Drawing):
 #
 class ViewAlignedPlanes(Drawing):
   
-  def __init__(self, color_plane, region, ijk_to_xyz,
+  def __init__(self, color_plane, region, ijk_to_xyz, plane_spacing,
                modulation_color, opaque, linear_interpolation):
 
     name = 'grayscale view aligned planes'
@@ -792,6 +803,7 @@ class ViewAlignedPlanes(Drawing):
     self._color_plane = color_plane
     self._region = region
     self._ijk_to_xyz = ijk_to_xyz
+    self._plane_spacing = plane_spacing
     self._compute_geometry_constants()
     self.color = modulation_color
     self.use_lighting = False
@@ -813,10 +825,6 @@ class ViewAlignedPlanes(Drawing):
   def _compute_geometry_constants(self):
 
     self._corners = _box_corners(self._region, self._ijk_to_xyz)	# in volume coords
-    # Use view aligned spacing equal to maximum grid spacing along 3 axes.
-    # This gives highest rendering speed.  Using minimum grid spacing may
-    # give higher quality appearance.
-    self._plane_spacing = max(_plane_spacings(self._region, self._ijk_to_xyz))
     # Use texture coord range [1/2n,1-1/2n], not [0,1].
     ijk_min, ijk_max, ijk_step = self._region
     ei,ej,ek = [i1-i0+1 for i0,i1 in zip(ijk_min, ijk_max)]
@@ -930,6 +938,7 @@ class BlendedImage(ImageRender):
       i0 = self.images[0]
       self.set_region(i0._region)
       self.set_options(i0._rendering_options)
+      self._rendering_options.colormap_on_gpu = False
 
   def draw(self, renderer, draw_pass):
 
@@ -945,7 +954,7 @@ class BlendedImage(ImageRender):
   def _color_plane(self, k, axis, view_aligned=False):
     p = None
     for ir in self.images:
-      dp = ir._color_plane(k, axis, view_aligned=view_aligned)
+      dp = ir._color_plane(k, axis, view_aligned=view_aligned, require_color=True)
       ir._update_colors = False
       cmode = ir._c_mode
       if p is None:

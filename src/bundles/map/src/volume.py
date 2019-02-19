@@ -2443,6 +2443,7 @@ class Rendering_Options:
     self.colormap_on_gpu = True	      # solid rendering with colors computed on gpu
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
+    self.plane_spacing = 'max'		    # "min", "max", "mean" or distance value
     self.bt_correction = False              # brightness and transparency
     self.minimal_texture_memory = False
     self.maximum_intensity_projection = False
