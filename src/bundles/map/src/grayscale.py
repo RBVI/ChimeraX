@@ -70,15 +70,15 @@ class GrayScaleDrawing(Drawing):
     b = self._blend_manager
     if b:
       b.remove_drawing(self)
-    self.remove_planes()
+    self._remove_planes()
     Drawing.delete(self)
 
   @property
-  def blend_image(self):
+  def _blend_image(self):
     b = self._blend_manager
     return b.blend_image(self) if b else None
 
-  def update_blend_groups(self):
+  def _update_blend_groups(self):
     b = self._blend_manager
     if b:
       b.update_groups()
@@ -88,7 +88,7 @@ class GrayScaleDrawing(Drawing):
   def _set_projection_mode(self, mode):
     if mode != self._projection_mode:
       self._projection_mode = mode
-      self.remove_planes()
+      self._remove_planes()
   projection_mode = property(_get_projection_mode, _set_projection_mode)
     
   def shown_orthoplanes(self):
@@ -96,7 +96,7 @@ class GrayScaleDrawing(Drawing):
   def set_shown_orthoplanes(self, s):
     if s != self._show_ortho_planes:
       self._show_ortho_planes = s
-      self.remove_planes()
+      self._remove_planes()
   show_ortho_planes = property(shown_orthoplanes, set_shown_orthoplanes)
 
   def orthoplanes_position(self):
@@ -104,7 +104,7 @@ class GrayScaleDrawing(Drawing):
   def set_orthoplanes_position(self, p):
     if tuple(p) != self._ortho_planes_position:
       self._ortho_planes_position = tuple(p)
-      self.remove_planes()	# TODO: Reuse current planes moving to new position.
+      self._remove_planes()	# TODO: Reuse current planes moving to new position.
   ortho_planes_position = property(orthoplanes_position, set_orthoplanes_position)
 
   def showing_box_faces(self):
@@ -112,7 +112,7 @@ class GrayScaleDrawing(Drawing):
   def set_showing_box_faces(self, s):
     if s != self._show_box_faces:
       self._show_box_faces = s
-      self.remove_planes()
+      self._remove_planes()
   show_box_faces = property(showing_box_faces, set_showing_box_faces)
 
   @property
@@ -144,7 +144,7 @@ class GrayScaleDrawing(Drawing):
         p.color = rgba8
 
   @property
-  def modulation_color(self):
+  def _modulation_color(self):
     return tuple(int(255*r) for r in self.modulation_rgba())
   
   # 3 by 4 matrix mapping grid indices to xyz coordinate space.
@@ -154,15 +154,15 @@ class GrayScaleDrawing(Drawing):
     if tf != self.ijk_to_xyz:
       self.ijk_to_xyz = tf
       # TODO: Just update vertex buffer.
-      self.remove_planes()
-      bi = self.blend_image
+      self._remove_planes()
+      bi = self._blend_image
       if bi:
         bi.set_array_coordinates(tf)
 
   def set_volume_colors(self, color_values):	# uint8 or float
     self.color_grid = color_values
     grid_size = tuple(color_values.shape[2::-1])
-    self.set_grid_size(grid_size)
+    self._set_grid_size(grid_size)
     self.update_colors = True
 
   # Callback takes axis and plane numbers and returns color plane.
@@ -170,31 +170,31 @@ class GrayScaleDrawing(Drawing):
   # memory use.
   def set_color_plane_callback(self, grid_size, get_color_plane):
     self.get_color_plane = get_color_plane
-    self.set_grid_size(grid_size)
+    self._set_grid_size(grid_size)
     self.update_colors = True
 
   def set_color_mode(self, color_mode):
     if color_mode != self.color_mode:
       self.color_mode = color_mode
-      self.remove_planes()
+      self._remove_planes()
 
   @property
-  def opaque(self):
+  def _opaque(self):
     return (not 'a' in self.color_mode)
   
   def set_linear_interpolation(self, lin_interp):
     '''Can only call this when OpenGL context current.'''
     if lin_interp != self.linear_interpolation:
       self.linear_interpolation = lin_interp
-      self.remove_planes()
+      self._remove_planes()
         
-  def set_grid_size(self, grid_size):
+  def _set_grid_size(self, grid_size):
     if grid_size != self.grid_size:
-      self.remove_planes()
+      self._remove_planes()
       self.grid_size = grid_size
-      bi = self.blend_image
+      bi = self._blend_image
       if bi:
-        bi.set_grid_size(grid_size)
+        bi._set_grid_size(grid_size)
 
   def bounds(self):
     # Override bounds because GrayScaleDrawing does not set geometry until draw() is called
@@ -234,8 +234,8 @@ class GrayScaleDrawing(Drawing):
     if not self.display:
       return
 
-    self.update_blend_groups()
-    bi = self.blend_image
+    self._update_blend_groups()
+    bi = self._blend_image
     if bi:
       if self is bi.master_drawing:
         bi.draw(renderer, draw_pass)
@@ -251,7 +251,7 @@ class GrayScaleDrawing(Drawing):
     pd = self._update_planes(renderer)
 
     if self.update_colors:
-      self.reload_textures()
+      self._reload_textures()
     self.update_colors = False
 
     self._draw_planes(renderer, draw_pass, dtransp, pd)
@@ -293,7 +293,7 @@ class GrayScaleDrawing(Drawing):
     pd = self._planes_drawing if axis is None else self._multiaxis_planes[axis]
     if pd is None:
       sc = self.shape_changed
-      pd = self.make_planes(axis)
+      pd = self._make_planes(axis)
       self.update_colors = False
       if axis is None:
         self._planes_drawing = pd
@@ -322,8 +322,8 @@ class GrayScaleDrawing(Drawing):
   def _update_view_aligned_planes(self, view_direction):
     pd = self._view_aligned_planes
     if pd is None:
-      pd = ViewAlignedPlanes(self.color_plane, self.grid_size, self.ijk_to_xyz,
-                             self.modulation_color, self.opaque, self.linear_interpolation)
+      pd = ViewAlignedPlanes(self._color_plane, self.grid_size, self.ijk_to_xyz,
+                             self._modulation_color, self._opaque, self.linear_interpolation)
       self.add_drawing(pd)
       pd.load_texture()
       self._view_aligned_planes = pd
@@ -331,7 +331,7 @@ class GrayScaleDrawing(Drawing):
     pd.update_geometry(view_direction, self.scene_position)
     return pd
 
-  def remove_planes(self):
+  def _remove_planes(self):
     self._remove_axis_planes()
     self._remove_view_planes()
 
@@ -352,13 +352,13 @@ class GrayScaleDrawing(Drawing):
       self.remove_drawing(pd)
       self._view_aligned_planes = None
 
-  def make_planes(self, axis):
+  def _make_planes(self, axis):
     if axis is not None:
-      d = self.make_axis_planes(axis)
+      d = self._make_axis_planes(axis)
     elif self._show_box_faces:
-      d = self.make_box_faces()
+      d = self._make_box_faces()
     elif self._show_ortho_planes:
-      d = self.make_ortho_planes()
+      d = self._make_ortho_planes()
     return d
 
   def view_direction(self, render):
@@ -391,34 +391,34 @@ class GrayScaleDrawing(Drawing):
 
     return axis, rev
 
-  def make_axis_planes(self, axis = 2):
+  def _make_axis_planes(self, axis = 2):
     planes = tuple((k, axis) for k in range(0,self.grid_size[axis]))
-    d = self.make_planes_drawing(planes)
+    d = self._make_planes_drawing(planes)
     return d
 
-  def make_ortho_planes(self):
+  def _make_ortho_planes(self):
     op = self._show_ortho_planes
     p = self.ortho_planes_position
     show_axis = (op & 0x1, op & 0x2, op & 0x4)
     planes = tuple((p[axis], axis) for axis in (0,1,2) if show_axis[axis])
-    d = self.make_planes_drawing(planes)
+    d = self._make_planes_drawing(planes)
     return d
 
-  def make_box_faces(self):
+  def _make_box_faces(self):
     gs = self.grid_size
     planes = (tuple((0,axis) for axis in (0,1,2)) +
               tuple((gs[axis]-1,axis) for axis in (0,1,2)))
-    d = self.make_planes_drawing(planes)
+    d = self._make_planes_drawing(planes)
     return d
 
   # Each plane is an index position and axis (k,axis).
-  def make_planes_drawing(self, planes):
-    pd = AxisAlignedPlanes(planes, self.grid_size, self.ijk_to_xyz, self.color_plane,
-                           self.modulation_color, self.opaque, self.linear_interpolation)
+  def _make_planes_drawing(self, planes):
+    pd = AxisAlignedPlanes(planes, self.grid_size, self.ijk_to_xyz, self._color_plane,
+                           self._modulation_color, self._opaque, self.linear_interpolation)
     self.add_drawing(pd)
     return pd
 
-  def reload_textures(self):
+  def _reload_textures(self):
     pd = self._view_aligned_planes
     if pd:
       pd.load_texture()
@@ -427,7 +427,7 @@ class GrayScaleDrawing(Drawing):
       if pd:
         pd.load_textures()
 
-  def color_plane(self, k, axis, view_aligned=False):
+  def _color_plane(self, k, axis, view_aligned=False):
     if self.color_grid is not None:
       if axis == 2:
         p = self.color_grid[k,:,:,:]
@@ -612,7 +612,7 @@ class BlendedImage(GrayScaleDrawing):
     self.mirror_attributes()
 
     for d in drawings:
-      d.remove_planes()	# Free textures and opengl buffers
+      d._remove_planes()	# Free textures and opengl buffers
 
     self._rgba8_array = None
 
@@ -630,7 +630,7 @@ class BlendedImage(GrayScaleDrawing):
   def draw(self, renderer, draw_pass):
 
     self.mirror_attributes()
-    self.check_update_colors()
+    self._check_update_colors()
     
     GrayScaleDrawing.draw(self, renderer, draw_pass)
 
@@ -638,15 +638,15 @@ class BlendedImage(GrayScaleDrawing):
   def master_drawing(self):
       return self.drawings[0]
 
-  def color_plane(self, k, axis, view_aligned=False):
+  def _color_plane(self, k, axis, view_aligned=False):
     p = None
     for d in self.drawings:
-      dp = d.color_plane(k, axis, view_aligned=view_aligned)
+      dp = d._color_plane(k, axis, view_aligned=view_aligned)
       d.update_colors = False
       cmode = d.color_mode
       if p is None:
         h,w = dp.shape[:2]
-        p = self.rgba8_array(w,h)
+        p = self._color_array(w,h)
         if cmode == 'rgba8':
           p[:] = dp
         elif cmode == 'rgb8':
@@ -669,7 +669,7 @@ class BlendedImage(GrayScaleDrawing):
           blend_l_to_rgba(dp, d.mod_rgba, p)
     return p
 
-  def rgba8_array(self, w, h):
+  def _color_array(self, w, h):
     # Reuse same array for faster color updating.
     a = self._rgba8_array
     if a is None or tuple(a.shape) != (h, w, 4):
@@ -677,7 +677,7 @@ class BlendedImage(GrayScaleDrawing):
       self._rgba8_array = a = empty((h,w,4), uint8)
     return a
 
-  def check_update_colors(self):
+  def _check_update_colors(self):
     for d in self.drawings:
       if d.update_colors:
         self.update_colors = True

@@ -53,7 +53,7 @@ class Volume(Model):
     self.message_cb = session.logger.status
     
     self.matrix_stats = None
-    self.matrix_id = 1          # Incremented when shape or values change.
+    self._matrix_id = 1          # Incremented when shape or values change.
 
     rlist = Region_List()
     ijk_min, ijk_max = self.region[:2]
@@ -91,6 +91,8 @@ class Volume(Model):
 #    h = triggers.addHandler('SurfacePiece', self.surface_piece_changed_cb, None)
 #    self.surface_piece_change_handler = h
     self.surface_piece_change_handler = None
+
+    self._use_image3d = False
 
   # ---------------------------------------------------------------------------
   #
@@ -466,7 +468,7 @@ class Volume(Model):
   def matrix_changed(self):
 
     self.matrix_stats = None
-    self.matrix_id += 1
+    self._matrix_id += 1
     self._drawings_need_update()
       
   # ---------------------------------------------------------------------------
@@ -760,26 +762,32 @@ class Volume(Model):
       s = self._make_solid()
       self.solid = s
 
-    ro = self.rendering_options
-    s.set_options(ro.color_mode, ro.projection_mode,
-                  ro.dim_transparent_voxels,
-                  ro.bt_correction, ro.minimal_texture_memory,
-                  ro.maximum_intensity_projection, ro.linear_interpolation,
-                  ro.show_outline_box, ro.outline_box_rgb,
-                  ro.outline_box_linewidth, ro.box_faces,
-                  ro.orthoplanes_shown,
-                  self.matrix_index(ro.orthoplane_positions))
+    if not self._use_image3d:
+      ro = self.rendering_options
+      s.set_options(ro.color_mode, ro.projection_mode,
+                    ro.dim_transparent_voxels,
+                    ro.bt_correction, ro.minimal_texture_memory,
+                    ro.maximum_intensity_projection, ro.linear_interpolation,
+                    ro.show_outline_box, ro.outline_box_rgb,
+                    ro.outline_box_linewidth, ro.box_faces,
+                    ro.orthoplanes_shown,
+                    self.matrix_index(ro.orthoplane_positions))
+      s.set_transform(self.matrix_indices_to_xyz_transform())
+      tf = self.transfer_function()
+      s.set_colormap(tf, self.solid_brightness_factor, self._transparency_thickness())
+      s.set_matrix(self.matrix_size(), self.data.value_type, self._matrix_id, self.matrix_plane)
+      from . import grayscale
+      bm = grayscale.blend_manager(self.session)
+      s.update_drawing(self, bm)
+    else:
+      ro = self.rendering_options
+      s.set_options(ro)
+      s.set_region(self.region)
+      from .image3d import Colormap
+      cmap =  Colormap(self.transfer_function(), self.solid_brightness_factor,
+                       self._transparency_thickness())
+      s.set_colormap(cmap)
 
-    s.set_transform(self.matrix_indices_to_xyz_transform())
-
-
-    tf = self.transfer_function()
-    s.set_colormap(tf, self.solid_brightness_factor, self._transparency_thickness())
-    s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id, self.matrix_plane)
-
-    from . import grayscale
-    bm = grayscale.blend_manager(self.session)
-    s.update_drawing(self, bm)
 
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
@@ -796,17 +804,32 @@ class Volume(Model):
   #
   def _make_solid(self):
 
-    from . import solid
-    name = self.name + ' solid'
-    msize = self.matrix_size()
-    value_type = self.data.value_type
+    if not self._use_image3d:
+      from . import solid
+      name = self.name + ' solid'
+      msize = self.matrix_size()
+      value_type = self.data.value_type
 
-    transform = self.matrix_indices_to_xyz_transform()
-    align = self.surface_model()
-    s = solid.Solid(name, msize, value_type, self.matrix_id, self.matrix_plane,
-                    transform, align, self.message)
+      transform = self.matrix_indices_to_xyz_transform()
+      align = self.surface_model()
+      s = solid.Solid(name, msize, value_type, self._matrix_id, self.matrix_plane,
+                      transform, align, self.message)
+    else:    
+      from .image3d import blend_manager
+      bm = blend_manager(self.session)
+
+      from .image3d import Colormap
+      cmap = Colormap(self.transfer_function(), self.solid_brightness_factor,
+                    self._transparency_thickness())
+
+      from .image3d import ImageRender
+      s = ImageRender('image', self.data, self.region, cmap, self.rendering_options,
+                    self.session, bm)
+      self.add([s.model()])
+
     if hasattr(self, 'mask_colors'):
       s.mask_colors = self.mask_colors
+
     return s
 
   # ---------------------------------------------------------------------------
@@ -814,7 +837,7 @@ class Volume(Model):
   def shown(self):
 
     surf_disp = len([s for s in self.surfaces if s.display]) > 0
-    solid_disp = (self.solid and self.solid.drawing.display)
+    solid_disp = (self.solid and self.solid.model().display)
     return self.display and (surf_disp or solid_disp)
     
   # ---------------------------------------------------------------------------
@@ -1737,7 +1760,10 @@ class Volume(Model):
 
     s = self.solid
     if s:
-      s.close_model(self)
+      if not self._use_image3d:
+        s.close_model(self)
+      else:
+        s.close_model()
       self.solid = None
       
   # ---------------------------------------------------------------------------
@@ -2042,7 +2068,7 @@ class VolumeSurface(Surface):
     v = self.volume
     ro = rendering_options
     contour_settings = {'level': self.level,
-                        'matrix_id': v.matrix_id,
+                        'matrix_id': v._matrix_id,
                         'transform': v.matrix_indices_to_xyz_transform(),
                         'surface_smoothing': ro.surface_smoothing,
                         'smoothing_factor': ro.smoothing_factor,
@@ -2414,6 +2440,7 @@ class Rendering_Options:
       'l4', 'l8', 'l12', 'l16')
     self.color_mode = 'auto8'         # solid rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
+    self.colormap_on_gpu = True	      # solid rendering with colors computed on gpu
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self.bt_correction = False              # brightness and transparency

@@ -2914,7 +2914,8 @@ class PickedBond(Pick):
         Pick.__init__(self, distance)
         self.bond = bond
     def description(self):
-        return str(self.bond)
+        dist_fmt = self.bond.session.pb_dist_monitor.distance_format
+        return str(self.bond) + " " + dist_fmt % self.bond.length
     @property
     def residue(self):
         a1, a2 = self.bond.atoms
@@ -2965,7 +2966,8 @@ class PickedPseudobond(Pick):
         Pick.__init__(self, distance)
         self.pbond = pbond
     def description(self):
-        return str(self.pbond)
+        dist_fmt = self.pbond.session.pb_dist_monitor.distance_format
+        return str(self.pbond) + " " + dist_fmt % self.pbond.length
     @property
     def residue(self):
         a1, a2 = self.pbond.atoms

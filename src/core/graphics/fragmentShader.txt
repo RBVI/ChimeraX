@@ -124,6 +124,11 @@ in vec3 tex_coord_3d;
 uniform sampler3D tex3d;
 #endif
 
+#ifdef USE_COLORMAP
+uniform vec2 colormap_range;		// offset and scale
+uniform sampler1D colormap;
+#endif
+
 #ifdef USE_DEPTH_TEXTURE
 uniform vec2 tex_depth_projection;	// near, far/(far-near)
 uniform vec3 tex_depth_scale;		// tex coord xscale, yscale and value zscale
@@ -155,10 +160,20 @@ void main (void)
 #endif
 
 #ifdef USE_TEXTURE_2D
+#ifdef USE_COLORMAP
+  float tvalue = (texture(tex2d, tex_coord_2d).r - colormap_range.x) * colormap_range.y;
+  vec4 fcolor = texture(colormap, tvalue) * color;
+#else
   vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
+#endif
 #else
 #ifdef USE_TEXTURE_3D
+#ifdef USE_COLORMAP
+  float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
+  vec4 fcolor = texture(colormap, tvalue) * color;
+#else
   vec4 fcolor = texture(tex3d, tex_coord_3d) * color;
+#endif
 #else
 #ifdef USE_TEXTURE_CUBEMAP
   vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;

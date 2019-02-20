@@ -133,6 +133,12 @@ class Drawing:
         """Texture coordinates, an N by 2 numpy array of float32 values
         in range 0-1"""
 
+        self.colormap = None
+        '''Maps 2D and 3D texture values to colors.'''
+
+        self.colormap_range = (0,1)
+        '''Data value range corresponding to ends of colormap.'''
+
         # 3d texture that modulates colors.
         self.ambient_texture = None
         '''
@@ -735,6 +741,13 @@ class Drawing:
         if t is not None:
             t.bind_texture()
 
+        cmap = self.colormap
+        if cmap:
+            if t:
+                r.set_colormap(cmap, self.colormap_range, t)
+            elif self.multitexture:
+                r.set_colormap(cmap, self.colormap_range, self.multitexture[0])
+
         at = self.ambient_texture
         if at is not None:
             at.bind_texture()
@@ -777,6 +790,8 @@ class Drawing:
                 else:
                     raise ValueError('Only 2D and 3D texture rendering supported, got %dD'
                                      % t.dimension)
+            if self.colormap is not None:
+                sopt |= Render.SHADER_COLORMAP
             if self.multitexture:
                 sopt |= Render.SHADER_TEXTURE_2D
             if self.ambient_texture is not None:
@@ -1102,6 +1117,9 @@ class Drawing:
                 t.delete_texture()
             self.multitexture = None
         self.texture_coordinates = None
+        if self.colormap:
+            self.colormap.delete_texture()
+            self.colormap = None
 
         for b in self._vertex_buffers:
             b.delete_buffer()
