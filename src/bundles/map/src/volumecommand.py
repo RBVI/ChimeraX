@@ -73,6 +73,7 @@ def register_volume_command(logger):
                ('colormap_on_gpu', BoolArg),
                ('projection_mode', EnumOf(ro.projection_modes)),
                ('plane_spacing', Or(EnumOf(('min', 'max', 'mean')), FloatArg)),
+               ('full_region_on_gpu', BoolArg),
                ('bt_correction', BoolArg),
                ('minimal_texture_memory', BoolArg),
                ('maximum_intensity_projection', BoolArg),
@@ -151,6 +152,7 @@ def volume(session,
            colormap_on_gpu = None,           # solid colormapping on gpu or cpu
            projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
            plane_spacing = None,	     # min, max, or numeric value
+           full_region_on_gpu = None,	     # for fast cropping with solid rendering
            bt_correction = None,             # brightness and transparency
            minimal_texture_memory = None,
            maximum_intensity_projection = None,
@@ -244,6 +246,8 @@ def volume(session,
     plane_spacing : "min", "max", "mean" or float
       Spacing between planes when using 3d projection mode.  "min", "max", "mean" use
       minimum, maximum or average grid spacing along x,y,z axes.
+    full_region_on_gpu : bool
+      Whether to cache data on GPU for fast cropping.
     bt_correction : bool
       Brightness and transparency view angle correction for solid mode.
     minimal_texture_memory : bool
@@ -320,7 +324,7 @@ def volume(session,
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
         'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu',
-        'projection_mode', 'plane_spacing',
+        'projection_mode', 'plane_spacing', 'full_region_on_gpu',
         'bt_correction', 'minimal_texture_memory', 'maximum_intensity_projection',
         'linear_interpolation', 'dim_transparency', 'dim_transparent_voxels',
         'line_thickness', 'smooth_lines', 'mesh_lighting',
