@@ -19,7 +19,7 @@ or derivations thereof.
 </head><body>
 
 <a name="top"></a>
-<a href="index.html">
+<a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
@@ -46,8 +46,9 @@ such as HTC Vive, Oculus Rift and Samsung Odyssey headsets.
 Descriptions below are for Vive hand controllers, but other hand controllers 
 have buttons that are generally similar in position and function.
 </p><p>
-Other than the manipulation in VR, however, the tutorial can be done without VR
-just using your computer and mouse or trackpad instead of hand controllers.
+Other than the manipulation in VR, however, the tutorial can be done 
+without VR just using your computer and mouse (or trackpad)
+instead of a headset and hand controllers.
 See also: <a href="../dicom-quickref.html">DICOM Quick Reference</a>,
 <a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
@@ -167,7 +168,18 @@ Show the <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 of icons that act on volume models 
 (menu: <b>Tools... Toolbar... Density Map Toolbar</b>).
 <br><img class="iconbar" src="../density-icons.png">
-</p><p>
+</p>
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="dicom-vr3.png">
+<img class="outline" src="dicom-vr3.png" title="click to enlarge..."
+alt="Vive hand controllers" width="300px"></a>
+</td></tr>
+<tr><td align="center"><font size="-1">click image to enlarge, or see 
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html" target="_blank">diagram at Vive website</a>
+</font></td></tr>
+</table>
+<p>
 The <a href="../tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
 toolbar should already be shown:
 <br><img class="iconbar" src="../mouse-icons.png">
@@ -176,18 +188,18 @@ Hide sets of icons not needed for this tutorial
 (in menu: <b>Tools... Toolbar</b>, uncheck <b>Graphics Toolbar</b> and
 <b>Molecule Display Toolbar</b>).
 </p>
-
 <table class="clRight" cellspacing="0">
 <tr><td>
-<a href="dicom-vr3.png">
-<img class="outline" src="dicom-vr3.png" title="click to enlarge..."
-alt="screenshot 1" width="300px"></a>
+<a href="dicom-vr2.png">
+<img class="outline" src="dicom-vr2.png" title="click to enlarge..."
+alt="SteamVR status window" width="200px"></a>
 </td></tr>
-<tr><td align="center"><font size="-1">click image to enlarge, or see 
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html" target="_blank">diagram at Vive website</a>
+<tr><td align="center" width="200px"><font size="-1">
+The <a href="http://steamvr.com" target="_blank">SteamVR</a> status window
+shows icons for the goggles, two controllers, and two base stations
+in green when they are detected as ready for use.
 </font></td></tr>
 </table>
-
 <p>
 Take a moment to look at the hand controllers:
 Vive controllers
@@ -209,9 +221,7 @@ Command: <b><a href="../commands/device.html#vr">vr</a> on</b>
 <p>
 (<a href="http://steamvr.com" target="_blank">SteamVR</a>
 starts automatically, providing you had previously signed in to it 
-from the same computer and chose to have your password remembered.
-The SteamVR status window shows icons for the goggles and the two
-controllers in green when it detects them as turned on and ready for use.)
+from the same computer and chose to have your password remembered.)
 </p><p>
 On the screen, you can see that the icon bars have been moved
 to the right side of the graphics window. In the process, other tool
@@ -220,14 +230,26 @@ panels may have been vertically compressed; drag to make the
 tall enough to show the full height of the histogram.
 </p><p>
 Put on the headset, and try moving the model. 
-The hand-controller positions are shown in the headset as cones.
+The hand-controller positions are shown in the headset as cones,
+and icons on the cones indicate button assignments.
 </p>
+
 <a name="default-controller"></a>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center">rotate
 <br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
 <td class="text">&nbsp;rotate hand controller 
 with <b><i>trigger</i></b> pressed</td>
+<td rowspan="5" align="center" valign="center" width="200px">
+<a href="dicom-vr6.png">
+<img class="outline" src="dicom-vr6.png" title="click to enlarge..."
+alt="underside of cone" width="160px"></a>
+<br><br><font size="-1">
+The icon on the cone &ldquo;underside&rdquo; shows that the
+<b><i>trigger</i></b> is assigned to translation (and rotation),
+and the icon on the side shows that the <b><i>grip</i></b> button
+is assigned to center and rescale.
+</font>
 </tr><tr>
 <td align="center">translate in 3D
 <br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
@@ -243,13 +265,15 @@ together with both <b><i>triggers</i></b> pressed
 </td>
 </tr><tr>
 <td align="center">center and rescale
-<br>(useful to recover a reasonable view)</td>
+<br>(useful to recover the view)
+<br><img src="../tools/shortcut-icons/viewall.png" class="icon2"></td>
 <td class="text">&nbsp;click <b><i>grip</i></b> button</td>
 </tr><tr>
 <td align="center" class="text">
-show, hide, move ChimeraX control panel</td>
+show, hide, move control panel</td>
 <td class="text">&nbsp;use <b><i>menu</i></b> button</td>
 </tr></table>
+
 <p>
 Continue moving the model as you wish throughout the tutorial.
 </p>
@@ -288,9 +312,10 @@ can be clicked with any controller button
 <br><br>
 Clicking a <a href="../tools/mousemodes.html"><b>Mouse Modes</b></a> icon
 with a controller button assigns <b><i>whichever button was clicked</i></b> 
-to the corresponding function.
+to the corresponding function. 
 </td>
 </tr></table>
+
 </blockquote>
 <p>
 Leaving <b><i>triggers</i></b> with their
@@ -335,7 +360,22 @@ click with the <b><i>trackpad</i></b> button
 (still assigned to <b>move planes</b>) on any face of the box and 
 drag to view planes along the axis perpendicular to that face.
 </ul>
+
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="dicom-vr4-full.png">
+<img class="outline" src="dicom-vr4-full.png" title="click to enlarge..."
+alt="screenshot 2" width="400px"></a>
+</td></tr>
+<tr><td align="center" width="400px"><font size="-1">
+Desktop view including the VR scene in the graphics window:
+orthoplanes, control panel, and cones with icons for current mode assignments.
+</font></td></tr>
+</table>
+
+<p>
 To view planes along X, Y, and Z at the same time:
+</p>
 <ul>
 <li>Click
 <img class="icon3" border=1 src="../tools/shortcut-icons/orthoplanes.png">
@@ -375,6 +415,18 @@ If you later go back to viewing planes or thin slabs,
 it may be helpful to restore the initial thresholds by clicking
 <img class="icon3" border=1 src="../tools/shortcut-icons/initialcurve.png">.
 </p>
+
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="dicom-vr5-crop.png">
+<img class="outline" src="dicom-vr5-crop.png" title="click to enlarge..."
+alt="screenshot 3" width="300px"></a>
+</td></tr>
+<tr><td align="center"><font size="-1">
+VR scene during cropping.
+</font></td></tr>
+</table>
+
 <ul>
 <li>Click the <b>crop volume</b> mode icon
 <img class="icon3" border=1 src="../tools/mouse-icons/crop.png">
@@ -392,19 +444,6 @@ This automatically shows an outline box.
 <img class="icon3" border=1 src="../tools/shortcut-icons/outlinebox.png">
 toggles the outline box on and off. 
 </ul>
-<!--
-<p>
-When rotating the volume, you may notice jumps in brightness as 
-rendering switches between using planes along the X, Y, or Z data axes. 
-This is the 2D projection mode
-<img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png">.
-<ul>
-<li>Click <img class="icon3" border=1 src="../tools/shortcut-icons/perpslice.png">
-to use 3D projection instead. Now the rendering always uses planes
-perpendicular to the line of sight, avoiding brightness jumps during
-rotation but adding some blur along directions with interpolated values.
-</ul>
--->
 <p>
 Similar to planes, you can move a slab along X, Y, or Z:
 </p>

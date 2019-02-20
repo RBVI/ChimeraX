@@ -26,6 +26,9 @@ def read_collada_surfaces(session, path, name = None, color = (200,200,200,255),
     elif len(splist) == 1:
         s = splist[0]
         s.name = name
+    else:
+        from chimerax.core.errors import UserError
+        raise UserError('Collada file has no TriangleSets: %s' % name)
     set_instance_positions_and_colors(s.all_drawings())
 
     ai = c.assetInfo

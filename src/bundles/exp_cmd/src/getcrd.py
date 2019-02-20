@@ -32,7 +32,7 @@ def getcrd(session, atoms=None, coordinate_system='scene'):
         coords = atoms.scene_coords
         s2c.transform_points(coords, in_place=True)
     save = settings.atomspec_contents
-    settings.atomspec_contents = "command-line specifier"
+    settings.atomspec_contents = "command"
     for i, a in enumerate(atoms):
         c = coords[i]
         msgs.append("Atom %s %.3f %.3f %.3f" % (a.atomspec, c[0], c[1], c[2]))
