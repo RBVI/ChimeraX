@@ -77,7 +77,7 @@ class GraphicsWindow(QWindow):
             # Avoid flickering when resizing by drawing immediately.
             from chimerax.core.graphics import OpenGLVersionError
             try:
-                v.draw(check_for_changes = False)
+                self.session.update_loop.update_graphics_now()
             except OpenGLVersionError as e:
                 # Inadequate OpenGL version
                 self.session.logger.error(str(e))

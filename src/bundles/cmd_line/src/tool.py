@@ -128,6 +128,7 @@ class CommandLine(ToolInstance):
                 if start >= 0 and (start, length) != (le.selectionStart(), len(le.selectedText())):
                     le.setSelection(start, length)
         self.text.lineEdit().selectionChanged.connect(sel_change_correction)
+        self.text.lineEdit().textEdited.connect(self.history_dialog.search_reset)
         def text_change(*args):
             # if text changes while focus is out, remember new selection
             if self.text._out_selection is not None:
@@ -362,8 +363,7 @@ class _HistoryDialog:
         from chimerax.core.history import FIFOHistory
         self._history = FIFOHistory(controller.settings.num_remembered, controller.session, "commands")
         self._record_dialog = None
-        self._search_cache = None
-        self._suspend_handler = False
+        self._search_cache = (False, None)
 
     def add(self, item, *, typed=False):
         if len(self._history) >= self.controller.settings.num_remembered:
@@ -463,20 +463,24 @@ class _HistoryDialog:
     def down(self, shifted):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
+            self._search_cache = (False, None)
             return
         sel = sels[0].row()
         orig_text = self.controller.text.currentText()
         match_against = None
-        self._suspend_handler = False
         if shifted:
-            if self._search_cache is None:
+            was_searching, prev_search = self._search_cache
+            if was_searching:
+                match_against = prev_search
+            else:
                 words = orig_text.strip().split()
                 if words:
                     match_against = words[0]
-                    self._search_cache = match_against
-            else:
-                match_against = self._search_cache
-            self._suspend_handler = True
+                    self._search_cache = (True, match_against)
+                else:
+                    self._search_cache = (False, None)
+        else:
+            self._search_cache = (False, None)
         if match_against:
             last = self.listbox.count() - 1
             while sel < last:
@@ -491,7 +495,6 @@ class _HistoryDialog:
         self.controller.cmd_replace(new_text)
         if orig_text == new_text:
             self.down(shifted)
-        self._suspend_handler = False
 
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
@@ -526,6 +529,15 @@ class _HistoryDialog:
         self.controller.text.lineEdit().selectAll()
         cursels = self.listbox.scrollToBottom()
 
+    def search_reset(self):
+        searching, target = self._search_cache
+        if searching:
+            self._search_cache = (False, None)
+            self.listbox.blockSignals(True)
+            self.listbox.clearSelection()
+            self.listbox.setCurrentRow(self.listbox.count() - 1)
+            self.listbox.blockSignals(False)
+
     def select(self):
         sels = self.listbox.selectedItems()
         if len(sels) != 1:
@@ -535,20 +547,24 @@ class _HistoryDialog:
     def up(self, shifted):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
+            self._search_cache = (False, None)
             return
         sel = sels[0].row()
         orig_text = self.controller.text.currentText()
         match_against = None
-        self._suspend_handler = False
         if shifted:
-            if self._search_cache is None:
+            was_searching, prev_search = self._search_cache
+            if was_searching:
+                match_against = prev_search
+            else:
                 words = orig_text.strip().split()
                 if words:
                     match_against = words[0]
-                    self._search_cache = match_against
-            else:
-                match_against = self._search_cache
-            self._suspend_handler = True
+                    self._search_cache = (True, match_against)
+                else:
+                    self._search_cache = (False, None)
+        else:
+            self._search_cache = (False, None)
         if match_against:
             while sel > 0:
                 if self.listbox.item(sel - 1).text().startswith(match_against):
@@ -562,7 +578,6 @@ class _HistoryDialog:
         self.controller.cmd_replace(new_text)
         if orig_text == new_text:
             self.up(shifted)
-        self._suspend_handler = False
 
     def update_list(self):
         c = self.controller
@@ -578,11 +593,6 @@ class _HistoryDialog:
     def set_typed_only(self, typed_only):
         self.typed_only = typed_only
         self.populate()
-
-    def _entry_modified(self, event):
-        if not self._suspend_handler:
-            self._search_cache = None
-        event.Skip()
 
     def _num_remembered_changed(self, new_hist_len):
         if len(self._history) > new_hist_len:

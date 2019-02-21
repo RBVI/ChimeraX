@@ -17,7 +17,7 @@
 def register_volume_command(logger):
 
     from chimerax.core.commands import CmdDesc, register
-    from chimerax.core.commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, RepeatOf
+    from chimerax.core.commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, RepeatOf, Or
     from chimerax.atomic import SymmetryArg
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
     from .colortables import appearance_names
@@ -70,7 +70,10 @@ def register_volume_command(logger):
                ('limit_voxel_count', BoolArg),
                ('voxel_limit', FloatArg),
                ('color_mode', EnumOf(ro.color_modes)),
+               ('colormap_on_gpu', BoolArg),
                ('projection_mode', EnumOf(ro.projection_modes)),
+               ('plane_spacing', Or(EnumOf(('min', 'max', 'mean')), FloatArg)),
+               ('full_region_on_gpu', BoolArg),
                ('bt_correction', BoolArg),
                ('minimal_texture_memory', BoolArg),
                ('maximum_intensity_projection', BoolArg),
@@ -146,7 +149,10 @@ def volume(session,
            limit_voxel_count = None,          # auto-adjust step size
            voxel_limit = None,               # Mvoxels
            color_mode = None,                # solid rendering pixel formats
+           colormap_on_gpu = None,           # solid colormapping on gpu or cpu
            projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
+           plane_spacing = None,	     # min, max, or numeric value
+           full_region_on_gpu = None,	     # for fast cropping with solid rendering
            bt_correction = None,             # brightness and transparency
            minimal_texture_memory = None,
            maximum_intensity_projection = None,
@@ -233,8 +239,15 @@ def volume(session,
       Solid rendering pixel formats: 'auto4', 'auto8', 'auto12', 'auto16',
       'opaque4', 'opaque8', 'opaque12', 'opaque16', 'rgba4', 'rgba8', 'rgba12', 'rgba16',
       'rgb4', 'rgb8', 'rgb12', 'rgb16', 'la4', 'la8', 'la12', 'la16', 'l4', 'l8', 'l12', 'l16'
+    colormap_on_gpu : bool
+      Whether colormapping is done on gpu or cpu for solid rendering.
     projection_mode : string
       One of 'auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d'
+    plane_spacing : "min", "max", "mean" or float
+      Spacing between planes when using 3d projection mode.  "min", "max", "mean" use
+      minimum, maximum or average grid spacing along x,y,z axes.
+    full_region_on_gpu : bool
+      Whether to cache data on GPU for fast cropping.
     bt_correction : bool
       Brightness and transparency view angle correction for solid mode.
     minimal_texture_memory : bool
@@ -310,7 +323,8 @@ def volume(session,
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
-        'limit_voxel_count', 'voxel_limit', 'color_mode', 'projection_mode',
+        'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu',
+        'projection_mode', 'plane_spacing', 'full_region_on_gpu',
         'bt_correction', 'minimal_texture_memory', 'maximum_intensity_projection',
         'linear_interpolation', 'dim_transparency', 'dim_transparent_voxels',
         'line_thickness', 'smooth_lines', 'mesh_lighting',
