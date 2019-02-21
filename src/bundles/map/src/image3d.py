@@ -33,10 +33,9 @@ class ImageRender:
       blend_manager.add_image(self)
 
     self._drawing = self._make_drawing(session)
-    self._color_tables = {}		# Maps axis to (ctable, ctable_range)
+    self._color_tables = {}			# Maps axis to (ctable, ctable_range)
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
-    self._colormap_size = 256		# For GPU or other than 8 or 16-bit data types
     self._update_colors = True
     self._multiaxis_planes = [None, None, None]	# For x, y, z axis projection
     self._planes_drawing = None			# For ortho and box mode display
@@ -109,11 +108,18 @@ class ImageRender:
 
     self._rendering_options = rendering_options.copy()
 
+    if rendering_options.colormap_size != ro.colormap_size:
+        self._color_tables.clear()
+        self._update_colors = True
+      
     cmode = self._auto_color_mode()
     if cmode != self._c_mode:
         self._c_mode = cmode
         self._color_tables.clear()
         self._update_colors = True
+
+    if self._update_colors:
+      self._drawing.redraw_needed()
 
 # TODO: _p_mode not used.  Why?
     self._p_mode = self._auto_projection_mode()
@@ -373,7 +379,8 @@ class ImageRender:
       size = (dmax - dmin + 1)
       return size, drange, t
 
-    size = min(self._colormap_size, 2 ** 16)
+    ro = self._rendering_options
+    size = min(ro.colormap_size, 2 ** 16)
 
     tf = self._colormap.transfer_function
     n = len(tf)
