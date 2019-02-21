@@ -210,7 +210,7 @@ class FixedHeaderSequence(HeaderSequence):
         }
         return state
 
-    def reevaluate(self):
+    def _reevaluate(self, bounds):
         if len(self.alignment.seqs[0]) == len(self.vals):
             self[:] = self.vals
             if hasattr(self, "save_color_func"):
@@ -222,7 +222,12 @@ class FixedHeaderSequence(HeaderSequence):
                 self.save_color_func = self.position_color
                 self.position_color = lambda pos, *, s=self.position_color.__self__, \
                     f=HeaderSequence.position_color: f(s, pos)
-        self._update_needed = False
+
+    def reevaluate(self, pos1=0, pos2=None, *, evaluation_func=None):
+        if evaluation_func is None:
+            super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
+        else:
+            super().reevaluate(pos1, pos2, evaluation_func=self._reevaluate)
 
     def set_state(self, state):
         HeaderSequence.set_state(state['base state'])
