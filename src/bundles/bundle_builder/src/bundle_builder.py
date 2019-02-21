@@ -236,10 +236,16 @@ class BundleBuilder:
             # Dependencies is optional, although
             # ChimeraXCore *should* always be present
             return
+        from packaging.requirements import Requirement
         for e in self._get_elements(deps, "Dependency"):
             pkg = e.getAttribute("name")
             ver = e.getAttribute("version")
-            self.dependencies.append("%s %s" % (pkg, ver))
+            req = "%s %s" % (pkg, ver)
+            try:
+                Requirement(req)
+            except ValueError:
+                raise ValueError("Bad version specifier (see PEP 440): %r" % req)
+            self.dependencies.append(req)
 
     def _get_c_modules(self, bi):
         self.c_modules = []
