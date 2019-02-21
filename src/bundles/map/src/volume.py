@@ -622,7 +622,7 @@ class Volume(Model):
     # Show or hide solid
     so = self.solid
     if so:
-      so.drawing.display = (rep == 'solid')
+      so.model().display = (rep == 'solid')
 
     self.call_change_callbacks('representation changed')
 
