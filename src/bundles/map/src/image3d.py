@@ -650,6 +650,8 @@ class Colormap:
 
 from chimerax.core.models import Model
 class ImageDrawing(Model):
+  SESSION_SAVE = False		# Volume restores this model.
+
   def __init__(self, session, image_render):
     self._image_render = image_render
     Model.__init__(self, image_render.name, session)
