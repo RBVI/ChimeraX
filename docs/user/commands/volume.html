@@ -974,6 +974,18 @@ is shown may slow performance significantly.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
+  <a name="colormapSize"></a>
+  <b>colormapSize</b> &nbsp;<i>N</i>
+<br>
+Specify the size of the color lookup table (default <b>256</b>)
+for colormapping on the GPU (any data type) or on the CPU 
+with floating-point data.
+For color mapping on the CPU with 8-bit or 16-bit map data, 
+this value is ignored and sizes 256 and 65536 are used instead
+so that each data value has its own color. 
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
   <a name="maximumintensity">
   <b>maximumIntensityProjection</b> &nbsp;true | <b>false</b></a>
   <br>At each pixel, display the the most intense color value 
