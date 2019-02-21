@@ -71,6 +71,7 @@ def register_volume_command(logger):
                ('voxel_limit', FloatArg),
                ('color_mode', EnumOf(ro.color_modes)),
                ('colormap_on_gpu', BoolArg),
+               ('colormap_size', IntArg),
                ('projection_mode', EnumOf(ro.projection_modes)),
                ('plane_spacing', Or(EnumOf(('min', 'max', 'mean')), FloatArg)),
                ('full_region_on_gpu', BoolArg),
@@ -150,6 +151,7 @@ def volume(session,
            voxel_limit = None,               # Mvoxels
            color_mode = None,                # solid rendering pixel formats
            colormap_on_gpu = None,           # solid colormapping on gpu or cpu
+           colormap_size = None,             # solid colormapping
            projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
            plane_spacing = None,	     # min, max, or numeric value
            full_region_on_gpu = None,	     # for fast cropping with solid rendering
@@ -241,6 +243,8 @@ def volume(session,
       'rgb4', 'rgb8', 'rgb12', 'rgb16', 'la4', 'la8', 'la12', 'la16', 'l4', 'l8', 'l12', 'l16'
     colormap_on_gpu : bool
       Whether colormapping is done on gpu or cpu for solid rendering.
+    colormap_size : integer
+      Size of colormap to use for solid rendering.
     projection_mode : string
       One of 'auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d'
     plane_spacing : "min", "max", "mean" or float
@@ -323,7 +327,7 @@ def volume(session,
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
-        'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu',
+        'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu', 'colormap_size',
         'projection_mode', 'plane_spacing', 'full_region_on_gpu',
         'bt_correction', 'minimal_texture_memory', 'maximum_intensity_projection',
         'linear_interpolation', 'dim_transparency', 'dim_transparent_voxels',

@@ -32,11 +32,10 @@ class ImageRender:
     if blend_manager:			# is None for BlendedImage.
       blend_manager.add_image(self)
 
-    self._drawing = self._make_drawing(session)
-    self._color_tables = {}		# Maps axis to (ctable, ctable_range)
+    self._drawing = ImageDrawing(session, self)
+    self._color_tables = {}			# Maps axis to (ctable, ctable_range)
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
-    self._colormap_size = 256		# For GPU or other than 8 or 16-bit data types
     self._update_colors = True
     self._multiaxis_planes = [None, None, None]	# For x, y, z axis projection
     self._planes_drawing = None			# For ortho and box mode display
@@ -63,6 +62,10 @@ class ImageRender:
           self._remove_planes()
         self._region = region
 
+        bi = self._blend_image
+        if bi and self is bi.master_image:
+          bi.set_region(region)
+
   # ---------------------------------------------------------------------------
   #
   def _update_planes_for_new_region(self, region):
@@ -84,9 +87,17 @@ class ImageRender:
           self._colormap = colormap
           self._c_mode = self._auto_color_mode()              # update color mode
           self._mod_rgba = self._luminance_color()
-          self._color_tables.clear()
-          self._update_colors = True
-          self._drawing.redraw_needed()
+          self._need_color_update()
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _need_color_update(self):
+    self._color_tables.clear()
+    self._update_colors = True
+    self._drawing.redraw_needed()
+    bi = self._blend_image
+    if bi:
+      bi._need_color_update()
       
   # ---------------------------------------------------------------------------
   #
@@ -95,7 +106,7 @@ class ImageRender:
 
     ro = self._rendering_options
     if rendering_options.color_mode != ro.color_mode:
-      self._update_colors = True
+      self._need_color_update()
 
     # TODO: Don't delete textures unless attribute changes require it.
     change = False
@@ -106,18 +117,24 @@ class ImageRender:
             break
     if change:
         self._remove_planes()
+        self._need_color_update()
 
     self._rendering_options = rendering_options.copy()
 
+    if rendering_options.colormap_size != ro.colormap_size:
+      self._need_color_update()
+      
     cmode = self._auto_color_mode()
     if cmode != self._c_mode:
         self._c_mode = cmode
-        self._color_tables.clear()
-        self._update_colors = True
+        self._need_color_update()
 
 # TODO: _p_mode not used.  Why?
     self._p_mode = self._auto_projection_mode()
 
+    bi = self._blend_image
+    if bi and self is bi.master_image:
+      bi.set_options(rendering_options)
 
   @property
   def _ijk_to_xyz(self):
@@ -155,13 +172,6 @@ class ImageRender:
     b = self._blend_manager
     if b:
       b.update_groups()
-    
-  # ---------------------------------------------------------------------------
-  #
-  def _make_drawing(self, session):
-    d = ImageDrawing(session, self)
-    self._update_colors = True
-    return d
     
   # ---------------------------------------------------------------------------
   #
@@ -373,7 +383,8 @@ class ImageRender:
       size = (dmax - dmin + 1)
       return size, drange, t
 
-    size = min(self._colormap_size, 2 ** 16)
+    ro = self._rendering_options
+    size = min(ro.colormap_size, 2 ** 16)
 
     tf = self._colormap.transfer_function
     n = len(tf)
@@ -977,8 +988,10 @@ class BlendedImage(ImageRender):
 
     ir = self.images[0]
     cmode = 'rgb8' if ir._opaque else 'rgba8'
-    self._rendering_options.color_mode = cmode
+    ro = self._rendering_options
+    ro.color_mode = cmode
     self._c_mode = cmode
+    ro.colormap_on_gpu = False
     self._mod_rgba = (1,1,1,1)
 
     for ir in images:
@@ -986,17 +999,12 @@ class BlendedImage(ImageRender):
 
     self._rgba8_array = None
 
-  def mirror_attributes(self):
-      i0 = self.images[0]
-      self.set_region(i0._region)
-      self.set_options(i0._rendering_options)
-      self._rendering_options.colormap_on_gpu = False
+  def set_options(self, rendering_options):
+    ro = rendering_options.copy()
+    ro.colormap_on_gpu = False
+    ImageRender.set_options(self, ro)
 
   def draw(self, renderer, draw_pass):
-
-    self.mirror_attributes()
-    self._check_update_colors()
-    
     self._drawing.draw(renderer, draw_pass)
 
   @property
@@ -1041,12 +1049,6 @@ class BlendedImage(ImageRender):
       from numpy import empty, uint8
       self._rgba8_array = a = empty((h,w,4), uint8)
     return a
-
-  def _check_update_colors(self):
-    for ir in self.images:
-      if ir._update_colors:
-        self._update_colors = True
-        ir._update_colors = False
 
 # ---------------------------------------------------------------------------
 #
