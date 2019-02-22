@@ -92,6 +92,7 @@ class DicomGrid(GridData):
                                'colormap_on_gpu': True,
                                'full_region_on_gpu': True}
   must_read_full_xy_planes = True	# Hint to optimize caching performance
+  initial_solid_thresholds = [(-1000,0.0),(300,0.9),(3000,1.0)]
 
   def __init__(self, d, time = None, channel = None):
 
@@ -105,7 +106,6 @@ class DicomGrid(GridData):
     self.multichannel = (channel is not None)
 
     self.initial_plane_display = True
-    self.initial_thresholds_linear = True
     self.ignore_pad_value = d.pad_value
 
   # ---------------------------------------------------------------------------
