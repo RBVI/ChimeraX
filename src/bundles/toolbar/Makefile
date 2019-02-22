@@ -9,5 +9,4 @@ wheel install app-install:	$(LIBS)
 RIBBON_SRC = Office-Ribbon-2010-master
 src/lib/ribbon:	$(RIBBON_SRC).zip
 	unzip $? && mv $(RIBBON_SRC)/ribbon src/lib \
-		&& mv $(RIBBON_SRC)/icons src/lib \
 		&& rm -rf $(RIBBON_SRC) && touch $@
