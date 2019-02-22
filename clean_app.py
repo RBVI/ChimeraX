@@ -44,7 +44,7 @@ def clean_app(chimerax_root):
 
 if __name__ == "__main__":
     bin_dir = os.path.dirname(sys.executable)
-    if os.path.basename(bin_dir) != 'bin' or os.path.isabs(bin_dir):
+    if os.path.basename(bin_dir) != 'bin':
         print("Must be called as CHIMERAX/bin/python", file=sys.__stderr__)
         raise SystemExit(1)
     clean_app(os.path.dirname(bin_dir))
