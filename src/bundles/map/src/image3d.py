@@ -85,8 +85,6 @@ class ImageRender:
   def set_colormap(self, colormap):
       if colormap != self._colormap:
           self._colormap = colormap
-          self._c_mode = self._auto_color_mode()              # update color mode
-          self._mod_rgba = self._luminance_color()
           self._need_color_update()
       
   # ---------------------------------------------------------------------------
@@ -94,6 +92,11 @@ class ImageRender:
   def _need_color_update(self):
     self._color_tables.clear()
     self._update_colors = True
+    self._c_mode = self._auto_color_mode()
+    self._mod_rgba = self._luminance_color()
+    mc = self._modulation_color
+    for d in self._planes_drawings:
+      d.color = mc
     self._drawing.redraw_needed()
     bi = self._blend_image
     if bi:
@@ -104,13 +107,11 @@ class ImageRender:
   def set_options(self, rendering_options):
 # TODO: Detect changes in grid data ijk_to_xyz_transform, matrix value changes...
 
+    # TODO: Don't delete textures unless attribute changes require it, eg. plane_spacing, linear_interpolation
     ro = self._rendering_options
-    if rendering_options.color_mode != ro.color_mode:
-      self._need_color_update()
-
-    # TODO: Don't delete textures unless attribute changes require it.
     change = False
-    for attr in ('color_mode', 'colormap_on_gpu', 'projection_mode', 'plane_spacing', 'full_region_on_gpu',
+    for attr in ('color_mode', 'colormap_on_gpu', 'colormap_size',
+                 'projection_mode', 'plane_spacing', 'full_region_on_gpu',
                  'orthoplanes_shown', 'orthoplane_positions', 'box_faces', 'linear_interpolation'):
         if getattr(rendering_options, attr) != getattr(ro, attr):
             change = True
@@ -120,14 +121,6 @@ class ImageRender:
         self._need_color_update()
 
     self._rendering_options = rendering_options.copy()
-
-    if rendering_options.colormap_size != ro.colormap_size:
-      self._need_color_update()
-      
-    cmode = self._auto_color_mode()
-    if cmode != self._c_mode:
-        self._c_mode = cmode
-        self._need_color_update()
 
 # TODO: _p_mode not used.  Why?
     self._p_mode = self._auto_projection_mode()
@@ -559,6 +552,11 @@ class ImageRender:
       tex_region = self._region
     return tex_region
 
+  @property
+  def _planes_drawings(self):
+    drawings = self._multiaxis_planes + [self._view_aligned_planes, self._planes_drawing]
+    return [d for d in drawings if d]
+    
   def _remove_planes(self):
     self._remove_axis_planes()
     self._remove_view_planes()
