@@ -82,7 +82,7 @@ class VolumeDefaultSettings:
         'colormap_on_gpu': True,
         'colormap_size': 256,
         'projection_mode': 'auto',
-        'plane_spacing': 'max',
+        'plane_spacing': 'min',
         'full_region_on_gpu': True,
         'bt_correction': False,
         'minimal_texture_memory': False,

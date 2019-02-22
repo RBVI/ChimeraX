@@ -2443,7 +2443,7 @@ class Rendering_Options:
     self.colormap_size = 256	      # solid rendering on GPU or other than 8 or 16-bit data types
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
-    self.plane_spacing = 'max'		    # "min", "max", "mean" or distance value
+    self.plane_spacing = 'min'		    # "min", "max", "mean" or distance value
     self.full_region_on_gpu = True	    # for solid rendering for fast cropping
     self.bt_correction = False              # brightness and transparency
     self.minimal_texture_memory = False
