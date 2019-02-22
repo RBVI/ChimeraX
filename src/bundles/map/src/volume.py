@@ -92,7 +92,9 @@ class Volume(Model):
 #    self.surface_piece_change_handler = h
     self.surface_piece_change_handler = None
 
-    self._use_image3d = False
+    # Enable new image rendering code.
+    # TODO: Remove this once new code has been sufficiently tested.
+    self._use_image3d = True
 
   # ---------------------------------------------------------------------------
   #
@@ -2439,12 +2441,12 @@ class Rendering_Options:
       'l4', 'l8', 'l12', 'l16')
     self.color_mode = 'auto8'         # solid rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
-    self.colormap_on_gpu = True	      # solid rendering with colors computed on gpu
+    self.colormap_on_gpu = False      # solid rendering with colors computed on gpu
     self.colormap_size = 256	      # solid rendering on GPU or other than 8 or 16-bit data types
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self.plane_spacing = 'min'		    # "min", "max", "mean" or distance value
-    self.full_region_on_gpu = True	    # for solid rendering for fast cropping
+    self.full_region_on_gpu = False	    # for solid rendering for fast cropping
     self.bt_correction = False              # brightness and transparency
     self.minimal_texture_memory = False
     self.maximum_intensity_projection = False
