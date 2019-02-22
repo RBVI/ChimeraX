@@ -123,6 +123,9 @@ class ImageRender:
         self._remove_planes()
         self._need_color_update()
 
+    if rendering_options.maximum_intensity_projection != ro.maximum_intensity_projection:
+      self._drawing.redraw_needed()	# MIP blending is entirely handled in draw routine.
+      
     self._rendering_options = rendering_options.copy()
 
 # TODO: _p_mode not used.  Why?
