@@ -15,13 +15,11 @@ def clean_app(chimerax_root):
     (eg., Python scripts with paths to "nonexisting" python)
     """
     import shutil
-    import subprocess
     # cleanup -- remove __pycache__ directories
-    cache_dirs = subprocess.check_output([
-        '/usr/bin/find',
-        chimerax_root,
-        '-name', '__pycache__'
-        ]).strip().decode().split('\n')
+    cache_dirs = []
+    for root, dirs, files in os.walk(chimerax_root):
+        if "__pycache__" in dirs:
+            cache_dirs.append(os.path.join(root, "__pycache__"))
     for d in cache_dirs:
         shutil.rmtree(d)
 
@@ -46,7 +44,7 @@ def clean_app(chimerax_root):
 
 if __name__ == "__main__":
     bin_dir = os.path.dirname(sys.executable)
-    if os.path.basename(bin_dir) != 'bin':
-        print("Must be called as CHIMERAX/bin/executable", file=sys.__stderr__)
+    if os.path.basename(bin_dir) != 'bin' or os.path.isabs(bin_dir):
+        print("Must be called as CHIMERAX/bin/python", file=sys.__stderr__)
         raise SystemExit(1)
     clean_app(os.path.dirname(bin_dir))
