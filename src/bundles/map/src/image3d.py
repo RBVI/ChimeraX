@@ -56,10 +56,13 @@ class ImageRender:
   #
   def set_region(self, region):
       if region != self._region:
-        if self._rendering_options.full_region_on_gpu and region[2] == self._region[2]:
+        same_step = (region[2] == self._region[2])
+        if self._rendering_options.full_region_on_gpu and same_step:
           self._update_planes_for_new_region(region)
         else:
           self._remove_planes()
+          if not same_step:
+            self._need_color_update()
         self._region = region
 
         bi = self._blend_image
