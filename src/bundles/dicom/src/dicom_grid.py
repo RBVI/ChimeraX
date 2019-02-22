@@ -88,7 +88,9 @@ def dicom_grids_from_series(series):
 from chimerax.map.data import GridData
 class DicomGrid(GridData):
 
-  initial_rendering_options = {'projection_mode': '3d'}
+  initial_rendering_options = {'projection_mode': '3d',
+                               'colormap_on_gpu': True,
+                               'full_region_on_gpu': True}
   must_read_full_xy_planes = True	# Hint to optimize caching performance
 
   def __init__(self, d, time = None, channel = None):
