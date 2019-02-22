@@ -92,7 +92,9 @@ class Volume(Model):
 #    self.surface_piece_change_handler = h
     self.surface_piece_change_handler = None
 
-    self._use_image3d = False
+    # Enable new image rendering code.
+    # TODO: Remove this once new code has been sufficiently tested.
+    self._use_image3d = True
 
   # ---------------------------------------------------------------------------
   #
@@ -562,6 +564,12 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def initial_solid_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+    rgba = saturate_rgba(self.default_rgba)
+    d = self.data
+    if hasattr(d, 'initial_solid_thresholds'):
+      levels = d.initial_solid_thresholds
+      colors = [rgba]*len(levels)
+      return levels, colors
     if mstats is None:
       mstats = self.matrix_value_statistics()
     ilow, imid, imax = 0, 0.8, 1
@@ -572,7 +580,6 @@ class Volume(Model):
       vlow = mstats.mass_rank_data_value(1-mfrac[1])
       vmid = mstats.mass_rank_data_value(1-mfrac[0])
     vmax = mstats.maximum
-    rgba = saturate_rgba(self.default_rgba)
     binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
     if polar:
@@ -622,7 +629,7 @@ class Volume(Model):
     # Show or hide solid
     so = self.solid
     if so:
-      so.drawing.display = (rep == 'solid')
+      so.model().display = (rep == 'solid')
 
     self.call_change_callbacks('representation changed')
 
@@ -2439,12 +2446,12 @@ class Rendering_Options:
       'l4', 'l8', 'l12', 'l16')
     self.color_mode = 'auto8'         # solid rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
-    self.colormap_on_gpu = True	      # solid rendering with colors computed on gpu
+    self.colormap_on_gpu = False      # solid rendering with colors computed on gpu
     self.colormap_size = 256	      # solid rendering on GPU or other than 8 or 16-bit data types
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
-    self.plane_spacing = 'max'		    # "min", "max", "mean" or distance value
-    self.full_region_on_gpu = True	    # for solid rendering for fast cropping
+    self.plane_spacing = 'min'		    # "min", "max", "mean" or distance value
+    self.full_region_on_gpu = False	    # for solid rendering for fast cropping
     self.bt_correction = False              # brightness and transparency
     self.minimal_texture_memory = False
     self.maximum_intensity_projection = False
