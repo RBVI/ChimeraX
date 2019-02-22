@@ -564,6 +564,12 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def initial_solid_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+    rgba = saturate_rgba(self.default_rgba)
+    d = self.data
+    if hasattr(d, 'initial_solid_thresholds'):
+      levels = d.initial_solid_thresholds
+      colors = [rgba]*len(levels)
+      return levels, colors
     if mstats is None:
       mstats = self.matrix_value_statistics()
     ilow, imid, imax = 0, 0.8, 1
@@ -574,7 +580,6 @@ class Volume(Model):
       vlow = mstats.mass_rank_data_value(1-mfrac[1])
       vmid = mstats.mass_rank_data_value(1-mfrac[0])
     vmax = mstats.maximum
-    rgba = saturate_rgba(self.default_rgba)
     binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
     if polar:
