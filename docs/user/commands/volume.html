@@ -943,8 +943,8 @@ See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 What <i>spacing</i> to use with <a href="#pmode"><b>projectionMode 3d</b></a>,
 with possible values:
   <ul class="circle">
-  <li><b>min</b> - smallest spacing of the data along X, Y, or Z
-  <li><b>max</b> (default) - largest spacing of the data along X, Y, or Z
+  <li><b>min</b> (default) - smallest spacing of the data along X, Y, or Z
+  <li><b>max</b> - largest spacing of the data along X, Y, or Z
   <li><b>mean</b> - mean of the data spacing along X, Y, and Z
   <li><i>d</i> - a specific distance in physical units of length
   </ul>
@@ -956,6 +956,8 @@ with possible values:
 <br>
 Whether the mapping of volume data values to colors
 should be done on the GPU (if true) or CPU (if false).
+The default is true for <a href="../dicom/dicom.html">DICOM</a>,
+otherwise false.
 Colormapping with the GPU is faster but done every time the scene is drawn,
 whereas colormapping with the CPU is only done when the colors change.
 </blockquote>
@@ -967,6 +969,8 @@ whereas colormapping with the CPU is only done when the colors change.
 Whether to keep the data
 (and colors, if <a href="#colormapOnGpu"><b>colormapOnGpu</b></a> is false)
 for the full volume region on the GPU to allow fast cropping.
+The default is true for <a href="../dicom/dicom.html">DICOM</a>,
+otherwise false.
 It is best to use this option with 
 <a href="#colormapOnGpu"><b>colormapOnGpu</b></a> true;
 otherwise, updating colors for the full region even when only a smaller region 
@@ -1047,7 +1051,7 @@ so that each data value has its own color.
   <a href="#top" class="nounder">&bull;</a>
   <b>appearance</b> &nbsp;<b>initial</b>
 <br>
-Apply an initial approximation of the settings in a
+Apply an approximation of the settings in a
 <a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
 target="_blank">Horos 3D preset</a> to the solid display 
 (<a href="https://horosproject.org/about/"
@@ -1060,15 +1064,18 @@ the appearance in Horos very faithfully, as there is not a
 one-to-one correspondence between the settings in the two programs,
 and some parts of the preset definition files may have been 
 ignored or misinterpreted. These presets are generally intended for
-3D rendering (not <a href="#planes">single-plane display</a>).
+3D rendering (not <a href="#planes">planes</a>).
 <p>
 Besides a preset name, <b>initial</b> can be used to (re)set to the
-solid threshold values and colors that would have been chosen automatically 
+solid <a href="#level">threshold levels</a>
+and colors that would have been chosen automatically 
 for the data when first shown as solid, with 
 <a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
-The <b>initial</b> settings are particularly useful for 
-<a href="#planes">single-plane display</a>
-after using any of the 3D presets on a 3D region.
+<a href="../dicom/dicom.html">DICOM</a> data are initially shown 
+as solid with thresholds: (-1000,0),(300,0.9),(3000,1).
+The <b>initial</b> settings are useful for (going back to)
+viewing <a href="#planes">planes</a> or thin slabs
+after viewing thicker regions with a 3D preset.
 See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
