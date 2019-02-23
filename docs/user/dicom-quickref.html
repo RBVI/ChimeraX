@@ -186,8 +186,11 @@ command: <b><a href="commands/camera.html">camera ortho</a></b>
 ...to go back to perspective projection:
 <b><a href="commands/camera.html">camera mono</a></b>
 <br>
-To bring the whole display into view:
+To center and scale the display to fit in the graphics window:
 <b><a href="commands/view.html#initial">view</a> clip false</b>
+<br>
+To center and scale as above and reset to initial orientation:
+<b><a href="commands/view.html#initial">view</a> orient clip false</b>
 </p>
 
 <table>
@@ -446,7 +449,7 @@ Cropping and Clipping</h3>
 <p>
 <b><i>Cropping</i></b>
 limits the display of a dataset to a smaller rectangular box or slab,
-often making it easier to see features of interest while
+making it easier to see features of interest while
 reducing the computational demands of rendering. Cropping can be done with:
 </p>
 <ul>
@@ -459,14 +462,11 @@ for example: <b>volume #1 <a href="commands/volume.html#dimensions">region</a>
 <b>volume #1 <a href="commands/volume.html#dimensions">region</a> all</b>
 </ul>
 <p>
-In the limit, a slab is a single plane.  
-Z-planes can be viewed by choosing <b>plane</b> display in
-<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>, and planes
-along other axes as described <a href="#initial">above</a>.
-</p><p>
-Another way to speed rendering is to view the data at lower resolution
-(<b>step</b> value &gt; 1), but cropping may allow viewing
-at a higher resolution than was feasible for the full region.
+A cropped slab display (in the limit, a single plane) 
+can be moved along an axis using
+the <b>move planes</b> <a href="#manipulation">mouse mode</a>
+<img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">.
+Single planes can be viewed as described <a href="#initial">above</a>.
 </p><p>
 In contrast, <b><i>clipping</i></b> may not have much effect on rendering speed,
 since calculations are still performed on the hidden parts.
@@ -573,15 +573,15 @@ as described above. Major considerations in VR:
 <li>Rendering speed must be fast enough to avoid nauseating lags
 in the display when the scene or headset position changes.
 With large volume data, techniques to 
-speed up rendering include subsampling (step size &gt 1) and
-<a href="#clipping">cropping</a>. 
-Work is ongoing to improve ChimeraX volume rendering performance.
+speed up rendering include subsampling (step size &gt 1),
+<a href="#clipping">cropping</a>, and 
+<a href="commands/volume.html#colormapOnGpu">using the GPU</a>.
 <br><br>
-<li>Entering commands is inconvenient:
-with the headset on, it is more convenient to
-use the hand controllers to click <a href="#icons">icons</a> 
+<li>Entering commands is inconvenient with the headset on; 
+instead, the hand controllers are used to click <a href="#icons">icons</a> 
 and to perform other actions.
-Clicking the Vive menu button (analogous for other systems)
+Clicking the <a href="vr.html#starting">Vive menu button</a>
+(analogous for other systems)
 shows the ChimeraX user interface with icons in the headset.
 <p>
 Clicking a <a href="tools/mousemodes.html">mouse mode</a> icon 
