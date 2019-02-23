@@ -1047,7 +1047,16 @@ class Volume(Model):
           return None
         from chimerax.core.geometry import norm
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
-        return PickedMap(self, f)
+        if self.single_plane():
+          # Report voxel under mouse and data value.
+          ijk = tuple(int(round(i)) for i in self.data.xyz_to_ijk(0.5*(xyz_in + xyz_out)))
+          detail = 'voxel %d,%d,%d' % ijk
+          v = self.region_matrix((ijk,ijk,(1,1,1)))
+          if v.size == 1:
+            detail += ' value %.4g' % v[0,0,0]
+        else:
+          detail = ''
+        return PickedMap(self, f, detail)
 
     from chimerax.core.graphics import Drawing
     pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
