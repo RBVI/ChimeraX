@@ -36,7 +36,6 @@ class ImageRender:
     self._color_tables = {}			# Maps axis to (ctable, ctable_range)
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
-    self._update_colors = True
     self._multiaxis_planes = [None, None, None]	# For x, y, z axis projection
     self._planes_drawing = None			# For ortho and box mode display
     self._view_aligned_planes = None		# ViewAlignedPlanes instance for 3d projection mode
@@ -57,8 +56,9 @@ class ImageRender:
   def set_region(self, region):
       if region != self._region:
         same_step = (region[2] == self._region[2])
+        self._region = region
         if self._rendering_options.full_region_on_gpu and same_step:
-          self._update_planes_for_new_region(region)
+          self._update_planes_for_new_region()
         else:
           self._remove_planes()
           if not same_step:
@@ -71,17 +71,9 @@ class ImageRender:
 
   # ---------------------------------------------------------------------------
   #
-  def _update_planes_for_new_region(self, region):
-      vap = self._view_aligned_planes
-      if vap:
-        vap.update_region(region)
-      ro = self._rendering_options
-      for axis,p in enumerate(self._multiaxis_planes):
-        if p:
-          p.update_region(region, axis, ro)
-      p = self._planes_drawing
-      if p:
-        p.update_region(region, None, ro)
+  def _update_planes_for_new_region(self):
+    for d in self._planes_drawings:
+      d.update_region()
 
   # ---------------------------------------------------------------------------
   #
@@ -94,11 +86,11 @@ class ImageRender:
   #
   def _need_color_update(self):
     self._color_tables.clear()
-    self._update_colors = True
     self._c_mode = self._auto_color_mode()
     self._mod_rgba = self._luminance_color()
     mc = self._modulation_color
     for d in self._planes_drawings:
+      d._update_colors = True
       d.color = mc
     self._drawing.redraw_needed()
     bi = self._blend_image
@@ -112,8 +104,10 @@ class ImageRender:
 
     # TODO: Don't delete textures unless attribute changes require it, eg. plane_spacing, linear_interpolation
     ro = self._rendering_options
+    self._rendering_options = rendering_options.copy()
+
     change = False
-    for attr in ('color_mode', 'colormap_on_gpu', 'colormap_size',
+    for attr in ('color_mode', 'colormap_on_gpu', 'colormap_size', 'dim_transparent_voxels',
                  'projection_mode', 'plane_spacing', 'full_region_on_gpu',
                  'orthoplanes_shown', 'orthoplane_positions', 'box_faces', 'linear_interpolation'):
         if getattr(rendering_options, attr) != getattr(ro, attr):
@@ -126,8 +120,6 @@ class ImageRender:
     if rendering_options.maximum_intensity_projection != ro.maximum_intensity_projection:
       self._drawing.redraw_needed()	# MIP blending is entirely handled in draw routine.
       
-    self._rendering_options = rendering_options.copy()
-
 # TODO: _p_mode not used.  Why?
     self._p_mode = self._auto_projection_mode()
 
@@ -184,37 +176,12 @@ class ImageRender:
     from numpy import squeeze
     p = squeeze(m, 2-axis)	# Reduce from 3d array to 2d.
     return p
-    
-  # ---------------------------------------------------------------------------
-  #
-  def _update_coloring(self, drawing):
-    if not self._update_colors:
-      return
-
-    if self._rendering_options.colormap_on_gpu:
-      self._update_colormap_texture(drawing)
-    else:
-      self._reload_textures()
-    self._update_colors = False
       
   # ---------------------------------------------------------------------------
   #
   @property
   def _use_gpu_colormap(self):
     return self._rendering_options.colormap_on_gpu
-
-  # ---------------------------------------------------------------------------
-  #
-  def _update_colormap_texture(self, drawing):
-
-    cmap, cmap_range = self._color_table(drawing._axis)
-    t = drawing.colormap
-    if t is None:
-      from chimerax.core.graphics import Texture
-      drawing.colormap = Texture(cmap, dimension = 1)
-    else:
-      t.reload_texture(cmap)
-    drawing.colormap_range = cmap_range
 
   # ---------------------------------------------------------------------------
   #
@@ -508,7 +475,7 @@ class ImageRender:
     if pd is None:
       sc = self._drawing.shape_changed
       pd = self._make_planes(axis)
-      self._update_colors = self._use_gpu_colormap
+      pd._update_colors = self._use_gpu_colormap
       if axis is None:
         self._planes_drawing = pd
       else:
@@ -537,13 +504,9 @@ class ImageRender:
     pd = self._view_aligned_planes
     if pd is None:
       ro = self._rendering_options
-      pd = ViewAlignedPlanes(self._color_plane, self._region, self._ijk_to_xyz,
-                             self._plane_spacing(), self._modulation_color, self._opaque,
-                             ro.linear_interpolation, self._texture_region)
+      pd = ViewAlignedPlanes(self)
       self._view_aligned_planes = pd
       self._drawing.add_drawing(pd)
-      pd.load_texture()
-      self._update_colors = self._use_gpu_colormap
     pd.update_geometry(view_direction, self._drawing.scene_position)
     return pd
 
@@ -566,6 +529,7 @@ class ImageRender:
   def _remove_planes(self):
     self._remove_axis_planes()
     self._remove_view_planes()
+    self._drawing.redraw_needed()
 
   def _remove_axis_planes(self):
     pd = self._planes_drawing
@@ -618,23 +582,9 @@ class ImageRender:
     return axis, rev
 
   def _make_planes(self, axis):
-    d = AxisAlignedPlanes(self._region, self._ijk_to_xyz,
-                          self._color_plane,
-                          self._modulation_color, self._opaque,
-                          self._rendering_options.linear_interpolation,
-                          self._texture_region)
+    d = AxisAlignedPlanes(self, axis)
     self._drawing.add_drawing(d)
-    d.set_planes(axis, self._rendering_options)
     return d
-
-  def _reload_textures(self):
-    pd = self._view_aligned_planes
-    if pd:
-      pd.load_texture()
-
-    for pd in self._multiaxis_planes + [self._planes_drawing]:
-      if pd:
-        pd.load_textures()
 
 class Colormap:
     def __init__(self, transfer_function,
@@ -718,7 +668,7 @@ class ImageDrawing(Model):
 
     pd = ir._update_planes(renderer)
 
-    ir._update_coloring(pd)
+    pd._update_coloring()
 
     self._draw_planes(renderer, draw_pass, dtransp, pd)
 
@@ -742,67 +692,108 @@ class ImageDrawing(Model):
       r.write_depth(True)
     if max_proj:
       r.blend_max(False)
-
+  
 # ---------------------------------------------------------------------------
 #
 from chimerax.core.graphics import Drawing
-class AxisAlignedPlanes(Drawing):
-  
-  def __init__(self, region, ijk_to_xyz, color_plane,
-               modulation_color, opaque, linear_interpolation, texture_region = None):
-    name = 'grayscale axis aligned planes'
+class PlanesDrawing(Drawing):
+  def __init__(self, name, image_render, axis = None):
     Drawing.__init__(self, name)
+    self._update_colors = True
+    self._axis = axis
+    self._image_render = image_render
+    
+  # ---------------------------------------------------------------------------
+  #
+  def _update_coloring(self):
+    if not self._update_colors:
+      return
 
-    self.color = modulation_color
+    ir = self._image_render
+    if ir._rendering_options.colormap_on_gpu:
+      self._update_colormap_texture()
+    else:
+      self._fill_textures()
+    self._update_colors = False
+
+  # ---------------------------------------------------------------------------
+  #
+  def _update_colormap_texture(self):
+    ir = self._image_render
+    cmap, cmap_range = ir._color_table(self._axis)
+    t = self.colormap
+    if t is None:
+      from chimerax.core.graphics import Texture
+      self.colormap = Texture(cmap, dimension = 1)
+    else:
+      t.reload_texture(cmap)
+    self.colormap_range = cmap_range
+
+  # ---------------------------------------------------------------------------
+  #
+  def _fill_textures(self):
+    '''Must be defined by derived classes.'''
+    pass
+  
+# ---------------------------------------------------------------------------
+#
+class AxisAlignedPlanes(PlanesDrawing):
+  
+  def __init__(self, image_render, axis):
+    name = 'grayscale axis aligned planes'
+    PlanesDrawing.__init__(self, name, image_render, axis)
+
+    self.color = image_render._modulation_color
     self.use_lighting = False
-    self.opaque_texture = opaque
-    self.linear_interpolation = linear_interpolation
+    self.opaque_texture = image_render._opaque
 
-    self._region = region
-    self._ijk_to_xyz = ijk_to_xyz
-    self._color_plane = color_plane
-    self._texture_region = region if texture_region is None else texture_region
     self._textures = {}
 
-  def update_region(self, region, axis, rendering_options):
-    self._region = region
-    self.set_planes(axis, rendering_options)
+    self._set_planes(axis)
+
+  def update_region(self):
+    self._set_planes(self._axis)
     
-  def set_planes(self, axis, rendering_options):
+  def _set_planes(self, axis):
     if axis is not None:
       self._set_axis_planes(axis)
-    elif rendering_options.box_faces:
-      self._set_box_faces()
-    elif rendering_options.any_orthoplanes_shown():
-      self._set_ortho_planes(rendering_options)
+    else:
+      ro = self._image_render._rendering_options
+      if ro.box_faces:
+        self._set_box_faces()
+      elif ro.any_orthoplanes_shown():
+        self._set_ortho_planes()
     
   def _set_axis_planes(self, axis):
-    ijk_min, ijk_max, ijk_step = self._region
+    ijk_min, ijk_max, ijk_step = self._image_render._region
     planes = tuple((k, axis) for k in range(ijk_min[axis],ijk_max[axis]+1,ijk_step[axis]))
     self._update_geometry(planes)
 
-  def _set_ortho_planes(self, rendering_options):
-    p = rendering_options.orthoplane_positions
-    show_axis = rendering_options.orthoplanes_shown
+  def _set_ortho_planes(self):
+    ro = self._image_render._rendering_options
+    p = ro.orthoplane_positions
+    show_axis = ro.orthoplanes_shown
     planes = tuple((p[axis], axis) for axis in (0,1,2) if show_axis[axis])
     self._update_geometry(planes)
 
   def _set_box_faces(self):
-    ijk_min, ijk_max, ijk_step = self._region
+    ijk_min, ijk_max, ijk_step = self._image_render._region
     planes = (tuple((ijk_min[axis],axis) for axis in (0,1,2)) +
               tuple((ijk_max[axis],axis) for axis in (0,1,2)))
     self._update_geometry(planes)
     
   def _update_geometry(self, planes):
-    (i0,j0,k0), (i1,j1,k1) = self._region[:2]
-    (fi0,fj0,fk0), (fi1,fj1,fk1) = self._texture_region[:2]
+    ir = self._image_render
+    (i0,j0,k0), (i1,j1,k1) = ir._region[:2]
+    (fi0,fj0,fk0), (fi1,fj1,fk1) = ir._texture_region[:2]
     from numpy import array, float32, int32, empty
     vaa = array((((0,j0,k0),(0,j1,k0),(0,j1,k1),(0,j0,k1)),
                  ((i0,0,k0),(i1,0,k0),(i1,0,k1),(i0,0,k1)),
                  ((i0,j0,0),(i1,j0,0),(i1,j1,0),(i0,j1,0))), float32)
     tap = array(((0,1,2),(0,2,3)), int32)
     di,dj,dk = max(1, fi1-fi0), max(1, fj1-fj0), max(1, fk1-fk0)
-    ti0,ti1,tj0,tj1,tk0,tk1 = (i0-fi0)/di, (i1-fi0)/di, (j0-fj0)/dj, (j1-fj0)/dj, (k0-fk0)/dk, (k1-fk0)/dk
+    # Texture coords range from 1/2N to 1-1/2N, not from 0 to 1.
+    ti0,ti1,tj0,tj1,tk0,tk1 = (i0-fi0+0.5)/di, (i1-fi0-0.5)/di, (j0-fj0+0.5)/dj, (j1-fj0-0.5)/dj, (k0-fk0+0.5)/dk, (k1-fk0-0.5)/dk
     tca = array((((tj0,tk0),(tj1,tk0),(tj1,tk1),(tj0,tk1)),
                  ((ti0,tk0),(ti1,tk0),(ti1,tk1),(ti0,tk1)),
                  ((ti0,tj0),(ti1,tj0),(ti1,tj1),(ti0,tj1))),
@@ -817,7 +808,7 @@ class AxisAlignedPlanes(Drawing):
       vap = va[4*p:4*(p+1),:]
       vap[:,:] = vaa[axis]
       vap[:,axis] = k
-      self._ijk_to_xyz.transform_points(vap, in_place = True)
+      ir._ijk_to_xyz.transform_points(vap, in_place = True)
       ta[2*p:2*(p+1),:] = tap + 4*p
       textures.append(self._plane_texture(k, axis))
       tc[4*p:4*(p+1),:] = tca[axis]
@@ -832,19 +823,20 @@ class AxisAlignedPlanes(Drawing):
     t = self._textures.get((k,axis))
     if t:
       return t
-      
-    colors = self._color_plane(k, axis)
+
+    ir = self._image_render
+    colors = ir._color_plane(k, axis)
     dc = colors.copy()	# Data array may be reused before texture is filled so copy it.
     from chimerax.core.graphics import Texture
     t = Texture(dc)
-    t.linear_interpolation = self.linear_interpolation
+    t.linear_interpolation = ir._rendering_options.linear_interpolation
     self._textures[(k,axis)] = t
     return t
 
-  def load_textures(self):
-    mtex = self.multitexture
+  def _fill_textures(self):
+    ir = self._image_render
     for (k,axis),t in self._textures.items():
-      data = self._color_plane(k, axis)
+      data = ir._color_plane(k, axis)
       t.reload_texture(data, now = True)
 
   def close(self):
@@ -855,32 +847,27 @@ class AxisAlignedPlanes(Drawing):
 
 # ---------------------------------------------------------------------------
 #
-class ViewAlignedPlanes(Drawing):
+class ViewAlignedPlanes(PlanesDrawing):
   
-  def __init__(self, color_plane, region, ijk_to_xyz, plane_spacing,
-               modulation_color, opaque, linear_interpolation, texture_region = None):
+  def __init__(self, image_render):
 
     name = 'grayscale view aligned planes'
-    Drawing.__init__(self, name)
+    PlanesDrawing.__init__(self, name, image_render)
 
-    self._color_plane = color_plane
-    self._region = region
-    self._ijk_to_xyz = ijk_to_xyz
-    self._plane_spacing = plane_spacing
-    self.color = modulation_color
+    ir = image_render
+    self.color = ir._modulation_color
     self.use_lighting = False
-    self.opaque_texture = opaque
-    self._linear_interpolation = linear_interpolation
+    self.opaque_texture = ir._opaque
 
-    self._corners = _box_corners(region, ijk_to_xyz)	# in volume coords
-    self._texture_region = region if texture_region is None else texture_region
-    self._vertex_to_texcoord = _xyz_to_texcoord(self._texture_region, ijk_to_xyz)
+    self._corners = _box_corners(ir._region, ir._ijk_to_xyz)	# in volume coords
+    self._vertex_to_texcoord = _xyz_to_texcoord(ir._texture_region, ir._ijk_to_xyz)
     self._last_view_direction = None
-    self._axis = None
 
-  def update_region(self, region):
-    self._region = region
-    self._corners = _box_corners(region, self._ijk_to_xyz)
+    self._fill_textures()
+
+  def update_region(self):
+    ir = self._image_render
+    self._corners = _box_corners(ir._region, ir._ijk_to_xyz)
     self._last_view_direction = None
     
   def update_geometry(self, view_direction, scene_position):
@@ -904,7 +891,7 @@ class ViewAlignedPlanes(Drawing):
     corners = self._corners
     from . import offset_range
     omin, omax = offset_range(corners, axis)
-    spacing = self._plane_spacing
+    spacing = self._image_render._plane_spacing()
     from math import floor, fmod
     n = int(floor((omax - omin) / spacing))
     
@@ -919,7 +906,7 @@ class ViewAlignedPlanes(Drawing):
     
     return va, tc, ta
 
-  def load_texture(self):
+  def _fill_textures(self):
     t = self.texture
     if t is None:
       self.texture = t = self._texture_3d()
@@ -930,15 +917,16 @@ class ViewAlignedPlanes(Drawing):
     td = self._texture_3d_data()
     from chimerax.core.graphics import Texture
     t = Texture(td, dimension = 3)
-    t.linear_interpolation = self._linear_interpolation
+    t.linear_interpolation = self._image_render._rendering_options.linear_interpolation
     return t
 
   def _texture_3d_data(self):
     z_axis = 2
-    ijk_min, ijk_max, ijk_step = self._texture_region
+    ir = self._image_render
+    ijk_min, ijk_max, ijk_step = ir._texture_region
     k0,k1,kstep = ijk_min[z_axis], ijk_max[z_axis], ijk_step[z_axis]
     k0,k1 = kstep*(k0//kstep), kstep*(k1//kstep)
-    p = self._color_plane(k0, z_axis, view_aligned=True)
+    p = ir._color_plane(k0, z_axis, view_aligned=True)
     sz = (k1 - k0 + kstep)//kstep
     if sz == 1:
       td = p	# Single z plane
@@ -947,7 +935,7 @@ class ViewAlignedPlanes(Drawing):
       td = empty((sz,) + tuple(p.shape), p.dtype)
       td[0,:] = p
       for i in range(1,sz):
-        td[i,:] = self._color_plane(k0+i*kstep, z_axis, view_aligned=True)
+        td[i,:] = ir._color_plane(k0+i*kstep, z_axis, view_aligned=True)
     return td
 
 def _region_size(region):
@@ -975,6 +963,7 @@ def _xyz_to_texcoord(ijk_region, ijk_to_xyz):
   ei,ej,ek = [i1-i0+1 for i0,i1 in zip(ijk_min, ijk_max)]
   i0,j0,k0 = ijk_min
   from chimerax.core.geometry.place import scale, translation
+  # TODO: Slightly wrong. N = ei not N = ei+1.  I think scaling of (ei-1)/ei needed, followed by 1/ei.
   v_to_tc = scale((1/(ei+1), 1/(ej+1), 1/(ek+1))) * translation((0.5-i0,0.5-j0,0.5-k0)) * ijk_to_xyz.inverse()
   return v_to_tc
 
@@ -1021,7 +1010,6 @@ class BlendedImage(ImageRender):
     p = None
     for ir in self.images:
       dp = ir._color_plane(k, axis, view_aligned=view_aligned, require_color=True)
-      ir._update_colors = False
       cmode = ir._c_mode
       if p is None:
         h,w = dp.shape[:2]
