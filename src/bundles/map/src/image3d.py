@@ -792,7 +792,8 @@ class AxisAlignedPlanes(PlanesDrawing):
                  ((i0,j0,0),(i1,j0,0),(i1,j1,0),(i0,j1,0))), float32)
     tap = array(((0,1,2),(0,2,3)), int32)
     di,dj,dk = max(1, fi1-fi0), max(1, fj1-fj0), max(1, fk1-fk0)
-    ti0,ti1,tj0,tj1,tk0,tk1 = (i0-fi0)/di, (i1-fi0)/di, (j0-fj0)/dj, (j1-fj0)/dj, (k0-fk0)/dk, (k1-fk0)/dk
+    # Texture coords range from 1/2N to 1-1/2N, not from 0 to 1.
+    ti0,ti1,tj0,tj1,tk0,tk1 = (i0-fi0+0.5)/di, (i1-fi0-0.5)/di, (j0-fj0+0.5)/dj, (j1-fj0-0.5)/dj, (k0-fk0+0.5)/dk, (k1-fk0-0.5)/dk
     tca = array((((tj0,tk0),(tj1,tk0),(tj1,tk1),(tj0,tk1)),
                  ((ti0,tk0),(ti1,tk0),(ti1,tk1),(ti0,tk1)),
                  ((ti0,tj0),(ti1,tj0),(ti1,tj1),(ti0,tj1))),
@@ -962,6 +963,7 @@ def _xyz_to_texcoord(ijk_region, ijk_to_xyz):
   ei,ej,ek = [i1-i0+1 for i0,i1 in zip(ijk_min, ijk_max)]
   i0,j0,k0 = ijk_min
   from chimerax.core.geometry.place import scale, translation
+  # TODO: Slightly wrong. N = ei not N = ei+1.  I think scaling of (ei-1)/ei needed, followed by 1/ei.
   v_to_tc = scale((1/(ei+1), 1/(ej+1), 1/(ek+1))) * translation((0.5-i0,0.5-j0,0.5-k0)) * ijk_to_xyz.inverse()
   return v_to_tc
 
