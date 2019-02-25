@@ -1660,6 +1660,14 @@ class Structure(Model, StructureData):
                 tp.colors = colors
 
     def bounds(self):
+        #
+        # TODO: Updating ribbon graphics during bounds() calc is precarious.
+        # This caused bug #1717 where ribbons got unexpectedly deleted during a call
+        # to bounds() by the shadow calculation code during rendering.
+        # Probably should define bounds to mean the displayed graphics bounds
+        # which may not include pending updates to graphics.  Code that needs to
+        # include the pending graphics changes would need to explicitly update the graphics.
+        #
         self._update_graphics_if_needed()       # Ribbon bounds computed from graphics
         # import sys, time
         # start = time.time()

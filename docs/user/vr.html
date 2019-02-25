@@ -52,13 +52,13 @@ ChimeraX can also <a href="vrphone.html">record 360&deg; movies</a>.
 
 <ul class="none">
 <li><a href="#starting"><b>Starting VR Mode</b></a>
-<li><a href="#mousemodes"><b>Hand Controller Modes</b></a>
-<li><a href="#handproblems"><b>Hand Controller Problems</b></a>
+<li><a href="#mousemodes"><b>Hand-Controller Modes</b></a>
+<li><a href="#displayicons"><b>Changing the Display</b></a>
 <li><a href="#interactive"><b>Limitations of Interactive Viewing</b></a>
 </ul>
 
 <p>
-See also the following:
+See also:
 </p>
 <blockquote>
 <a href="https://www.sciencedirect.com/science/article/pii/S002228361830696X"
@@ -67,6 +67,8 @@ Goddard TD, Brilliant AA, Skillman TL, Vergenz S, Tyrwhitt-Drake J, Meng EC, Fer
 <i>J Mol Biol.</i> 2018 Oct 19;430(21):3982-3996.
 </blockquote>
 <ul>
+<li><a href="tutorials/dicom-vr.html">DICOM in VR tutorial</a>
+<li><a href="http://vr.ucsf.edu/" target="_blank">VR at UCSF</a>
 <li>VR setup advice and observations on different systems:
 <a href="http://www.cgl.ucsf.edu/chimera/data/laptop-vr-nov2018/laptopvr.html"
 target="_blank">Windows</a>,
@@ -74,8 +76,6 @@ target="_blank">Windows</a>,
 target="_blank">Mac</a>,
 <a href="http://www.cgl.ucsf.edu/chimera/data/linux-vr-oct2018/linuxvr.html"
 target="_blank">Linux</a>
-<li><a href="http://vr.ucsf.edu/" target="_blank">VR at UCSF</a>
-<li><a href="tutorials/dicom-vr.html">DICOM in VR tutorial</a>
 </ul>
 
 <a name="starting"></a>
@@ -84,12 +84,45 @@ target="_blank">Linux</a>
 </p>
 <h3>Starting VR Mode</h3>
 
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="tutorials/dicom-vr3.png">
+<img class="outline" src="tutorials/dicom-vr3.png" title="click to enlarge..."
+alt="Vive hand controllers" width="300px"></a>
+</td></tr>
+<tr><td align="center"><font size="-1">click image to enlarge, or see
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html" target="_blank">diagram at Vive website</a>
+</font></td></tr>
+</table>
 <p>
 Any models displayed in ChimeraX can be shown in virtual reality headsets
 supported by <a href="http://steamvr.com">SteamVR</a>, such as HTC Vive, 
-Oculus Rift and Samsung Odyssey headsets. Descriptions below are for Vive
-hand controllers, but different hand controllers have buttons, triggers,
-<i>etc.</i> that are generally similar and function similarly.
+Oculus Rift and Samsung Odyssey.
+Descriptions here are for Vive hand controllers, but other hand controllers
+have buttons that are generally similar in position and function.
+</p><p>
+Vive controllers each have a <b><i>trigger</i></b>
+to &ldquo;pull&rdquo; with the index finger,
+a <b><i>grip</i></b> button on the side,
+and a larger round <b><i>trackpad</i></b> on the top surface
+that can be pressed with the thumb.
+Above the trackpad is a smaller <b><i>menu</i></b> button
+marked with horizontal lines, and below it is a power button and
+a green light indicating when the controller is turned on.
+</p>
+
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="tutorials/dicom-vr2.png">
+<img class="outline" src="tutorials/dicom-vr2.png" title="click to enlarge..."
+alt="SteamVR status window" width="200px"></a>
+</td></tr>
+<tr><td align="center" width="200px"><font size="-1">
+The <a href="http://steamvr.com" target="_blank">SteamVR</a> status window
+shows icons for the goggles, two controllers, and two base stations
+in green when they are detected as ready for use.
+</font></td></tr>
+</table>
 
 <ol>
 <li>start <a href="http://store.steampowered.com/about/" 
@@ -103,32 +136,62 @@ target="_blank">SteamVR</a>
 <a href="commands/device.html#vr"><b>vr on</b></a>
 </blockquote>
 </ol>
-<p>
+
+</p><p>
 Models in ChimeraX should then appear in the VR headset.
-With the hand controllers (positions shown as colored cones in the headset):
-<ul>
-<li>models can be moved and rotated by
-moving or rotating either controller while squeezing its
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">trigger</a>
-<li>models can be scaled up or down (made larger or smaller) by squeezing the
-triggers of both controllers and moving them farther apart 
-or closer together, respectively
-<li>pressing the Vive 
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">grip button</a> centers and rescales the model
-<li>pressing the Vive
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">menu button</a> shows the ChimeraX desktop user interface 
-(by <a href="commands/device.html#vr">default</a>,
-the righthand panel of tool windows)
-in the headset, allowing &ldquo;clicking&rdquo; normal desktop controls
-such as <a href="index.html#toolbars">toolbar icons</a> to adjust the display 
-and to assign <a href="#mousemodes">hand-controller modes</a>
-</ul>
+The hand-controller positions are shown in the headset as cones,
+and icons on the cones indicate button functions
+or <a href="#mousemodes">modes</a>:
+</p>
+<a name="default-controller"></a>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center">rotate
+<br><img src="tools/mouse-icons/rotate.png" class="icon3"></td>
+<td class="text">&nbsp;rotate hand controller
+with <b><i>trigger</i></b> pressed</td>
+<td rowspan="5" align="center" valign="center" width="200px">
+<a href="tutorials/dicom-vr6.png">
+<img class="outline" src="tutorials/dicom-vr6.png" title="click to enlarge..."
+alt="underside of cone" width="160px"></a>
+<br><br><font size="-1">
+The icon on the cone &ldquo;underside&rdquo; shows that the
+<b><i>trigger</i></b> is assigned to translation (and rotation),
+and the icon on the side shows that the <b><i>grip</i></b> button
+is assigned to center and rescale.
+</font>
+</tr><tr>
+<td align="center">translate in 3D
+<br><img src="tools/mouse-icons/translate.png" class="icon3"></td>
+<td>&nbsp;move hand controller with <b><i>trigger</i></b> pressed</td>
+</tr><tr>
+<td align="center">zoom
+<br><img src="tools/mouse-icons/zoom.png" class="icon3"></td>
+<td class="text">
+&nbsp;move hand controllers farther apart or closer
+together with both <b><i>triggers</i></b> pressed
+<br>&ndash; or &ndash;<br>
+&nbsp;move hand controller vertically with <b><i>trackpad</i></b> pressed
+</td>
+</tr><tr>
+<td align="center">center and rescale
+<br>(useful to recover the view)
+<br><img src="tools/shortcut-icons/viewall.png" class="icon2"></td>
+<td class="text">&nbsp;click <b><i>grip</i></b> button</td>
+</tr><tr>
+<td align="center" class="text">
+show, hide, move control panel</td>
+<td class="text">&nbsp;use <b><i>menu</i></b> button</td>
+</tr></table>
 <p>
+The control panel is just the ChimeraX desktop user interface 
+(by <a href="commands/device.html#vr">default</a>,
+the righthand panel of tool windows). Displaying this panel in the
+headset allows &ldquo;clicking&rdquo; normal desktop controls
+such as to <a href="#displayicons">adjust the display</a> 
+and to <a href="#mousemodes">reassign modes</a>.
+</p><p>
 The physical room bounds are shown
-as a blue mesh when the headset or a hand controller 
+with blue squares when the headset or a hand controller 
 comes close to a physical wall (within about a meter).
 Models can be scaled to sizes larger than the physical room.
 </p><p>
@@ -143,54 +206,64 @@ desktop display, use the ChimeraX command:
 <p class="nav">
 [<a href="#top">back to top: Virtual Reality</a>]
 </p>
-<h3>Hand Controller Modes</h3>
+<h3>Hand-Controller Modes</h3>
 <p>
-Most of the ChimeraX <a href="tools/mousemodes.html">mouse modes</a>
+Most of the ChimeraX &ldquo;mouse&rdquo;
+<a href="tools/mousemodes.html">modes</a>
 can be used with the VR hand controllers.
-To assign a mouse mode to a hand controller button:
+To assign a mode to a hand-controller button:
 </p>
-
 <ol>
-<li>press the Vive
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">menu button</a> to show the ChimeraX desktop user interface 
-(by <a href="commands/device.html#vr">default</a>,
-including the <a href="tools/mousemodes.html"><b>Mouse Modes</b></a> toolbar)
+<li>press the Vive <b><i>menu</i></b> button to show the ChimeraX control panel
+with <a href="tools/mousemodes.html"><b>Mouse Modes</b></a> toolbar
 in the headset.
-Holding the menu button allows moving the panel in the VR scene.
+<br><img class="iconbar" src="mouse-icons.png">
+<br><br>
 <li>put the tip of a hand controller cone on a 
-<a href="tools/mousemodes.html">mouse mode icon</a> and click with
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">trigger, trackpad, or grip</a> hand controller buttons to assign
-that mouse mode to the clicked button
+<a href="tools/mousemodes.html">mode icon</a> and click with the
+<b><i>trigger</i></b>, <b><i>trackpad</i></b>, or <b><i>grip</i></b> button
+to reassign that button to the function;
+the icon will pop up slightly when the cone tip is in position to click it
 </ol>
 <p>
-There are three assignable buttons on each controller,
-so six modes can be assigned. However, keeping the default
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">trigger</a> assignment (rotation or translation, equivalent in VR)
-is recommended to allow manipulation as described <a href="#starting">above</a>.
+There are three assignable buttons on each controller, so six modes 
+can be assigned. However, leaving the <b><i>triggers</i></b> with their
+default assignments
+(rotation, translation, zooming) is recommended to allow manipulation
+as described <a href="#default-controller">above</a>.
+If a <b><i>trigger</i></b> is accidentally reassigned, using it to click
+either the <b>rotate</b>
+&nbsp;<img class="icon" border=1 src="tools/mouse-icons/rotate.png">&nbsp;
+or <b>translate</b>
+&nbsp;<img class="icon" border=1 src="tools/mouse-icons/translate.png">&nbsp;
+mode icon returns it to the default behavior.
 </p><p>
-Functions include:
+Functions are described in more detail in the 
+<a href="tools/mousemodes.html"><b>Mouse Modes</b></a> page, but include:
 </p>
-
 <ul>
-  <li>Selection
-  <li>Rotation + translation (single mode) - default/recommended for triggers
-  <li>Zooming
-  <li>Rotate and translate selected model only
-  <li>Move clip planes
-  <li>Rotate clip planes
-  <li>Label atoms
-  <li>Change map contour level
-  <li>Crop map box
-  <li>Place markers, move, resize, delete, connnect markers
-  <li>Play 3D image time series
-  <li>Rotate bonds
-  <li>Tug on atoms with molecular dynamics
-  <li>Run molecular dynamics on residue and neighbors
-  <li>Swap an amino acid
-  <li>Limit atomic and map display to a zone around a residue
+  <li><a href="selection.html">select</a>
+  <li>rotate + translate (single mode in VR)
+   &ndash; default/recommended for <b><i>triggers</i></b>
+  <li>zoom &ndash; default for <b><i>trackpad</i></b>
+  <li>rotate and translate <a href="selection.html">selected</a> models only
+  <li>move clip planes
+  <li>rotate clip planes
+  <li>measure distances between atoms or markers
+  <li>label residues
+  <li>set pivot to atom
+  <li>rotate bond
+  <li>change map contour level
+  <li>view map planes
+  <li>crop map box
+  <li>place markers, move, resize, delete, connnect markers
+  <li>play 3D image time series
+  <li>tug on atoms with molecular dynamics
+  <li>run molecular dynamics on residue and neighbors
+  <li>swap an amino acid
+  <li>limit atomic and map display to a zone around a residue
+  <li>&ldquo;windowing&rdquo; 
+   &ndash; adjust solid display thresholds collectively
 </ul>
 
 <p>
@@ -202,45 +275,32 @@ Functions include:
   Translation and rotation are separate mouse modes but are a single hand controller mode.
 </p>
 
-<a name="handproblems"></a>
+<a name="displayicons"></a>
 <p class="nav">
 [<a href="#top">back to top: Virtual Reality</a>]
 </p>
-<h3>Hand Controller Problems</h3>
-
+<h3>Changing the Display</h3>
 <p>
-  Several factors make it difficult to use the hand controllers.  These problems can be remedied but we
-  have not yet had time to fix them.
+Molecule or map display (styles, <i>etc.</i>)
+can be changed by displaying the ChimeraX
+control panel in the headset using the Vive controller <b><i>menu</i></b>
+button, then using the hand controllers to &ldquo;click&rdquo; toolbar icons:
+</p>
+<ul>
+<li><a href="tools/moldisplay.html"><b>Molecule Display</b></a>
+<img class="iconbar" src="molecule-icons.png">
+<li><a href="tools/densitymaps.html"><b>Density Maps</b></a>
+<img class="iconbar" src="density-icons.png">
+</ul>
+<p>
+An icon will pop up slightly when the cone tip is in position to click it.
+The scope of action of these icons can be limited by
+<a href="selection.html">selection</a>.
+</p><p>
+Alternatively, the display can be changed by removing the headset and using
+the ChimeraX interface on the conventional display with mouse and keyboard.
 </p>
 
-<p><b>No click feedback.</b> 
-There is no visual indication when you click a mouse mode icon. 
-The icons are small and easy to miss. It helps to move the panel close 
-by holding the menu button on the hand controller. 
-The <a href="tools/log.html"><b>Log</b></a> will show if the mode was changed.
-</p>
-<p><b>No mode indicator.</b> 
-There is no visual indication of what modes are currently assigned to the buttons.
-It is easy to forget the six modes assigned to the two controllers.
-In the future we plan to put the mode icon on the cone at the location of 
-each of the three assignable buttons.
-</p>
-<p><b>Blackout.</b> 
-Modes that perform calculations taking longer than 1/90th second cause the 
-graphics not to update, and the VR scene will gray out after a fraction 
-of a second without graphics updates. Changing map contour level and 
-running molecular dynamics are prone to this problem.
-In the future these calculations will be done in parallel 
-so the graphics will not be slowed down.
-</p>
-<p><b>Flickering labels.</b>
-Atom labels or residue labels crated by the swap amino acid mode can cause
-scene flicker because the labels are slow to render.
-Graphics optimization is needed.
-</p>
-<p><b>Selection outlines.</b>
-Green selection outlines can slow rendering and cause flicker.
-</p>
 
 <a name="interactive"></a>
 <p class="nav">
@@ -280,7 +340,7 @@ per second is adequate on a conventional desktop display.
 </p>
 <p>
 <b>Simple lighting</b>.
-By default ChimeraX switches to simple lighting when VR is enabled -- other
+By default ChimeraX switches to simple lighting when VR is enabled &ndash; other
 <a href="commands/lighting.html">lighting modes</a> render too slowly and cause stuttering.
 </p><p>
 <b>Desktop rendering</b>.
@@ -300,18 +360,22 @@ will slow headset rendering and cause stuttering, so it
 should be closed during VR viewing.
 </p>
 
-<p>
-<b>Difficult to change model display</b>.
-Changing molecule or map display can be done by displaying the desktop
-in the headset  using the Vive controller
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">menu button</a>.
-Then use the hand controllers to &ldquo;click&rdquo;  icons in the ChimeraX
-<a href="tools/moldisplay.html"><b>Molecule Display</b></a>
-and <a href="tools/densitymaps.html"><b>Density Maps</b></a> toolbars
-to change the display.
-Alternatively the display can be changed by removing the headset and using
-the ChimeraX  interface on the conventional display with mouse and keyboard.
+<p><b>Blackout.</b> 
+Modes that perform calculations taking longer than 1/90th second cause the 
+graphics not to update, and the VR scene will gray out after a fraction 
+of a second without graphics updates. Changing map contour level and 
+running molecular dynamics are prone to this problem.
+In the future these calculations will be done in parallel 
+so the graphics will not be slowed down.
+</p>
+<p><b>Flickering labels.</b>
+Atom labels or residue labels created by the swap amino acid mode can cause
+scene flicker because the labels are slow to render.
+Graphics optimization is needed.
+</p>
+<p><b>Selection outlines.</b>
+Green <a href="selection.html">selection</a>
+outlines can slow rendering and cause flicker.
 </p>
 
 <p>

@@ -33,7 +33,7 @@ This input format is indicated by the filename suffix <b>.dcm</b>
 or the <b>format dicom</b> option in the
 <a href="../commands/open.html"><b>open</b></a> command.
 See also:
-<a href="../dicom-quickref.html">DICOM Quick Reference</a>,
+<a href="../dicom-quickref.html">DICOM Reference</a>,
 <a href="../tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
 <a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 <a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
@@ -108,6 +108,27 @@ shown in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>:
 <li>segmentations or other image series-dependent annotations
 (for example, segmentations of a particular CT scan)
 </ol>
+
+<a name="initial"></a>
+<p class="nav">
+[<a href="#top">back to top: DICOM Files</a>]
+</p>
+<h3>DICOM Initial Display Settings</h3>
+<p>
+Each <a href="../tools/volumeviewer.html">volume data</a> model
+read from DICOM is initially displayed as a single Z plane
+in the &ldquo;solid&rdquo; style.
+DICOM-specific defaults for solid rendering correspond to the
+<a href="../commands/volume.html"><b>volume</b></a> command options:
+</p>
+<ul>
+<li><a href="../commands/volume.html#pmode"><b>projectionMode 3d</b></a>
+<li><a href="../commands/volume.html#colormapOnGpu"><b>colormapOnGpu 
+true</b></a>
+<li><a href="../commands/volume.html#fullRegionOnGpu"><b>fullRegionOnGpu
+true</b></a>
+<li><a href="../commands/volume.html#appearance"><b>appearance initial</b></a>
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /

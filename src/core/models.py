@@ -152,7 +152,7 @@ class Model(State, Drawing):
                         if not d.highlighted and not d.empty_drawing():
                             return False
 
-            return True
+            return self.highlighted
 
         if self.highlighted:
             return True
