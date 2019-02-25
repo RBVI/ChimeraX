@@ -69,6 +69,14 @@ class Conservation(DynamicHeaderSequence):
         from PyQt5.QtWidgets import QVBoxLayout
         layout = QVBoxLayout()
         layout.addWidget(al2co_options)
+        from chimerax.ui.widgets import Citation
+        layout.addWidget(Citation(self.alignment.session,
+            "Pei, J. and Grishin, N.V. (2001)\n"
+            "AL2CO: calculation of positional conservation in a"
+            " protein sequence alignment\n"
+            "Bioinformatics, 17, 700-712.", prefix="Publications"
+            " using AL2CO conservation measures should cite:",
+            pubmed_id=11524371))
         self.al2co_options_widget.setLayout(layout)
         if self.settings.style != self.STYLE_AL2CO:
             self.al2co_options_widget.hide()
@@ -169,8 +177,6 @@ class Conservation(DynamicHeaderSequence):
         return self.percent_identity(pos, for_histogram=True)
 
     def _reeval_al2co(self, pos1, pos2):
-        self[:] = [100.0] * len(self.alignment.seqs[0])
-        return
         if len(self.alignment.seqs) == 1:
             self[:] = [100.0] * len(self.alignment.seqs[0])
             return
@@ -180,40 +186,27 @@ class Conservation(DynamicHeaderSequence):
         self.alignment.save(temp_stream, format_name="aln")
         file_name = temp_stream.name
         temp_stream.close()
+        import os.path
+        command = [os.path.join(os.path.dirname(__file__), "bin", "al2co.exe"),
+            "-i", file_name,
+            "-f", str(self.settings.al2co_freq),
+            "-c", str(self.settings.al2co_cons),
+            "-w", str(self.settings.al2co_window),
+            "-g", str(self.settings.al2co_gap) ]
+        if self.settings.al2co_cons == 2:
+            command += ["-m", str(self.settings.al2co_transform)]
+            from chimerax.seqalign.sim_matrices import matrix_files
+            matrix_lookup = matrix_files(self.alignment.session)
+            if self.settings.al2co_matrix in matrix_lookup:
+                command += [ "-s", matrix_lookup[self.settings.al2co_matrix] ]
         try:
             import subprocess
-            import os.path
-            #TODO
-            """
-            result = subprocess.run([os.path.join(os.path.dirname(__file__), "bin", "al2co.exe"),
-                "-i", file_name,
-                "-f", str(self.mav.prefs[AL2CO_FREQ]),
-                "-c", str(self.mav.prefs[AL2CO_CONS]),
-                "-w", str(self.mav.prefs[AL2CO_WINDOW]),
-                "-g", str(self.mav.prefs[AL2CO_GAP]) ]
-            """
+            result = subprocess.run(command, capture_output=True, text=True, check=True)
         finally:
             import os
             os.unlink(file_name)
-        """TODO
-        import os, os.path
-        chimeraRoot = os.environ.get("CHIMERA")
-        command =  [ os.path.join(chimeraRoot, 'bin', 'al2co'),
-                "-i", tfName,
-                "-f", str(self.mav.prefs[AL2CO_FREQ]),
-                "-c", str(self.mav.prefs[AL2CO_CONS]),
-                "-w", str(self.mav.prefs[AL2CO_WINDOW]),
-                "-g", str(self.mav.prefs[AL2CO_GAP]) ]
-        if self.mav.prefs[AL2CO_CONS] == 2:
-            command += ["-m", str(self.mav.prefs[AL2CO_TRANSFORM])]
-            matrix = self.mav.prefs[AL2CO_MATRIX]
-            from SmithWaterman import matrixFiles
-            if matrix in matrixFiles:
-                command += [ "-s", matrixFiles[matrix] ]
-        from subprocess import Popen, PIPE, STDOUT
-        alOut = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT).stdout
-        for line in alOut:
-            if len(self) == len(self.mav.seqs[0]):
+        for line in result.stdout.splitlines():
+            if len(self) == len(self.alignment.seqs[0]):
                 break
             line = line.strip()
             if line.endswith("zero"):
@@ -221,18 +214,16 @@ class Conservation(DynamicHeaderSequence):
                 continue
             if line.endswith("position"):
                 # one or fewer columns have values
-                self[:] = [0.0] * len(self.mav.seqs[0])
-                delattr(self, 'depictionVal')
+                self[:] = [0.0] * len(self.alignment.seqs[0])
+                delattr(self, 'depiction_val')
                 break
             if line[-1] == "*":
                 self.append(None)
                 continue
             self.append(float(line.split()[-1]))
-        os.unlink(tfName)
-        if len(self) != len(self.mav.seqs[0]):
+        if len(self) != len(self.alignment.seqs[0]):
             # failure, possibly due to no variance in alignment
-            self[:] = [1.0] * len(self.mav.seqs[0])
-        """
+            self[:] = [1.0] * len(self.alignment.seqs[0])
 
     def _set_update_vars(self, style):
         self.single_column_updateable, self.fast_update = (False, False) \
