@@ -16,6 +16,7 @@ from chimerax.ui import HtmlToolInstance
 _prolog = """<html>
   <!-- vi:set expandtab shiftwidth=2: -->
   <head>
+    <meta charset="UTF-8">
     <base href="URLBASE/"/>
     <link href="lib/ribbon/ribbon.css" rel="stylesheet" type="text/css"/>
     <script type="text/javascript" src="lib/jquery-1.6.1.min.js"></script>
@@ -24,6 +25,15 @@ _prolog = """<html>
     <script type="text/javascript">
       $(document).ready(function () {
         $('#ribbon').ribbon();
+        $('.ribbon-button').click(function() {
+          if (this.isEnabled()) {
+            shortcut = $(this).attr('id').slice(0, 2);
+            //alert(shortcut + ' clicked');
+            var link = document.createElement('a');
+            link.href = "toolbar:" + shortcut;
+            link.click();
+          }
+        });
       });
     </script>
     <style>
@@ -69,6 +79,8 @@ class ToolbarTool(HtmlToolInstance):
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name, size_hint=(575, 215), log_errors=True)
         self.display_name = "Toolbar"
+        from chimerax.shortcuts import shortcuts
+        self.keyboard_shortcuts = shortcuts.keyboard_shortcuts(session)
         self._build_ui()
 
     def _build_ui(self):
@@ -79,23 +91,12 @@ class ToolbarTool(HtmlToolInstance):
         self.html_view.setHtml(html, QUrl("file://"))
 
     def handle_scheme(self, url):
-        # ``url`` - ``PyQt5.QtCore.QUrl`` instance
-
         # First check that the path is a real command
-        command = url.path()
-        if command == "invoke":
-            # Collect the optional parameters from URL query parameters
-            # and construct a command to execute
-            from urllib.parse import parse_qs
-            query = parse_qs(url.query())
-
-            # First the command
-            cmd_text = ["toolbar", command]
-
-            # TODO:
-        else:
+        keys = url.path()
+        if len(keys) != 2:
             from chimerax.core.errors import UserError
-            raise UserError("unknown toolbar command: %s" % command)
+            raise UserError("unknown toolbar command: %s" % keys)
+        self.keyboard_shortcuts.run_shortcut(keys)
 
     def build_buttons(self):
         import os
