@@ -72,7 +72,7 @@ See also:
 <a href="smoothlines.html"><b>smoothlines</b></a>,
 <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>,
 <a href="../measurements.html">measurements</a>,
-<a href="../dicom-quickref.html">DICOM Quick Reference</a>
+<a href="../dicom-quickref.html">DICOM Reference</a>
 </p>
 <a name="examples">Examples</a>:
 <blockquote>
@@ -690,6 +690,10 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   the <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>
+<p>
+Pausing the cursor over a single-plane display shows the voxel indices 
+and data value in a pop-up balloon.
+</p>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -967,7 +971,7 @@ whereas colormapping with the CPU is only done when the colors change.
   <b>fullRegionOnGpu</b> &nbsp;true&nbsp;|&nbsp;false
 <br>
 Whether to keep the data
-(and colors, if <a href="#colormapOnGpu"><b>colormapOnGpu</b></a> is false)
+(or colors, if <a href="#colormapOnGpu"><b>colormapOnGpu</b></a> is false)
 for the full volume region on the GPU to allow fast cropping.
 The default is true for <a href="../dicom/dicom.html">DICOM</a>,
 otherwise false.
@@ -1051,37 +1055,36 @@ so that each data value has its own color.
   <a href="#top" class="nounder">&bull;</a>
   <b>appearance</b> &nbsp;<b>initial</b>
 <br>
-Apply an approximation of the settings in a
+Apply a
 <a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
 target="_blank">Horos 3D preset</a> to the solid display 
-(<a href="https://horosproject.org/about/"
-target="_blank">Horos</a> is a program for medical image 
-visualization and analysis)
 and set <a href="#dimvox"><b>dimTransparentVoxels</b></a> to false.
 The <i>preset-name</i> should be enclosed in quotation marks if it
-contains any spaces. This approximation may not reproduce 
-the appearance in Horos very faithfully, as there is not a 
-one-to-one correspondence between the settings in the two programs,
-and some parts of the preset definition files may have been 
-ignored or misinterpreted. These presets are generally intended for
+contains any spaces. 
+<a href="https://horosproject.org/about/" target="_blank">Horos</a> 
+is a program for medical image analysis.
+Implementation of its
+3D presets in ChimeraX is only approximate and may not reproduce 
+the appearance in Horos very well, as there is not a 
+one-to-one correspondence between settings in the two programs,
+and some parts of the definition files may have been ignored.
+These presets are generally intended for
 3D rendering (not <a href="#planes">planes</a>).
 <p>
 Besides a preset name, <b>initial</b> can be used to (re)set to the
-solid <a href="#level">threshold levels</a>
-and colors that would have been chosen automatically 
-for the data when first shown as solid, with 
+<a href="#level">threshold levels</a> and colors chosen automatically 
+for the data when first shown as solid, with
 <a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
 <a href="../dicom/dicom.html">DICOM</a> data are initially shown 
 as solid with thresholds: (-1000,0),(300,0.9),(3000,1).
-The <b>initial</b> settings are useful for (going back to)
-viewing <a href="#planes">planes</a> or thin slabs
-after viewing thicker regions with a 3D preset.
+The <b>initial</b> settings may be useful for viewing 
+<a href="#planes">planes</a> or thin slabs.
 See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>,
-<a href="../dicom-quickref.html">DICOM Quick Reference</a>
+<a href="../dicom-quickref.html">DICOM Reference</a>
 </p>
 </blockquote>
 
