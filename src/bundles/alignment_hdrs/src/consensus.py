@@ -27,9 +27,9 @@ class Consensus(DynamicHeaderSequence):
     def add_options(self, options_container, *, category=None, verbose_labels=True):
         from chimerax.ui.options import FloatOption, BooleanOption
         option_data =[
-            ("capitalization threshold", 'capitalize_threshold', FloatOption,
+            ("capitalization threshold", 'capitalize_threshold', FloatOption, {},
                 "Capitalize consensus letter if at least this fraction of sequences are identical"),
-            ("ignore gap characters", 'ignore_gaps', BooleanOption,
+            ("ignore gap characters", 'ignore_gaps', BooleanOption, {},
                 "Whether gap characters are considered for the consensus character")
         ]
         self._add_options(options_container, category, verbose_labels, option_data)
@@ -93,10 +93,14 @@ class Consensus(DynamicHeaderSequence):
             return 'purple'
         return 'black'
 
-    def reevaluate(self):
+    def reevaluate(self, pos1=0, pos2=None, *, evaluation_func=None):
         """sequences changed, possibly including length"""
-        self.conserved = [False] * len(self.alignment.seqs[0])
-        super().reevaluate()
+        if len(self.conserved) != len(self.alignment.seqs[0]):
+            self.conserved = [False] * len(self.alignment.seqs[0])
+        else:
+            r1, r2 = pos1, (len(self.conserved) if pos2 is None else pos2+1)
+            self.conserved[r1:r2] = [False] * (r2-r1)
+        super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
 
 from chimerax.core.settings import Settings
 class ConsensusSettings(Settings):

@@ -40,7 +40,7 @@ class InitWindowSizeOption(Option):
         self.session = session
         Option.__init__(self, *args, **kw)
 
-    def get(self):
+    def get_value(self):
         size_scheme = self.push_button.text()
         if size_scheme == "last used":
             data = None
@@ -51,7 +51,7 @@ class InitWindowSizeOption(Option):
             data = (self.w_fixed_spin_box.value(), self.h_fixed_spin_box.value())
         return (size_scheme, data)
 
-    def set(self, value):
+    def set_value(self, value):
         size_scheme, size_data = value
         self.push_button.setText(size_scheme)
         if size_scheme == "proportional":
@@ -63,6 +63,8 @@ class InitWindowSizeOption(Option):
             self.w_fixed_spin_box.setValue(w)
             self.h_fixed_spin_box.setValue(h)
         self._show_appropriate_widgets()
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         self.push_button.setText(self.multiple_value)
@@ -432,7 +434,7 @@ class CoreSettingsPanel:
     def _core_setting_changed(self, trig_name, info):
         setting_name, old_val, new_val = info
         if setting_name in self.options:
-            self.options[setting_name].set(new_val)
+            self.options[setting_name].value = new_val
 
     def _opt_cb(self, opt):
 
