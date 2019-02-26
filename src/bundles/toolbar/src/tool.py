@@ -12,6 +12,12 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.ui import HtmlToolInstance
+from  chimerax.core.settings import Settings
+
+class ToolbarSettings(Settings):
+    AUTO_SAVE = {
+        "show_hints": True,
+    }
 
 _prolog = """<html>
   <!-- vi:set expandtab shiftwidth=2: -->
@@ -28,7 +34,6 @@ _prolog = """<html>
         $('.ribbon-button').click(function() {
           if (this.isEnabled()) {
             shortcut = $(this).attr('id').slice(0, 2);
-            //alert(shortcut + ' clicked');
             var link = document.createElement('a');
             link.href = "toolbar:" + shortcut;
             link.click();
@@ -73,22 +78,46 @@ class ToolbarTool(HtmlToolInstance):
 
     SESSION_ENDURING = False    # Does this instance persist when session closes
     SESSION_SAVE = False        # No session saving for now
-    CUSTOM_SCHEME = "toolbar"   # Scheme used in HTML for callback into Python
+    PLACEMENT = "top"
+    CUSTOM_SCHEME = "toolbar"
     help = "help:user/tools/Toolbar.html"  # Let ChimeraX know about our help page
 
     def __init__(self, session, tool_name):
-        super().__init__(session, tool_name, size_hint=(575, 215), log_errors=True)
+        super().__init__(session, tool_name, size_hint=(575, 120), log_errors=True)
         self.display_name = "Toolbar"
         from chimerax.shortcuts import shortcuts
         self.keyboard_shortcuts = shortcuts.keyboard_shortcuts(session)
         self._build_ui()
+        self.settings = ToolbarSettings(session, tool_name)
+        self.tool_window.fill_context_menu = self.fill_context_menu
+        # kludge to hide title bar
+        from PyQt5.QtWidgets import QWidget
+        self.tool_window._kludge.dock_widget.setTitleBarWidget(QWidget())
+        from chimerax.core.commands import run
+        run(session, "toolshed hide 'Graphics Toolbar'", log=False)
+        run(session, "toolshed hide 'Molecule Display Toolbar'", log=False)
+        # run(session, "toolshed hide 'Mouse Modes for Right Button'", log=False)
 
     def _build_ui(self):
         from PyQt5.QtCore import QUrl
-        html = self.build_buttons()
+        html = self._build_buttons()
         #with open('debug.html', 'w') as f:
         #    f.write(html)
         self.html_view.setHtml(html, QUrl("file://"))
+
+    def fill_context_menu(self, menu, x, y):
+        # avoid having actions destroyed when this routine returns
+        # by stowing a reference in the menu itself
+        from PyQt5.QtWidgets import QAction
+        hint_action = QAction("Show hints", menu)
+        hint_action.setCheckable(True)
+        hint_action.setChecked(self.settings.show_hints)
+        hint_action.toggled.connect(lambda arg, f=self._set_show_hints: f(arg))
+        menu.addAction(hint_action)
+
+    def _set_show_hints(self, show_hints):
+        self.settings.show_hints = show_hints
+        self._build_ui()
 
     def handle_scheme(self, url):
         # First check that the path is a real command
@@ -98,10 +127,11 @@ class ToolbarTool(HtmlToolInstance):
             raise UserError("unknown toolbar command: %s" % keys)
         self.keyboard_shortcuts.run_shortcut(keys)
 
-    def build_buttons(self):
+    def _build_buttons(self):
         import os
         import chimerax.shortcuts
         from PyQt5.QtCore import QUrl
+        show_hints = self.settings.show_hints
         icon_dir = os.path.join(chimerax.shortcuts.__path__[0], 'icons')
         dir_path = os.path.dirname(__file__)
         qurl = QUrl.fromLocalFile(dir_path)
