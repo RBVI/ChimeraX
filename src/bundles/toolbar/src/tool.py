@@ -85,10 +85,10 @@ class ToolbarTool(HtmlToolInstance):
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name, size_hint=(575, 120), log_errors=True)
         self.display_name = "Toolbar"
+        self.settings = ToolbarSettings(session, tool_name)
         from chimerax.shortcuts import shortcuts
         self.keyboard_shortcuts = shortcuts.keyboard_shortcuts(session)
         self._build_ui()
-        self.settings = ToolbarSettings(session, tool_name)
         self.tool_window.fill_context_menu = self.fill_context_menu
         # kludge to hide title bar
         from PyQt5.QtWidgets import QWidget
