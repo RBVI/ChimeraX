@@ -54,11 +54,26 @@ _prolog = """<html>
       {
         padding: 0px;
       }
+"""
+_normal_style = """
       #ribbon .ribbon-button-large .ribbon-icon
       {
-        width: 32px;
-        height: 32px;
+        width: 24px;
+        height: 24px;
       }
+"""
+_small_style = """
+      #ribbon .ribbon-button-large
+      {
+        height: 60px;
+      }
+      #ribbon .ribbon-button-large .ribbon-icon
+      {
+        width: 60px;
+        height: 60px;
+      }
+"""
+_end_prolog = """
     </style>
 
   </head>
@@ -136,21 +151,28 @@ class ToolbarTool(HtmlToolInstance):
         dir_path = os.path.dirname(__file__)
         qurl = QUrl.fromLocalFile(dir_path)
         html = _prolog.replace("URLBASE", qurl.url())
+        if show_hints:
+            html += _normal_style
+        else:
+            html += _small_style
+        html += _end_prolog
         for tab in _Toolbars:
             help_url, info = _Toolbars[tab]
             html += f'''<div class="ribbon-tab" id="{tab.replace(' ', '_')}-tab">\n\
 <span class="ribbon-title">{tab}</span>\n'''
             for section in info:
                 shortcuts = info[section]
-                html += f'''  <div class="ribbon-section">\n\
-  <span class="section-title">{section}</span>\n'''
+                html += '''  <div class="ribbon-section">\n'''
+                if show_hints:
+                    html += f'''  <span class="section-title">{section}</span>\n'''
                 for keys, icon_file, descrip, small in shortcuts:
                     qurl = QUrl.fromLocalFile(os.path.join(icon_dir, icon_file))
                     icon_path = qurl.url()
                     size = "small" if small else "large"
-                    html += f'''    <div class="ribbon-button ribbon-button-{size}" id="{keys}-btn">\n\
-        <span class="button-title">{descrip}</span>\n\
-        <img class="ribbon-icon ribbon-normal" src="{icon_path}"/>\n\
+                    html += f'''    <div class="ribbon-button ribbon-button-{size}" id="{keys}-btn">\n'''
+                    if show_hints:
+                        html += f'''        <span class="button-title">{descrip}</span>\n'''
+                    html += f'''        <img class="ribbon-icon ribbon-normal" src="{icon_path}"/>\n\
     </div>\n'''
                     #<span class="button-help">This button will add a table to your document.</span>
                     #<img class="ribbon-icon ribbon-hot" src="lib/icons/hot/new-table.png" />
