@@ -34,7 +34,7 @@ class HeaderSequence(list):
             self.name = name
         from weakref import proxy
         self.alignment = proxy(alignment)
-        self.alignment.attach_viewer(self)
+        self.alignment.add_observer(self)
         self.refresh_callback = refresh_callback
         self.visible = False
         self.eval_while_hidden = eval_while_hidden
@@ -68,7 +68,7 @@ class HeaderSequence(list):
 
     def destroy(self):
         if not self.alignment.being_destroyed:
-            self.alignment.detach_viewer(self)
+            self.alignment.remove_observer(self)
 
     def evaluate(self, pos):
         raise NotImplementedError("evaluate() method must be"
