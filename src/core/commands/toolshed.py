@@ -337,9 +337,10 @@ def toolshed_show(session, tool_name, _show=True):
         bi.start_tool(session, tool_name)
     else:
         from chimerax.core.errors import UserError
-        for t in all_tools:
-            print(t, repr(t.display_name), repr(t.tool_name),
-                    repr(t.bundle_info.name))
+        # DEBUG:
+        # for t in all_tools:
+        #     print(t, repr(t.display_name), repr(t.tool_name),
+        #             repr(t.bundle_info.name))
         raise UserError('No running tool named "%s"' % tool_name)
 toolshed_show_desc = CmdDesc(required=[('tool_name', StringArg)],
                        synopsis="Show tool.  Start if necessary")
