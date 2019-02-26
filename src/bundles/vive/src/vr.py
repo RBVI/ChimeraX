@@ -646,7 +646,7 @@ class SteamVRCamera(Camera):
         if td is None:
             # Drawing object for rendering to ChimeraX window
             from chimerax.core.graphics.drawing import _texture_drawing
-            t = self._framebuffers[0].color_texture
+            t = self._framebuffers[1].color_texture
             self._texture_drawing = td = _texture_drawing(t)
             td.opaque_texture = True
         from chimerax.core.graphics.drawing import match_aspect_ratio

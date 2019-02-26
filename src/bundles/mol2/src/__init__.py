@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import BundleAPI
+from .io import write_mol2
 
 class _Mol2BundleAPI(BundleAPI):
 

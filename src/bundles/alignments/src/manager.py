@@ -189,7 +189,7 @@ class AlignmentsManager(StateManager):
 
     @property
     def registered_viewers(self, seq_or_align):
-        """Return the registers viewers of type 'seq_or_align'
+        """Return the registered viewers of type 'seq_or_align'
             (which must be "sequence"  or "alignent")
 
            The return value is a list of tool names.
