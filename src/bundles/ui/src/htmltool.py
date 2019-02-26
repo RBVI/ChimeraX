@@ -40,6 +40,7 @@ class HtmlToolInstance(ToolInstance):
     size_hint : a 2-tuple of integers, or ''None''
         The suggested initial widget size in pixels.
     """
+    PLACEMENT = "side"
 
     def __init__(self, session, tool_name, size_hint=None,
                  show_http_in_help=True, log_errors=False):
@@ -51,7 +52,7 @@ class HtmlToolInstance(ToolInstance):
         # ChimeraX tool instance setup
         super().__init__(session, tool_name)
         self.tool_window = MainToolWindow(self)
-        self.tool_window.manage(placement="side")
+        self.tool_window.manage(placement=self.PLACEMENT)
         parent = self.tool_window.ui_area
 
         # Check if class wants to handle custom scheme
