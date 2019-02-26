@@ -342,7 +342,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
             elif atom in amide_Ns:
                 atom_type = "N.am"
             elif atom.structure_category == "solvent" \
-            and atom.residue.name in Residue.standard_water_names:
+            and atom.residue.name in Residue.water_res_names:
                 if atom.element.name == "O":
                     atom_type = "O.t3p"
                 else:
@@ -541,7 +541,8 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
                     print(bond_indices[b], end=" ", file=f)
             print(file=f)
 
-    f.close()
+    if file_name != f:
+        f.close()
 
     if status:
         status("Wrote Mol2 file %s" % file_name)
