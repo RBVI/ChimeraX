@@ -1049,6 +1049,7 @@ class SeqCanvas:
             bounds = (0, len(hdr)-1)
         if hasattr(self, 'lead_block'):
             self.lead_block.refresh(hdr, *bounds)
+            self.main_scene.update()
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.display_header and not self.display_header[seq]:

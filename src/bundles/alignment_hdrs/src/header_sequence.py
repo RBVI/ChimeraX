@@ -179,9 +179,9 @@ class HeaderSequence(list):
             self.reevaluate()
 
     def _add_options(self, options_container, category, verbose_labels, option_data):
-        for base_label, attr_name, opt_class, balloon in option_data:
+        for base_label, attr_name, opt_class, opt_kw, balloon in option_data:
             option = opt_class(self._final_option_label(base_label, verbose_labels), None, None,
-                balloon=balloon, attr_name=attr_name, settings=self.settings)
+                balloon=balloon, attr_name=attr_name, settings=self.settings, **opt_kw)
             if category is not None:
                 options_container.add_option(category, option)
             else:
