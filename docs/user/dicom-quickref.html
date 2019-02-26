@@ -82,7 +82,7 @@ under <b>Tools... Toolbar</b> to:
 <a href="tools/graphics.html"><b>Graphics Toolbar</b></a> and the
 <a href="tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
 <li>show the <a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-of icons that act on volume models
+of icons that act on volume models (<a href="#icons">details...</a>)
 <br><img class="iconbar" src="density-icons.png">
 </ul>
 <p>
@@ -114,7 +114,8 @@ alt="screenshot 1" width="650px"></a></td></tr>
 
 <ul>
 <li>To view different planes along the data Z axis, use the slider
-below the histogram.
+below the histogram. Pausing the cursor over the plane display
+shows the voxel indices and data value in a pop-up balloon.
 <li>Planes along X, Y, <b><i>or</i></b> Z can be shown as follows:
   <ol>
   <li>click 
@@ -133,7 +134,8 @@ or using the <a href="tools/volumeviewer.html#context">context menu</a>
 in the <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> window
 (right-click or <b>Ctrl</b>-click depending on platform)
     <li><a href="#manipulation">reorient</a> the box as needed
-    <li>click the desired face of the box with the assigned button
+    <li>click the desired face of the box with the button assigned to
+    <b>move planes</b>
   </ul>
  </ol>
 <li>Planes along X, Y, <b><i>and</i></b> Z at the same time can be shown
@@ -509,7 +511,7 @@ on volume models, including:
 (<a href="commands/volume.html#appearance">details...</a>)
 </ul>
 <p>
-These icons act on all volume models unless
+These icons act on all displayed volume models unless
 only specific ones are <a href="selection.html">selected</a>, such as with the
 <img class="iconbar" src="tools/hand.png" title="hand icon" alt="hand icon">
 checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>.
@@ -519,8 +521,8 @@ checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>.
 <h3><a href="#top" class="nounder">&larr;</a>
 Virtual Reality</h3>
 <p>
-DICOM data can be viewed in <a href="vr.html">ChimeraX virtual reality</a> (VR),
-with major considerations being:
+DICOM data can be viewed in <a href="vr.html">ChimeraX virtual reality</a>.
+Important aspects of using VR:
 </p>
 <ul>
 <li>Rendering speed must be fast enough to avoid nauseating lags
@@ -532,16 +534,16 @@ speed up rendering include subsampling (<b>step</b> &gt 1),
 <br><br>
 <li>VR <a href="tutorials/dicom-vr.html#manipulation">hand controllers</a>
 are used for <a href="#manipulation">manipulation</a> and clicking icons.
-Clicking a hand-controller button (menu button on Vive, analogous for other
-systems) shows the ChimeraX user interface with icons in the headset.
+Clicking the hand-controller <i>menu</i> button (on Vive, analogous 
+on other systems) shows the ChimeraX user interface with icons in the headset.
 <p>
 Clicking a <a href="tools/mousemodes.html">mouse mode</a> icon 
 with a hand controller assigns
 <b><i>whichever button was clicked</i></b> to the corresponding function.
-In VR, it is recommended to leave the trigger buttons with their
+In VR, leaving the <i>triggers</i> with their
 <a href="#manipulation">default assignments</a> (rotation, translation,
-zooming), but up to four other functions can be assigned,
-to the grip and trackpad buttons on each controller.
+zooming) is recommended, but up to four other functions can be assigned,
+to the <i>grip</i> and <i>trackpad</i> buttons on each controller.
 Useful modes for DICOM in VR include
 <b>move planes</b>
 <img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">,
