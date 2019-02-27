@@ -398,6 +398,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
         self._select_seq_dialog = self._select_zone_dialog = None
+        self._presets_menu_needs_update = True
+        session.presets.triggers.add_handler("presets changed",
+            lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
 
         self._build_status()
         self._populate_menus(session)
@@ -846,6 +849,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._make_settings_ui(session)
         self.update_favorites_menu(session)
 
+        self.presets_menu = mb.addMenu("Presets")
+        self.presets_menu.setToolTipsVisible(True)
+        self.presets_menu.aboutToShow.connect(lambda ses=session: self._populate_presets_menu(ses))
+        self._populate_presets_menu(session)
+
         help_menu = mb.addMenu("&Help")
         help_menu.setObjectName("Help")
         help_menu.setToolTipsVisible(True)
@@ -867,6 +875,64 @@ class MainWindow(QMainWindow, PlainTextLog):
         about_action.triggered.connect(self._about)
         help_menu.addAction(about_action)
         help_menu.setObjectName("Help") # so custom-menu insertion can find it
+
+    def _populate_presets_menu(self, session):
+        if not self._presets_menu_needs_update:
+            return
+        self.presets_menu.clear()
+        preset_info = session.presets.presets_by_category
+        self._presets_menu_needs_update = False
+       
+        if not preset_info:
+            return
+        
+        if len(preset_info) == 1:
+            self._uncategorized_preset_menu(session, preset_info)
+        elif len(preset_info) + sum([len(v) for v in preset_info.values()]) < 20:
+            self._inline_categorized_preset_menu(session, preset_info)
+        else:
+            self._rollover_categorized_preset_menu(session, preset_info)
+    
+    def _uncategorized_preset_menu(self, session, preset_info):
+        for category, preset_names in preset_info.items():
+            self._add_preset_entries(session, self.presets_menu, preset_names)
+
+    def _inline_categorized_preset_menu(self, session, preset_info):
+        from PyQt5.QtWidgets import QAction
+        categories = self._order_preset_categories(preset_info.keys())
+        for cat in categories:
+            # need to force the category text to be shown, so can't use
+            # addSection, which might not show it
+            sep = QAction("— %s —" % menu_capitalize(cat), self.presets_menu)
+            sep.setEnabled(False)
+            self.presets_menu.addAction(sep)
+            self._add_preset_entries(session, self.presets_menu, preset_info[cat], cat)
+
+    def _rollover_categorized_preset_menu(self, session, preset_info):
+        categories = self._order_preset_categories(preset_info.keys())
+        for cat in categories:
+            cat_menu = self.presets_menu.addMenu(menu_capitalize(cat))
+            self._add_preset_entries(session, cat_menu, preset_info[cat], cat)
+
+    def _order_preset_categories(self, categories):
+        cats = list(categories)[:]
+        cats.sort(key=lambda x: x.lower())
+        return cats
+
+    def _add_preset_entries(self, session, menu, preset_names, category=None):
+        from PyQt5.QtWidgets import QAction
+        from chimerax.core.commands import run, quote_if_necessary
+        menu_names = [menu_capitalize(name) for name in preset_names]
+        menu_names.sort()
+        if category is None:
+            cat_string = ""
+        else:
+            cat_string = quote_if_necessary(category.lower()) + " "
+        for name in menu_names:
+            action = QAction(name, menu)
+            action.triggered.connect(lambda checked, ses=session, name=name, cat=cat_string:
+                run(ses, "preset %s%s" % (cat, quote_if_necessary(name.lower()))))
+            menu.addAction(action)
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
@@ -1748,3 +1814,20 @@ class SelZoneDialog(QDialog):
     def _update_button_states(self, *args):
         self.bbox.button(self.bbox.Ok).setEnabled(
             self.less_checkbox.isChecked() or self.more_checkbox.isChecked())
+
+def menu_capitalize(text):
+    capped_words = []
+    in_parens = False
+    for word in text.split():
+        if in_parens:
+            capped_words.append(word)
+            if word[-1] == ')':
+                in_parens = False
+        else:
+            if word[0] == '(':
+                in_parens = True
+                capped_words.append(word)
+            else:
+                capped_words.append(word.capitalize())
+    return " ".join(capped_words)
+
