@@ -48,7 +48,8 @@ _prolog = """<html>
       }
       #ribbon {
         padding: 0px;
-        height: 120px;
+        height: 110px;
+        background-color: #f0f0f0;
       }
       #ribbon .ribbon-tab
       {
@@ -77,7 +78,7 @@ _end_prolog = """
     </style>
 
   </head>
-  <body bgcolor="#c9cdd2">
+  <body>
     <div id="ribbon">
       <div class="ribbon-window-title"></div>
 """
@@ -98,7 +99,7 @@ class ToolbarTool(HtmlToolInstance):
     help = "help:user/tools/Toolbar.html"  # Let ChimeraX know about our help page
 
     def __init__(self, session, tool_name):
-        super().__init__(session, tool_name, size_hint=(575, 120), log_errors=True)
+        super().__init__(session, tool_name, size_hint=(575, 110), log_errors=True)
         self.display_name = "Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
         from chimerax.shortcuts import shortcuts
@@ -116,8 +117,8 @@ class ToolbarTool(HtmlToolInstance):
     def _build_ui(self):
         from PyQt5.QtCore import QUrl
         html = self._build_buttons()
-        #with open('debug.html', 'w') as f:
-        #    f.write(html)
+        # with open('debug.html', 'w') as f:
+        #     f.write(html)
         self.html_view.setHtml(html, QUrl("file://"))
 
     def fill_context_menu(self, menu, x, y):
