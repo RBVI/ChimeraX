@@ -55,6 +55,11 @@ _prolog = """<html>
       {
         padding: 0px;
       }
+      .ribbon-tooltip
+      {
+        width: auto;
+        top: auto;
+      }
 """
 _normal_style = """
       #ribbon .ribbon-button-large .ribbon-icon

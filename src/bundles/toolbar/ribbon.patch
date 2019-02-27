@@ -1,0 +1,9 @@
+--- ribbon/ribbon.css.orig	2019-02-27 13:55:48.760147644 -0800
++++ ribbon/ribbon.css	2019-02-27 13:56:29.089405683 -0800
+@@ -376,5 +376,5 @@
+ 	-moz-border-radius: 2px 2px 2px 2px;
+ 	border-radius: 2px 2px 2px 2px;
+ 	width: 200px;
+-	top: 150px !important;
++	top: 150px;
+ }

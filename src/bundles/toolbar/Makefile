@@ -9,4 +9,6 @@ wheel install app-install:	$(LIBS)
 RIBBON_SRC = Office-Ribbon-2010-master
 src/lib/ribbon:	$(RIBBON_SRC).zip
 	unzip $? && mv $(RIBBON_SRC)/ribbon src/lib \
+		&& rm -f src/lib/ribbon/ribbon-red.css \
+		&& (cd src/lib; patch -p0) < ribbon.patch \
 		&& rm -rf $(RIBBON_SRC) && touch $@
