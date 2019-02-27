@@ -70,6 +70,9 @@ class _AtomicBundleAPI(BundleAPI):
         session._atomic_command_handler = session.triggers.add_handler("command finished",
             lambda *args: check_for_changes(session))
 
+        from .presets import register_presets
+        register_presets(session)
+
         if session.ui.is_gui:
            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
                _AtomicBundleAPI._add_gui_items(ses))
@@ -86,9 +89,6 @@ class _AtomicBundleAPI(BundleAPI):
 
     @staticmethod
     def _add_gui_items(session):
-        from .presets import add_presets_menu
-        add_presets_menu(session)
-
         from .selectors import add_select_menu_items
         add_select_menu_items(session)
 
