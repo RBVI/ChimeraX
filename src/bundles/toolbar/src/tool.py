@@ -12,12 +12,14 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.ui import HtmlToolInstance
-from  chimerax.core.settings import Settings
+from chimerax.core.settings import Settings
+
 
 class ToolbarSettings(Settings):
     AUTO_SAVE = {
         "show_hints": True,
     }
+
 
 _prolog = """<html>
   <!-- vi:set expandtab shiftwidth=2: -->
@@ -33,13 +35,10 @@ _prolog = """<html>
         $('#ribbon').ribbon();
         $('.ribbon-button').click(function() {
           if (this.isEnabled()) {
-            id = $(this).attr('id');
-            if (id.startsWith('shortcut-')) {
-                shortcut = $(this).attr('id').slice(9);
-                var link = document.createElement('a');
-                link.href = "toolbar:shortcut " + shortcut;
-                link.click();
-            }
+            var cmd = $(this).attr('id');
+            var link = document.createElement('a');
+            link.href = "toolbar:" + cmd;
+            link.click();
           }
         });
       });
@@ -118,7 +117,7 @@ class ToolbarTool(HtmlToolInstance):
         from chimerax.core.commands import run
         run(session, "toolshed hide 'Graphics Toolbar'", log=False)
         run(session, "toolshed hide 'Molecule Display Toolbar'", log=False)
-        # run(session, "toolshed hide 'Mouse Modes for Right Button'", log=False)
+        run(session, "toolshed hide 'Mouse Modes for Right Button'", log=False)
 
     def _build_ui(self):
         from PyQt5.QtCore import QUrl
@@ -144,12 +143,16 @@ class ToolbarTool(HtmlToolInstance):
     def handle_scheme(self, url):
         # First check that the path is a real command
         cmd = url.path()
-        kind, value = cmd.split(maxsplit=1)
+        kind, value = cmd.split('-', maxsplit=1)
         if kind == "shortcut":
             self.session.keyboard_shortcuts.run_shortcut(value)
+        elif kind == "mouse":
+            button_to_bind = 'right'
+            from chimerax.core.commands import run
+            run(self.session, f'ui mousemode {button_to_bind} {value}')
         else:
             from chimerax.core.errors import UserError
-            raise UserError("unknown toolbar command: %s" % keys)
+            raise UserError("unknown toolbar command: %s" % cmd)
 
     def _build_buttons(self):
         import os
@@ -167,19 +170,28 @@ class ToolbarTool(HtmlToolInstance):
         html += _end_prolog
         for tab in _Toolbars:
             help_url, info = _Toolbars[tab]
-            hid = tab.replace(' ', '_')
-            html += f'''<div class="ribbon-tab" id="{hid}-tab">\n\
+            tab_id = tab.replace(' ', '_')
+            html += f'''<div class="ribbon-tab" id="{tab_id}-tab">\n\
 <span class="ribbon-title">{tab}</span>\n'''
             for (section, compact) in info:
                 shortcuts = info[(section, compact)]
                 html += '''  <div class="ribbon-section">\n'''
                 if show_hints:
                     html += f'''  <span class="section-title">{section}</span>\n'''
-                for keys, icon_file, descrip, tooltip in shortcuts:
-                    qurl = QUrl.fromLocalFile(os.path.join(icon_dir, icon_file))
+                for what, icon_file, descrip, tooltip in shortcuts:
+                    if tab == "Right Mouse":
+                        m = self.session.ui.mouse_modes.named_mode(what)
+                        if m is None:
+                            continue
+                        icon_path = m.icon_path
+                        cmd_id = f"mouse-{what}"
+                    else:
+                        icon_path = os.path.join(icon_dir, icon_file)
+                        cmd_id = f"shortcut-{what}"
+                    qurl = QUrl.fromLocalFile(icon_path)
                     icon_path = qurl.url()
                     size = "small" if compact else "large"
-                    html += f'''    <div class="ribbon-button ribbon-button-{size}" id="shortcut-{keys}">\n'''
+                    html += f'''    <div class="ribbon-button ribbon-button-{size}" id="{cmd_id}">\n'''
                     if show_hints:
                         html += f'''        <span class="button-title">{descrip}</span>\n'''
                     if not tooltip:
@@ -188,9 +200,6 @@ class ToolbarTool(HtmlToolInstance):
                         html += f'''        <span class="button-help">{tooltip}</span>\n'''
                     html += f'''        <img class="ribbon-icon ribbon-normal" src="{icon_path}"/>\n\
     </div>\n'''
-                    #<span class="button-help">This button will add a table to your document.</span>
-                    #<img class="ribbon-icon ribbon-hot" src="lib/icons/hot/new-table.png" />
-                    #<img class="ribbon-icon ribbon-disabled" src="lib/icons/disabled/new-table.png" />
                 html += "  </div>\n"
             html += "</div>\n"
         html += _epilog
@@ -244,7 +253,7 @@ _Toolbars = {
         }
     ),
     "Density Map": (
-        None,
+        "help:user/tools/densitymaps.html",
         {
             ("Map", False): [
                 ('sM', 'showmap.png', 'Show', 'Show map'),
@@ -272,5 +281,41 @@ _Toolbars = {
                 ('aw', 'airways.png', 'Airways<br/>preset', 'Airways preset'),
                 ('dc', 'initialcurve.png', 'Default<br/>curve', 'Default volume curve')],
         }
-    )
+    ),
+    "Right Mouse": (
+        "help:user/tools/mousemodes.html",
+        {
+            ("Models", False): [
+                ('select', None, 'Select', 'Select models'),
+                ('rotate', None, 'Rotate', 'Rotate models'),
+                ('translate', None, 'Translate', 'Translate models'),
+                ('zoom', None, 'Zoom', 'Zoom view'),
+                ('rotate and select', None, 'Select and<br/>Rotate', 'Select and rotate models'),
+                ('translate selected', None, 'Translate<br/>Selected', 'Translate selected models'),
+                ('rotate selected', None, 'Rotate<br/>Selected', 'Rotate selected models')],
+            ("Clip", False): [
+                ('clip', None, 'Clip', 'Activate<br/>clipping'),
+                ('clip rotate', None, 'Rotate<br/>Clipping', 'Rotate clipping planes'),
+                ('zone', None, 'Display<br/>zone', 'Limit display to zone around clicked residues')],
+            ("Label", False): [
+                ('label', None, 'Toggle atom or<br/>cartoon label', None),
+                ('move label', None, 'Move 2D<br/>label', 'Reposition 2D label')],
+            ("Misc", False): [
+                ('pivot', None, 'Set COFR', 'Set center of rotation at atom'),
+                ('bond rotation', None, 'Adjust<br/>torsion', 'Adject torsion angle'),
+                ('distance', None, 'Toggle<br/>distance', 'Toggle distance monitor between two atoms'),
+                ('swappaa', None, 'Mutate residue', 'Mutate and label residue')],
+            ("Dynamics", False): [
+                ('tug', None, 'Tug atom', 'Drag atom while applying dynamics'),
+                ('minimize', None, 'Jiggle<br/>residue', 'Jiggle residue and its neighbors')],
+            ("Volumes", False): [
+                ('tug', None, 'Tug atom', 'Drag atom while applying dynamics'),
+                ('place marker', None, 'Place<br/>marker', None),
+                ('contour level', None, 'Adjust<br/>threshold', 'Adjust volume data threshold level'),
+                ('windowing', None, 'Adjust<br/>collectively', 'Adjust volume data thresholds collectively'),
+                ('move planes', None, 'Move planes', 'Move plane or slab along its axis to show a different section'),
+                ('crop volume', None, 'Crop', 'Crop volume data dragging any face of box outline'),
+                ('play map series', None, 'Play<br/>series', 'Play volume series')],
+        }
+    ),
 }
