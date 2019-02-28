@@ -33,10 +33,13 @@ _prolog = """<html>
         $('#ribbon').ribbon();
         $('.ribbon-button').click(function() {
           if (this.isEnabled()) {
-            shortcut = $(this).attr('id').slice(0, 2);
-            var link = document.createElement('a');
-            link.href = "toolbar:" + shortcut;
-            link.click();
+            id = $(this).attr('id');
+            if (id.startsWith('shortcut-')) {
+                shortcut = $(this).attr('id').slice(9);
+                var link = document.createElement('a');
+                link.href = "toolbar:shortcut " + shortcut;
+                link.click();
+            }
           }
         });
       });
@@ -107,8 +110,6 @@ class ToolbarTool(HtmlToolInstance):
         super().__init__(session, tool_name, size_hint=(575, 110), log_errors=True)
         self.display_name = "Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
-        from chimerax.shortcuts import shortcuts
-        self.keyboard_shortcuts = shortcuts.keyboard_shortcuts(session)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
         # kludge to hide title bar
@@ -142,11 +143,13 @@ class ToolbarTool(HtmlToolInstance):
 
     def handle_scheme(self, url):
         # First check that the path is a real command
-        keys = url.path()
-        if len(keys) != 2:
+        cmd = url.path()
+        kind, value = cmd.split(maxsplit=1)
+        if kind == "shortcut":
+            self.session.keyboard_shortcuts.run_shortcut(value)
+        else:
             from chimerax.core.errors import UserError
             raise UserError("unknown toolbar command: %s" % keys)
-        self.keyboard_shortcuts.run_shortcut(keys)
 
     def _build_buttons(self):
         import os
@@ -172,15 +175,17 @@ class ToolbarTool(HtmlToolInstance):
                 html += '''  <div class="ribbon-section">\n'''
                 if show_hints:
                     html += f'''  <span class="section-title">{section}</span>\n'''
-                for keys, icon_file, descrip in shortcuts:
+                for keys, icon_file, descrip, tooltip in shortcuts:
                     qurl = QUrl.fromLocalFile(os.path.join(icon_dir, icon_file))
                     icon_path = qurl.url()
                     size = "small" if compact else "large"
-                    html += f'''    <div class="ribbon-button ribbon-button-{size}" id="{keys}-btn">\n'''
+                    html += f'''    <div class="ribbon-button ribbon-button-{size}" id="shortcut-{keys}">\n'''
                     if show_hints:
                         html += f'''        <span class="button-title">{descrip}</span>\n'''
-                    else:
-                        html += f'''        <span class="button-help">{descrip}</span>\n'''
+                    if not tooltip:
+                        tooltip = descrip
+                    if tooltip:
+                        html += f'''        <span class="button-help">{tooltip}</span>\n'''
                     html += f'''        <img class="ribbon-icon ribbon-normal" src="{icon_path}"/>\n\
     </div>\n'''
                     #<span class="button-help">This button will add a table to your document.</span>
@@ -197,75 +202,75 @@ _Toolbars = {
         "help:user/tools/moldisplay.html",
         {
             ("Atoms", True): [
-                ('da', 'atomshow.png', 'Show'),
-                ('ha', 'atomhide.png', 'Hide')],
+                ('da', 'atomshow.png', 'Show', 'Show atoms'),
+                ('ha', 'atomhide.png', 'Hide', 'Hide atoms')],
             ("Cartoons", True): [
-                ('rb', 'ribshow.png', 'Show'),
-                ('hr', 'ribhide.png', 'Hide')],
+                ('rb', 'ribshow.png', 'Show', 'Show cartoons'),
+                ('hr', 'ribhide.png', 'Hide', 'Hide cartoons')],
             ("Surfaces", True): [
-                ('ms', 'surfshow.png', 'Show'),
-                ('hs', 'surfhide.png', 'Hide')],
+                ('ms', 'surfshow.png', 'Show', 'Show surfaces'),
+                ('hs', 'surfhide.png', 'Hide', 'Hide surfaces')],
             ("Styles", False): [
-                ('st', 'stick.png', 'Stick'),
-                ('sp', 'sphere.png', 'Sphere'),
-                ('bs', 'ball.png', 'Ball-and-stick')],
+                ('st', 'stick.png', 'Stick', 'Display atoms in stick style'),
+                ('sp', 'sphere.png', 'Sphere', 'Display atoms in sphere style'),
+                ('bs', 'ball.png', 'Ball-and-stick', 'Display atoms in ball and stick style')],
             ("Color Atoms", False): [
-                ('ce', 'colorbyelement.png', 'By element'),
-                ('cc', 'colorbychain.png', 'By chain')],
+                ('ce', 'colorbyelement.png', 'By element', 'Color non-carbon atoms by element'),
+                ('cc', 'colorbychain.png', 'By chain', 'Color chains')],
             ("Misc", False): [
-                ('hb', 'hbonds.png', 'Find hydrogen bonds')],
+                ('hb', 'hbonds.png', 'Show hydrogen bonds', 'Show hydrogen bonds')],
         },
     ),
     "Graphics": (
         "help:user/tools/graphics.html",
         {
             ("Background", True): [
-                ('wb', 'whitebg.png', 'White'),
-                ('gb', 'graybg.png', 'Gray'),
-                ('bk', 'blackbg.png', 'Black')],
+                ('wb', 'whitebg.png', 'White', 'White background'),
+                ('gb', 'graybg.png', 'Gray', 'Gray background'),
+                ('bk', 'blackbg.png', 'Black', 'Black background')],
             ("Lighting", False): [
-                ('ls', 'simplelight.png', 'Simple'),
-                ('sh', 'shadow.png', 'Single<br/>shadow'),
-                ('la', 'softlight.png', 'Soft'),
-                ('lf', 'fulllight.png', 'Full'),
-                ('lF', 'flat.png', 'Flat'),
-                ('se', 'silhouette.png', 'Silhouettes')],
+                ('ls', 'simplelight.png', 'Simple', 'Simple lighting'),
+                ('sh', 'shadow.png', 'Single<br/>shadow', 'Toggle shadows'),
+                ('la', 'softlight.png', 'Soft', 'Ambient lighting'),
+                ('lf', 'fulllight.png', 'Full', 'Full lighting'),
+                ('lF', 'flat.png', 'Flat', 'Flat lighting'),
+                ('se', 'silhouette.png', 'Silhouettes', 'Toggle silhouettes')],
             ("Camera", False): [
-                ('va', 'viewall.png', 'View all'),
-                ('dv', 'orient.png', 'Standard<br/>orientation')],
+                ('va', 'viewall.png', 'View all', 'View all'),
+                ('dv', 'orient.png', 'Default<br/>orientation', 'Default orientation')],
             ("Images", False): [
-                ('sx', 'camera.png', 'Save snapshot<br/>to desktop'),
-                ('vd', 'video.png', 'Record<br/>spin movie')],
+                ('sx', 'camera.png', 'Save snapshot<br/>to desktop', 'Save snapshot to desktop'),
+                ('vd', 'video.png', 'Record<br/>spin movie', 'Record spin movie')],
         }
     ),
     "Density Map": (
         None,
         {
             ("Map", False): [
-                ('sM', 'showmap.png', 'Show'),
-                ('hM', 'hidemap.png', 'Hide')],
+                ('sM', 'showmap.png', 'Show', 'Show map'),
+                ('hM', 'hidemap.png', 'Hide', 'Hide map')],
             ("Style", False): [
-                ('fl', 'mapsurf.png', 'As surface'),
-                ('me', 'mesh.png', 'As mesh'),
-                ('gs', 'mapimage.png', 'As image'),
-                ('tt', 'icecube.png', 'Transparent<br/>surface'),
-                ('ob', 'outlinebox.png', 'Outline<br/>box')],
+                ('fl', 'mapsurf.png', 'As surface', 'Show map or surface in filled style'),
+                ('me', 'mesh.png', 'As mesh', 'Show map or surface as mesh'),
+                ('gs', 'mapimage.png', 'As image', 'Show map as grayscale'),
+                ('tt', 'icecube.png', 'Transparent<br/>surface', 'Toggle surface transparency'),
+                ('ob', 'outlinebox.png', 'Outline<br/>box', 'Toggle outline box')],
             ("Steps", False): [
-                ('s1', 'step1.png', 'Step 1'),
-                ('s2', 'step2.png', 'Step 2')],
+                ('s1', 'step1.png', 'Step 1', 'Show map at step 1'),
+                ('s2', 'step2.png', 'Step 2', 'Show map at step 2')],
             ("Fitting", False): [
-                ('fT', 'fitmap.png', 'Fit in map'),
-                ('sb', 'diffmap.png', 'Compute<br/>difference'),
-                ('gf', 'smooth.png', 'Smooth')],
+                ('fT', 'fitmap.png', 'Fit in map', 'Fit map in map'),
+                ('sb', 'diffmap.png', 'Compute<br/>difference', 'Subtract map from map'),
+                ('gf', 'smooth.png', 'Smooth', 'Smooth map')],
             ("Planes", False): [
-                ('pl', 'plane.png', 'One<br/>plane'),
-                ('o3', 'orthoplanes.png', 'Orthogonal<br/>planes'),
-                ('pa', 'fullvolume.png', 'Full<br/>volume'),
-                ('zs', 'xyzslice.png', 'xyz<br/>slices'),
-                ('ps', 'perpslice.png', 'Perpendicular<br/>slices')],
+                ('pl', 'plane.png', 'One<br/>plane', 'Show one plane'),
+                ('o3', 'orthoplanes.png', 'Orthogonal<br/>planes', 'Show 3 orthogonal planes'),
+                ('pa', 'fullvolume.png', 'Full<br/>volume', 'Show all planes'),
+                ('zs', 'xyzslice.png', 'xyz<br/>slices', 'Volume xyz slices'),
+                ('ps', 'perpslice.png', 'Perpendicular<br/>slices', 'Volume perpendicular slices')],
             ("Misc", False): [
-                ('aw', 'airways.png', 'Airways<br/>preset'),
-                ('dc', 'initialcurve.png', 'Default<br/>curve')],
+                ('aw', 'airways.png', 'Airways<br/>preset', 'Airways preset'),
+                ('dc', 'initialcurve.png', 'Default<br/>curve', 'Default volume curve')],
         }
     )
 }
