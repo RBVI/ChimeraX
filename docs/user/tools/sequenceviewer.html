@@ -276,9 +276,8 @@ gap positions are always included in the denominator
 for calculating the consensus fraction.
 <ul>
 <li><b>Conservation: style</b>
- <ul>
-  <li><b>identity histogram</b> (initial default)
-- what proportion of the sequences
+  <ul>
+  <li><b>identity histogram</b> - what proportion of the sequences
 have the most prevalent nongap character per alignment column.
 Histogram bar heights are proportional to (M-1)/(N-1), where
 M is the number of occurrences of the most prevalent residue type at
@@ -299,6 +298,67 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
      <a href="../formats/clustgroups.html">weak group conservation</a>
      <li> blank otherwise
      </ul>
+  <li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
+  initial default) - more sophisticated options for calculating conservation.
+  Users should cite:
+  <a name="al2coref"></a>
+    <blockquote>
+    <a href="http://www.ncbi.nlm.nih.gov/pubmed/11524371" target="_blank">
+    AL2CO: calculation of positional conservation in a
+    protein sequence alignment.</a>
+    Pei J, Grishin NV.
+    <i>Bioinformatics.</i> 2001 Aug;17(8):700-12.
+   </blockquote>
+  <b>AL2CO parameters</b>:
+  <ul>
+  <li><b>Averaging window</b> (initial default <b>1</b>) - window width, or
+  how many alignment positions to average in a sliding window.
+  The result is assigned to the central column of the window
+  when the width is odd, the column left of center when the width is even
+  (<i>e.g.</i>, the fourth position in a window of 8),
+  with various adjustments at the termini.
+  The authors of AL2CO recommend a width of 3 for motif analyses.
+  <li><a name="al2comeas"><b>Conservation measure</b></a>
+  - which AL2CO conservation equation to use:
+    <ul>
+    <li><b>entropy-based</b> (initial default)
+    <li><b>variance-based</b>
+    <li><b>sum of pairs</b>
+    </ul>
+  <li><b>Frequency estimation method</b> - whether/how to weight the sequences
+    <ul>
+    <li><b>unweighted</b>
+    <li><b>modified Henikoff & Henikoff</b>
+    <li><b>independent counts</b> (initial default)
+    </ul>
+  <li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
+   - maximum fraction of sequences with gaps in a column
+  for conservation to still be calculated; for example, if the
+  <b>gap fraction</b> is 0.25, conservation values will only be calculated
+  for columns in which at least three-fourths of the sequences have residues
+  <li><b>Matrix transformation</b> 
+  - whether/how to modify the matrix used with the AL2CO sum of pairs
+  <a href="#al2comeas"><b>Conservation measure</b></a>
+     <ul>
+     <li><b>none</b> (initial default)
+     <li><b>normalization</b>
+     &nbsp;&nbsp;&nbsp; <i>S'<sub>ab</sub></i> = <i>S<sub>ab</sub></i> / (<i>S<sub>aa</sub>S<sub>bb</sub></i>)<sup>&frac12;</sup>
+     <li><b>adjustment</b>
+     &nbsp;&nbsp;&nbsp; <i>S''<sub>ab</sub></i> = 2<i>S<sub>ab</sub></i> &ndash; &frac12;(<i>S<sub>aa</sub></i> + <i>S<sub>bb</sub></i>)
+     </ul>
+  <li><b>Sum-of-pairs matrix</b> [choices:
+  BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45, BLOSUM-50, BLOSUM-55,
+  BLOSUM-60, <b>BLOSUM-62</b> (initial default), BLOSUM-65, BLOSUM-70, BLOSUM-75,
+  BLOSUM-80, BLOSUM-85, BLOSUM-90, BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity,
+  Nucleic, PAM-40, PAM-120, PAM-150, PAM-250, SDM] 
+  - which residue similarity matrix to use with the AL2CO sum of pairs
+  <a href="#al2comeas"><b>Conservation measure</b></a>
+  </ul>
+  <p>
+  Conservation values from AL2CO are in standard deviations from the mean 
+  (Z-scores) and can range from &ndash;&infin; (least conserved) to
+  +&infin; (most conserved).
+  </p>
   </ul>
 </ul>
 
@@ -392,5 +452,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2019</address>
+February 2019</address>
 </body></html>
