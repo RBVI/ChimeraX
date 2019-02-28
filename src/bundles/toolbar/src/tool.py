@@ -99,7 +99,7 @@ _epilog = """
 
 class ToolbarTool(HtmlToolInstance):
 
-    SESSION_ENDURING = False    # Does this instance persist when session closes
+    SESSION_ENDURING = True
     SESSION_SAVE = False        # No session saving for now
     PLACEMENT = "top"
     CUSTOM_SCHEME = "toolbar"
@@ -149,7 +149,7 @@ class ToolbarTool(HtmlToolInstance):
         elif kind == "mouse":
             button_to_bind = 'right'
             from chimerax.core.commands import run
-            run(self.session, f'ui mousemode {button_to_bind} {value}')
+            run(self.session, f'ui mousemode {button_to_bind} "{value}"')
         else:
             from chimerax.core.errors import UserError
             raise UserError("unknown toolbar command: %s" % cmd)
