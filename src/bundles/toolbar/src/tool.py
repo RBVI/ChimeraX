@@ -73,12 +73,12 @@ _normal_style = """
 _compact_style = """
       #ribbon .ribbon-button-large
       {
-        height: 60px;
+        height: 48px;
       }
       #ribbon .ribbon-button-large .ribbon-icon
       {
-        width: 60px;
-        height: 60px;
+        width: 48px;
+        height: 48px;
       }
 """
 _end_prolog = """
