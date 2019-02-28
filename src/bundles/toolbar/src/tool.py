@@ -115,6 +115,7 @@ class ToolbarTool(HtmlToolInstance):
         from PyQt5.QtWidgets import QWidget
         self.tool_window._kludge.dock_widget.setTitleBarWidget(QWidget())
         from chimerax.core.commands import run
+        # run(session, "toolshed hide 'Density Map Toolbar'", log=False)
         run(session, "toolshed hide 'Graphics Toolbar'", log=False)
         run(session, "toolshed hide 'Molecule Display Toolbar'", log=False)
         run(session, "toolshed hide 'Mouse Modes for Right Button'", log=False)
@@ -150,6 +151,9 @@ class ToolbarTool(HtmlToolInstance):
             button_to_bind = 'right'
             from chimerax.core.commands import run
             run(self.session, f'ui mousemode {button_to_bind} "{value}"')
+        elif kind in ("undo", "redo"):
+            from chimerax.core.commands import run
+            run(self.session, f'{kind}')
         else:
             from chimerax.core.errors import UserError
             raise UserError("unknown toolbar command: %s" % cmd)
@@ -173,6 +177,20 @@ class ToolbarTool(HtmlToolInstance):
             tab_id = tab.replace(' ', '_')
             html += f'''<div class="ribbon-tab" id="{tab_id}-tab">\n\
 <span class="ribbon-title">{tab}</span>\n'''
+            if tab != "Right Mouse":
+                html += '''  <div class="ribbon-section">\n'''
+                if show_hints:
+                    html += '''  <span class="section-title">Last action</span>\n'''
+                for action in ("undo", "redo"):
+                    html += f'''    <div class="ribbon-button ribbon-button-small" id="{action}-">\n'''
+                    title = action.title()
+                    if show_hints:
+                        html += f'''        <span class="button-title">{title}</span>\n'''
+                    html += f'''        <span class="button-help">{title} last action</span>\n'''
+                    icon_path = f'lib/{action}-variant.svg'
+                    html += f'''        <img class="ribbon-icon ribbon-normal" src="{icon_path}"/>\n\
+        </div>\n'''
+                html += "  </div>\n"
             for (section, compact) in info:
                 shortcuts = info[(section, compact)]
                 html += '''  <div class="ribbon-section">\n'''
