@@ -725,4 +725,4 @@ def register_command(logger):
         synopsis = 'Align atomic structures using sequence alignment'
     )
     register('matchmaker', desc, cmd_match, logger=logger)
-    create_alias('mmaker', "%s $*" % 'matchmaker', logger=logger)
+    create_alias('mmaker', "%s $*" % 'matchmaker', logger=logger, url="help:user/commands/matchmaker.html")
