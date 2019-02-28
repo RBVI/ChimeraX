@@ -33,10 +33,13 @@ _prolog = """<html>
         $('#ribbon').ribbon();
         $('.ribbon-button').click(function() {
           if (this.isEnabled()) {
-            shortcut = $(this).attr('id').slice(0, 2);
-            var link = document.createElement('a');
-            link.href = "toolbar:" + shortcut;
-            link.click();
+            id = $(this).attr('id');
+            if (id.startsWith('shortcut-')) {
+                shortcut = $(this).attr('id').slice(9);
+                var link = document.createElement('a');
+                link.href = "toolbar:shortcut " + shortcut;
+                link.click();
+            }
           }
         });
       });
@@ -107,8 +110,6 @@ class ToolbarTool(HtmlToolInstance):
         super().__init__(session, tool_name, size_hint=(575, 110), log_errors=True)
         self.display_name = "Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
-        from chimerax.shortcuts import shortcuts
-        self.keyboard_shortcuts = shortcuts.keyboard_shortcuts(session)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
         # kludge to hide title bar
@@ -142,11 +143,13 @@ class ToolbarTool(HtmlToolInstance):
 
     def handle_scheme(self, url):
         # First check that the path is a real command
-        keys = url.path()
-        if len(keys) != 2:
+        cmd = url.path()
+        kind, value = cmd.split(maxsplit=1)
+        if kind == "shortcut":
+            self.session.keyboard_shortcuts.run_shortcut(value)
+        else:
             from chimerax.core.errors import UserError
             raise UserError("unknown toolbar command: %s" % keys)
-        self.keyboard_shortcuts.run_shortcut(keys)
 
     def _build_buttons(self):
         import os
@@ -176,7 +179,7 @@ class ToolbarTool(HtmlToolInstance):
                     qurl = QUrl.fromLocalFile(os.path.join(icon_dir, icon_file))
                     icon_path = qurl.url()
                     size = "small" if compact else "large"
-                    html += f'''    <div class="ribbon-button ribbon-button-{size}" id="{keys}-btn">\n'''
+                    html += f'''    <div class="ribbon-button ribbon-button-{size}" id="shortcut-{keys}">\n'''
                     if show_hints:
                         html += f'''        <span class="button-title">{descrip}</span>\n'''
                     if not tooltip:
