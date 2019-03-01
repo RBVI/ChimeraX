@@ -213,7 +213,8 @@ class EnumOption(Option):
         menu = self.widget.menu()
         menu.clear()
         for label in labels:
-            action = QAction(label, self.widget)
+            menu_label = label.replace('&', '&&')
+            action = QAction(menu_label, self.widget)
             action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)
 
