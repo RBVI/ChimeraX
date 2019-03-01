@@ -1118,7 +1118,8 @@ class SeqCanvas:
                 continue
             header_class = bundle.get_class(class_name, session.logger)
             if header_class:
-                headers.append(header_class.session_restore(session, self.sv, header_state))
+                headers.append(
+                    header_class.session_restore(session, self.sv.alignment, self.refresh_header, header_state))
             else:
                 session.logger.warning("Could not find alignment header class %s" % class_name)
 

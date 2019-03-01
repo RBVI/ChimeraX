@@ -20,6 +20,17 @@ Provides a ribbon-style toolbar interface
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
     <Dependency name="ChimeraX-Shortcuts" version=">=1.0"/>
+    <Dependency name="ChimeraX-MouseModes" version=">=1.0"/>
+    <!-- depend on everything that registers a mousemode for now,
+	 so they'll exist when toolbar is made -->
+    <Dependency name="ChimeraX-BondRot" version=">=1.0"/>
+    <Dependency name="ChimeraX-Dist_UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-Label" version=">=1.0"/>
+    <Dependency name="ChimeraX-Map" version=">=1.0"/>
+    <Dependency name="ChimeraX-Markers" version=">=1.0"/>
+    <Dependency name="ChimeraX-Label" version=">=1.0"/>
+    <Dependency name="ChimeraX-Tug" version=">=1.0"/>
+    <Dependency name="ChimeraX-Zone" version=">=1.0"/>
   </Dependencies>
 
   <DataFiles>

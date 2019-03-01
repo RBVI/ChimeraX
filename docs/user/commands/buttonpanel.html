@@ -1,0 +1,89 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: buttonpanel</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: buttonpanel</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>buttonpanel</b> &nbsp;<i>title</i> 
+[&nbsp;<b>rows</b>&nbsp;&nbsp;<i>N</i>]
+[&nbsp;<b>columns</b>&nbsp;&nbsp;<i>M</i>]
+[&nbsp;<b>fill</b>&nbsp;&nbsp;<b>rows</b>&nbsp;|&nbsp;columns&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>buttonpanel</b> &nbsp;<i>title</i>&nbsp;
+<b>add</b> &nbsp;<i>button-name</i>&nbsp;
+<b>command</b>&nbsp;&nbsp;<i>button-command</i>
+[&nbsp;<b>row</b>&nbsp;&nbsp;<i>i</i>]
+[&nbsp;<b>column</b>&nbsp;&nbsp;<i>j</i>]
+</h3>
+<p>
+The <b>buttonpanel</b> command allows creating a simple custom interface
+of buttons to execute specific commands.
+If the number of <b>rows</b> <i>N</i> and <b>columns</b> <i>M</i> in the panel
+is not given, all of the buttons will be placed in a single row.
+</p><p>
+Each use of <b>add</b> creates an additional button with text
+<i>button-name</i> that executes <i>button-command</i> when clicked.
+Each <i>button-command</i> may be a composite of other commands, <i>i.e.</i>,
+multiple commands separated by semicolons, and should be enclosed in
+quotation marks if it includes any spaces.
+The commands may include specifiers like
+<a href="atomspec.html#builtin"><b>sel</b></a>,
+<a href="atomspec.html#builtin"><b>selAtoms</b></a>,
+or <a href="atomspec.html#builtin"><b>selMaps</b></a> 
+to act on the current <a href="../selection.html">selection</a>.
+</p><p>
+If the button's <b>row</b> <i>i</i> and <b>column</b> <i>j</i> are not specified,
+buttons are placed in the order in which they are created to first
+<b>fill</b> either the <b>rows</b> (default) or the <b>columns</b>.
+</p><p>
+The <i>title</i> of the custom panel is shown on its top bar, and
+can be specified with the <a href="device.html#vr"><b>vr</b></a>
+command <b>gui</b> option as the interface to show in the headset when the
+<a href="../vr.html#starting">VR hand-controller</a> menu button is pressed. 
+</p><p>
+Pausing the cursor over a button in the panel shows the
+associated command in a pop-up balloon.
+</p><p>
+Panels created with <b>buttonpanel</b> are saved in 
+<a href="save.html#session">sessions</a>. See also:
+<a href="alias.html"><b>alias</b></a>,
+<a href="../tools/basicactions.html"><b>Basic Actions</b></a>
+</p><p>
+Example:
+</p>
+<blockquote>
+<b>buttonpanel&nbsp;Opioids&nbsp;rows&nbsp;6&nbsp;columns&nbsp;4&nbsp;fill&nbsp;columns
+<br>
+buttonpanel&nbsp;Opioids&nbsp;add&nbsp;alfentanil&nbsp;command&nbsp;"hide&nbsp;models;&nbsp;show&nbsp;#1.1&nbsp;model"
+<br>
+buttonpanel&nbsp;Opioids&nbsp;add&nbsp;buprenorphine&nbsp;command&nbsp;"hide&nbsp;models;&nbsp;show&nbsp;#1.2&nbsp;model"</b>
+<br>(<i>etc.</i>)<br>
+<img src="buttonpanel.png" width="400px">
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+February 2019</address>
+</body></html>

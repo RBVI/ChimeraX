@@ -160,8 +160,8 @@ class HeaderSequence(list):
             self.refresh_callback(self, bounds)
 
     @staticmethod
-    def session_restore(session, alignment, state):
-        inst = HeaderSequence(alignment)
+    def session_restore(session, alignment, refresh_callback, state):
+        inst = HeaderSequence(alignment, refresh_callback)
         inst.set_state(state)
         return inst
 

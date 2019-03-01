@@ -45,6 +45,7 @@ CENTOS_DEPENDENCIES = {
         "cairo-gobject": "1.14.8",
         "cups-libs": "1.6.3",
         "dbus-libs": "1.10.24",
+        "expat": "2.1.0",
         "fftw-libs-single": "3.3.3",
         "fontconfig": "2.10.95",
         "freetype": "2.4.11",
@@ -75,10 +76,12 @@ CENTOS_DEPENDENCIES = {
         "nspr": "4.19.0",
         "nss": "3.36.0",
         "nss-util": "3.36.0",
+        "openssl": "1.0.2k",
         "pango": "1.40.4",
         "pulseaudio-libs": "10.0",
         "xdg-utils": "1.1.0",
         "xz-libs": "5.2.2",
+        "zlib": "1.2.7",
     }
 }
 

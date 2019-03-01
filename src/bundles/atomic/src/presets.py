@@ -11,8 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def add_presets_menu(session):
-    # Presets menu
+def register_presets(session):
     name_mapping = {
         'Stick': 'non-polymer',
         'Cartoon': 'small polymer',
@@ -35,8 +34,7 @@ def add_presets_menu(session):
             residues.ribbon_displays = False
             residues.ring_displays = False
             s.apply_auto_styling(**kw)
-    for label in ['Original Look'] + sorted(list(name_mapping.keys())):
-        session.ui.main_window.add_menu_entry(['Presets'], label,
-            lambda name=label: callback(name))
+    session.presets.add_presets("Initial Styles", [ (name, lambda nm=name: callback(nm))
+        for name in ['Original Look'] + sorted(list(name_mapping.keys()))])
 
     # Elements / IDATM Selection menu items
