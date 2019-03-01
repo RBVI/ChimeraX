@@ -19,20 +19,12 @@ class Consensus(DynamicHeaderSequence):
     name = "Consensus"
     sort_val = 1.3
     def __init__(self, alignment, refresh_callback):
-        self.settings = get_settings(alignment.session)
-        self.handler_ID = self.settings.triggers.add_handler('setting changed', lambda *args: self.reevaluate())
         self.conserved = [False] * len(alignment.seqs[0])
         super().__init__(alignment, refresh_callback)
+        self.handler_ID = self.settings.triggers.add_handler('setting changed', lambda *args: self.reevaluate())
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
-        from chimerax.ui.options import FloatOption, BooleanOption
-        option_data =[
-            ("capitalization threshold", 'capitalize_threshold', FloatOption, {},
-                "Capitalize consensus letter if at least this fraction of sequences are identical"),
-            ("ignore gap characters", 'ignore_gaps', BooleanOption, {},
-                "Whether gap characters are considered for the consensus character")
-        ]
-        self._add_options(options_container, category, verbose_labels, option_data)
+        self._add_options(options_container, category, verbose_labels, self.option_data())
 
     @property
     def capitalize_threshold(self):
@@ -86,6 +78,15 @@ class Consensus(DynamicHeaderSequence):
     def num_options(self):
         return 2
 
+    def option_data(self):
+        from chimerax.ui.options import FloatOption, BooleanOption
+        return super().option_data() + [
+            ("capitalization threshold", 'capitalize_threshold', FloatOption, {},
+                "Capitalize consensus letter if at least this fraction of sequences are identical"),
+            ("ignore gap characters", 'ignore_gaps', BooleanOption, {},
+                "Whether gap characters are considered for the consensus character")
+        ]
+
     def position_color(self, pos):
         if self[pos].isupper():
             if self.conserved[pos]:
@@ -102,16 +103,11 @@ class Consensus(DynamicHeaderSequence):
             self.conserved[r1:r2] = [False] * (r2-r1)
         super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
 
-from chimerax.core.settings import Settings
-class ConsensusSettings(Settings):
-    EXPLICIT_SAVE = {
-        'capitalize_threshold': 0.8,
-        'ignore_gaps': False
-    }
-
-_settings = None
-def get_settings(session):
-    global _settings
-    if _settings is None:
-        _settings = ConsensusSettings(session, "consensus alignment header")
-    return _settings
+    def settings_info(self):
+        name, defaults = super().settings_info()
+        defaults.update({
+            'capitalize_threshold': 0.8,
+            'ignore_gaps': False,
+            'initially_shown': True
+        })
+        return "consensus sequence header", defaults
