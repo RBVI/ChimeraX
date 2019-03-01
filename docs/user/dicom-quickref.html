@@ -31,7 +31,7 @@ Overview of ChimeraX features for working with
 <a href="#opening">Opening Data</a>
 <br><a href="#initial">Initial Display</a>
 <br><a href="#manipulation">Manipulation</a>
-<br><a href="#presets">3D Presets</a>
+<br><a href="#presets">Appearance Presets</a>
 <br><a href="#windowing">Thresholds and Windowing</a>
 <br><a href="#rendering">Volume Rendering Options</a>
 <br><a href="#clipping">Cropping and Clipping</a>
@@ -285,31 +285,39 @@ Buttons can also be reassigned with the
 
 <a name="presets"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
-3D Presets</h3>
+Appearance Presets</h3>
 <p>
-There is an approximate implementation of the
+ChimeraX includes rough implementations of the
 <a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
-target="_blank">Horos 3D presets</a> in ChimeraX.
+target="_blank">Horos 3D presets</a> and some of the 
+<a href="https://www.mccauslandcenter.sc.edu/mricrogl/" 
+target="_blank">MRIcroGL</a> color lookup tables.
 They can be applied by name with the
-<a href="commands/volume.html"><b>volume</b></a> command, for example:
+<a href="commands/volume.html"><b>volume</b></a> command
+<a href="commands/volume.html#appearance"><b>appearance</b></a> option,
+for example:
 </p>
 <blockquote>
-<b>volume #1 <a href="commands/volume.html#appearance">appearance</a> "Airways&nbsp;II"</b>
+<b>volume #1 appearance "Airways&nbsp;II"</b>
+<br>
+<b>volume #1 appearance CT_Muscles</b>
 </blockquote>
 <p>
-This is only an approximation;
-not all Horos settings have a corresponding ChimeraX setting,
-and some parts of the definition files may have been ignored.
-Besides a Horos preset name, <b>appearance initial</b> 
+The implementations are only approximate, as there may not be a direct
+correspondence between settings in different programs,
+and parts of the definition files may have been ignored.
+Besides a preset name, <b>appearance initial</b> 
 can be used to (re)set to the colors and intensities
 chosen automatically when a dataset is first shown in the solid style.
 The <b>initial</b> settings may be useful for single-plane display
 after using a 3D presets.
 </p><p>
 The <a href="#icons">density-map icons</a>
-<img class="icon" border=1 src="tools/shortcut-icons/airways.png"> and
+<img class="icon" border=1 src="tools/shortcut-icons/airways.png">,
+<img class="icon" border=1 src="tools/shortcut-icons/ear.png">, and
 <img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
-apply the &nbsp;&ldquo;Airways II&rdquo; and initial settings, respectively.
+apply the <b>Airways II</b>, <b>CT_Skin</b>, and <b>initial</b>
+settings, respectively.
 </p>
 <table>
 <tr><th align="center" class="shaded">
@@ -503,8 +511,12 @@ on volume models, including:
 &nbsp;3D projection mode
 (<a href="commands/volume.html#pmode">details...</a>)
 <li><img class="icon" border=1 src="tools/shortcut-icons/airways.png">
-&nbsp;&ldquo;Airways II&rdquo; <a href="#presets">3D preset</a>
-(thresholds) for solid display, typically used for thick sections
+&nbsp;Airways II <a href="#presets">preset</a>
+for solid display, typically used for thick sections
+(<a href="commands/volume.html#appearance">details...</a>)
+<li><img class="icon" border=1 src="tools/shortcut-icons/ear.png">
+&nbsp;CT_Skin <a href="#presets">preset</a>
+for solid display
 (<a href="commands/volume.html#appearance">details...</a>)
 <li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
 &nbsp;initial thresholds for solid display, <i>e.g.</i>, for single planes
@@ -600,5 +612,5 @@ a significant feature of the scan is a tumor in the right lung.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2019</address>
+March 2019</address>
 </body></html>
