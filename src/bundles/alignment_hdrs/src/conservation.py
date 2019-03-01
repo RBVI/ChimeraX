@@ -43,17 +43,10 @@ class Conservation(DynamicHeaderSequence):
             args = (category,)
         self.al2co_options_widget, al2co_options = options_container.add_option_group(*args,
             group_label="AL2CO parameters")
-        from chimerax.seqalign.sim_matrices import matrices
+        from chimerax.seqalign.sim_matrices import matrices, matrix_name_key_func
         matrix_names = list(matrices(self.alignment.session).keys())
         matrix_names.append("identity")
-        def matrix_key_func(mat_name):
-            prefix = mat_name
-            while prefix and prefix[-1].isdigit():
-                prefix = prefix[:-1]
-            if prefix == mat_name:
-                return (mat_name.lower(), 0)
-            return (prefix.lower(), int(mat_name[len(prefix):]))
-        matrix_names.sort(key=matrix_key_func)
+        matrix_names.sort(key=matrix_name_key_func)
         class Al2coMatrixOption(EnumOption):
             values = matrix_names
         from chimerax.ui.options import IntOption, FloatOption
