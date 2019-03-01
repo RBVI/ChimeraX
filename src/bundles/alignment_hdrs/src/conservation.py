@@ -59,13 +59,6 @@ class Conservation(DynamicHeaderSequence):
                 "Window size for conservation averaging"),
             ("gap fraction", 'al2co_gap', FloatOption, {'min': 0.0, 'max': 1.0},
                 "Conservations are computed for columns only if the fraction of gaps is less than this value"),
-            ("sum-of-pairs matrix", 'al2co_matrix', Al2coMatrixOption, {},
-                "Similarity matrix used by sum-of-pairs measure"),
-            ("matrix transformation", 'al2co_transform', Al2coTransformOption, {},
-                "Transform applied to similarity matrix as follows:\n"
-                "\t%s: identity substitutions have same value\n"
-                "\t%s: adjustment so that 2-sequence alignment yields\n"
-                "\t\tsame score as in original matrix" % tuple(Al2coTransformOption.labels[1:]))
         ]
         self._add_options(al2co_options, None, False, al2co_option_data)
         from PyQt5.QtWidgets import QVBoxLayout
@@ -80,7 +73,26 @@ class Conservation(DynamicHeaderSequence):
             " using AL2CO conservation measures should cite:",
             pubmed_id=11524371))
         self.al2co_options_widget.setLayout(layout)
-        if self.settings.style != self.STYLE_AL2CO:
+        self.al2co_sop_options_widget, al2co_sop_options = al2co_options.add_option_group(
+            group_label="Sum-of-pairs parameters")
+        al2co_sop_option_data = [
+            ("sum-of-pairs matrix", 'al2co_matrix', Al2coMatrixOption, {},
+                "Similarity matrix used by sum-of-pairs measure"),
+            ("matrix transformation", 'al2co_transform', Al2coTransformOption, {},
+                "Transform applied to similarity matrix as follows:\n"
+                "\t%s: identity substitutions have same value\n"
+                "\t%s: adjustment so that 2-sequence alignment yields\n"
+                "\t\tsame score as in original matrix" % tuple(Al2coTransformOption.labels[1:]))
+        ]
+        self._add_options(al2co_sop_options, None, False, al2co_sop_option_data)
+        sop_layout = QVBoxLayout()
+        sop_layout.addWidget(al2co_sop_options)
+        self.al2co_sop_options_widget.setLayout(sop_layout)
+
+        if self.settings.style == self.STYLE_AL2CO:
+            if self.settings.al2co_cons != 2:
+                self.al2co_sop_options_widget.hide()
+        else:
             self.al2co_options_widget.hide()
 
     def destroy(self):
@@ -252,6 +264,8 @@ class Conservation(DynamicHeaderSequence):
         attr_name, prev_val, new_val = trig_data
         if attr_name == "style":
             self.al2co_options_widget.setHidden(new_val != self.STYLE_AL2CO)
+        elif attr_name == "al2co_cons":
+            self.al2co_sop_options_widget.setHidden(new_val != 2)
         self.reevaluate()
 
 from chimerax.ui.options import EnumOption, SymbolicEnumOption
