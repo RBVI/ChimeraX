@@ -125,6 +125,7 @@ def standard_shortcuts(session):
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
         ('aw', 'volume selMaps appearance "Airways II"', 'Airways preset', mapcat, maparg, mmenu),
+        ('as', 'volume selMaps appearance CT_Skin', 'Skin preset', mapcat, maparg, mmenu),
         ('dc', 'volume selMaps appearance initial', 'Default volume curve', mapcat, maparg, mmenu),
         ('zs', 'volume selMaps projectionMode 2d-xyz', 'Volume xyz slices', mapcat, maparg, mmenu),
         ('ps', 'volume selMaps projectionMode 3d', 'Volume perpendicular slices', mapcat, maparg, mmenu),

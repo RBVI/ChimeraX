@@ -179,6 +179,7 @@ class DensityMapPanel(ShortcutPanel):
         ('zs', 'xyzslice.png', 'Volume xyz slices'),
         ('ps', 'perpslice.png', 'Volume perpendicular slices'),
         ('aw', 'airways.png', 'Airways preset'),
+        ('as', 'ear.png', 'Skin preset'),
         ('dc', 'initialcurve.png', 'Default volume curve'),
     )
 
