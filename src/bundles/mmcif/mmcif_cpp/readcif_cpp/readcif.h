@@ -340,6 +340,7 @@ private:
         T_TAG, T_VALUE, T_LEFT_SQUARE_BRACKET, T_RIGHT_SQUARE_BRACKET,
         T_EOI /* End Of Input */
     };
+    static const char* token_names[T_EOI + 1];
     Token       current_token;
     bool current_is_keyword() {
         return current_token >= T_DATA && current_token <= T_STOP;
