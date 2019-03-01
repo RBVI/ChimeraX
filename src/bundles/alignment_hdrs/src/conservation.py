@@ -26,14 +26,16 @@ class Conservation(DynamicHeaderSequence):
     styles = (STYLE_PERCENT, STYLE_CLUSTAL_CHARS, STYLE_AL2CO)
 
     def __init__(self, alignment, *args, **kw):
-        self.settings = get_settings(alignment.session)
+        # need access to settings early, so replicate code in HeaderSequence
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = self.make_settings(alignment.session)
         self._set_update_vars(self.settings.style)
         self.handler_ID = self.settings.triggers.add_handler('setting changed', self._setting_changed_cb)
         self.al2co_options_widget = None
         super().__init__(alignment, *args, eval_while_hidden=True, **kw)
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
-        option_data =[ ("style", 'style', ConservationStyleOption, {}, None) ]
+        option_data = self.option_data()
         self._add_options(options_container, category, verbose_labels, option_data)
         if category is None:
             args = ()
@@ -41,10 +43,10 @@ class Conservation(DynamicHeaderSequence):
             args = (category,)
         self.al2co_options_widget, al2co_options = options_container.add_option_group(*args,
             group_label="AL2CO parameters")
-        from chimerax.seqalign.sim_matrices import matrices
+        from chimerax.seqalign.sim_matrices import matrices, matrix_name_key_func
         matrix_names = list(matrices(self.alignment.session).keys())
         matrix_names.append("identity")
-        matrix_names.sort(key=lambda x: x.lower())
+        matrix_names.sort(key=matrix_name_key_func)
         class Al2coMatrixOption(EnumOption):
             values = matrix_names
         from chimerax.ui.options import IntOption, FloatOption
@@ -57,13 +59,6 @@ class Conservation(DynamicHeaderSequence):
                 "Window size for conservation averaging"),
             ("gap fraction", 'al2co_gap', FloatOption, {'min': 0.0, 'max': 1.0},
                 "Conservations are computed for columns only if the fraction of gaps is less than this value"),
-            ("sum-of-pairs matrix", 'al2co_matrix', Al2coMatrixOption, {},
-                "Similarity matrix used by sum-of-pairs measure"),
-            ("matrix transformation", 'al2co_transform', Al2coTransformOption, {},
-                "Transform applied to similarity matrix as follows:\n"
-                "\t%s: identity substitutions have same value\n"
-                "\t%s: adjustment so that 2-sequence alignment yields\n"
-                "\t\tsame score as in original matrix" % tuple(Al2coTransformOption.labels[1:]))
         ]
         self._add_options(al2co_options, None, False, al2co_option_data)
         from PyQt5.QtWidgets import QVBoxLayout
@@ -78,7 +73,26 @@ class Conservation(DynamicHeaderSequence):
             " using AL2CO conservation measures should cite:",
             pubmed_id=11524371))
         self.al2co_options_widget.setLayout(layout)
-        if self.settings.style != self.STYLE_AL2CO:
+        self.al2co_sop_options_widget, al2co_sop_options = al2co_options.add_option_group(
+            group_label="Sum-of-pairs parameters")
+        al2co_sop_option_data = [
+            ("sum-of-pairs matrix", 'al2co_matrix', Al2coMatrixOption, {},
+                "Similarity matrix used by sum-of-pairs measure"),
+            ("matrix transformation", 'al2co_transform', Al2coTransformOption, {},
+                "Transform applied to similarity matrix as follows:\n"
+                "\t%s: identity substitutions have same value\n"
+                "\t%s: adjustment so that 2-sequence alignment yields\n"
+                "\t\tsame score as in original matrix" % tuple(Al2coTransformOption.labels[1:]))
+        ]
+        self._add_options(al2co_sop_options, None, False, al2co_sop_option_data)
+        sop_layout = QVBoxLayout()
+        sop_layout.addWidget(al2co_sop_options)
+        self.al2co_sop_options_widget.setLayout(sop_layout)
+
+        if self.settings.style == self.STYLE_AL2CO:
+            if self.settings.al2co_cons != 2:
+                self.al2co_sop_options_widget.hide()
+        else:
             self.al2co_options_widget.hide()
 
     def destroy(self):
@@ -96,6 +110,9 @@ class Conservation(DynamicHeaderSequence):
 
     def num_options(self):
         return 1
+
+    def option_data(self):
+        return super().option_data() + [ ("style", 'style', ConservationStyleOption, {}, None) ]
 
     def position_color(self, pos):
         return 'black' if self.style == self.STYLE_CLUSTAL_CHARS else 'dark gray'
@@ -131,6 +148,20 @@ class Conservation(DynamicHeaderSequence):
                 delattr(self, 'depiction_val')
         evaluation_func = self._reeval_al2co if self.style == self.STYLE_AL2CO else evaluation_func
         return super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
+
+    def settings_info(self):
+        name, defaults = super().settings_info()
+        defaults.update({
+            'style': self.STYLE_AL2CO,
+            'al2co_freq': 2,
+            'al2co_cons': 0,
+            'al2co_window': 1,
+            'al2co_gap': 0.5,
+            'al2co_matrix': "BLOSUM-62",
+            'al2co_transform': 0,
+            'initially_shown': True
+        })
+        return "conservation sequence header", defaults
 
     @property
     def style(self):
@@ -233,19 +264,9 @@ class Conservation(DynamicHeaderSequence):
         attr_name, prev_val, new_val = trig_data
         if attr_name == "style":
             self.al2co_options_widget.setHidden(new_val != self.STYLE_AL2CO)
+        elif attr_name == "al2co_cons":
+            self.al2co_sop_options_widget.setHidden(new_val != 2)
         self.reevaluate()
-
-from chimerax.core.settings import Settings
-class ConservationSettings(Settings):
-    EXPLICIT_SAVE = {
-        'style': Conservation.STYLE_AL2CO,
-        'al2co_freq': 2,
-        'al2co_cons': 0,
-        'al2co_window': 1,
-        'al2co_gap': 0.5,
-        'al2co_matrix': "BLOSUM-62",
-        'al2co_transform': 0,
-    }
 
 from chimerax.ui.options import EnumOption, SymbolicEnumOption
 class ConservationStyleOption(EnumOption):
@@ -262,10 +283,3 @@ class Al2coConservationOption(SymbolicEnumOption):
 class Al2coTransformOption(SymbolicEnumOption):
     labels = ["none", "normalization", "adjustment"]
     values = list(range(len(labels)))
-
-_settings = None
-def get_settings(session):
-    global _settings
-    if _settings is None:
-        _settings = ConservationSettings(session, "conservation alignment header")
-    return _settings
