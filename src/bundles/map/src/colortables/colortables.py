@@ -19,9 +19,9 @@
 # -----------------------------------------------------------------------------
 #
 def appearance_names():
-    dir = preset_directory()
     from os import listdir
-    names = [filename[:-6] for filename in listdir(dir) if filename.endswith('.plist')]
+    names = [filename[:-6] for filename in listdir(preset_directory()) if filename.endswith('.plist')]
+    names.extend([filename[:-5] for filename in listdir(clut_directory()) if filename.endswith('.clut')])
     names.append('initial')
     return names
      
@@ -44,9 +44,22 @@ def clut_directory():
 def appearance_settings(name, v):
     if name == 'initial':
         return initial_settings(v)
-    dir = preset_directory()
     from os.path import join
-    path = join(dir, name + '.plist')
+    hpath = join(preset_directory(), name + '.plist')
+    from os.path import isfile
+    if isfile(hpath):
+        kw = read_horos_3d_preset(hpath)
+    else:
+        mpath = join(clut_directory(), name + '.clut')
+        if isfile(mpath):
+            kw = read_mricrogl_clut(mpath)
+        else:
+            raise ValueError('Color lookup table for %s not found as %s or %s'
+                             % (name, hpath, mpath))
+
+    return kw
+
+def read_horos_3d_preset(path):
     f = open(path, 'rb')
     import plistlib
     fields = plistlib.load(f)
@@ -81,11 +94,12 @@ def appearance_settings(name, v):
             if otable == 'Logratithmic Inverse Table':
                 # TODO: Set color alpha?
                 pass
-    elif 'CLUT' in fields and 'wl' in fields and 'ww' in fields:
+    elif 'CLUT' in fields and fields['CLUT'] != 'No CLUT' and 'wl' in fields and 'ww' in fields:
         center = fields['wl']
         width = fields['ww']
         height = 0.5
         clut_name = fields['CLUT']
+        from os.path import join
         cpath = join(clut_directory(), clut_name + '.plist')
         cf = open(cpath, 'rb')
         cfields = plistlib.load(cf)
@@ -103,6 +117,62 @@ def appearance_settings(name, v):
             
     return kw
 
+mricrogl_clut_value_types = {
+    '[FLT]': float,
+    '[INT]': int,
+    '[BYT]': int,
+    '[RGBA255]': lambda rgba: tuple(int(r) for r in rgba.split('|')),
+    }
+    
+def read_mricrogl_clut(path):
+    values = read_mricrogl_values(path)
+    for key in ('numnodes', 'min', 'max'):
+        if key not in values:
+            raise ValueError('No "%s" key in MRIcroGL clut file %s' % (key, path))
+    n = values['numnodes']
+    min, max = values['min'], values['max']
+    step = (max - min) / n
+    levels = []
+    colors = []
+    for i in range(n):
+        ki = 'nodeintensity%d' % i
+        if ki not in values:
+            raise ValueError('No "%s" key in MRIcroGL clut file %s' % (ki, path))
+        kc = 'nodergba%d' % i
+        if kc not in values:
+            raise ValueError('No "%s" key in MRIcroGL clut file %s' % (kc, path))
+        x = values[ki]/255
+        level = min * (1-x) + max * x
+        rgba = tuple(r/255 for r in values[kc])
+#        rgb1 = rgba[:3] + (1,)
+#        levels.append((level, rgba[3]))
+#        colors.append(rgb1)
+        levels.append((level, 1))
+        colors.append(rgba)
+    kw = {'solid_colors': colors,
+          'solid_levels': levels,
+          'transparency_depth': 0.05,
+          'dim_transparent_voxels': True,
+#          'dim_transparent_voxels': False,
+          }
+    return kw
+    
+def read_mricrogl_values(path):
+    f = open(path, 'r')
+    lines = f.readlines()
+    f.close()
+    values = {}
+    for line in lines:
+        sline = line.strip()
+        if sline in mricrogl_clut_value_types:
+            vtype = mricrogl_clut_value_types[sline]
+        else:
+            kv = sline.split('=')
+            if len(kv) == 2:
+                key,value = kv
+                values[key] = vtype(value)
+    return values
+
 def initial_settings(v):
     levels, colors = v.initial_solid_levels()
     kw = {'solid_levels': levels,
@@ -110,4 +180,3 @@ def initial_settings(v):
           'dim_transparent_voxels': True,
           }
     return kw
-
