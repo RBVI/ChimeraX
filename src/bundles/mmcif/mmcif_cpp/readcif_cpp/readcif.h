@@ -70,7 +70,7 @@ is_not_whitespace(char c)
     return NotWhitespace[(unsigned char) c];
 }
 
-// Non-error checking replacement for the standard library's strtof.
+// Non-error checking replacement for the standard library's strtod.
 // Returns NaN if not a floating point number.
 // While this routine is slower than atof by iself, it is faster than
 // atof when inlined within a parser. 
