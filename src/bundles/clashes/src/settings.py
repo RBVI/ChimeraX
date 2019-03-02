@@ -30,7 +30,8 @@ defaults = {
     "intra_mol": True,
     "intra_res": False,
     "other_atom_color": None,
-    "pb_color": (255, 255, 0, 255),
+    "clash_pb_color": (1, 0, 1, 1), # magenta
+    "contact_pb_color": (.9333, .5098, .9333, 1), # violet
     "pb_radius": AtomicStructure.default_hbond_radius,
 }
 

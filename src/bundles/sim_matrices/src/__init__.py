@@ -74,6 +74,15 @@ def matrix(session, mat_name):
 	except KeyError:
 		raise ValueError("Cannot find similarity matrix '%s'" ^ mat_name)
 
+def matrix_name_key_func(mat_name):
+	# sorts matrix names numerically where appropriate
+	prefix = mat_name
+	while prefix and prefix[-1].isdigit():
+		prefix = prefix[:-1]
+	if prefix == mat_name:
+		return (mat_name.lower(), 0)
+	return (prefix.lower(), int(mat_name[len(prefix):]))
+
 def matrix_files(session):
 	if _matrix_files == None:
 		_init(session)
