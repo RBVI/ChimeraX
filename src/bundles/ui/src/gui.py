@@ -1815,6 +1815,7 @@ class SelZoneDialog(QDialog):
         self.bbox.button(self.bbox.Ok).setEnabled(
             self.less_checkbox.isChecked() or self.more_checkbox.isChecked())
 
+prepositions = set(["for", "a", "the", "as", "in", "on", "at", "or", "and", "to", "into", "of", "from"])
 def menu_capitalize(text):
     capped_words = []
     in_parens = False
@@ -1828,6 +1829,9 @@ def menu_capitalize(text):
                 in_parens = True
                 capped_words.append(word)
             else:
-                capped_words.append(word.capitalize())
+                if word.lower() != word or (capped_words and word in prepositions):
+                    capped_words.append(word)
+                else:
+                    capped_words.append('-'.join([frag.capitalize() for frag in word.split('-')]))
     return " ".join(capped_words)
 
