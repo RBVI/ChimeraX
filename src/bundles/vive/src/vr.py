@@ -294,7 +294,10 @@ class SteamVRCamera(Camera):
         self._poses = poses_t()
         t = session.triggers
         self._new_frame_handler = t.add_handler('new frame', self.next_frame)
+
+        # Exit cleanly
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
+        self._close_cb = None
         
     def _get_position(self):
         # In independent desktop camera mode this is the desktop camera position,
@@ -379,7 +382,8 @@ class SteamVRCamera(Camera):
                               translation(-array(room_center, float32)))
         
     def move_scene(self, move):
-        self.room_to_scene = self.room_to_scene * move
+        '''Move is in room coordinates.'''
+        self.room_to_scene = self.room_to_scene * move.inverse()
         for hc in self._controller_models:
             hc.update_scene_position(self)
         
@@ -1528,7 +1532,7 @@ class MoveSceneMode(HandMode):
             if scale is not None:
                 self._pinch_zoom(camera, center, scale)
         else:
-            move = previous_pose * pose.inverse()
+            move = pose * previous_pose.inverse()
             camera.move_scene(move)
 
     def _other_controller_move(self, oc):
@@ -1539,7 +1543,7 @@ class MoveSceneMode(HandMode):
     def _pinch_zoom(self, camera, center, scale_factor):
         # Two controllers have trigger pressed, scale scene.
         from chimerax.core.geometry import translation, scale
-        scale = translation(center) * scale(1/scale_factor) * translation(-center)
+        scale = translation(center) * scale(scale_factor) * translation(-center)
         camera.move_scene(scale)
 
 def _pinch_scale(prev_pos, pos, other_pos):
@@ -1554,6 +1558,7 @@ def _pinch_scale(prev_pos, pos, other_pos):
 
 class ZoomMode(HandMode):
     name = 'zoom'
+    size_doubling_distance = 0.1	# meters, vertical motion
     def __init__(self):
         self._zoom_center = None
     @property
@@ -1566,10 +1571,8 @@ class ZoomMode(HandMode):
         if self._zoom_center is None:
             return
         center = self._zoom_center
-        move = previous_pose * pose.inverse()
-        y_motion = move.matrix[1,3]  # meters
-        from math import exp
-        s = exp(2*y_motion)
+        y_motion = (pose.origin() - previous_pose.origin())[1]  # meters
+        s = 2 ** (y_motion/self.size_doubling_distance)
         s = max(min(s, 10.0), 0.1)	# Limit scaling
         from chimerax.core.geometry import distance, translation, scale
         scale = translation(center) * scale(s) * translation(-center)
