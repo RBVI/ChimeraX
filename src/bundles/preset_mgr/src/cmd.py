@@ -79,10 +79,10 @@ def text_match(query, targets):
     return contains
 
 def register_preset_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, RestOfLine
     desc = CmdDesc(
         required = [('text1', StringArg)],
-        optional = [('text2', StringArg)],
+        optional = [('text2', RestOfLine)],
         synopsis = 'apply preset depiction to models'
     )
     register('preset', desc, preset_cmd, logger=logger)
