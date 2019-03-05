@@ -379,6 +379,9 @@ class Render:
 
         self.silhouette.delete()
         self.silhouette = None
+
+        self.outline.delete()
+        self.outline = None
         
     @property
     def opengl_context(self):
@@ -1761,7 +1764,7 @@ class Framebuffer:
 
     def __del__(self):
         if not self._deleted and self._fbo != 0:
-            raise RuntimeError('OpenGL framebuffer %s was not deleted before core.graphics.Framebuffer destroyed'
+            raise RuntimeError('OpenGL framebuffer "%s" was not deleted before core.graphics.Framebuffer destroyed'
                                % self.name)
 
     def delete(self, make_current = False):
@@ -2186,7 +2189,8 @@ class Buffer:
 
     def __del__(self):
         if self.opengl_buffer is not None:
-            raise RuntimeError('OpenGL buffer was not deleted before core.graphics.Buffer destroyed')
+            raise RuntimeError('OpenGL buffer "%s" was not deleted before core.graphics.Buffer destroyed'
+                               % self.shader_variable_name)
 
     def delete_buffer(self):
         'Delete the OpenGL buffer object.'
