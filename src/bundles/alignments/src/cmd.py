@@ -145,10 +145,10 @@ def seqalign_chain(session, chains):
             seq.numbering_start = starts.pop()
         alignment = session.alignments.new_alignment([seq], None, seq_viewer="sv",
             auto_associate=False, name=chains[0].description, intrinsic=True)
-        alignment.suspend_notify_viewers()
+        alignment.suspend_notify_observers()
         for chain in chains:
             alignment.associate(chain, keep_intrinsic=True)
-        alignment.resume_notify_viewers()
+        alignment.resume_notify_observers()
 
 def register_seqalign_command(logger):
     from chimerax.core.commands import CmdDesc, register
