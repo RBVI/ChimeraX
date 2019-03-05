@@ -901,7 +901,7 @@ class UserInterface:
         if on_panel:
             widget, wpos = self._clicked_widget(window_xy)
             from PyQt5.QtWidgets import QAbstractButton
-            if isinstance(widget, QAbstractButton) and not widget.isDown():
+            if isinstance(widget, QAbstractButton):
                 rb = self._raised_buttons
                 if highlight_id in rb and widget is rb[highlight_id]:
                     return # Already raised
