@@ -67,7 +67,7 @@ def dicom_file_series(paths, log = None, verbose = False):
     for s in series:
       path = s.paths[0]
       d = dcmread(path)
-      log.info('Data set: %s\n%s\n' % (path, d))
+      log.info('Data set: %s\n%s\n%s\n' % (path, d.file_meta, d))
 
   return series
 
