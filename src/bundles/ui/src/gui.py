@@ -922,8 +922,11 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _add_preset_entries(self, session, menu, preset_names, category=None):
         from PyQt5.QtWidgets import QAction
         from chimerax.core.commands import run, quote_if_necessary
-        menu_names = [menu_capitalize(name) for name in preset_names]
-        menu_names.sort()
+        # the menu names may be instances of CustomSortString, so sort them
+        # before applying menu_capitalize(); also 'preset_names' may be a keys view
+        menu_names = list(preset_names)
+        menu_names.sort(key=lambda x: x.lower())
+        menu_names = [menu_capitalize(name) for name in menu_names]
         if category is None:
             cat_string = ""
         else:

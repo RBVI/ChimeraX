@@ -11,12 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.utils import CustomSortString
+
 def register_presets(session):
     name_mapping = {
-        'Stick': 'non-polymer',
-        'Cartoon': 'small polymer',
-        'Space-Filling (chain colors)': 'medium polymer',
-        'Space-Filling (single color)': 'large polymer'
+        CustomSortString('Stick', sort_val=1): 'non-polymer',
+        CustomSortString('Cartoon', sort_val=2): 'small polymer',
+        CustomSortString('Space-Filling (chain colors)', sort_val=3): 'medium polymer',
+        CustomSortString('Space-Filling (single color)', sort_val=4): 'large polymer'
     }
     def callback(name, session=session):
         from . import AtomicStructure, Atom
@@ -35,6 +37,6 @@ def register_presets(session):
             residues.ring_displays = False
             s.apply_auto_styling(**kw)
     session.presets.add_presets("Initial Styles", [ (name, lambda nm=name: callback(nm))
-        for name in ['Original Look'] + sorted(list(name_mapping.keys()))])
+        for name in [CustomSortString('Original Look', sort_val=0)] + sorted(list(name_mapping.keys()))])
 
     # Elements / IDATM Selection menu items

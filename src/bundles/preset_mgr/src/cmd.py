@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.errors import UserError
+
 def preset_cmd(session, text1, text2=None):
     '''
     Apply preset depiction
@@ -25,36 +27,39 @@ def preset_cmd(session, text1, text2=None):
     else:
         cat_text, preset_text = text1, text2
 
-    from chimerax.core.errors import UserError
     preset_map = session.presets.presets_by_category
     if cat_text is None:
-        preset_names = [name for names in preset_map.values() for name in names]
-        matches = text_match(preset_text, preset_names)
-        if not matches:
-            raise UserError("No preset name matches '%s'" % preset_text)
-        if len(matches) > 1:
-            raise UserError("Multiple preset names match '%s': %s" % (preset_text, '; '.join(matches)))
-        for cat, presets in preset_map.items():
-            if matches[0] in presets:
-                session.presets.preset_function(cat, matches[0])()
-                break
-            else:
-                raise AssertionError("Previously found preset '%s' no longer found" % matches[0])
+        match_all_presets(session, preset_text, preset_map)
     else:
         cat_matches = text_match(cat_text, preset_map.keys())
-        if not cat_matches:
-            raise UserError("No preset category name matches '%s'" % cat_text)
-        if len(cat_matches) > 1:
-            raise UserError("Multiple preset category names match '%s': %s"
-                % (cat_text, '; '.join(cat_matches)))
-        cat = cat_matches[0]
-        matches = text_match(preset_text, preset_map[cat])
-        if not matches:
-            raise UserError("No preset name in category '%s' matches '%s'" % (cat, preset_text))
-        if len(matches) > 1:
-            raise UserError("Multiple preset names in category '%s' match '%s': %s"
-                % (cat, preset_text, '; '.join(matches)))
-        session.presets.preset_function(cat, matches[0])()
+        if cat_matches:
+            if len(cat_matches) > 1:
+                raise UserError("Multiple preset category names match '%s': %s"
+                    % (cat_text, '; '.join(cat_matches)))
+            cat = cat_matches[0]
+            matches = text_match(preset_text, preset_map[cat])
+            if not matches:
+                raise UserError("No preset name in category '%s' matches '%s'" % (cat, preset_text))
+            if len(matches) > 1:
+                raise UserError("Multiple preset names in category '%s' match '%s': %s"
+                    % (cat, preset_text, '; '.join(matches)))
+            session.presets.preset_function(cat, matches[0])()
+        else:
+            match_all_presets(session, cat_text + " " + preset_text, preset_map)
+
+def match_all_presets(session, preset_text, preset_map):
+    preset_names = [name for names in preset_map.values() for name in names]
+    matches = text_match(preset_text, preset_names)
+    if not matches:
+        raise UserError("No preset name matches '%s'" % preset_text)
+    if len(matches) > 1:
+        raise UserError("Multiple preset names match '%s': %s" % (preset_text, '; '.join(matches)))
+    for cat, presets in preset_map.items():
+        if matches[0] in presets:
+            session.presets.preset_function(cat, matches[0])()
+            break
+    else:
+        raise AssertionError("Previously found preset '%s' no longer found" % matches[0])
 
 def text_match(query, targets):
     # priority:  exact match;  begins with query text;  contains query text
