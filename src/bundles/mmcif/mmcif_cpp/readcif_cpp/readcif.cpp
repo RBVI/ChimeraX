@@ -194,6 +194,20 @@ CIFFile::CIFFile()
 	internal_reset_parse();
 }
 
+const char* CIFFile::token_names[] = {
+	"Start of intput",	// T_SOI
+	"data_ block",		// T_DATA
+	"global_ keyword",	// T_GLOBAL
+	"loop_ keyword", 	// T_LOOP
+	"save_ frame",		// T_SAVE
+	"stop_ keyword",	// T_STOP
+	"data name",		// T_TAG
+	"data value",		// T_VALUE
+	"unquoted left square bracket",	// T_LEFT_SQUARE_BRACKET
+	"unquoted right square brecket",	// T_RIGHT_SQUARE_BRACKET
+	"End of input"		// T_EOI
+};
+
 void
 CIFFile::register_category(const string& category, ParseCategory callback,
 					const StringVector& dependencies)
@@ -227,7 +241,7 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 	} else {
 		// TODO: find category in categoryOrder
 		// make sure none of the later categories depend on it
-		throw std::runtime_error("missing callback");
+		throw std::runtime_error("missing category callback");
 		categories.erase(category);
 	}
 }
@@ -446,8 +460,12 @@ CIFFile::internal_parse(bool one_table)
 		case T_LOOP: {
 			const char* loop_pos = pos - 5;
 			next_token();
-			if (current_token != T_TAG)
-				throw error("expected data name after loop_");
+			if (current_token != T_TAG) {
+				std::ostringstream err_msg;
+				err_msg << "expected data name after loop_, not "
+					<< token_names[current_token];
+				throw error(err_msg.str());
+			}
 			Categories::iterator cii;
 			string cv = current_value();
 			size_t sep = cv.find('.');
@@ -583,9 +601,11 @@ CIFFile::internal_parse(bool one_table)
 		case T_STOP:
 			throw error("unexpected stop_ keyword");
 		case T_LEFT_SQUARE_BRACKET:
-			throw error("unexpected left square bracket");
+			// CIF 1.1 standard reserves left square bracket for future use
+			throw error("left square bracket is illegal outside of quotes in CIF 1.1");
 		case T_RIGHT_SQUARE_BRACKET:
-			throw error("unexpected right square bracket");
+			// CIF 1.1 standard reserves right square bracket for future use
+			throw error("right square bracket is illegal outside of quotes in CIF 1.1");
 		case T_TAG: {
 			// collapse consectutive tag value pairs with the
 			// same category
@@ -702,8 +722,12 @@ CIFFile::internal_parse(bool one_table)
 					current_colnames.emplace_back(colname);
 				}
 				next_token();
-				if (current_token != T_VALUE)
-					throw error("expected data value after data name");
+				if (current_token != T_VALUE) {
+					std::ostringstream err_msg;
+					err_msg << "expected data value after data name, not "
+						<< token_names[current_token];
+					throw error(err_msg.str());
+				}
 				if (save_values)
 					//values.push_back(current_value());
 					values.emplace_back(current_value_start,
@@ -1228,8 +1252,12 @@ CIFFile::parse_row(ParseValues& pv)
 			return true;
 		}
 		for (int i = 0, e = current_colnames.size(); i < e; ++i) {
-			if (current_token != T_VALUE)
-				throw error("not enough data values");
+			if (current_token != T_VALUE) {
+				std::ostringstream err_msg;
+				err_msg << "not enough data values, found "
+					<< token_names[current_token];
+				throw error(err_msg.str());
+			}
 			next_token();
 		}
 		return true;
@@ -1291,8 +1319,12 @@ CIFFile::parse_row(ParseValues& pv)
 		return true;
 	}
 	for (int i = 0, e = current_colnames.size(); i < e; ++i) {
-		if (current_token != T_VALUE)
-			throw error("not enough data values");
+		if (current_token != T_VALUE) {
+			std::ostringstream err_msg;
+			err_msg << "not enough data values, found"
+				<< token_names[current_token];
+			throw error(err_msg.str());
+		}
 		if (i == pvi->column) {
 			if (pvi->need_end)
 				pvi->func2(current_value_start, current_value_end);

@@ -1151,7 +1151,7 @@ ExtractMolecule::parse_audit_conform()
             });
         pv.emplace_back(get_column("dict_version"),
             [&dict_version] (const char* start) {
-                dict_version = atof(start);
+                dict_version = strtof(start, NULL);
             });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "skipping audit_conform category: ", e.what());
@@ -1560,7 +1560,7 @@ ExtractMolecule::parse_atom_site_anisotrop()
         set_PDBx_fixed_width_columns("atom_site_anisotrop");
 
     long serial_num = 0;          // id
-    float u11, u12, u13, u22, u23, u33;
+    double u11, u12, u13, u22, u23, u33;
 
     try {
         pv.emplace_back(get_column("id", Required),
@@ -1967,7 +1967,7 @@ ExtractMolecule::parse_struct_conf()
         auto init_ps = entity_poly_seq.lower_bound(init_ps_key);
         auto end_ps = entity_poly_seq.upper_bound(end_ps_key);
         if (init_ps == entity_poly_seq.end()) {
-        // TODO: || end_ps == entity_poly_seq.end()) {
+        // TODO: || end_ps == entity_poly_seq.end()) {}
             logger::warning(_logger,
                             "Bad residue range for secondary structure \"", id,
                             "\" near line ", line_number());
@@ -2573,15 +2573,20 @@ parse_mmCIF_buffer(const unsigned char *whole_file,
 struct ExtractTables: public readcif::CIFFile
 {
     struct Done: std::exception {};
-    ExtractTables(const StringVector& categories);
+    ExtractTables(const StringVector& categories, bool all_blocks=false);
     virtual void data_block(const string& name);
+    virtual void reset_parse();
+    virtual void finished_parse();
     void parse_category();
 
     PyObject* data;
+    PyObject* all_data;
+    string block_name;
+    bool all_blocks;
 };
 
-ExtractTables::ExtractTables(const StringVector& categories):
-    data(nullptr)
+ExtractTables::ExtractTables(const StringVector& categories, bool all_blocks):
+    all_blocks(all_blocks)
 {
     for (auto& c: categories) {
         register_category(c,
@@ -2589,22 +2594,52 @@ ExtractTables::ExtractTables(const StringVector& categories):
                 parse_category();
             });
     }
+    reset_parse();
 }
 
 void
-ExtractTables::data_block(const string& /*name*/)
+ExtractTables::reset_parse()
 {
-    // can only handle one data block with categories in it
+    data = nullptr;
+    all_data = nullptr;
+    block_name.clear();
+}
+
+void
+ExtractTables::data_block(const string& name)
+{
     if (data)
-        throw Done();
+        finished_parse();
+    if (!all_blocks) {
+        // can only handle one data block with categories in it
+        if (data)
+            throw Done();
+    }
+    block_name = name;
+}
+
+void
+ExtractTables::finished_parse()
+{
+    if (!all_blocks)
+        return;
+    if (!all_data)
+        all_data = PyList_New(0);
+    PyObject* results = PyTuple_New(2);
+    PyObject* name = PyUnicode_DecodeUTF8(block_name.data(), block_name.size(), "replace");
+    PyTuple_SET_ITEM(results, 0, name);
+    if (!data)
+        data = PyList_New(0);
+    PyTuple_SET_ITEM(results, 1, data);
+    data = nullptr;
+    PyList_Append(all_data, results);
+    Py_DECREF(results);
 }
 
 void
 ExtractTables::parse_category()
 {
     // this routine leaks memory for the PyStructSequence description
-    if (!data)
-        data = PyDict_New();
     const string& category = this->category();
     const StringVector& colnames = this->colnames();
     size_t num_colnames = colnames.size();
@@ -2659,6 +2694,8 @@ ExtractTables::parse_category()
         PyErr_Restore(type, value, traceback);
         throw std::runtime_error("Python Error");
     }
+    if (!data)
+        data = PyDict_New();
     if (PyDict_SetItem(data, o, field_items) < 0) {
         PyObject *type, *value, *traceback;
         PyErr_Fetch(&type, &value, &traceback);
@@ -2668,23 +2705,28 @@ ExtractTables::parse_category()
     }
 }
 
-
 PyObject*
-extract_mmCIF_tables(const char* filename,
-                     const std::vector<std::string> &categories)
+extract_CIF_tables(const char* filename,
+                     const std::vector<std::string> &categories, bool all_data_blocks)
 {
 #ifdef CLOCK_PROFILING
-    ClockProfile p("extract_mmCIF tables");
+    ClockProfile p("extract_CIF tables");
 #endif
-    ExtractTables extract(categories);
+    ExtractTables extract(categories, all_data_blocks);
     try {
         extract.parse_file(filename);
     } catch (ExtractTables::Done&) {
         // normal early termination
     }
-    if (extract.data == nullptr)
-        Py_RETURN_NONE;
-    return extract.data;
+    if (all_data_blocks) {
+        if (extract.all_data == nullptr)
+            Py_RETURN_NONE;
+        return extract.all_data;
+    } else {
+        if (extract.data == nullptr)
+            Py_RETURN_NONE;
+        return extract.data;
+    }
 }
 
 } // namespace mmcif
