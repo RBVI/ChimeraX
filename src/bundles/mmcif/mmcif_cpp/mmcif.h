@@ -41,8 +41,9 @@ PyObject*   parse_mmCIF_buffer(const unsigned char* buffer,
 void        load_mmCIF_templates(const char* filename);
 void        set_Python_locate_function(PyObject* function);
 
-PyObject*   extract_mmCIF_tables(const char* filename,
-                                 const std::vector<std::string> &categories);
+PyObject*   extract_CIF_tables(const char* filename,
+                               const std::vector<std::string> &categories,
+                               bool all_data_blocks);
 
 #ifndef WrapPy
 const tmpl::Residue*

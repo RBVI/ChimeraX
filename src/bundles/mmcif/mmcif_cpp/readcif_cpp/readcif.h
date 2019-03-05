@@ -70,7 +70,7 @@ is_not_whitespace(char c)
     return NotWhitespace[(unsigned char) c];
 }
 
-// Non-error checking replacement for the standard library's strtof.
+// Non-error checking replacement for the standard library's strtod.
 // Returns NaN if not a floating point number.
 // While this routine is slower than atof by iself, it is faster than
 // atof when inlined within a parser. 
@@ -340,6 +340,7 @@ private:
         T_TAG, T_VALUE, T_LEFT_SQUARE_BRACKET, T_RIGHT_SQUARE_BRACKET,
         T_EOI /* End Of Input */
     };
+    static const char* token_names[T_EOI + 1];
     Token       current_token;
     bool current_is_keyword() {
         return current_token >= T_DATA && current_token <= T_STOP;

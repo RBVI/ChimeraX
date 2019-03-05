@@ -1,0 +1,88 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: preset</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<a name="list"></a>
+<h3><a href="../index.html#commands">Command</a>: preset</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>preset</b>
+[&nbsp;<i>category</i>&nbsp;]
+&nbsp;<i>preset-name</i>
+</h3>
+<p>
+A <b><i>preset</i></b> is a predefined combination of display settings.
+The <b>preset</b> command applies one of the following presets (also available 
+from the <a href="../menu.html#presets"><b>Presets</b> menu</a>):
+<ul>
+<li><b>Original Look</b> - initial appearance from
+<a href="../autostyle.html">automatic styling</a>,
+which depends on the number of chains in an atomic structure
+(however, certain aspects of appearance
+like <a href="set.html#silhouettes">silhouettes</a>
+and <a href="cartoon.html#style">cartoon style</a>
+may differ if they have been changed since the structure was opened)
+<li><b>Cartoon</b>
+- <a href="cartoon.html">cartoons</a> plus atomic detail near
+residues <a href="atomspec.html#surfcats">classified</a>
+as <b>ligand</b> and <b>ions</b>,
+<a href="lighting.html">simple lighting</a>, <i>etc.</i>
+(as for
+<a href="../autostyle.html">automatic styling</a> of structures with 1-4 chains)
+<li><b>Space-Filling (chain colors)</b>
+- all atoms as <a href="style.html">spheres</a>
+except sticks for <b>ligand</b> and balls for <b>solvent</b>,
+<a href="colortables.html#autocolors">chain colors</a>,
+shadows, <i>etc.</i> (as for <a href="../autostyle.html">automatic styling</a>
+of structures with 5-249 chains)
+<li><b>Space-Filling (single color)</b>
+- all atoms as <a href="style.html">spheres</a>,
+ambient-only lighting, <i>etc.</i> (as for <a href="../autostyle.html">automatic
+styling</a> of structures with &ge;250 chains)
+<li><b>Stick</b>
+- all atoms as <a href="style.html">sticks</a>,
+<a href="lighting.html">simple lighting</a>, <i>etc.</i> (as for
+<a href="../autostyle.html">automatic styling</a> of structures with 0 chains)
+</ul>
+The <i>preset-name</i> must be enclosed in quotation marks if it
+includes spaces, but can be partial, with matching prioritized as follows:
+</p>
+<ol>
+<li>Exact full match (capitalization ignored)
+<li>Matches beginning of name
+<li>Matches anywhere in name
+</ol>
+<p>
+Later, when there are multiple categories, a <i>category</i>
+can be specified if needed for disambiguation. 
+So far there is only one category, <b>Initial Styles</b>.
+The current set of presets is based directly on
+<a href="../autostyle.html">automatic styling</a> and is likely to change.
+Render-intensive presets such as <b>Cartoon</b>
+may exhibit slow performance on very large structures.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2019</address>
+</body></html>

@@ -18,17 +18,35 @@ def cmd_clashes(session, test_atoms, *,
         hbond_allowance=defaults["clash_hbond_allowance"],
         overlap_cutoff=defaults["clash_threshold"],
         **kw):
-    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "clashes", **kw)
+    if 'color' in kw:
+        color = kw.pop('color')
+    else:
+        color = defaults['clash_pb_color']
+    if 'radius' in kw:
+        radius = kw.pop('radius')
+    else:
+        radius = defaults['clash_pb_radius']
+    if 'dashes' not in kw:
+        kw['dashes'] = 4
+    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "clashes", color, radius, **kw)
 
 def cmd_contacts(session, test_atoms, *,
         name="contacts",
         hbond_allowance=defaults["clash_hbond_allowance"],
         overlap_cutoff=defaults["contact_threshold"],
         **kw):
-    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "contacts", **kw)
+    if 'color' in kw:
+        color = kw.pop('color')
+    else:
+        color = defaults['contact_pb_color']
+    if 'radius' in kw:
+        radius = kw.pop('radius')
+    else:
+        radius = defaults['contact_pb_radius']
+    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "contacts", color, radius, **kw)
 
 _continuous_attr = "_clashes_continuous_id"
-def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
+def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, color, radius, *,
         atom_color=defaults["atom_color"],
         attr_name=defaults["attr_name"],
         bond_separation=defaults["bond_separation"],
@@ -44,8 +62,6 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type,
         make_pseudobonds=defaults["action_pseudobonds"],
         naming_style=None,
         other_atom_color=defaults["other_atom_color"],
-        color=defaults["pb_color"],
-        radius=defaults["pb_radius"],
         res_separation=None,
         reveal=False,
         save_file=None,

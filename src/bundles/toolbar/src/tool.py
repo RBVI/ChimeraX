@@ -17,7 +17,8 @@ from chimerax.core.settings import Settings
 
 class ToolbarSettings(Settings):
     AUTO_SAVE = {
-        "show_hints": True,
+        "show_button_labels": True,
+        "show_group_labels": True,
     }
 
 
@@ -131,14 +132,23 @@ class ToolbarTool(HtmlToolInstance):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
-        hint_action = QAction("Show hints", menu)
-        hint_action.setCheckable(True)
-        hint_action.setChecked(self.settings.show_hints)
-        hint_action.toggled.connect(lambda arg, f=self._set_show_hints: f(arg))
-        menu.addAction(hint_action)
+        button_labels = QAction("Show button labels", menu)
+        button_labels.setCheckable(True)
+        button_labels.setChecked(self.settings.show_button_labels)
+        button_labels.toggled.connect(lambda arg, f=self._set_button_labels: f(arg))
+        menu.addAction(button_labels)
+        group_labels = QAction("Show group labels", menu)
+        group_labels.setCheckable(True)
+        group_labels.setChecked(self.settings.show_group_labels)
+        group_labels.toggled.connect(lambda arg, f=self._set_group_labels: f(arg))
+        menu.addAction(group_labels)
 
-    def _set_show_hints(self, show_hints):
-        self.settings.show_hints = show_hints
+    def _set_button_labels(self, show_button_labels):
+        self.settings.show_button_labels = show_button_labels
+        self._build_ui()
+
+    def _set_group_labels(self, show_group_labels):
+        self.settings.show_group_labels = show_group_labels
         self._build_ui()
 
     def handle_scheme(self, url):
@@ -162,12 +172,13 @@ class ToolbarTool(HtmlToolInstance):
         import os
         import chimerax.shortcuts
         from PyQt5.QtCore import QUrl
-        show_hints = self.settings.show_hints
+        show_button_labels = self.settings.show_button_labels
+        show_group_labels = self.settings.show_group_labels
         icon_dir = os.path.join(chimerax.shortcuts.__path__[0], 'icons')
         dir_path = os.path.dirname(__file__)
         qurl = QUrl.fromLocalFile(dir_path)
         html = _prolog.replace("URLBASE", qurl.url())
-        if show_hints:
+        if show_button_labels:
             html += _normal_style
         else:
             html += _compact_style
@@ -179,12 +190,12 @@ class ToolbarTool(HtmlToolInstance):
 <span class="ribbon-title">{tab}</span>\n'''
             if tab != "Right Mouse":
                 html += '''  <div class="ribbon-section">\n'''
-                if show_hints:
+                if show_group_labels:
                     html += '''  <span class="section-title">Last action</span>\n'''
                 for action in ("undo", "redo"):
                     html += f'''    <div class="ribbon-button ribbon-button-small" id="{action}-">\n'''
                     title = action.title()
-                    if show_hints:
+                    if show_button_labels:
                         html += f'''        <span class="button-title">{title}</span>\n'''
                     html += f'''        <span class="button-help">{title} last action</span>\n'''
                     icon_path = f'lib/{action}-variant.svg'
@@ -194,7 +205,7 @@ class ToolbarTool(HtmlToolInstance):
             for (section, compact) in info:
                 shortcuts = info[(section, compact)]
                 html += '''  <div class="ribbon-section">\n'''
-                if show_hints:
+                if show_group_labels:
                     html += f'''  <span class="section-title">{section}</span>\n'''
                 for what, icon_file, descrip, tooltip in shortcuts:
                     if tab == "Right Mouse":
@@ -210,7 +221,7 @@ class ToolbarTool(HtmlToolInstance):
                     icon_path = qurl.url()
                     size = "small" if compact else "large"
                     html += f'''    <div class="ribbon-button ribbon-button-{size}" id="{cmd_id}">\n'''
-                    if show_hints:
+                    if show_button_labels:
                         html += f'''        <span class="button-title">{descrip}</span>\n'''
                     if not tooltip:
                         tooltip = descrip
@@ -327,7 +338,6 @@ _Toolbars = {
                 ('tug', None, 'Tug atom', 'Drag atom while applying dynamics'),
                 ('minimize', None, 'Jiggle<br/>residue', 'Jiggle residue and its neighbors')],
             ("Volumes", False): [
-                ('tug', None, 'Tug atom', 'Drag atom while applying dynamics'),
                 ('place marker', None, 'Place<br/>marker', None),
                 ('contour level', None, 'Adjust<br/>threshold', 'Adjust volume data threshold level'),
                 ('windowing', None, 'Adjust<br/>collectively', 'Adjust volume data thresholds collectively'),

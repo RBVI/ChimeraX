@@ -41,6 +41,8 @@ class HeaderSequence(list):
         self._update_needed = True
         self._edit_bounds = None
         self._alignment_being_edited = False
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = self.make_settings(alignment.session)
         if self.eval_while_hidden:
             self.reevaluate()
 
@@ -108,8 +110,24 @@ class HeaderSequence(list):
     def __lt__(self, other):
         return self.sort_val < other.sort_val
 
+    def make_settings(self, session):
+        """For derived classes with their own settings, the settings_info()
+           method must be overridden (which see)"""
+        settings_name, settings_defaults = self.settings_info()
+        from chimerax.core.settings import Settings
+        class HeaderSettings(Settings):
+            EXPLICIT_SAVE = settings_defaults
+        return HeaderSettings(session, settings_name)
+
     def num_options(self):
         return 0
+
+    def option_data(self):
+        from chimerax.ui.options import BooleanOption
+        return [
+            ("show at startup", 'initially_shown', BooleanOption, {},
+                "Show this header when sequence/alignment initially shown")
+        ]
 
     def positive_hist_infinity(self, position):
         """Convenience function to map arbitrary positive number to 0-1 range
@@ -169,6 +187,17 @@ class HeaderSequence(list):
         self.name = state['name']
         self.visible = state['visible']
         self.eval_while_hidden = state['eval_while_hidden']
+
+    def settings_info(self):
+        """This method needs to return a (name, dict) tuple where 'name' is used to distingush
+           this group of settings from settings of other headers or tools (e.g. "consensus sequence header"),
+           and 'dict' is a dictionary of (attr_name: default_value) key/value pairs.
+
+           The dictionary must include the base class settings, so super().settings_info() must be
+           called and the returned dictionary updated with the derived class's settings"""
+        # the code relies on the fact that the returned settings dict is a different object every
+        # time (it gets update()d), so don't make it a class variable!
+        return "base header sequence", { 'initially shown': False }
 
     def show(self):
         """Called when sequence shown"""

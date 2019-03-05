@@ -457,30 +457,50 @@ def citations(model, only=None):
     return citations
 
 
-def get_mmcif_tables(filename, table_names):
-    """Extract mmCIF tables from a file
+def get_cif_tables(filename, table_names, *, all_data_blocks=False):
+    """Extract CIF tables from a file
 
     Parameters
     ----------
     filename : str
         The name of the file.
     table_names : list of str
-        A list of mmCIF category names.
+        A list of CIF category names.
+    all_data_blocks : bool
+        If true, return tables from data blocks in file.  Default is False.
+
+    Returns
+    -------
+        list or dictionary
+            If all_data_blocks is false, return list of CIF tables found and
+            all of the data values in a :py:class:`CIFTable`.
+            If all_data_blocks is true, return an ordered dictionary of tables
+            per data block.
     """
     from os import path
     if path.exists(filename):
         from . import _mmcif
-        data = _mmcif.extract_mmCIF_tables(filename, table_names)
+        all_data = _mmcif.extract_CIF_tables(filename, table_names, all_data_blocks)
     else:
-        data = {}
-    tlist = []
-    for name in table_names:
-        if name not in data:
-            tlist.append(MMCIFTable(name))
-        else:
-            tags, values = data[name]
-            tlist.append(MMCIFTable(name, tags, values))
-    return tlist
+        all_data = []
+
+    def convert_tables(data, table_names):
+        tlist = []
+        for name in table_names:
+            if name not in data:
+                tlist.append(CIFTable(name))
+            else:
+                tags, values = data[name]
+                tlist.append(CIFTable(name, tags, values))
+        return tlist
+
+    if not all_data_blocks:
+        return convert_tables(all_data, table_names)
+    result = []
+    for block_name, data in all_data:
+        tlist = convert_tables(data, table_names)
+        result.append((block_name, tlist))
+    return result
 
 
 def get_mmcif_tables_from_metadata(model, table_names):
@@ -505,7 +525,7 @@ def get_mmcif_tables_from_metadata(model, table_names):
         else:
             info = raw_tables[n]
             values = raw_tables[n + ' data']
-            tlist.append(MMCIFTable(info[0], info[1:], values))
+            tlist.append(CIFTable(info[0], info[1:], values))
     return tlist
 
 
@@ -514,9 +534,9 @@ class TableMissingFieldsError(ValueError):
     pass
 
 
-class MMCIFTable:
+class CIFTable:
     """
-    Present a table interface for a mmCIF category
+    Present a table interface for a (mm)CIF category
 
     Tags should be in the mixed case version given in the associated dictionary
     """
@@ -541,8 +561,11 @@ class MMCIFTable:
 
     def __repr__(self):
         num_columns = len(self._tags)
-        num_rows = len(self._data) / num_columns
-        return "MMCIFTable(%s, %s, ...[%dx%d])" % (
+        if num_columns == 0:
+            num_rows = 0
+        else:
+            num_rows = len(self._data) / num_columns
+        return "CIFTable(%s, %s, ...[%dx%d])" % (
             self.table_name, self._tags, num_rows, num_columns)
 
     def mapping(self, key_names, value_names, foreach_names=None):
@@ -653,7 +676,7 @@ class MMCIFTable:
 
         Parameters
         ----------
-        table : MMCIFTable to add on to current table
+        table : CIFTable to add on to current table
 
         If a column with a given tag exists, then that column is extended.
         Otherwise, a new column is added to the table.
@@ -715,7 +738,7 @@ class MMCIFTable:
 
         Parameters
         ----------
-        file : MMCIFTable to add on to current table
+        file : CIFTable to add on to current table
         fixed_width : true if fixed width columns should be used
 
         The fixed width column output matches the PDBx/mmCIF style syntax.
@@ -767,3 +790,8 @@ class MMCIFTable:
                     for i in range(0, len(data), n):
                         print(fmt % tuple(data[i:i + n]), file=file)
         print('#', file=file)  # PDBx/mmCIF style
+
+
+# TODO: @deprecated(version='1.1', reason='Use get_cif_tables() instead')
+def get_mmcif_tables(filename, table_names):
+    return get_cif_tables(filename, table_names)

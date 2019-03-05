@@ -922,8 +922,11 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _add_preset_entries(self, session, menu, preset_names, category=None):
         from PyQt5.QtWidgets import QAction
         from chimerax.core.commands import run, quote_if_necessary
-        menu_names = [menu_capitalize(name) for name in preset_names]
-        menu_names.sort()
+        # the menu names may be instances of CustomSortString, so sort them
+        # before applying menu_capitalize(); also 'preset_names' may be a keys view
+        menu_names = list(preset_names)
+        menu_names.sort(key=lambda x: x.lower())
+        menu_names = [menu_capitalize(name) for name in menu_names]
         if category is None:
             cat_string = ""
         else:
@@ -1815,6 +1818,7 @@ class SelZoneDialog(QDialog):
         self.bbox.button(self.bbox.Ok).setEnabled(
             self.less_checkbox.isChecked() or self.more_checkbox.isChecked())
 
+prepositions = set(["for", "a", "the", "as", "in", "on", "at", "or", "and", "to", "into", "of", "from"])
 def menu_capitalize(text):
     capped_words = []
     in_parens = False
@@ -1828,6 +1832,9 @@ def menu_capitalize(text):
                 in_parens = True
                 capped_words.append(word)
             else:
-                capped_words.append(word.capitalize())
+                if word.lower() != word or (capped_words and word in prepositions):
+                    capped_words.append(word)
+                else:
+                    capped_words.append('-'.join([frag.capitalize() for frag in word.split('-')]))
     return " ".join(capped_words)
 

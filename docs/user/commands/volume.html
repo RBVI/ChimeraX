@@ -122,6 +122,8 @@ The <b>volume</b> command has many options, here grouped into categories:
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/ear.png"></a>
+<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
 <br><a href="#vop">Volume Operations (Map Editing)</a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
@@ -1059,20 +1061,32 @@ so that each data value has its own color.
 <br>
 Apply a
 <a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
-target="_blank">Horos 3D preset</a> to the solid display 
-and set <a href="#dimvox"><b>dimTransparentVoxels</b></a> to false.
+target="_blank">Horos 3D preset</a> 
+(with <a href="#dimvox"><b>dimTransparentVoxels</b></a> false) or
+<a href="https://www.mccauslandcenter.sc.edu/mricrogl/home"
+target="_blank">MRIcroGL</a> color lookup table (CLUT)
+(with <a href="#dimvox"><b>dimTransparentVoxels</b></a> true
+and <a href="#transparency"><b>transparency</b></a> 0.05)
+to the solid display.
+<a href="https://horosproject.org/about/" target="_blank">Horos</a> 
+and <a href="https://www.mccauslandcenter.sc.edu/mricrogl/home"
+target="_blank">MRIcroGL</a> 
+are programs for medical image analysis and visualization.
+The Horos 3D presets are listed on
+<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
+target="_blank">github</a>, and the available MRIcroGL CLUTs are
+<b>CT_Bones</b>, <b>CT_Kidneys</b>, <b>CT_Liver</b>, <b>CT_Lungs</b>, 
+<b>CT_Muscles</b>, <b>CT_Skin</b>, <b>CT_Soft_Tissue</b>, <b>CT_Vessels</b>,
+and <b>CT_w_Contrast</b>.
 The <i>preset-name</i> should be enclosed in quotation marks if it
 contains any spaces. 
-<a href="https://horosproject.org/about/" target="_blank">Horos</a> 
-is a program for medical image analysis.
-Implementation of its
-3D presets in ChimeraX is only approximate and may not reproduce 
-the appearance in Horos very well, as there is not a 
-one-to-one correspondence between settings in the two programs,
-and some parts of the definition files may have been ignored.
-These presets are generally intended for
-3D rendering (not <a href="#planes">planes</a>).
 <p>
+Implementation of these presets in ChimeraX is only approximate, as there 
+may not be a direct correspondence between settings in different programs,
+and parts of the definition files may have been ignored.
+The Horos 3D presets are generally intended for
+3D rendering (not <a href="#planes">planes</a>).
+</p><p>
 Besides a preset name, <b>initial</b> can be used to (re)set to the
 <a href="#level">threshold levels</a> and colors chosen automatically 
 for the data when first shown as solid, with
@@ -1084,6 +1098,7 @@ The <b>initial</b> settings may be useful for viewing
 See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
+<img class="icon" border=1 src="../tools/shortcut-icons/ear.png"></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>,
 <a href="../dicom-quickref.html">DICOM Reference</a>
@@ -2288,5 +2303,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2019</address>
+March 2019</address>
 </body></html>

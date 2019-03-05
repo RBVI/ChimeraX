@@ -689,10 +689,6 @@ class SeqCanvas:
         self.consensus = Consensus(self.sv.alignment, self.refresh_header)
         self.conservation = Conservation(self.sv.alignment, self.refresh_header)
         self.headers = [self.consensus, self.conservation]
-        startup_headers = settings.startup_headers
-        use_disp_default = startup_headers == None
-        if use_disp_default:
-            startup_headers = set([Consensus.name, Conservation.name])
         from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
         """
         for seq, defaultOn in registeredHeaders.values():
@@ -706,7 +702,7 @@ class SeqCanvas:
         single_sequence = len(self.alignment.seqs) == 1
         self.display_header = {}
         for header in self.headers:
-            show = self.display_header[header] = header.name in startup_headers \
+            show = self.display_header[header] = header.settings.initially_shown \
                 and not (single_sequence and not header.single_sequence_relevant) \
                 and not isinstance(header, DynamicStructureHeaderSequence)
             if show:
