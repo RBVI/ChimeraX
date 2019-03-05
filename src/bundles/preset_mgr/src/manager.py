@@ -45,7 +45,7 @@ class PresetsManager(StateManager):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return session.preset_mgr
+        return session.presets
 
     def take_snapshot(self, session, flags):
         # Presets are "session enduring"
