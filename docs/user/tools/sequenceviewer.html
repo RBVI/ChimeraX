@@ -82,6 +82,18 @@ to create <a href="#regions">regions</a> and color
 <a href="#association">associated</a> structure to match
 </ul>
 
+<a name="headers"></a>
+<p class="nav">
+[<a href="#top">back to top: Sequence Viewer</a>]
+</p>
+<h3>Headers</h3>
+<p>
+Headers are the rows of information above the sequences: consensus sequence,
+conservation histogram, <i>etc.</i>
+Which headers are shown and how they are calculated can be controlled in the
+<a href="#settings-headers"><b>Headers</b> settings</a>.
+</p>
+
 <a name="regions"></a>
 <p class="nav">
 [<a href="#top">back to top: Sequence Viewer</a>]
@@ -259,7 +271,9 @@ Appearance</h4>
 Headers</h4>
 <ul class="none">
 <li><b>Consensus: capitalization threshold</b> (initial default <b>0.8</b>)
-<li><b>Consensus: ignore gap characters</b> (initial default off)
+<li><b>Consensus: ignore gap characters</b> (<b>off</b>)
+<li><b>Consensus: show at startup</b> (<b>on</b>)
+<li><b>Conservation: show at startup</b> (<b>on</b>)
 </ul>
 The consensus sequence shows the residue type that is most common
 at each position in the alignment, even if it appears in less than 0.5
@@ -336,9 +350,12 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
   for conservation to still be calculated; for example, if the
   <b>gap fraction</b> is 0.25, conservation values will only be calculated
   for columns in which at least three-fourths of the sequences have residues
+  </ul><br>
+Additional settings if the AL2CO
+<a href="#al2comeas"><b>Conservation measure</b></a> is <b>sum of pairs</b>:
+  <ul>
   <li><b>Matrix transformation</b> 
-  - whether/how to modify the matrix used with the AL2CO sum of pairs
-  <a href="#al2comeas"><b>Conservation measure</b></a>
+  - whether/how to modify the matrix
      <ul>
      <li><b>none</b> (initial default)
      <li><b>normalization</b>
@@ -351,8 +368,7 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
   BLOSUM-60, <b>BLOSUM-62</b> (initial default), BLOSUM-65, BLOSUM-70, BLOSUM-75,
   BLOSUM-80, BLOSUM-85, BLOSUM-90, BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity,
   Nucleic, PAM-40, PAM-120, PAM-150, PAM-250, SDM] 
-  - which residue similarity matrix to use with the AL2CO sum of pairs
-  <a href="#al2comeas"><b>Conservation measure</b></a>
+  - which residue similarity matrix to use
   </ul>
   <p>
   Conservation values from AL2CO are in standard deviations from the mean 
@@ -452,5 +468,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2019</address>
+March 2019</address>
 </body></html>
