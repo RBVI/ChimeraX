@@ -42,8 +42,12 @@ which depends on the number of chains in an atomic structure
 like <a href="set.html#silhouettes">silhouettes</a>
 and <a href="cartoon.html#style">cartoon style</a>
 may differ if they have been changed since the structure was opened)
+<li><b>Sticks</b>
+- all atoms as <a href="style.html">sticks</a>,
+<a href="lighting.html">simple lighting</a>, <i>etc.</i> (as for
+<a href="../autostyle.html">automatic styling</a> of structures with 0 chains)
 <li><b>Cartoon</b>
-- <a href="cartoon.html">cartoons</a> plus atomic detail near
+- <a href="cartoon.html">cartoon</a> plus atomic detail near
 residues <a href="atomspec.html#surfcats">classified</a>
 as <b>ligand</b> and <b>ions</b>,
 <a href="lighting.html">simple lighting</a>, <i>etc.</i>
@@ -59,27 +63,41 @@ of structures with 5-249 chains)
 - all atoms as <a href="style.html">spheres</a>,
 ambient-only lighting, <i>etc.</i> (as for <a href="../autostyle.html">automatic
 styling</a> of structures with &ge;250 chains)
-<li><b>Stick</b>
-- all atoms as <a href="style.html">sticks</a>,
-<a href="lighting.html">simple lighting</a>, <i>etc.</i> (as for
-<a href="../autostyle.html">automatic styling</a> of structures with 0 chains)
 </ul>
-The <i>preset-name</i> must be enclosed in quotation marks if it
-includes spaces, but can be partial, with matching prioritized as follows:
-</p>
-<ol>
-<li>Exact full match (capitalization ignored)
-<li>Matches beginning of name
-<li>Matches anywhere in name
-</ol>
 <p>
-Later, when there are multiple categories, a <i>category</i>
-can be specified if needed for disambiguation. 
-So far there is only one category, <b>Initial Styles</b>.
 The current set of presets is based directly on
 <a href="../autostyle.html">automatic styling</a> and is likely to change.
 Render-intensive presets such as <b>Cartoon</b>
 may exhibit slow performance on very large structures.
+</p><p>
+The <i>preset-name</i> must be enclosed in quotation marks if it
+includes spaces, but it can be partial, and capitalization is ignored.
+Later, when there are multiple categories, a <i>category</i>
+can be specified if needed for disambiguation. 
+So far there is only one category, <b>Initial Styles</b>.
+Example commands:
+</p>
+<blockquote>
+<b>preset orig
+<br>
+preset chain
+<br>
+preset init chain</b>
+</blockquote>
+<p>
+Matching is prioritized as follows:
+</p>
+<ol>
+<li>If a single argument (word or quoted string) is given, it is
+matched to preset name, any category.
+<li>If multiple arguments are given:
+ <ol>
+ <li>If the first argument matches a category, 
+the rest is matched to preset name.
+ <li>If a match still has not been found at this point,
+the entire set of arguments is matched to preset name, any category.
+ </ol>
+</ol>
 </p>
 
 <hr>

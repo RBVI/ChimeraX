@@ -251,7 +251,8 @@ The distances (pseudobond lengths) can also be plotted as a histogram with
 Color to use for the
 <a href="../pseudobonds.html">pseudobonds</a>
 when <a href="#makePseudobonds"><b>makePseudobonds</b></a> is <b>true</b>
-(default <b>yellow</b>);
+(default <b>forest green</b> for <b>contacts</b>, 
+<b>tomato</b> for <b>clashes</b>);
 can be changed later with <a href="color.html"><b>color</b></a>.
 </blockquote>
 <blockquote>
@@ -259,14 +260,15 @@ can be changed later with <a href="color.html"><b>color</b></a>.
 <b>radius</b> &nbsp;<i>r</i>
 <br>
 Radius in &Aring; to use for the <a href="../pseudobonds.html">pseudobonds</a>
-(default <b>0.075</b>);
+(default <b>0.075</b> for <b>contacts</b>, <b>0.15</b> for <b>clashes</b>);
 can be changed later with <a href="size.html"><b>size</b></a>.
 </blockquote>
 <blockquote>
 <a name="dashes"></a>
 <b>dashes</b> &nbsp;<i>N</i>
 <br>Number of dashes to use for <a href="../pseudobonds.html">pseudobonds</a>
-depicting interactions (default <b>6</b>).
+depicting interactions (default <b>6</b> for <b>contacts</b>,
+<b>4</b> for <b>clashes</b>).
 Only whole numbers are accepted, with 0
 indicating solid sticks. Currently, odd numbers are rounded down
 to give an even number of dashes. The number of dashes
@@ -425,5 +427,5 @@ but only the initial and final summaries are reported in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2019</address>
+March 2019</address>
 </body></html>

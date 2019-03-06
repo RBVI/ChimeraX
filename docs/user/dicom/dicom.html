@@ -28,20 +28,25 @@ class="clRight" title="User Guide Index"/></a>
 <a href="https://www.dicomstandard.org/current/"
 target="_blank">DICOM</a> (Digital Imaging and Communications in Medicine)
 refers to a broad and complex set of standards for medical images and 
-related information.
-This input format is indicated by the filename suffix <b>.dcm</b>
-or the <b>format dicom</b> option in the
-<a href="../commands/open.html"><b>open</b></a> command.
+related information. ChimeraX can read many but not all DICOM files. 
+Errors may arise from trying to read types of data 
+that are not yet handled properly, such as screen captures, 
+non-axial series, and series encoded with 16-bit lossless jpeg.
+</p><p>
 See also:
-<a href="../dicom-quickref.html">DICOM Reference</a>,
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
 <a href="../tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
 <a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 <a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
 </p><p>
-All of the DICOM files in a directory and its subdirectories 
-can be opened in a single operation if the format is specified explicitly:
+In ChimeraX, DICOM format is indicated by the filename suffix <b>.dcm</b>
+or the <b>format dicom</b> option in the
+<a href="../commands/open.html"><b>open</b></a> command.
 </p>
+<ul>
+<li>All of the DICOM files in a directory and its subdirectories 
+can be opened in a single operation if the format is specified:
 <blockquote>
 Menu: <b>File... Open DICOM Folder</b> (dialog shows Format: DICOM image), 
 browse to location, choose directory, click <b>Choose</b>
@@ -51,13 +56,11 @@ Command: <a href="../commands/open.html#local"><b>open</b></a>
 &nbsp;<i>directory-pathname</i>&nbsp; <b>format dicom</b>
 </blockquote>
 <p>
-...where <i>directory-pathname</i> may contain * as wildcard to lessen
-typing, and should be enclosed in quotation marks if it includes spaces.
-Each image stack that is found will be opened as a separate model.
-</p><p>
-Alternatively, multiple DICOM files comprising a single 3D image stack
+...where <i>directory-pathname</i> may contain * as wildcard
+and should be enclosed in quotation marks if it includes spaces.
+Each image stack found will be opened as a separate model.
+<li>Alternatively, multiple DICOM files comprising a single 3D image stack
 can be opened as follows:
-</p>
 <blockquote>
 Menu: <b>File... Open</b>, browse to location, click first file,
 Shift-click last file to select the entire set, click <b>Open</b>
@@ -66,10 +69,11 @@ Shift-click last file to select the entire set, click <b>Open</b>
 Command: <a href="../commands/open.html#local"><b>open</b></a>
 &nbsp;<i>pathname-glob</i>
 </blockquote>
+...where <i>pathname-glob</i> specifies the name and location of 
+multiple files, typically using * as wildcard 
+and enclosed in quotation marks if it contains spaces. 
+</ul>
 <p>
-...where <i>pathname-glob</i> specifies the name and location of multiple files,
-typically using * as wildcard and enclosed in quotes if it contains spaces. 
-</p><p>
 The <a href="../commands/open.html"><b>open</b></a> command
 <a href="../commands/open.html#verbose"><b>verbose</b></a> option 
 shows detailed debugging information for DICOM input.
@@ -132,5 +136,5 @@ true</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2019</address>
+March 2019</address>
 </body></html>
