@@ -28,7 +28,7 @@ def read_pseudobond_file(session, stream, file_name, *args,
         if len(line.strip()) == 0:
             continue
         
-        if line.lstrip().startswith('#'):
+        if line.lstrip().startswith(';'):
             keyval = line.lstrip()[1:].split('=')
             if len(keyval) == 2:
                 k,v = keyval
@@ -70,7 +70,7 @@ def write_pseudobond_file(session, path, models=None, selected_only=False):
                 if selected_only and not pb.selected:
                     continue
                 if pb.radius != radius:
-                    lines.append('# radius = %.5g' % pb.radius)
+                    lines.append('; radius = %.5g' % pb.radius)
                     radius = pb.radius
                 a1, a2 = pb.atoms
                 color = '#%02x%02x%02x%02x' % tuple(pb.color)
