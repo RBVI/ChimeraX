@@ -75,6 +75,7 @@ def _polymer_selector(models, results, protein):
     for m in models:
         if isinstance(m, Structure):
             pas = m.residues.existing_principal_atoms
+            pas = pas.filter(pas.structure_categories != "ions")
             if protein:
                 residues = pas.residues.filter(pas.names=="CA")
             else:

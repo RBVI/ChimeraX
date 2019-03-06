@@ -31,7 +31,7 @@ defaults = {
     "intra_mol": True,
     "intra_res": False,
     "other_atom_color": None,
-    "clash_pb_color": BuiltinColors["tomato"],
+    "clash_pb_color": BuiltinColors["medium orchid"],
     "contact_pb_color": BuiltinColors["forest green"],
     "clash_pb_radius": 2 * AtomicStructure.default_hbond_radius,
     "contact_pb_radius": AtomicStructure.default_hbond_radius,
