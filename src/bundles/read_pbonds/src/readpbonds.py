@@ -27,7 +27,8 @@ def read_pseudobond_file(session, stream, file_name, *args,
     for i, line in enumerate(lines):
         if len(line.strip()) == 0 or line.lstrip().startswith('#'):
             continue
-        aspec1, aspec2 = line.split()[:2]
+        fields = line.split()
+        aspec1, aspec2 = fields[:2]
         a1, used, rest = AtomsArg.parse(aspec1, session)
         a2, used, rest = AtomsArg.parse(aspec2, session)
         for a, aspec in ((a1,aspec1), (a2,aspec2)):
@@ -35,7 +36,12 @@ def read_pseudobond_file(session, stream, file_name, *args,
                 raise SyntaxError('Line %d, got %d atoms for spec "%s", require exactly 1'
                                   % (i, len(a), aspec))
         b = g.new_pseudobond(a1[0], a2[0])
-        b.color = color
+        if len(fields) >= 3:
+            from chimerax.core.commands import ColorArg
+            c, used, rest = ColorArg.parse(fields[2], session)
+            b.color = c.uint8x4()
+        else:
+            b.color = color
         b.radius = radius
         b.halfbond = False
 
@@ -54,7 +60,8 @@ def write_pseudobond_file(session, path, models=None, selected_only=False):
                 if selected_only and not pb.selected:
                     continue
                 a1, a2 = pb.atoms
-                lines.append('%s\t%s' % (a1.atomspec, a2.atomspec))
+                color = '#%02x%02x%02x%02x' % tuple(pb.color)
+                lines.append('%s\t%s\t%s' % (a1.atomspec, a2.atomspec, color))
 
     f = open(path, 'w')
     f.write('\n'.join(lines))
