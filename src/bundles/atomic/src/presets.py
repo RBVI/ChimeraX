@@ -21,13 +21,16 @@ def register_presets(session):
         CustomSortString('Space-Filling (single color)', sort_val=4): 'large polymer'
     }
     def callback(name, session=session):
-        from . import AtomicStructure, Atom
+        from . import AtomicStructure, Atom, MolecularSurface
         structures = [m for m in session.models if isinstance(m, AtomicStructure)]
         kw = {'set_lighting': len(structures) < 2}
         if name in name_mapping:
             kw['style'] = name_mapping[name]
         from .nucleotides.cmd import nucleotides
         nucleotides(session, 'atoms')
+        surfaces = [cm for s in structures for cm in s.child_models() if isinstance(cm, MolecularSurface)]
+        for srf in surfaces:
+            srf.display = False
         for s in structures:
             atoms = s.atoms
             atoms.displays = True
