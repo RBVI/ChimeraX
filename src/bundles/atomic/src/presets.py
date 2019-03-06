@@ -15,7 +15,7 @@ from chimerax.core.utils import CustomSortString
 
 def register_presets(session):
     name_mapping = {
-        CustomSortString('Stick', sort_val=1): 'non-polymer',
+        CustomSortString('Sticks', sort_val=1): 'non-polymer',
         CustomSortString('Cartoon', sort_val=2): 'small polymer',
         CustomSortString('Space-Filling (chain colors)', sort_val=3): 'medium polymer',
         CustomSortString('Space-Filling (single color)', sort_val=4): 'large polymer'
