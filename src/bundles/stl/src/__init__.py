@@ -13,7 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _STLAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
@@ -34,6 +34,6 @@ class _MyAPI(BundleAPI):
     def save_file(session, path, models=None):
         # 'save_file' is called by session code to save a file
         from . import stl
-        return stl.write_stl(session, path, models)
+        stl.write_stl(session, path, models)
 
-bundle_api = _MyAPI()
+bundle_api = _STLAPI()

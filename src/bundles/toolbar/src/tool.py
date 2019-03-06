@@ -323,16 +323,16 @@ _Toolbars = {
                 ("shortcut:s1", "step1.png", "Step 1", "Show map at step 1"),
                 ("shortcut:s2", "step2.png", "Step 2", "Show map at step 2")],
             ("Fitting", False): [
-                ("shortcut:fT", "fitmap.png", "Fit in map", "Fit map in map"),
+                ("shortcut:fT", "fitmap.png", "Fit in map", "Fit map in map")],
+            ("Rendering", False): [
                 ("shortcut:sb", "diffmap.png", "Compute<br/>difference", "Subtract map from map"),
-                ("shortcut:gf", "smooth.png", "Smooth", "Smooth map")],
-            ("Planes", False): [
+                ("shortcut:gf", "smooth.png", "Smooth", "Smooth map"),
                 ("shortcut:pl", "plane.png", "One<br/>plane", "Show one plane"),
                 ("shortcut:o3", "orthoplanes.png", "Orthogonal<br/>planes", "Show 3 orthogonal planes"),
-                ("shortcut:pa", "fullvolume.png", "Full<br/>volume", "Show all planes"),
+                ("shortcut:pa", "fullvolume.png", "Full<br/>volume", "Show all planes")],
+            ("Solid", False): [
                 ("shortcut:zs", "xyzslice.png", "xyz<br/>slices", "Volume xyz slices"),
-                ("shortcut:ps", "perpslice.png", "Perpendicular<br/>slices", "Volume perpendicular slices")],
-            ("Misc", False): [
+                ("shortcut:ps", "perpslice.png", "Perpendicular<br/>slices", "Volume perpendicular slices"),
                 ("shortcut:aw", "airways.png", "Airways<br/>preset", "Airways preset"),
                 ("shortcut:dc", "initialcurve.png", "Default<br/>curve", "Default volume curve")],
         }
@@ -356,20 +356,20 @@ _Toolbars = {
                 ("mouse:label", None, "Toggle atom or<br/>cartoon label", None),
                 ("mouse:move label", None, "Move 2D<br/>label", "Reposition 2D label")],
             ("Misc", False): [
-                ("mouse:pivot", None, "Set COFR", "Set center of rotation at atom"),
-                ("mouse:bond rotation", None, "Adjust<br/>torsion", "Adject torsion angle"),
+                ("mouse:pivot", None, "Set pivot", "Set center of rotation at atom"),
+                ("mouse:bond rotation", None, "Adjust<br/>torsion", "Adjust torsion angle"),
                 ("mouse:distance", None, "Toggle<br/>distance", "Toggle distance monitor between two atoms"),
-                ("mouse:swappaa", None, "Mutate residue", "Mutate and label residue")],
+                ("mouse:swapaa", None, "Mutate<br/>residue", "Mutate and label residue")],
             ("Dynamics", False): [
-                ("mouse:tug", None, "Tug atom", "Drag atom while applying dynamics"),
+                ("mouse:tug", None, "Tug<br/>atom", "Drag atom while applying dynamics"),
                 ("mouse:minimize", None, "Jiggle<br/>residue", "Jiggle residue and its neighbors")],
             ("Volumes", False): [
                 ("mouse:place marker", None, "Place<br/>marker", None),
-                ("mouse:contour level", None, "Adjust<br/>threshold", "Adjust volume data threshold level"),
-                ("mouse:windowing", None, "Adjust<br/>collectively", "Adjust volume data thresholds collectively"),
-                ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
+                ("mouse:contour level", None, "Contour<br/>level", "Adjust volume data threshold level"),
+                ("mouse:windowing", None, "Windowing", "Adjust volume data thresholds collectively"),
+                ("mouse:move planes", None, "Move<br/>planes", "Move plane or slab along its axis to show a different section"),
                 ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
-                ("mouse:play map series", None, "Play<br/>series", "Play volume series")],
+                ("mouse:play map series", None, "Play<br/>series", "Play map series")],
         }
     ),
 }
