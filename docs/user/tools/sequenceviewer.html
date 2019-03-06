@@ -354,6 +354,11 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
 Additional settings if the AL2CO
 <a href="#al2comeas"><b>Conservation measure</b></a> is <b>sum of pairs</b>:
   <ul>
+  <li><b>Matrix</b> [choices: BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45, 
+  BLOSUM-50, BLOSUM-55, BLOSUM-60, <b>BLOSUM-62</b> (initial default), 
+  BLOSUM-65, BLOSUM-70, BLOSUM-75, BLOSUM-80, BLOSUM-85, BLOSUM-90, 
+  BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity, Nucleic, PAM-40, PAM-120, 
+  PAM-150, PAM-250, SDM] - which residue similarity matrix to use
   <li><b>Matrix transformation</b> 
   - whether/how to modify the matrix
      <ul>
@@ -363,12 +368,6 @@ Additional settings if the AL2CO
      <li><b>adjustment</b>
      &nbsp;&nbsp;&nbsp; <i>S''<sub>ab</sub></i> = 2<i>S<sub>ab</sub></i> &ndash; &frac12;(<i>S<sub>aa</sub></i> + <i>S<sub>bb</sub></i>)
      </ul>
-  <li><b>Sum-of-pairs matrix</b> [choices:
-  BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45, BLOSUM-50, BLOSUM-55,
-  BLOSUM-60, <b>BLOSUM-62</b> (initial default), BLOSUM-65, BLOSUM-70, BLOSUM-75,
-  BLOSUM-80, BLOSUM-85, BLOSUM-90, BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity,
-  Nucleic, PAM-40, PAM-120, PAM-150, PAM-250, SDM] 
-  - which residue similarity matrix to use
   </ul>
   <p>
   Conservation values from AL2CO are in standard deviations from the mean 
