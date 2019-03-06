@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def read_pseudobond_file(session, stream, file_name, *args, radius = 0.5, color = (255,255,0,255), **kw):
+def read_pseudobond_file(session, stream, file_name, *args,
+                         radius = 0.5, color = (255,255,0,255), **kw):
     lines = stream.readlines()
     stream.close()
 
@@ -40,7 +41,23 @@ def read_pseudobond_file(session, stream, file_name, *args, radius = 0.5, color 
 
     return ret_models, 'Opened Pseudobonds %s, %d bonds' % (file_name, len(lines))
 
-def register_pbonds_format():
-    from .. import io, toolshed
-    io.register_format("Pseudobonds", toolshed.GENERIC3D, (".pb",),
-                       ("pseudobonds",), open_func = read_pseudobond_file)
+def write_pseudobond_file(session, path, models=None, selected_only=False):
+    if models is None:
+        from chimerax import atomic
+        models = atomic.all_pseudobond_groups(session)
+
+    lines = []
+    from chimerax.atomic import PseudobondGroup
+    for pbg in models:
+        if isinstance(pbg, PseudobondGroup):
+            for pb in pbg.pseudobonds:
+                if selected_only and not pb.selected:
+                    continue
+                a1, a2 = pb.atoms
+                lines.append('%s\t%s' % (a1.atomspec, a2.atomspec))
+
+    f = open(path, 'w')
+    f.write('\n'.join(lines))
+    f.close()
+
+    session.logger.info('Saved %d pseudobonds to file %s' % (len(lines), path))

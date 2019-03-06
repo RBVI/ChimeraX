@@ -24,6 +24,7 @@
     
     <ChimeraXClassifier>DataFormat :: Pseudobonds :: pseudobonds :: Generic 3D objects :: .pb :: :: :: :: :: Inter-atomic pseudobonds :: utf-8</ChimeraXClassifier>
     <ChimeraXClassifier>Open :: Pseudobonds :: ::</ChimeraXClassifier>
+    <ChimeraXClassifier>Save :: Pseudobonds :: Pseudobonds :: :: models:Models,selected_only:Bool</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
