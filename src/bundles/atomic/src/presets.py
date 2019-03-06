@@ -29,8 +29,8 @@ def register_presets(session):
         from .nucleotides.cmd import nucleotides
         nucleotides(session, 'atoms')
         surfaces = [cm for s in structures for cm in s.child_models() if isinstance(cm, MolecularSurface)]
-        if surfaces:
-            session.models.close(surfaces)
+        for srf in surfaces:
+            srf.display = False
         for s in structures:
             atoms = s.atoms
             atoms.displays = True
