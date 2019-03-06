@@ -76,7 +76,7 @@ class Conservation(DynamicHeaderSequence):
         self.al2co_sop_options_widget, al2co_sop_options = al2co_options.add_option_group(
             group_label="Sum-of-pairs parameters")
         al2co_sop_option_data = [
-            ("sum-of-pairs matrix", 'al2co_matrix', Al2coMatrixOption, {},
+            ("matrix", 'al2co_matrix', Al2coMatrixOption, {},
                 "Similarity matrix used by sum-of-pairs measure"),
             ("matrix transformation", 'al2co_transform', Al2coTransformOption, {},
                 "Transform applied to similarity matrix as follows:\n"

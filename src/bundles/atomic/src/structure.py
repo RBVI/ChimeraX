@@ -2227,7 +2227,7 @@ class AtomicStructure(Structure):
     """
 
     from chimerax.core.colors import BuiltinColors
-    default_hbond_color = BuiltinColors["dark cyan"]
+    default_hbond_color = BuiltinColors["deep sky blue"]
     default_hbond_radius = 0.075
     default_hbond_dashes = 6
 
