@@ -529,7 +529,9 @@ class ImageRender:
   def _remove_planes(self):
     self._remove_axis_planes()
     self._remove_view_planes()
-    self._drawing.redraw_needed()
+    d = self._drawing
+    if d:
+      d.redraw_needed()
 
   def _remove_axis_planes(self):
     pd = self._planes_drawing
