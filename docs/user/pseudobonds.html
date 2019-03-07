@@ -92,18 +92,25 @@ Blank lines and comment lines starting with a semicolon (;) may also be included
 with radius given in a special comment line as shown below.
 The radius applies to pseudobonds defined on subsequent lines
 until another radius line is encountered. 
-Example file:
+Example:
 </p>
 <pre>
-; radius = 0.2
-#1/a:1@ca #3/a:85@ca dodgerblue
-/b:30@o /c:24@o #55ff88
+; example pseudobond definitions
+/c:10@ca /c:14@ca dodgerblue
+; radius = 0.8
+#1/a:1@ca #3/a:85@ca
+/b:30@o /c:24@o #ff4500
 ; radius = 0.4
 /D:31@CA    /B:71@CA    20,70,70
 </pre>
 <p>
 A pseudobond is created for each line that specifies exactly two atoms.
-If radii and/or colors are not specified, defaults are used.
+Defaults: <a href="commands/color.html#simple">color</a> <b>yellow</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=yellow width="10px" title="yellow"></td></tr></table>,
+<a href="commands/size.html">radius</a> <b>0.5</b> &Aring;,
+<a href="commands/style.html">dashes</a> <b>8</b>.
 </p>
 
 <hr>

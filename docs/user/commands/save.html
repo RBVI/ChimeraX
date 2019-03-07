@@ -142,6 +142,12 @@ The command <b>save formats</b> lists the possible output formats in the
 atomic coordinates,<br>PDB<br>
 (see <a href="#pdb"><b>Save PDB</b></a>)</td>
 </tr><tr>
+<td align="center"><b>pseudobonds</b></td>
+<td align="center">.pb</td>
+<td align="center">list of atom pairs to connect with 
+<a href="../pseudobonds.html">pseudobonds</a><br>
+(see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
+</tr><tr>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
 <td align="center">
@@ -167,10 +173,6 @@ coordinates,<br>DCD (binary)</td>
 <td align="center">.cmm</td>
 <td align="center"><a href="../markers.html">markers and links</a>
 <br>(analogous to atoms and bonds)</td>
-</tr><tr>
-<td align="center"><b>pseudobonds</b></td>
-<td align="center">.pb</td>
-<td align="center"><a href="../pseudobonds.html">pseudobonds</a>
 </td>
 </tr><tr>
 <td align="center"><b>gltf</b></td>
@@ -514,9 +516,14 @@ model 1 results in them being matched or docked in the same way when the
 original model 1 file and the new model 2 file (saved relative to 1)
 are opened.
 </blockquote>
+<a name="selectedOnly"></a>
 <blockquote>
 <b>selectedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>Whether to include only the <a href="../selection.html">selected</a> atoms.
+<br>
+Whether to include only the <a href="../selection.html">selected</a> atoms
+when saving a PDB file, or only the selected
+<a href="../pseudobonds.html">pseudobonds</a> when saving a 
+<a href="../pseudobonds.html#pbfiles">pseudobond file</a>.
 </blockquote>
 <blockquote>
 <b>displayedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
