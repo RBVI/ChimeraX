@@ -28,7 +28,7 @@ def read_pseudobond_file(session, stream, file_name, *args,
         if len(line.strip()) == 0:
             continue
         
-        if line.lstrip().startswith('#'):
+        if line.lstrip().startswith(';'):
             keyval = line.lstrip()[1:].split('=')
             if len(keyval) == 2:
                 k,v = keyval
@@ -63,6 +63,7 @@ def write_pseudobond_file(session, path, models=None, selected_only=False):
 
     lines = []
     radius = None
+    bcount = 0
     from chimerax.atomic import PseudobondGroup
     for pbg in models:
         if isinstance(pbg, PseudobondGroup):
@@ -70,14 +71,15 @@ def write_pseudobond_file(session, path, models=None, selected_only=False):
                 if selected_only and not pb.selected:
                     continue
                 if pb.radius != radius:
-                    lines.append('# radius = %.5g' % pb.radius)
+                    lines.append('; radius = %.5g' % pb.radius)
                     radius = pb.radius
                 a1, a2 = pb.atoms
                 color = '#%02x%02x%02x%02x' % tuple(pb.color)
                 lines.append('%s\t%s\t%s' % (a1.atomspec, a2.atomspec, color))
+                bcount += 1
 
     f = open(path, 'w')
     f.write('\n'.join(lines))
     f.close()
 
-    session.logger.info('Saved %d pseudobonds to file %s' % (len(lines), path))
+    session.logger.info('Saved %d pseudobonds to file %s' % (bcount, path))

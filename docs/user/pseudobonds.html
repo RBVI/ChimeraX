@@ -36,7 +36,8 @@ See also:
 <a href="commands/hbonds.html"><b>hbonds</b></a>,
 <a href="commands/clashes.html"><b>clashes/contacts</b></a>,
 <a href="commands/distance.html"><b>distance</b></a>,
-<a href="commands/struts.html"><b>struts</b></a>
+<a href="commands/struts.html"><b>struts</b></a>,
+<a href="markers.html">markers and links</a>
 </p><p>
 <a name="floaters"></a>
 A pseudobond is only shown when both of its endpoint atoms are shown.
@@ -67,9 +68,45 @@ in commands by their endpoint atoms, pseudobond model number, or
 <a href="commands/atomspec.html#builtin">built-in classifications</a>:
 <b>sel</b> (when <a href="selection.html">selected</a>),
 <b>pbonds</b>, <b>hbonds</b>.
+</p><p>
+Pseudobonds can be saved to and read from <a href="#pbfiles">files</a>.
+</p>
+
+<a name="pbfiles"></a>
+<p class="nav">
+[<a href="#top">back to top: Pseudobonds</a>]
+</p>
+<h3>Pseudobond Files</h3>
+<p>
+Pseudobond file format (.pb) is a simple plain-text format 
+that lists pairs of atoms to connect with <a href="#top">pseudobonds</a>.
+Pseudobond files can be opened and saved using the <b>File</b> menu
+or the commands <a href="commands/open.html"><b>open</b></a> and
+<a href="commands/save.html"><b>save</b></a>, respectively.
+</p><p>
+In this format, the columns cannot contain spaces because they are separated
+by spaces. The first two columns (required) are
+<a href="commands/atomspec.html#hierarchy">atom specifiers</a>, and the third 
+column (optional) is a <a href="commands/colornames.html">color specifier</a>.
+Blank lines and comment lines starting with a semicolon (;) may also be included,
+with radius given in a special comment line as shown below.
+The radius applies to pseudobonds defined on subsequent lines
+until another radius line is encountered. 
+Example file:
+</p>
+<pre>
+; radius = 0.2
+#1/a:1@ca #3/a:85@ca dodgerblue
+/b:30@o /c:24@o #55ff88
+; radius = 0.4
+/D:31@CA    /B:71@CA    20,70,70
+</pre>
+<p>
+A pseudobond is created for each line that specifies exactly two atoms.
+If radii and/or colors are not specified, defaults are used.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2019</address>
+March 2019</address>
 </body></html>

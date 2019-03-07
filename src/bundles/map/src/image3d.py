@@ -963,8 +963,8 @@ def _xyz_to_texcoord(ijk_region, ijk_to_xyz):
   ei,ej,ek = [i1-i0+1 for i0,i1 in zip(ijk_min, ijk_max)]
   i0,j0,k0 = ijk_min
   from chimerax.core.geometry.place import scale, translation
-  # TODO: Slightly wrong. N = ei not N = ei+1.  I think scaling of (ei-1)/ei needed, followed by 1/ei.
-  v_to_tc = scale((1/(ei+1), 1/(ej+1), 1/(ek+1))) * translation((0.5-i0,0.5-j0,0.5-k0)) * ijk_to_xyz.inverse()
+  # Map i0 to texture coord 0.5/ei and i1 to (ei-0.5)/ei, the texel centers.
+  v_to_tc = scale((1/ei, 1/ej, 1/ek)) * translation((0.5-i0,0.5-j0,0.5-k0)) * ijk_to_xyz.inverse()
   return v_to_tc
 
 # ---------------------------------------------------------------------------
