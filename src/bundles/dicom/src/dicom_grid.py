@@ -52,8 +52,6 @@ def dicom_grids_from_series(series):
     else:
       # Create single channel, single time series.
       g = DicomGrid(d)
-      if s.attributes.get('BitsAllocated') == 1:
-        g.binary = True		# Use initial thresholds for binary segmentation
       rs = getattr(s, 'refers_to_series', None)
       if rs:
         # If this associated with another series (e.g. is a segmentation), make
@@ -92,7 +90,6 @@ class DicomGrid(GridData):
                                'colormap_on_gpu': True,
                                'full_region_on_gpu': True}
   must_read_full_xy_planes = True	# Hint to optimize caching performance
-  initial_solid_thresholds = [(-1000,0.0),(300,0.9),(3000,1.0)]
 
   def __init__(self, d, time = None, channel = None):
 
@@ -106,6 +103,12 @@ class DicomGrid(GridData):
     self.multichannel = (channel is not None)
 
     self.initial_plane_display = True
+    s = d.dicom_series
+    if s.attributes.get('BitsAllocated') == 1 or s.dicom_class == 'Segmentation Storage':
+      self.binary = True		# Use initial thresholds for binary segmentation
+      self.initial_solid_thresholds = [(0.5,0),(1.5,1)]
+    else:
+      self.initial_solid_thresholds = [(-1000,0.0),(300,0.9),(3000,1.0)]
     self.ignore_pad_value = d.pad_value
 
   # ---------------------------------------------------------------------------

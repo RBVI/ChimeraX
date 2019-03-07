@@ -63,6 +63,7 @@ def write_pseudobond_file(session, path, models=None, selected_only=False):
 
     lines = []
     radius = None
+    bcount = 0
     from chimerax.atomic import PseudobondGroup
     for pbg in models:
         if isinstance(pbg, PseudobondGroup):
@@ -75,9 +76,10 @@ def write_pseudobond_file(session, path, models=None, selected_only=False):
                 a1, a2 = pb.atoms
                 color = '#%02x%02x%02x%02x' % tuple(pb.color)
                 lines.append('%s\t%s\t%s' % (a1.atomspec, a2.atomspec, color))
+                bcount += 1
 
     f = open(path, 'w')
     f.write('\n'.join(lines))
     f.close()
 
-    session.logger.info('Saved %d pseudobonds to file %s' % (len(lines), path))
+    session.logger.info('Saved %d pseudobonds to file %s' % (bcount, path))

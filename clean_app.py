@@ -5,16 +5,21 @@
 #
 import sys
 import os
+import shutil
 
 
 def clean_app(chimerax_root):
-    """Clean application
-    
-    remove unwanted __pycache__ directories
-    remove script's whose interpreter is not a system binary
-    (eg., Python scripts with paths to "nonexisting" python)
-    """
-    import shutil
+    """Clean application tree for distribution"""
+    remove_pycache(chimerax_root)
+    # TODO: figure this out
+    #   removing scripts makes multiple "make installs" without
+    #   a "make clean" inbetween fail and removes scripts that
+    #   would be needed for developers to make documentation
+    # remove_scripts(chimerax_root)
+
+
+def remove_pycache(chimerax_root):
+    """remove unwanted __pycache__ directories"""
     # cleanup -- remove __pycache__ directories
     cache_dirs = []
     for root, dirs, files in os.walk(chimerax_root):
@@ -23,6 +28,11 @@ def clean_app(chimerax_root):
     for d in cache_dirs:
         shutil.rmtree(d)
 
+
+def remove_scripts(chimerax_root):
+    """remove script's whose interpreter is not a system binary
+    (eg., Python scripts with paths to "nonexisting" python)
+    """
     # cleanup -- remove python shell scripts
     if sys.platform.startswith('win'):
         shutil.rmtree(f'{chimerax_root}/bin/Scripts')
