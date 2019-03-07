@@ -68,6 +68,7 @@ class ImageRender:
         bi = self._blend_image
         if bi and self is bi.master_image:
           bi.set_region(region)
+          self._drawing.redraw_needed()	# Force redraw since BlendImage is not in draw hierarchy.
 
   # ---------------------------------------------------------------------------
   #
