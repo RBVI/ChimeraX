@@ -84,20 +84,22 @@ Pseudobond files can be opened and saved using the <b>File</b> menu
 or the commands <a href="commands/open.html"><b>open</b></a> and
 <a href="commands/save.html"><b>save</b></a>, respectively.
 </p><p>
-The first two columns are 
-<a href="commands/atomspec.html#hierarchy">atom specifiers</a>
-and the third column is an optional <a href="commands/colornames.html">color 
-specifier</a> with spaces stripped. 
-Blank lines and comment lines starting with # may also be included,
+In this format, the columns cannot contain spaces because they are separated
+by spaces. The first two columns (required) are
+<a href="commands/atomspec.html#hierarchy">atom specifiers</a>, and the third 
+column (optional) is a <a href="commands/colornames.html">color specifier</a>.
+Blank lines and comment lines starting with a semicolon (;) may also be included,
 with radius given in a special comment line as shown below.
 The radius applies to pseudobonds defined on subsequent lines
 until another radius line is encountered. 
 Example file:
 </p>
 <pre>
-# radius = 0.1
+; radius = 0.2
 #1/a:1@ca #3/a:85@ca dodgerblue
-/a:32@n /b:147@o #55ff88
+/b:30@o /c:24@o #55ff88
+; radius = 0.4
+/D:31@CA    /B:71@CA    20,70,70
 </pre>
 <p>
 A pseudobond is created for each line that specifies exactly two atoms.
