@@ -68,6 +68,7 @@ class ImageRender:
         bi = self._blend_image
         if bi and self is bi.master_image:
           bi.set_region(region)
+          self._drawing.redraw_needed()	# Force redraw since BlendImage is not in draw hierarchy.
 
   # ---------------------------------------------------------------------------
   #
@@ -529,7 +530,9 @@ class ImageRender:
   def _remove_planes(self):
     self._remove_axis_planes()
     self._remove_view_planes()
-    self._drawing.redraw_needed()
+    d = self._drawing
+    if d:
+      d.redraw_needed()
 
   def _remove_axis_planes(self):
     pd = self._planes_drawing
@@ -981,13 +984,8 @@ class BlendedImage(ImageRender):
 
     self.images = images
 
-    ir = self.images[0]
-    cmode = 'rgb8' if ir._opaque else 'rgba8'
     ro = self._rendering_options
-    ro.color_mode = cmode
-    self._c_mode = cmode
     ro.colormap_on_gpu = False
-    self._mod_rgba = (1,1,1,1)
 
     for ir in images:
       ir._remove_planes()	# Free textures and opengl buffers
@@ -1043,6 +1041,10 @@ class BlendedImage(ImageRender):
       from numpy import empty, uint8
       self._rgba8_array = a = empty((h,w,4), uint8)
     return a
+
+  def _auto_color_mode(self):
+    return 'rgba8'
+    
 
 # ---------------------------------------------------------------------------
 #

@@ -1818,7 +1818,7 @@ class SelZoneDialog(QDialog):
         self.bbox.button(self.bbox.Ok).setEnabled(
             self.less_checkbox.isChecked() or self.more_checkbox.isChecked())
 
-prepositions = set(["for", "a", "the", "as", "in", "on", "at", "or", "and", "to", "into", "of", "from"])
+prepositions = set(["a", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "the", "to"])
 def menu_capitalize(text):
     capped_words = []
     in_parens = False
