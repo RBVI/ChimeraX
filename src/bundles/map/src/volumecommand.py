@@ -626,7 +626,7 @@ def volume_settings_text(v):
              'region = %d %d %d' % tuple(v.region[0]) + ' to %d %d %d' % tuple(v.region[1]),
              'step = %d %d %d' % tuple(v.region[2]),
              'surface levels = ' + ','.join('%.5g' % s.level for s in v.surfaces),
-             'image levels = ' + ' '.join('%.5g,%.5g' % sl for sl in v.solid_levels),
+             'image levels = ' + ' '.join('%.5g,%.5g' % tuple(sl) for sl in v.solid_levels),
              ]
     ro = v.rendering_options
     from .volume import default_settings
