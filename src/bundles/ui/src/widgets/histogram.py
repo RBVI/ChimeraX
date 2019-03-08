@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from PyQt5.QtWidgets import QWidget, QLabel, QStackedWidget, QGraphicsView, QGraphicsScene, QFrame
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLineEdit
+from PyQt5.QtCore import QSize, Qt, QTimer
 
 class MarkedHistogram(QWidget):
     """Histogram with color-indication markers
@@ -128,7 +129,19 @@ class MarkedHistogram(QWidget):
                 markers_kw[opt_name[8:]] = kw.pop(opt_name)
         super().__init__(*args, **kw)
 
+        # initialize variables
         self._layout = layout
+        self.status_line = status_line
+        self._show_marker_help = show_marker_help
+        self._active_markers = None
+        self._markers = []
+        self._markable = False
+        self._drag_marker = None
+        self._scaling = scaling
+        self._select_callback = select_callback
+        if select_callback:
+            self._prev_markers = None
+            self._prev_marker = None
 
         # Create the add/delete marker help
         if show_marker_help and layout != 'below':
@@ -136,7 +149,13 @@ class MarkedHistogram(QWidget):
         else:
             self.marker_help = None
 
+        overall_layout = QVBoxLayout()
+        self.setLayout(overall_layout)
+
         # Create the data area
+        class HistFrame(QFrame):
+            def sizeHint(self):
+                return QSize(300, 64)
         data_frame = QFrame()
         data_frame.setLineWidth(1)
         data_frame.setMidLineWidth(2)
@@ -144,124 +163,100 @@ class MarkedHistogram(QWidget):
         data_frame.setContentsMargins(0,0,0,0)
         data_frame_layout = QHBoxLayout()
         data_frame.setLayout(data_frame_layout)
-        self.data_widgets = QStackedWidget()
-        data_frame_layout.addWidget(self.data_widgets)
+        self._data_widgets = QStackedWidget()
+        data_frame_layout.addWidget(self._data_widgets)
 
         # Crate the histogram widget
-        self.hist_scene = QGraphicsScene()
-        self.hist_view = QGraphicsView(self.hist_scene)
-        self.data_widgets.addWidget(self.hist_view)
-
-        #TODO
-        """
-        self.canvas = self.createcomponent('canvas', (), None,
-            Tkinter.Canvas, (interior,), highlightthickness=0,
-            borderwidth=2, relief='sunken', width=300, height=64)
-        interior.rowconfigure(3, weight=1)
-        interior.columnconfigure(2, weight=1)
-        self.canvas.bind('<Configure>', self._redraw)
-        self.canvas.bind("<ButtonPress-1>", self._selectMarkerCB)
-        self.canvas.bind("<ButtonRelease-1>", self._buttonUpCB)
-        self.canvas.bind("<Control-ButtonPress-1>",
-                        self._addOrDeleteMarkerCB)
-        self._motionHandler = None
-        """
+        self._hist_scene = QGraphicsScene()
+        self._hist_bars = self._hist_scene.createItemGroup([])
+        self._hist_view = QGraphicsView(self._hist_scene)
+        self._hist_view.resizeEvent = self._redraw
+        from chimerax.mousemodes import mod_key_info
+        self._hist_scene.mousePressEvent = lambda event: self._add_or_delete_marker_cb(event) \
+            if event.modifiers() & mod_key_info("control")[0] else self._select_marker_cb(event)
+        self._hist_scene.mouseReleaseEvent = self._button_up_cb
+        self._resize_timer = QTimer()
+        self._resize_timer.timeout.connect(self._redraw_cb)
+        self._resize_timer.start(1000 * redraw_delay)
+        self._resize_timer.stop()
+        self._data_widgets.addWidget(self._hist_view)
 
         # Create the histogram replacement label
-        self.no_histogram_label = QLabel()
-        self.data_widgets.addWidget(self.no_histogram_label)
+        self._no_histogram_label = QLabel()
+        self._data_widgets.addWidget(self._no_histogram_label)
+        overall_layout.addWidget(self._data_widgets, stretch=1)
 
         # Show the histogram or the no-data label
         self.data_source = data_source
 
-        # Create the minimum value label component
-        if min_label:
-            self.min_label = QLabel()
-            self.min_label.grid(row=4, column=2, sticky='nw')
+        # Create range label(s)
+        self._widget_layout = QHBoxLayout()
+        if min_label or max_label:
+            min_max_layout = QHBoxLayout()
+            if min_label:
+                self._min_label = QLabel()
+                min_max_layout.addWidget(self._min_label, alignment=Qt.AlignLeft & Qt.AlignTop)
+            else:
+                self._min_label = None
+
+            if max_label:
+                self._max_label = QLabel()
+                min_max_layout.addWidget(self._max_label, alignment=Qt.AlignRight & Qt.AlignTop)
+            else:
+                self._max_label = None
+            overall_layout.addLayout(min_max_layout)
         else:
-            self.min_label = None
-
-        # Create the maximum value label component
-        if self['max_label']:
-            self.maxLabel = self.createcomponent('max_label', (),
-                None, Tkinter.Label, (interior,))
-            self.maxLabel.grid(row=4, column=3, sticky='ne')
-
-        # Create the widget frame component
-        self.widgetFrame = self.createcomponent('widgetframe', (),
-            None, Tkinter.Frame, (interior,))
-
-        widgetOffset = self['widgetreserve']
-        # Create range widget
-        if not self['min_label'] and not self['max_label']:
-            sticky = "ew"
-            if self['layout'] != 'below':
-                lab = Tkinter.Label(self.widgetFrame,
-                                text="Range")
-                if self['layout'] == 'single':
-                    lab.grid(row=1, column=widgetOffset,
-                                sticky="e")
-                    sticky = "w"
-                    widgetOffset += 1
+            self._range_label = QLabel()
+            if layout == 'below':
+                self._widget_layout.addWidget(self._range_label))
+            else:
+                lab = QLabel("Range")
+                if layout == 'single':
+                    self._widget_layout.addWidget(lab, alignment=Qt.AlignRight))
+                    self._widget_layout.addWidget(self._range_label, alignment=Qt.AlignLeft))
                 else: # layout == 'top'
-                    lab.grid(row=0, column=widgetOffset)
-            self.rangeLabel = Tkinter.Label(self.widgetFrame)
-            self.rangeLabel.grid(row=1, column=widgetOffset,
-                            sticky=sticky)
-            widgetOffset += 1
+                    range_layout = QVBoxLayout()
+                    range_layout.addWidget(lab, alignment=Qt.AlignBottom)
+                    range_layout.addWidget(self._range_label, alignment=Qt.AlignTop)
+                    self._widget_layout.addLayout(range_layout)
+        overall_layout.addLayout(self._widget_layout)
 
         # Create value widget
-        sticky = "ew"
-        lab = Tkinter.Label(self.widgetFrame, text=self['value_label'])
-        if self['layout'] != 'below':
-            if self['layout'] == 'single':
-                lab.grid(row=1, column=widgetOffset, sticky="e")
-                sticky = "w"
-                widgetOffset += 1
+        self._value_entry = QLineEdit()
+        self._value_entry.setEnabled(False)
+        self._value_entry.returnPressed.connect(self._set_value_cb)
+        self.value_width = value_width
+        if layout == 'below':
+            self._widget_layout.addWidget(self._value_entry)
+        else:
+            lab = QLabel(value_label)
+            if layout == 'single':
+                self._widget_layout.addWidget(lab, alignment=Qt.AlignRight))
+                self._widget_layout.addWidget(self._value_entry, alignment=Qt.AlignLeft))
             else:
-                lab.grid(row=0, column=widgetOffset)
-        self.valueEntry = Pmw.EntryField(self.widgetFrame,
-            command=self._setValueCB, entry_state='disabled')
-        self.valueEntry.grid(row=1, column=widgetOffset, sticky=sticky)
-        widgetOffset += 1
+                value_layout = QVBoxLayout()
+                value_layout.addWidget(lab, alignment=Qt.AlignBottom)
+                value_layout.addWidget(self._value_entry, alignment=Qt.AlignTop)
+                self._widget_layout.addLayout(value_layout)
 
-        from color.ColorWell import ColorWell
-        self.colorWell = ColorWell(self.widgetFrame,
-                noneOkay=True, callback=self._colorWellCB)
-        self.colorWellLabel = Tkinter.Label(self.widgetFrame,
-                                text="Color")
-        # prepare layout of color well widget
-        sticky = "ew"
-        if self['layout'] != 'below':
-            self._cwlColumn = widgetOffset
-            if self['layout'] == 'single':
-                self._cwlSticky = "e"
-                sticky = "w"
-                widgetOffset += 1
+        # Create color button widget
+        from .color_button import ColorButton
+        self._color_button = cb = ColorButton()
+        self._color_button.color+changed.connect(self._color_button_cb)
+        self._color_button_label = cbl = QLabel("Color")
+        if layout == 'below':
+            self._widget_layout.addWidget(self._color_button)
+        else:
+            if layout == 'single':
+                self._widget_layout.addWidget(cbl, alignment=Qt.AlignRight))
+                self._widget_layout.addWidget(cb, alignment=Qt.AlignLeft))
             else:
-                self._cwlSticky = None
-        self._cwColumn = widgetOffset
-        self._cwSticky = sticky
-        widgetOffset += 1
-
-        for i in range(widgetOffset):
-            self.widgetFrame.columnconfigure(i, weight=1)
-
-        # Optionally create the label component
-        self.createlabel(interior, childCols=2, childRows=4)
-
-        # initialize variables
-        self._delayID = None
-        self._activeMarkers = None
-        self._markers = []
-        self._markable = False
-        self._dragMarker = None
-        if self['select_callback']:
-            self._prevMarkers = None
-            self._prevMarker = None
-
-        # Check keywords and initialise options
-        self.initialiseoptions(MarkedHistogram)
+                color_layout = QVBoxLayout()
+                color_layout.addWidget(cbl, alignment=Qt.AlignBottom)
+                color_layout.addWidget(cb, alignment=Qt.AlignTop)
+                self._widget_layout.addLayout(color_layout)
+        self._color_button_shown = True
+        self.color_button = color_button
 
     def activate(self, markers):
         """Make the given set of markers the currently active set
@@ -271,26 +266,26 @@ class MarkedHistogram(QWidget):
 
         if markers is not None and markers not in self._markers:
             raise ValueError, "activate() called with bad value"
-        if markers == self._activeMarkers:
+        if markers == self._active_markers:
             return
-        if self._activeMarkers is not None:
-            self._activeMarkers._hide()
-        elif self['layout'] != 'below' and self['show_marker_help']:
+        if self._active_markers is not None:
+            self._active_markers._hide()
+        elif self.layout != 'below' and self._show_marker_help:
             self.marker_help.grid(row=2, column=2, columnspan=2)
-        self._activeMarkers = markers
-        if self._activeMarkers is not None:
-            self._activeMarkers._show()
-            self._setSelMarker(self._activeMarkers._selMarker)
+        self._active_markers = markers
+        if self._active_markers is not None:
+            self._active_markers._show()
+            self._setSelMarker(self._active_markers._selMarker)
         else:
-            if self['layout'] != 'below' and self['show_marker_help']:
+            if self.layout != 'below' and self._show_marker_help:
                 self.marker_help.grid_forget()
             if self['select_callback']:
-                if self._prevMarker is not None:
+                if self._prev_marker is not None:
                     self['select_callback'](
-                        self._prevMarkers,
-                        self._prevMarker, None, None)
-                self._prevMarkers = None
-                self._prevMarker = None
+                        self._prev_markers,
+                        self._prev_marker, None, None)
+                self._prev_markers = None
+                self._prev_marker = None
 
     def add_custom_widget(self, widget, left_side=True):
         #TODO
@@ -316,6 +311,19 @@ class MarkedHistogram(QWidget):
             self.activate(markers)
         return markers
 
+    @property
+    def color_button(self):
+        return self._color_button_shown
+
+    @color_button.setter
+    def color_button(self, show):
+        if show == self._color_button_shown:
+            return
+        if self.layout != 'below':
+            self._color_button_label.setHidden(not show)
+        self._color_button.setHidden(not show)
+        self._color_button_shown = show
+
     def currentmarkerinfo(self):
         """Identify the marker currently selected by the user.
            
@@ -324,9 +332,9 @@ class MarkedHistogram(QWidget):
            activated.  The marker will be None if no marker has
            been selected by the user.
         """
-        if self._activeMarkers is None:
+        if self._active_markers is None:
             return None, None
-        return self._activeMarkers, self._activeMarkers._selMarker
+        return self._active_markers, self._active_markers._selMarker
 
     @property
     def data_source(self):
@@ -345,7 +353,7 @@ class MarkedHistogram(QWidget):
         """
         if markers not in self._markers:
             raise ValueError, "Bad value for delete()"
-        if markers == self._activeMarkers:
+        if markers == self._active_markers:
             self.activate(None)
         self._markers.remove(markers)
         self.destroycomponent(markers._name)
@@ -354,28 +362,45 @@ class MarkedHistogram(QWidget):
     def layout(self):
         return self._layout
 
+    @property
+    def redraw_delay(self):
+        return self._resize_timer.interval() / 1000.0
+
+    @redraw_delay.setter(self, secs):
+        self._resize_time.setInterval(secs * 1000)
+
+    @property
+    def scaling(self):
+        return self._scaling
+
+    @scaling.setter
+    def scaling(self, scaling):
+        if self._scaling != scaling:
+            self._scaling = scaling
+            self._redraw_cb()
+
     def sceneData(self):
         info = {
             'version': 1,
-            'drawMin': self._drawMin,
-            'drawMax': self._drawMax,
+            'draw_min': self._draw_min,
+            'draw_max': self._draw_max,
             'markers': [markers.sceneData() for markers in self._markers],
         }
-        if self._activeMarkers is None:
+        if self._active_markers is None:
             info['active markers'] = None
         else:
-            info['active markers'] = self._markers.index(self._activeMarkers)
+            info['active markers'] = self._markers.index(self._active_markers)
         if self['color_button']:
-            info['color well'] = self.colorWell.rgba
+            info['color well'] = self._color_button.rgba
         else:
             info['color well'] = None
         return info
 
     def sceneRestore(self, data):
-        self._drawMin = data['drawMin']
-        self._drawMax = data['drawMax']
+        self._draw_min = data['draw_min']
+        self._draw_max = data['draw_max']
         if data['color well'] is not None:
-            self.colorWell.showColor(data['color well'], doCallback=False)
+            self._color_button.showColor(data['color well'], doCallback=False)
         if len(data['markers']) != len(self._markers):
             # don't know how to deal with this situation
             return
@@ -383,80 +408,93 @@ class MarkedHistogram(QWidget):
             markers.sceneRestore(markersData)
         if data['active markers'] is not None:
             self.activate(self._markers[data['active markers']])
-            self._setSelMarker(self._activeMarkers._selMarker)
+            self._setSelMarker(self._active_markers._selMarker)
+
+    @property
+    def value_width(self):
+        return self._value_width
+
+    @value_width.setter(self, vw):
+        self._value_width = vw
+        ve = self._value_entry
+        fm = ve.fontMetrics()
+        tm = ve.textMargins()
+        cm = ve.contentsMargins()
+        w = 4*fm.width('w') + tm.left() + tm.right() + cm.left() + cm.right() + 8
+        ve.setMaximumWidth(w)
 
     def _abs2rel(self, absXY):
         x, y = absXY
-        relX = (x - self.minVal) / float(self.maxVal - self.minVal)
+        relX = (x - self._min_val) / float(self._max_val - self._min_val)
         relY = y / float(self._ymax)
         return relX, relY
 
     def _absXY(self, canvasXY):
         canvasX, canvasY = canvasXY
-        dy = min(max(self._bottom - canvasY, 0), self._canvasHeight - 1)
-        if self['scaling'] == 'logarithmic':
-            exp = dy / float(self._canvasHeight - 1)
+        dy = min(max(self._bottom - canvasY, 0), self._hist_height - 1)
+        if self.scaling == 'logarithmic':
+            exp = dy / float(self._hist_height - 1)
             absY = (self._maxHeight + 1) ** exp - 1
         else:
-            absY = self._maxHeight*dy / float(self._canvasHeight-1)
+            absY = self._maxHeight*dy / float(self._hist_height-1)
 
         cx = canvasX - self._border
-        numBins = len(self.bins)
-        if numBins == self._histWidth:
+        numBins = len(self._bins)
+        if numBins == self._hist_width:
             fract = cx / (numBins - 1)
-            absX = self.minVal + fract * (self.maxVal - self.minVal)
+            absX = self._min_val + fract * (self._max_val - self._min_val)
         elif numBins == 2:
-            absX = self.minVal + (self.maxVal - self.minVal) * (
-                2 * cx / self._histWidth - 0.5)
+            absX = self._min_val + (self._max_val - self._min_val) * (
+                2 * cx / self._hist_width - 0.5)
         else:
-            extra = self._histWidth / (2.0*(numBins-1))
-            absX = self.minVal + (self.maxVal - self.minVal) * (
-                cx - extra) / (self._histWidth - 2.0 * extra)
-        absX = max(self.minVal, absX)
-        absX = min(self.maxVal, absX)
+            extra = self._hist_width / (2.0*(numBins-1))
+            absX = self._min_val + (self._max_val - self._min_val) * (
+                cx - extra) / (self._hist_width - 2.0 * extra)
+        absX = max(self._min_val, absX)
+        absX = min(self._max_val, absX)
         return absX, absY
 
-    def _addOrDeleteMarkerCB(self, event=None):
-        if self._activeMarkers is None:
+    def _add_or_delete_marker_cb(self, event=None):
+        if self._active_markers is None:
             return
 
-        marker = self._activeMarkers._pickMarker(event.x, event.y)
+        marker = self._active_markers._pickMarker(event.x, event.y)
 
         if marker is None:
-            maxMarks = self._activeMarkers['maxmarks']
+            maxMarks = self._active_markers['maxmarks']
             if maxMarks is not None \
-            and len(self._activeMarkers) >= maxMarks:
-                if self['status_line']:
-                    self['status_line']("Maximum of %d"
+            and len(self._active_markers) >= maxMarks:
+                if self.status_line:
+                    self.status_line("Maximum of %d"
                         " markers\n" % maxMarks)
                 return
             xy = self._absXY((event.x, event.y))
-            if self._activeMarkers['coordtype'] == 'relative':
+            if self._active_markers['coordtype'] == 'relative':
                 xy = self._abs2rel(xy)
-            selMarker = self._activeMarkers._selMarker
+            selMarker = self._active_markers._selMarker
             if selMarker:
                 color = selMarker['rgba']
             else:
-                color = self._activeMarkers['newcolor']
-            marker = self._activeMarkers.append((xy, color))
+                color = self._active_markers['newcolor']
+            marker = self._active_markers.append((xy, color))
             self._setSelMarker(marker, dragStart=event)
         else:
-            minMarks = self._activeMarkers['minmarks']
+            minMarks = self._active_markers['minmarks']
             if minMarks is not None \
-            and len(self._activeMarkers) <= minMarks:
-                if self['status_line']:
-                    self['status_line']("Minimum of %d"
+            and len(self._active_markers) <= minMarks:
+                if self.status_line:
+                    self.status_line("Minimum of %d"
                         " markers\n" % minMarks)
                 return
-            self._activeMarkers.remove(marker)
+            self._active_markers.remove(marker)
             self._setSelMarker(None)
             
-    def _buttonUpCB(self, event=None):
-        if self._dragMarker:
+    def _button_up_cb(self, event=None):
+        if self._drag_marker:
             self.canvas.bind("<Button1-Motion>", "")
-            self._dragMarker = None
-            if self._activeMarkers['movecallback']:
-                self._activeMarkers['movecallback']('end')
+            self._drag_marker = None
+            if self._active_markers['movecallback']:
+                self._active_markers['movecallback']('end')
 
     def _canvasXY(self, absXY):
         # minimum is in the _center_ of the first bin,
@@ -466,53 +504,53 @@ class MarkedHistogram(QWidget):
 
         absY = max(0, absY)
         absY = min(self._maxHeight, absY)
-        if self['scaling'] == 'logarithmic':
+        if self.scaling == 'logarithmic':
             import math
             absY = math.log(absY+1)
-        canvasY = self._bottom - (self._canvasHeight - 1) * (
+        canvasY = self._bottom - (self._hist_height - 1) * (
                         absY / self._maxHeight)
 
-        absX = max(self.minVal, absX)
-        absX = min(self.maxVal, absX)
-        numBins = len(self.bins)
-        if numBins == self._histWidth:
-            binWidth = (self.maxVal - self.minVal) / float(
+        absX = max(self._min_val, absX)
+        absX = min(self._max_val, absX)
+        numBins = len(self._bins)
+        if numBins == self._hist_width:
+            binWidth = (self._max_val - self._min_val) / float(
                                 numBins - 1)
-            leftEdge = self.minVal - 0.5 * binWidth
+            leftEdge = self._min_val - 0.5 * binWidth
             canvasX = int((absX - leftEdge) / binWidth)
         else:
             # histogram is effectively one bin wider
             # (two half-empty bins on each end)
             if numBins == 1:
-                canvasX = 0.5 * (self._histWidth - 1)
+                canvasX = 0.5 * (self._hist_width - 1)
             else:
-                extra = (self.maxVal - self.minVal) / (2.0*(numBins-1))
-                effMinVal = self.minVal - extra
-                effMaxVal = self.maxVal + extra
+                extra = (self._max_val - self._min_val) / (2.0*(numBins-1))
+                effMinVal = self._min_val - extra
+                effMaxVal = self._max_val + extra
                 effRange = float(effMaxVal - effMinVal)
-                canvasX = (self._histWidth - 1) * (absX - effMinVal) \
+                canvasX = (self._hist_width - 1) * (absX - effMinVal) \
                                 / effRange
         return self._border + canvasX, canvasY
 
-    def _colorWellCB(self, rgba):
-        m = self._activeMarkers._selMarker
+    def _color_button_cb(self, rgba):
+        m = self._active_markers._selMarker
         if not m:
-            if self['status_line']:
-                self['status_line']("No marker selected")
+            if self.status_line:
+                self.status_line("No marker selected")
             return
         if rgba is None:
-            if self['status_line']:
-                self['status_line'](
+            if self.status_line:
+                self.status_line(
                     "Cannot set marker color to None")
             # can't reset the color in the middle of the callback
             self.interior().after_idle(lambda rgba=m['rgba']:
-                    self.colorWell.showColor(rgba,
+                    self._color_button.showColor(rgba,
                     doCallback=False))
             return
         m['rgba'] = rgba
 
     def _marker2abs(self, marker):
-        if self._activeMarkers['coordtype'] == 'absolute':
+        if self._active_markers['coordtype'] == 'absolute':
             return marker['xy']
         else:
             return self._rel2abs(marker['xy'])
@@ -521,11 +559,11 @@ class MarkedHistogram(QWidget):
         #
         # Don't allow dragging out of the canvas box.
         #
-        m = self._activeMarkers._selMarker
-        if x < self.minVal:
-            x = self.minVal
-        elif x > self.maxVal:
-            x = self.maxVal
+        m = self._active_markers._selMarker
+        if x < self._min_val:
+            x = self._min_val
+        elif x > self._max_val:
+            x = self._max_val
         if yy is None:
             y = m['xy'][1]
         else:
@@ -535,7 +573,7 @@ class MarkedHistogram(QWidget):
             elif y > self._ymax:
                 y = self._ymax
 
-        if self._activeMarkers['coordtype'] == 'absolute':
+        if self._active_markers['coordtype'] == 'absolute':
             m['xy'] = (x, y)
         else:
             m['xy'] = self._abs2rel((x,y))
@@ -544,10 +582,10 @@ class MarkedHistogram(QWidget):
 
         self._setValueEntry(x)
 
-        self._activeMarkers._updatePlot()
+        self._active_markers._updatePlot()
 
-        if self._activeMarkers['movecallback']:
-            self._activeMarkers['movecallback'](m)
+        if self._active_markers['movecallback']:
+            self._active_markers['movecallback'](m)
 
     def _moveMarkerCB(self, event):
         mouseXY = self._absXY((event.x, event.y))
@@ -560,143 +598,103 @@ class MarkedHistogram(QWidget):
             dx *= .1
             dy *= .1
 
-        m = self._dragMarker
+        m = self._drag_marker
         mxy = self._marker2abs(m)
         x, y = mxy[0] + dx, mxy[1] + dy
 
         self._moveCurMarker(x, y)
 
-    def _newData(self):
-        self.canvas.grid_forget()
-        self.no_histogram_label.grid_forget()
-        ds = self['data_source']
-        if isinstance(ds, basestring):
-            self.no_histogram_label.config(text=ds)
-            self.no_histogram_label.grid(row=3, column=2,
-                        columnspan=2, sticky="nsew")
-            if self['min_label']:
-                self.min_label.configure(text="")
-            if self['max_label']:
-                self.maxLabel.configure(text="")
-            if self['layout'] != 'below' and self['show_marker_help']:
-                self.marker_help.grid_forget()
-            self.widgetFrame.grid_forget()
+    def _new_data(self):
+        ds = self.data_source
+        if isinstance(ds, str):
+            self._no_histogram_label.setText(ds)
+            self._data_widgets.setCurrentWidget(self._no_histogram_label)
+            if self._min_label:
+                self._min_label.setText("")
+            if self._max_label:
+                self._max_label.setText("")
+            if self.layout != 'below' and self._show_marker_help:
+                self.marker_help.setHidden(True)
+            self._widget_layout.setHidden(True)
         else:
-            self.canvas.grid(row=3, column=2, columnspan=2,
-                        sticky="nsew")
-            if self['layout'] != 'below' and self['show_marker_help']:
-                self.marker_help.grid(row=2, column=2,
-                                columnspan=2)
-            self.widgetFrame.grid(row=5, column=2, columnspan=2,
-                                sticky="ew")
-        self._drawMin = self._drawMax = None
-        self._redraw()
-
-    def _placeCW(self):
-        if self['color_button']:
-            if self['layout'] != 'below':
-                self.colorWellLabel.grid(row=1,
-                        column=self._cwlColumn,
-                        sticky=self._cwlSticky)
-                self.widgetFrame.columnconfigure(
-                        self._cwlColumn, weight=1)
-            self.colorWell.grid(row=1, column=self._cwColumn,
-                            sticky=self._cwSticky)
-            self.widgetFrame.columnconfigure(self._cwColumn,
-                            weight=1)
-        else:
-            if self['layout'] != 'below':
-                self.colorWellLabel.grid_forget()
-                self.widgetFrame.columnconfigure(
-                        self._cwlColumn, weight=0)
-            self.colorWell.grid_forget()
-            self.widgetFrame.columnconfigure(self._cwColumn,
-                            weight=0)
-            self.colorWell.deactivate()
+            self._data_widgets.setCurrentWidget(self._hist_view)
+            if self.layout != 'below' and self._show_marker_help:
+                self.marker_help.setHidden(False)
+            self._widget_layout.setHidden(False)
+        self._draw_min = self._draw_max = None
+        self._redraw_cb()
 
     def _redraw(self, event=None):
         self._markable = False
-        if self._delayID is not None:
-            self.interior().after_cancel(self._delayID)
-        self._delayID = self.interior().after(
-            int(1000 * self.cget('redraw_delay')), self._redrawCB)
+        self._redraw_timer.start()
 
-    def _redrawCB(self):
-        self._delayID = None
-        ds = self.cget('data_source')
-        if ds is None:
-            raise ValueError, "No data source for histogram"
-        if isinstance(ds, basestring):
+    def _redraw_cb(self):
+        ds = self.data_source
+        if isinstance(ds, str):
             # displaying a text label right now
             return
-        canvas = self.canvas
-        w = canvas.winfo_width()
-        if not w:
-            return
-        border = canvas.winfo_fpixels(canvas['borderwidth'])
-        self._border = border
-        histWidth = int(w - 2 * border)
-        self._histWidth = histWidth
-        self.minVal, self.maxVal, self.bins = ds
-        filledRange = self.maxVal - self.minVal
-        emptyRanges = [0, 0]
-        if self._drawMin != None:
-            emptyRanges[0] = self.minVal - self._drawMin
-            self.minVal = self._drawMin
-        if self._drawMax != None:
-            emptyRanges[1] = self._drawMax - self.maxVal
-            self.maxVal = self._drawMax
-        if callable(self.bins):
-            if emptyRanges[0] or emptyRanges[1]:
-                fullRange = filledRange + emptyRanges[0] + emptyRanges[1]
-                filledBins = self.bins(int(histWidth * filledRange / fullRange))
-                left = [0] * int(histWidth * emptyRanges[0] / fullRange)
-                right = [0] * (histWidth - len(filledBins) - len(left))
-                self.bins = left + filledBins + right
+        view = self._hist_view
+        scene = self._hist_scene
+        hist_size = view.viewport().size()
+        self._hist_width, self._hist_height = hist_width, hist_height = hist_size.width(), hist_size.height()
+        self._min_val, self._max_val, self._bins = ds
+        filled_range = self._max_val - self._min_val
+        empty_ranges = [0, 0]
+        if self._draw_min != None:
+            empty_ranges[0] = self._min_val - self._draw_min
+            self._min_val = self._draw_min
+        if self._draw_max != None:
+            empty_ranges[1] = self._draw_max - self._max_val
+            self._max_val = self._draw_max
+        if callable(self._bins):
+            if empty_ranges[0] or empty_ranges[1]:
+                full_range = filled_range + empty_ranges[0] + empty_ranges[1]
+                filled_bins = self._bins(int(hist_width * filled_range / full_range))
+                left = [0] * int(hist_width * empty_ranges[0] / full_range)
+                right = [0] * (hist_width - len(filled_bins) - len(left))
+                self._bins = left + filled_bins + right
             else:
-                self.bins = self.bins(histWidth)
-        elif emptyRanges[0] or emptyRanges[1]:
-            fullRange = filledRange + emptyRanges[0] + emptyRanges[1]
-            left = [0] * int(len(self.bins) * emptyRanges[0] / fullRange)
-            right = [0] * int(len(self.bins) * emptyRanges[1] / fullRange)
-            self.bins = left + self.bins + right
-        if self['min_label']:
-            self.min_label.configure(text=self._strVal(self.minVal))
-        if self['max_label']:
-            self.maxLabel.configure(text=self._strVal(self.maxVal))
-        if not self['min_label'] and not self['max_label']:
-            self.rangeLabel.configure(text="%s - %s" %
-                        (self._strVal(self.minVal),
-                        self._strVal(self.maxVal)))
+                self._bins = self._bins(hist_width)
+        elif empty_ranges[0] or empty_ranges[1]:
+            full_range = filled_range + empty_ranges[0] + empty_ranges[1]
+            left = [0] * int(len(self._bins) * empty_ranges[0] / full_range)
+            right = [0] * int(len(self._bins) * empty_ranges[1] / full_range)
+            self._bins = left + self._bins + right
+        if self._min_label:
+            self._min_label.setText(self._str_val(self._min_val))
+        if self._max_label:
+            self._max_label.setText(self._str_val(self._max_val))
+        if not self._min_label and not self._max_label:
+            self._range_label.setText("%s - %s" % (self._str_val(self._min_val), self._str_val(self._max_val)))
 
-        canvas.delete('bar')
-        canvasHeight = canvas.winfo_height() - 2 * border
-        self._canvasHeight = canvasHeight
+        for bar in self._hist_bars.childItems():
+            self._hist_scene.removeItem(bar)
 
-        self._ymax = max(self.bins)
-        if self['scaling'] == 'logarithmic':
+        self._ymax = max(self._bins)
+        if self.scaling == 'logarithmic':
             from numpy import array, log, float32
-            self.bins = array(self.bins, float32)
-            self.bins += 1.0
-            log(self.bins, self.bins)
+            self._bins = array(self._bins, float32)
+            self._bins += 1.0
+            log(self._bins, self._bins)
 
-        maxHeight = max(self.bins)
+        #TODO
+        maxHeight = max(self._bins)
         self._maxHeight = maxHeight
-        hScale = float(canvasHeight - 1) / maxHeight
-        bottom = canvasHeight + border - 1
+        hScale = float(hist_height - 1) / maxHeight
+        bottom = hist_height + border - 1
         self._bottom = bottom
 
-        numBins = len(self.bins)
-        if numBins == histWidth:
-            for b, n in enumerate(self.bins):
+        numBins = len(self._bins)
+        if numBins == hist_width:
+            for b, n in enumerate(self._bins):
                 x = border + b
                 h = int(hScale * n)
                 id = canvas.create_line(x, bottom, x, bottom-h,
                                 tags=('bar',))
                 canvas.tag_lower(id)  # keep bars below markers
         else:
-            xScale = (histWidth - 1) / float(numBins)
-            for b, n in enumerate(self.bins):
+            xScale = (hist_width - 1) / float(numBins)
+            for b, n in enumerate(self._bins):
                 x1 = border + b * xScale
                 x2 = border + (b+1) * xScale
                 h = int(hScale * n)
@@ -704,21 +702,21 @@ class MarkedHistogram(QWidget):
                         x2, bottom-h, tags=('bar',))
                 canvas.tag_lower(id)  # keep bars below markers
         self._markable = True
-        if self._activeMarkers is not None:
-            self._activeMarkers._updatePlot()
-            marker = self._activeMarkers._selMarker
+        if self._active_markers is not None:
+            self._active_markers._updatePlot()
+            marker = self._active_markers._selMarker
             if marker:
                 self._setValueEntry(self._marker2abs(marker)[0])
 
     def _rel2abs(self, relXY):
         x, y = relXY
-        absX = self.minVal * (1-x) + x * self.maxVal
+        absX = self._min_val * (1-x) + x * self._max_val
         absY = y * self._ymax
         return absX, absY
 
-    def _selectMarkerCB(self, event=None):
-        if self._activeMarkers is not None:
-            marker = self._activeMarkers._pickMarker(event.x,
+    def _select_marker_cb(self, event=None):
+        if self._active_markers is not None:
+            marker = self._active_markers._pickMarker(event.x,
                                 event.y)
             self._setSelMarker(marker, dragStart=event)
             if marker is not None:
@@ -727,63 +725,62 @@ class MarkedHistogram(QWidget):
         self._setValueEntry(self._absXY((event.x, 0))[0])
     
     def _setSelMarker(self, marker, dragStart=None):
-        self._activeMarkers._selMarker = marker
+        self._active_markers._selMarker = marker
         if not marker:
-            self.colorWell.showColor(None, doCallback=False)
+            self._color_button.showColor(None, doCallback=False)
             self._setValueEntry("")
-            self.valueEntry.component('entry').config(
+            self._value_entry.component('entry').config(
                             state='disabled')
         else:
-            self.colorWell.showColor(marker['rgba'],
+            self._color_button.showColor(marker['rgba'],
                             doCallback=False)
-            self.valueEntry.component('entry').config(
+            self._value_entry.component('entry').config(
                             state='normal')
             self._setValueEntry(self._marker2abs(marker)[0])
         if self['select_callback']:
-            if marker is not None or self._prevMarker is not None:
-                self['select_callback'](self._prevMarkers,
-                    self._prevMarker, self._activeMarkers,
+            if marker is not None or self._prev_marker is not None:
+                self['select_callback'](self._prev_markers,
+                    self._prev_marker, self._active_markers,
                     marker)
-            self._prevMarkers = self._activeMarkers
-            self._prevMarker = marker
+            self._prev_markers = self._active_markers
+            self._prev_marker = marker
         if not dragStart:
             return
-        self._dragMarker = marker
+        self._drag_marker = marker
         if not marker:
             return
 
         self._lastMouseXY = self._absXY((dragStart.x, dragStart.y))
         self._motionHandler = self.canvas.bind("<Button1-Motion>",
                             self._moveMarkerCB)
-        if self._activeMarkers['movecallback']:
-            self._activeMarkers['movecallback']('start')
+        if self._active_markers['movecallback']:
+            self._active_markers['movecallback']('start')
     
-    def _setValueCB(self):
+    def _set_value_cb(self):
         try:
-            v = eval(self.valueEntry.getvalue())
+            v = eval(self._value_entry.getvalue())
         except:
             raise ValueError, "Invalid histogram value"
-        if type(self.minVal) != type(v):
-            v = type(self.minVal)(v)
-        if v < self.minVal:
-            self._drawMin = v
-            self._redrawCB()
-        elif v > self.maxVal:
-            self._drawMax = v
-            self._redrawCB()
+        if type(self._min_val) != type(v):
+            v = type(self._min_val)(v)
+        if v < self._min_val:
+            self._draw_min = v
+            self._redraw_cb()
+        elif v > self._max_val:
+            self._draw_max = v
+            self._redraw_cb()
         self._moveCurMarker(v)
 
     def _setValueEntry(self, val):
         if isinstance(val, basestring):
-            self.valueEntry.setvalue(val)
+            self._value_entry.setvalue(val)
             return
-        if isinstance(self.minVal, int):
+        if isinstance(self._min_val, int):
             val = int(val + 0.5)
-        self.valueEntry.setvalue("%g" % val)
+        self._value_entry.setvalue("%g" % val)
 
-    def _strVal(self, val):
-        if isinstance(val, int):
-            # handles booleans also
+    def _str_val(self, val):
+        if isinstance(val, (int, bool)):
             return str(val)
         return "%g" % val
 
@@ -1198,4 +1195,4 @@ class HistogramMarker(Pmw.MegaArchetype):
                         fill=rgba2tk(self['rgba']))
         histo = self['markers']['histogram']
         if histo.currentmarkerinfo()[-1] == self:
-            histo.colorWell.showColor(self['rgba'], doCallback=False)
+            histo._color_button.showColor(self['rgba'], doCallback=False)
