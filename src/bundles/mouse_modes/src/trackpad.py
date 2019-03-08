@@ -31,6 +31,7 @@ class MultitouchTrackpad:
         self._zoom_scaling = 3		# zoom (z translation) faster than xy translation.
         self._twist_scaling = 6		# twist faster than finger rotation
         self._touch_handler = None
+        self._received_touch_event = False
 
     def set_graphics_window(self, graphics_window):
         graphics_window.touchEvent = self._touch_event
@@ -77,6 +78,8 @@ class MultitouchTrackpad:
 
         if self._touch_handler is None:
             return
+
+        self._received_touch_event = True
 
         from PyQt5.QtCore import QEvent
         t = event.type()
@@ -196,7 +199,7 @@ class MultitouchTrackpad:
         if len(QTouchDevice.devices()) == 0:
             return False	# No trackpad devices
 
-        return True
+        return self._received_touch_event
 
 class Touch:
     def __init__(self, touch_point):
