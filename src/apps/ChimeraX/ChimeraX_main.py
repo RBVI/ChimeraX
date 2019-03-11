@@ -631,10 +631,10 @@ def init(argv, event_loop=True):
     if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render
         log = sess.logger
-        from chimerax.core.graphics import OpenGLVersionError
+        from chimerax.core.graphics import OpenGLVersionError, OpenGLError
         try:
             mc = r.make_current()
-        except OpenGLVersionError as e:
+        except (OpenGLVersionError, OpenGLError) as e:
             mc = False
             log.error(str(e))
             sess.update_loop.block_redraw()	# Avoid further opengl errors

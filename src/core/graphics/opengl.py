@@ -81,6 +81,8 @@ class OpenGLContext:
     def __init__(self, graphics_window, screen, use_stereo = False):
         self.window = graphics_window
         self._screen = screen
+        self._color_bits = None		# None, 8, 12, 16
+        self._depth_bits = 24
         self._mode = 'stereo' if use_stereo else 'mono'
         self._contexts = {}		# Map mode to QOpenGLContext, or False if creation failed
         self._share_context = None	# First QOpenGLContext, shares state with others
@@ -156,7 +158,7 @@ class OpenGLContext:
         # Validate context
         if not qc.create():
             self._contexts[mode] = False
-            raise OpenGLError("Could not create OpenGL context" % st)
+            raise OpenGLError("Could not create OpenGL context")
 
         # Check if stereo obtained.
         got_fmt = qc.format()
@@ -182,7 +184,12 @@ class OpenGLContext:
         from PyQt5.QtGui import QSurfaceFormat
         fmt = QSurfaceFormat()
         fmt.setVersion(*self.required_opengl_version)
-        fmt.setDepthBufferSize(24)
+        cbits = self._color_bits
+        if cbits is not None:
+            fmt.setRedBufferSize(cbits)
+            fmt.setGreenBufferSize(cbits)
+            fmt.setBlueBufferSize(cbits)
+        fmt.setDepthBufferSize(self._depth_bits)
         if self.required_opengl_core_profile:
             fmt.setProfile(QSurfaceFormat.CoreProfile)
         fmt.setRenderableType(QSurfaceFormat.OpenGL)
@@ -478,6 +485,19 @@ class Render:
         fb = self.current_framebuffer()
         x, y, w, h = fb.viewport
         return (w, h)
+
+    def framebuffer_rgba_bits(self):
+        return tuple(GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
+                                                              GL.GL_BACK_LEFT, attr)
+                     for attr in (GL.GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE,
+                                  GL.GL_FRAMEBUFFER_ATTACHMENT_GREEN_SIZE,
+                                  GL.GL_FRAMEBUFFER_ATTACHMENT_BLUE_SIZE,
+                                  GL.GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE))
+
+    def framebuffer_depth_bits(self):
+        return GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
+                                                        GL.GL_BACK_LEFT,
+                                                        GL.GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE)
 
     def disable_shader_capabilities(self, ocap):
         self.disable_capabilities = ocap
@@ -1696,6 +1716,7 @@ class Framebuffer:
         self.depth_texture = depth_texture
 
         self._color_rb = None
+        self._color_bits = 8	# 8 or 16-bit depth
         self._depth_rb = None
         self._draw_buffer = GL.GL_COLOR_ATTACHMENT0
         self._deleted = False
@@ -1809,7 +1830,10 @@ class Framebuffer:
 
         color_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
-        fmt = GL.GL_RGBA8 if alpha else GL.GL_RGB8
+        if self._color_bits == 8:
+            fmt = GL.GL_RGBA8 if alpha else GL.GL_RGB8
+        elif self._color_bits == 16:
+            fmt = GL.GL_RGBA16 if alpha else GL.GL_RGB16
         GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, fmt, width, height)
         return color_rb
 

@@ -345,8 +345,8 @@ if multitouch is turned off, a two-finger drag is interpreted as scrolling
 if &ldquo;secondary click&rdquo; is enabled in the Trackpad system preferences,
 a two-finger click-and-drag performs the right-button action.
 <p>
-Magic Mouse issue: if a trackpad is also present, scrolling with 
-the Magic Mouse will not work unless multitouch actions are disabled 
+Magic Mouse issue: scrolling to zoom with the Magic Mouse will not work
+after a trackpad has been used, unless multitouch actions have been disabled
 in the <a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>
 (the <b>Trackpad gestures</b> option is unchecked).
 </p>
@@ -360,8 +360,51 @@ another finger near the middle of the trackpad. On laptops
 with a &ldquo;precision touchpad,&rdquo; a two-finger tap is also
 interpreted as right-click, but a two-finger drag still performs scrolling.
 </ul>
+<p>
+Summary of mouse and trackpad manipulation defaults:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center" rowspan="2"><b>rotate</b>
+<br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
+<td>left mouse button</td>
+</tr><tr>
+<td class="text">trackpad click-drag
+<br>Mac: also trackpad 2-finger rotation if 
+<a href="../preferences.html#trackpad">multitouch gestures</a> enabled</td>
+</tr><tr>
+<td align="center" rowspan="2"><b>translate</b>
+<br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
+<td>middle mouse button</td>
+</tr><tr>
+<td class="text">
+Mac: trackpad + <b>Alt</b>, 3-finger drag if
+<a href="../preferences.html#trackpad">multitouch gestures</a> enabled
+<br>
+Windows: trackpad + <b>Ctrl-Alt</b>
+</td>
+</tr><tr>
+<td align="center" rowspan="2"><b>zoom</b>
+<br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
+<td>mouse scroll wheel</td>
+</tr><tr>
+<td class="text">
+Mac: trackpad pinch or 4-finger drag if
+<a href="../preferences.html#trackpad">multitouch gestures</a> enabled,
+otherwise 2-finger drag
+<br>
+Windows: trackpad 2-finger drag
+</td>
+</tr></table>
+<p>
+The right mouse button (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+is also assigned to <b>translate</b> by default, 
+but can be reassigned by clicking icons in the
+<a href="../tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
+toolbar.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2019</address>
+March 2019</address>
 </body></html>

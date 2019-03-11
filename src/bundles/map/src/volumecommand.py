@@ -100,6 +100,10 @@ def register_volume_command(logger):
         synopsis = 'set volume model parameters, display style and colors')
     register('volume', volume_desc, volume, logger=logger)
 
+    vsettings_desc = CmdDesc(optional = [('volumes', MapsArg)],
+                             synopsis = 'report volume display settings')
+    register('volume settings', vsettings_desc, volume_settings, logger=logger)
+
     # Register volume subcommands for filtering operations.
     from . import filter
     filter.register_volume_filtering_subcommands(logger)
@@ -604,3 +608,52 @@ def show_file_header(d, log):
         msg = 'No header info for %s' % d.name
         log.status(msg)
     log.info(msg + '\n')
+    
+# -----------------------------------------------------------------------------
+#
+def volume_settings(session, volumes = None):
+    if volumes is None:
+        from . import Volume
+        volumes = session.models.list(type = Volume)
+    msg = '\n\n'.join(volume_settings_text(v) for v in volumes)
+    session.logger.info(msg)
+    
+# -----------------------------------------------------------------------------
+#
+def volume_settings_text(v):
+    lines = ['Settings for map %s' % v.name,
+             'grid size = %d %d %d' % tuple(v.data.size),
+             'region = %d %d %d' % tuple(v.region[0]) + ' to %d %d %d' % tuple(v.region[1]),
+             'step = %d %d %d' % tuple(v.region[2]),
+             'surface levels = ' + ','.join('%.5g' % s.level for s in v.surfaces),
+             'surface brightness = %.5g' % v.surface_brightness_factor,
+             'surface transparency factor = %.5g' % v.transparency_factor,
+             'image levels = ' + ' '.join('%.5g,%.5g' % tuple(sl) for sl in v.solid_levels),
+             'image brightness factor = %.5g' % v.solid_brightness_factor,
+             'image transparency depth = %.5g' % v.transparency_depth,
+             ]
+    ro = v.rendering_options
+    from .volume import default_settings
+    ds = default_settings(v.session)
+    attrs = list(ds.rendering_option_names())
+    attrs.sort()
+    for attr in attrs:
+        value = getattr(ro, attr)
+        lines.append('%s = %s' % (camel_case(attr), value))
+    return '\n'.join(lines)
+    
+# -----------------------------------------------------------------------------
+#
+def camel_case(string):
+    if '_' not in string:
+        return string
+    cc = []
+    up = False
+    for c in string:
+        if c == '_':
+            up = True
+        else:
+            cc.append(c.upper() if up else c)
+            up = False
+    return ''.join(cc)
+
