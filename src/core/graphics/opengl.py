@@ -83,6 +83,7 @@ class OpenGLContext:
         self._screen = screen
         self._color_bits = None		# None, 8, 12, 16
         self._depth_bits = 24
+        self._framebuffer_color_bits = 8	# For offscreen framebuffers, 8 or 16
         self._mode = 'stereo' if use_stereo else 'mono'
         self._contexts = {}		# Map mode to QOpenGLContext, or False if creation failed
         self._share_context = None	# First QOpenGLContext, shares state with others
@@ -267,6 +268,15 @@ class OpenGLContext:
         self._mode = mode
         self.window = window
 
+    def set_offscreen_color_bits(self, bits):
+        cbits = self._framebuffer_color_bits
+        if bits != cbits:
+            self._framebuffer_color_bits = bits
+            self.make_current()
+            for fb in tuple(self._framebuffers):
+                fb.set_color_bits(bits)
+            self.done_current()
+
 def remember_current_opengl_context():
     '''
     Return an object that notes the current opengl context and its window
@@ -347,6 +357,9 @@ class Render:
 
         # Selection outlines
         self.outline = Outline(self)
+
+        # Offscreen rendering. Used for 16-bit color depth.
+        self.offscreen = Offscreen()
         
         self.single_color = (1, 1, 1, 1)
         self._colormap_texture_unit = 4
@@ -498,6 +511,9 @@ class Render:
         return GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
                                                         GL.GL_BACK_LEFT,
                                                         GL.GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE)
+
+    def set_offscreen_color_bits(self, bits):
+        self._opengl_context.set_offscreen_color_bits(bits)
 
     def disable_shader_capabilities(self, ocap):
         self.disable_capabilities = ocap
@@ -1507,6 +1523,42 @@ class Multishadow:
         shader.set_integer("shadow_count", min(maxs, len(m)))
         shader.set_float("shadow_depth", self._multishadow_depth)
 
+class Offscreen:
+    '''Offscreen framebuffer for 16-bit color depth.'''
+    
+    def __init__(self):
+        self.enabled = False
+        self._offscreen_framebuf = None
+
+    def delete(self):
+        fb = self._offscreen_framebuf
+        if fb:
+            fb.delete(make_current = True)
+            self._offscreen_framebuf = None
+
+    def start(self, render):
+        r = render
+        fb = self._offscreen_framebuffer(r)
+        r.push_framebuffer(fb)
+
+    def finish(self, render):
+        r = render
+        fb = r.pop_framebuffer()
+        cfb = r.current_framebuffer()
+        cfb.copy_from_framebuffer(fb, depth=False)
+
+    def _offscreen_framebuffer(self, render):
+        r = render
+        w,h = r.render_size()
+        ofb = self._offscreen_framebuf
+        if ofb and (ofb.width != w or ofb.height != h):
+            ofb.delete()
+            ofb = None
+        if ofb is None:
+            ofb = Framebuffer('offscreen', r.opengl_context, w, h)
+            self._offscreen_framebuf = ofb
+        return ofb
+
 class Silhouette:
     '''Draw silhouette edges.'''
     
@@ -1716,7 +1768,7 @@ class Framebuffer:
         self.depth_texture = depth_texture
 
         self._color_rb = None
-        self._color_bits = 8	# 8 or 16-bit depth
+        self._color_bits = opengl_context._framebuffer_color_bits	# 8 or 16-bit depth
         self._depth_rb = None
         self._draw_buffer = GL.GL_COLOR_ATTACHMENT0
         self._deleted = False
@@ -1826,6 +1878,16 @@ class Framebuffer:
         max_size = min(max_rb_size, max_tex_size)
         return width <= max_size and height <= max_size
 
+    def set_color_bits(self, bits):
+        
+        if bits == self._color_bits:
+            return
+
+        self._color_bits = bits
+        if self._color_rb is not None:
+            GL.glDeleteRenderbuffers(1, (self._color_rb,))
+            self._color_rb = self.color_renderbuffer(self.width, self.height, self.alpha)
+        
     def color_renderbuffer(self, width, height, alpha = False):
 
         color_rb = GL.glGenRenderbuffers(1)
