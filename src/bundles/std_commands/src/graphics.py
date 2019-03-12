@@ -14,7 +14,7 @@
 def graphics(session, atom_triangles = None, bond_triangles = None,
              total_atom_triangles = None, total_bond_triangles = None,
              ribbon_divisions = None, ribbon_sides = None, max_frame_rate = None,
-             frame_rate = None, wait_for_vsync = None):
+             frame_rate = None, wait_for_vsync = None, color_depth = None):
     '''
     Set graphics rendering parameters.
 
@@ -44,6 +44,10 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         Whether drawing is synchronized to the display vertical refresh rate,
         typically 60 Hz.  Disabling wait allows frame rates faster than vsync
         but can exhibit image tearing.  Currently only supported on Windows.
+    color_depth : 8 or 16
+        Number of bits per color channel (red, green, blue, alpha) in framebuffer.
+        If 16 is specified then offscreen rendering is used since it is not easy or
+        possible to switch on-screen framebuffer depth.
     '''
     from chimerax.atomic.structure import structure_graphics_updater
     gu = structure_graphics_updater(session)
@@ -90,6 +94,15 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         if not r.wait_for_vsync(wait_for_vsync):
             session.logger.warning('Changing wait for vsync is only supported on Windows by some drivers')
         change = True
+    if color_depth is not None:
+        if color_depth not in (8, 16):
+            raise UserError('Only color depths 8 or 16 allowed, got %d' % color_depth)
+        v = session.main_view
+        r = v.render
+        r.set_offscreen_color_bits(color_depth)
+        r.offscreen.enabled = (color_depth == 16)
+        v.redraw_needed = True
+        change = True
 
     if change:
         gu.update_level_of_detail()
@@ -127,6 +140,7 @@ def register_command(logger):
                  ('max_frame_rate', FloatArg),
                  ('frame_rate', BoolArg),
                  ('wait_for_vsync', BoolArg),
+                 ('color_depth', IntArg),
                  ],
         synopsis='Set graphics rendering parameters'
     )
