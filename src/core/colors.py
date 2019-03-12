@@ -88,7 +88,8 @@ class Color(State):
     ----------
     rgba : color components
         3- or 4-component array of integers (0-255), or floating point (0-1),
-        or # followed by 3 (4), 6 (8), or 12 (16) hex digits (with alpha).
+        or # followed by 3 (4), 6 (8), or 12 (16) hex digits (with alpha),
+        or built-in color name.
     limit : bool
         Clip color array values to [0, 1] inclusive.
     mutable : bool
@@ -123,36 +124,40 @@ class Color(State):
             if limit:
                 clip(self.rgba, 0, 1, out=self.rgba)
         elif isinstance(rgba, str):
-            # Hex: #DDD, #DDDDDD, or #DDDDDDDDDDDD
-            try:
-                if rgba[0] != '#':
-                    raise ValueError
-                int(rgba[1:], 16)
-            except ValueError:
-                raise ValueError("expected hexadecimal digits after #")
-            if len(rgba) == 4:
-                digits = (x for x in rgba[1:])
-                values = [int(x, 16) / 15 for x in digits] + [1.0]
-            elif len(rgba) == 5:
-                digits = (x for x in rgba[1:])
-                values = [int(x, 16) / 15 for x in digits]
-            elif len(rgba) == 7:
-                digits = (rgba[x:x + 2] for x in range(1, 7, 2))
-                values = [int(x, 16) / 255 for x in digits] + [1.0]
-            elif len(rgba) == 9:
-                digits = (rgba[x:x + 2] for x in range(1, 9, 2))
-                values = [int(x, 16) / 255 for x in digits]
-            elif len(rgba) == 13:
-                digits = (rgba[x:x + 4] for x in range(1, 13, 4))
-                values = [int(x, 16) / 65535 for x in digits] + [1.0]
-            elif len(rgba) == 17:
-                digits = (rgba[x:x + 4] for x in range(1, 17, 4))
-                values = [int(x, 16) / 65535 for x in digits]
+            if rgba.startswith('#'):
+                # Hex: #DDD, #DDDDDD, or #DDDDDDDDDDDD
+                try:
+                    int(rgba[1:], 16)
+                except ValueError:
+                    raise ValueError("expected hexadecimal digits after #")
+                if len(rgba) == 4:
+                    digits = (x for x in rgba[1:])
+                    values = [int(x, 16) / 15 for x in digits] + [1.0]
+                elif len(rgba) == 5:
+                    digits = (x for x in rgba[1:])
+                    values = [int(x, 16) / 15 for x in digits]
+                elif len(rgba) == 7:
+                    digits = (rgba[x:x + 2] for x in range(1, 7, 2))
+                    values = [int(x, 16) / 255 for x in digits] + [1.0]
+                elif len(rgba) == 9:
+                    digits = (rgba[x:x + 2] for x in range(1, 9, 2))
+                    values = [int(x, 16) / 255 for x in digits]
+                elif len(rgba) == 13:
+                    digits = (rgba[x:x + 4] for x in range(1, 13, 4))
+                    values = [int(x, 16) / 65535 for x in digits] + [1.0]
+                elif len(rgba) == 17:
+                    digits = (rgba[x:x + 4] for x in range(1, 17, 4))
+                    values = [int(x, 16) / 65535 for x in digits]
+                else:
+                    raise ValueError(
+                        "Color constant should have 3 (4), 6 (8), or 12 (16)"
+                        " hexadecimal digits")
+                self.rgba = array(values, dtype=float32)
             else:
-                raise ValueError(
-                    "Color constant should have 3 (4), 6 (8), or 12 (16)"
-                    " hexadecimal digits")
-            self.rgba = array(values, dtype=float32)
+                try:
+                    self.rgba = BuiltinColors[rgba].rgba[:]  # copy
+                except KeyError:
+                    raise ValueError("No built-in color named %s" % rgba)
         else:
             raise ValueError("Not a color")
         if not mutable:

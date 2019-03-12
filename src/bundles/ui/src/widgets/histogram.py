@@ -15,7 +15,8 @@ from PyQt5.QtWidgets import QWidget, QLabel, QStackedWidget, QGraphicsView, QGra
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLineEdit
 from PyQt5.QtCore import QSize, Qt, QTimer, QRectF
 from PyQt5.QtGui import QBrush, QColor
-from chimerax.mousemodes import mod_key_info
+from chimerax.mouse_modes import mod_key_info
+from chimerax.core.colors import Color
 
 class MarkedHistogram(QWidget):
     """Histogram with color-indication markers
@@ -122,7 +123,6 @@ class MarkedHistogram(QWidget):
             max_label=False, min_label=False, redraw_delay=0.25, scaling='logarithmic',
             select_callback=None, show_marker_help=True, status_line=None, value_label='Value',
             value_width=7, **kw):
-            **kw):
 
         # Get HistogramMarkers options and initialise base class
         self._histogram_markers_kw = markers_kw = {}
@@ -209,12 +209,12 @@ class MarkedHistogram(QWidget):
         else:
             self._range_label = QLabel()
             if layout == 'below':
-                self._widget_layout.addWidget(self._range_label))
+                self._widget_layout.addWidget(self._range_label)
             else:
                 lab = QLabel("Range")
                 if layout == 'single':
-                    self._widget_layout.addWidget(lab, alignment=Qt.AlignRight))
-                    self._widget_layout.addWidget(self._range_label, alignment=Qt.AlignLeft))
+                    self._widget_layout.addWidget(lab, alignment=Qt.AlignRight)
+                    self._widget_layout.addWidget(self._range_label, alignment=Qt.AlignLeft)
                 else: # layout == 'top'
                     range_layout = QVBoxLayout()
                     range_layout.addWidget(lab, alignment=Qt.AlignBottom)
@@ -232,8 +232,8 @@ class MarkedHistogram(QWidget):
         else:
             lab = QLabel(value_label)
             if layout == 'single':
-                self._widget_layout.addWidget(lab, alignment=Qt.AlignRight))
-                self._widget_layout.addWidget(self._value_entry, alignment=Qt.AlignLeft))
+                self._widget_layout.addWidget(lab, alignment=Qt.AlignRight)
+                self._widget_layout.addWidget(self._value_entry, alignment=Qt.AlignLeft)
             else:
                 value_layout = QVBoxLayout()
                 value_layout.addWidget(lab, alignment=Qt.AlignBottom)
@@ -249,8 +249,8 @@ class MarkedHistogram(QWidget):
             self._widget_layout.addWidget(self._color_button)
         else:
             if layout == 'single':
-                self._widget_layout.addWidget(cbl, alignment=Qt.AlignRight))
-                self._widget_layout.addWidget(cb, alignment=Qt.AlignLeft))
+                self._widget_layout.addWidget(cbl, alignment=Qt.AlignRight)
+                self._widget_layout.addWidget(cb, alignment=Qt.AlignLeft)
             else:
                 color_layout = QVBoxLayout()
                 color_layout.addWidget(cbl, alignment=Qt.AlignBottom)
@@ -275,7 +275,7 @@ class MarkedHistogram(QWidget):
             self.marker_help.setHidden(False)
         self._active_markers = markers
         if self._active_markers is not None:
-            self._active_markers._show()
+            self._active_markers.shown = True
             self._set_sel_marker(self._active_markers._sel_marker)
         else:
             if self.layout != 'below' and self._show_marker_help:
@@ -359,7 +359,8 @@ class MarkedHistogram(QWidget):
     def redraw_delay(self):
         return self._resize_timer.interval() / 1000.0
 
-    @redraw_delay.setter(self, secs):
+    @redraw_delay.setter
+    def redraw_delay(self, secs):
         self._resize_time.setInterval(secs * 1000)
 
     @property
@@ -407,7 +408,8 @@ class MarkedHistogram(QWidget):
     def value_width(self):
         return self._value_width
 
-    @value_width.setter(self, vw):
+    @value_width.setter
+    def value_width(self, vw):
         self._value_width = vw
         ve = self._value_entry
         fm = ve.fontMetrics()
@@ -560,7 +562,7 @@ class MarkedHistogram(QWidget):
 
         self._active_markers._update_plot()
 
-        if self._active_markers.move_callback
+        if self._active_markers.move_callback:
             self._active_markers.move_callback(m)
 
     def _move_marker_cb(self, event):
@@ -772,6 +774,7 @@ class HistogramMarkers:
         an RGBA value (integers in the range 0-255 or floats in the range 0-1)
         a color name
         a chimerax.core.colors.Color instance
+        a built-in color name
 
        The MarkedHistogram and HistogramMarker doc strings should be
        examined for further info on usage.
@@ -849,7 +852,7 @@ class HistogramMarkers:
         self._prev_coord_type = self.coord_type
 
         # values derived from options
-        self._marker_func = lambda v: HistogramMarker(markers=self, xy=v[0], rgba=self._rgba(v[1]))
+        self._marker_func = lambda v: HistogramMarker(self, v[0], self._rgba(v[1]))
         # convenience
         self._scene = self.histogram._hist_scene
 
@@ -971,6 +974,17 @@ class HistogramMarkers:
         self._unplot_markers(marker)
         self._update_plot()
 
+    @property
+    def shown(self):
+        return self._shown
+
+    @shown.setter
+    def shown(self, s):
+        if s == self._shown:
+            return
+        self._shown = s
+        self._update_plot()
+
     def snapshot_data(self):
         info = {
             'marker data': [(m.xy, m.rgba) for m in self._markers],
@@ -1088,61 +1102,42 @@ class HistogramMarkers:
             else:
                 m.scene_item = scene.addRect(x-br, y-br, 2*br, 2*br, brush=brush)
 
-    #TODO
-    def _rgba(self, colorInfo):
-        if colorInfo is None:
-            colorInfo = self.new_color
-        if isinstance(colorInfo, basestring):
-            from chimera.colorTable import getColorByName
-            colorInfo = getColorByName(colorInfo)
-        if hasattr(colorInfo, 'rgba'):
-            if callable(colorInfo.rgba):
-                return colorInfo.rgba()
-            return colorInfo.rgba
-        return colorInfo
-
-    def _show(self):
-        if self._shown:
-            return
-        self._shown = True
-        self._update_plot()
+    def _rgba(self, color_info):
+        if color_info is None:
+            color_info = self.new_color
+        return Color(color_info).rgba
 
     def _unplot_markers(self, markers=None):
         if markers is None:
             markers = self._markers
         elif isinstance(markers, HistogramMarker):
             markers = [markers]
-        canvas = self._scene
+        scene = self._scene
         for m in markers:
             if m.scene_item != None:
-                canvas.delete(m.scene_item)
+                scene.removeItem(m.scene_item)
                 m.scene_item = None
         for i in self._connector_items:
-            canvas.delete(i)
-        self.connect_ids = []
+            scene.removeItem(i)
+        self.connector_items = []
 
-    def _updateConnections(self):
-        cxy_list = map(lambda m: self._scene_xy(m.xy), self._markers)
+    def _update_connections(self):
+        cxy_list = [self._scene_xy(m.xy) for m in self._markers]
 
-        canvas = self._scene
-        color = rgba2tk(self._rgba(self.connect_color))
-        ids = []
+        scene = self._scene
+        brush = QBrush(QColor(*[int(255 * chan + 0.5) for chan in Color(self.connect_color).rgba[:3]]))
+        items = []
         for k in range(len(cxy_list) - 1):
             x0, y0 = cxy_list[k]
             x1, y1 = cxy_list[k+1]
-            id = canvas.create_line(x0, y0, x1, y1, fill=color)
-            ids.append(id)
+            item = scene.addLine(x0, y0, x1, y1, brush=brush)
+            items.append(item)
 
-        for id in self._connector_items:
-            c.delete(id)
+        for item in self._connector_items:
+            scene.removeItem(item)
+        self._connector_items = items
 
-        self._connector_items = ids
-
-        for m in self._markers:
-            canvas.tag_raise(m.scene_item)
-
-    def _updateMarkerCoordinates(self):
-        canvas = self._scene
+    def _update_marker_coordinates(self):
         br = self.box_radius
 
         marker_type = self.marker_type
@@ -1151,9 +1146,9 @@ class HistogramMarkers:
         for m in self._markers:
             x, y = self._scene_xy(m.xy)
             if marker_type == 'line':
-                canvas.coords(m.scene_item, x-br, y1, x+br, y2)
+                m.setLine(m.scene_item, x-br, y1, x+br, y2)
             else:
-                canvas.coords(m.scene_item, x-br, y-br, x+br, y+br)
+                m.setRect(m.scene_item, x-br, y-br, 2*br, 2*br)
 
     def _update_plot(self):
         self._markers.sort()
@@ -1164,55 +1159,45 @@ class HistogramMarkers:
 
         self._plot_markers()
 
-        self._updateMarkerCoordinates()
+        self._update_marker_coordinates()
 
-        if self['connect']:
-            self._updateConnections()
+        if self.connect:
+            self._update_connections()
 
-class HistogramMarker(Pmw.MegaArchetype):
+class HistogramMarker:
     """a marker on a histogram
-       
+
        Should only be created (or destroyed) with methods of a
-       HistogramMarkers instance.  See that class's doc string 
+       HistogramMarkers instance.  See that class's doc string
        for details.
 
        The only options relevant externally are 'rgba' and 'xy'.
-       'xy' should be treated as if it were read-only (use 
+       'xy' should be treated as if it were read-only (use
        HistogramMarkers methods to delete/add a marker if it
        is necessary to get one to "move" programatically).  'xy'
        values will depend on HistogramMarkers' 'coord_type' option.
     """
 
-    def __init__(self, parent=None, **kw):
-    
-        # Define the megawidget options
-        optiondefs = (
-            ('scene_item',        None,        None),
-            ('markers',    None,        Pmw.INITOPT),
-            ('rgba',    (1,1,0,0),    self._setRgba),
-            ('xy',        (0.5, 0.5),    None)
-        )
-        self.defineoptions(kw, optiondefs)
+    def __init__(self, markers, xy, rgba):
+        self.markers = markers
+        self.xy = xy
+        self._rgba = rgba
+        self.scene_item = None
 
-        # Initialise base class (after defining options)
-        Pmw.MegaArchetype.__init__(self, parent)
-
-        # Check keywords and initialise options
-        self.initialiseoptions(HistogramMarker)
-
-        # convenience
-        self._canvas = self['markers']['histogram'].component('canvas')
-
-    def __cmp__(self, other):
+    def __lt__(self, other):
         if not isinstance(other, self.__class__):
-            return False
-        return cmp(self.xy, other.xy)
+            raise ValueError("Cannot compare HistogramMarker to %s" % other.__class__.__name__)
+        return self.xy < other.xy
 
-    def _setRgba(self):
+    @property
+    def rgba(self):
+        return self._rgba
+
+    @rgba.setter
+    def rgba(self, rgba):
         if self.scene_item == None:
             return
-        self._canvas.itemconfigure(self.scene_item,
-                        fill=rgba2tk(self['rgba']))
-        histo = self['markers']['histogram']
+        self.scene_item.setBrush(QBrush(QColor(*[int(255 * chan + 0.5) for chan in rgba[:3]])))
+        histo = self.markers.histogram
         if histo.current_marker_info()[-1] == self:
-            histo._color_button.showColor(self['rgba'], doCallback=False)
+            histo._color_button.color = self.rgba
