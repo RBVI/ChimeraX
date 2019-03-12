@@ -6,6 +6,7 @@
 #
 from chimerax.core.commands import run
 from chimerax.core.logger import PlainTextLog
+from chimerax.core import buildinfo
 
 
 PDB_MMCIF_IDS = ["3fx2", "2hmg", "5xnl"]
@@ -57,6 +58,7 @@ def print_results(command, times):
     print(f"{round(run_time, 4)}: {command}")
 
 
+print(f"UCSF ChimeraX version: {buildinfo.version} ({buildinfo.date.split()[0]})")
 print("Average time: command")
 
 huge_open_cmd = f"open {HUGE_MMCIF_ID} format mmcif loginfo false"
