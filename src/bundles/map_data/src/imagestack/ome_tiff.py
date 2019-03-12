@@ -196,7 +196,7 @@ class OME_Pixels:
     def image_plane(self, filename, plane):
         im = self.image
         opened = False
-        if im is None or filename != im.filename or plane < self._last_plane:
+        if im is None or filename != im.filename:
             # Switch image files for multi-file OME TIFF data.
             from os.path import dirname, join
             dpath = dirname(self.path)
