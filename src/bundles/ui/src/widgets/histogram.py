@@ -145,14 +145,16 @@ class MarkedHistogram(QWidget):
             self._prev_markers = None
             self._prev_marker = None
 
-        # Create the add/delete marker help
-        if show_marker_help and layout != 'below':
-            self.marker_help = QLabel("Ctrl-click on histogram to add or delete thresholds")
-        else:
-            self.marker_help = None
-
         overall_layout = QVBoxLayout()
         self.setLayout(overall_layout)
+
+        # Create the add/delete marker help
+        if show_marker_help and layout != 'below':
+            self._marker_help = QLabel("Ctrl-click on histogram to add or delete thresholds")
+            self._marker_help.setAlignment(Qt.AlignCenter)
+            overall_layout.addWidget(self._marker_help)
+        else:
+            self._marker_help = None
 
         # Create the data area
         class HistFrame(QFrame):
@@ -175,36 +177,34 @@ class MarkedHistogram(QWidget):
         self._hist_view.resizeEvent = self._redraw
         self._hist_scene.mousePressEvent = lambda event: self._add_or_delete_marker_cb(event) \
             if event.modifiers() & mod_key_info("control")[0] else self._select_marker_cb(event)
+        self._hist_scene.mouseMoveEvent = lambda event: self._move_marker_cb(event) \
+            if self._drag_marker else super().mouseMoveEvent(event)
         self._hist_scene.mouseReleaseEvent = self._button_up_cb
-        self._resize_timer = QTimer()
-        self._resize_timer.timeout.connect(self._redraw_cb)
-        self._resize_timer.start(1000 * redraw_delay)
-        self._resize_timer.stop()
+        self._redraw_timer = QTimer()
+        self._redraw_timer.timeout.connect(self._redraw_cb)
+        self._redraw_timer.start(1000 * redraw_delay)
+        self._redraw_timer.stop()
         self._data_widgets.addWidget(self._hist_view)
 
         # Create the histogram replacement label
         self._no_histogram_label = QLabel()
+        self._no_histogram_label.setAlignment(Qt.AlignCenter)
         self._data_widgets.addWidget(self._no_histogram_label)
         overall_layout.addWidget(self._data_widgets, stretch=1)
 
-        # Show the histogram or the no-data label
-        self.data_source = data_source
-
         # Create range label(s)
+        self._widget_area = QWidget()
         self._widget_layout = QHBoxLayout()
+        self._min_label = self._max_label = None
         if min_label or max_label:
             min_max_layout = QHBoxLayout()
             if min_label:
                 self._min_label = QLabel()
                 min_max_layout.addWidget(self._min_label, alignment=Qt.AlignLeft & Qt.AlignTop)
-            else:
-                self._min_label = None
 
             if max_label:
                 self._max_label = QLabel()
                 min_max_layout.addWidget(self._max_label, alignment=Qt.AlignRight & Qt.AlignTop)
-            else:
-                self._max_label = None
             overall_layout.addLayout(min_max_layout)
         else:
             self._range_label = QLabel()
@@ -220,7 +220,8 @@ class MarkedHistogram(QWidget):
                     range_layout.addWidget(lab, alignment=Qt.AlignBottom)
                     range_layout.addWidget(self._range_label, alignment=Qt.AlignTop)
                     self._widget_layout.addLayout(range_layout)
-        overall_layout.addLayout(self._widget_layout)
+        self._widget_area.setLayout(self._widget_layout)
+        overall_layout.addWidget(self._widget_area)
 
         # Create value widget
         self._value_entry = QLineEdit()
@@ -243,7 +244,8 @@ class MarkedHistogram(QWidget):
         # Create color button widget
         from .color_button import ColorButton
         self._color_button = cb = ColorButton()
-        self._color_button.color+changed.connect(self._color_button_cb)
+        cb.color_changed.connect(lambda rgba8: self._color_button_cb([c/255.0 for c in rgba8]))
+        cb.setEnabled(False)
         self._color_button_label = cbl = QLabel("Color")
         if layout == 'below':
             self._widget_layout.addWidget(self._color_button)
@@ -257,7 +259,9 @@ class MarkedHistogram(QWidget):
                 color_layout.addWidget(cb, alignment=Qt.AlignTop)
                 self._widget_layout.addLayout(color_layout)
         self._color_button_shown = True
-        self.color_button = color_button
+
+        # Show the histogram or the no-data label
+        self.data_source = data_source
 
     def activate(self, markers):
         """Make the given set of markers the currently active set
@@ -272,17 +276,17 @@ class MarkedHistogram(QWidget):
         if self._active_markers is not None:
             self._active_markers._hide()
         elif self.layout != 'below' and self._show_marker_help:
-            self.marker_help.setHidden(False)
+            self._marker_help.setHidden(False)
         self._active_markers = markers
         if self._active_markers is not None:
             self._active_markers.shown = True
             self._set_sel_marker(self._active_markers._sel_marker)
         else:
             if self.layout != 'below' and self._show_marker_help:
-                self.marker_help.setHidden(True)
-            if self.select_callback:
+                self._marker_help.setHidden(True)
+            if self._select_callback:
                 if self._prev_marker is not None:
-                    self.select_callback(self._prev_markers, self._prev_marker, None, None)
+                    self._select_callback(self._prev_markers, self._prev_marker, None, None)
                 self._prev_markers = None
                 self._prev_marker = None
 
@@ -357,11 +361,11 @@ class MarkedHistogram(QWidget):
 
     @property
     def redraw_delay(self):
-        return self._resize_timer.interval() / 1000.0
+        return self._redraw_timer.interval() / 1000.0
 
     @redraw_delay.setter
     def redraw_delay(self, secs):
-        self._resize_time.setInterval(secs * 1000)
+        self._redraw_timer.setInterval(secs * 1000)
 
     @property
     def scaling(self):
@@ -415,7 +419,7 @@ class MarkedHistogram(QWidget):
         fm = ve.fontMetrics()
         tm = ve.textMargins()
         cm = ve.contentsMargins()
-        w = 4*fm.width('w') + tm.left() + tm.right() + cm.left() + cm.right() + 8
+        w = vw*fm.width('w') + tm.left() + tm.right() + cm.left() + cm.right() + 8
         ve.setMaximumWidth(w)
 
     def _abs2rel(self, abs_xy):
@@ -461,7 +465,7 @@ class MarkedHistogram(QWidget):
                 if self.status_line:
                     self.status_line("Maximum of %d markers\n" % max_marks)
                 return
-            xy = self._abs_xy((event.x(), event.y()))
+            xy = self._abs_xy((event.scenePos().x(), event.scenePos().y()))
             if self._active_markers.coord_type == 'relative':
                 xy = self._abs2rel(xy)
             sel_marker = self._active_markers._sel_marker
@@ -482,7 +486,6 @@ class MarkedHistogram(QWidget):
 
     def _button_up_cb(self, event=None):
         if self._drag_marker:
-            self._hist_scene.mouseMoveEvent = QGraphicsScene.mouseMoveEvent
             self._drag_marker = None
             if self._active_markers.move_callback:
                 self._active_markers.move_callback('end')
@@ -566,7 +569,7 @@ class MarkedHistogram(QWidget):
             self._active_markers.move_callback(m)
 
     def _move_marker_cb(self, event):
-        mouse_xy = self._abs_xy((event.x(), event.y()))
+        mouse_xy = self._abs_xy((event.scenePos().x(), event.scenePos().y()))
         dx = mouse_xy[0] - self._last_mouse_xy[0]
         dy = mouse_xy[1] - self._last_mouse_xy[1]
         self._last_mouse_xy = mouse_xy
@@ -591,13 +594,13 @@ class MarkedHistogram(QWidget):
             if self._max_label:
                 self._max_label.setText("")
             if self.layout != 'below' and self._show_marker_help:
-                self.marker_help.setHidden(True)
-            self._widget_layout.setHidden(True)
+                self._marker_help.setHidden(True)
+            self._widget_area.setHidden(True)
         else:
             self._data_widgets.setCurrentWidget(self._hist_view)
             if self.layout != 'below' and self._show_marker_help:
-                self.marker_help.setHidden(False)
-            self._widget_layout.setHidden(False)
+                self._marker_help.setHidden(False)
+            self._widget_area.setHidden(False)
         self._draw_min = self._draw_max = None
         self._redraw_cb()
 
@@ -606,6 +609,7 @@ class MarkedHistogram(QWidget):
         self._redraw_timer.start()
 
     def _redraw_cb(self):
+        self._redraw_timer.stop()
         ds = self.data_source
         if isinstance(ds, str):
             # displaying a text label right now
@@ -644,7 +648,9 @@ class MarkedHistogram(QWidget):
         if not self._min_label and not self._max_label:
             self._range_label.setText("%s - %s" % (self._str_val(self._min_val), self._str_val(self._max_val)))
 
-        for bar in self._hist_bars.childItems():
+        bars = self._hist_bars.childItems()
+        for bar in bars:
+            self._hist_bars.removeFromGroup(bar)
             self._hist_scene.removeItem(bar)
 
         self._ymax = max(self._bins)
@@ -657,7 +663,7 @@ class MarkedHistogram(QWidget):
         max_height = max(self._bins)
         self._max_height = max_height
         h_scale = float(hist_height - 1) / max_height
-        border = 0
+        self._border = border = 0
         bottom = hist_height + border - 1
         self._bottom = bottom
 
@@ -675,7 +681,7 @@ class MarkedHistogram(QWidget):
                 x1 = border + b * x_scale
                 x2 = border + (b+1) * x_scale
                 h = int(h_scale * n)
-                rect = self._hist_scene.addRect(x1, bottom, x2-x1, h)
+                rect = self._hist_scene.addRect(x1, bottom-h, x2-x1, h)
                 self._hist_bars.addToGroup(rect)
                 rect.setZValue(-1) # keep bars below markers
         self._markable = True
@@ -684,6 +690,7 @@ class MarkedHistogram(QWidget):
             marker = self._active_markers._sel_marker
             if marker:
                 self._set_value_entry(self._marker2abs(marker)[0])
+        self._hist_scene.setSceneRect(self._hist_scene.itemsBoundingRect())
 
     def _rel2abs(self, rel_xy):
         x, y = rel_xy
@@ -698,21 +705,23 @@ class MarkedHistogram(QWidget):
             if marker is not None:
                 return
         # show value where histogram clicked
-        self._set_value_entry(self._abs_xy((event.x(), 0))[0])
+        self._set_value_entry(self._abs_xy((event.scenePos().x(), 0))[0])
 
     def _set_sel_marker(self, marker, drag_start=None):
         self._active_markers._sel_marker = marker
         if not marker:
             self._color_button.color = "gray"
+            self._color_button.setEnabled(False)
             self._set_value_entry("")
             self._value_entry.setEnabled(False)
         else:
+            self._color_button.setEnabled(True)
             self._color_button.color = marker.rgba
             self._value_entry.setEnabled(True)
             self._set_value_entry(self._marker2abs(marker)[0])
-        if self.select_callback:
+        if self._select_callback:
             if marker is not None or self._prev_marker is not None:
-                self.select_callback(self._prev_markers, self._prev_marker, self._active_markers, marker)
+                self._select_callback(self._prev_markers, self._prev_marker, self._active_markers, marker)
             self._prev_markers = self._active_markers
             self._prev_marker = marker
         if not drag_start:
@@ -721,8 +730,7 @@ class MarkedHistogram(QWidget):
         if not marker:
             return
 
-        self._last_mouse_xy = self._abs_xy((drag_start.x, drag_start.y))
-        self._hist_scene.mouseMoveEvent = self._move_marker_cb
+        self._last_mouse_xy = self._abs_xy((drag_start.scenePos().x(), drag_start.scenePos().y()))
         if self._active_markers.move_callback:
             self._active_markers.move_callback('start')
 
@@ -840,7 +848,7 @@ class HistogramMarkers:
         self._marker_type = marker_type
         self._max_marks = max_marks
         self._min_marks = min_marks
-        self._move_callback = callback
+        self._move_callback = move_callback
         self._new_color = new_color
 
         # Check keywords and initialise options
@@ -1041,11 +1049,11 @@ class HistogramMarkers:
         self._prev_coord_type = self.coord_type
 
     def _drag_region(self):
-        rect = self._scene._hist_bars.boundingRect()
+        rect = self.histogram._hist_bars.boundingRect()
         x1, y1, x2, y2 = rect.left(), rect.bottom(), rect.right(), rect.top()
         br = self.box_radius
-        y1 += br + 1
-        y2 -= br + 1
+        y1 -= br + 1
+        y2 += br + 1
         return x1, y1, x2, y2
 
     def _hide(self):
@@ -1098,7 +1106,7 @@ class HistogramMarkers:
             x, y = self._scene_xy(m.xy)
             brush = QBrush(QColor(*[int(255 * chan + 0.5) for chan in m.rgba[:3]]))
             if marker_type == 'line':
-                m.scene_item = scene.addRect(x-br, y1, 2*br, y2-y1, brush=brush)
+                m.scene_item = scene.addRect(x-br, y2, 2*br, y1-y2, brush=brush)
             else:
                 m.scene_item = scene.addRect(x-br, y-br, 2*br, 2*br, brush=brush)
 
@@ -1146,9 +1154,9 @@ class HistogramMarkers:
         for m in self._markers:
             x, y = self._scene_xy(m.xy)
             if marker_type == 'line':
-                m.setLine(m.scene_item, x-br, y1, x+br, y2)
+                m.scene_item.setRect(x-br, y2, 2*br, y1-y2)
             else:
-                m.setRect(m.scene_item, x-br, y-br, 2*br, 2*br)
+                m.scene_item.setRect(x-br, y-br, 2*br, 2*br)
 
     def _update_plot(self):
         self._markers.sort()
@@ -1198,6 +1206,7 @@ class HistogramMarker:
         if self.scene_item == None:
             return
         self.scene_item.setBrush(QBrush(QColor(*[int(255 * chan + 0.5) for chan in rgba[:3]])))
+        self._rgba = rgba
         histo = self.markers.histogram
         if histo.current_marker_info()[-1] == self:
             histo._color_button.color = self.rgba
