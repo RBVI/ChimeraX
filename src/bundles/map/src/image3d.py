@@ -1043,7 +1043,8 @@ class BlendedImage(ImageRender):
     return a
 
   def _auto_color_mode(self):
-    return 'rgba8'
+    opaque = self._rendering_options.color_mode.startswith('opaque')
+    return 'rgb8' if opaque else 'rgba8'
     
 
 # ---------------------------------------------------------------------------

@@ -35,6 +35,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>maxFrameRate</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>frameRate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>waitForVsync</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>colorDepth</b>&nbsp;&nbsp;8&nbsp;|&nbsp;16&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>graphics</b> &nbsp;<b>driver</b> 
@@ -95,6 +96,17 @@ but depends on the graphics driver settings).
 Without synchronization, the frame rate can exceed the vertical refresh rate 
 and the display can exhibit image tearing.
 </p><p>
+<a name="colorDepth"></a>
+The <b>colorDepth</b> option sets the number of bits used per color component
+(red, green, blue, and alpha) in offscreen framebuffers, with
+initial default <b>8</b>. Switching to 16 bits causes all rendering to
+occur in an offscreen framebuffer and then get copied to the display,
+and may slow the frame rate by a factor of two or more.
+The 16-bit setting may improve the appearance of
+<a href="volume.html#dispsolid">volume solid rendering</a> 
+if the color mode is also set to 16 bits, <i>e.g.</i>, 
+<b><a href="volume.html#cmode">volume colorMode</a> auto16</b>.
+</p><p>
 Given without options, <b>graphics</b> reports the 
 current triangles per atom and bond, 
 ribbon divisions per residue, and maximum frame rate
@@ -116,5 +128,5 @@ triangles, with breakdowns per model and per representation type within a model
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2018</address>
+March 2019</address>
 </body></html>

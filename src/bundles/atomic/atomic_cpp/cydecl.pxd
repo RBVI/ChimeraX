@@ -180,6 +180,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         bool has_alt_loc(char)
         int hide()
         const char* idatm_type()
+        bool in_ribbon()
         bool is_backbone(BackboneExtent)
         bool is_missing_heavy_template_neighbors(bool, bool, bool)
         bool is_ribose()
@@ -211,6 +212,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_hide(int)
         void set_hide_bits(int)
         void set_idatm_type(const char*)
+        void set_in_ribbon(bool)
         void set_name(const char*)
         void set_occupancy(float)
         void set_radius(float) except +

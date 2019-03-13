@@ -165,7 +165,7 @@ def file_type_from_suffix(path):
   for ff in file_formats:
     for suffix in ff.suffixes:
       if has_suffix(path, suffix):
-        return mname
+        return ff.name
   return None
 
 # -----------------------------------------------------------------------------

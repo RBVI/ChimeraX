@@ -32,8 +32,6 @@ def ome_image_grids(path, found_paths = None):
 from .. import GridData
 class OMEImageGrid(GridData):
 
-  must_read_full_xy_planes = True	# Hint to optimize caching performance
-
   def __init__(self, ome_pixels, channel, time, grid_id):
 
     self.ome_pixels = d = ome_pixels
@@ -65,25 +63,13 @@ class OMEImageGrid(GridData):
         
   # ---------------------------------------------------------------------------
   #
-  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
+  def read_xy_plane(self, k):
 
-    from ..readarray import allocate_array
-    array = allocate_array(ijk_size, self.value_type, ijk_step, progress)
-    i0, j0, k0 = ijk_origin
-    isz, jsz, ksz = ijk_size
-    istep, jstep, kstep = ijk_step
     dsize = self.size
-    from numpy import zeros
-    ia = zeros((dsize[1],dsize[0]), self.value_type)
-    ia_1d = ia.ravel()
-    c, t = self.channel, self.time
-    op = self.ome_pixels
-    for k in range(k0, k0+ksz, kstep):
-      if progress:
-        progress.plane((k-k0)//kstep)
-      op.plane_data(c, t, k, ia_1d)
-      array[(k-k0)//kstep,:,:] = ia[j0:j0+jsz:jstep,i0:i0+isz:istep]
-    return array
+    from numpy import empty
+    a = empty((dsize[1],dsize[0]), self.value_type)
+    self.ome_pixels.plane_data(self.channel, self.time, k, a.ravel())
+    return a
         
   # ---------------------------------------------------------------------------
   #
@@ -196,7 +182,7 @@ class OME_Pixels:
     def image_plane(self, filename, plane):
         im = self.image
         opened = False
-        if im is None or filename != im.filename or plane < self._last_plane:
+        if im is None or filename != im.filename:
             # Switch image files for multi-file OME TIFF data.
             from os.path import dirname, join
             dpath = dirname(self.path)

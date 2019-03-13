@@ -2433,7 +2433,7 @@ class Histogram_Pane:
                            show_outline_box = True)
           v.show(representation = 'solid', show = v.shown())
           v.expand_single_plane()
-          self.enable_move_planes()
+          self.enable_crop_box()
       
   # ---------------------------------------------------------------------------
   #
@@ -2441,6 +2441,13 @@ class Histogram_Pane:
       # Bind move planes mouse mode
       mm = self.dialog.session.ui.mouse_modes
       mm.bind_mouse_mode('right', [], mm.named_mode('move planes'))
+      
+  # ---------------------------------------------------------------------------
+  #
+  def enable_crop_box(self):
+      # Bind crop box mouse mode
+      mm = self.dialog.session.ui.mouse_modes
+      mm.bind_mouse_mode('right', [], mm.named_mode('crop volume'))
       
   # ---------------------------------------------------------------------------
   #
