@@ -32,8 +32,6 @@ def image_stack_grids(paths):
 #
 class ImageStackGrid(GridData):
 
-  must_read_full_xy_planes = True	# Hint to optimize caching performance
-
   def __init__(self, d, channel = None):
 
     self.image_stack = d
@@ -44,9 +42,8 @@ class ImageStackGrid(GridData):
 
   # ---------------------------------------------------------------------------
   #
-  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
+  def read_xy_plane(self, k):
 
-    from ..readarray import allocate_array
-    m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
-    self.image_stack.read_matrix(ijk_origin, ijk_size, ijk_step, self.channel, m, progress)
+    s = self.image_stack
+    m = s.read_plane(k, s.multipage_image(), self.channel)
     return m

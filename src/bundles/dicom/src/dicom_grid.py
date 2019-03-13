@@ -89,7 +89,6 @@ class DicomGrid(GridData):
   initial_rendering_options = {'projection_mode': '3d',
                                'colormap_on_gpu': True,
                                'full_region_on_gpu': True}
-  must_read_full_xy_planes = True	# Hint to optimize caching performance
 
   def __init__(self, d, time = None, channel = None):
 
@@ -113,11 +112,8 @@ class DicomGrid(GridData):
 
   # ---------------------------------------------------------------------------
   #
-  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
+  def read_xy_plane(self, k):
 
-    from chimerax.map.data.readarray import allocate_array
-    m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
     c = self.channel if self.multichannel else None
-    self.dicom_data.read_matrix(ijk_origin, ijk_size, ijk_step,
-                                self.time, c, m, progress)
+    m = self.dicom_data.read_plane(k, self.time, c)
     return m

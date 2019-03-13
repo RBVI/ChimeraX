@@ -520,7 +520,7 @@ class DicomData:
       for k in range(k0, k0+ksz, kstep):
         if progress:
           progress.plane((k-k0)//kstep)
-        p = self.read_plane(k, time, channel)
+        p = self.read_plane(k, time, channel, rescale = False)
         array[(k-k0)//kstep,:,:] = p[j0:j0+jsz:jstep,i0:i0+isz:istep]
 
     if self.rescale_slope != 1:
@@ -531,7 +531,7 @@ class DicomData:
 
   # ---------------------------------------------------------------------------
   #
-  def read_plane(self, k, time = None, channel = None):
+  def read_plane(self, k, time = None, channel = None, rescale = True):
     if self._reverse_planes:
       klast = self.data_size()[2]-1
       k = klast-k
@@ -541,6 +541,11 @@ class DicomData:
     data = d.pixel_array
     if channel is not None:
       data = data[:,:,channel]
+    if rescale:
+      if self.rescale_slope != 1:
+        data *= self.rescale_slope
+      if self.rescale_intercept != 0:
+        data += self.rescale_intercept
     return data
 
   # ---------------------------------------------------------------------------

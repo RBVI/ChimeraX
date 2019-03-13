@@ -33,8 +33,6 @@ def imagej_grids(path):
 from .. import GridData
 class ImageJGrid(GridData):
 
-  must_read_full_xy_planes = True	# Hint to optimize caching performance
-
   def __init__(self, imagej_pixels, channel = None, time = None):
 
     self.imagej_pixels = d = imagej_pixels
@@ -54,30 +52,19 @@ class ImageJGrid(GridData):
         
   # ---------------------------------------------------------------------------
   #
-  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
+  def read_xy_plane(self, k):
 
-    from ..readarray import allocate_array
-    array = allocate_array(ijk_size, self.value_type, ijk_step, progress)
-    i0, j0, k0 = ijk_origin
-    isz, jsz, ksz = ijk_size
-    istep, jstep, kstep = ijk_step
     dsize = self.size
-    from numpy import zeros
-    ia = zeros((dsize[1],dsize[0]), self.value_type)
-    ia_1d = ia.ravel()
+    from numpy import empty
+    a = empty((dsize[1],dsize[0]), self.value_type)
     c = self.channel
     if c is None:
         c = 0
     pi = self.imagej_pixels
     nc = pi.ncolors
     ch, cc = c // nc, c % nc
-    t = self.time
-    for k in range(k0, k0+ksz, kstep):
-      if progress:
-        progress.plane((k-k0)//kstep)
-      pi.plane_data(k, cc, ch, t, ia_1d)
-      array[(k-k0)//kstep,:,:] = ia[j0:j0+jsz:jstep,i0:i0+isz:istep]
-    return array
+    pi.plane_data(k, cc, ch, self.time, a.ravel())
+    return a
 
 # -----------------------------------------------------------------------------
 #  Example ImageJ TIFF description tag:
