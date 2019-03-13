@@ -494,11 +494,14 @@ extern "C" EXPORT void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
 {
     Atom **a = static_cast<Atom **>(atoms);
     std::unordered_map<Structure*, std::vector<Atom*>> s_map;
+    std::unordered_set<Structure*> ribbon_changed;
     Coord coord;
     try {
         for (size_t i = 0; i != n; ++i) {
             s_map[(*a)->structure()].push_back(*a);
             coord.set_xyz(*xyz, *(xyz+1), *(xyz+2));
+            if ((*a)->in_ribbon())
+                ribbon_changed.insert((*a)->structure());
             (*a++)->set_coord(coord, /* track_change */ false);
             xyz += 3;
         }
@@ -509,8 +512,9 @@ extern "C" EXPORT void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
             ct->add_modified_set(s, atoms, ChangeTracker::REASON_COORD);
             ct->add_modified(s, s->active_coord_set(), ChangeTracker::REASON_COORDSET);
             s->set_gc_shape();
-            s->set_gc_ribbon();
         }
+        for (auto &s: ribbon_changed)
+            s->set_gc_ribbon();
     } catch (...) {
         molc_error();
     }
@@ -2848,6 +2852,8 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         Atom *prev_o = NULL;
         for (size_t i = 0; i != n; ++i) {
             Residue* r = res_array[i];
+            for (auto atom: r->atoms())
+                atom->set_in_ribbon(false);
             Atom *ca = r->find_atom("CA");
             if (ca != NULL) {
                 // Case 1: amino acid
@@ -2937,6 +2943,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
             *data++ = c[0];
             *data++ = c[1];
             *data++ = c[2];
+            atom->set_in_ribbon(true);
         }
         PyTuple_SetItem(o, 2, ca);
 
@@ -2986,6 +2993,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 guide[0] = c[0];
                 guide[1] = c[1];
                 guide[2] = c[2];
+                guides[i]->set_in_ribbon(true);
             }
             //
             // Handle first residue
@@ -3008,6 +3016,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                     guide[0] = c[0];
                     guide[1] = c[1];
                     guide[2] = c[2];
+                    guides[0]->set_in_ribbon(true);
                 }
             }
             //
@@ -3031,6 +3040,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                     guide[0] = c[0];
                     guide[1] = c[1];
                     guide[2] = c[2];
+                    guides[last]->set_in_ribbon(true);
                 }
             }
             PyTuple_SetItem(o, 3, ga);
@@ -3087,6 +3097,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                         center = atom;
                     else if (want_guides && (name == "O" || name == "C1'"))
                         guide = atom;
+                    atom->set_in_ribbon(false);
                 }
                 if (center == NULL) {
                     // Do not care if there is a guide atom
@@ -3147,6 +3158,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             float *data;
             PyObject *ca = python_float_array(centers.size(), 3, &data);
             for (auto atom : centers) {
+                atom->set_in_ribbon(true);
                 const Coord &c = atom->coord();
                 *data++ = c[0];
                 *data++ = c[1];
@@ -3156,6 +3168,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             if (has_guides) {
                 PyObject *ga = python_float_array(guides.size(), 3, &data);
                 for (auto atom : guides) {
+                    atom->set_in_ribbon(true);
                     const Coord &c = atom->coord();
                     *data++ = c[0];
                     *data++ = c[1];
