@@ -25,6 +25,7 @@ class ImageRender:
     self.name = name
     self._data = grid_data
     self._region = region
+    self._last_ijk_to_xyz_transform = grid_data.ijk_to_xyz_transform
     self._colormap = colormap
     self._rendering_options = rendering_options.copy()
 
@@ -54,21 +55,25 @@ class ImageRender:
   # ---------------------------------------------------------------------------
   #
   def set_region(self, region):
-      if region != self._region:
-        same_step = (region[2] == self._region[2])
-        self._region = region
-        if self._rendering_options.full_region_on_gpu and same_step:
-          self._update_planes_for_new_region()
-        else:
-          self._remove_planes()
-          if not same_step:
-            self._need_color_update()
-        self._region = region
+      if region == self._region and self._data.ijk_to_xyz_transform == self._last_ijk_to_xyz_transform:
+        return
 
-        bi = self._blend_image
-        if bi and self is bi.master_image:
-          bi.set_region(region)
-          self._drawing.redraw_needed()	# Force redraw since BlendImage is not in draw hierarchy.
+      self._last_ijk_to_xyz_transform = self._data.ijk_to_xyz_transform
+      
+      same_step = (region[2] == self._region[2])
+      self._region = region
+      if self._rendering_options.full_region_on_gpu and same_step:
+        self._update_planes_for_new_region()
+      else:
+        self._remove_planes()
+        if not same_step:
+          self._need_color_update()
+      self._region = region
+
+      bi = self._blend_image
+      if bi and self is bi.master_image:
+        bi.set_region(region)
+        self._drawing.redraw_needed()	# Force redraw since BlendImage is not in draw hierarchy.
 
   # ---------------------------------------------------------------------------
   #
