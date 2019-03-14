@@ -26,6 +26,8 @@ class _PresetsBundleAPI(BundleAPI):
         """Install presets manager into existing session"""
         from .manager import PresetsManager
         session.presets = PresetsManager(session)
+        from .builtin import register_builtin_presets
+        register_builtin_presets(session)
 
     @staticmethod
     def finish(session, bundle_info):
