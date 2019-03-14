@@ -25,6 +25,9 @@ def preset_cmd(session, text1, text2=None):
         cat_text = None
         preset_text = text1
     else:
+        # RestOfLine arg doesn't strip quoting; do it by hand
+        if text2[0] in ('"', "'") and text2[0] == text2[-1]:
+            text2 = text2[1:-1]
         cat_text, preset_text = text1, text2
 
     preset_map = session.presets.presets_by_category

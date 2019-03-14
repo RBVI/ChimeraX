@@ -80,6 +80,7 @@
     <ChimeraXClassifier>Command :: select :: General Controls :: select models or parts thereof</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~select :: General Controls :: unselect models or parts thereof</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: set :: General Controls :: set various global parameters</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~set :: General Controls :: revert various global parameters to their default value</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: setattr :: General Controls :: set Python attribute values for structure elements</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: show :: Viewing Controls :: display (parts of) a model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: display :: Viewing Controls :: display (parts of) a model</ChimeraXClassifier>
