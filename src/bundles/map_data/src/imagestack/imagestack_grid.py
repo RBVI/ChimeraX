@@ -19,7 +19,7 @@ from .. import GridData
 def image_stack_grids(paths):
   from . import imagestack_format
   d = imagestack_format.Image_Stack_Data(paths)
-  if d.mode == 'RGB':
+  if d.is_rgb:
     grids = [ImageStackGrid(d, channel) for channel in (0,1,2)]
     colors = [(1,0,0,1), (0,1,0,1), (0,0,1,1)]
     for g,rgba in zip(grids,colors):
@@ -42,8 +42,8 @@ class ImageStackGrid(GridData):
 
   # ---------------------------------------------------------------------------
   #
-  def read_xy_plane(self, k):
+  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
     s = self.image_stack
-    m = s.read_plane(k, s.multipage_image(), self.channel)
+    m = s.read_matrix(ijk_origin, ijk_size, ijk_step, self.channel, progress)
     return m

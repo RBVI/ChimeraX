@@ -49,22 +49,26 @@ class ImageJGrid(GridData):
                       file_type = 'imagestack',
                       channel = channel,
                       time = time)
-        
-  # ---------------------------------------------------------------------------
-  #
-  def read_xy_plane(self, k):
 
-    dsize = self.size
-    from numpy import empty
-    a = empty((dsize[1],dsize[0]), self.value_type)
+  # ---------------------------------------------------------------------------
+  # Reading multiple planes at a time is twice as fast as one plane at a time
+  # using tifffile.py so use read_matrix() instead of read_xy_plane().
+  #
+  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
+
+    i0, j0, k0 = ijk_origin
+    isz, jsz, ksz = ijk_size
+    istep, jstep, kstep = ijk_step
     c = self.channel
     if c is None:
         c = 0
     pi = self.imagej_pixels
     nc = pi.ncolors
     ch, cc = c // nc, c % nc
-    pi.plane_data(k, cc, ch, self.time, a.ravel())
-    return a
+    klist = range(k0, k0+ksz, kstep)
+    a = pi.planes_data(klist, cc, ch, self.time)
+    array = a[:, j0:j0+jsz:jstep,i0:i0+isz:istep]
+    return array
 
 # -----------------------------------------------------------------------------
 #  Example ImageJ TIFF description tag:
@@ -87,34 +91,33 @@ class ImageJGrid(GridData):
 #
 def imagej_pixels(path):
 
-    X_RESOLUTION_TAG = 282
-    Y_RESOLUTION_TAG = 283
-    DESCRIPTION_TAG = 270
+    from tifffile import TiffFile, TIFF
+    tif = TiffFile(path)
+    pages = tif.pages
+    page0 = pages[0]
+    tags = page0.tags
     
-    from PIL import Image
-    i = Image.open(path)
-
     pixel_width = 1.0
-    if X_RESOLUTION_TAG in i.tag:
-        v = i.tag[X_RESOLUTION_TAG]
-        num,denom = v[0]
+    if 'XResolution' in tags:
+        v = tags['XResolution'].value
+        num,denom = v
         if num != 0:
             pixel_width = denom/num	# 1/value
 
     pixel_height = 1.0
-    if Y_RESOLUTION_TAG in i.tag:
-        v = i.tag[Y_RESOLUTION_TAG]
-        num,denom = v[0]
+    if 'YResolution' in tags:
+        v = tags['YResolution'].value
+        num,denom = v
         if num != 0:
             pixel_height = denom/num	# 1/value
 
     pixel_size = (pixel_width, pixel_height)
 
     header = None
-    for d in i.tag[DESCRIPTION_TAG]:
+    if 'ImageDescription' in tags:
+        d = tags['ImageDescription'].value
         if d.startswith('ImageJ='):
             header = d
-            break
 
     if header is None:
         from os.path import basename
@@ -130,19 +133,20 @@ def imagej_pixels(path):
 
     from os.path import basename
     name = basename(path)
-    xsize, ysize = i.size
-    zsize = int(h['slices'])
+    shape = page0.shape
+    ysize, xsize = shape[:2]
+    zsize = int(h['slices']) if 'slices' in h else len(pages)
     grid_size = (xsize, ysize, zsize)
     zspacing = float(h['spacing']) if 'spacing' in h else 1
     grid_spacing = (pixel_width, pixel_height, zspacing)
     nc = int(h['channels']) if 'channels' in h else 1
     nt = int(h['frames']) if 'frames' in h else 1
-    from . import imagestack_format
-    value_type = imagestack_format.pillow_numpy_value_type(i.mode)
-    ncolors = 3 if i.mode == 'RGB' else 1
-    from .imagestack_format import image_count
-    multiframe = (image_count(i, max=2) > 1)
+    value_type = page0.dtype
+    ncolors = 3 if page0.photometric == TIFF.PHOTOMETRIC.RGB else 1
+    multiframe = (zsize > 1)
 
+    tif.close()
+    
     pi = ImageJ_Pixels(path, name, value_type, grid_size, grid_spacing, ncolors, nc, nt, multiframe)
     return pi
 
@@ -163,7 +167,33 @@ class ImageJ_Pixels:
         self.image = None
         self._last_plane = 0
 
+    def planes_data(self, klist, color_component, channel, time):
+        '''
+        Read multiple planes using tifffile.py which is about 5 times
+        faster than Pillow.
+        '''
+        nc = self.nchannels
+        pbase = 0
+        if channel is not None:
+            pbase += channel
+        if time is not None:
+            nz = self.grid_size[2]
+            pbase += nz*nc*time
+
+        plist = [pbase + k for k in klist] if nc == 1 else [pbase + nc*k for k in klist]
+        from tifffile import TiffFile
+        with TiffFile(self.path) as tif:
+            a = tif.asarray(key = plist)
+
+        if a.ndim == 4:
+            a = a[:,:,:,color_component]
+        elif a.ndim == 2:
+            a = a.reshape((1,) + tuple(a.shape))	# Make single-plane 3d
+            
+        return a
+        
     def plane_data(self, k, color_component, channel, time, pixel_values):
+        '''Read single plane using Pillow.'''
         nc = self.nchannels
         plane = nc*k if nc > 1 else k
         if channel is not None:
