@@ -4,7 +4,9 @@
 # This file is meant to be run weekly, and compared with
 # previous weeks, so changes in performance can daylighted.
 #
+import gc
 import os
+import socket
 import subprocess
 from chimerax.core.commands import run
 from chimerax.core.logger import PlainTextLog
@@ -17,6 +19,7 @@ COUNT = 5
 
 
 def get_memory_use():
+    gc.collect()
     output = subprocess.check_output(['/usr/bin/pmap', str(os.getpid())])
     usage = output.split()[-1].decode()
     return usage
@@ -74,6 +77,7 @@ def print_delta_memory(tag, first, second):
 
 
 print(f"UCSF ChimeraX version: {buildinfo.version} ({buildinfo.date.split()[0]})")
+print(f"Running benchmark on {socket.gethostname()}")
 
 start_usage = get_memory_use()
 print(f"Starting memory use:  {start_usage}")
