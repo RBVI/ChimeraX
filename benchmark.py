@@ -4,6 +4,8 @@
 # This file is meant to be run weekly, and compared with
 # previous weeks, so changes in performance can daylighted.
 #
+import os
+import subprocess
 from chimerax.core.commands import run
 from chimerax.core.logger import PlainTextLog
 from chimerax.core import buildinfo
@@ -12,6 +14,12 @@ from chimerax.core import buildinfo
 PDB_MMCIF_IDS = ["3fx2", "2hmg", "5xnl"]
 HUGE_MMCIF_ID = "3j3q"
 COUNT = 5
+
+
+def get_memory_use():
+    output = subprocess.check_output(['/usr/bin/pmap', str(os.getpid())])
+    usage = output.split()[-1].decode()
+    return usage
 
 
 class NoOutputLog(PlainTextLog):
@@ -37,6 +45,7 @@ def time_command(command):
 
 def run_command(command, times):
     t = time_command(command)
+    #session.main_view.check_for_drawing_change()
     times.append(t)
 
 
@@ -59,22 +68,25 @@ def print_results(command, times):
 
 
 print(f"UCSF ChimeraX version: {buildinfo.version} ({buildinfo.date.split()[0]})")
+
+start_usage = get_memory_use()
+
 print("Average time: command")
 
 huge_open_cmd = f"open {HUGE_MMCIF_ID} format mmcif loginfo false"
 open_times, close_times = time_open_close(huge_open_cmd)
 print_results(huge_open_cmd, open_times)
-print_results(f"({HUGE_MMCIF_ID}) close", close_times)
+print_results(f"({HUGE_MMCIF_ID} mmcif) close", close_times)
 
 for pdb_id in PDB_MMCIF_IDS:
     open_cmd = f"open {pdb_id} format pdb loginfo false"
     open_times, close_times = time_open_close(open_cmd)
     print_results(open_cmd, open_times)
-    print_results("(pdb) close", close_times)
+    print_results(f"({pdb_id} pdb) close", close_times)
     open_cmd = f"open {pdb_id} format mmcif loginfo false"
     open_times, close_times = time_open_close(open_cmd)
     print_results(open_cmd, open_times)
-    print_results("(mmcif) close", close_times)
+    print_results(f"({pdb_id} mmcif) close", close_times)
 
 run(session, huge_open_cmd)
 
@@ -85,3 +97,9 @@ print_results(f"style ball ({HUGE_MMCIF_ID})", ball_times)
 cartoon_times = []
 run_command("cartoon", cartoon_times)
 print_results(f"cartoon ({HUGE_MMCIF_ID})", cartoon_times)
+
+end_usage = get_memory_use()
+print(f"Starting memory use:  {start_usage}")
+print(f"Ending memory use:    {end_usage}")
+delta_usage = int(end_usage[:-1]) - int(start_usage[:-1])
+print(f"Increased memory use: {delta_usage}{end_usage[-1]}")
