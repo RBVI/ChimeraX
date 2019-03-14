@@ -59,17 +59,25 @@ def time_open_close(open_cmd):
 
 
 def print_results(command, times):
-    if len(times) < 3:
-        run_time = sum(times) / len(times)
-    else:
-        # throw out high and low and average the rest
-        run_time = sum(sorted(times)[1:-1]) / (len(times) - 2)
-    print(f"{round(run_time, 4)}: {command}")
+    from numpy import std
+    if len(times) >= 3:
+        # throw out high and low
+        times = sorted(times)[1:-1]
+    mean = sum(times) / len(times)
+    var = std(times)
+    print(f"{round(mean, 4)} \N{Plus-Minus Sign} {round(var,3)}: {command}")
+
+
+def print_delta_memory(tag, first, second):
+    delta = int(second[:-1]) - int(first[:-1])
+    print(f"{tag}: {delta}{first[-1]}")
 
 
 print(f"UCSF ChimeraX version: {buildinfo.version} ({buildinfo.date.split()[0]})")
 
 start_usage = get_memory_use()
+print(f"Starting memory use:  {start_usage}")
+usage0 = start_usage
 
 print("Average time: command")
 
@@ -77,6 +85,9 @@ huge_open_cmd = f"open {HUGE_MMCIF_ID} format mmcif loginfo false"
 open_times, close_times = time_open_close(huge_open_cmd)
 print_results(huge_open_cmd, open_times)
 print_results(f"({HUGE_MMCIF_ID} mmcif) close", close_times)
+usage1 = get_memory_use()
+print_delta_memory("Increased memory use", usage0, usage1)
+usage0 = usage1
 
 for pdb_id in PDB_MMCIF_IDS:
     open_cmd = f"open {pdb_id} format pdb loginfo false"
@@ -87,19 +98,26 @@ for pdb_id in PDB_MMCIF_IDS:
     open_times, close_times = time_open_close(open_cmd)
     print_results(open_cmd, open_times)
     print_results(f"({pdb_id} mmcif) close", close_times)
+    usage1 = get_memory_use()
+    print_delta_memory("Increased memory use", usage0, usage1)
+    usage0 = usage1
 
 run(session, huge_open_cmd)
 
 ball_times = []
 run_command("style ball", ball_times)
 print_results(f"style ball ({HUGE_MMCIF_ID})", ball_times)
+usage1 = get_memory_use()
+print_delta_memory("Increased memory use", usage0, usage1)
+usage0 = usage1
 
 cartoon_times = []
 run_command("cartoon", cartoon_times)
 print_results(f"cartoon ({HUGE_MMCIF_ID})", cartoon_times)
+usage1 = get_memory_use()
+print_delta_memory("Increased memory use", usage0, usage1)
+usage0 = usage1
 
 end_usage = get_memory_use()
-print(f"Starting memory use:  {start_usage}")
 print(f"Ending memory use:    {end_usage}")
-delta_usage = int(end_usage[:-1]) - int(start_usage[:-1])
-print(f"Increased memory use: {delta_usage}{end_usage[-1]}")
+print_delta_memory("Total memory increase", start_usage, end_usage)
