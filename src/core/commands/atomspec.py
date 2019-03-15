@@ -1006,7 +1006,9 @@ class AtomSpec:
             results = Objects.union(left_results, right_results)
         elif self._operator == '&':
             left_results = self._left_spec.evaluate(session, models, top=False)
+            add_implied_bonds(left_results)
             right_results = self._right_spec.evaluate(session, models, top=False)
+            add_implied_bonds(right_results)
             from ..objects import Objects
             results = Objects.intersect(left_results, right_results)
         else:
