@@ -215,8 +215,9 @@ def intersect_selection(objects, session, undo_state, full_residues = False):
     subbonds = selbonds - bonds
     selpbonds = atomic.selected_pseudobonds(session)
     subpbonds = selpbonds - pbonds
-    from chimerax.atomic import Structure
-    selmodels = set(m for m in session.selection.models() if not isinstance(m, Structure))
+    from chimerax.atomic import Structure, PseudobondGroup
+    selmodels = set(m for m in session.selection.models()
+                    if not isinstance(m, (Structure, PseudobondGroup)))
     submodels = selmodels.difference(models)
     undo_state.add(subatoms, "selected", subatoms.selected, False)
     undo_state.add(subbonds, "selected", subbonds.selected, False)
