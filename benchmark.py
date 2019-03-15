@@ -16,6 +16,7 @@ from chimerax.core import buildinfo
 PDB_MMCIF_IDS = ["3fx2", "2hmg", "5xnl"]
 HUGE_MMCIF_ID = "3j3q"
 COUNT = 5
+current_memory_usage = None
 
 
 def get_memory_use():
@@ -41,14 +42,25 @@ session.logger.add_log(NoOutputLog())
 def time_command(command):
     from time import time
     t0 = time()
-    run(session, command)
+    try:
+        run(session, command)
+    except:
+        return 0
     t1 = time()
     return t1 - t0
 
 
+def time_commands(cmds):
+    for cmd, description in cmds:
+        times = []
+        run_command(cmd, times)
+        print_results(description, times)
+        print_increased_memory()
+
+
 def run_command(command, times):
     t = time_command(command)
-    #session.main_view.check_for_drawing_change()
+    # session.main_view.check_for_drawing_change()
     times.append(t)
 
 
@@ -68,7 +80,11 @@ def print_results(command, times):
         times = sorted(times)[1:-1]
     mean = sum(times) / len(times)
     var = std(times)
-    print(f"{round(mean, 4)} \N{Plus-Minus Sign} {round(var,3)}: {command}")
+    if len(times) == 1:
+        print(f"{round(mean, 4)}: {command}")
+    else:
+        print(f"{round(mean, 4)} \N{Plus-Minus Sign}"
+              f" {round(var,3)}: {command}")
 
 
 def print_delta_memory(tag, first, second):
@@ -76,7 +92,17 @@ def print_delta_memory(tag, first, second):
     print(f"{tag}: {delta}{first[-1]}")
 
 
-print(f"UCSF ChimeraX version: {buildinfo.version} ({buildinfo.date.split()[0]})")
+def print_increased_memory():
+    global current_memory_usage
+    if current_memory_usage is None:
+        current_memory_usage = start_usage
+    usage = get_memory_use()
+    print_delta_memory("Increased memory use", current_memory_usage, usage)
+    current_memory_usage = usage
+
+
+print(f"UCSF ChimeraX version: {buildinfo.version}"
+      f" ({buildinfo.date.split()[0]})")
 print(f"Running benchmark on {socket.gethostname()}")
 
 start_usage = get_memory_use()
@@ -89,9 +115,7 @@ huge_open_cmd = f"open {HUGE_MMCIF_ID} format mmcif loginfo false"
 open_times, close_times = time_open_close(huge_open_cmd)
 print_results(huge_open_cmd, open_times)
 print_results(f"({HUGE_MMCIF_ID} mmcif) close", close_times)
-usage1 = get_memory_use()
-print_delta_memory("Increased memory use", usage0, usage1)
-usage0 = usage1
+print_increased_memory()
 
 for pdb_id in PDB_MMCIF_IDS:
     open_cmd = f"open {pdb_id} format pdb loginfo false"
@@ -102,25 +126,15 @@ for pdb_id in PDB_MMCIF_IDS:
     open_times, close_times = time_open_close(open_cmd)
     print_results(open_cmd, open_times)
     print_results(f"({pdb_id} mmcif) close", close_times)
-    usage1 = get_memory_use()
-    print_delta_memory("Increased memory use", usage0, usage1)
-    usage0 = usage1
+    print_increased_memory()
 
 run(session, huge_open_cmd)
+mol_cmds = [
+    ("style ball", f"style ball ({HUGE_MMCIF_ID})"),
+    ("cartoon", f"cartoon ({HUGE_MMCIF_ID})"),
+]
+time_commands(mol_cmds)
 
-ball_times = []
-run_command("style ball", ball_times)
-print_results(f"style ball ({HUGE_MMCIF_ID})", ball_times)
-usage1 = get_memory_use()
-print_delta_memory("Increased memory use", usage0, usage1)
-usage0 = usage1
-
-cartoon_times = []
-run_command("cartoon", cartoon_times)
-print_results(f"cartoon ({HUGE_MMCIF_ID})", cartoon_times)
-usage1 = get_memory_use()
-print_delta_memory("Increased memory use", usage0, usage1)
-usage0 = usage1
 
 end_usage = get_memory_use()
 print(f"Ending memory use:    {end_usage}")
