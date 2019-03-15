@@ -42,7 +42,10 @@ session.logger.add_log(NoOutputLog())
 def time_command(command):
     from time import time
     t0 = time()
-    run(session, command)
+    try:
+        run(session, command)
+    except:
+        return 0
     t1 = time()
     return t1 - t0
 
@@ -57,7 +60,7 @@ def time_commands(cmds):
 
 def run_command(command, times):
     t = time_command(command)
-    #session.main_view.check_for_drawing_change()
+    # session.main_view.check_for_drawing_change()
     times.append(t)
 
 
@@ -80,7 +83,8 @@ def print_results(command, times):
     if len(times) == 1:
         print(f"{round(mean, 4)}: {command}")
     else:
-        print(f"{round(mean, 4)} \N{Plus-Minus Sign} {round(var,3)}: {command}")
+        print(f"{round(mean, 4)} \N{Plus-Minus Sign}"
+              f" {round(var,3)}: {command}")
 
 
 def print_delta_memory(tag, first, second):
@@ -97,7 +101,8 @@ def print_increased_memory():
     current_memory_usage = usage
 
 
-print(f"UCSF ChimeraX version: {buildinfo.version} ({buildinfo.date.split()[0]})")
+print(f"UCSF ChimeraX version: {buildinfo.version}"
+      f" ({buildinfo.date.split()[0]})")
 print(f"Running benchmark on {socket.gethostname()}")
 
 start_usage = get_memory_use()
