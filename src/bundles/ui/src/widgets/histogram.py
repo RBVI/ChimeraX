@@ -14,7 +14,7 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QStackedWidget, QGraphicsView, QGraphicsScene, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLineEdit
 from PyQt5.QtCore import QSize, Qt, QTimer, QRectF
-from PyQt5.QtGui import QBrush, QColor
+from PyQt5.QtGui import QBrush, QColor, QPen
 from chimerax.mouse_modes import mod_key_info
 from chimerax.core.colors import Color
 
@@ -1133,12 +1133,12 @@ class HistogramMarkers:
         cxy_list = [self._scene_xy(m.xy) for m in self._markers]
 
         scene = self._scene
-        brush = QBrush(QColor(*[int(255 * chan + 0.5) for chan in Color(self.connect_color).rgba[:3]]))
+        pen = QPen(QColor(*[int(255 * chan + 0.5) for chan in Color(self.connect_color).rgba[:3]]))
         items = []
         for k in range(len(cxy_list) - 1):
             x0, y0 = cxy_list[k]
             x1, y1 = cxy_list[k+1]
-            item = scene.addLine(x0, y0, x1, y1, brush=brush)
+            item = scene.addLine(x0, y0, x1, y1, pen=pen)
             items.append(item)
 
         for item in self._connector_items:
