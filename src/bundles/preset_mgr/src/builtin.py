@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.utils import CustomSortString
+
 def register_builtin_presets(session):
     cartoon1 = "surf hide; car style modeh def arrows t arrowshelix f arrowscale 2 wid 2 thick 0.4 sides 12" \
         " div 20; car style ~(nucleic|strand) x round; car style (nucleic|strand) x rect"
@@ -18,13 +20,13 @@ def register_builtin_presets(session):
     licorice = "%s; car style protein modeh default arrows f x oval width 1 thick 1" % cartoon1
     preset_info = {
         "Cartoon/Nucleotides": [
-            ("ribbons/slabs",
+            (CustomSortString("ribbons/slabs", sort_val=1),
                 "surf hide; car style modeh def arrows t arrowshelix f arrowscale 2 wid 2 thick 0.4 sides 12"
                 " div 20; car style ~(nucleic|strand) x round; car style (nucleic|strand) x rect;"
                 " nuc tube/slab shape box"),
-            ("cylinders/stubs",
+            (CustomSortString("cylinders/stubs", sort_val=2),
                 "surf hide; cartoon; %s; car style nucleic x oval width 1.6 thick 1.6; nuc stubs" % cylinders),
-            ("licorice/ovals",
+            (CustomSortString("licorice/ovals", sort_val=3),
                 "surf hide; cartoon; %s; car style nucleic x oval width 1.6 thick 1.6; nuc tube/slab"
                 " shape ellipsoid" % licorice),
         ],

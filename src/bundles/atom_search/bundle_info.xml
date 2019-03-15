@@ -23,6 +23,7 @@
   <ExtraFiles>
     <ExtraFile source="search_cpp/search.h">include/atomsearch/search.h</ExtraFile>
     <ExtraFile source="search_cpp/imex.h">include/atomsearch/imex.h</ExtraFile>
+    <ExtraFile source="search_cpp/ast.pyx">ast.pyx</ExtraFile>
   </ExtraFiles>
 
   <CModule name="ast">
