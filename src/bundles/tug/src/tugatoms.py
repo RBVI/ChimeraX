@@ -149,18 +149,21 @@ class TugAtomsMode(MouseMode):
         a.position = p[0]
         a.display = True
 
-    def laser_click(self, xyz1, xyz2):
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
         from chimerax.mouse_modes import picked_object_on_segment
         view = self.session.main_view
         pick = picked_object_on_segment(xyz1, xyz2, view)
         self._pick_atom(pick)
         
-    def drag_3d(self, position, move, delta_z):
-        if position is None:
-            self.mouse_up()
-        elif move is not None:
-            self._puller = Puller3D(position.origin())
-            self._continue_tugging()
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        self._puller = Puller3D(position.origin())
+        self._continue_tugging()
+        
+    def vr_release(self):
+        # Virtual reality hand controller button release.
+        self.mouse_up()
 
 class Puller2D:
     def __init__(self, x, y):
