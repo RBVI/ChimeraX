@@ -14,20 +14,20 @@
 from chimerax.core.utils import CustomSortString
 
 def register_builtin_presets(session):
-    cartoon1 = "surf hide; car style modeh def arrows t arrowshelix f arrowscale 2 wid 2 thick 0.4 sides 12" \
-        " div 20; car style ~(nucleic|strand) x round; car style (nucleic|strand) x rect"
+    cartoon1 = "surf hide; cartoon; car style modeh def arrows t arrowshelix f arrowscale 2 wid 2 thick 0.4" \
+        " sides 12 div 20; car style ~(nucleic|strand) x round; car style (nucleic|strand) x rect"
     cylinders = "%s; ; car style protein modeh tube rad 2 sides 24 thick 0.6" % cartoon1
     licorice = "%s; car style protein modeh default arrows f x oval width 1 thick 1" % cartoon1
     preset_info = {
         "Cartoon/Nucleotides": [
             (CustomSortString("ribbons/slabs", sort_val=1),
-                "surf hide; car style modeh def arrows t arrowshelix f arrowscale 2 wid 2 thick 0.4 sides 12"
-                " div 20; car style ~(nucleic|strand) x round; car style (nucleic|strand) x rect;"
+                "surf hide; cartoon; car style modeh def arrows t arrowshelix f arrowscale 2 wid 2 thick 0.4"
+                " sides 12 div 20; car style ~(nucleic|strand) x round; car style (nucleic|strand) x rect;"
                 " nuc tube/slab shape box"),
             (CustomSortString("cylinders/stubs", sort_val=2),
-                "surf hide; cartoon; %s; car style nucleic x oval width 1.6 thick 1.6; nuc stubs" % cylinders),
+                "surf hide; %s; car style nucleic x oval width 1.6 thick 1.6; nuc stubs" % cylinders),
             (CustomSortString("licorice/ovals", sort_val=3),
-                "surf hide; cartoon; %s; car style nucleic x oval width 1.6 thick 1.6; nuc tube/slab"
+                "surf hide; %s; car style nucleic x oval width 1.6 thick 1.6; nuc tube/slab"
                 " shape ellipsoid" % licorice),
         ],
         "Surface": [
