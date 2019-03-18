@@ -25,9 +25,9 @@ def register_builtin_presets(session):
                 " sides 12 div 20; car style ~(nucleic|strand) x round; car style (nucleic|strand) x rect;"
                 " nuc tube/slab shape box"),
             (CustomSortString("cylinders/stubs", sort_val=2),
-                "surf hide; %s; car style nucleic x oval width 1.6 thick 1.6; nuc stubs" % cylinders),
+                "%s; car style nucleic x oval width 1.6 thick 1.6; nuc stubs" % cylinders),
             (CustomSortString("licorice/ovals", sort_val=3),
-                "surf hide; %s; car style nucleic x oval width 1.6 thick 1.6; nuc tube/slab"
+                "%s; car style nucleic x oval width 1.6 thick 1.6; nuc tube/slab"
                 " shape ellipsoid" % licorice),
         ],
         "Surface": [
@@ -42,7 +42,5 @@ def register_builtin_presets(session):
     }
     from chimerax.core.commands import run
     for cat_name, cat_presets in preset_info.items():
-        session.presets.add_presets(cat_name,
-            [(name, lambda run=run, ses=session, cmd=cmd: run(ses, cmd, log=False))
-                for name, cmd in cat_presets])
+        session.presets.add_presets(cat_name, cat_presets)
 
