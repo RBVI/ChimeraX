@@ -413,12 +413,12 @@ class PlaySeriesMouseMode(MouseMode):
       p.change_time(tn)
     p.session.logger.status('%s time %d' % (s0.name, tn+1))
 
-  def drag_3d(self, position, move, delta_z):
-    if delta_z is not None:
-      tstep = int(round(20*delta_z))
-      if tstep == 0:
-        return 'accumulate drag'
-      self._take_step(tstep)
+  def vr_motion(self, position, move, delta_z):
+    # Virtual reality hand controller motion.
+    tstep = int(round(20*delta_z))
+    if tstep == 0:
+      return 'accumulate drag'
+    self._take_step(tstep)
 
 # -----------------------------------------------------------------------------
 #

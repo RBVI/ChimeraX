@@ -838,9 +838,11 @@ class UserInterface:
         w, pos = self._clicked_widget(window_xy)
         from PyQt5.QtWidgets import QToolButton
         if isinstance(w, QToolButton):
+            if hasattr(w, 'vr_mode'):
+                return self._hand_mode(w.vr_mode())
             a = w.defaultAction()
-            if hasattr(a, 'mouse_mode'):
-                return self._hand_mode(a.mouse_mode)
+            if hasattr(a, 'vr_mode'):
+                return self._hand_mode(a.vr_mode())
         return None
 
     def set_mouse_mode_click_range(self, range):
@@ -1594,13 +1596,13 @@ class MouseMode(HandMode):
         self._mouse_mode = mouse_mode
         mouse_mode.enable()
         self.name = mouse_mode.name
-        self._last_drag_room_position = None # Hand controller position at last drag_3d call
+        self._last_drag_room_position = None # Hand controller position at last vr_motion call
         self._laser_range = click_range	# Range for mouse mode laser clicks in scene units (Angstroms)
 
     @property
     def has_vr_support(self):
         m = self._mouse_mode
-        return hasattr(m, 'laser_click') or hasattr(m, 'drag_3d')
+        return hasattr(m, 'vr_press') or hasattr(m, 'vr_motion') or hasattr(m, 'vr_release')
 
     @property
     def icon_path(self):
@@ -1614,23 +1616,20 @@ class MouseMode(HandMode):
 
     def _click(self, camera, hand_controller, pressed):
         m = self._mouse_mode
-        if hasattr(m, 'laser_click'):
-            if pressed:
-                p = hand_controller.position
-                xyz1 = p * (0,0,0)
-                range_scene = self._laser_range
-                xyz2 = p * (0,0,-range_scene)
-                m.laser_click(xyz1, xyz2)
-        if hasattr(m, 'drag_3d'):
-            if pressed:
-                self._last_drag_room_position = hand_controller.room_position
-            else:
-                m.drag_3d(None, None, None)
-                self._last_drag_room_position = None
+        if hasattr(m, 'vr_press') and pressed:
+            p = hand_controller.position
+            xyz1 = p * (0,0,0)
+            range_scene = self._laser_range
+            xyz2 = p * (0,0,-range_scene)
+            m.vr_press(xyz1, xyz2)
+        if hasattr(m, 'vr_motion'):
+            self._last_drag_room_position = hand_controller.room_position if pressed else None
+        if hasattr(m, 'vr_release') and not pressed:
+            m.vr_release()
 
     def drag(self, camera, hand_controller, previous_pose, pose):
         m = self._mouse_mode
-        if hasattr(m, 'drag_3d'):
+        if hasattr(m, 'vr_motion'):
             rp = hand_controller.room_position
             ldp = self._last_drag_room_position
             room_move = rp * ldp.inverse()
@@ -1638,7 +1637,7 @@ class MouseMode(HandMode):
             rts = camera.room_to_scene
             move = rts * room_move * rts.inverse()
             p = rts * rp
-            if m.drag_3d(p, move, delta_z) != 'accumulate drag':
+            if m.vr_motion(p, move, delta_z) != 'accumulate drag':
                 self._last_drag_room_position = rp
         
 class MoveAtomsMode(HandMode):

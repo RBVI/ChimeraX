@@ -108,21 +108,23 @@ class RegionMouseMode(MouseMode):
         self.frac_istep = 0
         return
 
-    def laser_click(self, xyz1, xyz2):
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
         line = (xyz1, xyz2)
         self._choose_box_face(line)
         
-    def drag_3d(self, position, move, delta_z):
-        if position is None:
-            self.mouse_up()
-        elif move is not None:
-            v = self.map
-            if v:
-                trans = move * position.origin() - position.origin()
-                dxyz = v.position.inverse() * trans
-                dijk = v.data.xyz_to_ijk_transform.transform_vector(dxyz)
-                istep = dijk[self.axis]
-                self._move_plane(istep)
+    def vr_motion(self, position, move, delta_z):
+        v = self.map
+        if v:
+            trans = move * position.origin() - position.origin()
+            dxyz = v.position.inverse() * trans
+            dijk = v.data.xyz_to_ijk_transform.transform_vector(dxyz)
+            istep = dijk[self.axis]
+            self._move_plane(istep)
+
+    def vr_release(self):
+        # Virtual reality hand controller button release.
+        self.mouse_up()
 
     def log_volume_command(self):
         v = self.map

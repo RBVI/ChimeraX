@@ -122,21 +122,22 @@ class SelectMouseMode(MouseMode):
             v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
             self._drawn_rectangle = None
 
-    def laser_click(self, xyz1, xyz2):
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
         from . import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         select_pick(self.session, pick, self.mode)
 
-    def drag_3d(self, position, move, delta_z):
-        if delta_z:
-            ses = self.session
-            sel = ses.selection
-            if delta_z > 0.20:
-                sel.promote(ses)
-            elif delta_z < -0.20:
-                sel.demote(ses)
-            else:
-                return 'accumulate drag'
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        ses = self.session
+        sel = ses.selection
+        if delta_z > 0.20:
+            sel.promote(ses)
+        elif delta_z < -0.20:
+            sel.demote(ses)
+        else:
+            return 'accumulate drag'
 
 class SelectContextMenuAction:
     '''Methods implementing a context-menu entry shown when double-clicking in select mode.'''
@@ -273,9 +274,9 @@ class RotateMouseMode(MouseMode):
     def models(self):
         return None
 
-    def drag_3d(self, position, move, delta_z):
-        if move:
-            self.view.move(move, self.models())
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        self.view.move(move, self.models())
 
 class RotateAndSelectMouseMode(RotateMouseMode):
     '''
@@ -339,9 +340,9 @@ class TranslateMouseMode(MouseMode):
     def models(self):
         return None
 
-    def drag_3d(self, position, move, delta_z):
-        if move:
-            self.view.move(move, self.models())
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        self.view.move(move, self.models())
 
 class TranslateSelectedMouseMode(TranslateMouseMode):
     '''
@@ -578,12 +579,12 @@ class ClipMouseMode(MouseMode):
         shift = (dx*nx + dy*ny) * self.pixel_size()
         return shift
 
-    def drag_3d(self, position, move, delta_z):
-        if move:
-            for p in self._planes(front_shift = 1, back_shift = 0):
-                if p:
-                    p.normal = move.transform_vector(p.normal)
-                    p.plane_point = move * p.plane_point
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        for p in self._planes(front_shift = 1, back_shift = 0):
+            if p:
+                p.normal = move.transform_vector(p.normal)
+                p.plane_point = move * p.plane_point
 
 class ClipRotateMouseMode(MouseMode):
     '''
@@ -641,11 +642,11 @@ class ClipRotateMouseMode(MouseMode):
                     cp.remove_plane('far')
         return rplanes
 
-    def drag_3d(self, position, move, delta_z):
-        if move:
-            for p in self._planes():
-                p.normal = move.transform_vector(p.normal)
-                p.plane_point = move * p.plane_point
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        for p in self._planes():
+            p.normal = move.transform_vector(p.normal)
+            p.plane_point = move * p.plane_point
 
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''

@@ -67,15 +67,18 @@ class ContourLevelMouseMode(MouseMode):
         self._maps = []
         MouseMode.mouse_up(self, event)
         
-    def laser_click(self, xyz1, xyz2):
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
         self._maps = self._picked_maps_on_segment(xyz1, xyz2)
 
-    def drag_3d(self, position, move, delta_z):
-        if delta_z is not None:
-            adjust_threshold_levels(self._maps, delta_z)
-        else:
-            self.log_volume_command()
-            self._maps = []
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        adjust_threshold_levels(self._maps, delta_z)
+        
+    def vr_release(self):
+        # Virtual reality hand controller button release.
+        self.log_volume_command()
+        self._maps = []
 
     def log_volume_command(self):
         for v in self._maps:
