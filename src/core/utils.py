@@ -150,41 +150,41 @@ class CustomSortString(str):
     def __lt__(self, other):
         if isinstance(other, CustomSortString):
             if self.sort_val == other.sort_val:
-                return super.__lt__(other)
+                return super().__lt__(other)
             return self.sort_val < other.sort_val
         return super().__lt__(other)
 
     def __le__(self, other):
         if isinstance(other, CustomSortString):
             if self.sort_val == other.sort_val:
-                return super.__le__(other)
+                return super().__le__(other)
             return self.sort_val <= other.sort_val
         return super().__le__(other)
 
     def __eq__(self, other):
         if isinstance(other, CustomSortString):
             if self.sort_val == other.sort_val:
-                return super.__eq__(other)
+                return super().__eq__(other)
             return False
         return super().__eq__(other)
 
     def __ne__(self, other):
         if isinstance(other, CustomSortString):
             if self.sort_val == other.sort_val:
-                return super.__ne__(other)
+                return super().__ne__(other)
             return True
         return super().__ne__(other)
 
     def __gt__(self, other):
         if isinstance(other, CustomSortString):
             if self.sort_val == other.sort_val:
-                return super.__gt__(other)
+                return super().__gt__(other)
             return self.sort_val > other.sort_val
         return super().__gt__(other)
 
     def __ge__(self, other):
         if isinstance(other, CustomSortString):
             if self.sort_val == other.sort_val:
-                return super.__ge__(other)
+                return super().__ge__(other)
             return self.sort_val >= other.sort_val
         return super().__ge__(other)
