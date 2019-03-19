@@ -1093,6 +1093,11 @@ class Drawing:
         c = self._opengl_context
         if c:
             c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
+        else:
+            # Drawing was never drawn so opengl context was not set.
+            t = self.texture
+            if t and t.id is not None:
+                raise RuntimeError("Don't have opengl context needed to delete texture from drawing '%s' because drawing was never drawn" % self.name)
         self._delete_geometry()
         self.remove_all_drawings()
 
