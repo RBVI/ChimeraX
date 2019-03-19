@@ -112,14 +112,16 @@ def tiff_format(path):
   if path.endswith('.ome.tif') or path.endswith('.ome.tiff'):
     return 'OME'
   if path.endswith('.tif') or path.endswith('.tiff'):
-    from PIL import Image
-    i = Image.open(path)
-    description_tags = i.tag[270] if 270 in i.tag else []
-    for d in description_tags:
-      if d.startswith('<?xml'):
-        return 'OME'
-      elif d.startswith('ImageJ='):
-        return 'ImageJ'
+    from tifffile import TiffFile
+    with TiffFile(path) as tif:
+        tags = tif.pages[0].tags
+        desc = tags['ImageDescription'].value if 'ImageDescription' in tags else None
+    if desc is None:
+      return None
+    elif desc.startswith('<?xml'):
+      return 'OME'
+    elif desc.startswith('ImageJ='):
+      return 'ImageJ'
   return None
 
 default_channel_colors = [

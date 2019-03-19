@@ -245,35 +245,9 @@ class GridData:
 
     m = self.cached_data(ijk_origin, ijk_size, ijk_step)
     if m is None and not from_cache_only:
-      if getattr(self, 'must_read_full_xy_planes', False):
-        m = self._read_full_planes(ijk_origin, ijk_size, ijk_step, progress)
-      else:
-        m = self.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
-        self.cache_data(m, ijk_origin, ijk_size, ijk_step)
+      m = self.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+      self.cache_data(m, ijk_origin, ijk_size, ijk_step)
 
-    return m
-    
-  # ---------------------------------------------------------------------------
-  #
-  def _read_full_planes(self, ijk_origin, ijk_size, ijk_step, progress):
-    '''
-    Formats such as TIFF and DICOM image stacks require reading full xy planes.
-    If subsampled planes or a subregion are requested, cache the full planes.
-    An example where this makes a huge difference is in showing a single xz plane
-    where the full data will be read.  If only the plane is cached then moving
-    to show another xz plane requires another full read of the data.  This can
-    be extremely slow.  With this code the full data is cached.
-    '''
-    i1, j1, k1 = ijk_origin
-    i2, j2, k2 = [i+s for i,s in zip(ijk_origin, ijk_size)]
-    istep, jstep, kstep = ijk_step
-    f_ijk_origin = (0,0,k1)
-    xs,ys = self.size[:2]
-    f_ijk_size = (xs,ys,ijk_size[2])
-    f_ijk_step = (1,1,kstep)
-    fm = self.read_matrix(f_ijk_origin, f_ijk_size, f_ijk_step, progress)
-    self.cache_data(fm, f_ijk_origin, f_ijk_size, f_ijk_step)
-    m = fm[:, j1:j2:jstep, i1:i2:istep]
     return m
     
   # ---------------------------------------------------------------------------
@@ -289,8 +263,52 @@ class GridData:
     inputs might throw an exception or might return garbage.  It is the
     callers responsibility to make sure the arguments are valid.
     '''
+    if hasattr(self, 'read_xy_plane'):
+      m = self._read_full_planes(ijk_origin, ijk_size, ijk_step, progress)
+      return m
 
     raise NotImplementedError('Grid %s has no read_matrix() routine' % self.name)
+    
+  # ---------------------------------------------------------------------------
+  #
+  def _read_full_planes(self, ijk_origin, ijk_size, ijk_step, progress):
+    '''
+    Formats such as TIFF and DICOM image stacks require reading full xy planes.
+    If subsampled planes or a subregion are requested, cache the full planes.
+    An example where this makes a huge difference is in showing a single xz plane
+    where the full data will be read.  If only the plane is cached then moving
+    to show another xz plane requires another full read of the data.  This can
+    be extremely slow.  With this code the full data is cached.
+    '''
+    i1, j1, k1 = ijk_origin
+    i2, j2, k2 = [i+s-1 for i,s in zip(ijk_origin, ijk_size)]
+    istep, jstep, kstep = ijk_step
+    xs,ys = self.size[:2]
+    f_ijk_size = (xs,ys,1)
+    f_ijk_step = (1,1,1)
+    planes = []
+    for k in range(k1, k2+1, kstep):
+      if progress:
+        progress.plane((k-k1)//kstep)
+      f_ijk_origin = (0,0,k)
+      m = self.cached_data(f_ijk_origin, f_ijk_size, f_ijk_step)
+      if m is None:
+        m2d= self.read_xy_plane(k)
+        m = m2d.reshape((1,ys,xs))
+        self.cache_data(m, f_ijk_origin, f_ijk_size, f_ijk_step)
+      planes.append(m)
+
+    if len(planes) == 1:
+      m = planes[0]
+      a = m[:, j1:j2+1:jstep, i1:i2+1:istep]
+    else:
+      mshape = (len(planes), (j2-j1+jstep)//jstep, (i2-i1+istep)//istep)
+      from numpy import empty
+      a = empty(mshape, self.value_type)
+      for k,m in enumerate(planes):
+        a[k,:,:] = m[0, j1:j2+1:jstep, i1:i2+1:istep]
+      
+    return a
   
   # ---------------------------------------------------------------------------
   # Convenience routine.
@@ -328,9 +346,12 @@ class GridData:
 
     key = (self, tuple(origin), tuple(size), tuple(step))
     m = dcache.lookup_data(key)
-    if not m is None:
+    if m is not None:
       return m
 
+    if hasattr(self, 'read_xy_plane'):
+      return None	# Don't look for subregion when only full planes are cached
+    
     # Look for a matrix containing the desired matrix
     group = self
     kd = dcache.group_keys_and_data(group)

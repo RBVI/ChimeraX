@@ -1821,20 +1821,18 @@ class SelZoneDialog(QDialog):
 prepositions = set(["a", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "the", "to"])
 def menu_capitalize(text):
     capped_words = []
-    in_parens = False
     for word in text.split():
-        if in_parens:
-            capped_words.append(word)
-            if word[-1] == ')':
-                in_parens = False
+        if word[0] == '(':
+            capped_words.append('(' + menu_capitalize(word[1:]))
         else:
-            if word[0] == '(':
-                in_parens = True
+            if word.lower() != word or (capped_words and word in prepositions):
                 capped_words.append(word)
             else:
-                if word.lower() != word or (capped_words and word in prepositions):
-                    capped_words.append(word)
-                else:
-                    capped_words.append('-'.join([frag.capitalize() for frag in word.split('-')]))
+                capped_word = ""
+                for frag in [x for part in word.split('/') for x in part.split('-')]:
+                    capped_word += frag.capitalize()
+                    if len(capped_word) < len(word):
+                        capped_word += word[len(capped_word)]
+                capped_words.append(capped_word)
     return " ".join(capped_words)
 

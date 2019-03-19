@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,13 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-"""
-ui.widgets: ChimeraX graphical user interface widgets
-=====================================================
-"""
+from chimerax.core.toolshed import BundleAPI
 
-from .htmlview import HtmlView, ChimeraXHtmlView
-from .color_button import ColorButton, MultiColorButton, hex_color_name
-from .citation import Citation
-from .histogram import MarkedHistogram
-from .model_chooser import ModelListWidget
+class _AtomicWidgetsAPI(BundleAPI):
+    pass
+
+bundle_api = _AtomicWidgetsAPI()

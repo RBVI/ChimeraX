@@ -253,13 +253,13 @@ class Mol2Parser:
             mol_name = self._line
             self._get_line()
             parts = self._line.split()
-            if len(parts) != 5:
+            if len(parts) < 2:
                 raise ValueError("wrong number of fields in molecule data")
             num_atoms = int(parts[0])
             num_bonds = int(parts[1])
-            num_subst = int(parts[2])
-            num_feat = int(parts[3])
-            num_sets = int(parts[4])
+            num_subst = int(parts[2]) if len(parts) > 2 else 0
+            num_feat = int(parts[3]) if len(parts) > 3 else 0
+            num_sets = int(parts[4]) if len(parts) > 4 else 0
             self._get_line()
             mol_type = self._line
             self._get_line()

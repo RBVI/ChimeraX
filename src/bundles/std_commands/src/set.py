@@ -86,9 +86,15 @@ def set(session, bg_color=None,
                          '  Max frame rate: %.3g' % rate))
         session.logger.info(msg)
 
+def xset(session, setting):
+    # only bgColor right now...
+    from chimerax.core.core_settings import settings
+    view = session.main_view
+    view.background_color = settings.saved_value('background_color').rgba
+    view.redraw_needed = True
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, ColorArg, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, ColorArg, BoolArg, FloatArg, EnumOf
     desc = CmdDesc(
         keyword=[('bg_color', ColorArg),
                  ('silhouettes', BoolArg),
@@ -100,3 +106,7 @@ def register_command(logger):
         synopsis="set preferences"
     )
     register('set', desc, set, logger=logger)
+    xdesc = CmdDesc(required=[('setting', EnumOf(['bgColor']))],
+        synopsis="reset preference to default"
+    )
+    register('~set', xdesc, xset, logger=logger)

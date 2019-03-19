@@ -145,13 +145,15 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
         }
         cs->add_coord(coord);
         graphics_changes()->set_gc_shape();
-        graphics_changes()->set_gc_ribbon();
+        if (in_ribbon())
+            graphics_changes()->set_gc_ribbon();
     } else {
         //cs->_coords[_coord_index] = coord;
         cs->_coords[_coord_index].set_xyz(coord[0], coord[1], coord[2]);
         if (track_change) {
             graphics_changes()->set_gc_shape();
-            graphics_changes()->set_gc_ribbon();
+            if (in_ribbon())
+                graphics_changes()->set_gc_ribbon();
             change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
         }
     }

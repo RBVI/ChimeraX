@@ -117,6 +117,7 @@ private:
     unsigned int  _coord_index;
     void  _coordset_set_coord(const Point &, CoordSet *cs, bool track_change);
     bool  _display = true;
+    bool  _in_ribbon = false;
     DrawMode  _draw_mode = DrawMode::Sphere;
     const Element*  _element;
     AtomType  _explicit_idatm_type;
@@ -241,7 +242,8 @@ public:
     void  clear_hide_bits(int bit_mask) { set_hide(hide() & ~bit_mask); }
     const Rgba&  color() const { return _rgba; }
     bool  display() const { return _display; }
-    int  hide() const { return _hide; }
+    int   hide() const { return _hide; }
+    bool  in_ribbon() const { return _in_ribbon; }
     GraphicsChanges*  graphics_changes() const {
         return reinterpret_cast<GraphicsChanges*>(structure()); }
     bool  selected() const { return _selected; }
@@ -252,6 +254,7 @@ public:
     void  set_display(bool d);
     void  set_hide(int h);
     void  set_hide_bits(int bit_mask) { set_hide(hide() | bit_mask); }
+    void  set_in_ribbon(bool ir) { _in_ribbon = ir; }
     void  set_selected(bool s);
     bool  visible() const { return _display && !_hide; }
 };

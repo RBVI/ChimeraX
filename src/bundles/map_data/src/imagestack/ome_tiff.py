@@ -32,8 +32,6 @@ def ome_image_grids(path, found_paths = None):
 from .. import GridData
 class OMEImageGrid(GridData):
 
-  must_read_full_xy_planes = True	# Hint to optimize caching performance
-
   def __init__(self, ome_pixels, channel, time, grid_id):
 
     self.ome_pixels = d = ome_pixels
@@ -62,29 +60,21 @@ class OMEImageGrid(GridData):
     else:
         from . import default_channel_colors
         self.rgba = default_channel_colors[channel % len(default_channel_colors)]
-        
+
   # ---------------------------------------------------------------------------
+  # Reading multiple planes at a time is twice as fast as one plane at a time
+  # using tifffile.py so use read_matrix() instead of read_xy_plane().
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    from ..readarray import allocate_array
-    array = allocate_array(ijk_size, self.value_type, ijk_step, progress)
     i0, j0, k0 = ijk_origin
     isz, jsz, ksz = ijk_size
     istep, jstep, kstep = ijk_step
-    dsize = self.size
-    from numpy import zeros
-    ia = zeros((dsize[1],dsize[0]), self.value_type)
-    ia_1d = ia.ravel()
-    c, t = self.channel, self.time
-    op = self.ome_pixels
-    for k in range(k0, k0+ksz, kstep):
-      if progress:
-        progress.plane((k-k0)//kstep)
-      op.plane_data(c, t, k, ia_1d)
-      array[(k-k0)//kstep,:,:] = ia[j0:j0+jsz:jstep,i0:i0+isz:istep]
+    klist = range(k0, k0+ksz, kstep)
+    a = self.ome_pixels.planes_data(self.channel, self.time, klist)
+    array = a[:, j0:j0+jsz:jstep,i0:i0+isz:istep]
     return array
-        
+
   # ---------------------------------------------------------------------------
   #
   def files(self):
@@ -92,18 +82,20 @@ class OMEImageGrid(GridData):
   
 def parse_ome_tiff_header(path):
 
-    from PIL import Image
-    i = Image.open(path)
+    from tifffile import TiffFile
+    with TiffFile(path) as tif:
+        tags = tif.pages[0].tags
+        desc = tags['ImageDescription'].value if 'ImageDescription' in tags else None
 
-    descs = [d for d in i.tag[270] if d.startswith('<?xml')]
-    if descs:
-        desc = descs[0]
-    else:
+    if desc is None:
+        from os.path import basename
+        raise TypeError('OME TIFF image %s does not have an image description tag'
+                        % basename(path))
+    elif not desc.startswith('<?xml'):
         from os.path import basename
         raise TypeError('OME TIFF image %s does not have an image description tag'
                         ' starting with "<?xml" as required by the OME TIFF specification,'
                         ' got description tags "%s"' % (basename(path), str(i.tag[270])))
-#    print ('ImageDescription for %s\n%s' % (path, desc))
 
     from xml.etree import ElementTree as ET
     r = ET.fromstring(desc)
@@ -187,16 +179,54 @@ class OME_Pixels:
         self.image = None
         self._last_plane = 0
 
+    def planes_data(self, channel, time, klist):
+        '''
+        Use tifffile.py to read multiple TIFF image pages.
+        tifffile.py reads about 5 times faster than Pillow 5.4.1.
+        '''
+        # Find set of planes needed from each file.
+        fplanes = []
+        last_fname = None
+        for k in klist:
+            fname, plane = self.plane_table[(channel,time,k)]
+            if fname != last_fname:
+                last_fname = fname
+                planes = []
+                fplanes.append((fname, planes))
+            planes.append(plane)
+
+        # Use tifffile to read planes.
+        arrays = []
+        from tifffile import TiffFile
+        from os.path import dirname, join
+        dir = dirname(self.path)
+        for fname, fp in fplanes:
+            with TiffFile(join(dir,fname)) as tif:
+                a = tif.asarray(key = fp)
+                if a.ndim == 2:
+                    a = a.reshape((1,) + tuple(a.shape))	# Make single-plane 3d
+                arrays.append(a)
+
+        if len(arrays) == 1:
+            array = arrays[0]
+        else:
+            from numpy import concatenate
+            array = concatenate(arrays)
+            
+        return array
+
     def plane_data(self, channel, time, k, pixel_values):
+        '''Read single TIFF image plane using Pillow.'''
         fname, plane = self.plane_table[(channel,time,k)]
         im = self.image_plane(fname, plane)
         from numpy import array
         pixel_values[:] = array(im).ravel()
 
     def image_plane(self, filename, plane):
+        '''Get Pillow image for single TIFF plane.'''
         im = self.image
         opened = False
-        if im is None or filename != im.filename or plane < self._last_plane:
+        if im is None or filename != im.filename:
             # Switch image files for multi-file OME TIFF data.
             from os.path import dirname, join
             dpath = dirname(self.path)
@@ -215,17 +245,6 @@ class OME_Pixels:
                 im = self.image_plane(filename, plane)
             else:
                 raise
-
-        # Use tifffile.py instead of PIL
-        # if im is None or fname != im._filename:
-        #     # Switch image files for multi-file OME TIFF data.
-        #     from tifffile import TiffFile
-        #     self.image = im = TiffFile(join(dpath,fname))
-        #     im._filename = fname
-        #     print ('opened', fname, plane)
-        #     # PIL bug causes a ValueError: buffer is not large enough in mmap code on 4 Gbyte tiff file
-        #     # after reading a few images.  Overwriting PIL's filename attribute avoids using this mmap code.
-        # ia[:] = im.asarray(key = plane)
 
         return im
 

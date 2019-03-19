@@ -218,24 +218,25 @@ class MarkerMouseMode(MouseMode):
         self._moving_marker = None
         self._resizing_marker_or_link = None
 
-    def laser_click(self, xyz1, xyz2):
-        # Do 3d equivalent of mouse down.
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
         self.mouse_down(LaserEvent(xyz1,xyz2))
         
-    def drag_3d(self, position, move, delta_z):
-        if position is None:
-            self.mouse_up()
-        elif move is not None:
-            # Do equivalent of mouse drag.
-            mm = self._moving_marker
-            if mm:
-                mm.scene_coord = move * mm.scene_coord
-            rm = self._resizing_marker_or_link
-            if rm:
-                from math import exp
-                scale = exp(2*delta_z)
-                self._resize_ml(rm, scale)
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        mm = self._moving_marker
+        if mm:
+            mm.scene_coord = move * mm.scene_coord
+        rm = self._resizing_marker_or_link
+        if rm:
+            from math import exp
+            scale = exp(2*delta_z)
+            self._resize_ml(rm, scale)
 
+    def vr_release(self):
+        # Virtual reality hand controller button release.
+        self.mouse_up()
+        
 # -----------------------------------------------------------------------------
 #
 class LaserEvent:

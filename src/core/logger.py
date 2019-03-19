@@ -418,7 +418,7 @@ class Logger(StatusLogger):
 
         if isinstance(exception_value, NotABug):
             self.error("%s%s" % (preface, exception_value))
-        elif probably_chimera1_session(exc_info):
+        elif probably_chimera1_session(ei):
             self.error(chimera1_session_message, exception_value)
         elif isinstance(exception_value, CancelOperation):
             pass  # Cancelled operations are not reported

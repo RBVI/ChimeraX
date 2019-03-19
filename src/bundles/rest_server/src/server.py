@@ -122,10 +122,10 @@ class RESTHandler(BaseHTTPRequestHandler):
         ctype = self.headers.get("content-type")
         if not ctype:
             return {}
-        import cgi
+        from . import cgi
         ctype, pdict = cgi.parse_header(ctype)
         if ctype == "multipart/form-data":
-            pdict["boundary"] = bytes(pdict["boundary"], "utf-8")
+            pdict["boundary"] = pdict["boundary"].encode("utf-8")
             parts = cgi.parse_multipart(self.rfile, pdict)
             return parts
         elif ctype == "application/x-www-form-urlencoded":

@@ -69,22 +69,25 @@ class BondRotationMouseMode(MouseMode):
             self.session.bond_rotations.delete_rotation(br)
             self._bond_rot = None
 
-    def laser_click(self, xyz1, xyz2):
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
         from chimerax.mouse_modes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         self._bond_rot = self._bond_rotation(pick)
 
-    def drag_3d(self, position, move, delta_z):
-        if move is None:
-            self._delete_bond_rotation()
-        else:
-            br = self._bond_rot
-            if br:
-                axis, angle = move.rotation_axis_and_angle()
-                from chimerax.core.geometry import inner_product
-                if inner_product(axis, br.axis) < 0:
-                    angle = -angle
-                angle_change = self._speed_factor * angle
-                if abs(angle_change) < self._minimum_angle_step:
-                    return "accumulate drag"
-                br.angle += angle_change
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        br = self._bond_rot
+        if br:
+            axis, angle = move.rotation_axis_and_angle()
+            from chimerax.core.geometry import inner_product
+            if inner_product(axis, br.axis) < 0:
+                angle = -angle
+            angle_change = self._speed_factor * angle
+            if abs(angle_change) < self._minimum_angle_step:
+                return "accumulate drag"
+            br.angle += angle_change
+
+    def vr_release(self):
+        # Virtual reality hand controller button release.
+        self._delete_bond_rotation()

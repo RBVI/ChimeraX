@@ -235,8 +235,7 @@ def plural_form(seq, word, plural=None):
     :param word: word to form the plural of
     :param plural: optional explicit plural of word, otherwise best guess
     """
-    seq_len = len(seq)
-    if seq_len in (0, 1):
+    if len(seq) == 1:
         return word
     if plural is None:
         return plural_of(word)
@@ -1954,7 +1953,7 @@ class _WordInfo:
             else:
                 self.registry.aliased_commands[name] = _WordInfo(self.registry, cmd_desc)
         else:
-            if logger is not None and not word_info.is_deferred():
+            if logger is not None and word_info.has_command() and not word_info.is_deferred():
                 logger.info("FYI: command is replacing existing command: %s" %
                             dq_repr(name))
             word_info.cmd_desc = cmd_desc

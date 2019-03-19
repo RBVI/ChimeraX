@@ -61,7 +61,7 @@ class MouseModePanel(ToolInstance):
                 from chimerax.core.commands import run
                 run(self.session, 'ui mousemode %s %s' % (self.button_to_bind, mname))
             action.triggered.connect(button_press_cb)
-            action.mouse_mode = mode
+            action.vr_mode = lambda m=mode: m  # To handle virtual reality button clicks.
             group.addAction(action)
         tb.addActions(group.actions())
         tb.show()
@@ -96,6 +96,7 @@ class MouseModePanel(ToolInstance):
         for mnum,mode in enumerate(self.modes):
             b = QToolButton(tb)
             b.setIconSize(QSize(s,s))
+            b.vr_mode = lambda m=mode: m   # To handle virtual reality button clicks.
             action = QAction(self._icon(mode.icon_path), mode.name, group)
             b.setDefaultAction(action)
             action.setCheckable(True)
@@ -106,7 +107,6 @@ class MouseModePanel(ToolInstance):
                 from chimerax.core.commands import run
                 run(self.session, 'ui mousemode %s %s' % (self.button_to_bind, mname))
             action.triggered.connect(button_press_cb)
-            action.mouse_mode = mode
             group.addAction(action)
             row, column = mnum//columns, mnum%columns
             layout.addWidget(b, row, column)
