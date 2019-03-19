@@ -124,6 +124,13 @@ The following gradually changes a map contour level:
 <b>perframe "<a href="volume.html">volume</a> #2 level $1"
 range 2.5,0.5 frames 50</b>
 </blockquote>
+The following uses multiple ranges to gradually change the
+<a href="colornames.html">color</a> of chain A
+from 100,0,0,100 (opaque red) to 0,0,100,25 (75% transparent blue):
+<blockquote>
+<b>perframe "<a href="color.html#simple">color</a> 
+/a $1,$2,$3,$4" range 100,0 range 0,0 range 0,100 range 100,25 frames 30</b>
+</blockquote>
 The following displays individual sidechains (hiding all others) along
 a protein ribbon, going to the next sidechain every 10<sup>th</sup> frame:
 <blockquote>
@@ -159,5 +166,5 @@ perframe "snap $1" zeropad 3; roll y 2 180; wait 180; ~perf</b>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2017</address>
+March 2019</address>
 </body></html>

@@ -49,6 +49,7 @@ Protein secondary structure (helix and strand)
 assignments are read from the input structure file
 or calculated with <a href="dssp.html"><b>dssp</b></a>.
 See also:
+<a href="preset.html"><b>preset</b></a>,
 <a href="nucleotides.html"><b>nucleotides</b></a>,
 <a href="struts.html"><b>struts</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
@@ -145,15 +146,12 @@ modeh tube rad 2 sides 24
 <a href="alias.html">alias</a> licorice &nbsp;<a href="#style">car style</a>
 &nbsp;<a href="atomspec.html#builtin">protein</a> 
 modeh default arrows f xsect oval width 1 thick 1
-</b><br>
-(...of course, the <a href="#style"><b>cartoon style</b></a> commands
-aliased above could also be used directly)
+</b>
 <p>
-The following returns to default cartoons after any of the custom settings
-above have been applied:
-<br>
-<b><a href="#style">car style</a>
-modeh def arrows t wid 2 thick 0.4; car style (<a href="atomspec.html#builtin">nucleic</a>&nbsp;|&nbsp;<a href="atomspec.html#builtin">strand</a>) x rect</b>
+Styles similar to these are available as 
+<a href="../menu.html#presets">presets</a>, and the 
+default cartoon style can be restored with command:
+<b><a href="preset.html">preset</a>&nbsp;ribbon</b>
 </p>
 <br>
 <table cellpadding="0px" cellspacing="0px">
