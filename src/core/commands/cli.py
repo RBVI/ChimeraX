@@ -235,8 +235,7 @@ def plural_form(seq, word, plural=None):
     :param word: word to form the plural of
     :param plural: optional explicit plural of word, otherwise best guess
     """
-    seq_len = len(seq)
-    if seq_len in (0, 1):
+    if len(seq) == 1:
         return word
     if plural is None:
         return plural_of(word)

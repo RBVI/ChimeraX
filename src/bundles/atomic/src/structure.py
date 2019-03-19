@@ -2340,7 +2340,8 @@ class AtomicStructure(Structure):
             solvent_atoms.draw_modes = Atom.BALL_STYLE
             solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
         else:
-            lighting = "soft multiShadow 16"
+            # since this is now available as a preset, allow for possibly a smaller number of atoms
+            lighting = "soft" if self.num_atoms < 300000 else "soft multiShadow 16"
 
         if set_lighting:
             from chimerax.core.commands import Command
