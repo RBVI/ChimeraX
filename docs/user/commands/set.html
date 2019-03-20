@@ -35,6 +35,7 @@ The <b>set</b> command sets various global parameters.
 If given without arguments, it reports the current settings in the
 <a href="../tools/log.html"><b>Log</b></a>.
 See also:
+<a href="preset.html"><b>preset</b></a>,
 <a href="lighting.html"><b>lighting</b></a>,
 <a href="camera.html"><b>camera</b></a>,
 <a href="../tools/graphics.html"><b>Graphics Toolbar</b></a>
@@ -79,16 +80,22 @@ set sil true silhouettew 2
 Parameters that are not specified remain at their current values.
 </p>
 
+<a name="bgColor"></a>
 <a href="#top" class="nounder">&bull;</a>
-<a name="bgColor"><b>set bgColor</b></a> &nbsp;<i>color</i>
+<b>set bgColor</b> &nbsp;<i>color</i>
+<br>
+<a href="#top" class="nounder">&bull;</a>
+<b>~set bgColor</b>
 <blockquote>
 Set background color, where <i>color</i> can be
 a <a href="colornames.html">color specification</a> by name, 
-hexadecimal color code, or component values (initial default <b>black</b>).
+hexadecimal color code, or component values.
 Any transparency in the color is ignored; however, images can be saved
 with a (completely) transparent background using the 
 <a href="save.html#image"><b>save</b></a> command option
 <b>transparentBackground true</b>.
+Using <b>~set bgColor</b> restores background color according to the user
+<a href="../preferences.html#background">preference</a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -161,5 +168,5 @@ option of <a href="surface.html"><b>surface</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+March 2019</address>
 </body></html> 
