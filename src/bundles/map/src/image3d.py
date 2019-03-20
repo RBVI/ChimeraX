@@ -33,6 +33,7 @@ class ImageRender:
     if blend_manager:			# is None for BlendedImage.
       blend_manager.add_image(self)
 
+    self._session = session
     self._drawing = ImageDrawing(session, self)
     self._color_tables = {}			# Maps axis to (ctable, ctable_range)
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
@@ -73,7 +74,7 @@ class ImageRender:
       bi = self._blend_image
       if bi and self is bi.master_image:
         bi.set_region(region)
-        self._drawing.redraw_needed()	# Force redraw since BlendImage is not in draw hierarchy.
+        self._drawing.redraw_needed()	# Force redraw since BlendedImage is not in draw hierarchy.
 
   # ---------------------------------------------------------------------------
   #
@@ -122,6 +123,10 @@ class ImageRender:
     if change:
         self._remove_planes()
         self._need_color_update()
+# TODO: Should not delete all textures when one orthoplane is moved.
+# TODO: Don't have opengl context current, needed when blending on gpu when orthoplane changes.
+#    elif rendering_options.orthoplane_positions != ro.orthoplane_positions:
+#      self._update_planes_for_new_region()
 
     if rendering_options.maximum_intensity_projection != ro.maximum_intensity_projection:
       self._drawing.redraw_needed()	# MIP blending is entirely handled in draw routine.
@@ -139,7 +144,7 @@ class ImageRender:
 
   @property
   def _single_plane(self):
-      for s in _region_size(self._region):
+      for s in self._region_size:
           if s == 1:
               return True
       return False
@@ -188,6 +193,9 @@ class ImageRender:
   @property
   def _use_gpu_colormap(self):
     return self._rendering_options.colormap_on_gpu
+  @property
+  def _use_gpu_blending(self):
+    return self._rendering_options.blend_on_gpu
 
   # ---------------------------------------------------------------------------
   #
@@ -338,6 +346,16 @@ class ImageRender:
 
   # ---------------------------------------------------------------------------
   #
+  @property
+  def _plane_size(self):
+    return self._region_size[:2]
+  @property
+  def _region_size(self):
+    ijk_min, ijk_max, ijk_step = self._region
+    return tuple(i1//s - i0//s + 1 for i0,i1,s in zip(ijk_min, ijk_max, ijk_step))
+  
+  # ---------------------------------------------------------------------------
+  #
   def _colormap_properties(self):
 
     # Color component type
@@ -438,7 +456,7 @@ class ImageRender:
 
     pm = self._rendering_options.projection_mode
     if pm == 'auto':
-      s = [n*sp for n,sp in zip(_region_size(self._region), self._plane_spacings())]
+      s = [n*sp for n,sp in zip(self._region_size, self._plane_spacings())]
       smin, smid = sorted(s)[:2]
       aspect_cutoff = 4
       if smin > 0 and aspect_cutoff*smin <= smid:
@@ -477,18 +495,7 @@ class ImageRender:
   def _update_axis_aligned_planes(self, view_direction):
     # Render grid aligned planes
     axis, rev = self._projection_axis(view_direction)
-    pd = self._planes_drawing if axis is None else self._multiaxis_planes[axis]
-    if pd is None:
-      sc = self._drawing.shape_changed
-      pd = self._make_planes(axis)
-      pd._update_colors = self._use_gpu_colormap
-      if axis is None:
-        self._planes_drawing = pd
-      else:
-        if tuple(self._multiaxis_planes) != (None, None, None):
-          # Reset shape change flag since this is the same shape.
-          self._drawing.shape_changed = sc
-        self._multiaxis_planes[axis] = pd
+    pd = self._axis_planes(axis)
 
     if axis is not None:
       # Reverse drawing order if needed to draw back to front
@@ -506,14 +513,36 @@ class ImageRender:
 
     return pd
 
+  def _axis_planes(self, axis):
+    pd = self._planes_drawing if axis is None else self._multiaxis_planes[axis]
+    if pd:
+      return pd
+    
+    sc = self._drawing.shape_changed
+    pd = self._make_planes(axis)
+    pd._update_colors = self._use_gpu_colormap
+    if axis is None:
+      self._planes_drawing = pd
+    else:
+      if tuple(self._multiaxis_planes) != (None, None, None):
+        # Reset shape change flag since this is the same shape.
+        self._drawing.shape_changed = sc
+      self._multiaxis_planes[axis] = pd
+
+    return pd
+  
   def _update_view_aligned_planes(self, view_direction):
+    pd = self._view_planes()
+    pd.update_geometry(view_direction, self._drawing.scene_position)
+    return pd
+
+  def _view_planes(self):
     pd = self._view_aligned_planes
     if pd is None:
       ro = self._rendering_options
       pd = ViewAlignedPlanes(self)
       self._view_aligned_planes = pd
       self._drawing.add_drawing(pd)
-    pd.update_geometry(view_direction, self._drawing.scene_position)
     return pd
 
   @property
@@ -553,7 +582,7 @@ class ImageRender:
   def _remove_view_planes(self):
     pd = self._view_aligned_planes
     if pd:
-      self._drawing.remove_drawing(pd)
+      pd.close()
       self._view_aligned_planes = None
 
   def _view_direction(self, render):
@@ -746,7 +775,7 @@ class PlanesDrawing(Drawing):
 # ---------------------------------------------------------------------------
 #
 class AxisAlignedPlanes(PlanesDrawing):
-  
+  # axis is None for box faces or orthoplanes.
   def __init__(self, image_render, axis):
     name = 'grayscale axis aligned planes'
     PlanesDrawing.__init__(self, name, image_render, axis)
@@ -757,25 +786,28 @@ class AxisAlignedPlanes(PlanesDrawing):
 
     self._textures = {}
 
-    self._set_planes(axis)
+    planes = self._set_planes(axis)
+    self._update_textures(planes)
 
   def update_region(self):
-    self._set_planes(self._axis)
+    planes = self._set_planes(self._axis)
+    self._update_textures(planes)
     
   def _set_planes(self, axis):
+    ro = self._image_render._rendering_options
     if axis is not None:
-      self._set_axis_planes(axis)
-    else:
-      ro = self._image_render._rendering_options
-      if ro.box_faces:
-        self._set_box_faces()
-      elif ro.any_orthoplanes_shown():
-        self._set_ortho_planes()
+      planes = self._set_axis_planes(axis)
+    elif ro.box_faces:
+      planes = self._set_box_faces()
+    elif ro.any_orthoplanes_shown():
+      planes = self._set_ortho_planes()
+    return planes
     
   def _set_axis_planes(self, axis):
     ijk_min, ijk_max, ijk_step = self._image_render._region
     planes = tuple((k, axis) for k in range(ijk_min[axis],ijk_max[axis]+1,ijk_step[axis]))
     self._update_geometry(planes)
+    return planes
 
   def _set_ortho_planes(self):
     ro = self._image_render._rendering_options
@@ -783,13 +815,15 @@ class AxisAlignedPlanes(PlanesDrawing):
     show_axis = ro.orthoplanes_shown
     planes = tuple((p[axis], axis) for axis in (0,1,2) if show_axis[axis])
     self._update_geometry(planes)
-
+    return planes
+  
   def _set_box_faces(self):
     ijk_min, ijk_max, ijk_step = self._image_render._region
     planes = (tuple((ijk_min[axis],axis) for axis in (0,1,2)) +
               tuple((ijk_max[axis],axis) for axis in (0,1,2)))
     self._update_geometry(planes)
-    
+    return planes
+  
   def _update_geometry(self, planes):
     ir = self._image_render
     (i0,j0,k0), (i1,j1,k1) = ir._region[:2]
@@ -810,7 +844,6 @@ class AxisAlignedPlanes(PlanesDrawing):
     va = empty((4*np,3), float32)
     tc = empty((4*np,2), float32)
     ta = empty((2*np,3), int32)
-    textures = []
     axes = set()
     for p, (k,axis) in enumerate(planes):
       vap = va[4*p:4*(p+1),:]
@@ -818,39 +851,84 @@ class AxisAlignedPlanes(PlanesDrawing):
       vap[:,axis] = k
       ir._ijk_to_xyz.transform_points(vap, in_place = True)
       ta[2*p:2*(p+1),:] = tap + 4*p
-      textures.append(self._plane_texture(k, axis))
       tc[4*p:4*(p+1),:] = tca[axis]
       axes.add(axis)
 
     self.set_geometry(va, None, ta)
     self.texture_coordinates = tc
-    self.multitexture = textures
     self._axis = None if len(axes) != 1 else axes.pop()
+
+  def _update_textures(self, planes):
+    textures = [self._plane_texture(k, axis) for k,axis in planes]
+    self.multitexture = textures
     
   def _plane_texture(self, k, axis):
     t = self._textures.get((k,axis))
-    if t:
-      return t
-
-    ir = self._image_render
-    colors = ir._color_plane(k, axis)
-    dc = colors.copy()	# Data array may be reused before texture is filled so copy it.
-    from chimerax.core.graphics import Texture
-    t = Texture(dc)
-    t.linear_interpolation = ir._rendering_options.linear_interpolation
-    self._textures[(k,axis)] = t
+    if t is None:
+      t = self._make_plane_texture()
+      self._fill_plane_texture(k, axis, t)
+      self._textures[(k,axis)] = t
     return t
 
-  def _fill_textures(self):
+  def _make_plane_texture(self):
     ir = self._image_render
+    lo = ir._rendering_options.linear_interpolation
+    from chimerax.core.graphics import Texture
+    t = Texture(linear_interpolation = lo)
+    if isinstance(ir, BlendedImage):
+      t.initialize_rgba(ir._plane_size)
+    return t
+
+  def _fill_plane_texture(self, plane, axis, texture):
+    ir = self._image_render
+    if ir._use_gpu_blending and isinstance(ir, BlendedImage):
+      self._fill_plane_texture_blended(plane, axis, texture)
+    else:
+      # Single unblended image.
+      data = ir._color_plane(plane, axis)
+      texture.reload_texture(data, now = True)
+
+  def _fill_plane_texture_blended(self, plane, axis, texture):
+    # Blend textures on GPU
+
+    # First make sure all source image textures are up to date.
+    ir = self._image_render
+    ro = ir._rendering_options
+    iaxis = None if ro.box_faces or ro.any_orthoplanes_shown() else axis
+    for si in ir.images:
+      ap = si._axis_planes(iaxis)
+      ap._update_coloring()	# TODO: Should do this once for all planes.
+      ap._plane_texture(plane, axis)
+
+    # Blend in each source texture to produce blended texture.
+    b = ir._session.main_view.render.blend
+    b.start_blending(texture)
+    for si in ir.images:
+      ap = si._axis_planes(iaxis)
+      src_tex = ap._plane_texture(plane, axis)
+      modulation_color = [c/255 for c in si._modulation_color]
+      if si._use_gpu_colormap:
+        b.blend(src_tex, modulation_color, ap.colormap, ap.colormap_range)
+      else:
+        b.blend(src_tex, modulation_color)
+    b.finish_blending()
+
+  def _fill_textures(self):
     for (k,axis),t in self._textures.items():
-      data = ir._color_plane(k, axis)
-      t.reload_texture(data, now = True)
+      self._fill_plane_texture(k, axis, t)
 
   def close(self):
-    # TODO: Make sure all textures deleted.
-    self.multitexture = tuple(self._textures.values())
-    self._textures.clear()
+    tex = self._textures
+    if tex:
+      # Drawing may not make opengl context current because it was never drawn
+      # if it just was used for blending. So make sure context is current here.
+      # TODO: Need more general way to assure textures always deleted with context current.
+      r = self._image_render._session.main_view.render
+      r.make_current()
+      for t in tex.values():
+        t.delete_texture()
+      tex.clear()
+      self.multitexture = None
     self.parent.remove_drawing(self)
 
 # ---------------------------------------------------------------------------
@@ -918,14 +996,21 @@ class ViewAlignedPlanes(PlanesDrawing):
     t = self.texture
     if t is None:
       self.texture = t = self._texture_3d()
-    td = self._texture_3d_data()
-    t.reload_texture(td, now = True)
+      
+    if isinstance(self._image_render, BlendedImage):
+      self._fill_texture_blend(t)
+    else:
+      td = self._texture_3d_data()
+      t.reload_texture(td, now = True)
 
   def _texture_3d(self):
     td = self._texture_3d_data()
+    ir = self._image_render
+    lo = ir._rendering_options.linear_interpolation
     from chimerax.core.graphics import Texture
-    t = Texture(td, dimension = 3)
-    t.linear_interpolation = self._image_render._rendering_options.linear_interpolation
+    t = Texture(td, dimension = 3, linear_interpolation = lo)
+    if isinstance(ir, BlendedImage):
+      t.initialize_rgba(ir._region_size)
     return t
 
   def _texture_3d_data(self):
@@ -946,9 +1031,37 @@ class ViewAlignedPlanes(PlanesDrawing):
         td[i,:] = ir._color_plane(k0+i*kstep, z_axis, view_aligned=True)
     return td
 
-def _region_size(region):
-    ijk_min, ijk_max, ijk_step = region
-    return tuple(i1//s - i0//s + 1 for i0,i1,s in zip(ijk_min, ijk_max, ijk_step))
+  def _fill_texture_blend(self, texture):
+    # Blend textures on GPU
+
+    # First make sure all source image textures are up to date.
+    ir = self._image_render
+    for si in ir.images:
+      si._view_planes()._update_coloring()
+
+    # Blend in each source texture to produce blended texture.
+    b = ir._session.main_view.render.blend
+    b.start_blending(self.texture)
+    for si in ir.images:
+      vap = si._view_aligned_planes
+      modulation_color = [c/255 for c in si._modulation_color]
+      if si._use_gpu_colormap:
+        b.blend3d(vap.texture, modulation_color, self.texture, vap.colormap, vap.colormap_range)
+      else:
+        b.blend3d(vap.texture, modulation_color, self.texture)
+    b.finish_blending()
+
+  def close(self):
+    tex = self.texture
+    if tex:
+      # Drawing may not make opengl context current because it was never drawn
+      # if it just was used for blending. So make sure context is current here.
+      # TODO: Need more general way to assure textures always deleted with context current.
+      r = self._image_render._session.main_view.render
+      r.make_current()
+      tex.delete_texture()
+      self.texture = None
+    self.parent.remove_drawing(self)
 
 def _box_corners(ijk_region, ijk_to_xyz = None):
     (i0,j0,k0), (i1,j1,k1) = ijk_region[:2]
@@ -992,8 +1105,8 @@ class BlendedImage(ImageRender):
     ro = self._rendering_options
     ro.colormap_on_gpu = False
 
-    for ir in images:
-      ir._remove_planes()	# Free textures and opengl buffers
+#    for ir in images:
+#      ir._remove_planes()	# Free textures and opengl buffers
 
     self._rgba8_array = None
 
@@ -1007,8 +1120,8 @@ class BlendedImage(ImageRender):
 
   @property
   def master_image(self):
-      return self.images[0]
-
+    return self.images[0]
+      
   def _color_plane(self, k, axis, view_aligned=False):
     p = None
     for ir in self.images:

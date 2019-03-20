@@ -616,6 +616,7 @@ rendering_options_attributes = (
   'color_mode',
   'colormap_on_gpu',
   'colormap_size',
+  'blend_on_gpu',
   'projection_mode',
   'plane_spacing',
   'full_region_on_gpu',
