@@ -14,7 +14,7 @@
 from chimerax.core.utils import CustomSortString
 
 def register_builtin_presets(session):
-    nospheres = "style (protein|nucleic) & @@draw_mode=0 stick"
+    nospheres = "style (protein|nucleic|solvent) & @@draw_mode=0 stick"
     cardef = "surf hide; %s; cartoon; car style modeh def arrows t arrowshelix f arrowscale 2 wid 2 thick 0.4" \
         " sides 12 div 20; car style ~(nucleic|strand) x round; car style (nucleic|strand) x rect" % nospheres
     cylinders = "%s; car style protein modeh tube rad 2 sides 24 thick 0.6" % cardef
