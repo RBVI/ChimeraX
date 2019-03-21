@@ -968,6 +968,15 @@ with possible values:
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
+  <a name="dimvox"><b>dimTransparentVoxels</b> &nbsp;<b>true</b> | false</a>
+<br>
+Scale voxel brightness in solid displays by a factor of (1&ndash;transparency).
+Otherwise, increasing the transparency also makes a volume appear brighter, 
+because less light is blocked.
+The <a href="#appearance"><b>appearance</b></a> option also adjusts this setting.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
   <a name="colormapOnGpu"></a>
   <b>colormapOnGpu</b> &nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -979,6 +988,18 @@ Colormapping with the GPU is faster but done every time the scene is drawn,
 whereas colormapping with the CPU is only done when the colors change.
 Colormapping with the GPU may also give a better, less noisy appearance because
 the data values rather than the resulting color values are interpolated.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="colormapSize"></a>
+  <b>colormapSize</b> &nbsp;<i>N</i>
+<br>
+Specify the size of the color lookup table (default <b>256</b>)
+for colormapping on the GPU (any data type) or on the CPU 
+with floating-point data.
+For color mapping on the CPU with 8-bit or 16-bit map data, 
+this value is ignored and sizes 256 and 65536 are used instead
+so that each data value has its own color. 
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -997,15 +1018,13 @@ is shown may slow performance significantly.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="colormapSize"></a>
-  <b>colormapSize</b> &nbsp;<i>N</i>
+  <a name="blendOnGpu"></a>
+  <b>blendOnGpu</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
-Specify the size of the color lookup table (default <b>256</b>)
-for colormapping on the GPU (any data type) or on the CPU 
-with floating-point data.
-For color mapping on the CPU with 8-bit or 16-bit map data, 
-this value is ignored and sizes 256 and 65536 are used instead
-so that each data value has its own color. 
+Whether solid-display color blending of
+<a href="../tools/volumeviewer.html#multichannel">multichannel data</a>
+should be done on the GPU (if true) or CPU (if <b>false</b>; default).
+Color blending on the GPU is about an order of magnitude faster.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -1020,15 +1039,6 @@ so that each data value has its own color.
   the disappearance of a dim spot when it passes in front of a brighter spot
   and the simulation of a single spot when the maximal values of different
   color components under the same pixel actually come from different spots.
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="dimvox"><b>dimTransparentVoxels</b> &nbsp;<b>true</b> | false</a>
-  <br>Scale voxel brightness in solid displays
-  by a factor of (1&ndash;transparency).
-  Otherwise, increasing the transparency also makes a volume
-  appear brighter, because less light is blocked.
-  The <a href="#appearance"><b>appearance</b></a> option adjusts this setting.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
