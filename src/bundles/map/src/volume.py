@@ -2457,6 +2457,7 @@ class Rendering_Options:
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
     self.colormap_on_gpu = False      # solid rendering with colors computed on gpu
     self.colormap_size = 256	      # solid rendering on GPU or other than 8 or 16-bit data types
+    self.blend_on_gpu = False	      # solid rendering blend images on gpu instead of cpu
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self.plane_spacing = 'min'		    # "min", "max", "mean" or distance value

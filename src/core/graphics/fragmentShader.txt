@@ -13,6 +13,9 @@
  * === UCSF ChimeraX Copyright ===
  */
 
+/* ----------------------------------------------------------------------------
+* Shader for drawing selection outlines.
+*/
 #ifdef USE_TEXTURE_OUTLINE
 
 in vec2 tex_coord_2d;
@@ -35,6 +38,9 @@ void main (void)
   frag_color = color;
 }
 
+/* ----------------------------------------------------------------------------
+* Shader for drawing silhouette edges.
+*/
 #elif defined(USE_DEPTH_OUTLINE)
 
 in vec2 tex_coord_2d;
@@ -62,7 +68,53 @@ void main (void)
   frag_color = color;
 }
 
+/* ----------------------------------------------------------------------------
+* Shader for blending textures for multichannel volume image rendering.
+*/
+#elif defined(USE_BLEND_TEXTURE_2D) || defined(USE_BLEND_TEXTURE_3D)
+
+in vec2 tex_coord_2d;
+#ifdef USE_BLEND_TEXTURE_2D
+uniform sampler2D tex2d;
 #else
+uniform sampler3D tex3d;
+uniform float tex_coord_z;
+#endif
+
+uniform vec4 color;			// modulation color
+#ifdef USE_BLEND_COLORMAP
+uniform vec2 colormap_range;		// offset and scale
+uniform sampler1D colormap;
+#endif
+out vec4 frag_color;
+
+void main (void)
+{
+#ifdef USE_BLEND_TEXTURE_2D
+#ifdef USE_BLEND_COLORMAP
+  float tvalue = (texture(tex2d, tex_coord_2d).r - colormap_range.x) * colormap_range.y;
+  frag_color = texture(colormap, tvalue) * color;
+#else
+  frag_color = texture(tex2d, tex_coord_2d) * color;
+#endif
+#endif
+#ifdef USE_BLEND_TEXTURE_3D
+  vec3 tex_coord_3d = vec3(tex_coord_2d, tex_coord_z);
+#ifdef USE_BLEND_COLORMAP
+  float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
+  frag_color = texture(colormap, tvalue) * color;
+#else
+  frag_color = texture(tex3d, tex_coord_3d) * color;
+#endif
+#endif
+}
+
+
+#else
+
+/* ----------------------------------------------------------------------------
+* Shader for rendering scene with lighting.
+*/
 
 #ifdef USE_LIGHTING
 

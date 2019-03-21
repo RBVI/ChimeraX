@@ -13,7 +13,7 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#if defined(USE_TEXTURE_OUTLINE) ||defined(USE_DEPTH_OUTLINE)
+#if defined(USE_TEXTURE_OUTLINE) || defined(USE_DEPTH_OUTLINE) || defined(USE_BLEND_TEXTURE_2D) || defined(USE_BLEND_TEXTURE_3D)
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec2 tex_coord;
