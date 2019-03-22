@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .widgets import StructureListWidget, AtomicStructureListWidget
+
 from chimerax.core.toolshed import BundleAPI
 
 class _AtomicWidgetsAPI(BundleAPI):

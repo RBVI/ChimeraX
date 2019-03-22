@@ -46,11 +46,13 @@ class ModelListBase:
     def __init__(self, **kw):
         super().__init__(**kw)
         if not hasattr(self, '_trigger_info'):
-            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
             from chimerax.atomic import get_triggers
             self._trigger_info = [
                 (self.session.triggers, ADD_MODELS, self._items_change),
                 (self.session.triggers, REMOVE_MODELS, self._items_change),
+                (self.session.triggers, MODEL_ID_CHANGED, self._items_change),
+                (self.session.triggers, MODEL_NAME_CHANGED, self._items_change),
             ]
             self._handlers = []
 
@@ -116,8 +118,8 @@ class ModelListWidgetBase(ModelListBase, QListWidget):
         "Shift-click to choose range\n  (starting from previous selected item)"
 
     def __init__(self, autoselect='default', selection_mode='extended', balloon_help=None, **kw):
-        self.autoselect = self.autoselect_default if autoselect == 'default' else autoselect
         super().__init__(**kw)
+        self.autoselect = self.autoselect_default if autoselect == 'default' else autoselect
         self.setSelectionMode({'single': self.SingleSelection, 'extended': self.ExtendedSelection,
             'multi': self.MultiSelection}[selection_mode])
         if balloon_help or selection_mode == 'extended':
