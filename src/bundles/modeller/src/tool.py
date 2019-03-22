@@ -12,6 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
+from chimerax.seqalign.widgets import AlignmentListWidget
+
 class ModellerLauncher(ToolInstance):
     """Generate the inputs needed by Modeller for comparitive modeling"""
 
@@ -30,10 +32,10 @@ class ModellerLauncher(ToolInstance):
         alignments_layout.setContentsMargins(0,0,0,0)
         alignments_layout.setSpacing(0)
         parent.setLayout(alignments_layout)
-        self.alignment_list = QListWidget()
+        self.alignment_list = AlignmentListWidget(session)
         self.alignment_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.alignment_list.keyPressEvent = session.ui.forward_keystroke
-        self.alignment_list.itemSelectionChanged.connect(self._list_selection_cb)
+        self.alignment_list.value_changed.connect(self._list_selection_cb)
         alignments_layout.addWidget(self.alignment_list)
         alignments_layout.setStretchFactor(self.alignment_list, 1)
         targets_area = QWidget()
@@ -78,9 +80,7 @@ class ModellerLauncher(ToolInstance):
         self.targets_layout.addWidget(menu_button, row, 1)
 
     def _refresh_alignments(self):
-        self.alignment_list.blockSignals(True)
         current_alignments = self.session.alignments.alignments
-        row_order_alignments = []
         for old_alignment in self.alignments:
             if old_alignment not in current_alignments:
                 self.target_labels[old_alignment].destroy()
@@ -88,26 +88,16 @@ class ModellerLauncher(ToolInstance):
                 del self.target_labels[old_alignment]
                 del self.target_menus[old_alignment]
                 del self.target_sequences[old_alignment]
-            else:
-                row_order_alignments.append(old_alignment)
         for cur_alignment in current_alignments:
             if cur_alignment not in self.alignments:
                 self._make_target_menu(cur_alignment)
                 self.target_sequences[cur_alignment] = None
-                row_order_alignments.append(cur_alignment)
-        self.alignments = row_order_alignments
-        self.alignment_list.clear()
-        self.alignment_list.addItems([str(aln) for aln in self.alignments])
-        from PyQt5.QtCore import QItemSelectionModel
-        for row, aln in enumerate(self.alignments):
-            if not self.target_menus[aln].isHidden():
-                self.alignment_list.setCurrentRow(row, QItemSelectionModel.SelectCurrent)
-        self.alignment_list.blockSignals(False)
+        self.alignments = current_alignments
 
-    def _list_selection_cb(self, *args):
-        sel_rows = set([i.row() for i in self.alignment_list.selectedIndexes()])
-        for row, aln in enumerate(self.alignments):
-            hidden = row not in sel_rows
+    def _list_selection_cb(self):
+        sel_alns = set(self.alignment_list.value)
+        for aln in self.alignments:
+            hidden = aln not in sel_alns
             self.target_labels[aln].setHidden(hidden)
             self.target_menus[aln].setHidden(hidden)
 
