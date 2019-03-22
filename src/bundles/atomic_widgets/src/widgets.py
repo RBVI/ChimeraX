@@ -11,26 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui.widgets.model_chooser import ModelItems, ModelListWidgetBase
+from chimerax.ui.widgets import ModelListWidget
 from chimerax.atomic import Structure, AtomicStructure
 
-class StructureItems(ModelItems):
-    column_title = "Structure"
-    class_filter = Structure
-
-class AtomicStructureItems(StructureItems):
-    class_filter = AtomicStructure
-
-class StructureListWidget(ModelListWidgetBase, StructureItems):
-    autoselect_default = "all"
-
+class StructureListWidget(ModelListWidget):
     def __init__(self, session, **kw):
-        self.session = session
-        super().__init__(**kw)
+        super().__init__(session, class_filter=Structure, **kw)
 
-class AtomicStructureListWidget(ModelListWidgetBase, AtomicStructureItems):
-    autoselect_default = "all"
-
+class AtomicStructureListWidget(ModelListWidget):
     def __init__(self, session, **kw):
-        self.session = session
-        super().__init__(**kw)
+        super().__init__(session, class_filter=AtomicStructure, **kw)

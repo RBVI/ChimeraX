@@ -16,30 +16,28 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from chimerax.core.models import Model
 
 class ModelItems:
-    column_title = "Model"
-    class_filter = Model
-
-    def __init__(self, list_func=None, key_func=None, filter_func=None, **kw):
+    def __init__(self, list_func=None, key_func=None, filter_func=None, item_text_func=str,
+            class_filter=Model, column_title="Model", **kw):
         self.list_func = self.session.models.list if list_func is None else list_func
-
-        filt = lambda s, cf=self.class_filter: isinstance(s, cf)
+        filt = lambda s, cf=class_filter: isinstance(s, cf)
         self.filter_func = filt if filter_func is None else lambda s, f=filt, ff=filter_func: f(s) and ff(s)
-
         self.key_func = lambda s, kf=key_func: s.id if kf is None else kf(s)
+        self.item_text_func = item_text_func
+        self.column_title = column_title
 
         super().__init__(**kw)
 
     def _item_names(self):
         self.item_map = {}
         self.value_map = {}
-        models = [m for m in self.list_func() if self.filter_func(m)]
-        models.sort(key=self.key_func)
-        # for some subclasses, the item names may not be str(value)
+        values = [v for v in self.list_func() if self.filter_func(v)]
+        values.sort(key=self.key_func)
         items = []
-        for m in models:
-            self.item_map[str(m)] = m
-            self.value_map[m] = str(m)
-            items.append(str(m))
+        for v in values:
+            text = self.item_text_func(v)
+            self.item_map[text] = v
+            self.value_map[v] = text
+            items.append(text)
         return items
 
 class ModelListBase:
