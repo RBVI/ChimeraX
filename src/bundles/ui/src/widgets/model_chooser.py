@@ -17,13 +17,12 @@ from chimerax.core.models import Model
 
 class ModelItems:
     def __init__(self, list_func=None, key_func=None, filter_func=None, item_text_func=str,
-            class_filter=Model, column_title="Model", **kw):
+            class_filter=Model, **kw):
         self.list_func = self.session.models.list if list_func is None else list_func
         filt = lambda s, cf=class_filter: isinstance(s, cf)
         self.filter_func = filt if filter_func is None else lambda s, f=filt, ff=filter_func: f(s) and ff(s)
         self.key_func = lambda s, kf=key_func: s.id if kf is None else kf(s)
         self.item_text_func = item_text_func
-        self.column_title = column_title
 
         super().__init__(**kw)
 
