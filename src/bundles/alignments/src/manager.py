@@ -25,6 +25,10 @@ class AlignmentsManager(StateManager):
         self.session = session
         self.viewer_info = {'alignment': {}, 'sequence': {}}
         self.tool_to_subcommand = {}
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger("new alignment")
+        self.triggers.add_trigger("destroy alignment")
 
     @property
     def alignments(self):
@@ -37,6 +41,7 @@ class AlignmentsManager(StateManager):
     def destroy_alignment(self, alignment):
         if alignment.ident is not False:
             del self._alignments[alignment.ident]
+        self.triggers.activate_trigger("destroy alignment", alignment)
         alignment._destroy()
 
     def deregister_viewer(self, tool_name, *, sequence_viewer=True, alignment_viewer=True):
@@ -151,6 +156,7 @@ class AlignmentsManager(StateManager):
             self._alignments[identify_as] = alignment
         if viewer:
             viewer_startup_cb(self.session, tool_name, alignment)
+        self.triggers.activate_trigger("new alignment", alignment)
         return alignment
 
     def register_viewer(self, tool_name, startup_cb, *,
