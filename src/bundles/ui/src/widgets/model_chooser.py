@@ -41,18 +41,20 @@ class ModelItems:
         return items
 
 class ModelListBase:
-    def __init__(self, **kw):
+    def __init__(self, trigger_info=None, **kw):
         super().__init__(**kw)
-        if not hasattr(self, '_trigger_info'):
+        self._handlers = []
+        if trigger_info is None:
             from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
             from chimerax.atomic import get_triggers
             self._trigger_info = [
-                (self.session.triggers, ADD_MODELS, self._items_change),
-                (self.session.triggers, REMOVE_MODELS, self._items_change),
-                (self.session.triggers, MODEL_ID_CHANGED, self._items_change),
-                (self.session.triggers, MODEL_NAME_CHANGED, self._items_change),
+                (self.session.triggers, ADD_MODELS),
+                (self.session.triggers, REMOVE_MODELS),
+                (self.session.triggers, MODEL_ID_CHANGED),
+                (self.session.triggers, MODEL_NAME_CHANGED),
             ]
-            self._handlers = []
+        else:
+            self._trigger_info = trigger_info
 
     def destroy(self):
         self._delete_handlers()
@@ -73,8 +75,8 @@ class ModelListBase:
     def showEvent(self, event):
         if self._handlers:
             return
-        for triggers, trig_name, cb in self._trigger_info:
-            self._handlers.append(triggers.add_handler(trig_name, cb))
+        for triggers, trig_name in self._trigger_info:
+            self._handlers.append(triggers.add_handler(trig_name, self._items_change))
         self._items_change()
 
     def _delete_handlers(self):
