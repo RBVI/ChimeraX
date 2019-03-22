@@ -22,7 +22,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: modeller comparitive :: Sequence :: Generate comparitive model</ChimeraXClassifier>
-    <!-- not yet ready for prime time <ChimeraXClassifier>Tool :: Modeller Comparitive Modeling :: Sequence :: Generate comparitive models</ChimeraXClassifier> -->
+    <ChimeraXClassifier>Tool :: Modeller Comparitive Modeling :: Sequence :: Generate comparitive models</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
