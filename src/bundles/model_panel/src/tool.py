@@ -77,7 +77,8 @@ class ModelPanel(ToolInstance):
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler(MODEL_ID_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, always_rebuild=True))
-        self.session.triggers.add_handler(MODEL_NAME_CHANGED, self._initiate_fill_tree)
+        self.session.triggers.add_handler(MODEL_NAME_CHANGED,
+            lambda *args: self._initiate_fill_tree(*args, refresh=True))
         from chimerax import atomic
         atomic.get_triggers(self.session).add_handler("changes", self._changes_cb)
         self._frame_drawn_handler = None
@@ -109,12 +110,14 @@ class ModelPanel(ToolInstance):
         # ensure that the newly visible model id isn't just "..."
         self.tree.resizeColumnToContents(self.ID_COLUMN)
 
-    def _initiate_fill_tree(self, *args, always_rebuild=False):
+    def _initiate_fill_tree(self, *args, always_rebuild=False, refresh=False):
         # in order to allow molecules to be drawn as quickly as possible,
         # delay the update of the tree until the 'frame drawn' trigger fires,
         # unless no models are open, in which case update immediately because
-        # Rapid Access will come up and 'frame drawn' may not fire for awhile
-        if len(self.session.models) == 0:
+        # Rapid Access will come up and 'frame drawn' may not fire for awhile.
+        # Also do immediately if the cause is a model-name change, since the
+        # frame-drawn trigger may not fire for awhile
+        if len(self.session.models) == 0 or refresh:
             if self._frame_drawn_handler is not None:
                 self.session.triggers.remove_handler(self._frame_drawn_handler)
             self._fill_tree(always_rebuild=always_rebuild)
