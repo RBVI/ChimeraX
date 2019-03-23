@@ -34,7 +34,7 @@ Provides a ribbon-style toolbar interface
   </Dependencies>
 
   <DataFiles>
-    <DataDir>lib</DataDir>
+    <DataDir>icons</DataDir>
     <DataFile>tool.html</DataFile>
     <DataFile>docs/user/tools/Toolbar.html</DataFile>
   </DataFiles>
