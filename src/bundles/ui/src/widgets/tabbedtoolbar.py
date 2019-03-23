@@ -144,7 +144,16 @@ class TabbedToolbar(QTabWidget):
         group.add_button(button_title, callback, icon, description)
 
     def show_category(self, category_title):
-        pass  # TODO
+        tab_info = self._buttons.get(category_title, None)
+        if tab_info is None:
+            return
+        tab = tab_info.get("__toolbar__", None)
+        if tab is None:
+            return
+        index = self.indexOf(tab)
+        if index == -1:
+            return
+        self.setCurrentIndex(index)
 
 
 if __name__ == "__main__":

@@ -144,6 +144,7 @@ class ToolbarTool(ToolInstance):
                         tab, section, descrip,
                         lambda e, what=what, self=self: self.handle_scheme(what),
                         icon, tooltip, compact)
+        self.ttb.show_category('Home')
 
 
 _Toolbars = {
