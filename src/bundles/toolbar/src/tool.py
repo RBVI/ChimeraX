@@ -143,7 +143,7 @@ class ToolbarTool(ToolInstance):
                     self.ttb.add_button(
                         tab, section, descrip,
                         lambda e, what=what, self=self: self.handle_scheme(what),
-                        icon, tooltip)
+                        icon, tooltip, compact)
 
 
 _Toolbars = {
