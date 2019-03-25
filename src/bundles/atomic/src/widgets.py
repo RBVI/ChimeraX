@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui.widgets import ModelListWidget
+from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
 from chimerax.atomic import Structure, AtomicStructure
 
 class StructureListWidget(ModelListWidget):
@@ -19,5 +19,13 @@ class StructureListWidget(ModelListWidget):
         super().__init__(session, class_filter=Structure, **kw)
 
 class AtomicStructureListWidget(ModelListWidget):
+    def __init__(self, session, **kw):
+        super().__init__(session, class_filter=AtomicStructure, **kw)
+
+class StructureMenuButton(ModelMenuButton):
+    def __init__(self, session, **kw):
+        super().__init__(session, class_filter=Structure, **kw)
+
+class AtomicStructureMenuButton(ModelMenuButton):
     def __init__(self, session, **kw):
         super().__init__(session, class_filter=AtomicStructure, **kw)

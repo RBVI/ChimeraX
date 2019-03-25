@@ -11,10 +11,21 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui.widgets import ModelListWidget
+from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
 from .alignment import Alignment
 
 class AlignmentListWidget(ModelListWidget):
+    def __init__(self, session, **kw):
+        super().__init__(session, class_filter=Alignment,
+            list_func=lambda ses=session: session.alignments.alignments,
+            key_func=lambda aln: aln.ident,
+            trigger_info=[
+                (session.alignments.triggers, "new alignment"),
+                (session.alignments.triggers, "destroy alignment"),
+            ],
+            **kw)
+
+class AlignmentMenuButton(ModelMenuButton):
     def __init__(self, session, **kw):
         super().__init__(session, class_filter=Alignment,
             list_func=lambda ses=session: session.alignments.alignments,
