@@ -11,19 +11,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QListWidget
+from PyQt5.QtWidgets import QListWidget, QPushButton, QMenu
 from PyQt5.QtCore import Qt, pyqtSignal
 from chimerax.core.models import Model
 
 class ModelItems:
     def __init__(self, list_func=None, key_func=None, filter_func=None, item_text_func=str,
-            class_filter=Model, column_title="Model", **kw):
+            class_filter=Model, **kw):
         self.list_func = self.session.models.list if list_func is None else list_func
         filt = lambda s, cf=class_filter: isinstance(s, cf)
         self.filter_func = filt if filter_func is None else lambda s, f=filt, ff=filter_func: f(s) and ff(s)
         self.key_func = lambda s, kf=key_func: s.id if kf is None else kf(s)
         self.item_text_func = item_text_func
-        self.column_title = column_title
 
         super().__init__(**kw)
 
@@ -190,6 +189,99 @@ class ModelListWidgetBase(ModelListBase, QListWidget):
 class ModelListWidget(ModelListWidgetBase, ModelItems):
     autoselect_default = "all"
 
+    def __init__(self, session, **kw):
+        self.session = session
+        super().__init__(**kw)
+
+class MenuButton(QPushButton):
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.setMenu(QMenu())
+
+class ModelMenuButtonBase(ModelListBase, MenuButton):
+    """Maintain a popup menu of models
+
+       Keep menu up to date as models are opened and closed while keeping the selected item(s) the same
+
+       'autoselect_single_item' controls whether the only item in a menu is automatically selected or not.
+
+       'no_value_button_text' is the text shown on the menu button when no item is selected for whatever
+       reason.  In such cases, self.value will be None.
+
+       If 'no_value_menu_text' is not None, then there will be an additional entry in the menu with that
+       text, and choosing that menu item is treated as setting self.value to None.
+
+       'balloon_help' is the balloon help to provide with the list (if any).
+
+       _item_names() needs to be implemented in subclasses (possibly by multiple inheritance)
+    """
+
+    value_changed = pyqtSignal()
+
+    def __init__(self, autoselect_single_item=True, balloon_help=None, no_value_button_text="No item chosen",
+            no_value_menu_text=None, **kw):
+        self._autoselect_single = autoselect_single_item
+        self._no_value_menu_text = no_value_menu_text
+        self._no_value_button_text = no_value_button_text
+        super().__init__(**kw)
+        self.menu().triggered.connect(self._sel_change)
+        if balloon_help:
+            self.setToolTip(balloon_help if balloon_help else self.extended_balloon_help)
+
+    def destroy(self):
+        ModelListBase.destroy(self)
+        MenuButton.destroy(self)
+
+    @property
+    def value(self):
+        self._sleep_check()
+        text = self.text()
+        if text == self._no_value_button_text or not hasattr(self, 'item_map') or not text:
+            return None
+        return self.item_map[text]
+
+    @value.setter
+    def value(self, val):
+        self._sleep_check()
+        if self.value == val:
+            if val is None and not self.text():
+                self.setText(self._no_value_button_text)
+            return
+        if val is None or not self.value_map:
+            self.setText(self._no_value_button_text)
+        else:
+            self.setText(self.value_map[val])
+        self.value_changed.emit()
+
+    def _items_change(self, *args):
+        del_recursion = False
+        if not hasattr(self, '_recursion'):
+            self._recursion = True
+            del_recursion = True
+        prev_value = self.value
+        item_names = self._item_names()
+        if self._no_value_menu_text is not None:
+            item_names = [self._no_value_menu_text] + item_names
+        menu = self.menu()
+        menu.clear()
+        for item_name in item_names:
+            menu.addAction(item_name)
+        if prev_value not in self.value_map:
+            if len(self.value_map) == 1 and self._autoselect_single:
+                self.value = list(self.value_map.keys())[0]
+            else:
+                self.value = None
+
+    def _sel_change(self, action):
+        if action.text() == self._no_value_menu_text:
+            next_text = self._no_value_button_text
+        else:
+            next_text = action.text()
+        if self.text() != next_text:
+            self.setText(next_text)
+            self.value_changed.emit()
+
+class ModelMenuButton(ModelMenuButtonBase, ModelItems):
     def __init__(self, session, **kw):
         self.session = session
         super().__init__(**kw)
