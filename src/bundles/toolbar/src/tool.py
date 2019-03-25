@@ -57,7 +57,9 @@ class ToolbarTool(ToolInstance):
         margins.setTop(0)
         margins.setBottom(0)
         layout.setContentsMargins(margins)
-        self.ttb = TabbedToolbar(self.tool_window.ui_area)
+        self.ttb = TabbedToolbar(
+            self.tool_window.ui_area, show_group_titles=self.settings.show_group_labels,
+            show_button_titles=self.settings.show_button_labels)
         layout.addWidget(self.ttb)
         self._build_buttons()
         self.tool_window.ui_area.setLayout(layout)
@@ -80,19 +82,11 @@ class ToolbarTool(ToolInstance):
 
     def _set_button_labels(self, show_button_labels):
         self.settings.show_button_labels = show_button_labels
-        return
-        tabs = self.tabs
-        self.tabs = None
-        tabs.destroy()
-        self._build_ui()
+        self.ttb.set_show_button_titles(show_button_labels)
 
     def _set_group_labels(self, show_group_labels):
         self.settings.show_group_labels = show_group_labels
-        return
-        tabs = self.tabs
-        self.tabs = None
-        tabs.destroy()
-        self._build_ui()
+        self.ttb.set_show_group_titles(show_group_labels)
 
     def handle_scheme(self, cmd):
         # First check that the path is a real command

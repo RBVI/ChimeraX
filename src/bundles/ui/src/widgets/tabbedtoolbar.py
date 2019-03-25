@@ -15,12 +15,14 @@
 TabbedToolbar is reminiscent of a Microsoft Ribbon interface.
 """
 
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QWidget, QTabWidget, QToolBar, QWidgetAction,
     QGridLayout, QLabel, QToolButton, QAction
 )
+
+_debug = False   # DEBUG
 
 
 class _Group(QWidgetAction):
@@ -34,11 +36,13 @@ class _Group(QWidgetAction):
     # TODO: support more than 3 compact buttons by using multiple columns
     # and span the title
 
-    def __init__(self, parent, group_title, compact):
+    def __init__(self, parent, group_title, compact, show_group_titles, show_button_titles):
         super().__init__(parent)
         self._buttons = []
         self.group_title = group_title
         self.compact = compact
+        self.show_group_titles = show_group_titles
+        self.show_button_titles = show_button_titles
 
     def add_button(self, title, callback, icon, description):
         button_info = (title, callback, icon, description)
@@ -76,8 +80,9 @@ class _Group(QWidgetAction):
             icon = QIcon()
             style = Qt.ToolButtonTextOnly
         else:
-            # if button titles not shown use: Qt.ToolButtonIconOnly
-            if self.compact:
+            if not self.show_button_titles:
+                style = Qt.ToolButtonIconOnly
+            elif self.compact:
                 style = Qt.ToolButtonTextBesideIcon
             else:
                 style = Qt.ToolButtonTextUnderIcon
@@ -94,8 +99,20 @@ class _Group(QWidgetAction):
         if self.compact:
             parent._layout.addWidget(b, ordinal, 0)
         else:
-            b.setIconSize(2 * b.iconSize())
+            if self.show_button_titles:
+                b.setIconSize(2 * b.iconSize())
+            else:
+                b.setIconSize(3 * b.iconSize())
             parent._layout.addWidget(b, 0, ordinal, Qt.AlignTop)
+        global _debug
+        if _debug:
+            _debug = False
+            policy = b.sizePolicy()
+            print('expanding:', int(policy.expandingDirections()))
+            print('horizontal policy:', policy.horizontalPolicy())
+            print('horizontal stretch:', policy.horizontalStretch())
+            print('vertical policy:', policy.verticalPolicy())
+            print('vertical stretch:', policy.verticalStretch())
 
     def _adjust_title(self, w):
         # Readding the widget, removes the old entry, and lets us change the parameters
@@ -110,25 +127,57 @@ class _Group(QWidgetAction):
         layout = w._layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        for column, button_info in enumerate(self._buttons):
-            self._add_button(w, column, button_info)
-        w._title = QLabel(self.group_title, parent)
-        self._adjust_title(w)
+        self._layout_buttons(w)
         w.setLayout(layout)
         return w
+
+    def _layout_buttons(self, w):
+        for column, button_info in enumerate(self._buttons):
+            self._add_button(w, column, button_info)
+        if self.show_group_titles:
+            w._title = QLabel(self.group_title, w)
+            self._adjust_title(w)
+
+    def _clear_layout(self, layout):
+        # remove/delete members of layout
+        while layout.count():
+            w = layout.takeAt(0).widget()
+            layout.removeWidget(w)
+            w.setParent(None)
+            w.deleteLater()
+
+    def set_show_group_titles(self, on_off):
+        if self.show_group_titles == on_off:
+            return
+        self.show_group_titles = on_off
+        for w in self.createdWidgets():
+            if hasattr(w, '_title'):
+                del w._title
+            self._clear_layout(w._layout)
+            self._layout_buttons(w)
+
+    def set_show_button_titles(self, on_off):
+        if self.show_button_titles == on_off:
+            return
+        self.show_button_titles = on_off
+        for w in self.createdWidgets():
+            if hasattr(w, '_title'):
+                del w._title
+            self._clear_layout(w._layout)
+            self._layout_buttons(w)
 
 
 class TabbedToolbar(QTabWidget):
     # A Microsoft Office ribbon-style interface
 
-    def __init__(self, *args, **kw):
+    def __init__(self, *args, show_group_titles=True, show_button_titles=True, **kw):
         super().__init__(*args, **kw)
         # TODO: self.tabs.setMovable(True)  # and save tab order in preferences
         self._buttons = {}
+        self.show_group_titles = show_group_titles
+        self.show_button_titles = show_button_titles
 
     # TODO: disable/enable button/group, remove button
-    # TODO: disable/enable display of text
-    # TODO: set visible tab
 
     def add_button(self, category_title, group_title, button_title, callback, icon=None, description=None, compact=False):
         tab_info = self._buttons.setdefault(category_title, {})
@@ -138,7 +187,8 @@ class TabbedToolbar(QTabWidget):
             self.addTab(tab, category_title)
         group = tab_info.get(group_title, None)
         if group is None:
-            group = tab_info[group_title] = _Group(group, group_title, compact)
+            group = tab_info[group_title] = _Group(
+                group, group_title, compact, self.show_group_titles, self.show_button_titles)
             tab.addAction(group)
             tab.addSeparator()
         group.add_button(button_title, callback, icon, description)
@@ -154,6 +204,26 @@ class TabbedToolbar(QTabWidget):
         if index == -1:
             return
         self.setCurrentIndex(index)
+
+    def set_show_group_titles(self, on_off):
+        if self.show_group_titles == on_off:
+            return
+        self.show_group_titles = on_off
+        for category_title, tab_info in self._buttons.items():
+            for group_title, group in tab_info.items():
+                if group_title == "__toolbar__":
+                    continue
+                group.set_show_group_titles(on_off)
+
+    def set_show_button_titles(self, on_off):
+        if self.show_button_titles == on_off:
+            return
+        self.show_button_titles = on_off
+        for category_title, tab_info in self._buttons.items():
+            for group_title, group in tab_info.items():
+                if group_title == "__toolbar__":
+                    continue
+                group.set_show_button_titles(on_off)
 
 
 if __name__ == "__main__":
