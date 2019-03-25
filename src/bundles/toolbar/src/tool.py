@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui import HtmlToolInstance
+from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 
 
@@ -22,84 +22,7 @@ class ToolbarSettings(Settings):
     }
 
 
-_prolog = """<html>
-  <!-- vi:set expandtab shiftwidth=2: -->
-  <head>
-    <meta charset="UTF-8">
-    <base href="URLBASE/"/>
-    <link href="lib/ribbon/ribbon.css" rel="stylesheet" type="text/css"/>
-    <script type="text/javascript" src="lib/jquery-1.6.1.min.js"></script>
-    <script type="text/javascript" src="lib/ribbon/ribbon.js"></script>
-    <script type="text/javascript" src="lib/ribbon/jquery.tooltip.min.js"></script>
-    <script type="text/javascript">
-      $(document).ready(function () {
-        $('#ribbon').ribbon();
-        $('.ribbon-button').click(function() {
-          if (this.isEnabled()) {
-            var cmd = $(this).attr('id');
-            var link = document.createElement('a');
-            link.href = "toolbar:" + cmd;
-            link.click();
-          }
-        });
-        $.fn.ribbon.switchToTabByIndex(1);
-      });
-    </script>
-    <style>
-      // tighten up ribbon display
-      body {
-        padding: 0px;
-      }
-      #ribbon {
-        padding: 0px;
-        height: 110px;
-        background-color: #f0f0f0;
-      }
-      #ribbon .ribbon-tab
-      {
-        padding: 0px;
-      }
-      .ribbon-tooltip
-      {
-        width: auto;
-        top: auto;
-      }
-"""
-_normal_style = """
-      #ribbon .ribbon-button-large .ribbon-icon
-      {
-        width: 24px;
-        height: 24px;
-      }
-"""
-_compact_style = """
-      #ribbon .ribbon-button-large
-      {
-        height: 48px;
-      }
-      #ribbon .ribbon-button-large .ribbon-icon
-      {
-        width: 48px;
-        height: 48px;
-      }
-"""
-_end_prolog = """
-    </style>
-
-  </head>
-  <body>
-    <div id="ribbon">
-      <div class="ribbon-window-title"></div>
-"""
-_epilog = """
-      </div>
-    </div>
-  </body>
-</html>
-"""
-
-
-class ToolbarTool(HtmlToolInstance):
+class ToolbarTool(ToolInstance):
 
     SESSION_ENDURING = True
     SESSION_SAVE = False        # No session saving for now
@@ -108,14 +31,18 @@ class ToolbarTool(HtmlToolInstance):
     help = "help:user/tools/Toolbar.html"  # Let ChimeraX know about our help page
 
     def __init__(self, session, tool_name):
-        super().__init__(session, tool_name, size_hint=(575, 110), log_errors=True)
+        super().__init__(session, tool_name)
         self.display_name = "Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = MainToolWindow(self)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
         # kludge to hide title bar
         from PyQt5.QtWidgets import QWidget
         self.tool_window._kludge.dock_widget.setTitleBarWidget(QWidget())
+
+        # TODO: Temporarily remove default toolbars
         from chimerax.core.commands import run
         # run(session, "toolshed hide 'Density Map Toolbar'", log=False)
         run(session, "toolshed hide 'Graphics Toolbar'", log=False)
@@ -123,11 +50,20 @@ class ToolbarTool(HtmlToolInstance):
         run(session, "toolshed hide 'Mouse Modes for Right Button'", log=False)
 
     def _build_ui(self):
-        from PyQt5.QtCore import QUrl
-        html = self._build_buttons()
-        # with open('debug.html', 'w') as f:
-        #     f.write(html)
-        self.html_view.setHtml(html, QUrl("file://"))
+        from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
+        from PyQt5.QtWidgets import QVBoxLayout
+        layout = QVBoxLayout()
+        margins = layout.contentsMargins()
+        margins.setTop(0)
+        margins.setBottom(0)
+        layout.setContentsMargins(margins)
+        self.ttb = TabbedToolbar(
+            self.tool_window.ui_area, show_group_titles=self.settings.show_group_labels,
+            show_button_titles=self.settings.show_button_labels)
+        layout.addWidget(self.ttb)
+        self._build_buttons()
+        self.tool_window.ui_area.setLayout(layout)
+        self.tool_window.manage(self.PLACEMENT)
 
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
@@ -146,15 +82,14 @@ class ToolbarTool(HtmlToolInstance):
 
     def _set_button_labels(self, show_button_labels):
         self.settings.show_button_labels = show_button_labels
-        self._build_ui()
+        self.ttb.set_show_button_titles(show_button_labels)
 
     def _set_group_labels(self, show_group_labels):
         self.settings.show_group_labels = show_group_labels
-        self._build_ui()
+        self.ttb.set_show_group_titles(show_group_labels)
 
-    def handle_scheme(self, url):
+    def handle_scheme(self, cmd):
         # First check that the path is a real command
-        cmd = url.path()
         kind, value = cmd.split(':', maxsplit=1)
         if kind == "shortcut":
             self.session.keyboard_shortcuts.run_shortcut(value)
@@ -172,28 +107,18 @@ class ToolbarTool(HtmlToolInstance):
     def _build_buttons(self):
         import os
         import chimerax.shortcuts
-        from PyQt5.QtCore import QUrl
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtGui import QPixmap, QIcon
         show_button_labels = self.settings.show_button_labels
         show_group_labels = self.settings.show_group_labels
         shortcut_icon_dir = os.path.join(chimerax.shortcuts.__path__[0], 'icons')
-        dir_path = os.path.dirname(__file__)
-        qurl = QUrl.fromLocalFile(dir_path)
-        html = _prolog.replace("URLBASE", qurl.url())
-        if show_button_labels:
-            html += _normal_style
-        else:
-            html += _compact_style
-        html += _end_prolog
+        dir_path = os.path.join(os.path.dirname(__file__), 'icons')
         for tab in _Toolbars:
             help_url, info = _Toolbars[tab]
-            tab_id = tab.replace(' ', '_')
-            html += f'''<div class="ribbon-tab" id="{tab_id}-tab">\n\
-<span class="ribbon-title">{tab}</span>\n'''
             for (section, compact) in info:
                 shortcuts = info[(section, compact)]
-                html += '''  <div class="ribbon-section">\n'''
                 if show_group_labels:
-                    html += f'''  <span class="section-title">{section}</span>\n'''
+                    pass  # TODO
                 for what, icon_file, descrip, tooltip in shortcuts:
                     kind, value = what.split(':', 1)
                     if kind == "mouse":
@@ -204,23 +129,16 @@ class ToolbarTool(HtmlToolInstance):
                     else:
                         icon_path = os.path.join(shortcut_icon_dir, icon_file)
                         if not os.path.exists(icon_path):
-                            icon_path = icon_file
-                    qurl = QUrl.fromLocalFile(icon_path)
-                    icon_path = qurl.url()
-                    size = "small" if compact else "large"
-                    html += f'''    <div class="ribbon-button ribbon-button-{size}" id="{what}">\n'''
-                    if show_button_labels:
-                        html += f'''        <span class="button-title">{descrip}</span>\n'''
+                            icon_path = os.path.join(dir_path, icon_file)
+                    pm = QPixmap(icon_path)
+                    icon = QIcon(pm.scaledToHeight(32, Qt.SmoothTransformation))
                     if not tooltip:
                         tooltip = descrip
-                    if tooltip:
-                        html += f'''        <span class="button-help">{tooltip}</span>\n'''
-                    html += f'''        <img class="ribbon-icon ribbon-normal" src="{icon_path}"/>\n\
-    </div>\n'''
-                html += "  </div>\n"
-            html += "</div>\n"
-        html += _epilog
-        return html
+                    self.ttb.add_button(
+                        tab, section, descrip,
+                        lambda e, what=what, self=self: self.handle_scheme(what),
+                        icon, tooltip, compact)
+        self.ttb.show_category('Home')
 
 
 _Toolbars = {
@@ -228,10 +146,10 @@ _Toolbars = {
         None,
         {
             ("", False): [
-                ("cmd:open browse", "lib/open-in-app.svg", "Open", "Open data file"),
-                ("cmd:save browse", "lib/content-save.svg", "Save", "Save session file"),
-                ("cmd:close session", "lib/close-box.svg", "Close", "Close current session"),
-                ("cmd:exit", "lib/exit.png", "Exit", "Exit application")],
+                ("cmd:open browse", "open-in-app.png", "Open", "Open data file"),
+                ("cmd:save browse", "content-save.png", "Save", "Save session file"),
+                ("cmd:close session", "close-box.png", "Close", "Close current session"),
+                ("cmd:exit", "exit.png", "Exit", "Exit application")],
         },
     ),
     "Home": (
@@ -246,7 +164,7 @@ _Toolbars = {
             ("Styles", False): [
                 ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
                 ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
-                ("shortcut:bs", "ball.png", "Ball-and-stick", "Display atoms in ball and stick style")],
+                ("shortcut:bs", "ball.png", "Ball and stick", "Display atoms in ball and stick style")],
             ("Background", False): [
                 ("shortcut:wb", "whitebg.png", "White", "White background"),
                 ("shortcut:bk", "blackbg.png", "Black", "Black background")],
@@ -260,8 +178,8 @@ _Toolbars = {
         "help:user/tools/moldisplay.html",
         {
             ("Last action", True): [
-                ("cmd:undo", "lib/undo-variant.png", "Undo", "Undo last action"),
-                ("cmd:redo", "lib/redo-variant.png", "Redo", "Redo last action")],
+                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
+                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action")],
             ("Atoms", True): [
                 ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
                 ("shortcut:ha", "atomhide.png", "Hide", "Hide atoms")],
@@ -286,25 +204,25 @@ _Toolbars = {
         "help:user/tools/graphics.html",
         {
             ("Last action", True): [
-                ("cmd:undo", "lib/undo-variant.png", "Undo", "Undo last action"),
-                ("cmd:redo", "lib/redo-variant.png", "Redo", "Redo last action")],
+                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
+                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action")],
             ("Background", True): [
                 ("shortcut:wb", "whitebg.png", "White", "White background"),
                 ("shortcut:gb", "graybg.png", "Gray", "Gray background"),
                 ("shortcut:bk", "blackbg.png", "Black", "Black background")],
             ("Lighting", False): [
                 ("shortcut:ls", "simplelight.png", "Simple", "Simple lighting"),
-                ("shortcut:sh", "shadow.png", "Single<br/>shadow", "Toggle shadows"),
+                ("shortcut:sh", "shadow.png", "Single shadow", "Toggle shadows"),
                 ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
                 ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
                 ("shortcut:lF", "flat.png", "Flat", "Flat lighting"),
                 ("shortcut:se", "silhouette.png", "Silhouettes", "Toggle silhouettes")],
             ("Camera", False): [
                 ("shortcut:va", "viewall.png", "View all", "View all"),
-                ("shortcut:dv", "orient.png", "Default<br/>orientation", "Default orientation")],
+                ("shortcut:dv", "orient.png", "Default orientation", "Default orientation")],
             ("Images", False): [
-                ("shortcut:sx", "camera.png", "Save snapshot<br/>to desktop", "Save snapshot to desktop"),
-                ("shortcut:vd", "video.png", "Record<br/>spin movie", "Record spin movie")],
+                ("shortcut:sx", "camera.png", "Save snapshot to desktop", "Save snapshot to desktop"),
+                ("shortcut:vd", "video.png", "Record spin movie", "Record spin movie")],
         }
     ),
     "Density Map": (
@@ -317,24 +235,24 @@ _Toolbars = {
                 ("shortcut:fl", "mapsurf.png", "As surface", "Show map or surface in filled style"),
                 ("shortcut:me", "mesh.png", "As mesh", "Show map or surface as mesh"),
                 ("shortcut:gs", "mapimage.png", "As image", "Show map as grayscale"),
-                ("shortcut:tt", "icecube.png", "Transparent<br/>surface", "Toggle surface transparency"),
-                ("shortcut:ob", "outlinebox.png", "Outline<br/>box", "Toggle outline box")],
+                ("shortcut:tt", "icecube.png", "Transparent surface", "Toggle surface transparency"),
+                ("shortcut:ob", "outlinebox.png", "Outline box", "Toggle outline box")],
             ("Steps", False): [
                 ("shortcut:s1", "step1.png", "Step 1", "Show map at step 1"),
                 ("shortcut:s2", "step2.png", "Step 2", "Show map at step 2")],
             ("Fitting", False): [
                 ("shortcut:fT", "fitmap.png", "Fit in map", "Fit map in map")],
             ("Rendering", False): [
-                ("shortcut:sb", "diffmap.png", "Compute<br/>difference", "Subtract map from map"),
+                ("shortcut:sb", "diffmap.png", "Compute difference", "Subtract map from map"),
                 ("shortcut:gf", "smooth.png", "Smooth", "Smooth map"),
-                ("shortcut:pl", "plane.png", "One<br/>plane", "Show one plane"),
-                ("shortcut:o3", "orthoplanes.png", "Orthogonal<br/>planes", "Show 3 orthogonal planes"),
-                ("shortcut:pa", "fullvolume.png", "Full<br/>volume", "Show all planes")],
+                ("shortcut:pl", "plane.png", "One plane", "Show one plane"),
+                ("shortcut:o3", "orthoplanes.png", "Orthogonal planes", "Show 3 orthogonal planes"),
+                ("shortcut:pa", "fullvolume.png", "Full volume", "Show all planes")],
             ("Solid", False): [
-                ("shortcut:zs", "xyzslice.png", "xyz<br/>slices", "Volume xyz slices"),
-                ("shortcut:ps", "perpslice.png", "Perpendicular<br/>slices", "Volume perpendicular slices"),
-                ("shortcut:aw", "airways.png", "Airways<br/>preset", "Airways preset"),
-                ("shortcut:dc", "initialcurve.png", "Default<br/>curve", "Default volume curve")],
+                ("shortcut:zs", "xyzslice.png", "xyz slices", "Volume xyz slices"),
+                ("shortcut:ps", "perpslice.png", "Perpendicular slices", "Volume perpendicular slices"),
+                ("shortcut:aw", "airways.png", "Airways preset", "Airways preset"),
+                ("shortcut:dc", "initialcurve.png", "Default curve", "Default volume curve")],
         }
     ),
     "Right Mouse": (
@@ -345,31 +263,31 @@ _Toolbars = {
                 ("mouse:rotate", None, "Rotate", "Rotate models"),
                 ("mouse:translate", None, "Translate", "Translate models"),
                 ("mouse:zoom", None, "Zoom", "Zoom view"),
-                ("mouse:rotate and select", None, "Select and<br/>Rotate", "Select and rotate models"),
-                ("mouse:translate selected", None, "Translate<br/>Selected", "Translate selected models"),
-                ("mouse:rotate selected", None, "Rotate<br/>Selected", "Rotate selected models")],
+                ("mouse:rotate and select", None, "Select and Rotate", "Select and rotate models"),
+                ("mouse:translate selected", None, "Translate Selected", "Translate selected models"),
+                ("mouse:rotate selected", None, "Rotate Selected", "Rotate selected models")],
             ("Clip", False): [
-                ("mouse:clip", None, "Clip", "Activate<br/>clipping"),
-                ("mouse:clip rotate", None, "Rotate<br/>Clipping", "Rotate clipping planes"),
-                ("mouse:zone", None, "Display<br/>zone", "Limit display to zone around clicked residues")],
+                ("mouse:clip", None, "Clip", "Activate clipping"),
+                ("mouse:clip rotate", None, "Rotate Clipping", "Rotate clipping planes"),
+                ("mouse:zone", None, "Display zone", "Limit display to zone around clicked residues")],
             ("Label", False): [
-                ("mouse:label", None, "Toggle atom or<br/>cartoon label", None),
-                ("mouse:move label", None, "Move 2D<br/>label", "Reposition 2D label")],
+                ("mouse:label", None, "Toggle atom or cartoon label", None),
+                ("mouse:move label", None, "Move 2D label", "Reposition 2D label")],
             ("Misc", False): [
                 ("mouse:pivot", None, "Set pivot", "Set center of rotation at atom"),
-                ("mouse:bond rotation", None, "Adjust<br/>torsion", "Adjust torsion angle"),
-                ("mouse:distance", None, "Toggle<br/>distance", "Toggle distance monitor between two atoms"),
-                ("mouse:swapaa", None, "Mutate<br/>residue", "Mutate and label residue")],
+                ("mouse:bond rotation", None, "Adjust torsion", "Adjust torsion angle"),
+                ("mouse:distance", None, "Toggle distance", "Toggle distance monitor between two atoms"),
+                ("mouse:swapaa", None, "Mutate residue", "Mutate and label residue")],
             ("Dynamics", False): [
-                ("mouse:tug", None, "Tug<br/>atom", "Drag atom while applying dynamics"),
-                ("mouse:minimize", None, "Jiggle<br/>residue", "Jiggle residue and its neighbors")],
+                ("mouse:tug", None, "Tug atom", "Drag atom while applying dynamics"),
+                ("mouse:minimize", None, "Jiggle residue", "Jiggle residue and its neighbors")],
             ("Volumes", False): [
-                ("mouse:place marker", None, "Place<br/>marker", None),
-                ("mouse:contour level", None, "Contour<br/>level", "Adjust volume data threshold level"),
+                ("mouse:place marker", None, "Place marker", None),
+                ("mouse:contour level", None, "Contour level", "Adjust volume data threshold level"),
                 ("mouse:windowing", None, "Windowing", "Adjust volume data thresholds collectively"),
-                ("mouse:move planes", None, "Move<br/>planes", "Move plane or slab along its axis to show a different section"),
+                ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
                 ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
-                ("mouse:play map series", None, "Play<br/>series", "Play map series")],
+                ("mouse:play map series", None, "Play series", "Play map series")],
         }
     ),
 }
