@@ -11,15 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
-from .alignment import Alignment
-from chimerax.atomic import Sequence
+from chimerax.ui.widgets import ItemListWidget, ItemMenuButton
 from chimerax.core.triggerset import TriggerSet
 
-class AlignmentListWidget(ModelListWidget):
+class AlignmentListWidget(ItemListWidget):
     def __init__(self, session, **kw):
-        super().__init__(session, class_filter=Alignment,
-            list_func=lambda ses=session: session.alignments.alignments,
+        super().__init__(list_func=lambda ses=session: session.alignments.alignments,
             key_func=lambda aln: aln.ident,
             trigger_info=[
                 (session.alignments.triggers, "new alignment"),
@@ -27,10 +24,9 @@ class AlignmentListWidget(ModelListWidget):
             ],
             **kw)
 
-class AlignmentMenuButton(ModelMenuButton):
+class AlignmentMenuButton(ItemMenuButton):
     def __init__(self, session, **kw):
-        super().__init__(session, class_filter=Alignment,
-            list_func=lambda ses=session: session.alignments.alignments,
+        super().__init__(list_func=lambda ses=session: session.alignments.alignments,
             key_func=lambda aln: aln.ident,
             trigger_info=[
                 (session.alignments.triggers, "new alignment"),
@@ -38,14 +34,13 @@ class AlignmentMenuButton(ModelMenuButton):
             ],
             **kw)
 
-class AlignSeqListWidget(ModelListWidget):
-    def __init__(self, session, alignment, **kw):
+class AlignSeqListWidget(ItemListWidget):
+    def __init__(self, alignment, **kw):
         self.alignment = alignment
         self.triggers = TriggerSet()
         self.triggers.add_trigger("seqs changed")
         alignment.add_observer(self)
-        super().__init__(session, class_filter=Sequence,
-            list_func=lambda aln=alignment: alignment.seqs,
+        super().__init__(list_func=lambda aln=alignment: alignment.seqs,
             key_func=lambda seq: seq.name,
             item_text_func=lambda seq: seq.name,
             trigger_info=[
@@ -62,14 +57,13 @@ class AlignSeqListWidget(ModelListWidget):
             self.triggers.activate_trigger("seqs changed", note_data)
 
 
-class AlignSeqMenuButton(ModelMenuButton):
-    def __init__(self, session, alignment, **kw):
+class AlignSeqMenuButton(ItemMenuButton):
+    def __init__(self, alignment, **kw):
         self.alignment = alignment
         self.triggers = TriggerSet()
         self.triggers.add_trigger("seqs changed")
         alignment.add_observer(self)
-        super().__init__(session, class_filter=Sequence,
-            list_func=lambda aln=alignment: alignment.seqs,
+        super().__init__(list_func=lambda aln=alignment: alignment.seqs,
             key_func=lambda seq: seq.name,
             item_text_func=lambda seq: seq.name,
             trigger_info=[
