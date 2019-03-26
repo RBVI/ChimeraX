@@ -122,7 +122,6 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             return
         self.clearSelection()
         self._select_value(val)
-        self.value_changed.emit()
 
     def _items_change(self, *args):
         del_recursion = False
