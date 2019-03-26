@@ -131,7 +131,8 @@ class ToolbarTool(ToolInstance):
                         if not os.path.exists(icon_path):
                             icon_path = os.path.join(dir_path, icon_file)
                     pm = QPixmap(icon_path)
-                    icon = QIcon(pm.scaledToHeight(32, Qt.SmoothTransformation))
+                    # Toolbutton will scale down, but not up, so give large icons
+                    icon = QIcon(pm.scaledToHeight(128, Qt.SmoothTransformation))
                     if not tooltip:
                         tooltip = descrip
                     self.ttb.add_button(
@@ -145,7 +146,7 @@ _Toolbars = {
     "File": (
         None,
         {
-            ("", False): [
+            ("Session", False): [
                 ("cmd:open browse", "open-in-app.png", "Open", "Open data file"),
                 ("cmd:save browse", "content-save.png", "Save", "Save session file"),
                 ("cmd:close session", "close-box.png", "Close", "Close current session"),
@@ -208,7 +209,7 @@ _Toolbars = {
                 ("cmd:redo", "redo-variant.png", "Redo", "Redo last action")],
             ("Background", True): [
                 ("shortcut:wb", "whitebg.png", "White", "White background"),
-                ("shortcut:gb", "graybg.png", "Gray", "Gray background"),
+                #("shortcut:gb", "graybg.png", "Gray", "Gray background"),
                 ("shortcut:bk", "blackbg.png", "Black", "Black background")],
             ("Lighting", False): [
                 ("shortcut:ls", "simplelight.png", "Simple", "Simple lighting"),
