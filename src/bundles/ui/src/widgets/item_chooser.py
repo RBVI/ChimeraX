@@ -86,10 +86,12 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
     value_changed = pyqtSignal()
 
     autoselect_default = "all"
+    from chimerax.mouse_modes import mod_key_info
     extended_balloon_help = "Click to choose item\n" \
         "Drag to choose range\n" \
-        "Control-click to toggle item\n" \
-        "Shift-click to choose range\n  (starting from previous selected item)"
+        "%s-click to toggle item\n" \
+        "Shift-click to choose range\n  (starting from previous selected item)" \
+            % mod_key_info("control")[1].capitalize()
 
     def __init__(self, autoselect='default', selection_mode='extended', balloon_help=None, **kw):
         super().__init__(**kw)
