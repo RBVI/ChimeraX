@@ -13,9 +13,14 @@
 
 from chimerax.ui.widgets import ItemListWidget, ItemMenuButton
 from chimerax.core.triggerset import TriggerSet
+from PyQt5.QtCore import pyqtSignal
 
 class AlignmentListWidget(ItemListWidget):
+
+    alignments_changed = pyqtSignal([list])
+
     def __init__(self, session, **kw):
+        self.session = session
         super().__init__(list_func=lambda ses=session: session.alignments.alignments,
             key_func=lambda aln: aln.ident,
             trigger_info=[
@@ -24,8 +29,16 @@ class AlignmentListWidget(ItemListWidget):
             ],
             **kw)
 
+    def _items_change(self, *args, **kw):
+        self.alignments_changed.emit(self.session.alignments.alignments)
+        super()._items_change(*args, **kw)
+
 class AlignmentMenuButton(ItemMenuButton):
+
+    alignments_changed = pyqtSignal([list])
+
     def __init__(self, session, **kw):
+        self.session = session
         super().__init__(list_func=lambda ses=session: session.alignments.alignments,
             key_func=lambda aln: aln.ident,
             trigger_info=[
@@ -33,6 +46,10 @@ class AlignmentMenuButton(ItemMenuButton):
                 (session.alignments.triggers, "destroy alignment"),
             ],
             **kw)
+
+    def _items_change(self, *args, **kw):
+        self.alignments_changed.emit(self.session.alignments.alignments)
+        super()._items_change(*args, **kw)
 
 class AlignSeqListWidget(ItemListWidget):
     def __init__(self, alignment, **kw):
