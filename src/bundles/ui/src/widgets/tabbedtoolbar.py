@@ -13,6 +13,10 @@
 
 """
 TabbedToolbar is reminiscent of a Microsoft Ribbon interface.
+
+Note: This widget is under active development and the API may change.
+
+TODO: documnentation!
 """
 
 from PyQt5.QtCore import Qt
@@ -33,9 +37,6 @@ class _Group(QWidgetAction):
     # 0 to n - 1 being the buttons and row n being the group title.
     # If not compact, then row 0 is the button and row 1 is the group title.
 
-    # TODO: support more than 3 compact buttons by using multiple columns
-    # and span the title
-
     def __init__(self, parent, group_title, compact, show_group_titles, show_button_titles):
         super().__init__(parent)
         self._buttons = []
@@ -43,16 +44,20 @@ class _Group(QWidgetAction):
         self.compact = compact
         self.show_group_titles = show_group_titles
         self.show_button_titles = show_button_titles
+        if show_button_titles:
+            self.compact_height = 3
+        else:
+            self.compact_height = 2
 
     def add_button(self, title, callback, icon, description):
+        index = len(self._buttons)
         button_info = (title, callback, icon, description)
         self._buttons.append(button_info)
         existing_widgets = self.createdWidgets()
-        ordinal = len(self._buttons)
         for w in existing_widgets:
-            self._add_button(w, ordinal, button_info)
+            self._add_button(w, index, button_info)
 
-    def _add_button(self, parent, ordinal, button_info):
+    def _add_button(self, parent, index, button_info):
         (title, callback, icon, description) = button_info
         if hasattr(parent, '_title'):
             self._adjust_title(parent)
@@ -97,13 +102,15 @@ class _Group(QWidgetAction):
         # print('Font size:', b.fontInfo().pixelSize())  # DEBUG
         # print('Icon size:', b.iconSize())  # DEBUG
         if self.compact:
-            parent._layout.addWidget(b, ordinal, 0)
+            row = index % self.compact_height
+            column = index // self.compact_height
+            parent._layout.addWidget(b, row, column)
         else:
             if self.show_button_titles:
                 b.setIconSize(2 * b.iconSize())
             else:
                 b.setIconSize(3 * b.iconSize())
-            parent._layout.addWidget(b, 0, ordinal, Qt.AlignTop)
+            parent._layout.addWidget(b, 0, index, Qt.AlignTop)
         global _debug
         if _debug:
             _debug = False
@@ -116,10 +123,12 @@ class _Group(QWidgetAction):
 
     def _adjust_title(self, w):
         # Readding the widget, removes the old entry, and lets us change the parameters
+        size = len(self._buttons)
         if self.compact:
-            w._layout.addWidget(w._title, len(self._buttons) + 1, 0, Qt.AlignHCenter | Qt.AlignBottom)
+            span = (size + self.compact_height - 1) // self.compact_height
+            w._layout.addWidget(w._title, size, 0, 1, span, Qt.AlignHCenter | Qt.AlignBottom)
         else:
-            w._layout.addWidget(w._title, 1, 0, 1, len(self._buttons) + 1, Qt.AlignHCenter | Qt.AlignBottom)
+            w._layout.addWidget(w._title, 1, 0, 1, size, Qt.AlignHCenter | Qt.AlignBottom)
 
     def createWidget(self, parent):
         w = QWidget(parent)
@@ -160,6 +169,10 @@ class _Group(QWidgetAction):
         if self.show_button_titles == on_off:
             return
         self.show_button_titles = on_off
+        if on_off:
+            self.compact_height = 3
+        else:
+            self.compact_height = 2
         for w in self.createdWidgets():
             if hasattr(w, '_title'):
                 del w._title
