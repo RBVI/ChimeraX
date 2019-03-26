@@ -121,6 +121,7 @@ class ModelListWidgetBase(ModelListBase, QListWidget):
         self.autoselect = self.autoselect_default if autoselect == 'default' else autoselect
         self.setSelectionMode({'single': self.SingleSelection, 'extended': self.ExtendedSelection,
             'multi': self.MultiSelection}[selection_mode])
+        self.itemSelectionChanged.connect(self.value_changed.emit)
         if balloon_help or selection_mode == 'extended':
             self.setToolTip(balloon_help if balloon_help else self.extended_balloon_help)
 

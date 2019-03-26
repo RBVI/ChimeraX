@@ -13,6 +13,8 @@
 
 from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
 from .alignment import Alignment
+from chimerax.atomic import Sequence
+from chimerax.core.triggerset import TriggerSet
 
 class AlignmentListWidget(ModelListWidget):
     def __init__(self, session, **kw):
@@ -35,3 +37,51 @@ class AlignmentMenuButton(ModelMenuButton):
                 (session.alignments.triggers, "destroy alignment"),
             ],
             **kw)
+
+class AlignSeqListWidget(ModelListWidget):
+    def __init__(self, session, alignment, **kw):
+        self.alignment = alignment
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger("seqs changed")
+        alignment.add_observer(self)
+        super().__init__(session, class_filter=Sequence,
+            list_func=lambda aln=alignment: alignment.seqs,
+            key_func=lambda seq: seq.name,
+            item_text_func=lambda seq: seq.name,
+            trigger_info=[
+                (self.triggers, "seqs changed"),
+            ],
+            **kw)
+
+    def destroy(self):
+        self.alignment.remove_observer(self)
+        super().destroy()
+
+    def alignment_notification(self, note_name, note_data):
+        if note_name == "add or remove seqs":
+            self.triggers.activate_trigger("seqs changed", note_data)
+
+
+class AlignSeqMenuButton(ModelMenuButton):
+    def __init__(self, session, alignment, **kw):
+        self.alignment = alignment
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger("seqs changed")
+        alignment.add_observer(self)
+        super().__init__(session, class_filter=Sequence,
+            list_func=lambda aln=alignment: alignment.seqs,
+            key_func=lambda seq: seq.name,
+            item_text_func=lambda seq: seq.name,
+            trigger_info=[
+                (self.triggers, "seqs changed"),
+            ],
+            **kw)
+
+    def destroy(self):
+        self.alignment.remove_observer(self)
+        super().destroy()
+
+    def alignment_notification(self, note_name, note_data):
+        if note_name == "add or remove seqs":
+            self.triggers.activate_trigger("seqs changed", note_data)
+

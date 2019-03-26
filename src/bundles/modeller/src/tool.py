@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-from chimerax.seqalign.widgets import AlignmentListWidget
+from chimerax.seqalign.widgets import AlignmentListWidget, AlignSeqMenuButton
 
 class ModellerLauncher(ToolInstance):
     """Generate the inputs needed by Modeller for comparitive modeling"""
@@ -27,7 +27,7 @@ class ModellerLauncher(ToolInstance):
         self.tool_window = MainToolWindow(self, close_destroys=False, statusbar=False)
         parent = self.tool_window.ui_area
 
-        from PyQt5.QtWidgets import QListWidget, QGridLayout, QAbstractItemView, QWidget, QVBoxLayout
+        from PyQt5.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
         alignments_layout = QVBoxLayout()
         alignments_layout.setContentsMargins(0,0,0,0)
         alignments_layout.setSpacing(0)
@@ -38,68 +38,44 @@ class ModellerLauncher(ToolInstance):
         self.alignment_list.value_changed.connect(self._list_selection_cb)
         alignments_layout.addWidget(self.alignment_list)
         alignments_layout.setStretchFactor(self.alignment_list, 1)
-        targets_area = QWidget()
+        targets_area = QGroupBox("Target sequences")
         # would use a QFormLayout, but can't easily hide rows...
-        self.targets_layout = QGridLayout()
-        self.targets_layout.setColumnStretch(1, 1)
+        self.targets_layout = QFormLayout()
         targets_area.setLayout(self.targets_layout)
         alignments_layout.addWidget(targets_area)
-        self.alignments = []
-        self.target_sequences = {}
-        self.target_menus = {}
-        self.target_labels = {}
-        self._refresh_alignments()
+        self._list_selection_cb()
         self.tool_window.manage('side')
 
     def delete(self):
         ToolInstance.delete(self)
 
-    def _make_target_menu(self, alignment):
-        no_target_text = "No target sequence selected"
-        from PyQt5.QtWidgets import QPushButton, QMenu, QLabel
-        self.target_menus[alignment] = menu_button = QPushButton(no_target_text)
-        menu = QMenu()
-        menu_button.setMenu(menu)
-        menu_button.hide()
-        menu.addAction(no_target_text)
-        for seq in alignment.seqs:
-            menu.addAction(seq.name)
-        def menu_action(act, mb=menu_button, aln=alignment):
-            menu_index = mb.menu().actions().index(act)
-            if menu_index == 0:
-                self.target_sequences[aln] = None
-            else:
-                self.target_sequences[aln] = aln.seqs[menu_index-1]
-            mb.setText(act.text())
-        menu.triggered.connect(menu_action)
-        self.target_labels[alignment] = label = QLabel(alignment.ident)
-        label.hide()
-        row = self.targets_layout.rowCount()
-        from PyQt5.QtCore import Qt
-        self.targets_layout.addWidget(label, row, 0, Qt.AlignRight)
-        self.targets_layout.addWidget(menu_button, row, 1)
-
-    def _refresh_alignments(self):
-        current_alignments = self.session.alignments.alignments
-        for old_alignment in self.alignments:
-            if old_alignment not in current_alignments:
-                self.target_labels[old_alignment].destroy()
-                self.target_menus[old_alignment].destroy()
-                del self.target_labels[old_alignment]
-                del self.target_menus[old_alignment]
-                del self.target_sequences[old_alignment]
-        for cur_alignment in current_alignments:
-            if cur_alignment not in self.alignments:
-                self._make_target_menu(cur_alignment)
-                self.target_sequences[cur_alignment] = None
-        self.alignments = current_alignments
-
     def _list_selection_cb(self):
         sel_alns = set(self.alignment_list.value)
-        for aln in self.alignments:
-            hidden = aln not in sel_alns
-            self.target_labels[aln].setHidden(hidden)
-            self.target_menus[aln].setHidden(hidden)
+        cur_row = 0
+        layout = self.targets_layout
+        make_button = lambda aln: AlignSeqMenuButton(aln.session, aln, no_value_button_text="No target chosen")
+        for sel_aln in self.alignment_list.value:
+            if layout.rowCount() <= cur_row:
+                # just add
+                layout.addRow(sel_aln.ident, make_button(sel_aln))
+                cur_row += 1
+            else:
+                existing_menu = layout.itemAt(cur_row, layout.FieldRole).widget()
+                while existing_menu.alignment not in sel_alns:
+                    layout.removeRow(cur_row)
+                    if layout.rowCount() <= cur_row:
+                        break
+                    existing_menu = layout.itemAt(cur_row, layout.FieldRole).widget()
+                if layout.rowCount() <= cur_row:
+                    layout.addRow(sel_aln.ident, make_button(sel_aln))
+                    cur_row += 1
+                elif existing_menu.alignment == sel_aln:
+                    cur_row += 1
+                else:
+                    layout.insertRow(cur_row, sel_aln.ident, make_button(sel_aln))
+                    cur_row += 1
+        while layout.rowCount() > len(sel_alns):
+            layout.removeRow(layout.rowCount()-1)
 
 class ModellerResultsViewer(ToolInstance):
     """ Viewer displays the models/results generated by Modeller"""
