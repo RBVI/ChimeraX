@@ -789,7 +789,7 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                 try:
                     acc_func, args = acc_info[atom.num_bonds]
                 except IndexError:
-                    session.logger.warning("%d has bad number of bonds (%d)" % (atom, atom.num_bonds))
+                    structure.session.logger.warning("%s has bad number of bonds (%d)" % (atom, atom.num_bonds))
                     #_problem = ("connectivity", atom,
                     #    "bad number of bonds (%d)" % atom.num_bonds, None)
                     continue

@@ -13,18 +13,26 @@
 
 from PyQt5.QtWidgets import QListWidget, QPushButton, QMenu
 from PyQt5.QtCore import Qt, pyqtSignal
-from chimerax.core.models import Model
 
-class ModelItems:
-    def __init__(self, list_func=None, key_func=None, filter_func=None, item_text_func=str,
-            class_filter=Model, **kw):
-        self.list_func = self.session.models.list if list_func is None else list_func
-        filt = lambda s, cf=class_filter: isinstance(s, cf)
-        self.filter_func = filt if filter_func is None else lambda s, f=filt, ff=filter_func: f(s) and ff(s)
-        self.key_func = lambda s, kf=key_func: s.id if kf is None else kf(s)
+class ItemsGenerator:
+    def __init__(self, list_func=lambda: [], key_func=lambda x: x, filter_func=lambda x: True,
+            item_text_func=str, class_filter=None, **kw):
+        self.list_func = list_func
+        if class_filter:
+            filter_func = lambda x, ff=filter_func, cf=class_filter: ff(x) and isinstance(x, cf)
+        self.filter_func = filter_func
+        self.key_func = key_func
         self.item_text_func = item_text_func
 
         super().__init__(**kw)
+
+    def destroy(self):
+        try:
+            self.item_map.clear()
+            self.value_map.clear()
+        except AttributeError:
+            # may not exist if widget was never shown (hidden in a tab for instance)
+            pass
 
     def _item_names(self):
         self.item_map = {}
@@ -39,30 +47,14 @@ class ModelItems:
             items.append(text)
         return items
 
-class ModelListBase:
+class ItemsUpdater:
     def __init__(self, trigger_info=None, **kw):
         super().__init__(**kw)
         self._handlers = []
-        if trigger_info is None:
-            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
-            from chimerax.atomic import get_triggers
-            self._trigger_info = [
-                (self.session.triggers, ADD_MODELS),
-                (self.session.triggers, REMOVE_MODELS),
-                (self.session.triggers, MODEL_ID_CHANGED),
-                (self.session.triggers, MODEL_NAME_CHANGED),
-            ]
-        else:
-            self._trigger_info = trigger_info
+        self._trigger_info = trigger_info
 
     def destroy(self):
         self._delete_handlers()
-        try:
-            self.item_map.clear()
-            self.value_map.clear()
-        except AttributeError:
-            # may not exist if widget was never shown (hidden in a tab for instance)
-            pass
 
     def hideEvent(self, event):
         self._delete_handlers()
@@ -89,28 +81,11 @@ class ModelListBase:
             self._items_change()
             delattr(self, '_recursion')
 
-class ModelListWidgetBase(ModelListBase, QListWidget):
-    """Maintain a list of models
-
-       Keep list up to date as models are opened and closed while keeping the selected item(s) the same
-
-       'autoselect' keyword controls what happens when nothing would be selected.  If 'single', then if
-       there is exactly one item it will be selected and otherwise the selection remains empty.  If 'all'
-       then all items will become selected.  If None, the selection remains empty.  Default: 'all'.
-
-       'selection_mode' controls how items are selected in the list widget.  Possible values are:
-       'single', 'extended', and 'multi' (default 'extended') which correspond to QAbstractItemView::
-       Single/Extended/MultiSelection respectively as per:
-       https://doc.qt.io/qt-5/qabstractitemview.html#SelectionMode-enum
-
-       'balloon_help' is the balloon help to provide with the list (if any); if none provided then
-       some generic help for  the 'extended' selection mode is provided if applicable
-
-       _item_names() needs to be implemented in subclasses (possibly by multiple inheritance)
-    """
+class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
 
     value_changed = pyqtSignal()
 
+    autoselect_default = "all"
     extended_balloon_help = "Click to choose item\n" \
         "Drag to choose range\n" \
         "Control-click to toggle item\n" \
@@ -126,7 +101,8 @@ class ModelListWidgetBase(ModelListBase, QListWidget):
             self.setToolTip(balloon_help if balloon_help else self.extended_balloon_help)
 
     def destroy(self):
-        ModelListBase.destroy(self)
+        ItemsGenerator.destroy(self)
+        ItemsUpdater.destroy(self)
         QListWidget.destroy(self)
 
     @property
@@ -187,35 +163,46 @@ class ModelListWidgetBase(ModelListBase, QListWidget):
             if item.text() in val_names:
                 item.setSelected(True)
 
-class ModelListWidget(ModelListWidgetBase, ModelItems):
-    autoselect_default = "all"
+def _process_model_kw(session, list_func=None, key_func=None, class_filter=None, trigger_info=None, **kw):
+    from chimerax.core.models import Model
+    kw['class_filter'] = Model if class_filter is None else class_filter
+    kw['list_func'] = session.models.list if list_func is None else list_func
+    kw['key_func'] = lambda s: s.id if key_func is None else key_func
+    from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+    kw['trigger_info'] = [
+        (session.triggers, ADD_MODELS),
+        (session.triggers, REMOVE_MODELS),
+        (session.triggers, MODEL_ID_CHANGED),
+        (session.triggers, MODEL_NAME_CHANGED),
+    ] if trigger_info is None else trigger_info
+    return kw
 
+class ModelListWidget(ItemListWidget):
+    """Maintain a list of models
+
+       Keep list up to date as models are opened and closed while keeping the selected item(s) the same
+
+       'autoselect' keyword controls what happens when nothing would be selected.  If 'single', then if
+       there is exactly one item it will be selected and otherwise the selection remains empty.  If 'all'
+       then all items will become selected.  If None, the selection remains empty.  Default: 'all'.
+
+       'selection_mode' controls how items are selected in the list widget.  Possible values are:
+       'single', 'extended', and 'multi' (default 'extended') which correspond to QAbstractItemView::
+       Single/Extended/MultiSelection respectively as per:
+       https://doc.qt.io/qt-5/qabstractitemview.html#SelectionMode-enum
+
+       'balloon_help' is the balloon help to provide with the list (if any); if none provided then
+       some generic help for  the 'extended' selection mode is provided if applicable
+    """
     def __init__(self, session, **kw):
-        self.session = session
-        super().__init__(**kw)
+        super().__init__(**_process_model_kw(session, **kw))
 
 class MenuButton(QPushButton):
     def __init__(self, **kw):
         super().__init__(**kw)
         self.setMenu(QMenu())
 
-class ModelMenuButtonBase(ModelListBase, MenuButton):
-    """Maintain a popup menu of models
-
-       Keep menu up to date as models are opened and closed while keeping the selected item(s) the same
-
-       'autoselect_single_item' controls whether the only item in a menu is automatically selected or not.
-
-       'no_value_button_text' is the text shown on the menu button when no item is selected for whatever
-       reason.  In such cases, self.value will be None.
-
-       If 'no_value_menu_text' is not None, then there will be an additional entry in the menu with that
-       text, and choosing that menu item is treated as setting self.value to None.
-
-       'balloon_help' is the balloon help to provide with the list (if any).
-
-       _item_names() needs to be implemented in subclasses (possibly by multiple inheritance)
-    """
+class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
 
     value_changed = pyqtSignal()
 
@@ -230,7 +217,8 @@ class ModelMenuButtonBase(ModelListBase, MenuButton):
             self.setToolTip(balloon_help if balloon_help else self.extended_balloon_help)
 
     def destroy(self):
-        ModelListBase.destroy(self)
+        ItemsGenerator.destroy(self)
+        ItemsUpdater.destroy(self)
         MenuButton.destroy(self)
 
     @property
@@ -282,7 +270,20 @@ class ModelMenuButtonBase(ModelListBase, MenuButton):
             self.setText(next_text)
             self.value_changed.emit()
 
-class ModelMenuButton(ModelMenuButtonBase, ModelItems):
+class ModelMenuButton(ItemMenuButton):
+    """Maintain a popup menu of models
+
+       Keep menu up to date as models are opened and closed while keeping the selected item(s) the same
+
+       'autoselect_single_item' controls whether the only item in a menu is automatically selected or not.
+
+       'no_value_button_text' is the text shown on the menu button when no item is selected for whatever
+       reason.  In such cases, self.value will be None.
+
+       If 'no_value_menu_text' is not None, then there will be an additional entry in the menu with that
+       text, and choosing that menu item is treated as setting self.value to None.
+
+       'balloon_help' is the balloon help to provide with the list (if any).
+    """
     def __init__(self, session, **kw):
-        self.session = session
-        super().__init__(**kw)
+        super().__init__(**_process_model_kw(session, **kw))

@@ -205,6 +205,18 @@ class TabbedToolbar(QTabWidget):
             return
         self.setCurrentIndex(index)
 
+    def _recompute_tab_sizes(self):
+        # can't shrink vertically unless the size of all tabs are recomputed
+        # (since Qt delays recomputing a tab's size until it is visible)
+        current = self.currentIndex()
+        for i in range(self.count()):
+            if i == current:
+                # Qt already handles current tab
+                continue
+            tab = self.widget(i)
+            tab.adjustSize()
+            tab.updateGeometry()  # TODO: not needed all of the time
+
     def set_show_group_titles(self, on_off):
         if self.show_group_titles == on_off:
             return
@@ -214,6 +226,8 @@ class TabbedToolbar(QTabWidget):
                 if group_title == "__toolbar__":
                     continue
                 group.set_show_group_titles(on_off)
+        if not on_off:
+            self._recompute_tab_sizes()
 
     def set_show_button_titles(self, on_off):
         if self.show_button_titles == on_off:
@@ -224,6 +238,8 @@ class TabbedToolbar(QTabWidget):
                 if group_title == "__toolbar__":
                     continue
                 group.set_show_button_titles(on_off)
+        if not on_off:
+            self._recompute_tab_sizes()
 
 
 if __name__ == "__main__":
