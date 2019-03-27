@@ -46,7 +46,6 @@ class ModellerLauncher(ToolInstance):
         alignments_layout.addWidget(targets_area)
         self.seq_menu = {}
         self._update_sequence_menus(session.alignments.alignments)
-        self._list_selection_cb()
         self.tool_window.manage('side')
 
     def delete(self):

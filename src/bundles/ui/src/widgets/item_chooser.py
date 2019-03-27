@@ -138,6 +138,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         if self.autoselect and not filtered_sel:
             if (self.autoselect == "single" and len(item_names) == 1) or self.autoselect == "all":
                 filtered_sel = item_names
+        self.blockSignals(True)
         self.clear()
         self.addItems(item_names)
         if self.selectionMode() == 'single':
@@ -149,7 +150,9 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             next_value = [self.item_map[fs] for fs in filtered_sel]
         if prev_value == next_value:
             self._select_value(next_value)
+            self.blockSignals(False)
         else:
+            self.blockSignals(False)
             self.value = next_value
         if del_recursion:
             delattr(self, '_recursion')
