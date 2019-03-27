@@ -106,10 +106,7 @@ class _Group(QWidgetAction):
             column = index // self.compact_height
             parent._layout.addWidget(b, row, column)
         else:
-            if self.show_button_titles:
-                b.setIconSize(2 * b.iconSize())
-            else:
-                b.setIconSize(3 * b.iconSize())
+            b.setIconSize(2 * b.iconSize())
             parent._layout.addWidget(b, 0, index, Qt.AlignTop)
         global _debug
         if _debug:
@@ -189,6 +186,8 @@ class TabbedToolbar(QTabWidget):
         self._buttons = {}
         self.show_group_titles = show_group_titles
         self.show_button_titles = show_button_titles
+        #self.setStyleSheet("* { padding: 0; margin: 0; border: 1px inset red; } *::separator { background-color: green; width: 1px; }")
+        self.setStyleSheet("* { padding: 0; margin: 0; } *::separator { width: 1px; }")
 
     # TODO: disable/enable button/group, remove button
 
