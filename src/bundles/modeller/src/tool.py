@@ -74,7 +74,7 @@ class ModellerLauncher(ToolInstance):
             if aln not in alignment_set:
                 row, role = self.targets_layout.getWidgetPosition(mb)
                 if row >= 0:
-                    self.targets_layout.remove_row(row)
+                    self.targets_layout.removeRow(row)
                 del self.seq_menu[aln]
         for aln in alignments:
             if aln not in self.seq_menu:

@@ -120,8 +120,11 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         self._sleep_check()
         if self.value == val:
             return
+        self.blockSignals(True)
         self.clearSelection()
         self._select_value(val)
+        self.blockSignals(False)
+        self.itemSelectionChanged.emit()
 
     def _items_change(self, *args):
         del_recursion = False
