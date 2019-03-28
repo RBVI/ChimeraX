@@ -907,9 +907,11 @@ cdef class CyResidue:
         'CYS': [("N", "CA", "CB", "SG")],
     }
 
+    chi_sym_info = set([('PHE', 2), ('TYR', 2), ('ASP', 2), ('GLU', 3)])
+
     @property
     def chi1(self):
-        return self.get_chi(1)
+        return self.get_chi(1, False)
 
     @chi1.setter
     def chi1(self, val):
@@ -917,7 +919,7 @@ cdef class CyResidue:
 
     @property
     def chi2(self):
-        return self.get_chi(2)
+        return self.get_chi(2, False)
 
     @chi2.setter
     def chi2(self, val):
@@ -925,7 +927,7 @@ cdef class CyResidue:
 
     @property
     def chi3(self):
-        return self.get_chi(3)
+        return self.get_chi(3, False)
 
     @chi3.setter
     def chi3(self, val):
@@ -933,10 +935,42 @@ cdef class CyResidue:
 
     @property
     def chi4(self):
-        return self.get_chi(4)
+        return self.get_chi(4, False)
 
     @chi4.setter
     def chi4(self, val):
+        self.set_chi(4, val)
+
+    @property
+    def sym_chi1(self):
+        return self.get_chi(1, True)
+
+    @sym_chi1.setter
+    def sym_chi1(self, val):
+        self.set_chi(1, val)
+
+    @property
+    def sym_chi2(self):
+        return self.get_chi(2, True)
+
+    @sym_chi2.setter
+    def sym_chi2(self, val):
+        self.set_chi(2, val)
+
+    @property
+    def sym_chi3(self):
+        return self.get_chi(3, True)
+
+    @sym_chi3.setter
+    def sym_chi3(self, val):
+        self.set_chi(3, val)
+
+    @property
+    def sym_chi4(self):
+        return self.get_chi(4, True)
+
+    @sym_chi4.setter
+    def sym_chi4(self, val):
         self.set_chi(4, val)
 
     @property
@@ -1342,14 +1376,22 @@ cdef class CyResidue:
             return fa_ptr.py_instance(True)
         return None
 
-    def get_chi(self, chi_num):
+    def get_chi(self, chi_num, account_for_symmetry):
         # Don't need to explicitly check that the standard name is not None,
         # since sending None will return None -- just the same as GLX or ALA will
-        chi_atoms = self.get_chi_atoms(self.standard_aa_name, chi_num)
+        std_name = self.standard_aa_name
+        chi_atoms = self.get_chi_atoms(std_name, chi_num)
         if chi_atoms is None:
             return None
         from chimerax.core.geometry import dihedral
-        return dihedral(*[a.coord for a in chi_atoms])
+        chi = dihedral(*[a.coord for a in chi_atoms])
+        if account_for_symmetry:
+            if (std_name, chi_num) in self.chi_sym_info:
+                while chi > 90.0:
+                    chi -= 180.0
+                while chi <= -90.0:
+                    chi += 180.0
+        return chi
 
     def get_chi_atoms(self, std_type, chi_num):
         try:
