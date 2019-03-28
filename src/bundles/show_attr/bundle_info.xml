@@ -22,7 +22,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Render by Attribute :: General :: render by attr</ChimeraXClassifier>
+    <!-- Not yet ready for primetime <ChimeraXClassifier>Tool :: Render by Attribute :: General :: render by attr</ChimeraXClassifier> -->
   </Classifiers>
 
 </BundleInfo>

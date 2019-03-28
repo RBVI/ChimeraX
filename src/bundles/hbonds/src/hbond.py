@@ -372,6 +372,8 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
         global verbose
         global _problem
         _problem = None
+        global _truncated
+        _truncated = set()
 
         bad_connectivities = 0
 
@@ -703,6 +705,14 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
     descript)
     )
             _problem = None
+        if _truncated:
+            if len(_truncated) > 20:
+                session.logger.warning("%d atoms were skipped as donors/acceptors due to missing"
+                    " heavy-atom bond partners" % len(_truncated))
+            else:
+                session.logger.warning("The following atoms were skipped as donors/acceptors due to missing"
+                    " heavy-atom bond partners: %s" % "; ".join([str(a) for a in _truncated]))
+            _truncated = None
     finally:
         delattr(Atom, "_hb_coord")
     return hbonds
@@ -734,6 +744,7 @@ def _process_arg_tuple(arg_tuple, dist_slop, angle_slop):
 
 def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
     global _problem
+    global _truncated
     acc_atoms = []
     acc_data = []
     std_acceptors = {}
@@ -753,6 +764,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                     # (non-ring groups "win")
                     group_key[0] in _ring_funcs and std_acceptors[acc_atom][0] not in _ring_funcs):
                         _problem = ("acceptor", acc_atom, std_acceptors[acc_atom], group_key)
+                    continue
+                if acc_atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                    _truncated.add(acc_atom)
                     continue
                 std_acceptors[acc_atom] = group_key
 
@@ -778,6 +792,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
         if limited_acceptors and atom not in limited_acceptors:
             continue
         if atom.idatm_type in generic_acc_info:
+            if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                _truncated.add(atom)
+                continue
             acc_info = generic_acc_info[atom.idatm_type]
             if isinstance(acc_info, dict):
                 try:
@@ -789,7 +806,7 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                 try:
                     acc_func, args = acc_info[atom.num_bonds]
                 except IndexError:
-                    session.logger.warning("%d has bad number of bonds (%d)" % (atom, atom.num_bonds))
+                    structure.session.logger.warning("%s has bad number of bonds (%d)" % (atom, atom.num_bonds))
                     #_problem = ("connectivity", atom,
                     #    "bad number of bonds (%d)" % atom.num_bonds, None)
                     continue
@@ -817,6 +834,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                     continue
                 acc_func, args = generic_acc_info['misc_N']
             else:
+                continue
+            if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                _truncated.add(atom)
                 continue
             if verbose:
                 print("miscellaneous generic acceptor:", atom)
@@ -880,6 +900,10 @@ def _find_donors(structure, d_params, limited_donors, generic_don_info):
                 group_key[0] in _ring_funcs and std_donors[donor_atom][0] not in _ring_funcs):
                     global _problem
                     _problem = ("donor", donor_atom, std_donors[donor_atom], group_key)
+                continue
+            if donor_atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                global _truncated
+                _truncated.add(donor_atom)
                 continue
             std_donors[donor_atom] = group_key
             don_atoms.append(donor_atom)

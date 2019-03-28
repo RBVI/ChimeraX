@@ -10,20 +10,21 @@ filelock==3.0.10
 grako==3.16.5
 html2text==2018.1.9
 #line_profiler==2.1.2
-lxml==4.3.0
-matplotlib==3.0.2
-msgpack==0.6.0
+lxml==4.3.2
+matplotlib==3.0.3
+msgpack==0.6.1
 networkx==2.2
 openvr==1.0.1701
 Pillow==5.4.1
 pkginfo==1.5.0.1
-psutil==5.4.8
+psutil==5.6.1
 pycollada==0.6
-pydicom==1.2.1
-python-dateutil==2.7.5
-# ipython7 / ipykernel 5 seem to stop working after an error; force use of older versions
-ipykernel==4.9.0
-ipython==6.5.0
+pydicom==1.2.2
+python-dateutil==2.8.0
+#ipykernel==4.9.0
+#ipython==6.5.0
+ipykernel==5.1.0
+ipython==7.4.0
 qtconsole==4.4.3
 six==1.12.0
 sortedcontainers==2.1.0
@@ -39,5 +40,5 @@ docutils==0.14
 Jinja2==2.10
 numpydoc==0.8.0
 Pygments==2.3.1
-Sphinx==1.8.3
+Sphinx==1.8.5
 sphinxcontrib-blockdiag==1.5.5
