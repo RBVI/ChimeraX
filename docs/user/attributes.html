@@ -144,20 +144,6 @@ of the atom in &Aring;</td>
 <td><i>sasa</i> is the solvent-accessible surface area of the residue 
 calculated with <a href="commands/measure.html#sasa"><b>measure sasa</b></a></td>
 </tr><tr>
-<td align=center><b>asym_detail=</b><i>value</i></td>
-<td>the <i>value</i> for a chain in
-<a href="commands/open.html#composite">IHM</a> data
-is read from the mmCIF field &ldquo;struct_asym.details&rdquo;</td>
-</tr><tr>
-<td align=center><b>entity_name=</b><i>name</i></td>
-<td>the <i>name</i> for a chain (entity) in
-<a href="commands/open.html#composite">IHM</a> data
-is read from the field &ldquo;ihm_struct_assembly.entity_description&rdquo;
-and reported in the <a href="tools/log.html"><b>Log</b></a></td>
-</tr><tr>
-<td align=center><b>num_atoms=</b><i>N</i></td>
-<td><i>N</i> is the total number of atoms in the residue</td>
-</tr><tr>
 <td align=center><b>is_helix</i></td>
 <td>whether peptide secondary structure type is helix</td>
 </tr><tr>
@@ -167,6 +153,15 @@ and reported in the <a href="tools/log.html"><b>Log</b></a></td>
 <td align=center><b>ss_type=</b><i>type</i></td>
 <td>peptide secondary structure <i>type</i>: 0 for coil 
 (neither helix nor strand), 1 for helix, 2 for strand</td>
+</tr><tr>
+<td align=center><b>ss_id=</b><i>N</i></td>
+<td><i>N</i> indexes secondary structure elements from N&rarr;C in 
+a protein chain: 1 for residues in the first helix and first strand, 
+2 for those in the second helix and second strand, and so on;
+0 for residues not in protein helix or strand</td>
+</tr><tr>
+<td align=center><b>num_atoms=</b><i>N</i></td>
+<td><i>N</i> is the total number of atoms in the residue</td>
 </tr><tr>
 <td align=center><b>phi=</b><i>angle</i></td>
 <td><i>angle</i> is the peptide backbone &phi; dihedral angle
@@ -188,12 +183,6 @@ that does not have any ribbon, such as water)</td>
 <td>whether ribbon display is turned on for the residue
 (however, this can be true even when the residue is a type
 that does not have any ribbon, such as water)</td>
-</tr><tr>
-<td align=center><b>ss_id=</b><i>N</i></td>
-<td><i>N</i> indexes secondary structure elements from N&rarr;C in 
-a protein chain: 1 for residues in the first helix and first strand, 
-2 for those in the second helix and second strand, and so on;
-0 for residues not in protein helix or strand</td>
 <!--
 </tr><tr>
 <td align=center><b>uniprotIndex=</b><i>N</i></td>
@@ -204,6 +193,17 @@ structure PDB file using a web service provided by the
 <a href="http://www.rcsb.org/pdb/home/home.do" target="_blank">RCSB PDB</a>)
 </td>
 -->
+</tr><tr>
+<td align=center><b>asym_detail=</b><i>value</i></td>
+<td>the <i>value</i> for a chain in
+<a href="commands/open.html#composite">IHM</a> data
+is read from the mmCIF field &ldquo;struct_asym.details&rdquo;</td>
+</tr><tr>
+<td align=center><b>entity_name=</b><i>name</i></td>
+<td>the <i>name</i> for a chain (entity) in
+<a href="commands/open.html#composite">IHM</a> data
+is read from the field &ldquo;ihm_struct_assembly.entity_description&rdquo;
+and reported in the <a href="tools/log.html"><b>Log</b></a></td>
 </tr>
 </table>
 <br>
@@ -242,5 +242,5 @@ see <a href="hierarchy.html">display hierarchy</a></td>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2019</address>
+March 2019</address>
 </body></html>
