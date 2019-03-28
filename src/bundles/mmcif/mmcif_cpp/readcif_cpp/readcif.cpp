@@ -1151,6 +1151,8 @@ CIFFile::find_column_offsets()
 		// all rows are the same length (padded with trailing spaces)
 		while (is_not_eol(*current_value_end))
 			++current_value_end;
+		if (*current_value_end == '\r' && *(current_value_end + 1) == '\n')
+			++current_value_end;	// check for DOS line ending
 		offsets.push_back(current_value_end - start);
 #else
 		// The extra slot to be filled in later -- if stylized lines are
