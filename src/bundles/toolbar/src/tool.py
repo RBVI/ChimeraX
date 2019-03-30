@@ -197,6 +197,15 @@ _Toolbars = {
             ("Color Atoms", False): [
                 ("shortcut:ce", "colorbyelement.png", "By element", "Color non-carbon atoms by element"),
                 ("shortcut:cc", "colorbychain.png", "By chain", "Color chains")],
+            ("Nucleotides", False): [
+                ("cmd:nuc selAtoms atoms; style selAtoms & nucleic ringFill off", "nuc-atoms.png", "Plain", "Remove nucleotide abstraction"),
+                ("cmd:nuc selAtoms atoms; style selAtoms & nucleic ringFill on", "nuc-fill.png", "Filled", "Fill nucleotide rings"),
+                ("cmd:nuc selAtoms slab; style selAtoms & nucleic ringFill on", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
+                ("cmd:nuc selAtoms tube", "nuc-tube.png", "Tube/Slab", "Show nucleotide bases as slabs and sugars as tubes"),
+                ("cmd:nuc selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs"),
+                ("cmd:nuc selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotide h-bond ladders"),
+                ("cmd:color selAtoms bynuc", "nuc-color.png", "Color", "Color by nucleotide")],
+
             ("Misc", False): [
                 ("shortcut:hb", "hbonds.png", "Show hydrogen bonds", "Show hydrogen bonds")],
         },
@@ -209,7 +218,7 @@ _Toolbars = {
                 ("cmd:redo", "redo-variant.png", "Redo", "Redo last action")],
             ("Background", True): [
                 ("shortcut:wb", "whitebg.png", "White", "White background"),
-                #("shortcut:gb", "graybg.png", "Gray", "Gray background"),
+                ("shortcut:gb", "graybg.png", "Gray", "Gray background"),
                 ("shortcut:bk", "blackbg.png", "Black", "Black background")],
             ("Lighting", False): [
                 ("shortcut:ls", "simplelight.png", "Simple", "Simple lighting"),
