@@ -332,6 +332,27 @@ of ``mac``.
       header directories are automatically supplied by the build
       process.
 
+- **Initializations**
+
+  - List of bundles that must be initialized before this one.
+  - Child elements:
+
+    - **InitAfter** (one or more)
+
+- **InitAfter**
+
+  - Attribute:
+
+    - **type**: type of initialization.  Currently supported
+      values are **manager**, **provider**, and **custom**.
+    - **bundle**: name of bundle that must be initialized before
+      this one.
+    - There should be one **InitAfter** tag for each bundle that
+      must be initialized first.  There is no way to specify
+      the exact initialization order for these bundles; the
+      relative dependencies will be computed from the initialization
+      information of the bundles.
+
 - **Library**
 
   - Child element of **CModule**.
@@ -354,12 +375,51 @@ of ``mac``.
       library directories are automatically supplied by the build
       process.
 
+- **Managers**
+
+  - List of managers that bundle provides
+  - Child elements:
+
+    - **Manager** (one or more)
+
+- **Manager**
+
+  - Attribute:
+
+    - **name**: name of manager.  The bundle must implement the
+      ``init_manager`` method.  The only positional argument to
+      ``init_manager`` is its name.
+    - Other attributes listed in the **Manager** tag are passed
+      as keyword arguments to ``init_manager``.
+
 - **Package**
 
   - Attributes:
 
     - **name**: name of Python package to be added.
     - **folder**: folder containing source files in package.
+
+- **Providers**
+
+  - List of providers that bundle provides
+  - Child elements:
+
+    - **Provider** (one or more)
+
+- **Provider**
+
+  - Attribute:
+
+    - **manager**: name of the manager with which this provider
+      will be registered.
+    - **name**: name of provider.  The bundle must implement the
+      ``init_provider`` method.  The first positional argument to
+      ``init_provider`` is the provider name, and the second argument
+      is an instance of the manager handling the registration;
+      additional positional arguments may be supplied by the manager
+      with which the provider registers.
+    - Other attributes listed in the **Provider** tag should be passed
+      as keyword arguments to ``init_provider`` by the manager.
 
 - **PythonClassifier**
 
