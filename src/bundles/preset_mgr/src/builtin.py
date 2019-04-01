@@ -21,7 +21,7 @@ def register_builtin_presets(session):
     licorice = "%s; car style protein modeh default arrows f x round width 1 thick 1" % cardef
     preset_info = {
         "Cartoons/Nucleotides": [
-            (CustomSortString("ribbons/slabs", sort_val=1), cardef),
+            (CustomSortString("ribbons/slabs", sort_val=1), "%s; nuc tube/slab shape box" % cardef),
             (CustomSortString("cylinders/stubs", sort_val=2),
                 "%s; car style nucleic x round width 1.6 thick 1.6; nuc stubs" % cylinders),
             (CustomSortString("licorice/ovals", sort_val=3),
