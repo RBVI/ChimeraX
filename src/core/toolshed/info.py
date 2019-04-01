@@ -69,6 +69,9 @@ class BundleInfo:
                  include_dir=None,
                  library_dir=None,
                  executable_dir=None,
+                 managers=None,
+                 providers=None,
+                 inits=None,
                  packages=[], supercedes=[]):
         """Initialize instance.
 
@@ -98,6 +101,12 @@ class BundleInfo:
             Path (relative to bundle root) of directory of link libraries.
         executable_dir:
             Path (relative to bundle root) of directory of executables.
+        managers:
+            Dictionary of manager names to init keywords
+        providers:
+            Dictionary of provider names to manager names + init keywords
+        inits:
+            Dictionary of initialization dependencies
         """
         # Public attributes
         self.installed = installed
@@ -118,6 +127,9 @@ class BundleInfo:
         self.installed_include_dir = include_dir
         self.installed_library_dir = library_dir
         self.installed_executable_dir = executable_dir
+        self.managers = {}
+        self.providers = {}
+        self.inits = {}
 
         # Private attributes
         self._name = name
@@ -183,6 +195,9 @@ class BundleInfo:
             "include_dir": self.installed_include_dir,
             "library_dir": self.installed_library_dir,
             "executable_dir": self.installed_executable_dir,
+            "managers": self.managers,
+            "providers": self.providers,
+            "inits": self.inits,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
@@ -222,6 +237,12 @@ class BundleInfo:
             bi.installed_executable_dir = more['executable_dir']
         if 'fetches' in more:
             bi.fetches = more['fetches']
+        if 'managers' in more:
+            bi.managers = more['managers']
+        if 'providers' in more:
+            bi.providers = more['providers']
+        if 'inits' in more:
+            bi.inits = more['inits']
         return bi
 
     def distribution(self):
