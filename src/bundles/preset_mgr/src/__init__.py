@@ -22,16 +22,22 @@ class _PresetsBundleAPI(BundleAPI):
             return manager.PresetsManager
 
     @staticmethod
-    def initialize(session, bundle_info):
-        """Install presets manager into existing session"""
-        from .manager import PresetsManager
-        session.presets = PresetsManager(session)
-        from .builtin import register_builtin_presets
-        register_builtin_presets(session)
+    def init_manager(session, bundle_info, name, **kw):
+        """Initialize presets manager"""
+        if name == "presets":
+            from .manager import PresetsManager
+            session.presets = PresetsManager(session)
+
+    @staticmethod
+    def init_provider(session, bundle_info, name, mgr, **kw):
+        """Initialize presets providers"""
+        if name == "builtins" and mgr == "presets":
+            from .builtin import register_builtin_presets
+            register_builtin_presets(session)
 
     @staticmethod
     def finish(session, bundle_info):
-        """De-install alignments manager from existing session"""
+        """De-install presets manager from existing session"""
         del session.presets
 
     @staticmethod
