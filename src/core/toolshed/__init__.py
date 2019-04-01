@@ -251,6 +251,13 @@ class ToolshedUnavailableError(ToolshedError):
     raised when no Python distribution can be found for a bundle."""
 
 
+class ToolshedInitializationError(ToolshedError):
+    """Initialization error.
+
+    This exception derives from ToolshedError and is usually
+    raised when doing manager, provider or custom initialization."""
+
+
 # Toolshed and BundleInfo are session-independent
 
 
@@ -756,16 +763,46 @@ class Toolshed:
         before a session is discarded, but we don't do that yet.)
         """
         _debug("initialize_bundles")
-        failed = []
         for bi in self._installed_bundle_info:
             bi.update_library_path()    # for bundles with dynamic libraries
-            try:
-                bi.initialize(session)
-            except ToolshedError:
-                failed.append(bi)
+        failed = self._init_custom(session)
         for bi in failed:
             self._installed_bundle_info.remove(bi)
             # TODO: update _installed_packages
+        # self._init_managers(session)
+        # self._init_providers(session)
+
+    def _init_custom(self, session):
+        failed = []
+        done = set()
+        initializing = set()
+        for bi in self._installed_bundle_info:
+            self._init_bundle_custom(session, bi, done, initializing, failed)
+        return failed
+
+    def _init_bundle_custom(self, session, bi, done, initializing, failed):
+        if not bi.custom_init or bi in done:
+            return
+        try:
+            init_after = bi.inits["custom"]
+        except KeyError:
+            pass
+        else:
+            initializing.add(bi)
+            for bundle_name in init_after:
+                dbi = self.find_bundle(bundle_name, None)
+                if dbi:
+                    if dbi in initializing:
+                        raise ToolshedInitializationError("circular dependency")
+                    self._init_bundle_custom(session, dbi, done,
+                                             initializing, failed)
+            initializing.remove(bi)
+        try:
+            _debug("initialize_bundle %s" % bi.name)
+            bi.initialize(session)
+        except ToolshedError:
+            failed.append(bi)
+        done.add(bi)
 
     def import_bundle(self, bundle_name, logger,
                       install="ask", session=None):
@@ -1156,6 +1193,47 @@ class BundleAPI:
         raise NotImplementedError("BundleAPI.finish")
 
     @staticmethod
+    def init_manager(session, bundle_info, name, **kw):
+        """Supported API. Called to initialize a manager in a bundle.
+
+        Must be defined if there is a ``Manager`` tag in the bundle.
+        ``init_manager`` is called when bundles are first loaded.
+        ``init_manager`` methods for all bundles are called before any
+        ``init_provider`` methods are called for any bundle.
+
+        Parameters
+        ----------
+        session : :py:class:`~chimerax.core.session.Session` instance.
+        bundle_info : :py:class:`BundleInfo` instance.
+        name : str.
+            Name of manager to initialize.
+        kw : keyword arguments.
+            Keyword arguments listed in the bundle_info.xml.
+        """
+        raise NotImplementedError("BundleAPI.init_manager")
+
+    @staticmethod
+    def init_provider(session, bundle_info, name, mgr, **kw):
+        """Supported API. Called to initialize a provider in a bundle.
+
+        Must be defined if there is a ``Provider`` tag in the bundle.
+        ``init_provider`` is called when bundles are loaded, but
+        after ``init_manager`` methods have been called for all bundles.
+
+        Parameters
+        ----------
+        session : :py:class:`~chimerax.core.session.Session` instance.
+        bundle_info : :py:class:`BundleInfo` instance.
+        name : str.
+            Name of provider to initialize.
+        mgr : str.
+            Name of manager for this provider.
+        kw : keyword arguments.
+            Keyword arguments listed in the bundle_info.xml.
+        """
+        raise NotImplementedError("BundleAPI.init_provider")
+
+    @staticmethod
     def get_class(name):
         """Supported API. Called to get named class from bundle.
 
@@ -1322,6 +1400,14 @@ class _CallBundleAPIv1(_CallBundleAPIv0):
     @classmethod
     def register_selector(cls, api, bi, si, logger):
         return cls._get_func(api, "register_selector")(bi, si, logger)
+
+    @classmethod
+    def init_manager(cls, api, session, bi, name, **kw):
+        return cls._get_func(api, "init_manager")(session, bi, name, **kw)
+
+    @classmethod
+    def init_provider(cls, api, session, bi, name, **kw):
+        return cls._get_func(api, "init_provider")(session, bi, name, mgr, **kw)
 
 
 _CallBundleAPI = {

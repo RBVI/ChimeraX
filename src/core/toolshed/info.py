@@ -195,9 +195,6 @@ class BundleInfo:
             "include_dir": self.installed_include_dir,
             "library_dir": self.installed_library_dir,
             "executable_dir": self.installed_executable_dir,
-            "managers": self.managers,
-            "providers": self.providers,
-            "inits": self.inits,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
@@ -205,6 +202,9 @@ class BundleInfo:
             'formats': [fi.cache_data() for fi in self.formats],
             'selectors': [si.cache_data() for si in self.selectors],
             'fetches': self.fetches,
+            "managers": self.managers,
+            "providers": self.providers,
+            "inits": self.inits,
         }
         return args, kw, more
 
