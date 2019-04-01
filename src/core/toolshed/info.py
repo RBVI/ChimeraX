@@ -127,9 +127,9 @@ class BundleInfo:
         self.installed_include_dir = include_dir
         self.installed_library_dir = library_dir
         self.installed_executable_dir = executable_dir
-        self.managers = {}
-        self.providers = {}
-        self.inits = {}
+        self.managers = managers if managers else {}
+        self.providers = providers if providers else {}
+        self.inits = inits if inits else {}
 
         # Private attributes
         self._name = name
@@ -436,9 +436,36 @@ class BundleInfo:
                 raise ToolshedError(
                     "initialize() failed in bundle %s:\n%s" % (self.name, str(e)))
 
+    def init_manager(self, session, name, **kw):
+        """Supported API. Initialize bundle manager if needed."""
+        if self.managers:
+            try:
+                api = self._get_api(session.logger)
+                api._api_caller.init_manager(api, session, self, name, **kw)
+            except Exception as e:
+                import traceback
+                session.logger.warning(traceback.format_exc())
+                raise ToolshedError(
+                    "init_manager() failed in bundle %s:\n%s" % (self.name, str(e)))
+
+    def init_provider(self, session, name, mgr, **kw):
+        """Supported API. Initialize bundle provider if needed."""
+        if self.managers:
+            try:
+                api = self._get_api(session.logger)
+                api._api_caller.init_provider(api, session, self, name, mgr, **kw)
+            except Exception as e:
+                import traceback
+                session.logger.warning(traceback.format_exc())
+                raise ToolshedError(
+                    "init_provider() failed in bundle %s:\n%s" % (self.name, str(e)))
+
     def finish(self, session):
-        """Supported API. Deinitialize bundle by calling custom finish code if needed."""
-        if self.custom_init:
+        """Supported API. Deinitialize bundle by calling custom finish code if needed.
+        
+        This method is only called when a bundle is explicitly unloaded.
+        In particular, it is *not* called when ChimeraX exits normally."""
+        if self.get_module(force_import=False):
             try:
                 api = self._get_api(session.logger)
                 api._api_caller.finish(api, session, self)
@@ -504,7 +531,7 @@ class BundleInfo:
                                 % self.name)
         return f(class_name)
 
-    def get_module(self):
+    def get_module(self, force_import=True):
         """Supported API. Return module that has bundle's code"""
         if not self.package_name:
             raise ToolshedError("Bundle %s has no module" % self.name)
@@ -512,7 +539,8 @@ class BundleInfo:
         try:
             return sys.modules[self.package_name]
         except KeyError:
-            pass
+            if not force_import:
+                return None
         import importlib
         try:
             m = importlib.import_module(self.package_name)

@@ -387,8 +387,8 @@ of ``mac``.
   - Attribute:
 
     - **name**: name of manager.  The bundle must implement the
-      ``init_manager`` method.  The only positional argument to
-      ``init_manager`` is its name.
+      ``init_manager`` method.  The two positional arguments to
+      ``init_manager`` are the session instance and the manager name.
     - Other attributes listed in the **Manager** tag are passed
       as keyword arguments to ``init_manager``.
 
@@ -413,13 +413,14 @@ of ``mac``.
     - **manager**: name of the manager with which this provider
       will be registered.
     - **name**: name of provider.  The bundle must implement the
-      ``init_provider`` method.  The first positional argument to
-      ``init_provider`` is the provider name, and the second argument
-      is an instance of the manager handling the registration;
-      additional positional arguments may be supplied by the manager
-      with which the provider registers.
-    - Other attributes listed in the **Provider** tag should be passed
-      as keyword arguments to ``init_provider`` by the manager.
+      ``init_provider`` method.  The three positional arguments to
+      ``init_provider`` are the session instance, the provider name,
+      and the manager name (which can be used to fetch the manager
+      instance from the session).
+    - Other attributes listed in the **Provider** tag are passed
+      as keyword arguments to ``init_provider``.
+      If ``init_provider`` needs additional information, it should
+      query the manager instance fetched from the session.
 
 - **PythonClassifier**
 

@@ -765,12 +765,17 @@ class Toolshed:
         _debug("initialize_bundles")
         for bi in self._installed_bundle_info:
             bi.update_library_path()    # for bundles with dynamic libraries
-        failed = self._init_custom(session)
+        failed = self._init_managers(session)
+        failed += self._init_providers(session)
+        failed += self._init_custom(session)
+        bad_packages = set()
         for bi in failed:
+            session.logger.error("Bundle %r custom initialization failed" %
+                                 bi.name)
             self._installed_bundle_info.remove(bi)
-            # TODO: update _installed_packages
-        # self._init_managers(session)
-        # self._init_providers(session)
+            bad_packages.update(bi.packages)
+        for pkg in bad_packages:
+            del self._installed_packages[pkg]
 
     def _init_custom(self, session):
         failed = []
@@ -793,13 +798,79 @@ class Toolshed:
                 dbi = self.find_bundle(bundle_name, None)
                 if dbi:
                     if dbi in initializing:
-                        raise ToolshedInitializationError("circular dependency")
-                    self._init_bundle_custom(session, dbi, done,
-                                             initializing, failed)
+                        raise ToolshedInitializationError("circular dependency in bundle custom initialization")
+                    self._init_bundle_custom(session, dbi, done, initializing, failed)
             initializing.remove(bi)
         try:
-            _debug("initialize_bundle %s" % bi.name)
+            _debug("custom initialization for bundle %r" % bi.name)
             bi.initialize(session)
+        except ToolshedError:
+            failed.append(bi)
+        done.add(bi)
+
+    # _init_managers and _init_providers are analogous to _init_custom
+
+    def _init_managers(self, session):
+        failed = []
+        done = set()
+        initializing = set()
+        for bi in self._installed_bundle_info:
+            self._init_bundle_manager(session, bi, done, initializing, failed)
+        return failed
+
+    def _init_bundle_manager(self, session, bi, done, initializing, failed):
+        if not bi.managers or bi in done:
+            return
+        try:
+            init_after = bi.inits["manager"]
+        except KeyError:
+            pass
+        else:
+            initializing.add(bi)
+            for bundle_name in init_after:
+                dbi = self.find_bundle(bundle_name, None)
+                if dbi:
+                    if dbi in initializing:
+                        raise ToolshedInitializationError("circular dependency in bundle manager initialization")
+                    self._init_bundle_manager(session, dbi, done, initializing, failed)
+            initializing.remove(bi)
+        try:
+            for mgr, kw in bi.managers.items():
+                _debug("initialize manager %s for bundle %r" % (mgr, bi.name))
+                bi.init_manager(session, mgr, **kw)
+        except ToolshedError:
+            failed.append(bi)
+        done.add(bi)
+
+    def _init_providers(self, session):
+        failed = []
+        done = set()
+        initializing = set()
+        for bi in self._installed_bundle_info:
+            self._init_bundle_provider(session, bi, done, initializing, failed)
+        return failed
+
+    def _init_bundle_provider(self, session, bi, done, initializing, failed):
+        if not bi.providers or bi in done:
+            return
+        try:
+            init_after = bi.inits["provider"]
+        except KeyError:
+            pass
+        else:
+            initializing.add(bi)
+            for bundle_name in init_after:
+                dbi = self.find_bundle(bundle_name, None)
+                if dbi:
+                    if dbi in initializing:
+                        raise ToolshedInitializationError("circular dependency in bundle manager initialization")
+                    self._init_bundle_provider(session, dbi, done, initializing, failed)
+            initializing.remove(bi)
+        try:
+            for pvdr, params in bi.providers.items():
+                mgr, kw = params
+                _debug("initialize provider %s for bundle %r" % (pvdr, bi.name))
+                bi.init_provider(session, pvdr, mgr, **kw)
         except ToolshedError:
             failed.append(bi)
         done.add(bi)
@@ -1355,6 +1426,14 @@ class _CallBundleAPIv0:
         return cls._get_func(api, "initialize")(session, bi)
 
     @classmethod
+    def init_manager(cls, api, session, bi, name, **kw):
+        return cls._get_func(api, "init_manager")(session, bi, name, **kw)
+
+    @classmethod
+    def init_provider(cls, api, session, bi, name, mgr, **kw):
+        return cls._get_func(api, "init_provider")(session, bi, name, mgr, **kw)
+
+    @classmethod
     def finish(cls, api, session, bi):
         return cls._get_func(api, "finish")(session, bi)
 
@@ -1400,14 +1479,6 @@ class _CallBundleAPIv1(_CallBundleAPIv0):
     @classmethod
     def register_selector(cls, api, bi, si, logger):
         return cls._get_func(api, "register_selector")(bi, si, logger)
-
-    @classmethod
-    def init_manager(cls, api, session, bi, name, **kw):
-        return cls._get_func(api, "init_manager")(session, bi, name, **kw)
-
-    @classmethod
-    def init_provider(cls, api, session, bi, name, **kw):
-        return cls._get_func(api, "init_provider")(session, bi, name, mgr, **kw)
 
 
 _CallBundleAPI = {
