@@ -98,38 +98,39 @@ Attributes defined in the Python layer will not be included, however.
 <a href="commands/info.html#atomattr"><b>info atomattr</b></a>)</td></tr>
 <tr>
 <td align=center><b>area=</b><i>sasa</i></td>
-<td><i>sasa</i> is the solvent-accessible surface area of the atom 
+<td class="text"><i>sasa</i> is the solvent-accessible surface area of the atom 
 calculated with <a href="commands/measure.html#sasa"><b>measure sasa</b></a></td>
 </tr><tr>
 <td align=center><b>bfactor=</b><i>bfactor</i></td>
-<td><i>bfactor</i> is the B-factor value of the atom</td>
-</tr> <tr>
+<td class="text"><i>bfactor</i> is the B-factor value of the atom</td>
+</tr><tr>
 <td align=center><b>color=</b><i>color</i></td>
-<td><i>color</i> is the color of the atom (assigned on a per-atom basis)</td>
+<td class="text"><i>color</i> is the color of the atom (assigned on a per-atom basis)</td>
 </tr><tr>
 <td align=center><b>display</b></td>
-<td>whether display is enabled at the atom level,
+<td class="text">whether display is enabled at the atom level,
 see <a href="hierarchy.html">display hierarchy</a></td>
-</tr> <tr>
+</tr><tr>
 <td align=center><b>draw_mode=</b><i>mode</i></td>
-<td><i>mode</i> is the <a href="commands/style.html">style</a> of an atom,
+<td class="text"><i>mode</i> 
+is the <a href="commands/style.html">style</a> of an atom,
 0 (sphere), 1 (ball), or 2 (stick)</td>
 </tr><tr>
 <td align=center><b>idatm_type=</b><i>type</i></td>
-<td><i>type</i> is the <a href="atomtypes.html">atom type</a></td>
+<td class="text"><i>type</i> is the <a href="atomtypes.html">atom type</a></td>
 </tr><tr>
 <td align=center><b>name=</b><i>name</i></td>
-<td><i>name</i> is the atom name</td>
+<td class="text"><i>name</i> is the atom name</td>
 </tr><tr>
 <td align=center><b>occupancy=</b><i>occupancy</i></td>
-<td><i>occupancy</i> is the occupancy value of the atom</td>
+<td class="text"><i>occupancy</i> is the occupancy value of the atom</td>
 </tr><tr>
 <td align=center><b>radius=</b><i>radius</i></td>
-<td><i>radius</i> is the current <a href="radii.html">VDW radius</a>
+<td class="text"><i>radius</i> is the current <a href="radii.html">VDW radius</a>
 of the atom in &Aring;</td>
 </tr><tr>
 <td align=center><b>serial_number=</b><i>N</i></td>
-<td><i>N</i> is the atom serial number in the input file</td>
+<td class="text"><i>N</i> is the atom serial number in the input file</td>
 </tr>
 </table>
 <br>
@@ -141,69 +142,85 @@ of the atom in &Aring;</td>
 <a href="commands/info.html#resattr"><b>info resattr</b></a>)</td></tr>
 <tr>
 <td align=center><b>area=</b><i>sasa</i></td>
-<td><i>sasa</i> is the solvent-accessible surface area of the residue 
+<td class="text"><i>sasa</i> 
+is the solvent-accessible surface area of the residue 
 calculated with <a href="commands/measure.html#sasa"><b>measure sasa</b></a></td>
 </tr><tr>
-<td align=center><b>asym_detail=</b><i>value</i></td>
-<td>the <i>value</i> for a chain in
-<a href="commands/open.html#composite">IHM</a> data
-is read from the mmCIF field &ldquo;struct_asym.details&rdquo;</td>
-</tr><tr>
-<td align=center><b>entity_name=</b><i>name</i></td>
-<td>the <i>name</i> for a chain (entity) in
-<a href="commands/open.html#composite">IHM</a> data
-is read from the field &ldquo;ihm_struct_assembly.entity_description&rdquo;
-and reported in the <a href="tools/log.html"><b>Log</b></a></td>
-</tr><tr>
-<td align=center><b>num_atoms=</b><i>N</i></td>
-<td><i>N</i> is the total number of atoms in the residue</td>
-</tr><tr>
 <td align=center><b>is_helix</i></td>
-<td>whether peptide secondary structure type is helix</td>
+<td class="text">whether peptide secondary structure type is helix</td>
 </tr><tr>
 <td align=center><b>is_strand</i></td>
-<td>whether peptide secondary structure type is strand</td>
+<td class="text">whether peptide secondary structure type is strand</td>
 </tr><tr>
 <td align=center><b>ss_type=</b><i>type</i></td>
-<td>peptide secondary structure <i>type</i>: 0 for coil 
+<td class="text">peptide secondary structure <i>type</i>: 0 for coil 
 (neither helix nor strand), 1 for helix, 2 for strand</td>
 </tr><tr>
+<td align=center><b>ss_id=</b><i>N</i></td>
+<td class="text"><i>N</i> indexes secondary structure elements from N&rarr;C in 
+a protein chain: 1 for residues in the first helix and first strand, 
+2 for those in the second helix and second strand, and so on;
+0 for residues not in protein helix or strand</td>
+</tr><tr>
+<td align=center><b>num_atoms=</b><i>N</i></td>
+<td class="text"><i>N</i> is the total number of atoms in the residue</td>
+</tr><tr>
 <td align=center><b>phi=</b><i>angle</i></td>
-<td><i>angle</i> is the peptide backbone &phi; dihedral angle
+<td class="text"><i>angle</i> is the peptide backbone &phi; dihedral angle
 (C<sub><i>i-1</i></sub>-N-CA-C)</td>
 </tr><tr>
 <td align=center><b>psi=</b><i>angle</i></td>
-<td><i>angle</i> is the peptide backbone &psi; dihedral angle
+<td class="text"><i>angle</i> is the peptide backbone &psi; dihedral angle
 (N-CA-C-N<sub><i>i+1</i></sub>)</td>
 </tr><tr>
+<td align=center><b>chi<i>N</i>=</b><i>angle</i></td>
+<td class="text"><i>angle</i> is the <i>N</i><sup>th</sup>
+&chi; dihedral angle of an amino acid sidechain, where
+<i>N</i>=1 refers to the torsion angle around the C&alpha;-C&beta; bond,
+<i>N</i>=2 refers to that around the C&beta;-C&gamma; bond, <i>etc.</i>
+</td>
+</tr><tr>
+<td align=center><b>sym_chi<i>N</i>=</b><i>angle</i></td>
+<td class="text"><i>angle</i> is the smaller of the equivalent measurements
+for the <i>N</i><sup>th</sup> &chi; dihedral angle of an amino acid sidechain
+when there are chemically identical substituents 
+(<i>e.g.</i>, two carboxylate oxygens) in symmetric positions
+</td>
+</tr><tr>
 <td align=center><b>polymer_type=</b><i>type</i></td>
-<td><i>type</i> is 0 for nonpolymer, 1 for protein, 2 for nucleic acid</td>
+<td class="text"><i>type</i> is 0 for nonpolymer, 
+1 for protein, 2 for nucleic acid</td>
 </tr><tr>
 <td align=center><b>ribbon_color=</b><i>ribcolor</i></td>
-<td><i>ribcolor</i> is the color of the residue's ribbon segment
+<td class="text"><i>ribcolor</i> is the color of the residue's ribbon segment
 (however, this can be assigned even when the residue is a type
 that does not have any ribbon, such as water)</td>
 </tr><tr>
 <td align=center><b>ribbon_display</b></td>
-<td>whether ribbon display is turned on for the residue
+<td class="text">whether ribbon display is turned on for the residue
 (however, this can be true even when the residue is a type
 that does not have any ribbon, such as water)</td>
-</tr><tr>
-<td align=center><b>ss_id=</b><i>N</i></td>
-<td><i>N</i> indexes secondary structure elements from N&rarr;C in 
-a protein chain: 1 for residues in the first helix and first strand, 
-2 for those in the second helix and second strand, and so on;
-0 for residues not in protein helix or strand</td>
 <!--
 </tr><tr>
 <td align=center><b>uniprotIndex=</b><i>N</i></td>
-<td><i>N</i> is the residue number in the corresponding
+<td class="text"><i>N</i> is the residue number in the corresponding
 <a href="http://www.uniprot.org/" target="_blank">UniProt</a> sequence
 (discerned from HEADER and SEQRES information in the
 structure PDB file using a web service provided by the
 <a href="http://www.rcsb.org/pdb/home/home.do" target="_blank">RCSB PDB</a>)
 </td>
 -->
+</tr><tr>
+<td align=center><b>asym_detail=</b><i>value</i></td>
+<td class="text">the <i>value</i> for a chain in
+<a href="commands/open.html#composite">IHM</a> data
+is read from the mmCIF field &ldquo;struct_asym.details&rdquo;</td>
+</tr><tr>
+<td align=center><b>entity_name=</b><i>name</i></td>
+<td class="text">the <i>name</i> for a chain (entity) in
+<a href="commands/open.html#composite">IHM</a> data
+is read from the field &ldquo;ihm_struct_assembly.entity_description&rdquo;
+and reported in the <a href="tools/log.html"><b>Log</b></a></td>
 </tr>
 </table>
 <br>
@@ -214,33 +231,35 @@ structure PDB file using a web service provided by the
 <b>Selected Atomic-Model Attributes</td></tr>
 <tr>
 <td align=center><b>autochain</b></td>
-<td>whether &ldquo;chain trace&rdquo; <a href="pseudobonds.html">pseudobonds</a>
+<td class="text">whether &ldquo;chain trace&rdquo; 
+<a href="pseudobonds.html">pseudobonds</a>
 should be added between consecutively bonded residues when the covalent bonds
 are hidden (<i>e.g.</i>, when &alpha;-carbons are the only backbone atoms shown)
-</tr> <tr>
+</tr><tr>
 <td align=center><b>ball_scale=</b><i>factor</i></td>
-<td><i>factor</i> is ball radius relative to <a href="radii.html">VDW radius</a>,
+<td class="text"><i>factor</i> is ball radius 
+relative to <a href="radii.html">VDW radius</a>,
 see <a href="commands/size.html"><b>size</b></a></td>
-</tr> <tr>
+</tr><tr>
 <td align=center><b>color=</b><i>color</i></td>
-<td><i>color</i> is the color assigned on a per-model basis</td>
-</tr> <tr>
+<td class="text"><i>color</i> is the color assigned on a per-model basis</td>
+</tr><tr>
 <td align=center><b>display</b></td>
-<td>whether display is enabled at the model level,
+<td class="text">whether display is enabled at the model level,
 see <a href="hierarchy.html">display hierarchy</a></td>
 </tr><tr>
 <td align=center><b>name=</b><i>name</i></td>
-<td><i>name</i> is the name of the model</td>
-</tr> <tr>
+<td class="text"><i>name</i> is the name of the model</td>
+</tr><tr>
 <td align=center><b>num_atoms=</b><i>N</i></td>
-<td><i>N</i> is the total number of atoms in the model</td>
-</tr> <tr>
+<td class="text"><i>N</i> is the total number of atoms in the model</td>
+</tr><tr>
 <td align=center><b>num_residues=</b><i>M</i></td>
-<td><i>M</i> is the total number of residues in the model</td>
+<td class="text"><i>M</i> is the total number of residues in the model</td>
 </tr>
 </table>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2019</address>
+April 2019</address>
 </body></html>

@@ -146,7 +146,10 @@ class BundleBuilder:
         self._get_descriptions(bi)
         self._get_datafiles(bi)
         self._get_extrafiles(bi)
+        self._get_managers(bi)
+        self._get_providers(bi)
         self._get_dependencies(bi)
+        self._get_initializations(bi)
         self._get_c_modules(bi)
         self._get_c_libraries(bi)
         self._get_c_executables(bi)
@@ -228,6 +231,27 @@ class BundleBuilder:
                 except KeyError:
                     self.datafiles[pkg_name] = datafiles
 
+    def _get_managers(self, bi):
+        self.managers = {}
+        for mgrs in self._get_elements(bi, "Managers"):
+            for e in self._get_elements(mgrs, "Manager"):
+                keywords = {}
+                if e.attributes:
+                    keywords.update(e.attributes.items())
+                name = keywords.pop("name")
+                self.managers[name] = keywords
+
+    def _get_providers(self, bi):
+        self.providers = {}
+        for prvs in self._get_elements(bi, "Providers"):
+            for e in self._get_elements(prvs, "Provider"):
+                keywords = {}
+                if e.attributes:
+                    keywords.update(e.attributes.items())
+                manager = keywords.pop("manager")
+                name = keywords.pop("name")
+                self.providers[name] = (manager, keywords)
+
     def _get_dependencies(self, bi):
         self.dependencies = []
         try:
@@ -246,6 +270,17 @@ class BundleBuilder:
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req)
             self.dependencies.append(req)
+
+    def _get_initializations(self, bi):
+        self.initializations = {}
+        for inits in self._get_elements(bi, "Initializations"):
+            for e in self._get_elements(inits, "InitAfter"):
+                i_type = e.getAttribute("type")
+                bundle = e.getAttribute("bundle")
+                try:
+                    self.initializations[i_type].append(bundle)
+                except KeyError:
+                    self.initializations[i_type] = [bundle]
 
     def _get_c_modules(self, bi):
         self.c_modules = []
@@ -355,6 +390,20 @@ class BundleBuilder:
         if self.installed_executable_dir:
             self.chimerax_classifiers.append(
                 "ChimeraX :: ExecutableDir :: " + self.installed_executable_dir)
+        for m, kw in self.managers.items():
+            args = [m] + ["%s:%s" % item for item in kw.items()]
+            self.chimerax_classifiers.append(
+                "ChimeraX :: Manager :: " + " :: ".join(args))
+        for p, values in self.providers.items():
+            mgr = values[0]
+            kw = values[1]
+            args = [p, mgr] + ["%s:%s" % item for item in kw.items()]
+            self.chimerax_classifiers.append(
+                "ChimeraX :: Provider :: " + " :: ".join(args))
+        for t, bundles in self.initializations.items():
+            args = [t] + bundles
+            self.chimerax_classifiers.append(
+                "ChimeraX :: InitAfter :: " + " :: ".join(args))
         for e in self._get_elements(cls, "ChimeraXClassifier"):
             classifier = self._get_element_text(e)
             if not classifier.startswith("ChimeraX"):

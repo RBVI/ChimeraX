@@ -332,6 +332,32 @@ of ``mac``.
       header directories are automatically supplied by the build
       process.
 
+- **Initializations**
+
+  - List of bundles that must be initialized before this one.
+  - Currently, there are three types of initializations that a bundle
+    may specify: **manager**, **provider**, and **custom**.  Managers
+    across all bundles are initialized first; then provider
+    initialization across all bundles; and, lastly, custom
+    initializations.
+  - Child elements:
+
+    - **InitAfter** (one or more)
+
+- **InitAfter**
+
+  - Attribute:
+
+    - **type**: type of initialization.  Currently supported
+      values are **manager**, **provider**, and **custom**.
+    - **bundle**: name of bundle that must be initialized before
+      this one.
+    - There should be one **InitAfter** tag for each bundle that
+      must be initialized first.  There is no way to specify
+      the exact initialization order for these bundles; the
+      relative dependencies will be computed from the initialization
+      information of the bundles.
+
 - **Library**
 
   - Child element of **CModule**.
@@ -354,12 +380,52 @@ of ``mac``.
       library directories are automatically supplied by the build
       process.
 
+- **Managers**
+
+  - List of managers that bundle provides
+  - Child elements:
+
+    - **Manager** (one or more)
+
+- **Manager**
+
+  - Attribute:
+
+    - **name**: name of manager.  The bundle must implement the
+      ``init_manager`` method.  The two positional arguments to
+      ``init_manager`` are the session instance and the manager name.
+    - Other attributes listed in the **Manager** tag are passed
+      as keyword arguments to ``init_manager``.
+
 - **Package**
 
   - Attributes:
 
     - **name**: name of Python package to be added.
     - **folder**: folder containing source files in package.
+
+- **Providers**
+
+  - List of providers that bundle provides
+  - Child elements:
+
+    - **Provider** (one or more)
+
+- **Provider**
+
+  - Attribute:
+
+    - **manager**: name of the manager with which this provider
+      will be registered.
+    - **name**: name of provider.  The bundle must implement the
+      ``init_provider`` method.  The three positional arguments to
+      ``init_provider`` are the session instance, the provider name,
+      and the manager name (which can be used to fetch the manager
+      instance from the session).
+    - Other attributes listed in the **Provider** tag are passed
+      as keyword arguments to ``init_provider``.
+      If ``init_provider`` needs additional information, it should
+      query the manager instance fetched from the session.
 
 - **PythonClassifier**
 

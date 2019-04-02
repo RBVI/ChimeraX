@@ -847,6 +847,8 @@ class _AttrTest:
             def matcher(obj):
                 try:
                     v = getattr(obj, attr_name)
+                    if v is None:
+                        raise AttributeError("Non-numeric value in comparison")
                 except AttributeError:
                     return want_missing
                 return op(v, attr_value)

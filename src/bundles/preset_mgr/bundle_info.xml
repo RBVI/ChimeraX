@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Preset_Mgr" version="1.0" package="chimerax.preset_mgr"
-  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
+	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>
@@ -20,6 +20,14 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>
+
+  <Managers>
+    <Manager name="presets"/>
+  </Managers>
+
+  <Providers>
+    <Provider name="builtins" manager="presets"/>
+  </Providers>
 
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->

@@ -24,6 +24,11 @@ def register_ui_command(logger):
         synopsis = 'control whether a tool is launched at ChimeraX startup')
     register('ui autostart', ui_autostart_desc, ui_autostart, logger=logger)
 
+    ui_favorite_desc = CmdDesc(
+        required=[('make_favorite', BoolArg), ('tool_name', StringArg)],
+        synopsis = 'control whether a tool is listed in the Favorites menu')
+    register('ui favorite', ui_favorite_desc, ui_favorite, logger=logger)
+
     ui_dockable_desc = CmdDesc(
         required=[('dockable', BoolArg), ('tool_name', StringArg)],
         synopsis = "control whether a tool's windows can be docked")
@@ -46,6 +51,26 @@ def ui_autostart(session, do_start, tool_name):
             autostart.remove(tool_name)
     settings.autostart = autostart
     settings.save()
+
+# -----------------------------------------------------------------------------
+#
+def ui_favorite(session, make_favorite, tool_name):
+    '''
+    Control whether a tool is launched at ChimeraX startup
+    '''
+
+    settings = session.ui.settings
+    favorites = settings.favorites[:]
+    if make_favorite:
+        if tool_name not in favorites:
+            favorites.append(tool_name)
+    else:
+        while tool_name in favorites:
+            favorites.remove(tool_name)
+    settings.favorites = favorites
+    settings.save()
+    if session.ui.is_gui:
+        session.ui.main_window.update_favorites_menu(session)
 
 # -----------------------------------------------------------------------------
 #

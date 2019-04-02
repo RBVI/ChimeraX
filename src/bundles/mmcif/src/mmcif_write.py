@@ -97,7 +97,7 @@ def write_mmcif(session, path, models=None):
         grouped.setdefault(m.id[:-1], []).append(m)
 
     used_data_names = set()
-    with open(path, 'w') as f:
+    with open(path, 'w', encoding='utf-8', newline='\r\n') as f:
         print("#\\#CIF_1.1", file=f)
         print("# mmCIF", file=f)
         for g in grouped:
@@ -277,7 +277,7 @@ def save_structure(session, file, models, used_data_names):
     if not citation:
         citation = ChimeraX_citation
         citation_author = ChimeraX_authors
-    elif not citation.field_has('citation_id', 'chimerax'):
+    elif not citation.field_has('id', 'chimerax'):
         citation.extend(ChimeraX_citation)
         citation_author.extend(ChimeraX_authors)
     citation.print(file, fixed_width=True)

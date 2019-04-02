@@ -109,16 +109,12 @@ class ToolbarTool(ToolInstance):
         import chimerax.shortcuts
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QPixmap, QIcon
-        show_button_labels = self.settings.show_button_labels
-        show_group_labels = self.settings.show_group_labels
         shortcut_icon_dir = os.path.join(chimerax.shortcuts.__path__[0], 'icons')
         dir_path = os.path.join(os.path.dirname(__file__), 'icons')
         for tab in _Toolbars:
             help_url, info = _Toolbars[tab]
             for (section, compact) in info:
                 shortcuts = info[(section, compact)]
-                if show_group_labels:
-                    pass  # TODO
                 for what, icon_file, descrip, tooltip in shortcuts:
                     kind, value = what.split(':', 1)
                     if kind == "mouse":
@@ -143,16 +139,6 @@ class ToolbarTool(ToolInstance):
 
 
 _Toolbars = {
-    "File": (
-        None,
-        {
-            ("Session", False): [
-                ("cmd:open browse", "open-in-app.png", "Open", "Open data file"),
-                ("cmd:save browse", "content-save.png", "Save", "Save session file"),
-                ("cmd:close session", "close-box.png", "Close", "Close current session"),
-                ("cmd:exit", "exit.png", "Exit", "Exit application")],
-        },
-    ),
     "Home": (
         None,
         {
@@ -173,6 +159,18 @@ _Toolbars = {
                 ("shortcut:ls", "simplelight.png", "Simple", "Simple lighting"),
                 ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
                 ("shortcut:lf", "fulllight.png", "Full", "Full lighting")],
+        },
+    ),
+    "File": (
+        None,
+        {
+            ("Session", False): [
+                ("cmd:open browse", "open-in-app.png", "Open", "Open data file"),
+                ("cmd:save browse", "content-save.png", "Save", "Save session file"),
+                ("cmd:close session", "close-box.png", "Close", "Close current session"),
+                ("cmd:exit", "exit.png", "Exit", "Exit application")],
+            ("Image", False): [
+                ("cmd:save image browse", "file-image.png", "Save", "Save image")],
         },
     ),
     "Molecule Display": (
@@ -197,6 +195,15 @@ _Toolbars = {
             ("Color Atoms", False): [
                 ("shortcut:ce", "colorbyelement.png", "By element", "Color non-carbon atoms by element"),
                 ("shortcut:cc", "colorbychain.png", "By chain", "Color chains")],
+            ("Nucleotides", False): [
+                ("cmd:nuc selAtoms atoms; style selAtoms & nucleic ringFill off", "nuc-atoms.png", "Plain", "Remove nucleotide abstraction"),
+                ("cmd:nuc selAtoms atoms; style selAtoms & nucleic ringFill on", "nuc-fill.png", "Filled", "Fill nucleotide rings"),
+                ("cmd:nuc selAtoms slab; style selAtoms & nucleic ringFill on", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
+                ("cmd:nuc selAtoms tube", "nuc-tube.png", "Tube/Slab", "Show nucleotide bases as slabs and sugars as tubes"),
+                ("cmd:nuc selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs"),
+                ("cmd:nuc selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotide h-bond ladders"),
+                ("cmd:color selAtoms bynuc", "nuc-color.png", "Color", "Color by nucleotide")],
+
             ("Misc", False): [
                 ("shortcut:hb", "hbonds.png", "Show hydrogen bonds", "Show hydrogen bonds")],
         },
@@ -209,7 +216,7 @@ _Toolbars = {
                 ("cmd:redo", "redo-variant.png", "Redo", "Redo last action")],
             ("Background", True): [
                 ("shortcut:wb", "whitebg.png", "White", "White background"),
-                #("shortcut:gb", "graybg.png", "Gray", "Gray background"),
+                ("shortcut:gb", "graybg.png", "Gray", "Gray background"),
                 ("shortcut:bk", "blackbg.png", "Black", "Black background")],
             ("Lighting", False): [
                 ("shortcut:ls", "simplelight.png", "Simple", "Simple lighting"),
@@ -264,24 +271,24 @@ _Toolbars = {
                 ("mouse:rotate", None, "Rotate", "Rotate models"),
                 ("mouse:translate", None, "Translate", "Translate models"),
                 ("mouse:zoom", None, "Zoom", "Zoom view"),
-                ("mouse:rotate and select", None, "Select and Rotate", "Select and rotate models"),
+                ("mouse:rotate and select", None, "Rotate and select", "Select and rotate models"),
                 ("mouse:translate selected", None, "Translate Selected", "Translate selected models"),
                 ("mouse:rotate selected", None, "Rotate Selected", "Rotate selected models")],
             ("Clip", False): [
                 ("mouse:clip", None, "Clip", "Activate clipping"),
-                ("mouse:clip rotate", None, "Rotate Clipping", "Rotate clipping planes"),
-                ("mouse:zone", None, "Display zone", "Limit display to zone around clicked residues")],
+                ("mouse:clip rotate", None, "Clip rotate", "Rotate clipping planes"),
+                ("mouse:zone", None, "Zone", "Limit display to zone around clicked residues")],
             ("Label", False): [
-                ("mouse:label", None, "Toggle atom or cartoon label", None),
-                ("mouse:move label", None, "Move 2D label", "Reposition 2D label")],
+                ("mouse:label", None, "Label", "Toggle atom or cartoon label"),
+                ("mouse:move label", None, "Move label", "Reposition 2D label")],
             ("Misc", False): [
-                ("mouse:pivot", None, "Set pivot", "Set center of rotation at atom"),
-                ("mouse:bond rotation", None, "Adjust torsion", "Adjust torsion angle"),
-                ("mouse:distance", None, "Toggle distance", "Toggle distance monitor between two atoms"),
-                ("mouse:swapaa", None, "Mutate residue", "Mutate and label residue")],
+                ("mouse:pivot", None, "Pivot", "Set center of rotation at atom"),
+                ("mouse:bond rotation", None, "Bond rotation", "Adjust torsion angle"),
+                ("mouse:distance", None, "distance", "Toggle distance monitor between two atoms"),
+                ("mouse:swapaa", None, "Swapaa", "Mutate and label residue")],
             ("Dynamics", False): [
-                ("mouse:tug", None, "Tug atom", "Drag atom while applying dynamics"),
-                ("mouse:minimize", None, "Jiggle residue", "Jiggle residue and its neighbors")],
+                ("mouse:tug", None, "Tug", "Drag atom while applying dynamics"),
+                ("mouse:minimize", None, "Minimize", "Jiggle residue and its neighbors")],
             ("Volumes", False): [
                 ("mouse:place marker", None, "Place marker", None),
                 ("mouse:contour level", None, "Contour level", "Adjust volume data threshold level"),

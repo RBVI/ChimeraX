@@ -251,6 +251,13 @@ class ToolshedUnavailableError(ToolshedError):
     raised when no Python distribution can be found for a bundle."""
 
 
+class ToolshedInitializationError(ToolshedError):
+    """Initialization error.
+
+    This exception derives from ToolshedError and is usually
+    raised when doing manager, provider or custom initialization."""
+
+
 # Toolshed and BundleInfo are session-independent
 
 
@@ -756,16 +763,117 @@ class Toolshed:
         before a session is discarded, but we don't do that yet.)
         """
         _debug("initialize_bundles")
-        failed = []
         for bi in self._installed_bundle_info:
             bi.update_library_path()    # for bundles with dynamic libraries
-            try:
-                bi.initialize(session)
-            except ToolshedError:
-                failed.append(bi)
+        failed = self._init_managers(session)
+        failed += self._init_providers(session)
+        failed += self._init_custom(session)
+        bad_packages = set()
         for bi in failed:
+            session.logger.error("Bundle %r custom initialization failed" %
+                                 bi.name)
             self._installed_bundle_info.remove(bi)
-            # TODO: update _installed_packages
+            bad_packages.update(bi.packages)
+        for pkg in bad_packages:
+            del self._installed_packages[pkg]
+
+    def _init_custom(self, session):
+        failed = []
+        done = set()
+        initializing = set()
+        for bi in self._installed_bundle_info:
+            self._init_bundle_custom(session, bi, done, initializing, failed)
+        return failed
+
+    def _init_bundle_custom(self, session, bi, done, initializing, failed):
+        if not bi.custom_init or bi in done:
+            return
+        try:
+            init_after = bi.inits["custom"]
+        except KeyError:
+            pass
+        else:
+            initializing.add(bi)
+            for bundle_name in init_after:
+                dbi = self.find_bundle(bundle_name, None)
+                if dbi:
+                    if dbi in initializing:
+                        raise ToolshedInitializationError("circular dependency in bundle custom initialization")
+                    self._init_bundle_custom(session, dbi, done, initializing, failed)
+            initializing.remove(bi)
+        try:
+            _debug("custom initialization for bundle %r" % bi.name)
+            bi.initialize(session)
+        except ToolshedError:
+            failed.append(bi)
+        done.add(bi)
+
+    # _init_managers and _init_providers are analogous to _init_custom
+
+    def _init_managers(self, session):
+        failed = []
+        done = set()
+        initializing = set()
+        for bi in self._installed_bundle_info:
+            self._init_bundle_manager(session, bi, done, initializing, failed)
+        return failed
+
+    def _init_bundle_manager(self, session, bi, done, initializing, failed):
+        if not bi.managers or bi in done:
+            return
+        try:
+            init_after = bi.inits["manager"]
+        except KeyError:
+            pass
+        else:
+            initializing.add(bi)
+            for bundle_name in init_after:
+                dbi = self.find_bundle(bundle_name, None)
+                if dbi:
+                    if dbi in initializing:
+                        raise ToolshedInitializationError("circular dependency in bundle manager initialization")
+                    self._init_bundle_manager(session, dbi, done, initializing, failed)
+            initializing.remove(bi)
+        try:
+            for mgr, kw in bi.managers.items():
+                _debug("initialize manager %s for bundle %r" % (mgr, bi.name))
+                bi.init_manager(session, mgr, **kw)
+        except ToolshedError:
+            failed.append(bi)
+        done.add(bi)
+
+    def _init_providers(self, session):
+        failed = []
+        done = set()
+        initializing = set()
+        for bi in self._installed_bundle_info:
+            self._init_bundle_provider(session, bi, done, initializing, failed)
+        return failed
+
+    def _init_bundle_provider(self, session, bi, done, initializing, failed):
+        if not bi.providers or bi in done:
+            return
+        try:
+            init_after = bi.inits["provider"]
+        except KeyError:
+            pass
+        else:
+            initializing.add(bi)
+            for bundle_name in init_after:
+                dbi = self.find_bundle(bundle_name, None)
+                if dbi:
+                    if dbi in initializing:
+                        raise ToolshedInitializationError("circular dependency in bundle manager initialization")
+                    self._init_bundle_provider(session, dbi, done, initializing, failed)
+            initializing.remove(bi)
+        try:
+            for pvdr, params in bi.providers.items():
+                mgr, kw = params
+                _debug("initialize provider %s for bundle %r" % (pvdr, bi.name))
+                bi.init_provider(session, pvdr, mgr, **kw)
+        except ToolshedError:
+            failed.append(bi)
+        done.add(bi)
 
     def import_bundle(self, bundle_name, logger,
                       install="ask", session=None):
@@ -1156,6 +1264,47 @@ class BundleAPI:
         raise NotImplementedError("BundleAPI.finish")
 
     @staticmethod
+    def init_manager(session, bundle_info, name, **kw):
+        """Supported API. Called to initialize a manager in a bundle.
+
+        Must be defined if there is a ``Manager`` tag in the bundle.
+        ``init_manager`` is called when bundles are first loaded.
+        ``init_manager`` methods for all bundles are called before any
+        ``init_provider`` methods are called for any bundle.
+
+        Parameters
+        ----------
+        session : :py:class:`~chimerax.core.session.Session` instance.
+        bundle_info : :py:class:`BundleInfo` instance.
+        name : str.
+            Name of manager to initialize.
+        kw : keyword arguments.
+            Keyword arguments listed in the bundle_info.xml.
+        """
+        raise NotImplementedError("BundleAPI.init_manager")
+
+    @staticmethod
+    def init_provider(session, bundle_info, name, mgr, **kw):
+        """Supported API. Called to initialize a provider in a bundle.
+
+        Must be defined if there is a ``Provider`` tag in the bundle.
+        ``init_provider`` is called when bundles are loaded, but
+        after ``init_manager`` methods have been called for all bundles.
+
+        Parameters
+        ----------
+        session : :py:class:`~chimerax.core.session.Session` instance.
+        bundle_info : :py:class:`BundleInfo` instance.
+        name : str.
+            Name of provider to initialize.
+        mgr : str.
+            Name of manager for this provider.
+        kw : keyword arguments.
+            Keyword arguments listed in the bundle_info.xml.
+        """
+        raise NotImplementedError("BundleAPI.init_provider")
+
+    @staticmethod
     def get_class(name):
         """Supported API. Called to get named class from bundle.
 
@@ -1275,6 +1424,14 @@ class _CallBundleAPIv0:
     @classmethod
     def initialize(cls, api, session, bi):
         return cls._get_func(api, "initialize")(session, bi)
+
+    @classmethod
+    def init_manager(cls, api, session, bi, name, **kw):
+        return cls._get_func(api, "init_manager")(session, bi, name, **kw)
+
+    @classmethod
+    def init_provider(cls, api, session, bi, name, mgr, **kw):
+        return cls._get_func(api, "init_provider")(session, bi, name, mgr, **kw)
 
     @classmethod
     def finish(cls, api, session, bi):
