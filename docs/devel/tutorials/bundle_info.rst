@@ -335,6 +335,11 @@ of ``mac``.
 - **Initializations**
 
   - List of bundles that must be initialized before this one.
+  - Currently, there are three types of initializations that a bundle
+    may specify: **manager**, **provider**, and **custom**.  Managers
+    across all bundles are initialized first; then provider
+    initialization across all bundles; and, lastly, custom
+    initializations.
   - Child elements:
 
     - **InitAfter** (one or more)
