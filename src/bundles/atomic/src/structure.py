@@ -1654,7 +1654,7 @@ class Structure(Model, StructureData):
                 xyz2 = tether_atoms.coords
                 radii = self._atom_display_radii(tether_atoms) * scale
                 tp.positions = _tether_placements(xyz1, xyz2, radii, shape)
-                tp.display_positions = tether_atoms.visibles
+                tp.display_positions = tether_atoms.visibles & tether_atoms.residues.ribbon_displays
                 colors = tether_atoms.colors
                 colors[:,3] = around(colors[:,3] * self.ribbon_tether_opacity).astype(int)
                 tp.colors = colors
