@@ -42,6 +42,7 @@ class _CoreSettings(Settings):
         'http_proxy': ("", 80),
         'https_proxy': ("", 443),
         'initial_window_size': ("last used", None),
+        'presets_folder': "",
         'resize_window_on_session_restore': False,
         'startup_commands': [],
         'trackpad_multitouch': True,

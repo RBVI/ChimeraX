@@ -20,7 +20,7 @@ TODO
 
 from chimerax.core.core_settings import set_proxies, settings as core_settings
 from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, FloatOption
-from .options import StringOption, HostPortOption, Option, EnumOption, StringsOption
+from .options import StringOption, HostPortOption, InputFolderOption, Option, EnumOption, StringsOption
 from .widgets import hex_color_name
 
 class AtomSpecOption(SymbolicEnumOption):
@@ -349,6 +349,14 @@ class CoreSettingsPanel:
             None,
             None,
             """Initial overall size of ChimeraX window""",
+            True),
+        'presets_folder': (
+            "Custom presets folder",
+            "Startup",
+            InputFolderOption,
+            None,
+            None,
+            "Folder containing definitions of user-added presets",
             True),
         'resize_window_on_session_restore': (
             'Resize graphics window on session restore',
