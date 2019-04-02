@@ -989,12 +989,28 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def update_favorites_menu(self, session):
         from PyQt5.QtWidgets import QAction
-        self.favorites_menu.clear()
-        self.favorites_menu.addSeparator()
-        settings = QAction("Settings...", self)
-        settings.setToolTip("Show/set ChimeraX settings")
-        settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
-        self.favorites_menu.addAction(settings)
+        from chimerax.core.commands import run, quote_if_necessary
+        # Due to Settings possibly being displayed in another menu (but the actions
+        # still being in this menu), be tricky about clearing out menu
+        prev_actions = self.favorites_menu.actions()
+        if prev_actions:
+            separator, settings = prev_actions[-2:]
+            for action in prev_actions[:-2]:
+                self.favorites_menu.removeAction(action)
+        for fave in session.ui.settings.favorites:
+            fave_action = QAction(fave, self)
+            fave_action.triggered.connect(lambda arg, ses=session, run=run, fave=fave:
+                run(ses, "toolshed show %s" % (quote_if_necessary(fave))))
+            if prev_actions:
+                self.favorites_menu.insertAction(separator, fave_action)
+            else:
+                self.favorites_menu.addAction(fave_action)
+        if not prev_actions:
+            self.favorites_menu.addSeparator()
+            settings = QAction("Settings...", self)
+            settings.setToolTip("Show/set ChimeraX settings")
+            settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
+            self.favorites_menu.addAction(settings)
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}
@@ -1663,6 +1679,16 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
             quote_if_necessary(ti.tool_name))))
         menu.addAction(auto_action)
+        favorite = ti.tool_name in session.ui.settings.favorites
+        fav_action = QAction("In Favorites Menu")
+        fav_action.setCheckable(True)
+        fav_action.setChecked(favorite)
+        from chimerax.core.commands import run, quote_if_necessary
+        fav_action.triggered.connect(
+            lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+            run(ses, "ui favorite %s %s" % (("true" if arg else "false"),
+            quote_if_necessary(ti.tool_name))))
+        menu.addAction(fav_action)
     undockable = ti.tool_name in session.ui.settings.undockable
     dock_action = QAction("Dockable Tool")
     dock_action.setCheckable(True)

@@ -526,6 +526,45 @@ def _make_bundle_info(d, installed, logger):
             bi.installed_library_dir = parts[2]
         elif parts[1] == 'ExecutableDir':
             bi.installed_executable_dir = parts[2]
+        elif parts[1] == 'Manager':
+            if bi is None:
+                logger.warning('ChimeraX :: Bundle entry must be first')
+                return None
+            if len(parts) < 3:
+                logger.warning("Malformed ChimeraX :: Manager line in %s skipped." % name)
+                logger.warning("Expected at least three fields and got %d." % len(parts))
+                continue
+            name = parts[2]
+            kw = {}
+            for p in parts[3:]:
+                k, v = p.split(':', 1)
+                kw[k] = v
+            bi.managers[name] = kw
+        elif parts[1] == 'Provider':
+            if bi is None:
+                logger.warning('ChimeraX :: Bundle entry must be first')
+                return None
+            if len(parts) < 4:
+                logger.warning("Malformed ChimeraX :: Provider line in %s skipped." % name)
+                logger.warning("Expected at least four fields and got %d." % len(parts))
+                continue
+            name = parts[2]
+            mgr = parts[3]
+            kw = {}
+            for p in parts[4:]:
+                k, v = p.split(':', 1)
+                kw[k] = v
+            bi.providers[name] = (mgr, kw)
+        elif parts[1] == 'InitAfter':
+            if bi is None:
+                logger.warning('ChimeraX :: Bundle entry must be first')
+                return None
+            if len(parts) < 4:
+                logger.warning("Malformed ChimeraX :: InitAfter line in %s skipped." % name)
+                logger.warning("Expected at least four fields and got %d." % len(parts))
+                continue
+            name = parts[2]
+            bi.inits[name] = parts[3:]
     if bi is None:
         _debug("InstalledBundleCache._make_bundle_info: no ChimeraX bundle in %s" % d)
         return None

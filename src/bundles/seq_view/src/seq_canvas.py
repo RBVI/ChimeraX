@@ -1012,6 +1012,7 @@ class SeqCanvas:
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
         self.line_width = self.line_width_from_settings()
+        self.numbering_widths = self.find_numbering_widths(self.line_width)
         label_scene = self._label_scene()
         from PyQt5.QtCore import Qt
         self.main_view.setAlignment(

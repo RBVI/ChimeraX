@@ -281,15 +281,25 @@ def polymer_colors(residues):
 #    'U': (0, 255, 255, 255),    # cyan
 #}
 _ndb_colors = {
-    # from ColorBrewer 9-class Paired
-    'A': (227, 26, 28, 255),    # red
-    'T': (31, 120, 180, 255),   # blue
-    'G': (178, 223, 138, 255),  # green
-    'C': (253, 191, 111, 255),  # yellow
-    'I': (51, 160, 44, 255),    # dark green
-    'P': (202, 178, 214, 255),  # violet
-    'U': (166, 206, 227, 255),  # cyan
+    # desaturated original NDB colors -- whiteness 25%
+    'A': (255, 64, 64, 255),    # red
+    'T': (64, 64, 255, 255),    # blue
+    'G': (64, 255, 64, 255),    # green
+    'C': (255, 255, 64, 255),   # yellow
+    'I': (64, 100, 64, 255),    # dark green
+    'P': (211, 211, 211, 255),  # light gray
+    'U': (64, 255, 255, 255),   # cyan
 }
+#_ndb_colors = {
+#    # from ColorBrewer 9-class Paired
+#    'A': (227, 26, 28, 255),    # red
+#    'T': (31, 120, 180, 255),   # blue
+#    'G': (178, 223, 138, 255),  # green
+#    'C': (253, 191, 111, 255),  # yellow
+#    'I': (51, 160, 44, 255),    # dark green
+#    'P': (202, 178, 214, 255),  # violet
+#    'U': (166, 206, 227, 255),  # cyan
+#}
 
 
 def nucleotide_colors(residues):

@@ -45,8 +45,10 @@ src/bundles/atomic/atomic_cpp/include/
 src/bundles/atomic/atomic_cpp/pyinstance_cpp/imex.map.h
 src/bundles/atomic/src/include/
 src/bundles/atomic/src/data/
+src/bundles/atomic/src/cymol.pyx
 src/bundles/atom_search/search_cpp/ast.cpp
 src/bundles/atom_search/src/include/
+src/bundles/atom_search/src/ast.pyx
 src/bundles/chem_group/bundle_info.xml
 src/bundles/chem_group/src/__init__.py
 src/bundles/md_crds/gromacs/xdrfile-1.1b/

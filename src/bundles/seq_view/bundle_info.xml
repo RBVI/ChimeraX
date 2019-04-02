@@ -21,6 +21,10 @@
     <Dependency name="ChimeraX-AlignmentHdrs" version=">=1.0"/>
   </Dependencies>
 
+  <Initializations>
+    <InitAfter type="custom" bundle="ChimeraX-Alignments"/>
+  </Initializations>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
