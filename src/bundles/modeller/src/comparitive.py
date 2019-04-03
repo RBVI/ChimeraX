@@ -14,7 +14,7 @@
 class ModelingError(ValueError):
     pass
 
-def model(session, targets, *, block=True, combined_templates=False, custom_script=None,
+def model(session, targets, *, block=True, combine_templates=False, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
     thorough_opt=False, water_preserve=False):
@@ -29,7 +29,7 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
     block
         If True, wait for modelling job to finish before returning and return list of
         (opened) models.  Otherwise return immediately.  Also see 'show_gui' option.
-    combined_templates
+    combine_templates
         If True, all associated chains are used together as templates to generate a single set
         of models for the target sequence.  If False, the associated chains are used individually
         to generate chains in the resulting models (i.e. the models will be multimers).
@@ -70,18 +70,18 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
         # Copy the target sequence, changing name to conform to Modeller limitations
         from .common import modeller_copy
         target = modeller_copy(orig_target)
-        if combined_templates:
+        if combine_templates:
             target_templates = []
             template_info.append((target, target_templates))
         for chain, aseq in alignment.associations.items():
             if len(chain.chain_id) > 1:
                 raise LimitationError(
                     "Modeller cannot handle templates with multi-character chain IDs")
-            if not combined_templates:
+            if not combine_templates:
                 target_templates = []
                 template_info.append((target, target_templates))
             target_templates.append((regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
-    if not combined_templates:
+    if not combine_templates:
         template_info.sort(key=lambda x: (x[1][0][1].structure.id, x[1][0][1].chain_id))
 
     from .common import write_modeller_scripts

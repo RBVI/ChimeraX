@@ -16,7 +16,9 @@ from chimerax.core.settings import Settings
 class _ModellerSettings(Settings):
 
     AUTO_SAVE = {
+        'combine_templates': False,
         'license_key': None,
+        'num_models': 5,
     }
 
 settings = None
