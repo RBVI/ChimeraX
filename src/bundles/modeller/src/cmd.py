@@ -23,7 +23,7 @@ def sequence_model(session, targets, *, block=None, combined_templates=False, cu
     seen = set()
     for alignment, seq in targets:
         if alignment in seen:
-            raise UserError("Only one target sequence per alignent allowed;"
+            raise UserError("Only one target sequence per alignment allowed;"
                 " multiple targets chosen in alignment %s" % alignment)
         seen.add(alignment)
     if block is None:

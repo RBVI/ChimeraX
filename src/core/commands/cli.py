@@ -474,8 +474,21 @@ class Aggregate(Annotation):
         if self.prefix and text.startswith(self.prefix):
             text = text[len(self.prefix):]
             used += self.prefix
-        while 1:
-            i = text.find(self.separator)
+        while True:
+            # find next list-separator character while honoring quoting
+            quote_mark = None
+            for i, c in enumerate(text):
+                if quote_mark:
+                    if c == quote_mark:
+                        quote_mark = None
+                    continue
+                if c in ["'", '"']:
+                    quote_mark = c
+                    continue
+                if c == self.separator:
+                    break
+            else:
+                i = -1
             if i == -1:
                 # no separator found
                 try:
@@ -1357,7 +1370,6 @@ def quote_if_necessary(s):
     has_single_quote = "'" in s
     has_double_quote = '"' in s
     has_special = False
-    has_space = _whitespace.search(s) is not None
     use_single_quote = not has_single_quote and has_double_quote
     special_map = {
         '\a': '\\a',

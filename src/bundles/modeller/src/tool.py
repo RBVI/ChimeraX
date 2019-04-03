@@ -28,6 +28,7 @@ class ModellerLauncher(ToolInstance):
         parent = self.tool_window.ui_area
 
         from PyQt5.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
+        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         alignments_layout = QVBoxLayout()
         alignments_layout.setContentsMargins(0,0,0,0)
         alignments_layout.setSpacing(0)
@@ -46,10 +47,17 @@ class ModellerLauncher(ToolInstance):
         alignments_layout.addWidget(targets_area)
         self.seq_menu = {}
         self._update_sequence_menus(session.alignments.alignments)
-        self.tool_window.manage('side')
+        bbox = qbbox(qbbox.Ok | qbbox.Cancel)
+        bbox.accepted.connect(self.launch_modeller)
+        bbox.rejected.connect(self.delete)
+        alignments_layout.addWidget(bbox)
+        self.tool_window.manage(None)
 
     def delete(self):
         ToolInstance.delete(self)
+
+    def launch_modeller(self):
+        pass
 
     def _list_selection_cb(self):
         layout = self.targets_layout
