@@ -1362,7 +1362,7 @@ def as_parser(annotation):
     return use_annotation
 
 
-def quote_if_necessary(s):
+def quote_if_necessary(s, additional_special_map={}):
     """quote a string
 
     So :py:func`next_token` treats it like a single value"""
@@ -1383,6 +1383,7 @@ def quote_if_necessary(s):
         ';': ';',
         ' ': ' ',
     }
+    special_map.update(additional_special_map)
 
     result = []
     for ch in s:
@@ -2624,13 +2625,7 @@ class Command:
             with command_trigger(session, really_log, cmd_text):
                 if not isinstance(ci.function, Alias):
                     if not log_only:
-                        try:
-                            result = ci.function(session, **kw_args)
-                        except UserError as e:
-                            self.log_error(str(e))
-                            raise
-                        except:
-                            raise
+                        result = ci.function(session, **kw_args)
                         results.append(result)
                 else:
                     arg_names = [k for k in kw_args.keys() if isinstance(k, int)]

@@ -57,7 +57,22 @@ class ModellerLauncher(ToolInstance):
         ToolInstance.delete(self)
 
     def launch_modeller(self):
-        pass
+        from chimerax.core.commands import run, quote_if_necessary as quote_if
+        from chimerax.core.errors import UserError
+        alignments = self.alignment_list.value
+        if not alignments:
+            raise UserError("No alignments chosen for modeling")
+        aln_seq_args = []
+        for aln in alignments:
+            seq_menu = self.seq_menu[aln]
+            seq = seq_menu.value
+            if not seq:
+                raise UserError("No target sequence chosen for alignment %s" % aln.ident)
+            aln_seq_args.append("%s:%d"
+                % (quote_if(aln.ident, additional_special_map={',':','}), aln.seqs.index(seq)))
+        #TODO: more args
+        run(self.session, "modeller comparitive %s" % ",".join(aln_seq_args))
+        self.delete()
 
     def _list_selection_cb(self):
         layout = self.targets_layout
