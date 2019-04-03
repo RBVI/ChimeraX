@@ -537,7 +537,7 @@ class PasswordOption(StringOption):
     """Supported API. Option for entering a password"""
 
     def _make_widget(self, **kw):
-        super().make_widget(**kw)
+        super()._make_widget(**kw)
         self.widget.setEchoMode(self.widget.PasswordEchoOnEdit)
 
 class StringIntOption(Option):
