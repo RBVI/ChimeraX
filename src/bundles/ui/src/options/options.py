@@ -533,6 +533,13 @@ class StringOption(Option):
         self.widget = QLineEdit(**kw)
         self.widget.editingFinished.connect(lambda s=self: s.make_callback())
 
+class PasswordOption(StringOption):
+    """Supported API. Option for entering a password"""
+
+    def _make_widget(self, **kw):
+        super().make_widget(**kw)
+        self.widget.setEchoMode(self.widget.PasswordEchoOnEdit)
+
 class StringIntOption(Option):
     """Supported API. Option for a string and an int (as a 2-tuple), for something such as host and port"""
 
