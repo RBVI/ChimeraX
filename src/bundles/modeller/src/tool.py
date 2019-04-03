@@ -65,7 +65,8 @@ class ModellerLauncher(ToolInstance):
             attr_name="combine_templates", settings=settings))
         panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
             balloon="Number of models to generate", attr_name="num_models", settings=settings, min=1, max=1000))
-        panel.add_option("Basic", PasswordOption("Modeller license key", settings.license_key, None,
+        key = "" if settings.license_key is None else settings.license_key
+        panel.add_option("Basic", PasswordOption("Modeller license key", key, None,
             balloon="Your Modeller license key.  You can obtain a license key by registering"
             " at the Modeller web site", attr_name="license_key", settings=settings))
         #TODO: more options
