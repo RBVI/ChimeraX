@@ -262,7 +262,7 @@ def connected_center(triangle_pick):
     d = triangle_pick.drawing()
     t = triangle_pick.triangle_number
     va, ta = d.vertices, d.triangles
-    from chimerax.core import surface
+    from chimerax import surface
     ti = surface.connected_triangles(ta, t)
     tc = ta[ti,:]
     varea = surface.vertex_areas(va, tc)
@@ -277,7 +277,7 @@ def connected_center(triangle_pick):
 def mark_map_center(volume):
     for s in volume.surfaces:
         va, ta = s.vertices, s.triangles
-        from chimerax.core import surface
+        from chimerax import surface
         varea = surface.vertex_areas(va, ta)
         a = varea.sum()
         c = varea.dot(va)/a
