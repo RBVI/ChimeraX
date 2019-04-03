@@ -51,7 +51,7 @@ class ModellerLauncher(ToolInstance):
         options_layout.setContentsMargins(0,0,0,0)
         options_area.setLayout(options_layout)
         alignments_layout.addWidget(options_area)
-        from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption
+        from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption
         panel = CategorizedSettingsPanel(buttons=False)
         options_layout.addWidget(panel)
         from .settings import get_settings
@@ -65,6 +65,9 @@ class ModellerLauncher(ToolInstance):
             attr_name="combine_templates", settings=settings))
         panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
             balloon="Number of models to generate", attr_name="num_models", settings=settings, min=1, max=1000))
+        panel.add_option("Basic", PasswordOption("Modeller license key", settings.license_key, None,
+            balloon="Your Modeller license key.  You can obtain a license key by registering"
+            " at the Modeller web site", attr_name="license_key", settings=settings))
         #TODO: more options
         bbox = qbbox(qbbox.Ok | qbbox.Cancel)
         bbox.accepted.connect(self.launch_modeller)
