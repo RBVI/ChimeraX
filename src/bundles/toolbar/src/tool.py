@@ -142,7 +142,7 @@ _Toolbars = {
     "Home": (
         None,
         {
-            ("Session", False): [
+            ("File", False): [
                 ("cmd:open browse", "open-in-app.png", "Open", "Open data file"),
                 ("cmd:save browse", "content-save.png", "Save", "Save session file"),
                 #("cmd:close session", "close-box.png", "Close", "Close current session"),
