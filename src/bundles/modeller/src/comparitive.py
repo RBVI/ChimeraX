@@ -302,6 +302,20 @@ class ModellerJob(OpalJob):
         self.caller = caller
         self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map)
 
+    def monitor(self):
+        super().monitor()
+        stdout = self.get_file("stdout.txt")
+        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
+        status = self.session.logger.status
+        tsafe = self.session.ui.thread_safe
+        if not num_done:
+            tsafe(status, "No models generated yet")
+        else:
+            tsafe(status, "%d of %d models generated" % (num_done, self.caller.num_models))
+
+    def next_check(self):
+        return 15
+
     def on_finish(self):
         logger = self.session.logger
         logger.info("Modeller job ID %s finished" % self.job_id)
@@ -311,7 +325,7 @@ class ModellerJob(OpalJob):
                 self.fail_callback(self, err)
                 return
             if err:
-                raise RuntimeError("Modeller failure; standard error:\n" + err.decode("utf-8"))
+                raise RuntimeError("Modeller failure; standard error:\n" + err)
             else:
                 raise RuntimeError("Modeller failure with no error output")
         try:
@@ -329,19 +343,6 @@ class ModellerJob(OpalJob):
             except KeyError:
                 raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
             from chimerax.atomic.pdb import open_pdb
-            return open_pdb(self.session, StringIO(pdb_text.decode('utf-8')), fname)[0][0]
-        self.caller.process_ok_models(model_info.decode('utf-8'), stdout.decode('utf-8'), get_pdb_model)
+            return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
+        self.caller.process_ok_models(model_info, stdout, get_pdb_model)
         self.caller = None
-        return
-        #TODO: actually do the stuff in _parseOKModels instead of the below
-        from chimerax.atomic.pdb import open_pdb
-        from io import StringIO
-        structures = []
-        for line in model_info.decode('utf-8').split('\n'):
-            if '.pdb' in line:
-                pdb_fname, ga341, zdope = line.split()
-                structures.append(open_pdb(self.session,
-                    StringIO(self.get_file(pdb_fname).decode('utf-8')), pdb_fname)[0][0])
-                structures[-1].ga341 = ga341
-                structures[-1].zdope = zdope
-        self.session.models.add(structures)
