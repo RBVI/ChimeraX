@@ -68,7 +68,7 @@ class AlignmentsManager(StateManager):
             sequences within the alignment to commands.  Any such characters will be replaced
             with '/'.
             If False, then a "private" alignment will be returned that will not be shown in
-            a viewer not affected by any commands.
+            a viewer nor affected by any commands.
         auto_destroy : boolean or None
             Whether to automatically destroy the alignment when the last viewer for it
             is closed.  If None, then treated as False if the value of the 'viewer' keyword

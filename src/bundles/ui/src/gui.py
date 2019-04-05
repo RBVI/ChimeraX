@@ -1514,10 +1514,11 @@ class _Qt:
         if not self.tool_window:
             # already destroyed
             return
+        self.main_window.removeDockWidget(self.dock_widget)
         # free up references
         self.tool_window = None
         self.main_window = None
-        self.ui_area.destroy()
+        self.dock_widget.widget().destroy()
         if self.status_bar:
             self.status_bar.destroy()
             self.status_bar = None

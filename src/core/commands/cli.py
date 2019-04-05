@@ -474,8 +474,21 @@ class Aggregate(Annotation):
         if self.prefix and text.startswith(self.prefix):
             text = text[len(self.prefix):]
             used += self.prefix
-        while 1:
-            i = text.find(self.separator)
+        while True:
+            # find next list-separator character while honoring quoting
+            quote_mark = None
+            for i, c in enumerate(text):
+                if quote_mark:
+                    if c == quote_mark:
+                        quote_mark = None
+                    continue
+                if c in ["'", '"']:
+                    quote_mark = c
+                    continue
+                if c == self.separator:
+                    break
+            else:
+                i = -1
             if i == -1:
                 # no separator found
                 try:
@@ -1349,7 +1362,7 @@ def as_parser(annotation):
     return use_annotation
 
 
-def quote_if_necessary(s):
+def quote_if_necessary(s, additional_special_map={}):
     """quote a string
 
     So :py:func`next_token` treats it like a single value"""
@@ -1357,7 +1370,6 @@ def quote_if_necessary(s):
     has_single_quote = "'" in s
     has_double_quote = '"' in s
     has_special = False
-    has_space = _whitespace.search(s) is not None
     use_single_quote = not has_single_quote and has_double_quote
     special_map = {
         '\a': '\\a',
@@ -1371,6 +1383,7 @@ def quote_if_necessary(s):
         ';': ';',
         ' ': ' ',
     }
+    special_map.update(additional_special_map)
 
     result = []
     for ch in s:
@@ -2612,13 +2625,7 @@ class Command:
             with command_trigger(session, really_log, cmd_text):
                 if not isinstance(ci.function, Alias):
                     if not log_only:
-                        try:
-                            result = ci.function(session, **kw_args)
-                        except UserError as e:
-                            self.log_error(str(e))
-                            raise
-                        except:
-                            raise
+                        result = ci.function(session, **kw_args)
                         results.append(result)
                 else:
                     arg_names = [k for k in kw_args.keys() if isinstance(k, int)]

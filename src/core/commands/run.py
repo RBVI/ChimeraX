@@ -33,7 +33,7 @@ def run(session, text, *, log=True, downgrade_errors=False):
         if downgrade_errors:
             session.logger.info(str(err))
         else:
-            session.logger.error(str(err))
+            raise
         results = []
     return results[0] if len(results) == 1 else results
 

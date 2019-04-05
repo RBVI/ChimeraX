@@ -14,7 +14,7 @@
 class ModelingError(ValueError):
     pass
 
-def model(session, targets, *, block=True, combined_templates=False, custom_script=None,
+def model(session, targets, *, block=True, combine_templates=False, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
     thorough_opt=False, water_preserve=False):
@@ -29,7 +29,7 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
     block
         If True, wait for modelling job to finish before returning and return list of
         (opened) models.  Otherwise return immediately.  Also see 'show_gui' option.
-    combined_templates
+    combine_templates
         If True, all associated chains are used together as templates to generate a single set
         of models for the target sequence.  If False, the associated chains are used individually
         to generate chains in the resulting models (i.e. the models will be multimers).
@@ -70,18 +70,18 @@ def model(session, targets, *, block=True, combined_templates=False, custom_scri
         # Copy the target sequence, changing name to conform to Modeller limitations
         from .common import modeller_copy
         target = modeller_copy(orig_target)
-        if combined_templates:
+        if combine_templates:
             target_templates = []
             template_info.append((target, target_templates))
         for chain, aseq in alignment.associations.items():
             if len(chain.chain_id) > 1:
                 raise LimitationError(
                     "Modeller cannot handle templates with multi-character chain IDs")
-            if not combined_templates:
+            if not combine_templates:
                 target_templates = []
                 template_info.append((target, target_templates))
             target_templates.append((regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
-    if not combined_templates:
+    if not combine_templates:
         template_info.sort(key=lambda x: (x[1][0][1].structure.id, x[1][0][1].chain_id))
 
     from .common import write_modeller_scripts
@@ -302,6 +302,20 @@ class ModellerJob(OpalJob):
         self.caller = caller
         self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map)
 
+    def monitor(self):
+        super().monitor()
+        stdout = self.get_file("stdout.txt")
+        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
+        status = self.session.logger.status
+        tsafe = self.session.ui.thread_safe
+        if not num_done:
+            tsafe(status, "No models generated yet")
+        else:
+            tsafe(status, "%d of %d models generated" % (num_done, self.caller.num_models))
+
+    def next_check(self):
+        return 15
+
     def on_finish(self):
         logger = self.session.logger
         logger.info("Modeller job ID %s finished" % self.job_id)
@@ -311,7 +325,7 @@ class ModellerJob(OpalJob):
                 self.fail_callback(self, err)
                 return
             if err:
-                raise RuntimeError("Modeller failure; standard error:\n" + err.decode("utf-8"))
+                raise RuntimeError("Modeller failure; standard error:\n" + err)
             else:
                 raise RuntimeError("Modeller failure with no error output")
         try:
@@ -329,19 +343,6 @@ class ModellerJob(OpalJob):
             except KeyError:
                 raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
             from chimerax.atomic.pdb import open_pdb
-            return open_pdb(self.session, StringIO(pdb_text.decode('utf-8')), fname)[0][0]
-        self.caller.process_ok_models(model_info.decode('utf-8'), stdout.decode('utf-8'), get_pdb_model)
+            return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
+        self.caller.process_ok_models(model_info, stdout, get_pdb_model)
         self.caller = None
-        return
-        #TODO: actually do the stuff in _parseOKModels instead of the below
-        from chimerax.atomic.pdb import open_pdb
-        from io import StringIO
-        structures = []
-        for line in model_info.decode('utf-8').split('\n'):
-            if '.pdb' in line:
-                pdb_fname, ga341, zdope = line.split()
-                structures.append(open_pdb(self.session,
-                    StringIO(self.get_file(pdb_fname).decode('utf-8')), pdb_fname)[0][0])
-                structures[-1].ga341 = ga341
-                structures[-1].zdope = zdope
-        self.session.models.add(structures)

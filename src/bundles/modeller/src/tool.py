@@ -28,6 +28,7 @@ class ModellerLauncher(ToolInstance):
         parent = self.tool_window.ui_area
 
         from PyQt5.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
+        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         alignments_layout = QVBoxLayout()
         alignments_layout.setContentsMargins(0,0,0,0)
         alignments_layout.setSpacing(0)
@@ -40,16 +41,73 @@ class ModellerLauncher(ToolInstance):
         alignments_layout.addWidget(self.alignment_list)
         alignments_layout.setStretchFactor(self.alignment_list, 1)
         targets_area = QGroupBox("Target sequences")
-        # would use a QFormLayout, but can't easily hide rows...
         self.targets_layout = QFormLayout()
         targets_area.setLayout(self.targets_layout)
         alignments_layout.addWidget(targets_area)
         self.seq_menu = {}
         self._update_sequence_menus(session.alignments.alignments)
-        self.tool_window.manage('side')
+        options_area = QGroupBox("Options")
+        options_layout = QVBoxLayout()
+        options_layout.setContentsMargins(0,0,0,0)
+        options_area.setLayout(options_layout)
+        alignments_layout.addWidget(options_area)
+        from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption
+        panel = CategorizedSettingsPanel(buttons=False)
+        options_layout.addWidget(panel)
+        from .settings import get_settings
+        settings = get_settings(session)
+        panel.add_option("Basic", BooleanOption("Combine templates", settings.combine_templates, None,
+            balloon=
+            "If true, all chains (templates) associated with an alignment will be used in combination\n"
+            "to model the target sequence of that alignment, i.e. a monomer will be generated from the\n"
+            "alignment.  If false, the target sequence will be modeled from each template, i.e. a multimer\n"
+            "will be generated from the alignment (assuming multiple chains are associated).",
+            attr_name="combine_templates", settings=settings))
+        panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
+            balloon="Number of models to generate", attr_name="num_models", settings=settings, min=1, max=1000))
+        key = "" if settings.license_key is None else settings.license_key
+        panel.add_option("Basic", PasswordOption("Modeller license key", key, None,
+            balloon="Your Modeller license key.  You can obtain a license key by registering"
+            " at the Modeller web site", attr_name="license_key", settings=settings))
+        #TODO: more options
+        from chimerax.ui.widgets import Citation
+        alignments_layout.addWidget(Citation(session,
+            "A. Sali and T.L. Blundell.\n"
+            "Comparative protein modelling by satisfaction of spatial restraints.\n"
+            "J. Mol. Biol. 234, 779-815, 1993.",
+            prefix="Publications using Modeller results should cite:", pubmed_id=18428767))
+        bbox = qbbox(qbbox.Ok | qbbox.Cancel)
+        bbox.accepted.connect(self.launch_modeller)
+        bbox.rejected.connect(self.delete)
+        alignments_layout.addWidget(bbox)
+        self.tool_window.manage(None)
 
     def delete(self):
         ToolInstance.delete(self)
+
+    def launch_modeller(self):
+        from chimerax.core.commands import run, quote_if_necessary as quote_if
+        from chimerax.core.errors import UserError
+        alignments = self.alignment_list.value
+        if not alignments:
+            raise UserError("No alignments chosen for modeling")
+        aln_seq_args = []
+        for aln in alignments:
+            seq_menu = self.seq_menu[aln]
+            seq = seq_menu.value
+            if not seq:
+                raise UserError("No target sequence chosen for alignment %s" % aln.ident)
+            aln_seq_args.append("%s:%d"
+                % (quote_if(aln.ident, additional_special_map={',':','}), aln.seqs.index(seq)+1))
+        #TODO: more args
+        from .settings import get_settings
+        settings = get_settings(self.session)
+        run(self.session, "modeller comparitive %s combineTemplates %s numModels %d" % (
+            ",".join(aln_seq_args),
+            repr(settings.combine_templates).lower(),
+            settings.num_models,
+            ))
+        self.delete()
 
     def _list_selection_cb(self):
         layout = self.targets_layout

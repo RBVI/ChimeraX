@@ -182,6 +182,7 @@ class DensityMapPanel(ShortcutPanel):
         ('as', 'ear.png', 'Skin preset'),
         ('dc', 'initialcurve.png', 'Default volume curve'),
     )
+    help = "help:user/tools/densitymaps.html"
 
 panel_classes = {
     MoleculeDisplayPanel.tool_name: MoleculeDisplayPanel,

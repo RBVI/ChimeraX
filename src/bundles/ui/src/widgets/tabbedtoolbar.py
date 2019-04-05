@@ -104,7 +104,7 @@ class _Group(QWidgetAction):
         if self.compact:
             row = index % self.compact_height
             column = index // self.compact_height
-            parent._layout.addWidget(b, row, column)
+            parent._layout.addWidget(b, row, column, Qt.AlignBottom)
         else:
             b.setIconSize(2 * b.iconSize())
             parent._layout.addWidget(b, 0, index, Qt.AlignTop)
