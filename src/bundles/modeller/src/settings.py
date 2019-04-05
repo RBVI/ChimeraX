@@ -22,6 +22,8 @@ class _ModellerSettings(Settings):
         'hydrogens': False,
         'license_key': None,
         'num_models': 5,
+        'temp_path': "",
+        'water_preserve': False
     }
 
 settings = None

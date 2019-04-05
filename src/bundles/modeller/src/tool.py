@@ -51,7 +51,9 @@ class ModellerLauncher(ToolInstance):
         options_layout.setContentsMargins(0,0,0,0)
         options_area.setLayout(options_layout)
         alignments_layout.addWidget(options_area)
-        from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption
+        alignments_layout.setStretchFactor(options_area, 2)
+        from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption, \
+            OutputFolderOption
         panel = CategorizedSettingsPanel(category_sorting=False, buttons=False)
         options_layout.addWidget(panel)
         from .settings import get_settings
@@ -77,7 +79,7 @@ class ModellerLauncher(ToolInstance):
             "If enabled, use a fast approximate method to generate a single model.\n"
             "Typically use to get a rough idea what the model will look like or\n"
             "to check that the alignment is reasonable."))
-        panel.add_option("Advanced", BooleanOption("Include non-water HETATM\n   residues from templates",
+        panel.add_option("Advanced", BooleanOption("Include non-water HETATM residues from template",
             settings.het_preserve, None, attr_name="het_preserve", settings=settings, balloon=
             "If enabled, all non-water HETATM residues in the template\n"
             "structure(s) will be transferred into the generated models."))
@@ -86,6 +88,14 @@ class ModellerLauncher(ToolInstance):
             "If enabled, the generated models will include hydrogens atoms.\n"
             "Otherwise, only heavy atom coordinates will be built.\n"
             "Increases computation time by approximately a factor of 4."))
+        panel.add_option("Advanced", OutputFolderOption("Temporary folder location (optional)",
+            settings.temp_path, None, attr_name="temp_path", settings=settings, balloon=
+            "Specify a folder for temporary files.  If not specified,\n"
+            "a location will be generated automatically."))
+        panel.add_option("Advanced", BooleanOption("Include water molecules from template",
+            settings.water_preserve, None, attr_name="water_preserve", settings=settings, balloon=
+            "If enabled, all water molecules in the template\n"
+            "structure(s) will be included in the generated models."))
         #TODO: more options
         from chimerax.ui.widgets import Citation
         alignments_layout.addWidget(Citation(session,
@@ -116,16 +126,18 @@ class ModellerLauncher(ToolInstance):
                 raise UserError("No target sequence chosen for alignment %s" % aln.ident)
             aln_seq_args.append("%s:%d"
                 % (quote_if(aln.ident, additional_special_map={',':','}), aln.seqs.index(seq)+1))
-        #TODO: more args
         from .settings import get_settings
         settings = get_settings(self.session)
         run(self.session, "modeller comparitive %s combineTemplates %s numModels %d fast %s hetPreserve %s"
-            " hydrogens %s"% (
+            " hydrogens %s%s waterPreserve %s"% (
             ",".join(aln_seq_args),
             repr(settings.combine_templates).lower(),
             settings.num_models,
             repr(settings.fast).lower(),
             repr(settings.het_preserve).lower(),
+            repr(settings.hydrogens).lower(),
+            " tempPath %s" % settings.temp_path if settings.temp_path else "",
+            repr(settings.water_preserve).lower()
             ))
         self.delete()
 

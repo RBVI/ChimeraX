@@ -281,6 +281,8 @@ class InputFolderOption(Option):
             self.line_edit.setText(folder)
             self.line_edit.returnPressed.emit()
 
+OutputFolderOption = InputFolderOption
+
 class FloatOption(Option):
     """Supported API. Option for floating-point values.
        Constructor takes option min/max keywords to specify lower/upper bound values.
