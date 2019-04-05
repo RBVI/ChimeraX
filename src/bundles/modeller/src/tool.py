@@ -52,7 +52,7 @@ class ModellerLauncher(ToolInstance):
         options_area.setLayout(options_layout)
         alignments_layout.addWidget(options_area)
         from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption
-        panel = CategorizedSettingsPanel(buttons=False)
+        panel = CategorizedSettingsPanel(category_sorting=False, buttons=False)
         options_layout.addWidget(panel)
         from .settings import get_settings
         settings = get_settings(session)
@@ -63,12 +63,29 @@ class ModellerLauncher(ToolInstance):
             "alignment.  If false, the target sequence will be modeled from each template, i.e. a multimer\n"
             "will be generated from the alignment (assuming multiple chains are associated).",
             attr_name="combine_templates", settings=settings))
+        max_models = 1000
         panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
-            balloon="Number of models to generate", attr_name="num_models", settings=settings, min=1, max=1000))
+            attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
+            "Number of model structures to generate.  Must no more than %d.\n"
+            "Warning: please consider the calculation time"))
         key = "" if settings.license_key is None else settings.license_key
-        panel.add_option("Basic", PasswordOption("Modeller license key", key, None,
-            balloon="Your Modeller license key.  You can obtain a license key by registering"
-            " at the Modeller web site", attr_name="license_key", settings=settings))
+        panel.add_option("Basic", PasswordOption("Modeller license key", key, None, attr_name="license_key",
+            settings=settings, balloon=
+            "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
+        panel.add_option("Advanced", BooleanOption("Use fast/approximate mode", settings.fast, None,
+            attr_name="fast", settings=settings, balloon=
+            "If enabled, use a fast approximate method to generate a single model.\n"
+            "Typically use to get a rough idea what the model will look like or\n"
+            "to check that the alignment is reasonable."))
+        panel.add_option("Advanced", BooleanOption("Include non-water HETATM\n   residues from templates",
+            settings.het_preserve, None, attr_name="het_preserve", settings=settings, balloon=
+            "If enabled, all non-water HETATM residues in the template\n"
+            "structure(s) will be transferred into the generated models."))
+        panel.add_option("Advanced", BooleanOption("Build models with hydrogens",
+            settings.hydrogens, None, attr_name="hydrogens", settings=settings, balloon=
+            "If enabled, the generated models will include hydrogens atoms.\n"
+            "Otherwise, only heavy atom coordinates will be built.\n"
+            "Increases computation time by approximately a factor of 4."))
         #TODO: more options
         from chimerax.ui.widgets import Citation
         alignments_layout.addWidget(Citation(session,
@@ -102,10 +119,13 @@ class ModellerLauncher(ToolInstance):
         #TODO: more args
         from .settings import get_settings
         settings = get_settings(self.session)
-        run(self.session, "modeller comparitive %s combineTemplates %s numModels %d" % (
+        run(self.session, "modeller comparitive %s combineTemplates %s numModels %d fast %s hetPreserve %s"
+            " hydrogens %s"% (
             ",".join(aln_seq_args),
             repr(settings.combine_templates).lower(),
             settings.num_models,
+            repr(settings.fast).lower(),
+            repr(settings.het_preserve).lower(),
             ))
         self.delete()
 

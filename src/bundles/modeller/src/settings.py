@@ -17,6 +17,9 @@ class _ModellerSettings(Settings):
 
     AUTO_SAVE = {
         'combine_templates': False,
+        'fast': False,
+        'het_preserve': False,
+        'hydrogens': False,
         'license_key': None,
         'num_models': 5,
     }
