@@ -70,6 +70,12 @@ class ModellerLauncher(ToolInstance):
             balloon="Your Modeller license key.  You can obtain a license key by registering"
             " at the Modeller web site", attr_name="license_key", settings=settings))
         #TODO: more options
+        from chimerax.ui.widgets import Citation
+        alignments_layout.addWidget(Citation(session,
+            "A. Sali and T.L. Blundell.\n"
+            "Comparative protein modelling by satisfaction of spatial restraints.\n"
+            "J. Mol. Biol. 234, 779-815, 1993.",
+            prefix="Publications using Modeller results should cite:", pubmed_id=18428767))
         bbox = qbbox(qbbox.Ok | qbbox.Cancel)
         bbox.accepted.connect(self.launch_modeller)
         bbox.rejected.connect(self.delete)
