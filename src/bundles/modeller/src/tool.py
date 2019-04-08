@@ -15,7 +15,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.seqalign.widgets import AlignmentListWidget, AlignSeqMenuButton
 
 class ModellerLauncher(ToolInstance):
-    """Generate the inputs needed by Modeller for comparitive modeling"""
+    """Generate the inputs needed by Modeller for comparative modeling"""
 
     #help = "help:user/tools/sequenceviewer.html"
     SESSION_SAVE = False
@@ -128,7 +128,7 @@ class ModellerLauncher(ToolInstance):
                 % (quote_if(aln.ident, additional_special_map={',':','}), aln.seqs.index(seq)+1))
         from .settings import get_settings
         settings = get_settings(self.session)
-        run(self.session, "modeller comparitive %s combineTemplates %s numModels %d fast %s hetPreserve %s"
+        run(self.session, "modeller comparative %s combineTemplates %s numModels %d fast %s hetPreserve %s"
             " hydrogens %s%s waterPreserve %s"% (
             ",".join(aln_seq_args),
             repr(settings.combine_templates).lower(),
