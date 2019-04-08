@@ -28,6 +28,7 @@ class ModellerLauncher(ToolInstance):
         parent = self.tool_window.ui_area
 
         from PyQt5.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
+        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         alignments_layout = QVBoxLayout()
         alignments_layout.setContentsMargins(0,0,0,0)
         alignments_layout.setSpacing(0)
@@ -40,16 +41,105 @@ class ModellerLauncher(ToolInstance):
         alignments_layout.addWidget(self.alignment_list)
         alignments_layout.setStretchFactor(self.alignment_list, 1)
         targets_area = QGroupBox("Target sequences")
-        # would use a QFormLayout, but can't easily hide rows...
         self.targets_layout = QFormLayout()
         targets_area.setLayout(self.targets_layout)
         alignments_layout.addWidget(targets_area)
         self.seq_menu = {}
         self._update_sequence_menus(session.alignments.alignments)
-        self.tool_window.manage('side')
+        options_area = QGroupBox("Options")
+        options_layout = QVBoxLayout()
+        options_layout.setContentsMargins(0,0,0,0)
+        options_area.setLayout(options_layout)
+        alignments_layout.addWidget(options_area)
+        alignments_layout.setStretchFactor(options_area, 2)
+        from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption, \
+            OutputFolderOption
+        panel = CategorizedSettingsPanel(category_sorting=False, buttons=False)
+        options_layout.addWidget(panel)
+        from .settings import get_settings
+        settings = get_settings(session)
+        panel.add_option("Basic", BooleanOption("Combine templates", settings.combine_templates, None,
+            balloon=
+            "If true, all chains (templates) associated with an alignment will be used in combination\n"
+            "to model the target sequence of that alignment, i.e. a monomer will be generated from the\n"
+            "alignment.  If false, the target sequence will be modeled from each template, i.e. a multimer\n"
+            "will be generated from the alignment (assuming multiple chains are associated).",
+            attr_name="combine_templates", settings=settings))
+        max_models = 1000
+        panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
+            attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
+            "Number of model structures to generate.  Must no more than %d.\n"
+            "Warning: please consider the calculation time"))
+        key = "" if settings.license_key is None else settings.license_key
+        panel.add_option("Basic", PasswordOption("Modeller license key", key, None, attr_name="license_key",
+            settings=settings, balloon=
+            "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
+        panel.add_option("Advanced", BooleanOption("Use fast/approximate mode", settings.fast, None,
+            attr_name="fast", settings=settings, balloon=
+            "If enabled, use a fast approximate method to generate a single model.\n"
+            "Typically use to get a rough idea what the model will look like or\n"
+            "to check that the alignment is reasonable."))
+        panel.add_option("Advanced", BooleanOption("Include non-water HETATM residues from template",
+            settings.het_preserve, None, attr_name="het_preserve", settings=settings, balloon=
+            "If enabled, all non-water HETATM residues in the template\n"
+            "structure(s) will be transferred into the generated models."))
+        panel.add_option("Advanced", BooleanOption("Build models with hydrogens",
+            settings.hydrogens, None, attr_name="hydrogens", settings=settings, balloon=
+            "If enabled, the generated models will include hydrogens atoms.\n"
+            "Otherwise, only heavy atom coordinates will be built.\n"
+            "Increases computation time by approximately a factor of 4."))
+        panel.add_option("Advanced", OutputFolderOption("Temporary folder location (optional)",
+            settings.temp_path, None, attr_name="temp_path", settings=settings, balloon=
+            "Specify a folder for temporary files.  If not specified,\n"
+            "a location will be generated automatically."))
+        panel.add_option("Advanced", BooleanOption("Include water molecules from template",
+            settings.water_preserve, None, attr_name="water_preserve", settings=settings, balloon=
+            "If enabled, all water molecules in the template\n"
+            "structure(s) will be included in the generated models."))
+        #TODO: more options
+        from chimerax.ui.widgets import Citation
+        alignments_layout.addWidget(Citation(session,
+            "A. Sali and T.L. Blundell.\n"
+            "Comparative protein modelling by satisfaction of spatial restraints.\n"
+            "J. Mol. Biol. 234, 779-815, 1993.",
+            prefix="Publications using Modeller results should cite:", pubmed_id=18428767))
+        bbox = qbbox(qbbox.Ok | qbbox.Cancel)
+        bbox.accepted.connect(self.launch_modeller)
+        bbox.rejected.connect(self.delete)
+        alignments_layout.addWidget(bbox)
+        self.tool_window.manage(None)
 
     def delete(self):
         ToolInstance.delete(self)
+
+    def launch_modeller(self):
+        from chimerax.core.commands import run, quote_if_necessary as quote_if
+        from chimerax.core.errors import UserError
+        alignments = self.alignment_list.value
+        if not alignments:
+            raise UserError("No alignments chosen for modeling")
+        aln_seq_args = []
+        for aln in alignments:
+            seq_menu = self.seq_menu[aln]
+            seq = seq_menu.value
+            if not seq:
+                raise UserError("No target sequence chosen for alignment %s" % aln.ident)
+            aln_seq_args.append("%s:%d"
+                % (quote_if(aln.ident, additional_special_map={',':','}), aln.seqs.index(seq)+1))
+        from .settings import get_settings
+        settings = get_settings(self.session)
+        run(self.session, "modeller comparitive %s combineTemplates %s numModels %d fast %s hetPreserve %s"
+            " hydrogens %s%s waterPreserve %s"% (
+            ",".join(aln_seq_args),
+            repr(settings.combine_templates).lower(),
+            settings.num_models,
+            repr(settings.fast).lower(),
+            repr(settings.het_preserve).lower(),
+            repr(settings.hydrogens).lower(),
+            " tempPath %s" % settings.temp_path if settings.temp_path else "",
+            repr(settings.water_preserve).lower()
+            ))
+        self.delete()
 
     def _list_selection_cb(self):
         layout = self.targets_layout

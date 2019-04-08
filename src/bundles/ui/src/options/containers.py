@@ -154,7 +154,7 @@ class CategorizedOptionsPanel(QTabWidget):
 
 class SettingsPanelBase(QWidget):
     def __init__(self, parent, option_sorting, multicategory,
-            *, category_sorting=None, help_cb=None, **kw):
+            *, category_sorting=None, buttons=True, help_cb=None, **kw):
         QWidget.__init__(self, parent, **kw)
         self.multicategory = multicategory
         if multicategory:
@@ -168,40 +168,41 @@ class SettingsPanelBase(QWidget):
         layout.addWidget(self.options_panel, 1)
         layout.setContentsMargins(0,0,0,0)
 
-        button_container = QWidget()
-        bc_layout = QGridLayout()
-        bc_layout.setContentsMargins(0, 0, 0, 0)
-        bc_layout.setVerticalSpacing(5)
-        if multicategory:
-            self.current_check = QCheckBox("Buttons below apply to current section only")
-            self.current_check.setToolTip("If checked, buttons only affect current section")
-            self.current_check.setChecked(True)
-            from .. import shrink_font
-            shrink_font(self.current_check)
-            from PyQt5.QtCore import Qt
-            bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignRight)
-        save_button = QPushButton("Save")
-        save_button.clicked.connect(self._save)
-        save_button.setToolTip("Save as startup defaults")
-        bc_layout.addWidget(save_button, 1, 0)
-        reset_button = QPushButton("Reset")
-        reset_button.clicked.connect(self._reset)
-        reset_button.setToolTip("Reset to initial-installation defaults")
-        bc_layout.addWidget(reset_button, 1, 1)
-        restore_button = QPushButton("Restore")
-        restore_button.clicked.connect(self._restore)
-        restore_button.setToolTip("Restore from saved defaults")
-        bc_layout.addWidget(restore_button, 1, 2)
-        if help_cb is not None:
-            self._help_cb = help_cb
-            help_button = QPushButton("Help")
-            from chimerax.core.commands import run
-            help_button.clicked.connect(self._help)
-            help_button.setToolTip("Show help")
-            bc_layout.addWidget(help_button, 1, 3)
+        if buttons:
+            button_container = QWidget()
+            bc_layout = QGridLayout()
+            bc_layout.setContentsMargins(0, 0, 0, 0)
+            bc_layout.setVerticalSpacing(5)
+            if multicategory:
+                self.current_check = QCheckBox("Buttons below apply to current section only")
+                self.current_check.setToolTip("If checked, buttons only affect current section")
+                self.current_check.setChecked(True)
+                from .. import shrink_font
+                shrink_font(self.current_check)
+                from PyQt5.QtCore import Qt
+                bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignRight)
+            save_button = QPushButton("Save")
+            save_button.clicked.connect(self._save)
+            save_button.setToolTip("Save as startup defaults")
+            bc_layout.addWidget(save_button, 1, 0)
+            reset_button = QPushButton("Reset")
+            reset_button.clicked.connect(self._reset)
+            reset_button.setToolTip("Reset to initial-installation defaults")
+            bc_layout.addWidget(reset_button, 1, 1)
+            restore_button = QPushButton("Restore")
+            restore_button.clicked.connect(self._restore)
+            restore_button.setToolTip("Restore from saved defaults")
+            bc_layout.addWidget(restore_button, 1, 2)
+            if help_cb is not None:
+                self._help_cb = help_cb
+                help_button = QPushButton("Help")
+                from chimerax.core.commands import run
+                help_button.clicked.connect(self._help)
+                help_button.setToolTip("Show help")
+                bc_layout.addWidget(help_button, 1, 3)
 
-        button_container.setLayout(bc_layout)
-        layout.addWidget(button_container, 0)
+            button_container.setLayout(bc_layout)
+            layout.addWidget(button_container, 0)
 
         self.setLayout(layout)
 
@@ -278,9 +279,9 @@ class SettingsPanel(SettingsPanelBase):
         return self.options_panel.add_option_group(group_label, sorting=True)
 
 class CategorizedSettingsPanel(SettingsPanelBase):
-    """Supported API. CategorizedSettingsPanel is a container for remember-able Options that work in conjunction
-       with Options that have Settings instances (found in chimerax.core.settings) specified via their
-       'settings' constructor arg, and that are presented in categories.
+    """Supported API. CategorizedSettingsPanel is a container for remember-able Options
+       (i.e. Options that have Settings instances (found in chimerax.core.settings) specified via their
+       'settings' constructor arg) and that are presented in categories.
     """
 
     def __init__(self, parent=None, *, category_sorting=True, option_sorting=True, **kw):

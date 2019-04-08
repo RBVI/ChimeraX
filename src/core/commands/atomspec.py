@@ -825,8 +825,10 @@ class _AttrTest:
                 def matcher(obj):
                     try:
                         v = getattr(obj, attr_name)
+                        if v is None:
+                            return False
                     except AttributeError:
-                        return want_missing
+                        return False
                     if not case_sensitive:
                         v = v.lower()
                     matches = fnmatchcase(v, attr_value)
@@ -835,8 +837,10 @@ class _AttrTest:
                 def matcher(obj):
                     try:
                         v = getattr(obj, attr_name)
+                        if v is None:
+                            return False
                     except AttributeError:
-                        return want_missing
+                        return False
                     if not case_sensitive:
                         v = v.lower()
                     matches = v == attr_value
@@ -848,9 +852,9 @@ class _AttrTest:
                 try:
                     v = getattr(obj, attr_name)
                     if v is None:
-                        raise AttributeError("Non-numeric value in comparison")
+                        return False
                 except AttributeError:
-                    return want_missing
+                    return False
                 return op(v, attr_value)
         return matcher
 

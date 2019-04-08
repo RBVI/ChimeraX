@@ -289,6 +289,7 @@ class Log(ToolInstance, HtmlLog):
         Parameters documented in HtmlLog base class
         """
 
+        start_len = len(self.page_source)
         if image_info[0] is not None:
             from chimerax.core.logger import image_info_to_html
             self.page_source += image_info_to_html(msg, image_info)

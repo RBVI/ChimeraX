@@ -219,18 +219,21 @@ class OpalJob(Job):
     #
     # Other Opal-specific methods
     #
-    def get_file(self, filename):
+    def get_file(self, filename, *, encoding='utf-8'):
         """Return the contents of file on Opal server.
 
         Argument
         --------
         filename : str
             Name of file on Opal server.
+        encoding : str or None
+            Encoding to use to decode the file contents (default: utf-8).
+            If None, return the raw bytes object.
 
         Returns
         -------
-        str
-            Contents of file.
+        str/bytes
+            Contents of file.  See 'encoding' argument.
 
         Raises
         ------
@@ -239,10 +242,22 @@ class OpalJob(Job):
 
         """
         if self._outputs is None:
-            self.get_outputs()
+            if self.end_time is None:
+                if filename in ("stdout.txt", "stderr.txt"):
+                    url = self._status_url + '/' + filename
+                else:
+                    raise ValueError("Cannot fetch non-stdout/stderr files before job finishes")
+            else:
+                self.get_outputs()
+                url = self._outputs[filename]
+        else:
+            url = self._outputs[filename]
         from urllib.request import urlopen
-        with urlopen(self._outputs[filename]) as f:
-            return f.read()
+        with urlopen(url) as f:
+            contents = f.read()
+        if encoding is None:
+            return contents
+        return contents.decode(encoding)
 
     def get_outputs(self, refresh=False):
         """Return dictionary of output files and their URLs.

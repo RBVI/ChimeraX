@@ -58,7 +58,7 @@ class AlignSeqListWidget(ItemListWidget):
         self.triggers.add_trigger("seqs changed")
         alignment.add_observer(self)
         super().__init__(list_func=lambda aln=alignment: alignment.seqs,
-            key_func=lambda seq: seq.name,
+            key_func=lambda seq, aln=alignment: aln.seqs.index(seq),
             item_text_func=lambda seq: seq.name,
             trigger_info=[
                 (self.triggers, "seqs changed"),
@@ -81,7 +81,7 @@ class AlignSeqMenuButton(ItemMenuButton):
         self.triggers.add_trigger("seqs changed")
         alignment.add_observer(self)
         super().__init__(list_func=lambda aln=alignment: alignment.seqs,
-            key_func=lambda seq: seq.name,
+            key_func=lambda seq, aln=alignment: aln.seqs.index(seq),
             item_text_func=lambda seq: seq.name,
             trigger_info=[
                 (self.triggers, "seqs changed"),

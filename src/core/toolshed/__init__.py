@@ -772,7 +772,10 @@ class Toolshed:
         for bi in failed:
             session.logger.error("Bundle %r custom initialization failed" %
                                  bi.name)
-            self._installed_bundle_info.remove(bi)
+            try:
+                self._installed_bundle_info.remove(bi)
+            except ValueError:
+                pass
             bad_packages.update(bi.packages)
         for pkg in bad_packages:
             del self._installed_packages[pkg]
