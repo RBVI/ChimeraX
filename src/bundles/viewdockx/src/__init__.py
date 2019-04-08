@@ -51,3 +51,8 @@ class _MyAPI(BundleAPI):
 
 
 bundle_api = _MyAPI()
+
+
+import traceback
+print("viewdockx imported")
+traceback.print_stack()

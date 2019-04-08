@@ -45,6 +45,23 @@ class PresetsManager(StateManager):
     def reset_state(self, session):
         pass
 
+    def add_provider(self, bundle_info, name,
+                     order=None, category="General", **kw):
+        from chimerax.core.utils import CustomSortString
+        if order is None:
+            cname = name
+        else:
+            cname = CustomSortString(name, sort_val=int(order))
+        def cb(name=name, mgr=self, bi=bundle_info):
+            bi.run_provider(self.session, name, self)
+        try:
+            self._presets[category][cname] = cb
+        except KeyError:
+            self._presets[category] = {cname:cb}
+
+    def end_providers(self):
+        self.triggers.activate_trigger("presets changed", self)
+
     @staticmethod
     def restore_snapshot(session, data):
         return session.presets

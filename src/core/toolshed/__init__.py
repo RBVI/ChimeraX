@@ -766,7 +766,6 @@ class Toolshed:
         for bi in self._installed_bundle_info:
             bi.update_library_path()    # for bundles with dynamic libraries
         failed = self._init_managers(session)
-        failed += self._init_providers(session)
         failed += self._init_custom(session)
         bad_packages = set()
         for bi in failed:
@@ -811,8 +810,6 @@ class Toolshed:
             failed.append(bi)
         done.add(bi)
 
-    # _init_managers and _init_providers are analogous to _init_custom
-
     def _init_managers(self, session):
         failed = []
         done = set()
@@ -840,40 +837,18 @@ class Toolshed:
         try:
             for mgr, kw in bi.managers.items():
                 _debug("initialize manager %s for bundle %r" % (mgr, bi.name))
-                bi.init_manager(session, mgr, **kw)
-        except ToolshedError:
-            failed.append(bi)
-        done.add(bi)
-
-    def _init_providers(self, session):
-        failed = []
-        done = set()
-        initializing = set()
-        for bi in self._installed_bundle_info:
-            self._init_bundle_provider(session, bi, done, initializing, failed)
-        return failed
-
-    def _init_bundle_provider(self, session, bi, done, initializing, failed):
-        if not bi.providers or bi in done:
-            return
-        try:
-            init_after = bi.inits["provider"]
-        except KeyError:
-            pass
-        else:
-            initializing.add(bi)
-            for bundle_name in init_after:
-                dbi = self.find_bundle(bundle_name, None)
-                if dbi:
-                    if dbi in initializing:
-                        raise ToolshedInitializationError("circular dependency in bundle manager initialization")
-                    self._init_bundle_provider(session, dbi, done, initializing, failed)
-            initializing.remove(bi)
-        try:
-            for pvdr, params in bi.providers.items():
-                mgr, kw = params
-                _debug("initialize provider %s for bundle %r" % (pvdr, bi.name))
-                bi.init_provider(session, pvdr, mgr, **kw)
+                m = bi.init_manager(session, mgr, **kw)
+                if m is None:
+                    logger = session.logger
+                    if logger:
+                        logger.error("Manager %r failed to initialize" % mgr)
+                    continue
+                for pbi in self._installed_bundle_info:
+                    for pvdr, params in pbi.providers.items():
+                        p_mgr, kw = params
+                        if p_mgr == mgr:
+                            m.add_provider(pbi, pvdr, **kw)
+                m.end_providers()
         except ToolshedError:
             failed.append(bi)
         done.add(bi)
@@ -1268,7 +1243,7 @@ class BundleAPI:
 
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
-        """Supported API. Called to initialize a manager in a bundle.
+        """Supported API. Called to create and return a manager in a bundle.
 
         Must be defined if there is a ``Manager`` tag in the bundle.
         ``init_manager`` is called when bundles are first loaded.
@@ -1283,16 +1258,21 @@ class BundleAPI:
             Name of manager to initialize.
         kw : keyword arguments.
             Keyword arguments listed in the bundle_info.xml.
+
+        Returns
+        -------
+        :py:class:`~chimerax.core.state.StateManager` instance
+            The created manager.
         """
         raise NotImplementedError("BundleAPI.init_manager")
 
     @staticmethod
-    def init_provider(session, bundle_info, name, mgr, **kw):
-        """Supported API. Called to initialize a provider in a bundle.
+    def run_provider(session, bundle_info, name, mgr, **kw):
+        """Supported API. Called to invoke a provider in a bundle.
 
         Must be defined if there is a ``Provider`` tag in the bundle.
-        ``init_provider`` is called when bundles are loaded, but
-        after ``init_manager`` methods have been called for all bundles.
+        ``run_provider`` is called by the associated manager to perform
+        the corresponding task.
 
         Parameters
         ----------
@@ -1305,7 +1285,7 @@ class BundleAPI:
         kw : keyword arguments.
             Keyword arguments listed in the bundle_info.xml.
         """
-        raise NotImplementedError("BundleAPI.init_provider")
+        raise NotImplementedError("BundleAPI.run_provider")
 
     @staticmethod
     def get_class(name):
@@ -1433,8 +1413,8 @@ class _CallBundleAPIv0:
         return cls._get_func(api, "init_manager")(session, bi, name, **kw)
 
     @classmethod
-    def init_provider(cls, api, session, bi, name, mgr, **kw):
-        return cls._get_func(api, "init_provider")(session, bi, name, mgr, **kw)
+    def run_provider(cls, api, session, bi, name, mgr, **kw):
+        return cls._get_func(api, "run_provider")(session, bi, name, mgr, **kw)
 
     @classmethod
     def finish(cls, api, session, bi):
