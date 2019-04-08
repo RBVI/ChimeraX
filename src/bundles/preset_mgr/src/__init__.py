@@ -33,7 +33,7 @@ class _PresetsBundleAPI(BundleAPI):
     def run_provider(session, bundle_info, name, mgr, **kw):
         """Invoke presets provider"""
         from .builtin import run_preset
-        run_preset(session, name)
+        run_preset(session, name, mgr, **kw)
 
     @staticmethod
     def finish(session, bundle_info):

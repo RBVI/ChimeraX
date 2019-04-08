@@ -24,7 +24,7 @@ cylinders = (cardef +
 licorice  = (cardef +
              ["cartoon style protein modeh default arrows f x round width 1 thick 1"])
 
-def run_preset(session, name):
+def run_preset(session, name, mgr):
     if name == "ribbons/slabs":
         cmd = cardef + ["nucleotides tube/slab shape box"]
     elif name == "cylinders/stubs":
@@ -44,7 +44,4 @@ def run_preset(session, name):
     elif name == "interactive":
         cmd = ["~set bg; set silhouettes f"]
     cmd = "; ".join(cmd)
-    from chimerax.core.commands import run
-    run(session, cmd, log=False)
-    session.logger.info("Preset expands to these ChimeraX commands: "
-                        "<i>%s</i>" % cmd, is_html=True)
+    mgr.execute(cmd)

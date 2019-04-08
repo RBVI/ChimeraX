@@ -38,7 +38,8 @@ class PresetsManager(StateManager):
     def add_presets(self, category, preset_info):
         """'preset_info' should be a dictionary of preset-name -> callback-function/command-string"""
         self._presets.setdefault(category, {}).update({
-            name: lambda p=preset: self._call_preset(p) for name, preset in preset_info
+            name: lambda p=preset: self.execute(p)
+            for name, preset in preset_info
         })
         self.triggers.activate_trigger("presets changed", self)
 
@@ -70,7 +71,7 @@ class PresetsManager(StateManager):
         # Presets are "session enduring"
         return {}
 
-    def _call_preset(self, preset):
+    def execute(self, preset):
         if callable(preset):
             preset()
             self.session.logger.info("Preset implemented in Python; no expansion to individual ChimeraX"
