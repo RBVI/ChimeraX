@@ -70,12 +70,14 @@ class _AtomicBundleAPI(BundleAPI):
         session._atomic_command_handler = session.triggers.add_handler("command finished",
             lambda *args: check_for_changes(session))
 
-        from .presets import register_presets
-        register_presets(session)
-
         if session.ui.is_gui:
            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
                _AtomicBundleAPI._add_gui_items(ses))
+
+    @staticmethod
+    def run_provider(session, bundle_info, name, mgr, **kw):
+        from .presets import run_preset
+        run_preset(session, bundle_info, name, mgr, **kw)
 
     @staticmethod
     def finish(session, bundle_info):
