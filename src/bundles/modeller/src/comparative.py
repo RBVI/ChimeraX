@@ -19,7 +19,7 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
     hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
     thorough_opt=False, water_preserve=False):
     """
-    Generate comparitive models for the target sequences.
+    Generate comparative models for the target sequences.
 
     Arguments:
     session
@@ -200,8 +200,6 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
         base_name = structure_save_name(structure) + '.pdb'
         pdb_file_name = os.path.join(struct_dir, base_name)
         input_file_map.append((base_name, "text_file",  pdb_file_name))
-        print("in_seq_hets:", structure.in_seq_hets)
-        print("std_res_names:", std_res_names)
         ATOM_res_names = structure.in_seq_hets
         ATOM_res_names.update(std_res_names)
         save_pdb(session, pdb_file_name, models=[structure], polymeric_res_names=ATOM_res_names)
