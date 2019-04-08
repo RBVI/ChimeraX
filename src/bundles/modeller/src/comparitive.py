@@ -200,6 +200,8 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
         base_name = structure_save_name(structure) + '.pdb'
         pdb_file_name = os.path.join(struct_dir, base_name)
         input_file_map.append((base_name, "text_file",  pdb_file_name))
+        print("in_seq_hets:", structure.in_seq_hets)
+        print("std_res_names:", std_res_names)
         ATOM_res_names = structure.in_seq_hets
         ATOM_res_names.update(std_res_names)
         save_pdb(session, pdb_file_name, models=[structure], polymeric_res_names=ATOM_res_names)
@@ -242,7 +244,7 @@ def regularized_seq(aseq, chain):
         else:
             r = mmap[ungapped]
             if r.name not in std_res_names:
-                in_seq_hets.append(r)
+                in_seq_hets.append(r.name)
                 seq_chars[gapped] = '.'
             else:
                 seq_chars[gapped] = Sequence.rname3to1(mmap[ungapped].name)
