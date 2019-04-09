@@ -331,7 +331,17 @@ class ModellerJob(OpalJob):
         try:
             model_info = self.get_file("ok_models.dat")
         except KeyError:
-            raise RuntimeError("No output models from Modeller")
+            try:
+                stdout = self.get_file("stdout.txt")
+                stderr = self.get_file("stderr.txt")
+            except KeyError:
+                raise RuntimeError("No output from Modeller")
+            logger.info("<br><b>Modeller error output</b>", is_html=True)
+            logger.info(stderr)
+            logger.info("<br><b>Modeller run output</b>", is_html=True)
+            logger.info(stdout)
+            from chimerax.core.errors import NonChimeraError
+            raise NonChimeraError("No output models from Modeller; see log for Modeller text output.")
         try:
             stdout = self.get_file("stdout.txt")
         except KeyError:
