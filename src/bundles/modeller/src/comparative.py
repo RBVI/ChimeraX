@@ -149,11 +149,12 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
     structures_to_save = set()
     for i, tmpl_strs in enumerate(templates_strings):
         for j, tmpl_str in enumerate(tmpl_strs):
-            chain = template_info[i][1][j][1]
+            chain, match_map = template_info[i][1][j][1:]
+            first_res = match_map[0]
             pir_template = Sequence(name=chain_save_name(chain))
             pir_seqs.append(pir_template)
-            pir_template.description = "structure:%s:FIRST:%s:+%d:%s::::" % (
-                structure_save_name(chain.structure),
+            pir_template.description = "structure:%s:%d%s:%s:+%d:%s::::" % (
+                structure_save_name(chain.structure), first_res.number, first_res.insertion_code,
                 chain.chain_id, len(tmpl_str) - tmpl_str.count('-'), chain.chain_id)
             structures_to_save.add(chain.structure)
             full_line = tmpl_str
