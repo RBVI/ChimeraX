@@ -329,7 +329,7 @@ class RunModeller(State):
 
         if self.show_gui and self.session.ui.is_gui:
             from .tool import ModellerResultsViewer
-            ModellerResultsViewer(self.session, "Modeller Reults", models, attr_names)
+            ModellerResultsViewer(self.session, "Modeller Results", models, attr_names)
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
