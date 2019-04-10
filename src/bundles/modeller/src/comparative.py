@@ -19,7 +19,7 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
     hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
     thorough_opt=False, water_preserve=False):
     """
-    Generate comparitive models for the target sequences.
+    Generate comparative models for the target sequences.
 
     Arguments:
     session
@@ -149,11 +149,12 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
     structures_to_save = set()
     for i, tmpl_strs in enumerate(templates_strings):
         for j, tmpl_str in enumerate(tmpl_strs):
-            chain = template_info[i][1][j][1]
+            chain, match_map = template_info[i][1][j][1:]
+            first_res = match_map[0]
             pir_template = Sequence(name=chain_save_name(chain))
             pir_seqs.append(pir_template)
-            pir_template.description = "structure:%s:FIRST:%s:+%d:%s::::" % (
-                structure_save_name(chain.structure),
+            pir_template.description = "structure:%s:%d%s:%s:+%d:%s::::" % (
+                structure_save_name(chain.structure), first_res.number, first_res.insertion_code,
                 chain.chain_id, len(tmpl_str) - tmpl_str.count('-'), chain.chain_id)
             structures_to_save.add(chain.structure)
             full_line = tmpl_str
@@ -200,8 +201,6 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
         base_name = structure_save_name(structure) + '.pdb'
         pdb_file_name = os.path.join(struct_dir, base_name)
         input_file_map.append((base_name, "text_file",  pdb_file_name))
-        print("in_seq_hets:", structure.in_seq_hets)
-        print("std_res_names:", std_res_names)
         ATOM_res_names = structure.in_seq_hets
         ATOM_res_names.update(std_res_names)
         save_pdb(session, pdb_file_name, models=[structure], polymeric_res_names=ATOM_res_names)
@@ -333,7 +332,17 @@ class ModellerJob(OpalJob):
         try:
             model_info = self.get_file("ok_models.dat")
         except KeyError:
-            raise RuntimeError("No output models from Modeller")
+            try:
+                stdout = self.get_file("stdout.txt")
+                stderr = self.get_file("stderr.txt")
+            except KeyError:
+                raise RuntimeError("No output from Modeller")
+            logger.info("<br><b>Modeller error output</b>", is_html=True)
+            logger.info(stderr)
+            logger.info("<br><b>Modeller run output</b>", is_html=True)
+            logger.info(stdout)
+            from chimerax.core.errors import NonChimeraError
+            raise NonChimeraError("No output models from Modeller; see log for Modeller text output.")
         try:
             stdout = self.get_file("stdout.txt")
         except KeyError:

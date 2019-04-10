@@ -1365,7 +1365,7 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             res = &p.atomqr.res;
             xyz = &p.atomqr.xyz;
         } else {
-            if (standard && polymeric_res_names.find(r->name()) != polymeric_res_names.end()) {
+            if (standard || polymeric_res_names.find(r->name()) != polymeric_res_names.end()) {
                 p.set_type(PDB::ATOM);
             } else {
                 p.set_type(PDB::HETATM);

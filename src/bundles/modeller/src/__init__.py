@@ -23,8 +23,8 @@ class ModellerAPI(BundleAPI):
         elif class_name == "ModellerLauncher":
             from .tool import ModellerLauncher
             return ModellerLauncher
-        from . import comparitive
-        return getattr(comparitive, class_name)
+        from . import comparative
+        return getattr(comparative, class_name)
 
     @staticmethod
     def register_command(command_name, logger):
