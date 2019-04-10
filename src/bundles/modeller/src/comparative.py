@@ -140,7 +140,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
                     char = '-'
                 target_seq += char
                 template_string += char
-                accum_ += '-'
+                accum += '-'
             accum_water_het += accum
             for i, tts in enumerate(target_template_strings):
                 target_template_strings[i] = tts + accum
