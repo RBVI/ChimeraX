@@ -2023,8 +2023,6 @@ class VolumeSurface(Surface):
     # Transform vertices and normals from index coordinates to model coordinates
     transform.transform_points(varray, in_place = True)
     transform.transform_normals(narray, in_place = True)
-    from chimerax.core.geometry import normalize_vectors
-    normalize_vectors(narray)
 
     return varray, narray, tarray, hidden_edges
 
