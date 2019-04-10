@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 #
-def sequence_model(session, targets, *, block=None, combine_templates=False, custom_script=None,
+def sequence_model(session, targets, *, block=None, multichain=True, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None, thorough_opt=False,
     water_preserve=False):
@@ -34,9 +34,11 @@ def sequence_model(session, targets, *, block=None, combine_templates=False, cus
         license_key = settings.license_key
     else:
         settings.license_key = license_key
+    if fast:
+        num_models = 1
     from . import comparative
     try:
-        comparative.model(session, targets, block=block, combine_templates=combine_templates,
+        comparative.model(session, targets, block=block, multichain=multichain,
             custom_script=custom_script, dist_restraints=dist_restraints,
             executable_location=executable_location, fast=fast, het_preserve=het_preserve,
             hydrogens=hydrogens, license_key=license_key, num_models=num_models, show_gui=show_gui,
@@ -50,7 +52,7 @@ def register_command(logger):
     from chimerax.seqalign import AlignSeqPairArg
     desc = CmdDesc(
         required = [('targets', ListOf(AlignSeqPairArg))],
-        keyword = [('block', BoolArg), ('combine_templates', BoolArg), ('custom_script', OpenFileNameArg),
+        keyword = [('block', BoolArg), ('multichain', BoolArg), ('custom_script', OpenFileNameArg),
             ('dist_restraints', OpenFileNameArg), ('executable_location', OpenFileNameArg), ('fast', BoolArg),
             ('het_preserve', BoolArg), ('hydrogens', BoolArg), ('license_key', PasswordArg),
             ('num_models', IntArg), ('show_gui', BoolArg), ('temp_path', OpenFolderNameArg),

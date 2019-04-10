@@ -58,25 +58,25 @@ class ModellerLauncher(ToolInstance):
         options_layout.addWidget(panel)
         from .settings import get_settings
         settings = get_settings(session)
-        panel.add_option("Basic", BooleanOption("Combine templates", settings.combine_templates, None,
+        panel.add_option("Basic", BooleanOption("Make multichain model from multichain template",
+            settings.multichain, None,
             balloon=
-            "If true, all chains (templates) associated with an alignment will be used in combination\n"
+            "If false, all chains (templates) associated with an alignment will be used in combination\n"
             "to model the target sequence of that alignment, i.e. a monomer will be generated from the\n"
-            "alignment.  If false, the target sequence will be modeled from each template, i.e. a multimer\n"
+            "alignment.  If true, the target sequence will be modeled from each template, i.e. a multimer\n"
             "will be generated from the alignment (assuming multiple chains are associated).",
             attr_name="combine_templates", settings=settings))
         max_models = 1000
-        self._num_models_option = IntOption("Number of models", settings.num_models, None,
+        panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
             attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
-            "Number of model structures to generate.  Must no more than %d.\n"
-            "Warning: please consider the calculation time")
-        panel.add_option("Basic", self._num_models_option)
+            "Number of model structures to generate.  Must be no more than %d.\n"
+            "Warning: please consider the calculation time" % max_models))
         key = "" if settings.license_key is None else settings.license_key
         panel.add_option("Basic", PasswordOption("Modeller license key", key, None, attr_name="license_key",
             settings=settings, balloon=
             "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
         panel.add_option("Advanced", BooleanOption("Use fast/approximate mode", settings.fast,
-            self._fast_option_cb, attr_name="fast", settings=settings, balloon=
+            None, attr_name="fast", settings=settings, balloon=
             "If enabled, use a fast approximate method to generate a single model.\n"
             "Typically use to get a rough idea what the model will look like or\n"
             "to check that the alignment is reasonable."))
@@ -86,7 +86,7 @@ class ModellerLauncher(ToolInstance):
             "structure(s) will be transferred into the generated models."))
         panel.add_option("Advanced", BooleanOption("Build models with hydrogens",
             settings.hydrogens, None, attr_name="hydrogens", settings=settings, balloon=
-            "If enabled, the generated models will include hydrogens atoms.\n"
+            "If enabled, the generated models will include hydrogen atoms.\n"
             "Otherwise, only heavy atom coordinates will be built.\n"
             "Increases computation time by approximately a factor of 4."))
         panel.add_option("Advanced", OutputFolderOption("Temporary folder location (optional)",
@@ -97,7 +97,6 @@ class ModellerLauncher(ToolInstance):
             settings.water_preserve, None, attr_name="water_preserve", settings=settings, balloon=
             "If enabled, all water molecules in the template\n"
             "structure(s) will be included in the generated models."))
-        self._fast_option_cb()
         from chimerax.ui.widgets import Citation
         alignments_layout.addWidget(Citation(session,
             "A. Sali and T.L. Blundell.\n"
@@ -129,10 +128,10 @@ class ModellerLauncher(ToolInstance):
                 % (quote_if(aln.ident, additional_special_map={',':','}), aln.seqs.index(seq)+1))
         from .settings import get_settings
         settings = get_settings(self.session)
-        run(self.session, "modeller comparative %s combineTemplates %s numModels %d fast %s hetPreserve %s"
+        run(self.session, "modeller comparative %s multichain %s numModels %d fast %s hetPreserve %s"
             " hydrogens %s%s waterPreserve %s"% (
             ",".join(aln_seq_args),
-            repr(settings.combine_templates).lower(),
+            repr(settings.multichain).lower(),
             settings.num_models,
             repr(settings.fast).lower(),
             repr(settings.het_preserve).lower(),
@@ -141,15 +140,6 @@ class ModellerLauncher(ToolInstance):
             repr(settings.water_preserve).lower()
             ))
         self.delete()
-
-    def _fast_option_cb(self, *args):
-        from .settings import get_settings
-        settings = get_settings(self.session)
-        if settings.fast:
-            settings.num_models = 1
-            self._num_models_option.enabled = False
-        else:
-            self._num_models_option.enabled = True
 
     def _list_selection_cb(self):
         layout = self.targets_layout
