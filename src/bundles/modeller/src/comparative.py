@@ -14,7 +14,7 @@
 class ModelingError(ValueError):
     pass
 
-def model(session, targets, *, block=True, combine_templates=False, custom_script=None,
+def model(session, targets, *, block=True, multichain=True, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
     thorough_opt=False, water_preserve=False):
@@ -29,10 +29,11 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
     block
         If True, wait for modelling job to finish before returning and return list of
         (opened) models.  Otherwise return immediately.  Also see 'show_gui' option.
-    combine_templates
-        If True, all associated chains are used together as templates to generate a single set
-        of models for the target sequence.  If False, the associated chains are used individually
-        to generate chains in the resulting models (i.e. the models will be multimers).
+    multichain
+        If True, the associated chains of each structure are used individually to generate
+        chains in the resulting models (i.e. the models will be multimers).  If False, all
+        associated chains are used together as templates to generate a single-chain model
+        for the target sequence.
     custom_script
         If provided, the location of a custom Modeller script to use instead of the
         one we would otherwise generate.  Only used when executing locally.
@@ -70,19 +71,33 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
         # Copy the target sequence, changing name to conform to Modeller limitations
         from .common import modeller_copy
         target = modeller_copy(orig_target)
-        if combine_templates:
+        if multichain:
+            # find greatest number of chains associated by any one structure
+            by_structure = {}
+            for chain, aseq in alignment.associations.items():
+                if len(chain.chain_id) > 1:
+                    raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")
+                by_structure.setdefault(chain.structure, []).append(
+                    (regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
+            num_chains = max([len(v) for v in by_structure.values()])
+            # Expand out any template chains less than the greatest number
+            expanded_templates = []
+            for structure_templates in by_structure.values():
+                structure_templates.sort(key=lambda x: (x[1].structure.id, x[1].chain_id))
+                orig_len = len(structure_templates)
+                while len(structure_templates) < num_chains:
+                    structure_templates.append(structure_templates[len(structure_templates) % orig_len])
+                expanded_templates.append(structure_templates)
+            # now, all the first-chain templates model the first chain, etc.
+            for chain_templates in zip(*expanded_templates):
+                template_info.append((target, chain_templates))
+        else:
             target_templates = []
             template_info.append((target, target_templates))
-        for chain, aseq in alignment.associations.items():
-            if len(chain.chain_id) > 1:
-                raise LimitationError(
-                    "Modeller cannot handle templates with multi-character chain IDs")
-            if not combine_templates:
-                target_templates = []
-                template_info.append((target, target_templates))
-            target_templates.append((regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
-    if not combine_templates:
-        template_info.sort(key=lambda x: (x[1][0][1].structure.id, x[1][0][1].chain_id))
+            for chain, aseq in alignment.associations.items():
+                if len(chain.chain_id) > 1:
+                    raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")
+                target_templates.append((regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
 
     from .common import write_modeller_scripts
     script_path, config_path, temp_dir = write_modeller_scripts(license_key, num_models, het_preserve,
@@ -150,11 +165,14 @@ def model(session, targets, *, block=True, combine_templates=False, custom_scrip
     for i, tmpl_strs in enumerate(templates_strings):
         for j, tmpl_str in enumerate(tmpl_strs):
             chain, match_map = template_info[i][1][j][1:]
-            first_res = match_map[0]
+            first_assoc_pos = 0
+            while first_assoc_pos not in match_map:
+                first_assoc_pos += 1
+            first_assoc_res = match_map[first_assoc_pos]
             pir_template = Sequence(name=chain_save_name(chain))
             pir_seqs.append(pir_template)
             pir_template.description = "structure:%s:%d%s:%s:+%d:%s::::" % (
-                structure_save_name(chain.structure), first_res.number, first_res.insertion_code,
+                structure_save_name(chain.structure), first_assoc_res.number, first_assoc_res.insertion_code,
                 chain.chain_id, len(tmpl_str) - tmpl_str.count('-'), chain.chain_id)
             structures_to_save.add(chain.structure)
             full_line = tmpl_str

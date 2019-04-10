@@ -16,11 +16,11 @@ from chimerax.core.settings import Settings
 class _ModellerSettings(Settings):
 
     AUTO_SAVE = {
-        'combine_templates': False,
         'fast': False,
         'het_preserve': False,
         'hydrogens': False,
         'license_key': None,
+        'multichain': True,
         'num_models': 5,
         'temp_path': "",
         'water_preserve': False
