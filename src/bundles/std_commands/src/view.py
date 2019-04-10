@@ -213,6 +213,9 @@ class NamedView(State):
         nv = NamedView.__new__(NamedView)
         for k,v in data['view attrs'].items():
             setattr(nv, k, v)
+        # Fix view where a model was deleted in old sessions. Bug #1829.
+        if None in nv.positions:
+            del nv.positions[None]
         return nv
 
 class NamedViews(StateManager):
