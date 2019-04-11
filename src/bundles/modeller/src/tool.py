@@ -65,7 +65,7 @@ class ModellerLauncher(ToolInstance):
             "to model the target sequence of that alignment, i.e. a monomer will be generated from the\n"
             "alignment.  If true, the target sequence will be modeled from each template, i.e. a multimer\n"
             "will be generated from the alignment (assuming multiple chains are associated).",
-            attr_name="combine_templates", settings=settings))
+            attr_name="multichain", settings=settings))
         max_models = 1000
         panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
             attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
