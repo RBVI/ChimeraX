@@ -29,10 +29,16 @@ class ModellerLauncher(ToolInstance):
 
         from PyQt5.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        interface_layout = QVBoxLayout()
+        interface_layout.setContentsMargins(0,0,0,0)
+        interface_layout.setSpacing(0)
+        parent.setLayout(interface_layout)
+        alignments_area = QGroupBox("Sequence alignments")
+        interface_layout.addWidget(alignments_area)
+        interface_layout.setStretchFactor(alignments_area, 1)
         alignments_layout = QVBoxLayout()
         alignments_layout.setContentsMargins(0,0,0,0)
-        alignments_layout.setSpacing(0)
-        parent.setLayout(alignments_layout)
+        alignments_area.setLayout(alignments_layout)
         self.alignment_list = AlignmentListWidget(session)
         self.alignment_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.alignment_list.keyPressEvent = session.ui.forward_keystroke
@@ -43,15 +49,15 @@ class ModellerLauncher(ToolInstance):
         targets_area = QGroupBox("Target sequences")
         self.targets_layout = QFormLayout()
         targets_area.setLayout(self.targets_layout)
-        alignments_layout.addWidget(targets_area)
+        interface_layout.addWidget(targets_area)
         self.seq_menu = {}
         self._update_sequence_menus(session.alignments.alignments)
         options_area = QGroupBox("Options")
         options_layout = QVBoxLayout()
         options_layout.setContentsMargins(0,0,0,0)
         options_area.setLayout(options_layout)
-        alignments_layout.addWidget(options_area)
-        alignments_layout.setStretchFactor(options_area, 2)
+        interface_layout.addWidget(options_area)
+        interface_layout.setStretchFactor(options_area, 2)
         from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption, \
             OutputFolderOption
         panel = CategorizedSettingsPanel(category_sorting=False, buttons=False)
@@ -98,7 +104,7 @@ class ModellerLauncher(ToolInstance):
             "If enabled, all water molecules in the template\n"
             "structure(s) will be included in the generated models."))
         from chimerax.ui.widgets import Citation
-        alignments_layout.addWidget(Citation(session,
+        interface_layout.addWidget(Citation(session,
             "A. Sali and T.L. Blundell.\n"
             "Comparative protein modelling by satisfaction of spatial restraints.\n"
             "J. Mol. Biol. 234, 779-815, 1993.",
@@ -106,7 +112,7 @@ class ModellerLauncher(ToolInstance):
         bbox = qbbox(qbbox.Ok | qbbox.Cancel)
         bbox.accepted.connect(self.launch_modeller)
         bbox.rejected.connect(self.delete)
-        alignments_layout.addWidget(bbox)
+        interface_layout.addWidget(bbox)
         self.tool_window.manage(None)
 
     def delete(self):
