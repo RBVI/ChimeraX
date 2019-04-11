@@ -103,12 +103,14 @@ class ModellerLauncher(ToolInstance):
             settings.water_preserve, None, attr_name="water_preserve", settings=settings, balloon=
             "If enabled, all water molecules in the template\n"
             "structure(s) will be included in the generated models."))
+        from PyQt5.QtCore import Qt
         from chimerax.ui.widgets import Citation
         interface_layout.addWidget(Citation(session,
             "A. Sali and T.L. Blundell.\n"
             "Comparative protein modelling by satisfaction of spatial restraints.\n"
             "J. Mol. Biol. 234, 779-815, 1993.",
-            prefix="Publications using Modeller results should cite:", pubmed_id=18428767))
+            prefix="Publications using Modeller results should cite:", pubmed_id=18428767),
+            alignment=Qt.AlignCenter)
         bbox = qbbox(qbbox.Ok | qbbox.Cancel)
         bbox.accepted.connect(self.launch_modeller)
         bbox.rejected.connect(self.delete)
