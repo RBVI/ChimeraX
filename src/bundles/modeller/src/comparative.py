@@ -291,10 +291,7 @@ class ModellerWebService(RunModeller):
         self.job = None
 
     def run(self, *, block=False):
-        if block:
-            from chimerax.core.errors import LimitationError
-            raise LimitationError("Blocking web service Modeller jobs not yet implemented")
-        self.job = ModellerJob(self.session, self, self.config_name, self.input_file_map)
+        self.job = ModellerJob(self.session, self, self.config_name, self.input_file_map, block)
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
@@ -316,10 +313,11 @@ class ModellerJob(OpalJob):
     OPAL_SERVICE = "Modeller9v8Service"
     SESSION_SAVE = True
 
-    def __init__(self, session, caller, command, input_file_map):
+    def __init__(self, session, caller, command, input_file_map, block):
         super().__init__(session)
         self.caller = caller
-        self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map)
+        print("starting job with block =", block)
+        self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map, blocking=block)
 
     def monitor(self):
         super().monitor()
