@@ -29,10 +29,16 @@ class ModellerLauncher(ToolInstance):
 
         from PyQt5.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        interface_layout = QVBoxLayout()
+        interface_layout.setContentsMargins(0,0,0,0)
+        interface_layout.setSpacing(0)
+        parent.setLayout(interface_layout)
+        alignments_area = QGroupBox("Sequence alignments")
+        interface_layout.addWidget(alignments_area)
+        interface_layout.setStretchFactor(alignments_area, 1)
         alignments_layout = QVBoxLayout()
         alignments_layout.setContentsMargins(0,0,0,0)
-        alignments_layout.setSpacing(0)
-        parent.setLayout(alignments_layout)
+        alignments_area.setLayout(alignments_layout)
         self.alignment_list = AlignmentListWidget(session)
         self.alignment_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.alignment_list.keyPressEvent = session.ui.forward_keystroke
@@ -43,15 +49,15 @@ class ModellerLauncher(ToolInstance):
         targets_area = QGroupBox("Target sequences")
         self.targets_layout = QFormLayout()
         targets_area.setLayout(self.targets_layout)
-        alignments_layout.addWidget(targets_area)
+        interface_layout.addWidget(targets_area)
         self.seq_menu = {}
         self._update_sequence_menus(session.alignments.alignments)
         options_area = QGroupBox("Options")
         options_layout = QVBoxLayout()
         options_layout.setContentsMargins(0,0,0,0)
         options_area.setLayout(options_layout)
-        alignments_layout.addWidget(options_area)
-        alignments_layout.setStretchFactor(options_area, 2)
+        interface_layout.addWidget(options_area)
+        interface_layout.setStretchFactor(options_area, 2)
         from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption, \
             OutputFolderOption
         panel = CategorizedSettingsPanel(category_sorting=False, buttons=False)
@@ -65,7 +71,7 @@ class ModellerLauncher(ToolInstance):
             "to model the target sequence of that alignment, i.e. a monomer will be generated from the\n"
             "alignment.  If true, the target sequence will be modeled from each template, i.e. a multimer\n"
             "will be generated from the alignment (assuming multiple chains are associated).",
-            attr_name="combine_templates", settings=settings))
+            attr_name="multichain", settings=settings))
         max_models = 1000
         panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
             attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
@@ -75,8 +81,8 @@ class ModellerLauncher(ToolInstance):
         panel.add_option("Basic", PasswordOption("Modeller license key", key, None, attr_name="license_key",
             settings=settings, balloon=
             "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
-        panel.add_option("Advanced", BooleanOption("Use fast/approximate mode", settings.fast,
-            None, attr_name="fast", settings=settings, balloon=
+        panel.add_option("Advanced", BooleanOption("Use fast/approximate mode (produces only one model)",
+            settings.fast, None, attr_name="fast", settings=settings, balloon=
             "If enabled, use a fast approximate method to generate a single model.\n"
             "Typically use to get a rough idea what the model will look like or\n"
             "to check that the alignment is reasonable."))
@@ -97,16 +103,18 @@ class ModellerLauncher(ToolInstance):
             settings.water_preserve, None, attr_name="water_preserve", settings=settings, balloon=
             "If enabled, all water molecules in the template\n"
             "structure(s) will be included in the generated models."))
+        from PyQt5.QtCore import Qt
         from chimerax.ui.widgets import Citation
-        alignments_layout.addWidget(Citation(session,
+        interface_layout.addWidget(Citation(session,
             "A. Sali and T.L. Blundell.\n"
             "Comparative protein modelling by satisfaction of spatial restraints.\n"
             "J. Mol. Biol. 234, 779-815, 1993.",
-            prefix="Publications using Modeller results should cite:", pubmed_id=18428767))
+            prefix="Publications using Modeller results should cite:", pubmed_id=18428767),
+            alignment=Qt.AlignCenter)
         bbox = qbbox(qbbox.Ok | qbbox.Cancel)
         bbox.accepted.connect(self.launch_modeller)
         bbox.rejected.connect(self.delete)
-        alignments_layout.addWidget(bbox)
+        interface_layout.addWidget(bbox)
         self.tool_window.manage(None)
 
     def delete(self):
