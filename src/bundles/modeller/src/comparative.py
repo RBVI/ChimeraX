@@ -231,7 +231,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             raise LimitationError("Distance restraints only supported when executing locally")
         if thorough_opt:
             session.logger.warning("Thorough optimization only supported when executing locally")
-        job_runner = ModellerWebService(session, [info[1][0][1] for info in template_info], num_models,
+        job_runner = ModellerWebService(session, template_info, num_models,
             pir_target.name, input_file_map, config_name, targets, show_gui)
     else:
         #TODO: job_runner = ModellerLocal(...)
@@ -281,10 +281,10 @@ def chain_save_name(chain):
 from .common import RunModeller
 class ModellerWebService(RunModeller):
 
-    def __init__(self, session, align_chains, num_models, target_seq_name, input_file_map, config_name,
+    def __init__(self, session, template_info, num_models, target_seq_name, input_file_map, config_name,
             targets, show_gui):
 
-        super().__init__(session, align_chains, num_models, target_seq_name, targets, show_gui)
+        super().__init__(session, template_info, num_models, target_seq_name, targets, show_gui)
         self.input_file_map = input_file_map
         self.config_name = config_name
 

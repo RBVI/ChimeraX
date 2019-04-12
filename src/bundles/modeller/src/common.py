@@ -273,9 +273,9 @@ def _process_dist_restraints(filename):
 from chimerax.core.session import State
 class RunModeller(State):
 
-    def __init__(self, session, template_chains, num_models, target_seq_name, targets, show_gui):
+    def __init__(self, session, template_info, num_models, target_seq_name, targets, show_gui):
         self.session = session
-        self.template_chains = template_chains
+        self.template_info = template_info
         self.num_models = num_models
         self.target_seq_name = target_seq_name
         self.targets = targets
@@ -302,20 +302,34 @@ class RunModeller(State):
             for attr_name, val in zip(attr_names, scores):
                 setattr(model, attr_name, val)
             model.name = self.target_seq_name
-            if model.num_chains == len(self.template_chains):
-                pairings = zip(self.template_chains, model.chains)
-            else:
-                chain_map = { chain.chain_id:chain for chain in model_chains}
-                pairings = []
-                for tmpl_chain in self.template_chains:
-                    if tmpl_chain.chain_id in chain_map:
-                        pairings.append((tmpl_chain, chain_map[tmpl_chain.chain_id]))
-            if pairings:
-                mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
-                    mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
-                    cutoff_distance=mm.defaults['iter_cutoff'])
-            elif i == 0:
-                self.session.logger.warning("Could not determine which model chains to superimpose on template")
+            # sift through the target->template info, looking for the structure with the
+            # greatest coverage of all the templates, but not counting multiple chains
+            # from the same structure onto the same target more than once...
+            # Also, since templates may be replicated to "fill out" a multimer, don't
+            # allow the same template chain in more than one pairing
+            used_templates = set()
+            per_structure_pairings = {}
+            for model_chain, model_template_info in zip(model.chains, self.template_info):
+                target, template_infos = model_template_info
+                structure_templates = {}
+                for pir_seq, chain, match_map in template_infos:
+                    if chain in used_templates:
+                        continue
+                    structure_templates.setdefault(chain.structure, []).append(chain)
+                for s, s_chains in structure_templates.items():
+                    s_chain = sorted(s_chains)[0]
+                    per_structure_pairings.setdefault(s, []).append((model_chain, s_chain))
+                    used_templates.add(s_chain)
+            pairings = []
+            for s_pairings in [list(sp) for sp in per_structure_pairings.values()]:
+                if len(s_pairings) > len(pairings):
+                    pairings = s_pairings
+                elif len(s_pairings) == len(pairings):
+                    if s_pairings[0][1].structure < pairings[0][1].structure:
+                        pairings = s_pairings
+            mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
+                mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
+                cutoff_distance=mm.defaults['iter_cutoff'])
             models.append(model)
         reset_alignments = []
         for alignment, target_seq in self.targets:
@@ -334,7 +348,7 @@ class RunModeller(State):
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return {
-            'template_chains': self.template_chains,
+            'template_info': self.template_info,
             'num_models': self.num_models,
             'target_seq_name': self.target_seq_name,
             'targets': self.targets,
@@ -342,7 +356,7 @@ class RunModeller(State):
         }
 
     def set_state_from_snapshot(self, data):
-        self.template_chains = data['template_chains']
+        self.template_info = data['template_info']
         self.num_models = data['num_models']
         self.target_seq_name = data['target_seq_name']
         self.target = data['targets']
