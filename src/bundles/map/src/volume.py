@@ -886,7 +886,7 @@ class Volume(Model):
     if c is None:
       vc = []
     else:
-      vc = [v for v in c.maps if v is not self]
+      vc = [v for v in c.maps if v is not self and not v.deleted]
     return vc
   
   # ---------------------------------------------------------------------------
