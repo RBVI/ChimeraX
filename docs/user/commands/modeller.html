@@ -28,8 +28,8 @@ class="clRight" title="User Guide Index"/></a>
 <a name="comparative"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>modeller</b> &nbsp;<b>comparative</b>
-&nbsp;<i>alignment</i>:<i>index</i>&nbsp;
-[&nbsp;<i>alignment2</i>:<i>index2</i>&nbsp; ...&nbsp;]
+&nbsp;<i>alignment</i>:<i>target</i>&nbsp;
+[&nbsp;<i>alignment2</i>:<i>target2</i>&nbsp; ...&nbsp;]
 [&nbsp;<b>multichain</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>numModels</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>fast</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -75,23 +75,25 @@ dialog (this only has to be done once; the key is saved in the
 </ol>
 <p>
 The sequence alignment containing the target sequence should be open
-in ChimeraX and shown in a
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
-The template structure(s) should also be open and
+in ChimeraX. The template structure(s) should also be open and
 <a href="../tools/sequenceviewer.html#association">associated</a> with
 a sequence in the same alignment.
 </p><p>
 With the above requirements in place, the only mandatory command argument
-(per target chain) is the name of the sequence alignment as shown in the title
+per target is the name of the sequence alignment as shown in the title
 bar of the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> 
-window and the index number of the target sequence in the alignment, in
-the form &nbsp;<i>alignment</i>:<i>index</i>
+window and the name or index number of the target sequence in the alignment,
+in the form: &nbsp;<i>alignment</i>:<i>target</i>&nbsp; (enclosed in 
+quotation marks if <i>alignment</i> or <i>target</i> includes spaces).
 </p><p>
-For example, the following specifies the second sequence in 
-alignment super8.msf as the target:
+The index number can be a positive integer <i>N</i> 
+for the <i>N</i><sup>th</sup> sequence in the alignment, 
+or negative for the <i>N</i><sup>th</sup>-to-last sequence.
+For example, the following command specifies the next-to-last sequence in 
+the alignment super8.msf as the target:
 </p>
 <blockquote><b>
-modeller comp super8.msf:2 multichain true num 3 het true
+modeller comp super8.msf:-2 multichain true num 3 het true
 </b></blockquote>
 <p>
 Templates are not specified in the command. All of the structure chains
