@@ -80,6 +80,7 @@ class ImageRender:
   def _update_planes_for_new_region(self):
     for d in self._planes_drawings:
       d._update_region = True
+      d.redraw_needed()
 
   # ---------------------------------------------------------------------------
   #
