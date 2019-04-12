@@ -545,12 +545,14 @@ class DicomData:
       data = d.pixel_array
     if channel is not None:
       data = data[:,:,channel]
+
+    a = data.astype(self.value_type) if data.dtype != self.value_type else data
     if rescale:
       if self.rescale_slope != 1:
-        data *= self.rescale_slope
+        a *= self.rescale_slope
       if self.rescale_intercept != 0:
-        data += self.rescale_intercept
-    return data
+        a += self.rescale_intercept
+    return a
 
   # ---------------------------------------------------------------------------
   #
