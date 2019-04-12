@@ -112,8 +112,19 @@ class DicomGrid(GridData):
 
   # ---------------------------------------------------------------------------
   #
-  def read_xy_plane(self, k):
+  def SLOW_read_xy_plane(self, k):
 
     c = self.channel if self.multichannel else None
     m = self.dicom_data.read_plane(k, self.time, c)
+    return m
+
+  # ---------------------------------------------------------------------------
+  #
+  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
+
+    from chimerax.map.data.readarray import allocate_array
+    m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
+    c = self.channel if self.multichannel else None
+    self.dicom_data.read_matrix(ijk_origin, ijk_size, ijk_step,
+                                self.time, c, m, progress)
     return m
