@@ -1901,7 +1901,7 @@ class Framebuffer:
                 # Change plane with set_color_buffer().
                 GL.glFramebufferTextureLayer(GL.GL_FRAMEBUFFER,
                                              GL.GL_COLOR_ATTACHMENT0,
-                                             color_texture.id, level, 0)
+                                             color_buf.id, level, 0)
         elif color_buf is not None:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
                                          GL.GL_COLOR_ATTACHMENT0,

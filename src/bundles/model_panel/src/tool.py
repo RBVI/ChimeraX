@@ -94,7 +94,7 @@ class ModelPanel(ToolInstance):
     def _shown_changed(self, shown):
         if shown:
             # Update panel when it is shown.
-            self._initiate_fill_tree()
+            self._initiate_fill_tree(refresh=True)
 
     @classmethod
     def get_singleton(self, session):
