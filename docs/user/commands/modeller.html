@@ -36,6 +36,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>hetPreserve</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>waterPreserve</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>hydrogens</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>licenseKey</b>&nbsp;&nbsp;<i>key</i>&nbsp;]
 </h3>
 <p>
@@ -159,6 +160,13 @@ if the option is turned on.
 <br>
 Whether to include hydrogen atoms in the output models (default <b>false</b>);
 increases computation time by approximately a factor of 4.
+</blockquote>
+<blockquote>
+<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether to wait for the calculation to finish before starting to execute
+any subsequent commands, default true in 
+<a href="../options.html#nogui">nogui mode</a>, otherwise false.
 </blockquote>
 <blockquote>
 <a name="licenseKey"></a>
