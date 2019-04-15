@@ -27,7 +27,7 @@ def sequence_model(session, targets, *, block=None, multichain=True, custom_scri
                 " multiple targets chosen in alignment %s" % alignment)
         seen.add(alignment)
     if block is None:
-        block = not session.ui.is_gui
+        block = session.in_script or not session.ui.is_gui
     from .settings import get_settings
     settings = get_settings(session)
     if license_key is None:

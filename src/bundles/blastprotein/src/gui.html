@@ -185,11 +185,17 @@
             // setting window location causes tool to receive URL
             window.location='blastprotein:initialize';
         }
+        function status(msg) {
+            $("#status").text(msg);
+        }
     </script>
 </head>
 <body onload="init();">
+<div>
+<div style="float:right; vertical-align:middle;"><span id="status"></span></div>
 <h2>Blast Protein <small>(an <a href="http://www.rbvi.ucsf.edu">RBVI</a>
     web service)</small></h2>
+</div>
 <fieldset>
 <legend>Search Parameters</legend>
     <form method="get">
