@@ -915,7 +915,10 @@ class StringArg(Annotation):
         if not text:
             raise AnnotationError("Expected %s" % StringArg.name)
         token, text, rest = next_token(text)
-        return token, quote_if_necessary(text), rest
+        # use quote_if_necessary(token) since token will have had
+        # it's surrounding quotes stripped, and you don't want them
+        # quoted a second time
+        return token, quote_if_necessary(token), rest
 
 
 class PasswordArg(StringArg):
