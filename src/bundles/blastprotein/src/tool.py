@@ -132,6 +132,7 @@ class ToolUI(HtmlToolInstance):
         cmd = ' '.join(cmd_text)
         from chimerax.core.commands import run
         run(self.session, cmd)
+        self.html_view.runJavaScript("status('Waiting for results');")
 
     def _arg_chain(self, chains):
         if len(chains) != 1:
@@ -170,6 +171,7 @@ class ToolUI(HtmlToolInstance):
 
     def job_finished(self, job, blast_results):
         self._show_results(job.atomspec, blast_results)
+        self.html_view.runJavaScript("status('');")
 
     def _show_results(self, atomspec, blast_results):
         # blast_results is either None or a blastp_parser.Parser
