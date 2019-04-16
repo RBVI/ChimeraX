@@ -175,6 +175,10 @@ class Model(State, Drawing):
             self.session.ui.thread_safe(self.session.triggers.activate_trigger,
                 SELECTION_CHANGED, None)
 
+    # Provide a direct way to set only the model selection status
+    # without subclass interference
+    set_model_selected = set_selected
+
     selected = property(get_selected, set_selected)
     '''selected indicates if this model has any part selected but does not include children.'''
         
