@@ -69,7 +69,6 @@ class ImageRender:
         self._remove_planes()
         if not same_step:
           self._need_color_update()
-      self._region = region
 
       bi = self._blend_image
       if bi and self is bi.master_image:
@@ -80,7 +79,8 @@ class ImageRender:
   #
   def _update_planes_for_new_region(self):
     for d in self._planes_drawings:
-      d.update_region()
+      d._update_region = True
+      d.redraw_needed()
 
   # ---------------------------------------------------------------------------
   #
@@ -705,6 +705,10 @@ class ImageDrawing(Model):
 
     pd = ir._update_planes(renderer)
 
+    if pd._update_region:
+      pd.update_region()
+      pd._update_region = False
+
     pd._update_coloring()
 
     self._draw_planes(renderer, draw_pass, dtransp, pd)
@@ -736,6 +740,7 @@ from chimerax.core.graphics import Drawing
 class PlanesDrawing(Drawing):
   def __init__(self, name, image_render, axis = None):
     Drawing.__init__(self, name)
+    self._update_region = False
     self._update_colors = True
     self._axis = axis
     self._image_render = image_render

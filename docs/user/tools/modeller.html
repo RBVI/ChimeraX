@@ -1,0 +1,201 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Modeller Comparative</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Modeller Comparative</h3>
+<p>
+The <b>Modeller Comparative</b> modeling tool is an interface to the
+<a href="http://www.salilab.org/modeller/" target="_blank">Modeller</a>
+program running on a web service hosted by the
+<a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI</a>.  See also:
+<a href="../commands/modeller.html#comparative"><b>modeller comparative</b></a>
+</p><p>
+Comparative modeling (sometimes called &ldquo;homology modeling&rdquo;)
+generates theoretical models of a protein using one or more known related 
+structures and a sequence alignment of the known and unknown structures. 
+The protein chain to be modeled is the <b><i>target</i></b>, and a 
+known atomic structure used for modeling is a <b><i>template</i></b>. 
+</p><p>
+Modeller is developed by the 
+<a href="http://www.salilab.org" target="_blank">&Scaron;ali Lab</a>,
+and its users should cite:
+</p>
+<blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/8254673" target="_blank">
+Comparative protein modelling by satisfaction of spatial restraints.</a>
+&Scaron;ali A, Blundell TL.
+<i>J Mol Biol.</i> 1993 Dec 5;234(3):779-815.
+</blockquote>
+</p>
+Modeller comparative modeling requires the following:
+</p>
+<ol>
+<li>one or more template structures for each target chain
+<!-- apparently they do not need to be superimposed -->
+<li>a sequence alignment for each target chain and its templates;
+other sequences may also be included
+<li><a name="key"></a>
+<!-- 
+Use of Modeller, whether a previously
+<a href="http://www.salilab.org/modeller/download_installation.html"
+target="_blank">downloaded</a> copy or via web service, requires
+-->
+a Modeller <b><i>license key</i></b>.
+Academic users can <a href="http://www.salilab.org/modeller/registration.html"
+target="_blank">register</a> free of charge to receive a license key.
+Commercial entities and government research labs, please see
+<a href="http://www.salilab.org/modeller/accelrys.html"
+target="_blank">Modeller licensing</a>.
+</ol>
+<p>
+The sequence alignment containing the target sequence should be open 
+in ChimeraX. The template structure(s) should also be open and
+<a href="sequenceviewer.html#association">associated</a> with 
+a sequence in the same alignment. The &ldquo;alignment&rdquo; could be just 
+the single sequence of the target, if the templates are similar enough in
+sequence to <a href="sequenceviewer.html#association">associate</a> with it.
+</p>
+
+<a name="input"></a>
+<p class="nav">
+[<a href="#top">back to top: Modeller Comparative</a>]
+</p>
+<h3>Startup and Input</h3>
+<p>
+Like other tools, the <b>Modeller Comparative</b> tool can be opened 
+from the <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
+It is also implemented as the 
+<a href="../commands/modeller.html#comparative"><b>modeller comparative</b></a>
+command.
+</p><p>
+One or more sequence alignments should be chosen (highlighted) in the
+top section of the dialog. Immediately below, for each chosen alignment,
+the name of the target sequence should be selected from the pull-down menu.
+</p><p>
+<b>Basic</b> settings:
+</p>
+<ul>
+<li><b>Make multichain model from multichain template</b> 
+(initial default <b>on</b>)
+&ndash; whether to retain template homomultimeric states;
+for example, if the template structure is a homotrimer, whether to model 
+the target as a homotrimer instead of as a monomer with three templates
+<!-- if multiple templates, will give the highest multimer, e.g. dimer if
+one template is dimer and the other is monomer -->
+<li><b>Modeller license key</b>
+&ndash; see <a href="#key">above</a>
+<li><b>Number of models</b> (initial default <b>5</b>, maximum 1000)
+&ndash; number of models to create
+</ul>
+<p>
+<b>Advanced</b> settings:
+</p>
+<ul>
+<li><b>Build models with hydrogens</b>
+(initial default <b>off</b>) 
+&ndash; whether to include hydrogen atoms in the output models; warning: slow
+<li><b>Include non-water HETATM residues from template</b>
+(initial default <b>off</b>)
+&ndash; whether to include HETATM residues other than water (ligands, ions,
+detergent, <i>etc.</i>) from templates in the output models.
+Any such residues not desired in the output should be
+<a href="../commands/delete.html">deleted</a> from the template(s) beforehand
+if the option is turned on.
+<li><b>Include water molecules from template</b>
+(initial default <b>off</b>)
+&ndash; whether to include water residues from templates in the output models.
+Any water residues not desired in the output should be
+<a href="../commands/delete.html">deleted</a> from the template(s) beforehand
+if the option is turned on.
+<li><b>Temporary folder location (optional)</b>
+&ndash; use the specified location for temporary files; 
+otherwise, a location will be generated automatically
+<li><b>Use fast/approximate mode (produces only one model)</b>
+(initial default <b>off</b>)
+&ndash; use fast/approximate mode (~3 times faster) to get a rough idea of
+model appearance or to confirm that the alignment is reasonable.
+This mode does not randomize the starting structure (generates only a
+single model) and performs very little optimization of the target function.
+</ul>
+<p>
+<b>Modeller Comparative</b> settings including the 
+<a href="#key">license key</a> are automatically saved in the
+<a href="../preferences.html">preferences</a>.
+Other than the license key, the remembered settings apply only to the GUI;
+the command defaults are not changed.
+</p><p>
+Clicking <b>Cancel</b> simply dismisses the dialog, whereas <b>OK</b>
+sends information to the web service and initiates the calculation.
+</p>
+
+<a name="output"></a>
+<p class="nav">
+[<a href="#top">back to top: Modeller Comparative</a>]
+</p>
+<h3>Modeller Results</h3>
+<p>
+When results are returned, the new models are opened, listed in the 
+<a href="modelpanel.html"><b>Model Panel</b></a> along with any other
+models present in ChimeraX,
+and automatically superimposed on the lowest-model-ID template structure with
+<a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
+Scores for the comparative models are shown in a <b>Modeller Results</b> panel:
+</p>
+<ul>
+<li><b>Model</b> - model ID number
+<li>
+<a href="http://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#model_score"
+target="_blank"><b>GA341</b></a> -
+model score derived from statistical potentials
+(see
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/11790853" target="_blank">Melo
+<i>et al.</i></a>, <i>Protein Sci</i> <b>11</b>:430 (2002)),
+automatically assigned as a model <a href="../attributes.html">attribute</a>
+named <b>modeller_GA341</b>.
+Higher values signify better models, with those &gt; 0.7 generally indicating a
+<a href="http://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#reliablemodel"
+target="_blank">reliable model</a>,
+defined as &ge; 95% probability of correct fold.
+<li>
+<a href="http://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#dope"
+target="_blank"><b>zDOPE</b></a>
+&ndash; normalized Discrete Optimized Protein Energy (DOPE), an
+atomic distance-dependent statistical score (see
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/17075131" target="_blank">Shen
+and Sali</a>, <i>Protein Sci</i> <b>15</b>:2507 (2006)),
+automatically assigned as a model <a href="../attributes.html">attribute</a>
+named <b>modeller_zDOPE</b>.
+Lower values signify better models, with those &lt; 0 generally indicating a
+<a href="http://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#reliablemodel"
+target="_blank">reliable model</a>.
+</ul>
+Clicking a row in the panel shows the corresponding comparative
+model and hides the others. Clicking elsewhere in the panel shows all
+of the comparative models at once. 
+Clicking a column header sorts on the values in that column.
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+April 2019</address>
+</body></html>

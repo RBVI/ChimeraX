@@ -24,7 +24,7 @@ class CCDJob(OpalJob):
 
     def on_finish(self):
         self.session.logger.info("Standard output:\n" +
-                                 self.get_file("stdout.txt").decode("utf-8"))
+                                 self.get_file("stdout.txt"))
 
 
 class BlastProteinJob(OpalJob):
@@ -68,17 +68,17 @@ class BlastProteinJob(OpalJob):
         logger.info("BlastProtein finished.")
         out = self.get_file("stdout.txt")
         if out:
-            logger.error("Standard output:\n" + out.decode("utf-8"))
+            logger.error("Standard output:\n" + out)
         if not self.exited_normally():
             err = self.get_file("stderr.txt")
             if self.tool:
                 self.tool.job_failed(self, err)
             else:
                 if err:
-                    logger.bug("Standard error:\n" + err.decode("utf-8"))
+                    logger.bug("Standard error:\n" + err)
         else:
             from .blastp_parser import Parser
-            results = self.get_file(self.RESULTS_FILENAME).decode("utf-8")
+            results = self.get_file(self.RESULTS_FILENAME)
             try:
                 p = Parser("query", self.seq, results)
             except ValueError as e:

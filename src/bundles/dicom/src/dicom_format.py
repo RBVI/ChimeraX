@@ -533,20 +533,26 @@ class DicomData:
   #
   def read_plane(self, k, time = None, channel = None, rescale = True):
     if self._reverse_planes:
-      klast = self.data_size()[2]-1
+      klast = self.data_size[2]-1
       k = klast-k
-    p = k if time is None else (k + self.data_size[2]*time)
-    import pydicom
-    d = pydicom.dcmread(self.paths[p])
-    data = d.pixel_array
+    from pydicom import dcmread
+    if self._files_are_3d:
+      d = dcmread(self.paths[0])
+      data = d.pixel_array[k]
+    else:
+      p = k if time is None else (k + self.data_size[2]*time)
+      d = dcmread(self.paths[p])
+      data = d.pixel_array
     if channel is not None:
       data = data[:,:,channel]
+
+    a = data.astype(self.value_type) if data.dtype != self.value_type else data
     if rescale:
       if self.rescale_slope != 1:
-        data *= self.rescale_slope
+        a *= self.rescale_slope
       if self.rescale_intercept != 0:
-        data += self.rescale_intercept
-    return data
+        a += self.rescale_intercept
+    return a
 
   # ---------------------------------------------------------------------------
   #

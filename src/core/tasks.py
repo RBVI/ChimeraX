@@ -155,17 +155,27 @@ class Task(State):
     def start(self, *args, **kw):
         """Start task running.
 
-        This method calls the instance 'start' method in a thread.
+        If a keyword arguments 'blocking' is present and true,
+        this method calls the instance 'run' method in the
+        current thread; otherwise, it calls the instance
+        'run' method in a separate thread.  The 'blocking'
+        keyword is passed through, so the 'run' and 'launch'
+        methods in derived classes will see it.
 
         """
         if self.state != PENDING:
             raise RuntimeError("starting task multiple times")
-        import threading
-        self._terminate = threading.Event()
-        self._thread = threading.Thread(target=self._run_thread,
-                                        daemon=True, args=args, kwargs=kw)
-        self._thread.start()
-        self._update_state(RUNNING)
+        if kw.get("blocking", False):
+            self.run(*args, **kw)
+            self._update_state(FINISHED)
+            self.session.ui.thread_safe(self.on_finish)
+        else:
+            import threading
+            self._terminate = threading.Event()
+            self._thread = threading.Thread(target=self._run_thread,
+                                            daemon=True, args=args, kwargs=kw)
+            self._thread.start()
+            self._update_state(RUNNING)
 
     def _cleanup(self):
         """Clean up after thread has ended.
@@ -201,6 +211,9 @@ class Task(State):
         This method must be overridden to implement actual functionality.
         :py:meth:`terminating` should be checked regularly to see whether
         user has requested termination.
+
+        NB: The 'blocking' argument passed to the 'start' method
+        is received as a keyword argument.
 
         """
         raise RuntimeError("base class \"run\" method called.")
@@ -258,6 +271,9 @@ class Job(Task):
         are handled by the :py:meth:`next_check` method, which may
         be overridden to provide custom timing.
 
+        NB: The 'blocking' argument passed to the 'start' method
+        is received as a keyword argument.
+
         """
         import time
         self.launch(*args, **kw)
@@ -279,8 +295,15 @@ class Job(Task):
 
     @abc.abstractmethod
     def launch(self, *args, **kw):
-        """Launch the background process.
+        """Launch the process.
 
+        NB: The 'blocking' argument passed to the 'start' method
+        is received as a keyword argument.  If 'blocking' is false,
+        'launch' should return immediately and let 'monitor'
+        detect when the process is complete; if 'blocking' is true,
+        'launch' should wait for the process to complete before
+        returning.  The default value for 'blocking' depends on
+        the type of process being run.
         """
         raise RuntimeError("base class \"launch\" method called.")
 

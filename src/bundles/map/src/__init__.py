@@ -81,7 +81,7 @@ class _MapBundle(BundleAPI):
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from chimerax import map
-        if command_name == 'volume':
+        if command_name == 'volume' or command_name == 'vop':
             map.register_volume_command(logger)
         elif command_name == 'molmap':
             map.register_molmap_command(logger)

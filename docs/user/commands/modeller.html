@@ -1,0 +1,190 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: modeller</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: modeller</h3>
+
+<a name="comparative"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>modeller</b> &nbsp;<b>comparative</b>
+&nbsp;<i>alignment</i>:<i>target</i>&nbsp;
+[&nbsp;<i>alignment2</i>:<i>target2</i>&nbsp; ...&nbsp;]
+[&nbsp;<b>multichain</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>numModels</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>fast</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>hetPreserve</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>waterPreserve</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>hydrogens</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>licenseKey</b>&nbsp;&nbsp;<i>key</i>&nbsp;]
+</h3>
+<p>
+The <b>modeller comparative</b> command performs comparative or
+&ldquo;homology&rdquo; modeling of proteins by running
+<a href="http://www.salilab.org/modeller/" target="_blank">Modeller</a>
+on a web service hosted by the
+<a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI</a>. It is the command-line implementation of the
+<a href="../tools/modeller.html"><b>Modeler&nbsp;Comparative</b></a> tool.
+</p><p>
+Modeller is developed by the
+<a href="http://www.salilab.org" target="_blank">&Scaron;ali Lab</a>,
+and its users should cite:
+</p>
+<blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/8254673" target="_blank">
+Comparative protein modelling by satisfaction of spatial restraints.</a>
+&Scaron;ali A, Blundell TL.
+<i>J Mol Biol.</i> 1993 Dec 5;234(3):779-815.
+</blockquote>
+<p>
+Modeller comparative modeling requires the following:
+</p>
+<ol>
+<li>one or more template structures for each target chain
+<!-- apparently they do not need to be superimposed -->
+<li>a sequence alignment for each target chain and its templates;
+other sequences may also be included
+<li><a name="key"></a>
+a Modeller <a href="../tools/modeller.html#key">license key</a>
+specified with the <a href="#licenseKey"><b>licenseKey</b></a> 
+command option or entered in the 
+<a href="../tools/modeller.html"><b>Modeler&nbsp;Comparative</b></a>
+dialog (this only has to be done once; the key is saved in the 
+<a href="../preferences.html">preferences</a>)
+</ol>
+<p>
+The sequence alignment containing the target sequence should be open
+in ChimeraX. The template structure(s) should also be open and
+<a href="../tools/sequenceviewer.html#association">associated</a> with
+a sequence in the same alignment.
+</p><p>
+With the above requirements in place, the only mandatory command argument
+per target is the name of the sequence alignment as shown in the title
+bar of the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> 
+window and the name or index number of the target sequence in the alignment,
+in the form: &nbsp;<i>alignment</i>:<i>target</i>&nbsp; (enclosed in 
+quotation marks if <i>alignment</i> or <i>target</i> includes spaces).
+</p><p>
+The index number can be a positive integer <i>N</i> 
+for the <i>N</i><sup>th</sup> sequence in the alignment, 
+or negative for the <i>N</i><sup>th</sup>-to-last sequence.
+For example, the following command specifies the next-to-last sequence in 
+the alignment super8.msf as the target:
+</p>
+<blockquote><b>
+modeller comp super8.msf:-2 multichain true num 3 het true
+</b></blockquote>
+<p>
+Templates are not specified in the command. All of the structure chains
+associated with any sequence in the same alignment as the target
+will be used as templates.
+</p><p>
+When results are returned, the new models are opened, listed in the
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a> along with any other
+models present in ChimeraX,
+and automatically superimposed on the lowest-model-ID template structure with
+<a href="matchmaker.html"><b>matchmaker</b></a>.
+Scores for the comparative models are shown in a 
+<a href="../tools/modeller.html#output"><b>Modeller Results</b></a> panel.
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: modeller</a>]
+</p>
+<h3>Options</h3>
+<blockquote>
+<b>multichain</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to retain template homomultimeric states (default <b>true</b>);
+for example, if the template structure is a homotrimer, whether to model
+the target as a homotrimer instead of as a monomer with three templates.
+</blockquote>
+<blockquote>
+<b>numModels</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Number of models to create (default <b>5</b>, maximum 1000).
+</blockquote>
+<blockquote>
+<b>fast</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to use fast/approximate mode (~3 times faster) to get a rough idea of
+model appearance or to confirm that the alignment is reasonable 
+(default <b>false</b>).
+This mode does not randomize the starting structure (generates only a
+single model) and performs very little optimization of the target function.
+</blockquote>
+<blockquote>
+<b>hetPreserve</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to include HETATM residues other than water (ligands, ions,
+detergent, <i>etc.</i>) from templates in the output models
+(default <b>false</b>).
+Any such residues not desired in the output should be
+<a href="delete.html">deleted</a> from the template(s) beforehand
+if the option is turned on.
+</blockquote>
+<blockquote>
+<b>waterPreserve</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+whether to include water residues from templates in the output models
+(default <b>false</b>).
+Any water residues not desired in the output should be
+<a href="delete.html">deleted</a> from the template(s) beforehand
+if the option is turned on.
+</blockquote>
+<blockquote>
+<b>hydrogens</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to include hydrogen atoms in the output models (default <b>false</b>);
+increases computation time by approximately a factor of 4.
+</blockquote>
+<blockquote>
+<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether to wait for the calculation to finish before starting to execute
+any subsequent commands, default true when the 
+<b>modeller</b> command is being executed in a
+<a href="usageconventions.html#cxc-files">command script</a> and/or in
+<a href="../options.html#nogui">nogui mode</a>, otherwise false.
+</blockquote>
+<blockquote>
+<a name="licenseKey"></a>
+<b>licenseKey</b>&nbsp;&nbsp;<i>key</i>
+<br>
+Use of Modeller requires a license key, 
+but it only has to be specified once in ChimeraX; the key is saved in the 
+<a href="../preferences.html">preferences</a>.
+Academic users can <a href="http://www.salilab.org/modeller/registration.html"
+target="_blank">register</a> free of charge to receive a license key.
+Commercial entities and government research labs, please see
+<a href="http://www.salilab.org/modeller/accelrys.html"
+target="_blank">Modeller licensing</a>.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+April 2019</address>
+</body></html>
