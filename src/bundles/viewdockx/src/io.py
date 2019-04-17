@@ -376,17 +376,17 @@ class Mol2Parser:
         for line in self._comments:
             m = re_gold.match(line)
             if m is None:
-                if lines is not None:
+                if lines is not None and line.strip():
                     lines.append(line)
             else:
                 param = m.group("param")
                 lines = []
                 fields[param] = lines
         if fields:
+            self._data = {"Name": self._molecule.mol_name.split("|")[0]}
             for param, lines in fields.items():
-                fields[param] = _value('\n'.join(lines).strip())
-            fields["Name"] = self._molecule.mol_name.split("|")[0]
-            self._data = fields
+                if len(lines) == 1:
+                    self._data[param] = _value(lines[0])
 
 
 def _value(s):
