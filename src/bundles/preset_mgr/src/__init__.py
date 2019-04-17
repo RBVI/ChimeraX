@@ -27,13 +27,13 @@ class _PresetsBundleAPI(BundleAPI):
         if name == "presets":
             from .manager import PresetsManager
             session.presets = PresetsManager(session)
+            return session.presets
 
     @staticmethod
-    def init_provider(session, bundle_info, name, mgr, **kw):
-        """Initialize presets providers"""
-        if name == "builtins" and mgr == "presets":
-            from .builtin import register_builtin_presets
-            register_builtin_presets(session)
+    def run_provider(session, bundle_info, name, mgr, **kw):
+        """Invoke presets provider"""
+        from .builtin import run_preset
+        run_preset(session, name, mgr, **kw)
 
     @staticmethod
     def finish(session, bundle_info):

@@ -77,6 +77,14 @@ class StateManager(State, metaclass=abc.ABCMeta):
         """Reset state to data-less state"""
         pass
 
+    def add_provider(self, bundle_info, provider_name, **kw):
+        """Callback invoked to add provider to this manager"""
+        pass
+
+    def end_providers(self):
+        """Callback invoked after all providers have been added"""
+        pass
+
 
 class FinalizedState:
     """Used for efficiency if state data is known to be nothing but Python simple primitives"""

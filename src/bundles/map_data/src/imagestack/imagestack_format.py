@@ -159,7 +159,7 @@ def is_3d_image(path):
     from PIL import Image
     i = Image.open(path)
     is_3d = image_count(i, max = 2) > 1
-    return is_3d
+  return is_3d
 
 # -----------------------------------------------------------------------------
 # Count images in a possibly multi-page PIL image.

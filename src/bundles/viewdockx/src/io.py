@@ -76,6 +76,7 @@ class Mol2Parser:
         self._reset_structure()
         while self._read_section():
             pass
+        self._check_gold()
         self._make_structure()
 
     def _read_section(self):
@@ -135,6 +136,7 @@ class Mol2Parser:
         self._atoms = []
         self._bonds = []
         self._substs = []
+        self._comments = []
 
     def _make_structure(self):
         """Build ChimeraX structure and reset structure data cache"""
@@ -354,3 +356,42 @@ class Mol2Parser:
         except ValueError:
             # Must be numeric conversion
             self._warn("bad substructure data")
+
+    def _section_comment(self):
+        if self._molecule is None:
+            self._eat_section()
+            return
+        self._get_line()
+        while self._line is not None:
+            if self._is_section_tag():
+                break
+            self._comments.append(self._line)
+            self._get_line()
+
+    def _check_gold(self):
+        import re
+        re_gold = re.compile(r"> <Gold\.(?P<param>[^>]+)>\s*")
+        fields = {}
+        lines = None
+        for line in self._comments:
+            m = re_gold.match(line)
+            if m is None:
+                if lines is not None and line.strip():
+                    lines.append(line)
+            else:
+                param = m.group("param")
+                lines = []
+                fields[param] = lines
+        if fields:
+            self._data = {"Name": self._molecule.mol_name.split("|")[0]}
+            for param, lines in fields.items():
+                if len(lines) == 1:
+                    self._data[param] = _value(lines[0])
+
+
+def _value(s):
+    try:
+        return int(s)
+        return float(s)
+    except ValueError:
+        return s

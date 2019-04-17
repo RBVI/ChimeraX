@@ -38,12 +38,30 @@ class PresetsManager(StateManager):
     def add_presets(self, category, preset_info):
         """'preset_info' should be a dictionary of preset-name -> callback-function/command-string"""
         self._presets.setdefault(category, {}).update({
-            name: lambda p=preset: self._call_preset(p) for name, preset in preset_info
+            name: lambda p=preset: self.execute(p)
+            for name, preset in preset_info
         })
         self.triggers.activate_trigger("presets changed", self)
 
     def reset_state(self, session):
         pass
+
+    def add_provider(self, bundle_info, name,
+                     order=None, category="General", **kw):
+        from chimerax.core.utils import CustomSortString
+        if order is None:
+            cname = name
+        else:
+            cname = CustomSortString(name, sort_val=int(order))
+        def cb(name=name, mgr=self, bi=bundle_info):
+            bi.run_provider(self.session, name, self)
+        try:
+            self._presets[category][cname] = cb
+        except KeyError:
+            self._presets[category] = {cname:cb}
+
+    def end_providers(self):
+        self.triggers.activate_trigger("presets changed", self)
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -53,7 +71,7 @@ class PresetsManager(StateManager):
         # Presets are "session enduring"
         return {}
 
-    def _call_preset(self, preset):
+    def execute(self, preset):
         if callable(preset):
             preset()
             self.session.logger.info("Preset implemented in Python; no expansion to individual ChimeraX"

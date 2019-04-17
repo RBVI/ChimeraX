@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Preset_Mgr" version="1.0" package="chimerax.preset_mgr"
-	    minSessionVersion="1" maxSessionVersion="1">
+            minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>
@@ -26,7 +26,22 @@
   </Managers>
 
   <Providers>
-    <Provider name="builtins" manager="presets"/>
+    <Provider category="Cartoons/Nucleotides" name="ribbons/slabs"
+              order="1" manager="presets"/>
+    <Provider category="Cartoons/Nucleotides" name="cylinders/stubs"
+              order="2" manager="presets"/>
+    <Provider category="Cartoons/Nucleotides" name="licorice/ovals"
+              order="3" manager="presets"/>
+    <Provider category="Molecular Surfaces" name="ghostly white"
+              order="1" manager="presets"/>
+    <Provider category="Molecular Surfaces" name="atomic coloring (transparent)"
+              order="2" manager="presets"/>
+    <Provider category="Molecular Surfaces" name="chain ID coloring (opaque)"
+              order="3" manager="presets"/>
+    <Provider category="Overall Look" name="publication"
+              order="1" manager="presets"/>
+    <Provider category="Overall Look" name="interactive"
+              order="2" manager="presets"/>
   </Providers>
 
   <Classifiers>

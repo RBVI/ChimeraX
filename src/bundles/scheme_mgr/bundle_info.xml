@@ -1,0 +1,39 @@
+<BundleInfo name="ChimeraX-Scheme_Mgr" version="1.0" package="chimerax.scheme_mgr"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <!-- Additional information about bundle source -->
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <!-- Synopsis is a one-line description
+       Description is a full multi-line description -->
+  <Synopsis>HTTP scheme management</Synopsis>
+  <Description>Manager for tracking HTTP schemes used in ChimeraX bundles</Description>
+
+  <!-- Categories is a list where this bundle should appear -->
+  <Categories>
+    <Category name="Utilities"/>
+  </Categories>
+
+  <!-- Dependencies on other ChimeraX/Python packages -->
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+  </Dependencies>
+
+  <Managers>
+    <Manager name="http_schemes"/>
+  </Managers>
+
+  <Providers>
+    <Provider name="cxcmd" manager="http_schemes"/>
+    <Provider name="help" manager="http_schemes"/>
+  </Providers>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>
