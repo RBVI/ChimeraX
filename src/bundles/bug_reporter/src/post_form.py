@@ -29,7 +29,7 @@ def post_multipart_formdata(host, url, fields, ssl=False):
         realhost = proxies["http"]
     except KeyError:
         realhost = host
-        from http.client import HTTPConnection, HTTPSConnection
+    from http.client import HTTPConnection, HTTPSConnection
     if ssl:
         h = HTTPSConnection(realhost)
     else:

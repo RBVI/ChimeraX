@@ -40,7 +40,7 @@ def save_image(session, path, format_name, width=None, height=None,
     from .errors import UserError, LimitationError
     has_graphics = session.main_view.render is not None
     if not has_graphics:
-        raise LimitationError("Unable to render images to save them")
+        raise LimitationError("Unable to save images because OpenGL rendering is not available")
     from os.path import expanduser, dirname, exists, splitext
     path = expanduser(path)         # Tilde expansion
     dir = dirname(path)
