@@ -63,6 +63,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
     """
 
     from chimerax.core.errors import LimitationError
+    from .common import modeller_copy
     if multichain:
         # So, first find structure with most associated chains and least non-associated chains.
         # That structure is used as the multimer template.  Chains from other structures are used
@@ -75,7 +76,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         chain_info = {}
         for alignment, orig_target in targets:
             # Copy the target sequence, changing name to conform to Modeller limitations
-            from .common import modeller_copy
             target = modeller_copy(orig_target)
             for chain, aseq in alignment.associations.items():
                 if len(chain.chain_id) > 1:
@@ -152,12 +152,27 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
                         + '-' * len(suffix))
                     templates_info.append((chain, aseq.match_maps[chain]))
             templates_strings.append(template_strings)
-        target_name = structure_save_name(multimer_template) + "-target"
+        target_name = "target" if len(targets) > 1 else target.name
     else:
         if len(targets) > 1:
             raise LimitationError("Cannot have multiple targets(/alignments) unless creating multimeric model")
-        target_name = targets[0][1].name.replace('/', ' ')
-        #TODO
+        alignment, orig_target = targets[0]
+        # Copy the target sequence, changing name to conform to Modeller limitations
+        target = modeller_copy(orig_target)
+        target_strings = [target.characters]
+
+        templates_strings = []
+        templates_info = []
+        match_chains = []
+        for chain, aseq in alignment.associations.items():
+            if len(chain.chain_id) > 1:
+                raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")
+            templates_strings.append([regularized_seq(aseq, chain).characters])
+            templates_info.append((chain, aseq.match_maps[chain]))
+            if not match_chains:
+                match_chains.append(chain)
+
+        target_name = target.name
 
     from .common import write_modeller_scripts
     script_path, config_path, temp_dir = write_modeller_scripts(license_key, num_models, het_preserve,
