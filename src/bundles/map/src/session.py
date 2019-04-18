@@ -239,7 +239,9 @@ class ReplacementFilePaths:
           p = pt + path[len(pf):]
           if isfile(p):
             return p
-    if self._ui.is_gui:
+    if not ask:
+      return None
+    elif self._ui.is_gui:
       # If path doesn't exist show file dialog to let user enter new path to file.
       from chimerax.ui.open_save import OpenDialogWithMessage
       d = OpenDialogWithMessage(self._ui.main_window,
@@ -345,7 +347,10 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     dlist = [ArrayGridData(array)]
   else:
     dbfetch = s.get('database_fetch')
-    path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
+    ask = (dbfetch is None)
+    if s.get('series_index',0) >= 1 or s.get('time',0) >= 1:
+      ask = False
+    path = absolute_path(s['path'], file_paths, ask = ask,
                          base_path = session.session_file_path)
     empty_path = (path is None or path == '' or path == () or path == [])
     if empty_path and dbfetch is None:
