@@ -2013,6 +2013,9 @@ class SeqMatchMap(State):
             return self._pos_to_res[i]
         return self._res_to_pos[i]
 
+    def __len__(self):
+        return len(self._pos_to_res)
+
     @property
     def align_seq(self):
         return self._align_seq
