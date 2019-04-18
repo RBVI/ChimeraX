@@ -181,8 +181,17 @@
             $table.append($tbody);
             return $table;
         }
+        function next_field_on_return(ev) {
+            if (ev.keyCode == 13) {
+                ev.preventDefault();
+                var fields = $(this).closest("form").find(":input");
+                fields[fields.index(this) + 1].focus();
+            }
+        }
         function init() {
             // setting window location causes tool to receive URL
+            $(document).on("keypress", ":input:not([type=submit])",
+                           next_field_on_return);
             window.location='blastprotein:initialize';
         }
         function status(msg) {

@@ -120,6 +120,8 @@ class Play_Series:
 
     ts, te = self.time_range[:2]
     nt = te-ts+1
+    if nt == 0:
+      return	# Series has no maps
     if self.play_direction == 'oscillate':
       if self.step > 0:
         if t == te:
