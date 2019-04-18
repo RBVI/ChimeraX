@@ -39,6 +39,18 @@ MSGPACK_MAX_LEN = 2 ** 32 - 1
 #
 # Encoding and decoding msgpack extension types using in serialization
 
+PRIMITIVE_TYPES = {
+    # supported types natively by msgpack
+    bool, int, float, bytes, bytearray, unicode, dict, list, memoryview, type(None),
+    # additionally supported types
+    complex, tuple, _UniqueName,
+    numpy.ndarray, numpy.number, numpy.bool_, numpy.bool8,
+    set, frozenset, deque, OrderedDict,
+    datetime, timedelta, timezone,
+    Image.Image, FinalizedState,
+    ndarray_int, ndarray_float, ndarray_complex,
+}
+
 
 cdef string _encode_unique_name(object un):
     # Return byte representation for serialization
