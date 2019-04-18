@@ -347,7 +347,8 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     dbfetch = s.get('database_fetch')
     path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
                          base_path = session.session_file_path)
-    if (path is None or path == '') and dbfetch is None:
+    empty_path = (path is None or path == '' or path == () or path == [])
+    if empty_path and dbfetch is None:
       return None
     else:
       gid = s.get('grid_id','')
