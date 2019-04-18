@@ -83,7 +83,8 @@ class ToolUI(HtmlToolInstance):
         for m in self.session.models.list(type=AtomicStructure):
             all_chains.extend([chain for chain in m.chains
                                      if chain.polymer_type == Residue.PT_AMINO])
-        self._chain_map = {str(chain):chain for chain in all_chains}
+        self._chain_map = {chain.atomspec.replace('/', ' ').strip():chain
+                           for chain in all_chains}
 
         # Construct Javascript for updating <select> and submit buttons
         if not self._chain_map:
