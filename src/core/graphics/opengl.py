@@ -3036,6 +3036,9 @@ class OffScreenRenderingContext:
 
         # Draw target for default framebuffer
         self.default_draw_target = GL.GL_FRONT
+
+        # compatibility with OpenGLContext
+        self._framebuffer_color_bits = 8
         
     def make_current(self):
         from OpenGL import GL, arrays, platform
