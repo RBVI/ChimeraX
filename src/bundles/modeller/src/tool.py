@@ -194,7 +194,7 @@ class ModellerResultsViewer(ToolInstance):
             return
         self._finalize_init(session, models, attr_names)
 
-    def _finalize_init(self, session, models, attr_names):
+    def _finalize_init(self, session, models, attr_names, scores_fetched=False):
         self.models = models
         self.attr_names = attr_names
         from chimerax.core.models import REMOVE_MODELS
@@ -202,7 +202,7 @@ class ModellerResultsViewer(ToolInstance):
 
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=False, statusbar=False)
-        #TODO: self.tool_window.fill_context_menu = self.fill_context_menu
+        self.tool_window.fill_context_menu = self.fill_context_menu
         parent = self.tool_window.ui_area
 
         from PyQt5.QtWidgets import QTableWidget, QVBoxLayout, QAbstractItemView, QWidget, QPushButton
@@ -223,39 +223,30 @@ class ModellerResultsViewer(ToolInstance):
         layout.setStretchFactor(self.table, 1)
         self._fill_table()
         self.tool_window.manage('side')
+        self.score_fetching_started = False
+        self.scores_fetched = scores_fetched
 
     def delete(self):
         self.model_handler.remove()
         self.row_item_lookup = {}
         ToolInstance.delete(self)
 
-    #TODO
-    def fill_context_menu(self, menu, x, y):
-        # avoid having actions destroyed when this routine returns
-        # by stowing a reference in the menu itself
-        from PyQt5.QtWidgets import QAction
-        save_as_menu = menu.addMenu("Save As")
-        from chimerax.core import io
-        from chimerax.core.commands import run, quote_if_necessary
-        for fmt in io.formats(open=False):
-            if fmt.category == "Sequence alignment":
-                action = QAction(fmt.name, save_as_menu)
-                action.triggered.connect(lambda arg, fmt=fmt:
-                    run(self.session, "save browse format %s alignment %s"
-                    % (fmt.name, quote_if_necessary(self.alignment.ident))))
-                save_as_menu.addAction(action)
+    def fetch_additional_scores(self):
+        self.score_fetching_started = True
 
-        settings_action = QAction("Settings...", menu)
-        settings_action.triggered.connect(lambda arg: self.show_settings())
-        menu.addAction(settings_action)
-        scf_action = QAction("Load Sequence Coloring File...", menu)
-        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
-        menu.addAction(scf_action)
+    def fill_context_menu(self, menu, x, y):
+        if self.score_fetching_started or self.scores_fetched:
+            return
+        from PyQt5.QtWidgets import QAction
+        fetch_action = QAction("Fetch Additional Scores", menu)
+        #TODO: needs to issue a command?!?
+        #fetch_action.triggered.connect(lambda arg: self.fetch_additional_scores())
+        menu.addAction(fetch_action)
 
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(session, data['models'], data['attr_names'])
+        inst._finalize_init(session, data['models'], data['attr_names'], data['scores_fetched'])
         return inst
 
     SESSION_SAVE = True
@@ -264,7 +255,8 @@ class ModellerResultsViewer(ToolInstance):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'models': self.models,
-            'attr_names': self.attr_names
+            'attr_names': self.attr_names,
+            'scores_fetched': self.score_fetched
         }
         return data
 
