@@ -78,10 +78,11 @@ class ToolUI(HtmlToolInstance):
         # Get the list of atomic structures
         if not self._initialized:
             return
-        from chimerax.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure, Residue
         all_chains = []
         for m in self.session.models.list(type=AtomicStructure):
-            all_chains.extend(m.chains)
+            all_chains.extend([chain for chain in m.chains
+                                     if chain.polymer_type == Residue.PT_AMINO])
         self._chain_map = {str(chain):chain for chain in all_chains}
 
         # Construct Javascript for updating <select> and submit buttons
