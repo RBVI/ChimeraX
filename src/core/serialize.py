@@ -39,7 +39,7 @@ Version 3 of the protocol supports instances of the following types:
 """
 
 # from ._serial_python import msgpack_serialize_stream, msgpack_deserialize_stream
-from ._serialize import msgpack_serialize_stream, msgpack_deserialize_stream
+from ._serialize import msgpack_serialize_stream, msgpack_deserialize_stream, PRIMITIVE_TYPES
 import pickle  # to recognize old session files
 
 

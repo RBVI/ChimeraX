@@ -273,9 +273,9 @@ def _process_dist_restraints(filename):
 from chimerax.core.session import State
 class RunModeller(State):
 
-    def __init__(self, session, template_info, num_models, target_seq_name, targets, show_gui):
+    def __init__(self, session, match_chains, num_models, target_seq_name, targets, show_gui):
         self.session = session
-        self.template_info = template_info
+        self.match_chains = match_chains
         self.num_models = num_models
         self.target_seq_name = target_seq_name
         self.targets = targets
@@ -295,6 +295,7 @@ class RunModeller(State):
 
         from chimerax import match_maker as mm
         models = []
+        match_okay = True
         for i, line in enumerate(ok_models_lines[1:]):
             fields = line.strip().split()
             pdb_name, scores = fields[0], [float(f) for f in fields[1:]]
@@ -302,35 +303,20 @@ class RunModeller(State):
             for attr_name, val in zip(attr_names, scores):
                 setattr(model, attr_name, val)
             model.name = self.target_seq_name
-            # sift through the target->template info, looking for the structure with the
-            # greatest coverage of all the templates, but not counting multiple chains
-            # from the same structure onto the same target more than once...
-            # Also, since templates may be replicated to "fill out" a multimer, don't
-            # allow the same template chain in more than one pairing
-            used_templates = set()
-            per_structure_pairings = {}
-            for model_chain, model_template_info in zip(model.chains, self.template_info):
-                target, template_infos = model_template_info
-                structure_templates = {}
-                for pir_seq, chain, match_map in template_infos:
-                    if chain in used_templates:
-                        continue
-                    structure_templates.setdefault(chain.structure, []).append(chain)
-                for s, s_chains in structure_templates.items():
-                    s_chain = sorted(s_chains)[0]
-                    per_structure_pairings.setdefault(s, []).append((model_chain, s_chain))
-                    used_templates.add(s_chain)
-            pairings = []
-            for s_pairings in [list(sp) for sp in per_structure_pairings.values()]:
-                if len(s_pairings) > len(pairings):
-                    pairings = s_pairings
-                elif len(s_pairings) == len(pairings):
-                    if s_pairings[0][1].structure < pairings[0][1].structure:
-                        pairings = s_pairings
-            mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
-                mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
-                cutoff_distance=mm.defaults['iter_cutoff'])
+            if model.num_chains == len(self.match_chains):
+                pairings = list(zip(model.chains, self.match_chains))
+                mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
+                    mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
+                    cutoff_distance=mm.defaults['iter_cutoff'])
+            else:
+                match_okay = False
             models.append(model)
+        if not match_okay:
+            self.session.logger.warning("The number of model chains does not match the number used from"
+                " the template structure(s) [which can be okay if you closed or modified template"
+                " structures while the job was running], so no superposition of the models onto the"
+                " templates was performed.")
+
         reset_alignments = []
         for alignment, target_seq in self.targets:
             alignment.associate(models, seq=target_seq)
@@ -348,7 +334,7 @@ class RunModeller(State):
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return {
-            'template_info': self.template_info,
+            'match_chains': self.match_chains,
             'num_models': self.num_models,
             'target_seq_name': self.target_seq_name,
             'targets': self.targets,
@@ -356,7 +342,7 @@ class RunModeller(State):
         }
 
     def set_state_from_snapshot(self, data):
-        self.template_info = data['template_info']
+        self.match_chains = data['match_chains']
         self.num_models = data['num_models']
         self.target_seq_name = data['target_seq_name']
         self.target = data['targets']

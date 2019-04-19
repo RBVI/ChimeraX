@@ -101,8 +101,11 @@ def guess_termini(seq):
     fake_N = []
     fake_C = []
     residues = seq.residues
+    existing_residues = seq.existing_residues
     n_term = residues[0]
-    if cross_residue(n_term, 'N'):
+    if not n_term:
+        fake_N.append(existing_residues[0])
+    elif cross_residue(n_term, 'N'):
         fake_N.append(n_term)
     else:
         n = n_term.find_atom('N')
@@ -114,7 +117,9 @@ def guess_termini(seq):
         else:
             real_N.append(n_term)
     c_term = residues[-1]
-    if cross_residue(c_term, 'C'):
+    if not c_term:
+        fake_C.append(existing_residues[-1])
+    elif cross_residue(c_term, 'C'):
         fake_C.append(c_term)
     else:
         c = c_term.find_atom('C')
@@ -125,8 +130,8 @@ def guess_termini(seq):
                 real_C.append(c_term)
         else:
             real_C.append(c_term)
-    for i, res in enumerate(residues[:-1]):
-        next_res = residues[i+1]
+    for i, res in enumerate(existing_residues[:-1]):
+        next_res = existing_residues[i+1]
         if res.connects_to(next_res):
             continue
         if res.number + 1 < next_res.number:

@@ -478,7 +478,17 @@ def init(argv, event_loop=True):
                         chimerax.app_data_dir, adu.user_cache_dir)
 
     from chimerax.core import session
-    sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
+    try:
+        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
+    except ImportError as err:
+        if opts.offscreen and 'OpenGL' in err.args[0]:
+            if sys.platform.startswith("linux"):
+                why = "failed"
+            else:
+                why = "not supported on this platform"
+            print("Offscreen rendering is", why, file=sys.stderr)
+            return os.EX_UNAVAILABLE
+        raise
 
     from chimerax.core import core_settings
     core_settings.init(sess)
@@ -561,6 +571,8 @@ def init(argv, event_loop=True):
 
     if opts.version >= 0:
         sess.silent = False
+        if opts.version > 3:
+            opts.version = 3
         format = [None, 'verbose', 'bundles', 'packages'][opts.version]
         from chimerax.core.commands import command_function
         version_cmd = command_function("version")
@@ -574,7 +586,7 @@ def init(argv, event_loop=True):
         # TODO: show database formats
         # TODO: show mime types?
         # TODO: show compression suffixes?
-        raise SystemExit(0)
+        return os.EX_OK
 
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
