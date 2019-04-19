@@ -67,7 +67,6 @@ class Image_Stack_Data:
 
     self.value_type = value_type
     self.is_rgb = is_rgb
-    self.channel = 0
     self.is_multipage = is_multipage
     self.data_size = (xsize, ysize, zsize)
     self.data_step = (1.0, 1.0, 1.0)
@@ -89,7 +88,7 @@ class Image_Stack_Data:
     else:
       from tifffile import imread
       a = imread([self.paths[k] for k in klist])
-    if channel is not None:
+    if self.is_rgb and channel is not None:
       if a.ndim == 4:
         a = a[:,:,:,channel]
       elif a.ndim == 3:
