@@ -2056,8 +2056,9 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   #
   def _update_plane(self, k, axis = 2):
-      self._planes_spinbox.setValue(k)
-      self._planes_slider.setValue(k)
+      if self._planes_slider_shown:
+          self._planes_spinbox.setValue(k)
+          self._planes_slider.setValue(k)
       v = self.volume
       ijk_min, ijk_max, ijk_step = v.region
       if ijk_min[axis] == k and ijk_max[axis] == k:
