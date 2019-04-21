@@ -133,6 +133,13 @@
                 { "data-column-id": "url",
                   "data-visible": false } ],
         ]
+        function params_update(params) {
+            var p = [];
+            $.each(params, function(i, v) {
+                p.push(v[0] + ": " + v[1]);
+            });
+            $("#results_title").text("Results for: " + p.join(", "));
+        }
         function chains_update(chain_labels) {
             var $chain = $("#chain").empty();
             $.each(chain_labels, function(key, value) {
@@ -255,7 +262,7 @@
     </form>
 </fieldset>
 <fieldset>
-<legend></legend>
+<legend id="results_title" style="font-size:small;background:#EEE;"></legend>
     <div id="table_div"></div>
 </fieldset>
 </body>

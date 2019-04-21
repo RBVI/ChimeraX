@@ -63,6 +63,16 @@ class BlastProteinJob(OpalJob):
             data.append("%s\n" % seq[i:i+block_size])
         return ''.join(data)
 
+    def _params(self):
+        # Keys must match HTML element ids
+        return [
+            ( "chain", self.atomspec ),
+            ( "database", self.database ),
+            ( "cutoff", self.cutoff ),
+            ( "max_hits", self.max_hits ),
+            ( "matrix", self.matrix ),
+        ]
+
     def on_finish(self):
         logger = self.session.logger
         logger.info("BlastProtein finished.")
@@ -88,15 +98,17 @@ class BlastProteinJob(OpalJob):
                     logger.bug("BLAST output parsing error: %s" % str(e))
             else:
                 if self.tool:
-                    self.tool.job_finished(self, p)
+                    self.tool.job_finished(self, p, self._params())
                 else:
                     if self.session.ui.is_gui:
                         from .tool import ToolUI
                         ToolUI(self.session, "BlastProtein",
-                               blast_results=p, atomspec=self.atomspec)
+                               blast_results=p, params=self._params())
                     if self.log or (self.log is None and
                                     not self.session.ui.is_gui):
-                        msgs = ["BLAST results:"]
+                        msgs = ["BLAST results for:"]
+                        for name, value in self._params():
+                            msgs.append("  %s: %s" % (name, value))
                         for m in p.matches:
                             name = m.pdb if m.pdb else m.name
                             msgs.append('\t'.join([name, "%.1e" % m.evalue,
