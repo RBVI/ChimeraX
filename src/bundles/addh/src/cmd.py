@@ -751,9 +751,6 @@ def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
     if parent_atom.element.valence < 5:
         # carbons, et al, can't coordinate metals
         return False
-    if parent_type_info.geometry == 3 and len(
-            [a for a in parent_atom.neighbors if a.element.number > 1]) < 2:
-        return False
     from chimerax.core.geometry import distance, angle
     if distance(metal_pos, parent_pos) > _metal_dist:
         return False
