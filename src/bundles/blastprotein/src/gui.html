@@ -20,7 +20,13 @@
     </style>
     <script>
         var bootgrid_table = null;
-        var table_data = null;
+        var table_opts = {
+            "formatters": {
+                "link": function(column, row) {
+                    return '<a href="' + row.url + '">' + row.name + '</a>';
+                }
+            }
+        }
         var column_headers = [
             // From BLAST
             [ "Name",
@@ -133,6 +139,13 @@
                 { "data-column-id": "url",
                   "data-visible": false } ],
         ]
+        function params_update(params) {
+            var p = [];
+            $.each(params, function(i, v) {
+                p.push(v[0] + ": " + v[1]);
+            });
+            $("#results_title").text("Results for: " + p.join(", "));
+        }
         function chains_update(chain_labels) {
             var $chain = $("#chain").empty();
             $.each(chain_labels, function(key, value) {
@@ -142,25 +155,16 @@
             $(".submit").prop("disabled", disabled);
         }
         function table_update(data) {
-            var $div = $("#table_div");
-            if (bootgrid_table) {
-                bootgrid_table.destroy();
-                bootgrid_table = null;
-                table_data = null;
-                $div.empty();
-            }
+            if (bootgrid_table)
+                bootgrid_table.bootgrid("clear");
             if (!data)
                 return;
-            var $table = table_create(column_headers, data);
-            $div.append($table);
-            $("#bootgrid_table").bootgrid({
-                "formatters": {
-                    "link": function(column, row) {
-                        return '<a href="' + row.url + '">' +
-                               row.name + '</a>';
-                    }
-                }
-            });
+            if (!bootgrid_table) {
+                var $table = table_create(column_headers, data)
+                                .appendTo($("#table_div"));
+                bootgrid_table = $table.bootgrid(table_opts);
+            }
+            bootgrid_table.bootgrid("append", data);
         }
         function table_create(headers, data) {
             var $table = $("<table/>", {id:"bootgrid_table"});
@@ -171,13 +175,6 @@
             $thead.append($tr);
             $table.append($thead);
             var $tbody = $("<tbody/>");
-            $.each(data, function(index, row) {
-                var $tr = $("<tr/>").append($.map(headers, function(value) {
-                    var key = value[1]["data-column-id"];
-                    return $("<td/>").text(row[key]);
-                }));
-                $tbody.append($tr);
-            });
             $table.append($tbody);
             return $table;
         }
@@ -254,8 +251,9 @@
     </ul>
     </form>
 </fieldset>
+<hr/>
 <fieldset>
-<legend></legend>
+<legend id="results_title" style="font-size:small;background:#EEE;"></legend>
     <div id="table_div"></div>
 </fieldset>
 </body>
