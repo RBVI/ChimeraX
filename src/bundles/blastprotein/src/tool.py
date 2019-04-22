@@ -21,6 +21,8 @@ class ToolUI(HtmlToolInstance):
     SESSION_SAVE = True
     CUSTOM_SCHEME = "blastprotein"
 
+    help = "help:user/tools/blastprotein.html"
+
     def __init__(self, session, tool_name, blast_results=None, params=None):
         # ``session`` - ``chimerax.core.session.Session`` instance
         # ``tool_name`` - ``str`` instance
@@ -178,6 +180,7 @@ class ToolUI(HtmlToolInstance):
     #
 
     def job_finished(self, job, blast_results, params):
+        self._params = params
         self._show_params(params)
         self._show_results(job.atomspec, blast_results)
         self.html_view.runJavaScript("status('');")
@@ -285,6 +288,7 @@ class ToolUI(HtmlToolInstance):
             "_super": super().take_snapshot(session, flags),
             "_chain_map": self._chain_map,
             "_hits": self._hits,
+            "_params": self._params,
             "_ref_atomspec": self._ref_atomspec,
         }
         return data
@@ -296,6 +300,7 @@ class ToolUI(HtmlToolInstance):
         inst._initialized = False
         inst._chain_map = data["_chain_map"]
         inst._hits = data["_hits"]
+        inst._params = data["_params"]
         inst._ref_atomspec = data["_ref_atomspec"]
         inst._blast_results = None
         inst._build_ui()
