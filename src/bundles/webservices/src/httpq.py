@@ -14,31 +14,47 @@
 """
 HTTP queueing -- avoids flooding servers by queueing requests and only running so many at a time.
 
-You get the HTTP queue with httpq.get_queue(session).  You then get slots to handle your requests with
-calls to queue.new_slot(http_server_name).  With each slot, you request a callback to your workhorse
+Non-blocking usage:
+    You get the (singleton) HTTP queue with httpq.get(session).  You then get slots to handle your requests
+with calls to queue.new_slot(http_server_name).  With each slot, you request a callback to your workhorse
 function with slot.request(workhorse_func, arg1, arg1, ...).  When your workhorse function is called it
 will be executing in a thread, so ensure that calls that may change the GUI (e.g. logger calls) or that
 make further queueing requests are called via session.ui.thread_safe(func, arg1, arg2, ..., kw1=v1, ...).
 Once a slot's function runs, the slot can be reused via another slot.request(...) call [again, not made
 in a thread].
+
+Blocking usage:
+    Here you typically create your own private HTTPQueue instance so that you don't wait for jobs that you
+did not create yourself.  Usage is basically the same as for the public HTTPQueue, except that after you
+issue all your new_slot requests, you call the queue's wait() method to wait for them to complete.
 """
 
 class HTTPQueue:
-    '''Singleton handling all queueing'''
+    '''Handles all queueing'''
 
     def __init__(self, session):
         self.server_map = {}
         self.session = session
+        from threading import Lock
+        self.wait_lock = Lock()
 
     def new_slot(self, server_name):
+        if not self.server_map:
+            self.wait_lock.acquire()
         try:
             server = self.server_map[server_name]
         except KeyError:
             server = self.server_map[server_name] = HTTPQueueServer(self, server_name)
         return server.make_slot()
 
+    def wait(self):
+        self.wait_lock.acquire()
+        self.wait_lock.release()
+
     def _delete_server(self, server_name):
         del self.server_map[server_name]
+        if not self.server_map:
+            self.wait_lock.release()
 
 class HTTPQueueServer:
     '''Handles all requests to a particular host'''
