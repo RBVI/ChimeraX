@@ -1407,6 +1407,9 @@ cdef class CyResidue:
                 return None
         return chi_atoms
 
+    # Cython kind of has trouble with a C++ class variable that is a map of maps, and where the key
+    # type of the nested map is a varidic template; so ideal_chirality is exposes via ctypes instead
+
     def set_alt_loc(self, loc):
         "Set the appropriate atoms in the residue to the given (existing) alt loc"
         if not loc:

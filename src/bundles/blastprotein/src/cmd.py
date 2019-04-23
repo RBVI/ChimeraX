@@ -21,7 +21,7 @@ Matrices = ["BLOSUM45", "BLOSUM62", "BLOSUM80", "BLOSUM90", "BLOSUM100",
 # Use camel-case variable names for displaying keywords in help/usage
 
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", maxHits=500, log=None, *, toolId=None):
+                 matrix="BLOSUM62", maxSeqs=500, log=None, *, toolId=None):
     from .job import BlastProteinJob
     if atoms is None:
         atoms = atomspec.everything(session)
@@ -45,12 +45,12 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
     else:
         tool = session.tools.find_by_id(toolId)
     BlastProteinJob(session, chains[0].characters, chain_spec,
-                    database, cutoff, matrix, maxHits, log, tool)
+                    database, cutoff, matrix, maxSeqs, log, tool)
 blastprotein_desc = CmdDesc(required=[("atoms", AtomSpecArg),],
                         keyword=[("database", EnumOf(DBs)),
                                  ("cutoff", FloatArg),
                                  ("matrix", EnumOf(Matrices)),
-                                 ("maxHits", IntArg),
+                                 ("maxSeqs", IntArg),
                                  ("log", BoolArg),
                                  ("toolId", IntArg),
                                  ],
