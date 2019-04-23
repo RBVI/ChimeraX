@@ -3104,20 +3104,17 @@ def volume_list(session):
 
 # -----------------------------------------------------------------------------
 #
-def open_map(session, stream, name = None, format = None, **kw):
+def open_map(session, path, name = None, format = None, **kw):
     '''
     Supported API. Open a density map file having any of the known density map formats.
+    File path can be a string or list of paths.
     '''
-    if isinstance(stream, (str, list)):
-      map_path = stream         # Batched paths
-    else:
-      map_path = stream.name
-      stream.close()
-    from os.path import basename
-    name = basename(map_path if isinstance(map_path, str) else map_path[0])
+    if name is None:
+      from os.path import basename
+      name = basename(path if isinstance(path, str) else path[0])
 
     from . import data
-    grids = data.open_file(map_path, file_type = format, log = session.logger,
+    grids = data.open_file(path, file_type = format, log = session.logger,
                            verbose = kw.get('verbose'))
 
     models = []
@@ -3514,10 +3511,10 @@ def register_map_format(session, map_format):
     from chimerax.core import io, toolshed
     suf = tuple('.' + s for s in map_format.suffixes)
     save_func = save_map if map_format.writable else None
-    def open_map_format(session, stream, name = None, format = map_format.name, **kw):
-      return open_map(session, stream, name=name, format=format, **kw)
+    def open_map_format(session, path, name = None, format = map_format.name, **kw):
+      return open_map(session, path, name=name, format=format, **kw)
     io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
-                       open_func=open_map_format, batch=map_format.batch,
+                       open_func=open_map_format, batch=True,
                        allow_directory=map_format.allow_directory,
                        export_func=save_func)
 
