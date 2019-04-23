@@ -267,6 +267,8 @@ ExtractTemplate::parse_chem_comp()
 void
 ExtractTemplate::parse_chem_comp_atom()
 {
+    ResName  res_name;
+    char    chirality;
     AtomName  name;
     char    symbol[3];
     float   x, y, z;
@@ -279,6 +281,10 @@ ExtractTemplate::parse_chem_comp_atom()
     CIFFile::ParseValues pv;
     pv.reserve(8);
     try {
+        pv.emplace_back(get_column("comp_id", true),
+            [&] (const char* start, const char* end) {
+                res_name = ResName(start, end - start);
+            });
         pv.emplace_back(get_column("atom_id", true),
             [&] (const char* start, const char* end) {
                 name = AtomName(start, end - start);
@@ -302,6 +308,10 @@ ExtractTemplate::parse_chem_comp_atom()
                 leaving = *start == 'Y' || *start == 'y';
             });
 #endif
+        pv.emplace_back(get_column("pdbx_stereo_config", true),
+            [&] (const char* start) {
+                chirality = *start;
+            });
         pv.emplace_back(get_column("model_Cartn_x", true),
             [&] (const char* start) {
                 x = readcif::str_to_float(start);
@@ -329,6 +339,7 @@ ExtractTemplate::parse_chem_comp_atom()
         if (leaving)
             leaving_atoms.insert(a);
 #endif
+        Residue::ideal_chirality[res_name][name] = chirality;
     }
 }
 
