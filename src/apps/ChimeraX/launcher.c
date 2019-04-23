@@ -20,8 +20,12 @@ static wchar_t* extra[] = {
 	L"-X",
 	L"utf8",
 #endif
+#ifndef _WIN32
+	// Works when started from cygwin shell, but not when
+	// double-clicked upon, nor from command prompt shell
 	L"-X",
 	L"faulthandler",
+#endif
 	L"-m",
 	L"ChimeraX_main",
 };
