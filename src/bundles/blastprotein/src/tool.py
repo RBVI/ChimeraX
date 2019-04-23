@@ -132,12 +132,12 @@ class ToolUI(HtmlToolInstance):
         database = self._arg_database(query["database"])
         cutoff = self._arg_cutoff(query["cutoff"])
         matrix = self._arg_matrix(query["matrix"])
-        max_hits = self._arg_max_hits(query["max_hits"])
+        max_seqs = self._arg_max_seqs(query["max_seqs"])
         cmd_text = ["blastprotein", chain,
                     "database", database,
                     "cutoff", cutoff,
                     "matrix", matrix,
-                    "max_hits", max_hits,
+                    "max_seqs", max_seqs,
                     "tool_id", str(self.id)]
         cmd = ' '.join(cmd_text)
         from chimerax.core.commands import run
@@ -169,11 +169,11 @@ class ToolUI(HtmlToolInstance):
             raise UserError("BlastProtein is limited to one matrix only.")
         return matrices[0]
 
-    def _arg_max_hits(self, max_hits):
-        if len(max_hits) != 1:
+    def _arg_max_seqs(self, max_seqs):
+        if len(max_seqs) != 1:
             from chimerax.core.errors import UserError
             raise UserError("BlastProtein is limited to one hit limit only.")
-        return max_hits[0]
+        return max_seqs[0]
 
     #
     # Callbacks for BlastProteinJob
