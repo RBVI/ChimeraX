@@ -21,7 +21,9 @@ class ToolUI(HtmlToolInstance):
     SESSION_SAVE = True
     CUSTOM_SCHEME = "blastprotein"
 
-    def __init__(self, session, tool_name, blast_results=None, atomspec=None):
+    help = "help:user/tools/blastprotein.html"
+
+    def __init__(self, session, tool_name, blast_results=None, params=None):
         # ``session`` - ``chimerax.core.session.Session`` instance
         # ``tool_name`` - ``str`` instance
 
@@ -38,9 +40,10 @@ class ToolUI(HtmlToolInstance):
         super().__init__(session, tool_name, size_hint=(575, 400),
                          log_errors=True)
         self._initialized = False
+        self._params = params
         self._chain_map = {}
         self._hits = None
-        self._ref_atomspec = atomspec
+        self._ref_atomspec = None
         self._blast_results = blast_results
         self._build_ui()
 
@@ -104,6 +107,11 @@ class ToolUI(HtmlToolInstance):
     def initialize(self):
         self._initialized = True
         self.update_models()
+        if self._params:
+            self._show_params(self._params)
+            for k, v in self._params:
+                if k == "chain":
+                    self._ref_atomspec = v
         if self._hits:
             self._show_hits()
         if self._blast_results:
@@ -124,12 +132,12 @@ class ToolUI(HtmlToolInstance):
         database = self._arg_database(query["database"])
         cutoff = self._arg_cutoff(query["cutoff"])
         matrix = self._arg_matrix(query["matrix"])
-        max_hits = self._arg_max_hits(query["max_hits"])
+        max_seqs = self._arg_max_seqs(query["max_seqs"])
         cmd_text = ["blastprotein", chain,
                     "database", database,
                     "cutoff", cutoff,
                     "matrix", matrix,
-                    "max_hits", max_hits,
+                    "max_seqs", max_seqs,
                     "tool_id", str(self.id)]
         cmd = ' '.join(cmd_text)
         from chimerax.core.commands import run
@@ -161,17 +169,19 @@ class ToolUI(HtmlToolInstance):
             raise UserError("BlastProtein is limited to one matrix only.")
         return matrices[0]
 
-    def _arg_max_hits(self, max_hits):
-        if len(max_hits) != 1:
+    def _arg_max_seqs(self, max_seqs):
+        if len(max_seqs) != 1:
             from chimerax.core.errors import UserError
             raise UserError("BlastProtein is limited to one hit limit only.")
-        return max_hits[0]
+        return max_seqs[0]
 
     #
     # Callbacks for BlastProteinJob
     #
 
-    def job_finished(self, job, blast_results):
+    def job_finished(self, job, blast_results, params):
+        self._params = params
+        self._show_params(params)
         self._show_results(job.atomspec, blast_results)
         self.html_view.runJavaScript("status('');")
 
@@ -208,6 +218,11 @@ class ToolUI(HtmlToolInstance):
             self._add_pdbinfo(pdb_chains)
         self._hits = hits
         self._show_hits()
+
+    def _show_params(self, params):
+        import json
+        js = "params_update(%s)" % json.dumps(params)
+        self.html_view.runJavaScript(js)
 
     def _show_hits(self):
         import json
@@ -273,6 +288,7 @@ class ToolUI(HtmlToolInstance):
             "_super": super().take_snapshot(session, flags),
             "_chain_map": self._chain_map,
             "_hits": self._hits,
+            "_params": self._params,
             "_ref_atomspec": self._ref_atomspec,
         }
         return data
@@ -284,6 +300,7 @@ class ToolUI(HtmlToolInstance):
         inst._initialized = False
         inst._chain_map = data["_chain_map"]
         inst._hits = data["_hits"]
+        inst._params = data["_params"]
         inst._ref_atomspec = data["_ref_atomspec"]
         inst._blast_results = None
         inst._build_ui()

@@ -81,8 +81,12 @@ Above the histogram are:
 <ul>
 <li>the model name 
 <li>an <b>eye icon</b> for showing/hiding the model
-<li>a color well (can be clicked to change the color interactively)
+<li>a color well (that can be clicked to change the color interactively)
 for the <a href="#threshold">threshold</a> most recently moved or clicked
+<br>(to recolor all of a model's <a href="#threshold">thresholds</a>
+at once, instead use
+its color well in the <a href="modelpanel.html"><b>Model Panel</b></a>,
+or the <a href="../commands/volume.html"><b>volume</b></a> command)
 <li>the model number
 <li>dimensions in grid units of the <a href="#region">display region</a>
 <li>the <a href="#step">step size</a> (subsampling)
@@ -103,7 +107,11 @@ most recently moved or clicked
  <a href="../commands/volume.html#maximumintensity">maximum intensity projection</a>
   <li><b>plane</b> - solid volume style,
 a <a href="../commands/volume.html#planes">single plane</a> perpendicular to Z;
-a slider interface is shown below the histogram
+a slider interface is shown below the histogram 
+and the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
+is set to <b>move planes</b> 
+    <a href="mousemodes.html" title="Mouse Modes for Right Button...">
+    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
     <ul>
     <li>pausing the cursor over a single-plane display shows the voxel indices
     and data value in a pop-up balloon
@@ -114,9 +122,15 @@ a slider interface is shown below the histogram
     <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>,
     </ul>
   <li><b>orthoplanes</b> - solid volume style,
-<a href="../commands/volume.html#orthoplanes">XYZ planes</a> simultaneously 
+<a href="../commands/volume.html#orthoplanes">XYZ planes</a> simultaneously;
+the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
+is set to <b>move planes</b>
   <li><b>box</b> - solid volume style, 
- <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>
+ <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>;
+the right-button <a href="../commands/ui.html#mousemode">mouse mode</a>
+is set to <b>crop volume</b> 
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/crop.png"></a>
   </ul>
 <li>a <b>minus-sign button</b> for closing the model
 </ul>

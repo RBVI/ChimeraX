@@ -84,6 +84,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     ctypedef enum BackboneExtent:
         BBE_MIN, BBE_RIBBON, BBE_MAX
 
+
 cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
     ctypedef enum PolymerType:
         PT_NONE, PT_AMINO, PT_NUCLEIC
