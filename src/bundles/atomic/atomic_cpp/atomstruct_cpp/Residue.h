@@ -148,6 +148,7 @@ public:
     static const std::set<AtomName>  ribose_names;
     static std::set<ResName>  std_solvent_names;
     static std::set<ResName>  std_water_names;
+    static std::map<ResName, std::map<AtomName, char>>  ideal_chirality; // populated by mmCIF CCDs
     const std::set<AtomName>*  backbone_atom_names(BackboneExtent bbe) const;
     const std::set<AtomName>*  ribose_atom_names() const;
     const std::set<AtomName>*  side_connector_atom_names() const;

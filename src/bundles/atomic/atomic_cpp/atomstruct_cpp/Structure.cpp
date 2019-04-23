@@ -1647,6 +1647,28 @@ Structure::set_color(const Rgba& rgba)
     }
 }
 
+static bool
+compare_chains(Chain* c1, Chain* c2)
+{
+    Atom* a1 = nullptr;
+    Atom* a2 = nullptr;
+    for (auto r: c1->residues()) {
+        if (r != nullptr) {
+            a1 = r->atoms()[0];
+            break;
+        }
+    }
+    for (auto r: c2->residues()) {
+        if (r != nullptr) {
+            a2 = r->atoms()[0];
+            break;
+        }
+    }
+    if (a1 == nullptr || a2 == nullptr)
+        return c1 < c2;
+    return a1->serial_number() < a2->serial_number();
+}
+
 void
 Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
         const std::vector<Residue*>* correspondences, PolymerType pt)
@@ -1676,6 +1698,7 @@ Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName
         chain->bulk_set(*correspondences, res_chars);
         chain->set_from_seqres(true);
         delete res_chars;
+        std::sort(_chains->begin(), _chains->end(), compare_chains);
     }
 }
 

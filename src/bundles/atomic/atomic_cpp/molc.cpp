@@ -2405,6 +2405,29 @@ extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
     }
 }
 
+extern "C" EXPORT PyObject *residue_ideal_chirality(const char *res_name, const char *atom_name)
+{
+    std::string error_msg;
+    auto i = Residue::ideal_chirality.find(res_name);
+    if (i == Residue::ideal_chirality.end()) {
+        error_msg.append("mmCIF Chemical Component Dictionary for ");
+        error_msg.append(res_name);
+        error_msg.append(" has not been read");
+        PyErr_SetString(PyExc_KeyError, error_msg.c_str());
+        return nullptr;
+    }
+    auto j = i->second.find(atom_name);
+    if (j == i->second.end()) {
+        error_msg.append("Atom ");
+        error_msg.append(atom_name);
+        error_msg.append(" not in mmCIF Chemical Component Dictionary for ");
+        error_msg.append(res_name);
+        PyErr_SetString(PyExc_KeyError, error_msg.c_str());
+        return nullptr;
+    }
+    return unicode_from_character(j->second);
+}
+
 extern "C" EXPORT void residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
 {
     Residue **r = static_cast<Residue **>(residues);

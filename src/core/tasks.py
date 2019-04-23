@@ -437,14 +437,20 @@ class Tasks(StateManager):
         tasks, all registered tasks are terminated.
 
         """
-        task_list = list(self._tasks.values())
-        for tid, t in self._tasks.items():
-            if (not t.SESSION_SAVE) or t.SESSION_ENDURING:
+        tids = list(self._tasks.keys())
+        for tid in tids:
+            try:
+                task = self._tasks[tid]
+            except KeyError:
+                continue
+            if task.SESSION_ENDURING or not task.SESSION_SAVE:
                 continue
             task.terminate()
-            # ?assert(tid not in self._tasks)
-            if tid in self._tasks:
+            try:
                 del self._tasks[tid]
+            except KeyError:
+                # In case terminating the task removed it from task list
+                pass
 
     def list(self):
         """Return list of tasks.

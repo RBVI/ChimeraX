@@ -18,8 +18,10 @@ DBs = ["pdb", "nr"]
 Matrices = ["BLOSUM45", "BLOSUM62", "BLOSUM80", "BLOSUM90", "BLOSUM100",
             "PAM30", "PAM70"]
 
+# Use camel-case variable names for displaying keywords in help/usage
+
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", max_hits=500, log=None, *, tool_id=None):
+                 matrix="BLOSUM62", maxSeqs=500, log=None, *, toolId=None):
     from .job import BlastProteinJob
     if atoms is None:
         atoms = atomspec.everything(session)
@@ -38,19 +40,19 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
         # Make sure we have a structure spec in there so
         # the atomspec remains unique when we load structures later
         chain_spec = chain.structure.atomspec + chain_spec
-    if tool_id is None:
+    if toolId is None:
         tool = None
     else:
-        tool = session.tools.find_by_id(tool_id)
+        tool = session.tools.find_by_id(toolId)
     BlastProteinJob(session, chains[0].characters, chain_spec,
-                    database, cutoff, matrix, max_hits, log, tool)
+                    database, cutoff, matrix, maxSeqs, log, tool)
 blastprotein_desc = CmdDesc(required=[("atoms", AtomSpecArg),],
                         keyword=[("database", EnumOf(DBs)),
                                  ("cutoff", FloatArg),
                                  ("matrix", EnumOf(Matrices)),
-                                 ("max_hits", IntArg),
+                                 ("maxSeqs", IntArg),
                                  ("log", BoolArg),
-                                 ("tool_id", IntArg),
+                                 ("toolId", IntArg),
                                  ],
                         synopsis="Search PDB/NR using BLAST")
 

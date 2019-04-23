@@ -638,6 +638,16 @@ class Residue(CyResidue, State):
         r = Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
         set_custom_attrs(r, data)
         return r
+
+    # Cython kind of has trouble with a C++ class variable that is a map of maps, and
+    # where the key type of the nested map is a varidic template; so expose via ctypes
+    def ideal_chirality(self, atom_name):
+        """Return the ideal chirality (N = none; R = right-handed (rectus); S = left-handed (sinister)
+            for the given atom name in this residue.  The chirality is only known if the mmCIF chemical
+            component for this residue has been read."""
+        f = c_function('residue_ideal_chirality', args = (ctypes.c_char_p, ctypes.c_char_p),
+            ret = ctypes.py_object)
+        return f(self.name.encode('utf-8'), atom_name.encode('utf-8'))
 Residue.set_py_class(Residue)
 
 
@@ -2012,6 +2022,9 @@ class SeqMatchMap(State):
         if isinstance(i, int):
             return self._pos_to_res[i]
         return self._res_to_pos[i]
+
+    def __len__(self):
+        return len(self._pos_to_res)
 
     @property
     def align_seq(self):

@@ -2056,8 +2056,9 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   #
   def _update_plane(self, k, axis = 2):
-      self._planes_spinbox.setValue(k)
-      self._planes_slider.setValue(k)
+      if self._planes_slider_shown:
+          self._planes_spinbox.setValue(k)
+          self._planes_slider.setValue(k)
       v = self.volume
       ijk_min, ijk_max, ijk_step = v.region
       if ijk_min[axis] == k and ijk_max[axis] == k:
@@ -2583,12 +2584,12 @@ class Histogram_Pane:
       return
 
     from .histogram import Marker
-    surf_markers = []
-    for s in v.surfaces:
-        m = Marker((s.level,0), s.rgba)
-        m.volume_surface = s
-        surf_markers.append(m)
+    surf_markers = [Marker((s.level,0), s.rgba) for s in v.surfaces]
     self.surface_thresholds.set_markers(surf_markers)
+    # Careful.  Setting markers may reuse old markers.
+    # So set volume_surface attribute for actual markers.
+    for m,s in zip(self.surface_thresholds.markers, v.surfaces):
+        m.volume_surface = s
     
   # ---------------------------------------------------------------------------
   #
@@ -2700,7 +2701,8 @@ class Histogram_Pane:
 
     # Delete surfaces when marker has been deleted.
     msurfs = set(m.volume_surface for m in markers)
-    v.remove_surfaces([s for s in v.surfaces if s not in msurfs])
+    dsurfs = [s for s in v.surfaces if s not in msurfs]
+    v.remove_surfaces(dsurfs)
     
     markers = self.solid_thresholds.markers
     v.solid_levels = [m.xy for m in markers]

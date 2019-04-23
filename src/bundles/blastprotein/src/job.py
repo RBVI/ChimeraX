@@ -34,21 +34,21 @@ class BlastProteinJob(OpalJob):
     RESULTS_FILENAME = "results.txt"
 
     def __init__(self, session, seq, atomspec, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", max_hits=500, log=None, tool=None):
+                 matrix="BLOSUM62", max_seqs=500, log=None, tool=None):
         super().__init__(session)
         self.seq = seq                          # string
         self.atomspec = atomspec                # string (atom specifier)
         self.database = database                # string
         self.cutoff = cutoff                    # float
         self.matrix = matrix                    # string
-        self.max_hits = max_hits                # int
+        self.max_seqs = max_seqs                # int
         self.log = log
         self.tool = tool
 
         options = ["-d", self.database,
                    "-e", str(self.cutoff),
                    "-M", self.matrix,
-                   "-b", str(self.max_hits),
+                   "-b", str(self.max_seqs),
                    "-i", self.QUERY_FILENAME,
                    "-o", self.RESULTS_FILENAME]
         cmd = ' '.join(options)
@@ -62,6 +62,16 @@ class BlastProteinJob(OpalJob):
         for i in range(0, len(seq), block_size):
             data.append("%s\n" % seq[i:i+block_size])
         return ''.join(data)
+
+    def _params(self):
+        # Keys must match HTML element ids
+        return [
+            ( "chain", self.atomspec ),
+            ( "database", self.database ),
+            ( "cutoff", self.cutoff ),
+            ( "max_seqs", self.max_seqs ),
+            ( "matrix", self.matrix ),
+        ]
 
     def on_finish(self):
         logger = self.session.logger
@@ -88,15 +98,17 @@ class BlastProteinJob(OpalJob):
                     logger.bug("BLAST output parsing error: %s" % str(e))
             else:
                 if self.tool:
-                    self.tool.job_finished(self, p)
+                    self.tool.job_finished(self, p, self._params())
                 else:
                     if self.session.ui.is_gui:
                         from .tool import ToolUI
                         ToolUI(self.session, "BlastProtein",
-                               blast_results=p, atomspec=self.atomspec)
+                               blast_results=p, params=self._params())
                     if self.log or (self.log is None and
                                     not self.session.ui.is_gui):
-                        msgs = ["BLAST results:"]
+                        msgs = ["BLAST results for:"]
+                        for name, value in self._params():
+                            msgs.append("  %s: %s" % (name, value))
                         for m in p.matches:
                             name = m.pdb if m.pdb else m.name
                             msgs.append('\t'.join([name, "%.1e" % m.evalue,

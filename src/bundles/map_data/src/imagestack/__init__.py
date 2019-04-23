@@ -19,7 +19,7 @@ def open(paths):
   if isinstance(paths, str):
     paths = [paths]
 
-  if not is_3d_image(paths[0]) and len(paths) > 1:
+  if len(paths) > 1 and not is_3d_image(paths[0]):
     # Stack of 2d images as a single map.
     grids = image_stack_grids(paths)
   else:

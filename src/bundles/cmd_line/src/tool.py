@@ -98,8 +98,10 @@ class CommandLine(ToolInstance):
                         self.tool.history_dialog.up(shifted)
                     elif event.key() == Qt.Key_U:
                         self.tool.cmd_clear()
+                        self.tool.history_dialog.search_reset()
                     elif event.key() == Qt.Key_K:
                         self.tool.cmd_clear_to_end_of_line()
+                        self.tool.history_dialog.search_reset()
                     else:
                         QComboBox.keyPressEvent(self, event)
                 else:
