@@ -864,13 +864,16 @@ class View:
         self.move(t, drawings)
 
     def move(self, tf, drawings=None):
-        '''Move camera to simulate a motion of drawings.'''
+        '''
+        Move camera to simulate a motion of drawings.
+        Transform is in scene coordinates.
+        '''
         if drawings is None:
             c = self.camera
             c.position = tf.inverse() * c.position
         else:
             for d in drawings:
-                d.position = tf * d.position
+                d.scene_position = tf * d.scene_position
 
     def pixel_size(self, p=None):
         "Return the pixel size in scene length units at point p in the scene."
