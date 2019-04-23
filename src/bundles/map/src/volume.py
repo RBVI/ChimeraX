@@ -180,10 +180,11 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def add_surface(self, level, rgba = None):
+  def add_surface(self, level, rgba = None, display = True):
     '''Supported API.  Create and add a new VolumeSurface with specified contour level and color.'''
     ses = self.session
     s = VolumeSurface(self, level, rgba)
+    s.display = display
     self._surfaces.append(s)
     if self.id is None:
       self.add([s])
@@ -524,8 +525,9 @@ class Volume(Model):
     if replace or len(self.surfaces) == 0:
       levels, colors = self.initial_surface_levels(s, vfrac, mfrac)
       self.remove_surfaces()
+      sdisp = (self.representation in ('surface', 'mesh'))
       for lev, c in zip(levels, colors):
-        self.add_surface(lev, rgba = c)
+        self.add_surface(lev, rgba = c, display = sdisp)
 
     if replace or len(self.solid_levels) == 0:
       self.solid_levels, self.solid_colors = self.initial_solid_levels(s, vfrac, mfrac)
@@ -609,7 +611,7 @@ class Volume(Model):
     '''
     if rep == self.representation:
       return
-    
+
     self.redraw_needed()  # Switch to solid does not change surface until draw
     if rep == 'solid' or self.representation == 'solid':
       ro = self.rendering_options
@@ -1838,7 +1840,7 @@ from chimerax.core.models import Surface
 class VolumeSurface(Surface):
 
   def __init__(self, volume, level, rgba = (1.0,1.0,1.0,1.0)):
-    name = 'level %.3g' % level
+    name = 'surface'
     Surface.__init__(self, name, volume.session)
     self.volume = volume
     self._level = level
@@ -2038,8 +2040,6 @@ class VolumeSurface(Surface):
     v = self.volume
     self.clip_cap = True
     self.clip_offset = .002* len([s for s in v.surfaces if self.level < s.level])
-
-    self.name = 'level %.4g' % self.level
 
   # ---------------------------------------------------------------------------
   #
