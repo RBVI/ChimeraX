@@ -641,6 +641,8 @@ class Volume(Model):
     if display == self.display:
       return
     Model._set_display(self, display)
+    if display:
+      self._drawings_need_update()	# Create model geometry if needed.
     self.call_change_callbacks('displayed')
     if not display:
       self._keep_displayed_data = None	# Allow data to be freed from cache.
