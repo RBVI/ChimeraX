@@ -30,7 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>database</b>&nbsp;&nbsp;<b>pdb</b>&nbsp;|&nbsp;nr&nbsp;]
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
-[&nbsp;<b>maxHits</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>toolId</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </h3>
@@ -65,12 +65,11 @@ to use for alignment scoring:
 <p>
 The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
 expectation value needed to qualify as a hit (default <b>1e-3</b>).
-Results can also be limited with the <b>maxHits</b> option
+Results can also be limited with the <b>maxSeqs</b> option
 (default <b>100</b>); this is the
-<a href="http://blast.ncbi.nlm.nih.gov/" target="_blank">BLAST</a>
-&ldquo;maximum target sequences&rdquo; parameter, described as
-&ldquo;the maximum number of aligned sequences to display,&rdquo;
-but in practice, more hits than this number may be returned.
+maximum number of unique sequences to return; more hits than this number
+may be obtained because multiple structures or other sequence-database entries
+may have the same sequence.
 </p><p>
 When results are returned, the hits are listed in a
 <a href="../tools/blastprotein.html"><b>Blast Protein</b></a> window.
