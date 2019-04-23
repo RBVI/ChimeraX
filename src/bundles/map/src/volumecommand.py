@@ -629,6 +629,7 @@ def volume_settings_text(v):
              'grid size = %d %d %d' % tuple(v.data.size),
              'region = %d %d %d' % tuple(v.region[0]) + ' to %d %d %d' % tuple(v.region[1]),
              'step = %d %d %d' % tuple(v.region[2]),
+             'voxel size = %.3g %.3g %.3g' % tuple(v.data.step),
              'surface levels = ' + ','.join('%.5g' % s.level for s in v.surfaces),
              'surface brightness = %.5g' % v.surface_brightness_factor,
              'surface transparency factor = %.5g' % v.transparency_factor,
