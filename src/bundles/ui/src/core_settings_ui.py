@@ -244,22 +244,6 @@ class CoreSettingsPanel:
             hex_color_name,
             "Background color of main graphics window",
             True),
-        'clipping_surface_caps': (
-            'Surface caps',
-            'Clipping',
-            BooleanOption,
-            'surface cap %s',
-            None,
-            'Whether to cap surface holes created by clipping',
-            False),
-        'default_tool_window_side': (
-            "Default tool side",
-            "Window",
-            ToolSideOption,
-            None,
-            None,
-            "Which side of main window that new tool windows appear on by default.",
-            True),
         'errors_raise_dialog': (
             'Errors shown in dialog',
             'Log',

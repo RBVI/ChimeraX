@@ -272,7 +272,7 @@ def surface_cap(session, enable = None, offset = None):
       Offset of clipping cap from plane in physical units.  Some positive offset is needed or
       the clip plane hides the cap.  Default 0.01.
     '''
-    from chimerax.core.core_settings import settings
+    from .settings import settings
     if enable is not None and enable != settings.clipping_surface_caps:
         settings.clipping_surface_caps = enable
         if enable:
