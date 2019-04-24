@@ -132,13 +132,13 @@ class ToolUI(HtmlToolInstance):
         database = self._arg_database(query["database"])
         cutoff = self._arg_cutoff(query["cutoff"])
         matrix = self._arg_matrix(query["matrix"])
-        max_seqs = self._arg_max_seqs(query["max_seqs"])
+        max_seqs = self._arg_max_seqs(query["maxSeqs"])
         cmd_text = ["blastprotein", chain,
                     "database", database,
                     "cutoff", cutoff,
                     "matrix", matrix,
-                    "max_seqs", max_seqs,
-                    "tool_id", str(self.id)]
+                    "maxSeqs", max_seqs,
+                    "toolId", str(self.id)]
         cmd = ' '.join(cmd_text)
         from chimerax.core.commands import run
         run(self.session, cmd)
