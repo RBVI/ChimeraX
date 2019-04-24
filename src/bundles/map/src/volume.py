@@ -92,10 +92,6 @@ class Volume(Model):
 #    self.surface_piece_change_handler = h
     self.surface_piece_change_handler = None
 
-    # Enable new image rendering code.
-    # TODO: Remove this once new code has been sufficiently tested.
-    self._use_image3d = True
-
   # ---------------------------------------------------------------------------
   #
   def message(self, text, **kw):
@@ -773,31 +769,13 @@ class Volume(Model):
       s = self._make_solid()
       self.solid = s
 
-    if not self._use_image3d:
-      ro = self.rendering_options
-      s.set_options(ro.color_mode, ro.projection_mode,
-                    ro.dim_transparent_voxels,
-                    ro.bt_correction, ro.minimal_texture_memory,
-                    ro.maximum_intensity_projection, ro.linear_interpolation,
-                    ro.show_outline_box, ro.outline_box_rgb,
-                    ro.outline_box_linewidth, ro.box_faces,
-                    ro.orthoplanes_shown,
-                    self.matrix_index(ro.orthoplane_positions))
-      s.set_transform(self.matrix_indices_to_xyz_transform())
-      tf = self.transfer_function()
-      s.set_colormap(tf, self.solid_brightness_factor, self._transparency_thickness())
-      s.set_matrix(self.matrix_size(), self.data.value_type, self._matrix_id, self.matrix_plane)
-      from . import grayscale
-      bm = grayscale.blend_manager(self.session)
-      s.update_drawing(self, bm)
-    else:
-      ro = self.rendering_options
-      s.set_options(ro)
-      s.set_region(self.region)
-      from .image3d import Colormap
-      cmap =  Colormap(self.transfer_function(), self.solid_brightness_factor,
-                       self._transparency_thickness())
-      s.set_colormap(cmap)
+    ro = self.rendering_options
+    s.set_options(ro)
+    s.set_region(self.region)
+    from .image3d import Colormap
+    cmap =  Colormap(self.transfer_function(), self.solid_brightness_factor,
+                     self._transparency_thickness())
+    s.set_colormap(cmap)
 
 
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
@@ -815,28 +793,17 @@ class Volume(Model):
   #
   def _make_solid(self):
 
-    if not self._use_image3d:
-      from . import solid
-      name = self.name + ' solid'
-      msize = self.matrix_size()
-      value_type = self.data.value_type
+    from .image3d import blend_manager
+    bm = blend_manager(self.session)
 
-      transform = self.matrix_indices_to_xyz_transform()
-      align = self.surface_model()
-      s = solid.Solid(name, msize, value_type, self._matrix_id, self.matrix_plane,
-                      transform, align, self.message)
-    else:    
-      from .image3d import blend_manager
-      bm = blend_manager(self.session)
+    from .image3d import Colormap
+    cmap = Colormap(self.transfer_function(), self.solid_brightness_factor,
+                  self._transparency_thickness())
 
-      from .image3d import Colormap
-      cmap = Colormap(self.transfer_function(), self.solid_brightness_factor,
-                    self._transparency_thickness())
-
-      from .image3d import Image3d
-      s = Image3d('image', self.data, self.region, cmap, self.rendering_options,
-                  self.session, bm)
-      self.add([s])
+    from .image3d import Image3d
+    s = Image3d('image', self.data, self.region, cmap, self.rendering_options,
+                self.session, bm)
+    self.add([s])
 
     if hasattr(self, 'mask_colors'):
       s.mask_colors = self.mask_colors
@@ -1775,10 +1742,7 @@ class Volume(Model):
 
     s = self.solid
     if s:
-      if not self._use_image3d:
-        s.close_model(self)
-      else:
-        s.close_model()
+      s.close_model()
       self.solid = None
       
   # ---------------------------------------------------------------------------
