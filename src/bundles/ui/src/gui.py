@@ -776,12 +776,17 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.settings_ui_widget = dw = QDockWidget("ChimeraX Settings", self)
         dw.closeEvent = lambda e, dw=dw: dw.hide()
         container = QWidget()
-        CoreSettingsPanel(session, container)
+        self._core_settings_panel = CoreSettingsPanel(session, container)
         dw.setWidget(container)
         from PyQt5.QtCore import Qt
         self.addDockWidget(Qt.RightDockWidgetArea, dw)
         dw.hide()
         dw.setFloating(True)
+    
+    def add_settings_option(self, category, option):
+        """For bundles that need/want to present their settings with the core ChimeraX settings
+           rather than present their own settings UI"""
+        self._core_settings_panel.options_widget.add_option(category, option)
 
     def _new_tool_window(self, tw):
         if self.hide_tools:
