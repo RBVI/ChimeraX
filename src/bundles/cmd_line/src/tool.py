@@ -26,8 +26,8 @@ class CommandLine(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         self._in_init = True
-        from .settings import CmdLineSettings
-        self.settings = CmdLineSettings(session, tool_name)
+        from .settings import settings
+        self.settings = settings
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
@@ -155,8 +155,7 @@ class CommandLine(ToolInstance):
         self.tool_window.manage(placement="bottom")
         self._in_init = False
         self._processing_command = False
-        from chimerax.core.core_settings import settings as core_settings
-        if core_settings.startup_commands:
+        if self.settings.startup_commands:
             # prevent the startup command output from being summarized into 'startup messages' table
             session.ui.triggers.add_handler('ready', self._run_startup_commands)
 
@@ -287,9 +286,8 @@ class CommandLine(ToolInstance):
         self._processing_command = True
         from chimerax.core.commands import run
         from chimerax.core.errors import UserError
-        from chimerax.core.core_settings import settings as core_settings
         try:
-            for cmd_text in core_settings.startup_commands:
+            for cmd_text in self.settings.startup_commands:
                 run(self.session, cmd_text)
         except UserError as err:
             session.logger.status(str(err), color="crimson")
