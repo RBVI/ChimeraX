@@ -29,14 +29,12 @@ class _CoreSettings(Settings):
     # chimerax.ui.core_settings_ui.py
     EXPLICIT_SAVE = {
         'background_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
-        'errors_raise_dialog': True,
         'http_proxy': ("", 80),
         'https_proxy': ("", 443),
         'resize_window_on_session_restore': False,
         'startup_commands': [],
         'trackpad_multitouch': True,
         'trackpad_sensitivity': 1.0,
-        'warnings_raise_dialog': False,
     }
     AUTO_SAVE = {
         'toolshed_update_interval': 'week',

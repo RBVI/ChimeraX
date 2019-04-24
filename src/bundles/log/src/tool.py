@@ -130,8 +130,8 @@ class Log(ToolInstance, HtmlLog):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        from .settings import LogSettings
-        self.settings = LogSettings(session, tool_name)
+        from .settings import settings
+        self.settings = settings
         from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
@@ -294,9 +294,9 @@ class Log(ToolInstance, HtmlLog):
             from chimerax.core.logger import image_info_to_html
             self.page_source += image_info_to_html(msg, image_info)
         else:
-            from chimerax.core.core_settings import settings as core_settings
-            if ((level >= self.LEVEL_ERROR and core_settings.errors_raise_dialog) or
-                    (level == self.LEVEL_WARNING and core_settings.warnings_raise_dialog)):
+            from .settings import settings
+            if ((level >= self.LEVEL_ERROR and settings.errors_raise_dialog) or
+                    (level == self.LEVEL_WARNING and settings.warnings_raise_dialog)):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
                 else:

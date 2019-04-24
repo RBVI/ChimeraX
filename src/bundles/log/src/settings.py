@@ -11,10 +11,34 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.settings import Settings
 
-from  chimerax.core.settings import Settings
+class _LogSettings(Settings):
+    EXPLICIT_SAVE = {
+        'errors_raise_dialog': True,
+        'warnings_raise_dialog': False,
+    }
 
-class LogSettings(Settings):
     AUTO_SAVE = {
         "exec_cmd_links": False,
     }
+
+# 'settings' module attribute will be set by the initialization of the bundle API
+
+def register_settings_options(session):
+    from chimerax.ui.options import BooleanOption
+    settings_info = {
+        'errors_raise_dialog': (
+            'Errors shown in dialog',
+            BooleanOption,
+            'Should error messages be shown in a separate dialog as well as being logged'),
+        'warnings_raise_dialog': (
+            'Warnings shown in dialog',
+            BooleanOption,
+            'Should warning messages be shown in a separate dialog as well as being logged'),
+    }
+    for setting, setting_info in settings_info.items():
+        opt_name, opt_class, balloon = setting_info
+        opt = opt_class(opt_name, getattr(settings, setting), None,
+            attr_name=setting, settings=settings, balloon=balloon)
+        session.ui.main_window.add_settings_option("Log", opt)

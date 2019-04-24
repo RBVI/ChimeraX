@@ -62,14 +62,6 @@ class CoreSettingsPanel:
             hex_color_name,
             "Background color of main graphics window",
             True),
-        'errors_raise_dialog': (
-            'Errors shown in dialog',
-            'Log',
-            BooleanOption,
-            None,
-            None,
-            'Should error messages be shown in a separate dialog as well as being logged',
-            True),
         'http_proxy': (
             'HTTP proxy',
             'Web Access',
@@ -125,14 +117,6 @@ class CoreSettingsPanel:
             _set_trackpad_sensitivity,
             None,
             'How fast models move in response to multitouch trackpad gestures',
-            True),
-        'warnings_raise_dialog': (
-            'Warnings shown in dialog',
-            'Log',
-            BooleanOption,
-            None,
-            None,
-            'Should warning messages be shown in a separate dialog as well as being logged',
             True),
     }
 
