@@ -23,10 +23,6 @@ from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, 
 from .options import StringOption, HostPortOption, Option, EnumOption, StringsOption
 from .widgets import hex_color_name
 
-class AtomSpecOption(SymbolicEnumOption):
-    values = ("command", "serial", "simple")
-    labels = ("command line", "serial number", "simple")
-
 class ToolSideOption(EnumOption):
     values = ("left", "right")
 
@@ -240,19 +236,6 @@ class CoreSettingsPanel:
     #     before any updater is called.  Otherwise, the updater is in charge of setting the
     #     setting.  Usually only set to False if the updater needs to examine the old value.
     settings_info = {
-        'atomspec_contents': (
-            "Atomspec display style",
-            "Labels",
-            AtomSpecOption,
-            None,
-            None,
-            """How to format display of atomic data<br>
-            <table>
-            <tr><td>simple</td><td>&nbsp;</td><td>Simple readable form</td></tr>
-            <tr><td>command line</td><td>&nbsp;</td><td>Form used in commands</td></tr>
-            <tr><td>serial number</td><td>&nbsp;</td><td>Atom serial number</td></tr>
-            </table>""",
-            True),
         'background_color': (
             "Background color",
             "Background",
