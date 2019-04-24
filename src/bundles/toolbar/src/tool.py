@@ -18,7 +18,7 @@ from chimerax.core.settings import Settings
 class ToolbarSettings(Settings):
     AUTO_SAVE = {
         "show_button_labels": True,
-        "show_group_labels": True,
+        "show_section_labels": True,
     }
 
 
@@ -58,7 +58,7 @@ class ToolbarTool(ToolInstance):
         margins.setBottom(0)
         layout.setContentsMargins(margins)
         self.ttb = TabbedToolbar(
-            self.tool_window.ui_area, show_group_titles=self.settings.show_group_labels,
+            self.tool_window.ui_area, show_section_titles=self.settings.show_section_labels,
             show_button_titles=self.settings.show_button_labels)
         layout.addWidget(self.ttb)
         self._build_buttons()
@@ -74,19 +74,19 @@ class ToolbarTool(ToolInstance):
         button_labels.setChecked(self.settings.show_button_labels)
         button_labels.toggled.connect(lambda arg, f=self._set_button_labels: f(arg))
         menu.addAction(button_labels)
-        group_labels = QAction("Show group labels", menu)
-        group_labels.setCheckable(True)
-        group_labels.setChecked(self.settings.show_group_labels)
-        group_labels.toggled.connect(lambda arg, f=self._set_group_labels: f(arg))
-        menu.addAction(group_labels)
+        section_labels = QAction("Show section labels", menu)
+        section_labels.setCheckable(True)
+        section_labels.setChecked(self.settings.show_section_labels)
+        section_labels.toggled.connect(lambda arg, f=self._set_section_labels: f(arg))
+        menu.addAction(section_labels)
 
     def _set_button_labels(self, show_button_labels):
         self.settings.show_button_labels = show_button_labels
         self.ttb.set_show_button_titles(show_button_labels)
 
-    def _set_group_labels(self, show_group_labels):
-        self.settings.show_group_labels = show_group_labels
-        self.ttb.set_show_group_titles(show_group_labels)
+    def _set_section_labels(self, show_section_labels):
+        self.settings.show_section_labels = show_section_labels
+        self.ttb.set_show_section_titles(show_section_labels)
 
     def handle_scheme(self, cmd):
         # First check that the path is a real command
@@ -113,8 +113,9 @@ class ToolbarTool(ToolInstance):
         dir_path = os.path.join(os.path.dirname(__file__), 'icons')
         for tab in _Toolbars:
             help_url, info = _Toolbars[tab]
-            for (section, compact) in info:
-                shortcuts = info[(section, compact)]
+            for (section, compact), shortcuts in info.items():
+                if compact:
+                    self.ttb.set_section_compact(tab, section, True)
                 for what, icon_file, descrip, tooltip in shortcuts:
                     kind, value = what.split(':', 1)
                     if kind == "mouse":
@@ -134,8 +135,8 @@ class ToolbarTool(ToolInstance):
                     self.ttb.add_button(
                         tab, section, descrip.capitalize(),
                         lambda e, what=what, self=self: self.handle_scheme(what),
-                        icon, tooltip, compact)
-        self.ttb.show_category('Home')
+                        icon, tooltip)
+        self.ttb.show_tab('Home')
 
 
 _Toolbars = {
