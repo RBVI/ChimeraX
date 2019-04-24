@@ -768,31 +768,37 @@ class MainWindow(QMainWindow, PlainTextLog):
                 for win in tool_windows:
                     win._mw_set_dockable(dockable)
 
-    def _make_settings_ui(self, session):
-        from .core_settings_ui import CoreSettingsPanel
-        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
-        self.settings_ui_widget = dw = QDockWidget("ChimeraX Settings", self)
-        dw.closeEvent = lambda e, dw=dw: dw.hide()
-        container = QWidget()
-        self._core_settings_panel = CoreSettingsPanel(session, container)
-        dw.setWidget(container)
-        from PyQt5.QtCore import Qt
-        self.addDockWidget(Qt.RightDockWidgetArea, dw)
-        dw.hide()
-        dw.setFloating(True)
+    @property
+    def settings_ui_widget(self):
+        # this is a proerty in order to delay actual creation of the window as long as possible,
+        # so that bundles can register settings options and the window will start large
+        # enough to accomodate the registered options
+        if self._settings_ui_widget is None:
+            from PyQt5.QtWidgets import QDockWidget, QWidget
+            dw = QDockWidget("ChimeraX Settings", self)
+            dw.closeEvent = lambda e, dw=dw: dw.hide()
+            from .core_settings_ui import CoreSettingsPanel
+            container = QWidget()
+            self._core_settings_panel = csp = CoreSettingsPanel(self.session, container)
+            for cat, opt in self._accumulated_settings_options:
+                csp.options_widget.add_option(cat, opt)
+            self._accumulated_settings_options = []
+            dw.setWidget(container)
+            from PyQt5.QtCore import Qt
+            self.addDockWidget(Qt.RightDockWidgetArea, dw)
+            dw.setFloating(True)
+            dw.hide()
+            self._settings_ui_widget = dw
 
-        settings = self.session.ui.settings
-        self.add_settings_option("Window", InitWindowSizeOption("Initial overall window size",
-            settings.initial_window_size, None, attr_name="initial_window_size", settings=settings,
-            session=self.session, balloon="Initial overall size of ChimeraX window"))
-        self.add_settings_option("Window", ToolSideOption("Default tool side",
-            settings.default_tool_window_side, None, attr_name="default_tool_window_side",
-            settings=settings, balloon="Which side of main window that new tool windows appear on by default"))
+        return self._settings_ui_widget
 
     def add_settings_option(self, category, option):
         """For bundles that need/want to present their settings with the core ChimeraX settings
            rather than present their own settings UI"""
-        self._core_settings_panel.options_widget.add_option(category, option)
+        if self._settings_ui_widget is None:
+            self._accumulated_settings_options.append((category, option))
+        else:
+            self._core_settings_panel.options_widget.add_option(category, option)
 
     def _new_tool_window(self, tw):
         if self.hide_tools:
@@ -856,9 +862,18 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
 
+        self._settings_ui_widget = None
+        self._accumulated_settings_options = []
+        settings = session.ui.settings
+        self.add_settings_option("Window", InitWindowSizeOption("Initial overall window size",
+            settings.initial_window_size, None, attr_name="initial_window_size", settings=settings,
+            session=self.session, balloon="Initial overall size of ChimeraX window"))
+        self.add_settings_option("Window", ToolSideOption("Default tool side",
+            settings.default_tool_window_side, None, attr_name="default_tool_window_side",
+            settings=settings, balloon="Which side of main window that new tool windows appear on by default"))
+
         self.favorites_menu = mb.addMenu("Fa&vorites")
         self.favorites_menu.setToolTipsVisible(True)
-        self._make_settings_ui(session)
         self.update_favorites_menu(session)
 
         self.presets_menu = mb.addMenu("Presets")
