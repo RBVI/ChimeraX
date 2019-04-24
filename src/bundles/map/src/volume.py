@@ -631,7 +631,7 @@ class Volume(Model):
     # Show or hide solid
     so = self.solid
     if so:
-      so.model().display = (rep == 'solid')
+      so.display = (rep == 'solid')
 
     self.call_change_callbacks('representation changed')
 
@@ -833,10 +833,10 @@ class Volume(Model):
       cmap = Colormap(self.transfer_function(), self.solid_brightness_factor,
                     self._transparency_thickness())
 
-      from .image3d import ImageRender
-      s = ImageRender('image', self.data, self.region, cmap, self.rendering_options,
-                    self.session, bm)
-      self.add([s.model()])
+      from .image3d import Image3d
+      s = Image3d('image', self.data, self.region, cmap, self.rendering_options,
+                  self.session, bm)
+      self.add([s])
 
     if hasattr(self, 'mask_colors'):
       s.mask_colors = self.mask_colors
@@ -848,7 +848,7 @@ class Volume(Model):
   def shown(self):
 
     surf_disp = len([s for s in self.surfaces if s.display]) > 0
-    solid_disp = (self.solid and self.solid.model().display)
+    solid_disp = (self.solid and self.solid.display)
     return self.display and (surf_disp or solid_disp)
     
   # ---------------------------------------------------------------------------
@@ -1726,10 +1726,8 @@ class Volume(Model):
     if representation in (None, 'solid'):
       s = self.solid
       if s:
-        m = s.model()
-        if m:
-          mlist.append(m)
-          m.display = view
+        mlist.append(s)
+        s.display = view
 
     return len(mlist) > 0
   
@@ -1750,10 +1748,7 @@ class Volume(Model):
   #
   def solid_model(self):
 
-    s = self.solid
-    if s:
-      return s.model()
-    return None
+    return self.solid
     
   # ---------------------------------------------------------------------------
   #

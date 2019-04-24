@@ -17,12 +17,15 @@
 # Call update_drawing() to display the model with current levels, colors,
 # and rendering options.  Argument align can be a model to align with.
 #
-class ImageRender:
+from chimerax.core.models import Model
+class Image3d(Model):
 
   def __init__(self, name, grid_data, region, colormap, rendering_options,
                session, blend_manager):
 
-    self.name = name
+
+    Model.__init__(self, name, session)
+
     self._data = grid_data
     self._region = region
     self._last_ijk_to_xyz_transform = grid_data.ijk_to_xyz_transform
@@ -34,7 +37,6 @@ class ImageRender:
       blend_manager.add_image(self)
 
     self._session = session
-    self._drawing = ImageDrawing(session, self)
     self._color_tables = {}			# Maps axis to (ctable, ctable_range)
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
@@ -73,7 +75,7 @@ class ImageRender:
       bi = self._blend_image
       if bi and self is bi.master_image:
         bi.set_region(region)
-        self._drawing.redraw_needed()	# Force redraw since BlendedImage is not in draw hierarchy.
+        self.redraw_needed()	# Force redraw since BlendedImage is not in draw hierarchy.
 
   # ---------------------------------------------------------------------------
   #
@@ -99,7 +101,7 @@ class ImageRender:
     for d in self._planes_drawings:
       d._update_colors = True
       d.color = mc
-    self._drawing.redraw_needed()
+    self.redraw_needed()
     bi = self._blend_image
     if bi:
       bi._need_color_update()
@@ -129,7 +131,7 @@ class ImageRender:
 #      self._update_planes_for_new_region()
 
     if rendering_options.maximum_intensity_projection != ro.maximum_intensity_projection:
-      self._drawing.redraw_needed()	# MIP blending is entirely handled in draw routine.
+      self.redraw_needed()	# MIP blending is entirely handled in draw routine.
       
 # TODO: _p_mode not used.  Why?
     self._p_mode = self._auto_projection_mode()
@@ -226,9 +228,8 @@ class ImageRender:
   #
   def _color_array(self, ctype, cshape):
 
-    v = self._drawing
-    if hasattr(v, '_grayscale_color_array'):
-      colors = v._grayscale_color_array
+    if hasattr(self, '_grayscale_color_array'):
+      colors = self._grayscale_color_array
       if colors.dtype == ctype and tuple(colors.shape) == cshape:
         return colors
 
@@ -238,7 +239,7 @@ class ImageRender:
     except MemoryError:
       self.message("Couldn't allocate color array of size (%d,%d,%d,%d) region" % cshape, large_data_only = False)
       raise
-    v._grayscale_color_array = colors        # TODO: make sure this array is freed.
+    self._grayscale_color_array = colors        # TODO: make sure this array is freed.
     return colors
   
   # ---------------------------------------------------------------------------
@@ -464,23 +465,17 @@ class ImageRender:
       else:
         pm = '2d-xyz'
     return pm
-
-  # ---------------------------------------------------------------------------
-  #
-  def model(self):
-
-    return self._drawing
     
   # ---------------------------------------------------------------------------
   #
   def close_model(self):
 
     self._remove_planes()
-    v = self._drawing
-    if v and not v.deleted and v.parent:
-      v.parent.remove_drawing(v)
-    self._drawing = None
+    if not self.deleted and self.parent:
+      self.parent.remove_drawing(self)
 
+  # ---------------------------------------------------------------------------
+  #
   def _update_planes(self, renderer):
     # Create or update the planes.
     view_dir = self._view_direction(renderer)
@@ -492,6 +487,8 @@ class ImageRender:
       pd = self._update_axis_aligned_planes(view_dir)
     return pd
 
+  # ---------------------------------------------------------------------------
+  #
   def _update_axis_aligned_planes(self, view_direction):
     # Render grid aligned planes
     axis, rev = self._projection_axis(view_direction)
@@ -500,7 +497,7 @@ class ImageRender:
     if axis is not None:
       # Reverse drawing order if needed to draw back to front
       pd.multitexture_reverse_order = rev
-      sc = self._drawing.shape_changed
+      sc = self.shape_changed
       for d in self._multiaxis_planes:
         disp = (d is pd)
         if d and d.display != disp:
@@ -509,16 +506,18 @@ class ImageRender:
       # When switching planes, do not set shape change flag
       # since that causes center of rotation update with
       # front center rotation method, which messes up spin movies.
-      self._drawing.shape_changed = sc
+      self.shape_changed = sc
 
     return pd
 
+  # ---------------------------------------------------------------------------
+  #
   def _axis_planes(self, axis):
     pd = self._planes_drawing if axis is None else self._multiaxis_planes[axis]
     if pd:
       return pd
     
-    sc = self._drawing.shape_changed
+    sc = self.shape_changed
     pd = self._make_planes(axis)
     pd._update_colors = self._use_gpu_colormap
     if axis is None:
@@ -526,25 +525,31 @@ class ImageRender:
     else:
       if tuple(self._multiaxis_planes) != (None, None, None):
         # Reset shape change flag since this is the same shape.
-        self._drawing.shape_changed = sc
+        self.shape_changed = sc
       self._multiaxis_planes[axis] = pd
 
     return pd
   
+  # ---------------------------------------------------------------------------
+  #
   def _update_view_aligned_planes(self, view_direction):
     pd = self._view_planes()
-    pd.update_geometry(view_direction, self._drawing.scene_position)
+    pd.update_geometry(view_direction, self.scene_position)
     return pd
 
+  # ---------------------------------------------------------------------------
+  #
   def _view_planes(self):
     pd = self._view_aligned_planes
     if pd is None:
       ro = self._rendering_options
       pd = ViewAlignedPlanes(self)
       self._view_aligned_planes = pd
-      self._drawing.add_drawing(pd)
+      self.add_drawing(pd)
     return pd
 
+  # ---------------------------------------------------------------------------
+  #
   @property
   def _texture_region(self):
     ro = self._rendering_options
@@ -556,18 +561,22 @@ class ImageRender:
       tex_region = self._region
     return tex_region
 
+  # ---------------------------------------------------------------------------
+  #
   @property
   def _planes_drawings(self):
     drawings = self._multiaxis_planes + [self._view_aligned_planes, self._planes_drawing]
     return [d for d in drawings if d]
     
+  # ---------------------------------------------------------------------------
+  #
   def _remove_planes(self):
     self._remove_axis_planes()
     self._remove_view_planes()
-    d = self._drawing
-    if d:
-      d.redraw_needed()
+    self.redraw_needed()
 
+  # ---------------------------------------------------------------------------
+  #
   def _remove_axis_planes(self):
     pd = self._planes_drawing
     if pd:
@@ -579,15 +588,21 @@ class ImageRender:
         pd.close()
     self._multiaxis_planes = [None,None,None]
 
+  # ---------------------------------------------------------------------------
+  #
   def _remove_view_planes(self):
     pd = self._view_aligned_planes
     if pd:
       pd.close()
       self._view_aligned_planes = None
 
+  # ---------------------------------------------------------------------------
+  #
   def _view_direction(self, render):
     return -render.current_view_matrix.inverse().z_axis()	# View direction, scene coords
 
+  # ---------------------------------------------------------------------------
+  #
   def _projection_axis(self, view_direction):
     # View matrix maps scene to camera coordinates.
     v = view_direction
@@ -596,7 +611,7 @@ class ImageRender:
       return None, False
 
     # Determine which axis has box planes with largest projected area.
-    ijk_to_scene = self._drawing.scene_position * self._ijk_to_xyz
+    ijk_to_scene = self.scene_position * self._ijk_to_xyz
     bx,by,bz = ijk_to_scene.axes()	# Box axes, scene coordinates
     # Scale axes to length of box so that plane axis chosen maximizes plane view area for box.
     ijk_min, ijk_max = self._region[:2]
@@ -618,43 +633,24 @@ class ImageRender:
 
     return axis, rev
 
+  # ---------------------------------------------------------------------------
+  #
   def _make_planes(self, axis):
     d = AxisAlignedPlanes(self, axis)
-    self._drawing.add_drawing(d)
+    self.add_drawing(d)
     return d
 
-class Colormap:
-    def __init__(self, transfer_function,
-                 brightness_factor, transparency_thickness, clamp = False):
-
-      self.transfer_function = transfer_function
-      self.brightness_factor = brightness_factor
-      self.transparency_thickness = transparency_thickness
-      self.clamp = clamp
-
-    def __eq__(self, cmap):
-        return (self.transfer_function == cmap.transfer_function and
-                self.brightness_factor == cmap.brightness_factor and
-                self.transparency_thickness == cmap.transparency_thickness and
-                self.clamp == cmap.clamp)
-
-
-from chimerax.core.models import Model
-class ImageDrawing(Model):
-  SESSION_SAVE = False		# Volume restores this model.
-
-  def __init__(self, session, image_render):
-    self._image_render = image_render
-    Model.__init__(self, image_render.name, session)
-
+  # ---------------------------------------------------------------------------
+  #
   def delete(self):
-    ir = self._image_render
-    b = ir._blend_manager
+    b = self._blend_manager
     if b:
       b.remove_image(ir)
-    ir._remove_planes()
+    self._remove_planes()
     Model.delete(self)
 
+  # ---------------------------------------------------------------------------
+  #
   def bounds(self):
     # Override bounds because GrayScaleDrawing does not set geometry until draw() is called
     # but setting initial camera view uses bounds before draw() is called.
@@ -662,19 +658,20 @@ class ImageDrawing(Model):
     if not self.display:
       return None
 
-    ir = self._image_render
-    corners = _box_corners(ir._region, ir._ijk_to_xyz)
+    corners = _box_corners(self._region, self._ijk_to_xyz)
     positions = self.get_scene_positions(displayed_only = True)
     from chimerax.core.geometry import point_bounds
     b = point_bounds(corners, positions)
     return b
-    
+
+  # ---------------------------------------------------------------------------
+  #
   def drawings_for_each_pass(self, pass_drawings):
     '''Override Drawing method because geometry is not set until draw() is called.'''
     if not self.display:
       return
 
-    opaque = self._image_render._opaque
+    opaque = self._opaque
     p = self.OPAQUE_DRAW_PASS if opaque else self.TRANSPARENT_DRAW_PASS
     if p in pass_drawings:
       pass_drawings[p].append(self)
@@ -684,26 +681,27 @@ class ImageDrawing(Model):
     # Do not include child drawings since this drawing overrides draw() method
     # and draws the children.
 
+  # ---------------------------------------------------------------------------
+  #
   def draw(self, renderer, draw_pass):
     if not self.display:
       return
 
-    ir = self._image_render
-    ir._update_blend_groups()
-    bi = ir._blend_image
+    self._update_blend_groups()
+    bi = self._blend_image
     if bi:
-      if ir is bi.master_image:
+      if self is bi.master_image:
         bi.draw(renderer, draw_pass)
       return
 
-    transparent = not ir._opaque
+    transparent = not self._opaque
     from chimerax.core.graphics import Drawing
     dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not transparent)
     dtransp = (draw_pass == Drawing.TRANSPARENT_DRAW_PASS and transparent)
     if not dopaq and not dtransp:
       return
 
-    pd = ir._update_planes(renderer)
+    pd = self._update_planes(renderer)
 
     if pd._update_region:
       pd.update_region()
@@ -713,9 +711,11 @@ class ImageDrawing(Model):
 
     self._draw_planes(renderer, draw_pass, dtransp, pd)
 
+  # ---------------------------------------------------------------------------
+  #
   def _draw_planes(self, renderer, draw_pass, dtransp, drawing):
     r = renderer
-    ro = self._image_render._rendering_options
+    ro = self._rendering_options
     max_proj = dtransp and ro.maximum_intensity_projection
     if max_proj:
       r.blend_max(True)
@@ -733,6 +733,24 @@ class ImageDrawing(Model):
       r.write_depth(True)
     if max_proj:
       r.blend_max(False)
+
+# ---------------------------------------------------------------------------
+#
+class Colormap:
+    def __init__(self, transfer_function,
+                 brightness_factor, transparency_thickness, clamp = False):
+
+      self.transfer_function = transfer_function
+      self.brightness_factor = brightness_factor
+      self.transparency_thickness = transparency_thickness
+      self.clamp = clamp
+
+    def __eq__(self, cmap):
+        return (self.transfer_function == cmap.transfer_function and
+                self.brightness_factor == cmap.brightness_factor and
+                self.transparency_thickness == cmap.transparency_thickness and
+                self.clamp == cmap.clamp)
+
   
 # ---------------------------------------------------------------------------
 #
@@ -1095,15 +1113,15 @@ def _xyz_to_texcoord(ijk_region, ijk_to_xyz):
 
 # ---------------------------------------------------------------------------
 #
-class BlendedImage(ImageRender):
+class BlendedImage(Image3d):
 
   def __init__(self, images):
 
     name = 'blend ' + ', '.join(ir.name for ir in images)
     i0 = images[0]
-    ImageRender.__init__(self, name, i0._data, i0._region,
-                         i0._colormap, i0._rendering_options,
-                         i0.model().session, blend_manager = None)
+    Image3d.__init__(self, name, i0._data, i0._region,
+                     i0._colormap, i0._rendering_options,
+                     i0.session, blend_manager = None)
 
     self.images = images
 
@@ -1118,10 +1136,10 @@ class BlendedImage(ImageRender):
   def set_options(self, rendering_options):
     ro = rendering_options.copy()
     ro.colormap_on_gpu = False
-    ImageRender.set_options(self, ro)
+    Image3d.set_options(self, ro)
 
   def draw(self, renderer, draw_pass):
-    self._drawing.draw(renderer, draw_pass)
+    Image3d.draw(self, renderer, draw_pass)
 
   @property
   def master_image(self):
@@ -1217,7 +1235,7 @@ def blend_rgba(rgba1, rgba2):
 class ImageBlendManager:
   def __init__(self):
     self.blend_images = set()
-    self._blend_image = {}	# Map ImageRender to BlendedImage
+    self._blend_image = {}	# Map Image3d to BlendedImage
     self.need_group_update = False
 
   def add_image(self, image_render):
@@ -1250,14 +1268,13 @@ class ImageBlendManager:
     images.sort(key = lambda d: d.name)
     aligned = {}
     for ir in images:
-      d = ir.model()
       ro = ir._rendering_options
-      if d.display and d.parents_displayed and not ro.maximum_intensity_projection:
+      if ir.display and ir.parents_displayed and not ro.maximum_intensity_projection:
         sortho = ro.orthoplanes_shown
         orthoplanes = (sortho, tuple(ro.orthoplane_positions)) if sortho else sortho
         # Need to have matching grid size, scene position, grid spacing, box face mode, orthoplane mode
         k = (tuple(tuple(ijk) for ijk in ir._region),
-             tuple(d.scene_position.matrix.flat),
+             tuple(ir.scene_position.matrix.flat),
              tuple(ir._ijk_to_xyz.matrix.flat),
              ro.box_faces, orthoplanes)
         if k in aligned:
