@@ -765,49 +765,14 @@ class Volume(Model):
   def _update_solid(self):
 
     s = self.solid
-    if s is None:
-      s = self._make_solid()
-      self.solid = s
+    if s is None or s.deleted:
+      self.solid = s = VolumeImage(self)
+    else:
+      s.update_settings()
 
     ro = self.rendering_options
-    s.set_options(ro)
-    s.set_region(self.region)
-    from .image3d import Colormap
-    cmap =  Colormap(self.transfer_function(), self.solid_brightness_factor,
-                     self._transparency_thickness())
-    s.set_colormap(cmap)
-
-
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
-    return s
-
-  # ---------------------------------------------------------------------------
-  #
-  def _transparency_thickness(self):
-    box_size = [x1-x0 for x0,x1 in zip(*self.xyz_bounds())]
-    thickness = self.transparency_depth * min(box_size)
-    return thickness
-
-  # ---------------------------------------------------------------------------
-  #
-  def _make_solid(self):
-
-    from .image3d import blend_manager
-    bm = blend_manager(self.session)
-
-    from .image3d import Colormap
-    cmap = Colormap(self.transfer_function(), self.solid_brightness_factor,
-                  self._transparency_thickness())
-
-    from .image3d import Image3d
-    s = Image3d('image', self.data, self.region, cmap, self.rendering_options,
-                self.session, bm)
-    self.add([s])
-
-    if hasattr(self, 'mask_colors'):
-      s.mask_colors = self.mask_colors
-
     return s
 
   # ---------------------------------------------------------------------------
@@ -1531,7 +1496,7 @@ class Volume(Model):
       sg = GridSubregion(self.data, ijk_min, ijk_max, ijk_step)
 
     if mask_zone:
-      surf_model = self.surface_model()
+#      surf_model = self.surface_model()
 #      import SurfaceZone
 #      if SurfaceZone.showing_zone(surf_model):
       if False:
@@ -1653,16 +1618,6 @@ class Volume(Model):
     return (r * bf, g * bf, b * bf, a * ofactor)
   
   # ---------------------------------------------------------------------------
-  # Without brightness and transparency adjustment.
-  #
-  def transfer_function(self):
-
-    tf = [tuple(ts) + tuple(c) for ts,c in zip(self.solid_levels, self.solid_colors)]
-    tf.sort()
-
-    return tf
-  
-  # ---------------------------------------------------------------------------
   #
   def write_file(self, path, format = None, options = {}, temporary = False):
 
@@ -1704,12 +1659,6 @@ class Volume(Model):
 
     mlist = [self]
     return mlist
-  
-  # ---------------------------------------------------------------------------
-  #
-  def surface_model(self):
-
-    return self
   
   # ---------------------------------------------------------------------------
   #
@@ -1794,6 +1743,78 @@ class Volume(Model):
     v._drawings_need_update()
     show_volume_dialog(session)
     return v
+
+# -----------------------------------------------------------------------------
+#
+from .image3d import Image3d
+class VolumeImage(Image3d):
+  def __init__(self, volume):
+
+    self._volume = v = volume
+    
+    from .image3d import blend_manager, Colormap
+    cmap = Colormap(self._transfer_function(), v.solid_brightness_factor,
+                    self._transparency_thickness())
+
+    Image3d.__init__(self, 'image', v.data, v.region, cmap, v.rendering_options,
+                     v.session, blend_manager(v.session))
+    v.add([self])
+
+    if hasattr(v, 'mask_colors'):
+      s.mask_colors = v.mask_colors
+
+  # ---------------------------------------------------------------------------
+  #
+  def update_settings(self):
+    v = self._volume
+    ro = v.rendering_options
+    self.set_options(ro)
+    self.set_region(v.region)
+    from .image3d import Colormap
+    cmap = Colormap(self._transfer_function(), v.solid_brightness_factor,
+                    self._transparency_thickness())
+    self.set_colormap(cmap)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _transparency_thickness(self):
+    v = self._volume
+    box_size = [x1-x0 for x0,x1 in zip(*v.xyz_bounds())]
+    thickness = v.transparency_depth * min(box_size)
+    return thickness
+  
+  # ---------------------------------------------------------------------------
+  # Without brightness and transparency adjustment.
+  #
+  def _transfer_function(self):
+    v = self._volume
+    tf = [tuple(ts) + tuple(c) for ts,c in zip(v.solid_levels, v.solid_colors)]
+    tf.sort()
+    return tf
+
+
+  # ---------------------------------------------------------------------------
+  # State save/restore in ChimeraX
+  #
+  def take_snapshot(self, session, flags):
+    data = {
+      'volume': self._volume,
+      'model state': Surface.take_snapshot(self, session, flags),
+      'version': 1
+    }
+    return data
+
+  # ---------------------------------------------------------------------------
+  #
+  @staticmethod
+  def restore_snapshot(session, data):
+    v = data['volume']
+    if v is None:
+      return None	# Volume was not restored, e.g. file missing.
+    i = VolumeImage(v)
+    Model.set_state_from_snapshot(i, session, data['model state'])
+    v.solid = i
+    return i
 
 # -----------------------------------------------------------------------------
 #
