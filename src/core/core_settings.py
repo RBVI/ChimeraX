@@ -18,7 +18,7 @@ preferences: manage preferences
 TODO
 """
 from . import commands
-from .colors import Color, BuiltinColors
+from .colors import Color
 from . import configfile
 from .settings import Settings
 
@@ -29,11 +29,9 @@ class _CoreSettings(Settings):
     # chimerax.ui.core_settings_ui.py
     EXPLICIT_SAVE = {
         'background_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
-        'default_tool_window_side': "right",
         'errors_raise_dialog': True,
         'http_proxy': ("", 80),
         'https_proxy': ("", 443),
-        'initial_window_size': ("last used", None),
         'resize_window_on_session_restore': False,
         'startup_commands': [],
         'trackpad_multitouch': True,
@@ -41,7 +39,6 @@ class _CoreSettings(Settings):
         'warnings_raise_dialog': False,
     }
     AUTO_SAVE = {
-        'last_window_size': None,
         'toolshed_update_interval': 'week',
         'toolshed_last_check': '',
     }
