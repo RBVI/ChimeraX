@@ -158,6 +158,8 @@ class _Section(QWidgetAction):
                 del w._title
             self._clear_layout(w._layout)
             self._layout_buttons(w)
+            w.updateGeometry()
+            w.adjustSize()
 
     def set_compact(self, on_off):
         if self.compact == on_off:
@@ -243,8 +245,8 @@ class TabbedToolbar(QTabWidget):
                 # Qt already handles current tab
                 continue
             tab = self.widget(i)
-            tab.adjustSize()
             tab.updateGeometry()  # TODO: not needed all of the time
+            tab.adjustSize()
 
     def set_show_section_titles(self, on_off):
         if self.show_section_titles == on_off:

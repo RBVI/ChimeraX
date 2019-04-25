@@ -17,9 +17,8 @@ class UI_Settings(Settings):
 
     EXPLICIT_SAVE = {
         'autostart': [
-            'Molecule Display Toolbar', 'Log', 'Model Panel',
-            'Mouse Modes for Right Button', 'Graphics Toolbar',
-            'Command Line Interface',
+            'Log', 'Model Panel', 'Command Line Interface',
+            'Toolbar',
         ],
         'default_tool_window_side': "right",
         'favorites': [],
