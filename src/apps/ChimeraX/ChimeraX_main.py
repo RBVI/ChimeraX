@@ -429,19 +429,19 @@ def init(argv, event_loop=True):
     import appdirs
     chimerax.app_dirs = ad = appdirs.AppDirs(app_name, appauthor=app_author,
                                              version=partial_version)
-    # make sure app_dirs.user_* directories exist
-    for var, name in (
-            ('user_data_dir', "user's data"),
-            ('user_config_dir', "user's configuration"),
-            ('user_cache_dir', "user's cache")):
-        dir = getattr(ad, var)
-        try:
-            if not is_root:
-                os.makedirs(dir, exist_ok=True)
-        except OSError as e:
-            print("Unable to make %s directory: %s: %s" % (
-                name, e.strerror, e.filename), file=sys.stderr)
-            raise SystemExit(1)
+    if not is_root:
+        # make sure app_dirs.user_* directories exist
+        for var, name in (
+                ('user_data_dir', "user's data"),
+                ('user_config_dir', "user's configuration"),
+                ('user_cache_dir', "user's cache")):
+            directory = getattr(ad, var)
+            try:
+                os.makedirs(directory, exist_ok=True)
+            except OSError as e:
+                print("Unable to make %s directory: %s: %s" % (
+                    name, e.strerror, e.filename), file=sys.stderr)
+                return os.EX_CANTCREAT
 
     # app_dirs_unversioned is primarily for caching data files that will
     # open in any version
