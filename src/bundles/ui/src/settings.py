@@ -21,9 +21,15 @@ class UI_Settings(Settings):
             'Mouse Modes for Right Button', 'Graphics Toolbar',
             'Command Line Interface',
         ],
+        'default_tool_window_side': "right",
         'favorites': [],
+        'initial_window_size': ("last used", None),
         'tool_positions': {'toolbars': {}, 'windows': {}},
         'undockable': [
             'Help Viewer',
         ],
+    }
+
+    AUTO_SAVE = {
+        'last_window_size': None,
     }

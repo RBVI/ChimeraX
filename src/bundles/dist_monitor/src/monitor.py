@@ -39,25 +39,25 @@ class DistancesMonitor(StateManager):
             self._already_restored.clear()
 
     def _get_decimal_places(self):
-        from chimerax.core.core_settings import settings
-        return settings.distance_decimal_places
+        from .settings import settings
+        return settings.decimal_places
 
     def _set_decimal_places(self, places):
-        from chimerax.core.core_settings import settings
-        if places == settings.distance_decimal_places:
+        from .settings import settings
+        if places == settings.decimal_places:
             return
-        settings.distance_decimal_places = places
+        settings.decimal_places = places
         self._update_distances()
 
     decimal_places = property(_get_decimal_places, _set_decimal_places)
 
     @property
     def distance_format(self, *, decimal_places=None, show_units=None):
-        from chimerax.core.core_settings import settings
+        from .settings import settings
         if decimal_places is None:
-            decimal_places = settings.distance_decimal_places
+            decimal_places = settings.decimal_places
         if show_units is None:
-            show_units = settings.distance_show_units
+            show_units = settings.show_units
         fmt = "%%.%df" % decimal_places
         if show_units:
             fmt += u'\u00C5'
@@ -80,14 +80,14 @@ class DistancesMonitor(StateManager):
             del self.update_callbacks[group]
 
     def _get_show_units(self):
-        from chimerax.core.core_settings import settings
-        return settings.distance_show_units
+        from .settings import settings
+        return settings.show_units
 
     def _set_show_units(self, show):
-        from chimerax.core.core_settings import settings
-        if show == settings.distance_show_units:
+        from .settings import settings
+        if show == settings.show_units:
             return
-        settings.distance_show_units = show
+        settings.show_units = show
         self._update_distances()
 
     show_units = property(_get_show_units, _set_show_units)

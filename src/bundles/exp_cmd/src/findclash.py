@@ -26,7 +26,7 @@ def findclash(session, spec=None, make_pseudobonds=False, log=True,
     from chimerax.core.errors import LimitationError
     from chimerax.atomic import Atoms
     from chimerax.core.commands import atomspec
-    from chimerax.core.core_settings import settings
+    from chimerax.atomic.settings import settings
     if test != "self":
         raise LimitationError("findclash test \"%s\" not implemented" % test)
     if hbond_allowance != 0:

@@ -29,20 +29,20 @@ from PyQt5.QtWidgets import (
 _debug = False   # DEBUG
 
 
-class _Group(QWidgetAction):
-    # A Group is a collection of buttons that are grouped together
+class _Section(QWidgetAction):
+    # A Section is a collection of buttons that are adjacent to each other
 
     # Buttons are laid out in a grid.
     # If compact, the buttons are laid out vertically with rows
-    # 0 to n - 1 being the buttons and row n being the group title.
-    # If not compact, then row 0 is the button and row 1 is the group title.
+    # 0 to n - 1 being the buttons and row n being the section title.
+    # If not compact, then row 0 is the button and row 1 is the section title.
 
-    def __init__(self, parent, group_title, compact, show_group_titles, show_button_titles):
+    def __init__(self, parent, section_title, show_section_titles, show_button_titles):
         super().__init__(parent)
         self._buttons = []
-        self.group_title = group_title
-        self.compact = compact
-        self.show_group_titles = show_group_titles
+        self.section_title = section_title
+        self.compact = False
+        self.show_section_titles = show_section_titles
         self.show_button_titles = show_button_titles
         if show_button_titles:
             self.compact_height = 3
@@ -140,8 +140,8 @@ class _Group(QWidgetAction):
     def _layout_buttons(self, w):
         for column, button_info in enumerate(self._buttons):
             self._add_button(w, column, button_info)
-        if self.show_group_titles:
-            w._title = QLabel(self.group_title, w)
+        if self.show_section_titles:
+            w._title = QLabel(self.section_title, w)
             self._adjust_title(w)
 
     def _clear_layout(self, layout):
@@ -152,15 +152,24 @@ class _Group(QWidgetAction):
             w.setParent(None)
             w.deleteLater()
 
-    def set_show_group_titles(self, on_off):
-        if self.show_group_titles == on_off:
-            return
-        self.show_group_titles = on_off
+    def _redo_layout(self):
         for w in self.createdWidgets():
             if hasattr(w, '_title'):
                 del w._title
             self._clear_layout(w._layout)
             self._layout_buttons(w)
+
+    def set_compact(self, on_off):
+        if self.compact == on_off:
+            return
+        self.compact = on_off
+        self._redo_layout()
+
+    def set_show_section_titles(self, on_off):
+        if self.show_section_titles == on_off:
+            return
+        self.show_section_titles = on_off
+        self._redo_layout()
 
     def set_show_button_titles(self, on_off):
         if self.show_button_titles == on_off:
@@ -170,43 +179,51 @@ class _Group(QWidgetAction):
             self.compact_height = 3
         else:
             self.compact_height = 2
-        for w in self.createdWidgets():
-            if hasattr(w, '_title'):
-                del w._title
-            self._clear_layout(w._layout)
-            self._layout_buttons(w)
+        self._redo_layout()
 
 
 class TabbedToolbar(QTabWidget):
     # A Microsoft Office ribbon-style interface
 
-    def __init__(self, *args, show_group_titles=True, show_button_titles=True, **kw):
+    def __init__(self, *args, show_section_titles=True, show_button_titles=True, **kw):
         super().__init__(*args, **kw)
         # TODO: self.tabs.setMovable(True)  # and save tab order in preferences
-        self._buttons = {}
-        self.show_group_titles = show_group_titles
+        self._buttons = {}  # { tab_title: { section_title: _Section() } }
+        self.show_section_titles = show_section_titles
         self.show_button_titles = show_button_titles
         #self.setStyleSheet("* { padding: 0; margin: 0; border: 1px inset red; } *::separator { background-color: green; width: 1px; }")
         self.setStyleSheet("* { padding: 0; margin: 0; } *::separator { width: 1px; }")
 
-    # TODO: disable/enable button/group, remove button
+    # TODO: disable/enable button/section, remove button
 
-    def add_button(self, category_title, group_title, button_title, callback, icon=None, description=None, compact=False):
-        tab_info = self._buttons.setdefault(category_title, {})
+    def _get_section(self, tab_title, section_title, create=True):
+        tab_info = self._buttons.setdefault(tab_title, {})
         tab = tab_info.get("__toolbar__", None)
         if tab is None:
+            if not create:
+                return None
             tab = tab_info['__toolbar__'] = QToolBar(self)
-            self.addTab(tab, category_title)
-        group = tab_info.get(group_title, None)
-        if group is None:
-            group = tab_info[group_title] = _Group(
-                group, group_title, compact, self.show_group_titles, self.show_button_titles)
-            tab.addAction(group)
+            self.addTab(tab, tab_title)
+        section = tab_info.get(section_title, None)
+        if section is None:
+            if not create:
+                return None
+            section = tab_info[section_title] = _Section(
+                section, section_title, self.show_section_titles, self.show_button_titles)
+            tab.addAction(section)
             tab.addSeparator()
-        group.add_button(button_title, callback, icon, description)
+        return section
 
-    def show_category(self, category_title):
-        tab_info = self._buttons.get(category_title, None)
+    def set_section_compact(self, tab_title, section_title, on_off):
+        section = self._get_section(tab_title, section_title)
+        section.set_compact(on_off)
+
+    def add_button(self, tab_title, section_title, button_title, callback, icon=None, description=None):
+        section = self._get_section(tab_title, section_title)
+        section.add_button(button_title, callback, icon, description)
+
+    def show_tab(self, tab_title):
+        tab_info = self._buttons.get(tab_title, None)
         if tab_info is None:
             return
         tab = tab_info.get("__toolbar__", None)
@@ -229,15 +246,15 @@ class TabbedToolbar(QTabWidget):
             tab.adjustSize()
             tab.updateGeometry()  # TODO: not needed all of the time
 
-    def set_show_group_titles(self, on_off):
-        if self.show_group_titles == on_off:
+    def set_show_section_titles(self, on_off):
+        if self.show_section_titles == on_off:
             return
-        self.show_group_titles = on_off
-        for category_title, tab_info in self._buttons.items():
-            for group_title, group in tab_info.items():
-                if group_title == "__toolbar__":
+        self.show_section_titles = on_off
+        for tab_title, tab_info in self._buttons.items():
+            for section_title, section in tab_info.items():
+                if section_title == "__toolbar__":
                     continue
-                group.set_show_group_titles(on_off)
+                section.set_show_section_titles(on_off)
         if not on_off:
             self._recompute_tab_sizes()
 
@@ -245,11 +262,11 @@ class TabbedToolbar(QTabWidget):
         if self.show_button_titles == on_off:
             return
         self.show_button_titles = on_off
-        for category_title, tab_info in self._buttons.items():
-            for group_title, group in tab_info.items():
-                if group_title == "__toolbar__":
+        for tab_title, tab_info in self._buttons.items():
+            for section_title, section in tab_info.items():
+                if section_title == "__toolbar__":
                     continue
-                group.set_show_button_titles(on_off)
+                section.set_show_button_titles(on_off)
         if not on_off:
             self._recompute_tab_sizes()
 

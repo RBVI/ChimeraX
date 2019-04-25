@@ -63,22 +63,21 @@ class DistanceTool(ToolInstance):
 
         from chimerax.ui.options import SettingsPanel, BooleanOption, ColorOption, IntOption, FloatOption
         panel = SettingsPanel()
-        from chimerax.core.core_settings import settings as core_settings
+        from chimerax.dist_monitor.settings import settings
         from chimerax.core.commands import run
         from chimerax.ui.widgets import hex_color_name
-        for opt_name, attr_name_end, opt_class, opt_class_kw, cmd_arg in [
+        for opt_name, attr_name, opt_class, opt_class_kw, cmd_arg in [
                 ("Color", 'color', ColorOption, {}, 'color %s'),
                 ("Number of dashes", 'dashes', IntOption, {'min': 0}, 'dashes %d'),
                 ("Decimal places", 'decimal_places', IntOption, {'min': 0}, 'decimalPlaces %d'),
                 ("Radius", 'radius', FloatOption, {'min': 'positive', 'decimal_places': 3}, 'radius %g'),
                 ("Show \N{ANGSTROM SIGN} symbol", 'show_units', BooleanOption, {}, 'symbol %s')]:
-            attr_name = 'distance_' + attr_name_end
             converter = hex_color_name if opt_class == ColorOption else None
             panel.add_option(opt_class(opt_name, None,
                 lambda opt, run=run, converter=converter, ses=self.session, cmd_suffix=cmd_arg:
                 run(ses, "distance style " + cmd_suffix
                 % (opt.value if converter is None else converter(opt.value))),
-                attr_name=attr_name, settings=core_settings, auto_set_attr=False))
+                attr_name=attr_name, settings=settings, auto_set_attr=False))
         layout.addWidget(panel)
 
         from chimerax.dist_monitor.cmd import group_triggers

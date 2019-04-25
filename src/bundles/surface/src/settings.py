@@ -13,14 +13,10 @@
 
 from chimerax.core.settings import Settings
 
-class _LogSettings(Settings):
+class _SurfaceSettings(Settings):
     EXPLICIT_SAVE = {
-        'errors_raise_dialog': True,
-        'warnings_raise_dialog': False,
-    }
-
-    AUTO_SAVE = {
-        "exec_cmd_links": False,
+        'clipping_surface_caps': True,
+        'clipping_cap_offset': 0.01,
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API
@@ -28,17 +24,19 @@ class _LogSettings(Settings):
 def register_settings_options(session):
     from chimerax.ui.options import BooleanOption
     settings_info = {
-        'errors_raise_dialog': (
-            'Errors shown in dialog',
+        'clipping_surface_caps': (
+            'Surface caps',
             BooleanOption,
-            'Should error messages be shown in a separate dialog as well as being logged'),
-        'warnings_raise_dialog': (
-            'Warnings shown in dialog',
-            BooleanOption,
-            'Should warning messages be shown in a separate dialog as well as being logged'),
+            'surface cap %s',
+            'Whether to cap surface holes created by clipping'),
     }
     for setting, setting_info in settings_info.items():
-        opt_name, opt_class, balloon = setting_info
-        opt = opt_class(opt_name, getattr(settings, setting), None,
-            attr_name=setting, settings=settings, balloon=balloon)
-        session.ui.main_window.add_settings_option("Log", opt)
+        opt_name, opt_class, updater, balloon = setting_info
+        def _opt_cb(opt, updater=updater, ses=session):
+            setting = opt.attr_name
+            val = opt.value
+            from chimerax.core.commands import run
+            run(ses, updater % val)
+        opt = opt_class(opt_name, getattr(settings, setting), _opt_cb,
+            attr_name=setting, settings=settings, balloon=balloon, auto_set_attr=False)
+        session.ui.main_window.add_settings_option("Clipping", opt)

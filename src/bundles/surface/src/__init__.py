@@ -37,6 +37,15 @@ from chimerax.core.toolshed import BundleAPI
 class _SurfaceBundle(BundleAPI):
 
     @staticmethod
+    def initialize(session, bundle_info):
+        from . import settings
+        settings.settings = settings._SurfaceSettings(session, "surfaces")
+
+        if session.ui.is_gui:
+            session.ui.triggers.add_handler('ready',
+                lambda *args, ses=session: settings.register_settings_options(ses))
+
+    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         if command_name.startswith('color'):
