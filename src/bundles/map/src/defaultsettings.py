@@ -198,8 +198,8 @@ class VolumeDefaultSettings:
       dop = d.display_options_panel
       dop.set_gui_from_rendering_options(ro_defaults)
 
-      slop = d.solid_options_panel
-      slop.set_gui_from_rendering_options(ro_defaults)
+      imop = d.image_options_panel
+      imop.set_gui_from_rendering_options(ro_defaults)
 
       sop = d.surface_options_panel
       sop.set_gui_from_rendering_options(ro_defaults)

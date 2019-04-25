@@ -105,9 +105,9 @@ class DicomGrid(GridData):
     s = d.dicom_series
     if s.attributes.get('BitsAllocated') == 1 or s.dicom_class == 'Segmentation Storage':
       self.binary = True		# Use initial thresholds for binary segmentation
-      self.initial_solid_thresholds = [(0.5,0),(1.5,1)]
+      self.initial_image_thresholds = [(0.5,0),(1.5,1)]
     else:
-      self.initial_solid_thresholds = [(-1000,0.0),(300,0.9),(3000,1.0)]
+      self.initial_image_thresholds = [(-1000,0.0),(300,0.9),(3000,1.0)]
     self.ignore_pad_value = d.pad_value
 
   # ---------------------------------------------------------------------------

@@ -105,10 +105,10 @@ def adjust_threshold_level(m, f, surf=None):
     ms = m.matrix_value_statistics()
     step = f * (ms.maximum - ms.minimum)
     if m.representation == 'solid':
-        new_levels = [(l+step,b) for l,b in m.solid_levels]
+        new_levels = [(l+step,b) for l,b in m.image_levels]
         l,b = new_levels[-1]
         new_levels[-1] = (max(l,1.01*ms.maximum),b)
-        m.set_parameters(solid_levels = new_levels)
+        m.set_parameters(image_levels = new_levels)
     else:
         if surf:
             new_levels = tuple((s.level+step if s is surf else s.level) for s in m.surfaces)
@@ -118,7 +118,7 @@ def adjust_threshold_level(m, f, surf=None):
 
 def log_volume_level_command(v):
     if v.representation == 'solid':
-        levels = ' '.join('level %.4g,%.4g' % sl for sl in v.solid_levels)
+        levels = ' '.join('level %.4g,%.4g' % sl for sl in v.image_levels)
     else:
         levels = ' '.join('level %.4g' % s.level for s in v.surfaces)
     command = 'volume #%s %s' % (v.id_string, levels)

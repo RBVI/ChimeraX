@@ -14,7 +14,7 @@
 
 # -----------------------------------------------------------------------------
 # Manages surface and volume display for a region of a data set.
-# Holds surface and solid thresholds, color, and transparency and brightness
+# Holds surface and image rendering thresholds, color, and transparency and brightness
 # factors.
 #
 from chimerax.core.models import Model
@@ -64,7 +64,6 @@ class Volume(Model):
     
     self.representation = 'surface'
 
-    self.solid = None
     self._keep_displayed_data = None
 
     self.initialized_thresholds = False
@@ -75,11 +74,12 @@ class Volume(Model):
     self.transparency_factor = 0                # for surface/mesh
     self.outline_box = Outline_Box(self)
 
-    # Solid display parameters
-    self.solid_levels = []                      # list of (threshold, scale)
-    self.solid_colors = []
-    self.transparency_depth = 0.5               # for solid
-    self.solid_brightness_factor = 1
+    # Image display parameters
+    self._image = None
+    self.image_levels = []                      # list of (threshold, scale)
+    self.image_colors = []
+    self.transparency_depth = 0.5               # for image rendering
+    self.image_brightness_factor = 1
 
     self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
 
@@ -221,10 +221,10 @@ class Volume(Model):
       surface_colors              (rgb or rgba values)
       surface_brightness_factor
       transparency_factor
-      solid_levels
-      solid_colors                (rgb or rgba values)
+      image_levels
+      image_colors                (rgb or rgba values)
       transparency_depth
-      solid_brightness_factor
+      image_brightness_factor
   
       Any rendering option attribute names can also be used.
     '''
@@ -233,9 +233,9 @@ class Volume(Model):
                   'surface_colors',
                   'surface_brightness_factor',
                   'transparency_factor',
-                  'solid_levels',
-                  'solid_colors',
-                  'solid_brightness_factor',
+                  'image_levels',
+                  'image_colors',
+                  'image_brightness_factor',
                   'transparency_depth',
                   'default_rgba',
                   )
@@ -245,27 +245,31 @@ class Volume(Model):
         return tuple(color) + (1,)
       return color
 
+    for attr in ('solid_levels', 'solid_colors', 'solid_brightness_factor'):
+      if attr in kw:
+        kw['image_' % attr[6:]] = kw[attr]	# Rename old names for these attributes.
+        
     if 'surface_colors' in kw:
       kw['surface_colors'] = [rgb_to_rgba(c) for c in kw['surface_colors']]
-    if 'solid_colors' in kw:
-      kw['solid_colors'] = [rgb_to_rgba(c) for c in kw['solid_colors']]
+    if 'image_colors' in kw:
+      kw['image_colors'] = [rgb_to_rgba(c) for c in kw['image_colors']]
 
     if ('surface_levels' in kw and
         not 'surface_colors' in kw and
         len(kw['surface_levels']) != len(self.surfaces)):
       kw['surface_colors'] = [self.default_rgba] * len(kw['surface_levels'])
-    if ('solid_levels' in kw and
-        not 'solid_colors' in kw and
-        len(kw['solid_levels']) != len(self.solid_colors)):
+    if ('image_levels' in kw and
+        not 'image_colors' in kw and
+        len(kw['image_levels']) != len(self.image_colors)):
       rgba = saturate_rgba(self.default_rgba)
-      kw['solid_colors'] = [rgba] * len(kw['solid_levels'])
+      kw['image_colors'] = [rgba] * len(kw['image_levels'])
 
     if 'default_rgba' in kw:
       self.default_rgba = kw['default_rgba'] = rgb_to_rgba(kw['default_rgba'])
 
     # Make copies of lists.
     for param in ('surface_levels', 'surface_colors',
-                  'solid_levels', 'solid_colors'):
+                  'image_levels', 'image_colors'):
       if param in kw:
         kw[param] = list(kw[param])
 
@@ -314,12 +318,12 @@ class Volume(Model):
       r = self.region
       self.new_region(r[0], r[1], r[2], adjust_step = True)
 
-    if 'surface_levels' in kw or 'solid_levels' in kw:
+    if 'surface_levels' in kw or 'image_levels' in kw:
       self.call_change_callbacks('thresholds changed')
 
-    if ('surface_colors' in kw or 'solid_colors' in kw or
+    if ('surface_colors' in kw or 'image_colors' in kw or
         'surface_brightness_factor' in kw or 'transparency_factor' in kw or
-        'solid_brightness_factor' in kw or 'transparency_depth' in kw):
+        'image_brightness_factor' in kw or 'transparency_depth' in kw):
       self.call_change_callbacks('colors changed')
 
     if option_changed:
@@ -334,7 +338,7 @@ class Volume(Model):
     for s in self.surfaces:
       s.rgba = rgba
       s.vertex_colors = None
-    self.solid_colors = [rgba]*len(self.solid_levels)
+    self.image_colors = [rgba]*len(self.image_levels)
     self._drawings_need_update()
     self.call_change_callbacks('colors changed')
 
@@ -348,11 +352,11 @@ class Volume(Model):
       if surfs:
         return min(surfs, key = lambda s: s.level).color
     elif rep == 'solid':
-      lev = self.solid_levels
+      lev = self.image_levels
       if lev:
         from numpy import argmin
         i = argmin([v for v,b in lev])
-        return rgba_to_rgba8(self.solid_colors[i])
+        return rgba_to_rgba8(self.image_colors[i])
     drgba = self.data.rgba
     if drgba:
       return rgba_to_rgba8(drgba)
@@ -366,14 +370,14 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def set_transparency(self, alpha):
-    '''Alpha values in range 0-255. Only changes current style (surface/mesh or solid).'''
+    '''Alpha values in range 0-255. Only changes current style (surface/mesh or image).'''
     a1 = alpha/255
     if self.representation in ('surface', 'mesh'):
       for s in self.surfaces:
         r,g,b,a = s.rgba
         s.rgba = (r,g,b,a1)
     else:
-      self.set_parameters(solid_colors = [(r,g,b,a1) for r,g,b,a in self.solid_colors])
+      self.set_parameters(image_colors = [(r,g,b,a1) for r,g,b,a in self.image_colors])
     self._drawings_need_update()
     
     # Update transparency on per-vertex coloring
@@ -494,7 +498,7 @@ class Volume(Model):
   #
   def has_thresholds(self):
 
-    return len(self.surfaces) > 0 and len(self.solid_levels) > 0
+    return len(self.surfaces) > 0 and len(self.image_levels) > 0
 
   # ---------------------------------------------------------------------------
   #
@@ -502,7 +506,7 @@ class Volume(Model):
                             vfrac = (0.01, 0.90), mfrac = None,
                             replace = False):
     '''
-    Set default initial surface and solid style rendering thresholds.
+    Set default initial surface and image style rendering thresholds.
     The thresholds are only changed the first time this method is called or if
     the replace option is True.  Returns True if thresholds are changed.
     '''
@@ -525,8 +529,8 @@ class Volume(Model):
       for lev, c in zip(levels, colors):
         self.add_surface(lev, rgba = c, display = sdisp)
 
-    if replace or len(self.solid_levels) == 0:
-      self.solid_levels, self.solid_colors = self.initial_solid_levels(s, vfrac, mfrac)
+    if replace or len(self.image_levels) == 0:
+      self.image_levels, self.image_colors = self.initial_image_levels(s, vfrac, mfrac)
       
     self.initialized_thresholds = True
     self._drawings_need_update()
@@ -561,11 +565,11 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def initial_solid_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+  def initial_image_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
     rgba = saturate_rgba(self.default_rgba)
     d = self.data
-    if hasattr(d, 'initial_solid_thresholds'):
-      levels = d.initial_solid_thresholds
+    if hasattr(d, 'initial_image_thresholds'):
+      levels = d.initial_image_thresholds
       colors = [rgba]*len(levels)
       return levels, colors
     if mstats is None:
@@ -624,10 +628,10 @@ class Volume(Model):
     for s in self.surfaces:
       s.display = surfshow
 
-    # Show or hide solid
-    so = self.solid
-    if so:
-      so.display = (rep == 'solid')
+    # Show or hide image
+    im = self._image
+    if im:
+      im.display = (rep == 'solid')
 
     self.call_change_callbacks('representation changed')
 
@@ -661,7 +665,7 @@ class Volume(Model):
     # Prevent cached matrix for displayed data from being freed.
     self._keep_displayed_data = self.displayed_matrices() if show else None
 
-    # Update surface or solid
+    # Update surface or image rendering
     if show:
       self._drawings_need_update()
 
@@ -685,7 +689,7 @@ class Volume(Model):
     if rep == 'surface' or rep == 'mesh':
       self._update_surfaces()
     elif rep == 'solid':
-      self._update_solid()
+      self._update_image()
 
     # Prevent cached matrix for displayed data from being freed.
     self._keep_displayed_data = self.displayed_matrices()
@@ -762,26 +766,26 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _update_solid(self):
+  def _update_image(self):
 
-    s = self.solid
-    if s is None or s.deleted:
-      self.solid = s = VolumeImage(self)
+    im = self._image
+    if im is None or im.deleted:
+      self._image = im = VolumeImage(self)
     else:
-      s.update_settings()
+      im.update_settings()
 
     ro = self.rendering_options
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
-    return s
+    return im
 
   # ---------------------------------------------------------------------------
   #
   def shown(self):
 
     surf_disp = len([s for s in self.surfaces if s.display]) > 0
-    solid_disp = (self.solid and self.solid.display)
-    return self.display and (surf_disp or solid_disp)
+    image_disp = (self._image and self._image.display)
+    return self.display and (surf_disp or image_disp)
     
   # ---------------------------------------------------------------------------
   #
@@ -854,7 +858,7 @@ class Volume(Model):
       # Copy thresholds
       self.set_parameters(
         surface_levels = [s.level for s in v.surfaces],
-        solid_levels = v.solid_levels,
+        image_levels = v.image_levels,
         )
     if copy_colors:
       # Copy colors
@@ -862,9 +866,9 @@ class Volume(Model):
         surface_colors = [s.rgba for s in v.surfaces],
         surface_brightness_factor = v.surface_brightness_factor,
         transparency_factor = v.transparency_factor,
-        solid_colors = v.solid_colors,
+        image_colors = v.image_colors,
         transparency_depth = v.transparency_depth,
-        solid_brightness_factor = v.solid_brightness_factor,
+        image_brightness_factor = v.image_brightness_factor,
         default_rgba = v.default_rgba
         )
 
@@ -1176,7 +1180,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   # Return 2d array for one plane of matrix for current region.  The plane
-  # is specified as an axis and a matrix index.  This is used for solid
+  # is specified as an axis and a matrix index.  This is used for image
   # style rendering in box mode, orthoplane mode, and normal mode.
   #
   def matrix_plane(self, axis, mplane, read_matrix = True):
@@ -1254,7 +1258,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   # Data values or coordinates have changed.
-  # Surface / solid rendering is not automatically redrawn when data values
+  # Surface / image rendering is not automatically redrawn when data values
   # change.
   #
   def data_changed_cb(self, type):
@@ -1630,8 +1634,8 @@ class Volume(Model):
   def showing_transparent(self):
     if not self.display:
       return False
-    if self.representation == 'solid' and self.solid:
-      return 'a' in self.solid.color_mode
+    if self.representation == 'solid' and self._image:
+      return 'a' in self._image.color_mode
     from chimerax.core.graphics import Drawing
     return Drawing.showing_transparent(self)
       
@@ -1646,10 +1650,10 @@ class Volume(Model):
       self.display = view
 
     if representation in (None, 'solid'):
-      s = self.solid
-      if s:
-        mlist.append(s)
-        s.display = view
+      im = self._image
+      if im:
+        mlist.append(im)
+        im.display = view
 
     return len(mlist) > 0
   
@@ -1662,9 +1666,9 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def solid_model(self):
+  def image_model(self):
 
-    return self.solid
+    return self._image
     
   # ---------------------------------------------------------------------------
   #
@@ -1676,7 +1680,7 @@ class Volume(Model):
   #
   def close_models(self):
 
-    self.close_solid()
+    self.close_image()
     self.close_surface()
   
   # ---------------------------------------------------------------------------
@@ -1687,12 +1691,12 @@ class Volume(Model):
       
   # ---------------------------------------------------------------------------
   #
-  def close_solid(self):
+  def close_image(self):
 
-    s = self.solid
-    if s:
-      s.close_model()
-      self.solid = None
+    im = self._image
+    if im:
+      im.close_model()
+      self._image = None
       
   # ---------------------------------------------------------------------------
   #
@@ -1753,7 +1757,7 @@ class VolumeImage(Image3d):
     self._volume = v = volume
     
     from .image3d import blend_manager, Colormap
-    cmap = Colormap(self._transfer_function(), v.solid_brightness_factor,
+    cmap = Colormap(self._transfer_function(), v.image_brightness_factor,
                     self._transparency_thickness())
 
     Image3d.__init__(self, 'image', v.data, v.region, cmap, v.rendering_options,
@@ -1771,7 +1775,7 @@ class VolumeImage(Image3d):
     self.set_options(ro)
     self.set_region(v.region)
     from .image3d import Colormap
-    cmap = Colormap(self._transfer_function(), v.solid_brightness_factor,
+    cmap = Colormap(self._transfer_function(), v.image_brightness_factor,
                     self._transparency_thickness())
     self.set_colormap(cmap)
 
@@ -1788,7 +1792,7 @@ class VolumeImage(Image3d):
   #
   def _transfer_function(self):
     v = self._volume
-    tf = [tuple(ts) + tuple(c) for ts,c in zip(v.solid_levels, v.solid_colors)]
+    tf = [tuple(ts) + tuple(c) for ts,c in zip(v.image_levels, v.image_colors)]
     tf.sort()
     return tf
 
@@ -1811,10 +1815,10 @@ class VolumeImage(Image3d):
     v = data['volume']
     if v is None:
       return None	# Volume was not restored, e.g. file missing.
-    i = VolumeImage(v)
-    Model.set_state_from_snapshot(i, session, data['model state'])
-    v.solid = i
-    return i
+    im = VolumeImage(v)
+    Model.set_state_from_snapshot(im, session, data['model state'])
+    v._image = im
+    return im
 
 # -----------------------------------------------------------------------------
 #
@@ -2433,21 +2437,21 @@ class Rendering_Options:
       'rgb4', 'rgb8', 'rgb12', 'rgb16',
       'la4', 'la8', 'la12', 'la16',
       'l4', 'l8', 'l12', 'l16')
-    self.color_mode = 'auto8'         # solid rendering pixel formats
+    self.color_mode = 'auto8'         # image rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
-    self.colormap_on_gpu = False      # solid rendering with colors computed on gpu
-    self.colormap_size = 256	      # solid rendering on GPU or other than 8 or 16-bit data types
-    self.blend_on_gpu = False	      # solid rendering blend images on gpu instead of cpu
+    self.colormap_on_gpu = False      # image rendering with colors computed on gpu
+    self.colormap_size = 256	      # image rendering on GPU or other than 8 or 16-bit data types
+    self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
     self.plane_spacing = 'min'		    # "min", "max", "mean" or distance value
-    self.full_region_on_gpu = False	    # for solid rendering for fast cropping
+    self.full_region_on_gpu = False	    # for image rendering for fast cropping
     self.bt_correction = False              # brightness and transparency
     self.minimal_texture_memory = False
     self.maximum_intensity_projection = False
     self.linear_interpolation = True
     self.dim_transparency = True            # for surfaces
-    self.dim_transparent_voxels = True      # for solid rendering
+    self.dim_transparent_voxels = True      # for image rendering
     self.line_thickness = 1
     self.smooth_lines = False
     self.mesh_lighting = True
@@ -2460,9 +2464,9 @@ class Rendering_Options:
     self.smoothing_factor = .3
     self.square_mesh = False
     self.cap_faces = True
-    self.box_faces = False              # solid rendering
+    self.box_faces = False              # image rendering
     self.orthoplanes_shown = (False, False, False)
-    self.orthoplane_positions = (0,0,0) # solid rendering
+    self.orthoplane_positions = (0,0,0) # image rendering
 
   # ---------------------------------------------------------------------------
   #
@@ -2530,7 +2534,7 @@ def ijk_step_for_voxel_limit(ijk_min, ijk_max, ijk_step, faces_per_axis,
   return step
 
 # ---------------------------------------------------------------------------
-# For box style solid display 2 planes per axis are used.  For orthoplane
+# For box style image display 2 planes per axis are used.  For orthoplane
 # display 1 plane per axis is shown.  Returns 0 for normal (all planes)
 # display style.
 #
@@ -2988,7 +2992,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
   
   # Set display style
   if representation is None:
-    # Show single plane data in solid style.
+    # Show single plane data in image style.
     single_plane = [s for s in grid_data.size if s == 1]
     representation = 'solid' if single_plane else 'surface'
   v.set_representation(representation)
