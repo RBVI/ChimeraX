@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+import ihm.reader
+import ihm.location
+
 """
 ihm: Integrative Hybrid Model file format support
 =================================================
@@ -58,7 +61,8 @@ class IHMModel(Model):
 
         Model.__init__(self, name, session)
 
-        self.tables = self.read_tables(filename)
+        # Get python-ihm System object for this file
+        self.system = self.read_ihm_system(filename)
 
         # Starting atomic models, including experimental and comparative structures and templates.
         stmodels, seqmodels = self.read_starting_models(load_linked_files)
@@ -125,32 +129,10 @@ class IHMModel(Model):
         # Put sphere, ensemble, atomic models and localization maps into parent group models.
         self.group_result_models(smodels, emodels, amodels, lmaps, mgroup)
 
-    def read_tables(self, filename):
-        # Read ihm tables
-        table_names = ['ihm_struct_assembly',  		# Asym ids, entity ids, and entity names
-                       'struct_asym',			# Asym unit descriptive text
-                       'ihm_model_list',		# Model groups
-                       'ihm_sphere_obj_site',		# Bead model for each cluster
-                       'ihm_cross_link_list',		# Crosslinks
-                       'ihm_cross_link_restraint',	# Crosslinks, handles ambiguous crosslinks
-                       'ihm_predicted_contact_restraint', # Predicted contacts
-                       'ihm_ensemble_info',		# Names of ensembles, e.g. cluster 1, 2, ...
-                       'ihm_gaussian_obj_ensemble',	# Distribution of ensemble models
-                       'ihm_localization_density_files', # Spatial distribution of ensemble models
-                       'ihm_dataset_related_db_reference', # Starting model database ids
-                       'ihm_dataset_external_reference', # Comparative models, EM data
-                       'ihm_external_files',		# files in DOI archives, at URL or on local disk
-                       'ihm_external_reference_info',	# DOI archive and URL external files
-                       'ihm_starting_model_details', 	# Starting models
-                       'ihm_starting_comparative_models', # Compararative model templates
-                       'ihm_2dem_class_average_restraint', # 2D EM constraing projectionn of atomic model
-                       'ihm_2dem_class_average_fitting', # 2D EM orientation relative to model
-                       'ihm_3dem_restraint',		# 3d electron microscopy
-                       ]
-        from chimerax.atomic.mmcif import get_mmcif_tables
-        table_list = get_mmcif_tables(filename, table_names)
-        tables = dict(zip(table_names, table_list))
-        return tables
+    def read_ihm_system(self, filename):
+        with open(filename) as fh:
+            # If multiple data blocks in the file, return just the first one
+            return ihm.reader.read(fh)[0]
 
     # -----------------------------------------------------------------------------
     #
@@ -209,14 +191,8 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def asym_entity_names(self):
-        sat = self.tables['ihm_struct_assembly']
-        sa_fields = [
-            'entity_description',
-            'asym_id',
-            ]
-        sa = sat.fields(sa_fields)
-        anames = {asym_id : edesc for edesc, asym_id in sa}
-        return anames
+        return {asym._id : asym.entity.description
+                for asym in self.system.asym_units}
 
     # -----------------------------------------------------------------------------
     #
@@ -254,14 +230,8 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def asym_detail_text(self):
-        sat = self.tables['struct_asym']
-        sa_fields = [
-            'id',
-            'details',
-            ]
-        sa = sat.fields(sa_fields)
-        adetail = {asym_id : detail for asym_id, detail in sa}
-        return adetail
+        return {asym._id : asym.details
+                for asym in self.system.asym_units}
 
     # -----------------------------------------------------------------------------
     #
@@ -307,91 +277,70 @@ class IHMModel(Model):
         '''Read crystallography and NMR atomic starting models.'''
         xmodels = []
 
-        starting_models = self.tables['ihm_starting_model_details']
-        if not starting_models:
-            return xmodels
-
-        fields = ['asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
-                  'starting_model_auth_asym_id', 'dataset_list_id']
-        rows = starting_models.fields(fields, allow_missing_fields = True)
-
         asym_colors = self.asym_colors8()
-        for asym_id, seq_beg, seq_end, source, auth_asym_id, did in rows:
-            if source != 'experimental model':
+
+        for sm in self.system.orphan_starting_models:
+            if not isinstance(sm.dataset, ihm.dataset.PDBDataset):
                 continue
-            d = self.data_set(did, 'ihm_starting_model_details')
-            if d is None:
-                continue
+            d = self.data_set(sm.dataset)
             models = d.models(self.session)
             for m in models:
-                keep_one_chain(m, auth_asym_id)
-                m.name += ' ' + auth_asym_id
-                show_colored_ribbon(m, asym_colors.get(asym_id))
+                keep_one_chain(m, sm.asym_id)
+                m.name += ' ' + sm.asym_id
+                show_colored_ribbon(m, asym_colors.get(sm.asym_unit._id))
             xmodels.extend(models)
             for m in models:
-                m.asym_id = asym_id
-                m.seq_begin, m.seq_end = int(seq_beg), int(seq_end)
-                m.dataset_id = did
+                m.asym_id = sm.asym_unit._id
+                m.seq_begin, m.seq_end = sm.asym_unit.seq_id_range
+                m.dataset_id = sm.dataset._id
                 m.comparative_model = False
 
         return xmodels
     
     # -----------------------------------------------------------------------------
     #
-    def data_set(self, dataset_list_id, table_name):
+    def data_set(self, ihm_dataset):
         ds = self._data_sets
         if ds is None:
             self._data_sets = ds = {}
-            dref = self.tables['ihm_dataset_related_db_reference']
-            fields = ['dataset_list_id', 'db_name', 'accession_code']
-            rows = dref.fields(fields, allow_missing_fields = True)
-            for did, db_name, db_code in rows:
-                ds[did] = DatabaseDataSet(db_name, db_code)
-            deref = self.tables['ihm_dataset_external_reference']
-            fields = ['dataset_list_id', 'file_id']
-            rows = deref.fields(fields, allow_missing_fields = True)
-            for did, file_id in rows:
-                finfo = self.file_info(file_id)
-                if finfo:
-                    ds[did] = FileDataSet(finfo)
-        if dataset_list_id not in ds:
-            self.session.logger.warning('Data set id %s listed in table %s was not found '
-                                        'in ihm_dataset_external_reference or ihm_dataset_related_db_reference tables'
-                                        % (dataset_list_id, table_name))
-            raise ValueError('bad data set id')
-        return ds.get(dataset_list_id, None)
+            for d in self.system.orphan_datasets:
+                if isinstance(d.location, ihm.location.DatabaseLocation):
+                    ds[d._id] = DatabaseDataSet(d.location.db_name,
+                                                d.location.access_code)
+                else:
+                    finfo = self.file_info(d.location)
+                    if finfo:
+                        ds[d._id] = FileDataSet(finfo)
+                    else:
+                        raise ValueError('bad data set id')
+        return ds.get(ihm_dataset._id, None)
     
     # -----------------------------------------------------------------------------
     #
     def read_comparative_models(self):
         '''Read comparative models from the ihm_starting_model_details table'''
         lmodels = []
-        sm_table = self.tables['ihm_starting_model_details']
-        if not sm_table:
-            return lmodels
-        fields = ['starting_model_id', 'asym_id', 'starting_model_source', 'starting_model_auth_asym_id',
-                  'dataset_list_id']
-        rows = sm_table.fields(fields, allow_missing_fields = True)
-        # TODO: Starting model can appear multiple times in table, with different sequence ranges.  Seems wrong.
+
         smfound = set()
         asym_colors = self.asym_colors8()
-        for smid, asym_id, data_type, auth_asym_id, did in rows:
-            if data_type != 'comparative model':
+
+        for sm in self.system.orphan_starting_models:
+            if not isinstance(sm.dataset, ihm.dataset.ComparativeModelDataset):
                 continue
-            d = self.data_set(did, 'ihm_starting_model_details')
+            d = self.data_set(sm.dataset)
             if d is None:
                 continue
-            if smid in smfound:
+            if sm._id in smfound:
                 continue
-            smfound.add(smid)
+            smfound.add(sm._id)
             models = d.models(self.session)
             for m in models:
-                keep_one_chain(m, auth_asym_id)
-                m.name += ' ' + auth_asym_id
-                m.dataset_id = did
-                m.asym_id = asym_id
+                keep_one_chain(m, sm.asym_id)
+                m.name += ' ' + sm.asym_id
+                m.dataset_id = sm.dataset._id
+                m.asym_id = sm.asym_unit._id
                 m.comparative_model = True
-                show_colored_ribbon(m, asym_colors.get(asym_id))
+                show_colored_ribbon(m, asym_colors.get(sm.asym_unit._id))
             lmodels.extend(models)
       
         return lmodels
@@ -400,117 +349,92 @@ class IHMModel(Model):
     #
     def read_template_models(self):
         '''Read crystallography and NMR atomic starting models.'''
+        from collections import OrderedDict
         tmodels = []
         seqmodels = []
-
-        # Get info about comparative models.
-        starting_models = self.tables['ihm_starting_model_details']
-        if not starting_models:
-            return tmodels, seqmodels
-        fields = ['starting_model_id', 'asym_id', 'seq_id_begin', 'seq_id_end',
-                  'starting_model_source', 'dataset_list_id']
-        rows = starting_models.fields(fields, allow_missing_fields = True)
-        smdetails = {sm_id:(asym_id, seq_beg, seq_end, did)
-                     for sm_id, asym_id, seq_beg, seq_end, source, did in rows
-                     if source == 'comparative model'}
-
-        # Get info about templates
-        comp_models = self.tables['ihm_starting_comparative_models']
-        if not comp_models:
-            return tmodels, seqmodels
-        fields = ['starting_model_id','template_auth_asym_id',
-                  'template_seq_id_begin', 'template_seq_id_end', 'template_dataset_list_id',
-                  'alignment_file_id']
-        rows = comp_models.fields(fields, allow_missing_fields = True)
-
-        from collections import OrderedDict
         alignments = OrderedDict()  # Sequence alignments for comparative models
         asym_colors = self.asym_colors8()
-        for sm_id, auth_asym_id, tseq_beg, tseq_end, tdid, alignment_file_id in rows:
-            d = self.data_set(tdid, 'ihm_starting_comparative_models')
-            if d is None:
+
+        # Get info about comparative models.
+        for sm in self.system.orphan_starting_models:
+            if not isinstance(sm.dataset, ihm.dataset.ComparativeModelDataset):
                 continue
-            if sm_id not in smdetails:
-                continue
-            # Template for a comparative model.
-            asym_id, seq_beg, seq_end, cdid = smdetails[sm_id]
-            tm = TemplateModel(self.session, asym_id, int(seq_beg), int(seq_end),
-                               auth_asym_id, int(tseq_beg), int(tseq_end), d)
-            tm.base_color = asym_colors[asym_id]
-            tmodels.append(tm)
-            if alignment_file_id != '.':
-                sfinfo = self.file_info(alignment_file_id)
-                if sfinfo is not None:
-                    a = (sfinfo, asym_id, cdid)
-                    sam = alignments.get(a)
-                    if sam is None:
-                        # Make sequence alignment model for comparative model
-                        alignments[a] = sam = SequenceAlignmentModel(self.session, sfinfo, asym_id, cdid)
-                    sam.add_template_model(tm)
+            asym_id = sm.asym_unit._id
+            seq_beg, seq_end = sm.asym_unit.seq_id_range
+            # Get info about templates
+            for t in sm.templates:
+                d = self.data_set(t.dataset)
+                if d is None:
+                    continue
+                # Template for a comparative model.
+                tseq_beg, tseq_end = t.template_seq_id_range
+                tm = TemplateModel(self.session, asym_id, seq_beg, seq_end,
+                                   t.asym_id, tseq_beg, tseq_end, d)
+                tm.base_color = asym_colors[asym_id]
+                tmodels.append(tm)
+                if t.alignment_file:
+                    sfinfo = self.file_info(t.alignment_file)
+                    if sfinfo is not None:
+                        a = (sfinfo, asym_id, sm.dataset._id)
+                        sam = alignments.get(a)
+                        if sam is None:
+                            # Make sequence alignment model for
+                            # comparative model
+                            alignments[a] = sam = SequenceAlignmentModel(
+                                        self.session, sfinfo, asym_id,
+                                        sm.dataset._id)
+                        sam.add_template_model(tm)
 
         seqmodels = list(alignments.values())
         return tmodels, seqmodels
 
     # -----------------------------------------------------------------------------
     #
-    def file_info(self, file_id):
+    def file_info(self, ihm_location):
         fmap = self._file_info
         if fmap is None:
             refs = {}
-            ref_table = self.tables['ihm_external_reference_info']
-            if ref_table:
-                ref_fields = ['reference_id', 'reference_type', 'reference', 'refers_to', 'associated_url']
-                rows = ref_table.fields(ref_fields, allow_missing_fields = True)
-                for ref_id, ref_type, ref, content, url in rows:
-                    refs[ref_id] = ExternalReference(ref_id, ref_type, ref, content, url)
-
             self._file_info = fmap = {}
-            files_table = self.tables['ihm_external_files']
-            if files_table:
-                files_fields = ['id', 'reference_id', 'file_path']
-                rows = files_table.fields(files_fields, allow_missing_fields = True)
-                for f_id, ref_id, file_path in rows:
-                    fpath = None if file_path == '.' else file_path
-                    fmap[f_id] = FileInfo(f_id, refs.get(ref_id,None), fpath, self.ihm_directory)
-
-        fi = fmap.get(file_id, None)
+            for loc in self.system._all_locations():
+                if not isinstance(loc, ihm.location.FileLocation):
+                    continue
+                repo = loc.repo
+                if repo and repo._id not in refs:
+                    refs[repo._id] = ExternalReference(repo._id,
+                                            repo.reference_type,
+                                            repo.reference,
+                                            repo.refers_to,
+                                            repo.url)
+                fmap[loc._id] = FileInfo(loc._id,
+                        refs[repo._id] if repo else None,
+                        loc.path, self.ihm_directory)
+        fi = fmap.get(ihm_location._id, None)
         return fi
 
     # -----------------------------------------------------------------------------
     #
     def model_names(self):
-        mlt = self.tables['ihm_model_list']
-        ml_fields = ['model_id', 'model_name']
-        ml = mlt.fields(ml_fields, allow_missing_fields = True)
-        mnames = {mid:(mname if mname and mname != '.' else 'result %s' % mid) for mid,mname in ml}
-        return mnames
+        return {m._id: (m.name if m.name else 'result %s' % m._id)
+                for mg in self.all_model_groups() for m in mg}
 
     # -----------------------------------------------------------------------------
     #
     def make_sphere_models(self, model_group, group_coordsets = True, load_ensembles = False):
+        # todo: this is really inefficient since it duplicates Python objects.
+        # Better would be to override ihm.model.Model to populate ChimeraX
+        # data structures directly, or use the Sphere objects unmodified.
         mnames = self.model_names()
+        mspheres = {}
 
-        sost = self.tables['ihm_sphere_obj_site']
-        if not sost:
-            smodels = []
-        else:
-            sos_fields = [
-                'seq_id_begin',
-                'seq_id_end',
-                'asym_id',
-                'Cartn_x',
-                'Cartn_y',
-                'Cartn_z',
-                'object_radius',
-                'model_id']
-            spheres = sost.fields(sos_fields)
-            mspheres = {}
-            for seq_beg, seq_end, asym_id, x, y, z, radius, model_id in spheres:
-                sb, se = int(seq_beg), int(seq_end)
-                xyz = float(x), float(y), float(z)
-                r = float(radius)
-                mspheres.setdefault(model_id, []).append((asym_id,sb,se,xyz,r))
-            smodels = self.make_sphere_models_by_group(mspheres, mnames, model_group, group_coordsets)
+        for mg in self.all_model_groups():
+            for m in mg:
+                for s in m._spheres:
+                    sb, se = s.seq_id_range
+                    xyz = s.x, s.y, s.z
+                    mspheres.setdefault(m._id, []).append(
+                            (s.asym_unit._id,sb,se,xyz,s.radius))
+        smodels = self.make_sphere_models_by_group(mspheres, mnames,
+                                      model_group, group_coordsets)
 
         # Open ensemble sphere models that are not included in ihm sphere obj table.
         emodels = self.load_sphere_model_ensembles(smodels) if load_ensembles else []
@@ -719,34 +643,26 @@ class IHMModel(Model):
 
     # -----------------------------------------------------------------------------
     #
+    def all_model_groups(self):
+        for state_group in self.system.state_groups:
+            for state in state_group:
+                for model_group in state:
+                    yield model_group
+
     def model_id_to_group_id(self):
-        mlt = self.tables['ihm_model_list']
-        ml_fields = [
-            'model_id',
-            'model_group_id',]
-        ml = mlt.fields(ml_fields)
-        mgroup = {mid:gid for mid, gid in ml}
-        return mgroup
+        return {model._id: model_group._id
+                for model_group in self.all_model_groups()
+                for model in model_group}
 
     # -----------------------------------------------------------------------------
     #
     def make_model_groups(self):
-        mlt = self.tables['ihm_model_list']
-        ml_fields = [
-            'model_id',
-            'model_group_id',
-            'model_group_name',]
-        ml = mlt.fields(ml_fields, allow_missing_fields = True)
-        gm = {}
-        for mid, gid, gname in ml:
-            gm.setdefault((gid, gname), []).append(mid)
         gmodels = []
-        for (gid, gname), mid_list in gm.items():
-            if not gname:
-                gname = 'Group ' + gid
-            g = Model(gname, self.session)
-            g.ihm_group_id = gid
-            g.ihm_model_ids = mid_list
+        for mg in self.all_model_groups():
+            g = Model(mg.name if mg.name else 'Group ' + mg._id,
+                      self.session)
+            g.ihm_group_id = mg._id
+            g.ihm_model_ids = [m._id for m in mg]
             gmodels.append(g)
 
         gmodels.sort(key = lambda g: g.ihm_group_id)
@@ -762,35 +678,17 @@ class IHMModel(Model):
     #
     def read_crosslinks(self):
         xlinks = {}
-        cllt = self.tables['ihm_cross_link_list']
-        if cllt:
-            cllt_fields = ['id', 'linker_type']
-            cllt_rows = cllt.fields(cllt_fields, allow_missing_fields = True)
-            cl_type = dict(cllt_rows)
-        else:
-            cl_type = {}
-        
-        clrt = self.tables['ihm_cross_link_restraint']
-        if clrt:
-            clrt_fields = [
-                'group_id',
-                'asym_id_1',
-                'seq_id_1',
-                'atom_id_1',
-                'asym_id_2',
-                'seq_id_2',
-                'atom_id_2',
-                'restraint_type',
-                'distance_threshold'
-                ]
-            # restraint_type and distance_threshold can be missing
-            clrt_rows = clrt.fields(clrt_fields, allow_missing_fields = True)
-            for g_id, asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, dist in clrt_rows:
-                d, dlow = distance_thresholds(dist, dist, rtype)
-                aname1 = None if atom_id_1 == '.' else atom_id_1
-                aname2 = None if atom_id_2 == '.' else atom_id_2
-                xl = Crosslink(asym_id_1, int(seq_id_1), aname1, asym_id_2, int(seq_id_2), aname2, d, dlow)
-                ct = cl_type.get(g_id, '')
+        for xlrestraint in self.system.restraints:
+            if not isinstance(xlrestraint, ihm.restraint.CrossLinkRestraint):
+                continue
+
+            ct = xlrestraint.linker.auth_name or ''
+            for x in xlrestraint.cross_links:
+                exx = x.experimental_cross_link
+                xl = Crosslink(x.asym1._id, exx.residue1.seq_id, x.atom1,
+                               x.asym2._id, exx.residue2.seq_id, x.atom2,
+                               x.distance.distance,
+                               x.distance.distance_lower_limit)
                 xlinks.setdefault(ct, []).append(xl)
 
         pc = self.read_predicted_contacts()
@@ -805,6 +703,8 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def read_predicted_contacts(self):
+        # todo: Currently not handled by python-ihm
+        return []
         pcrt = self.tables['ihm_predicted_contact_restraint']
         if not pcrt:
             return []
@@ -898,38 +798,26 @@ class IHMModel(Model):
     #
     def read_2d_electron_microscopy_maps(self):
         emmodels = []
-        dot = self.tables['ihm_2dem_class_average_restraint']
-        if not dot:
-            return emmodels
+        rt = {}  # Orientations of 2D EM for best projection
+        for r in self.system.restraints:
+            if not isinstance(r, ihm.restraint.EM2DRestraint):
+                continue
 
-        rt = {}	# Orientations of 2D EM for best projection
-        caf = self.tables['ihm_2dem_class_average_fitting']
-        if caf:
-            fields = ['restraint_id', 'model_id',
-                      'rot_matrix[1][1]', 'rot_matrix[2][1]', 'rot_matrix[3][1]',
-                      'rot_matrix[1][2]', 'rot_matrix[2][2]', 'rot_matrix[3][2]',
-                      'rot_matrix[1][3]', 'rot_matrix[2][3]', 'rot_matrix[3][3]',
-                      'tr_vector[1]', 'tr_vector[2]', 'tr_vector[3]']
-            rows = caf.fields(fields)
-            from chimerax.core.geometry import Place
-            for rid, mid, r11s,r21s,r31s,r12s,r22s,r32s,r13s,r23s,r33s,t1s,t2s,t3s in rows:
-                r11,r21,r31,r12,r22,r32,r13,r23,r33,t1,t2,t3 = \
-                    [float(x) for x in (r11s,r21s,r31s,r12s,r22s,r32s,r13s,r23s,r33s,t1s,t2s,t3s)]
-#                rt.setdefault(rid,{})[mid] = Place(((r11,r12,r13,t1),(r21,r22,r23,t2),(r31,r32,r33,t3)))
-                rt.setdefault(rid,{})[mid] = Place(((r11,r12,r13,t1),(r21,r22,r23,t2),(r31,r32,r33,t3))).inverse()
-#                rt.setdefault(rid,{})[mid] = Place(((r11,r21,r31,t1),(r12,r22,r32,t2),(r13,r23,r33,t3)))
+            for model, fit in r.fits.items():
+                rm = fit.rot_matrix
+                t = fit.tr_vector
+                from chimerax.core.geometry import Place
+                rt.setdefault(r._id,{})[model._id] = Place(((rm[0][0],rm[0][1],rm[0][2],t[0]),(rm[1][0],rm[1][1],rm[1][2],t[1]),(rm[2][0],rm[2][1],rm[2][2],t[2]))).inverse()
             
-        fields = ['id', 'dataset_list_id', 'pixel_size_width', 'pixel_size_height']
-        rows = dot.fields(fields, allow_missing_fields = True)
-        for rid, did, pwidth, pheight in rows:
-            d = self.data_set(did, 'ihm_2dem_class_average_restraint')
+            d = self.data_set(r.dataset)
             if d:
                 v = d.volume_model(self.session)
                 if v:
                     v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
-                    v.data.set_step((float(pwidth), float(pheight), v.data.step[2]))
-                    if rid in rt:
-                        v.ihm_model_projections = rt[rid]
+                    v.data.set_step((r.pixel_size_width, r.pixel_size_height,
+                                     v.data.step[2]))
+                    if r._id in rt:
+                        v.ihm_model_projections = rt[r._id]
                     v.initialize_thresholds(vfrac = (0.01,1), replace = True)
                     v.show()
                     emmodels.append(v)
@@ -939,14 +827,11 @@ class IHMModel(Model):
     #
     def read_3d_electron_microscopy_maps(self):
         emmodels = []
-        dot = self.tables['ihm_3dem_restraint']
-        if not dot:
-            return emmodels
-        fields = ['dataset_list_id']
-        rows = dot.fields(fields, allow_missing_fields = True)
         dfound = set()
-        for did, in rows:
-            d = self.data_set(did, 'ihm_3dem_restraint')
+        for r in self.system.restraints:
+            if not isinstance(r, ihm.restraint.EM3DRestraint):
+                continue
+            d = self.data_set(r.dataset)
             if d:
                 if d in dfound:
                     # Show one copy of map even if it is used to constrain multiple models (e.g. mediator.cif)
@@ -973,44 +858,15 @@ class IHMModel(Model):
     #
     def read_ensemble_localization_maps(self, level = 0.2, opacity = 0.5):
         '''Level sets surface threshold so that fraction of mass is outside the surface.'''
-
-        eit = self.tables['ihm_ensemble_info']
-        elt = self.tables['ihm_localization_density_files']
-        if not eit or not elt:
-            return []
-
-        ensemble_fields = ['ensemble_id', 'model_group_id', 'num_ensemble_models']
-        rows = eit.fields(ensemble_fields)
-        ens_group = {id:(gid,int(n)) for id, gid, n in rows}
-
-        loc_fields = ['asym_id', 'ensemble_id', 'file_id']
-        loc = elt.fields(loc_fields)
-        ens = {}
-        for asym_id, ensemble_id, file_id in loc:
-            if not ensemble_id in ens_group:
-                self.session.logger.warning('Ensemble id "%s" from ihm_localization_density_files table'
-                                            'is not present in the ihm_ensemble_info table' % ensemble_id)
-                continue
-            ens.setdefault(ensemble_id, []).append((asym_id, file_id))
-
         pmods = []
         asym_colors = self.asym_colors()
         from chimerax.map.volume import open_map
-        from os.path import join
-        for ensemble_id in sorted(ens.keys()):
-            asym_loc = ens[ensemble_id]
-            gid, n = ens_group[ensemble_id]
-            name = 'Localization map ensemble %s' % ensemble_id
-            m = Model(name, self.session)
-            m.ihm_group_id = gid
-            pmods.append(m)
-            fasyms = {}
-            for asym_id, file_id in sorted(asym_loc):
-                fasyms.setdefault(file_id, []).append(asym_id)
-            fids = list(fasyms.keys())
-            fids.sort(key = lambda fid: fasyms[fid][0])
-            for file_id in fids:
-                finfo = self.file_info(file_id)
+
+        for e in self.system.ensembles:
+            name = 'Localization map ensemble %s' % e._id
+            m = None
+            for loc in e.densities:
+                finfo = self.file_info(loc.file)
                 if finfo is None:
                     continue
                 map_path = finfo.path(self.session)
@@ -1019,7 +875,7 @@ class IHMModel(Model):
                                                 % finfo.file_path)
                     continue
                 maps,msg = open_map(self.session, map_path, show = False, show_dialog=False)
-                asym_id = fasyms[file_id][0]
+                asym_id = loc.asym_unit._id
                 color = asym_colors[asym_id][:3] + (opacity,)
                 v = maps[0]
                 ms = v.matrix_value_statistics()
@@ -1027,8 +883,11 @@ class IHMModel(Model):
                 v.set_parameters(surface_levels = [vlev], surface_colors = [color])
                 v.show_in_volume_viewer = False
                 v.show()
+                if m is None:
+                    m = Model(name, self.session)
+                    m.ihm_group_id = e.model_group._id
+                    pmods.append(m)
                 m.add([v])
-
         return pmods
 
     # -----------------------------------------------------------------------------
@@ -1036,6 +895,7 @@ class IHMModel(Model):
     def read_gaussian_localization_maps(self, level = 0.2, opacity = 0.5):
         '''Level sets surface threshold so that fraction of mass is outside the surface.'''
 
+        return [] # not currently handled by python-ihm
         eit = self.tables['ihm_ensemble_info']
         goet = self.tables['ihm_gaussian_obj_ensemble']
         if not eit or not goet:
@@ -1214,6 +1074,7 @@ class FileInfo:
                                        ' expecting "Archive" or "File".'
                                        % (r.content, file_path))
                 self._warn = False
+        return f
 
     @property
     def file_name(self):
