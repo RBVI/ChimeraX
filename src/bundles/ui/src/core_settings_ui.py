@@ -19,19 +19,13 @@ TODO
 """
 
 from chimerax.core.core_settings import set_proxies, settings as core_settings
-from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, FloatOption
+from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption
 from .options import StringOption, HostPortOption
 from .widgets import hex_color_name
 
 class UpdateIntervalOption(SymbolicEnumOption):
     values = ("day", "week", "month")
     labels = ("every day", "every week", "every month")
-
-def _enable_trackpad_multitouch(session, enable):
-    session.ui.mouse_modes.trackpad.enable_multitouch(enable)
-
-def _set_trackpad_sensitivity(session, value):
-    session.ui.mouse_modes.trackpad.trackpad_speed = value
 
 class CoreSettingsPanel:
 
@@ -93,22 +87,6 @@ class CoreSettingsPanel:
             None,
             None,
             'How frequently to check toolshed for new updates<br>',
-            True),
-        'trackpad_multitouch': (
-            'Trackpad gestures to rotate and move',
-            'Trackpad',
-            BooleanOption,
-            _enable_trackpad_multitouch,
-            None,
-            'Whether to enable 2 and 3 finger trackpad drags to rotate and move.',
-            True),
-        'trackpad_sensitivity': (
-            'Trackpad sensitivity',
-            'Trackpad',
-            (FloatOption, {'decimal_places': 2 }),
-            _set_trackpad_sensitivity,
-            None,
-            'How fast models move in response to multitouch trackpad gestures',
             True),
     }
 

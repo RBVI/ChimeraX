@@ -97,8 +97,7 @@ class UI(QApplication):
         from .settings import UI_Settings
         self.settings = UI_Settings(session, "ui")
 
-        from chimerax.mouse_modes import MouseModes
-        self.mouse_modes = MouseModes(session)
+        self._mouse_modes = None
 
         # for whatever reason, QtWebEngineWidgets has to be imported before a
         # QtCoreApplication is created...
@@ -115,6 +114,15 @@ class UI(QApplication):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('ready')
+
+    @property
+    def mouse_modes(self):
+        # delay creation of mouse modes to allow mouse_modes bundle time to run
+        # its custom init, which initializes its settings
+        if self._mouse_modes is None:
+            from chimerax.mouse_modes import MouseModes
+            self._mouse_modes = MouseModes(self.session)
+        return self._mouse_modes
 
     def redirect_qt_messages(self):
         
