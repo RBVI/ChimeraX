@@ -980,11 +980,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_zone_action = QAction("&Zone...", self)
         select_menu.addAction(sel_zone_action)
         sel_zone_action.triggered.connect(self.show_select_zone_dialog)
-        sel_clear_action = QAction("&Clear", self)
-        select_menu.addAction(sel_clear_action)
         from chimerax.core.commands import run
-        sel_clear_action.triggered.connect(lambda *args, run=run, ses=self.session:
-            run(ses, "sel clear"))
+        for menu_label, cmd_args in [("&Clear", "clear"), ("&Invert", "~sel"), ("&All", ""),
+                ("&Broaden\t\N{UPWARDS ARROW}", "up"), ("&Narrow\t\N{DOWNWARDS ARROW}", "down")]:
+            action = QAction(menu_label, self)
+            select_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session, cmd="sel " + cmd_args:
+                run(ses, cmd))
 
         self.select_mode_menu = select_menu.addMenu("mode")
         self.select_mode_menu.setObjectName("mode")
