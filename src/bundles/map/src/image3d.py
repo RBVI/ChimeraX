@@ -645,7 +645,7 @@ class Image3d(Model):
   def delete(self):
     b = self._blend_manager
     if b:
-      b.remove_image(ir)
+      b.remove_image(self)
     self._remove_planes()
     Model.delete(self)
 
