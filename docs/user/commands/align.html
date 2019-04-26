@@ -38,7 +38,7 @@ The <b>align</b> command performs least-squares fitting of
 the <a href="atomspec.html"><i>matchatoms</i></a>
 onto the <a href="atomspec.html"><i>refatoms</i></a>.
 It can also report least-squares-fit root-mean-square deviations (RMSDs)
-without moving the atoms.
+as if the atoms had been moved, but without actually moving the atoms.
 The number of atom pairs used and the RMSD are reported in the
 <a href="../tools/log.html"><b>Log</b></a>.
 See also:
@@ -72,7 +72,8 @@ which can be:
 (transform the models)
 <li><b>structure atoms</b> - move all atoms in the models 
 by changing their coordinates instead of transforming the overall models
-<li><b>nothing</b> - do not move anything; simply report the current RMSD
+<li><b>nothing</b> - do not move anything, but report the RMSD as if the
+atoms had been fitted
 </ul>
 <p>
 The <a name="each"><b>each</b></a> option indicates dividing 
@@ -119,5 +120,5 @@ Atoms are assumed to be in residue-number order.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2017</address>
+April 2019</address>
 </body></html>
