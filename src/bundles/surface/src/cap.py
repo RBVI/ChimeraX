@@ -10,7 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def update_clip_caps(view):
-    from chimerax.core.core_settings import settings
+    from .settings import settings
     if not settings.clipping_surface_caps:
         return
     cp = view.clip_planes

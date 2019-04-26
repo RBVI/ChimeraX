@@ -11,30 +11,35 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.settings import Settings
 
-from  chimerax.core.settings import Settings
-
-class _CmdLineSettings(Settings):
+class _AtomicSettings(Settings):
     EXPLICIT_SAVE = {
-        'startup_commands': [],
-    }
-    AUTO_SAVE = {
-        "num_remembered": 500,
-        "typed_only": True,
+        'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
-    from chimerax.ui.options import StringsOption
+    from chimerax.ui.widgets import hex_color_name
+    from chimerax.ui.options import SymbolicEnumOption
+    class AtomSpecOption(SymbolicEnumOption):
+        values = ("command", "serial", "simple")
+        labels = ("command line", "serial number", "simple")
+
     settings_info = {
-        'startup_commands': (
-            "Execute these commands at startup",
-            StringsOption,
-            "List of commands to execute when ChimeraX command-line tool starts"),
+        'atomspec_contents': (
+            "Atomspec display style",
+            AtomSpecOption,
+            """How to format display of atomic data<br>
+            <table>
+            <tr><td>simple</td><td>&nbsp;</td><td>Simple readable form</td></tr>
+            <tr><td>command line</td><td>&nbsp;</td><td>Form used in commands</td></tr>
+            <tr><td>serial number</td><td>&nbsp;</td><td>Atom serial number</td></tr>
+            </table>"""),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
         opt = opt_class(opt_name, getattr(settings, setting), None,
             attr_name=setting, settings=settings, balloon=balloon)
-        session.ui.main_window.add_settings_option("Startup", opt)
+        session.ui.main_window.add_settings_option("Labels", opt)

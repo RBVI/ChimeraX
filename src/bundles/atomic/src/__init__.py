@@ -56,7 +56,8 @@ class _AtomicBundleAPI(BundleAPI):
 
     @staticmethod
     def initialize(session, bundle_info):
-        """Install alignments manager into existing session"""
+        from . import settings
+        settings.settings = settings._AtomicSettings(session, "atomic")
 
         Residue.set_templates_dir(bundle_info.data_dir())
 
@@ -71,8 +72,10 @@ class _AtomicBundleAPI(BundleAPI):
             lambda *args: check_for_changes(session))
 
         if session.ui.is_gui:
-           session.ui.triggers.add_handler('ready', lambda *args, ses=session:
-               _AtomicBundleAPI._add_gui_items(ses))
+            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+                _AtomicBundleAPI._add_gui_items(ses))
+            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+                settings.register_settings_options(ses))
 
     @staticmethod
     def run_provider(session, bundle_info, name, mgr, **kw):

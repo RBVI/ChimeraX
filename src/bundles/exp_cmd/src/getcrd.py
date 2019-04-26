@@ -17,7 +17,7 @@ def initialize(command_name, logger):
     register("getcrd", getcrd_desc, getcrd, logger=logger)
 
 def getcrd(session, atoms=None, coordinate_system='scene'):
-    from chimerax.core.core_settings import settings
+    from chimerax.atomic.settings import settings
     if atoms is None:
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)

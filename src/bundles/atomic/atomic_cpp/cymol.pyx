@@ -600,7 +600,7 @@ cdef class CyAtom:
         "Supported API.  Get text representation of Atom"
         " (also used by __str__ for printing)"
         if style == None:
-            from chimerax.core.core_settings import settings
+            from .settings import settings
             style = settings.atomspec_contents
         if relative_to:
             if self.residue == relative_to.residue:
@@ -1431,7 +1431,7 @@ cdef class CyResidue:
     def string(self, residue_only = False, omit_structure = False, style = None):
         "Supported API.  Get text representation of Residue"
         if style == None:
-            from chimerax.core.core_settings import settings
+            from .settings import settings
             style = settings.atomspec_contents
         ic = self.insertion_code
         if style.startswith("simple"):
