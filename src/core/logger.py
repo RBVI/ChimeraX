@@ -528,13 +528,15 @@ class CollatingLog(HtmlLog):
     sim_test_size = 10
     sim_collapse_after = 5
 
+    MAX_COLLATION_LEVEL = HtmlLog.LEVEL_ERROR
+
     def __init__(self):
         self.msgs = []
-        for _ in range(self.LEVEL_ERROR+1):
+        for _ in range(self.MAX_COLLATION_LEVEL+1):
             self.msgs.append([])
 
     def log(self, level, msg, image_info, is_html):
-        if level <= self.LEVEL_ERROR:
+        if level <= self.MAX_COLLATION_LEVEL:
             self.msgs[level].append((msg, image_info, is_html))
             return True
         return False
@@ -551,7 +553,7 @@ class CollatingLog(HtmlLog):
         summary += '  </thead>\n'
         summary += '  <tbody>\n'
         some_msgs = False
-        colors = ["#ffffff", "#ffb961", "#ff7882"]
+        colors = ["#ffffff", "#ffb961", "#ff7882", "#dc1436"]
         for level, msgs in reversed(list(enumerate(self.msgs))):
             if not msgs:
                 continue
@@ -678,8 +680,10 @@ class _EarlyCollator(CollatingLog):
     """Collate any errors that occur before any "real" log hits the log stack."""
     excludes_other_logs = False
 
+    MAX_COLLATION_LEVEL = CollatingLog.LEVEL_BUG
+
     def log_summary(self, logger):
-        if self.msgs[self.LEVEL_ERROR]:
+        if self.msgs[self.LEVEL_ERROR] or self.msgs[self.LEVEL_BUG]:
             title = "Startup Errors"
         else:
             title = "Startup Messages"

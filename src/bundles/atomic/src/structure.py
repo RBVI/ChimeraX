@@ -84,7 +84,7 @@ class Structure(Model, StructureData):
     def string(self, style=None):
         '''Return a human-readable string for this structure.'''
         if style is None:
-            from chimerax.core.core_settings import settings
+            from .settings import settings
             style = settings.atomspec_contents
 
         id = '#' + self.id_string

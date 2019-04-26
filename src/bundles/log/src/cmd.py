@@ -109,12 +109,12 @@ def log_settings(session, error_dialog = None, warning_dialog = None):
     warning_dialog : bool
       Whether to show warnings in a separate dialog (for the remainder of this session)
     '''
-    from chimerax.core.core_settings import settings as core_settings
+    from .settings import settings
     if error_dialog is not None:
-        core_settings.errors_raise_dialog = error_dialog
+        settings.errors_raise_dialog = error_dialog
 
     if warning_dialog is not None:
-        core_settings.warnings_raise_dialog = warning_dialog
+        settings.warnings_raise_dialog = warning_dialog
 
 def log_metadata(session, models=None, verbose=False):
     if models is None:

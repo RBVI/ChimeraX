@@ -97,8 +97,7 @@ class UI(QApplication):
         from .settings import UI_Settings
         self.settings = UI_Settings(session, "ui")
 
-        from chimerax.mouse_modes import MouseModes
-        self.mouse_modes = MouseModes(session)
+        self._mouse_modes = None
 
         # for whatever reason, QtWebEngineWidgets has to be imported before a
         # QtCoreApplication is created...
@@ -115,6 +114,15 @@ class UI(QApplication):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('ready')
+
+    @property
+    def mouse_modes(self):
+        # delay creation of mouse modes to allow mouse_modes bundle time to run
+        # its custom init, which initializes its settings
+        if self._mouse_modes is None:
+            from chimerax.mouse_modes import MouseModes
+            self._mouse_modes = MouseModes(self.session)
+        return self._mouse_modes
 
     def redirect_qt_messages(self):
         
@@ -319,13 +327,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         QMainWindow.__init__(self)
         self.setWindowTitle("ChimeraX")
 
-        from chimerax.core.core_settings import settings as core_settings
-        sizing_scheme, size_data = core_settings.initial_window_size
-        if sizing_scheme == "last used" and core_settings.last_window_size is None:
+        sizing_scheme, size_data = session.ui.settings.initial_window_size
+        if sizing_scheme == "last used" and session.ui.settings.last_window_size is None:
             sizing_scheme = "proportional"
             size_data = (0.67, 0.67)
         if sizing_scheme == "last used":
-            width, height = core_settings.last_window_size
+            width, height = session.ui.settings.last_window_size
         elif sizing_scheme == "proportional":
             wf, hf = size_data
             dw = QDesktopWidget()
@@ -691,10 +698,9 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def resizeEvent(self, event):
         QMainWindow.resizeEvent(self, event)
-        from chimerax.core.core_settings import settings as core_settings
         size = event.size()
         wh = (size.width(), size.height())
-        core_settings.last_window_size = wh
+        self.session.ui.settings.last_window_size = wh
         self.triggers.activate_trigger('resized', wh)
 
     def show_select_seq_dialog(self, *args):
@@ -770,18 +776,37 @@ class MainWindow(QMainWindow, PlainTextLog):
                 for win in tool_windows:
                     win._mw_set_dockable(dockable)
 
-    def _make_settings_ui(self, session):
-        from .core_settings_ui import CoreSettingsPanel
-        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
-        self.settings_ui_widget = dw = QDockWidget("ChimeraX Settings", self)
-        dw.closeEvent = lambda e, dw=dw: dw.hide()
-        container = QWidget()
-        CoreSettingsPanel(session, container)
-        dw.setWidget(container)
-        from PyQt5.QtCore import Qt
-        self.addDockWidget(Qt.RightDockWidgetArea, dw)
-        dw.hide()
-        dw.setFloating(True)
+    @property
+    def settings_ui_widget(self):
+        # this is a proerty in order to delay actual creation of the window as long as possible,
+        # so that bundles can register settings options and the window will start large
+        # enough to accomodate the registered options
+        if self._settings_ui_widget is None:
+            from PyQt5.QtWidgets import QDockWidget, QWidget
+            dw = QDockWidget("ChimeraX Settings", self)
+            dw.closeEvent = lambda e, dw=dw: dw.hide()
+            from .core_settings_ui import CoreSettingsPanel
+            container = QWidget()
+            self._core_settings_panel = csp = CoreSettingsPanel(self.session, container)
+            for cat, opt in self._accumulated_settings_options:
+                csp.options_widget.add_option(cat, opt)
+            self._accumulated_settings_options = []
+            dw.setWidget(container)
+            from PyQt5.QtCore import Qt
+            self.addDockWidget(Qt.RightDockWidgetArea, dw)
+            dw.setFloating(True)
+            dw.hide()
+            self._settings_ui_widget = dw
+
+        return self._settings_ui_widget
+
+    def add_settings_option(self, category, option):
+        """For bundles that need/want to present their settings with the core ChimeraX settings
+           rather than present their own settings UI"""
+        if self._settings_ui_widget is None:
+            self._accumulated_settings_options.append((category, option))
+        else:
+            self._core_settings_panel.options_widget.add_option(category, option)
 
     def _new_tool_window(self, tw):
         if self.hide_tools:
@@ -845,9 +870,18 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
 
+        self._settings_ui_widget = None
+        self._accumulated_settings_options = []
+        settings = session.ui.settings
+        self.add_settings_option("Window", InitWindowSizeOption("Initial overall window size",
+            settings.initial_window_size, None, attr_name="initial_window_size", settings=settings,
+            session=self.session, balloon="Initial overall size of ChimeraX window"))
+        self.add_settings_option("Window", ToolSideOption("Default tool side",
+            settings.default_tool_window_side, None, attr_name="default_tool_window_side",
+            settings=settings, balloon="Which side of main window that new tool windows appear on by default"))
+
         self.favorites_menu = mb.addMenu("Fa&vorites")
         self.favorites_menu.setToolTipsVisible(True)
-        self._make_settings_ui(session)
         self.update_favorites_menu(session)
 
         self.presets_menu = mb.addMenu("Presets")
@@ -946,11 +980,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_zone_action = QAction("&Zone...", self)
         select_menu.addAction(sel_zone_action)
         sel_zone_action.triggered.connect(self.show_select_zone_dialog)
-        sel_clear_action = QAction("&Clear", self)
-        select_menu.addAction(sel_clear_action)
         from chimerax.core.commands import run
-        sel_clear_action.triggered.connect(lambda *args, run=run, ses=self.session:
-            run(ses, "sel clear"))
+        for menu_label, cmd_args in [("&Clear", "clear"), ("&Invert", "~sel"), ("&All", ""),
+                ("&Broaden\t\N{UPWARDS ARROW}", "up"), ("&Narrow\t\N{DOWNWARDS ARROW}", "down")]:
+            action = QAction(menu_label, self)
+            select_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session, cmd="sel " + cmd_args:
+                run(ses, cmd))
 
         self.select_mode_menu = select_menu.addMenu("mode")
         self.select_mode_menu.setObjectName("mode")
@@ -1540,9 +1576,9 @@ class _Qt:
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
         # map 'side' to the user's preferred side
-        from chimerax.core.core_settings import settings as core_settings
+        session = self.tool_window.tool_instance.session
         from PyQt5.QtCore import Qt
-        pref_area = Qt.RightDockWidgetArea if core_settings.default_tool_window_side == "right" \
+        pref_area = Qt.RightDockWidgetArea if session.ui.settings.default_tool_window_side == "right" \
             else Qt.LeftDockWidgetArea
         qt_sides = [pref_area, Qt.RightDockWidgetArea, Qt.LeftDockWidgetArea,
             Qt.TopDockWidgetArea, Qt.BottomDockWidgetArea]
@@ -1863,4 +1899,187 @@ def menu_capitalize(text):
                         capped_word += word[len(capped_word)]
                 capped_words.append(capped_word)
     return " ".join(capped_words)
+
+from .options import Option, EnumOption
+class ToolSideOption(EnumOption):
+    values = ("left", "right")
+
+class InitWindowSizeOption(Option):
+
+    def __init__(self, *args, session=None, **kw):
+        self.session = session
+        Option.__init__(self, *args, **kw)
+
+    def get_value(self):
+        size_scheme = self.push_button.text()
+        if size_scheme == "last used":
+            data = None
+        elif size_scheme == "proportional":
+            data = (self.w_proportional_spin_box.value()/100,
+                self.h_proportional_spin_box.value()/100)
+        else:
+            data = (self.w_fixed_spin_box.value(), self.h_fixed_spin_box.value())
+        return (size_scheme, data)
+
+    def set_value(self, value):
+        size_scheme, size_data = value
+        self.push_button.setText(size_scheme)
+        if size_scheme == "proportional":
+            w, h = size_data
+            data = (self.w_proportional_spin_box.setValue(w*100),
+                self.h_proportional_spin_box.setValue(h*100))
+        elif size_scheme == "fixed":
+            w, h = size_data
+            self.w_fixed_spin_box.setValue(w)
+            self.h_fixed_spin_box.setValue(h)
+        self._show_appropriate_widgets()
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.push_button.setText(self.multiple_value)
+
+    def _make_widget(self, **kw):
+        from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+        self.widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
+        self.widget.setLayout(layout)
+
+        from PyQt5.QtWidgets import QPushButton, QMenu
+        size_scheme, size_data = self.default
+        self.push_button = QPushButton(size_scheme)
+        menu = QMenu()
+        self.push_button.setMenu(menu)
+        from PyQt5.QtWidgets import QAction
+        menu = self.push_button.menu()
+        for label in ("last used", "proportional", "fixed"):
+            action = QAction(label, self.push_button)
+            action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
+            menu.addAction(action)
+        from PyQt5.QtCore import Qt
+        layout.addWidget(self.push_button, 0, Qt.AlignLeft)
+
+        self.fixed_widgets = []
+        self.proportional_widgets = []
+        w_pr_val, h_pr_val = 67, 67
+        w_px_val, h_px_val = 1200, 750
+        if size_scheme == "proportional":
+            w_pr_val, h_pr_val = size_data
+        elif size_scheme == "fixed":
+            w_px_val, h_px_val = size_data
+        from PyQt5.QtWidgets import QSpinBox, QWidget, QLabel
+        self.nonmenu_widgets = QWidget()
+        layout.addWidget(self.nonmenu_widgets)
+        nonmenu_layout = QVBoxLayout()
+        nonmenu_layout.setContentsMargins(0,0,0,0)
+        nonmenu_layout.setSpacing(2)
+        self.nonmenu_widgets.setLayout(nonmenu_layout)
+        w_widgets = QWidget()
+        nonmenu_layout.addWidget(w_widgets)
+        w_layout = QHBoxLayout()
+        w_widgets.setLayout(w_layout)
+        w_layout.setContentsMargins(0,0,0,0)
+        w_layout.setSpacing(2)
+        self.w_proportional_spin_box = QSpinBox()
+        self.w_proportional_spin_box.setMinimum(1)
+        self.w_proportional_spin_box.setMaximum(100)
+        self.w_proportional_spin_box.setValue(w_pr_val)
+        self.w_proportional_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        w_layout.addWidget(self.w_proportional_spin_box)
+        self.proportional_widgets.append(self.w_proportional_spin_box)
+        self.w_fixed_spin_box = QSpinBox()
+        self.w_fixed_spin_box.setMinimum(1)
+        self.w_fixed_spin_box.setMaximum(1000000)
+        self.w_fixed_spin_box.setValue(w_px_val)
+        self.w_fixed_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        w_layout.addWidget(self.w_fixed_spin_box)
+        self.fixed_widgets.append(self.w_fixed_spin_box)
+        w_proportional_label = QLabel("% of screen width")
+        w_layout.addWidget(w_proportional_label)
+        self.proportional_widgets.append(w_proportional_label)
+        w_fixed_label = QLabel("pixels wide")
+        w_layout.addWidget(w_fixed_label)
+        self.fixed_widgets.append(w_fixed_label)
+        h_widgets = QWidget()
+        nonmenu_layout.addWidget(h_widgets)
+        h_layout = QHBoxLayout()
+        h_widgets.setLayout(h_layout)
+        h_layout.setContentsMargins(0,0,0,0)
+        h_layout.setSpacing(2)
+        self.h_proportional_spin_box = QSpinBox()
+        self.h_proportional_spin_box.setMinimum(1)
+        self.h_proportional_spin_box.setMaximum(100)
+        self.h_proportional_spin_box.setValue(h_pr_val)
+        self.h_proportional_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        h_layout.addWidget(self.h_proportional_spin_box)
+        self.proportional_widgets.append(self.h_proportional_spin_box)
+        self.h_fixed_spin_box = QSpinBox()
+        self.h_fixed_spin_box.setMinimum(1)
+        self.h_fixed_spin_box.setMaximum(1000000)
+        self.h_fixed_spin_box.setValue(h_px_val)
+        self.h_fixed_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        h_layout.addWidget(self.h_fixed_spin_box)
+        self.fixed_widgets.append(self.h_fixed_spin_box)
+        h_proportional_label = QLabel("% of screen height")
+        h_layout.addWidget(h_proportional_label)
+        self.proportional_widgets.append(h_proportional_label)
+        h_fixed_label = QLabel("pixels high")
+        h_layout.addWidget(h_fixed_label)
+        self.fixed_widgets.append(h_fixed_label)
+
+        self.current_fixed_size_label = QLabel()
+        self.current_proportional_size_label = QLabel()
+        nonmenu_layout.addWidget(self.current_fixed_size_label)
+        nonmenu_layout.addWidget(self.current_proportional_size_label)
+        self._update_current_size()
+
+        self._show_appropriate_widgets()
+
+    def _menu_cb(self, label):
+        self.push_button.setText(label)
+        self._show_appropriate_widgets()
+        self.make_callback()
+
+    def _show_appropriate_widgets(self):
+        for w in self.proportional_widgets + self.fixed_widgets:
+            w.hide()
+        self.current_fixed_size_label.hide()
+        self.current_proportional_size_label.hide()
+        self.nonmenu_widgets.hide()
+        size_scheme = self.push_button.text()
+        if size_scheme == "proportional":
+            self.nonmenu_widgets.show()
+            for w in self.proportional_widgets:
+                w.show()
+            self.current_proportional_size_label.show()
+        elif size_scheme == "fixed":
+            self.nonmenu_widgets.show()
+            for w in self.fixed_widgets:
+                w.show()
+            self.current_fixed_size_label.show()
+
+    def _update_current_size(self, trig_name=None, wh=None):
+        mw = getattr(self.session.ui, "main_window", None)
+        if not mw:
+            self.session.ui.triggers.add_handler('ready', self._update_current_size)
+            return
+
+        if wh is None:
+            # this should only happen once...
+            mw.triggers.add_handler('resized', self._update_current_size)
+            window_width, window_height = mw.width(), mw.height()
+        else:
+            window_width, window_height = wh
+
+        from PyQt5.QtWidgets import QDesktopWidget
+        dw = QDesktopWidget()
+        screen_geom = self.session.ui.primaryScreen().availableGeometry()
+        screen_width, screen_height = screen_geom.width(), screen_geom.height()
+        self.current_fixed_size_label.setText(
+            "Current: %d wide, %d high" % (window_width, window_height))
+        self.current_proportional_size_label.setText("Current: %d%% wide, %d%% high" % (
+                int(100.0 * window_width / screen_width),
+                int(100.0 * window_height / screen_height)))
 

@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-Log" version="1.0"
-	    package="chimerax.log"
-  	    minSessionVersion="1" maxSessionVersion="1">
+	    package="chimerax.log" customInit="true"
+		minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>

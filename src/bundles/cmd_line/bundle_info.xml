@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-CommandLine" version="1.0"
-	    package="chimerax.cmd_line"
+	    package="chimerax.cmd_line" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

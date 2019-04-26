@@ -107,7 +107,7 @@ class _MapBundle(BundleAPI):
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         from . import Volume, MapChannelsModel, MultiChannelSeries
-        from .volume import VolumeSurface
+        from .volume import VolumeSurface, VolumeImage
         from .session import GridDataState
         ct = {
             'GridDataState': GridDataState,
@@ -115,6 +115,7 @@ class _MapBundle(BundleAPI):
             'MultiChannelSeries': MultiChannelSeries,
             'Volume': Volume,
             'VolumeSurface': VolumeSurface,
+            'VolumeImage': VolumeImage,
         }
         return ct.get(class_name)
 

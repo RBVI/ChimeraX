@@ -132,7 +132,7 @@ class VolumeViewer(ToolInstance):
         #                  Display_Style_Panel, Plane_Panel, Orthoplane_Panel,
         #                  Region_Size_Panel, Subregion_Panel,
         #                  Zone_Panel, Atom_Box_Panel, Named_Region_Panel,
-        #                  Display_Options_Panel, Solid_Options_Panel,
+        #                  Display_Options_Panel, Image_Options_Panel,
         #                  Surface_Options_Panel)
 
         panel_classes = [Thresholds_Panel]
@@ -285,7 +285,7 @@ class VolumeViewer(ToolInstance):
         # elif type == 'rendering options changed':
         #   if v is self.active_volume:
         #     for p in (self.display_options_panel, self.surface_options_panel,
-        #               self.solid_options_panel, self.orthoplane_panel):
+        #               self.image_options_panel, self.orthoplane_panel):
         #       p.update_panel_widgets(v)
       
     # ---------------------------------------------------------------------------
@@ -643,8 +643,8 @@ class Volume_Dialog:
     ro = Rendering_Options()
     dop = self.display_options_panel
     dop.rendering_options_from_gui(ro)
-    slop = self.solid_options_panel
-    slop.rendering_options_from_gui(ro)
+    imop = self.image_options_panel
+    imop.rendering_options_from_gui(ro)
     sop = self.surface_options_panel
     sop.rendering_options_from_gui(ro)
     return ro
@@ -1566,7 +1566,7 @@ class Thresholds_Panel(PopupPanel):
 
   # ---------------------------------------------------------------------------
   # Switch histogram threshold markers between vertical
-  # lines or piecewise linear function for surfaces or solid.
+  # lines or piecewise linear function for surfaces or image rendering.
   #
   def representation_changed(self, rep):
 
@@ -1574,7 +1574,7 @@ class Thresholds_Panel(PopupPanel):
     if v:
       hp = self.histogram_table.get(v, None)
       if hp:
-        hp.solid_mode(rep == 'solid')
+        hp.image_mode(rep == 'solid')
   
   # ---------------------------------------------------------------------------
   #
@@ -2118,7 +2118,7 @@ class Histogram_Pane:
 
     new_marker_color = volume.default_rgba if volume else (1,1,1,1)
     self.surface_thresholds.new_marker_color = new_marker_color
-    self.solid_thresholds.new_marker_color = saturate_rgba(new_marker_color)
+    self.image_thresholds.new_marker_color = saturate_rgba(new_marker_color)
     self.update_threshold_gui()
 
     ijk_min, ijk_max, ijk_step = volume.region
@@ -2197,10 +2197,10 @@ class Histogram_Pane:
                  self.selected_marker_cb, self.moved_marker_cb)
     self.surface_thresholds = st
 
-    new_solid_marker_color = saturate_rgba(new_marker_color)
-    sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1,
+    new_image_marker_color = saturate_rgba(new_marker_color)
+    imt = Markers(gv, gs, 'box', new_image_marker_color, 1,
                   self.selected_marker_cb, self.moved_marker_cb)
-    self.solid_thresholds = sdt
+    self.image_thresholds = imt
 
     gv.click_callbacks.append(self.select_data_cb)
 #    c.bind('<Configure>', self.canvas_resize_cb)
@@ -2452,13 +2452,13 @@ class Histogram_Pane:
       
   # ---------------------------------------------------------------------------
   #
-  def solid_mode(self, solid):
-      sol = self.solid_thresholds
+  def image_mode(self, image):
+      img = self.image_thresholds
       surf = self.surface_thresholds
-      changed = (solid != sol.shown or (not solid) != surf.shown)
+      changed = (image != img.shown or (not image) != surf.shown)
       if changed:
-          sol.show(solid)
-          surf.show(not solid)
+          img.show(image)
+          surf.show(not image)
           self.set_threshold_and_color_widgets()
 
   # ---------------------------------------------------------------------------
@@ -2471,8 +2471,8 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   #
   def shown_markers(self):
-    if self.solid_thresholds.shown:
-      markers = self.solid_thresholds
+    if self.image_thresholds.shown:
+      markers = self.image_thresholds
     elif self.surface_thresholds.shown:
       markers = self.surface_thresholds
     else:
@@ -2546,9 +2546,9 @@ class Histogram_Pane:
     self.update_shown_icon()
 
     self.plot_surface_levels()
-    self.plot_solid_levels()
+    self.plot_image_levels()
     self.representation = rep = self.volume.representation
-    self.solid_mode(rep in ('solid', 'orthoplanes'))
+    self.image_mode(rep in ('solid', 'orthoplanes'))
     self.set_threshold_and_color_widgets()
     
   # ---------------------------------------------------------------------------
@@ -2593,15 +2593,15 @@ class Histogram_Pane:
     
   # ---------------------------------------------------------------------------
   #
-  def plot_solid_levels(self):
+  def plot_image_levels(self):
 
     v = self.volume
     if v is None:
       return
 
     from .histogram import Marker
-    solid_markers = [Marker(ts, c) for ts, c in zip(v.solid_levels, v.solid_colors)]
-    self.solid_thresholds.set_markers(solid_markers)
+    image_markers = [Marker(ts, c) for ts, c in zip(v.image_levels, v.image_colors)]
+    self.image_thresholds.set_markers(image_markers)
     
   # ---------------------------------------------------------------------------
   #
@@ -2651,7 +2651,7 @@ class Histogram_Pane:
     if message_cb:
         message_cb('')
     first_bin_center, last_bin_center, bin_size = s.bin_range(bins)
-    self.solid_thresholds.set_user_x_range(first_bin_center, last_bin_center)
+    self.image_thresholds.set_user_x_range(first_bin_center, last_bin_center)
     self.surface_thresholds.set_user_x_range(first_bin_center, last_bin_center)
 
     self.update_data_range()
@@ -2675,7 +2675,7 @@ class Histogram_Pane:
 #     bins = hwidth - 1
 #     hbox = (cborder, cborder + 5, cborder + bins - 1, cborder + hheight - 5)
 #     self.surface_thresholds.set_canvas_box(hbox)
-#     self.solid_thresholds.set_canvas_box(hbox)
+#     self.image_thresholds.set_canvas_box(hbox)
 #     return bins
 
   # ---------------------------------------------------------------------------
@@ -2704,9 +2704,9 @@ class Histogram_Pane:
     dsurfs = [s for s in v.surfaces if s not in msurfs]
     v.remove_surfaces(dsurfs)
     
-    markers = self.solid_thresholds.markers
-    v.solid_levels = [m.xy for m in markers]
-    v.solid_colors = [m.rgba for m in markers]
+    markers = self.image_thresholds.markers
+    v.image_levels = [m.xy for m in markers]
+    v.image_colors = [m.rgba for m in markers]
     if show and v.shown():
         v.show()
 
@@ -2759,7 +2759,7 @@ class Brightness_Transparency_Panel(PopupPanel):
     bfs.frame.grid(row = row, column = 0, sticky = 'ew')
     bfs.callback(dialog.redisplay_needed_cb)
     bfs.entry.bind('<KeyPress-Return>', dialog.redisplay_cb)
-    self.solid_brightness_factor = bfs
+    self.image_brightness_factor = bfs
 
     b = self.make_close_button(frame)
     b.grid(row = row, column = 1, sticky = 'e')
@@ -2781,17 +2781,17 @@ class Brightness_Transparency_Panel(PopupPanel):
     self.representation_changed('surface')
     
   # ---------------------------------------------------------------------------
-  # Show brightness and transparency sliders appropriate for surface or solid.
-  # Solid uses logarithmic transparency depth slider and surface uses linear
+  # Show brightness and transparency sliders appropriate for surface or image.
+  # Image uses logarithmic transparency depth slider and surface uses linear
   # transparency factor.
   #
   def representation_changed(self, representation):
 
-    solid = (representation == 'solid')
-    place_in_grid(self.transparency_factor.frame, not solid)
-    place_in_grid(self.surface_brightness_factor.frame, not solid)
-    place_in_grid(self.transparency_depth.frame, solid)
-    place_in_grid(self.solid_brightness_factor.frame, solid)
+    image = (representation == 'solid')
+    place_in_grid(self.transparency_factor.frame, not image)
+    place_in_grid(self.surface_brightness_factor.frame, not image)
+    place_in_grid(self.transparency_depth.frame, image)
+    place_in_grid(self.image_brightness_factor.frame, image)
   
   # ---------------------------------------------------------------------------
   #
@@ -2807,7 +2807,7 @@ class Brightness_Transparency_Panel(PopupPanel):
                                       invoke_callbacks = False)
     self.surface_brightness_factor.set_value(dr.surface_brightness_factor,
                                              invoke_callbacks = False)
-    self.solid_brightness_factor.set_value(dr.solid_brightness_factor,
+    self.image_brightness_factor.set_value(dr.image_brightness_factor,
                                            invoke_callbacks = False)
 
   # ---------------------------------------------------------------------------
@@ -2818,12 +2818,12 @@ class Brightness_Transparency_Panel(PopupPanel):
     tf = self.transparency_factor.value(default = 0)
     td = self.transparency_depth.value(default = 0)
     bf = self.surface_brightness_factor.value(default = 1)
-    bfs = self.solid_brightness_factor.value(default = 1)
+    bfs = self.image_brightness_factor.value(default = 1)
 
     dr.transparency_factor = tf      # for surface/mesh
     dr.surface_brightness_factor = bf
-    dr.transparency_depth = td       # for solid
-    dr.solid_brightness_factor = bfs
+    dr.transparency_depth = td       # for image rendering
+    dr.image_brightness_factor = bfs
 
 # -----------------------------------------------------------------------------
 # User interface for selecting subregions of a data set.
@@ -3322,16 +3322,16 @@ class Orthoplane_Panel(PopupPanel):
     if volume is None:
       return
 
-    solid = (volume.representation == 'solid')
+    image = (volume.representation == 'solid')
     ro = volume.rendering_options
     box_faces = ro.box_faces
     shown = ro.orthoplanes_shown
     msize = volume.matrix_size()
     for axis in (0,1,2):
-      p = bool(solid and not box_faces and (shown[axis] or msize[axis] == 1))
+      p = bool(image and not box_faces and (shown[axis] or msize[axis] == 1))
       self.planes[axis].set(p, invoke_callbacks = False)
 
-    box = bool(solid and box_faces)
+    box = bool(image and box_faces)
     self.box_faces.set(box, invoke_callbacks = False)
     
   # ---------------------------------------------------------------------------
@@ -4405,11 +4405,11 @@ class Display_Options_Panel(PopupPanel):
     ro.voxel_limit = float_variable_value(self.voxel_limit, 1)
 
 # -----------------------------------------------------------------------------
-# User interface for setting solid rendering options.
+# User interface for setting image rendering options.
 #
-class Solid_Options_Panel(PopupPanel):
+class Image_Options_Panel(PopupPanel):
 
-  name = 'Solid rendering options'           # Used in feature menu.
+  name = 'Image rendering options'           # Used in feature menu.
   
   def __init__(self, dialog, parent):
 
@@ -4481,7 +4481,7 @@ class Solid_Options_Panel(PopupPanel):
     self.dim_transparent_voxels = dt.variable
     self.dim_transparent_voxels.add_callback(dialog.redisplay_needed_cb)
     
-    bt = Hybrid.Checkbutton(frame, 'Solid brightness correction', 0)
+    bt = Hybrid.Checkbutton(frame, 'Image brightness correction', 0)
     bt.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.bt_correction = bt.variable
@@ -4493,7 +4493,7 @@ class Solid_Options_Panel(PopupPanel):
     self.minimal_texture_memory = mt.variable
     self.minimal_texture_memory.add_callback(dialog.redisplay_needed_cb)
     
-    vli = Hybrid.Checkbutton(frame, 'Solid linear interpolation', 0)
+    vli = Hybrid.Checkbutton(frame, 'Image linear interpolation', 0)
     vli.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.linear_interpolation = vli.variable

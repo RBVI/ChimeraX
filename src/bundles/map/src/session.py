@@ -498,19 +498,24 @@ map_attributes = (
   'region_list',
   'surface_brightness_factor',
   'transparency_factor',
-  'solid_levels',
-  'solid_colors',
-  'solid_brightness_factor',
+  'image_levels',
+  'image_colors',
+  'image_brightness_factor',
   'transparency_depth',
   'default_rgba',
   'session_volume_id',
   'version',
 )
+
 basic_map_attributes = (
   'id', 'display', 'region', 'representation',
   'surface_brightness_factor', 'transparency_factor',
-  'solid_levels', 'solid_colors', 'solid_brightness_factor',
+  'image_levels', 'image_colors', 'image_brightness_factor',
   'transparency_depth', 'default_rgba')
+
+renamed_attributes = (('solid_levels', 'image_levels'),
+                      ('solid_colors', 'image_colors'),
+                      ('solid_brightness_factor', 'image_brightness_factor'))
 
 # ---------------------------------------------------------------------------
 #
@@ -562,6 +567,10 @@ def set_map_state(s, volume, notify = True):
     if attr in s:
       setattr(v, attr, s[attr])
 
+  for old_attr, new_attr in renamed_attributes:
+    if old_attr in s:
+      setattr(v, new_attr, s[old_attr])
+      
   from chimerax.core.geometry import Place
   v.position = Place(s['place'])
 

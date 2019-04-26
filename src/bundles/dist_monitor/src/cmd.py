@@ -22,19 +22,19 @@ def distance(session, atoms, *, color=None, dashes=None,
     Show/report distance between two atoms.
     '''
     grp = session.pb_manager.get_group("distances", create=False)
-    from chimerax.core.core_settings import settings
+    from .settings import settings
     if not grp:
         # create group and add to DistMonitor
         grp = session.pb_manager.get_group("distances")
         if color is not None:
             grp.color = color.uint8x4()
         else:
-            grp.color = settings.distance_color.uint8x4()
+            grp.color = settings.color.uint8x4()
         if radius is not None:
             grp.radius = radius
         else:
-            grp.radius = settings.distance_radius
-        grp.dashes = settings.distance_dashes
+            grp.radius = settings.radius
+        grp.dashes = settings.dashes
         session.models.add([grp])
         session.pb_dist_monitor.add_group(grp, update_callback=_notify_updates)
     a1, a2 = atoms
@@ -99,7 +99,7 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
         pbs = grp.pseudobonds
     else:
         pbs = []
-    from chimerax.core.core_settings import settings
+    from .settings import settings
     if color is not None:
         for pb in pbs:
             pb.color = color.uint8x4()
@@ -109,36 +109,36 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
             if lm:
                 lm.add_labels(pbs, PseudobondLabel, session.main_view,
                     settings={ 'color': color.uint8x4() })
-        settings.distance_color = color
+        settings.color = color
         if set_defaults:
-            settings.save('distance_color')
+            settings.save('color')
 
     if dashes is not None:
         if not grp:
             grp = session.pb_manager.get_group("distances", create=True)
         grp.dashes = dashes
-        settings.distance_dashes = dashes
+        settings.dashes = dashes
         if set_defaults:
-            settings.save('distance_dashes')
+            settings.save('dashes')
 
     if decimal_places is not None:
         session.pb_dist_monitor.decimal_places = decimal_places
-        settings.distance_decimal_places = decimal_places
+        settings.decimal_places = decimal_places
         if set_defaults:
-            settings.save('distance_decimal_places')
+            settings.save('decimal_places')
 
     if radius is not None:
         for pb in pbs:
             pb.radius = radius
-        settings.distance_radius = radius
+        settings.radius = radius
         if set_defaults:
-            settings.save('distance_radius')
+            settings.save('radius')
 
     if symbol is not None:
         session.pb_dist_monitor.show_units = symbol
-        settings.distance_show_units = symbol
+        settings.show_units = symbol
         if set_defaults:
-            settings.save('distance_show_units')
+            settings.save('show_units')
 
 def xdistance(session, pbonds=None):
     pbg = session.pb_manager.get_group("distances", create=False)

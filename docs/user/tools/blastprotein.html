@@ -62,11 +62,10 @@ CDS translations + <a href="http://www.rcsb.org" target="_blank">PDB</a>
 excluding environmental samples from whole-genome sequencing; this database 
 is much larger than <b>PDB</b> alone and takes much longer to search
    </ul>
-<li><b># Hits</b> (default <b>100</b>)
-&ndash; <a href="http://blast.ncbi.nlm.nih.gov/" target="_blank">BLAST</a>
-&ldquo;maximum target sequences&rdquo; parameter, described as 
-&ldquo;the maximum number of aligned sequences to display,&rdquo; 
-but in practice, more hits than this number may be returned 
+<li><b># Sequences</b> (default <b>100</b>)
+&ndash; maximum number of unique sequences to return; more hits than this number
+may be obtained because multiple structures or other sequence-database entries
+may have the same sequence
 <li><b>Matrix</b>
 &ndash; amino acid substitution matrix to use for alignment scoring:
   <ul>
@@ -93,10 +92,12 @@ Clicking the <b>Blast</b> button initiates the search.
 <p>
 When results are returned, the hits are listed in a table below the
 <a href="#parameters">search parameters</a> in the <b>Blast Protein</b> window.
+</p><p>
 A text-search box allows finding hits that contain terms of interest.
 Pull-down menus to the right of the search box allow adjusting the number 
 of hits shown at a time and which columns of information are included
 in the table. Clicking a column header sorts by the values in that column.
+</p><p>
 Some columns are available for NR sequences
 regardless of whether they are in the PDB subset:
 </p>
@@ -201,5 +202,5 @@ are shown in upper case, nonconservative changes in lower case.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2017</address>
+April 2019</address>
 </body></html>

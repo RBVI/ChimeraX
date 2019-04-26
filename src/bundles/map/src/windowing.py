@@ -90,19 +90,19 @@ def translate_levels(maps, f):
         ms = v.matrix_value_statistics()
         vrange = (ms.maximum - ms.minimum)
         shift = f*vrange
-        levels = [(lev+shift,y) for lev,y in v.solid_levels]
-        v.set_parameters(solid_levels = levels)
+        levels = [(lev+shift,y) for lev,y in v.image_levels]
+        v.set_parameters(image_levels = levels)
 
 def scale_levels(maps, f):
     from numpy import mean
     for v in maps:
-        center = mean([lev for lev,y in v.solid_levels])
-        levels = [(lev+f*(lev-center),y) for lev,y in v.solid_levels]
-        v.set_parameters(solid_levels = levels)
+        center = mean([lev for lev,y in v.image_levels])
+        levels = [(lev+f*(lev-center),y) for lev,y in v.image_levels]
+        v.set_parameters(image_levels = levels)
 
 def log_volume_levels_command(v):
     if v.representation == 'solid':
-        levels = ' '.join('level %.4g,%.4g' % sl for sl in v.solid_levels)
+        levels = ' '.join('level %.4g,%.4g' % sl for sl in v.image_levels)
         command = 'volume #%s %s' % (v.id_string, levels)
         from chimerax.core.commands import log_equivalent_command
         log_equivalent_command(v.session, command)

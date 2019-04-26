@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Surface" version="1.0"
-	    package="chimerax.surface"
+	    package="chimerax.surface" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

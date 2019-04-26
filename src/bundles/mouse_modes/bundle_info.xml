@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-MouseModes" version="1.0"
-	    package="chimerax.mouse_modes"
+	    package="chimerax.mouse_modes" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

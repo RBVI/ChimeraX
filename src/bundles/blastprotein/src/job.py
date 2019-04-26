@@ -69,7 +69,7 @@ class BlastProteinJob(OpalJob):
             ( "chain", self.atomspec ),
             ( "database", self.database ),
             ( "cutoff", self.cutoff ),
-            ( "max_seqs", self.max_seqs ),
+            ( "maxSeqs", self.max_seqs ),
             ( "matrix", self.matrix ),
         ]
 
