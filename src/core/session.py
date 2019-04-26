@@ -253,10 +253,9 @@ class _SaveManager:
         if sm:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
-            except:
-                import traceback
-                session.logger.warning('Error in saving session for "%s":\n%s'
-                                       % (obj.__class__.__name__, traceback.format_exc()))
+            except Exception as e:
+                session.logger.report_exception(
+                    'Error while saving session data for "%s": %s' % (type(obj).__name__, str(e)))
         elif isinstance(obj, type):
             return None
         if data is None:

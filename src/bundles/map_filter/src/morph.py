@@ -54,7 +54,7 @@ class Interpolated_Map:
 
     self.adjust_thresholds = adjust_thresholds
     self.surface_level_ranks = []       # For avoiding creep during threshold
-    self.solid_level_ranks = []         #   normalization.
+    self.image_level_ranks = []         #   normalization.
 
   # ---------------------------------------------------------------------------
   #
@@ -206,10 +206,10 @@ class Interpolated_Map:
     if slev != rlev:
       self.surface_level_ranks = [ms.data_value_rank(lev) for lev in slev]
 
-    rlev = [ms.rank_data_value(r) for r in self.solid_level_ranks]
-    slev = [lev for lev,b in v.solid_levels]
+    rlev = [ms.rank_data_value(r) for r in self.image_level_ranks]
+    slev = [lev for lev,b in v.image_levels]
     if slev != rlev:
-      self.solid_level_ranks = [ms.data_value_rank(lev) for lev in slev]
+      self.image_level_ranks = [ms.data_value_rank(lev) for lev in slev]
 
   # ---------------------------------------------------------------------------
   #
@@ -218,9 +218,9 @@ class Interpolated_Map:
     ms = v.matrix_value_statistics()
 
     sflev = [ms.rank_data_value(r) for r in self.surface_level_ranks]
-    solev = list(zip([ms.rank_data_value(r) for r in self.solid_level_ranks],
-                     [b for lev,b in v.solid_levels]))
-    v.set_parameters(surface_levels = sflev, solid_levels = solev)
+    imlev = list(zip([ms.rank_data_value(r) for r in self.image_level_ranks],
+                     [b for lev,b in v.image_levels]))
+    v.set_parameters(surface_levels = sflev, image_levels = imlev)
 
 # -----------------------------------------------------------------------------
 #
@@ -250,12 +250,12 @@ def interpolate_colors(f1, v1, f2, v2, v):
     for s, s1, s2 in zip(v.surfaces, v1.surfaces, v2.surfaces):
       s.rgba = linear_combination(f1, s1.rgba, f2, s2.rgba)
 
-  nc = len(v.solid_colors)
-  if len(v1.solid_colors) == nc and len(v2.solid_colors) == nc:
+  nc = len(v.image_colors)
+  if len(v1.image_colors) == nc and len(v2.image_colors) == nc:
     from chimerax.core.geometry import linear_combination
-    scolors = [linear_combination(f1, v1.solid_colors[c], f2, v2.solid_colors[c])
+    scolors = [linear_combination(f1, v1.image_colors[c], f2, v2.image_colors[c])
                for c in range(nc)]
-    v.set_parameters(solid_colors = scolors)
+    v.set_parameters(image_colors = scolors)
 
 # -----------------------------------------------------------------------------
 #

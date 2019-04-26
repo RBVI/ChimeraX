@@ -42,13 +42,6 @@ class ToolbarTool(ToolInstance):
         from PyQt5.QtWidgets import QWidget
         self.tool_window._kludge.dock_widget.setTitleBarWidget(QWidget())
 
-        # TODO: Temporarily remove default toolbars
-        from chimerax.core.commands import run
-        # run(session, "toolshed hide 'Density Map Toolbar'", log=False)
-        run(session, "toolshed hide 'Graphics Toolbar'", log=False)
-        run(session, "toolshed hide 'Molecule Display Toolbar'", log=False)
-        run(session, "toolshed hide 'Mouse Modes for Right Button'", log=False)
-
     def _build_ui(self):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
         from PyQt5.QtWidgets import QVBoxLayout
