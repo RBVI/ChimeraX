@@ -50,7 +50,7 @@ def ui_autostart(session, do_start, tool_name):
         while tool_name in autostart:
             autostart.remove(tool_name)
     settings.autostart = autostart
-    settings.save()
+    settings.save('autostart')
 
 # -----------------------------------------------------------------------------
 #
@@ -68,7 +68,7 @@ def ui_favorite(session, make_favorite, tool_name):
         while tool_name in favorites:
             favorites.remove(tool_name)
     settings.favorites = favorites
-    settings.save()
+    settings.save('favorites')
     if session.ui.is_gui:
         session.ui.main_window.update_favorites_menu(session)
 
@@ -88,6 +88,6 @@ def ui_dockable(session, dockable, tool_name):
         if tool_name not in undockable_tools:
             undockable_tools.append(tool_name)
     settings.undockable = undockable_tools
-    settings.save()
+    settings.save('undockable')
     if session.ui.is_gui:
         session.ui.main_window._dockability_change(tool_name, dockable)
