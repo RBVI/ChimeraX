@@ -127,10 +127,8 @@ def nucleotides(session, representation, *,
                 dimensions = 'small'
             else:
                 dimensions = 'long'
-        if representation.startswith('fill'):
-            # TODO: residues.fill_rings = True
-            show_gly = True
-        elif representation == 'slab':
+        if representation == 'slab':
+            residues.ring_displays = True
             show_gly = True
         else:
             show_gly = glycosidic

@@ -201,12 +201,12 @@ _Toolbars = {
                 ("cmd:color selAtoms bynuc", "nuc-color.png", "nucleotide", "Color by nucleotide"),
             ],
             ("Nucleotides", False): [
-                ("cmd:nuc selAtoms atoms; style selAtoms & nucleic ringFill off", "nuc-atoms.png", "Plain", "Remove nucleotide abstraction"),
-                ("cmd:nuc selAtoms atoms; style selAtoms & nucleic ringFill on", "nuc-fill.png", "Filled", "Fill nucleotide rings"),
-                ("cmd:nuc selAtoms slab; style selAtoms & nucleic ringFill on", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
-                ("cmd:nuc selAtoms tube", "nuc-tube.png", "Tube/Slab", "Show nucleotide bases as slabs and sugars as tubes"),
-                ("cmd:nuc selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs"),
-                ("cmd:nuc selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotide h-bond ladders"),
+                ("cmd:nucleotides selAtoms atoms", "nuc-atoms.png", "Plain", "Remove nucleotide abstraction"),
+                ("cmd:nucleotides selAtoms fill", "nuc-fill.png", "Filled", "Fill nucleotide rings"),
+                ("cmd:nucleotides selAtoms slab", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
+                ("cmd:nucleotides selAtoms tube", "nuc-tube.png", "Tube/Slab", "Show nucleotide bases as slabs and sugars as tubes"),
+                ("cmd:nucleotides selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs"),
+                ("cmd:nucleotides selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotide h-bond ladders"),
             ],
             ("Misc", False): [
                 ("shortcut:hb", "hbonds.png", "Show hydrogen bonds", "Show hydrogen bonds"),
