@@ -2310,10 +2310,8 @@ class AtomicStructure(Structure):
                             nucleotides(self.session, 'tube/slab', objects=nucleic)
                         else:
                             nucleotides(self.session, 'ladder', objects=nucleic)
-                        nucleic_atoms = nucleic.atoms
-                        nucleic_atoms = nucleic_atoms.filter(nucleic_atoms.element_numbers == 6)
                         from .colors import nucleotide_colors
-                        nucleic_atoms.colors = nucleotide_colors(nucleic_atoms.residues)[0]
+                        nucleic.ring_colors = nucleotide_colors(nucleic)[0]
                 if ligand:
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords
