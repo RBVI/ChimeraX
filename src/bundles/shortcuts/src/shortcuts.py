@@ -470,7 +470,7 @@ def show_dots(session):
         m.display_style = m.Dot
 
 def show_grayscale(m):
-  m.set_representation('solid')
+  m.set_display_style('image')
 
 def toggle_outline_box(m):
     ro = m.rendering_options
@@ -483,7 +483,7 @@ def show_one_plane(m):
   m.set_parameters(orthoplanes_shown = (False, False, False),
                    box_faces = False)
   m.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
-  m.set_representation('solid')
+  m.set_display_style('image')
         
 def show_all_planes(m):
   ijk_min = (0,0,0)
@@ -502,7 +502,7 @@ def toggle_box_faces(m):
   m.set_parameters(box_faces = s,
                    color_mode = 'l8' if s else 'auto8',
                    orthoplanes_shown = (False, False, False))
-  m.set_representation('solid')
+  m.set_display_style('image')
 
 def mark_map_surface_center(m):
     from chimerax import markers

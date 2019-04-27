@@ -29,7 +29,7 @@ class WindowingMouseMode(MouseMode):
     def _visible_maps(self):
         from . import Volume
         return [m for m in self.session.models.list(type = Volume)
-                if m.visible and m.representation == 'solid']
+                if m.visible and m.image_shown]
         
     def mouse_drag(self, event):
 
@@ -101,7 +101,7 @@ def scale_levels(maps, f):
         v.set_parameters(image_levels = levels)
 
 def log_volume_levels_command(v):
-    if v.representation == 'solid':
+    if v.image_shown:
         levels = ' '.join('level %.4g,%.4g' % sl for sl in v.image_levels)
         command = 'volume #%s %s' % (v.id_string, levels)
         from chimerax.core.commands import log_equivalent_command

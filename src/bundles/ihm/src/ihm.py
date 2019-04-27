@@ -818,7 +818,7 @@ class IHMModel(Model):
                                      v.data.step[2]))
                     if r._id in rt:
                         v.ihm_model_projections = rt[r._id]
-                    v.initialize_thresholds(vfrac = (0.01,1), replace = True)
+                    v.set_display_style('image')
                     v.show()
                     emmodels.append(v)
         return emmodels
@@ -840,7 +840,6 @@ class IHMModel(Model):
                 v = d.volume_model(self.session)
                 if v:
                     v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
-                    v.initialize_thresholds(vfrac = (0.01,1), replace = True)
                     v.show()
                     emmodels.append(v)
         return emmodels
@@ -946,8 +945,8 @@ class IHMModel(Model):
                 g = probability_grid(asym_gaussians[asym_id])
                 g.name = '%s Gaussians' % asym_id
                 g.rgba = asym_colors[asym_id][:3] + (opacity,)
-                v = volume_from_grid_data(g, self.session, open_model = False, show_dialog = False)
-                v.initialize_thresholds()
+                v = volume_from_grid_data(g, self.session, style = 'surface',
+                                          open_model = False, show_dialog = False)
                 ms = v.matrix_value_statistics()
                 vlev = ms.mass_rank_data_value(level)
                 v.set_parameters(surface_levels = [vlev])

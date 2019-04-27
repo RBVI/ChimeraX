@@ -36,7 +36,7 @@ class ImageJGrid(GridData):
   def __init__(self, imagej_pixels, channel = None, time = None):
 
     self.imagej_pixels = d = imagej_pixels
-    self.initial_style = 'solid'
+    self.initial_style = 'image'
 
     name = d.name
     if d.nchannels > 1:

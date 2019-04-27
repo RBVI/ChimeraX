@@ -247,13 +247,13 @@ def surface_style(session, surfaces, style):
         surfaces = [m for m in session.models.list() if not isinstance(m, Structure)]
     from chimerax.map import Volume
     for s in surfaces:
-        if isinstance(s, Volume) and s.representation in ('surface', 'mesh'):
+        if isinstance(s, Volume) and s.surface_shown:
             if style == 'dot':
                 for d in s.surfaces:
                     d.display_style = d.Dot
             else:
-                rep = 'surface' if style == 'solid' else 'mesh'
-                s.set_representation(rep)
+                vstyle = 'surface' if style == 'solid' else 'mesh'
+                s.set_display_style(vstyle)
                 s.show()
         elif not s.empty_drawing():
             s.display_style = style

@@ -248,7 +248,7 @@ _Toolbars = {
             ("Style", False): [
                 ("shortcut:fl", "mapsurf.png", "surface", "Show map or surface in filled style"),
                 ("shortcut:me", "mesh.png", "mesh", "Show map or surface as mesh"),
-                ("shortcut:gs", "mapimage.png", "solid", "Show map as grayscale"),
+                ("shortcut:gs", "mapimage.png", "image", "Show map as grayscale"),
                 ("shortcut:tt", "icecube.png", "Transparent surface", "Toggle surface transparency"),
                 ("shortcut:ob", "outlinebox.png", "Outline box", "Toggle outline box"),
             ],
