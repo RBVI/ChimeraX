@@ -85,7 +85,8 @@ class ToolbarTool(ToolInstance):
         # First check that the path is a real command
         kind, value = cmd.split(':', maxsplit=1)
         if kind == "shortcut":
-            self.session.keyboard_shortcuts.run_shortcut(value)
+            from chimerax.shortcuts import shortcuts
+            shortcuts.keyboard_shortcuts(self.session).run_shortcut(value)
         elif kind == "mouse":
             button_to_bind = 'right'
             from chimerax.core.commands import run
