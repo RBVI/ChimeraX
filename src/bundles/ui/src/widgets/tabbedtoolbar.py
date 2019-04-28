@@ -29,6 +29,25 @@ from PyQt5.QtWidgets import (
 _debug = False   # DEBUG
 
 
+def split_title(title):
+    """Try to split title into two lines"""
+    words = title.split()
+    if len(words) <= 1:
+        return title
+    mid_len = int(0.4 * (sum(len(w) for w in words) + len(words) - 1))
+    new_title = words[0]
+    i = 1
+    while i < len(words) - 1:
+        if len(new_title) >= mid_len:
+            break
+        new_title += ' ' + words[i]
+        i += 1
+    new_title += '\n' + words[i]
+    for i in range(i + 1, len(words)):
+        new_title += ' ' + words[i]
+    return new_title
+
+
 class _Section(QWidgetAction):
     # A Section is a collection of buttons that are adjacent to each other
 
@@ -40,6 +59,8 @@ class _Section(QWidgetAction):
     def __init__(self, parent, section_title, show_section_titles, show_button_titles):
         super().__init__(parent)
         self._buttons = []
+        self._groups = {}   # { toolbar-widget: { group-name: menu-widget } }
+        self._actions = []  # need to keep references to actions in menus
         self.section_title = section_title
         self.compact = False
         self.show_section_titles = show_section_titles
@@ -49,65 +70,74 @@ class _Section(QWidgetAction):
         else:
             self.compact_height = 2
 
-    def add_button(self, title, callback, icon, description):
+    def add_button(self, title, callback, icon, description, group):
         index = len(self._buttons)
-        button_info = (title, callback, icon, description)
+        button_info = (title, callback, icon, description, group)
         self._buttons.append(button_info)
         existing_widgets = self.createdWidgets()
         for w in existing_widgets:
             self._add_button(w, index, button_info)
 
     def _add_button(self, parent, index, button_info):
-        (title, callback, icon, description) = button_info
+        (title, callback, icon, description, group) = button_info
         if hasattr(parent, '_title'):
             self._adjust_title(parent)
 
         # split title into two lines if long
         if '\n' not in title and len(title) > 6:
-            words = title.split()
-            if len(words) > 1:
-                mid_len = int(0.4 * (sum(len(w) for w in words) + len(words) - 1))
-                new_title = words[0]
-                i = 1
-                while i < len(words) - 1:
-                    if len(new_title) >= mid_len:
-                        break
-                    new_title += ' ' + words[i]
-                    i += 1
-                new_title += '\n' + words[i]
-                for i in range(i + 1, len(words)):
-                    new_title += ' ' + words[i]
-                title = new_title
+            title = split_title(title)
 
-        b = QToolButton(parent)
-        b.setAutoRaise(True)
-        if icon is None:
-            icon = QIcon()
-            style = Qt.ToolButtonTextOnly
+        if not group:
+            group_first = group_follow = False
         else:
-            if not self.show_button_titles:
-                style = Qt.ToolButtonIconOnly
-            elif self.compact:
-                style = Qt.ToolButtonTextBesideIcon
+            menus = self._groups.setdefault(parent, {})
+            group_first = group not in menus
+            group_follow = not group_first
+        if not group_follow:
+            b = QToolButton(parent)
+            b.setAutoRaise(True)
+            if icon is None:
+                icon = QIcon()
+                style = Qt.ToolButtonTextOnly
             else:
-                style = Qt.ToolButtonTextUnderIcon
-        b.setToolButtonStyle(style)
-        action = QAction(icon, title, parent)
+                if not self.show_button_titles:
+                    style = Qt.ToolButtonIconOnly
+                elif self.compact:
+                    style = Qt.ToolButtonTextBesideIcon
+                else:
+                    style = Qt.ToolButtonTextUnderIcon
+            b.setToolButtonStyle(style)
+        action = QAction(icon, title)
         if description:
             action.setToolTip(description)
         if callback is not None:
             action.triggered.connect(callback)
-        b.setDefaultAction(action)
+        if group_follow:
+            menu = self._groups[parent][group]
+            menu.addAction(action)
+            self._actions.append(action)
+        else:
+            b.setDefaultAction(action)
+            if group_first:
+                b.setPopupMode(b.MenuButtonPopup)
+                b.triggered.connect(lambda action, b=b: self._update_button_action(b, action))
+                from PyQt5.QtWidgets import QMenu
+                m = self._groups[parent][group] = QMenu(parent)
+                b.setMenu(m)
+                m.addAction(action)
+                self._actions.append(action)
+
         # print('Font height:', b.fondMetrics().height())  # DEBUG
         # print('Font size:', b.fontInfo().pixelSize())  # DEBUG
         # print('Icon size:', b.iconSize())  # DEBUG
-        if self.compact:
-            row = index % self.compact_height
-            column = index // self.compact_height
-            parent._layout.addWidget(b, row, column, Qt.AlignBottom)
-        else:
-            b.setIconSize(2 * b.iconSize())
-            parent._layout.addWidget(b, 0, index, Qt.AlignTop)
+        if not group_follow:
+            if self.compact:
+                row = index % self.compact_height
+                column = index // self.compact_height
+                parent._layout.addWidget(b, row, column, Qt.AlignBottom)
+            else:
+                b.setIconSize(2 * b.iconSize())
+                parent._layout.addWidget(b, 0, index, Qt.AlignTop)
         global _debug
         if _debug:
             _debug = False
@@ -117,6 +147,12 @@ class _Section(QWidgetAction):
             print('horizontal stretch:', policy.horizontalStretch())
             print('vertical policy:', policy.verticalPolicy())
             print('vertical stretch:', policy.verticalStretch())
+
+    def _update_button_action(self, button, action):
+        button.setDefaultAction(action)
+        # text appears in wrong location unless parent is updated
+        parent = button.parent()
+        parent.adjustSize()
 
     def _adjust_title(self, w):
         # Readding the widget, removes the old entry, and lets us change the parameters
@@ -153,6 +189,9 @@ class _Section(QWidgetAction):
             w.deleteLater()
 
     def _redo_layout(self):
+        self._actions.clear()
+        # TODO: destroy group menus
+        self._groups.clear()
         for w in self.createdWidgets():
             if hasattr(w, '_title'):
                 del w._title
@@ -194,7 +233,9 @@ class TabbedToolbar(QTabWidget):
         self.show_section_titles = show_section_titles
         self.show_button_titles = show_button_titles
         #self.setStyleSheet("* { padding: 0; margin: 0; border: 1px inset red; } *::separator { background-color: green; width: 1px; }")
-        self.setStyleSheet("* { padding: 0; margin: 0; } *::separator { width: 1px; }")
+        #self.setStyleSheet("* { padding: 0; margin: 0; } *::separator { width: 1px; }")
+        self.setStyleSheet("* { padding: 0; margin: 0; }")
+        #self.setStyleSheet("*::separator { width: 1px; }")
 
     # TODO: disable/enable button/section, remove button
 
@@ -220,9 +261,9 @@ class TabbedToolbar(QTabWidget):
         section = self._get_section(tab_title, section_title)
         section.set_compact(on_off)
 
-    def add_button(self, tab_title, section_title, button_title, callback, icon=None, description=None):
+    def add_button(self, tab_title, section_title, button_title, callback, icon=None, description=None, group=None):
         section = self._get_section(tab_title, section_title)
-        section.add_button(button_title, callback, icon, description)
+        section.add_button(button_title, callback, icon, description, group)
 
     def show_tab(self, tab_title):
         tab_info = self._buttons.get(tab_title, None)
