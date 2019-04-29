@@ -32,10 +32,10 @@ class ToolbarTool(ToolInstance):
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
-        self.display_name = "Toolbar"
+        self.display_name = "Tabbed Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
         # kludge to hide title bar

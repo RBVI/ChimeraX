@@ -18,7 +18,7 @@ class UI_Settings(Settings):
     EXPLICIT_SAVE = {
         'autostart': [
             'Log', 'Model Panel', 'Command Line Interface',
-            'Toolbar',
+            'Tabbed Toolbar',
         ],
         'default_tool_window_side': "right",
         'favorites': [],
