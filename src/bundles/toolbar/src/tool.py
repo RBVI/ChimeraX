@@ -179,10 +179,6 @@ _Toolbars = {
     "Molecule Display": (
         "help:user/tools/moldisplay.html",
         {
-            ("Last action", True): [
-                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
-                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
-            ],
             ("Atoms", True): [
                 ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
                 ("shortcut:ha", "atomhide.png", "Hide", "Hide atoms"),
@@ -217,6 +213,10 @@ _Toolbars = {
             ],
             ("Misc", False): [
                 ("shortcut:hb", "hbonds.png", "Show hydrogen bonds", "Show hydrogen bonds"),
+            ],
+            ("Last action", True): [
+                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
+                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
             ],
         },
     ),
