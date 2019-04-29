@@ -32,10 +32,10 @@ class ToolbarTool(ToolInstance):
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
-        self.display_name = "Toolbar"
+        self.display_name = "Tabbed Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
         # kludge to hide title bar
@@ -181,10 +181,6 @@ _Toolbars = {
     "Molecule Display": (
         "help:user/tools/moldisplay.html",
         {
-            ("Last action", True): [
-                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
-                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
-            ],
             ("Atoms", True): [
                 ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
                 ("shortcut:ha", "atomhide.png", "Hide", "Hide atoms"),
@@ -219,6 +215,10 @@ _Toolbars = {
             ],
             ("Misc", False): [
                 ("shortcut:hb", "hbonds.png", "Show hydrogen bonds", "Show hydrogen bonds"),
+            ],
+            ("Last action", True): [
+                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
+                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
             ],
         },
     ),
