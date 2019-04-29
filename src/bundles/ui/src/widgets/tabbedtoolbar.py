@@ -76,7 +76,8 @@ class _Section(QWidgetAction):
         self._buttons.append(button_info)
         existing_widgets = self.createdWidgets()
         for w in existing_widgets:
-            self._add_button(w, index, button_info)
+            b = self._add_button(w, index, button_info)
+        return b
 
     def _add_button(self, parent, index, button_info):
         (title, callback, icon, description, group) = button_info
@@ -148,6 +149,8 @@ class _Section(QWidgetAction):
             print('vertical policy:', policy.verticalPolicy())
             print('vertical stretch:', policy.verticalStretch())
 
+        return None if group_follow else b
+    
     def _update_button_action(self, button, action):
         button.setDefaultAction(action)
         # text appears in wrong location unless parent is updated
@@ -263,7 +266,8 @@ class TabbedToolbar(QTabWidget):
 
     def add_button(self, tab_title, section_title, button_title, callback, icon=None, description=None, group=None):
         section = self._get_section(tab_title, section_title)
-        section.add_button(button_title, callback, icon, description, group)
+        b = section.add_button(button_title, callback, icon, description, group)
+        return b
 
     def show_tab(self, tab_title):
         tab_info = self._buttons.get(tab_title, None)
