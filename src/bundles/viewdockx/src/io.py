@@ -1,10 +1,11 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def open_mol2(session, stream, name, auto_style, atomic):
-    p = Mol2Parser(session, stream, name, auto_style, atomic)
+def open_mol2(session, path, file_name, auto_style, atomic):
+    with open(path) as stream:
+        p = Mol2Parser(session, stream, file_name, auto_style, atomic)
     structures = p.structures
     status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (
-                    name, len(structures),
+                    file_name, len(structures),
                     sum([s.num_atoms for s in structures]),
                     sum([s.num_bonds for s in structures]))
     return structures, status
