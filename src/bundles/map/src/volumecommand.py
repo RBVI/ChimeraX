@@ -28,7 +28,7 @@ def register_volume_command(logger):
     volume_desc = CmdDesc(
         optional = [('volumes', MapsArg)],
         keyword = [
-               ('style', EnumOf(('surface', 'mesh', 'solid'))),
+               ('style', EnumOf(('surface', 'mesh', 'image', 'solid'))),
                ('show', NoArg),
                ('hide', NoArg),
                ('toggle', NoArg),
@@ -189,7 +189,7 @@ def volume(session,
     Parameters
     ----------
     volumes : list of maps
-    style : "surface", "mesh", or "solid"
+    style : "surface", "mesh", or "image"
     show : bool
     hide : bool
     toggle : bool
@@ -294,13 +294,16 @@ def volume(session,
     else:
         vlist = volumes
 
+    if style == 'solid':
+        style = 'image'	# Rename solid to image.
+
     # Special defaults
     if box_faces:
-        defaults = (('style', 'solid'), ('color_mode', 'opaque8'),
+        defaults = (('style', 'image'), ('color_mode', 'opaque8'),
                     ('show_outline_box', True), ('expand_single_plane', True),
                     ('orthoplanes', 'off'))
     elif not orthoplanes is None and orthoplanes != 'off':
-        defaults = (('style', 'solid'), ('color_mode', 'opaque8'),
+        defaults = (('style', 'image'), ('color_mode', 'opaque8'),
                     ('show_outline_box', True), ('expand_single_plane', True))
     elif not box_faces is None or not orthoplanes is None:
         defaults = (('color_mode', 'auto8'),)
@@ -377,7 +380,7 @@ def apply_global_settings(session, gsettings):
 def apply_volume_options(v, doptions, roptions, session):
 
     if 'style' in doptions:
-        v.set_representation(doptions['style'])
+        v.set_display_style(doptions['style'])
 
     kw = level_and_color_settings(v, doptions)
     kw.update(roptions)
@@ -499,8 +502,15 @@ def level_and_color_settings(v, options):
         raise errors.UserError('Number of colors (%d) does not match number of levels (%d)'
                             % (len(colors), len(levels)))
 
-    style = options.get('style', v.representation)
-    if style in ('mesh', None):
+    if 'style' in options:
+        style = options['style']
+        if style == 'mesh':
+            style = 'surface'
+    elif v.surface_shown:
+        style = 'surface'
+    elif v.image_shown:
+        style = 'image'
+    else:
         style = 'surface'
 
     if style in ('surface', 'mesh'):
@@ -509,7 +519,7 @@ def level_and_color_settings(v, options):
                 from chimerax.core.errors import UserError
                 raise UserError('Surface level must be a single value')
         levels = [l[0] for l in levels]
-    elif style == 'solid':
+    elif style == 'image':
         for l in levels:
             if len(l) != 2:
                 from chimerax.core.errors import UserError
@@ -522,7 +532,7 @@ def level_and_color_settings(v, options):
         if levels:
             clist = [colors[0].rgba]*len(levels)
         else:
-            nlev = len(v.image_levels if style == 'solid' else [s.level for s in v.surfaces])
+            nlev = len(v.image_levels if style == 'image' else [s.level for s in v.surfaces])
             clist = [colors[0].rgba]*nlev
         kw[style+'_colors'] = clist
     elif len(colors) > 1:

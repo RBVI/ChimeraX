@@ -839,10 +839,15 @@ class UserInterface:
         from PyQt5.QtWidgets import QToolButton
         if isinstance(w, QToolButton):
             if hasattr(w, 'vr_mode'):
-                return self._hand_mode(w.vr_mode())
+                if isinstance(w.vr_mode, str):
+                    mouse_mode = self._session.ui.mouse_modes.named_mode(w.vr_mode)
+                else:
+                    mouse_mode = w.vr_mode()
+                return self._hand_mode(mouse_mode)
             a = w.defaultAction()
             if hasattr(a, 'vr_mode'):
-                return self._hand_mode(a.vr_mode())
+                mouse_mode = a.vr_mode()
+                return self._hand_mode(mouse_mode)
         return None
 
     def set_mouse_mode_click_range(self, range):
@@ -1012,6 +1017,9 @@ class UserInterface:
             x0, y0 = gw.x() + gw.width(), gw.y()
             h = gw.height()
             w = mw.width() - x0
+# Show entire main window in VR.
+#            x0 = y0 = 0
+#            w, h = mw.width(), mw.height()
         else:
             x0, y0, w, h  = tw.x(), tw.y(), tw.width(), tw.height()
 # TODO: The x,y coords need to be in pixels relative to the ChimeraX main window.

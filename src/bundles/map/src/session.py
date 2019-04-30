@@ -493,7 +493,6 @@ map_attributes = (
   'id',
   'place',
   'region',
-  'representation',
   'rendering_options',
   'region_list',
   'surface_brightness_factor',
@@ -508,7 +507,7 @@ map_attributes = (
 )
 
 basic_map_attributes = (
-  'id', 'display', 'region', 'representation',
+  'id', 'display', 'region',
   'surface_brightness_factor', 'transparency_factor',
   'image_levels', 'image_colors', 'image_brightness_factor',
   'transparency_depth', 'default_rgba')
@@ -562,7 +561,7 @@ def set_map_state(s, volume, notify = True):
   if not 'display' in s:
      # Fix old session files
     s['display'] = s['displayed'] if 'displayed' in s else True
-
+    
   for attr in basic_map_attributes:
     if attr in s:
       setattr(v, attr, s[attr])
@@ -570,6 +569,13 @@ def set_map_state(s, volume, notify = True):
   for old_attr, new_attr in renamed_attributes:
     if old_attr in s:
       setattr(v, new_attr, s[old_attr])
+
+  if 'representation' in s:
+    # Handle old session files that had representation attribute.
+    style = s['representation']
+    if style == 'solid':
+      style = 'image'
+    v.set_display_style(style)
       
   from chimerax.core.geometry import Place
   v.position = Place(s['place'])
@@ -587,7 +593,7 @@ def set_map_state(s, volume, notify = True):
 #  v.transparency_depth /= min(dsize)
 
   if notify:
-    v.call_change_callbacks(('representation changed',
+    v.call_change_callbacks(('display style changed',
                              'region changed',
                              'thresholds changed',
                              'displayed',
