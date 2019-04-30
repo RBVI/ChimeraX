@@ -152,7 +152,7 @@ or click the <a href="#icons">density-map icon</a>
 <p>
 For 3D volume rendering, choose <b>volume</b> display
 in <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>.
-This shows the full region in the transparent &ldquo;solid&rdquo; style.
+This shows the full region in the transparent &ldquo;image&rdquo; style.
 The <a href="#windowing">thresholds</a> may need to be adjusted
 to improve the appearance after switching display styles.
 </p><p>
@@ -174,7 +174,7 @@ or the <a href="commands/volume.html"><b>volume</b></a> command.
 Many settings can be adjusted with either the
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> graphical interface
 or the <a href="commands/volume.html"><b>volume</b></a> command,
-for example: <b>volume all style solid region all step 1</b>
+for example: <b>volume all style image region all step 1</b>
 </p><p>
 Commands that are frequently useful:
 <br>
@@ -308,7 +308,7 @@ correspondence between settings in different programs,
 and parts of the definition files may have been ignored.
 Besides a preset name, <b>appearance initial</b> 
 can be used to (re)set to the colors and intensities
-chosen automatically when a dataset is first shown in the solid style.
+chosen automatically when a dataset is first shown in the image style.
 The <b>initial</b> settings may be useful for single-plane display
 after using a 3D preset.
 </p><p>
@@ -351,7 +351,7 @@ Threshold levels and colors can also be set explicitly with the
 </blockquote>
 <p>
 A <b>windowing</b> mouse mode allows adjusting 
-solid display thresholds collectively:
+image display thresholds collectively:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center"><b>windowing</b>
@@ -378,7 +378,7 @@ that may be useful:
 </p>
 <ul>
 <li><b>projectionMode &nbsp;3d</b>
-&ndash; to avoid jumps in brightness during the rotation of solid displays,
+&ndash; to avoid jumps in brightness during the rotation of image displays,
 render using planes perpendicular to the line of sight
 (default for DICOM, see <a href="commands/volume.html#pmode">details...</a>);
 see also <a href="#icons">density-map icons</a>
@@ -512,14 +512,14 @@ on volume models, including:
 (<a href="commands/volume.html#pmode">details...</a>)
 <li><img class="icon" border=1 src="tools/shortcut-icons/airways.png">
 &nbsp;Airways II <a href="#presets">preset</a>
-for solid display, typically used for thick sections
+for image display, typically used for thick sections
 (<a href="commands/volume.html#appearance">details...</a>)
 <li><img class="icon" border=1 src="tools/shortcut-icons/ear.png">
 &nbsp;CT_Skin <a href="#presets">preset</a>
-for solid display
+for image display
 (<a href="commands/volume.html#appearance">details...</a>)
 <li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
-&nbsp;initial thresholds for solid display, <i>e.g.</i>, for single planes
+&nbsp;initial thresholds for image display, <i>e.g.</i>, for single planes
 (<a href="commands/volume.html#appearance">details...</a>)
 </ul>
 <p>
@@ -612,5 +612,5 @@ a significant feature of the scan is a tumor in the right lung.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2019</address>
+April 2019</address>
 </body></html>

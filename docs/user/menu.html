@@ -90,28 +90,29 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   standard nucleic acids, and standard amino acids
   <li><b>Structure</b> 
     <ul>
-    <li><b>Backbone</b> - biopolymer backbone atoms: peptide N, CA, C, O, 
+    <li><b>Backbone</b> &ndash; biopolymer backbone atoms: peptide N, CA, C, O, 
     nucleic acid phosphoribosyl backbone, and any directly attached hydrogens 
-    <li><b>Ions</b> - <a href="commands/atomspec.html#surfcats">ions</a>
-    <li><b>Ligand</b> - <a href="commands/atomspec.html#surfcats">ligand</a>
-    <li><b>Main</b> - <a href="commands/atomspec.html#surfcats">main</a>
-    <li><b>Nucleic Acid</b> - nucleosides, nucleotides, RNA, and DNA
-    <li><b>Protein</b> - amino acids, peptides, and proteins
-    <li><b>Ribose</b> - nucleic-acid backbone ribose and doxyribose moieties
-    <li><b>Secondary Structure</b> - protein/peptide secondary structure types:
+    <li><b>Ions</b> &ndash; <a href="commands/atomspec.html#surfcats">ions</a>
+    <li><b>Ligand</b> 
+    &ndash; <a href="commands/atomspec.html#surfcats">ligand</a>
+    <li><b>Main</b> &ndash; <a href="commands/atomspec.html#surfcats">main</a>
+    <li><b>Nucleic Acid</b> &ndash; nucleosides, nucleotides, RNA, and DNA
+    <li><b>Protein</b> &ndash; amino acids, peptides, and proteins
+    <li><b>Ribose</b> &ndash; nucleic-acid backbone ribose and doxyribose moieties
+    <li><b>Secondary Structure</b> &ndash; protein/peptide secondary structure types:
       <ul>
-      <li><b>Coil</b> - amino acid residues not in helix or strand
-      <li><b>Helix</b> - amino acid residues in helices
-      <li><b>Strand</b> - amino acid residues in strands
+      <li><b>Coil</b> &ndash; amino acid residues not in helix or strand
+      <li><b>Helix</b> &ndash; amino acid residues in helices
+      <li><b>Strand</b> &ndash; amino acid residues in strands
       </ul>
     <li><b>Sidechain + Connector</b>
-     - amino acid sidechain + CA (for connectivity to 
+     &ndash; amino acid sidechain + CA (for connectivity to 
      <a href="commands/cartoon.html">cartoon</a>), nucleic acid base + ribose,
     and any directly attached hydrogens
     <li><b>Sidechain Only</b>
-     - amino acid sidechain, nucleic acid base, 
+     &ndash; amino acid sidechain, nucleic acid base, 
     and any directly attached hydrogens
-    <li><b>Solvent</b> - <a href="commands/atomspec.html#surfcats">solvent</a>
+    <li><b>Solvent</b> &ndash; <a href="commands/atomspec.html#surfcats">solvent</a>
     </ul>
   <li><a name="selectseq"></a>
   <b>Sequence...</b> <a href="findseq.html">find and select</a>
@@ -126,7 +127,14 @@ both criteria must be met; for example, the atoms or residues must fall within
 <b>OK</b> performs the selection and closes the dialog, whereas
 <b>Apply</b> performs the selection without closing the dialog.
 See also: <a href="commands/atomspec.html#zones">zone atom specification</a>
-  <li><b>Clear</b> - deselect any existing selection
+  <li><b>Clear</b> &ndash; deselect any existing selection
+  <li><b>Invert</b> &ndash; select all items that are currently unselected,
+deselect all items that are currently selected
+  <li><b>All</b> &ndash; select all models and their parts 
+  <li><b>Broaden</b> &ndash; expand the current selection up a
+level in the <a href="selection.html#cascade">selection cascade</a> 
+  <li><b>Narrow</b> &ndash; narrow a previously broadened selection down a
+level in the <a href="selection.html#cascade">selection cascade</a>
   <li><b>Menu Mode: <i>mode</i></b>
     <ul>
     <li><b>Replace</b> (initial default <i>mode</i>)

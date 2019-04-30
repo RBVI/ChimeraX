@@ -78,7 +78,7 @@ See also:
 <blockquote>
 <b>volume #1 style mesh level 0.8 color red level 1.2 color 0,50,80</b>
 <br>
-<b>volume #2 level 10,0 level 100,1 level 400,1 color hot pink style solid</b>
+<b>volume #2 level 10,0 level 100,1 level 400,1 color hot pink style image</b>
 <br>
 <b>vol all hide</b>
 <br>
@@ -116,7 +116,7 @@ The <b>volume</b> command has many options, here grouped into categories:
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/orthoplanes.png"></a>
 <br><a href="#dispsurf">Surface and Mesh Display Options</a>
-<br><a href="#dispsolid">Solid Display Options</a>
+<br><a href="#dispsolid">Image Display Options</a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
 <a href="../tools/densitymaps.html" title="Density Map Toolbar...">
@@ -166,12 +166,12 @@ See also: <a href="info.html"><b>info</b></a>
   show those that are hidden and hide those that are shown.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="style"><b>style</b> &nbsp;surface | mesh | solid</a>
-  <br>Designate the style of display:
-  the <b>surface</b> and <b>mesh</b> modes
-  depict isosurfaces (contour surfaces), while the <b>solid</b> mode
-  shows data as a semitransparent solid.
+<a href="#top" class="nounder">&bull;</a>
+<a name="style"><b>style</b> &nbsp;surface | mesh | image</a>
+<br>Designate the style of display:
+the <b>surface</b> and <b>mesh</b> modes show isosurfaces (contour surfaces), 
+while the <b>image</b> mode (synonym <b>solid</b>) refers to a cloudlike display
+with varying intensity and opacity.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -186,11 +186,11 @@ volume models, including those opened later within the same session.
 Separate sets of <a href="#level">level</a>, <a href="#color">color</a>,
 <a href="#brightness">brightness</a>, and 
 <a href="#transparency">transparency</a> information
-are maintained for the surface/mesh and solid styles of a volume model;
-switching to solid from surface or mesh (or <i>vice versa</i>) restores 
+are maintained for the surface/mesh and image styles of a volume model;
+switching to image from surface or mesh (or <i>vice versa</i>) restores 
 any previous assignments for that style.
 See also: <a href="#dispsurf">surface and mesh display options</a>,
-<a href="#dispsolid">solid display options</a>
+<a href="#dispsolid">image display options</a>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="level"><b>level</b> &nbsp;<i>threshold-level</i></a>
@@ -206,7 +206,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   encloses a specified spatial volume,
   see the <a href="#encloseVolume"><b>encloseVolume</b></a>
   and <a href="#fastEncloseVolume"><b>fastEncloseVolume</b></a> options.
-  <li>For <b>solid</b> displays, <i>threshold-level</i> consists of two numbers 
+  <li>For <b>image</b> displays, <i>threshold-level</i> consists of two numbers 
   separated by a comma (no spaces). The first number indicates a data value
   and the second number indicates an intensity ranging from 0.0 to 1.0.
   These correspond to horizontal and vertical placement, respectively, 
@@ -247,7 +247,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   The <i>threshold-color</i> can be any
   <a href="colornames.html">color name</a> that specifies a single color.
   The default color is an opaque medium gray (<b>70,70,70</b>) 
-  for surface and mesh displays, <b>white</b> for solid.
+  for surface and mesh displays, <b>white</b> for image.
 </blockquote>
 Multiple <a href="#level">level</a> and <a href="#color">color</a>
 specifications can be included in a single command.
@@ -324,7 +324,7 @@ is significant.
   line of mesh (default <b>0.0</b>).  By default,
   these objects are dimmed as they are made more transparent
   (see <a href="#dim"><b>dimTransparency</b></a>.)
-  <li>For <b>solid</b> displays, this transparency setting
+  <li>For <b>image</b> displays, this transparency setting
   further modulates initial transparencies obtained from the 
   <a href="#transferfunction">transfer function</a>
   in a way that compensates for the thickness of the display
@@ -728,7 +728,7 @@ and data value in a pop-up balloon.
   by integer grid indices (default <b>0,0,0</b> or the lowest indices in the
   <a href="#dimensions">current region</a>).
   Orthogonal planes automatically use the 
-  <b>solid</b> <a href="#style">display style</a>,
+  <b>image</b> <a href="#style">display style</a>,
   opaque <a href="#dispsolid">color mode</a>, 
   and an <a href="#outline">outline</a>, 
   although these can be overriden with the corresponding command options. 
@@ -750,7 +750,7 @@ and data value in a pop-up balloon.
   If only a single plane is shown beforehand, it will be
   <a href="#expandSinglePlane">expanded</a> to define the region.
   Box-face planes automatically use the
-  <b>solid</b> <a href="#style">display style</a>,
+  <b>image</b> <a href="#style">display style</a>,
   opaque <a href="#dispsolid">color mode</a>,   
   and an <a href="#outline">outline</a>,
   although these can be overriden with the corresponding command options.
@@ -899,10 +899,10 @@ both depict isosurfaces.
 <p class="nav">
 [<a href="#top">back to top: volume</a>]
 </p>
-<h3 class="usage"><b>Solid Display Options</b> &nbsp;&nbsp;&nbsp;
+<h3 class="usage"><b>Image Display Options</b> &nbsp;&nbsp;&nbsp;
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <p>
-  The <b>solid</b> <a href="#style">display style</a>
+  The <b>image</b> <a href="#style">display style</a>
   shows data as a semitransparent solid.
 </p>
 <blockquote>
@@ -972,7 +972,7 @@ with possible values:
   <a name="dimvox"><b>dimTransparentVoxels</b> &nbsp;<b>true</b> | false</a>
 <br>
 If <b>true</b> (default),
-scale voxel brightness in solid displays by a factor of (1&ndash;transparency).
+scale voxel brightness in image displays by a factor of (1&ndash;transparency).
 If <b>false</b>, increasing the <a href="#transparency">transparency</a>
 makes a volume appear brighter because less light is blocked.
 The <a href="#appearance"><b>appearance</b></a> option also adjusts this setting.
@@ -1023,7 +1023,7 @@ is shown may slow performance significantly.
   <a name="blendOnGpu"></a>
   <b>blendOnGpu</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
-Whether solid-display color blending of
+Whether image-display color blending of
 <a href="../tools/volumeviewer.html#multichannel">multichannel data</a>
 should be done on the GPU (if true) or CPU (if <b>false</b>; default).
 Color blending on the GPU is about an order of magnitude faster.
@@ -1048,7 +1048,7 @@ Color blending on the GPU is about an order of magnitude faster.
   <b>btCorrection</b> &nbsp;true | <b>false</b>
   <br>Correct brightness and transparency for the viewing angle.
   Without this correction, the apparent brightness and transparency
-  of solid displays (in <a href="#pmode">projection modes</a> other than 3d)
+  of image displays (in <a href="#pmode">projection modes</a> other than 3d)
   will depend on the viewing angle relative to the data axes.  
   For a cube-shaped volume with equal resolution in the X, Y, and Z dimensions,
   the brightness drops and the transparency increases by a factor of
@@ -1059,7 +1059,7 @@ Color blending on the GPU is about an order of magnitude faster.
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>minimalTextureMemory</b> &nbsp;true | <b>false</b>
-  <br>Reuse a single 2D texture for solid displays 
+  <br>Reuse a single 2D texture for image displays 
   (in <a href="#pmode">projection modes</a> other than 3d)
   instead of allocating
   separate textures for every plane of the data.  This is useful
@@ -1070,7 +1070,7 @@ Color blending on the GPU is about an order of magnitude faster.
   <a href="#top" class="nounder">&bull;</a>
   <b>linearInterpolation</b> &nbsp;<b>true</b> | false
   <br>Linearly interpolate brightness and transparency
-  between voxels in solid displays.
+  between voxels in image displays.
   Turning interpolation off may yield a pixelated appearance
   but speed up rendering, depending on the graphics hardware.
 </blockquote>
@@ -1090,7 +1090,7 @@ target="_blank">Horos 3D preset</a>
 target="_blank">MRIcroGL</a> color lookup table (CLUT)
 (with <a href="#dimvox"><b>dimTransparentVoxels</b></a> true
 and <a href="#transparency"><b>transparency</b></a> 0.05)
-to the solid display.
+to the image display.
 <a href="https://horosproject.org/about/" target="_blank">Horos</a> 
 and <a href="https://www.mccauslandcenter.sc.edu/mricrogl/home"
 target="_blank">MRIcroGL</a> 
@@ -1112,10 +1112,10 @@ The Horos 3D presets are generally intended for
 </p><p>
 Besides a preset name, <b>initial</b> can be used to (re)set to the
 <a href="#level">threshold levels</a> and colors chosen automatically 
-for the data when first shown as solid, with
+for the data when first shown as image, with
 <a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
 <a href="../dicom/dicom.html">DICOM</a> data are initially shown 
-as solid with thresholds: (-1000,0),(300,0.9),(3000,1).
+as image with thresholds: (-1000,0),(300,0.9),(3000,1).
 The <b>initial</b> settings may be useful for viewing 
 <a href="#planes">planes</a> or thin slabs.
 See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
@@ -1702,7 +1702,7 @@ The <b>interpolateColors</b> option
 only applies when the maps have the same number of
 <a href="#general">thresholds</a>
 (contour levels for surface/mesh display,
-coloring control nodes for solid display).
+coloring control nodes for image display).
 </p><p>
 The morph is created as a new map (volume) model. However, if the
 <a href="#vop-options"><b>modelId</b></a> of an existing morph map is given,
@@ -2230,8 +2230,8 @@ where 0 is the bottom of the histogram and 1 is the top. Rendering time
 does not depend on the positions of the thresholds, but increases with
 greater numbers of thresholds.
 </p><p>
-<a name="soliddetails"><b>Solid transparency details</b></a>.
-For <a href="#dispsolid"><b>solid</b></a> displays,
+<a name="soliddetails"><b>Image transparency details</b></a>.
+For <a href="#dispsolid"><b>image</b></a> displays,
 the <a href="#transferfunction">transfer function</a> maps a
 voxel's data value to a vertical position (ranging from 0 to 1)
 on the histogram:
