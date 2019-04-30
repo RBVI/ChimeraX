@@ -133,8 +133,10 @@ class ToolbarTool(ToolInstance):
                         tooltip = descrip
                     if what.startswith("mouse:"):
                         kw["vr_mode"] = what[6:]   # Allows VR to recognize mouse mode tool buttons
+                    if descrip and not descrip[0].isupper():
+                        descrip = descrip.capitalize()
                     self.ttb.add_button(
-                        tab, section, descrip.capitalize(),
+                        tab, section, descrip,
                         lambda e, what=what, self=self: self.handle_scheme(what),
                         icon, tooltip, **kw)
         self.ttb.show_tab('Home')
@@ -152,7 +154,7 @@ _Toolbars = {
             ],
             ("Images", False): [
                 ("shortcut:sx", "camera.png", "Snapshot", "Save snapshot to desktop"),
-                ("shortcut:vd", "video.png", "Record spin movie", "Record spin movie"),
+                ("shortcut:vd", "video.png", "Spin movie", "Record spin movie"),
             ],
             ("Atoms", True): [
                 ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
@@ -165,7 +167,7 @@ _Toolbars = {
             ("Styles", False): [
                 ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
                 ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
-                ("shortcut:bs", "ball.png", "Ball and stick", "Display atoms in ball and stick style"),
+                ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
             ],
             ("Background", False): [
                 ("shortcut:wb", "whitebg.png", "White", "White background"),
@@ -196,7 +198,7 @@ _Toolbars = {
             ("Styles", False): [
                 ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
                 ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
-                ("shortcut:bs", "ball.png", "Ball and stick", "Display atoms in ball and stick style"),
+                ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
             ],
             ("Coloring", False): [
                 ("shortcut:ce", "colorbyelement.png", "heteroatom", "Color non-carbon atoms by element"),
@@ -214,7 +216,7 @@ _Toolbars = {
                 ("cmd:nucleotides selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs", {'group': 'rungs'}),
             ],
             ("Misc", False): [
-                ("shortcut:hb", "hbonds.png", "Show hydrogen bonds", "Show hydrogen bonds"),
+                ("shortcut:hb", "hbonds.png", "H-bonds", "Show hydrogen bonds"),
             ],
             ("Last action", True): [
                 ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
@@ -239,12 +241,12 @@ _Toolbars = {
                 ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
                 ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
                 ("shortcut:lF", "flat.png", "Flat", "Flat lighting"),
-                ("shortcut:sh", "shadow.png", "Single shadow", "Toggle shadows"),
+                ("shortcut:sh", "shadow.png", "Shadow", "Toggle shadows"),
                 ("shortcut:se", "silhouette.png", "Silhouettes", "Toggle silhouettes"),
             ],
             ("Camera", False): [
                 ("shortcut:va", "viewall.png", "View all", "View all"),
-                ("shortcut:dv", "orient.png", "Default orientation", "Default orientation"),
+                ("shortcut:dv", "orient.png", "Orient", "Default orientation"),
             ],
         }
     ),
@@ -272,11 +274,11 @@ _Toolbars = {
                 ("shortcut:pa", "fullvolume.png", "Full", "Show all planes"),
             ],
             ("Calculations", False): [
-                ("shortcut:fT", "fitmap.png", "Fit in map", "Fit map in map"),
-                ("shortcut:sb", "diffmap.png", "difference map", "Subtract map from map"),
-                ("shortcut:gf", "smooth.png", "Smooth map", "Smooth map"),
+                ("shortcut:fT", "fitmap.png", "Fit", "Fit map in map"),
+                ("shortcut:sb", "diffmap.png", "Subtract", "Subtract map from map"),
+                ("shortcut:gf", "smooth.png", "Smooth", "Smooth map"),
             ],
-            ("Solid Rendering", False): [
+            ("Image Display", False): [
                 ("shortcut:zs", "xyzslice.png", "XYZ slices", "Volume XYZ slices"),
                 ("shortcut:ps", "perpslice.png", "Perpendicular slices", "Volume perpendicular slices"),
                 ("shortcut:aw", "airways.png", "Airways preset", "Airways preset"),
