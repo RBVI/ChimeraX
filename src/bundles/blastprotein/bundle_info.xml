@@ -27,6 +27,10 @@ interface is available; otherwise, the results are logged.</Description>
     <Dependency name="ChimeraX-WebServices" version=">=1.0"/>
   </Dependencies>
 
+  <Providers>
+    <Provider name="blastprotein" manager="http_schemes"/>
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
