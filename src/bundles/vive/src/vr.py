@@ -787,7 +787,62 @@ class UserInterface:
         if ui is not None:
             ui.display = False
 
-    def click_position(self, room_point):
+    def process_hand_controller_button_event(self, hand_controller, button, pressed, released):
+        b = button
+        if b not in self.buttons:
+            return False
+
+        hc = hand_controller
+        rp = hc.room_position
+        if rp is None:
+            return False
+        
+        window_xy, on_panel = self._click_position(rp.origin())
+        if released and self.button_down == (hc, b) and window_xy:
+            # Always release mouse button even if off panel.
+            self._release(window_xy)
+            self.button_down = None
+        elif on_panel:
+            if pressed and self.button_down is None:
+                hand_mode = self._clicked_mouse_mode(window_xy)
+                if hand_mode:
+                    if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
+                        msg = 'No VR support for mouse mode %s' % hand_mode.name
+                    else:
+                        hc._set_hand_mode(b, hand_mode)
+                        msg = 'VR mode %s' % hand_mode.name
+                    self._session.logger.info(msg)
+                    self._show_pressed(window_xy)
+                    self.redraw_ui()	# Show log message
+                else:
+                    self._press(window_xy)
+                    self.button_down = (hc, b)
+            elif released:
+                if self.button_down == (hc, b):
+                    self._release(window_xy)
+                    self.button_down = None
+                else:
+                    self._show_pressed(window_xy, False)
+                    return False # Button released on panel but not pressed on panel
+        else:
+            return False
+        return True
+
+    def process_hand_controller_motion(self, hand_controller):
+        hc = hand_controller
+        if self.button_down and self.button_down[0] == hc:
+            window_xy, on_panel = self._click_position(hc.room_position.origin())
+            if window_xy is not None:
+                self._drag(window_xy)
+                return True
+
+        # Highlight ui button under pointer
+        if not self.button_down:
+            self._highlight_button(hc.room_position.origin(), hc)
+
+        return False
+    
+    def _click_position(self, room_point):
         if not self.shown():
             return None, False
         ui = self._ui_drawing
@@ -800,13 +855,13 @@ class UserInterface:
         px, py = ox + sx * (x + hw) / (2*hw), oy + sy * (hh - y) / (2*hh)
         return (px,py), on_panel
 
-    def press(self, window_xy):
+    def _press(self, window_xy):
         return self._click('press', window_xy)
 
-    def drag(self, window_xy):
+    def _drag(self, window_xy):
         return self._click('move', window_xy)
 
-    def release(self, window_xy):
+    def _release(self, window_xy):
         return self._click('release', window_xy)
 
     def _click(self, type, window_xy):
@@ -814,9 +869,9 @@ class UserInterface:
         w = self._post_mouse_event(type, window_xy)
         if w:
             if type == 'press':
-                self._show_pressed(w)
+                self._show_pressed_button(w)
             if type == 'release':
-                self._show_pressed(w, False)
+                self._show_pressed_button(w, pressed = False)
                 self.redraw_ui()
             return True
         return False
@@ -834,7 +889,7 @@ class UserInterface:
             if self._update_later == 0:
                 self._update_ui_image()
 
-    def clicked_mouse_mode(self, window_xy):
+    def _clicked_mouse_mode(self, window_xy):
         w, pos = self._clicked_widget(window_xy)
         from PyQt5.QtWidgets import QToolButton
         if isinstance(w, QToolButton):
@@ -897,18 +952,18 @@ class UserInterface:
         wpos = QPointF(w.mapFromGlobal(gp)) if w else None
         return w, wpos
 
-    def show_pressed(self, window_xy, pressed = True):
+    def _show_pressed(self, window_xy, pressed = True):
         w, wpos = self._clicked_widget(window_xy)
         if w:
-            self._show_pressed(w, pressed)
+            self._show_pressed_button(w, pressed)
 
-    def _show_pressed(self, widget, pressed = True):        
-        if widget in self._raised_buttons.values():
-            widget._show_pressed = pressed
+    def _show_pressed_button(self, button, pressed = True):
+        if button in self._raised_buttons.values():
+            button._show_pressed = pressed
             self._update_geometry()	# Show partially depressed button
             
-    def highlight_button(self, room_point, highlight_id):
-        window_xy, on_panel = self.click_position(room_point)
+    def _highlight_button(self, room_point, highlight_id):
+        window_xy, on_panel = self._click_position(room_point)
         if on_panel:
             widget, wpos = self._clicked_widget(window_xy)
             from PyQt5.QtWidgets import QAbstractButton
@@ -1018,8 +1073,8 @@ class UserInterface:
             h = gw.height()
             w = mw.width() - x0
 # Show entire main window in VR.
-#            x0 = y0 = 0
-#            w, h = mw.width(), mw.height()
+            x0 = y0 = 0
+            w, h = mw.width(), mw.height()
         else:
             x0, y0, w, h  = tw.x(), tw.y(), tw.width(), tw.height()
 # TODO: The x,y coords need to be in pixels relative to the ChimeraX main window.
@@ -1222,7 +1277,8 @@ class HandControllerModel(Model):
         m = self._modes.get(b)
         if not isinstance(m, ShowUIMode):
             # Check for click on UI panel.
-            if self._process_ui_event(camera.user_interface, b, pressed, released):
+            ui = camera.user_interface
+            if ui.process_hand_controller_button_event(self, b, pressed, released):
                 return
         
         # Call HandMode press() or release() callback.
@@ -1240,45 +1296,6 @@ class HandControllerModel(Model):
         self._active_drag_modes.remove(mode)
         if not isinstance(mode, (ShowUIMode, MoveSceneMode, ZoomMode)):
             camera.user_interface.redraw_ui()
-
-    def _process_ui_event(self, ui, b, pressed, released):
-        if b not in ui.buttons:
-            return False
-
-        rp = self.room_position
-        if rp is None:
-            return False
-        
-        window_xy, on_panel = ui.click_position(rp.origin())
-        if released and ui.button_down == (self, b) and window_xy:
-            # Always release mouse button even if off panel.
-            ui.release(window_xy)
-            ui.button_down = None
-        elif on_panel:
-            if pressed and ui.button_down is None:
-                hand_mode = ui.clicked_mouse_mode(window_xy)
-                if hand_mode:
-                    if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
-                        msg = 'No VR support for mouse mode %s' % hand_mode.name
-                    else:
-                        self._set_hand_mode(b, hand_mode)
-                        msg = 'VR mode %s' % hand_mode.name
-                    self.session.logger.info(msg)
-                    ui.show_pressed(window_xy)
-                    ui.redraw_ui()	# Show log message
-                else:
-                    ui.press(window_xy)
-                    ui.button_down = (self, b)
-            elif released:
-                if ui.button_down == (self, b):
-                    ui.release(window_xy)
-                    ui.button_down = None
-                else:
-                    ui.show_pressed(window_xy, False)
-                    return False # Button released on panel but not pressed on panel
-        else:
-            return False
-        return True
 
     def _show_button_down(self, b, pressed):
         cv = self._cone_vertices
@@ -1323,15 +1340,8 @@ class HandControllerModel(Model):
 
         # Generate mouse move event on ui panel.
         ui = camera.user_interface
-        if ui.button_down and ui.button_down[0] == self:
-            window_xy, on_panel = ui.click_position(self.room_position.origin())
-            if window_xy is not None:
-                ui.drag(window_xy)
-                return
-
-        # Highlight ui button under pointer
-        if not ui.button_down:
-            ui.highlight_button(self.room_position.origin(), self)
+        if ui.process_hand_controller_motion(self):
+            return	# UI drag in progress.
 
         # Do hand controller drag when buttons pressed
         if previous_pose is not None:
