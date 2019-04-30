@@ -226,6 +226,7 @@ class ToolUI(HtmlToolInstance):
 
     def _show_hits(self):
         import json
+        print(self._hits)
         js = "table_update(%s);" % json.dumps(self._hits)
         self.html_view.runJavaScript(js)
 
@@ -234,10 +235,10 @@ class ToolUI(HtmlToolInstance):
         for info in self._pdbinfo_list:
             data = info.fetch_info(self.session, chain_ids)
             for chain_id, hit in pdb_chains.items():
-                try:
-                    hit.update(data[chain_id])
-                except KeyError:
-                    pass
+                for k, v in data[chain_id].items():
+                    if isinstance(v, list):
+                        v = ", ".join([str(s) for s in v])
+                    hit[k] = v
 
 
     def job_failed(self, job, error):
