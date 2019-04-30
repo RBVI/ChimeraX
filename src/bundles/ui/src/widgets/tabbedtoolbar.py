@@ -71,6 +71,8 @@ class _Section(QWidgetAction):
             self.compact_height = 2
 
     def add_button(self, title, callback, icon, description, group, vr_mode):
+        if group and self.compact:
+            raise ValueError("Can not use grouped buttons in a compact section")
         index = len(self._buttons)
         button_info = (title, callback, icon, description, group, vr_mode)
         self._buttons.append(button_info)
@@ -91,8 +93,8 @@ class _Section(QWidgetAction):
             group_first = group_follow = False
         else:
             menus = self._groups.setdefault(parent, {})
-            group_first = group not in menus
-            group_follow = not group_first
+            group_first = group not in menus  # first button in drop down
+            group_follow = not group_first    # subsequent buttons
         if not group_follow:
             b = QToolButton(parent)
             if vr_mode is not None:
@@ -205,6 +207,10 @@ class _Section(QWidgetAction):
     def set_compact(self, on_off):
         if self.compact == on_off:
             return
+        for button_info in self._buttons:
+            (_, _, _, _, group, _) = button_info
+            if group:
+                raise ValueError("Can not make a section compact that has grouped buttons")
         self.compact = on_off
         self._redo_layout()
 
