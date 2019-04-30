@@ -131,12 +131,12 @@ class ToolbarTool(ToolInstance):
                     icon = QIcon(pm.scaledToHeight(128, Qt.SmoothTransformation))
                     if not tooltip:
                         tooltip = descrip
-                    b = self.ttb.add_button(
+                    if what.startswith("mouse:"):
+                        kw["vr_mode"] = what[6:]   # Allows VR to recognize mouse mode tool buttons
+                    self.ttb.add_button(
                         tab, section, descrip.capitalize(),
                         lambda e, what=what, self=self: self.handle_scheme(what),
                         icon, tooltip, **kw)
-                    if b and what.startswith('mouse:'):
-                        b.vr_mode = what[6:]	# Allows VR to recognize mouse mode tool buttons
         self.ttb.show_tab('Home')
 
 

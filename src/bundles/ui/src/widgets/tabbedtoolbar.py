@@ -70,17 +70,16 @@ class _Section(QWidgetAction):
         else:
             self.compact_height = 2
 
-    def add_button(self, title, callback, icon, description, group):
+    def add_button(self, title, callback, icon, description, group, vr_mode):
         index = len(self._buttons)
-        button_info = (title, callback, icon, description, group)
+        button_info = (title, callback, icon, description, group, vr_mode)
         self._buttons.append(button_info)
         existing_widgets = self.createdWidgets()
         for w in existing_widgets:
-            b = self._add_button(w, index, button_info)
-        return b
+            self._add_button(w, index, button_info)
 
     def _add_button(self, parent, index, button_info):
-        (title, callback, icon, description, group) = button_info
+        (title, callback, icon, description, group, vr_mode) = button_info
         if hasattr(parent, '_title'):
             self._adjust_title(parent)
 
@@ -96,6 +95,8 @@ class _Section(QWidgetAction):
             group_follow = not group_first
         if not group_follow:
             b = QToolButton(parent)
+            if vr_mode is not None:
+                b.vr_mode = vr_mode
             b.setAutoRaise(True)
             if icon is None:
                 icon = QIcon()
@@ -148,8 +149,6 @@ class _Section(QWidgetAction):
             print('horizontal stretch:', policy.horizontalStretch())
             print('vertical policy:', policy.verticalPolicy())
             print('vertical stretch:', policy.verticalStretch())
-
-        return None if group_follow else b
     
     def _update_button_action(self, button, action):
         button.setDefaultAction(action)
@@ -264,10 +263,9 @@ class TabbedToolbar(QTabWidget):
         section = self._get_section(tab_title, section_title)
         section.set_compact(on_off)
 
-    def add_button(self, tab_title, section_title, button_title, callback, icon=None, description=None, group=None):
+    def add_button(self, tab_title, section_title, button_title, callback, icon=None, description=None, *, group=None, vr_mode=None):
         section = self._get_section(tab_title, section_title)
-        b = section.add_button(button_title, callback, icon, description, group)
-        return b
+        section.add_button(button_title, callback, icon, description, group, vr_mode)
 
     def show_tab(self, tab_title):
         tab_info = self._buttons.get(tab_title, None)
