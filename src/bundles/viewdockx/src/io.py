@@ -240,15 +240,19 @@ class Mol2Parser:
                 # line must be all #
                 self._get_line()
                 continue
-            parts = self._line[non_hash:].lstrip().split(':', 1)
-            if len(parts) != 2:
-                # Assume value is last field
-                parts = self._line[non_hash:].rsplit(None, 1)
-            try:
-                self._data[parts[0].strip()] = parts[1].strip()
-            except IndexError:
-                # Must be a single word on the line, just ignore
-                pass
+            # Dock comments usually start with 10 #s
+            # Dock 3.7 has lines with a single #, but they contain
+            # a table of values that we cannot easily display, so skip
+            if non_hash > 8:
+                parts = self._line[non_hash:].lstrip().split(':', 1)
+                if len(parts) != 2:
+                    # Assume value is last field
+                    parts = self._line[non_hash:].rsplit(None, 1)
+                try:
+                    self._data[parts[0].strip()] = parts[1].strip()
+                except IndexError:
+                    # Must be a single word on the line, just ignore
+                    pass
             self._get_line()
 
     def _section_molecule(self):
