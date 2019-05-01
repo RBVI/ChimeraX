@@ -736,7 +736,7 @@ class UserInterface:
         self._start_ui_move_time = None
         self._last_ui_position = None
         self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
-        self.button_down = None
+        self._button_down = None
         self._button_rise = 0.01	# meters rise when pointer over button
         self._raised_buttons = {}	# maps highlight_id to widget
 
@@ -798,12 +798,12 @@ class UserInterface:
             return False
         
         window_xy, on_panel = self._click_position(rp.origin())
-        if released and self.button_down == (hc, b) and window_xy:
+        if released and self._button_down == (hc, b) and window_xy:
             # Always release mouse button even if off panel.
             self._release(window_xy)
-            self.button_down = None
+            self._button_down = None
         elif on_panel:
-            if pressed and self.button_down is None:
+            if pressed and self._button_down is None:
                 hand_mode = self._clicked_mouse_mode(window_xy)
                 if hand_mode:
                     if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
@@ -816,11 +816,11 @@ class UserInterface:
                     self.redraw_ui()	# Show log message
                 else:
                     self._press(window_xy)
-                    self.button_down = (hc, b)
+                    self._button_down = (hc, b)
             elif released:
-                if self.button_down == (hc, b):
+                if self._button_down == (hc, b):
                     self._release(window_xy)
-                    self.button_down = None
+                    self._button_down = None
                 else:
                     self._show_pressed(window_xy, False)
                     return False # Button released on panel but not pressed on panel
@@ -830,14 +830,14 @@ class UserInterface:
 
     def process_hand_controller_motion(self, hand_controller):
         hc = hand_controller
-        if self.button_down and self.button_down[0] == hc:
+        if self._button_down and self._button_down[0] == hc:
             window_xy, on_panel = self._click_position(hc.room_position.origin())
             if window_xy is not None:
                 self._drag(window_xy)
                 return True
 
         # Highlight ui button under pointer
-        if not self.button_down:
+        if not self._button_down:
             self._highlight_button(hc.room_position.origin(), hc)
 
         return False
